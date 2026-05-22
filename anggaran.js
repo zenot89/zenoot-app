@@ -192,6 +192,14 @@ function angRender() {
     return;
   }
 
+  // DEBUG — hapus setelah confirmed fix
+  console.group('[ANG DEBUG]');
+  console.log('kas_akun sample → id:', _angAkunBeban[0]?.id, '| type:', typeof _angAkunBeban[0]?.id, '| nama:', _angAkunBeban[0]?.nama);
+  console.log('jurnal sample   → akun_debit_id:', _angJurnal[0]?.akun_debit_id, '| type:', typeof _angJurnal[0]?.akun_debit_id, '| nominal:', _angJurnal[0]?.nominal);
+  console.log('all jurnal akun_debit_id values:', _angJurnal.map(j => j.akun_debit_id));
+  console.log('all kas_akun id values:', _angAkunBeban.map(a => a.id));
+  console.groupEnd();
+
   let totalAng = 0, totalRea = 0;
 
   const rows = _angAkunBeban.map(akun => {
