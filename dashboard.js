@@ -1640,13 +1640,15 @@ async function loadDashboard() {
           totalAnggaran += Number(a.nominal) || 0;
         }
       });
-      // Hitung target dari anggaran ÷ rasio beban channel
+      // Hitung target dari anggaran ÷ rasio beban channel Shopee saja
       if (totalAnggaran > 0) {
         const bebanChMap = {};
         (chBeban||[]).forEach(b => { bebanChMap[b.channel_id] = b; });
         let sumR = 0, cntR = 0;
         (chData||[]).forEach(ch => {
-          if (bebanChMap[ch.id]) { sumR += (bebanChMap[ch.id].beban_persen||0); cntR++; }
+          if ((ch.kategori||'').toLowerCase() === 'shopee' && bebanChMap[ch.id]) {
+            sumR += (bebanChMap[ch.id].beban_persen||0); cntR++;
+          }
         });
         const rasio = cntR > 0 ? sumR / cntR : 0;
         if (rasio > 0) target = Math.round(totalAnggaran / (rasio / 100));
