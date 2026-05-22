@@ -15,6 +15,9 @@ document.getElementById('page-anggaran').innerHTML = `
   @media(max-width:600px){ .ang-metrics { grid-template-columns:repeat(2,1fr); } }
   .ang-bar-wrap { height:5px; background:var(--cream2); border:1px solid var(--ink3); border-radius:3px; overflow:hidden; margin-top:5px; }
   .ang-bar-fill { height:100%; border-radius:3px; transition:width .5s; }
+  .ang-ok     { background:var(--ok); }
+  .ang-warn   { background:var(--warn); }
+  .ang-danger { background:var(--danger); }
 </style>
 
 <div class="ang-metrics">
