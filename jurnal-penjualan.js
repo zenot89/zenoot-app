@@ -835,7 +835,7 @@ async function jpLoadTargetHarian() {
     if (targetHarian <= 0) return;
 
     // Hitung omset hari ini dari data yang sudah ter-load
-    var todayStr = now.toISOString().slice(0,10);
+    var todayStr = _jpLocalDate(now);
     var omsetHari = 0;
     (_jpAllData||[]).forEach(function(r) {
       if (r.tanggal && String(r.tanggal).slice(0,10) === todayStr) {
