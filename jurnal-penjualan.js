@@ -16,8 +16,34 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
   </div>
 
+  <!-- TOMBOL AKSI LAPTOP — tersembunyi di mobile -->
+  <div id="jp-aksi-laptop" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
+    <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+      <i class="ti ti-refresh"></i>
+    </button>
+    <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-calendar"></i>
+      <span class="jp-periode-label-sync">Hari Ini</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-building-store"></i>
+      <span class="jp-channel-label-sync">Channel</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" id="jp-reset-btn-laptop" onclick="jpResetFilter()"
+      style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
+      <i class="ti ti-x"></i> Reset
+    </button>
+    <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
+      <i class="ti ti-plus"></i> Tambah Penjualan
+    </button>
+  </div>
+
   <!-- PROGRESS BAR TARGET HARIAN -->
-  <div id="jp-target-wrap" style="margin-bottom:12px;display:none">
+  <div id="jp-target-wrap" style="margin-bottom:12px;display:none;position:sticky;top:0;z-index:20;background:var(--cream3);padding:6px 0 4px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <span style="display:flex;align-items:center;gap:8px">
         <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Target Harian</span>
@@ -111,12 +137,15 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       .jp-row-2 .fg-induk { flex: 1 1 0; width: auto; }
       .jp-row-3 .fg-total { flex: 1 1 140px; }
     }
-  /* ── Portrait mobile: toolbar 1 baris ── */
+  /* ── Laptop/landscape: tampilkan toolbar luar, sembunyikan toolbar dalam card ── */
+  @media (min-width: 521px) {
+    #jp-aksi-laptop { display: flex !important; }
+    #jp-aksi-mobile { display: none !important; }
+  }
+  /* ── Portrait mobile: sembunyikan toolbar luar, tampilkan dalam card ── */
   @media (max-width: 520px) {
-    #jp-toolbar-left { flex-wrap: nowrap !important; }
-    #jp-toolbar-left .btn { font-size: 11px !important; padding: 3px 7px !important; }
-    #jp-toolbar-right .btn { font-size: 11px !important; padding: 3px 7px !important; }
-    #jp-toolbar-wrap { flex-wrap: nowrap !important; gap: 4px !important; }
+    #jp-aksi-laptop { display: none !important; }
+    #jp-aksi-mobile { display: flex !important; }
   }
   </style>
 
@@ -232,7 +261,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <i class="ti ti-chart-bar"></i> Produk Terjual
       </button>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
+    <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
         <i class="ti ti-refresh"></i>
       </button>
@@ -674,7 +703,8 @@ function jpTogglePeriode() {
   if (!panel) return;
   if (chPanel) { chPanel.style.display = 'none'; document.removeEventListener('click', jpCloseChannelOutside); }
   var isOpen = panel.style.display !== 'none';
-  if (!isOpen) _jpPositionPanel('jp-periode-btn', 'jp-periode-panel');
+  var activeBtn = window.innerWidth > 520 ? 'jp-periode-btn-laptop' : 'jp-periode-btn';
+  if (!isOpen) _jpPositionPanel(activeBtn, 'jp-periode-panel');
   panel.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
     setTimeout(function() {
@@ -714,7 +744,8 @@ function jpToggleChannel() {
   if (!panel) return;
   if (perPanel) perPanel.style.display = 'none';
   var isOpen = panel.style.display !== 'none';
-  if (!isOpen) _jpPositionPanel('jp-channel-btn', 'jp-channel-panel');
+  var activeCh = window.innerWidth > 520 ? 'jp-channel-btn-laptop' : 'jp-channel-btn';
+  if (!isOpen) _jpPositionPanel(activeCh, 'jp-channel-panel');
   panel.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
     setTimeout(function() {
@@ -759,15 +790,18 @@ function jpUpdatePeriodeLabel() {
   };
   var el = document.getElementById('jp-periode-label');
   if (el) el.textContent = map[_jpWaktuMode] || 'Hari Ini';
+  // sync laptop label
+  document.querySelectorAll('.jp-periode-label-sync').forEach(function(e){ e.textContent = map[_jpWaktuMode] || 'Hari Ini'; });
 }
 function jpUpdateChannelLabel() {
   var inp = document.getElementById('jp-filter-channel');
   var el  = document.getElementById('jp-channel-label');
   if (!inp || !el) return;
   var val = inp.value;
-  if (!val) { el.textContent = 'Channel'; return; }
-  var ch = _jpChannelMap[val];
-  el.textContent = ch ? ch.nama : 'Channel';
+  var label = !val ? 'Channel' : (_jpChannelMap[val] ? _jpChannelMap[val].nama : 'Channel');
+  el.textContent = label;
+  // sync laptop label
+  document.querySelectorAll('.jp-channel-label-sync').forEach(function(e){ e.textContent = label; });
 }
 
 function jpToggleFilter() {} // legacy stub — sudah diganti 2 panel
@@ -784,6 +818,8 @@ function jpUpdateBadge() {
   var resetBtn = document.getElementById('jp-reset-btn');
   var filterAktif = (mode !== 'bulan') || (channel !== '');
   if (resetBtn) resetBtn.style.display = filterAktif ? 'inline-flex' : 'none';
+  var resetBtnLaptop = document.getElementById('jp-reset-btn-laptop');
+  if (resetBtnLaptop) resetBtnLaptop.style.display = filterAktif ? 'inline-flex' : 'none';
   // Update label
   jpUpdatePeriodeLabel();
   jpUpdateChannelLabel();
