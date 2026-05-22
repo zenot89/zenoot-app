@@ -93,10 +93,23 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- PANEL: NERACA                                              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-sm btn-primary" onclick="keuRenderNeraca()"><i class="ti ti-refresh"></i> Refresh</button>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <!-- Mini card: Net Worth -->
+      <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Net Worth</div>
+        <div id="keu-neraca-total-km" style="font-size:15px;font-weight:700;color:var(--ink)">—</div>
+        <div style="font-size:10px;color:var(--ink3)">Aset − Kewajiban</div>
+      </div>
+      <!-- Mini card: Neraca Seimbang -->
+      <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:140px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Status Neraca</div>
+        <div id="keu-neraca-check" style="font-size:13px;font-weight:700">—</div>
+      </div>
+    </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" id="keu-neraca-grid">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="keu-neraca-grid">
     <!-- ASET -->
     <div class="card">
       <div class="card-title" style="color:var(--ok)"><i class="ti ti-trending-up"></i> ASET</div>
@@ -114,14 +127,7 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
       <div class="card-title" style="color:var(--ink);margin-top:14px"><i class="ti ti-user"></i> MODAL</div>
       <table class="tbl"><tbody id="keu-neraca-modal"></tbody></table>
-      <div style="margin-top:8px;padding-top:8px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;font-weight:700">
-        <span>Net Worth (Aset − Kewajiban)</span><span id="keu-neraca-total-km" style="color:var(--ink)">—</span>
-      </div>
     </div>
-  </div>
-  <div style="padding:12px 16px;background:var(--cream2);border:2px solid var(--ink);border-radius:2px;display:flex;justify-content:space-between;align-items:center">
-    <span style="font-weight:700">✅ Neraca Seimbang?</span>
-    <span id="keu-neraca-check" style="font-weight:700;font-size:15px">—</span>
   </div>
 </div>
 
