@@ -35,9 +35,19 @@ document.getElementById('page-keuangan').innerHTML = `
   .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
 </style>
 
-<div class="keu-tabs">
+<style>
+  .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
+  .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
+</style>
+
+<!-- Baris 1: Hutang | Neraca | Refresh -->
+<div class="keu-tabs-row">
   <button class="keu-tab active" onclick="keuGotoTab('hutang')">🏦 Hutang</button>
   <button class="keu-tab" onclick="keuGotoTab('neraca')">⚖ Neraca</button>
+  <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
+</div>
+<!-- Baris 2: Rasio & Net Worth | Valuasi Bisnis -->
+<div class="keu-tabs-row2">
   <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
   <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
 </div>
@@ -94,7 +104,6 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
   <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-    <button class="btn btn-sm btn-primary" onclick="keuRenderNeraca()"><i class="ti ti-refresh"></i> Refresh</button>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <!-- Mini card: Net Worth -->
       <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
@@ -102,14 +111,14 @@ document.getElementById('page-keuangan').innerHTML = `
         <div id="keu-neraca-total-km" style="font-size:15px;font-weight:700;color:var(--ink)">—</div>
         <div style="font-size:10px;color:var(--ink3)">Aset − Kewajiban</div>
       </div>
-      <!-- Mini card: Neraca Seimbang -->
+      <!-- Mini card: Status Neraca -->
       <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:140px">
         <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Status Neraca</div>
         <div id="keu-neraca-check" style="font-size:13px;font-weight:700">—</div>
       </div>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="keu-neraca-grid">
+  <div style="display:grid;grid-template-columns:1fr;gap:14px" id="keu-neraca-grid">
     <!-- ASET -->
     <div class="card">
       <div class="card-title" style="color:var(--ok)"><i class="ti ti-trending-up"></i> ASET</div>
@@ -301,7 +310,10 @@ document.body.insertAdjacentHTML('beforeend', `
 `);
 
 // ─── TAB ─────────────────────────────────────────────────────
+let _keuTabAktif = 'hutang';
+
 function keuGotoTab(tab) {
+  _keuTabAktif = tab;
   const tabs = ['hutang','neraca','rasio','valuasi'];
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.keu-panel').forEach(p => p.classList.remove('active'));
@@ -309,6 +321,13 @@ function keuGotoTab(tab) {
   if (tab === 'neraca')  keuRenderNeraca();
   if (tab === 'rasio')   keuRenderRasio();
   if (tab === 'valuasi') keuRenderValuasi();
+}
+
+function keuRefreshAktif() {
+  if (_keuTabAktif === 'hutang')  keuLoadHutang();
+  if (_keuTabAktif === 'neraca')  keuRenderNeraca();
+  if (_keuTabAktif === 'rasio')   keuRenderRasio();
+  if (_keuTabAktif === 'valuasi') keuRenderValuasi();
 }
 
 // ─── HUTANG ──────────────────────────────────────────────────
