@@ -69,7 +69,6 @@ document.getElementById('page-keuangan').innerHTML = `
 
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn btn-sm btn-primary" onclick="keuShowFormHutang()"><i class="ti ti-plus"></i> Tambah Hutang</button>
-    <button class="btn btn-sm" onclick="keuLoadHutang()"><i class="ti ti-refresh"></i> Refresh</button>
   </div>
 
   <!-- Form hutang -->
@@ -146,9 +145,6 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- PANEL: RASIO & NET WORTH                                   -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-rasio" class="keu-panel">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <button class="btn btn-sm btn-primary" onclick="keuRenderRasio()"><i class="ti ti-refresh"></i> Refresh</button>
-  </div>
 
   <div class="card" style="margin-bottom:14px">
     <div class="card-title"><i class="ti ti-activity"></i> Net Worth (Kekayaan Bersih)</div>
@@ -203,9 +199,6 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- PANEL: VALUASI BISNIS                                      -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-valuasi" class="keu-panel">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <button class="btn btn-sm btn-primary" onclick="keuRenderValuasi()"><i class="ti ti-refresh"></i> Refresh</button>
-  </div>
   <div style="margin-bottom:12px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);font-size:13px;color:var(--ink2);line-height:1.7">
     Valuasi dihitung otomatis dari data Kas & Jurnal + Hutang. Multiplier bisa disesuaikan.
   </div>
