@@ -147,13 +147,17 @@ function angResetBulan() {
 }
 
 // ─── LOAD ─────────────────────────────────────────────────────
+// _angJurnalAkunIdMap: map dari akun_debit_id (di jurnal) → kode akun
+let _angJurnalAkunIdMap = {};
+
 async function angLoad() {
   document.getElementById('ang-tbody').innerHTML =
     '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const bulan = _angBulanAktif;
-    const [akunAll, angAll, jurnalAll] = await Promise.all([
+    const [akunAll, akunAllFull, angAll, jurnalAll] = await Promise.all([
       dbGet('kas_akun', '&kelompok=eq.beban&sub_kelompok=eq.Beban Operasional&order=kode.asc'),
+      dbGet('kas_akun', '&order=kode.asc'),
       bulan
         ? dbGet('kas_anggaran', '&bulan=eq.' + bulan + '&order=akun_id.asc')
         : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),
@@ -161,6 +165,9 @@ async function angLoad() {
         ? dbGet('jurnal', '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-31&order=tanggal.asc')
         : [],
     ]);
+    _angJurnalAkunIdMap = {};
+    (akunAllFull || []).forEach(a => { _angJurnalAkunIdMap[String(a.id)] = a.kode; });
+
     _angAkunBeban = akunAll  || [];
     _angAnggaran  = angAll   || [];
     _angJurnal    = jurnalAll || [];
@@ -172,14 +179,16 @@ async function angLoad() {
 }
 
 // ─── HITUNG REALISASI ─────────────────────────────────────────
-function angRealisasi(akunId) {
+function angRealisasi(akunKode) {
   let total = 0;
   _angJurnal.forEach(j => {
-    if (String(j.akun_debit_id) === String(akunId)) total += Number(j.debit || j.nominal || 0);
+    const kodeJurnal = _angJurnalAkunIdMap[String(j.akun_debit_id)];
+    if (kodeJurnal && kodeJurnal === akunKode) {
+      total += Number(j.debit || j.nominal || 0);
+    }
   });
   return total;
 }
-
 // ─── RENDER ───────────────────────────────────────────────────
 function angRender() {
   const tbody  = document.getElementById('ang-tbody');
@@ -192,20 +201,12 @@ function angRender() {
     return;
   }
 
-  // DEBUG — hapus setelah confirmed fix
-  console.group('[ANG DEBUG]');
-  console.log('kas_akun sample → id:', _angAkunBeban[0]?.id, '| type:', typeof _angAkunBeban[0]?.id, '| nama:', _angAkunBeban[0]?.nama);
-  console.log('jurnal sample   → akun_debit_id:', _angJurnal[0]?.akun_debit_id, '| type:', typeof _angJurnal[0]?.akun_debit_id, '| nominal:', _angJurnal[0]?.nominal);
-  console.log('all jurnal akun_debit_id values:', _angJurnal.map(j => j.akun_debit_id));
-  console.log('all kas_akun id values:', _angAkunBeban.map(a => a.id));
-  console.groupEnd();
-
   let totalAng = 0, totalRea = 0;
 
   const rows = _angAkunBeban.map(akun => {
     const ang    = angMap[String(akun.id)];
     const nomAng = ang ? (Number(ang.nominal) || 0) : 0;
-    const nomRea = angRealisasi(akun.id);
+    const nomRea = angRealisasi(akun.kode);
     totalAng += nomAng;
     totalRea += nomRea;
 
