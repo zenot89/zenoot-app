@@ -175,7 +175,7 @@ async function angLoad() {
 function angRealisasi(akunId) {
   let total = 0;
   _angJurnal.forEach(j => {
-    if (String(j.akun_debit) === String(akunId)) total += Number(j.debit) || 0;
+    if (String(j.akun_debit_id) === String(akunId)) total += Number(j.debit || j.nominal || 0);
   });
   return total;
 }

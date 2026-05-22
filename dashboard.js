@@ -1627,9 +1627,9 @@ async function loadDashboard() {
     // ─ Target Omset — dari kas_anggaran bulan ini (Beban Operasional) ÷ rasio channel
     let target = 0;
     try {
-      const [angData, chData, chBeban] = await Promise.all([
+      const [angData, chShopee, chBeban] = await Promise.all([
         dbGet('kas_anggaran', '&bulan=eq.' + bulanIniStr).catch(()=>[]),
-        dbGet('channels', '').catch(()=>[]),
+        dbGet('channels', '&kategori=eq.Shopee').catch(()=>[]),
         dbGet('channel_beban', '').catch(()=>[])
       ]);
       // Total anggaran bulan ini (hanya akun sub_kelompok = Beban Operasional)
@@ -1640,15 +1640,13 @@ async function loadDashboard() {
           totalAnggaran += Number(a.nominal) || 0;
         }
       });
-      // Hitung target dari anggaran ÷ rasio beban channel Shopee saja
+      // Hitung target dari anggaran ÷ rata-rata rasio beban channel Shopee
       if (totalAnggaran > 0) {
         const bebanChMap = {};
         (chBeban||[]).forEach(b => { bebanChMap[b.channel_id] = b; });
         let sumR = 0, cntR = 0;
-        (chData||[]).forEach(ch => {
-          if ((ch.kategori||'').toLowerCase() === 'shopee' && bebanChMap[ch.id]) {
-            sumR += (bebanChMap[ch.id].beban_persen||0); cntR++;
-          }
+        (chShopee||[]).forEach(ch => {
+          if (bebanChMap[ch.id]) { sumR += (bebanChMap[ch.id].beban_persen||0); cntR++; }
         });
         const rasio = cntR > 0 ? sumR / cntR : 0;
         if (rasio > 0) target = Math.round(totalAnggaran / (rasio / 100));
