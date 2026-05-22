@@ -303,7 +303,11 @@ function _jpNowTime() {
   return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
 }
 function _jpNowDate() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function _jpLocalDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 // ─── MODAL ───────────────────────────────────────────────────
@@ -603,18 +607,18 @@ async function loadJurnalPenjualan() {
 
     if (mode === 'hari-ini') {
       // Dari jam 00:00 hari ini
-      const today = now.toISOString().split('T')[0];
+      const today = _jpLocalDate(now);
       filter = '&tanggal=gte.' + today + '&tanggal=lte.' + today;
     } else if (mode === 'kemarin') {
       const d = new Date(now);
       d.setDate(d.getDate() - 1);
-      const tgl = d.toISOString().split('T')[0];
+      const tgl = _jpLocalDate(d);
       filter = '&tanggal=gte.' + tgl + '&tanggal=lte.' + tgl;
     } else if (mode === '7hari') {
-      const since = new Date(now - 7*24*60*60*1000).toISOString().split('T')[0];
+      const since = _jpLocalDate(new Date(now - 7*24*60*60*1000));
       filter = '&tanggal=gte.' + since;
     } else if (mode === '30hari') {
-      const since = new Date(now - 30*24*60*60*1000).toISOString().split('T')[0];
+      const since = _jpLocalDate(new Date(now - 30*24*60*60*1000));
       filter = '&tanggal=gte.' + since;
     } else if (mode === 'bulan') {
       const fBulan = (document.getElementById('jp-filter-bulan')||{}).value || '';
