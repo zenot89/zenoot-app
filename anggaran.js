@@ -109,7 +109,8 @@ document.getElementById('page-anggaran').innerHTML = `
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal Anggaran (Rp)</label>
       <input type="text" inputmode="numeric" id="ang-edit-nominal"
-        placeholder="contoh: 2000000"
+        placeholder="contoh: 2.000.000"
+        oninput="angFormatNominal(this)"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
                border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
     </div>
@@ -282,8 +283,14 @@ function angShowEdit(akunId, nama, angId, nomAng) {
   document.getElementById('ang-edit-id').value       = angId || '';
   document.getElementById('ang-edit-nama').textContent = nama;
   document.getElementById('ang-edit-bulan').value    = _angBulanAktif || '';
-  document.getElementById('ang-edit-nominal').value  = nomAng || '';
+  document.getElementById('ang-edit-nominal').value  = nomAng > 0 ? Number(nomAng).toLocaleString('id-ID') : '';
   document.getElementById('modal-anggaran').classList.add('open');
+}
+
+function angFormatNominal(el) {
+  const raw = el.value.replace(/\D/g, '');
+  if (!raw) { el.value = ''; return; }
+  el.value = Number(raw).toLocaleString('id-ID');
 }
 
 function angCloseModal() {
