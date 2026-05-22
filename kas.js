@@ -48,6 +48,7 @@ document.getElementById('page-kas').innerHTML = `
       <label style="font-size:12px;color:var(--ink2)">Bulan:</label>
       <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
       <button class="btn btn-sm" onclick="kasResetFilter()">Semua</button>
+      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
     </div>
   </div>
 

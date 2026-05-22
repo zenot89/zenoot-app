@@ -143,6 +143,7 @@ var pageMap = {
   'produk':             { title:'Kelola Produk',       sub:'master SKU, HPP, dan boss'      },
   'channel':            { title:'Channel',             sub:'master data channel toko'       },
   'beban-operasional':  { title:'Beban Operasional',   sub:'acuan % beban & target NPM'     },
+  'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
   'keuangan':           { title:'Keuangan Operasional', sub:'hutang, neraca, rasio & valuasi' },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
 };
