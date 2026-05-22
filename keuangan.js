@@ -39,7 +39,12 @@ document.getElementById('page-keuangan').innerHTML = `
   .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
   .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
   .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  @media(max-width:600px){ .keu-neraca-grid { grid-template-columns:1fr; } }
+  .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  @media(max-width:600px){
+    .keu-neraca-grid { grid-template-columns:1fr; max-height:calc(100vh - 220px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .keu-minicards { margin-left:0; width:100%; justify-content:center; }
+    .keu-minicards > div { flex:1 1 0; min-width:0; }
+  }
 </style>
 
 <!-- Baris 1: Hutang | Neraca | Refresh -->
@@ -105,7 +110,7 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
   <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+    <div class="keu-minicards">
       <!-- Mini card: Net Worth -->
       <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
         <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Net Worth</div>
