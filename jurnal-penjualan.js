@@ -42,19 +42,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </button>
   </div>
 
-  <!-- PROGRESS BAR TARGET HARIAN -->
-  <div id="jp-target-wrap" style="margin-bottom:12px;display:none;position:sticky;top:0;z-index:20;background:var(--cream3);padding:6px 0 4px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <span style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Target Harian</span>
-        <span id="jp-target-nominal" style="font-size:12px;font-weight:700;color:var(--ink)">—</span>
-      </span>
-      <span id="jp-target-label" style="font-size:11px;color:var(--ink3)">—</span>
-    </div>
-    <div style="height:6px;background:var(--cream2);border:1px solid var(--ink3);border-radius:3px;overflow:hidden">
-      <div id="jp-target-bar" style="height:100%;width:0%;background:var(--ok);transition:width .6s;border-radius:3px"></div>
-    </div>
-  </div>
+
 
   <!-- ═══ CSS RESPONSIVE MODAL ═══ -->
   <style>
@@ -137,13 +125,14 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       .jp-row-2 .fg-induk { flex: 1 1 0; width: auto; }
       .jp-row-3 .fg-total { flex: 1 1 140px; }
     }
-  /* ── Laptop/landscape: tampilkan toolbar luar, sembunyikan toolbar dalam card ── */
-  @media (min-width: 521px) {
+  /* ── Laptop: tampilkan toolbar luar, sembunyikan toolbar dalam card ── */
+  @media (min-width: 768px) {
     #jp-aksi-laptop { display: flex !important; }
     #jp-aksi-mobile { display: none !important; }
+    #jp-sticky-header { position: static !important; }
   }
-  /* ── Portrait mobile: sembunyikan toolbar luar, tampilkan dalam card ── */
-  @media (max-width: 520px) {
+  /* ── Mobile (portrait & landscape HP): toolbar dalam card ── */
+  @media (max-width: 767px) {
     #jp-aksi-laptop { display: none !important; }
     #jp-aksi-mobile { display: flex !important; }
   }
@@ -255,13 +244,29 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
   <!-- TABEL -->
   <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
-      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-        <i class="ti ti-chart-bar"></i> Produk Terjual
-      </button>
-    </div>
-    <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
+    <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px">
+      <!-- Target Harian -->
+      <div id="jp-target-wrap" style="margin-bottom:6px;display:none;padding:6px 0 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Target Harian</span>
+            <span id="jp-target-nominal" style="font-size:12px;font-weight:700;color:var(--ink)">—</span>
+          </span>
+          <span id="jp-target-label" style="font-size:11px;color:var(--ink3)">—</span>
+        </div>
+        <div style="height:6px;background:var(--cream2);border:1px solid var(--ink3);border-radius:3px;overflow:hidden">
+          <div id="jp-target-bar" style="height:100%;width:0%;background:var(--ok);transition:width .6s;border-radius:3px"></div>
+        </div>
+      </div>
+      <!-- Judul + Produk Terjual -->
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
+        <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+          <i class="ti ti-chart-bar"></i> Produk Terjual
+        </button>
+      </div>
+      <!-- Toolbar mobile -->
+      <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:0;align-items:center;flex-wrap:nowrap">
       <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
         <i class="ti ti-refresh"></i>
       </button>
@@ -286,7 +291,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
         <i class="ti ti-plus"></i> Tambah
       </button>
-    </div>
+      </div><!-- /jp-aksi-mobile -->
+    </div><!-- /jp-sticky-header -->
     <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth"><table class="tbl">
       <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
         <tr>
