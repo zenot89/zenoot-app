@@ -38,6 +38,8 @@ document.getElementById('page-keuangan').innerHTML = `
 <style>
   .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
   .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
+  .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:600px){ .keu-neraca-grid { grid-template-columns:1fr; } }
 </style>
 
 <!-- Baris 1: Hutang | Neraca | Refresh -->
@@ -118,7 +120,7 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr;gap:14px" id="keu-neraca-grid">
+  <div class="keu-neraca-grid" id="keu-neraca-grid">
     <!-- ASET -->
     <div class="card">
       <div class="card-title" style="color:var(--ok)"><i class="ti ti-trending-up"></i> ASET</div>
