@@ -112,7 +112,7 @@ document.getElementById('page-kas').innerHTML = `
     <div class="card">
       <div class="card-title"><i class="ti ti-arrows-exchange"></i> Arus Kas</div>
       <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-        <thead><tr><th>Tanggal</th><th>Keterangan</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
+        <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Akun</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
         <tbody id="kas-aruskas-tbody"></tbody>
       </table></div>
     </div>
@@ -718,10 +718,17 @@ let _arusFilteredData = [];
 let _arusSaldoMap     = {}; // id -> saldo kumulatif (dihitung dari ascending)
 
 function kasRenderArusKas(data) {
-  // Filter hanya transaksi kas/bank
+  // Helper: cek apakah akun adalah kas/bank — berdasarkan sub_kelompok "KAS & BANK"
+  function isKasBank(akun) {
+    if (!akun || akun.kelompok !== 'aset') return false;
+    return (akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+  }
+
+  // Filter: salah satu sisi (debit atau kredit) harus akun KAS & BANK
   const filtered = data.filter(r => {
-    const aD = _kasAkunMap[r.akun_debit_id]; const aK = _kasAkunMap[r.akun_kredit_id];
-    return (aD && aD.kelompok === 'aset') || (aK && aK.kelompok === 'aset');
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const aK = _kasAkunMap[r.akun_kredit_id];
+    return isKasBank(aD) || isKasBank(aK);
   });
 
   // Sort ascending (lama ke baru) dulu untuk hitung saldo kumulatif yang benar
@@ -736,7 +743,7 @@ function kasRenderArusKas(data) {
   ascending.forEach(r => {
     const n = r.nominal || r.debit || 0;
     const aD = _kasAkunMap[r.akun_debit_id];
-    const isMasuk = aD && aD.kelompok === 'aset';
+    const isMasuk = isKasBank(aD);
     if (isMasuk) runSaldo += n; else runSaldo -= n;
     saldoByIdMap[r.id] = runSaldo;
   });
@@ -760,7 +767,7 @@ function _kasRenderArusTabel() {
   const slice   = data.slice(start, start + _KAS_PAGE_SIZE);
 
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada arus kas</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada arus kas</td></tr>';
     _kasRenderArusPagination(0, 0);
     return;
   }
@@ -769,11 +776,20 @@ function _kasRenderArusTabel() {
     const tgl = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
     const n   = r.nominal || r.debit || 0;
     const aD  = _kasAkunMap[r.akun_debit_id];
-    const isMasuk = aD && aD.kelompok === 'aset';
+    const aK  = _kasAkunMap[r.akun_kredit_id];
+    const isMasuk = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
     const s   = _arusSaldoMap[r.id] !== undefined ? _arusSaldoMap[r.id] : 0;
+    // Kalau masuk: uang datang dari akun kredit (lawan). Kalau keluar: uang pergi ke akun debit (lawan)
+    const akunLawan = isMasuk ? aK : aD;
+    const akunLawanNama = akunLawan ? akunLawan.nama : '—';
+    const akunLawanKelompok = akunLawan ? akunLawan.kelompok : '';
+    const akunBadge = akunLawan
+      ? '<span class="akun-badge akun-'+akunLawanKelompok+'" style="font-size:10px;padding:1px 6px">'+akunLawanNama+'</span>'
+      : '—';
     return '<tr>' +
       '<td style="white-space:nowrap">'+tgl+'</td>' +
       '<td>'+(r.keterangan||'—')+'</td>' +
+      '<td>'+akunBadge+'</td>' +
       '<td style="text-align:right;color:var(--ok)">'+(isMasuk ? fmtRp(n) : '—')+'</td>' +
       '<td style="text-align:right;color:var(--danger)">'+(!isMasuk ? fmtRp(n) : '—')+'</td>' +
       '<td style="text-align:right;font-weight:700;color:'+(s>=0?'var(--ok)':'var(--danger)')+'">'+(s<0?'-':'')+fmtRp(Math.abs(s))+'</td>' +
