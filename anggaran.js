@@ -230,7 +230,7 @@ function angRender() {
       ? (nomRea > 0 ? `<span style="color:var(--danger)">∞%</span>` : '—')
       : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
     const bar     = nomAng > 0
-      ? `<div class="ang-bar-wrap"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : '';
+      ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px"><div class="ang-bar-wrap" style="flex:1;margin-top:0"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div><span style="font-size:11px;font-weight:700;color:${pctCol};min-width:32px;text-align:right">${pct}%</span></div>` : '';
 
     const safeNama = (akun.nama||'').replace(/'/g,"\\'");
 
