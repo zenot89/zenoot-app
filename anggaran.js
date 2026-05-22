@@ -152,7 +152,7 @@ async function angLoad() {
   try {
     const bulan = _angBulanAktif;
     const [akunAll, angAll, jurnalAll] = await Promise.all([
-      dbGet('kas_akun', '&kelompok=eq.beban&order=kode.asc'),
+      dbGet('kas_akun', '&kelompok=eq.beban&sub_kelompok=eq.Beban Operasional&order=kode.asc'),
       bulan
         ? dbGet('kas_anggaran', '&bulan=eq.' + bulan + '&order=akun_id.asc')
         : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),

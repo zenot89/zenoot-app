@@ -1624,15 +1624,24 @@ async function loadDashboard() {
       elLabaBersih.style.color = labaBersih>=0 ? 'var(--ok)' : 'var(--danger)';
     }
 
-    // ─ Target Omset — dari jurnal beban bulan ini ÷ rasio Shopee
-    // Sumber tunggal: total beban dari jurnal kas, bukan tabel beban_operasional
-    let target = _getTarget();
-    if (totalBebanNominal > 0) {
-      try {
-        const [chData, chBeban] = await Promise.all([
-          dbGet('channels', '').catch(()=>[]),
-          dbGet('channel_beban', '').catch(()=>[])
-        ]);
+    // ─ Target Omset — dari kas_anggaran bulan ini (Beban Operasional) ÷ rasio channel
+    let target = 0;
+    try {
+      const [angData, chData, chBeban] = await Promise.all([
+        dbGet('kas_anggaran', '&bulan=eq.' + bulanIniStr).catch(()=>[]),
+        dbGet('channels', '').catch(()=>[]),
+        dbGet('channel_beban', '').catch(()=>[])
+      ]);
+      // Total anggaran bulan ini (hanya akun sub_kelompok = Beban Operasional)
+      let totalAnggaran = 0;
+      (angData||[]).forEach(a => {
+        const akun = kasAkunMap[a.akun_id];
+        if (akun && akun.sub_kelompok === 'Beban Operasional') {
+          totalAnggaran += Number(a.nominal) || 0;
+        }
+      });
+      // Hitung target dari anggaran ÷ rasio beban channel
+      if (totalAnggaran > 0) {
         const bebanChMap = {};
         (chBeban||[]).forEach(b => { bebanChMap[b.channel_id] = b; });
         let sumR = 0, cntR = 0;
@@ -1640,9 +1649,9 @@ async function loadDashboard() {
           if (bebanChMap[ch.id]) { sumR += (bebanChMap[ch.id].beban_persen||0); cntR++; }
         });
         const rasio = cntR > 0 ? sumR / cntR : 0;
-        if (rasio > 0) target = Math.round(totalBebanNominal / (rasio / 100));
-      } catch(e) { /* fallback ke target localStorage */ }
-    }
+        if (rasio > 0) target = Math.round(totalAnggaran / (rasio / 100));
+      }
+    } catch(e) { /* biarkan target = 0 jika error */ }
 
     const targetEl = document.getElementById('d-target');
     if (targetEl) targetEl.textContent = target>0 ? _fmtRp(target) : '—';
