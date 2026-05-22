@@ -469,7 +469,7 @@ async function loadKasJurnal() {
   document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>`;
   try {
     const [jurnal, akun] = await Promise.all([
-      dbGet('jurnal', '&order=tanggal.asc,created_at.asc'),
+      dbGet('jurnal', '&order=tanggal.desc,created_at.desc'),
       dbGet('kas_akun', '&order=kode.asc'),
     ]);
     _kasAkunMap = {};
@@ -485,36 +485,94 @@ async function loadKasJurnal() {
 function kasApplyFilter() {
   const bulan = document.getElementById('kas-filter-bulan').value;
   const filtered = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
+  _kasCurrentPage = 1;
+  _kasFilteredData = filtered;
   kasRenderJurnalTabel(filtered);
   kasUpdateSummary(filtered);
 }
 
 function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
 
+// ─── PAGINATION STATE ────────────────────────────────────────
+const _KAS_PAGE_SIZE = 15;
+let _kasCurrentPage  = 1;
+let _kasFilteredData = [];
+
 function kasRenderJurnalTabel(data) {
-  const tbody = document.getElementById('kas-jurnal-tbody');
-  if (!data.length) { tbody.innerHTML = `<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Belum ada transaksi</td></tr>`; return; }
+  _kasFilteredData = data;
+  const tbody   = document.getElementById('kas-jurnal-tbody');
+  const totalPg = Math.max(1, Math.ceil(data.length / _KAS_PAGE_SIZE));
+  if (_kasCurrentPage > totalPg) _kasCurrentPage = totalPg;
+  const start   = (_kasCurrentPage - 1) * _KAS_PAGE_SIZE;
+  const slice   = data.slice(start, start + _KAS_PAGE_SIZE);
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Belum ada transaksi</td></tr>';
+    _kasRenderPagination(0, 0);
+    return;
+  }
   const fmtRp = v => fmtRpFull(v);
-  tbody.innerHTML = data.map(r => {
+  tbody.innerHTML = slice.map(r => {
     const tgl   = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
     const akunD = _kasAkunMap[r.akun_debit_id];
     const akunK = _kasAkunMap[r.akun_kredit_id];
-    const nmD   = akunD ? `<span class="akun-badge akun-${akunD.kelompok}">${akunD.nama}</span>` : '—';
-    const nmK   = akunK ? `<span class="akun-badge akun-${akunK.kelompok}">${akunK.nama}</span>` : '—';
+    const nmD   = akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—';
+    const nmK   = akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—';
     const safeKet = (r.keterangan||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return `<tr>
-      <td style="white-space:nowrap">${tgl}</td>
-      <td style="color:var(--ink3);font-size:11px">${r.referensi||'—'}</td>
-      <td>${r.keterangan||'—'}</td>
-      <td>${nmD}</td><td>${nmK}</td>
-      <td style="text-align:right;color:var(--ok);font-weight:600">${fmtRp(r.debit)}</td>
-      <td style="text-align:right;color:var(--danger);font-weight:600">${fmtRp(r.kredit)}</td>
-      <td>
-        <button class="btn btn-sm" data-action="edit-kas" data-id="${r.id}" style="margin-right:4px"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" data-action="hapus-kas" data-id="${r.id}" data-ket="${safeKet}"><i class="ti ti-trash"></i></button>
-      </td>
-    </tr>`;
+    return '<tr>' +
+      '<td style="white-space:nowrap">'+tgl+'</td>' +
+      '<td style="color:var(--ink3);font-size:11px">'+(r.referensi||'—')+'</td>' +
+      '<td>'+(r.keterangan||'—')+'</td>' +
+      '<td>'+nmD+'</td><td>'+nmK+'</td>' +
+      '<td style="text-align:right;color:var(--ok);font-weight:600">'+fmtRp(r.debit)+'</td>' +
+      '<td style="text-align:right;color:var(--danger);font-weight:600">'+fmtRp(r.kredit)+'</td>' +
+      '<td>' +
+        '<button class="btn btn-sm" data-action="edit-kas" data-id="'+r.id+'" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
+        '<button class="btn btn-sm btn-danger" data-action="hapus-kas" data-id="'+r.id+'" data-ket="'+safeKet+'"><i class="ti ti-trash"></i></button>' +
+      '</td></tr>';
   }).join('');
+  _kasRenderPagination(totalPg, data.length);
+}
+
+function _kasRenderPagination(totalPg, totalData) {
+  let el = document.getElementById('kas-jurnal-pagination');
+  if (!el) {
+    const wrap = document.querySelector('#kas-panel-jurnal .card');
+    if (!wrap) return;
+    el = document.createElement('div');
+    el.id = 'kas-jurnal-pagination';
+    wrap.appendChild(el);
+  }
+  if (totalPg <= 1) { el.innerHTML = ''; return; }
+  const start = (_kasCurrentPage - 1) * _KAS_PAGE_SIZE + 1;
+  const end   = Math.min(_kasCurrentPage * _KAS_PAGE_SIZE, totalData);
+  let from = Math.max(1, _kasCurrentPage - 2);
+  let to   = Math.min(totalPg, from + 4);
+  from     = Math.max(1, to - 4);
+  const pages = [];
+  for (let i = from; i <= to; i++) pages.push(i);
+  const btnBase = 'padding:4px 9px;font-family:var(--f);font-size:12px;font-weight:700;border:2px solid var(--ink);border-radius:2px;cursor:pointer;';
+  const btnNorm = btnBase + 'background:var(--cream);color:var(--ink);';
+  const btnActv = btnBase + 'background:var(--ink);color:var(--cream);';
+  const btnDsbl = btnBase + 'opacity:0.3;cursor:default;background:var(--cream);color:var(--ink);';
+  el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 4px;flex-wrap:wrap;gap:8px;border-top:1px dashed var(--ink4);margin-top:4px';
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--ink3)">Menampilkan <b style="color:var(--ink2)">'+start+'–'+end+'</b> dari <b style="color:var(--ink2)">'+totalData+'</b> transaksi</div>' +
+    '<div style="display:flex;gap:4px;align-items:center">' +
+      '<button onclick="kasGoPage(1)" '+(_kasCurrentPage===1?'disabled':'')+' style="'+(_kasCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-left"></i></button>' +
+      '<button onclick="kasGoPage('+(_kasCurrentPage-1)+')" '+(_kasCurrentPage===1?'disabled':'')+' style="'+(_kasCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-left"></i></button>' +
+      pages.map(function(p){ return '<button onclick="kasGoPage('+p+')" style="'+(p===_kasCurrentPage?btnActv:btnNorm)+'">'+p+'</button>'; }).join('') +
+      '<button onclick="kasGoPage('+(_kasCurrentPage+1)+')" '+(_kasCurrentPage===totalPg?'disabled':'')+' style="'+(_kasCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-right"></i></button>' +
+      '<button onclick="kasGoPage('+totalPg+')" '+(_kasCurrentPage===totalPg?'disabled':'')+' style="'+(_kasCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-right"></i></button>' +
+    '</div>';
+}
+
+function kasGoPage(pg) {
+  const totalPg = Math.max(1, Math.ceil(_kasFilteredData.length / _KAS_PAGE_SIZE));
+  _kasCurrentPage = Math.max(1, Math.min(pg, totalPg));
+  kasRenderJurnalTabel(_kasFilteredData);
+  const card = document.querySelector('#kas-panel-jurnal .card');
+  if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function kasUpdateSummary(data) {
@@ -654,30 +712,106 @@ function kasRenderLabaRugi(data) {
   tbody.innerHTML = html || `<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>`;
 }
 
+// ─── PAGINATION ARUS KAS ─────────────────────────────────────
+let _arusCurrentPage  = 1;
+let _arusFilteredData = [];
+
 function kasRenderArusKas(data) {
-  const tbody = document.getElementById('kas-aruskas-tbody');
   const fmtRp = v => fmtRpFull(v);
+  // Filter hanya transaksi kas/bank
   const arusData = data.filter(r => {
     const aD = _kasAkunMap[r.akun_debit_id]; const aK = _kasAkunMap[r.akun_kredit_id];
     return (aD && aD.kelompok === 'aset') || (aK && aK.kelompok === 'aset');
-  });
-  if (!arusData.length) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada arus kas</td></tr>`; return; }
+  }).slice().reverse(); // terbaru di atas
+
+  _arusFilteredData = arusData;
+  _arusCurrentPage  = 1;
+  _kasRenderArusTabel();
+}
+
+function _kasRenderArusTabel() {
+  const tbody   = document.getElementById('kas-aruskas-tbody');
+  const fmtRp   = v => fmtRpFull(v);
+  const data    = _arusFilteredData;
+  const totalPg = Math.max(1, Math.ceil(data.length / _KAS_PAGE_SIZE));
+  if (_arusCurrentPage > totalPg) _arusCurrentPage = totalPg;
+  const start   = (_arusCurrentPage - 1) * _KAS_PAGE_SIZE;
+  const slice   = data.slice(start, start + _KAS_PAGE_SIZE);
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada arus kas</td></tr>';
+    _kasRenderArusPagination(0, 0);
+    return;
+  }
+
+  // Hitung saldo kumulatif dari awal data (bukan hanya slice)
+  const saldoArr = [];
   let saldo = 0;
-  tbody.innerHTML = arusData.map(r => {
+  data.forEach(r => {
+    const n  = r.nominal || r.debit || 0;
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const isMasuk = aD && aD.kelompok === 'aset';
+    if (isMasuk) saldo += n; else saldo -= n;
+    saldoArr.push(saldo);
+  });
+
+  tbody.innerHTML = slice.map((r, i) => {
+    const globalIdx = start + i;
     const tgl = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
     const n   = r.nominal || r.debit || 0;
     const aD  = _kasAkunMap[r.akun_debit_id];
     const isMasuk = aD && aD.kelompok === 'aset';
-    if (isMasuk) saldo += n; else saldo -= n;
-    return `<tr>
-      <td style="white-space:nowrap">${tgl}</td><td>${r.keterangan||'—'}</td>
-      <td style="text-align:right;color:var(--ok)">${isMasuk ? fmtRp(n) : '—'}</td>
-      <td style="text-align:right;color:var(--danger)">${!isMasuk ? fmtRp(n) : '—'}</td>
-      <td style="text-align:right;font-weight:700;color:${saldo>=0?'var(--ok)':'var(--danger)'}">
-        ${saldo<0?'-':''}${fmtRp(Math.abs(saldo))}
-      </td>
-    </tr>`;
+    const s   = saldoArr[globalIdx];
+    return '<tr>' +
+      '<td style="white-space:nowrap">'+tgl+'</td>' +
+      '<td>'+(r.keterangan||'—')+'</td>' +
+      '<td style="text-align:right;color:var(--ok)">'+(isMasuk ? fmtRp(n) : '—')+'</td>' +
+      '<td style="text-align:right;color:var(--danger)">'+(!isMasuk ? fmtRp(n) : '—')+'</td>' +
+      '<td style="text-align:right;font-weight:700;color:'+(s>=0?'var(--ok)':'var(--danger)')+'">'+(s<0?'-':'')+fmtRp(Math.abs(s))+'</td>' +
+      '</tr>';
   }).join('');
+  _kasRenderArusPagination(totalPg, data.length);
+}
+
+function _kasRenderArusPagination(totalPg, totalData) {
+  let el = document.getElementById('kas-arus-pagination');
+  if (!el) {
+    const wrap = document.querySelector('#lap-panel-aruskas .card');
+    if (!wrap) return;
+    el = document.createElement('div');
+    el.id = 'kas-arus-pagination';
+    wrap.appendChild(el);
+  }
+  if (totalPg <= 1) { el.innerHTML = ''; return; }
+  const start = (_arusCurrentPage - 1) * _KAS_PAGE_SIZE + 1;
+  const end   = Math.min(_arusCurrentPage * _KAS_PAGE_SIZE, totalData);
+  let from = Math.max(1, _arusCurrentPage - 2);
+  let to   = Math.min(totalPg, from + 4);
+  from     = Math.max(1, to - 4);
+  const pages = [];
+  for (let i = from; i <= to; i++) pages.push(i);
+  const btnBase = 'padding:4px 9px;font-family:var(--f);font-size:12px;font-weight:700;border:2px solid var(--ink);border-radius:2px;cursor:pointer;';
+  const btnNorm = btnBase + 'background:var(--cream);color:var(--ink);';
+  const btnActv = btnBase + 'background:var(--ink);color:var(--cream);';
+  const btnDsbl = btnBase + 'opacity:0.3;cursor:default;background:var(--cream);color:var(--ink);';
+  el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 4px;flex-wrap:wrap;gap:8px;border-top:1px dashed var(--ink4);margin-top:4px';
+  el.innerHTML =
+    '<div style="font-size:12px;color:var(--ink3)">Menampilkan <b style="color:var(--ink2)">'+start+'–'+end+'</b> dari <b style="color:var(--ink2)">'+totalData+'</b> transaksi</div>' +
+    '<div style="display:flex;gap:4px;align-items:center">' +
+      '<button onclick="arusGoPage(1)" '+(_arusCurrentPage===1?'disabled':'')+' style="'+(_arusCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-left"></i></button>' +
+      '<button onclick="arusGoPage('+(_arusCurrentPage-1)+')" '+(_arusCurrentPage===1?'disabled':'')+' style="'+(_arusCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-left"></i></button>' +
+      pages.map(function(p){ return '<button onclick="arusGoPage('+p+')" style="'+(p===_arusCurrentPage?btnActv:btnNorm)+'">'+p+'</button>'; }).join('') +
+      '<button onclick="arusGoPage('+(_arusCurrentPage+1)+')" '+(_arusCurrentPage===totalPg?'disabled':'')+' style="'+(_arusCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-right"></i></button>' +
+      '<button onclick="arusGoPage('+totalPg+')" '+(_arusCurrentPage===totalPg?'disabled':'')+' style="'+(_arusCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-right"></i></button>' +
+    '</div>';
+}
+
+function arusGoPage(pg) {
+  const totalPg = Math.max(1, Math.ceil(_arusFilteredData.length / _KAS_PAGE_SIZE));
+  _arusCurrentPage = Math.max(1, Math.min(pg, totalPg));
+  _kasRenderArusTabel();
+  const card = document.querySelector('#lap-panel-aruskas .card');
+  if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ─── EVENT DELEGATION ────────────────────────────────────────
