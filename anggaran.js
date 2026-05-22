@@ -204,9 +204,9 @@ function angRender() {
     const selisih = nomAng - nomRea;
     const pct     = nomAng > 0 ? Math.round((nomRea / nomAng) * 100) : (nomRea > 0 ? 999 : 0);
     const barW    = Math.min(pct, 100);
-    const barCls  = pct >= 80 ? 'ang-danger' : pct >= 30 ? 'ang-warn' : 'ang-ok';
+    const barCls  = pct > 75  ? 'ang-danger' : pct >= 35 ? 'ang-warn' : 'ang-ok';
     const selCol  = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
-    const pctCol  = pct >= 80 ? 'var(--danger)' : pct >= 30 ? 'var(--warn)' : 'var(--ok)';
+    const pctCol  = pct > 75  ? 'var(--danger)' : pct >= 35 ? 'var(--warn)' : 'var(--ok)';
 
     const angStr  = nomAng > 0
       ? angFmt(nomAng)
@@ -267,7 +267,7 @@ function angUpdateMetrics(totalAng, totalRea) {
     selEl.style.color = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
     delEl.textContent = selisih >= 0 ? 'masih aman' : 'melebihi anggaran!';
     pctEl.textContent = pct + '%';
-    pctEl.style.color = pct >= 80 ? 'var(--danger)' : pct >= 30 ? 'var(--warn)' : 'var(--ok)';
+    pctEl.style.color = pct > 75  ? 'var(--danger)' : pct >= 35 ? 'var(--warn)' : 'var(--ok)';
   }
 }
 
