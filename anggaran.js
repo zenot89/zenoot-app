@@ -229,16 +229,20 @@ function angRender() {
     const pctStr  = nomAng === 0
       ? (nomRea > 0 ? `<span style="color:var(--danger)">∞%</span>` : '—')
       : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
-    const bar     = nomAng > 0
-      ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px"><div class="ang-bar-wrap" style="flex:1;margin-top:0"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div><span style="font-size:11px;font-weight:700;color:${pctCol};min-width:32px;text-align:right">${pct}%</span></div>` : '';
+
 
     const safeNama = (akun.nama||'').replace(/'/g,"\\'");
 
     return `<tr>
       <td>
-        <div style="font-weight:700">${akun.nama||'—'}</div>
-        <div style="font-size:11px;color:var(--ink3);font-family:monospace">${akun.kode||''}</div>
-        ${bar}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div style="font-weight:700">${akun.nama||'—'}</div>
+            <div style="font-size:11px;color:var(--ink3);font-family:monospace">${akun.kode||''}</div>
+          </div>
+          ${nomAng > 0 ? `<span style="font-size:12px;font-weight:700;color:${pctCol};white-space:nowrap">${pct}%</span>` : ''}
+        </div>
+        ${nomAng > 0 ? `<div class="ang-bar-wrap" style="margin-top:5px"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : ''}
       </td>
       <td style="font-size:12px;color:var(--ink2)">${akun.sub_kelompok||'—'}</td>
       <td style="text-align:right">${angStr}</td>
