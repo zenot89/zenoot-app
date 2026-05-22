@@ -53,7 +53,7 @@ document.getElementById('page-kas').innerHTML = `
 
   <div class="card">
     <div class="card-title"><i class="ti ti-list"></i> Buku Jurnal Harian</div>
-    <div class="tbl-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth">
+    <div class="tbl-wrap" style="overflow-x:auto">
       <table class="tbl">
         <thead><tr><th>Tanggal</th><th>Ref</th><th>Keterangan</th><th>Akun Debit</th><th>Akun Kredit</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th>Aksi</th></tr></thead>
         <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
@@ -715,16 +715,37 @@ function kasRenderLabaRugi(data) {
 // ─── PAGINATION ARUS KAS ─────────────────────────────────────
 let _arusCurrentPage  = 1;
 let _arusFilteredData = [];
+let _arusSaldoMap     = {}; // id -> saldo kumulatif (dihitung dari ascending)
 
 function kasRenderArusKas(data) {
-  const fmtRp = v => fmtRpFull(v);
   // Filter hanya transaksi kas/bank
-  const arusData = data.filter(r => {
+  const filtered = data.filter(r => {
     const aD = _kasAkunMap[r.akun_debit_id]; const aK = _kasAkunMap[r.akun_kredit_id];
     return (aD && aD.kelompok === 'aset') || (aK && aK.kelompok === 'aset');
-  }).slice().reverse(); // terbaru di atas
+  });
 
-  _arusFilteredData = arusData;
+  // Sort ascending (lama ke baru) dulu untuk hitung saldo kumulatif yang benar
+  const ascending = filtered.slice().sort((a, b) => {
+    const d = (a.tanggal || '').localeCompare(b.tanggal || '');
+    return d !== 0 ? d : String(a.id).localeCompare(String(b.id));
+  });
+
+  // Hitung saldo kumulatif per-id dari ascending
+  const saldoByIdMap = {};
+  let runSaldo = 0;
+  ascending.forEach(r => {
+    const n = r.nominal || r.debit || 0;
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const isMasuk = aD && aD.kelompok === 'aset';
+    if (isMasuk) runSaldo += n; else runSaldo -= n;
+    saldoByIdMap[r.id] = runSaldo;
+  });
+
+  // Balik ke descending (terbaru di atas) untuk tampilan
+  const descending = ascending.slice().reverse();
+
+  _arusFilteredData = descending;
+  _arusSaldoMap = saldoByIdMap;
   _arusCurrentPage  = 1;
   _kasRenderArusTabel();
 }
@@ -744,24 +765,12 @@ function _kasRenderArusTabel() {
     return;
   }
 
-  // Hitung saldo kumulatif dari awal data (bukan hanya slice)
-  const saldoArr = [];
-  let saldo = 0;
-  data.forEach(r => {
-    const n  = r.nominal || r.debit || 0;
-    const aD = _kasAkunMap[r.akun_debit_id];
-    const isMasuk = aD && aD.kelompok === 'aset';
-    if (isMasuk) saldo += n; else saldo -= n;
-    saldoArr.push(saldo);
-  });
-
-  tbody.innerHTML = slice.map((r, i) => {
-    const globalIdx = start + i;
+  tbody.innerHTML = slice.map((r) => {
     const tgl = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
     const n   = r.nominal || r.debit || 0;
     const aD  = _kasAkunMap[r.akun_debit_id];
     const isMasuk = aD && aD.kelompok === 'aset';
-    const s   = saldoArr[globalIdx];
+    const s   = _arusSaldoMap[r.id] !== undefined ? _arusSaldoMap[r.id] : 0;
     return '<tr>' +
       '<td style="white-space:nowrap">'+tgl+'</td>' +
       '<td>'+(r.keterangan||'—')+'</td>' +
