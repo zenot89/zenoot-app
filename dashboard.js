@@ -1483,7 +1483,7 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
-    const [produkData, stokRaw, jurnalData, jpData, jpChart30, jurnalAllData, channelData, _unused] = await Promise.all([
+    const [produkData, stokRaw, jurnalData, jpData, jpChart30, jurnalAllData, channelData, _unused, kasAkunRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
       dbGet('jurnal', '&order=created_at.desc&limit=8'),
@@ -1491,8 +1491,13 @@ async function loadDashboard() {
       dbGet('jurnal_penjualan', '&tanggal=gte.' + _localDateOffset(30) + '&order=tanggal.desc'),
       dbGet('jurnal'),
       dbGet('channels').catch(() => []),
-      dbGet('jurnal', '&order=tanggal.desc').catch(() => [])
+      dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
+      dbGet('kas_akun', '').catch(() => [])
     ]);
+
+    // ─ Build kas akun map (dipakai untuk saldo KAS & BANK + beban di bawah)
+    const _dashKasAkunMap = {};
+    (kasAkunRaw || []).forEach(a => { _dashKasAkunMap[a.id] = a; });
 
     const stokMasukMap = {};
     (stokRaw || []).forEach(s => {
@@ -1532,7 +1537,17 @@ async function loadDashboard() {
     // ─ Metric 1-4
     const kritis    = _dashStokData.filter(r => r.sisa <= 3 && (r.kategori_produk || 'aktif') === 'aktif').length;
     const nilaiStok = _dashStokData.reduce((s,r) => s + (r.nilai_stok || 0), 0);
-    const saldo     = (jurnalAllData||[]).reduce((s,r) => s+(r.debit||0)-(r.kredit||0), 0);
+    // ─ Saldo KAS: hanya akun sub_kelompok 'KAS & BANK' — debit masuk, kredit keluar
+    const saldo = (jurnalAllData || []).reduce((s, r) => {
+      const n  = Number(r.nominal || r.debit || 0);
+      const aD = _dashKasAkunMap[r.akun_debit_id];
+      const aK = _dashKasAkunMap[r.akun_kredit_id];
+      const isKasDebit  = aD && aD.kelompok === 'aset' && (aD.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      const isKasKredit = aK && aK.kelompok === 'aset' && (aK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      if (isKasDebit)  return s + n;
+      if (isKasKredit) return s - n;
+      return s;
+    }, 0);
 
     document.getElementById('d-sku').textContent       = _dashStokData.length;
     document.getElementById('d-kritis').textContent    = kritis + ' sku' + (kritis>0?'!':'');
@@ -1586,11 +1601,9 @@ async function loadDashboard() {
     }
 
     // ─ Beban & Laba Bersih ─────────────────────────────────────
-    // Ambil akun map untuk realisasi jurnal (teks kecil abu-abu)
+    // kasAkunMap sudah tersedia dari Promise.all di atas (_dashKasAkunMap)
     const bulanIniStr = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
-    const kasAkunArr  = await dbGet('kas_akun', '').catch(() => []);
-    const kasAkunMap  = {};
-    (kasAkunArr||[]).forEach(a => { kasAkunMap[a.id] = a; });
+    const kasAkunMap  = _dashKasAkunMap; // reuse, tidak perlu fetch ulang
 
     // Hitung realisasi aktual dari jurnal (untuk teks kecil saja)
     const kasJurnalBulanIni = (jurnalAllData||[]).filter(j => (j.tanggal||'').slice(0,7) === bulanIniStr);
