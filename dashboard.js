@@ -1595,9 +1595,11 @@ async function loadDashboard() {
     const kasJurnalBulanIni = (jurnalAllData||[]).filter(j => (j.tanggal||'').slice(0,7) === bulanIniStr);
     let totalBebanNominal = 0;
     const bebanDetailMap = {}; // nama akun → total nominal
+    const _SKIP_SUB = ['HPP', 'Beban Produksi']; // sub_kelompok yg tidak masuk target omset
     kasJurnalBulanIni.forEach(j => {
       const akunDebit = kasAkunMap[j.akun_debit_id];
-      if (akunDebit && akunDebit.kelompok === 'beban') {
+      if (akunDebit && akunDebit.kelompok === 'beban' &&
+          !_SKIP_SUB.includes(akunDebit.sub_kelompok)) {
         const nominal = Number(j.nominal || j.debit || 0);
         totalBebanNominal += nominal;
         const nama = akunDebit.nama || 'Beban';
