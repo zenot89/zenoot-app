@@ -16,13 +16,31 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
   </div>
 
-  <!-- TOMBOL AKSI: hanya Refresh kiri, Tambah kanan -->
-  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-    <button class="btn btn-sm" onclick="loadJurnalPenjualan()">
-      <i class="ti ti-refresh"></i> Refresh
+  <!-- TOMBOL AKSI: Refresh + Filter kiri, Tambah kanan -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
+    <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+      <i class="ti ti-refresh"></i>
     </button>
-    <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto">
-      <i class="ti ti-plus"></i> Tambah Penjualan
+    <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-calendar"></i>
+      <span id="jp-periode-label">Hari Ini</span>
+      <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-building-store"></i>
+      <span id="jp-channel-label">Semua Channel</span>
+      <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" id="jp-reset-btn" onclick="jpResetFilter()"
+      style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
+      <i class="ti ti-x"></i> Reset
+    </button>
+    <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
+      <i class="ti ti-plus"></i> Tambah
     </button>
   </div>
 
@@ -236,42 +254,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
   <!-- TABEL -->
   <div class="card">
-    <div class="card-title"
-      id="jp-toolbar-wrap" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-
-      <!-- Kiri: judul + 2 tombol filter -->
-      <div id="jp-toolbar-left" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
-
-        <!-- TOMBOL PERIODE -->
-        <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
-          style="display:flex;align-items:center;gap:4px;font-size:12px">
-          <i class="ti ti-calendar"></i>
-          <span id="jp-periode-label">Hari Ini</span>
-          <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-          <span style="font-size:10px">&#9662;</span>
-        </button>
-
-        <!-- TOMBOL CHANNEL -->
-        <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
-          style="display:flex;align-items:center;gap:4px;font-size:12px">
-          <i class="ti ti-building-store"></i>
-          <span id="jp-channel-label">Semua Channel</span>
-          <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-          <span style="font-size:10px">&#9662;</span>
-        </button>
-
-        <!-- RESET FILTER — muncul otomatis bila ada filter aktif -->
-        <button class="btn btn-sm" id="jp-reset-btn" onclick="jpResetFilter()"
-          style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
-          <i class="ti ti-x"></i> Reset Filter
-        </button>
-      </div>
-
-      <!-- Kanan: tombol Produk Terjual -->
-      <div id="jp-toolbar-right"><button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
+      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
         <i class="ti ti-chart-bar"></i> Produk Terjual
-      </button></div>
+      </button>
     </div>
     <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth"><table class="tbl">
       <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
