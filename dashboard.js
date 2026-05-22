@@ -100,6 +100,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="m-label">Beban Operasional</div>
       <div class="m-value" id="d-beban">—</div>
       <div class="m-delta" id="d-beban-delta">bulan ini</div>
+      <div id="d-beban-realisasi" style="font-size:11px;color:var(--ink3);margin-top:2px"></div>
       <div class="doodle"><i class="ti ti-clipboard-list"></i></div>
     </div>
     <div class="metric">
@@ -1584,38 +1585,83 @@ async function loadDashboard() {
       elLabaDelta.textContent = 'marjin ' + marjin + '%';
     }
 
-    // ─ Beban & Laba Bersih — dari jurnal kas akun kelompok 'beban' bulan ini
-    // Ambil akun map dari kas_jurnal + kas_akun (sudah ada di jurnalAllData)
+    // ─ Beban & Laba Bersih ─────────────────────────────────────
+    // Ambil akun map untuk realisasi jurnal (teks kecil abu-abu)
     const bulanIniStr = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
     const kasAkunArr  = await dbGet('kas_akun', '').catch(() => []);
     const kasAkunMap  = {};
     (kasAkunArr||[]).forEach(a => { kasAkunMap[a.id] = a; });
 
-    // Filter jurnal bulan ini, ambil semua debit ke akun kelompok 'beban'
+    // Hitung realisasi aktual dari jurnal (untuk teks kecil saja)
     const kasJurnalBulanIni = (jurnalAllData||[]).filter(j => (j.tanggal||'').slice(0,7) === bulanIniStr);
-    let totalBebanNominal = 0;
-    const bebanDetailMap = {}; // nama akun → total nominal
-    const _SKIP_SUB = ['HPP', 'Beban Produksi']; // sub_kelompok yg tidak masuk target omset
+    let totalBebanRealisasi = 0;
+    const bebanDetailMap = {};
+    const _SKIP_SUB = ['HPP', 'Beban Produksi'];
     kasJurnalBulanIni.forEach(j => {
       const akunDebit = kasAkunMap[j.akun_debit_id];
       if (akunDebit && akunDebit.kelompok === 'beban' &&
           !_SKIP_SUB.includes(akunDebit.sub_kelompok)) {
         const nominal = Number(j.nominal || j.debit || 0);
-        totalBebanNominal += nominal;
+        totalBebanRealisasi += nominal;
         const nama = akunDebit.nama || 'Beban';
         bebanDetailMap[nama] = (bebanDetailMap[nama] || 0) + nominal;
       }
     });
 
+    // ── BARU: Beban Operasional = Total Anggaran dari kas_anggaran bulan ini ──
+    const anggaranBulanIni = await dbGet('kas_anggaran', '&bulan=eq.' + bulanIniStr).catch(() => []);
+    let totalAnggaran = 0;
+    (anggaranBulanIni || []).forEach(a => { totalAnggaran += Number(a.nominal || 0); });
+    // Fallback: kalau bulan ini belum ada anggaran, ambil bulan terakhir yang ada
+    if (!totalAnggaran) {
+      const anggaranAll = await dbGet('kas_anggaran', '&order=bulan.desc').catch(() => []);
+      if (anggaranAll && anggaranAll.length) {
+        const bulanTerakhir = anggaranAll[0].bulan;
+        anggaranAll.filter(a => a.bulan === bulanTerakhir).forEach(a => { totalAnggaran += Number(a.nominal || 0); });
+      }
+    }
+    // Gunakan anggaran sebagai angka beban utama; fallback ke realisasi jika anggaran 0
+    const totalBebanNominal = totalAnggaran || totalBebanRealisasi;
+
+    // ── BARU: Rasio % = rata-rata beban_persen channel Shopee ──
+    let rasioBebanShopee = 0;
+    try {
+      const shopeeChannels = await dbGet('channels', '&kategori=eq.toko_utama').catch(() => []);
+      const shopeeIds = (shopeeChannels || []).map(c => c.id);
+      if (shopeeIds.length) {
+        const bebanData = await dbGet('channel_beban', '').catch(() => []);
+        const shopeeBeban = (bebanData || []).filter(b => shopeeIds.includes(b.channel_id));
+        if (shopeeBeban.length) {
+          const sumPct = shopeeBeban.reduce((s, b) => s + Number(b.beban_persen || 0), 0);
+          rasioBebanShopee = sumPct / shopeeBeban.length;
+        }
+      }
+    } catch(e) { rasioBebanShopee = 0; }
+
     const elBeban = document.getElementById('d-beban');
     const elBebanDelta = document.getElementById('d-beban-delta');
+    const elBebanReal  = document.getElementById('d-beban-realisasi');
     if (elBeban) {
-      elBeban.textContent = totalBebanNominal>0 ? _fmtRp(totalBebanNominal) : '—';
+      elBeban.textContent = totalBebanNominal > 0 ? _fmtRp(totalBebanNominal) : '—';
       elBeban.style.color = 'var(--danger)';
     }
-    if (elBebanDelta && totalBebanNominal>0 && omsetBln>0) {
-      elBebanDelta.textContent = (totalBebanNominal/omsetBln*100).toFixed(1) + '% dari omset';
+    if (elBebanDelta) {
+      elBebanDelta.textContent = rasioBebanShopee > 0
+        ? rasioBebanShopee.toFixed(1) + '% dari omset'
+        : (totalBebanNominal > 0 && omsetBln > 0
+            ? (totalBebanNominal / omsetBln * 100).toFixed(1) + '% dari omset'
+            : 'anggaran bulan ini');
     }
+    if (elBebanReal) {
+      elBebanReal.textContent = totalBebanRealisasi > 0
+        ? 'realisasi: ' + _fmtRp(totalBebanRealisasi)
+        : '';
+    }
+
+    // ── BARU: Target Omset = Total Anggaran ÷ rasio Shopee (auto, tanpa set manual) ──
+    const targetOtomatis = (totalAnggaran > 0 && rasioBebanShopee > 0)
+      ? Math.round(totalAnggaran / (rasioBebanShopee / 100))
+      : _getTarget(); // fallback ke localStorage kalau data belum ada
 
     const labaBersih = labaKotor - totalBebanNominal;
     const elLabaBersih = document.getElementById('d-laba-bersih');
@@ -1624,8 +1670,8 @@ async function loadDashboard() {
       elLabaBersih.style.color = labaBersih>=0 ? 'var(--ok)' : 'var(--danger)';
     }
 
-    // ─ Target Omset — dari localStorage (diset via modal Set Target)
-    const target = _getTarget();
+    // ─ Target Omset — otomatis dari Total Anggaran ÷ rasio Shopee
+    const target = targetOtomatis;
 
     const targetEl = document.getElementById('d-target');
     if (targetEl) targetEl.textContent = target>0 ? _fmtRp(target) : '—';
