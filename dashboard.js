@@ -58,8 +58,8 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-calendar"></i></div>
     </div>
     <div class="metric">
-      <div class="m-label">Target Omset</div>
-      <div class="m-value" id="d-target">—</div>
+      <div class="m-label">Target Omset <span class="target-link" onclick="openTargetModal()">✎ set</span></div>
+      <div class="m-value" id="d-target" style="cursor:pointer" onclick="openTargetModal()">—</div>
       <div class="m-delta">
         <div id="d-target-bar-wrap" style="margin-top:4px;display:none">
           <div style="background:var(--cream4);height:6px;border-radius:3px;overflow:hidden;border:1px solid var(--ink4)">
@@ -1624,34 +1624,8 @@ async function loadDashboard() {
       elLabaBersih.style.color = labaBersih>=0 ? 'var(--ok)' : 'var(--danger)';
     }
 
-    // ─ Target Omset — dari kas_anggaran bulan ini (Beban Operasional) ÷ rasio channel
-    let target = 0;
-    try {
-      const [angData, chShopee, chBeban] = await Promise.all([
-        dbGet('kas_anggaran', '&bulan=eq.' + bulanIniStr).catch(()=>[]),
-        dbGet('channels', '&kategori=eq.Shopee').catch(()=>[]),
-        dbGet('channel_beban', '').catch(()=>[])
-      ]);
-      // Total anggaran bulan ini (hanya akun sub_kelompok = Beban Operasional)
-      let totalAnggaran = 0;
-      (angData||[]).forEach(a => {
-        const akun = kasAkunMap[a.akun_id];
-        if (akun && akun.sub_kelompok === 'Beban Operasional') {
-          totalAnggaran += Number(a.nominal) || 0;
-        }
-      });
-      // Hitung target dari anggaran ÷ rata-rata rasio beban channel Shopee
-      if (totalAnggaran > 0) {
-        const bebanChMap = {};
-        (chBeban||[]).forEach(b => { bebanChMap[b.channel_id] = b; });
-        let sumR = 0, cntR = 0;
-        (chShopee||[]).forEach(ch => {
-          if (bebanChMap[ch.id]) { sumR += (bebanChMap[ch.id].beban_persen||0); cntR++; }
-        });
-        const rasio = cntR > 0 ? sumR / cntR : 0;
-        if (rasio > 0) target = Math.round(totalAnggaran / (rasio / 100));
-      }
-    } catch(e) { /* biarkan target = 0 jika error */ }
+    // ─ Target Omset — dari localStorage (diset via modal Set Target)
+    const target = _getTarget();
 
     const targetEl = document.getElementById('d-target');
     if (targetEl) targetEl.textContent = target>0 ? _fmtRp(target) : '—';
