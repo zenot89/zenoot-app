@@ -1,27 +1,22 @@
 // ─── ANGGARAN.JS — Anggaran Beban Bulanan ────────────────────
-// Pakai tabel yang sudah ada:
-//   beban_operasional  → { id, nama, nominal, tipe }  ← anggaran per pos
-//   jurnal             → { akun_debit, debit, tanggal } ← realisasi
-//   kas_akun           → { id, nama, kode, kelompok }   ← mapping nama akun
+// Tabel: kas_anggaran { id, akun_id, bulan, nominal }
+// Akun : kas_akun     { id, kode, nama, kelompok, sub_kelompok }
+// Realisasi: jurnal   { akun_debit, debit, tanggal }
 
-let _angBeban   = [];   // data dari beban_operasional
-let _angAkunMap = {};   // map id→akun dari kas_akun
-let _angJurnal  = [];   // jurnal bulan aktif
+let _angAkunBeban  = [];
+let _angAnggaran   = [];
+let _angJurnal     = [];
 let _angBulanAktif = '';
 
-// ─── HTML PAGE ───────────────────────────────────────────────
+// ─── HTML ─────────────────────────────────────────────────────
 document.getElementById('page-anggaran').innerHTML = `
 <style>
   .ang-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
   @media(max-width:600px){ .ang-metrics { grid-template-columns:repeat(2,1fr); } }
   .ang-bar-wrap { height:5px; background:var(--cream2); border:1px solid var(--ink3); border-radius:3px; overflow:hidden; margin-top:5px; }
   .ang-bar-fill { height:100%; border-radius:3px; transition:width .5s; }
-  .ang-ok     { background:var(--ok); }
-  .ang-warn   { background:var(--warn); }
-  .ang-danger { background:var(--danger); }
 </style>
 
-<!-- METRICS -->
 <div class="ang-metrics">
   <div class="metric">
     <div class="m-label">Total Anggaran</div>
@@ -31,7 +26,7 @@ document.getElementById('page-anggaran').innerHTML = `
   <div class="metric">
     <div class="m-label">Total Realisasi</div>
     <div class="m-value" id="ang-total-realisasi">—</div>
-    <div class="m-delta" id="ang-rea-delta">dari jurnal kas</div>
+    <div class="m-delta">dari jurnal kas</div>
   </div>
   <div class="metric">
     <div class="m-label">Sisa / Selisih</div>
@@ -45,7 +40,6 @@ document.getElementById('page-anggaran').innerHTML = `
   </div>
 </div>
 
-<!-- TOOLBAR -->
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="angLoad()">
     <i class="ti ti-refresh"></i> Refresh
@@ -59,7 +53,6 @@ document.getElementById('page-anggaran').innerHTML = `
   </div>
 </div>
 
-<!-- TABEL -->
 <div class="card">
   <div class="card-title"
     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -73,7 +66,8 @@ document.getElementById('page-anggaran').innerHTML = `
     <table class="tbl">
       <thead>
         <tr>
-          <th>Pos Beban</th>
+          <th>Akun Beban</th>
+          <th>Kategori</th>
           <th style="text-align:right">Anggaran</th>
           <th style="text-align:right">Realisasi</th>
           <th style="text-align:right">Selisih</th>
@@ -82,33 +76,36 @@ document.getElementById('page-anggaran').innerHTML = `
         </tr>
       </thead>
       <tbody id="ang-tbody">
-        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- MODAL EDIT NOMINAL -->
+<!-- MODAL -->
 <div class="modal-overlay" id="modal-anggaran" onclick="angOverlayClose(event)">
   <div class="modal" style="max-width:400px;width:100%;padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;
                 margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px">
-        <i class="ti ti-edit"></i> Edit Anggaran
+        <i class="ti ti-edit"></i> Set Anggaran
       </div>
       <button onclick="angCloseModal()"
         style="background:none;border:none;font-size:22px;cursor:pointer;
                color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
-
     <input type="hidden" id="ang-edit-id">
-
+    <input type="hidden" id="ang-edit-akun-id">
     <div class="form-group" style="margin-bottom:8px">
-      <label>Pos Beban</label>
-      <div id="ang-edit-nama"
-        style="font-weight:700;font-size:15px;padding:6px 0;color:var(--ink)">—</div>
+      <label>Akun Beban</label>
+      <div id="ang-edit-nama" style="font-weight:700;font-size:15px;padding:6px 0;color:var(--ink)">—</div>
     </div>
-
+    <div class="form-group" style="margin-bottom:8px">
+      <label>Bulan</label>
+      <input type="month" id="ang-edit-bulan"
+        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
+               border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+    </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal Anggaran (Rp)</label>
       <input type="text" inputmode="numeric" id="ang-edit-nominal"
@@ -116,7 +113,6 @@ document.getElementById('page-anggaran').innerHTML = `
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
                border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
     </div>
-
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="angCloseModal()">Batal</button>
       <button class="btn btn-primary" onclick="angSimpan()">
@@ -130,9 +126,9 @@ document.getElementById('page-anggaran').innerHTML = `
 // ─── INIT ─────────────────────────────────────────────────────
 function angInit() {
   const now = new Date();
-  const bulanIni = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  _angBulanAktif = bulanIni;
-  document.getElementById('ang-filter-bulan').value = bulanIni;
+  const b   = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  _angBulanAktif = b;
+  document.getElementById('ang-filter-bulan').value = b;
   angLoad();
 }
 
@@ -143,105 +139,104 @@ function angOnBulanChange() {
 
 function angResetBulan() {
   const now = new Date();
-  const bulanIni = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  _angBulanAktif = bulanIni;
-  document.getElementById('ang-filter-bulan').value = bulanIni;
+  const b   = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  _angBulanAktif = b;
+  document.getElementById('ang-filter-bulan').value = b;
   angLoad();
 }
 
 // ─── LOAD ─────────────────────────────────────────────────────
 async function angLoad() {
   document.getElementById('ang-tbody').innerHTML =
-    '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+    '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
-    const [beban, akun, jurnal] = await Promise.all([
-      dbGet('beban_operasional', '&order=id.asc'),
+    const bulan = _angBulanAktif;
+    const [akunAll, angAll, jurnalAll] = await Promise.all([
       dbGet('kas_akun', '&kelompok=eq.beban&order=kode.asc'),
-      _angBulanAktif
-        ? dbGet('jurnal', '&tanggal=gte.' + _angBulanAktif + '-01&tanggal=lte.' + _angBulanAktif + '-31&order=tanggal.asc')
+      bulan
+        ? dbGet('kas_anggaran', '&bulan=eq.' + bulan + '&order=akun_id.asc')
+        : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),
+      bulan
+        ? dbGet('jurnal', '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-31&order=tanggal.asc')
         : [],
     ]);
-    _angBeban   = beban  || [];
-    _angAkunMap = {};
-    (akun||[]).forEach(a => { _angAkunMap[a.id] = a; });
-    _angJurnal  = jurnal || [];
+    _angAkunBeban = akunAll  || [];
+    _angAnggaran  = angAll   || [];
+    _angJurnal    = jurnalAll || [];
     angRender();
   } catch(e) {
     document.getElementById('ang-tbody').innerHTML =
-      `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+      `<tr><td colspan="7" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
 // ─── HITUNG REALISASI ─────────────────────────────────────────
-// Cari akun kas yang namanya mirip nama pos beban, lalu sum debit dari jurnal
-function angRealisasiUntuk(namaPos) {
-  // Cari akun beban yang namanya cocok (case-insensitive, trim)
-  const namaLower = (namaPos||'').toLowerCase().trim();
-  const matchAkun = Object.values(_angAkunMap).find(a =>
-    (a.nama||'').toLowerCase().trim() === namaLower ||
-    (a.nama||'').toLowerCase().includes(namaLower) ||
-    namaLower.includes((a.nama||'').toLowerCase().trim())
-  );
-  if (!matchAkun) return 0;
+function angRealisasi(akunId) {
   let total = 0;
   _angJurnal.forEach(j => {
-    if (String(j.akun_debit) === String(matchAkun.id)) {
-      total += Number(j.debit) || 0;
-    }
+    if (String(j.akun_debit) === String(akunId)) total += Number(j.debit) || 0;
   });
   return total;
 }
 
 // ─── RENDER ───────────────────────────────────────────────────
 function angRender() {
-  const tbody = document.getElementById('ang-tbody');
-  if (!_angBeban.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada data beban operasional.</td></tr>';
+  const tbody  = document.getElementById('ang-tbody');
+  const angMap = {};
+  _angAnggaran.forEach(a => { angMap[String(a.akun_id)] = a; });
+
+  if (!_angAkunBeban.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun beban. Tambah via Kas & Jurnal → Kelola Akun.</td></tr>';
     angUpdateMetrics(0, 0);
     return;
   }
 
   let totalAng = 0, totalRea = 0;
 
-  const rows = _angBeban.map(b => {
-    const nomAng = Number(b.nominal) || 0;
-    const nomRea = angRealisasiUntuk(b.nama);
+  const rows = _angAkunBeban.map(akun => {
+    const ang    = angMap[String(akun.id)];
+    const nomAng = ang ? (Number(ang.nominal) || 0) : 0;
+    const nomRea = angRealisasi(akun.id);
     totalAng += nomAng;
     totalRea += nomRea;
 
-    const selisih  = nomAng - nomRea;
-    const pct      = nomAng > 0 ? Math.round((nomRea/nomAng)*100) : (nomRea > 0 ? 999 : 0);
-    const barW     = Math.min(pct, 100);
-    const barCls   = pct >= 100 ? 'ang-danger' : pct >= 80 ? 'ang-warn' : 'ang-ok';
-    const selColor = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
-    const pctColor = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
+    const selisih = nomAng - nomRea;
+    const pct     = nomAng > 0 ? Math.round((nomRea / nomAng) * 100) : (nomRea > 0 ? 999 : 0);
+    const barW    = Math.min(pct, 100);
+    const barCls  = pct >= 100 ? 'ang-danger' : pct >= 80 ? 'ang-warn' : 'ang-ok';
+    const selCol  = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
+    const pctCol  = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
 
-    const selStr = nomAng === 0
-      ? '—'
-      : `<span style="color:${selColor};font-weight:700">${selisih >= 0 ? '+' : ''}${angFmt(selisih)}</span>`;
+    const angStr  = nomAng > 0
+      ? angFmt(nomAng)
+      : `<span style="color:var(--ink3);font-style:italic">Belum diset</span>`;
+    const reaStr  = nomRea > 0 ? angFmt(nomRea) : `<span style="color:var(--ink3)">—</span>`;
+    const selStr  = nomAng === 0 ? '—'
+      : `<span style="color:${selCol};font-weight:700">${selisih>=0?'+':''}${angFmt(selisih)}</span>`;
+    const pctStr  = nomAng === 0
+      ? (nomRea > 0 ? `<span style="color:var(--danger)">∞%</span>` : '—')
+      : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
+    const bar     = nomAng > 0
+      ? `<div class="ang-bar-wrap"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : '';
 
-    const pctStr = nomAng === 0
-      ? (nomRea > 0 ? '<span style="color:var(--danger)">∞%</span>' : '—')
-      : `<span style="color:${pctColor};font-weight:700">${pct}%</span>`;
-
-    const bar = nomAng > 0
-      ? `<div class="ang-bar-wrap"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>`
-      : '';
+    const safeNama = (akun.nama||'').replace(/'/g,"\\'");
 
     return `<tr>
       <td>
-        <div style="font-weight:700">${b.nama||'—'}</div>
-        <div style="font-size:11px;color:var(--ink3)">${b.tipe||''}</div>
+        <div style="font-weight:700">${akun.nama||'—'}</div>
+        <div style="font-size:11px;color:var(--ink3);font-family:monospace">${akun.kode||''}</div>
         ${bar}
       </td>
-      <td style="text-align:right">${nomAng > 0 ? angFmt(nomAng) : '<span style="color:var(--ink3);font-style:italic">Belum diset</span>'}</td>
-      <td style="text-align:right">${nomRea > 0 ? angFmt(nomRea) : '<span style="color:var(--ink3)">—</span>'}</td>
+      <td style="font-size:12px;color:var(--ink2)">${akun.sub_kelompok||'—'}</td>
+      <td style="text-align:right">${angStr}</td>
+      <td style="text-align:right">${reaStr}</td>
       <td style="text-align:right">${selStr}</td>
       <td style="text-align:right">${pctStr}</td>
       <td>
-        <button class="btn btn-sm" onclick="angShowEdit(${b.id},'${(b.nama||'').replace(/'/g,"\\'")}',${nomAng})" title="Edit Anggaran">
-          <i class="ti ti-edit"></i>
-        </button>
+        <button class="btn btn-sm"
+          onclick="angShowEdit('${akun.id}','${safeNama}','${ang ? ang.id : ''}',${nomAng})"
+          title="Set Anggaran"><i class="ti ti-edit"></i></button>
+        ${ang ? `<button class="btn btn-sm btn-danger" onclick="angHapus('${ang.id}')" style="margin-left:4px" title="Hapus"><i class="ti ti-trash"></i></button>` : ''}
       </td>
     </tr>`;
   });
@@ -259,34 +254,35 @@ function angUpdateMetrics(totalAng, totalRea) {
   document.getElementById('ang-total-realisasi').textContent = angFmt(totalRea);
 
   const selEl  = document.getElementById('ang-total-selisih');
-  const selDel = document.getElementById('ang-selisih-delta');
+  const delEl  = document.getElementById('ang-selisih-delta');
   const pctEl  = document.getElementById('ang-pct-serapan');
 
   if (totalAng === 0) {
     selEl.textContent = '—'; selEl.style.color = '';
-    selDel.textContent = 'belum ada anggaran';
+    delEl.textContent = 'belum ada anggaran';
     pctEl.textContent = '—'; pctEl.style.color = '';
   } else {
-    selEl.textContent  = (selisih >= 0 ? '+' : '') + angFmt(selisih);
-    selEl.style.color  = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
-    selDel.textContent = selisih >= 0 ? 'masih aman' : 'melebihi anggaran!';
-    pctEl.textContent  = pct + '%';
-    pctEl.style.color  = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
+    selEl.textContent = (selisih >= 0 ? '+' : '') + angFmt(selisih);
+    selEl.style.color = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
+    delEl.textContent = selisih >= 0 ? 'masih aman' : 'melebihi anggaran!';
+    pctEl.textContent = pct + '%';
+    pctEl.style.color = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--warn)' : 'var(--ok)';
   }
 }
 
 // ─── FORMAT ───────────────────────────────────────────────────
 function angFmt(n) {
   const abs = Math.abs(Math.round(n));
-  const str = 'Rp' + abs.toLocaleString('id-ID');
-  return n < 0 ? '−' + str : str;
+  return (n < 0 ? '−' : '') + 'Rp' + abs.toLocaleString('id-ID');
 }
 
 // ─── MODAL ────────────────────────────────────────────────────
-function angShowEdit(id, nama, nominal) {
-  document.getElementById('ang-edit-id').value      = id;
+function angShowEdit(akunId, nama, angId, nomAng) {
+  document.getElementById('ang-edit-akun-id').value  = akunId;
+  document.getElementById('ang-edit-id').value       = angId || '';
   document.getElementById('ang-edit-nama').textContent = nama;
-  document.getElementById('ang-edit-nominal').value = nominal || '';
+  document.getElementById('ang-edit-bulan').value    = _angBulanAktif || '';
+  document.getElementById('ang-edit-nominal').value  = nomAng || '';
   document.getElementById('modal-anggaran').classList.add('open');
 }
 
@@ -300,23 +296,42 @@ function angOverlayClose(e) {
 
 // ─── SIMPAN ───────────────────────────────────────────────────
 async function angSimpan() {
-  const id     = document.getElementById('ang-edit-id').value;
+  const angId  = document.getElementById('ang-edit-id').value.trim();
+  const akunId = document.getElementById('ang-edit-akun-id').value;
+  const bulan  = document.getElementById('ang-edit-bulan').value;
   const nomStr = document.getElementById('ang-edit-nominal').value.replace(/\D/g,'');
   const nominal = parseInt(nomStr, 10);
 
+  if (!bulan)             { alert('Pilih bulan anggaran.'); return; }
   if (!nominal || nominal <= 0) { alert('Nominal harus lebih dari 0.'); return; }
 
+  const payload = { akun_id: akunId, bulan, nominal };
+
   try {
-    await dbUpdate('beban_operasional', id, { nominal });
+    if (angId) {
+      await dbUpdate('kas_anggaran', angId, payload);
+    } else {
+      await dbInsert('kas_anggaran', payload);
+    }
     angCloseModal();
+    _angBulanAktif = bulan;
+    document.getElementById('ang-filter-bulan').value = bulan;
     angLoad();
   } catch(e) {
     alert('Gagal simpan: ' + e.message);
   }
 }
 
-// ─── AUTO-INIT saat halaman dibuka ───────────────────────────
-(function _angPatchGotoPage() {
+// ─── HAPUS ────────────────────────────────────────────────────
+function angHapus(id) {
+  confirmDelete('Hapus anggaran ini?', async () => {
+    try { await dbDelete('kas_anggaran', id); angLoad(); }
+    catch(e) { alert('Gagal hapus: ' + e.message); }
+  });
+}
+
+// ─── AUTO-INIT ────────────────────────────────────────────────
+(function _angPatch() {
   const _orig = window.gotoPage;
   window.gotoPage = function(page, btn) {
     _orig(page, btn);
