@@ -40,20 +40,23 @@ document.getElementById('page-kas').innerHTML = `
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-    <button class="btn btn-sm btn-primary" onclick="kasShowForm()"><i class="ti ti-plus"></i> Tambah Transaksi</button>
-    <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
-    <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <label style="font-size:12px;color:var(--ink2)">Bulan:</label>
+  <div style="display:flex;gap:0;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
+      <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
       <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
       <button class="btn btn-sm" onclick="kasResetFilter()">Semua</button>
-      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
+    </div>
+    <div style="margin-left:auto">
+      <button class="btn btn-sm btn-primary" onclick="kasShowForm()"><i class="ti ti-plus"></i> Tambah Transaksi</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="ti ti-list"></i> Buku Jurnal Harian</div>
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
+      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
+    </div>
     <div class="tbl-wrap" style="overflow-x:auto">
       <table class="tbl">
         <thead><tr><th>Tanggal</th><th>Ref</th><th>Keterangan</th><th>Akun Debit</th><th>Akun Kredit</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th>Aksi</th></tr></thead>
