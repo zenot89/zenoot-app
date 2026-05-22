@@ -121,6 +121,13 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       .jp-row-2 .fg-induk { flex: 1 1 0; width: auto; }
       .jp-row-3 .fg-total { flex: 1 1 140px; }
     }
+  /* ── Portrait mobile: toolbar 1 baris ── */
+  @media (max-width: 520px) {
+    #jp-toolbar-left { flex-wrap: nowrap !important; }
+    #jp-toolbar-left .btn { font-size: 11px !important; padding: 3px 7px !important; }
+    #jp-toolbar-right .btn { font-size: 11px !important; padding: 3px 7px !important; }
+    #jp-toolbar-wrap { flex-wrap: nowrap !important; gap: 4px !important; }
+  }
   </style>
 
   <!-- MODAL -->
@@ -230,10 +237,10 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <!-- TABEL -->
   <div class="card">
     <div class="card-title"
-      style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      id="jp-toolbar-wrap" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
 
       <!-- Kiri: judul + 2 tombol filter -->
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div id="jp-toolbar-left" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
 
         <!-- TOMBOL PERIODE -->
@@ -262,9 +269,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </div>
 
       <!-- Kanan: tombol Produk Terjual -->
-      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+      <div id="jp-toolbar-right"><button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
         <i class="ti ti-chart-bar"></i> Produk Terjual
-      </button>
+      </button></div>
     </div>
     <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth"><table class="tbl">
       <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
