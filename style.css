@@ -1181,25 +1181,39 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ─── JURNAL PENJUALAN TABLE — STICKY HEADER FIX ────────────
-   #jp-tbl-wrap adalah scroll container vertikal tabel.
-   thead th sticky top:0 bekerja relatif ke wrapper ini.       */
-#jp-tbl-wrap .tbl th {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
-}
+/* ─── JURNAL PENJUALAN — LANDSCAPE HP ONLY ──────────────────
+   Hanya aktif di touch device landscape (HP).
+   Laptop (hover:hover) dan portrait tidak tersentuh.
+   Efek: header tabel sticky, tabel scroll dalam wrapper.     */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) {
 
-/* Responsive max-height — sama pola seperti stok */
-#jp-tbl-wrap {
-  max-height: 65vh;
-}
-@media (max-width: 900px) and (orientation: landscape) {
-  #jp-tbl-wrap { max-height: 55dvh; max-height: 55vh; }
-}
-@media (max-width: 900px) and (orientation: portrait) {
-  #jp-tbl-wrap { max-height: 70dvh; max-height: 70vh; }
+  /* Tabel scroll dalam wrapper — bukan .content */
+  #jp-tbl-wrap {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 55dvh;
+    max-height: 55vh;
+  }
+
+  /* th sticky relatif ke #jp-tbl-wrap */
+  #jp-tbl-wrap .tbl th {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--cream3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  /* Tampilkan tombol Tambah Penjualan di card-title */
+  #jp-tambah-landscape {
+    display: -webkit-inline-flex !important;
+    display: inline-flex !important;
+  }
+
+  /* Sembunyikan tombol Tambah di jp-aksi-mobile landscape
+     karena sudah ada di card-title */
+  #jp-aksi-mobile .btn-primary {
+    display: none !important;
+  }
 }
