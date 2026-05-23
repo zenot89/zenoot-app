@@ -1478,3 +1478,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     gap: 4px;
   }
 }
+
+/* ── JURNAL PENJUALAN — LANDSCAPE TOUCH (iPhone/Samsung landscape) ──
+   jp-top-bar hilang total → card tabel dapat ruang penuh.
+   Semua fungsi tetap accessible lewat jp-aksi-mobile di dalam card.
+   ------------------------------------------------------------------ */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) {
+  #jp-top-bar {
+    display: none !important;
+  }
+  /* jp-aksi-mobile selalu tampil di landscape (override aturan desktop) */
+  #jp-aksi-mobile {
+    display: -webkit-flex !important;
+    display: flex !important;
+  }
+  #jp-aksi-laptop {
+    display: none !important;
+  }
+}

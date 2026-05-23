@@ -39,8 +39,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
         <i class="ti ti-x"></i> Reset
       </button>
-      <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
-        <i class="ti ti-plus"></i> Tambah Penjualan
+      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
+        <i class="ti ti-chart-bar"></i> Produk Terjual
       </button>
     </div>
   </div>
@@ -260,11 +260,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <div id="jp-target-bar" style="height:100%;width:0%;background:var(--ok);transition:width .6s;border-radius:3px"></div>
         </div>
       </div>
-      <!-- Judul + Produk Terjual -->
+      <!-- Judul + Tambah Penjualan -->
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
-        <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-          <i class="ti ti-chart-bar"></i> Produk Terjual
+        <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
+          <i class="ti ti-plus"></i> Tambah Penjualan
         </button>
       </div>
       <!-- Toolbar mobile -->
@@ -290,8 +290,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
         <i class="ti ti-x"></i> Reset
       </button>
-      <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
-        <i class="ti ti-plus"></i> Tambah
+      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
+        <i class="ti ti-chart-bar"></i> Produk Terjual
       </button>
       </div><!-- /jp-aksi-mobile -->
     </div><!-- /jp-sticky-header -->
