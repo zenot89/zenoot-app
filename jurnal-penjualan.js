@@ -320,7 +320,25 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 setTimeout(() => {
   if (typeof rerenderUI === 'function')
     rerenderUI(document.getElementById('page-jurnal-penjualan'));
+  // Set CSS variable --jp-sticky-h = tinggi #jp-sticky-header
+  // agar thead tabel sticky tepat di bawahnya (seperti Shopee)
+  jpUpdateStickyHeight();
 }, 80);
+
+// Ukur tinggi jp-sticky-header dan set --jp-sticky-h ke root
+function jpUpdateStickyHeight() {
+  var sh = document.getElementById('jp-sticky-header');
+  if (!sh) return;
+  var h = sh.getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--jp-sticky-h', h + 'px');
+}
+// Re-ukur setiap resize (landscape/portrait switch)
+window.addEventListener('resize', function() {
+  if (document.getElementById('page-jurnal-penjualan') &&
+      document.getElementById('page-jurnal-penjualan').classList.contains('active')) {
+    jpUpdateStickyHeight();
+  }
+});
 
 // ─── STATE ───────────────────────────────────────────────────
 let _jpAllData    = [];
@@ -1154,3 +1172,15 @@ Promise.all([
   loadChannelDropdownJP(),
   loadProdukListJP()
 ]).then(() => loadJurnalPenjualan());
+
+// ─── HOOK gotoPage — update sticky height saat halaman ini dibuka ──
+(function() {
+  var _origGotoPageJP = window.gotoPage;
+  window.gotoPage = function(page, btn) {
+    if (_origGotoPageJP) _origGotoPageJP(page, btn);
+    if (page === 'jurnal-penjualan') {
+      // Ukur setelah DOM settle
+      setTimeout(jpUpdateStickyHeight, 60);
+    }
+  };
+})();
