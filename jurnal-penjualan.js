@@ -1181,6 +1181,38 @@ Promise.all([
     if (_origGotoPageJP) _origGotoPageJP(page, btn);
     if (page === 'jurnal-penjualan') {
       setTimeout(_jpEnsureFlexLayout, 60);
+      // Reset topbar saat masuk halaman — biar selalu muncul dulu
+      setTimeout(function() {
+        var tb = document.getElementById('jp-top-bar');
+        if (tb) tb.classList.remove('jp-topbar-collapsed');
+      }, 60);
     }
   };
+})();
+
+// ─── SCROLL LISTENER — collapse jp-top-bar di landscape touch ────────
+// Dipasang sekali setelah DOM siap (innerHTML sudah di-render di atas)
+(function() {
+  var _jpScrollInited = false;
+  function _jpInitScrollCollapse() {
+    if (_jpScrollInited) return;
+    var wrap = document.getElementById('jp-tbl-wrap');
+    if (!wrap) return;
+    _jpScrollInited = true;
+    var _mqLandscape = window.matchMedia(
+      '(hover: none) and (pointer: coarse) and (orientation: landscape)'
+    );
+    wrap.addEventListener('scroll', function() {
+      if (!_mqLandscape.matches) return;
+      var tb = document.getElementById('jp-top-bar');
+      if (!tb) return;
+      if (wrap.scrollTop > 40) {
+        tb.classList.add('jp-topbar-collapsed');
+      } else {
+        tb.classList.remove('jp-topbar-collapsed');
+      }
+    }, { passive: true });
+  }
+  // Coba init setelah setTimeout 80ms (HTML sudah render)
+  setTimeout(_jpInitScrollCollapse, 200);
 })();
