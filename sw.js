@@ -19,7 +19,7 @@ var STATIC_ASSETS = [
 ];
 
 var CDN_ASSETS = [
-  'https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css',
   'https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js',
 ];
@@ -31,7 +31,7 @@ var JS_APP_FILES = [
   'stok.js', 'restock.js', 'kas.js', 'jurnal-penjualan.js',
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
-  'keuangan.js', 'notif.js', 'hpp.js', 'channels.js',
+  'anggaran.js', 'keuangan.js', 'clearance.js', 'hpp.js', 'notif.js',
   'rough-ui.js', 'style.css',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif

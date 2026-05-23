@@ -114,7 +114,9 @@ function notifSetupTargetHarian() {
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       clearInterval(_notifInterval);
+      _notifInterval = null;
     } else {
+      if (_notifInterval) clearInterval(_notifInterval); // clear dulu jika ada sisa
       cekDanKirim(); // cek langsung saat tab aktif lagi
       _notifInterval = setInterval(cekDanKirim, 60 * 1000);
     }

@@ -146,6 +146,7 @@
     <div id="page-anggaran" class="page"></div>
     <div id="page-keuangan" class="page"></div>
     <div id="page-clearance" class="page"></div>
+    <div id="page-hpp" class="page"></div>
   </div>
 </div>
 
@@ -177,7 +178,7 @@
       'produk.js','stok.js','restock.js','kas.js',
       'jurnal-penjualan.js','produk-terjual.js','price-list.js',
       'dataorder.js','rekap.js','channel-master.js',
-      'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','notif.js'
+      'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','hpp.js','notif.js'
     ];
     scripts.forEach(function(s) {
       var el = document.createElement('script');
@@ -189,9 +190,16 @@
 </script>
 <script>
   // Init notifikasi setelah semua script load
-document.addEventListener("DOMContentLoaded", function() {
-  setTimeout(function() { if (typeof notifInit === "function") notifInit(); }, 2000);
-});
+  // Gunakan window 'load' (setelah semua script async selesai) sebagai fallback
+  // agar tidak terlewat ketika DOMContentLoaded sudah terlanjur fired
+  function _runNotifInit() {
+    setTimeout(function() { if (typeof notifInit === 'function') notifInit(); }, 2000);
+  }
+  if (document.readyState === 'complete') {
+    _runNotifInit();
+  } else {
+    window.addEventListener('load', _runNotifInit);
+  }
 
 function showUpdateBanner() {
     var banner = document.getElementById('update-banner');

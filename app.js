@@ -256,12 +256,7 @@ function hideModal(id) {
   var el = document.getElementById(id);
   if (el) el.classList.remove('open');
 }
-// Tutup modal saat klik overlay
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('open');
-  }
-});
+// (modal-overlay click handler sudah terdaftar di atas — tidak diduplikasi di sini)
 
 // ─── GLOBAL FORMAT RUPIAH ─────────────────────────────────────
 // Format full: Rp1.200.000 (tidak pakai jt/rb)
