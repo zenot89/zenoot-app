@@ -150,7 +150,10 @@ var pageMap = {
 
 // ─── NAVIGASI ────────────────────────────────────────────────
 function gotoPage(page, btn) {
-  $all('.page').forEach(function(p) { p.classList.remove('active'); });
+  $all('.page').forEach(function(p) {
+    p.classList.remove('active');
+    p.style.display = ''; // hapus inline display agar CSS .page{display:none} berlaku
+  });
   var pageEl = $id('page-' + page);
   if (pageEl) pageEl.classList.add('active');
   $all('.nav-item').forEach(function(n) { n.classList.remove('active'); });
@@ -167,11 +170,11 @@ function gotoPage(page, btn) {
   if (contentEl) {
     var fullHeightPages = ['stok', 'jurnal-penjualan'];
     if (fullHeightPages.indexOf(page) !== -1) {
-      contentEl.style.overflowY = 'hidden';
-      contentEl.style.padding   = '0';
-      contentEl.style.height    = '100%';
-      contentEl.style.display   = 'flex';
-      contentEl.style.flexDirection = 'column';
+      contentEl.style.overflowY    = 'hidden';
+      contentEl.style.padding      = '0';
+      contentEl.style.height       = '100%';
+      contentEl.style.display      = '';
+      contentEl.style.flexDirection = '';
     } else {
       contentEl.style.overflowY    = '';
       contentEl.style.padding      = '';

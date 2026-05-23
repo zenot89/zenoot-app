@@ -323,29 +323,21 @@ setTimeout(() => {
   _jpEnsureFlexLayout();
 }, 80);
 
-// Pastikan #page-jurnal-penjualan display:flex saat aktif (efek beku seperti Stok)
+// Fix .content agar height chain bekerja saat halaman JP aktif
 function _jpEnsureFlexLayout() {
   var pg = document.getElementById('page-jurnal-penjualan');
-  if (!pg) return;
-  if (pg.classList.contains('active')) {
-    pg.style.display = '-webkit-flex';
-    pg.style.display = 'flex';
-    // Pastikan .content parent juga flex column & overflow hidden
-    var contentEl = document.querySelector('.content');
-    if (contentEl) {
-      contentEl.style.overflowY     = 'hidden';
-      contentEl.style.padding       = '0';
-      contentEl.style.height        = '100%';
-      contentEl.style.display       = 'flex';
-      contentEl.style.flexDirection = 'column';
-    }
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
   }
 }
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-jurnal-penjualan');
   if (pg && pg.classList.contains('active')) {
-    pg.style.display = '-webkit-flex';
-    pg.style.display = 'flex';
+    _jpEnsureFlexLayout();
   }
 });
 
