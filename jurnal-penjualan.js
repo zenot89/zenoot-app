@@ -1027,20 +1027,7 @@ async function editJP(id) {
       const kat = _jpGetKatalog(found);
       document.getElementById('jp-sku-induk').value = kat;
       jpPilihKatalog(kat);
-      // Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
-
-setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
+      setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
     } else {
       document.getElementById('jp-sku-induk').value = skuVal;
       const sel = document.getElementById('jp-sku-variasi');
