@@ -166,7 +166,7 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-package"></i> Semua SKU
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
-    <div id="stok-tbl-wrap" style="overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
+    <div id="stok-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
       <thead><tr>
         <th>SKU Variasi</th><th>Katalog</th><th>Boss</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
