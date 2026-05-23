@@ -641,6 +641,12 @@ body.sidebar-mini .sidebar-footer::before{
 /* ─── PAGE VISIBILITY ────────────────────────────────────── */
 .page{display:none}
 .page.active{display:block}
+/* Override: halaman full-height pakai flex bukan block */
+#page-stok.active,
+#page-jurnal-penjualan.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
 
 /* ─── REKAP TABLE ────────────────────────────────────────── */
 .rekap-row-head{font-weight:700;background:var(--cream3)}
@@ -1232,6 +1238,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #jp-top-bar {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  gap: 0;
   padding: 10px 16px 8px;
   background: var(--cream2);
 }
