@@ -1166,6 +1166,14 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   padding: 8px 12px;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+}
+#page-stok #stok-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── STOK TABLE WRAP ────────────────────────────────────────
@@ -1184,5 +1192,5 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 @media (max-width: 900px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { height: calc(100dvh - 218px); }
+  #stok-tbl-wrap { height: calc(100dvh - 172px); }
 }
