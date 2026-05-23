@@ -1147,15 +1147,68 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-/* ─── STOK TABLE ─────────────────────────────────────────────*/
+/* ═══════════════════════════════════════════════════════════
+   FULL-HEIGHT PAGE LAYOUT — Stok & Jurnal Penjualan
+   .content overflow:hidden (diset via JS gotoPage)
+   page = flex column, tabel scroll internal
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── STOK ── */
+#page-stok {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+#stok-filter-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  display: -webkit-flex;
+  display: flex;
+  gap: 8px;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  padding: 12px 16px 8px;
+  background: var(--cream2);
+}
 #page-stok .card {
   padding: 0;
   margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  border-radius: 0;
 }
 #page-stok .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#stok-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Mobile: tambah padding bawah untuk hamburger */
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #stok-filter-bar { padding: 10px 10px 6px; }
+  #stok-tbl-wrap   { padding-bottom: 70px; }
 }
 #stok-tbl-wrap .tbl th {
   position: -webkit-sticky;
@@ -1165,20 +1218,62 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
-/* Tinggi tabel stok = layar dikurangi: topbar(~62px) + filter bar(~56px) + card-title(~44px) + padding content(32px) */
-#stok-tbl-wrap {
+
+/* ── JURNAL PENJUALAN ── */
+#page-jurnal-penjualan {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+#jp-top-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 16px 8px;
+  background: var(--cream2);
+}
+#page-jurnal-penjualan .card {
+  padding: 0;
+  margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  border-radius: 0;
+}
+#jp-sticky-header {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  position: static !important;
+  padding: 8px 14px 6px;
+  background: var(--cream3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#jp-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
-  height: calc(100dvh - 194px);
   overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-/* Mobile portrait */
-@media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap { height: calc(100dvh - 204px); }
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #jp-top-bar    { padding: 8px 10px 6px; }
+  #jp-tbl-wrap   { padding-bottom: 70px; }
 }
-/* Mobile landscape — tambah padding bawah untuk hamburger */
-@media (max-width: 900px) and (orientation: landscape),
-       (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { height: calc(100dvh - 194px); padding-bottom: 70px; }
+#jp-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }

@@ -14,7 +14,7 @@ function statusBadge(sisa, kat) {
 
 // page-stok flex column sudah diatur via CSS #page-stok
 document.getElementById('page-stok').innerHTML = `
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;flex-shrink:0">
+  <div id="stok-filter-bar">
     <!-- KIRI: Filter — nested submenu -->
     <div style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;text-align:left;padding-right:24px">

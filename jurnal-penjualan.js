@@ -2,44 +2,47 @@
 
 document.getElementById('page-jurnal-penjualan').innerHTML = `
 
-  <!-- METRICS -->
-  <div class="metrics" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
-    <div class="metric">
-      <div class="m-label">Total Penjualan</div>
-      <div class="m-value" id="jp-total-penjualan">—</div>
-      <div class="m-delta">semua transaksi</div>
+  <!-- TOP BAR: Metrics + Toolbar Laptop — diam di atas -->
+  <div id="jp-top-bar">
+    <!-- METRICS -->
+    <div class="metrics" style="margin-bottom:10px">
+      <div class="metric">
+        <div class="m-label">Total Penjualan</div>
+        <div class="m-value" id="jp-total-penjualan">—</div>
+        <div class="m-delta">semua transaksi</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Total Item Terjual</div>
+        <div class="m-value" id="jp-total-item">—</div>
+        <div class="m-delta">qty keseluruhan</div>
+      </div>
     </div>
-    <div class="metric">
-      <div class="m-label">Total Item Terjual</div>
-      <div class="m-value" id="jp-total-item">—</div>
-      <div class="m-delta">qty keseluruhan</div>
-    </div>
-  </div>
 
-  <!-- TOMBOL AKSI LAPTOP — tersembunyi di mobile -->
-  <div id="jp-aksi-laptop" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
-    <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
-      <i class="ti ti-refresh"></i>
-    </button>
-    <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
-      style="display:flex;align-items:center;gap:4px;font-size:12px">
-      <i class="ti ti-calendar"></i>
-      <span class="jp-periode-label-sync">Hari Ini</span>
-      <span style="font-size:10px">&#9662;</span>
-    </button>
-    <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
-      style="display:flex;align-items:center;gap:4px;font-size:12px">
-      <i class="ti ti-building-store"></i>
-      <span class="jp-channel-label-sync">Channel</span>
-      <span style="font-size:10px">&#9662;</span>
-    </button>
-    <button class="btn btn-sm" id="jp-reset-btn-laptop" onclick="jpResetFilter()"
-      style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
-      <i class="ti ti-x"></i> Reset
-    </button>
-    <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
-      <i class="ti ti-plus"></i> Tambah Penjualan
-    </button>
+    <!-- TOMBOL AKSI LAPTOP — tersembunyi di mobile -->
+    <div id="jp-aksi-laptop" style="display:flex;gap:6px;margin-bottom:0;align-items:center;flex-wrap:nowrap">
+      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+        <i class="ti ti-refresh"></i>
+      </button>
+      <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-calendar"></i>
+        <span class="jp-periode-label-sync">Hari Ini</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+      <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-building-store"></i>
+        <span class="jp-channel-label-sync">Channel</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+      <button class="btn btn-sm" id="jp-reset-btn-laptop" onclick="jpResetFilter()"
+        style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
+        <i class="ti ti-x"></i> Reset
+      </button>
+      <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="margin-left:auto;white-space:nowrap">
+        <i class="ti ti-plus"></i> Tambah Penjualan
+      </button>
+    </div>
   </div>
 
 
@@ -244,7 +247,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
   <!-- TABEL -->
   <div class="card">
-    <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px">
+    <div id="jp-sticky-header">
       <!-- Target Harian -->
       <div id="jp-target-wrap" style="margin-bottom:6px;display:none;padding:6px 0 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -293,38 +296,26 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </button>
       </div><!-- /jp-aksi-mobile -->
     </div><!-- /jp-sticky-header -->
-    <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-      <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
+    <div id="jp-tbl-wrap"><table class="tbl">
+      <thead>
         <tr>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Tgl &amp; Waktu ↓</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Channel</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">SKU</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Qty</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Harga Sat.</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Total</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Aksi</th>
+          <th>Tgl &amp; Waktu ↓</th>
+          <th>Channel</th>
+          <th>SKU</th>
+          <th>Qty</th>
+          <th>Harga Sat.</th>
+          <th>Total</th>
+          <th>Aksi</th>
         </tr>
       </thead>
       <tbody id="jp-tbody">
         <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
       </tbody>
-    </table></div>
-    <div id="jp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
+    </table>
+    <div id="jp-footer" style="font-size:12px;color:var(--ink3);padding:8px 10px;text-align:right"></div>
+    </div>
   </div>
 `;
-
-// Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
 
 setTimeout(() => {
   if (typeof rerenderUI === 'function')
@@ -679,7 +670,6 @@ async function loadJurnalPenjualan() {
     _jpAllData = data || [];
     filterJP();
     jpLoadTargetHarian(); // progress bar target harian
-  setTimeout(jpAdjustStickyHead, 100);
   } catch(err) {
     tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
@@ -989,19 +979,6 @@ function showTambahJP() {
   jpTutupDropdownSKU();
   loadProdukListJP();
   document.getElementById('modal-jp').classList.add('open');
-  // Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
-
 setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
 
@@ -1027,19 +1004,6 @@ async function editJP(id) {
       const kat = _jpGetKatalog(found);
       document.getElementById('jp-sku-induk').value = kat;
       jpPilihKatalog(kat);
-      // Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
-
 setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
     } else {
       document.getElementById('jp-sku-induk').value = skuVal;
