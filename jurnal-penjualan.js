@@ -132,7 +132,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   @media (min-width: 768px) {
     #jp-aksi-laptop { display: flex !important; }
     #jp-aksi-mobile { display: none !important; }
-    #jp-sticky-header { position: static !important; }
   }
   /* ── Mobile (portrait & landscape HP): toolbar dalam card ── */
   @media (max-width: 767px) {
@@ -320,24 +319,24 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 setTimeout(() => {
   if (typeof rerenderUI === 'function')
     rerenderUI(document.getElementById('page-jurnal-penjualan'));
-  // Set CSS variable --jp-sticky-h = tinggi #jp-sticky-header
-  // agar thead tabel sticky tepat di bawahnya (seperti Shopee)
-  jpUpdateStickyHeight();
+  // Pastikan layout flex aktif saat halaman ini dibuka
+  _jpEnsureFlexLayout();
 }, 80);
 
-// Ukur tinggi jp-sticky-header → set --jp-sticky-h agar thead sticky pas
-function jpUpdateStickyHeight() {
-  var sh = document.getElementById('jp-sticky-header');
-  if (!sh) return;
-  // Pakai offsetHeight (integer, tidak perlu getBoundingClientRect)
-  var h = sh.offsetHeight;
-  document.documentElement.style.setProperty('--jp-sticky-h', h + 'px');
+// Pastikan #page-jurnal-penjualan display:flex saat aktif (efek beku seperti Stok)
+function _jpEnsureFlexLayout() {
+  var pg = document.getElementById('page-jurnal-penjualan');
+  if (!pg) return;
+  if (pg.classList.contains('active')) {
+    pg.style.display = '-webkit-flex';
+    pg.style.display = 'flex';
+  }
 }
-// Re-ukur saat resize (rotate landscape/portrait)
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-jurnal-penjualan');
   if (pg && pg.classList.contains('active')) {
-    setTimeout(jpUpdateStickyHeight, 50);
+    pg.style.display = '-webkit-flex';
+    pg.style.display = 'flex';
   }
 });
 
@@ -974,8 +973,6 @@ function renderTabelJP(data) {
       + '</td></tr>';
   }).join('');
   document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
-  // Update --jp-sticky-h setelah data render agar thead sticky akurat
-  setTimeout(jpUpdateStickyHeight, 30);
 }
 
 function updateMetricsJP(data) {
@@ -1176,14 +1173,13 @@ Promise.all([
   loadProdukListJP()
 ]).then(() => loadJurnalPenjualan());
 
-// ─── HOOK gotoPage — update sticky height saat halaman ini dibuka ──
+// ─── HOOK gotoPage — pastikan layout flex aktif saat halaman dibuka ──
 (function() {
   var _origGotoPageJP = window.gotoPage;
   window.gotoPage = function(page, btn) {
     if (_origGotoPageJP) _origGotoPageJP(page, btn);
     if (page === 'jurnal-penjualan') {
-      // Ukur setelah DOM settle
-      setTimeout(jpUpdateStickyHeight, 60);
+      setTimeout(_jpEnsureFlexLayout, 60);
     }
   };
 })();

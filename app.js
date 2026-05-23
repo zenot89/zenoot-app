@@ -165,7 +165,7 @@ function gotoPage(page, btn) {
   closeSidebar();
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    var fullHeightPages = ['stok'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan'];
     if (fullHeightPages.indexOf(page) !== -1) {
       contentEl.style.overflowY = 'hidden';
       contentEl.style.padding   = '0';

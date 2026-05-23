@@ -1221,38 +1221,63 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── JURNAL PENJUALAN ── */
-/* ─── JURNAL PENJUALAN — layout normal, NO sticky di sini ── */
-#page-jurnal-penjualan {
-  padding: 0;
-  height: auto;
-  /* display dihandle oleh .page / .page.active — JANGAN override di sini */
+/* ─── JURNAL PENJUALAN — flex column seperti Stok Produk (efek beku) ── */
+#page-jurnal-penjualan.active {
+  display: -webkit-flex !important;
+  display: flex !important;
 }
+#page-jurnal-penjualan {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  /* display dihandle oleh .page / .page.active */
+}
+/* Top bar: toolbar & metrics — freeze di atas */
 #jp-top-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   padding: 10px 16px 8px;
   background: var(--cream2);
 }
+/* Card tabel: flex-grow mengisi sisa tinggi */
 #page-jurnal-penjualan .card {
   padding: 0;
   border-radius: 0;
   margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
 }
+/* Header dalam card (judul + toolbar mobile + target bar) — juga freeze */
 #jp-sticky-header {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
   padding: 8px 14px 6px;
   background: var(--cream2);
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  /* TIDAK sticky — ikut scroll bersama konten */
 }
+/* Wrapper tabel: flex-grow + overflow scroll sendiri = efek beku */
 #jp-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
+  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-/* Sticky thead HANYA untuk jurnal, top = tinggi jp-sticky-header via JS */
+/* Thead sticky di dalam scroll container — top:0 cukup karena header sudah di luar */
 #jp-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
-  top: var(--jp-sticky-h, 0px);
-  z-index: 40;
+  top: 0;
+  z-index: 3;
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
