@@ -36,7 +36,7 @@ var JS_APP_FILES = [
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 var NO_CACHE_PATTERNS = ['index.html'];
-var JS_CACHE = 'zenot-js-v1';
+var JS_CACHE = 'zenot-js-v2';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
@@ -124,20 +124,18 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // File JS/CSS app → stale-while-revalidate (load cache dulu, update di background)
+  // File JS/CSS app → network-first (selalu ambil versi terbaru)
+  // Fallback ke cache hanya kalau benar-benar offline
   var isJsFile = JS_APP_FILES.some(function(p) { return url.indexOf(p) !== -1; });
   if (isJsFile) {
     e.respondWith(
-      caches.open(JS_CACHE).then(function(c) {
-        return c.match(e.request).then(function(cached) {
-          var fetchPromise = fetch(e.request).then(function(res) {
-            if (res.ok) c.put(e.request, res.clone());
-            return res;
-          });
-          // Kalau ada cache → serve sekarang, update di background
-          // Kalau tidak ada cache → tunggu network
-          return cached || fetchPromise;
-        });
+      fetch(e.request, { cache: 'no-store' }).then(function(res) {
+        if (res.ok) {
+          caches.open(JS_CACHE).then(function(c) { c.put(e.request, res.clone()); });
+        }
+        return res;
+      }).catch(function() {
+        return caches.open(JS_CACHE).then(function(c) { return c.match(e.request); });
       })
     );
     return;
