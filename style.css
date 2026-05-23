@@ -1148,24 +1148,30 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ─── STOK TABLE — STICKY HEADER ────────────────────────────
-   Sticky bekerja relatif ke .content (overflow-y:scroll).
-   top: -16px = negatif padding .content supaya header nempel
-   di tepi atas .content saat scroll.                          */
+   Sticky bekerja relatif ke #stok-tbl-wrap (overflow-y:auto).  */
 #stok-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
-  top: -16px;
+  top: 0;
   z-index: 3;
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* ─── STOK TABLE WRAP ────────────────────────────────────────
-   Scroll vertikal ditangani oleh .content (parent).
-   #stok-tbl-wrap hanya overflow-x untuk scroll horizontal.
-   Sticky th bekerja relatif ke .content sebagai scroll container. */
+   #stok-tbl-wrap adalah scroll container vertikal DAN horizontal.
+   height calc: 100dvh dikurangi topbar(60px) + filter+margin(56px)
+   + card padding+title(68px) + content padding(32px) = 216px     */
 #stok-tbl-wrap {
   width: 100%;
+  height: calc(100dvh - 216px);
+  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+@media (max-width: 900px) {
+  #stok-tbl-wrap {
+    height: calc(100dvh - 230px);
+  }
 }
