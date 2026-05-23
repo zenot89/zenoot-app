@@ -1161,8 +1161,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ── STOK ── */
 #page-stok {
-  display: -webkit-flex;
-  display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
   height: 100%;
@@ -1227,8 +1225,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ── JURNAL PENJUALAN ── */
 #page-jurnal-penjualan {
-  display: -webkit-flex;
-  display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
   height: 100%;
