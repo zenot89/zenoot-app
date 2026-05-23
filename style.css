@@ -1147,8 +1147,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-/* ─── STOK TABLE — STICKY HEADER ────────────────────────────
-   Sticky bekerja relatif ke #stok-tbl-wrap (overflow-y:auto).  */
+/* ─── STOK TABLE — STICKY HEADER ────────────────────────────*/
 #stok-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
@@ -1158,24 +1157,32 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
+/* ─── STOK CARD — kurangi padding agar tabel lebih lega ─────*/
+#page-stok .card {
+  padding: 0;
+  margin-bottom: 0;
+}
+#page-stok .card-title {
+  padding: 8px 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
 /* ─── STOK TABLE WRAP ────────────────────────────────────────
-   .content tetap scroll seperti biasa — tidak diubah.
-   #stok-tbl-wrap punya height eksplisit agar mentok ke bawah.
-   Kalkulasi: topbar + content padding + filter bar + card padding + card-title + content padding-bottom
-   Desktop : 60 + 16 + 44 + 12 + 12 + 44 + 16 = 204px
-   Mobile portrait  : 58 + 10 + 44 + 12 + 10 + 44 + 80 = 258px
-   Mobile landscape : 58 + 10 + 44 + 12 + 10 + 44 + 70 = 248px   */
+   Kalkulasi desktop : topbar(60) + content-padding-top(16) + filter-bar(44) + card-title(36) + content-padding-bottom(16) = 172px
+   Mobile portrait   : topbar(58) + pad(10) + filter(44) + card-title(36) + pad-bottom(80) = 228px
+   Mobile landscape  : topbar(58) + pad(10) + filter(44) + card-title(36) + pad-bottom(70) = 218px  */
 #stok-tbl-wrap {
   width: 100%;
-  height: calc(100dvh - 204px);
+  height: calc(100dvh - 172px);
   overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 @media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap { height: calc(100dvh - 258px); }
+  #stok-tbl-wrap { height: calc(100dvh - 228px); }
 }
 @media (max-width: 900px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { height: calc(100dvh - 160px); }
+  #stok-tbl-wrap { height: calc(100dvh - 218px); }
 }
