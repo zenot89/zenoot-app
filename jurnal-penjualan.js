@@ -258,17 +258,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <div id="jp-target-bar" style="height:100%;width:0%;background:var(--ok);transition:width .6s;border-radius:3px"></div>
         </div>
       </div>
-      <!-- Judul + Produk Terjual + Tambah (landscape) -->
+      <!-- Judul + Produk Terjual -->
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-            <i class="ti ti-chart-bar"></i> Produk Terjual
-          </button>
-          <button id="jp-tambah-landscape" class="btn btn-sm btn-primary" onclick="showTambahJP()" style="display:none;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
-            <i class="ti ti-plus"></i> Tambah Penjualan
-          </button>
-        </div>
+        <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+          <i class="ti ti-chart-bar"></i> Produk Terjual
+        </button>
       </div>
       <!-- Toolbar mobile -->
       <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:0;align-items:center;flex-wrap:nowrap">
@@ -298,7 +293,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </button>
       </div><!-- /jp-aksi-mobile -->
     </div><!-- /jp-sticky-header -->
-    <div id="jp-tbl-wrap" class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+    <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
       <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
         <tr>
           <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Tgl &amp; Waktu ↓</th>
