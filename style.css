@@ -1182,8 +1182,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ─── JURNAL PENJUALAN TABLE — STICKY HEADER FIX ────────────
-   Sama dengan stok: sticky thead bekerja relatif ke #jp-tbl-wrap
-   (scroll container vertikal), bukan ke .content.              */
+   #jp-tbl-wrap adalah scroll container vertikal tabel.
+   thead th sticky top:0 bekerja relatif ke wrapper ini.       */
 #jp-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
@@ -1193,36 +1193,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
-/* ─── JURNAL PENJUALAN TABLE WRAP — RESPONSIVE HEIGHT ───────  */
+/* Responsive max-height — sama pola seperti stok */
 #jp-tbl-wrap {
   max-height: 65vh;
 }
 @media (max-width: 900px) and (orientation: landscape) {
-  #jp-tbl-wrap {
-    max-height: 55dvh;
-    max-height: 55vh;
-  }
+  #jp-tbl-wrap { max-height: 55dvh; max-height: 55vh; }
 }
 @media (max-width: 900px) and (orientation: portrait) {
-  #jp-tbl-wrap {
-    max-height: 70dvh;
-    max-height: 70vh;
-  }
-}
-
-/* ─── JURNAL PENJUALAN — STICKY HEADER STANDALONE ───────────
-   jp-sticky-header sekarang di luar .card, langsung di bawah
-   .content — sehingga sticky bekerja relatif ke .content.
-   Card tabel terpisah di bawahnya.                           */
-#jp-sticky-header {
-  background: var(--cream);
-  padding: 8px 0 6px;
-  margin-bottom: 0;
-  /* Pastikan tidak ada gap transparan saat scroll */
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-}
-
-/* jp-footer di dalam card padding:0 — tambah padding manual */
-#jp-footer {
-  padding: 6px 14px 10px;
+  #jp-tbl-wrap { max-height: 70dvh; max-height: 70vh; }
 }

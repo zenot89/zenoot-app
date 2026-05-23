@@ -129,7 +129,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   @media (min-width: 768px) {
     #jp-aksi-laptop { display: flex !important; }
     #jp-aksi-mobile { display: none !important; }
-    #jp-sticky-header { position: static !important; }
   }
   /* ── Mobile (portrait & landscape HP): toolbar dalam card ── */
   @media (max-width: 767px) {
@@ -242,8 +241,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
   </div>
 
-  <!-- STICKY HEADER — di luar .card agar sticky ke .content langsung -->
-  <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px;margin-bottom:0">
+  <!-- TABEL -->
+  <div class="card">
+    <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px">
       <!-- Target Harian -->
       <div id="jp-target-wrap" style="margin-bottom:6px;display:none;padding:6px 0 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -291,19 +291,17 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <i class="ti ti-plus"></i> Tambah
       </button>
       </div><!-- /jp-aksi-mobile -->
-  </div><!-- /jp-sticky-header -->
-  <!-- CARD tabel — terpisah dari sticky header -->
-  <div class="card" style="padding:0;overflow:hidden">
-    <div id="jp-tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;"><table class="tbl">
-      <thead>
+    </div><!-- /jp-sticky-header -->
+    <div id="jp-tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
+      <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
         <tr>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Tgl &amp; Waktu ↓</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Channel</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">SKU</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Qty</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Harga Sat.</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Total</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Aksi</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Tgl &amp; Waktu ↓</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Channel</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">SKU</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Qty</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Harga Sat.</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Total</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Aksi</th>
         </tr>
       </thead>
       <tbody id="jp-tbody">
@@ -314,7 +312,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div>
 `;
 
-// thead sticky ditangani via CSS #jp-tbl-wrap (overflow-y:auto sebagai scroll container)
+
 
 setTimeout(() => {
   if (typeof rerenderUI === 'function')
@@ -978,7 +976,9 @@ function showTambahJP() {
   jpTutupDropdownSKU();
   loadProdukListJP();
   document.getElementById('modal-jp').classList.add('open');
-  setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
+  
+
+setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
 
 // ─── EDIT ────────────────────────────────────────────────────
@@ -1003,7 +1003,9 @@ async function editJP(id) {
       const kat = _jpGetKatalog(found);
       document.getElementById('jp-sku-induk').value = kat;
       jpPilihKatalog(kat);
-      setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
+      
+
+setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
     } else {
       document.getElementById('jp-sku-induk').value = skuVal;
       const sel = document.getElementById('jp-sku-variasi');
