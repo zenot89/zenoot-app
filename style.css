@@ -1159,9 +1159,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ─── STOK TABLE WRAP ────────────────────────────────────────
-   #stok-tbl-wrap adalah scroll container vertikal DAN horizontal.
-   height calc: 100dvh - (topbar 60px + content padding 32px +
-   filter bar 48px + card padding 12px + card-title 44px) = 196px */
+   #stok-tbl-wrap adalah scroll container vertikal DAN horizontal. */
 #stok-tbl-wrap {
   width: 100%;
   height: calc(100dvh - 196px);
@@ -1170,15 +1168,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
-/* Mobile portrait: ada hamburger bar bawah ~56px */
+/* Mobile portrait */
 @media (max-width: 900px) and (orientation: portrait) {
   #stok-tbl-wrap {
-    height: calc(100dvh - 252px);
+    height: calc(100dvh - 200px);
   }
 }
-/* Mobile landscape: vh sangat pendek */
+/* Mobile landscape */
 @media (max-width: 900px) and (orientation: landscape) {
   #stok-tbl-wrap {
-    height: calc(100dvh - 210px);
+    height: calc(100dvh - 180px);
   }
 }
