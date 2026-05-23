@@ -1224,8 +1224,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* ─── JURNAL PENJUALAN — layout normal, NO sticky di sini ── */
 #page-jurnal-penjualan {
   padding: 0;
-  display: block;
   height: auto;
+  /* display dihandle oleh .page / .page.active — JANGAN override di sini */
 }
 #jp-top-bar {
   padding: 10px 16px 8px;
