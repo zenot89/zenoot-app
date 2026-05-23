@@ -1422,3 +1422,59 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 767px) {
   #pt-top-bar .metrics { display: none !important; }
 }
+
+/* ══ KOTAK / CARD FULL-HEIGHT PAGES — Opsi B ══
+   Semua halaman full-height (stok, jurnal, clearance, produk-terjual)
+   dapat padding tipis di .content dan border-radius di card-nya.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Wrapper .content: padding 8px saat full-height (set overflow:hidden via JS) */
+#page-stok,
+#page-jurnal-penjualan,
+#page-clearance,
+#page-produk-terjual {
+  padding: 8px;
+  gap: 6px;
+}
+
+/* Filter bar / top bar: hapus background mepet, biar card terlihat */
+#stok-filter-bar {
+  background: transparent;
+  padding: 0 2px 4px;
+  border-radius: 6px 6px 0 0;
+}
+#jp-top-bar {
+  background: transparent;
+  border-radius: 6px 6px 0 0;
+}
+#pt-top-bar {
+  background: transparent;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Card utama: border-radius + border tipis */
+#page-stok .card,
+#page-jurnal-penjualan .card,
+#page-clearance .card,
+#page-produk-terjual .card {
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+
+/* Sticky header tetap match */
+#jp-sticky-header {
+  background: var(--cream2);
+  border-radius: 0;
+}
+
+/* Mobile: padding lebih kecil */
+@media (max-width: 767px) {
+  #page-stok,
+  #page-jurnal-penjualan,
+  #page-clearance,
+  #page-produk-terjual {
+    padding: 6px;
+    gap: 4px;
+  }
+}
