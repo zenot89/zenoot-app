@@ -319,9 +319,8 @@ function jpAdjustStickyHead() {
   var thead = document.querySelector('#page-jurnal-penjualan thead');
   if (!hdr || !thead) return;
   var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
+  // sticky bekerja di level th — set top ke setiap th agar tidak tertindih jp-sticky-header
+  thead.querySelectorAll('th').forEach(function(th){ th.style.top = h + 'px'; });
 }
 // Jalankan setelah render + resize
 window.addEventListener('resize', jpAdjustStickyHead);
@@ -989,20 +988,7 @@ function showTambahJP() {
   jpTutupDropdownSKU();
   loadProdukListJP();
   document.getElementById('modal-jp').classList.add('open');
-  // Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  thead.style.top = h + 'px';
-  // set th top juga
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = '0'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
-
-setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
+  setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
 
 // ─── EDIT ────────────────────────────────────────────────────
