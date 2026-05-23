@@ -1171,12 +1171,22 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 @media (max-width: 900px) and (orientation: portrait) {
   #stok-tbl-wrap { height: calc(100dvh - 258px); }
 }
 @media (max-width: 900px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { height: calc(100dvh - 248px); }
+  #stok-tbl-wrap { height: calc(100dvh - 160px); }
+}
+
+/* ─── STOK CARD — STICKY SHOPEE STYLE ───────────────────────
+   Card "Semua SKU" nempel di atas saat scroll.
+   Filter bar di atasnya ter-scroll hilang secara natural.     */
+#page-stok > .card:last-child {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-bottom: 0;
 }
