@@ -12,8 +12,9 @@ function statusBadge(sisa, kat) {
   return '<span class="badge badge-ok">Aman</span>';
 }
 
+document.getElementById('page-stok').style.cssText += ';display:flex;flex-direction:column;height:100%;min-height:0';
 document.getElementById('page-stok').innerHTML = `
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;flex-shrink:0">
     <!-- KIRI: Filter — nested submenu -->
     <div style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;text-align:left;padding-right:24px">
@@ -161,12 +162,12 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden">
+  <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column">
+    <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <i class="ti ti-package"></i> Semua SKU
-      <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+      <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
-    <div id="stok-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
+    <div id="stok-tbl-wrap" style="flex:1;min-height:0;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
       <thead><tr>
         <th>SKU Variasi</th><th>Katalog</th><th>Boss</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
