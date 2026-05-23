@@ -1163,20 +1163,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* ─── STOK TABLE WRAP — RESPONSIVE HEIGHT ───────────────────
    max-height diatur via CSS bukan inline agar bisa responsive
    portrait vs landscape di semua device.                      */
+/* #page-stok mengisi penuh .content sebagai flex column */
+#page-stok {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Card stok terakhir (berisi tabel) mengisi sisa tinggi */
+#page-stok > .card:last-child {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* card-title tidak ikut stretch */
+#page-stok > .card:last-child > .card-title {
+  flex-shrink: 0;
+}
+
+/* tbl-wrap mengisi sisa tinggi card, lebar penuh */
 #stok-tbl-wrap {
-  max-height: 65vh;
-}
-/* Landscape mobile: vh sangat pendek, pakai dvh atau fallback lebih besar */
-@media (max-width: 900px) and (orientation: landscape) {
-  #stok-tbl-wrap {
-    max-height: 55dvh;
-    max-height: 55vh;
-  }
-}
-/* Portrait mobile: sedikit lebih tinggi karena layar panjang */
-@media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap {
-    max-height: 70dvh;
-    max-height: 70vh;
-  }
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
