@@ -242,9 +242,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
   </div>
 
-  <!-- TABEL -->
-  <div class="card">
-    <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px">
+  <!-- STICKY HEADER — di luar .card agar sticky ke .content langsung -->
+  <div id="jp-sticky-header" style="position:sticky;top:0;z-index:20;background:var(--cream3);padding-bottom:6px;margin-bottom:0">
       <!-- Target Harian -->
       <div id="jp-target-wrap" style="margin-bottom:6px;display:none;padding:6px 0 0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -292,7 +291,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <i class="ti ti-plus"></i> Tambah
       </button>
       </div><!-- /jp-aksi-mobile -->
-    </div><!-- /jp-sticky-header -->
+  </div><!-- /jp-sticky-header -->
+  <!-- CARD tabel — terpisah dari sticky header -->
+  <div class="card" style="padding:0;overflow:hidden">
     <div id="jp-tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;"><table class="tbl">
       <thead>
         <tr>

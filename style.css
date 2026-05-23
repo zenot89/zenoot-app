@@ -1209,3 +1209,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     max-height: 70vh;
   }
 }
+
+/* ─── JURNAL PENJUALAN — STICKY HEADER STANDALONE ───────────
+   jp-sticky-header sekarang di luar .card, langsung di bawah
+   .content — sehingga sticky bekerja relatif ke .content.
+   Card tabel terpisah di bawahnya.                           */
+#jp-sticky-header {
+  background: var(--cream);
+  padding: 8px 0 6px;
+  margin-bottom: 0;
+  /* Pastikan tidak ada gap transparan saat scroll */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* jp-footer di dalam card padding:0 — tambah padding manual */
+#jp-footer {
+  padding: 6px 14px 10px;
+}
