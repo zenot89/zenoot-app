@@ -1147,48 +1147,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-/* ─── STOK TABLE — STICKY HEADER FIX ────────────────────────
-   Sticky bekerja relatif ke scroll container terdekat (overflow-y:auto).
-   #stok-tbl-wrap adalah scroll container vertikal.
-   .tbl-wrap di dalamnya hanya scroll horizontal.              */
+/* ─── STOK TABLE — STICKY HEADER ────────────────────────────
+   Sticky bekerja relatif ke .content (overflow-y:scroll).
+   top: -16px = negatif padding .content supaya header nempel
+   di tepi atas .content saat scroll.                          */
 #stok-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
-  top: 0;
+  top: -16px;
   z-index: 3;
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
-/* ─── STOK TABLE WRAP — RESPONSIVE HEIGHT ───────────────────
-   max-height diatur via CSS bukan inline agar bisa responsive
-   portrait vs landscape di semua device.                      */
-/* #page-stok mengisi penuh .content sebagai flex column */
-#page-stok {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
-/* Card stok terakhir (berisi tabel) mengisi sisa tinggi */
-#page-stok > .card:last-child {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* card-title tidak ikut stretch */
-#page-stok > .card:last-child > .card-title {
-  flex-shrink: 0;
-}
-
-/* tbl-wrap mengisi sisa tinggi card, lebar penuh, scroll vertikal aktif agar sticky header bekerja */
+/* ─── STOK TABLE WRAP ────────────────────────────────────────
+   Scroll vertikal ditangani oleh .content (parent).
+   #stok-tbl-wrap hanya overflow-x untuk scroll horizontal.
+   Sticky th bekerja relatif ke .content sebagai scroll container. */
 #stok-tbl-wrap {
-  flex: 1;
-  min-height: 0;
   width: 100%;
-  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
