@@ -1165,7 +1165,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
-/* desktop: 60+16+56+37+16 = 185px */
 #stok-tbl-wrap {
   width: 100%;
   height: calc(100dvh - 185px);
@@ -1173,12 +1172,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-/* portrait: 58+10+56+37+80 = 241px */
 @media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap { height: calc(100dvh - 241px); }
+  #stok-tbl-wrap { height: calc(100dvh - 195px); }
 }
-/* landscape: 58+10+56+37+70 = 231px */
 @media (max-width: 900px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { height: calc(100dvh - 231px); padding-bottom: 70px; }
+  #stok-tbl-wrap { height: calc(100dvh - 185px); padding-bottom: 70px; }
 }
