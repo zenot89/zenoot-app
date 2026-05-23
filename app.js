@@ -165,8 +165,6 @@ function gotoPage(page, btn) {
   closeSidebar();
   var contentEl = document.querySelector('.content');
   if (contentEl) contentEl.scrollTop = 0;
-  // Toggle class untuk stok full-height layout
-  document.body.classList.toggle('page-stok-active', page === 'stok');
 }
 
 // ─── MODAL ───────────────────────────────────────────────────
