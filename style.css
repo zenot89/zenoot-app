@@ -1158,25 +1158,61 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
-/* ─── STOK TABLE WRAP ────────────────────────────────────────
-   #stok-tbl-wrap adalah scroll container vertikal DAN horizontal. */
+/* ─── STOK PAGE — FULL HEIGHT FLEX ──────────────────────────
+   Ketika #page-stok aktif, .content berhenti scroll vertikal
+   dan menjadi flex column. #page-stok mengisi penuh .content,
+   card tabel mengisi sisa, #stok-tbl-wrap scroll vertikal.
+   Filter bar & tombol tidak disentuh — ikut flow normal.      */
+
+/* .content saat stok aktif: flex column, tidak scroll sendiri */
+.content:has(#page-stok.active),
+body.page-stok-active .content {
+  overflow-y: hidden;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+/* #page-stok mengisi penuh .content */
+#page-stok.active {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Card tabel (card terakhir) mengisi sisa tinggi */
+#page-stok.active > .card:last-child {
+  -webkit-flex: 1;
+  flex: 1;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+/* card-title tidak stretch */
+#page-stok.active > .card:last-child > .card-title {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+
+/* #stok-tbl-wrap mengisi sisa tinggi card, scroll vertikal aktif */
 #stok-tbl-wrap {
   width: 100%;
-  height: calc(100dvh - 196px);
+  -webkit-flex: 1;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-}
-/* Mobile portrait */
-@media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap {
-    height: calc(100dvh - 200px);
-  }
-}
-/* Mobile landscape */
-@media (max-width: 900px) and (orientation: landscape) {
-  #stok-tbl-wrap {
-    height: calc(100dvh - 180px);
-  }
 }
