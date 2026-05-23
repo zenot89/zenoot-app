@@ -1179,14 +1179,3 @@ input[type="month"]::-webkit-calendar-picker-indicator {
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
   #stok-tbl-wrap { height: calc(100dvh - 160px); }
 }
-
-/* ─── STOK CARD — STICKY SHOPEE STYLE ───────────────────────
-   Card "Semua SKU" nempel di atas saat scroll.
-   Filter bar di atasnya ter-scroll hilang secara natural.     */
-#page-stok > .card:last-child {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  margin-bottom: 0;
-}
