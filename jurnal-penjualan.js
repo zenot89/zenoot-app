@@ -293,16 +293,16 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </button>
       </div><!-- /jp-aksi-mobile -->
     </div><!-- /jp-sticky-header -->
-    <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-      <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
+    <div id="jp-tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;"><table class="tbl">
+      <thead>
         <tr>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Tgl &amp; Waktu ↓</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Channel</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">SKU</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Qty</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Harga Sat.</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Total</th>
-          <th style="position:sticky;top:0;background:var(--cream3);z-index:10">Aksi</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Tgl &amp; Waktu ↓</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Channel</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">SKU</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Qty</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Harga Sat.</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Total</th>
+          <th style="position:sticky;top:0;background:var(--cream3);z-index:10;box-shadow:0 2px 0 0 var(--ink3)">Aksi</th>
         </tr>
       </thead>
       <tbody id="jp-tbody">
@@ -313,17 +313,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div>
 `;
 
-// Set thead sticky top = tinggi jp-sticky-header
-function jpAdjustStickyHead() {
-  var hdr = document.getElementById('jp-sticky-header');
-  var thead = document.querySelector('#page-jurnal-penjualan thead');
-  if (!hdr || !thead) return;
-  var h = hdr.offsetHeight;
-  // sticky bekerja di level th — set top ke setiap th agar tidak tertindih jp-sticky-header
-  thead.querySelectorAll('th').forEach(function(th){ th.style.top = h + 'px'; });
-}
-// Jalankan setelah render + resize
-window.addEventListener('resize', jpAdjustStickyHead);
+// thead sticky ditangani via CSS #jp-tbl-wrap (overflow-y:auto sebagai scroll container)
 
 setTimeout(() => {
   if (typeof rerenderUI === 'function')
@@ -678,7 +668,6 @@ async function loadJurnalPenjualan() {
     _jpAllData = data || [];
     filterJP();
     jpLoadTargetHarian(); // progress bar target harian
-  setTimeout(jpAdjustStickyHead, 100);
   } catch(err) {
     tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
