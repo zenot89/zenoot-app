@@ -134,10 +134,24 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     #jp-aksi-mobile { display: none !important; }
     #jp-sticky-header { position: static !important; }
   }
-  /* ── Mobile (portrait & landscape HP): toolbar dalam card ── */
+  /* ── Mobile (portrait & landscape HP): toolbar dalam card sticky ── */
   @media (max-width: 767px) {
     #jp-aksi-laptop { display: none !important; }
     #jp-aksi-mobile { display: flex !important; }
+    /* Sticky header (toolbar + target bar) nempel di atas saat scroll */
+    #jp-sticky-header {
+      position: sticky !important;
+      top: 0;
+      z-index: 50;
+      background: var(--cream2);
+      padding: 6px 10px;
+      margin: -10px -10px 0 -10px;  /* kompensasi padding card */
+      border-bottom: 1px solid var(--ink4);
+    }
+    /* Beri jarak atas setelah sticky header */
+    #jp-tbl-wrap {
+      margin-top: 8px;
+    }
   }
   </style>
 
