@@ -3,6 +3,9 @@
 
 document.getElementById('page-produk-terjual').innerHTML = `
 
+  <!-- TOP BAR: header + metrics — flex-shrink:0 via CSS #pt-top-bar -->
+  <div id="pt-top-bar">
+
   <!-- HEADER + TOMBOL KEMBALI -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div>
@@ -101,7 +104,7 @@ document.getElementById('page-produk-terjual').innerHTML = `
   </div>
 
   <!-- SUMMARY METRICS -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+  <div class="metrics" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:0">
     <div class="metric">
       <div class="m-label">Total SKU Terjual</div>
       <div class="m-value" id="pt-total-sku">—</div>
@@ -119,10 +122,12 @@ document.getElementById('page-produk-terjual').innerHTML = `
     </div>
   </div>
 
-  <!-- TABEL -->
+  </div><!-- /#pt-top-bar -->
+
+  <!-- TABEL — card flex:1 via CSS #page-produk-terjual .card -->
   <div class="card">
     <div class="card-title"><i class="ti ti-chart-bar"></i> Produk Terjual</div>
-    <div class="tbl-wrap" id="pt-tbl-wrap" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth"><table class="tbl" style="min-width:520px">
+    <div id="pt-tbl-wrap"><table class="tbl" style="min-width:520px">
       <thead>
         <tr>
           <th>SKU</th>
@@ -137,7 +142,7 @@ document.getElementById('page-produk-terjual').innerHTML = `
         <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table></div>
-    <div id="pt-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
+    <div id="pt-footer-wrap"><div id="pt-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
   </div>
 `;
 

@@ -32,8 +32,8 @@ document.getElementById('page-clearance').innerHTML = `
       </button>
     </div>
 
-    <!-- Metric strip -->
-    <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+    <!-- Metric strip — flex-shrink:0 via CSS #cl-metrics-strip -->
+    <div id="cl-metrics-strip" class="metrics" style="grid-template-columns:repeat(3,1fr);margin:0">
       <div class="metric">
         <div class="m-label">SKU Non-Aktif</div>
         <div class="m-value" id="cl-total-sku">—</div>
@@ -51,19 +51,19 @@ document.getElementById('page-clearance').innerHTML = `
       </div>
     </div>
 
-    <!-- Tabel scrollable -->
-    <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth">
+    <!-- Tabel — flex:1 scroll internal via CSS #cl-tbl-wrap -->
+    <div id="cl-tbl-wrap">
       <table class="tbl">
-        <thead style="position:sticky;top:0;z-index:10;box-shadow:0 2px 0 0 var(--ink3)">
+        <thead>
           <tr>
-            <th onclick="clSort('kat')" style="cursor:pointer;user-select:none;background:var(--cream3)">Kategori <span id="cl-sort-kat">↕</span></th>
-            <th style="background:var(--cream3)">Katalog</th>
-            <th onclick="clSort('sku')" style="cursor:pointer;user-select:none;background:var(--cream3)">SKU <span id="cl-sort-sku">↕</span></th>
-            <th style="background:var(--cream3)">Boss</th>
-            <th onclick="clSort('sisa')" style="cursor:pointer;user-select:none;text-align:center;background:var(--cream3)">Sisa <span id="cl-sort-sisa">↕</span></th>
-            <th style="text-align:center;background:var(--cream3)">Terjual 14hr</th>
-            <th style="text-align:right;background:var(--cream3)">HPP/pcs</th>
-            <th onclick="clSort('nilai')" style="cursor:pointer;user-select:none;text-align:right;background:var(--cream3)">Nilai Stok <span id="cl-sort-nilai">↕</span></th>
+            <th onclick="clSort('kat')" style="cursor:pointer;user-select:none">Kategori <span id="cl-sort-kat">↕</span></th>
+            <th>Katalog</th>
+            <th onclick="clSort('sku')" style="cursor:pointer;user-select:none">SKU <span id="cl-sort-sku">↕</span></th>
+            <th>Boss</th>
+            <th onclick="clSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Sisa <span id="cl-sort-sisa">↕</span></th>
+            <th style="text-align:center">Terjual 14hr</th>
+            <th style="text-align:right">HPP/pcs</th>
+            <th onclick="clSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Nilai Stok <span id="cl-sort-nilai">↕</span></th>
           </tr>
         </thead>
         <tbody id="cl-tbody">
@@ -71,7 +71,7 @@ document.getElementById('page-clearance').innerHTML = `
         </tbody>
       </table>
     </div>
-    <div id="cl-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
+    <div id="cl-footer-wrap"><div id="cl-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
   </div>
 `;
 

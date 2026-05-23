@@ -1291,3 +1291,134 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #jp-top-bar .metrics { display: none !important; }
   #jp-top-bar { padding: 0 !important; }
 }
+/* ── CLEARANCE ── */
+#page-clearance.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
+#page-clearance {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+#page-clearance .card {
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+#page-clearance .card-title {
+  padding: 8px 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#cl-metrics-strip {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#cl-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#cl-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+#cl-footer-wrap {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 6px 14px;
+}
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #cl-tbl-wrap { padding-bottom: 70px; }
+}
+
+/* ── PRODUK TERJUAL ── */
+#page-produk-terjual.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
+#page-produk-terjual {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+#pt-top-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 16px 8px;
+  background: var(--cream2);
+}
+#page-produk-terjual .card {
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+#page-produk-terjual .card-title {
+  padding: 8px 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#pt-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#pt-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+#pt-footer-wrap {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 6px 14px;
+}
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #pt-top-bar  { padding: 8px 10px 6px; }
+  #pt-tbl-wrap { padding-bottom: 70px; }
+}
+@media (max-width: 767px) {
+  #pt-top-bar .metrics { display: none !important; }
+}
