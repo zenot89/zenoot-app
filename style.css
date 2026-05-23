@@ -1147,46 +1147,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-/* ─── STOK PAGE — full height flex, content tidak scroll ─────*/
-/* .content scroll dimatikan khusus stok, diganti flex column  */
-#page-stok {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-/* Wrapper filter bar tetap normal di atas */
-#page-stok > div:first-child {
-  flex-shrink: 0;
-}
-/* Card sticky title */
-#stok-card-title-sticky {
-  flex-shrink: 0;
-  border-radius: 8px 8px 0 0;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -.2px;
-  font-family: var(--f2);
-}
-/* Card wrapper flex column */
+/* ─── STOK TABLE ─────────────────────────────────────────────*/
 #page-stok .card {
   padding: 0;
   margin-bottom: 0;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  border-radius: 0 0 8px 8px;
 }
-/* tbl-wrap isi sisa ruang, scroll sendiri */
-#stok-tbl-wrap {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+#page-stok .card-title {
+  padding: 8px 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-/* thead sticky di dalam tbl-wrap */
 #stok-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
@@ -1195,12 +1165,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
-/* Mobile portrait: kasih ruang hamburger di bawah */
-@media (max-width: 900px) and (orientation: portrait) {
-  #stok-tbl-wrap { padding-bottom: 80px; }
+/* desktop: 60+16+56+37+16 = 185px */
+#stok-tbl-wrap {
+  width: 100%;
+  height: calc(100dvh - 185px);
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
-/* Landscape: kasih ruang hamburger di bawah */
+/* portrait: 58+10+56+37+80 = 241px */
+@media (max-width: 900px) and (orientation: portrait) {
+  #stok-tbl-wrap { height: calc(100dvh - 241px); }
+}
+/* landscape: 58+10+56+37+70 = 231px */
 @media (max-width: 900px) and (orientation: landscape),
        (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #stok-tbl-wrap { padding-bottom: 70px; }
+  #stok-tbl-wrap { height: calc(100dvh - 231px); padding-bottom: 70px; }
 }

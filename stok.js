@@ -161,11 +161,11 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
-  <div id="stok-card-title-sticky" style="position:sticky;top:0;z-index:10;background:var(--cream2);display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);">
-    <i class="ti ti-package" style="opacity:.6;font-size:16px"></i> <b>Semua SKU</b>
-    <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-  </div>
-  <div class="card" style="padding:0;margin-top:0;">
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden">
+      <i class="ti ti-package"></i> Semua SKU
+      <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+    </div>
     <div id="stok-tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="tbl">
       <thead><tr>
         <th>SKU Variasi</th><th>Katalog</th><th>Boss</th>

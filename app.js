@@ -164,18 +164,7 @@ function gotoPage(page, btn) {
   }
   closeSidebar();
   var contentEl = document.querySelector('.content');
-  if (contentEl) {
-    contentEl.scrollTop = 0;
-    if (page === 'stok') {
-      contentEl.style.overflow = 'hidden';
-      contentEl.style.display = 'flex';
-      contentEl.style.flexDirection = 'column';
-    } else {
-      contentEl.style.overflow = '';
-      contentEl.style.display = '';
-      contentEl.style.flexDirection = '';
-    }
-  }
+  if (contentEl) contentEl.scrollTop = 0;
 }
 
 // ─── MODAL ───────────────────────────────────────────────────
