@@ -169,9 +169,15 @@ function gotoPage(page, btn) {
     if (fullHeightPages.indexOf(page) !== -1) {
       contentEl.style.overflowY = 'hidden';
       contentEl.style.padding   = '0';
+      contentEl.style.height    = '100%';
+      contentEl.style.display   = 'flex';
+      contentEl.style.flexDirection = 'column';
     } else {
-      contentEl.style.overflowY = '';
-      contentEl.style.padding   = '';
+      contentEl.style.overflowY    = '';
+      contentEl.style.padding      = '';
+      contentEl.style.height       = '';
+      contentEl.style.display      = '';
+      contentEl.style.flexDirection = '';
       contentEl.scrollTop = 0;
     }
   }

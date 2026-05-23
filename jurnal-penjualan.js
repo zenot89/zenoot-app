@@ -330,6 +330,15 @@ function _jpEnsureFlexLayout() {
   if (pg.classList.contains('active')) {
     pg.style.display = '-webkit-flex';
     pg.style.display = 'flex';
+    // Pastikan .content parent juga flex column & overflow hidden
+    var contentEl = document.querySelector('.content');
+    if (contentEl) {
+      contentEl.style.overflowY     = 'hidden';
+      contentEl.style.padding       = '0';
+      contentEl.style.height        = '100%';
+      contentEl.style.display       = 'flex';
+      contentEl.style.flexDirection = 'column';
+    }
   }
 }
 window.addEventListener('resize', function() {

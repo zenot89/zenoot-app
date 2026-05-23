@@ -1286,3 +1286,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #jp-top-bar  { padding: 8px 10px 6px; }
   #jp-tbl-wrap { padding-bottom: 70px; }
 }
+/* Mobile: sembunyikan metrics card besar agar ruang tabel maksimal */
+@media (max-width: 767px) {
+  #jp-top-bar .metrics { display: none !important; }
+  #jp-top-bar { padding: 0 !important; }
+}
