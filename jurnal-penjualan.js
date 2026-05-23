@@ -325,18 +325,19 @@ setTimeout(() => {
   jpUpdateStickyHeight();
 }, 80);
 
-// Ukur tinggi jp-sticky-header dan set --jp-sticky-h ke root
+// Ukur tinggi jp-sticky-header → set --jp-sticky-h agar thead sticky pas
 function jpUpdateStickyHeight() {
   var sh = document.getElementById('jp-sticky-header');
   if (!sh) return;
-  var h = sh.getBoundingClientRect().height;
+  // Pakai offsetHeight (integer, tidak perlu getBoundingClientRect)
+  var h = sh.offsetHeight;
   document.documentElement.style.setProperty('--jp-sticky-h', h + 'px');
 }
-// Re-ukur setiap resize (landscape/portrait switch)
+// Re-ukur saat resize (rotate landscape/portrait)
 window.addEventListener('resize', function() {
-  if (document.getElementById('page-jurnal-penjualan') &&
-      document.getElementById('page-jurnal-penjualan').classList.contains('active')) {
-    jpUpdateStickyHeight();
+  var pg = document.getElementById('page-jurnal-penjualan');
+  if (pg && pg.classList.contains('active')) {
+    setTimeout(jpUpdateStickyHeight, 50);
   }
 });
 
@@ -973,6 +974,8 @@ function renderTabelJP(data) {
       + '</td></tr>';
   }).join('');
   document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
+  // Update --jp-sticky-h setelah data render agar thead sticky akurat
+  setTimeout(jpUpdateStickyHeight, 30);
 }
 
 function updateMetricsJP(data) {

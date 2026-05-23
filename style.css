@@ -531,9 +531,7 @@ body.sidebar-mini .sidebar-footer::before{
   text-align:left;padding:8px 10px;font-size:13px;font-weight:700;color:var(--ink2);
   border-bottom:1px solid rgba(255,255,255,0.05);text-transform:uppercase;letter-spacing:.06em;
   white-space:nowrap;font-family:var(--f2);
-  position:-webkit-sticky;position:sticky;top:0;
   background:var(--cream3);z-index:2;
-  /* Shadow bawah agar header terlihat terpisah dari row */
   box-shadow:0 1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.3);
 }
 .tbl td{padding:7px 8px;border-bottom:1px solid var(--cream3);white-space:nowrap;font-size:14px;font-weight:500}
@@ -1223,7 +1221,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── JURNAL PENJUALAN ── */
-/* ─── JURNAL PENJUALAN — scroll normal, sticky header bertingkat ── */
+/* ─── JURNAL PENJUALAN — layout normal, NO sticky di sini ── */
 #page-jurnal-penjualan {
   padding: 0;
   display: block;
@@ -1238,27 +1236,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   border-radius: 0;
   margin-bottom: 0;
 }
-
-/* Level 1 sticky: jp-sticky-header (Target Harian + toolbar filter) */
 #jp-sticky-header {
   padding: 8px 14px 6px;
   background: var(--cream2);
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  /* TIDAK sticky — ikut scroll bersama konten */
 }
-
-/* jp-tbl-wrap: horizontal scroll untuk tabel lebar */
 #jp-tbl-wrap {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-
-/* Level 2 sticky: thead th nempel tepat di bawah jp-sticky-header */
-/* top di-set via JS (--jp-sticky-h) agar akurat di semua ukuran layar */
+/* Sticky thead HANYA untuk jurnal, top = tinggi jp-sticky-header via JS */
 #jp-tbl-wrap .tbl th {
   position: -webkit-sticky;
   position: sticky;
@@ -1267,7 +1256,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
-
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
   #jp-top-bar  { padding: 8px 10px 6px; }
