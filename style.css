@@ -1500,10 +1500,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-height: 0;
 }
 
-/* Summary metrics: freeze, tidak ikut scroll tabel */
-#kas-panel-jurnal .kas-summary {
+/* Summary metrics: bagian dari kas-top-bar, ikut collapse */
+#kas-top-bar .kas-summary {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+  margin-bottom: 0;
 }
 
 /* Card jurnal: flex column, mengisi sisa ruang */

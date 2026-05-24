@@ -29,19 +29,22 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- ═══ KAS TOP BAR — freeze di atas, bisa collapse dengan swipe ═══ -->
 <div id="kas-top-bar">
-  <!-- Baris 1: Tab navigasi + tombol Anggaran -->
-  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+  <!-- Baris 1: Tab navigasi -->
+  <div style="margin-bottom:8px">
     <div class="kas-tabs">
       <button class="kas-tab active" onclick="kasGotoTab('jurnal')">📒 Jurnal Harian</button>
       <button class="kas-tab" onclick="kasGotoTab('laporan')">📊 Laporan</button>
       <button class="kas-tab" onclick="kasGotoTab('akun')">⚙ Kelola Akun</button>
     </div>
-    <div style="margin-left:auto">
-      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
-    </div>
   </div>
-  <!-- Baris 2: Toolbar filter & aksi — hanya tampil di Jurnal Harian -->
-  <div id="kas-jurnal-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <!-- Baris 2: Summary metrics — ikut collapse -->
+  <div class="kas-summary">
+    <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta">total debit kas</div></div>
+    <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
+    <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
+  </div>
+  <!-- Baris 3: Toolbar filter — hanya tampil di Jurnal Harian -->
+  <div id="kas-jurnal-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
     <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
     <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
     <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
@@ -51,18 +54,15 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- PANEL: JURNAL -->
 <div id="kas-panel-jurnal" class="kas-panel active">
-  <div class="kas-summary">
-    <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta">total debit kas</div></div>
-    <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
-    <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
-  </div>
-
   <div class="card" id="kas-jurnal-card">
-    <!-- Sticky header dalam card: judul + tombol Tambah Transaksi -->
+    <!-- Sticky header dalam card: judul + Anggaran + Tambah Transaksi -->
     <div id="kas-sticky-header">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
         <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
-        <button class="btn btn-sm btn-primary" onclick="kasShowForm()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;flex-shrink:0"><i class="ti ti-plus"></i> Tambah Transaksi</button>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-chart-pie"></i> Anggaran</button>
+          <button class="btn btn-sm btn-primary" onclick="kasShowForm()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-plus"></i> Tambah Transaksi</button>
+        </div>
       </div>
     </div>
     <div id="kas-jurnal-tbl-wrap">
