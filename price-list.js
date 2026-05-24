@@ -352,3 +352,23 @@ window.loadPriceList = loadPriceList;
 
 // ─── INIT ────────────────────────────────────────────────────
 loadPriceList();
+
+// ─── SWIPE GESTURE — collapse pl-info-wrap di landscape touch ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _init() {
+    if (!_mq.matches) return;
+    var info = document.getElementById('pl-info-wrap');
+    if (!info) return;
+    initSwipeCollapse(info, info, 50);
+  }
+  setTimeout(_init, 300);
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'price-list') return;
+    setTimeout(function() {
+      var info = document.getElementById('pl-info-wrap');
+      if (info) info.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
+})();

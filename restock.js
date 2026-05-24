@@ -604,3 +604,23 @@ function bulatkanKelipatan(nilai, kelipatan, min_order) {
 function fmtTgl(d) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+// ─── SWIPE GESTURE — collapse card-title di landscape touch ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _init() {
+    if (!_mq.matches) return;
+    var title = document.querySelector('#restock-wrap .card-title');
+    if (!title) return;
+    initSwipeCollapse(title, title, 50);
+  }
+  setTimeout(_init, 300);
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'restock') return;
+    setTimeout(function() {
+      var title = document.querySelector('#restock-wrap .card-title');
+      if (title) title.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
+})();

@@ -514,3 +514,22 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     </div>
   </div>
 </div>`);
+// ─── SWIPE GESTURE — collapse ops-switcher di landscape touch ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _init() {
+    if (!_mq.matches) return;
+    var sw = document.getElementById('ops-switcher-produk');
+    if (!sw) return;
+    initSwipeCollapse(sw, sw, 50);
+  }
+  setTimeout(_init, 300);
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'produk') return;
+    setTimeout(function() {
+      var sw = document.getElementById('ops-switcher-produk');
+      if (sw) sw.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
+})();
