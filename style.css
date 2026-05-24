@@ -1729,28 +1729,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ── KAS JURNAL HARIAN — sticky thead + inner scroll ─────────
-   Kas adalah Kategori B (banyak tab), tidak full-height flex.
-   Tabel jurnal harian pakai max-height + sticky thead.
-   ─────────────────────────────────────────────────────────── */
-#kas-jurnal-tbl-wrap {
-  max-height: 60vh;
-  overflow-y: auto;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-#kas-jurnal-tbl-wrap .tbl th {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
-}
-@media (hover: none) and (pointer: coarse) {
-  #kas-jurnal-tbl-wrap { padding-bottom: 70px; }
-}
+/* ── KAS JURNAL HARIAN — dipindah ke blok full-height flex di bawah ── */
 
 /* ═══════════════════════════════════════════════════════════
    FULL-HEIGHT FLEX — RESTOCK
