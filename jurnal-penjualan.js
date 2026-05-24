@@ -261,21 +261,22 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <!-- TABEL -->
   <div class="card">
     <div id="jp-sticky-header">
-      <!-- Target Harian -->
-      <div id="jp-target-wrap" style="margin-bottom:6px;display:none;padding:6px 0 0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <span style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Target Harian</span>
-            <span id="jp-target-nominal" style="font-size:12px;font-weight:700;color:var(--ink)">—</span>
-          </span>
-          <span id="jp-target-label" style="font-size:11px;color:var(--ink3)">—</span>
+      <!-- Target Harian + Tambah Penjualan — 1 baris -->
+      <div id="jp-target-wrap" style="display:none;padding:6px 14px 4px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;white-space:nowrap">Target Harian</span>
+          <span id="jp-target-nominal" style="font-size:12px;font-weight:700;color:var(--ink)">—</span>
+          <span id="jp-target-label" style="font-size:11px;color:var(--ink3);margin-left:auto;white-space:nowrap">—</span>
+          <button class="btn btn-sm btn-primary" onclick="showTambahJP()" id="jp-tambah-btn" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;flex-shrink:0">
+            <i class="ti ti-plus"></i> Tambah Penjualan
+          </button>
         </div>
-        <div style="height:6px;background:var(--cream2);border:1px solid var(--ink3);border-radius:3px;overflow:hidden">
+        <div style="height:5px;background:var(--cream2);border:1px solid var(--ink3);border-radius:3px;overflow:hidden">
           <div id="jp-target-bar" style="height:100%;width:0%;background:var(--ok);transition:width .6s;border-radius:3px"></div>
         </div>
       </div>
-      <!-- Judul + Tambah Penjualan -->
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <!-- Card title: hanya tampil saat target-wrap hidden (portrait/no-target) -->
+      <div class="card-title jp-title-fallback" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span><i class="ti ti-receipt"></i> Jurnal Penjualan</span>
         <button class="btn btn-sm btn-primary" onclick="showTambahJP()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
           <i class="ti ti-plus"></i> Tambah Penjualan

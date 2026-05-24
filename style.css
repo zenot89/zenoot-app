@@ -1271,6 +1271,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 /* Thead sticky di dalam scroll container — top:0 cukup karena header sudah di luar */
 #jp-tbl-wrap .tbl th {
@@ -1693,5 +1694,33 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .kas-akun-picker {
     font-size: 14px;
     min-height: 44px;
+  }
+}
+
+/* ── JURNAL PENJUALAN LANDSCAPE — target+tambah 1 baris ──────
+   Portrait: card-title fallback tampil, target-wrap ikut JS
+   Landscape touch: target-wrap selalu tampil, fallback hilang
+   ─────────────────────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  /* Paksa target-wrap tampil di landscape */
+  #jp-target-wrap {
+    display: block !important;
+    padding: 4px 10px 4px !important;
+  }
+  /* Sembunyikan card-title fallback — tidak perlu di landscape */
+  .jp-title-fallback {
+    display: none !important;
+  }
+  /* Tombol tambah di dalam target-wrap */
+  #jp-tambah-btn {
+    display: inline-flex !important;
+  }
+}
+
+/* Portrait — sembunyikan tombol tambah di target-wrap
+   (sudah ada di card-title fallback) */
+@media not all and (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #jp-tambah-btn {
+    display: none !important;
   }
 }
