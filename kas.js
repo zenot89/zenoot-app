@@ -342,14 +342,17 @@ if (document.readyState === 'loading') {
 // ─── TAB ─────────────────────────────────────────────────────
 function kasGotoTab(tab) {
   const tabs = ['jurnal','laporan','akun'];
-  document.querySelectorAll('.kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
-  document.querySelectorAll('.kas-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('kas-panel-' + tab).classList.add('active');
+  document.querySelectorAll('#page-kas .kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
+  // Scope selector ke #page-kas agar tidak bertabrakan dengan komponen lain
+  document.querySelectorAll('#page-kas .kas-panel').forEach(p => p.classList.remove('active'));
+  var targetPanel = document.getElementById('kas-panel-' + tab);
+  if (targetPanel) targetPanel.classList.add('active');
   // Tampilkan toolbar hanya di tab jurnal
   var toolbar = document.getElementById('kas-jurnal-toolbar');
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
-  if (tab === 'laporan') kasRenderLaporan();
-  if (tab === 'akun')    kasLoadAkun();
+  // Fetch fresh data saat switch tab
+  if (tab === 'laporan') kasRenderLaporan();   // async: fetch fresh jurnal + akun
+  if (tab === 'akun')    kasLoadAkun();         // async: fetch fresh akun list
 }
 
 // ─── LOAD AKUN ───────────────────────────────────────────────
@@ -673,8 +676,33 @@ function kasLapTab(tab) {
   });
 }
 
-function kasRenderLaporan() {
-  const bulan = document.getElementById('kas-lap-bulan').value;
+async function kasRenderLaporan() {
+  // Tampilkan loading state dulu
+  var loadingHtml = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  var tbodies = ['kas-neraca-tbody','kas-labarugi-tbody','kas-aruskas-tbody'];
+  tbodies.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = loadingHtml;
+  });
+
+  // Selalu fetch fresh dari DB agar data tidak stale/bocor dari cache jurnal harian
+  try {
+    const [jurnal, akun] = await Promise.all([
+      dbGet('jurnal', '&order=tanggal.asc,created_at.asc'),
+      dbGet('kas_akun', '&order=kode.asc'),
+    ]);
+    _kasAkunMap = {};
+    (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasJurnalAll = jurnal || [];
+  } catch(e) {
+    console.error('[kasRenderLaporan] gagal fetch data:', e.message);
+    tbodies.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Gagal memuat data. Cek koneksi dan refresh.</td></tr>';
+    });
+    return; // jangan render dengan data lama yang mungkin salah
+  }
+  const bulan = document.getElementById('kas-lap-bulan') ? document.getElementById('kas-lap-bulan').value : '';
   const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
   kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(data);
 }

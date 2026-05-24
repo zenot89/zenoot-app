@@ -2202,17 +2202,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overscroll-behavior: contain;
   padding: 10px 4px 0;
 }
-/* Panel Jurnal: flex column — TIDAK overflow-y:auto, biar tbl-wrap yg scroll */
+/* Panel Jurnal: flex column — HANYA saat .active agar tidak bocor ke tab lain */
+/* BUG FIX: dulu #kas-panel-jurnal{display:flex} override .kas-panel{display:none} karena ID > class */
 #kas-panel-jurnal {
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
   min-height: 0;
-  display: -webkit-flex;
-  display: flex;
+  display: none;                /* default: hidden (sama dengan .kas-panel) */
   -webkit-flex-direction: column;
   flex-direction: column;
   overflow: hidden;
   padding: 6px 4px 0;
+}
+#kas-panel-jurnal.active {
+  display: -webkit-flex !important;
+  display: flex !important;
 }
 /* Summary metrics + toolbar: shrink:0 */
 #kas-panel-jurnal .kas-summary,
