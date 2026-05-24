@@ -1554,6 +1554,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    Menggantikan <select> native yang tampil sebagai bottom sheet
    di Android. Compact, gelap, modern seperti context menu.
    ─────────────────────────────────────────────────────────── */
+.kas-akun-wrap {
+  position: relative;
+  width: 100%;
+}
 .kas-akun-picker {
   display: -webkit-flex;
   display: flex;
@@ -1571,7 +1575,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--ink);
   -webkit-user-select: none;
   user-select: none;
-  position: relative;
   box-sizing: border-box;
 }
 .kas-akun-picker:hover {
@@ -1580,6 +1583,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 .kas-akun-list {
   position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   z-index: 9999;
   min-width: 220px;
   max-width: 320px;

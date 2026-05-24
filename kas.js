@@ -172,20 +172,24 @@ if (document.readyState === 'loading') {
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
-          <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        <div class="kas-akun-wrap">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+            <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+          </div>
+          <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
         </div>
-        <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
-          <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        <div class="kas-akun-wrap">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+            <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+          </div>
+          <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
         </div>
-        <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -258,20 +262,24 @@ if (document.readyState === 'loading') {
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
-          <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        <div class="kas-akun-wrap">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+            <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+          </div>
+          <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
         </div>
-        <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
-          <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        <div class="kas-akun-wrap">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+            <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+          </div>
+          <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
         </div>
-        <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
