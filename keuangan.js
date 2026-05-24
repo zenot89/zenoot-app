@@ -36,6 +36,9 @@ document.getElementById('page-keuangan').innerHTML = `
 </style>
 
 <style>
+</style>
+
+<style>
   .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
   .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
   .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -91,7 +94,16 @@ document.getElementById('page-keuangan').innerHTML = `
     <div class="card-title"><i class="ti ti-history"></i> Catat Pembayaran Cicilan</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px"><label>Pilih Hutang</label>
-        <select id="keu-bayar-hutang-id" style="width:100%"><option value="">— Pilih —</option></select>
+        <div class="kas-akun-wrap">
+          <select id="keu-bayar-hutang-id" style="display:none"><option value="">— Pilih —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
+            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
+            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
+            <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+          </div>
+          <div class="kas-akun-list" id="keu-picker-bayar-list" style="display:none"></div>
+        </div>
       </div>
       <div class="form-group" style="flex:0 1 120px"><label>Tanggal</label><input type="date" id="keu-bayar-tgl"></div>
       <div class="form-group" style="flex:1 1 120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="keu-bayar-nominal" placeholder="0"></div>
@@ -284,10 +296,28 @@ document.body.insertAdjacentHTML('beforeend', `
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 180px"><label>Akun Kewajiban (Jurnal Kredit)</label>
-        <select id="keu-htg-akun-kwj" style="width:100%"><option value="">— pilih akun kewajiban —</option></select>
+        <div class="kas-akun-wrap">
+          <select id="keu-htg-akun-kwj" style="display:none"><option value="">— pilih akun kewajiban —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-kwj" data-target="keu-htg-akun-kwj"
+            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-kwj')"
+            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-kwj')">
+            <span id="keu-picker-kwj-label" style="color:var(--ink3)">— pilih akun kewajiban —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+          </div>
+          <div class="kas-akun-list" id="keu-picker-kwj-list" style="display:none"></div>
+        </div>
       </div>
       <div class="form-group" style="flex:1 1 180px"><label>Masuk ke Akun (Jurnal Debit)</label>
-        <select id="keu-htg-akun-aset" style="width:100%"><option value="">— pilih akun aset/kas —</option></select>
+        <div class="kas-akun-wrap">
+          <select id="keu-htg-akun-aset" style="display:none"><option value="">— pilih akun aset/kas —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-aset" data-target="keu-htg-akun-aset"
+            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-aset')"
+            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-aset')">
+            <span id="keu-picker-aset-label" style="color:var(--ink3)">— pilih akun aset/kas —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+          </div>
+          <div class="kas-akun-list" id="keu-picker-aset-list" style="display:none"></div>
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -418,6 +448,19 @@ function keuPopulateBayarDropdown(hutang) {
   const sel = document.getElementById('keu-bayar-hutang-id');
   sel.innerHTML = '<option value="">— Pilih Hutang —</option>' +
     hutang.map(h => `<option value="${h.id}">${h.kreditur} (Rp${(h.pokok||0).toLocaleString('id-ID')})</option>`).join('');
+  // Render ke picker list
+  var list = document.getElementById('keu-picker-bayar-list');
+  if (list) {
+    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— Pilih Hutang —</span></div>';
+    hutang.forEach(function(h) {
+      html += '<div class="kas-akun-item" data-val="' + h.id + '" onclick="keuPickerSelect(this)">' +
+        h.kreditur + ' (Rp' + (h.pokok||0).toLocaleString('id-ID') + ')</div>';
+    });
+    list.innerHTML = html;
+  }
+  // Reset label picker
+  var lbl = document.getElementById('keu-picker-bayar-label');
+  if (lbl) { lbl.textContent = '— Pilih Hutang —'; lbl.style.color = 'var(--ink3)'; }
 }
 
 function keuShowFormHutang(data) {
@@ -493,6 +536,28 @@ async function keuPopulateAkunHutang(selectedKwj, selectedAset) {
     kwjOpts.map(a => `<option value="${a.id}" ${String(a.id)===String(selectedKwj)?'selected':''}>${a.kode} · ${a.nama}</option>`).join('');
   selAset.innerHTML = '<option value="">— pilih akun aset/kas —</option>' +
     asetOpts.map(a => `<option value="${a.id}" ${String(a.id)===String(selectedAset)?'selected':''}>${a.kode} · ${a.nama}</option>`).join('');
+
+  // Render picker list kewajiban
+  var listKwj = document.getElementById('keu-picker-kwj-list');
+  if (listKwj) {
+    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— pilih akun kewajiban —</span></div>';
+    kwjOpts.forEach(function(a) {
+      html += '<div class="kas-akun-item' + (String(a.id)===String(selectedKwj)?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' + (a.kode ? a.kode + ' · ' : '') + a.nama + '</div>';
+    });
+    listKwj.innerHTML = html;
+  }
+  // Render picker list aset
+  var listAset = document.getElementById('keu-picker-aset-list');
+  if (listAset) {
+    var html2 = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— pilih akun aset/kas —</span></div>';
+    asetOpts.forEach(function(a) {
+      html2 += '<div class="kas-akun-item' + (String(a.id)===String(selectedAset)?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' + (a.kode ? a.kode + ' · ' : '') + a.nama + '</div>';
+    });
+    listAset.innerHTML = html2;
+  }
+  // Sync label picker sesuai nilai selected
+  keuSyncPickerLabel('keu-picker-kwj', 'keu-htg-akun-kwj', '— pilih akun kewajiban —');
+  keuSyncPickerLabel('keu-picker-aset', 'keu-htg-akun-aset', '— pilih akun aset/kas —');
 }
 
 async function keuEditHutang(id) {
@@ -808,3 +873,95 @@ window.gotoPage = function(page, btn) {
     keuLoadKasData();
   }
 };
+
+// ─── KEU CUSTOM PICKER ENGINE ────────────────────────────────
+
+function keuTogglePicker(pickerId) {
+  var picker = document.getElementById(pickerId);
+  var list   = document.getElementById(pickerId + '-list');
+  if (!picker || !list) return;
+  // Tutup semua picker keu lain
+  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
+    if (el.id !== pickerId + '-list') keuClosePicker(el);
+  });
+  if (list.style.display === 'block') { keuClosePicker(list); return; }
+  // Float ke body agar tidak terpotong overflow modal
+  var rect = picker.getBoundingClientRect();
+  list.style.position = 'fixed';
+  list.style.top      = (rect.bottom + 2) + 'px';
+  list.style.left     = rect.left + 'px';
+  list.style.width    = rect.width + 'px';
+  list.style.maxWidth = '340px';
+  list.style.zIndex   = '99999';
+  list.dataset.floated = '1';
+  list.style.display  = 'block';
+  if (list.parentNode !== document.body) document.body.appendChild(list);
+}
+
+function keuClosePicker(list) {
+  if (!list) return;
+  if (list.dataset.floated && list.parentNode === document.body) {
+    var pickerId = list.id.replace('-list', '');
+    var picker   = document.getElementById(pickerId);
+    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
+    delete list.dataset.floated;
+  }
+  list.style.display = 'none';
+}
+
+function keuPickerSelect(item) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var list     = item.closest('.kas-akun-list');
+  if (!list) return;
+  var pickerId = list.id.replace('-list', '');
+  var picker   = document.getElementById(pickerId);
+  if (!picker) return;
+  var targetId = picker.dataset.target;
+  var val      = item.dataset.val;
+  var label    = item.textContent.trim();
+  // Update hidden select
+  var sel = document.getElementById(targetId);
+  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
+  // Update label picker
+  var lbl = document.getElementById(pickerId + '-label');
+  if (lbl) { lbl.textContent = label; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  // Tandai aktif
+  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
+  item.classList.add('active');
+  keuClosePicker(list);
+}
+
+function keuSyncPickerLabel(pickerId, selectId, placeholder) {
+  var sel    = document.getElementById(selectId);
+  var lbl    = document.getElementById(pickerId + '-label');
+  var list   = document.getElementById(pickerId + '-list');
+  if (!sel || !lbl) return;
+  var val = sel.value;
+  if (list) {
+    list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
+    var match = list.querySelector('.kas-akun-item[data-val="' + val + '"]');
+    if (match) {
+      match.classList.add('active');
+      lbl.textContent  = match.textContent.trim();
+      lbl.style.color  = 'var(--ink)';
+    } else {
+      lbl.textContent  = placeholder || '— Pilih —';
+      lbl.style.color  = 'var(--ink3)';
+    }
+  }
+}
+
+// Tutup picker saat klik di luar
+(function() {
+  function _keuCloseAll(e) {
+    if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
+    document.querySelectorAll('.kas-akun-list').forEach(function(el) { keuClosePicker(el); });
+  }
+  document.addEventListener('mousedown',  _keuCloseAll);
+  document.addEventListener('touchstart', _keuCloseAll, { passive: true });
+  // Tutup saat scroll di luar list
+  document.addEventListener('scroll', function(e) {
+    if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
+    document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el) { keuClosePicker(el); });
+  }, true);
+})();

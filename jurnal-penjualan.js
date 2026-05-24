@@ -172,11 +172,18 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
         <div class="form-group fg-ch">
           <label>[ Channel ]</label>
-          <select id="jp-channel"
-            style="font-family:var(--f);font-size:14px;padding:6px 10px;
-                   border:2px solid var(--ink);background:var(--cream)">
+          <select id="jp-channel" style="display:none">
             <option value="">— Pilih Channel —</option>
           </select>
+          <div class="kas-akun-wrap">
+            <div class="kas-akun-picker" id="jp-picker-channel" data-target="jp-channel"
+              onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-channel')"
+              ontouchstart="event.stopPropagation();jpTogglePicker('jp-picker-channel')">
+              <span id="jp-picker-channel-label" style="color:var(--ink3)">— Pilih Channel —</span>
+              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+            </div>
+            <div class="kas-akun-list" id="jp-picker-channel-list" style="display:none"></div>
+          </div>
         </div>
       </div>
 
@@ -184,12 +191,19 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <div class="jp-row-2" style="margin-bottom:12px">
         <div class="form-group fg-variasi">
           <label>SKU Variasi</label>
-          <select id="jp-sku-variasi"
-            style="font-family:var(--f);font-size:14px;padding:6px 10px;
-                   border:2px solid var(--ink);background:var(--cream)"
+          <select id="jp-sku-variasi" style="display:none"
             onchange="jpOnPilihVariasi()">
             <option value="">— Pilih Variasi —</option>
           </select>
+          <div class="kas-akun-wrap">
+            <div class="kas-akun-picker" id="jp-picker-variasi" data-target="jp-sku-variasi"
+              onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-variasi')"
+              ontouchstart="event.stopPropagation();jpTogglePicker('jp-picker-variasi')">
+              <span id="jp-picker-variasi-label" style="color:var(--ink3)">— Pilih Variasi —</span>
+              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+            </div>
+            <div class="kas-akun-list" id="jp-picker-variasi-list" style="display:none"></div>
+          </div>
         </div>
         <div class="form-group fg-induk" style="position:relative">
           <label>SKU Induk</label>
@@ -411,6 +425,19 @@ async function loadChannelDropdownJP() {
     });
 
     document.getElementById('jp-channel').innerHTML        = fHtml;
+    // Render ke picker channel (modal form JP)
+    var pickerChList = document.getElementById('jp-picker-channel-list');
+    if (pickerChList) {
+      var pickerHtml = '<div class="kas-akun-item" data-val="" onclick="jpPickerChannelSelect(this)"><span style="color:var(--ink3)">— Pilih Channel —</span></div>';
+      Object.entries(grouped).forEach(function([kat, items]) {
+        var cfg = katConfig[kat] || { label: kat, icon: 'default' };
+        pickerHtml += '<div class="kas-akun-group">── ' + cfg.label + ' ──</div>';
+        items.forEach(function(ch) {
+          pickerHtml += '<div class="kas-akun-item" data-val="' + ch.id + '" onclick="jpPickerChannelSelect(this)">' + ch.nama + '</div>';
+        });
+      });
+      pickerChList.innerHTML = pickerHtml;
+    }
     // Custom div dropdown channel (bukan select) untuk hover effect
     var fcEl = document.getElementById('jp-filter-channel');
     if (fcEl) fcEl.value = ''; // reset hidden input
@@ -587,11 +614,37 @@ function jpPilihKatalog(katalog) {
     opt.dataset.sku   = _jpGetSku(p);
     sel.appendChild(opt);
   });
+  // Render ke picker list
+  var list = document.getElementById('jp-picker-variasi-list');
+  if (list) {
+    var html = '<div class="kas-akun-item" data-val="" data-hpp="" onclick="jpPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
+    varList.forEach(function(p) {
+      html += '<div class="kas-akun-item" data-val="' + _jpGetSku(p) + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)">' + _jpGetSku(p) + '</div>';
+    });
+    list.innerHTML = html;
+  }
+  // Reset label picker variasi
+  var lbl = document.getElementById('jp-picker-variasi-label');
+  if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+
   if (varList.length === 1) {
     sel.selectedIndex = 1;
     jpOnPilihVariasi();
+    // Sync picker label juga
+    if (list) {
+      var items = list.querySelectorAll('.kas-akun-item[data-val]');
+      items.forEach(function(el) { el.classList.remove('active'); });
+      var first = list.querySelector('.kas-akun-item[data-val="' + _jpGetSku(varList[0]) + '"]');
+      if (first) {
+        first.classList.add('active');
+        if (lbl) { lbl.textContent = first.textContent.trim(); lbl.style.color = 'var(--ink)'; }
+      }
+    }
   } else {
-    setTimeout(() => sel.focus(), 60);
+    setTimeout(function() {
+      var pickerBtn = document.getElementById('jp-picker-variasi');
+      if (pickerBtn) jpTogglePicker('jp-picker-variasi');
+    }, 60);
   }
 }
 
@@ -1215,4 +1268,113 @@ Promise.all([
   }
   // Coba init setelah setTimeout 80ms (HTML sudah render)
   setTimeout(_jpInitScrollCollapse, 200);
+})();
+
+// ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────
+
+function jpTogglePicker(pickerId) {
+  var picker = document.getElementById(pickerId);
+  var list   = document.getElementById(pickerId + '-list');
+  if (!picker || !list) return;
+  // Tutup semua picker jp lain
+  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
+    if (el.id !== pickerId + '-list') jpClosePicker(el);
+  });
+  if (list.style.display === 'block') { jpClosePicker(list); return; }
+  // Float ke body agar tidak terpotong overflow modal
+  var rect = picker.getBoundingClientRect();
+  list.style.position = 'fixed';
+  list.style.top      = (rect.bottom + 2) + 'px';
+  list.style.left     = rect.left + 'px';
+  list.style.width    = rect.width + 'px';
+  list.style.maxWidth = '360px';
+  list.style.zIndex   = '99999';
+  list.dataset.floated = '1';
+  list.style.display  = 'block';
+  if (list.parentNode !== document.body) document.body.appendChild(list);
+}
+
+function jpClosePicker(list) {
+  if (!list) return;
+  if (list.dataset.floated && list.parentNode === document.body) {
+    var pickerId = list.id.replace('-list', '');
+    var picker   = document.getElementById(pickerId);
+    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
+    delete list.dataset.floated;
+  }
+  list.style.display = 'none';
+}
+
+function jpPickerChannelSelect(item) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var list = item.closest('.kas-akun-list');
+  if (!list) return;
+  var val   = item.dataset.val || '';
+  var label = item.textContent.trim();
+  // Update hidden select
+  var sel = document.getElementById('jp-channel');
+  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
+  // Update label
+  var lbl = document.getElementById('jp-picker-channel-label');
+  if (lbl) { lbl.textContent = val ? label : '— Pilih Channel —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  // Tandai aktif
+  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
+  item.classList.add('active');
+  jpClosePicker(list);
+}
+
+function jpPickerVariasiSelect(item) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var list = item.closest('.kas-akun-list');
+  if (!list) return;
+  var val = item.dataset.val || '';
+  var hpp = item.dataset.hpp || '';
+  var label = item.textContent.trim();
+  // Update hidden select
+  var sel = document.getElementById('jp-sku-variasi');
+  if (sel) {
+    sel.value = val;
+    // Tandai dataset di option yang cocok agar jpOnPilihVariasi bisa baca
+    var opts = sel.options;
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value === val) { opts[i].selected = true; break; }
+    }
+    sel.dispatchEvent(new Event('change'));
+  }
+  // Update label
+  var lbl = document.getElementById('jp-picker-variasi-label');
+  if (lbl) { lbl.textContent = val ? label : '— Pilih Variasi —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  // Tandai aktif
+  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
+  item.classList.add('active');
+  jpClosePicker(list);
+  // Trigger hitung harga
+  if (val) jpOnPilihVariasi();
+}
+
+// Reset label picker variasi saat katalog/modal reset
+var _jpOrigCloseModal = window.closeModalJP;
+if (typeof closeModalJP === 'function') {
+  var _jpOrigClose2 = closeModalJP;
+  window.closeModalJP = function() {
+    _jpOrigClose2();
+    var lblV = document.getElementById('jp-picker-variasi-label');
+    if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
+    var lblC = document.getElementById('jp-picker-channel-label');
+    if (lblC) { lblC.textContent = '— Pilih Channel —'; lblC.style.color = 'var(--ink3)'; }
+  };
+}
+
+// Tutup picker saat klik di luar
+(function() {
+  function _jpCloseAll(e) {
+    if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
+    document.querySelectorAll('.kas-akun-list').forEach(function(el) { jpClosePicker(el); });
+  }
+  document.addEventListener('mousedown',  _jpCloseAll);
+  document.addEventListener('touchstart', _jpCloseAll, { passive: true });
+  document.addEventListener('scroll', function(e) {
+    if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
+    document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el) { jpClosePicker(el); });
+  }, true);
 })();
