@@ -912,27 +912,57 @@ function kasPopulatePickerList(listId, akunData) {
   list.innerHTML = html;
 }
 
+function _kasReturnListToWrap(list) {
+  // Kembalikan list ke .kas-akun-wrap asalnya setelah di-float ke body
+  if (!list || !list.dataset.floated) return;
+  var wrap = document.querySelector('.kas-akun-wrap #' + list.id.replace('-list',''));
+  if (!wrap) {
+    // Cari wrap berdasarkan data-target
+    var picker = document.querySelector('[id="' + list.id.replace('-list','') + '"]');
+    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
+  }
+  list.style.display = 'none';
+  list.style.position = '';
+  list.style.top = '';
+  list.style.left = '';
+  list.style.width = '';
+  list.style.zIndex = '';
+  delete list.dataset.floated;
+}
+
+function kasClosePicker(list) {
+  if (!list) return;
+  if (list.dataset.floated && list.parentNode === document.body) {
+    // Kembalikan ke wrap asalnya
+    var pickerId = list.id.replace('-list', '');
+    var picker = document.getElementById(pickerId);
+    if (picker && picker.parentNode && picker.parentNode.classList.contains('kas-akun-wrap')) {
+      picker.parentNode.appendChild(list);
+    }
+    delete list.dataset.floated;
+  }
+  list.style.display = 'none';
+}
+
 function kasTogglePicker(pickerId) {
   var picker = document.getElementById(pickerId);
-  var list   = document.getElementById(pickerId + '-list');
-  if (!picker || !list) return;
+  // List mungkin sudah di body — cari di seluruh document
+  var list = document.getElementById(pickerId + '-list');
+  if (!picker) return;
+  if (!list) return;
 
   // Tutup semua picker lain dulu
   document.querySelectorAll('.kas-akun-list').forEach(function(el) {
-    if (el.id !== pickerId + '-list') {
-      el.style.display = 'none';
-      if (el.dataset.floated) document.body.removeChild(el);
-    }
+    if (el.id !== pickerId + '-list') kasClosePicker(el);
   });
 
   if (list.style.display === 'block') {
-    list.style.display = 'none';
+    kasClosePicker(list);
     return;
   }
 
   // Float list ke body agar tidak terpotong overflow modal
   var rect = picker.getBoundingClientRect();
-  list.style.display   = 'block';
   list.style.position  = 'fixed';
   list.style.top       = (rect.bottom + 2) + 'px';
   list.style.left      = rect.left + 'px';
@@ -940,7 +970,8 @@ function kasTogglePicker(pickerId) {
   list.style.maxWidth  = '320px';
   list.style.zIndex    = '99999';
   list.dataset.floated = '1';
-  document.body.appendChild(list);
+  list.style.display   = 'block';
+  if (list.parentNode !== document.body) document.body.appendChild(list);
 }
 
 function kasPickerSelect(item) {
@@ -1010,16 +1041,15 @@ if (_kasOrigShowModal) {
 // Tutup picker saat mousedown/touchstart di luar picker & list
 function _kasCloseAllPickers(e) {
   if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
-  document.querySelectorAll('.kas-akun-list').forEach(function(el){ el.style.display = 'none'; });
+  document.querySelectorAll('.kas-akun-list').forEach(function(el){ kasClosePicker(el); });
 }
 document.addEventListener('mousedown', _kasCloseAllPickers);
 document.addEventListener('touchstart', _kasCloseAllPickers, { passive: true });
 
 // Tutup picker saat scroll terjadi di LUAR list (misal scroll modal)
 document.addEventListener('scroll', function(e) {
-  // Jangan tutup kalau scroll terjadi di dalam list itu sendiri
   if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
   document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el){
-    el.style.display = 'none';
+    kasClosePicker(el);
   });
 }, true);
