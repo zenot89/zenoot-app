@@ -530,7 +530,7 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // Mousedown / touchstart di luar picker → tutup semua
+  // Mousedown / touchend di luar picker → tutup semua
   function _onOutsideDown(e) {
     if (e.target.closest && (
       e.target.closest('.kas-akun-picker') ||
@@ -538,8 +538,8 @@ if ('serviceWorker' in navigator) {
     )) return;
     document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
   }
-  document.addEventListener('mousedown',  _onOutsideDown);
-  document.addEventListener('touchstart', _onOutsideDown, { passive: true });
+  document.addEventListener('mousedown', _onOutsideDown);
+  document.addEventListener('touchend',  _onOutsideDown, { passive: true });
 
   // Scroll di luar list → tutup yang sedang float di body
   document.addEventListener('scroll', function(e) {

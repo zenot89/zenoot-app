@@ -178,7 +178,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <div class="kas-akun-wrap">
             <div class="kas-akun-picker" id="jp-picker-channel" data-target="jp-channel"
               onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-channel')"
-              ontouchstart="event.stopPropagation();jpTogglePicker('jp-picker-channel')">
+              ontouchend="event.preventDefault();event.stopPropagation();jpTogglePicker('jp-picker-channel')">
               <span id="jp-picker-channel-label" style="color:var(--ink3)">— Pilih Channel —</span>
               <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
             </div>
@@ -198,7 +198,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <div class="kas-akun-wrap">
             <div class="kas-akun-picker" id="jp-picker-variasi" data-target="jp-sku-variasi"
               onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-variasi')"
-              ontouchstart="event.stopPropagation();jpTogglePicker('jp-picker-variasi')">
+              ontouchend="event.preventDefault();event.stopPropagation();jpTogglePicker('jp-picker-variasi')">
               <span id="jp-picker-variasi-label" style="color:var(--ink3)">— Pilih Variasi —</span>
               <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
             </div>

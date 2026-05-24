@@ -98,7 +98,7 @@ document.getElementById('page-keuangan').innerHTML = `
           <select id="keu-bayar-hutang-id" style="display:none"><option value="">— Pilih —</option></select>
           <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
             onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
-            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
+            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
             <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
             <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
@@ -300,7 +300,7 @@ document.body.insertAdjacentHTML('beforeend', `
           <select id="keu-htg-akun-kwj" style="display:none"><option value="">— pilih akun kewajiban —</option></select>
           <div class="kas-akun-picker" id="keu-picker-kwj" data-target="keu-htg-akun-kwj"
             onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-kwj')"
-            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-kwj')">
+            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-kwj')">
             <span id="keu-picker-kwj-label" style="color:var(--ink3)">— pilih akun kewajiban —</span>
             <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
@@ -312,7 +312,7 @@ document.body.insertAdjacentHTML('beforeend', `
           <select id="keu-htg-akun-aset" style="display:none"><option value="">— pilih akun aset/kas —</option></select>
           <div class="kas-akun-picker" id="keu-picker-aset" data-target="keu-htg-akun-aset"
             onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-aset')"
-            ontouchstart="event.stopPropagation();keuTogglePicker('keu-picker-aset')">
+            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-aset')">
             <span id="keu-picker-aset-label" style="color:var(--ink3)">— pilih akun aset/kas —</span>
             <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
