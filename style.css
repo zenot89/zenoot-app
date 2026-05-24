@@ -1433,7 +1433,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok,
 #page-jurnal-penjualan,
 #page-clearance,
-#page-produk-terjual {
+#page-produk-terjual,
+#page-restock,
+#page-produk,
+#page-price-list,
+#page-kas {
   padding: 8px;
   gap: 6px;
 }
@@ -1452,19 +1456,36 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: transparent;
   border-radius: 6px 6px 0 0;
 }
+#restock-wrap .card-title {
+  background: transparent;
+}
+#ops-switcher-produk {
+  background: transparent;
+}
+#pl-info-wrap {
+  background: transparent;
+}
+#page-kas > .kas-tabs {
+  background: transparent;
+}
 
 /* Card utama: border-radius + border tipis */
 #page-stok .card,
 #page-jurnal-penjualan .card,
 #page-clearance .card,
-#page-produk-terjual .card {
+#page-produk-terjual .card,
+#restock-wrap,
+#page-produk .card,
+#pl-card,
+#kas-jurnal-card {
   border-radius: 6px;
   border: 1.5px solid rgba(255,255,255,0.07);
   overflow: hidden;
 }
 
 /* Sticky header tetap match */
-#jp-sticky-header {
+#jp-sticky-header,
+#kas-jurnal-card .card-title {
   background: var(--cream2);
   border-radius: 0;
 }
@@ -1474,7 +1495,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #page-stok,
   #page-jurnal-penjualan,
   #page-clearance,
-  #page-produk-terjual {
+  #page-produk-terjual,
+  #page-restock,
+  #page-produk,
+  #page-price-list,
+  #page-kas {
     padding: 6px;
     gap: 4px;
   }
@@ -1507,6 +1532,80 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
   #jp-aksi-laptop {
     display: none !important;
+  }
+}
+
+/* ── restock card-title COLLAPSE di landscape touch ── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #restock-wrap .card-title {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #restock-wrap .card-title.landscape-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── ops-switcher-produk COLLAPSE di landscape touch ── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #ops-switcher-produk {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #ops-switcher-produk.landscape-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── pl-info-wrap COLLAPSE di landscape touch ── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #pl-info-wrap {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #pl-info-wrap.landscape-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── kas-summary COLLAPSE di landscape touch ── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #kas-panel-jurnal .kas-summary {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #kas-panel-jurnal .kas-summary.landscape-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -1744,7 +1843,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 8px;
+  padding: 0;
   gap: 0;
 }
 #restock-wrap {
@@ -1961,7 +2060,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 8px;
+  padding: 0;
   gap: 0;
 }
 /* Tab bar: shrink:0 */
