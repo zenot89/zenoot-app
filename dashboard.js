@@ -770,7 +770,7 @@ function _renderChartHariIni(jpData, canvas, tooltip) {
   const cW=W-padL-padR, cH=H-padT-padB;
   const maxVal = Math.max(...totals, 1);
   const step   = cW / (totals.length - 1 || 1);
-  const colLine='#2a6e3a', colFill='rgba(42,110,58,0.1)', colGrid='rgba(28,26,20,0.08)', colLabel='#6b6354';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
 
   // Grid
   ctx.clearRect(0, 0, W, H);
@@ -789,7 +789,7 @@ function _renderChartHariIni(jpData, canvas, tooltip) {
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
   // Line
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
@@ -863,7 +863,7 @@ function _renderChartKemarin(jpData, canvas, tooltip) {
   const cW=W-padL-padR, cH=H-padT-padB;
   const maxVal = Math.max(...totals, 1);
   const step   = cW / (totals.length - 1 || 1);
-  const colLine='#2a6e3a', colFill='rgba(42,110,58,0.1)', colGrid='rgba(28,26,20,0.08)', colLabel='#6b6354';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
 
   ctx.clearRect(0, 0, W, H);
   for (let i = 0; i <= 4; i++) {
@@ -879,7 +879,7 @@ function _renderChartKemarin(jpData, canvas, tooltip) {
   ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
@@ -975,7 +975,7 @@ function _renderChartPenjualan(jpData) {
 
   const padL=44, padR=36, padT=14, padB=34;
   const cW=W-padL-padR, cH=H-padT-padB;
-  const colLine='#2a6e3a', colFill='rgba(42,110,58,0.1)', colGrid='rgba(28,26,20,0.08)', colLabel='#6b6354';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
 
   for (let i=0; i<=4; i++) {
     const y = padT + cH - cH*i/4;
@@ -996,7 +996,7 @@ function _renderChartPenjualan(jpData) {
   ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
