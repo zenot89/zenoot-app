@@ -52,12 +52,12 @@ document.getElementById('page-kas').innerHTML = `
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="kas-jurnal-card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
       <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
       <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
     </div>
-    <div class="tbl-wrap" style="overflow-x:auto">
+    <div id="kas-jurnal-tbl-wrap" class="tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
       <table class="tbl">
         <thead><tr><th>Tanggal</th><th>Ref</th><th>Keterangan</th><th>Akun Debit</th><th>Akun Kredit</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th>Aksi</th></tr></thead>
         <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
@@ -529,7 +529,7 @@ function kasApplyFilter() {
 function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
 
 // ─── PAGINATION STATE ────────────────────────────────────────
-const _KAS_PAGE_SIZE = 15;
+const _KAS_PAGE_SIZE = 999999; // load semua, tidak ada pagination
 let _kasCurrentPage  = 1;
 let _kasFilteredData = [];
 
@@ -578,36 +578,11 @@ function _kasRenderPagination(totalPg, totalData) {
     el.id = 'kas-jurnal-pagination';
     wrap.appendChild(el);
   }
-  if (totalPg <= 1) { el.innerHTML = ''; return; }
-  const start = (_kasCurrentPage - 1) * _KAS_PAGE_SIZE + 1;
-  const end   = Math.min(_kasCurrentPage * _KAS_PAGE_SIZE, totalData);
-  let from = Math.max(1, _kasCurrentPage - 2);
-  let to   = Math.min(totalPg, from + 4);
-  from     = Math.max(1, to - 4);
-  const pages = [];
-  for (let i = from; i <= to; i++) pages.push(i);
-  const btnBase = 'padding:4px 9px;font-family:var(--f);font-size:12px;font-weight:700;border:2px solid var(--ink);border-radius:2px;cursor:pointer;';
-  const btnNorm = btnBase + 'background:var(--cream);color:var(--ink);';
-  const btnActv = btnBase + 'background:var(--ink);color:var(--cream);';
-  const btnDsbl = btnBase + 'opacity:0.3;cursor:default;background:var(--cream);color:var(--ink);';
-  el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 4px;flex-wrap:wrap;gap:8px;border-top:1px dashed var(--ink4);margin-top:4px';
-  el.innerHTML =
-    '<div style="font-size:12px;color:var(--ink3)">Menampilkan <b style="color:var(--ink2)">'+start+'–'+end+'</b> dari <b style="color:var(--ink2)">'+totalData+'</b> transaksi</div>' +
-    '<div style="display:flex;gap:4px;align-items:center">' +
-      '<button onclick="kasGoPage(1)" '+(_kasCurrentPage===1?'disabled':'')+' style="'+(_kasCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-left"></i></button>' +
-      '<button onclick="kasGoPage('+(_kasCurrentPage-1)+')" '+(_kasCurrentPage===1?'disabled':'')+' style="'+(_kasCurrentPage===1?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-left"></i></button>' +
-      pages.map(function(p){ return '<button onclick="kasGoPage('+p+')" style="'+(p===_kasCurrentPage?btnActv:btnNorm)+'">'+p+'</button>'; }).join('') +
-      '<button onclick="kasGoPage('+(_kasCurrentPage+1)+')" '+(_kasCurrentPage===totalPg?'disabled':'')+' style="'+(_kasCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevron-right"></i></button>' +
-      '<button onclick="kasGoPage('+totalPg+')" '+(_kasCurrentPage===totalPg?'disabled':'')+' style="'+(_kasCurrentPage===totalPg?btnDsbl:btnNorm)+'"><i class="ti ti-chevrons-right"></i></button>' +
-    '</div>';
+  el.style.cssText = 'padding:8px 4px;border-top:1px dashed var(--ink4);margin-top:4px';
+  el.innerHTML = '<div style="font-size:12px;color:var(--ink3);text-align:right">Menampilkan <b style="color:var(--ink2)">'+totalData+'</b> transaksi</div>';
 }
 
-function kasGoPage(pg) {
-  const totalPg = Math.max(1, Math.ceil(_kasFilteredData.length / _KAS_PAGE_SIZE));
-  _kasCurrentPage = Math.max(1, Math.min(pg, totalPg));
-  kasRenderJurnalTabel(_kasFilteredData);
-  const card = document.querySelector('#kas-panel-jurnal .card');
-  if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
+function kasGoPage(pg) { /* tidak dipakai, semua data tampil */ 
 }
 
 function kasUpdateSummary(data) {
