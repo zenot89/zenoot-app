@@ -913,13 +913,34 @@ function kasPopulatePickerList(listId, akunData) {
 }
 
 function kasTogglePicker(pickerId) {
-  var list = document.getElementById(pickerId + '-list');
-  if (!list) return;
+  var picker = document.getElementById(pickerId);
+  var list   = document.getElementById(pickerId + '-list');
+  if (!picker || !list) return;
+
   // Tutup semua picker lain dulu
   document.querySelectorAll('.kas-akun-list').forEach(function(el) {
-    if (el.id !== pickerId + '-list') el.style.display = 'none';
+    if (el.id !== pickerId + '-list') {
+      el.style.display = 'none';
+      if (el.dataset.floated) document.body.removeChild(el);
+    }
   });
-  list.style.display = list.style.display === 'none' ? 'block' : 'none';
+
+  if (list.style.display === 'block') {
+    list.style.display = 'none';
+    return;
+  }
+
+  // Float list ke body agar tidak terpotong overflow modal
+  var rect = picker.getBoundingClientRect();
+  list.style.display   = 'block';
+  list.style.position  = 'fixed';
+  list.style.top       = (rect.bottom + 2) + 'px';
+  list.style.left      = rect.left + 'px';
+  list.style.width     = rect.width + 'px';
+  list.style.maxWidth  = '320px';
+  list.style.zIndex    = '99999';
+  list.dataset.floated = '1';
+  document.body.appendChild(list);
 }
 
 function kasPickerSelect(item) {
@@ -988,6 +1009,15 @@ if (_kasOrigShowModal) {
 // Tutup picker saat klik di luar
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.kas-akun-picker') && !e.target.closest('.kas-akun-list')) {
-    document.querySelectorAll('.kas-akun-list').forEach(function(el){ el.style.display = 'none'; });
+    document.querySelectorAll('.kas-akun-list').forEach(function(el){
+      el.style.display = 'none';
+    });
   }
 });
+
+// Reposisi picker saat scroll modal (jaga posisi tetap tepat)
+document.addEventListener('scroll', function() {
+  document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el){
+    el.style.display = 'none';
+  });
+}, true);
