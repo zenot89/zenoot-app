@@ -1508,3 +1508,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     display: none !important;
   }
 }
+
+/* ── DOODLE ICON — fix terpotong di mobile ── */
+.metric {
+  overflow: hidden;
+}
+@media (max-width: 767px) {
+  .doodle {
+    font-size: 18px;
+    bottom: 6px;
+    right: 7px;
+    opacity: 0.35;
+  }
+}
