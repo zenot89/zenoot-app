@@ -2077,8 +2077,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0;
   padding: 8px 4px 6px;
 }
-/* Semua panel: fill sisa tinggi, scroll sendiri */
-#kas-panel-jurnal,
+/* Panel Laporan & Akun: scroll normal */
 #kas-panel-laporan,
 #kas-panel-akun {
   -webkit-flex: 1 1 0;
@@ -2090,25 +2089,36 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overscroll-behavior: contain;
   padding: 10px 4px 0;
 }
-/* Khusus panel jurnal: flex column, jurnal-card flex:1 */
+/* Panel Jurnal: flex column — TIDAK overflow-y:auto, biar tbl-wrap yg scroll */
 #kas-panel-jurnal {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
   flex-direction: column;
   overflow: hidden;
-  padding: 10px 4px 0;
+  padding: 6px 4px 0;
 }
-/* Summary metrics: shrink:0 */
-#kas-panel-jurnal .kas-summary {
+/* Summary metrics + toolbar: shrink:0 */
+#kas-panel-jurnal .kas-summary,
+#kas-jurnal-toolbar {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
-/* Toolbar filter: shrink:0 */
-#kas-panel-jurnal > div:not(.kas-summary):not(#kas-jurnal-card) {
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
+/* Toolbar filter margin */
+#kas-jurnal-toolbar {
   margin-bottom: 8px;
+}
+/* Summary collapse di landscape */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #kas-panel-jurnal .kas-summary {
+    -webkit-transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+    max-height: 200px;
+    overflow: hidden;
+  }
 }
 /* Card jurnal: flex-grow */
 #kas-jurnal-card {

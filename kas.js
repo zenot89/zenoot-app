@@ -40,7 +40,7 @@ document.getElementById('page-kas').innerHTML = `
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
   </div>
-  <div style="display:flex;gap:0;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+  <div id="kas-jurnal-toolbar" style="display:flex;gap:0;margin-bottom:10px;flex-wrap:wrap;align-items:center">
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
       <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
@@ -1087,3 +1087,25 @@ if (_kasOrigShowModal) {
 // Close listener dipindah ke unified handler di bawah
 
 // scroll listener: handled by unified handler in app.js
+
+// ─── SWIPE GESTURE — collapse kas-summary di landscape touch ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _init() {
+    if (!_mq.matches) return;
+    var summary = document.querySelector('.kas-summary');
+    var toolbar = document.getElementById('kas-jurnal-toolbar');
+    if (!summary) return;
+    initSwipeCollapse(summary, summary, 50);
+    if (toolbar) initSwipeCollapse(toolbar, summary, 50);
+  }
+  setTimeout(_init, 300);
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'kas') return;
+    setTimeout(function() {
+      var summary = document.querySelector('.kas-summary');
+      if (summary) summary.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
+})();
