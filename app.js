@@ -182,17 +182,31 @@ function gotoPage(page, btn) {
   if (contentEl) {
     var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas'];
     if (fullHeightPages.indexOf(page) !== -1) {
-      contentEl.style.overflowY    = 'hidden';
-      contentEl.style.padding      = '0';
-      contentEl.style.height       = '100%';
-      contentEl.style.display      = '';
-      contentEl.style.flexDirection = '';
+      // Full-height pages: content harus jadi flex container agar page div bisa flex:1
+      // height:100% tidak reliable di iOS Safari — gunakan flex chain + min-height:0
+      contentEl.style.overflowY     = 'hidden';
+      contentEl.style.overflow      = 'hidden';
+      contentEl.style.padding       = '0';
+      contentEl.style.display       = '-webkit-flex';
+      contentEl.style.display       = 'flex';
+      contentEl.style.flexDirection = 'column';
+      contentEl.style.height        = '100%';
+      contentEl.style.webkitFlexDirection = 'column';
+      contentEl.style.webkitFlex    = '1';
+      contentEl.style.flex          = '1';
+      contentEl.style.minHeight     = '0';
     } else {
-      contentEl.style.overflowY    = '';
-      contentEl.style.padding      = '';
-      contentEl.style.height       = '';
-      contentEl.style.display      = '';
+      // Normal scroll pages: reset semua
+      contentEl.style.overflowY     = '';
+      contentEl.style.overflow      = '';
+      contentEl.style.padding       = '';
+      contentEl.style.display       = '';
       contentEl.style.flexDirection = '';
+      contentEl.style.height        = '';
+      contentEl.style.webkitFlexDirection = '';
+      contentEl.style.webkitFlex    = '';
+      contentEl.style.flex          = '';
+      contentEl.style.minHeight     = '';
       contentEl.scrollTop = 0;
     }
   }

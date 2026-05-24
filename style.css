@@ -826,7 +826,7 @@ body.sidebar-mini .sidebar-footer::before{
   .btn{-webkit-appearance:none}
   .form-group input,.form-group select{-webkit-appearance:none}
   body{height:-webkit-fill-available}
-  /* Fix scroll di Safari iOS: .content harus overflow-y:scroll bukan auto */
+  /* Fix scroll di Safari iOS */
   .content{
     overflow-y:scroll;
     -webkit-overflow-scrolling:touch;
@@ -835,6 +835,19 @@ body.sidebar-mini .sidebar-footer::before{
   .main{
     max-height:100%;
     max-height:-webkit-fill-available;
+  }
+  /* Fix iOS: page divs perlu -webkit-flex agar tidak collapse */
+  #page-jurnal-penjualan,
+  #page-stok,
+  #page-restock,
+  #page-clearance,
+  #page-produk-terjual,
+  #page-produk,
+  #page-price-list,
+  #page-kas {
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+    min-height: 0;
   }
 }
 
@@ -1160,7 +1173,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
 }
@@ -1229,10 +1243,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-jurnal-penjualan {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 lebih reliable dari height:100% di iOS Safari */
   min-height: 0;
   padding: 0;
-  /* display dihandle oleh .page / .page.active */
+  /* display dihandle oleh #page-jurnal-penjualan.active */
 }
 /* Top bar: toolbar & metrics — freeze di atas */
 #jp-top-bar {
@@ -1300,7 +1315,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-clearance {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
 }
@@ -1364,7 +1380,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk-terjual {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
 }
@@ -1476,7 +1493,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-kas {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
 }
@@ -1954,7 +1972,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-restock {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
   gap: 0;
@@ -2031,7 +2050,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 8px;
   gap: 6px;
@@ -2101,7 +2121,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-price-list {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 8px;
   gap: 6px;
@@ -2178,7 +2199,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-kas {
   -webkit-flex-direction: column;
   flex-direction: column;
-  height: 100%;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
   min-height: 0;
   padding: 0;
   gap: 0;
