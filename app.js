@@ -509,3 +509,41 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ─── UNIFIED PICKER CLOSE HANDLER ────────────────────────────
+// Satu handler untuk semua custom picker (kas, keuangan, jurnal-penjualan).
+// Menggantikan listener terpisah di masing-masing file yang saling konflik.
+(function() {
+  function _closeAllPickers(list) {
+    // Detect dan panggil close function yang sesuai berdasarkan id prefix
+    if (!list) return;
+    var id = list.id || '';
+    if (typeof kasClosePicker === 'function' && (id.indexOf('picker-debit') !== -1 || id.indexOf('picker-kredit') !== -1)) {
+      kasClosePicker(list);
+    } else if (typeof keuClosePicker === 'function' && id.indexOf('keu-picker') !== -1) {
+      keuClosePicker(list);
+    } else if (typeof jpClosePicker === 'function' && id.indexOf('jp-picker') !== -1) {
+      jpClosePicker(list);
+    } else {
+      // Fallback: sembunyikan saja
+      list.style.display = 'none';
+    }
+  }
+
+  // Mousedown / touchstart di luar picker → tutup semua
+  function _onOutsideDown(e) {
+    if (e.target.closest && (
+      e.target.closest('.kas-akun-picker') ||
+      e.target.closest('.kas-akun-list')
+    )) return;
+    document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
+  }
+  document.addEventListener('mousedown',  _onOutsideDown);
+  document.addEventListener('touchstart', _onOutsideDown, { passive: true });
+
+  // Scroll di luar list → tutup yang sedang float di body
+  document.addEventListener('scroll', function(e) {
+    if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
+    document.querySelectorAll('.kas-akun-list[data-floated]').forEach(_closeAllPickers);
+  }, true);
+})();

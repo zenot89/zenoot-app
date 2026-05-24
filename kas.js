@@ -1101,18 +1101,6 @@ if (_kasOrigShowModal) {
   };
 }
 
-// Tutup picker saat mousedown/touchstart di luar picker & list
-function _kasCloseAllPickers(e) {
-  if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
-  document.querySelectorAll('.kas-akun-list').forEach(function(el){ kasClosePicker(el); });
-}
-document.addEventListener('mousedown', _kasCloseAllPickers);
-document.addEventListener('touchstart', _kasCloseAllPickers, { passive: true });
+// Close listener dipindah ke unified handler di bawah
 
-// Tutup picker saat scroll terjadi di LUAR list (misal scroll modal)
-document.addEventListener('scroll', function(e) {
-  if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
-  document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el){
-    kasClosePicker(el);
-  });
-}, true);
+// scroll listener: handled by unified handler in app.js

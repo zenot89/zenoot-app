@@ -1397,15 +1397,4 @@ if (typeof closeModalJP === 'function') {
 }
 
 // Tutup picker saat klik di luar
-(function() {
-  function _jpCloseAll(e) {
-    if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
-    document.querySelectorAll('.kas-akun-list').forEach(function(el) { jpClosePicker(el); });
-  }
-  document.addEventListener('mousedown',  _jpCloseAll);
-  document.addEventListener('touchstart', _jpCloseAll, { passive: true });
-  document.addEventListener('scroll', function(e) {
-    if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
-    document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el) { jpClosePicker(el); });
-  }, true);
-})();
+// close listener: handled by unified handler in app.js

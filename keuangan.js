@@ -983,16 +983,4 @@ function keuSyncPickerLabel(pickerId, selectId, placeholder) {
 }
 
 // Tutup picker saat klik di luar
-(function() {
-  function _keuCloseAll(e) {
-    if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
-    document.querySelectorAll('.kas-akun-list').forEach(function(el) { keuClosePicker(el); });
-  }
-  document.addEventListener('mousedown',  _keuCloseAll);
-  document.addEventListener('touchstart', _keuCloseAll, { passive: true });
-  // Tutup saat scroll di luar list
-  document.addEventListener('scroll', function(e) {
-    if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
-    document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el) { keuClosePicker(el); });
-  }, true);
-})();
+// close listener: handled by unified handler in app.js

@@ -1678,3 +1678,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .kas-akun-picker { font-size: 14px; min-height: 44px; }
   .kas-akun-search { font-size: 14px; padding: 7px 10px 7px 32px; }
 }
+
+/* ── CUSTOM PICKER — font lebih besar di HP ── */
+@media (max-width: 767px),
+       (hover: none) and (pointer: coarse) {
+  .kas-akun-item {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+  .kas-akun-group {
+    font-size: 11px;
+    padding: 10px 14px 4px;
+  }
+  .kas-akun-picker {
+    font-size: 14px;
+    min-height: 44px;
+  }
+}
