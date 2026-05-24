@@ -1549,3 +1549,81 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     overflow: hidden;
   }
 }
+
+/* ── KAS AKUN CUSTOM PICKER ─────────────────────────────────
+   Menggantikan <select> native yang tampil sebagai bottom sheet
+   di Android. Compact, gelap, modern seperti context menu.
+   ─────────────────────────────────────────────────────────── */
+.kas-akun-picker {
+  display: -webkit-flex;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  background: var(--cream3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--f);
+  color: var(--ink);
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+  box-sizing: border-box;
+}
+.kas-akun-picker:hover {
+  border-color: rgba(255,255,255,0.18);
+  background: var(--cream2);
+}
+.kas-akun-list {
+  position: absolute;
+  z-index: 9999;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #111113;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  margin-top: 2px;
+  padding: 4px 0;
+}
+.kas-akun-group {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink3);
+  padding: 8px 12px 4px;
+  font-family: var(--f);
+}
+.kas-akun-item {
+  font-size: 12px;
+  font-family: var(--f);
+  color: var(--ink2);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-transition: background 0.1s;
+  transition: background 0.1s;
+}
+.kas-akun-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--ink);
+}
+.kas-akun-item.active {
+  background: rgba(255,255,255,0.08);
+  color: var(--ink);
+  font-weight: 600;
+}
+/* Scrollbar tipis di dalam list */
+.kas-akun-list::-webkit-scrollbar { width: 4px; }
+.kas-akun-list::-webkit-scrollbar-track { background: transparent; }
+.kas-akun-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }

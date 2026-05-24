@@ -171,11 +171,21 @@ if (document.readyState === 'loading') {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
-        <select id="kas-jrn-akun-debit" style="width:100%" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+          <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
-        <select id="kas-jrn-akun-kredit" style="width:100%" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+          <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -247,11 +257,21 @@ if (document.readyState === 'loading') {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
-        <select id="kas-jrn-akun-debit" style="width:100%" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+          <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
-        <select id="kas-jrn-akun-kredit" style="width:100%" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+          <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -358,6 +378,9 @@ function kasPopulateAkunDropdown(data) {
     html += '</optgroup>';
   });
   ['kas-jrn-akun-debit','kas-jrn-akun-kredit'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+  // Populate custom picker list
+  kasPopulatePickerList('picker-debit-list', data);
+  kasPopulatePickerList('picker-kredit-list', data);
 }
 
 async function kasSimpanAkun() {
@@ -609,6 +632,8 @@ async function kasEditJurnal(id) {
   setTimeout(() => {
     document.getElementById('kas-jrn-akun-debit').value  = r.akun_debit_id  || '';
     document.getElementById('kas-jrn-akun-kredit').value = r.akun_kredit_id || '';
+    kasSyncPickerLabel('picker-debit',  'kas-jrn-akun-debit');
+    kasSyncPickerLabel('picker-kredit', 'kas-jrn-akun-kredit');
     kasHitungJurnal();
   }, 50);
   showModal('modal-kas-transaksi');
@@ -855,3 +880,106 @@ document.getElementById('page-kas').addEventListener('click', function(e) {
 
 // ─── INIT ────────────────────────────────────────────────────
 loadKasJurnal();
+
+
+// ─── KAS AKUN CUSTOM PICKER ──────────────────────────────────
+// Menggantikan <select> native yang muncul sebagai bottom sheet Android.
+// <select> tetap ada (display:none) sebagai source of truth untuk semua logic lama.
+
+function kasPopulatePickerList(listId, akunData) {
+  var list = document.getElementById(listId);
+  if (!list) return;
+  var order = ['aset','kewajiban','modal','pendapatan','beban'];
+  var grouped = {}; order.forEach(function(k){ grouped[k] = []; });
+  akunData.forEach(function(a){ if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
+  var html = '<div class="kas-akun-item" data-val="" onclick="kasPickerSelect(this)"><span style="color:var(--ink3)">— Pilih Akun —</span></div>';
+  order.forEach(function(k) {
+    if (!grouped[k].length) return;
+    html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
+    grouped[k].forEach(function(a) {
+      var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
+      html += '<div class="kas-akun-item" data-val="' + a.id + '" onclick="kasPickerSelect(this)">' + label + '</div>';
+    });
+  });
+  list.innerHTML = html;
+}
+
+function kasTogglePicker(pickerId) {
+  var list = document.getElementById(pickerId + '-list');
+  if (!list) return;
+  // Tutup semua picker lain dulu
+  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
+    if (el.id !== pickerId + '-list') el.style.display = 'none';
+  });
+  list.style.display = list.style.display === 'none' ? 'block' : 'none';
+}
+
+function kasPickerSelect(item) {
+  var list = item.closest('.kas-akun-list');
+  if (!list) return;
+  var pickerId = list.id.replace('-list', '');
+  var picker   = document.getElementById(pickerId);
+  if (!picker) return;
+  var targetId = picker.dataset.target;
+  var val      = item.dataset.val;
+  var label    = item.textContent.trim();
+  // Update hidden select
+  var sel = document.getElementById(targetId);
+  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
+  // Update picker label
+  var lbl = document.getElementById(pickerId + '-label');
+  if (lbl) { lbl.textContent = label; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  // Tandai aktif
+  list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); });
+  item.classList.add('active');
+  // Tutup list
+  list.style.display = 'none';
+}
+
+function kasSyncPickerLabel(pickerId, selectId) {
+  var sel = document.getElementById(selectId);
+  var picker = document.getElementById(pickerId);
+  if (!sel || !picker) return;
+  var val = sel.value;
+  var list = document.getElementById(pickerId + '-list');
+  var lbl  = document.getElementById(pickerId + '-label');
+  if (list) {
+    list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); });
+    var match = list.querySelector('.kas-akun-item[data-val="' + val + '"]');
+    if (match) {
+      match.classList.add('active');
+      if (lbl) { lbl.textContent = match.textContent.trim(); lbl.style.color = 'var(--ink)'; }
+    } else {
+      if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
+    }
+  }
+}
+
+// Reset picker saat modal dibuka untuk transaksi baru
+var _kasOrigShowModal = window.showModal;
+if (_kasOrigShowModal) {
+  window.showModal = function(id) {
+    _kasOrigShowModal(id);
+    if (id === 'modal-kas-transaksi') {
+      // Cek apakah form baru (bukan edit)
+      setTimeout(function() {
+        var kasId = document.getElementById('kas-jrn-id');
+        if (kasId && !kasId.value) {
+          ['picker-debit','picker-kredit'].forEach(function(pid) {
+            var lbl = document.getElementById(pid + '-label');
+            if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
+            var list = document.getElementById(pid + '-list');
+            if (list) { list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); }); }
+          });
+        }
+      }, 30);
+    }
+  };
+}
+
+// Tutup picker saat klik di luar
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.kas-akun-picker') && !e.target.closest('.kas-akun-list')) {
+    document.querySelectorAll('.kas-akun-list').forEach(function(el){ el.style.display = 'none'; });
+  }
+});
