@@ -67,7 +67,7 @@ document.getElementById('page-produk').innerHTML = `
         style="font-family:var(--f);font-size:13px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream);width:180px"
         oninput="filterProduk()">
     </div>
-    <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth">
+    <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
       <table class="tbl">
         <thead><tr>
           <th style="width:24px"></th>
@@ -86,7 +86,29 @@ document.getElementById('page-produk').innerHTML = `
 `;
 
 // render sketchy UI untuk halaman produk setelah innerHTML siap
-setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-produk')); }, 80);
+setTimeout(() => {
+  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-produk'));
+  _produkEnsureFlexLayout();
+}, 80);
+
+function _produkEnsureFlexLayout() {
+  var pg = document.getElementById('page-produk');
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
+  }
+}
+window.addEventListener('resize', function() {
+  var pg = document.getElementById('page-produk');
+  if (pg && pg.classList.contains('active')) _produkEnsureFlexLayout();
+});
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'produk') return;
+  setTimeout(_produkEnsureFlexLayout, 60);
+});
 
 let _produkData = [];
 

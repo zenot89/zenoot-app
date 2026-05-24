@@ -53,7 +53,7 @@ document.getElementById('page-price-list').innerHTML = `
   <!-- TABEL PRICE LIST -->
   <div class="card" id="pl-card" style="display:none">
     <div class="card-title"><i class="ti ti-tag"></i> Price List</div>
-    <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth"><table class="tbl">
+    <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;overflow-y:auto"><table class="tbl">
       <thead>
         <tr>
           <th>Katalog</th>
@@ -70,7 +70,29 @@ document.getElementById('page-price-list').innerHTML = `
   </div>
 `;
 
-setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-price-list')); }, 80);
+setTimeout(() => {
+  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-price-list'));
+  _plEnsureFlexLayout();
+}, 80);
+
+function _plEnsureFlexLayout() {
+  var pg = document.getElementById('page-price-list');
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
+  }
+}
+window.addEventListener('resize', function() {
+  var pg = document.getElementById('page-price-list');
+  if (pg && pg.classList.contains('active')) _plEnsureFlexLayout();
+});
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'price-list') return;
+  setTimeout(_plEnsureFlexLayout, 60);
+});
 
 // ─── CACHE ───────────────────────────────────────────────────
 var _plProdukData    = [];

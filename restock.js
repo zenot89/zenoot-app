@@ -28,8 +28,28 @@ document.getElementById('page-restock').innerHTML = `
 
 setTimeout(() => {
   if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-restock'));
+  _restockEnsureFlexLayout();
   loadRestock();
 }, 80);
+
+function _restockEnsureFlexLayout() {
+  var pg = document.getElementById('page-restock');
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
+  }
+}
+window.addEventListener('resize', function() {
+  var pg = document.getElementById('page-restock');
+  if (pg && pg.classList.contains('active')) _restockEnsureFlexLayout();
+});
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'restock') return;
+  setTimeout(_restockEnsureFlexLayout, 60);
+});
 
 // Tab aktif saat ini
 let _restockActiveTab = 'SUMMARY';

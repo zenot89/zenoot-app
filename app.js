@@ -180,7 +180,7 @@ function gotoPage(page, btn) {
   })();
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas'];
     if (fullHeightPages.indexOf(page) !== -1) {
       contentEl.style.overflowY    = 'hidden';
       contentEl.style.padding      = '0';

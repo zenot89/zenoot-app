@@ -142,7 +142,29 @@ document.getElementById('page-kas').innerHTML = `
 </div>
 `;
 
-setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas')); }, 80);
+setTimeout(() => {
+  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas'));
+  _kasEnsureFlexLayout();
+}, 80);
+
+function _kasEnsureFlexLayout() {
+  var pg = document.getElementById('page-kas');
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
+  }
+}
+window.addEventListener('resize', function() {
+  var pg = document.getElementById('page-kas');
+  if (pg && pg.classList.contains('active')) _kasEnsureFlexLayout();
+});
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'kas') return;
+  setTimeout(_kasEnsureFlexLayout, 60);
+});
 
 // Inject modals ke body
 if (document.readyState === 'loading') {
