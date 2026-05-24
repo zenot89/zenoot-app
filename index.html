@@ -170,7 +170,8 @@
   window.APP_VERSION = 'v' + Date.now(); // auto-generated
 </script>
 <script>
-  // Inject ?v= otomatis ke semua script app berdasarkan APP_VERSION
+  // Sequential script loader — iOS Safari compatible
+  // async=false tidak reliable di iOS saat script di-inject dinamis
   (function() {
     var v = window.APP_VERSION;
     var scripts = [
@@ -180,12 +181,16 @@
       'dataorder.js','rekap.js','channel-master.js',
       'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','hpp.js','notif.js'
     ];
-    scripts.forEach(function(s) {
+    var i = 0;
+    function loadNext() {
+      if (i >= scripts.length) return;
       var el = document.createElement('script');
-      el.src = s + '?' + v;
-      el.async = false; // jaga urutan load: supabase.js harus selesai sebelum dashboard.js dll.
-      document.currentScript.parentNode.appendChild(el);
-    });
+      el.src = scripts[i++] + '?' + v;
+      el.onload  = loadNext;
+      el.onerror = loadNext; // skip kalau gagal, lanjut ke berikutnya
+      document.head.appendChild(el);
+    }
+    loadNext();
   })();
 </script>
 <script>
