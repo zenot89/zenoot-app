@@ -885,21 +885,52 @@ function keuTogglePicker(pickerId) {
     if (el.id !== pickerId + '-list') keuClosePicker(el);
   });
   if (list.style.display === 'block') { keuClosePicker(list); return; }
+
+  // Inject search box jika belum ada
+  if (!list.querySelector('.kas-akun-search-wrap')) {
+    var wrap = document.createElement('div');
+    wrap.className = 'kas-akun-search-wrap';
+    wrap.innerHTML =
+      '<span class="kas-akun-search-icon">🔍</span>' +
+      '<input class="kas-akun-search" type="text" placeholder="Cari..." autocomplete="off" ' +
+        'onmousedown="event.stopPropagation()" ' +
+        'ontouchstart="event.stopPropagation()" ' +
+        'oninput="kasPickerFilter(this)">';
+    list.insertBefore(wrap, list.firstChild);
+  }
+
+  // Reset search & tampilkan semua item
+  var inp = list.querySelector('.kas-akun-search');
+  if (inp) inp.value = '';
+  list.querySelectorAll('.kas-akun-item,.kas-akun-group,.kas-akun-empty').forEach(function(el) { el.style.display = ''; });
+  var emp = list.querySelector('.kas-akun-empty');
+  if (emp) emp.style.display = 'none';
+
   // Float ke body agar tidak terpotong overflow modal
   var rect = picker.getBoundingClientRect();
-  list.style.position = 'fixed';
-  list.style.top      = (rect.bottom + 2) + 'px';
-  list.style.left     = rect.left + 'px';
-  list.style.width    = rect.width + 'px';
-  list.style.maxWidth = '340px';
-  list.style.zIndex   = '99999';
+  list.style.position  = 'fixed';
+  list.style.top       = (rect.bottom + 2) + 'px';
+  list.style.left      = rect.left + 'px';
+  list.style.width     = rect.width + 'px';
+  list.style.maxWidth  = '340px';
+  list.style.zIndex    = '99999';
   list.dataset.floated = '1';
-  list.style.display  = 'block';
+  list.style.display   = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
+
+  // Auto-focus search
+  if (inp) setTimeout(function() { inp.focus(); }, 50);
 }
 
 function keuClosePicker(list) {
   if (!list) return;
+  // Reset search
+  var inp = list.querySelector('.kas-akun-search');
+  if (inp) inp.value = '';
+  list.querySelectorAll('.kas-akun-item,.kas-akun-group').forEach(function(el) { el.style.display = ''; });
+  var emp = list.querySelector('.kas-akun-empty');
+  if (emp) emp.style.display = 'none';
+
   if (list.dataset.floated && list.parentNode === document.body) {
     var pickerId = list.id.replace('-list', '');
     var picker   = document.getElementById(pickerId);
