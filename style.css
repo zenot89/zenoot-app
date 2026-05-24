@@ -1867,21 +1867,33 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
-/* restock-body: tab bar + header + tbl-wrap semua scroll bersama */
+/* restock-body: flex column — header shrink:0, tbl-wrap flex:1 scroll */
 #restock-body {
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  padding: 12px 14px;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
 }
-/* Khusus tbl-wrap di dalam restock-body: tidak perlu max-height lagi */
+/* Header restock (sort bar, info): shrink:0 */
+#restock-body > *:not(.tbl-wrap):not(table) {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 8px 14px 4px;
+}
+/* tbl-wrap: flex:1, hanya ini yang scroll */
 #restock-body .tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 #restock-body .tbl th {
   position: -webkit-sticky;
@@ -1891,10 +1903,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
-@media (max-width: 900px),
-       (hover: none) and (pointer: coarse) {
-  #restock-body { padding: 10px; }
-  #restock-body { padding-bottom: 70px; }
+@media (hover: none) and (pointer: coarse) {
+  #restock-body .tbl-wrap { padding-bottom: 70px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1913,13 +1923,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   padding: 8px;
   gap: 6px;
 }
-/* Toolbar atas (tombol + select-bar) — shrink:0 */
-#page-produk > div:not(.card):not(#produk-select-bar):not(#ops-switcher-produk),
+/* Toolbar atas — semua shrink:0 */
+#produk-toolbar,
+#produk-select-bar,
 #ops-switcher-produk {
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
-}
-#produk-select-bar {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -1992,8 +1999,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 #pl-hint {
-  -webkit-flex: 1 1 0;
-  flex: 1 1 0;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 /* Card price list utama */
 #pl-card {
@@ -2083,7 +2090,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overscroll-behavior: contain;
   padding: 10px 4px 0;
 }
-/* Khusus panel jurnal: jurnal-card flex column, tbl-wrap grow */
+/* Khusus panel jurnal: flex column, jurnal-card flex:1 */
 #kas-panel-jurnal {
   display: -webkit-flex;
   display: flex;

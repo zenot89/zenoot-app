@@ -13,7 +13,7 @@ function katBadgeProduk(kat) {
 document.getElementById('page-produk').innerHTML = `
   <div id="ops-switcher-produk" class="ch-switcher"></div>
 
-  <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+  <div id="produk-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <button class="btn btn-sm btn-primary" onclick="showFormProduk()"><i class="ti ti-plus"></i> Tambah SKU</button>
     <button class="btn btn-sm" onclick="showPasteProduk()"><i class="ti ti-clipboard"></i> Paste Massal</button>
     <button class="btn btn-sm" onclick="loadProduk()"><i class="ti ti-refresh"></i> Refresh</button>
