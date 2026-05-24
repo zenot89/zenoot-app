@@ -1015,8 +1015,10 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Reposisi picker saat scroll modal (jaga posisi tetap tepat)
-document.addEventListener('scroll', function() {
+// Tutup picker saat scroll terjadi di LUAR list (misal scroll modal)
+document.addEventListener('scroll', function(e) {
+  // Jangan tutup kalau scroll terjadi di dalam list itu sendiri
+  if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
   document.querySelectorAll('.kas-akun-list[data-floated]').forEach(function(el){
     el.style.display = 'none';
   });
