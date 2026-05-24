@@ -173,7 +173,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.stopPropagation();kasTogglePicker('picker-debit')">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -184,7 +184,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.stopPropagation();kasTogglePicker('picker-kredit')">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -263,7 +263,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onclick="kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.stopPropagation();kasTogglePicker('picker-debit')">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -274,7 +274,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onclick="kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.stopPropagation();kasTogglePicker('picker-kredit')">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -944,6 +944,7 @@ function kasTogglePicker(pickerId) {
 }
 
 function kasPickerSelect(item) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   var list = item.closest('.kas-akun-list');
   if (!list) return;
   var pickerId = list.id.replace('-list', '');
@@ -1006,14 +1007,13 @@ if (_kasOrigShowModal) {
   };
 }
 
-// Tutup picker saat klik di luar
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.kas-akun-picker') && !e.target.closest('.kas-akun-list')) {
-    document.querySelectorAll('.kas-akun-list').forEach(function(el){
-      el.style.display = 'none';
-    });
-  }
-});
+// Tutup picker saat mousedown/touchstart di luar picker & list
+function _kasCloseAllPickers(e) {
+  if (e.target.closest && (e.target.closest('.kas-akun-picker') || e.target.closest('.kas-akun-list'))) return;
+  document.querySelectorAll('.kas-akun-list').forEach(function(el){ el.style.display = 'none'; });
+}
+document.addEventListener('mousedown', _kasCloseAllPickers);
+document.addEventListener('touchstart', _kasCloseAllPickers, { passive: true });
 
 // Tutup picker saat scroll terjadi di LUAR list (misal scroll modal)
 document.addEventListener('scroll', function(e) {
