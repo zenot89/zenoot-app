@@ -433,3 +433,36 @@ function clResetFilter() {
   _clFilterKatalog = '';
   clRenderAll();
 }
+
+
+// ─── HIDE-ON-SCROLL landscape: cl-metrics-strip collapse ─────
+(function() {
+  var _inited = false;
+  function _init() {
+    if (_inited) return;
+    var wrap = document.getElementById('cl-tbl-wrap');
+    if (!wrap) return;
+    _inited = true;
+    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+    wrap.addEventListener('scroll', function() {
+      if (!mq.matches) return;
+      var strip = document.getElementById('cl-metrics-strip');
+      if (!strip) return;
+      strip.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
+    }, { passive: true });
+  }
+  setTimeout(_init, 300);
+  var _orig = window.gotoPage;
+  if (_orig) {
+    window.gotoPage = function(page, btn) {
+      _orig(page, btn);
+      if (page === 'clearance') {
+        setTimeout(function() {
+          var strip = document.getElementById('cl-metrics-strip');
+          if (strip) strip.classList.remove('landscape-collapsed');
+          _init();
+        }, 80);
+      }
+    };
+  }
+})();

@@ -1521,3 +1521,31 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     opacity: 0.35;
   }
 }
+
+/* ── HIDE-ON-SCROLL landscape — shared class ──────────────────
+   Dipakai oleh: #stok-filter-bar, #cl-metrics-strip, #pt-top-bar
+   Aktif hanya di landscape touch device.
+   ─────────────────────────────────────────────────────────── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  .landscape-collapsed {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    -webkit-transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+  }
+  /* Elemen dalam kondisi normal juga dapat transition supaya smooth saat muncul kembali */
+  #stok-filter-bar,
+  #cl-metrics-strip,
+  #pt-top-bar {
+    -webkit-transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
+    max-height: 300px;
+    overflow: hidden;
+  }
+}

@@ -821,3 +821,37 @@ document.body.insertAdjacentHTML('beforeend', `
 </div>`);
 
 loadStok();
+
+
+// ─── HIDE-ON-SCROLL landscape: stok-filter-bar collapse ──────
+(function() {
+  var _inited = false;
+  function _init() {
+    if (_inited) return;
+    var wrap = document.getElementById('stok-tbl-wrap');
+    if (!wrap) return;
+    _inited = true;
+    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+    wrap.addEventListener('scroll', function() {
+      if (!mq.matches) return;
+      var bar = document.getElementById('stok-filter-bar');
+      if (!bar) return;
+      bar.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
+    }, { passive: true });
+  }
+  setTimeout(_init, 300);
+  // Reset saat gotoPage
+  var _orig = window.gotoPage;
+  if (_orig) {
+    window.gotoPage = function(page, btn) {
+      _orig(page, btn);
+      if (page === 'stok') {
+        setTimeout(function() {
+          var bar = document.getElementById('stok-filter-bar');
+          if (bar) bar.classList.remove('landscape-collapsed');
+          _init();
+        }, 80);
+      }
+    };
+  }
+})();

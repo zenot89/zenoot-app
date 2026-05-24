@@ -459,3 +459,36 @@ function ptExportCSV() {
 
 // ─── INIT ────────────────────────────────────────────────────
 loadProdukTerjual();
+
+
+// ─── HIDE-ON-SCROLL landscape: pt-top-bar collapse ───────────
+(function() {
+  var _inited = false;
+  function _init() {
+    if (_inited) return;
+    var wrap = document.getElementById('pt-tbl-wrap');
+    if (!wrap) return;
+    _inited = true;
+    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+    wrap.addEventListener('scroll', function() {
+      if (!mq.matches) return;
+      var bar = document.getElementById('pt-top-bar');
+      if (!bar) return;
+      bar.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
+    }, { passive: true });
+  }
+  setTimeout(_init, 300);
+  var _orig = window.gotoPage;
+  if (_orig) {
+    window.gotoPage = function(page, btn) {
+      _orig(page, btn);
+      if (page === 'produk-terjual') {
+        setTimeout(function() {
+          var bar = document.getElementById('pt-top-bar');
+          if (bar) bar.classList.remove('landscape-collapsed');
+          _init();
+        }, 80);
+      }
+    };
+  }
+})();
