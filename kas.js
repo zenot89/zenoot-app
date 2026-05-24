@@ -142,29 +142,7 @@ document.getElementById('page-kas').innerHTML = `
 </div>
 `;
 
-setTimeout(() => {
-  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas'));
-  _kasEnsureFlexLayout();
-}, 80);
-
-function _kasEnsureFlexLayout() {
-  var pg = document.getElementById('page-kas');
-  if (!pg || !pg.classList.contains('active')) return;
-  var contentEl = document.querySelector('.content');
-  if (contentEl) {
-    contentEl.style.overflowY = 'hidden';
-    contentEl.style.padding   = '0';
-    contentEl.style.height    = '100%';
-  }
-}
-window.addEventListener('resize', function() {
-  var pg = document.getElementById('page-kas');
-  if (pg && pg.classList.contains('active')) _kasEnsureFlexLayout();
-});
-document.addEventListener('zenot:page', function(e) {
-  if (e.detail.page !== 'kas') return;
-  setTimeout(_kasEnsureFlexLayout, 60);
-});
+setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas')); }, 80);
 
 // Inject modals ke body
 if (document.readyState === 'loading') {
@@ -455,7 +433,13 @@ async function kasHapusAkun(id, nama) {
 function kasShowForm() {
   document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Transaksi';
   document.getElementById('kas-jrn-id').value = '';
-  document.getElementById('kas-jrn-tgl').value = new Date().toISOString().split('T')[0];
+  (function() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = String(now.getMonth()+1).padStart(2,'0');
+    var d = String(now.getDate()).padStart(2,'0');
+    document.getElementById('kas-jrn-tgl').value = y+'-'+m+'-'+d;
+  })();
   document.getElementById('kas-jrn-tipe').value = 'masuk';
   idrSet('kas-jrn-nominal', 0);
   document.getElementById('kas-jrn-ket').value = '';
@@ -570,7 +554,8 @@ function kasRenderJurnalTabel(data) {
   }
   const fmtRp = v => fmtRpFull(v);
   tbody.innerHTML = slice.map(r => {
-    const tgl   = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const _tglParts = (r.tanggal||'').split('-');
+    const tgl = _tglParts.length===3 ? _tglParts[2]+'/'+_tglParts[1]+'/'+_tglParts[0].slice(2) : (r.tanggal||'—');
     const akunD = _kasAkunMap[r.akun_debit_id];
     const akunK = _kasAkunMap[r.akun_kredit_id];
     const nmD   = akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—';
@@ -807,7 +792,8 @@ function _kasRenderArusTabel() {
   }
 
   tbody.innerHTML = slice.map((r) => {
-    const tgl = new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const _tp = (r.tanggal||'').split('-');
+    const tgl = _tp.length===3 ? _tp[2]+'/'+_tp[1]+'/'+_tp[0].slice(2) : (r.tanggal||'—');
     const n   = r.nominal || r.debit || 0;
     const aD  = _kasAkunMap[r.akun_debit_id];
     const aK  = _kasAkunMap[r.akun_kredit_id];
@@ -1101,25 +1087,3 @@ if (_kasOrigShowModal) {
 // Close listener dipindah ke unified handler di bawah
 
 // scroll listener: handled by unified handler in app.js
-// ─── SWIPE GESTURE — collapse kas-summary di landscape touch ─────────
-(function() {
-  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-  function _init() {
-    if (!_mq.matches) return;
-    var cardTitle = document.querySelector('#kas-jurnal-card .card-title');
-    var summary   = document.querySelector('#kas-panel-jurnal .kas-summary');
-    if (!summary) return;
-    // 2 zona: card-title + summary, collapse target = summary
-    if (cardTitle) initSwipeCollapse(cardTitle, summary, 50);
-    initSwipeCollapse(summary, summary, 50);
-  }
-  setTimeout(_init, 300);
-  document.addEventListener('zenot:page', function(e) {
-    if (e.detail.page !== 'kas') return;
-    setTimeout(function() {
-      var summary = document.querySelector('#kas-panel-jurnal .kas-summary');
-      if (summary) summary.classList.remove('landscape-collapsed');
-      _init();
-    }, 80);
-  });
-})();
