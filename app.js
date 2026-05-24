@@ -167,7 +167,17 @@ function gotoPage(page, btn) {
   }
   closeSidebar();
   // Fire event — semua file listen ke ini, tidak perlu override gotoPage
-  document.dispatchEvent(new CustomEvent('zenot:page', { detail: { page: page } }));
+  // Polyfill-safe untuk iOS Safari lama yang tidak support CustomEvent constructor
+  (function() {
+    var ev;
+    try {
+      ev = new CustomEvent('zenot:page', { detail: { page: page }, bubbles: false });
+    } catch(e) {
+      ev = document.createEvent('CustomEvent');
+      ev.initCustomEvent('zenot:page', false, false, { page: page });
+    }
+    document.dispatchEvent(ev);
+  })();
   var contentEl = document.querySelector('.content');
   if (contentEl) {
     var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual'];

@@ -1223,10 +1223,12 @@ async function exportJurnalPenjualan() {
 // Default periode: bulan ini
 _jpWaktuMode = 'bulan';
 document.getElementById('jp-filter-bulan').value = new Date().toISOString().slice(0,7);
-Promise.all([
-  loadChannelDropdownJP(),
-  loadProdukListJP()
-]).then(() => loadJurnalPenjualan());
+setTimeout(function() {
+  Promise.all([
+    loadChannelDropdownJP(),
+    loadProdukListJP()
+  ]).then(() => loadJurnalPenjualan());
+}, 0);
 
 // ─── HOOK zenot:page — layout flex + reset topbar ────────────────
 document.addEventListener('zenot:page', function(e) {

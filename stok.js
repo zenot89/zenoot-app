@@ -820,7 +820,7 @@ document.body.insertAdjacentHTML('beforeend', `
   </div>
 </div>`);
 
-loadStok();
+setTimeout(loadStok, 0);
 
 
 // ─── SWIPE GESTURE — collapse stok-filter-bar di landscape touch ──
