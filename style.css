@@ -1465,9 +1465,141 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #pl-info-wrap {
   background: transparent;
 }
-#page-kas > .kas-tabs {
+/* ── KAS & JURNAL — Full-Height Flex Table Layout ──
+   Sama persis pola Jurnal Penjualan.
+   Height chain: body → .main → .content → #page-kas → #kas-jurnal-card → #kas-jurnal-tbl-wrap
+   ─────────────────────────────────────────────────────────── */
+#page-kas.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
+#page-kas {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Top bar: tab + toolbar — freeze di atas, tidak ikut scroll */
+#kas-top-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 16px 8px;
   background: transparent;
 }
+
+/* Panel jurnal: flex column, mengisi sisa ruang di bawah top bar */
+#kas-panel-jurnal.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Summary metrics: freeze, tidak ikut scroll tabel */
+#kas-panel-jurnal .kas-summary {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+
+/* Card jurnal: flex column, mengisi sisa ruang */
+#kas-jurnal-card {
+  padding: 0;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.07);
+  overflow: hidden;
+  margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+
+/* Sticky header dalam card: judul + tombol Tambah Transaksi — freeze */
+#kas-sticky-header {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 8px 14px 6px;
+  background: var(--cream2);
+  border-radius: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+#kas-sticky-header .card-title {
+  padding: 0;
+  margin-bottom: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+}
+
+/* Tabel wrap: flex-grow, scroll sendiri — inner scroll */
+#kas-jurnal-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Thead sticky di dalam scroll container */
+#kas-jurnal-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* Mobile: padding bawah untuk hamburger */
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #kas-top-bar        { padding: 8px 10px 6px; }
+  #kas-jurnal-tbl-wrap { padding-bottom: 70px; }
+}
+
+/* ── kas-top-bar COLLAPSE — semua touch mobile (portrait + landscape) ── */
+@media (hover: none) and (pointer: coarse) {
+  #kas-top-bar {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 300px;
+    opacity: 1;
+  }
+  #kas-top-bar.kas-topbar-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Panel Laporan & Kelola Akun: scroll normal (bukan full-height) */
+#kas-panel-laporan,
+#kas-panel-akun {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 8px;
+}
+@media (max-width: 767px) {
+  #kas-panel-laporan,
+  #kas-panel-akun { padding: 6px; }
+}
+
+/* ── kas padding override — full-height pakai 0, handled above ── */
 
 /* Card utama: border-radius + border tipis */
 #page-stok .card,
@@ -1476,16 +1608,14 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk-terjual .card,
 #restock-wrap,
 #page-produk .card,
-#pl-card,
-#kas-jurnal-card {
+#pl-card {
   border-radius: 6px;
   border: 1.5px solid rgba(255,255,255,0.07);
   overflow: hidden;
 }
 
 /* Sticky header tetap match */
-#jp-sticky-header,
-#kas-jurnal-card .card-title {
+#jp-sticky-header {
   background: var(--cream2);
   border-radius: 0;
 }
@@ -1498,8 +1628,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #page-produk-terjual,
   #page-restock,
   #page-produk,
-  #page-price-list,
-  #page-kas {
+  #page-price-list {
     padding: 6px;
     gap: 4px;
   }
@@ -1590,24 +1719,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ── kas-summary COLLAPSE di landscape touch ── */
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #kas-panel-jurnal .kas-summary {
-    overflow: hidden;
-    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    max-height: 200px;
-    opacity: 1;
-  }
-  #kas-panel-jurnal .kas-summary.landscape-collapsed {
-    max-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin-bottom: 0 !important;
-    opacity: 0;
-    pointer-events: none;
-  }
-}
+/* ── kas-summary collapse: sekarang handled via #kas-top-bar collapse ── */
 
 /* ── DOODLE ICON — fix terpotong di mobile ── */
 .metric {
@@ -1646,7 +1758,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #restock-wrap .card-title,
   #ops-switcher-produk,
   #pl-info-wrap,
-  .kas-summary {
+  #kas-top-bar {
     -webkit-transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
     transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin 0.25s ease;
     max-height: 300px;

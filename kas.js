@@ -8,7 +8,7 @@ let _kasJurnalAll = [];
 // ─── HTML PAGE ───────────────────────────────────────────────
 document.getElementById('page-kas').innerHTML = `
 <style>
-  .kas-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .kas-tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .kas-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
   .kas-tab.active { background:var(--ink); color:var(--cream); }
   .kas-panel { display:none; }
@@ -19,7 +19,7 @@ document.getElementById('page-kas').innerHTML = `
   .akun-modal     { color:#1a4a8a; }
   .akun-pendapatan{ color:#2a6e3a; }
   .akun-beban     { color:#b03020; }
-  .kas-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .kas-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
   @media(max-width:520px){ .kas-summary{ grid-template-columns:1fr 1fr; } }
   .lap-head td  { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
   .lap-sub  td  { padding-left:24px !important; color:var(--ink2); }
@@ -27,10 +27,26 @@ document.getElementById('page-kas').innerHTML = `
   .lap-result td{ font-weight:700; font-size:15px; border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
 </style>
 
-<div class="kas-tabs">
-  <button class="kas-tab active" onclick="kasGotoTab('jurnal')">📒 Jurnal Harian</button>
-  <button class="kas-tab" onclick="kasGotoTab('laporan')">📊 Laporan</button>
-  <button class="kas-tab" onclick="kasGotoTab('akun')">⚙ Kelola Akun</button>
+<!-- ═══ KAS TOP BAR — freeze di atas, bisa collapse dengan swipe ═══ -->
+<div id="kas-top-bar">
+  <!-- Baris 1: Tab navigasi + tombol Anggaran -->
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <div class="kas-tabs">
+      <button class="kas-tab active" onclick="kasGotoTab('jurnal')">📒 Jurnal Harian</button>
+      <button class="kas-tab" onclick="kasGotoTab('laporan')">📊 Laporan</button>
+      <button class="kas-tab" onclick="kasGotoTab('akun')">⚙ Kelola Akun</button>
+    </div>
+    <div style="margin-left:auto">
+      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
+    </div>
+  </div>
+  <!-- Baris 2: Toolbar filter & aksi — hanya tampil di Jurnal Harian -->
+  <div id="kas-jurnal-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
+    <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+    <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
+    <button class="btn btn-sm" onclick="kasResetFilter()">Semua</button>
+  </div>
 </div>
 
 <!-- PANEL: JURNAL -->
@@ -40,34 +56,27 @@ document.getElementById('page-kas').innerHTML = `
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
   </div>
-  <div id="kas-jurnal-toolbar" style="display:flex;gap:0;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
-      <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
-      <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
-      <button class="btn btn-sm" onclick="kasResetFilter()">Semua</button>
-    </div>
-    <div style="margin-left:auto">
-      <button class="btn btn-sm btn-primary" onclick="kasShowForm()"><i class="ti ti-plus"></i> Tambah Transaksi</button>
-    </div>
-  </div>
 
   <div class="card" id="kas-jurnal-card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
-      <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-chart-pie"></i> Anggaran</button>
+    <!-- Sticky header dalam card: judul + tombol Tambah Transaksi -->
+    <div id="kas-sticky-header">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
+        <button class="btn btn-sm btn-primary" onclick="kasShowForm()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;flex-shrink:0"><i class="ti ti-plus"></i> Tambah Transaksi</button>
+      </div>
     </div>
-    <div id="kas-jurnal-tbl-wrap" class="tbl-wrap" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+    <div id="kas-jurnal-tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Tanggal</th><th>Ref</th><th>Keterangan</th><th>Akun Debit</th><th>Akun Kredit</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th>Aksi</th></tr></thead>
         <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
+      <div id="kas-jurnal-footer" style="font-size:12px;color:var(--ink3);padding:8px 10px;text-align:right"></div>
     </div>
   </div>
 </div>
 
 <!-- PANEL: LAPORAN -->
-<div id="kas-panel-laporan" class="kas-panel">
+<div id="kas-panel-laporan" class="kas-panel" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
   <!-- Navigasi 3 sub-laporan -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink);flex-wrap:wrap">
     <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"
@@ -142,7 +151,10 @@ document.getElementById('page-kas').innerHTML = `
 </div>
 `;
 
-setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas')); }, 80);
+setTimeout(() => {
+  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-kas'));
+  _kasEnsureFlexLayout();
+}, 80);
 
 // Inject modals ke body
 if (document.readyState === 'loading') {
@@ -333,6 +345,9 @@ function kasGotoTab(tab) {
   document.querySelectorAll('.kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.kas-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('kas-panel-' + tab).classList.add('active');
+  // Tampilkan toolbar hanya di tab jurnal
+  var toolbar = document.getElementById('kas-jurnal-toolbar');
+  if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
   if (tab === 'laporan') kasRenderLaporan();
   if (tab === 'akun')    kasLoadAkun();
 }
@@ -1088,24 +1103,55 @@ if (_kasOrigShowModal) {
 
 // scroll listener: handled by unified handler in app.js
 
-// ─── SWIPE GESTURE — collapse kas-summary di landscape touch ──
-(function() {
-  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-  function _init() {
-    if (!_mq.matches) return;
-    var summary = document.querySelector('.kas-summary');
-    var toolbar = document.getElementById('kas-jurnal-toolbar');
-    if (!summary) return;
-    initSwipeCollapse(summary, summary, 50);
-    if (toolbar) initSwipeCollapse(toolbar, summary, 50);
+// ─── ENSURE FLEX LAYOUT — sama persis pola JP ────────────────
+function _kasEnsureFlexLayout() {
+  var pg = document.getElementById('page-kas');
+  if (!pg || !pg.classList.contains('active')) return;
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
   }
-  setTimeout(_init, 300);
+}
+window.addEventListener('resize', function() {
+  var pg = document.getElementById('page-kas');
+  if (pg && pg.classList.contains('active')) _kasEnsureFlexLayout();
+});
+
+// ─── HOOK zenot:page ─────────────────────────────────────────
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'kas') return;
+  setTimeout(_kasEnsureFlexLayout, 60);
+  setTimeout(function() {
+    var tb = document.getElementById('kas-top-bar');
+    if (tb) tb.classList.remove('kas-topbar-collapsed');
+  }, 60);
+});
+
+// ─── SWIPE GESTURE — collapse kas-top-bar di semua touch mobile ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+  function _kasInitSwipe() {
+    if (!_mq.matches) return;
+    var topBar      = document.getElementById('kas-top-bar');
+    var stickyHdr   = document.getElementById('kas-sticky-header');
+    var summary     = document.querySelector('#kas-panel-jurnal .kas-summary');
+    if (!topBar) return;
+    // Swipe di top-bar sendiri
+    initSwipeCollapse(topBar, topBar, 50);
+    // Swipe di sticky header dalam card juga bisa expand/collapse
+    if (stickyHdr) initSwipeCollapse(stickyHdr, topBar, 50);
+    // Swipe di summary juga
+    if (summary) initSwipeCollapse(summary, topBar, 50);
+  }
+  setTimeout(_kasInitSwipe, 300);
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'kas') return;
     setTimeout(function() {
-      var summary = document.querySelector('.kas-summary');
-      if (summary) summary.classList.remove('landscape-collapsed');
-      _init();
+      var tb = document.getElementById('kas-top-bar');
+      if (tb) tb.classList.remove('kas-topbar-collapsed');
+      _kasInitSwipe();
     }, 80);
   });
 })();
