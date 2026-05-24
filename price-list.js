@@ -353,13 +353,16 @@ window.loadPriceList = loadPriceList;
 // ─── INIT ────────────────────────────────────────────────────
 loadPriceList();
 
-// ─── SWIPE GESTURE — collapse pl-info-wrap di landscape touch ──
+// ─── SWIPE GESTURE — collapse pl-info-wrap di landscape touch ────────
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
     if (!_mq.matches) return;
-    var info = document.getElementById('pl-info-wrap');
+    var cardTitle = document.querySelector('#pl-card .card-title');
+    var info      = document.getElementById('pl-info-wrap');
     if (!info) return;
+    // 2 zona: card-title + info-wrap, collapse target = info-wrap
+    if (cardTitle) initSwipeCollapse(cardTitle, info, 50);
     initSwipeCollapse(info, info, 50);
   }
   setTimeout(_init, 300);

@@ -605,13 +605,14 @@ function fmtTgl(d) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// ─── SWIPE GESTURE — collapse card-title di landscape touch ──
+// ─── SWIPE GESTURE — collapse card-title di landscape touch ──────────
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
     if (!_mq.matches) return;
     var title = document.querySelector('#restock-wrap .card-title');
     if (!title) return;
+    // zone = card-title itu sendiri, collapse target = card-title
     initSwipeCollapse(title, title, 50);
   }
   setTimeout(_init, 300);

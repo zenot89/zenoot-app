@@ -1101,13 +1101,16 @@ if (_kasOrigShowModal) {
 // Close listener dipindah ke unified handler di bawah
 
 // scroll listener: handled by unified handler in app.js
-// ─── SWIPE GESTURE — collapse kas-summary di landscape touch ──
+// ─── SWIPE GESTURE — collapse kas-summary di landscape touch ─────────
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
     if (!_mq.matches) return;
-    var summary = document.querySelector('#kas-panel-jurnal .kas-summary');
+    var cardTitle = document.querySelector('#kas-jurnal-card .card-title');
+    var summary   = document.querySelector('#kas-panel-jurnal .kas-summary');
     if (!summary) return;
+    // 2 zona: card-title + summary, collapse target = summary
+    if (cardTitle) initSwipeCollapse(cardTitle, summary, 50);
     initSwipeCollapse(summary, summary, 50);
   }
   setTimeout(_init, 300);

@@ -514,13 +514,16 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     </div>
   </div>
 </div>`);
-// ─── SWIPE GESTURE — collapse ops-switcher di landscape touch ──
+// ─── SWIPE GESTURE — collapse ops-switcher di landscape touch ────────
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
     if (!_mq.matches) return;
-    var sw = document.getElementById('ops-switcher-produk');
+    var cardTitle = document.querySelector('#page-produk .card-title');
+    var sw        = document.getElementById('ops-switcher-produk');
     if (!sw) return;
+    // 2 zona: card-title + switcher, collapse target = switcher
+    if (cardTitle) initSwipeCollapse(cardTitle, sw, 50);
     initSwipeCollapse(sw, sw, 50);
   }
   setTimeout(_init, 300);
