@@ -354,10 +354,6 @@ function angHapus(id) {
 }
 
 // ─── AUTO-INIT ────────────────────────────────────────────────
-(function _angPatch() {
-  const _orig = window.gotoPage;
-  window.gotoPage = function(page, btn) {
-    _orig(page, btn);
-    if (page === 'anggaran') setTimeout(angInit, 50);
-  };
-})();
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page === 'anggaran') setTimeout(angInit, 50);
+});

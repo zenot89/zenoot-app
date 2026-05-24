@@ -471,17 +471,12 @@ loadProdukTerjual();
     initSwipeCollapse(bar, bar, 50);
   }
   setTimeout(_init, 300);
-  var _orig = window.gotoPage;
-  if (_orig) {
-    window.gotoPage = function(page, btn) {
-      _orig(page, btn);
-      if (page === 'produk-terjual') {
-        setTimeout(function() {
-          var bar = document.getElementById('pt-top-bar');
-          if (bar) bar.classList.remove('landscape-collapsed');
-          _init();
-        }, 80);
-      }
-    };
-  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'produk-terjual') return;
+    setTimeout(function() {
+      var bar = document.getElementById('pt-top-bar');
+      if (bar) bar.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
 })();

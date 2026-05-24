@@ -1228,21 +1228,15 @@ Promise.all([
   loadProdukListJP()
 ]).then(() => loadJurnalPenjualan());
 
-// ─── HOOK gotoPage — pastikan layout flex aktif saat halaman dibuka ──
-(function() {
-  var _origGotoPageJP = window.gotoPage;
-  window.gotoPage = function(page, btn) {
-    if (_origGotoPageJP) _origGotoPageJP(page, btn);
-    if (page === 'jurnal-penjualan') {
-      setTimeout(_jpEnsureFlexLayout, 60);
-      // Reset topbar saat masuk halaman — biar selalu muncul dulu
-      setTimeout(function() {
-        var tb = document.getElementById('jp-top-bar');
-        if (tb) tb.classList.remove('jp-topbar-collapsed');
-      }, 60);
-    }
-  };
-})();
+// ─── HOOK zenot:page — layout flex + reset topbar ────────────────
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'jurnal-penjualan') return;
+  setTimeout(_jpEnsureFlexLayout, 60);
+  setTimeout(function() {
+    var tb = document.getElementById('jp-top-bar');
+    if (tb) tb.classList.remove('jp-topbar-collapsed');
+  }, 60);
+});
 
 // ─── SWIPE GESTURE — collapse jp-top-bar di landscape touch ─────────
 (function() {
@@ -1257,20 +1251,15 @@ Promise.all([
     initSwipeCollapse(topBar, topBar, 50);
   }
   setTimeout(_jpInitSwipe, 250);
-  // Re-init saat gotoPage
-  var _orig = window.gotoPage;
-  if (_orig && typeof _orig === 'function') {
-    window.gotoPage = function(page, btn) {
-      _orig(page, btn);
-      if (page === 'jurnal-penjualan') {
-        setTimeout(function() {
-          var tb = document.getElementById('jp-top-bar');
-          if (tb) tb.classList.remove('jp-topbar-collapsed');
-          _jpInitSwipe();
-        }, 80);
-      }
-    };
-  }
+  // Re-init saat zenot:page
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'jurnal-penjualan') return;
+    setTimeout(function() {
+      var tb = document.getElementById('jp-top-bar');
+      if (tb) tb.classList.remove('jp-topbar-collapsed');
+      _jpInitSwipe();
+    }, 80);
+  });
 })();
 
 // ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────

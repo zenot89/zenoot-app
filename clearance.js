@@ -448,17 +448,12 @@ function clResetFilter() {
     initSwipeCollapse(strip, strip, 50);
   }
   setTimeout(_init, 300);
-  var _orig = window.gotoPage;
-  if (_orig) {
-    window.gotoPage = function(page, btn) {
-      _orig(page, btn);
-      if (page === 'clearance') {
-        setTimeout(function() {
-          var strip = document.getElementById('cl-metrics-strip');
-          if (strip) strip.classList.remove('landscape-collapsed');
-          _init();
-        }, 80);
-      }
-    };
-  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'clearance') return;
+    setTimeout(function() {
+      var strip = document.getElementById('cl-metrics-strip');
+      if (strip) strip.classList.remove('landscape-collapsed');
+      _init();
+    }, 80);
+  });
 })();

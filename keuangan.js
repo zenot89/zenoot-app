@@ -865,14 +865,12 @@ const _keuOrigGotoPage = typeof gotoPage === 'function' ? gotoPage : null;
 document.addEventListener('DOMContentLoaded', () => {});
 
 // Patch gotoPage agar load data saat buka halaman keuangan
-const _origGotoPageKeu = window.gotoPage;
-window.gotoPage = function(page, btn) {
-  if (_origGotoPageKeu) _origGotoPageKeu(page, btn);
-  if (page === 'keuangan') {
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page === 'keuangan') {
     keuLoadHutang();
     keuLoadKasData();
   }
-};
+});
 
 // ─── KEU CUSTOM PICKER ENGINE ────────────────────────────────
 

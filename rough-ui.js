@@ -73,18 +73,14 @@
     const dp = document.getElementById('topbar-date');
     if (dp) sketchPill(dp);
 
-    // Re-sketch nav saat gotoPage
-    const origGotoPage = window.gotoPage;
-    if (origGotoPage) {
-      window.gotoPage = function(page, btn) {
-        origGotoPage(page, btn);
-        setTimeout(() => {
-          document.querySelectorAll('.nav-item').forEach(el => sketchNavItem(el));
-          const activePage = document.getElementById('page-' + page);
-          if (activePage) rerenderUI(activePage);
-        }, 30);
-      };
-    }
+    // Re-sketch nav saat zenot:page
+    document.addEventListener('zenot:page', function(e) {
+      setTimeout(() => {
+        document.querySelectorAll('.nav-item').forEach(el => sketchNavItem(el));
+        const activePage = document.getElementById('page-' + e.detail.page);
+        if (activePage) rerenderUI(activePage);
+      }, 30);
+    });
 
     // Re-sketch saat nav group expand/collapse
     document.querySelectorAll('.nav-group-header').forEach(h => {

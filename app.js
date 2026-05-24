@@ -166,6 +166,8 @@ function gotoPage(page, btn) {
     if (subEl)   subEl.textContent   = info.sub;
   }
   closeSidebar();
+  // Fire event — semua file listen ke ini, tidak perlu override gotoPage
+  document.dispatchEvent(new CustomEvent('zenot:page', { detail: { page: page } }));
   var contentEl = document.querySelector('.content');
   if (contentEl) {
     var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual'];
