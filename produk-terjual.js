@@ -461,21 +461,14 @@ function ptExportCSV() {
 loadProdukTerjual();
 
 
-// ─── HIDE-ON-SCROLL landscape: pt-top-bar collapse ───────────
+// ─── SWIPE GESTURE — collapse pt-top-bar di landscape touch ─────
 (function() {
-  var _inited = false;
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
-    if (_inited) return;
-    var wrap = document.getElementById('pt-tbl-wrap');
-    if (!wrap) return;
-    _inited = true;
-    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-    wrap.addEventListener('scroll', function() {
-      if (!mq.matches) return;
-      var bar = document.getElementById('pt-top-bar');
-      if (!bar) return;
-      bar.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
-    }, { passive: true });
+    if (!_mq.matches) return;
+    var bar = document.getElementById('pt-top-bar');
+    if (!bar) return;
+    initSwipeCollapse(bar, bar, 50);
   }
   setTimeout(_init, 300);
   var _orig = window.gotoPage;

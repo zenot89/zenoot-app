@@ -823,24 +823,17 @@ document.body.insertAdjacentHTML('beforeend', `
 loadStok();
 
 
-// ─── HIDE-ON-SCROLL landscape: stok-filter-bar collapse ──────
+// ─── SWIPE GESTURE — collapse stok-filter-bar di landscape touch ──
 (function() {
-  var _inited = false;
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
-    if (_inited) return;
-    var wrap = document.getElementById('stok-tbl-wrap');
-    if (!wrap) return;
-    _inited = true;
-    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-    wrap.addEventListener('scroll', function() {
-      if (!mq.matches) return;
-      var bar = document.getElementById('stok-filter-bar');
-      if (!bar) return;
-      bar.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
-    }, { passive: true });
+    if (!_mq.matches) return;
+    var zone = document.getElementById('stok-filter-bar');
+    var bar  = document.getElementById('stok-filter-bar');
+    if (!zone || !bar) return;
+    initSwipeCollapse(zone, bar, 50);
   }
   setTimeout(_init, 300);
-  // Reset saat gotoPage
   var _orig = window.gotoPage;
   if (_orig) {
     window.gotoPage = function(page, btn) {

@@ -1244,31 +1244,33 @@ Promise.all([
   };
 })();
 
-// ─── SCROLL LISTENER — collapse jp-top-bar di landscape touch ────────
-// Dipasang sekali setelah DOM siap (innerHTML sudah di-render di atas)
+// ─── SWIPE GESTURE — collapse jp-top-bar di landscape touch ─────────
 (function() {
-  var _jpScrollInited = false;
-  function _jpInitScrollCollapse() {
-    if (_jpScrollInited) return;
-    var wrap = document.getElementById('jp-tbl-wrap');
-    if (!wrap) return;
-    _jpScrollInited = true;
-    var _mqLandscape = window.matchMedia(
-      '(hover: none) and (pointer: coarse) and (orientation: landscape)'
-    );
-    wrap.addEventListener('scroll', function() {
-      if (!_mqLandscape.matches) return;
-      var tb = document.getElementById('jp-top-bar');
-      if (!tb) return;
-      if (wrap.scrollTop > 40) {
-        tb.classList.add('jp-topbar-collapsed');
-      } else {
-        tb.classList.remove('jp-topbar-collapsed');
-      }
-    }, { passive: true });
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _jpInitSwipe() {
+    if (!_mq.matches) return;
+    var zone     = document.getElementById('jp-sticky-header');
+    var topBar   = document.getElementById('jp-top-bar');
+    if (!zone || !topBar) return;
+    // Gabung jp-top-bar sebagai swipe zone juga
+    initSwipeCollapse(zone,   topBar, 50);
+    initSwipeCollapse(topBar, topBar, 50);
   }
-  // Coba init setelah setTimeout 80ms (HTML sudah render)
-  setTimeout(_jpInitScrollCollapse, 200);
+  setTimeout(_jpInitSwipe, 250);
+  // Re-init saat gotoPage
+  var _orig = window.gotoPage;
+  if (_orig && typeof _orig === 'function') {
+    window.gotoPage = function(page, btn) {
+      _orig(page, btn);
+      if (page === 'jurnal-penjualan') {
+        setTimeout(function() {
+          var tb = document.getElementById('jp-top-bar');
+          if (tb) tb.classList.remove('jp-topbar-collapsed');
+          _jpInitSwipe();
+        }, 80);
+      }
+    };
+  }
 })();
 
 // ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────

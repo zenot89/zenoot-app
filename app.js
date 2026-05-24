@@ -547,3 +547,42 @@ if ('serviceWorker' in navigator) {
     document.querySelectorAll('.kas-akun-list[data-floated]').forEach(_closeAllPickers);
   }, true);
 })();
+
+// ─── SWIPE-TO-COLLAPSE GESTURE — shared utility ───────────────
+// Dipakai oleh: jurnal-penjualan, stok, clearance, produk-terjual
+// swipeZoneEl  : elemen yang disentuh user untuk trigger gesture
+// collapseEl   : elemen yang collapse/expand
+// threshold    : jarak swipe minimal (px) — default 50
+function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
+  if (!swipeZoneEl || !collapseEl) return;
+  threshold = threshold || 50;
+  var _startY = 0;
+  var _startX = 0;
+  var _tracking = false;
+
+  swipeZoneEl.addEventListener('touchstart', function(e) {
+    // Jangan trigger kalau touch di button/input
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    _startY    = e.touches[0].clientY;
+    _startX    = e.touches[0].clientX;
+    _tracking  = true;
+  }, { passive: true });
+
+  swipeZoneEl.addEventListener('touchend', function(e) {
+    if (!_tracking) return;
+    _tracking = false;
+    var dy = e.changedTouches[0].clientY - _startY;
+    var dx = e.changedTouches[0].clientX - _startX;
+    // Pastikan gesture vertikal (bukan horizontal scroll)
+    if (Math.abs(dx) > Math.abs(dy)) return;
+    if (Math.abs(dy) < threshold) return;
+
+    if (dy < 0) {
+      // Swipe UP → collapse
+      collapseEl.classList.add('landscape-collapsed');
+    } else {
+      // Swipe DOWN → expand
+      collapseEl.classList.remove('landscape-collapsed');
+    }
+  }, { passive: true });
+}

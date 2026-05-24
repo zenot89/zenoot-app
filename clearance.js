@@ -435,21 +435,17 @@ function clResetFilter() {
 }
 
 
-// ─── HIDE-ON-SCROLL landscape: cl-metrics-strip collapse ─────
+// ─── SWIPE GESTURE — collapse cl-metrics-strip di landscape touch ─
 (function() {
-  var _inited = false;
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
   function _init() {
-    if (_inited) return;
-    var wrap = document.getElementById('cl-tbl-wrap');
-    if (!wrap) return;
-    _inited = true;
-    var mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-    wrap.addEventListener('scroll', function() {
-      if (!mq.matches) return;
-      var strip = document.getElementById('cl-metrics-strip');
-      if (!strip) return;
-      strip.classList.toggle('landscape-collapsed', wrap.scrollTop > 40);
-    }, { passive: true });
+    if (!_mq.matches) return;
+    var cardTitle = document.querySelector('#page-clearance .card-title');
+    var strip     = document.getElementById('cl-metrics-strip');
+    if (!strip) return;
+    // Zona swipe: card-title + metrics-strip
+    if (cardTitle) initSwipeCollapse(cardTitle, strip, 50);
+    initSwipeCollapse(strip, strip, 50);
   }
   setTimeout(_init, 300);
   var _orig = window.gotoPage;
