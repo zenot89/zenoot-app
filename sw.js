@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v3';
+var CACHE_VERSION = 'zenot-static-v4';
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -24,8 +24,7 @@ var CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js',
 ];
 
-// File JS — pakai stale-while-revalidate:
-// Load dari cache dulu (cepat, hemat baterai), update cache di background
+// File JS — network-first: selalu ambil versi terbaru, fallback cache kalau offline
 var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
   'stok.js', 'restock.js', 'kas.js', 'jurnal-penjualan.js',
@@ -36,7 +35,8 @@ var JS_APP_FILES = [
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 var NO_CACHE_PATTERNS = ['index.html'];
-var JS_CACHE = 'zenot-js-v2';
+// BUMP: JS_CACHE v3 agar cache lama (v2, yang pernah ikut terhapus) tidak dipakai lagi
+var JS_CACHE = 'zenot-js-v3';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
@@ -70,7 +70,10 @@ self.addEventListener('install', function(e) {
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
-      var kept = [CACHE_VERSION, CACHE_CDN];
+      // JS_CACHE wajib masuk kept — tanpa ini cache JS terhapus setiap aktivasi SW
+      // yang menyebabkan semua script harus fetch ulang dari network.
+      // Jika network lambat/offline saat PWA dibuka → semua script gagal load → blank page.
+      var kept = [CACHE_VERSION, CACHE_CDN, JS_CACHE];
       return Promise.all(
         keys.filter(function(k) { return kept.indexOf(k) === -1; })
             .map(function(k) { return caches.delete(k); })

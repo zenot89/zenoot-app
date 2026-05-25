@@ -164,16 +164,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js"></script>
 <script>
-  // AUTO VERSION — timestamp saat file index.html di-deploy ke GitHub
-  // Tidak perlu ganti manual selamanya. Setiap file index.html diubah & push,
-  // timestamp ini otomatis berubah karena GitHub Pages serve file baru.
-  window.APP_VERSION = 'v' + Date.now(); // auto-generated
+  // BUILD VERSION — di-set saat deploy, TIDAK berubah setiap page load.
+  // Date.now() sebagai versi menyebabkan SW cache miss setiap saat karena
+  // URL berubah terus (?v=timestamp_baru). Akibatnya semua JS harus fetch
+  // ulang dari network setiap buka app → blank page kalau network lambat/offline.
+  //
+  // Cara update versi (wajib setiap deploy baru):
+  //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
+  //   Contoh: window.APP_BUILD = '20260524001';
+  window.APP_BUILD = '20260524001';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
   // async=false tidak reliable di iOS saat script di-inject dinamis
   (function() {
-    var v = window.APP_VERSION;
+    var v = window.APP_BUILD;
     var scripts = [
       'rough-ui.js','supabase.js','app.js','dashboard.js',
       'produk.js','stok.js','restock.js','kas.js',
@@ -182,12 +187,23 @@
       'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','hpp.js','notif.js'
     ];
     var i = 0;
+    var _timer = null;
+
     function loadNext() {
+      if (_timer) { clearTimeout(_timer); _timer = null; }
       if (i >= scripts.length) return;
       var el = document.createElement('script');
-      el.src = scripts[i++] + '?' + v;
+      var src = scripts[i++] + '?v=' + v;
+      el.src     = src;
       el.onload  = loadNext;
       el.onerror = loadNext; // skip kalau gagal, lanjut ke berikutnya
+      // Timeout 12 detik per script — iOS bisa hang tanpa error/load event
+      // kalau SW intercept gagal dan network tidak merespons
+      _timer = setTimeout(function() {
+        console.warn('[loader] timeout, skip:', src);
+        el.onload = el.onerror = null;
+        loadNext();
+      }, 12000);
       document.head.appendChild(el);
     }
     loadNext();
