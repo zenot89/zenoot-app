@@ -134,7 +134,9 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).then(function(res) {
         if (res.ok) {
-          caches.open(JS_CACHE).then(function(c) { c.put(e.request, res.clone()); });
+          // Clone SEBELUM return — iOS Safari throw "body already used" kalau clone setelah return
+          var resClone = res.clone();
+          caches.open(JS_CACHE).then(function(c) { c.put(e.request, resClone); });
         }
         return res;
       }).catch(function() {
