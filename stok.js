@@ -110,53 +110,75 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
-  <!-- FORM TAMBAH/EDIT STOK MASUK -->
-  <!-- Modal Tambah Stok Masuk -->
-  <div class="modal-overlay" id="modal-stok-masuk" style="display:none">
-    <div class="modal" style="max-width:480px;width:92%">
+  <!-- FORM TAMBAH/EDIT STOK MASUK — konsep modal JP -->
+  <div class="modal-overlay" id="modal-stok-masuk" onclick="stokOverlayClose(event)">
+    <div class="modal" style="max-width:480px;width:100%;padding:16px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box">
+
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;
-                  margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.07)">
-        <div class="modal-title" id="stok-form-title" style="margin:0;border:none;padding:0;font-size:18px">
+                  margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+        <div class="modal-title" id="stok-form-title"
+             style="margin:0;border:none;padding:0;font-size:18px">
           <i class="ti ti-plus"></i> Tambah Stok Masuk
         </div>
         <button onclick="cancelStokForm()"
-          style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">✕</button>
+          style="background:none;border:none;font-size:22px;cursor:pointer;
+                 color:var(--ink3);line-height:1;padding:4px 8px;">&#10005;</button>
       </div>
 
       <input type="hidden" id="inp-id">
 
-      <!-- SKU Variasi -->
+      <!-- SKU Induk — search + dropdown seperti JP -->
       <div class="form-group" style="margin-bottom:12px;position:relative">
-        <label>SKU Variasi</label>
-        <div style="display:flex;gap:0">
-          <input type="text" id="inp-sku" placeholder="Ketik atau pilih SKU..." autocomplete="off"
-            oninput="stokSuggestSku()" onfocus="stokSuggestSku()"
-            style="flex:1;border-radius:6px 0 0 6px">
-          <button onclick="stokToggleSkuFull()"
-            style="background:var(--cream3);border:1px solid rgba(255,255,255,0.08);border-left:none;
-                   border-radius:0 6px 6px 0;padding:0 12px;cursor:pointer;font-size:14px;color:var(--ink2)">▼</button>
+        <label>SKU Induk (Katalog)</label>
+        <div style="display:flex;width:100%">
+          <input type="text" id="inp-sku-induk"
+            placeholder="Ketik nama katalog..."
+            autocomplete="off"
+            style="flex:1;border-right:none;font-family:var(--f);font-size:14px;
+                   padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box"
+            oninput="stokSuggestKatalog()"
+            onkeydown="stokKatalogKeyNav(event)"
+            onfocus="stokSuggestKatalog()">
+          <button id="stok-katalog-dd-btn"
+            onclick="stokToggleKatalogFull()"
+            title="Lihat semua katalog"
+            style="background:var(--cream2);border:2px solid var(--ink);border-left:none;
+                   padding:0 10px;cursor:pointer;font-size:14px;color:var(--ink);
+                   min-height:44px;flex-shrink:0">&#9660;</button>
         </div>
-        <div id="stok-sku-dropdown"
-          style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
-                 background:var(--cream2);border:1px solid rgba(255,255,255,0.08);border-top:none;
-                 max-height:200px;overflow-y:auto;border-radius:0 0 8px 8px;
-                 box-shadow:0 8px 24px rgba(0,0,0,0.5)"></div>
+      </div>
+
+      <!-- SKU Variasi — picker custom seperti JP -->
+      <div class="form-group" style="margin-bottom:12px">
+        <label>SKU Variasi</label>
+        <select id="inp-sku" style="display:none"></select>
+        <div class="kas-akun-wrap">
+          <div class="kas-akun-picker" id="stok-picker-variasi" data-target="inp-sku"
+            onmousedown="event.stopPropagation();stokTogglePicker('stok-picker-variasi')"
+            ontouchend="event.preventDefault();event.stopPropagation();stokTogglePicker('stok-picker-variasi')">
+            <span id="stok-picker-variasi-label" style="color:var(--ink3)">— Pilih Variasi —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">&#9662;</span>
+          </div>
+          <div class="kas-akun-list" id="stok-picker-variasi-list" style="display:none"></div>
+        </div>
       </div>
 
       <!-- Stok Masuk -->
-      <div class="form-group" style="margin-bottom:20px">
+      <div class="form-group" style="margin-bottom:16px">
         <label>Stok Masuk (Qty)</label>
-        <input type="number" id="inp-masuk" placeholder="0" min="0" style="font-size:20px;font-weight:700">
+        <input type="number" id="inp-masuk" placeholder="0" min="0"
+          style="font-size:20px;font-weight:700;width:100%;box-sizing:border-box">
       </div>
 
-      <!-- Tombol -->
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="simpanStok()" style="flex:1">
-          <i class="ti ti-device-floppy"></i> Simpan
-        </button>
-        <button class="btn" onclick="cancelStokForm()" style="min-width:90px">
+      <!-- Tombol Aksi -->
+      <div style="border-top:1.5px dashed var(--ink3);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="cancelStokForm()" style="flex:1 1 100px;min-width:80px">
           <i class="ti ti-x"></i> Batal
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="simpanStok()"
+          style="flex:2 1 140px;font-weight:700;font-size:14px;padding:8px 16px">
+          <i class="ti ti-device-floppy"></i> SIMPAN
         </button>
       </div>
     </div>
@@ -378,53 +400,93 @@ document.getElementById('page-stok').addEventListener('click', function(e) {
   }
 });
 
-// ─── FORM TAMBAH/EDIT ─────────────────────────────────────────
+// ─── FORM TAMBAH/EDIT — konsep JP ────────────────────────────
+var _stokKatalogIndex = -1;
+var _stokDdMode = 'suggest';
+
+function stokOverlayClose(e) {
+  if (e.target === document.getElementById('modal-stok-masuk')) cancelStokForm();
+}
+
 function showTambahStok() {
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Stok Masuk';
-  document.getElementById('inp-id').value    = '';
-  document.getElementById('inp-sku').value   = '';
-  document.getElementById('inp-masuk').value = '';
-  document.getElementById('modal-stok-masuk').style.display = 'flex';
-  setTimeout(function(){ document.getElementById('inp-sku').focus(); }, 100);
+  document.getElementById('inp-id').value      = '';
+  document.getElementById('inp-sku-induk').value = '';
+  document.getElementById('inp-masuk').value   = '';
+  // Reset picker variasi
+  document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  var lbl = document.getElementById('stok-picker-variasi-label');
+  if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  var list = document.getElementById('stok-picker-variasi-list');
+  if (list) list.innerHTML = '';
+  stokTutupKatalogDropdown();
+  document.getElementById('modal-stok-masuk').classList.add('open');
+  setTimeout(function(){ document.getElementById('inp-sku-induk').focus(); }, 100);
 }
 
 function cancelStokForm() {
-  document.getElementById('modal-stok-masuk').style.display = 'none';
-  stokTutupDropdown();
+  document.getElementById('modal-stok-masuk').classList.remove('open');
+  stokTutupKatalogDropdown();
+  // Reset label picker
+  var lbl = document.getElementById('stok-picker-variasi-label');
+  if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
 }
 
 function editStok(sku) {
-  const skuKey = sku.toUpperCase();
-  const existing = _stokMasukMap[skuKey];
-  document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok Masuk — ' + sku;
+  var skuKey   = sku.toUpperCase();
+  var existing = _stokMasukMap[skuKey];
+  document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok Masuk';
   document.getElementById('inp-id').value    = existing ? existing.id : '';
-  document.getElementById('inp-sku').value   = sku;
   document.getElementById('inp-masuk').value = existing ? existing.qty : 0;
-  document.getElementById('modal-stok-masuk').style.display = 'flex';
+  stokTutupKatalogDropdown();
+  // Cari produk untuk isi katalog & picker
+  var found = _produkForStok.find(function(p) {
+    return (p.sku_variasi || '').toUpperCase() === skuKey;
+  });
+  if (found) {
+    document.getElementById('inp-sku-induk').value = found.katalog || '';
+    stokPilihKatalog(found.katalog || '');
+    setTimeout(function() {
+      document.getElementById('inp-sku').value = sku;
+      var lbl = document.getElementById('stok-picker-variasi-label');
+      if (lbl) { lbl.textContent = sku; lbl.style.color = 'var(--ink)'; }
+    }, 80);
+  } else {
+    document.getElementById('inp-sku-induk').value = sku;
+    document.getElementById('inp-sku').innerHTML =
+      '<option value="' + sku + '">' + sku + '</option>';
+    var lbl = document.getElementById('stok-picker-variasi-label');
+    if (lbl) { lbl.textContent = sku; lbl.style.color = 'var(--ink)'; }
+  }
+  document.getElementById('modal-stok-masuk').classList.add('open');
   setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 100);
 }
 
 async function simpanStok() {
-  const id  = document.getElementById('inp-id').value;
-  const sku = document.getElementById('inp-sku').value.trim();
-  const qty = parseInt(document.getElementById('inp-masuk').value) || 0;
+  var id  = document.getElementById('inp-id').value;
+  var sku = (document.getElementById('inp-sku').value || '').trim();
+  // Fallback ke inp-sku-induk kalau variasi belum dipilih
+  if (!sku) sku = (document.getElementById('inp-sku-induk').value || '').trim().toUpperCase();
+  var qty = parseInt(document.getElementById('inp-masuk').value) || 0;
 
   if (!sku) { alert('SKU Variasi wajib diisi!'); return; }
+  if (qty <= 0) { alert('Stok masuk harus lebih dari 0!'); return; }
 
-  // Cari data produk untuk ambil katalog & boss
-  const prod = _produkForStok.find(p =>
-    (p.sku_variasi || '').toUpperCase() === sku.toUpperCase()
-  );
+  var prod = _produkForStok.find(function(p) {
+    return (p.sku_variasi || '').toUpperCase() === sku.toUpperCase();
+  });
 
-  const payload = {
-    sku_variasi:  sku.toUpperCase(),
-    stok_masuk:   qty,
-    stok_keluar:  0,
-    katalog:      prod ? prod.katalog : '',
-    boss:         prod ? prod.boss    : '',
-    hpp:          prod ? prod.hpp     : 0,
+  var payload = {
+    sku_variasi: sku.toUpperCase(),
+    stok_masuk:  qty,
+    stok_keluar: 0,
+    katalog:     prod ? prod.katalog : '',
+    boss:        prod ? prod.boss    : '',
+    hpp:         prod ? prod.hpp     : 0,
   };
 
+  var btnSimpan = document.querySelector('#modal-stok-masuk .btn-primary');
+  if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
   try {
     if (id) {
       await dbUpdate('stok', id, { stok_masuk: qty });
@@ -433,50 +495,247 @@ async function simpanStok() {
     }
     cancelStokForm();
     loadStok();
-  } catch(err) { alert('Gagal simpan: ' + err.message); }
+  } catch(err) {
+    alert('Gagal simpan: ' + err.message);
+  } finally {
+    if (btnSimpan) {
+      btnSimpan.innerHTML = '<i class="ti ti-device-floppy"></i> SIMPAN';
+      btnSimpan.disabled = false;
+    }
+  }
 }
 
-// ─── SKU AUTOCOMPLETE DI FORM ─────────────────────────────────
-function stokSuggestSku() {
-  const q   = (document.getElementById('inp-sku').value || '').toLowerCase();
-  const dd  = document.getElementById('stok-sku-dropdown');
-  const list = _produkForStok.filter(p =>
-    !q || (p.sku_variasi || '').toLowerCase().includes(q)
-  ).slice(0, 30);
+// ─── KATALOG DROPDOWN — seperti JP ───────────────────────────
+function _stokGetKatalog(p) { return p.katalog || p.nama_katalog || p.catalog || ''; }
+function _stokGetSku(p)     { return p.sku_variasi || p.sku || p.kode || ''; }
 
-  if (!list.length) { dd.style.display = 'none'; return; }
-  dd.innerHTML = list.map(p =>
-    `<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px dashed var(--ink4)"
-      onmousedown="stokPilihSku('${(p.sku_variasi||'').replace(/'/g,"\\'")}')">
-      <b>${p.sku_variasi}</b>
-      <span style="color:var(--ink3);font-size:11px;margin-left:6px">${p.katalog || ''}</span>
-    </div>`
-  ).join('');
+function _stokPositionKatalogDropdown() {
+  var inp = document.getElementById('inp-sku-induk');
+  var dd  = document.getElementById('stok-katalog-dropdown');
+  if (!inp || !dd) return;
+  var rect = inp.getBoundingClientRect();
+  dd.style.top   = (rect.bottom + 2) + 'px';
+  dd.style.left  = rect.left + 'px';
+  dd.style.width = (rect.width + 44) + 'px';
+}
+
+function _stokRenderKatalogDropdown(katalogs, katalogMap) {
+  var dd = document.getElementById('stok-katalog-dropdown');
+  if (!dd) return;
+  if (!katalogs.length) { dd.style.display = 'none'; return; }
+  _stokKatalogIndex = -1;
+  dd.innerHTML = katalogs.map(function(kat, i) {
+    var safe = kat.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return '<div class="stok-dd-item" data-katalog="' + safe + '" data-idx="' + i + '"'
+      + ' style="padding:10px 12px;cursor:pointer;font-size:14px;'
+      + 'border-bottom:1px dashed var(--ink4);display:flex;justify-content:space-between;align-items:center;background:var(--cream)"'
+      + ' onmouseenter="stokHighlightKatalog(this)"'
+      + ' onclick="stokPilihKatalog(this.dataset.katalog)">'
+      + '<span style="font-weight:600">' + kat + '</span>'
+      + '<span style="font-size:11px;color:var(--ink3);margin-left:8px">' + katalogMap[kat] + ' var</span>'
+      + '</div>';
+  }).join('');
+  _stokPositionKatalogDropdown();
   dd.style.display = 'block';
 }
 
-function stokToggleSkuFull() {
-  document.getElementById('inp-sku').value = '';
-  stokSuggestSku();
-  document.getElementById('inp-sku').focus();
+function stokSuggestKatalog() {
+  _stokDdMode = 'suggest';
+  _stokPositionKatalogDropdown();
+  var q = (document.getElementById('inp-sku-induk').value || '').trim().toLowerCase();
+  var katalogMap = {};
+  _produkForStok.forEach(function(p) {
+    var kat = _stokGetKatalog(p);
+    if (!kat) return;
+    if (q && !kat.toLowerCase().includes(q)) return;
+    katalogMap[kat] = (katalogMap[kat] || 0) + 1;
+  });
+  _stokRenderKatalogDropdown(Object.keys(katalogMap), katalogMap);
 }
 
-function stokPilihSku(sku) {
-  document.getElementById('inp-sku').value = sku;
-  stokTutupDropdown();
-  document.getElementById('inp-masuk').focus();
+function stokToggleKatalogFull() {
+  var dd = document.getElementById('stok-katalog-dropdown');
+  if (dd && dd.style.display !== 'none' && _stokDdMode === 'full') {
+    stokTutupKatalogDropdown(); return;
+  }
+  _stokDdMode = 'full';
+  document.getElementById('inp-sku-induk').value = '';
+  var katalogMap = {};
+  _produkForStok.forEach(function(p) {
+    var kat = _stokGetKatalog(p);
+    if (!kat) return;
+    katalogMap[kat] = (katalogMap[kat] || 0) + 1;
+  });
+  _stokRenderKatalogDropdown(Object.keys(katalogMap), katalogMap);
+  document.getElementById('inp-sku-induk').focus();
 }
 
-function stokTutupDropdown() {
-  const dd = document.getElementById('stok-sku-dropdown');
+function stokHighlightKatalog(el) {
+  var dd = document.getElementById('stok-katalog-dropdown');
+  if (dd) dd.querySelectorAll('.stok-dd-item').forEach(function(x){ x.style.background = ''; });
+  el.style.background = 'var(--cream2)';
+  _stokKatalogIndex = parseInt(el.dataset.idx);
+}
+
+function stokKatalogKeyNav(e) {
+  var dd = document.getElementById('stok-katalog-dropdown');
+  if (!dd || dd.style.display === 'none') return;
+  var items = dd.querySelectorAll('.stok-dd-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _stokKatalogIndex = Math.min(_stokKatalogIndex + 1, items.length - 1);
+    items.forEach(function(x, i){ x.style.background = i === _stokKatalogIndex ? 'var(--cream2)' : ''; });
+    if (items[_stokKatalogIndex]) items[_stokKatalogIndex].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _stokKatalogIndex = Math.max(_stokKatalogIndex - 1, 0);
+    items.forEach(function(x, i){ x.style.background = i === _stokKatalogIndex ? 'var(--cream2)' : ''; });
+    if (items[_stokKatalogIndex]) items[_stokKatalogIndex].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter' && _stokKatalogIndex >= 0 && items[_stokKatalogIndex]) {
+    e.preventDefault();
+    stokPilihKatalog(items[_stokKatalogIndex].dataset.katalog);
+  } else if (e.key === 'Escape') {
+    stokTutupKatalogDropdown();
+  }
+}
+
+function stokPilihKatalog(katalog) {
+  document.getElementById('inp-sku-induk').value = katalog;
+  stokTutupKatalogDropdown();
+  // Isi picker variasi
+  var varList = _produkForStok.filter(function(p){ return _stokGetKatalog(p) === katalog; });
+  var sel = document.getElementById('inp-sku');
+  sel.innerHTML = '<option value="">— Pilih Variasi —</option>';
+  varList.forEach(function(p) {
+    var opt = document.createElement('option');
+    opt.value       = _stokGetSku(p);
+    opt.textContent = _stokGetSku(p);
+    sel.appendChild(opt);
+  });
+  // Render picker list
+  var list = document.getElementById('stok-picker-variasi-list');
+  if (list) {
+    var html = '<div class="kas-akun-item" data-val="" onclick="stokPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
+    varList.forEach(function(p) {
+      html += '<div class="kas-akun-item" data-val="' + _stokGetSku(p) + '" onclick="stokPickerVariasiSelect(this)">' + _stokGetSku(p) + '</div>';
+    });
+    list.innerHTML = html;
+  }
+  // Reset label picker
+  var lbl = document.getElementById('stok-picker-variasi-label');
+  if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  // Auto-pilih kalau variasi cuma 1
+  if (varList.length === 1) {
+    sel.selectedIndex = 1;
+    if (lbl) { lbl.textContent = _stokGetSku(varList[0]); lbl.style.color = 'var(--ink)'; }
+    setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
+  } else {
+    setTimeout(function() {
+      var pickerBtn = document.getElementById('stok-picker-variasi');
+      if (pickerBtn) stokTogglePicker('stok-picker-variasi');
+    }, 60);
+  }
+}
+
+function stokTutupKatalogDropdown() {
+  var dd = document.getElementById('stok-katalog-dropdown');
   if (dd) dd.style.display = 'none';
 }
 
+// ─── PICKER VARIASI STOK ─────────────────────────────────────
+function stokTogglePicker(pickerId) {
+  var picker = document.getElementById(pickerId);
+  var list   = document.getElementById(pickerId + '-list');
+  if (!picker || !list) return;
+  if (list.style.display === 'block') { stokClosePicker(list); return; }
+
+  // Search box
+  if (!list.querySelector('.kas-akun-search-wrap')) {
+    var wrap = document.createElement('div');
+    wrap.className = 'kas-akun-search-wrap';
+    wrap.innerHTML =
+      '<span class="kas-akun-search-icon">🔍</span>' +
+      '<input class="kas-akun-search" type="text" placeholder="Cari..." autocomplete="off" ' +
+        'onmousedown="event.stopPropagation()" ' +
+        'ontouchstart="event.stopPropagation()" ' +
+        'oninput="kasPickerFilter(this)">';
+    list.insertBefore(wrap, list.firstChild);
+  }
+  var inp = list.querySelector('.kas-akun-search');
+  if (inp) inp.value = '';
+  list.querySelectorAll('.kas-akun-item,.kas-akun-group,.kas-akun-empty').forEach(function(el){ el.style.display=''; });
+  var emp = list.querySelector('.kas-akun-empty');
+  if (emp) emp.style.display = 'none';
+
+  var rect = picker.getBoundingClientRect();
+  list.style.position = 'fixed';
+  list.style.top      = (rect.bottom + 2) + 'px';
+  list.style.left     = rect.left + 'px';
+  list.style.width    = rect.width + 'px';
+  list.style.maxWidth = '360px';
+  list.style.zIndex   = '99999';
+  list.dataset.floated = '1';
+  list.style.display  = 'block';
+  if (list.parentNode !== document.body) document.body.appendChild(list);
+  if (inp) setTimeout(function(){ inp.focus(); }, 50);
+}
+
+function stokClosePicker(list) {
+  if (!list) return;
+  var inp = list.querySelector('.kas-akun-search');
+  if (inp) inp.value = '';
+  list.querySelectorAll('.kas-akun-item,.kas-akun-group').forEach(function(el){ el.style.display=''; });
+  var emp = list.querySelector('.kas-akun-empty');
+  if (emp) emp.style.display = 'none';
+  if (list.dataset.floated && list.parentNode === document.body) {
+    var pickerId = list.id.replace('-list','');
+    var picker   = document.getElementById(pickerId);
+    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
+    delete list.dataset.floated;
+  }
+  list.style.display = 'none';
+}
+
+function stokPickerVariasiSelect(item) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  var list = item.closest('.kas-akun-list');
+  if (!list) return;
+  var val   = item.dataset.val || '';
+  var label = item.textContent.trim();
+  var sel   = document.getElementById('inp-sku');
+  if (sel) { sel.value = val; }
+  var lbl = document.getElementById('stok-picker-variasi-label');
+  if (lbl) { lbl.textContent = val ? label : '— Pilih Variasi —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); });
+  item.classList.add('active');
+  stokClosePicker(list);
+  if (val) setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
+}
+
+function stokTutupDropdown() {
+  stokTutupKatalogDropdown();
+}
+
+// Inject dropdown katalog ke body (hindari overflow modal)
+(function() {
+  if (document.getElementById('stok-katalog-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'stok-katalog-dropdown';
+  dd.style.cssText = 'display:none;position:fixed;z-index:99999;background:var(--cream);'
+    + 'border:2px solid var(--ink);border-top:none;max-height:220px;overflow-y:auto;'
+    + 'box-shadow:4px 4px 0 var(--ink4)';
+  document.body.appendChild(dd);
+})();
+
+// Tutup katalog dropdown saat klik luar
 document.addEventListener('click', function(e) {
-  const inp = document.getElementById('inp-sku');
-  const dd  = document.getElementById('stok-sku-dropdown');
+  var inp = document.getElementById('inp-sku-induk');
+  var btn = document.getElementById('stok-katalog-dd-btn');
+  var dd  = document.getElementById('stok-katalog-dropdown');
   if (!inp || !dd) return;
-  if (!inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+  if (!inp.contains(e.target) && !dd.contains(e.target) && (!btn || !btn.contains(e.target))) {
+    dd.style.display = 'none';
+  }
 });
 
 // ─── PASTE MASSAL ─────────────────────────────────────────────
