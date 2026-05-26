@@ -525,67 +525,79 @@ function chBadge(input) {
 })();
 
 // ─── PREVENT iOS RUBBER-BAND / BOUNCE SCROLL ─────────────────
-// iOS Safari punya "rubber band" effect: halaman bisa ditarik
-// melewati batas atas/bawah dan memantul balik seperti per.
-// Android Chrome tidak punya ini.
-// Strategi: findScrollable() pakai computed style — tidak perlu
-// maintain daftar manual, otomatis handle scroll container baru.
+// iOS Safari rubber-band terjadi di 3 level:
+// 1. Window/root — html position:fixed sudah handle ini di CSS
+// 2. Inner scroll container boundary — ditangani di sini
+// 3. Momentum scroll — dicegah dengan cache scrollEl di touchstart
+//
+// Strategi kunci:
+// - findScrollable() dipanggil saat TOUCHSTART (bukan touchmove) agar
+//   iOS tidak sempat "commit" ke rubber-band gesture
+// - Cache scrollEl per touch — tidak trigger reflow berulang
+// - Handle overflow:scroll DAN overflow:auto
 (function() {
 
   function findScrollable(el) {
-    // Naik dari target ke atas, cari scroll container pertama yang:
-    // 1. overflow-y = scroll atau auto
-    // 2. scrollHeight > clientHeight (artinya memang ada konten yang bisa di-scroll)
     var node = el;
     while (node && node !== document.body && node !== document.documentElement) {
-      // Cek inline style dulu (lebih cepat, tidak trigger reflow)
-      var inlineOY = node.style && node.style.overflowY;
-      if (inlineOY === 'scroll' || inlineOY === 'auto') {
-        if (node.scrollHeight > node.clientHeight) return node;
+      // Cek inline style dulu — lebih cepat, tidak trigger layout
+      var ist = node.style;
+      if (ist) {
+        var ioy = ist.overflowY || ist.overflow;
+        if (ioy === 'scroll' || ioy === 'auto') {
+          if (node.scrollHeight > node.clientHeight) return node;
+        }
       }
       // Cek computed style
-      var style = window.getComputedStyle(node);
-      var oy = style.overflowY;
-      if ((oy === 'scroll' || oy === 'auto') && node.scrollHeight > node.clientHeight) {
-        return node;
-      }
+      var cs  = window.getComputedStyle(node);
+      var coy = cs.overflowY;
+      if (coy === 'scroll') { return node; } // scroll = selalu scrollable
+      if (coy === 'auto' && node.scrollHeight > node.clientHeight) { return node; }
       node = node.parentElement;
     }
     return null;
   }
 
-  var _touchStartY  = 0;
-  var _touchStartX  = 0;
+  var _startY   = 0;
+  var _startX   = 0;
+  var _scrollEl = null;
 
   document.addEventListener('touchstart', function(e) {
-    _touchStartY = e.touches[0].clientY;
-    _touchStartX = e.touches[0].clientX;
+    var t = e.touches[0];
+    _startY   = t.clientY;
+    _startX   = t.clientX;
+    _scrollEl = findScrollable(e.target); // cache di touchstart
   }, { passive: true });
 
   document.addEventListener('touchmove', function(e) {
-    var scrollEl = findScrollable(e.target);
-
-    // Tidak ada scroll container sama sekali → blok total (cegah body bounce)
-    if (!scrollEl) {
+    // Tidak ada scroll container → blok total (cegah window bounce)
+    if (!_scrollEl) {
       e.preventDefault();
       return;
     }
 
-    var dy = e.touches[0].clientY - _touchStartY;
-    var dx = e.touches[0].clientX - _touchStartX;
+    var t  = e.touches[0];
+    var dy = t.clientY - _startY;
+    var dx = t.clientX - _startX;
 
-    // Gerakan lebih horizontal dari vertikal → biarkan (scroll horizontal / swipe)
+    // Gerakan lebih horizontal → biarkan (horizontal scroll / swipe)
     if (Math.abs(dx) > Math.abs(dy)) return;
 
-    var atTop    = scrollEl.scrollTop <= 0;
-    var atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+    var st       = _scrollEl.scrollTop;
+    var atTop    = st <= 0;
+    var atBottom = st + _scrollEl.clientHeight >= _scrollEl.scrollHeight - 1;
 
-    // Tarik ke bawah saat sudah di paling atas → blok (pull-to-refresh / bounce atas)
+    // Di atas dan tarik ke bawah → blok (pull-to-refresh / bounce atas)
     if (atTop && dy > 0) { e.preventDefault(); return; }
-    // Tarik ke atas saat sudah di paling bawah → blok (bounce bawah)
+    // Di bawah dan tarik ke atas → blok (bounce bawah)
     if (atBottom && dy < 0) { e.preventDefault(); return; }
 
-  }, { passive: false }); // passive:false WAJIB agar preventDefault bekerja
+  }, { passive: false }); // WAJIB passive:false agar preventDefault bekerja di iOS
+
+  // Reset cache saat touch selesai
+  document.addEventListener('touchend',    function() { _scrollEl = null; }, { passive: true });
+  document.addEventListener('touchcancel', function() { _scrollEl = null; }, { passive: true });
+
 })();
 
 // ─── SERVICE WORKER UPDATE HANDLER ───────────────────────────
