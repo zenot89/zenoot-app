@@ -524,6 +524,62 @@ function chBadge(input) {
   }, { passive: false });
 })();
 
+// ─── PREVENT iOS RUBBER-BAND / BOUNCE SCROLL ─────────────────
+// iOS Safari punya "rubber band" effect: halaman bisa ditarik
+// melewati batas atas/bawah dan memantul balik seperti per.
+// Android Chrome tidak punya ini. Fix: blok touchmove di luar
+// scroll container yang valid, dan blok saat sudah di ujung.
+(function() {
+  // Selector semua elemen yang boleh scroll
+  var SCROLLABLE = [
+    '.content', '#jp-tbl-wrap', '#stok-tbl-wrap', '#cl-tbl-wrap',
+    '#pt-tbl-wrap', '#kas-jurnal-tbl-wrap', '.sidebar-nav-scroll',
+    '.modal', '.kas-akun-list', '.modal-overlay',
+    '[style*="overflow-y:auto"]', '[style*="overflow-y: auto"]',
+    '[style*="overflow-y:scroll"]',
+  ];
+
+  function findScrollable(el) {
+    // Cari ancestor terdekat yang scrollable
+    var node = el;
+    while (node && node !== document.body) {
+      var style = window.getComputedStyle(node);
+      var oy = style.overflowY;
+      if ((oy === 'scroll' || oy === 'auto') && node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  var _touchStartY = 0;
+
+  document.addEventListener('touchstart', function(e) {
+    _touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    var scrollEl = findScrollable(e.target);
+
+    // Tidak ada scroll container → blok semua (cegah body bounce)
+    if (!scrollEl) {
+      e.preventDefault();
+      return;
+    }
+
+    var dy          = e.touches[0].clientY - _touchStartY;
+    var atTop       = scrollEl.scrollTop <= 0;
+    var atBottom    = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+
+    // Tarik ke bawah saat sudah di atas → blok (cegah pull-to-refresh / bounce atas)
+    if (atTop && dy > 0) { e.preventDefault(); return; }
+    // Tarik ke atas saat sudah di bawah → blok (cegah bounce bawah)
+    if (atBottom && dy < 0) { e.preventDefault(); return; }
+
+  }, { passive: false }); // passive:false WAJIB agar preventDefault bekerja
+})();
+
 // ─── SERVICE WORKER UPDATE HANDLER ───────────────────────────
 // Terima pesan dari SW: reload saat user klik notif update
 if ('serviceWorker' in navigator) {
