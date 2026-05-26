@@ -97,7 +97,7 @@ body{
 .sidebar-nav-scroll{
   -webkit-flex:1 1 0;flex:1 1 0;
   overflow-y:auto;overflow-x:hidden;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   touch-action: pan-y;
   min-height:0;
 }
@@ -370,7 +370,6 @@ body.sidebar-mini .sidebar-footer::before{
   min-height:0;
   overflow-y:scroll;
   overflow-x:hidden;
-  /* HAPUS -webkit-overflow-scrolling:touch — sudah deprecated, justru bikin "per" di iOS */
   /* overscroll:none agar tidak bisa tarik melewati batas konten */
   overscroll-behavior: none;
   scroll-behavior:smooth;
@@ -567,7 +566,7 @@ body.sidebar-mini .sidebar-footer::before{
 [style*="overflow-y:auto"],
 [style*="overflow-y: auto"] {
   scroll-behavior:smooth;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
 }
 
 /* ─── BADGE ──────────────────────────────────────────────── */
@@ -634,7 +633,8 @@ body.sidebar-mini .sidebar-footer::before{
   width:100%;max-width:380px;box-shadow:var(--card-shadow);
   position:relative;max-height:90vh;max-height:90dvh;
   overflow-y:auto;overflow-x:visible;
-  -webkit-overflow-scrolling:touch;
+  overscroll-behavior: none;
+  touch-action: pan-y;
 }
 .modal-title{
   font-size:20px;font-weight:700;margin-bottom:14px;
@@ -708,7 +708,6 @@ body.sidebar-mini .sidebar-footer::before{
     -webkit-flex:1 1 0;flex:1 1 0;
     min-height:0;
     overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
   }
   /* FIX: footer tidak boleh shrink — selalu tampil di bawah */
   .sidebar-footer{
@@ -812,7 +811,6 @@ body.sidebar-mini .sidebar-footer::before{
     height:100vh;
     height:100dvh;
     overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
     /* Pastikan box-sizing benar */
     box-sizing:border-box;
   }
@@ -1619,8 +1617,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   width: 100%;
   overflow-y: auto;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
 }
 
 /* Thead sticky di dalam scroll container */
@@ -1662,8 +1659,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-panel-laporan,
 #kas-panel-akun {
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   padding: 8px;
 }
 @media (max-width: 767px) {
@@ -1887,7 +1883,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   max-width: 320px;
   max-height: 280px;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   background: #111113;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
@@ -2131,8 +2126,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   touch-action: pan-y pan-x;
 }
 
@@ -2227,8 +2221,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   width: 100%;
   overflow-y: auto;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   /* override inline max-height:65vh */
   max-height: none !important;
 }
@@ -2300,8 +2293,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   width: 100%;
   overflow-y: auto;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   max-height: none !important;
 }
 #pl-card .tbl-wrap .tbl th {
@@ -2355,8 +2347,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   padding: 10px 4px 0;
 }
 /* Panel Jurnal: flex column — HANYA saat .active agar tidak bocor ke tab lain */
@@ -2424,8 +2415,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   width: 100%;
   overflow-y: auto;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
   max-height: none !important;
 }
 @media (max-width: 900px),

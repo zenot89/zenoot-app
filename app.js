@@ -527,22 +527,23 @@ function chBadge(input) {
 // ─── PREVENT iOS RUBBER-BAND / BOUNCE SCROLL ─────────────────
 // iOS Safari punya "rubber band" effect: halaman bisa ditarik
 // melewati batas atas/bawah dan memantul balik seperti per.
-// Android Chrome tidak punya ini. Fix: blok touchmove di luar
-// scroll container yang valid, dan blok saat sudah di ujung.
+// Android Chrome tidak punya ini.
+// Strategi: findScrollable() pakai computed style — tidak perlu
+// maintain daftar manual, otomatis handle scroll container baru.
 (function() {
-  // Selector semua elemen yang boleh scroll
-  var SCROLLABLE = [
-    '.content', '#jp-tbl-wrap', '#stok-tbl-wrap', '#cl-tbl-wrap',
-    '#pt-tbl-wrap', '#kas-jurnal-tbl-wrap', '.sidebar-nav-scroll',
-    '.modal', '.kas-akun-list', '.modal-overlay',
-    '[style*="overflow-y:auto"]', '[style*="overflow-y: auto"]',
-    '[style*="overflow-y:scroll"]',
-  ];
 
   function findScrollable(el) {
-    // Cari ancestor terdekat yang scrollable
+    // Naik dari target ke atas, cari scroll container pertama yang:
+    // 1. overflow-y = scroll atau auto
+    // 2. scrollHeight > clientHeight (artinya memang ada konten yang bisa di-scroll)
     var node = el;
-    while (node && node !== document.body) {
+    while (node && node !== document.body && node !== document.documentElement) {
+      // Cek inline style dulu (lebih cepat, tidak trigger reflow)
+      var inlineOY = node.style && node.style.overflowY;
+      if (inlineOY === 'scroll' || inlineOY === 'auto') {
+        if (node.scrollHeight > node.clientHeight) return node;
+      }
+      // Cek computed style
       var style = window.getComputedStyle(node);
       var oy = style.overflowY;
       if ((oy === 'scroll' || oy === 'auto') && node.scrollHeight > node.clientHeight) {
@@ -553,28 +554,35 @@ function chBadge(input) {
     return null;
   }
 
-  var _touchStartY = 0;
+  var _touchStartY  = 0;
+  var _touchStartX  = 0;
 
   document.addEventListener('touchstart', function(e) {
     _touchStartY = e.touches[0].clientY;
+    _touchStartX = e.touches[0].clientX;
   }, { passive: true });
 
   document.addEventListener('touchmove', function(e) {
     var scrollEl = findScrollable(e.target);
 
-    // Tidak ada scroll container → blok semua (cegah body bounce)
+    // Tidak ada scroll container sama sekali → blok total (cegah body bounce)
     if (!scrollEl) {
       e.preventDefault();
       return;
     }
 
-    var dy          = e.touches[0].clientY - _touchStartY;
-    var atTop       = scrollEl.scrollTop <= 0;
-    var atBottom    = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+    var dy = e.touches[0].clientY - _touchStartY;
+    var dx = e.touches[0].clientX - _touchStartX;
 
-    // Tarik ke bawah saat sudah di atas → blok (cegah pull-to-refresh / bounce atas)
+    // Gerakan lebih horizontal dari vertikal → biarkan (scroll horizontal / swipe)
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    var atTop    = scrollEl.scrollTop <= 0;
+    var atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+
+    // Tarik ke bawah saat sudah di paling atas → blok (pull-to-refresh / bounce atas)
     if (atTop && dy > 0) { e.preventDefault(); return; }
-    // Tarik ke atas saat sudah di bawah → blok (cegah bounce bawah)
+    // Tarik ke atas saat sudah di paling bawah → blok (bounce bawah)
     if (atBottom && dy < 0) { e.preventDefault(); return; }
 
   }, { passive: false }); // passive:false WAJIB agar preventDefault bekerja
