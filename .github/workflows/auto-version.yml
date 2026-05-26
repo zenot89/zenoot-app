@@ -1,58 +1,63 @@
 name: Auto Version Bump
 
-# Jalan otomatis setiap push ke branch main
 on:
   push:
     branches: [ main ]
 
+# WAJIB: tanpa ini git push dari Actions akan ditolak GitHub
+permissions:
+  contents: write
+
 jobs:
   bump-version:
     runs-on: ubuntu-latest
-    steps:
 
-      # 1. Checkout repo (dengan token agar bisa push balik)
+    steps:
+      # 1. Checkout repo dengan full history agar git push tidak konflik
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       # 2. Hitung hash dari semua file JS + CSS + index.html
-      #    Hash hanya berubah kalau ada file yang benar-benar diubah.
-      #    Ini mencegah cache bust yang tidak perlu (kalau hanya push README dll).
+      #    Hash hanya berubah kalau ada file yang benar-benar diubah
       - name: Generate content hash
         id: hash
         run: |
           HASH=$(cat *.js style.css index.html 2>/dev/null | sha256sum | cut -c1-12)
           BUILD="$(date +%Y%m%d)-${HASH}"
           echo "build=${BUILD}" >> $GITHUB_OUTPUT
-          echo "✅ APP_BUILD = ${BUILD}"
+          echo "APP_BUILD = ${BUILD}"
 
       # 3. Inject APP_BUILD ke index.html
-      #    Ganti baris window.APP_BUILD = '...' dengan nilai baru
+      #    Pattern /\/\//! → hanya ganti baris yang BUKAN komentar (//)
+      #    Mencegah baris contoh di komentar ikut terganti
       - name: Inject APP_BUILD into index.html
         run: |
           BUILD="${{ steps.hash.outputs.build }}"
-          sed -i "s|window\.APP_BUILD = '[^']*';|window.APP_BUILD = '${BUILD}';|" index.html
-          echo "✅ index.html updated: APP_BUILD = ${BUILD}"
+          sed -i "/\/\//! s|window\.APP_BUILD = '[^']*';|window.APP_BUILD = '${BUILD}';|" index.html
+          echo "index.html updated: APP_BUILD = ${BUILD}"
 
-      # 4. Verifikasi hasil sed berhasil (guard: kalau pola tidak ketemu, fail early)
+      # 4. Verifikasi inject berhasil — fail early kalau pola tidak ketemu
       - name: Verify APP_BUILD injected
         run: |
-          grep "window.APP_BUILD" index.html
-          if ! grep -q "window\.APP_BUILD = '${{ steps.hash.outputs.build }}';" index.html; then
-            echo "❌ APP_BUILD tidak berhasil di-inject! Cek pola sed."
+          BUILD="${{ steps.hash.outputs.build }}"
+          if ! grep -q "window\.APP_BUILD = '${BUILD}';" index.html; then
+            echo "APP_BUILD gagal di-inject. Cek pola window.APP_BUILD di index.html."
             exit 1
           fi
-          echo "✅ Verified."
+          echo "Verified: window.APP_BUILD = '${BUILD}'"
 
-      # 5. Commit & push index.html yang sudah diupdate
-      #    [skip ci] mencegah Actions jalan lagi karena commit ini
+      # 5. Commit & push — [skip ci] mencegah Actions loop
       - name: Commit updated index.html
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          # Hanya commit kalau ada perubahan (idempotent)
-          git diff --staged --quiet && echo "⏩ Tidak ada perubahan, skip commit." || \
+          if git diff --staged --quiet; then
+            echo "Tidak ada perubahan, skip commit."
+          else
             git commit -m "chore: auto bump APP_BUILD → ${{ steps.hash.outputs.build }} [skip ci]"
-          git push
+            git push
+          fi
