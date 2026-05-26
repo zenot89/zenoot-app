@@ -1,4 +1,4 @@
-name: Auto Version Bump
+Sname: Auto Version Bump
 
 on:
   push:
