@@ -53,7 +53,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     #modal-jp .modal {
       max-height: 92vh;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: none;
       box-sizing: border-box;
     }
 

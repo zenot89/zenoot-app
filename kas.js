@@ -76,8 +76,7 @@ document.getElementById('page-kas').innerHTML = `
 </div>
 
 <!-- PANEL: LAPORAN -->
-<div id="kas-panel-laporan" class="kas-panel" style="overflow-y:auto;-webkit-overflow-scrolling:touch replaced
-overscroll-behavior:none;touch-action:pan-y">
+<div id="kas-panel-laporan" class="kas-panel" style="overflow-y:auto;overscroll-behavior:none;touch-action:pan-y">
   <!-- Navigasi 3 sub-laporan -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink);flex-wrap:wrap">
     <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"

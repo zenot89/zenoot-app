@@ -157,7 +157,7 @@ document.getElementById('page-dashboard').innerHTML = `
             <div id="trench-dd-channel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:99999;
               min-width:190px;background:var(--cream);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink4);pointer-events:auto"
               onclick="event.stopPropagation()">
-              <div id="trench-channel-list" style="max-height:220px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch"></div>
+              <div id="trench-channel-list" style="max-height:220px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;touch-action:pan-y"></div>
 
             </div>
           </div>

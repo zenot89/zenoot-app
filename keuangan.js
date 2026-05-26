@@ -44,7 +44,7 @@ document.getElementById('page-keuangan').innerHTML = `
   .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
   @media(max-width:600px){
-    .keu-neraca-grid { grid-template-columns:1fr; max-height:calc(100vh - 220px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .keu-neraca-grid { grid-template-columns:1fr; max-height:calc(100vh - 220px); overflow-y:auto; overscroll-behavior:none; touch-action:pan-y; }
     .keu-minicards { margin-left:0; width:100%; justify-content:center; }
     .keu-minicards > div { flex:1 1 0; min-width:0; }
   }

@@ -67,7 +67,7 @@ document.getElementById('page-produk').innerHTML = `
         style="font-family:var(--f);font-size:13px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream);width:180px"
         oninput="filterProduk()">
     </div>
-    <div class="tbl-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div class="tbl-wrap" style="overflow-x:auto;overscroll-behavior:none;touch-action:pan-x pan-y">
       <table class="tbl">
         <thead><tr>
           <th style="width:24px"></th>

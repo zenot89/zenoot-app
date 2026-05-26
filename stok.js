@@ -112,7 +112,7 @@ document.getElementById('page-stok').innerHTML = `
 
   <!-- FORM TAMBAH/EDIT STOK MASUK — konsep modal JP -->
   <div class="modal-overlay" id="modal-stok-masuk" onclick="stokOverlayClose(event)">
-    <div class="modal" style="max-width:480px;width:100%;padding:16px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box">
+    <div class="modal" style="max-width:480px;width:100%;padding:16px;max-height:92vh;overflow-y:auto;overscroll-behavior:none;touch-action:pan-y;box-sizing:border-box">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;
