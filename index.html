@@ -8,8 +8,11 @@
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- black-translucent: konten tampil full-bleed, tidak dipotong chrome browser Safari iOS -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="zenOt">
+<!-- color-scheme: paksa iOS render input[type=date/month/time] dengan dark theme, bukan putih -->
+<meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -172,7 +175,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260524001';
-  window.APP_BUILD = '20260524001';
+  window.APP_BUILD = '20260526001';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible

@@ -342,11 +342,40 @@ setTimeout(() => {
 function _jpEnsureFlexLayout() {
   var pg = document.getElementById('page-jurnal-penjualan');
   if (!pg || !pg.classList.contains('active')) return;
+
+  // Pastikan seluruh height chain dari html → body → .main → .content eksplisit
+  // iOS Safari tidak bisa resolve flex:1 jika parent tidak punya height eksplisit
+  var htmlEl = document.documentElement;
+  if (htmlEl) { htmlEl.style.height = '100%'; }
+
+  var bodyEl = document.body;
+  if (bodyEl) { bodyEl.style.height = '100%'; bodyEl.style.minHeight = '0'; }
+
+  var mainEl = document.querySelector('.main');
+  if (mainEl) {
+    mainEl.style.height        = '100%';
+    mainEl.style.minHeight     = '0';
+    mainEl.style.overflow      = 'hidden';
+    mainEl.style.display       = '-webkit-flex';
+    mainEl.style.webkitFlex    = '1 1 0';
+    mainEl.style.flex          = '1 1 0';
+    mainEl.style.flexDirection = 'column';
+    mainEl.style.webkitFlexDirection = 'column';
+  }
+
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    contentEl.style.overflowY = 'hidden';
-    contentEl.style.padding   = '0';
-    contentEl.style.height    = '100%';
+    contentEl.style.overflowY     = 'hidden';
+    contentEl.style.overflow      = 'hidden';
+    contentEl.style.padding       = '0';
+    contentEl.style.display       = '-webkit-flex';
+    contentEl.style.display       = 'flex';
+    contentEl.style.flexDirection = 'column';
+    contentEl.style.webkitFlexDirection = 'column';
+    contentEl.style.height        = '100%';
+    contentEl.style.webkitFlex    = '1 1 0';
+    contentEl.style.flex          = '1 1 0';
+    contentEl.style.minHeight     = '0';
   }
 }
 window.addEventListener('resize', function() {
@@ -1222,22 +1251,38 @@ async function exportJurnalPenjualan() {
 // ─── INIT ────────────────────────────────────────────────────
 // Default periode: bulan ini
 _jpWaktuMode = 'bulan';
-document.getElementById('jp-filter-bulan').value = new Date().toISOString().slice(0,7);
-setTimeout(function() {
-  Promise.all([
-    loadChannelDropdownJP(),
-    loadProdukListJP()
-  ]).then(() => loadJurnalPenjualan());
-}, 0);
+// Guard: pastikan elemen sudah ada sebelum mengisi nilai (IIFE inject sudah jalan di atas)
+(function _jpSafeInit() {
+  var bulanEl = document.getElementById('jp-filter-bulan');
+  if (bulanEl) {
+    bulanEl.value = new Date().toISOString().slice(0,7);
+  }
+  // Sedikit delay agar DOM inject selesai di semua engine (terutama iOS WebKit)
+  setTimeout(function() {
+    Promise.all([
+      loadChannelDropdownJP(),
+      loadProdukListJP()
+    ]).then(function() { loadJurnalPenjualan(); }).catch(function(e) {
+      console.warn('[JP init error]', e);
+      loadJurnalPenjualan();
+    });
+  }, 50);
+})();
 
 // ─── HOOK zenot:page — layout flex + reset topbar ────────────────
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'jurnal-penjualan') return;
-  setTimeout(_jpEnsureFlexLayout, 60);
-  setTimeout(function() {
+  // requestAnimationFrame memastikan layout flush terjadi setelah paint
+  // sangat penting di iOS Safari yang lazy dalam menghitung flex chain
+  var raf = window.requestAnimationFrame || function(fn) { setTimeout(fn, 16); };
+  raf(function() {
+    _jpEnsureFlexLayout();
     var tb = document.getElementById('jp-top-bar');
     if (tb) tb.classList.remove('jp-topbar-collapsed');
-  }, 60);
+    // Re-scroll ke atas
+    var wrap = document.getElementById('jp-tbl-wrap');
+    if (wrap) wrap.scrollTop = 0;
+  });
 });
 
 // ─── SWIPE GESTURE — collapse jp-top-bar di landscape touch ─────────

@@ -1,5 +1,11 @@
 *{box-sizing:border-box;margin:0;padding:0}
-html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{
+  height:100%;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  /* Paksa dark mode di semua elemen browser-native (date, time, select, scrollbar) */
+  color-scheme: dark;
+}
 :root{
   --ink:#f0f0f0;--ink2:#a0a0a0;--ink3:#505060;--ink4:#1a1a1a;
   --cream:#0d0d0d;--cream2:#060606;--cream3:#030303;--cream4:#000000;
@@ -21,6 +27,11 @@ body{
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
+  /* Safe-area: hindari konten tertutup notch/home-indicator iPhone */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* ─── HAMBURGER — FLOATING KANAN BAWAH, SELALU TAMPIL DI MOBILE ── */
@@ -825,7 +836,13 @@ body.sidebar-mini .sidebar-footer::before{
 @supports (-webkit-touch-callout:none){
   .btn{-webkit-appearance:none}
   .form-group input,.form-group select{-webkit-appearance:none}
-  body{height:-webkit-fill-available}
+
+  /* Fix: paksa tinggi body mengikuti viewport visual (excluding chrome Safari) */
+  body{
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
+
   /* Fix scroll di Safari iOS */
   .content{
     overflow-y:scroll;
@@ -835,6 +852,7 @@ body.sidebar-mini .sidebar-footer::before{
   .main{
     max-height:100%;
     max-height:-webkit-fill-available;
+    overflow:hidden;
   }
   /* Fix iOS: page divs perlu -webkit-flex agar tidak collapse */
   #page-jurnal-penjualan,
@@ -848,6 +866,26 @@ body.sidebar-mini .sidebar-footer::before{
     -webkit-flex: 1 1 0;
     flex: 1 1 0;
     min-height: 0;
+  }
+
+  /* Fix iOS: input date/time/month tampil putih karena browser default light theme.
+     color-scheme:dark memaksa native picker & input background ikut dark. */
+  input[type="date"],
+  input[type="time"],
+  input[type="month"],
+  input[type="datetime-local"] {
+    color-scheme: dark;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--cream);
+    color: var(--ink);
+    border: 2px solid var(--ink3);
+  }
+
+  /* Fix: modal overlay di iPhone kadang tidak full-screen karena safe-area */
+  .modal-overlay {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 

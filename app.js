@@ -179,34 +179,62 @@ function gotoPage(page, btn) {
     document.dispatchEvent(ev);
   })();
   var contentEl = document.querySelector('.content');
+  var mainEl    = document.querySelector('.main');
   if (contentEl) {
     var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas'];
     if (fullHeightPages.indexOf(page) !== -1) {
-      // Full-height pages: content harus jadi flex container agar page div bisa flex:1
-      // height:100% tidak reliable di iOS Safari — gunakan flex chain + min-height:0
-      contentEl.style.overflowY     = 'hidden';
-      contentEl.style.overflow      = 'hidden';
-      contentEl.style.padding       = '0';
-      contentEl.style.display       = '-webkit-flex';
-      contentEl.style.display       = 'flex';
-      contentEl.style.flexDirection = 'column';
-      contentEl.style.height        = '100%';
-      contentEl.style.webkitFlexDirection = 'column';
-      contentEl.style.webkitFlex    = '1';
-      contentEl.style.flex          = '1';
-      contentEl.style.minHeight     = '0';
+      // Full-height pages: paksa height chain html→body→main→content eksplisit
+      // iOS Safari tidak bisa resolve flex:1 jika ancestor tidak punya height eksplisit
+      document.documentElement.style.height = '100%';
+      document.body.style.height            = '100%';
+      document.body.style.minHeight         = '0';
+      if (mainEl) {
+        mainEl.style.height           = '100%';
+        mainEl.style.minHeight        = '0';
+        mainEl.style.overflow         = 'hidden';
+        mainEl.style.display          = '-webkit-flex';
+        mainEl.style.display          = 'flex';
+        mainEl.style.webkitFlex       = '1 1 0';
+        mainEl.style.flex             = '1 1 0';
+        mainEl.style.flexDirection    = 'column';
+        mainEl.style.webkitFlexDirection = 'column';
+      }
+      contentEl.style.overflowY            = 'hidden';
+      contentEl.style.overflow             = 'hidden';
+      contentEl.style.padding              = '0';
+      contentEl.style.display              = '-webkit-flex';
+      contentEl.style.display              = 'flex';
+      contentEl.style.flexDirection        = 'column';
+      contentEl.style.webkitFlexDirection  = 'column';
+      contentEl.style.height               = '100%';
+      contentEl.style.webkitFlex           = '1 1 0';
+      contentEl.style.flex                 = '1 1 0';
+      contentEl.style.minHeight            = '0';
     } else {
-      // Normal scroll pages: reset semua
-      contentEl.style.overflowY     = '';
-      contentEl.style.overflow      = '';
-      contentEl.style.padding       = '';
-      contentEl.style.display       = '';
-      contentEl.style.flexDirection = '';
-      contentEl.style.height        = '';
-      contentEl.style.webkitFlexDirection = '';
-      contentEl.style.webkitFlex    = '';
-      contentEl.style.flex          = '';
-      contentEl.style.minHeight     = '';
+      // Normal scroll pages: reset semua inline styles
+      document.documentElement.style.height = '';
+      document.body.style.height            = '';
+      document.body.style.minHeight         = '';
+      if (mainEl) {
+        mainEl.style.height           = '';
+        mainEl.style.minHeight        = '';
+        mainEl.style.overflow         = '';
+        mainEl.style.display          = '';
+        mainEl.style.webkitFlex       = '';
+        mainEl.style.flex             = '';
+        mainEl.style.flexDirection    = '';
+        mainEl.style.webkitFlexDirection = '';
+      }
+      contentEl.style.overflowY            = '';
+      contentEl.style.overflow             = '';
+      contentEl.style.padding              = '';
+      contentEl.style.display              = '';
+      contentEl.style.flexDirection        = '';
+      contentEl.style.webkitFlexDirection  = '';
+      contentEl.style.height               = '';
+      contentEl.style.webkitFlex           = '';
+      contentEl.style.flex                 = '';
+      contentEl.style.minHeight            = '';
       contentEl.scrollTop = 0;
     }
   }
