@@ -1,63 +1,158 @@
 // ─── RESTOCK.JS — tab per supplier ──────────────────────────
 // Logic: SKU aktif yang terjual 14 hari terakhir
 // Tab: Summary (ringkasan eksekutif) | per Supplier (1 tabel penuh)
-// Improvement v2:
-//   - Safety Stock = avg_harian × buffer_hari (default 3 hari)
-//   - Cover Hari = qty_order / avg_harian (visibilitas supply duration)
-//   - Indikator Tren: bandingkan 7 hari awal vs 7 hari akhir
-//   - Stok Saat Ini: tampil di tabel per-supplier
+// Layout: Full-Height Flex Table Layout (same pattern as jurnal-penjualan)
 
 document.getElementById('page-restock').innerHTML = `
-  <div class="card" id="restock-wrap">
-    <div class="card-title">
-      <i class="ti ti-refresh"></i> Re-Stock — Penjualan 14 Hari Terakhir
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <button class="btn btn-sm" onclick="loadRestock()">
-          <i class="ti ti-refresh"></i> Refresh
+  <!-- TOP BAR: judul halaman + tombol aksi (laptop) — diam di atas, LUAR card -->
+  <div id="restock-top-bar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-weight:700;font-size:15px"><i class="ti ti-refresh"></i> Re-Stock</span>
+      <span style="font-size:11px;color:var(--ink3)">daftar reorder per boss</span>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
+          <i class="ti ti-refresh"></i>
         </button>
-        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px">
+        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
           <i class="ti ti-tag"></i> Produk Clearance
         </button>
       </div>
     </div>
-    <div id="restock-body" style="color:var(--ink3);font-style:italic;padding:12px 0">
-      <i class="ti ti-loader"></i> Memuat data...
-    </div>
   </div>
+
+  <!-- CARD tabel: flex:1, mengisi sisa ruang -->
+  <div class="card" id="restock-wrap">
+
+    <!-- STICKY HEADER dalam card: judul + tombol mobile + tab bar + info bar -->
+    <div id="restock-sticky-header">
+
+      <!-- Card title + tombol aksi (mobile fallback) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px">
+        <span style="font-weight:700;font-size:14px"><i class="ti ti-refresh"></i> Re-Stock — Penjualan 14 Hari Terakhir</span>
+        <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
+            <i class="ti ti-refresh"></i>
+          </button>
+          <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+            <i class="ti ti-tag"></i> Clearance
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab bar + info bar: diisi oleh renderRestockTabs() -->
+      <div id="restock-tab-bar-wrap"></div>
+      <div id="restock-info-bar-wrap"></div>
+
+    </div><!-- /restock-sticky-header -->
+
+    <!-- TABLE SCROLL ZONE: flex:1, scroll internal -->
+    <div id="restock-tbl-scroll">
+      <div id="restock-body" style="color:var(--ink3);font-style:italic;padding:12px 14px">
+        <i class="ti ti-loader"></i> Memuat data...
+      </div>
+    </div>
+
+  </div><!-- /restock-wrap -->
 `;
 
 setTimeout(() => {
-  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-restock'));
+  if (typeof rerenderUI === 'function')
+    rerenderUI(document.getElementById('page-restock'));
   _restockEnsureFlexLayout();
   loadRestock();
 }, 80);
 
+// ─── FLEX LAYOUT CHAIN (same as jurnal-penjualan) ────────────
 function _restockEnsureFlexLayout() {
   var pg = document.getElementById('page-restock');
   if (!pg || !pg.classList.contains('active')) return;
+
+  var htmlEl = document.documentElement;
+  if (htmlEl) { htmlEl.style.height = '100%'; }
+
+  var bodyEl = document.body;
+  if (bodyEl) { bodyEl.style.height = '100%'; bodyEl.style.minHeight = '0'; }
+
+  var mainEl = document.querySelector('.main');
+  if (mainEl) {
+    mainEl.style.height        = '100%';
+    mainEl.style.minHeight     = '0';
+    mainEl.style.overflow      = 'hidden';
+    mainEl.style.display       = '-webkit-flex';
+    mainEl.style.webkitFlex    = '1 1 0';
+    mainEl.style.flex          = '1 1 0';
+    mainEl.style.flexDirection = 'column';
+    mainEl.style.webkitFlexDirection = 'column';
+  }
+
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    contentEl.style.overflowY = 'hidden';
-    contentEl.style.padding   = '0';
-    contentEl.style.height    = '100%';
+    contentEl.style.overflowY     = 'hidden';
+    contentEl.style.overflow      = 'hidden';
+    contentEl.style.padding       = '0';
+    contentEl.style.display       = '-webkit-flex';
+    contentEl.style.display       = 'flex';
+    contentEl.style.flexDirection = 'column';
+    contentEl.style.webkitFlexDirection = 'column';
+    contentEl.style.height        = '100%';
+    contentEl.style.webkitFlex    = '1 1 0';
+    contentEl.style.flex          = '1 1 0';
+    contentEl.style.minHeight     = '0';
   }
 }
+
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-restock');
   if (pg && pg.classList.contains('active')) _restockEnsureFlexLayout();
 });
+
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'restock') return;
-  setTimeout(_restockEnsureFlexLayout, 60);
+  var raf = window.requestAnimationFrame || function(fn) { setTimeout(fn, 16); };
+  raf(function() {
+    _restockEnsureFlexLayout();
+    // Reset collapse saat halaman dibuka
+    var tb = document.getElementById('restock-top-bar');
+    if (tb) tb.classList.remove('landscape-collapsed');
+    // Re-scroll ke atas
+    var sc = document.getElementById('restock-tbl-scroll');
+    if (sc) sc.scrollTop = 0;
+  });
 });
+
+// ─── SWIPE GESTURE — collapse restock-top-bar di landscape touch ──
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  function _restockInitSwipe() {
+    if (!_mq.matches) return;
+    var stickyHeader = document.getElementById('restock-sticky-header');
+    var topBar       = document.getElementById('restock-top-bar');
+    if (!stickyHeader || !topBar) return;
+    initSwipeCollapse(stickyHeader, topBar, 50);
+    initSwipeCollapse(topBar,       topBar, 50);
+  }
+  setTimeout(_restockInitSwipe, 300);
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'restock') return;
+    setTimeout(function() {
+      var tb = document.getElementById('restock-top-bar');
+      if (tb) tb.classList.remove('landscape-collapsed');
+      _restockInitSwipe();
+    }, 80);
+  });
+})();
 
 // Tab aktif saat ini
 let _restockActiveTab = 'SUMMARY';
 
 async function loadRestock() {
-  const wrap = document.getElementById('restock-body');
-  if (!wrap) return;
-  wrap.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:12px 0"><i class="ti ti-loader"></i> Memuat data...</div>';
+  const body = document.getElementById('restock-body');
+  const tabWrap  = document.getElementById('restock-tab-bar-wrap');
+  const infoWrap = document.getElementById('restock-info-bar-wrap');
+  if (!body) return;
+  body.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:12px 0"><i class="ti ti-loader"></i> Memuat data...</div>';
+  if (tabWrap)  tabWrap.innerHTML  = '';
+  if (infoWrap) infoWrap.innerHTML = '';
 
   try {
     const today = new Date();
@@ -65,9 +160,8 @@ async function loadRestock() {
     d14.setDate(d14.getDate() - 13);
     const dari  = d14.toISOString().slice(0, 10);
 
-    // Midpoint untuk deteksi tren
     const d7 = new Date(today);
-    d7.setDate(d7.getDate() - 6); // 7 hari terakhir
+    d7.setDate(d7.getDate() - 6);
     const dari7 = d7.toISOString().slice(0, 10);
 
     const isKritisMode = window._restockFilterKritis === true;
@@ -77,12 +171,11 @@ async function loadRestock() {
       dbGet('jurnal_penjualan', '&tanggal=gte.' + dari + '&order=tanggal.desc'),
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
-      // Selalu ambil stok untuk tampilkan sisa di tabel
       dbGet('stok'),
       dbGet('jurnal_penjualan', '&select=sku,qty')
     ]);
 
-    // ── Hitung sisa stok per SKU (selalu, bukan hanya mode kritis) ──
+    // ── Hitung sisa stok per SKU ──
     const masukMap = {};
     (stokRaw || []).forEach(s => {
       const key = (s.sku_variasi || '').trim().toUpperCase();
@@ -98,49 +191,43 @@ async function loadRestock() {
       sisaMap[k] = (masukMap[k] || 0) - (keluarMapAll[k] || 0);
     });
 
-    // ── Hitung tren: qty 7 hari pertama vs 7 hari terakhir ──
-    // penjualan sudah difilter >= dari (14 hari), tinggal split
-    const qty7AkhirMap = {}; // 7 hari terakhir
-    const qty7AwalMap  = {}; // 7 hari pertama (14-8 hari lalu)
+    // ── Tren: qty 7 hari pertama vs 7 hari terakhir ──
+    const qty7AkhirMap = {};
+    const qty7AwalMap  = {};
     penjualan.forEach(row => {
       const sku = (row.sku || '').trim().toUpperCase();
       if (!sku) return;
       if (row.tanggal >= dari7) {
         qty7AkhirMap[sku] = (qty7AkhirMap[sku] || 0) + (row.qty || 0);
       } else {
-        qty7AwalMap[sku] = (qty7AwalMap[sku] || 0) + (row.qty || 0);
+        qty7AwalMap[sku]  = (qty7AwalMap[sku]  || 0) + (row.qty || 0);
       }
     });
 
-    // ── Mode kritis: filter hanya SKU dengan sisa <= 3 ──
     const sisaFilterSet = isKritisMode ? new Set(
       Object.entries(sisaMap).filter(([,v]) => v <= 3).map(([k]) => k)
     ) : null;
 
-    // Map supplier
     const supplierMap = {};
     (supplierAll || []).forEach(s => {
       const key = (s.boss || '').trim().toUpperCase();
       supplierMap[key] = {
-        lead_time    : s.lead_time    || 7,
-        min_order    : s.min_order    || 6,
-        kelipatan    : s.kelipatan    || s.min_order || 6,
-        budget       : s.budget       || 0,
-        catatan      : s.catatan      || '',
-        // Safety stock = buffer 3 hari (field opsional jika ada di masa depan)
-        buffer_hari  : s.buffer_hari  || 3
+        lead_time   : s.lead_time   || 7,
+        min_order   : s.min_order   || 6,
+        kelipatan   : s.kelipatan   || s.min_order || 6,
+        budget      : s.budget      || 0,
+        catatan     : s.catatan     || '',
+        buffer_hari : s.buffer_hari || 3
       };
     });
     const DEFAULT_SUPPLIER = { lead_time: 7, min_order: 6, kelipatan: 6, budget: 0, catatan: '', buffer_hari: 3 };
 
-    // Map produk
     const produkMap = {};
     produkAll.forEach(p => {
       const key = (p.sku_variasi || p.sku || '').trim().toUpperCase();
       if (key) produkMap[key] = p;
     });
 
-    // Hitung qty terjual per SKU (14 hari)
     const qtyMap = {};
     penjualan.forEach(row => {
       const sku = (row.sku || '').trim().toUpperCase();
@@ -148,7 +235,6 @@ async function loadRestock() {
       qtyMap[sku] = (qtyMap[sku] || 0) + (row.qty || 0);
     });
 
-    // Group by boss, hitung ROP + safety stock
     const bossList = {};
     Object.entries(qtyMap).forEach(([sku, qty14]) => {
       const p = produkMap[sku];
@@ -160,27 +246,19 @@ async function loadRestock() {
       const bossKey    = (p.boss || '—').trim().toUpperCase();
       const sup        = supplierMap[bossKey] || DEFAULT_SUPPLIER;
       const avg_harian = qty14 / 14;
-
-      // ── Safety Stock = avg_harian × buffer_hari ──
       const safety_stock = avg_harian * sup.buffer_hari;
-
-      // ── ROP dengan safety stock ──
       const rop_raw    = (avg_harian * sup.lead_time) + safety_stock;
       const qty_order  = bulatkanKelipatan(rop_raw, sup.kelipatan, sup.min_order);
       const nilai      = (p.hpp || 0) * qty_order;
-
-      // ── Cover hari = qty_order / avg_harian ──
       const cover_hari = avg_harian > 0 ? Math.round(qty_order / avg_harian) : null;
 
-      // ── Tren: bandingkan 7 hari awal vs akhir ──
       const q_awal  = qty7AwalMap[sku]  || 0;
       const q_akhir = qty7AkhirMap[sku] || 0;
-      let tren = 'flat'; // 'naik' | 'turun' | 'flat' | 'baru'
-      if (q_awal === 0 && q_akhir > 0)       tren = 'baru';
-      else if (q_akhir > q_awal * 1.3)       tren = 'naik';
-      else if (q_akhir < q_awal * 0.7)       tren = 'turun';
+      let tren = 'flat';
+      if (q_awal === 0 && q_akhir > 0)  tren = 'baru';
+      else if (q_akhir > q_awal * 1.3)  tren = 'naik';
+      else if (q_akhir < q_awal * 0.7)  tren = 'turun';
 
-      // ── Sisa stok saat ini ──
       const sisa_stok = sisaMap[sku] !== undefined ? sisaMap[sku] : null;
 
       if (!bossList[bossKey]) bossList[bossKey] = { items: [], sup };
@@ -207,7 +285,7 @@ async function loadRestock() {
     const bossSorted = Object.keys(bossList).sort();
 
     if (!bossSorted.length) {
-      wrap.innerHTML = '<div style="color:var(--ink3);padding:16px 0">Tidak ada SKU aktif yang terjual dalam 14 hari terakhir.</div>';
+      body.innerHTML = '<div style="color:var(--ink3);padding:16px 14px">Tidak ada SKU aktif yang terjual dalam 14 hari terakhir.</div>';
       return;
     }
 
@@ -225,16 +303,14 @@ async function loadRestock() {
         </button>
       </div>` : '';
 
-    // Simpan data ke window untuk dipakai saat ganti tab
-    // ── Clearance Monitor: non-aktif yang masih ada sisa stok ──
     const clearanceList = [];
     produkAll.forEach(p => {
       const kat = (p.kategori_produk || 'aktif').toLowerCase();
-      if (kat === 'aktif') return; // hanya non-aktif
+      if (kat === 'aktif') return;
       const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
       if (!skuKey) return;
       const sisa = sisaMap[skuKey];
-      if (sisa === undefined || sisa <= 0) return; // sudah habis, skip
+      if (sisa === undefined || sisa <= 0) return;
       const qty14 = qtyMap[skuKey] || 0;
       clearanceList.push({
         sku    : skuKey,
@@ -247,11 +323,10 @@ async function loadRestock() {
         nilai  : sisa * (p.hpp || 0)
       });
     });
-    clearanceList.sort((a, z) => z.nilai - a.nilai); // sort by nilai stok tertinggi
+    clearanceList.sort((a, z) => z.nilai - a.nilai);
 
     window._restockData = { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList };
 
-    // Pastikan tab aktif valid
     if (_restockActiveTab !== 'SUMMARY' && !bossSorted.includes(_restockActiveTab)) {
       _restockActiveTab = 'SUMMARY';
     }
@@ -259,80 +334,77 @@ async function loadRestock() {
     renderRestockTabs();
 
   } catch(err) {
-    wrap.innerHTML = `<div style="color:var(--danger)">⚠️ Error: ${err.message}</div>`;
+    const body2 = document.getElementById('restock-body');
+    if (body2) body2.innerHTML = `<div style="color:var(--danger);padding:12px 14px">⚠️ Error: ${err.message}</div>`;
     console.error('[restock]', err);
   }
 }
 
 function renderRestockTabs() {
-  const wrap = document.getElementById('restock-body');
-  if (!wrap || !window._restockData) return;
+  const body     = document.getElementById('restock-body');
+  const tabWrap  = document.getElementById('restock-tab-bar-wrap');
+  const infoWrap = document.getElementById('restock-info-bar-wrap');
+  if (!body || !window._restockData) return;
 
   const { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList } = window._restockData;
 
-  // ── Build tab bar ──
-  const tabBar = `
-    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink);flex-wrap:wrap">
-      <button
-        onclick="restockSwitchTab('SUMMARY')"
-        style="padding:7px 16px;font-family:var(--f);font-size:12px;font-weight:700;
-               border:2px solid var(--ink);border-bottom:none;cursor:pointer;margin-bottom:-2px;
-               background:${_restockActiveTab === 'SUMMARY' ? 'var(--ink)' : 'var(--cream)'};
-               color:${_restockActiveTab === 'SUMMARY' ? 'var(--cream)' : 'var(--ink)'}">
-        <i class="ti ti-clipboard-list"></i> Summary
-        <span style="margin-left:4px;font-size:10px;opacity:0.7">${bossSorted.length} supplier</span>
-      </button>
-      ${bossSorted.map(boss => {
-        const { items, sup } = bossList[boss];
-        const totalQty = items.reduce((s,r) => s + r.qty_order, 0);
-        const isActive = _restockActiveTab === boss;
-        return `
-          <button
+  // ── Tab bar — dirender ke sticky header ──
+  if (tabWrap) {
+    tabWrap.innerHTML = `
+      <div id="restock-tab-bar">
+        <button
+          onclick="restockSwitchTab('SUMMARY')"
+          class="restock-tab-btn${_restockActiveTab === 'SUMMARY' ? ' restock-tab-active' : ''}">
+          <i class="ti ti-clipboard-list"></i> Summary
+          <span class="restock-tab-meta">${bossSorted.length} supplier</span>
+        </button>
+        ${bossSorted.map(boss => {
+          const { items } = bossList[boss];
+          const totalQty = items.reduce((s,r) => s + r.qty_order, 0);
+          const isActive = _restockActiveTab === boss;
+          return `<button
             onclick="restockSwitchTab('${boss}')"
-            style="padding:7px 16px;font-family:var(--f);font-size:12px;font-weight:700;
-                   border:2px solid var(--ink);border-bottom:none;border-left:none;cursor:pointer;margin-bottom:-2px;
-                   background:${isActive ? 'var(--ink)' : 'var(--cream)'};
-                   color:${isActive ? 'var(--cream)' : 'var(--ink)'}">
+            class="restock-tab-btn${isActive ? ' restock-tab-active' : ''}">
             <i class="ti ti-user"></i> ${boss}
-            <span style="margin-left:4px;font-size:10px;opacity:0.7">${totalQty} pcs</span>
+            <span class="restock-tab-meta">${totalQty} pcs</span>
           </button>`;
-      }).join('')}
-    </div>
-  `;
+        }).join('')}
+      </div>`;
+  }
 
-  // ── Header info ──
-  const header = `
-    ${bannerKritis}
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--ink3)">
-        Periode: <b style="color:var(--ink2)">${fmtTgl(d14)} – ${fmtTgl(today)}</b>
-        &nbsp;·&nbsp; ${bossSorted.length} supplier
-        &nbsp;·&nbsp; ${totalSKU} SKU aktif
-      </div>
-      <div style="margin-left:auto;font-size:13px;font-weight:700;color:var(--ok)">
-        Total Budget Restock: ${fmtRp(grandBudget)}
-      </div>
-    </div>
-  `;
+  // ── Info bar — periode + budget ──
+  if (infoWrap) {
+    infoWrap.innerHTML = `
+      <div id="restock-info-bar">
+        <div style="font-size:11px;color:var(--ink3)">
+          Periode: <b style="color:var(--ink2)">${fmtTgl(d14)} – ${fmtTgl(today)}</b>
+          &nbsp;·&nbsp; ${bossSorted.length} supplier
+          &nbsp;·&nbsp; ${totalSKU} SKU aktif
+        </div>
+        <div style="margin-left:auto;font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap">
+          Total Budget: ${fmtRp(grandBudget)}
+        </div>
+      </div>`;
+  }
 
   // ── Content berdasarkan tab aktif ──
-  let content = '';
-
   if (_restockActiveTab === 'SUMMARY') {
-    content = renderSummary(bossList, bossSorted, fmtRp, clearanceList);
+    body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
   } else {
     const bossData = bossList[_restockActiveTab];
     if (!bossData) return;
-    content = renderSupplierFull(_restockActiveTab, bossData, fmtRp);
+    body.innerHTML = renderSupplierFull(_restockActiveTab, bossData, fmtRp);
   }
 
-  wrap.innerHTML = tabBar + header + content;
   if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-restock'));
 }
 
 function restockSwitchTab(boss) {
   _restockActiveTab = boss;
   renderRestockTabs();
+  // Scroll tbl-scroll ke atas saat ganti tab
+  var sc = document.getElementById('restock-tbl-scroll');
+  if (sc) sc.scrollTop = 0;
 }
 
 // ── Helper: ikon tren ──
@@ -343,15 +415,13 @@ function trenIcon(tren) {
   return '<span style="color:var(--ink3);font-size:11px">→</span>';
 }
 
-// ── Helper: warna cover hari ──
 function coverHariStyle(cover, lead_time) {
   if (cover === null) return 'color:var(--ink3)';
-  if (cover <= lead_time + 3) return 'color:var(--danger);font-weight:700';
+  if (cover <= lead_time + 3)  return 'color:var(--danger);font-weight:700';
   if (cover <= lead_time + 10) return 'color:var(--warn);font-weight:600';
   return 'color:var(--ok)';
 }
 
-// ── Helper: badge sisa stok ──
 function sisaBadge(sisa) {
   if (sisa === null)  return '<span style="color:var(--ink3);font-size:10px">—</span>';
   if (sisa <= 0)      return `<span style="color:var(--danger);font-weight:700">${sisa} ⚠️</span>`;
@@ -360,24 +430,21 @@ function sisaBadge(sisa) {
   return `<span style="color:var(--ink2)">${sisa}</span>`;
 }
 
-
-// ── Tab Summary — ringkasan eksekutif per supplier ──
-function renderSummary(bossList, bossSorted, fmtRp, clearanceList) {
+// ── Tab Summary ──
+function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis) {
   const grandBudget  = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
   const grandQty     = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
   const grandSKU     = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
 
-  // Alert global
-  const allItems     = bossSorted.flatMap(b => bossList[b].items);
-  const skuKritis    = allItems.filter(r => r.sisa_stok !== null && r.sisa_stok <= 3);
-  const skuNaik      = allItems.filter(r => r.tren === 'naik');
-  const skuTurun     = allItems.filter(r => r.tren === 'turun');
+  const allItems       = bossSorted.flatMap(b => bossList[b].items);
+  const skuKritis      = allItems.filter(r => r.sisa_stok !== null && r.sisa_stok <= 3);
+  const skuNaik        = allItems.filter(r => r.tren === 'naik');
+  const skuTurun       = allItems.filter(r => r.tren === 'turun');
   const skuCoverPendek = allItems.filter(r => {
     const sup = bossSorted.map(b => bossList[b]).find(b => b.items.includes(r));
     return r.cover_hari !== null && r.cover_hari <= (sup ? sup.sup.lead_time + 3 : 10);
   });
 
-  // Banner alert — hanya tampil kalau ada yang perlu diperhatikan
   const alerts = [];
   if (skuKritis.length)      alerts.push(`<span style="color:var(--danger)"><b>${skuKritis.length} SKU</b> stok kritis (≤3 pcs)</span>`);
   if (skuCoverPendek.length) alerts.push(`<span style="color:var(--warn)"><b>${skuCoverPendek.length} SKU</b> cover pendek</span>`);
@@ -390,7 +457,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList) {
       ${alerts.join('<span style="color:var(--ink3)">·</span>')}
     </div>` : '';
 
-  // Tabel per supplier
   const rows = bossSorted.map(boss => {
     const { items, sup } = bossList[boss];
     const totalQty   = items.reduce((s,r) => s + r.qty_order, 0);
@@ -437,7 +503,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList) {
       </tr>`;
   }).join('');
 
-  // Total row
   const totalRow = `
     <tr style="font-weight:700;border-top:2px solid var(--ink3)">
       <td style="color:var(--ink2)">TOTAL — ${bossSorted.length} supplier</td>
@@ -448,6 +513,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList) {
     </tr>`;
 
   return `
+    ${bannerKritis || ''}
     ${alertBar}
     <div class="tbl-wrap">
       <table class="tbl">
@@ -479,14 +545,12 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList) {
     </div>` : ''}`;
 }
 
-
 // ── Tampilan full 1 supplier (tab individual) ──
 function renderSupplierFull(boss, { items, sup }, fmtRp) {
   const totalQty   = items.reduce((s,r) => s + r.qty_order, 0);
   const totalNilai = items.reduce((s,r) => s + r.nilai, 0);
   const budgetSisa = sup.budget ? sup.budget - totalNilai : null;
 
-  // Hitung ringkasan tren
   const trenNaik  = items.filter(r => r.tren === 'naik').length;
   const trenTurun = items.filter(r => r.tren === 'turun').length;
   const trenBaru  = items.filter(r => r.tren === 'baru').length;
@@ -499,9 +563,7 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
     </div>` : '';
 
   return `
-    <div class="card" style="margin-bottom:0">
-
-      <!-- Info supplier -->
+    <div style="padding:10px 14px">
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 14px;
                   background:var(--cream2);border:2px dashed var(--ink3);border-radius:4px">
         <div style="font-size:13px">
@@ -532,68 +594,62 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
         ${sup.catatan ? `<div style="width:100%;font-size:11px;color:var(--ink3)"><i class="ti ti-note"></i> ${sup.catatan}</div>` : ''}
         ${trenSummary}
       </div>
-
-      <!-- Legenda -->
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--ink3)">
         <span>Cover: <span style="color:var(--danger)">merah</span> = supply pendek, <span style="color:var(--warn)">kuning</span> = cukup, <span style="color:var(--ok)">hijau</span> = aman</span>
         <span>Tren: ↑ naik · ↓ turun · → stabil · ★ baru</span>
       </div>
-
-      <!-- Tabel full width -->
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Katalog</th>
-              <th>Variant (SKU)</th>
-              <th style="text-align:center">Tren</th>
-              <th style="text-align:center">Sisa</th>
-              <th style="text-align:center">Qty 14hr</th>
-              <th style="text-align:center">Avg/hari</th>
-              <th style="text-align:center">ROP+SS</th>
-              <th style="text-align:center;color:var(--warn)">Order</th>
-              <th style="text-align:center">Cover</th>
-              <th style="text-align:right">HPP</th>
-              <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map((r, i) => `
-              <tr>
-                <td style="color:var(--ink3);font-size:11px">${i + 1}</td>
-                <td style="color:var(--ink3)">${r.katalog}</td>
-                <td><b style="color:var(--ink)">${r.sku}</b></td>
-                <td style="text-align:center">${trenIcon(r.tren)}</td>
-                <td style="text-align:center">${sisaBadge(r.sisa_stok)}</td>
-                <td style="text-align:center">${r.qty14}</td>
-                <td style="text-align:center;color:var(--ink3)">${r.avg_harian}</td>
-                <td style="text-align:center;color:var(--ink2)">${r.rop}</td>
-                <td style="text-align:center;font-weight:700;font-size:16px;color:var(--warn)">${r.qty_order}</td>
-                <td style="text-align:center;font-size:12px;${coverHariStyle(r.cover_hari, sup.lead_time)}">
-                  ${r.cover_hari !== null ? r.cover_hari + ' hr' : '—'}
-                </td>
-                <td style="text-align:right;color:var(--ink3);font-size:12px">${fmtRp(r.hpp)}</td>
-                <td style="text-align:right;font-weight:600;color:${r.nilai ? 'var(--ok)' : 'var(--ink3)'}">
-                  ${fmtRp(r.nilai)}
-                </td>
-              </tr>
-            `).join('')}
-            <tr style="font-weight:700;border-top:2px solid var(--ink3)">
-              <td colspan="8" style="color:var(--ink2)">Total</td>
-              <td style="text-align:center;font-size:18px;color:var(--warn)">${totalQty}</td>
-              <td></td>
-              <td></td>
-              <td style="text-align:right;color:var(--ok);font-size:15px">${fmtRp(totalNilai)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
-  `;
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Katalog</th>
+            <th>Variant (SKU)</th>
+            <th style="text-align:center">Tren</th>
+            <th style="text-align:center">Sisa</th>
+            <th style="text-align:center">Qty 14hr</th>
+            <th style="text-align:center">Avg/hari</th>
+            <th style="text-align:center">ROP+SS</th>
+            <th style="text-align:center;color:var(--warn)">Order</th>
+            <th style="text-align:center">Cover</th>
+            <th style="text-align:right">HPP</th>
+            <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((r, i) => `
+            <tr>
+              <td style="color:var(--ink3);font-size:11px">${i + 1}</td>
+              <td style="color:var(--ink3)">${r.katalog}</td>
+              <td><b style="color:var(--ink)">${r.sku}</b></td>
+              <td style="text-align:center">${trenIcon(r.tren)}</td>
+              <td style="text-align:center">${sisaBadge(r.sisa_stok)}</td>
+              <td style="text-align:center">${r.qty14}</td>
+              <td style="text-align:center;color:var(--ink3)">${r.avg_harian}</td>
+              <td style="text-align:center;color:var(--ink2)">${r.rop}</td>
+              <td style="text-align:center;font-weight:700;font-size:16px;color:var(--warn)">${r.qty_order}</td>
+              <td style="text-align:center;font-size:12px;${coverHariStyle(r.cover_hari, sup.lead_time)}">
+                ${r.cover_hari !== null ? r.cover_hari + ' hr' : '—'}
+              </td>
+              <td style="text-align:right;color:var(--ink3);font-size:12px">${fmtRp(r.hpp)}</td>
+              <td style="text-align:right;font-weight:600;color:${r.nilai ? 'var(--ok)' : 'var(--ink3)'}">
+                ${fmtRp(r.nilai)}
+              </td>
+            </tr>
+          `).join('')}
+          <tr style="font-weight:700;border-top:2px solid var(--ink3)">
+            <td colspan="8" style="color:var(--ink2)">Total</td>
+            <td style="text-align:center;font-size:18px;color:var(--warn)">${totalQty}</td>
+            <td></td>
+            <td></td>
+            <td style="text-align:right;color:var(--ok);font-size:15px">${fmtRp(totalNilai)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
 }
 
-// Bulatkan ke kelipatan terdekat (ke atas), minimum = min_order
 function bulatkanKelipatan(nilai, kelipatan, min_order) {
   if (nilai <= 0) nilai = 0.01;
   const k   = kelipatan || 1;
@@ -604,24 +660,3 @@ function bulatkanKelipatan(nilai, kelipatan, min_order) {
 function fmtTgl(d) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
-
-// ─── SWIPE GESTURE — collapse card-title di landscape touch ──────────
-(function() {
-  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
-  function _init() {
-    if (!_mq.matches) return;
-    var title = document.querySelector('#restock-wrap .card-title');
-    if (!title) return;
-    // zone = card-title itu sendiri, collapse target = card-title
-    initSwipeCollapse(title, title, 50);
-  }
-  setTimeout(_init, 300);
-  document.addEventListener('zenot:page', function(e) {
-    if (e.detail.page !== 'restock') return;
-    setTimeout(function() {
-      var title = document.querySelector('#restock-wrap .card-title');
-      if (title) title.classList.remove('landscape-collapsed');
-      _init();
-    }, 80);
-  });
-})();

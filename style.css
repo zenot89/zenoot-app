@@ -1526,7 +1526,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: transparent;
   border-radius: 6px 6px 0 0;
 }
-#restock-wrap .card-title {
+#restock-sticky-header {
   background: transparent;
 }
 #ops-switcher-produk {
@@ -1736,21 +1736,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ── restock card-title COLLAPSE di landscape touch ── */
+/* ── restock-top-bar COLLAPSE saat swipe di landscape touch ── */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #restock-wrap .card-title {
+  #restock-top-bar {
     overflow: hidden;
     -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
     transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
     max-height: 200px;
     opacity: 1;
   }
-  #restock-wrap .card-title.landscape-collapsed {
+  #restock-top-bar.landscape-collapsed {
     max-height: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     opacity: 0;
     pointer-events: none;
+  }
+  /* Landscape: selalu tampilkan aksi dalam card, sembunyikan top bar */
+  #restock-aksi-mobile {
+    display: -webkit-flex !important;
+    display: flex !important;
+  }
+  #restock-top-bar {
+    display: block !important;
   }
 }
 
@@ -1827,7 +1835,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #stok-filter-bar,
   #cl-metrics-strip,
   #pt-top-bar,
-  #restock-wrap .card-title,
+  #restock-top-bar,
   #ops-switcher-produk,
   #pl-info-wrap,
   #kas-top-bar {
@@ -2016,7 +2024,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ═══════════════════════════════════════════════════════════
    FULL-HEIGHT FLEX — RESTOCK
-   chain: .content → #page-restock → .card → #restock-tbl-wrap
+   Pattern identik dengan Jurnal Penjualan:
+   chain: html → body → .main → .content → #page-restock
+          → #restock-top-bar (shrink:0)
+          → #restock-wrap (flex:1)
+             → #restock-sticky-header (shrink:0)
+             → #restock-tbl-scroll (flex:1, overflow scroll)
    ═══════════════════════════════════════════════════════════ */
 #page-restock.active {
   display: -webkit-flex !important;
@@ -2026,11 +2039,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-direction: column;
   flex-direction: column;
   -webkit-flex: 1 1 0;
-  flex: 1 1 0;           /* flex:1 reliable di iOS Safari */
+  flex: 1 1 0;
   min-height: 0;
   padding: 0;
   gap: 0;
 }
+
+/* Top bar: judul halaman + tombol — freeze di atas, LUAR card */
+#restock-top-bar {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 16px 8px;
+  background: transparent;
+}
+
+/* Card tabel: flex-grow mengisi sisa tinggi */
 #restock-wrap {
   padding: 0;
   border-radius: 6px;
@@ -2045,42 +2068,92 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-direction: column;
   overflow: hidden;
 }
-#restock-wrap .card-title {
-  padding: 8px 14px;
-  margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+
+/* Sticky header dalam card: card-title + tab bar + info bar — freeze */
+#restock-sticky-header {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
+  background: var(--cream2);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-/* restock-body: flex column — header shrink:0, tbl-wrap flex:1 scroll */
-#restock-body {
-  -webkit-flex: 1 1 0;
-  flex: 1 1 0;
-  min-height: 0;
+
+/* Tab bar */
+#restock-tab-bar {
   display: -webkit-flex;
   display: flex;
-  -webkit-flex-direction: column;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 0;
+  gap: 0;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--ink);
+  padding: 0 10px;
 }
-/* Header restock (sort bar, info): shrink:0 */
-#restock-body > *:not(.tbl-wrap):not(table) {
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
-  padding: 8px 14px 4px;
+.restock-tab-btn {
+  padding: 6px 14px;
+  font-family: var(--f);
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--ink);
+  border-bottom: none;
+  cursor: pointer;
+  margin-bottom: -2px;
+  background: var(--cream);
+  color: var(--ink);
+  display: -webkit-inline-flex;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
-/* tbl-wrap: flex:1, hanya ini yang scroll */
-#restock-body .tbl-wrap {
+.restock-tab-btn.restock-tab-active {
+  background: var(--ink);
+  color: var(--cream);
+}
+.restock-tab-meta {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* Info bar: periode + budget */
+#restock-info-bar {
+  display: -webkit-flex;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 5px 14px 6px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Scroll zone: flex:1, hanya ini yang scroll */
+#restock-tbl-scroll {
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
-#restock-body .tbl th {
+
+/* restock-body: container konten tab (summary/supplier) */
+#restock-body {
+  min-height: 0;
+  padding: 0;
+}
+/* Header info supplier (info box + legenda): padding normal */
+#restock-body > div:not(.tbl-wrap) {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+/* tbl-wrap dalam scroll zone: overflow-x horizontal saja */
+#restock-tbl-scroll .tbl-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Thead sticky — top:0 karena scroll container sudah di #restock-tbl-scroll */
+#restock-tbl-scroll .tbl th {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
@@ -2089,7 +2162,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 @media (hover: none) and (pointer: coarse) {
-  #restock-body .tbl-wrap { padding-bottom: 70px; }
+  #restock-tbl-scroll { padding-bottom: 70px; }
+}
+
+/* ── Mobile (≤767px): sembunyikan top bar luar, tampilkan aksi dalam card ── */
+@media (max-width: 767px) {
+  #restock-top-bar    { display: none !important; }
+  #restock-aksi-mobile { display: -webkit-flex !important; display: flex !important; }
+}
+/* ── Laptop (≥768px): tampilkan top bar luar, sembunyikan aksi dalam card ── */
+@media (min-width: 768px) {
+  #restock-top-bar    { display: block !important; }
+  #restock-aksi-mobile { display: none !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════
