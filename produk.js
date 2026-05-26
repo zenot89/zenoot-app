@@ -108,6 +108,9 @@ window.addEventListener('resize', function() {
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'produk') return;
   setTimeout(_produkEnsureFlexLayout, 60);
+  // Reload data otomatis saat navigasi ke halaman ini (debounce 250ms)
+  clearTimeout(window._produkReloadTimer);
+  window._produkReloadTimer = setTimeout(loadProduk, 250);
 });
 
 let _produkData = [];

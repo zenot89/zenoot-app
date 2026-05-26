@@ -1815,3 +1815,14 @@ async function loadDashboard() {
 }
 
 loadDashboard();
+
+// ─── AUTO-RELOAD SAAT NAVIGASI KE HALAMAN INI ────────────────
+// Debounce 400ms: cegah double-fire jika menu diklik cepat
+(function() {
+  var _t = null;
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'dashboard') return;
+    clearTimeout(_t);
+    _t = setTimeout(loadDashboard, 400);
+  });
+})();

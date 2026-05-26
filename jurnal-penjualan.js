@@ -1283,6 +1283,9 @@ document.addEventListener('zenot:page', function(e) {
     var wrap = document.getElementById('jp-tbl-wrap');
     if (wrap) wrap.scrollTop = 0;
   });
+  // Reload data otomatis saat navigasi ke halaman ini (debounce 250ms)
+  clearTimeout(window._jpReloadTimer);
+  window._jpReloadTimer = setTimeout(loadJurnalPenjualan, 250);
 });
 
 // ─── SWIPE GESTURE — collapse jp-top-bar di landscape touch ─────────

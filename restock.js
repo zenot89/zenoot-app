@@ -118,6 +118,9 @@ document.addEventListener('zenot:page', function(e) {
     var sc = document.getElementById('restock-tbl-scroll');
     if (sc) sc.scrollTop = 0;
   });
+  // Reload data otomatis saat navigasi ke halaman ini (debounce 250ms)
+  clearTimeout(window._restockReloadTimer);
+  window._restockReloadTimer = setTimeout(loadRestock, 250);
 });
 
 // ─── SWIPE GESTURE — collapse restock-top-bar di landscape touch ──

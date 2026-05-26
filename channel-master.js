@@ -698,3 +698,14 @@ async function hapusSupplier(id, nama) {
     alert('Error: ' + e.message);
   }
 }
+
+// ─── AUTO-RELOAD SAAT NAVIGASI KE HALAMAN INI ────────────────
+// Debounce 250ms: cegah double-fire jika menu diklik cepat
+(function() {
+  var _t = null;
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'channel-master') return;
+    clearTimeout(_t);
+    _t = setTimeout(loadChannelMaster, 250);
+  });
+})();

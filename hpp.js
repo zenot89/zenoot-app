@@ -191,3 +191,14 @@ async function exportHpp() {
 }
 
 loadHpp();
+
+// ─── AUTO-RELOAD SAAT NAVIGASI KE HALAMAN INI ────────────────
+// Debounce 250ms: cegah double-fire jika menu diklik cepat
+(function() {
+  var _t = null;
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'hpp') return;
+    clearTimeout(_t);
+    _t = setTimeout(loadHpp, 250);
+  });
+})();

@@ -92,6 +92,9 @@ window.addEventListener('resize', function() {
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'price-list') return;
   setTimeout(_plEnsureFlexLayout, 60);
+  // Reload data otomatis saat navigasi ke halaman ini (debounce 250ms)
+  clearTimeout(window._plReloadTimer);
+  window._plReloadTimer = setTimeout(loadPriceList, 250);
 });
 
 // ─── CACHE ───────────────────────────────────────────────────

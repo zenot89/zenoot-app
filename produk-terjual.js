@@ -480,3 +480,13 @@ loadProdukTerjual();
     }, 80);
   });
 })();
+// ─── AUTO-RELOAD SAAT NAVIGASI KE HALAMAN INI ────────────────
+// Debounce 250ms: cegah double-fire jika menu diklik cepat
+(function() {
+  var _t = null;
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'produk-terjual') return;
+    clearTimeout(_t);
+    _t = setTimeout(loadProdukTerjual, 250);
+  });
+})();

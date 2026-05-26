@@ -1102,3 +1102,13 @@ setTimeout(loadStok, 0);
     }, 80);
   });
 })();
+// ─── AUTO-RELOAD SAAT NAVIGASI KE HALAMAN INI ────────────────
+// Debounce 250ms: cegah double-fire jika menu diklik cepat
+(function() {
+  var _t = null;
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'stok') return;
+    clearTimeout(_t);
+    _t = setTimeout(loadStok, 250);
+  });
+})();

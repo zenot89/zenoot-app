@@ -1155,6 +1155,9 @@ document.addEventListener('zenot:page', function(e) {
     var tb = document.getElementById('kas-top-bar');
     if (tb) tb.classList.remove('kas-topbar-collapsed');
   }, 60);
+  // Reload data otomatis saat navigasi ke halaman ini (debounce 250ms)
+  clearTimeout(window._kasReloadTimer);
+  window._kasReloadTimer = setTimeout(loadKasJurnal, 250);
 });
 
 // ─── SWIPE GESTURE — collapse kas-top-bar di semua touch mobile ──
