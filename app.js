@@ -146,6 +146,7 @@ var pageMap = {
   'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
   'keuangan':           { title:'Keuangan Operasional', sub:'hutang, neraca, rasio & valuasi' },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
+  'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
 };
 
 // ─── NAVIGASI ────────────────────────────────────────────────
