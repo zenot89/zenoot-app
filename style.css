@@ -1648,6 +1648,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: auto;
   overscroll-behavior: none;
+  touch-action: pan-y pan-x;
 }
 
 /* Thead sticky di dalam scroll container */
@@ -2252,6 +2253,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: auto;
   overscroll-behavior: none;
+  touch-action: pan-y pan-x;
   /* override inline max-height:65vh */
   max-height: none !important;
 }

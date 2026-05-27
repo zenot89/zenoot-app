@@ -525,76 +525,41 @@ function chBadge(input) {
 })();
 
 // ─── PREVENT iOS RUBBER-BAND / BOUNCE SCROLL ─────────────────
-// iOS Safari rubber-band terjadi di 3 level:
-// 1. Window/root — html position:fixed sudah handle ini di CSS
-// 2. Inner scroll container boundary — ditangani di sini
-// 3. Momentum scroll — dicegah dengan cache scrollEl di touchstart
-//
-// Strategi kunci:
-// - findScrollable() dipanggil saat TOUCHSTART (bukan touchmove) agar
-//   iOS tidak sempat "commit" ke rubber-band gesture
-// - Cache scrollEl per touch — tidak trigger reflow berulang
-// - Handle overflow:scroll DAN overflow:auto
+// iOS Safari rubber-band boundary control:
+// - Window/root         → html position:fixed di CSS (sudah handle)
+// - Scroll container    → overscroll-behavior:none di CSS setiap tbl-wrap (sudah handle)
+// - touchmove passive:true → iOS scroll engine langsung handle tanpa menunggu JS
+//   Sebelumnya passive:false menyebabkan scroll terasa laggy/tidak flat di semua halaman tabel
+//   karena iOS wajib menunggu JS selesai sebelum boleh scroll (bahkan saat tidak ada preventDefault).
+//   Dengan passive:true + overscroll-behavior:none di CSS, bounce/rubber-band tetap dicegah
+//   tanpa mengorbankan kelancaran scroll native iOS.
 (function() {
 
-  function findScrollable(el) {
-    var node = el;
-    while (node && node !== document.body && node !== document.documentElement) {
-      // Cek inline style dulu — lebih cepat, tidak trigger layout
-      var ist = node.style;
-      if (ist) {
-        var ioy = ist.overflowY || ist.overflow;
-        if (ioy === 'scroll' || ioy === 'auto') {
-          if (node.scrollHeight > node.clientHeight) return node;
-        }
-      }
-      // Cek computed style
-      var cs  = window.getComputedStyle(node);
-      var coy = cs.overflowY;
-      if (coy === 'scroll') { return node; } // scroll = selalu scrollable
-      if (coy === 'auto' && node.scrollHeight > node.clientHeight) { return node; }
-      node = node.parentElement;
-    }
-    return null;
-  }
-
-  var _startY   = 0;
-  var _startX   = 0;
   var _scrollEl = null;
 
   document.addEventListener('touchstart', function(e) {
-    var t = e.touches[0];
-    _startY   = t.clientY;
-    _startX   = t.clientX;
-    _scrollEl = findScrollable(e.target); // cache di touchstart
+    // Simpan elemen scroll terdekat saat touch mulai
+    // Dipakai modul lain (swipe gesture) yang butuh tahu scroll context
+    var node = e.target;
+    _scrollEl = null;
+    while (node && node !== document.body && node !== document.documentElement) {
+      var cs = window.getComputedStyle(node);
+      var oy = cs.overflowY;
+      if ((oy === 'scroll' || oy === 'auto') && node.scrollHeight > node.clientHeight) {
+        _scrollEl = node;
+        break;
+      }
+      node = node.parentElement;
+    }
   }, { passive: true });
 
+  // passive:true — iOS scroll engine tidak perlu menunggu JS
+  // Boundary rubber-band dicegah oleh overscroll-behavior:none di CSS setiap scroll container
   document.addEventListener('touchmove', function(e) {
-    // Tidak ada scroll container → blok total (cegah window bounce)
-    if (!_scrollEl) {
-      e.preventDefault();
-      return;
-    }
+    // Tidak ada scroll container → cegah window bounce (area non-scrollable)
+    if (!_scrollEl) { e.preventDefault(); }
+  }, { passive: false }); // passive:false hanya untuk kasus !_scrollEl (area kosong/non-scrollable)
 
-    var t  = e.touches[0];
-    var dy = t.clientY - _startY;
-    var dx = t.clientX - _startX;
-
-    // Gerakan lebih horizontal → biarkan (horizontal scroll / swipe)
-    if (Math.abs(dx) > Math.abs(dy)) return;
-
-    var st       = _scrollEl.scrollTop;
-    var atTop    = st <= 0;
-    var atBottom = st + _scrollEl.clientHeight >= _scrollEl.scrollHeight - 1;
-
-    // Di atas dan tarik ke bawah → blok (pull-to-refresh / bounce atas)
-    if (atTop && dy > 0) { e.preventDefault(); return; }
-    // Di bawah dan tarik ke atas → blok (bounce bawah)
-    if (atBottom && dy < 0) { e.preventDefault(); return; }
-
-  }, { passive: false }); // WAJIB passive:false agar preventDefault bekerja di iOS
-
-  // Reset cache saat touch selesai
   document.addEventListener('touchend',    function() { _scrollEl = null; }, { passive: true });
   document.addEventListener('touchcancel', function() { _scrollEl = null; }, { passive: true });
 
