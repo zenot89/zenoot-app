@@ -18,9 +18,18 @@ const SHOPEE_API_BASE    = 'https://partner.test-stable.shopeemobile.com';
 document.addEventListener('zenot:page', async function(e) {
   if (!e.detail || e.detail.page !== 'shopee-auth') return;
   await renderShopeeAuthPage();
-  // Cek kalau ini callback dari Shopee (ada ?code= di URL)
-  _handleShopeeCallback();
 });
+
+// Jalankan saat script pertama load
+(function() {
+  // Cek OAuth callback dari Shopee (?code=xxx di URL)
+  _handleShopeeCallback();
+  // Kalau halaman sudah active saat script load, render langsung
+  var el = document.getElementById('page-shopee-auth');
+  if (el && el.classList.contains('active')) {
+    renderShopeeAuthPage();
+  }
+})();
 
 async function renderShopeeAuthPage() {
   const el = document.getElementById('page-shopee-auth');
