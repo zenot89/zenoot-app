@@ -901,6 +901,32 @@ body.sidebar-mini .sidebar-footer::before{
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* ── FIX SCROLL FLAT iOS — scroll-behavior:auto agar jari langsung diikuti ──
+     scroll-behavior:smooth di iOS Safari = scroll terasa delay/tidak flat.
+     Override ke auto di sini agar native scroll engine iOS yang handle,
+     identik dengan perilaku scroll di Android. Tidak menyentuh desktop/laptop. */
+
+  /* Global: semua scroll container */
+  .content,
+  .tbl-wrap,
+  .sidebar-nav-scroll,
+  [style*="overflow-y:auto"],
+  [style*="overflow-y: auto"] {
+    scroll-behavior: auto;
+  }
+
+  /* Per halaman: tbl-wrap spesifik */
+  #jp-tbl-wrap,
+  #stok-tbl-wrap,
+  #cl-tbl-wrap,
+  #pt-tbl-wrap,
+  #kas-jurnal-tbl-wrap,
+  #restock-tbl-scroll,
+  #page-produk .card > .tbl-wrap,
+  #pl-card .tbl-wrap {
+    scroll-behavior: auto;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
