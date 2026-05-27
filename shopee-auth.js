@@ -152,29 +152,24 @@ function _saLog(msg, type) {
 }
 
 // ─── STEP 1: MULAI AUTH ─────────────────────────────────────
-// Generate auth URL dan buka di tab/window baru
-// ⚠️  Signature untuk auth URL tidak butuh secret key — cukup partner_id + timest
-function shopeeStartAuth() {
-  const timest  = Math.floor(Date.now() / 1000);
-  const path    = '/api/v2/shop/auth_partner';
-  // Redirect setelah auth kembali ke app ini
-  const redirect = SHOPEE_REDIRECT + '?shopee_callback=1';
-
-  // Untuk TEST environment: tidak perlu HMAC signature pada auth URL
-  const authUrl = SHOPEE_API_BASE + path
-    + '?partner_id=' + SHOPEE_PARTNER_ID
-    + '&timestamp='  + timest
-    + '&redirect='   + encodeURIComponent(redirect);
-
-  _saLog('Membuka halaman otorisasi Shopee...', 'info');
-
-  // Simpan state untuk validasi callback
-  try { localStorage.setItem('shopee_auth_ts', timest); } catch(e) {}
-
-  // Buka di tab baru (karena GitHub Pages)
-  window.open(authUrl, '_blank');
-
-  _saLog('Halaman Shopee terbuka di tab baru. Login dan klik Izinkan, lalu kembali ke sini.', 'info');
+// Generate auth URL via Edge Function (butuh HMAC signature dari secret key)
+async function shopeeStartAuth() {
+  _saLog('Membuat URL otorisasi Shopee...', 'info');
+  const SUPABASE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
+  try {
+    const res = await fetch(SUPABASE_EDGE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body: JSON.stringify({ action: 'get_auth_url', redirect: SHOPEE_REDIRECT + '/zenoot-app/' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    _saLog('URL siap, membuka halaman Shopee...', 'info');
+    window.open(data.auth_url, '_blank');
+    _saLog('Login dengan akun ZENOT di tab baru, lalu klik Izinkan.', 'info');
+  } catch(err) {
+    _saLog('Gagal buat auth URL: ' + err.message, 'err');
+  }
 }
 
 // ─── STEP 2: HANDLE CALLBACK ────────────────────────────────
