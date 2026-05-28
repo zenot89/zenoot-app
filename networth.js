@@ -237,8 +237,11 @@
   // ─── HITUNG NILAI STOK ────────────────────────────────────────
   function _getNilaiStok() {
     try {
-      if (!window._dashStokData) return 0;
-      return window._dashStokData.reduce((s, r) => s + (r.nilai_stok || 0), 0);
+      // _dashStokData adalah let global di dashboard.js (bukan window.*)
+      const data = (typeof _dashStokData !== 'undefined' ? _dashStokData : null)
+                || window._dashStokData;
+      if (!data || !data.length) return 0;
+      return data.reduce((s, r) => s + (r.nilai_stok || 0), 0);
     } catch(e) { return 0; }
   }
 
