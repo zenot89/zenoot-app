@@ -160,7 +160,7 @@ async function shopeeStartAuth() {
     const res = await fetch(SUPABASE_EDGE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-      body: JSON.stringify({ action: 'get_auth_url', redirect: SHOPEE_REDIRECT + '/zenoot-app/' })
+      body: JSON.stringify({ action: 'get_auth_url', redirect: SHOPEE_REDIRECT })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
