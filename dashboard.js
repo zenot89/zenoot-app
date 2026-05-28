@@ -1498,6 +1498,9 @@ async function loadDashboard() {
     // ─ Build kas akun map (dipakai untuk saldo KAS & BANK + beban di bawah)
     const _dashKasAkunMap = {};
     (kasAkunRaw || []).forEach(a => { _dashKasAkunMap[a.id] = a; });
+    // Expose ke window untuk networth.js
+    window._dashKasAkunMap    = _dashKasAkunMap;
+    window._dashJurnalAllData = jurnalAllData || [];
 
     const stokMasukMap = {};
     (stokRaw || []).forEach(s => {
@@ -1555,6 +1558,9 @@ async function loadDashboard() {
     document.getElementById('d-nilaiStok').textContent = _fmtRp(nilaiStok);
     document.getElementById('d-saldo').textContent     = (saldo>=0?'+':'')+_fmtRp(Math.abs(saldo));
     document.getElementById('d-saldo').style.color     = saldo>=0?'var(--ok)':'var(--danger)';
+
+    // ─ Trigger Net Worth update (networth.js)
+    if (typeof nwUpdate === 'function') nwUpdate();
 
     // ─ Metric 5-8
     const jpBulan   = _dashJPData.filter(r => r.tanggal && String(r.tanggal).slice(0,7) === todayYM);
