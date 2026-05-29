@@ -344,9 +344,29 @@ function kasGotoTab(tab) {
   const tabs = ['jurnal','laporan','akun'];
   document.querySelectorAll('#page-kas .kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   // Scope selector ke #page-kas agar tidak bertabrakan dengan komponen lain
-  document.querySelectorAll('#page-kas .kas-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-kas .kas-panel').forEach(p => {
+    p.classList.remove('active');
+    p.style.overflowY = '';
+    p.style.height    = '';
+    p.style.maxHeight = '';
+    p.style.padding   = '';
+  });
   var targetPanel = document.getElementById('kas-panel-' + tab);
-  if (targetPanel) targetPanel.classList.add('active');
+  if (targetPanel) {
+    targetPanel.classList.add('active');
+    // Tab Laporan & Kelola Akun: scroll normal dalam panel
+    if (tab !== 'jurnal') {
+      var topBar = document.getElementById('kas-top-bar');
+      var tabBar = document.querySelector('#page-kas .kas-tabs');
+      var usedH  = (topBar ? topBar.offsetHeight : 0) + (tabBar ? tabBar.offsetHeight : 0) + 32;
+      targetPanel.style.overflowY = 'auto';
+      targetPanel.style.overflowX = 'hidden';
+      targetPanel.style.height    = 'calc(100vh - ' + usedH + 'px)';
+      targetPanel.style.maxHeight = 'calc(100vh - ' + usedH + 'px)';
+      targetPanel.style.padding   = '0 0 40px 0';
+      targetPanel.style.webkitOverflowScrolling = 'touch';
+    }
+  }
   // Tampilkan toolbar hanya di tab jurnal
   var toolbar = document.getElementById('kas-jurnal-toolbar');
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
