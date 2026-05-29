@@ -61,7 +61,6 @@ document.getElementById('page-keuangan').innerHTML = `
   <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
   <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
   <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
-  <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
