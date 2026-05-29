@@ -207,10 +207,26 @@ function gotoPage(page, btn) {
       contentEl.style.display              = 'flex';
       contentEl.style.flexDirection        = 'column';
       contentEl.style.webkitFlexDirection  = 'column';
-      contentEl.style.height               = '100%';
       contentEl.style.webkitFlex           = '1 1 0';
       contentEl.style.flex                 = '1 1 0';
       contentEl.style.minHeight            = '0';
+      // iOS Safari: gunakan window.innerHeight eksplisit sebagai fallback
+      // -webkit-fill-available tidak selalu resolve via flex chain
+      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIOS) {
+        contentEl.style.height = window.innerHeight + 'px';
+        // Update saat orientasi/resize berubah
+        if (!contentEl._iosResizeHandler) {
+          contentEl._iosResizeHandler = function() {
+            if (contentEl.style.flex === '1 1 0') {
+              contentEl.style.height = window.innerHeight + 'px';
+            }
+          };
+          window.addEventListener('resize', contentEl._iosResizeHandler, { passive: true });
+        }
+      } else {
+        contentEl.style.height = '100%';
+      }
     } else {
       // Normal scroll pages: reset semua inline styles
       document.documentElement.style.height = '';

@@ -2159,6 +2159,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-x: auto;
   overscroll-behavior: none;
   touch-action: pan-y pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* restock-body: container konten tab (summary/supplier) */
@@ -2456,3 +2457,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #kas-panel-laporan,
   #kas-panel-akun      { padding-bottom: 70px; }
 }
+
+/* ─── iOS SAFARI PORTRAIT FIX ─────────────────────────────
+   Gunakan -webkit-fill-available agar flex:1 resolve dengan benar
+   saat address bar Safari muncul/hilang di portrait mode
+   ────────────────────────────────────────────────────────── */
+@supports (-webkit-touch-callout: none) {
+  /* iPhone/iPad Safari */
+  #restock-wrap {
+    height: -webkit-fill-available;
+  }
+  #restock-tbl-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  #stok-tbl-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Pastikan content area full height di iOS */
+  .content-el {
+    height: -webkit-fill-available;
+  }
+}
+
