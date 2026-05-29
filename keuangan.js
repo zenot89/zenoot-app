@@ -277,6 +277,56 @@ document.getElementById('page-keuangan').innerHTML = `
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-keuangan')); }, 80);
 document.body.insertAdjacentHTML('beforeend', `
 <!-- MODAL: TAMBAH/EDIT HUTANG -->
+<!-- PANEL: ARUS KAS -->
+<div id="keu-panel-aruskas" class="keu-panel">
+  <div class="rasio-card" id="ak-summary-cards">
+    <div class="rasio-item" id="ak-card-beban">
+      <div class="r-label">Beban Bulan Ini</div>
+      <div class="r-value" id="ak-beban-val">—</div>
+      <div class="r-desc">dari jurnal COA</div>
+    </div>
+    <div class="rasio-item" id="ak-card-cicilan">
+      <div class="r-label">Cicilan Hutang</div>
+      <div class="r-value" id="ak-cicilan-val">—</div>
+      <div class="r-desc">kewajiban bulan ini</div>
+    </div>
+    <div class="rasio-item" id="ak-card-total-keluar">
+      <div class="r-label">Total Keluar/Bulan</div>
+      <div class="r-value" id="ak-keluar-val">—</div>
+      <div class="r-desc">beban + cicilan</div>
+    </div>
+    <div class="rasio-item" id="ak-card-kas">
+      <div class="r-label">Kas Tersedia</div>
+      <div class="r-value" id="ak-kas-val">—</div>
+      <div class="r-desc">kas + escrow + wallet</div>
+    </div>
+  </div>
+  <div id="ak-status-bar" style="padding:12px 16px;border-radius:4px;margin-bottom:14px;font-weight:700;font-size:14px;display:none"></div>
+  <div class="rasio-item" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="r-label">Cash Runway</div>
+      <div class="r-value" id="ak-runway-val" style="font-size:24px">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="r-desc" id="ak-runway-desc">—</div>
+      <div id="ak-bulan-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">
+    Rincian Beban <span id="ak-bulan-rincian"></span>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:2px solid var(--ink)">
+        <th style="text-align:left;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Akun</th>
+        <th style="text-align:right;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Nominal</th>
+      </tr>
+    </thead>
+    <tbody id="ak-rincian-tbody">
+      <tr><td colspan="2" style="padding:12px 4px;color:var(--ink3);font-style:italic">Memuat...</td></tr>
+    </tbody>
+  </table>
+</div>
 <div class="modal-overlay" id="modal-keu-hutang" onclick="if(event.target===this)hideModal('modal-keu-hutang')">
   <div class="modal" style="max-width:560px;width:100%">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
@@ -337,56 +387,6 @@ document.body.insertAdjacentHTML('beforeend', `
       <button class="btn btn-sm" onclick="hideModal('modal-keu-hutang')"><i class="ti ti-x"></i> Batal</button>
     </div>
   </div>
-</div>
-<!-- PANEL: ARUS KAS -->
-<div id="keu-panel-aruskas" class="keu-panel">
-  <div class="rasio-card" id="ak-summary-cards">
-    <div class="rasio-item" id="ak-card-beban">
-      <div class="r-label">Beban Bulan Ini</div>
-      <div class="r-value" id="ak-beban-val">—</div>
-      <div class="r-desc">dari jurnal COA</div>
-    </div>
-    <div class="rasio-item" id="ak-card-cicilan">
-      <div class="r-label">Cicilan Hutang</div>
-      <div class="r-value" id="ak-cicilan-val">—</div>
-      <div class="r-desc">kewajiban bulan ini</div>
-    </div>
-    <div class="rasio-item" id="ak-card-total-keluar">
-      <div class="r-label">Total Keluar/Bulan</div>
-      <div class="r-value" id="ak-keluar-val">—</div>
-      <div class="r-desc">beban + cicilan</div>
-    </div>
-    <div class="rasio-item" id="ak-card-kas">
-      <div class="r-label">Kas Tersedia</div>
-      <div class="r-value" id="ak-kas-val">—</div>
-      <div class="r-desc">kas + escrow + wallet</div>
-    </div>
-  </div>
-  <div id="ak-status-bar" style="padding:12px 16px;border-radius:4px;margin-bottom:14px;font-weight:700;font-size:14px;display:none"></div>
-  <div class="rasio-item" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div class="r-label">Cash Runway</div>
-      <div class="r-value" id="ak-runway-val" style="font-size:24px">—</div>
-    </div>
-    <div style="text-align:right">
-      <div class="r-desc" id="ak-runway-desc">—</div>
-      <div id="ak-bulan-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
-    </div>
-  </div>
-  <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">
-    Rincian Beban <span id="ak-bulan-rincian"></span>
-  </div>
-  <table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead>
-      <tr style="border-bottom:2px solid var(--ink)">
-        <th style="text-align:left;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Akun</th>
-        <th style="text-align:right;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Nominal</th>
-      </tr>
-    </thead>
-    <tbody id="ak-rincian-tbody">
-      <tr><td colspan="2" style="padding:12px 4px;color:var(--ink3);font-style:italic">Memuat...</td></tr>
-    </tbody>
-  </table>
 </div>
 `);
 

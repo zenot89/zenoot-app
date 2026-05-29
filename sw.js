@@ -31,13 +31,13 @@ var JS_APP_FILES = [
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'clearance.js', 'hpp.js', 'notif.js',
-  'shopee-auth.js',
+  'shopee-auth.js', 'networth.js',
   'rough-ui.js', 'style.css',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v3 agar cache lama (v2, yang pernah ikut terhapus) tidak dipakai lagi
-var JS_CACHE = 'zenot-js-v3';
+var JS_CACHE = 'zenot-js-v4';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
