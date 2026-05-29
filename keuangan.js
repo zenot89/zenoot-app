@@ -272,11 +272,8 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
   </div>
 </div>
-`;
 
-setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-keuangan')); }, 80);
-document.body.insertAdjacentHTML('beforeend', `
-<!-- MODAL: TAMBAH/EDIT HUTANG -->
+
 <!-- PANEL: ARUS KAS -->
 <div id="keu-panel-aruskas" class="keu-panel">
   <div class="rasio-card" id="ak-summary-cards">
@@ -388,7 +385,10 @@ document.body.insertAdjacentHTML('beforeend', `
     </div>
   </div>
 </div>
-`);
+
+`;
+
+setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-keuangan')); }, 80);
 
 // ─── TAB ─────────────────────────────────────────────────────
 let _keuTabAktif = 'hutang';
