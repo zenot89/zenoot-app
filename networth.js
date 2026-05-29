@@ -79,22 +79,15 @@
     const s = document.createElement('style');
     s.id = 'nw-styles';
     s.textContent = `
-      #nw-widget { margin: 0 0 16px 0; }
+      #nw-widget { margin: 0 0 10px 0; }
       .nw-card {
-        background: var(--surface, #1e1e2e);
-        border: 1px solid var(--border, rgba(255,255,255,0.08));
-        border-radius: 12px;
-        padding: 16px 20px;
+        background: var(--cream2);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px;
         position: relative;
         overflow: hidden;
-      }
-      .nw-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent,#7c6af7), var(--ok,#4caf50));
-        border-radius: 12px 12px 0 0;
+        box-shadow: var(--card-shadow);
       }
       .nw-header {
         display: flex;
