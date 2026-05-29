@@ -245,20 +245,28 @@
     } catch(e) { return 0; }
   }
 
-  // ─── HITUNG HUTANG dari jurnal COA kewajiban ──────────────────
-  function _getHutang() {
+  // ─── HITUNG HUTANG dari tabel hutang + hutang_bayar ──────────
+  async function _getHutang() {
     try {
-      if (!window._dashKasAkunMap || !window._dashJurnalAllData) return 0;
-      return (window._dashJurnalAllData || []).reduce((s, r) => {
-        const n  = Number(r.nominal || r.debit || 0);
-        const aD = window._dashKasAkunMap[r.akun_debit_id];
-        const aK = window._dashKasAkunMap[r.akun_kredit_id];
-        const isHutangDebit  = aD && aD.kelompok === 'kewajiban';
-        const isHutangKredit = aK && aK.kelompok === 'kewajiban';
-        // Kewajiban: kredit = tambah hutang, debit = bayar hutang
-        if (isHutangKredit) return s + n;
-        if (isHutangDebit)  return s - n;
-        return s;
+      const [hutangRes, bayarRes] = await Promise.all([
+        fetch(SUPABASE_URL + '/rest/v1/hutang?select=id,pokok,status', { headers: _headers() }),
+        fetch(SUPABASE_URL + '/rest/v1/hutang_bayar?select=hutang_id,nominal', { headers: _headers() })
+      ]);
+      if (!hutangRes.ok) return 0;
+      const hutangList = await hutangRes.json();
+      const bayarList  = bayarRes.ok ? await bayarRes.json() : [];
+
+      // Map total bayar per hutang_id
+      const bayarMap = {};
+      (bayarList || []).forEach(b => {
+        bayarMap[b.hutang_id] = (bayarMap[b.hutang_id] || 0) + Number(b.nominal || 0);
+      });
+
+      // Sisa = pokok - sudah bayar, hanya yang sisa > 0
+      return (hutangList || []).reduce((s, h) => {
+        const sudahBayar = bayarMap[h.id] || 0;
+        const sisa = (h.pokok || 0) - sudahBayar;
+        return s + (sisa > 0 ? sisa : 0);
       }, 0);
     } catch(e) { return 0; }
   }
@@ -290,7 +298,7 @@
 
     const kas       = _getKas();
     const nilaiStok = _getNilaiStok();
-    const hutang    = _getHutang();
+    const hutang    = await _getHutang();
 
     // Ambil data Shopee dari cache
     const shopeeCache = await _fetchShopeeCache();
