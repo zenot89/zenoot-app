@@ -60,6 +60,8 @@ document.getElementById('page-keuangan').innerHTML = `
 <div class="keu-tabs-row2">
   <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
   <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
+  <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
+  <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -337,6 +339,56 @@ document.body.insertAdjacentHTML('beforeend', `
     </div>
   </div>
 </div>
+<!-- PANEL: ARUS KAS -->
+<div id="keu-panel-aruskas" class="keu-panel">
+  <div class="rasio-card" id="ak-summary-cards">
+    <div class="rasio-item" id="ak-card-beban">
+      <div class="r-label">Beban Bulan Ini</div>
+      <div class="r-value" id="ak-beban-val">—</div>
+      <div class="r-desc">dari jurnal COA</div>
+    </div>
+    <div class="rasio-item" id="ak-card-cicilan">
+      <div class="r-label">Cicilan Hutang</div>
+      <div class="r-value" id="ak-cicilan-val">—</div>
+      <div class="r-desc">kewajiban bulan ini</div>
+    </div>
+    <div class="rasio-item" id="ak-card-total-keluar">
+      <div class="r-label">Total Keluar/Bulan</div>
+      <div class="r-value" id="ak-keluar-val">—</div>
+      <div class="r-desc">beban + cicilan</div>
+    </div>
+    <div class="rasio-item" id="ak-card-kas">
+      <div class="r-label">Kas Tersedia</div>
+      <div class="r-value" id="ak-kas-val">—</div>
+      <div class="r-desc">kas + escrow + wallet</div>
+    </div>
+  </div>
+  <div id="ak-status-bar" style="padding:12px 16px;border-radius:4px;margin-bottom:14px;font-weight:700;font-size:14px;display:none"></div>
+  <div class="rasio-item" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="r-label">Cash Runway</div>
+      <div class="r-value" id="ak-runway-val" style="font-size:24px">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="r-desc" id="ak-runway-desc">—</div>
+      <div id="ak-bulan-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">
+    Rincian Beban <span id="ak-bulan-rincian"></span>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:2px solid var(--ink)">
+        <th style="text-align:left;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Akun</th>
+        <th style="text-align:right;padding:6px 4px;font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase">Nominal</th>
+      </tr>
+    </thead>
+    <tbody id="ak-rincian-tbody">
+      <tr><td colspan="2" style="padding:12px 4px;color:var(--ink3);font-style:italic">Memuat...</td></tr>
+    </tbody>
+  </table>
+</div>
 `);
 
 // ─── TAB ─────────────────────────────────────────────────────
@@ -344,13 +396,14 @@ let _keuTabAktif = 'hutang';
 
 function keuGotoTab(tab) {
   _keuTabAktif = tab;
-  const tabs = ['hutang','neraca','rasio','valuasi'];
+  const tabs = ['hutang','neraca','rasio','valuasi','aruskas'];
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.keu-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('keu-panel-' + tab).classList.add('active');
   if (tab === 'neraca')  keuRenderNeraca();
   if (tab === 'rasio')   keuRenderRasio();
   if (tab === 'valuasi') keuRenderValuasi();
+  if (tab === 'aruskas') keuRenderArusKas();
 }
 
 function keuRefreshAktif() {
@@ -358,6 +411,7 @@ function keuRefreshAktif() {
   if (_keuTabAktif === 'neraca')  keuRenderNeraca();
   if (_keuTabAktif === 'rasio')   keuRenderRasio();
   if (_keuTabAktif === 'valuasi') keuRenderValuasi();
+  if (_keuTabAktif === 'aruskas') keuRenderArusKas();
 }
 
 // ─── HUTANG ──────────────────────────────────────────────────
@@ -982,3 +1036,168 @@ function keuSyncPickerLabel(pickerId, selectId, placeholder) {
 
 // Tutup picker saat klik di luar
 // close listener: handled by unified handler in app.js
+
+// ─── ARUS KAS ────────────────────────────────────────────────
+async function keuRenderArusKas() {
+  const fmtRp = v => fmtRpFull(Math.abs(v));
+
+  // Bulan ini
+  const now    = new Date();
+  const bulanStr = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const ymStr    = now.toISOString().slice(0, 7); // "2026-05"
+  const el = id => document.getElementById(id);
+  if (el('ak-bulan-rincian')) el('ak-bulan-rincian').textContent = bulanStr;
+  if (el('ak-bulan-label'))   el('ak-bulan-label').textContent   = bulanStr;
+
+  try {
+    // 1. Data jurnal + kas_akun
+    const [kasAkun, jurnal, hutangAll, bayarAll, shopeeCache] = await Promise.all([
+      dbGet('kas_akun', '').catch(() => []),
+      dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
+      dbGet('hutang', '').catch(() => []),
+      dbGet('hutang_bayar', '').catch(() => []),
+      fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
+        { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
+    ]);
+
+    // Build akunMap
+    const akunMap = {};
+    (kasAkun || []).forEach(a => { akunMap[a.id] = a; });
+
+    // 2. Beban bulan ini dari jurnal
+    const jurnalBulan = (jurnal || []).filter(r => (r.tanggal || '').slice(0, 7) === ymStr);
+    const bebanMap = {}; // akun_id → total nominal beban
+    jurnalBulan.forEach(r => {
+      const n  = Number(r.nominal || r.debit || 0);
+      const aD = akunMap[r.akun_debit_id];
+      const aK = akunMap[r.akun_kredit_id];
+      // Beban = akun debit kelompok beban
+      if (aD && aD.kelompok === 'beban') {
+        bebanMap[r.akun_debit_id] = (bebanMap[r.akun_debit_id] || { nama: aD.nama, total: 0 });
+        bebanMap[r.akun_debit_id].total += n;
+      }
+      // Kredit ke beban jarang, tapi handle juga (pengurangan beban)
+      if (aK && aK.kelompok === 'beban') {
+        bebanMap[r.akun_kredit_id] = (bebanMap[r.akun_kredit_id] || { nama: aK.nama, total: 0 });
+        bebanMap[r.akun_kredit_id].total -= n;
+      }
+    });
+
+    const totalBeban = Object.values(bebanMap).reduce((s, b) => s + b.total, 0);
+
+    // 3. Cicilan hutang bulan ini
+    const totalCicilan = (hutangAll || []).filter(h => {
+      const sisa = (h.pokok || 0) - (bayarAll || [])
+        .filter(b => b.hutang_id === h.id)
+        .reduce((s, b) => s + Number(b.nominal || 0), 0);
+      return sisa > 0;
+    }).reduce((s, h) => s + (h.cicilan_per_bulan || 0), 0);
+
+    const totalKeluar = totalBeban + totalCicilan;
+
+    // 4. Kas tersedia
+    const kasArr = Object.values(akunMap).filter(a =>
+      a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'
+    );
+    // Hitung saldo per akun kas
+    let totalKasJurnal = 0;
+    const akunSaldo = {};
+    (jurnal || []).forEach(r => {
+      const n = Number(r.nominal || r.debit || 0);
+      if (kasArr.find(a => a.id === r.akun_debit_id))  akunSaldo[r.akun_debit_id]  = (akunSaldo[r.akun_debit_id]  || 0) + n;
+      if (kasArr.find(a => a.id === r.akun_kredit_id)) akunSaldo[r.akun_kredit_id] = (akunSaldo[r.akun_kredit_id] || 0) - n;
+    });
+    totalKasJurnal = Object.values(akunSaldo).reduce((s, v) => s + v, 0);
+
+    const cache       = shopeeCache && shopeeCache.length > 0 ? shopeeCache[0] : null;
+    const escrow      = cache ? Number(cache.escrow_transit  || 0) : 0;
+    const wallet      = cache ? Number(cache.wallet_balance  || 0) : 0;
+    const totalKas    = totalKasJurnal + escrow + wallet;
+
+    // 5. Runway = kas / (total keluar / 30)
+    const biayaPerHari = totalKeluar / 30;
+    const runwayHari   = biayaPerHari > 0 ? Math.floor(totalKas / biayaPerHari) : 999;
+
+    // ─── RENDER ─────────────────────────────────────────────
+    const isDefisit = totalKas < totalKeluar;
+
+    // Summary cards
+    const setCard = (id, val, cls) => {
+      const card = el(id);
+      if (card) card.className = 'rasio-item ' + (cls || '');
+    };
+    if (el('ak-beban-val'))  el('ak-beban-val').textContent  = fmtRp(totalBeban);
+    if (el('ak-cicilan-val'))el('ak-cicilan-val').textContent= fmtRp(totalCicilan);
+    if (el('ak-keluar-val')) el('ak-keluar-val').textContent = fmtRp(totalKeluar);
+    if (el('ak-kas-val'))    el('ak-kas-val').textContent    = fmtRp(totalKas);
+
+    setCard('ak-card-beban',       totalBeban   > 0 ? 'r-warn' : '');
+    setCard('ak-card-cicilan',     totalCicilan > 0 ? 'r-warn' : '');
+    setCard('ak-card-total-keluar',isDefisit ? 'r-danger' : 'r-warn');
+    setCard('ak-card-kas',         isDefisit ? 'r-danger' : 'r-ok');
+
+    if (el('ak-kas-desc')) {
+      el('ak-kas-desc').textContent = `Kas: ${fmtRp(totalKasJurnal)}` +
+        (escrow > 0 ? ` · Escrow: ${fmtRp(escrow)}` : '') +
+        (wallet > 0 ? ` · Wallet: ${fmtRp(wallet)}` : '');
+    }
+
+    // Status bar
+    const statusBar = el('ak-status-bar');
+    if (statusBar) {
+      statusBar.style.display = 'block';
+      if (isDefisit) {
+        const defisit = totalKeluar - totalKas;
+        statusBar.style.background = 'rgba(224,82,82,0.12)';
+        statusBar.style.color      = 'var(--danger)';
+        statusBar.innerHTML        = `⚠ Kas kurang <b>${fmtRp(defisit)}</b> untuk cover beban bulan ini`;
+      } else {
+        const surplus = totalKas - totalKeluar;
+        statusBar.style.background = 'rgba(76,175,80,0.12)';
+        statusBar.style.color      = 'var(--ok)';
+        statusBar.innerHTML        = `✅ Surplus <b>${fmtRp(surplus)}</b> setelah semua beban bulan ini`;
+      }
+    }
+
+    // Runway
+    if (el('ak-runway-val')) {
+      if (runwayHari >= 999) {
+        el('ak-runway-val').textContent = '∞';
+        el('ak-runway-val').style.color = 'var(--ok)';
+      } else {
+        el('ak-runway-val').textContent = runwayHari + ' hari';
+        el('ak-runway-val').style.color = runwayHari < 7 ? 'var(--danger)' : runwayHari < 30 ? 'var(--warn)' : 'var(--ok)';
+      }
+    }
+    if (el('ak-runway-desc')) {
+      el('ak-runway-desc').textContent = biayaPerHari > 0
+        ? `Biaya harian ~${fmtRp(biayaPerHari)}`
+        : 'Tidak ada beban tercatat';
+    }
+
+    // Rincian beban
+    const tbody = el('ak-rincian-tbody');
+    if (tbody) {
+      const rows = Object.values(bebanMap).filter(b => b.total > 0).sort((a, b) => b.total - a.total);
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="padding:12px 4px;color:var(--ink3);font-style:italic">Belum ada beban tercatat bulan ini</td></tr>';
+      } else {
+        tbody.innerHTML = rows.map(b => `
+          <tr style="border-bottom:1px solid var(--border,rgba(0,0,0,0.06))">
+            <td style="padding:7px 4px">${b.nama}</td>
+            <td style="text-align:right;padding:7px 4px;font-weight:600;color:var(--danger)">${fmtRp(b.total)}</td>
+          </tr>`).join('') +
+          `<tr style="border-top:2px solid var(--ink)">
+            <td style="padding:8px 4px;font-weight:700">Total Beban</td>
+            <td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--danger)">${fmtRp(totalBeban)}</td>
+          </tr>`;
+      }
+    }
+
+    // Expose ke window untuk dashboard metric
+    window._akData = { totalBeban, totalCicilan, totalKeluar, totalKas, runwayHari, isDefisit };
+
+  } catch(e) {
+    console.error('[ARUS KAS]', e);
+  }
+}

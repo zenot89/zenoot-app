@@ -96,12 +96,12 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="m-delta" id="d-laba-delta">omset − HPP terjual</div>
       <div class="doodle"><i class="ti ti-chart-bar"></i></div>
     </div>
-    <div class="metric">
-      <div class="m-label">Beban Operasional</div>
+    <div class="metric" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
+      <div class="m-label">Beban vs Kas</div>
       <div class="m-value" id="d-beban">—</div>
       <div class="m-delta" id="d-beban-delta">bulan ini</div>
       <div id="d-beban-realisasi" style="font-size:11px;color:var(--ink3);margin-top:2px"></div>
-      <div class="doodle"><i class="ti ti-clipboard-list"></i></div>
+      <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
     <div class="metric">
       <div class="m-label">Est. Laba Bersih</div>
@@ -1677,6 +1677,9 @@ async function loadDashboard() {
         : '';
     }
 
+    // ── Update label Beban vs Kas dari data arus kas ──
+    _dashUpdateBebanVsKas(totalBebanNominal);
+
     // ── BARU: Target Omset = Total Anggaran ÷ rasio Shopee (auto, tanpa set manual) ──
     const targetOtomatis = (totalAnggaran > 0 && rasioBebanShopee > 0)
       ? Math.round(totalAnggaran / (rasioBebanShopee / 100))
@@ -1832,3 +1835,59 @@ loadDashboard();
     _t = setTimeout(loadDashboard, 400);
   });
 })();
+
+// ─── BEBAN VS KAS — update metric card dari data arus kas ────
+async function _dashUpdateBebanVsKas(totalBebanDash) {
+  try {
+    const [hutangAll, bayarAll, kasAkun, jurnal, shopeeCache] = await Promise.all([
+      dbGet('hutang',       '').catch(() => []),
+      dbGet('hutang_bayar', '').catch(() => []),
+      dbGet('kas_akun',     '').catch(() => []),
+      dbGet('jurnal',       '').catch(() => []),
+      fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
+        { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
+    ]);
+
+    // Cicilan hutang aktif
+    const totalCicilan = (hutangAll || []).filter(h => {
+      const sisa = (h.pokok || 0) - (bayarAll || [])
+        .filter(b => b.hutang_id === h.id)
+        .reduce((s, b) => s + Number(b.nominal || 0), 0);
+      return sisa > 0;
+    }).reduce((s, h) => s + (h.cicilan_per_bulan || 0), 0);
+
+    const totalKeluar = (totalBebanDash || 0) + totalCicilan;
+
+    // Kas & Bank dari jurnal
+    const kasIds = (kasAkun || [])
+      .filter(a => a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK')
+      .map(a => a.id);
+    const saldoKas = (jurnal || []).reduce((s, r) => {
+      const n = Number(r.nominal || r.debit || 0);
+      if (kasIds.includes(r.akun_debit_id))  return s + n;
+      if (kasIds.includes(r.akun_kredit_id)) return s - n;
+      return s;
+    }, 0);
+
+    const cache  = shopeeCache && shopeeCache.length > 0 ? shopeeCache[0] : null;
+    const escrow = cache ? Number(cache.escrow_transit || 0) : 0;
+    const wallet = cache ? Number(cache.wallet_balance || 0) : 0;
+    const totalKas = saldoKas + escrow + wallet;
+
+    const isDefisit = totalKas < totalKeluar;
+    const selisih   = Math.abs(totalKas - totalKeluar);
+
+    // Update card
+    const elDelta = document.getElementById('d-beban-delta');
+    if (elDelta) {
+      elDelta.textContent = isDefisit
+        ? '⚠ Defisit ' + _fmtRp(selisih)
+        : '✅ Surplus ' + _fmtRp(selisih);
+      elDelta.style.color = isDefisit ? 'var(--danger)' : 'var(--ok)';
+    }
+
+    // Expose untuk networth
+    window._akData = { totalBeban: totalBebanDash, totalCicilan, totalKeluar, totalKas, isDefisit };
+
+  } catch(e) { console.warn('[BebanVsKas]', e); }
+}
