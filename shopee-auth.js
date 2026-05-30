@@ -1,18 +1,14 @@
 // ─── SHOPEE-AUTH.JS — Koneksi & Token Management ─────────────
 // Mengelola OAuth flow Shopee API v2.0
-// Partner ID  : 1234423  (TEST/SANDBOX)
-// Redirect URL: https://zenoot89.github.io
+// Live Partner ID : 2035455  ← GO LIVE (approved)
+// Redirect URL    : https://zenoot89.github.io
 // CORS: semua call ke Shopee harus lewat Supabase Edge Function
+// Partner Key TIDAK disimpan di sini — ada di Supabase Edge Function (env var)
 // ─────────────────────────────────────────────────────────────
 
-const SHOPEE_PARTNER_ID  = 1234423;
+const SHOPEE_PARTNER_ID  = 2035455;           // ← LIVE
 const SHOPEE_REDIRECT    = 'https://zenoot89.github.io';
-// ⚠️  Partner Key JANGAN disimpan di frontend — ini hanya untuk dev/test lokal
-// Untuk production: simpan di Supabase Edge Function sebagai env variable
-const SHOPEE_TEST_KEY    = 'shpk764241644f4e5561434e464f61474a4f414a41534e774b63487148626551';
-
-// Base URL Shopee API (test/sandbox)
-const SHOPEE_API_BASE    = 'https://partner.test-stable.shopeemobile.com';
+const SHOPEE_API_BASE    = 'https://partner.shopeemobile.com'; // ← LIVE (bukan test-stable)
 
 // ─── RENDER HALAMAN ─────────────────────────────────────────
 document.addEventListener('zenot:page', async function(e) {
@@ -54,6 +50,14 @@ async function renderShopeeAuthPage() {
       <!-- STATUS CARD -->
       <div class="card" style="margin-bottom:16px">
         <div class="card-title"><i class="ti ti-brand-shopee"></i> Koneksi Shopee API</div>
+
+        <!-- Live badge -->
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;
+            font-size:11px;font-weight:700;background:rgba(255,165,0,0.12);color:#f5a623;margin-bottom:12px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#f5a623;display:inline-block"></span>
+          LIVE — Partner ID 2035455
+        </div>
+
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
           <span style="
             display:inline-flex;align-items:center;gap:6px;
@@ -78,7 +82,7 @@ async function renderShopeeAuthPage() {
           </div>
         ` : `
           <p style="font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.6">
-            Hubungkan toko Shopee kamu ke zenOt untuk auto-sync pesanan, data keuangan, dan escrow secara otomatis.
+            Hubungkan toko Shopee ZENOT ke zenOt untuk auto-sync pesanan, data keuangan, dan escrow secara otomatis.
           </p>
         `}
 
@@ -154,7 +158,7 @@ function _saLog(msg, type) {
 // ─── STEP 1: MULAI AUTH ─────────────────────────────────────
 // Generate auth URL via Edge Function (butuh HMAC signature dari secret key)
 async function shopeeStartAuth() {
-  _saLog('Membuat URL otorisasi Shopee...', 'info');
+  _saLog('Membuat URL otorisasi Shopee (LIVE)...', 'info');
   const SUPABASE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
   try {
     const res = await fetch(SUPABASE_EDGE, {
@@ -190,12 +194,10 @@ function _handleShopeeCallback() {
   } catch(e) {}
 
   // Exchange code → access_token via Supabase Edge Function
-  // Edge Function yang menangani HMAC signature (jangan expose secret di frontend!)
   _shopeeExchangeToken(code, parseInt(shopId));
 }
 
 // ─── STEP 3: EXCHANGE CODE → TOKEN ──────────────────────────
-// Ini harus lewat Supabase Edge Function karena butuh secret key untuk HMAC
 async function _shopeeExchangeToken(code, shopId) {
   _saLog('Menukar code dengan access token...', 'info');
 
@@ -228,21 +230,19 @@ async function _shopeeExchangeToken(code, shopId) {
 
   } catch(err) {
     _saLog('Gagal dapat token: ' + err.message, 'err');
-    // Fallback: tampilkan instruksi manual
     _showManualTokenInput(code, shopId);
   }
 }
 
 // ─── FALLBACK: INPUT TOKEN MANUAL ───────────────────────────
-// Kalau Edge Function belum ada, user bisa input token manual dari API Test Tool
 function _showManualTokenInput(code, shopId) {
   var logEl = document.getElementById('shopee-auth-log');
   if (!logEl) return;
   logEl.innerHTML = `
     <div style="background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.3);border-radius:8px;padding:12px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;color:#ffc107;margin-bottom:8px">⚠️ Supabase Edge Function belum aktif</div>
+      <div style="font-size:12px;font-weight:600;color:#ffc107;margin-bottom:8px">⚠️ Supabase Edge Function error — input manual</div>
       <div style="font-size:12px;color:var(--ink2);margin-bottom:10px;line-height:1.6">
-        Untuk sementara, dapatkan token manual dari <b>Shopee Open Platform → Tools → API Test Tool</b>,
+        Dapatkan token dari <b>Shopee Open Platform → Tools → API Test Tool</b>,
         lalu masukkan di bawah ini:
       </div>
       <div style="display:grid;gap:8px">
@@ -287,7 +287,6 @@ async function _saveToken(shopId, data) {
     updated_at:    new Date().toISOString(),
   };
 
-  // Cek apakah sudah ada record untuk shop ini
   const existing = await dbGet('shopee_tokens', '&shop_id=eq.' + shopId);
   if (existing.length > 0) {
     await dbUpdate('shopee_tokens', existing[0].id, payload);
@@ -298,13 +297,12 @@ async function _saveToken(shopId, data) {
 
 // ─── TEST KONEKSI ────────────────────────────────────────────
 async function shopeeTestConnection() {
-  _saLog('Testing koneksi ke Shopee API...', 'info');
+  _saLog('Testing koneksi ke Shopee LIVE API...', 'info');
   try {
     const tokens = await dbGet('shopee_tokens', '&order=created_at.desc&limit=1');
     if (!tokens.length) throw new Error('Belum ada token tersimpan');
 
     const tok = tokens[0];
-    // Test dengan endpoint /api/v2/shop/get_shop_info
     const SUPABASE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
     const res  = await fetch(SUPABASE_EDGE, {
       method:  'POST',
