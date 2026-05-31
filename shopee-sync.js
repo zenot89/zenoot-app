@@ -1,39 +1,70 @@
 // ─── SHOPEE-SYNC.JS — Auto Sync Order ke Jurnal Penjualan ────
-// Jalankan setelah token tersimpan di shopee_tokens
-// Sync: order list → jurnal_penjualan
+// Sync otomatis: saat app load + tiap 30 menit
+// Insert ke tabel jurnal_penjualan dengan kolom yang sudah ada
+// + kolom tambahan Shopee (no_order, omset, escrow, biaya_*)
 // ─────────────────────────────────────────────────────────────
 
 const SHOPEE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
 
-// ─── AUTO SYNC saat app load ─────────────────────────────────
+// Cache channel_id Shopee (toko_utama) agar tidak query berulang
+let _shopeeChannelId = null;
+
+// ─── AMBIL CHANNEL_ID SHOPEE DARI DB ─────────────────────────
+async function _getShopeeChannelId() {
+  if (_shopeeChannelId) return _shopeeChannelId;
+  try {
+    const ch = await dbGet('channels', '&kategori=eq.toko_utama&limit=1');
+    _shopeeChannelId = ch.length ? ch[0].id : null;
+  } catch(e) {
+    _shopeeChannelId = null;
+  }
+  return _shopeeChannelId;
+}
+
+// ─── AUTO SYNC SAAT APP LOAD ──────────────────────────────────
 (async function() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
     if (!tokens.length || !tokens[0].access_token) return;
     const tok = tokens[0];
-    const expAt = tok.expire_at || 0;
-    if (expAt < Math.floor(Date.now() / 1000)) {
+    if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) {
       console.log('[shopee-sync] Token expired, skip auto-sync');
       return;
     }
-    console.log('[shopee-sync] Token OK, mulai sync...');
-    await shopeeSyncOrders(tok, false); // silent sync
+    console.log('[shopee-sync] Token OK, mulai sync saat load...');
+    await shopeeSyncOrders(tok);
   } catch(e) {
-    console.warn('[shopee-sync] Auto-sync skip:', e.message);
+    console.warn('[shopee-sync] Auto-sync on load skip:', e.message);
   }
 })();
 
-// ─── SYNC ORDERS ─────────────────────────────────────────────
-async function shopeeSyncOrders(tok, verbose) {
+// ─── AUTO SYNC BERKALA TIAP 30 MENIT ─────────────────────────
+setInterval(async function() {
+  try {
+    const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
+    if (!tokens.length || !tokens[0].access_token) return;
+    const tok = tokens[0];
+    if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) {
+      console.log('[shopee-sync] Token expired, skip periodic sync');
+      return;
+    }
+    console.log('[shopee-sync] Periodic sync (30 menit)...');
+    await shopeeSyncOrders(tok);
+  } catch(e) {
+    console.warn('[shopee-sync] Periodic sync skip:', e.message);
+  }
+}, 30 * 60 * 1000); // 30 menit
+
+// ─── CORE SYNC ORDERS ────────────────────────────────────────
+async function shopeeSyncOrders(tok) {
   if (!tok) {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
     if (!tokens.length) throw new Error('Belum ada token Shopee');
     tok = tokens[0];
   }
 
-  const log = verbose ? (msg, t) => _saLog(msg, t) : () => {};
-
-  log('Mengambil daftar order dari Shopee...', 'info');
+  // Ambil channel_id Shopee dari tabel channels
+  const channelId = await _getShopeeChannelId();
 
   // Ambil order 30 hari terakhir
   const timeTo   = Math.floor(Date.now() / 1000);
@@ -63,19 +94,22 @@ async function shopeeSyncOrders(tok, verbose) {
     }
   }
 
-  log(`Dapat ${allOrders.length} order, memproses...`, 'info');
+  if (!allOrders.length) {
+    console.log('[shopee-sync] Tidak ada order baru.');
+    return 0;
+  }
 
-  // Cek order yang sudah ada di jurnal_penjualan
-  const existing = await dbGet('jurnal_penjualan', '&channel=eq.Shopee&select=no_order');
+  // Cek order yang sudah ada (by no_order) agar tidak duplikat
+  const existing = await dbGet('jurnal_penjualan', '&no_order=not.is.null&select=no_order');
   const existSet = new Set(existing.map(r => r.no_order));
 
   let inserted = 0;
   for (const order of allOrders) {
     const sn = order.order_sn;
-    if (existSet.has(sn)) continue; // skip yang sudah ada
+    if (existSet.has(sn)) continue;
 
     try {
-      // Get order detail untuk harga
+      // Get escrow detail untuk data keuangan
       const detRes = await fetch(SHOPEE_EDGE, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -88,20 +122,26 @@ async function shopeeSyncOrders(tok, verbose) {
       });
       const det = await detRes.json();
 
-      const omset      = parseFloat(det.buyer_total_amount || det.order_income?.buyer_total_amount || 0);
-      const escrow     = parseFloat(det.escrow_amount || det.order_income?.escrow_amount || 0);
-      const b_komisi   = parseFloat(det.commission_fee || det.order_income?.commission_fee || 0);
-      const b_admin    = parseFloat(det.service_fee || det.order_income?.service_fee || 0);
-      const b_layanan  = parseFloat(det.transaction_fee || det.order_income?.transaction_fee || 0);
-      const b_proses   = parseFloat(det.order_processing_fee || 0);
-      const b_kampanye = parseFloat(det.campaign_fee || 0);
+      // Support berbagai struktur response Shopee
+      const inc = det.order_income || det;
+
+      const omset      = parseFloat(inc.buyer_total_amount      || det.buyer_total_amount      || 0);
+      const escrow     = parseFloat(inc.escrow_amount           || det.escrow_amount           || 0);
+      const b_komisi   = parseFloat(inc.commission_fee          || det.commission_fee          || 0);
+      const b_admin    = parseFloat(inc.service_fee             || det.service_fee             || 0);
+      const b_layanan  = parseFloat(inc.transaction_fee         || det.transaction_fee         || 0);
+      const b_proses   = parseFloat(inc.order_processing_fee    || det.order_processing_fee    || 0);
+      const b_kampanye = parseFloat(inc.campaign_fee            || det.campaign_fee            || 0);
 
       const tanggal = new Date(order.create_time * 1000).toISOString().split('T')[0];
+      const waktu   = new Date(order.create_time * 1000).toTimeString().slice(0, 5);
 
+      // Insert ke jurnal_penjualan dengan kolom yang lengkap
       await dbInsert('jurnal_penjualan', {
         tanggal,
-        no_order:    sn,
-        channel:     'Shopee',
+        waktu,
+        channel_id:     channelId,   // FK ke tabel channels (toko_utama)
+        no_order:       sn,
         omset,
         escrow,
         biaya_komisi:   b_komisi,
@@ -109,7 +149,9 @@ async function shopeeSyncOrders(tok, verbose) {
         biaya_layanan:  b_layanan,
         biaya_proses:   b_proses,
         biaya_kampanye: b_kampanye,
-        status:         order.order_status,
+        order_status:   order.order_status,
+        // sku, qty, harga_satuan, total dibiarkan null untuk order Shopee
+        // (bisa diisi manual atau dari get_order_detail jika perlu)
         created_at:     new Date().toISOString(),
       });
       inserted++;
@@ -118,21 +160,15 @@ async function shopeeSyncOrders(tok, verbose) {
     }
   }
 
-  log(`Sync selesai! ${inserted} order baru ditambahkan.`, 'ok');
-  return inserted;
-}
+  console.log('[shopee-sync] Selesai. ' + inserted + ' order baru.');
 
-// ─── MANUAL SYNC (dipanggil dari UI) ────────────────────────
-async function shopeeManualSync() {
-  const btn = document.getElementById('shopee-sync-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> Syncing...'; }
-  try {
-    const n = await shopeeSyncOrders(null, true);
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Sync Order'; }
-    alert(`Sync selesai! ${n} order baru ditambahkan.`);
-    if (typeof loadJurnalPenjualan === 'function') loadJurnalPenjualan();
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Sync Order'; }
-    alert('Sync gagal: ' + e.message);
+  // Refresh tampilan Jurnal Penjualan jika halaman itu sedang aktif
+  if (inserted > 0 && typeof loadJurnalPenjualan === 'function') {
+    const page = document.querySelector('.page.active');
+    if (page && page.id === 'page-jurnal-penjualan') {
+      loadJurnalPenjualan();
+    }
   }
+
+  return inserted;
 }
