@@ -227,6 +227,11 @@ async function _shopeeExchangeToken(code, shopId) {
     await _saveToken(shopId, data);
     _saLog('Berhasil! Toko ' + shopId + ' terhubung ke zenOt.', 'ok');
     setTimeout(() => renderShopeeAuthPage(), 800);
+    // Trigger full sync setelah koneksi baru
+    const newTok = { shop_id: shopId, access_token: data.access_token, expire_at: data.expire_at || Math.floor(Date.now()/1000) + 14400 };
+    if (typeof syncShopeeFinance === 'function')     syncShopeeFinance(newTok).catch(()=>{});
+    if (typeof syncActiveOrderEscrow === 'function') syncActiveOrderEscrow(newTok).catch(()=>{});
+    if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
 
   } catch(err) {
     _saLog('Gagal dapat token: ' + err.message, 'err');
@@ -335,6 +340,11 @@ async function shopeeRefreshToken() {
     await _saveToken(tok.shop_id, data);
     _saLog('Token diperpanjang! Expire baru: ' + new Date((data.expire_at || 0) * 1000).toLocaleString('id-ID'), 'ok');
     setTimeout(() => renderShopeeAuthPage(), 600);
+    // Trigger full sync setelah token diperpanjang
+    const newTok = { ...tok, access_token: data.access_token, expire_at: data.expire_at || Math.floor(Date.now()/1000) + 14400 };
+    if (typeof syncShopeeFinance === 'function')     syncShopeeFinance(newTok).catch(()=>{});
+    if (typeof syncActiveOrderEscrow === 'function') syncActiveOrderEscrow(newTok).catch(()=>{});
+    if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
   } catch(err) {
     _saLog('Refresh gagal: ' + err.message, 'err');
   }
