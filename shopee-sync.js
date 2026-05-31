@@ -159,6 +159,101 @@ async function syncShopeeFinance(tok) {
   }
 }
 
+
+// ─── SYNC STATUS & ESCROW ORDER AKTIF ────────────────────────────────────────
+// Update order yang masih aktif atau belum punya data escrow
+async function syncActiveOrderEscrow(tok) {
+  if (!tok) {
+    try {
+      const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
+      if (!tokens.length || !tokens[0].access_token) return;
+      tok = tokens[0];
+      if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) return;
+    } catch(e) { return; }
+  }
+
+  try {
+    // Ambil order yang: status masih aktif ATAU escrow null/0
+    const activeOrders = await dbGet('jurnal_penjualan',
+      '&no_order=not.is.null&select=id,no_order,order_status,escrow' +
+      '&order_status=in.(SHIPPED,TO_CONFIRM_RECEIVE,READY_TO_SHIP,IN_CANCEL,UNPAID)'
+    );
+    const nullEscrow = await dbGet('jurnal_penjualan',
+      '&no_order=not.is.null&select=id,no_order,order_status,escrow&escrow=is.null'
+    );
+
+    // Gabung dan deduplicate
+    const allMap = new Map();
+    [...activeOrders, ...nullEscrow].forEach(r => allMap.set(r.no_order, r));
+    const toUpdate = [...allMap.values()];
+
+    if (!toUpdate.length) {
+      console.log('[shopee-sync] Tidak ada order aktif untuk di-update escrow.');
+      return;
+    }
+
+    console.log('[shopee-sync] Update escrow', toUpdate.length, 'order aktif...');
+    let updated = 0;
+
+    for (const row of toUpdate) {
+      try {
+        const detRes = await fetch(SHOPEE_EDGE, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+          body:    JSON.stringify({
+            action:       'get_escrow_detail',
+            shop_id:      tok.shop_id,
+            access_token: tok.access_token,
+            order_sn:     row.no_order,
+          })
+        });
+        const det = await detRes.json();
+        if (det.error) continue;
+
+        const inc        = det.order_income || det;
+        const escrow     = parseFloat(inc.escrow_amount        || det.escrow_amount        || 0);
+        const omset      = parseFloat(inc.buyer_total_amount   || det.buyer_total_amount   || 0);
+        const b_komisi   = parseFloat(inc.commission_fee       || det.commission_fee       || 0);
+        const b_admin    = parseFloat(inc.service_fee          || det.service_fee          || 0);
+        const b_layanan  = parseFloat(inc.transaction_fee      || det.transaction_fee      || 0);
+        const b_proses   = parseFloat(inc.order_processing_fee || det.order_processing_fee || 0);
+        const b_kampanye = parseFloat(inc.campaign_fee         || det.campaign_fee         || 0);
+
+        // Get status terbaru dari order_status field di response
+        const newStatus = det.order_status || inc.order_status || row.order_status;
+
+        // PATCH ke Supabase
+        await fetch(
+          SUPABASE_URL + '/rest/v1/jurnal_penjualan?id=eq.' + row.id,
+          {
+            method:  'PATCH',
+            headers: { ..._headers(), 'Prefer': 'return=minimal' },
+            body:    JSON.stringify({
+              escrow,
+              omset:         omset || undefined,
+              biaya_komisi:  b_komisi  || undefined,
+              biaya_admin:   b_admin   || undefined,
+              biaya_layanan: b_layanan || undefined,
+              biaya_proses:  b_proses  || undefined,
+              biaya_kampanye: b_kampanye || undefined,
+              order_status:  newStatus,
+            }),
+          }
+        );
+        updated++;
+      } catch(e) {
+        console.warn('[shopee-sync] Skip update order', row.no_order, e.message);
+      }
+    }
+
+    console.log('[shopee-sync] Escrow updated:', updated, 'order.');
+    if (updated > 0 && typeof nwRefresh === 'function') nwRefresh();
+
+  } catch(e) {
+    console.warn('[shopee-sync] syncActiveOrderEscrow error:', e.message);
+  }
+}
+
 (async function() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
@@ -172,6 +267,7 @@ async function syncShopeeFinance(tok) {
     // Finance sync DULU (cepat, tidak tergantung order baru)
     await syncShopeeFinance(tok);
     // Lalu order sync
+    await syncActiveOrderEscrow(tok);
     await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Auto-sync on load skip:', e.message);
@@ -190,6 +286,7 @@ setInterval(async function() {
     }
     console.log('[shopee-sync] Periodic sync (30 menit)...');
     await syncShopeeFinance(tok);
+    await syncActiveOrderEscrow(tok);
     await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Periodic sync skip:', e.message);
