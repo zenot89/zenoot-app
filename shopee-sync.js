@@ -6,6 +6,71 @@
 
 const SHOPEE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
 
+// ─── AUTO REFRESH TOKEN (tiap 30 menit, perpanjang kalau sisa < 1 jam) ───────
+async function _autoRefreshTokenIfNeeded() {
+  try {
+    const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
+    if (!tokens.length || !tokens[0].access_token) return;
+    const tok = tokens[0];
+    const now = Math.floor(Date.now() / 1000);
+    const sisaDetik = (tok.expire_at || 0) - now;
+
+    // Kalau sisa > 1 jam, tidak perlu refresh
+    if (sisaDetik > 3600) {
+      console.log('[shopee-sync] Token masih OK, sisa', Math.round(sisaDetik/60), 'menit');
+      return;
+    }
+
+    // Kalau sudah expired total (> 30 hari), tidak bisa refresh, harus hubungkan ulang
+    if (sisaDetik < -(86400 * 30)) {
+      console.warn('[shopee-sync] Token terlalu lama expired, hubungkan ulang Shopee');
+      return;
+    }
+
+    console.log('[shopee-sync] Token mau habis, auto-refresh...');
+    const res = await fetch(SHOPEE_EDGE, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body:    JSON.stringify({
+        action:        'refresh_token',
+        shop_id:       tok.shop_id,
+        refresh_token: tok.refresh_token,
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Simpan token baru ke DB
+    const expireAt = data.expire_at || (now + (data.expire_in || 14400));
+    await fetch(
+      SUPABASE_URL + '/rest/v1/shopee_tokens?shop_id=eq.' + tok.shop_id,
+      {
+        method:  'PATCH',
+        headers: { ..._headers(), 'Prefer': 'return=minimal' },
+        body:    JSON.stringify({
+          access_token:  data.access_token,
+          refresh_token: data.refresh_token || tok.refresh_token,
+          expire_at:     expireAt,
+          updated_at:    new Date().toISOString(),
+        }),
+      }
+    );
+    console.log('[shopee-sync] Token berhasil di-refresh! Expire baru:', new Date(expireAt * 1000).toLocaleString('id-ID'));
+
+    // Langsung sync finance dengan token baru
+    await syncShopeeFinance({ ...tok, access_token: data.access_token, expire_at: expireAt });
+
+  } catch(e) {
+    console.warn('[shopee-sync] Auto-refresh token gagal:', e.message);
+  }
+}
+
+// Jalankan auto-refresh tiap 30 menit
+setInterval(_autoRefreshTokenIfNeeded, 30 * 60 * 1000);
+// Cek juga saat pertama load (delay 5 detik biar DB siap)
+setTimeout(_autoRefreshTokenIfNeeded, 5000);
+
+
 // Cache channel_id Shopee (toko_utama) agar tidak query berulang
 let _shopeeChannelId = null;
 
