@@ -22,6 +22,78 @@ async function _getShopeeChannelId() {
 }
 
 // ─── AUTO SYNC SAAT APP LOAD ──────────────────────────────────
+
+async function syncShopeeFinance(tok) {
+  if (!tok) {
+    try {
+      const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
+      if (!tokens.length || !tokens[0].access_token) return null;
+      tok = tokens[0];
+      if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) return null;
+    } catch(e) { return null; }
+  }
+
+  try {
+    const res = await fetch(SHOPEE_EDGE, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body:    JSON.stringify({
+        action:       'get_finance_info',
+        shop_id:      tok.shop_id,
+        access_token: tok.access_token,
+      })
+    });
+    const data = await res.json();
+    if (data.error) {
+      console.warn('[shopee-sync] get_finance_info error:', data.error);
+      return null;
+    }
+
+    const escrow_transit = parseFloat(data.escrow_transit  || data.escrow_amount   || 0);
+    const wallet_balance = parseFloat(data.wallet_balance  || data.shopee_wallet   || 0);
+
+    // Upsert ke shopee_finance_cache (pakai shop_id sebagai key)
+    const existing = await dbGet('shopee_finance_cache', '&shop_id=eq.' + tok.shop_id + '&limit=1');
+
+    const payload = {
+      shop_id:        tok.shop_id,
+      escrow_transit,
+      wallet_balance,
+      fetched_at:     new Date().toISOString(),
+      raw_response:   JSON.stringify(data),
+    };
+
+    if (existing.length) {
+      // Update row yang ada
+      await fetch(
+        SUPABASE_URL + '/rest/v1/shopee_finance_cache?shop_id=eq.' + tok.shop_id,
+        {
+          method:  'PATCH',
+          headers: {
+            ..._headers(),
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+    } else {
+      // Insert baru
+      await dbInsert('shopee_finance_cache', payload);
+    }
+
+    console.log('[shopee-sync] Finance synced — escrow:', escrow_transit, 'wallet:', wallet_balance);
+
+    // Trigger refresh Net Worth jika widget ada
+    if (typeof nwRefresh === 'function') nwRefresh();
+
+    return { escrow_transit, wallet_balance };
+  } catch(e) {
+    console.warn('[shopee-sync] syncShopeeFinance error:', e.message);
+    return null;
+  }
+}
+
 (async function() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
@@ -32,6 +104,9 @@ async function _getShopeeChannelId() {
       return;
     }
     console.log('[shopee-sync] Token OK, mulai sync saat load...');
+    // Finance sync DULU (cepat, tidak tergantung order baru)
+    await syncShopeeFinance(tok);
+    // Lalu order sync
     await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Auto-sync on load skip:', e.message);
@@ -49,6 +124,7 @@ setInterval(async function() {
       return;
     }
     console.log('[shopee-sync] Periodic sync (30 menit)...');
+    await syncShopeeFinance(tok);
     await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Periodic sync skip:', e.message);
@@ -177,74 +253,4 @@ async function shopeeSyncOrders(tok) {
 }
 // ─── SYNC SHOPEE FINANCE (Escrow + Wallet) ke shopee_finance_cache ──────────
 // Dipanggil otomatis setelah shopeeSyncOrders, dan bisa dipanggil manual
-async function syncShopeeFinance(tok) {
-  if (!tok) {
-    try {
-      const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
-      if (!tokens.length || !tokens[0].access_token) return null;
-      tok = tokens[0];
-      if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) return null;
-    } catch(e) { return null; }
-  }
-
-  try {
-    const res = await fetch(SHOPEE_EDGE, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-      body:    JSON.stringify({
-        action:       'get_finance_info',
-        shop_id:      tok.shop_id,
-        access_token: tok.access_token,
-      })
-    });
-    const data = await res.json();
-    if (data.error) {
-      console.warn('[shopee-sync] get_finance_info error:', data.error);
-      return null;
-    }
-
-    const escrow_transit = parseFloat(data.escrow_amount   || data.escrow_transit  || 0);
-    const wallet_balance = parseFloat(data.wallet_balance  || data.shopee_wallet   || 0);
-
-    // Upsert ke shopee_finance_cache (pakai shop_id sebagai key)
-    const existing = await dbGet('shopee_finance_cache', '&shop_id=eq.' + tok.shop_id + '&limit=1');
-
-    const payload = {
-      shop_id:        tok.shop_id,
-      escrow_transit,
-      wallet_balance,
-      fetched_at:     new Date().toISOString(),
-      raw_response:   JSON.stringify(data),
-    };
-
-    if (existing.length) {
-      // Update row yang ada
-      await fetch(
-        SUPABASE_URL + '/rest/v1/shopee_finance_cache?shop_id=eq.' + tok.shop_id,
-        {
-          method:  'PATCH',
-          headers: {
-            ..._headers(),
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-    } else {
-      // Insert baru
-      await dbInsert('shopee_finance_cache', payload);
-    }
-
-    console.log('[shopee-sync] Finance synced — escrow:', escrow_transit, 'wallet:', wallet_balance);
-
-    // Trigger refresh Net Worth jika widget ada
-    if (typeof nwRefresh === 'function') nwRefresh();
-
-    return { escrow_transit, wallet_balance };
-  } catch(e) {
-    console.warn('[shopee-sync] syncShopeeFinance error:', e.message);
-    return null;
-  }
-}
 
