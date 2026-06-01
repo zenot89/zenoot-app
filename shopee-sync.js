@@ -58,14 +58,18 @@ async function syncShopeeFinance(tok) {
       return null;
     }
 
-    // Support berbagai field name dari Shopee API / Edge Function
-    const escrow_transit = parseFloat(
-      data.escrow_transit  || data.escrow_amount    ||
-      data.escrow_balance  || data.income           || 0
-    );
+    // Struktur response dari Edge Function shopee-proxy (get_finance_info):
+    // _escrow_raw.escrow_list[] → sum payout_amount = total escrow in transit
+    // _wallet_raw → { error: 'error_not_found' } = wallet API tidak support → 0
+    let escrow_transit = 0;
+    if (data._escrow_raw && Array.isArray(data._escrow_raw.escrow_list)) {
+      escrow_transit = data._escrow_raw.escrow_list.reduce((s, e) => s + (Number(e.payout_amount) || 0), 0);
+    } else {
+      // Fallback: flat fields jika Edge Function sudah flatten
+      escrow_transit = parseFloat(data.escrow_transit || data.escrow_amount || data.escrow_balance || 0);
+    }
     const wallet_balance = parseFloat(
-      data.wallet_balance  || data.shopee_wallet    ||
-      data.sip_wallet_balance || 0
+      (!data._wallet_raw?.error && (data.wallet_balance || data._wallet_raw?.current_balance || data._wallet_raw?.balance)) || 0
     );
 
     const payload = {
