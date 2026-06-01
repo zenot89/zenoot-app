@@ -1,8 +1,11 @@
-// ─── SHOPEE-SYNC.JS — Auto Sync Order ke Jurnal Penjualan ────
+// ─── SHOPEE-SYNC.JS v3 — Fixed: field total, syncActiveOrderEscrow ────
 // Sync otomatis: saat app load + tiap 30 menit
-// Insert ke tabel jurnal_penjualan dengan kolom yang sudah ada
-// + kolom tambahan Shopee (no_order, omset, escrow, biaya_*)
-// ─────────────────────────────────────────────────────────────
+// BUG FIX v3:
+//   1. Field "total" diisi = omset (buyer_total_amount) → dashboard omset jadi benar
+//   2. syncActiveOrderEscrow didefinisikan (sebelumnya hilang → crash)
+//   3. Hapus double-call syncShopeeFinance di akhir shopeeSyncOrders
+//   4. _getValidToken() helper reusable, tidak copy-paste per fungsi
+// ─────────────────────────────────────────────────────────────────────
 
 const SHOPEE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
 
@@ -10,14 +13,14 @@ const SHOPEE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
 async function _getValidToken() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
-    if (!tokens.length || !tokens[0].access_token) return null;
+    if (!tokens || !tokens.length || !tokens[0].access_token) return null;
     const tok = tokens[0];
     if ((tok.expire_at || 0) < Math.floor(Date.now() / 1000)) return null;
     return tok;
   } catch(e) { return null; }
 }
 
-// Cache channel_id Shopee (toko_utama) agar tidak query berulang
+// Cache channel_id Shopee agar tidak query berulang
 let _shopeeChannelId = null;
 
 // ─── AMBIL CHANNEL_ID SHOPEE DARI DB ─────────────────────────
@@ -25,15 +28,14 @@ async function _getShopeeChannelId() {
   if (_shopeeChannelId) return _shopeeChannelId;
   try {
     const ch = await dbGet('channels', '&kategori=eq.toko_utama&limit=1');
-    _shopeeChannelId = ch.length ? ch[0].id : null;
+    _shopeeChannelId = (ch && ch.length) ? ch[0].id : null;
   } catch(e) {
     _shopeeChannelId = null;
   }
   return _shopeeChannelId;
 }
 
-// ─── SYNC SHOPEE FINANCE (Escrow + Wallet) ke shopee_finance_cache ───
-// Dipanggil otomatis setelah shopeeSyncOrders, bisa juga manual
+// ─── SYNC SHOPEE FINANCE (Escrow + Wallet) → shopee_finance_cache ────
 async function syncShopeeFinance(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -74,13 +76,13 @@ async function syncShopeeFinance(tok) {
       raw_response:   JSON.stringify(data),
     };
 
-    // Upsert: cek dulu apakah row sudah ada
+    // Upsert: PATCH jika sudah ada, INSERT jika belum
     let existing = [];
     try {
       existing = await dbGet('shopee_finance_cache', '&shop_id=eq.' + tok.shop_id + '&limit=1');
     } catch(e) { existing = []; }
 
-    if (existing.length) {
+    if (existing && existing.length) {
       await fetch(
         SUPABASE_URL + '/rest/v1/shopee_finance_cache?shop_id=eq.' + tok.shop_id,
         {
@@ -105,9 +107,25 @@ async function syncShopeeFinance(tok) {
   }
 }
 
+// ─── PARSE DETAIL ORDER → field keuangan ─────────────────────
+// Helper untuk konsistensi parsing antara syncActiveOrderEscrow & shopeeSyncOrders
+function _parseOrderIncome(det) {
+  const inc = det.order_income || det;
+  return {
+    // total = omset = harga yang dibayar buyer → field yang dibaca dashboard
+    omset:       parseFloat(inc.buyer_total_amount    || det.buyer_total_amount    || 0),
+    escrow:      parseFloat(inc.escrow_amount         || det.escrow_amount         || 0),
+    b_komisi:    parseFloat(inc.commission_fee        || det.commission_fee        || 0),
+    b_admin:     parseFloat(inc.service_fee           || det.service_fee           || 0),
+    b_layanan:   parseFloat(inc.transaction_fee       || det.transaction_fee       || 0),
+    b_proses:    parseFloat(inc.order_processing_fee  || det.order_processing_fee  || 0),
+    b_kampanye:  parseFloat(inc.campaign_fee          || det.campaign_fee          || 0),
+  };
+}
+
 // ─── SYNC ACTIVE ORDER ESCROW ─────────────────────────────────
-// Mengambil escrow dari order-order yang masih aktif (READY_TO_SHIP, SHIPPED, TO_CONFIRM_RECEIVE)
-// dan meng-update jurnal_penjualan yang sudah ada jika escrow berubah
+// Update escrow & biaya di jurnal_penjualan untuk order yang masih aktif
+// (READY_TO_SHIP, SHIPPED, TO_CONFIRM_RECEIVE) — jalankan tiap 30 menit
 async function syncActiveOrderEscrow(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -157,30 +175,23 @@ async function syncActiveOrderEscrow(tok) {
         })
       });
       const det = await detRes.json();
-      const inc = det.order_income || det;
+      const f   = _parseOrderIncome(det);
 
-      const escrow     = parseFloat(inc.escrow_amount || det.escrow_amount || 0);
-      const omset      = parseFloat(inc.buyer_total_amount || det.buyer_total_amount || 0);
-      const b_komisi   = parseFloat(inc.commission_fee     || det.commission_fee     || 0);
-      const b_admin    = parseFloat(inc.service_fee        || det.service_fee        || 0);
-      const b_layanan  = parseFloat(inc.transaction_fee    || det.transaction_fee    || 0);
-      const b_proses   = parseFloat(inc.order_processing_fee || det.order_processing_fee || 0);
-      const b_kampanye = parseFloat(inc.campaign_fee       || det.campaign_fee       || 0);
-
-      // Update jurnal_penjualan yang sudah ada (berdasarkan no_order)
       await fetch(
         SUPABASE_URL + '/rest/v1/jurnal_penjualan?no_order=eq.' + encodeURIComponent(sn),
         {
           method:  'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
           body:    JSON.stringify({
-            escrow,
-            omset:          omset  || undefined,
-            biaya_komisi:   b_komisi,
-            biaya_admin:    b_admin,
-            biaya_layanan:  b_layanan,
-            biaya_proses:   b_proses,
-            biaya_kampanye: b_kampanye,
+            // FIX: total diupdate = omset agar dashboard omset terbaca
+            total:          f.omset,
+            omset:          f.omset,
+            escrow:         f.escrow,
+            biaya_komisi:   f.b_komisi,
+            biaya_admin:    f.b_admin,
+            biaya_layanan:  f.b_layanan,
+            biaya_proses:   f.b_proses,
+            biaya_kampanye: f.b_kampanye,
             order_status:   order.order_status,
           }),
         }
@@ -195,7 +206,7 @@ async function syncActiveOrderEscrow(tok) {
   return updated;
 }
 
-// ─── CORE SYNC ORDERS ────────────────────────────────────────
+// ─── CORE SYNC ORDERS ─────────────────────────────────────────
 async function shopeeSyncOrders(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -205,10 +216,8 @@ async function shopeeSyncOrders(tok) {
     }
   }
 
-  // Ambil channel_id Shopee dari tabel channels
   const channelId = await _getShopeeChannelId();
 
-  // Ambil order 30 hari terakhir
   const timeTo   = Math.floor(Date.now() / 1000);
   const timeFrom = timeTo - 86400 * 30;
 
@@ -241,12 +250,12 @@ async function shopeeSyncOrders(tok) {
     return 0;
   }
 
-  // Cek order yang sudah ada (by no_order) agar tidak duplikat
+  // Cek order yang sudah ada agar tidak duplikat
   let existingOrders = [];
   try {
     existingOrders = await dbGet('jurnal_penjualan', '&no_order=not.is.null&select=no_order');
   } catch(e) { existingOrders = []; }
-  const existSet = new Set(existingOrders.map(r => r.no_order));
+  const existSet = new Set((existingOrders || []).map(r => r.no_order));
 
   let inserted = 0;
   for (const order of allOrders) {
@@ -254,7 +263,6 @@ async function shopeeSyncOrders(tok) {
     if (existSet.has(sn)) continue;
 
     try {
-      // Get escrow detail untuk data keuangan
       const detRes = await fetch(SHOPEE_EDGE, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -266,35 +274,28 @@ async function shopeeSyncOrders(tok) {
         })
       });
       const det = await detRes.json();
-
-      // Support berbagai struktur response Shopee
-      const inc = det.order_income || det;
-
-      const omset      = parseFloat(inc.buyer_total_amount      || det.buyer_total_amount      || 0);
-      const escrow     = parseFloat(inc.escrow_amount           || det.escrow_amount           || 0);
-      const b_komisi   = parseFloat(inc.commission_fee          || det.commission_fee          || 0);
-      const b_admin    = parseFloat(inc.service_fee             || det.service_fee             || 0);
-      const b_layanan  = parseFloat(inc.transaction_fee         || det.transaction_fee         || 0);
-      const b_proses   = parseFloat(inc.order_processing_fee    || det.order_processing_fee    || 0);
-      const b_kampanye = parseFloat(inc.campaign_fee            || det.campaign_fee            || 0);
+      const f   = _parseOrderIncome(det);
 
       const tanggal = new Date(order.create_time * 1000).toISOString().split('T')[0];
       const waktu   = new Date(order.create_time * 1000).toTimeString().slice(0, 5);
 
-      // Insert ke jurnal_penjualan dengan kolom yang lengkap
       await dbInsert('jurnal_penjualan', {
         tanggal,
         waktu,
         channel_id:     channelId,
         no_order:       sn,
-        omset,
-        escrow,
-        biaya_komisi:   b_komisi,
-        biaya_admin:    b_admin,
-        biaya_layanan:  b_layanan,
-        biaya_proses:   b_proses,
-        biaya_kampanye: b_kampanye,
+        // FIX UTAMA: total = omset agar dashboard bisa baca omset dengan benar
+        // Dashboard pakai field "total" untuk hitung omset bulan & hari ini
+        total:          f.omset,
+        omset:          f.omset,
+        escrow:         f.escrow,
+        biaya_komisi:   f.b_komisi,
+        biaya_admin:    f.b_admin,
+        biaya_layanan:  f.b_layanan,
+        biaya_proses:   f.b_proses,
+        biaya_kampanye: f.b_kampanye,
         order_status:   order.order_status,
+        // sku, qty, harga_satuan → null untuk order Shopee (tidak ada di API escrow detail)
         created_at:     new Date().toISOString(),
       });
       inserted++;
@@ -308,30 +309,25 @@ async function shopeeSyncOrders(tok) {
   // Refresh tampilan Jurnal Penjualan jika halaman itu sedang aktif
   if (inserted > 0 && typeof loadJurnalPenjualan === 'function') {
     const page = document.querySelector('.page.active');
-    if (page && page.id === 'page-jurnal-penjualan') {
-      loadJurnalPenjualan();
-    }
+    if (page && page.id === 'page-jurnal-penjualan') loadJurnalPenjualan();
   }
 
   return inserted;
 }
 
-// ─── AUTO REFRESH TOKEN (tiap 30 menit, perpanjang kalau sisa < 1 jam) ───────
+// ─── AUTO REFRESH TOKEN (perpanjang kalau sisa < 1 jam) ───────
 async function _autoRefreshTokenIfNeeded() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
-    if (!tokens.length || !tokens[0].access_token) return;
+    if (!tokens || !tokens.length || !tokens[0].access_token) return;
     const tok = tokens[0];
     const now = Math.floor(Date.now() / 1000);
     const sisaDetik = (tok.expire_at || 0) - now;
 
-    // Kalau sisa > 1 jam, tidak perlu refresh
     if (sisaDetik > 3600) {
       console.log('[shopee-sync] Token masih OK, sisa', Math.round(sisaDetik/60), 'menit');
       return;
     }
-
-    // Kalau sudah expired total (> 30 hari), tidak bisa refresh, harus hubungkan ulang
     if (sisaDetik < -(86400 * 30)) {
       console.warn('[shopee-sync] Token terlalu lama expired, hubungkan ulang Shopee');
       return;
@@ -350,8 +346,8 @@ async function _autoRefreshTokenIfNeeded() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    // Simpan token baru ke DB
-    const expireAt = data.expire_at || (now + (data.expire_in || 14400));
+    const now2     = Math.floor(Date.now() / 1000);
+    const expireAt = data.expire_at || (now2 + (data.expire_in || 14400));
     await fetch(
       SUPABASE_URL + '/rest/v1/shopee_tokens?shop_id=eq.' + tok.shop_id,
       {
@@ -365,9 +361,8 @@ async function _autoRefreshTokenIfNeeded() {
         }),
       }
     );
-    console.log('[shopee-sync] Token berhasil di-refresh! Expire baru:', new Date(expireAt * 1000).toLocaleString('id-ID'));
+    console.log('[shopee-sync] Token refresh OK! Expire:', new Date(expireAt * 1000).toLocaleString('id-ID'));
 
-    // Full sync dengan token baru
     const newTok = { ...tok, access_token: data.access_token, expire_at: expireAt };
     await syncShopeeFinance(newTok);
     await syncActiveOrderEscrow(newTok);
@@ -383,27 +378,22 @@ async function _autoRefreshTokenIfNeeded() {
   try {
     const tok = await _getValidToken();
     if (!tok) {
-      console.log('[shopee-sync] Tidak ada token valid, skip auto-sync on load');
+      console.log('[shopee-sync] Tidak ada token valid, skip auto-sync');
       return;
     }
     console.log('[shopee-sync] Token OK, mulai sync saat load...');
-    // Finance sync DULU (cepat, tidak tergantung order baru)
     await syncShopeeFinance(tok);
-    // Lalu order sync
     await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Auto-sync on load skip:', e.message);
   }
 })();
 
-// ─── AUTO SYNC BERKALA TIAP 30 MENIT ─────────────────────────
+// ─── PERIODIC SYNC TIAP 30 MENIT ─────────────────────────────
 setInterval(async function() {
   try {
     const tok = await _getValidToken();
-    if (!tok) {
-      console.log('[shopee-sync] Token tidak valid, skip periodic sync');
-      return;
-    }
+    if (!tok) return;
     console.log('[shopee-sync] Periodic sync (30 menit)...');
     await syncShopeeFinance(tok);
     await syncActiveOrderEscrow(tok);
@@ -413,7 +403,6 @@ setInterval(async function() {
   }
 }, 30 * 60 * 1000);
 
-// Jalankan auto-refresh tiap 30 menit (versandar pada timer berbeda dari sync)
+// ─── TOKEN AUTO-REFRESH CHECK ─────────────────────────────────
 setInterval(_autoRefreshTokenIfNeeded, 30 * 60 * 1000);
-// Cek token saat pertama load (delay 5 detik biar DB siap)
 setTimeout(_autoRefreshTokenIfNeeded, 5000);
