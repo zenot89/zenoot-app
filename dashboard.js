@@ -1483,7 +1483,7 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
-    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw] = await Promise.all([
+    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
       dbGet('jurnal', '&order=created_at.desc&limit=8'),
@@ -1491,7 +1491,8 @@ async function loadDashboard() {
       dbGet('jurnal'),
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
-      dbGet('kas_akun', '').catch(() => [])
+      dbGet('kas_akun', '').catch(() => []),
+      dbGet('jurnal_penjualan', '&select=sku,qty').catch(() => []) // all-time untuk hitung sisa stok
     ]);
     // jpData & jpChart30 sama-sama 30 hari — satu fetch, reuse keduanya
     const jpData    = _jpData30 || [];
@@ -1510,8 +1511,9 @@ async function loadDashboard() {
       if (key) stokMasukMap[key] = { id: s.id, qty: s.stok_masuk || 0 };
     });
 
+    // keluarMap HARUS all-time (bukan 30hr) agar sisa stok & nilai stok akurat
     const keluarMap = {};
-    (jpData || []).forEach(j => {
+    (jpAllTime || []).forEach(j => {
       const key = (j.sku || '').toUpperCase();
       if (key) keluarMap[key] = (keluarMap[key] || 0) + (j.qty || 0);
     });
