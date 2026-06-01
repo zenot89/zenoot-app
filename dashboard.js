@@ -1483,17 +1483,19 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
-    const [produkData, stokRaw, jurnalData, jpData, jpChart30, jurnalAllData, channelData, _unused, kasAkunRaw] = await Promise.all([
+    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
       dbGet('jurnal', '&order=created_at.desc&limit=8'),
-      dbGet('jurnal_penjualan', '&tanggal=gte.' + _localDateStr(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) + '&order=tanggal.desc'),
       dbGet('jurnal_penjualan', '&tanggal=gte.' + _localDateOffset(30) + '&order=tanggal.desc'),
       dbGet('jurnal'),
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => [])
     ]);
+    // jpData & jpChart30 sama-sama 30 hari — satu fetch, reuse keduanya
+    const jpData    = _jpData30 || [];
+    const jpChart30 = _jpData30 || [];
 
     // ─ Build kas akun map (dipakai untuk saldo KAS & BANK + beban di bawah)
     const _dashKasAkunMap = {};
