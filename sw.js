@@ -37,7 +37,7 @@ var JS_APP_FILES = [
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v6 — force fetch ulang shopee-sync.js setelah fix token flow
-var JS_CACHE = 'zenot-js-v6';
+var JS_CACHE = 'zenot-js-20260603-c9bcdf8692e9';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
