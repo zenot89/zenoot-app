@@ -31,7 +31,7 @@ var JS_APP_FILES = [
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'clearance.js', 'hpp.js', 'notif.js',
-  'shopee-auth.js', 'networth.js',
+  'shopee-auth.js', 'shopee-sync.js', 'networth.js',
   'rough-ui.js', 'style.css',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif

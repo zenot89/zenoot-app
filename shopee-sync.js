@@ -160,7 +160,7 @@ async function syncShopeeFinance(tok) {
 async function syncActiveOrderEscrow(tok) {
   if (!tok) { tok = await _getValidToken(); if (!tok) return 0; }
 
-  const activeStatuses = ['READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
+  const activeStatuses = ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED'];
   let allOrders = [];
   for (const status of activeStatuses) {
     const batch = await _fetchOrdersByStatus(tok, status);
@@ -222,7 +222,7 @@ async function shopeeSyncOrders(tok) {
   }
 
   const channelId = await _getShopeeChannelId();
-  const statuses  = ['COMPLETED', 'READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
+  const statuses  = ['COMPLETED', 'READY_TO_SHIP', 'PROCESSED', 'SHIPPED'];
   let allOrders   = [];
   for (const status of statuses) {
     const batch = await _fetchOrdersByStatus(tok, status);
@@ -289,8 +289,14 @@ async function shopeeSyncOrders(tok) {
         continue;
       }
 
-      const tanggal = new Date(order.create_time * 1000).toISOString().split('T')[0];
-      const waktu   = new Date(order.create_time * 1000).toTimeString().slice(0, 5);
+      // Validasi create_time — Shopee kadang return 0/null untuk order tertentu
+      const createMs = (order.create_time || 0) * 1000;
+      if (!order.create_time || order.create_time <= 0) {
+        console.warn('[shopee-sync] Skip order create_time invalid:', sn);
+        continue;
+      }
+      const tanggal = new Date(createMs).toISOString().split('T')[0];
+      const waktu   = new Date(createMs).toTimeString().slice(0, 5);
 
       await dbInsert('jurnal_penjualan', {
         tanggal, waktu, channel_id: channelId,
