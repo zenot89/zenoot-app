@@ -79,7 +79,7 @@ async function _getOrderDetailBatch(tok, orderSnList) {
         shop_id:                  tok.shop_id,
         access_token:             tok.access_token,
         order_sn_list:            orderSnList.slice(0, 50).join(','),
-        response_optional_fields: 'buyer_total_amount',
+        response_optional_fields: 'buyer_total_amount,create_time',
       })
     });
     const data = await res.json();
@@ -289,12 +289,9 @@ async function shopeeSyncOrders(tok) {
         continue;
       }
 
-      // Validasi create_time — Shopee kadang return 0/null untuk order tertentu
-      const createMs = (order.create_time || 0) * 1000;
-      if (!order.create_time || order.create_time <= 0) {
-        console.warn('[shopee-sync] Skip order create_time invalid:', sn);
-        continue;
-      }
+      // Validasi create_time — fallback ke orderDetailMap atau today kalau 0
+      const rawCt   = order.create_time || orderDetailMap[sn]?.create_time || 0;
+      const createMs = rawCt > 0 ? rawCt * 1000 : Date.now();
       const tanggal = new Date(createMs).toISOString().split('T')[0];
       const waktu   = new Date(createMs).toTimeString().slice(0, 5);
 
