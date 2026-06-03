@@ -41,14 +41,23 @@ jobs:
           fi
           echo "Verified: window.APP_BUILD = '${BUILD}'"
 
-      - name: Commit updated index.html
+      - name: Bump JS_CACHE version in sw.js
+        run: |
+          BUILD="${{ steps.hash.outputs.build }}"
+          # Ganti nilai JS_CACHE dengan versi baru berdasarkan build hash
+          # Format: zenot-js-<12 char hash> → SW selalu fetch ulang semua JS setiap deploy
+          NEW_CACHE="zenot-js-${BUILD}"
+          sed -i "s|var JS_CACHE = '[^']*';|var JS_CACHE = '${NEW_CACHE}';|" sw.js
+          echo "sw.js updated: JS_CACHE = ${NEW_CACHE}"
+
+      - name: Commit updated files
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add index.html sw.js
           if git diff --staged --quiet; then
             echo "Tidak ada perubahan, skip commit."
           else
-            git commit -m "chore: auto bump APP_BUILD -> ${{ steps.hash.outputs.build }} [skip ci]"
+            git commit -m "chore: auto bump APP_BUILD + JS_CACHE -> ${{ steps.hash.outputs.build }} [skip ci]"
             git push
           fi
