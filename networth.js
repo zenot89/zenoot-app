@@ -11,7 +11,13 @@
 
   // ─── INJECT WIDGET HTML ───────────────────────────────────────
   function _injectWidget() {
-    if (document.getElementById('nw-widget')) return;
+    // Cek apakah widget benar-benar ada di DOM dan dalam page-dashboard
+    const existing = document.getElementById('nw-widget');
+    const inPage   = existing && document.getElementById('page-dashboard')?.contains(existing);
+    if (existing && inPage) return;
+    // Widget ada tapi di luar page-dashboard (misal body.prepend) → hapus dan inject ulang
+    if (existing) existing.remove();
+    _nwRendered = false;
 
     const el = document.createElement('div');
     el.id = 'nw-widget';
