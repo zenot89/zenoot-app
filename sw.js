@@ -35,9 +35,10 @@ var JS_APP_FILES = [
   'rough-ui.js', 'style.css',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
-var NO_CACHE_PATTERNS = ['index.html'];
+// networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
+var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v6 — force fetch ulang shopee-sync.js setelah fix token flow
-var JS_CACHE = 'zenot-js-20260603-14ccac220b13';
+var JS_CACHE = 'zenot-js-v6';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
