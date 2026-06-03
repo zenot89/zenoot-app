@@ -328,22 +328,24 @@ async function shopeeSyncOrders(tok) {
 }
 
 // ─── AUTO REFRESH TOKEN ────────────────────────────────────────
+// Return value: token baru kalau refresh sukses, null kalau tidak perlu/gagal.
+// Caller pakai return value ini — tidak fetch ulang dari DB untuk hindari race condition.
 async function _autoRefreshTokenIfNeeded() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
-    if (!tokens || !tokens.length || !tokens[0].access_token) return;
+    if (!tokens || !tokens.length || !tokens[0].access_token) return null;
     const tok = tokens[0];
     const now = Math.floor(Date.now() / 1000);
     const sisaDetik = (tok.expire_at || 0) - now;
     if (sisaDetik > 3600) {
       console.log('[shopee-sync] Token masih OK, sisa', Math.round(sisaDetik/60), 'menit');
-      return;
+      return null; // tidak perlu refresh
     }
     if (sisaDetik < -(86400 * 30)) {
       console.warn('[shopee-sync] Token terlalu lama expired, hubungkan ulang Shopee');
-      return;
+      return null;
     }
-    console.log('[shopee-sync] Token mau habis, auto-refresh...');
+    console.log('[shopee-sync] Token mau habis/expired, auto-refresh...');
     const res = await fetch(SHOPEE_EDGE, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -359,32 +361,32 @@ async function _autoRefreshTokenIfNeeded() {
       method: 'PATCH',
       headers: { ..._headers(), 'Prefer': 'return=minimal' },
       body: JSON.stringify({
-        access_token: data.access_token,
+        access_token:  data.access_token,
         refresh_token: data.refresh_token || tok.refresh_token,
-        expire_at: expireAt, updated_at: new Date().toISOString(),
+        expire_at:     expireAt,
+        updated_at:    new Date().toISOString(),
       }),
     });
     console.log('[shopee-sync] Token refresh OK! Expire:', new Date(expireAt * 1000).toLocaleString('id-ID'));
-    const newTok = { ...tok, access_token: data.access_token, expire_at: expireAt };
-    await syncShopeeFinance(newTok);
-    await syncActiveOrderEscrow(newTok);
-    await shopeeSyncOrders(newTok);
+    // Return token baru langsung — jangan fetch ulang dari DB (race condition)
+    return { ...tok, access_token: data.access_token, expire_at: expireAt };
   } catch(e) {
     console.warn('[shopee-sync] Auto-refresh token gagal:', e.message);
+    return null;
   }
 }
 
 // ─── AUTO SYNC SAAT APP LOAD ──────────────────────────────────
-// FIX v6: refresh token DULU sebelum sync, bukan setelah.
-// Sebelumnya: token expired → auto-sync skip → NW tidak tampil.
-// Sekarang:   refresh dulu → token valid → sync langsung.
+// FIX v6: refresh token dulu, pakai return value langsung (no race condition).
+// Sebelumnya: _autoRefreshTokenIfNeeded tidak return token baru → _getValidToken
+// fetch ulang dari DB sebelum PATCH selesai → dapat token lama → return null → skip sync.
 (async function() {
   try {
-    // Step 1: pastikan token fresh (refresh kalau mau habis / expired)
-    await _autoRefreshTokenIfNeeded();
+    // Step 1: refresh kalau perlu — dapat token baru kalau refresh, null kalau masih OK
+    const refreshedTok = await _autoRefreshTokenIfNeeded();
 
-    // Step 2: ambil token valid setelah refresh
-    const tok = await _getValidToken();
+    // Step 2: pakai token baru dari refresh, atau ambil dari DB kalau tidak perlu refresh
+    const tok = refreshedTok || await _getValidToken();
     if (!tok) {
       console.log('[shopee-sync] Token tidak valid. Hubungkan ulang Shopee di Shopee Connect.');
       return;
