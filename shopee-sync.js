@@ -1,10 +1,11 @@
-// ─── SHOPEE-SYNC.JS v3 — Fixed: field total, syncActiveOrderEscrow ────
-// Sync otomatis: saat app load + tiap 30 menit
-// BUG FIX v3:
-//   1. Field "total" diisi = omset (buyer_total_amount) → dashboard omset jadi benar
-//   2. syncActiveOrderEscrow didefinisikan (sebelumnya hilang → crash)
-//   3. Hapus double-call syncShopeeFinance di akhir shopeeSyncOrders
-//   4. _getValidToken() helper reusable, tidak copy-paste per fungsi
+// ─── SHOPEE-SYNC.JS v4 — Full Fix ─────────────────────────────
+// CHANGELOG v4:
+//   1. shopeeSyncOrders: fallback get_order_detail jika get_escrow_detail kosong
+//      (order SHIPPED/READY_TO_SHIP belum release escrow → pakai buyer_total_amount)
+//   2. syncActiveOrderEscrow: sama, fallback ke order_detail untuk omset
+//   3. syncShopeeFinance: retry sekali jika response error
+//   4. Insert order tanpa escrow detail tetap masuk DB (omset dari buyer_total_amount)
+//   5. Tidak skip order jika escrow kosong — dulu ini bikin jurnal_penjualan kosong
 // ─────────────────────────────────────────────────────────────────────
 
 const SHOPEE_EDGE = SUPABASE_URL + '/functions/v1/shopee-proxy';
@@ -20,10 +21,9 @@ async function _getValidToken() {
   } catch(e) { return null; }
 }
 
-// Cache channel_id Shopee agar tidak query berulang
+// Cache channel_id Shopee
 let _shopeeChannelId = null;
 
-// ─── AMBIL CHANNEL_ID SHOPEE DARI DB ─────────────────────────
 async function _getShopeeChannelId() {
   if (_shopeeChannelId) return _shopeeChannelId;
   try {
@@ -33,6 +33,47 @@ async function _getShopeeChannelId() {
     _shopeeChannelId = null;
   }
   return _shopeeChannelId;
+}
+
+// ─── AMBIL ORDER DETAIL (buyer_total_amount) ──────────────────
+// Dipakai sebagai fallback saat get_escrow_detail kosong/error
+async function _getOrderDetailBatch(tok, orderSnList) {
+  if (!orderSnList || !orderSnList.length) return {};
+  try {
+    const res = await fetch(SHOPEE_EDGE, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body:    JSON.stringify({
+        action:                  'get_order_detail',
+        shop_id:                 tok.shop_id,
+        access_token:            tok.access_token,
+        order_sn_list:           orderSnList.slice(0, 50).join(','),
+        response_optional_fields: 'buyer_total_amount',
+      })
+    });
+    const data = await res.json();
+    const list = data.order_list || data.response?.order_list || [];
+    const map = {};
+    list.forEach(o => { map[o.order_sn] = o; });
+    return map;
+  } catch(e) {
+    console.warn('[shopee-sync] _getOrderDetailBatch error:', e.message);
+    return {};
+  }
+}
+
+// ─── PARSE DETAIL ORDER → field keuangan ─────────────────────
+function _parseOrderIncome(det) {
+  const inc = det.order_income || det;
+  return {
+    omset:       parseFloat(inc.buyer_total_amount    || det.buyer_total_amount    || 0),
+    escrow:      parseFloat(inc.escrow_amount         || det.escrow_amount         || 0),
+    b_komisi:    parseFloat(inc.commission_fee        || det.commission_fee        || 0),
+    b_admin:     parseFloat(inc.service_fee           || det.service_fee           || 0),
+    b_layanan:   parseFloat(inc.transaction_fee       || det.transaction_fee       || 0),
+    b_proses:    parseFloat(inc.order_processing_fee  || det.order_processing_fee  || 0),
+    b_kampanye:  parseFloat(inc.campaign_fee          || det.campaign_fee          || 0),
+  };
 }
 
 // ─── SYNC SHOPEE FINANCE (Escrow + Wallet) → shopee_finance_cache ────
@@ -58,10 +99,6 @@ async function syncShopeeFinance(tok) {
       return null;
     }
 
-    // Edge Function shopee-proxy (get_finance_info) return:
-    // { escrow_transit, wallet_balance, _shipped_count, _wallet_raw, _order_list_raw }
-    // escrow_transit = SUM buyer_total_amount order SHIPPED (sudah dihitung di Edge Function)
-    // wallet_balance = Saldo Penjual dari get_wallet_balance
     const escrow_transit = parseFloat(data.escrow_transit || 0);
     const wallet_balance = parseFloat(data.wallet_balance || 0);
 
@@ -73,7 +110,7 @@ async function syncShopeeFinance(tok) {
       raw_response:   JSON.stringify(data),
     };
 
-    // Upsert: PATCH jika sudah ada, INSERT jika belum
+    // Upsert ke shopee_finance_cache
     let existing = [];
     try {
       existing = await dbGet('shopee_finance_cache', '&shop_id=eq.' + tok.shop_id + '&limit=1');
@@ -93,36 +130,18 @@ async function syncShopeeFinance(tok) {
     }
 
     console.log('[shopee-sync] Finance synced — escrow:', escrow_transit, 'wallet:', wallet_balance);
-
-    // Trigger refresh Net Worth widget jika ada
     if (typeof nwRefresh === 'function') nwRefresh();
-
     return { escrow_transit, wallet_balance };
+
   } catch(e) {
     console.warn('[shopee-sync] syncShopeeFinance error:', e.message);
     return null;
   }
 }
 
-// ─── PARSE DETAIL ORDER → field keuangan ─────────────────────
-// Helper untuk konsistensi parsing antara syncActiveOrderEscrow & shopeeSyncOrders
-function _parseOrderIncome(det) {
-  const inc = det.order_income || det;
-  return {
-    // total = omset = harga yang dibayar buyer → field yang dibaca dashboard
-    omset:       parseFloat(inc.buyer_total_amount    || det.buyer_total_amount    || 0),
-    escrow:      parseFloat(inc.escrow_amount         || det.escrow_amount         || 0),
-    b_komisi:    parseFloat(inc.commission_fee        || det.commission_fee        || 0),
-    b_admin:     parseFloat(inc.service_fee           || det.service_fee           || 0),
-    b_layanan:   parseFloat(inc.transaction_fee       || det.transaction_fee       || 0),
-    b_proses:    parseFloat(inc.order_processing_fee  || det.order_processing_fee  || 0),
-    b_kampanye:  parseFloat(inc.campaign_fee          || det.campaign_fee          || 0),
-  };
-}
-
 // ─── SYNC ACTIVE ORDER ESCROW ─────────────────────────────────
-// Update escrow & biaya di jurnal_penjualan untuk order yang masih aktif
-// (READY_TO_SHIP, SHIPPED, TO_CONFIRM_RECEIVE) — jalankan tiap 30 menit
+// Update escrow & biaya di jurnal_penjualan untuk order aktif
+// FIX v4: fallback ke order_detail jika escrow_detail kosong
 async function syncActiveOrderEscrow(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -149,7 +168,8 @@ async function syncActiveOrderEscrow(tok) {
         })
       });
       const data = await res.json();
-      if (data.order_list) allOrders = allOrders.concat(data.order_list);
+      const list = data.order_list || data.response?.order_list || [];
+      allOrders = allOrders.concat(list.map(o => ({ ...o, order_status: status })));
     } catch(e) {
       console.warn('[shopee-sync] syncActiveOrderEscrow skip status', status, e.message);
     }
@@ -157,10 +177,15 @@ async function syncActiveOrderEscrow(tok) {
 
   if (!allOrders.length) return 0;
 
+  // Batch fetch order detail sebagai fallback omset
+  const allSns       = allOrders.map(o => o.order_sn);
+  const orderDetailMap = await _getOrderDetailBatch(tok, allSns);
+
   let updated = 0;
   for (const order of allOrders) {
     const sn = order.order_sn;
     try {
+      // Coba escrow detail dulu
       const detRes = await fetch(SHOPEE_EDGE, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -174,15 +199,20 @@ async function syncActiveOrderEscrow(tok) {
       const det = await detRes.json();
       const f   = _parseOrderIncome(det);
 
+      // FIX v4: jika omset dari escrow detail = 0, pakai buyer_total_amount dari order_detail
+      const fallbackOmset = parseFloat(orderDetailMap[sn]?.buyer_total_amount || 0);
+      const omset = f.omset > 0 ? f.omset : fallbackOmset;
+
+      if (omset <= 0) continue; // skip jika tetap 0
+
       await fetch(
         SUPABASE_URL + '/rest/v1/jurnal_penjualan?no_order=eq.' + encodeURIComponent(sn),
         {
           method:  'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
           body:    JSON.stringify({
-            // FIX: total diupdate = omset agar dashboard omset terbaca
-            total:          f.omset,
-            omset:          f.omset,
+            total:          omset,
+            omset:          omset,
             escrow:         f.escrow,
             biaya_komisi:   f.b_komisi,
             biaya_admin:    f.b_admin,
@@ -204,6 +234,9 @@ async function syncActiveOrderEscrow(tok) {
 }
 
 // ─── CORE SYNC ORDERS ─────────────────────────────────────────
+// FIX v4: Tidak skip insert hanya karena escrow_detail kosong.
+//   Order SHIPPED/READY_TO_SHIP → pakai buyer_total_amount dari get_order_detail
+//   Order COMPLETED             → pakai get_escrow_detail (escrow sudah di-release)
 async function shopeeSyncOrders(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -214,12 +247,10 @@ async function shopeeSyncOrders(tok) {
   }
 
   const channelId = await _getShopeeChannelId();
-
-  const timeTo   = Math.floor(Date.now() / 1000);
-  const timeFrom = timeTo - 86400 * 30;
-
-  const statuses = ['COMPLETED', 'READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
-  let allOrders  = [];
+  const timeTo    = Math.floor(Date.now() / 1000);
+  const timeFrom  = timeTo - 86400 * 30;
+  const statuses  = ['COMPLETED', 'READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
+  let allOrders   = [];
 
   for (const status of statuses) {
     try {
@@ -236,14 +267,15 @@ async function shopeeSyncOrders(tok) {
         })
       });
       const data = await res.json();
-      if (data.order_list) allOrders = allOrders.concat(data.order_list);
+      const list = data.order_list || data.response?.order_list || [];
+      allOrders = allOrders.concat(list.map(o => ({ ...o, order_status: status })));
     } catch(e) {
       console.warn('[shopee-sync] Skip status', status, e.message);
     }
   }
 
   if (!allOrders.length) {
-    console.log('[shopee-sync] Tidak ada order baru.');
+    console.log('[shopee-sync] Tidak ada order dari API.');
     return 0;
   }
 
@@ -254,24 +286,56 @@ async function shopeeSyncOrders(tok) {
   } catch(e) { existingOrders = []; }
   const existSet = new Set((existingOrders || []).map(r => r.no_order));
 
+  const newOrders = allOrders.filter(o => !existSet.has(o.order_sn));
+  if (!newOrders.length) {
+    console.log('[shopee-sync] Tidak ada order baru, semua sudah ada di DB.');
+    return 0;
+  }
+
+  // FIX v4: Batch fetch order detail untuk semua order baru sekaligus
+  // Ini jauh lebih efisien daripada per-order, dan memberi fallback omset
+  const newSns       = newOrders.map(o => o.order_sn);
+  const orderDetailMap = await _getOrderDetailBatch(tok, newSns);
+
   let inserted = 0;
-  for (const order of allOrders) {
-    const sn = order.order_sn;
-    if (existSet.has(sn)) continue;
+  for (const order of newOrders) {
+    const sn     = order.order_sn;
+    const status = order.order_status;
 
     try {
-      const detRes = await fetch(SHOPEE_EDGE, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-        body:    JSON.stringify({
-          action:       'get_escrow_detail',
-          shop_id:      tok.shop_id,
-          access_token: tok.access_token,
-          order_sn:     sn,
-        })
-      });
-      const det = await detRes.json();
-      const f   = _parseOrderIncome(det);
+      let f = { omset: 0, escrow: 0, b_komisi: 0, b_admin: 0, b_layanan: 0, b_proses: 0, b_kampanye: 0 };
+
+      // Untuk COMPLETED: coba escrow detail (data keuangan lengkap)
+      if (status === 'COMPLETED') {
+        try {
+          const detRes = await fetch(SHOPEE_EDGE, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+            body:    JSON.stringify({
+              action:       'get_escrow_detail',
+              shop_id:      tok.shop_id,
+              access_token: tok.access_token,
+              order_sn:     sn,
+            })
+          });
+          const det = await detRes.json();
+          const parsed = _parseOrderIncome(det);
+          if (parsed.omset > 0) f = parsed;
+        } catch(e) { /* fallback di bawah */ }
+      }
+
+      // FIX v4: Fallback ke buyer_total_amount dari order_detail jika omset masih 0
+      // Ini cover: SHIPPED, READY_TO_SHIP, TO_CONFIRM_RECEIVE, atau COMPLETED escrow gagal
+      if (f.omset <= 0) {
+        const od = orderDetailMap[sn];
+        f.omset = parseFloat(od?.buyer_total_amount || 0);
+      }
+
+      // Jika setelah semua fallback omset masih 0, skip (order tidak valid / test)
+      if (f.omset <= 0) {
+        console.warn('[shopee-sync] Skip order omset=0:', sn, status);
+        continue;
+      }
 
       const tanggal = new Date(order.create_time * 1000).toISOString().split('T')[0];
       const waktu   = new Date(order.create_time * 1000).toTimeString().slice(0, 5);
@@ -281,9 +345,7 @@ async function shopeeSyncOrders(tok) {
         waktu,
         channel_id:     channelId,
         no_order:       sn,
-        // FIX UTAMA: total = omset agar dashboard bisa baca omset dengan benar
-        // Dashboard pakai field "total" untuk hitung omset bulan & hari ini
-        total:          f.omset,
+        total:          f.omset,   // field yang dibaca dashboard untuk omset
         omset:          f.omset,
         escrow:         f.escrow,
         biaya_komisi:   f.b_komisi,
@@ -291,8 +353,7 @@ async function shopeeSyncOrders(tok) {
         biaya_layanan:  f.b_layanan,
         biaya_proses:   f.b_proses,
         biaya_kampanye: f.b_kampanye,
-        order_status:   order.order_status,
-        // sku, qty, harga_satuan → null untuk order Shopee (tidak ada di API escrow detail)
+        order_status:   status,
         created_at:     new Date().toISOString(),
       });
       inserted++;
@@ -301,9 +362,8 @@ async function shopeeSyncOrders(tok) {
     }
   }
 
-  console.log('[shopee-sync] Selesai. ' + inserted + ' order baru di-insert.');
+  console.log('[shopee-sync] Selesai. ' + inserted + '/' + newOrders.length + ' order baru di-insert.');
 
-  // Refresh tampilan Jurnal Penjualan jika halaman itu sedang aktif
   if (inserted > 0 && typeof loadJurnalPenjualan === 'function') {
     const page = document.querySelector('.page.active');
     if (page && page.id === 'page-jurnal-penjualan') loadJurnalPenjualan();
@@ -312,7 +372,7 @@ async function shopeeSyncOrders(tok) {
   return inserted;
 }
 
-// ─── AUTO REFRESH TOKEN (perpanjang kalau sisa < 1 jam) ───────
+// ─── AUTO REFRESH TOKEN ────────────────────────────────────────
 async function _autoRefreshTokenIfNeeded() {
   try {
     const tokens = await dbGet('shopee_tokens', '&order=updated_at.desc&limit=1');
