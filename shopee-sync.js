@@ -375,10 +375,21 @@ async function _autoRefreshTokenIfNeeded() {
 }
 
 // ─── AUTO SYNC SAAT APP LOAD ──────────────────────────────────
+// FIX v6: refresh token DULU sebelum sync, bukan setelah.
+// Sebelumnya: token expired → auto-sync skip → NW tidak tampil.
+// Sekarang:   refresh dulu → token valid → sync langsung.
 (async function() {
   try {
+    // Step 1: pastikan token fresh (refresh kalau mau habis / expired)
+    await _autoRefreshTokenIfNeeded();
+
+    // Step 2: ambil token valid setelah refresh
     const tok = await _getValidToken();
-    if (!tok) { console.log('[shopee-sync] Tidak ada token valid, skip auto-sync'); return; }
+    if (!tok) {
+      console.log('[shopee-sync] Token tidak valid. Hubungkan ulang Shopee di Shopee Connect.');
+      return;
+    }
+
     console.log('[shopee-sync] Token OK, mulai sync saat load...');
     await syncShopeeFinance(tok);
     await shopeeSyncOrders(tok);
@@ -401,5 +412,6 @@ setInterval(async function() {
   }
 }, 30 * 60 * 1000);
 
+// Periodic token refresh tiap 30 menit
+// setTimeout dihapus — sudah dihandle di auto-sync on load di atas
 setInterval(_autoRefreshTokenIfNeeded, 30 * 60 * 1000);
-setTimeout(_autoRefreshTokenIfNeeded, 5000);
