@@ -392,7 +392,8 @@ let _jpAllData    = [];
 let _jpChannelMap = {};
 let _jpProdukList = [];
 let _jpSkuIndex   = -1;
-let _jpDdMode     = 'suggest';
+let _jpDdMode     = 'bulan'; // default: bulan ini
+let _jpSisakMap   = {}; // stok sisa per SKU (uppercase), diisi saat render tabel
 
 function _jpNowTime() {
   const n = new Date();
@@ -651,7 +652,15 @@ function jpPilihKatalog(katalog) {
   if (list) {
     var html = '<div class="kas-akun-item" data-val="" data-hpp="" onclick="jpPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
     varList.forEach(function(p) {
-      html += '<div class="kas-akun-item" data-val="' + _jpGetSku(p) + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)">' + _jpGetSku(p) + '</div>';
+      var sku = _jpGetSku(p);
+      var sisa = _jpSisakMap[sku.toUpperCase()];
+      var sisakHtml = '';
+      if (sisa !== undefined) {
+        var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
+        sisakHtml = ' <span style="font-size:11px;font-weight:700;color:' + col + ';margin-left:6px">stok: ' + sisa + '</span>';
+      }
+      html += '<div class="kas-akun-item" data-val="' + sku + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)" style="display:flex;align-items:center;justify-content:space-between">'
+        + '<span>' + sku + '</span>' + sisakHtml + '</div>';
     });
     list.innerHTML = html;
   }
@@ -1112,6 +1121,7 @@ function renderTabelJP(data) {
       const k = (p.sku_variasi||'').toUpperCase();
       sisakMap[k] = (masukMap[k]||0) - (keluarMap[k]||0);
     });
+    _jpSisakMap = sisakMap; // expose ke picker variasi
     _jpRenderWithStok(sisakMap);
   }).catch(function() {
     // Kalau fetch gagal, render tanpa sisa stok
@@ -1476,7 +1486,20 @@ function jpPickerVariasiSelect(item) {
   }
   // Update label
   var lbl = document.getElementById('jp-picker-variasi-label');
-  if (lbl) { lbl.textContent = val ? label : '— Pilih Variasi —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  if (lbl) {
+    if (val) {
+      var sisa = _jpSisakMap[val.toUpperCase()];
+      var sisakTxt = '';
+      if (sisa !== undefined) {
+        var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
+        sisakTxt = ' <span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
+      }
+      lbl.innerHTML = '<span style="color:var(--ink)">' + label + '</span>' + sisakTxt;
+    } else {
+      lbl.textContent = '— Pilih Variasi —';
+      lbl.style.color = 'var(--ink3)';
+    }
+  }
   // Tandai aktif
   list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
   item.classList.add('active');
