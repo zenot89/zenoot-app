@@ -1088,17 +1088,17 @@ function renderTabelJP(data) {
   // Bangun sisakMap dari data stok + jurnal (sama logika stok.js)
   Promise.all([
     dbGet('produk', '&select=sku_variasi,id'),
-    dbGet('restock', '&select=sku_variasi,qty&status=eq.masuk'),
+    dbGet('stok', '&select=sku_variasi,stok_masuk'),
     dbGet('jurnal_penjualan', '&select=sku,qty'),
   ]).then(function(results) {
     const produkList = results[0] || [];
-    const restockList = results[1] || [];
+    const stokList = results[1] || [];
     const jurnalAll = results[2] || [];
-    // stok masuk per SKU
+    // stok masuk per SKU (dari tabel stok, field stok_masuk)
     const masukMap = {};
-    restockList.forEach(function(r) {
+    stokList.forEach(function(r) {
       const k = (r.sku_variasi||'').toUpperCase();
-      masukMap[k] = (masukMap[k]||0) + (r.qty||0);
+      masukMap[k] = (masukMap[k]||0) + (r.stok_masuk||0);
     });
     // stok keluar per SKU
     const keluarMap = {};
