@@ -650,8 +650,10 @@ function kasUpdateCashflow(data, bulan) {
   data.forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
-    if (aD && aD.kelompok === 'aset') cfMasuk  += (r.nominal || r.debit  || 0);
-    if (aK && aK.kelompok === 'aset') cfKeluar += (r.nominal || r.kredit || 0);
+    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasD) cfMasuk  += (r.nominal || r.debit  || 0);
+    if (isKasK) cfKeluar += (r.nominal || r.kredit || 0);
   });
   const cf = cfMasuk - cfKeluar;
   const fmtRp = v => fmtRpFull(Math.abs(v));
@@ -669,8 +671,11 @@ function kasUpdateSummary(data) {
   data.forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
-    if (aD && aD.kelompok === 'aset') masuk  += (r.nominal || r.debit  || 0);
-    if (aK && aK.kelompok === 'aset') keluar += (r.nominal || r.kredit || 0);
+    // Hanya hitung akun KAS & BANK — bukan semua aset
+    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasD) masuk  += (r.nominal || r.debit  || 0);
+    if (isKasK) keluar += (r.nominal || r.kredit || 0);
   });
   const saldo = masuk - keluar;
   const fmtRp = v => fmtRpFull(Math.abs(v));
