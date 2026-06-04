@@ -317,7 +317,13 @@
   // ─── PUBLIC API ──────────────────────────────────────────────
   window.nwRefresh = function () { _calculate(); };
   window.nwUpdate  = function () {
-    if (!_nwRendered) _injectWidget();
+    // Selalu cek DOM — widget bisa hilang kalau dashboard di-re-render
+    const existing = document.getElementById('nw-widget');
+    const inPage   = existing && document.getElementById('page-dashboard')?.contains(existing);
+    if (!existing || !inPage) {
+      _nwRendered = false;
+      _injectWidget();
+    }
     _calculate();
   };
 

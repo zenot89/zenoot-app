@@ -380,8 +380,7 @@ body.sidebar-mini .sidebar-footer::before{
   /* touch-action: pan-y — hanya izinkan scroll vertikal, blok bounce horizontal */
   touch-action: pan-y;
   padding:16px;
-  background-image:repeating-linear-gradient(to bottom,transparent,transparent 27px,var(--paper-line) 27px,var(--paper-line) 28px);
-  background-attachment:local;
+  /* background gradient dihapus — bikin scroll seret di HP */
 }
 .content::-webkit-scrollbar{width:5px}
 .content::-webkit-scrollbar-thumb{background:var(--ink4);border-radius:3px}
