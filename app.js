@@ -706,8 +706,17 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
 // Handler ini: temukan scrollable ancestor terdekat dari target,
 // forward delta ke sana. Bekerja di semua halaman tanpa konfigurasi per-file.
 (function() {
-  // Cari scrollable ancestor terdekat dari elemen target
-  // Kembalikan null kalau tidak ketemu
+  // Cek apakah ada elemen overflow:hidden yang memblok antara target dan container
+  function _hasHiddenBlocker(el, container) {
+    var cur = el;
+    while (cur && cur !== container) {
+      var oy = window.getComputedStyle(cur).overflowY;
+      if (oy === 'hidden') return true;
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+
   function _findScrollable(el) {
     while (el && el !== document.documentElement) {
       var cs = window.getComputedStyle(el);
@@ -721,36 +730,30 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
   }
 
   document.addEventListener('wheel', function(e) {
-    // Jangan intercept kalau dalam modal-overlay (modal punya scroll sendiri)
     if (e.target.closest && e.target.closest('.modal-overlay')) return;
-    // Jangan intercept kalau dropdown/picker sedang terbuka dan mouse di dalamnya
     if (e.target.closest && e.target.closest('.kas-akun-list, .dd-filter-boss, .dd-filter-katalog, #stok-katalog-dropdown, #trench-dd-periode, #trench-dd-channel')) return;
 
-    // deltaMode: 0=pixel, 1=line(~20px), 2=page
-    var lineH = 60; // px per line scroll
+    var lineH = 60;
     var dy = e.deltaMode === 1 ? e.deltaY * lineH : (e.deltaMode === 2 ? e.deltaY * window.innerHeight * 0.8 : e.deltaY);
     var dx = e.deltaMode === 1 ? e.deltaX * lineH : (e.deltaMode === 2 ? e.deltaX * window.innerWidth  * 0.8 : e.deltaX);
-
-    // Jika scroll horizontal (shift+wheel atau trackpad horizontal)
     var isHoriz = Math.abs(dx) > Math.abs(dy);
 
-    // Mulai cari dari target itu sendiri
     var container = _findScrollable(e.target);
     if (!container) return;
 
-    // Jika container sudah bisa handle sendiri (native), biarkan
-    // — tapi cek apakah container ini yang menjadi intercept point
-    var cs = window.getComputedStyle(container);
-    var oy = cs.overflowY;
-    // Kalau container langsung di bawah cursor adalah scrollable, browser sudah handle
+    // Kalau container === target, browser sudah handle native
     if (container === e.target) return;
 
-    // Cek boundary — jangan prevent kalau sudah di ujung (biar parent bisa scroll)
+    // Kalau TIDAK ada overflow:hidden yang memblok antara target dan container,
+    // berarti browser sudah bisa deliver wheel event ke container secara native → jangan intercept
+    if (!_hasHiddenBlocker(e.target, container)) return;
+
+    // Ada blocker — perlu intercept manual
     if (!isHoriz) {
       var atTop    = container.scrollTop <= 0;
       var atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 1;
-      if (dy < 0 && atTop)    return; // di atas, biarkan parent
-      if (dy > 0 && atBottom) return; // di bawah, biarkan parent
+      if (dy < 0 && atTop)    return;
+      if (dy > 0 && atBottom) return;
     }
 
     e.preventDefault();
