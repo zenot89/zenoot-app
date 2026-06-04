@@ -359,11 +359,13 @@ function kasGotoTab(tab) {
       var topBar = document.getElementById('kas-top-bar');
       var tabBar = document.querySelector('#page-kas .kas-tabs');
       var usedH  = (topBar ? topBar.offsetHeight : 0) + (tabBar ? tabBar.offsetHeight : 0) + 32;
-      targetPanel.style.overflowY = 'auto';
-      targetPanel.style.overflowX = 'hidden';
-      targetPanel.style.height    = 'calc(100vh - ' + usedH + 'px)';
-      targetPanel.style.maxHeight = 'calc(100vh - ' + usedH + 'px)';
-      targetPanel.style.padding   = '0 0 40px 0';
+      targetPanel.style.overflowY            = 'auto';
+      targetPanel.style.overflowX            = 'hidden';
+      targetPanel.style.height               = 'calc(100vh - ' + usedH + 'px)';
+      targetPanel.style.maxHeight            = 'calc(100vh - ' + usedH + 'px)';
+      targetPanel.style.padding              = '0 0 40px 0';
+      targetPanel.style.overscrollBehavior   = 'none';
+      targetPanel.style.touchAction          = 'pan-y';
       targetPanel.style.webkitOverflowScrolling = 'touch';
     }
   }
@@ -571,6 +573,15 @@ function kasApplyFilter() {
 }
 
 function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
+
+// Set default filter ke bulan ini
+(function() {
+  var el = document.getElementById('kas-filter-bulan');
+  if (el && !el.value) {
+    var now = new Date();
+    el.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+})();
 
 // ─── PAGINATION STATE ────────────────────────────────────────
 const _KAS_PAGE_SIZE = 999999; // load semua, tidak ada pagination
@@ -1205,4 +1216,33 @@ document.addEventListener('zenot:page', function(e) {
       _kasInitSwipe();
     }, 80);
   });
+})();
+
+// ─── SCROLL-TO-COLLAPSE di tab Akun (sama pola JP) ──────────
+// Semua mode: HP portrait, landscape, laptop
+(function() {
+  function _kasAkunInitScroll() {
+    var panel  = document.getElementById('kas-panel-akun');
+    var topBar = document.getElementById('kas-top-bar');
+    if (!panel || !topBar) return;
+    var _lastY = 0;
+    panel.addEventListener('scroll', function() {
+      var y = panel.scrollTop;
+      if (y > 40 && y > _lastY) {
+        topBar.classList.add('jp-topbar-collapsed');
+      } else if (y < _lastY || y <= 40) {
+        topBar.classList.remove('jp-topbar-collapsed');
+      }
+      _lastY = y;
+    }, { passive: true });
+  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'kas') return;
+    setTimeout(function() {
+      var tb = document.getElementById('kas-top-bar');
+      if (tb) tb.classList.remove('jp-topbar-collapsed');
+      _kasAkunInitScroll();
+    }, 80);
+  });
+  setTimeout(_kasAkunInitScroll, 300);
 })();
