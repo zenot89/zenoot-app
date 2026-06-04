@@ -20,7 +20,7 @@ document.getElementById('page-kas').innerHTML = `
   .akun-pendapatan{ color:#2a6e3a; }
   .akun-beban     { color:#b03020; }
   .kas-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
-  @media(max-width:520px){ .kas-summary{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:520px){ .kas-summary{ grid-template-columns:1fr 1fr !important; } }
   .lap-head td  { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
   .lap-sub  td  { padding-left:24px !important; color:var(--ink2); }
   .lap-total td { font-weight:700; border-top:2px dashed var(--ink3); }
@@ -38,10 +38,11 @@ document.getElementById('page-kas').innerHTML = `
     </div>
   </div>
   <!-- Baris 2: Summary metrics — ikut collapse -->
-  <div class="kas-summary">
+  <div class="kas-summary" style="grid-template-columns:repeat(4,1fr)">
     <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta">total debit kas</div></div>
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
+    <div class="metric"><div class="m-label">Cash Flow</div><div class="m-value" id="kas-cashflow">—</div><div class="m-delta" id="kas-cashflow-label">periode ini</div></div>
   </div>
   <!-- Baris 3: Toolbar filter — hanya tampil di Jurnal Harian -->
   <div id="kas-jurnal-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
@@ -569,7 +570,10 @@ function kasApplyFilter() {
   _kasCurrentPage = 1;
   _kasFilteredData = filtered;
   kasRenderJurnalTabel(filtered);
-  kasUpdateSummary(filtered);
+  // Summary (Kas Masuk, Keluar, Saldo) pakai SEMUA data — tidak ikut filter
+  kasUpdateSummary(_kasJurnalAll);
+  // Cashflow pakai data filtered — menunjukkan arus kas periode yang dipilih
+  kasUpdateCashflow(filtered, bulan);
 }
 
 function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
@@ -639,6 +643,25 @@ function _kasRenderPagination(totalPg, totalData) {
 }
 
 function kasGoPage(pg) { /* tidak dipakai, semua data tampil */ 
+}
+
+function kasUpdateCashflow(data, bulan) {
+  let cfMasuk = 0, cfKeluar = 0;
+  data.forEach(r => {
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const aK = _kasAkunMap[r.akun_kredit_id];
+    if (aD && aD.kelompok === 'aset') cfMasuk  += (r.nominal || r.debit  || 0);
+    if (aK && aK.kelompok === 'aset') cfKeluar += (r.nominal || r.kredit || 0);
+  });
+  const cf = cfMasuk - cfKeluar;
+  const fmtRp = v => fmtRpFull(Math.abs(v));
+  const el = document.getElementById('kas-cashflow');
+  const lb = document.getElementById('kas-cashflow-label');
+  if (el) {
+    el.textContent = (cf < 0 ? '-' : (cf > 0 ? '+' : '')) + 'Rp' + fmtRp(cf).replace('Rp','');
+    el.style.color = cf > 0 ? 'var(--ok)' : cf < 0 ? 'var(--danger)' : 'var(--ink2)';
+  }
+  if (lb) lb.textContent = bulan ? bulan.replace('-','/') : 'semua periode';
 }
 
 function kasUpdateSummary(data) {
