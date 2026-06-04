@@ -698,3 +698,66 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
     }
   }, { passive: true });
 }
+
+// ─── GLOBAL MOUSE WHEEL → SCROLL FORWARD ─────────────────────
+// Di laptop/desktop, scroll mouse (wheel) tidak jalan di full-height pages
+// karena .content punya overflow:hidden — wheel event tidak ter-forward ke
+// inner scroll container (tbl-wrap, panel, dll).
+// Handler ini: temukan scrollable ancestor terdekat dari target,
+// forward delta ke sana. Bekerja di semua halaman tanpa konfigurasi per-file.
+(function() {
+  // Cari scrollable ancestor terdekat dari elemen target
+  // Kembalikan null kalau tidak ketemu
+  function _findScrollable(el) {
+    while (el && el !== document.documentElement) {
+      var cs = window.getComputedStyle(el);
+      var oy = cs.overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  document.addEventListener('wheel', function(e) {
+    // Jangan intercept kalau dalam modal-overlay (modal punya scroll sendiri)
+    if (e.target.closest && e.target.closest('.modal-overlay')) return;
+    // Jangan intercept kalau dropdown/picker sedang terbuka dan mouse di dalamnya
+    if (e.target.closest && e.target.closest('.kas-akun-list, .dd-filter-boss, .dd-filter-katalog, #stok-katalog-dropdown, #trench-dd-periode, #trench-dd-channel')) return;
+
+    // deltaMode: 0=pixel, 1=line(~20px), 2=page
+    var lineH = 60; // px per line scroll
+    var dy = e.deltaMode === 1 ? e.deltaY * lineH : (e.deltaMode === 2 ? e.deltaY * window.innerHeight * 0.8 : e.deltaY);
+    var dx = e.deltaMode === 1 ? e.deltaX * lineH : (e.deltaMode === 2 ? e.deltaX * window.innerWidth  * 0.8 : e.deltaX);
+
+    // Jika scroll horizontal (shift+wheel atau trackpad horizontal)
+    var isHoriz = Math.abs(dx) > Math.abs(dy);
+
+    // Mulai cari dari target itu sendiri
+    var container = _findScrollable(e.target);
+    if (!container) return;
+
+    // Jika container sudah bisa handle sendiri (native), biarkan
+    // — tapi cek apakah container ini yang menjadi intercept point
+    var cs = window.getComputedStyle(container);
+    var oy = cs.overflowY;
+    // Kalau container langsung di bawah cursor adalah scrollable, browser sudah handle
+    if (container === e.target) return;
+
+    // Cek boundary — jangan prevent kalau sudah di ujung (biar parent bisa scroll)
+    if (!isHoriz) {
+      var atTop    = container.scrollTop <= 0;
+      var atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 1;
+      if (dy < 0 && atTop)    return; // di atas, biarkan parent
+      if (dy > 0 && atBottom) return; // di bawah, biarkan parent
+    }
+
+    e.preventDefault();
+    if (isHoriz) {
+      container.scrollLeft += dx;
+    } else {
+      container.scrollTop += dy;
+    }
+  }, { passive: false });
+})();
