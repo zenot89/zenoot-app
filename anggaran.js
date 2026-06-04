@@ -60,10 +60,16 @@ document.getElementById('page-anggaran').innerHTML = `
   <div class="card-title"
     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-chart-pie"></i> Anggaran Beban</span>
-    <button class="btn btn-sm" onclick="gotoPage('kas',null)"
-      style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-      <i class="ti ti-arrow-left"></i> Jurnal Harian
-    </button>
+    <div style="display:inline-flex;align-items:center;gap:8px">
+      <button class="btn btn-sm" id="ang-btn-salin" onclick="angSalinBulanLalu()"
+        style="display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--cream2);border:1px solid var(--ink3)">
+        <i class="ti ti-copy"></i> Salin Bulan Lalu
+      </button>
+      <button class="btn btn-sm" onclick="gotoPage('kas',null)"
+        style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+        <i class="ti ti-arrow-left"></i> Jurnal Harian
+      </button>
+    </div>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
@@ -351,6 +357,60 @@ function angHapus(id) {
     try { await dbDelete('kas_anggaran', id); angLoad(); }
     catch(e) { alert('Gagal hapus: ' + e.message); }
   });
+}
+
+// ─── SALIN BULAN LALU ─────────────────────────────────────────
+// Ambil semua anggaran dari bulan sebelumnya, insert ke bulan aktif
+// (skip akun yang sudah punya anggaran di bulan aktif)
+async function angSalinBulanLalu() {
+  const bulanAktif = _angBulanAktif;
+  if (!bulanAktif) { alert('Pilih bulan terlebih dahulu.'); return; }
+
+  // Hitung bulan sebelumnya
+  const [y, m] = bulanAktif.split('-').map(Number);
+  const prevDate = new Date(y, m - 2, 1); // m-2 karena JS month 0-based, dan -1 bulan
+  const bulanLalu = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
+
+  const btn = document.getElementById('ang-btn-salin');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Menyalin...'; }
+
+  try {
+    // Fetch anggaran bulan lalu dan bulan aktif (untuk cek duplikat)
+    const [dataLalu, dataAktif] = await Promise.all([
+      dbGet('kas_anggaran', '&bulan=eq.' + bulanLalu + '&order=akun_id.asc'),
+      dbGet('kas_anggaran', '&bulan=eq.' + bulanAktif + '&order=akun_id.asc'),
+    ]);
+
+    if (!dataLalu || dataLalu.length === 0) {
+      alert('Tidak ada data anggaran di bulan ' + bulanLalu + '.');
+      return;
+    }
+
+    // Set akun_id yang sudah ada di bulan aktif
+    const sudahAda = new Set((dataAktif || []).map(r => r.akun_id));
+
+    // Filter: hanya salin akun yang belum ada di bulan aktif
+    const toInsert = dataLalu.filter(r => !sudahAda.has(r.akun_id));
+
+    if (toInsert.length === 0) {
+      alert('Semua akun sudah punya anggaran di bulan ' + bulanAktif + '.\nTidak ada yang perlu disalin.');
+      return;
+    }
+
+    // Insert satu per satu (Supabase free tier tidak support batch upsert via REST mudah)
+    let berhasil = 0;
+    for (const r of toInsert) {
+      await dbInsert('kas_anggaran', { akun_id: r.akun_id, bulan: bulanAktif, nominal: r.nominal });
+      berhasil++;
+    }
+
+    alert('Berhasil menyalin ' + berhasil + ' anggaran dari ' + bulanLalu + ' ke ' + bulanAktif + '.');
+    angLoad();
+  } catch(e) {
+    alert('Gagal salin: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-copy"></i> Salin Bulan Lalu'; }
+  }
 }
 
 // ─── AUTO-INIT ────────────────────────────────────────────────
