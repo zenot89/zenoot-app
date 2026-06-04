@@ -1195,10 +1195,20 @@ function _kasEnsureFlexLayout() {
   var pg = document.getElementById('page-kas');
   if (!pg || !pg.classList.contains('active')) return;
   var contentEl = document.querySelector('.content');
-  if (contentEl) {
+  if (!contentEl) return;
+  // Cek tab aktif — hanya jurnal yang butuh flex layout (scroll di tbl-wrap)
+  // Laporan & Akun: content boleh scroll normal, jangan di-hidden
+  var activeTab = pg.querySelector('.kas-tab.active');
+  var tabName = activeTab ? activeTab.getAttribute('onclick') : '';
+  var isJurnal = !tabName || tabName.indexOf("'jurnal'") !== -1;
+  if (isJurnal) {
     contentEl.style.overflowY = 'hidden';
     contentEl.style.padding   = '0';
     contentEl.style.height    = '100%';
+  } else {
+    contentEl.style.overflowY = '';
+    contentEl.style.padding   = '';
+    contentEl.style.height    = '';
   }
 }
 window.addEventListener('resize', function() {
