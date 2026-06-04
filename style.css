@@ -1667,22 +1667,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #kas-jurnal-tbl-wrap { padding-bottom: 70px; }
 }
 
-/* ── kas-top-bar COLLAPSE — semua touch mobile (portrait + landscape) ── */
-@media (hover: none) and (pointer: coarse) {
-  #kas-top-bar {
-    overflow: hidden;
-    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    max-height: 300px;
-    opacity: 1;
-  }
-  #kas-top-bar.kas-topbar-collapsed {
-    max-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    opacity: 0;
-    pointer-events: none;
-  }
+/* ── kas-top-bar COLLAPSE — semua mode: HP portrait, landscape, laptop ── */
+#kas-top-bar {
+  overflow: hidden;
+  -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+  transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+  max-height: 400px;
+  opacity: 1;
+}
+#kas-top-bar.kas-topbar-collapsed {
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Panel Laporan & Kelola Akun: scroll normal (bukan full-height) */

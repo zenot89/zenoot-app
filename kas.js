@@ -355,19 +355,12 @@ function kasGotoTab(tab) {
   var targetPanel = document.getElementById('kas-panel-' + tab);
   if (targetPanel) {
     targetPanel.classList.add('active');
-    // Tab Laporan & Kelola Akun: scroll normal dalam panel
+    // Tab Laporan & Kelola Akun: CSS flex sudah handle height + overflow via style.css.
+    // Jangan set inline height — offsetHeight bisa 0 saat panel baru aktif → calc salah → scroll mati.
+    // Cukup pastikan touch-action agar iOS Safari mau scroll.
     if (tab !== 'jurnal') {
-      var topBar = document.getElementById('kas-top-bar');
-      var tabBar = document.querySelector('#page-kas .kas-tabs');
-      var usedH  = (topBar ? topBar.offsetHeight : 0) + (tabBar ? tabBar.offsetHeight : 0) + 32;
-      targetPanel.style.overflowY            = 'auto';
-      targetPanel.style.overflowX            = 'hidden';
-      targetPanel.style.height               = 'calc(100vh - ' + usedH + 'px)';
-      targetPanel.style.maxHeight            = 'calc(100vh - ' + usedH + 'px)';
-      targetPanel.style.padding              = '0 0 40px 0';
-      targetPanel.style.overscrollBehavior   = 'none';
-      targetPanel.style.touchAction          = 'pan-y';
       targetPanel.style.webkitOverflowScrolling = 'touch';
+      targetPanel.style.touchAction             = 'pan-y';
     }
   }
   // Tampilkan toolbar hanya di tab jurnal
@@ -1206,9 +1199,10 @@ function _kasEnsureFlexLayout() {
     contentEl.style.padding   = '0';
     contentEl.style.height    = '100%';
   } else {
-    contentEl.style.overflowY = '';
-    contentEl.style.padding   = '';
-    contentEl.style.height    = '';
+    // Reset semua — panel laporan/akun pakai flex:1 dari CSS, bukan inline height
+    contentEl.style.overflowY = 'hidden';
+    contentEl.style.padding   = '0';
+    contentEl.style.height    = '100%';
   }
 }
 window.addEventListener('resize', function() {
@@ -1256,29 +1250,33 @@ document.addEventListener('zenot:page', function(e) {
   });
 })();
 
-// ─── SCROLL-TO-COLLAPSE di tab Akun (sama pola JP) ──────────
-// Semua mode: HP portrait, landscape, laptop
+// ─── SCROLL-TO-COLLAPSE di tab Laporan & Akun (semua mode: HP, landscape, laptop) ──
 (function() {
-  function _kasAkunInitScroll() {
-    var panel  = document.getElementById('kas-panel-akun');
+  function _kasScrollCollapseInit(panelId) {
+    var panel  = document.getElementById(panelId);
     var topBar = document.getElementById('kas-top-bar');
-    if (!panel || !topBar) return;
+    if (!panel || !topBar || panel._kasCollapseInited) return;
+    panel._kasCollapseInited = true;
     var _lastY = 0;
     panel.addEventListener('scroll', function() {
       var y = panel.scrollTop;
       if (y > 40 && y > _lastY) {
-        topBar.classList.add('jp-topbar-collapsed');
+        topBar.classList.add('kas-topbar-collapsed');
       } else if (y < _lastY || y <= 40) {
-        topBar.classList.remove('jp-topbar-collapsed');
+        topBar.classList.remove('kas-topbar-collapsed');
       }
       _lastY = y;
     }, { passive: true });
+  }
+  function _kasAkunInitScroll() {
+    _kasScrollCollapseInit('kas-panel-akun');
+    _kasScrollCollapseInit('kas-panel-laporan');
   }
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'kas') return;
     setTimeout(function() {
       var tb = document.getElementById('kas-top-bar');
-      if (tb) tb.classList.remove('jp-topbar-collapsed');
+      if (tb) tb.classList.remove('kas-topbar-collapsed');
       _kasAkunInitScroll();
     }, 80);
   });
