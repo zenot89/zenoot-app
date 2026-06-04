@@ -319,6 +319,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <th>Qty</th>
           <th>Harga Sat.</th>
           <th>Total</th>
+          <th style="text-align:center">Sisa Stok</th>
+          <th style="text-align:center">Status</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -732,7 +734,7 @@ function hitungTotalJP() {
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadJurnalPenjualan() {
   const tbody = document.getElementById('jp-tbody');
-  tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
     const mode = _jpWaktuMode || 'hari-ini';
     const now  = new Date();
@@ -773,7 +775,7 @@ async function loadJurnalPenjualan() {
     filterJP();
     jpLoadTargetHarian(); // progress bar target harian
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
 }
 
@@ -1034,29 +1036,87 @@ function renderTabelJP(data) {
   const tbody = document.getElementById('jp-tbody');
   const fmtRp = v => fmtRpFull(v);
   if (!data || !data.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada entri penjualan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada entri penjualan</td></tr>';
     document.getElementById('jp-footer').textContent = '';
     return;
   }
-  tbody.innerHTML = data.map(row => {
-    const tgl = new Date(row.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
-    const jam = row.waktu ? String(row.waktu).slice(0,5) : '—';
-    const ch  = _jpChannelMap[row.channel_id];
-    const chLabel = ch ? ch.nama : (row.channel_id ? '#'+row.channel_id : '—');
-    const chHtml  = ch ? chBadge({ nama: ch.nama, kategori: ch.kategori||'' }) : '<span style="color:var(--ink3)">—</span>';
-    return '<tr>'
-      + '<td style="white-space:nowrap"><b>' + tgl + '</b> <span style="font-size:11px;color:var(--ink3)">' + jam + '</span></td>'
-      + '<td>' + chHtml + '</td>'
-      + '<td><b style="color:var(--accent)">' + (row.sku||'—') + '</b></td>'
-      + '<td style="text-align:center">' + (row.qty||0) + '</td>'
-      + '<td>' + fmtRp(row.harga_satuan) + '</td>'
-      + '<td><b style="color:var(--ok)">' + fmtRp(row.total) + '</b></td>'
-      + '<td>'
-      + '<button class="btn btn-sm" onclick="editJP(' + row.id + ')" style="margin-right:4px"><i class="ti ti-edit"></i></button>'
-      + '<button class="btn btn-sm btn-danger" onclick="hapusJP(' + row.id + ',\'' + (row.sku||'').replace(/'/g,"\\'") + '\')"><i class="ti ti-trash"></i></button>'
-      + '</td></tr>';
-  }).join('');
-  document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
+
+  // ─── Hitung sisa stok per SKU dari data stok global (sama persis logika stok.js) ───
+  // Pakai _stokAllData kalau tersedia (di-load oleh stok.js), kalau tidak fetch sendiri
+  function _jpRenderWithStok(sisakMap) {
+    tbody.innerHTML = data.map(row => {
+      const tgl = new Date(row.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      const jam = row.waktu ? String(row.waktu).slice(0,5) : '—';
+      const ch  = _jpChannelMap[row.channel_id];
+      const chHtml  = ch ? chBadge({ nama: ch.nama, kategori: ch.kategori||'' }) : '<span style="color:var(--ink3)">—</span>';
+      // Sisa stok untuk SKU ini
+      const skuKey  = (row.sku || '').toUpperCase();
+      const sisaVal = sisakMap[skuKey];
+      const sisaHtml = sisaVal === undefined
+        ? '<span style="color:var(--ink3)">—</span>'
+        : sisaVal <= 0
+          ? '<b style="color:var(--danger)">' + sisaVal + '</b>'
+          : sisaVal <= 3
+            ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
+            : '<b style="color:var(--ok)">' + sisaVal + '</b>';
+      // Status — dari field shopee_status kalau ada, kosong kalau manual
+      const statusVal = row.shopee_status || '';
+      const statusHtml = statusVal === 'READY_TO_SHIP'
+        ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000">Perlu Kirim</span>'
+        : statusVal === 'SHIPPED'
+          ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ok);color:#000">Dikirim</span>'
+          : statusVal === 'COMPLETED'
+            ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ink2);color:var(--bg)">Selesai</span>'
+            : '<span style="color:var(--ink3);font-size:10px">—</span>';
+      return '<tr>'
+        + '<td style="white-space:nowrap"><b>' + tgl + '</b> <span style="font-size:11px;color:var(--ink3)">' + jam + '</span></td>'
+        + '<td>' + chHtml + '</td>'
+        + '<td><b style="color:var(--accent)">' + (row.sku||'—') + '</b></td>'
+        + '<td style="text-align:center">' + (row.qty||0) + '</td>'
+        + '<td>' + fmtRp(row.harga_satuan) + '</td>'
+        + '<td><b style="color:var(--ok)">' + fmtRp(row.total) + '</b></td>'
+        + '<td style="text-align:center">' + sisaHtml + '</td>'
+        + '<td style="text-align:center">' + statusHtml + '</td>'
+        + '<td>'
+        + '<button class="btn btn-sm" onclick="editJP(' + row.id + ')" style="margin-right:4px"><i class="ti ti-edit"></i></button>'
+        + '<button class="btn btn-sm btn-danger" onclick="hapusJP(' + row.id + ',\'' + (row.sku||'').replace(/'/g,"\\'") + '\')"><i class="ti ti-trash"></i></button>'
+        + '</td></tr>';
+    }).join('');
+    document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
+  }
+
+  // Bangun sisakMap dari data stok + jurnal (sama logika stok.js)
+  Promise.all([
+    dbGet('produk', '&select=sku_variasi,id'),
+    dbGet('restock', '&select=sku_variasi,qty&status=eq.masuk'),
+    dbGet('jurnal_penjualan', '&select=sku,qty'),
+  ]).then(function(results) {
+    const produkList = results[0] || [];
+    const restockList = results[1] || [];
+    const jurnalAll = results[2] || [];
+    // stok masuk per SKU
+    const masukMap = {};
+    restockList.forEach(function(r) {
+      const k = (r.sku_variasi||'').toUpperCase();
+      masukMap[k] = (masukMap[k]||0) + (r.qty||0);
+    });
+    // stok keluar per SKU
+    const keluarMap = {};
+    jurnalAll.forEach(function(j) {
+      const k = (j.sku||'').toUpperCase();
+      keluarMap[k] = (keluarMap[k]||0) + (j.qty||0);
+    });
+    // sisa per SKU
+    const sisakMap = {};
+    produkList.forEach(function(p) {
+      const k = (p.sku_variasi||'').toUpperCase();
+      sisakMap[k] = (masukMap[k]||0) - (keluarMap[k]||0);
+    });
+    _jpRenderWithStok(sisakMap);
+  }).catch(function() {
+    // Kalau fetch gagal, render tanpa sisa stok
+    _jpRenderWithStok({});
+  });
 }
 
 function updateMetricsJP(data) {
