@@ -38,7 +38,7 @@ var JS_APP_FILES = [
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v6 — force fetch ulang shopee-sync.js setelah fix token flow
-var JS_CACHE = 'zenot-js-20260604-1ad0af7f62a2';
+var JS_CACHE = 'zenot-js-20260604-bb03e967d8dd';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
