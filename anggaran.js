@@ -165,7 +165,7 @@ async function angLoad() {
         ? dbGet('kas_anggaran', '&bulan=eq.' + bulan + '&order=akun_id.asc')
         : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),
       bulan
-        ? dbGet('jurnal', '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-31&order=tanggal.asc')
+        ? dbGet('jurnal', '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-' + new Date(bulan.split('-')[0], bulan.split('-')[1], 0).getDate() + '&order=tanggal.asc')
         : [],
     ]);
     _angJurnalAkunIdMap = {};
