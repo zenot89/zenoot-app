@@ -366,10 +366,9 @@ function kasGotoTab(tab) {
   // Tampilkan toolbar hanya di tab jurnal
   var toolbar = document.getElementById('kas-jurnal-toolbar');
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
-  // Render laporan dari cache (data sudah ada di _kasJurnalAll dari loadKasJurnal)
-  // kasRenderLaporan() hanya fetch kalau cache kosong — tidak double-fetch
-  if (tab === 'laporan') kasRenderLaporan();
-  if (tab === 'akun')    kasLoadAkun();
+  // Fetch fresh data saat switch tab
+  if (tab === 'laporan') kasRenderLaporan();   // async: fetch fresh jurnal + akun
+  if (tab === 'akun')    kasLoadAkun();         // async: fetch fresh akun list
 }
 
 // ─── LOAD AKUN ───────────────────────────────────────────────
@@ -729,46 +728,35 @@ function kasLapTab(tab) {
   });
 }
 
-// ─── LAPORAN ─────────────────────────────────────────────────
-// Pola persis loadJurnalPenjualan di jurnal-penjualan.js:
-// - debounce clearTimeout/setTimeout
-// - satu fungsi async, fetch sendiri, render langsung
-// - tidak ada DOM clear sebelum data siap → tidak jitter
-
+// ─── kasRenderLaporan — pola clearTimeout/setTimeout persis JP ──
 var _kasLaporanTimer = null;
-
 function kasRenderLaporan() {
   clearTimeout(_kasLaporanTimer);
   _kasLaporanTimer = setTimeout(_kasExecLaporan, 250);
 }
-
 async function _kasExecLaporan() {
-  var _lapAkunMap = {};
-  var _lapJurnal  = [];
   try {
     const [jurnal, akun] = await Promise.all([
       dbGet('jurnal', '&order=tanggal.asc,created_at.asc'),
       dbGet('kas_akun', '&order=kode.asc'),
     ]);
-    (akun || []).forEach(a => { _lapAkunMap[a.id] = a; });
-    _lapJurnal = jurnal || [];
+    _kasAkunMap = {};
+    (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasJurnalAll = jurnal || [];
   } catch(e) {
-    console.error('[kasRenderLaporan]', e.message);
+    console.error('[kasRenderLaporan] gagal fetch data:', e.message);
     ['kas-neraca-tbody','kas-labarugi-tbody','kas-aruskas-tbody'].forEach(function(id) {
       var el = document.getElementById(id);
-      if (el) el.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Gagal memuat. Cek koneksi.</td></tr>';
+      if (el) el.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Gagal memuat data. Cek koneksi dan refresh.</td></tr>';
     });
     return;
   }
   const bulan = document.getElementById('kas-lap-bulan') ? document.getElementById('kas-lap-bulan').value : '';
-  const data  = bulan ? _lapJurnal.filter(r => (r.tanggal||'').startsWith(bulan)) : _lapJurnal;
-  kasRenderNeraca(data, _lapAkunMap);
-  kasRenderLabaRugi(data, _lapAkunMap);
-  kasRenderArusKas(data, _lapAkunMap);
+  const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
+  kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(data);
 }
 
-function kasRenderNeraca(data, akunMap) {
-  akunMap = akunMap || _kasAkunMap;
+function kasRenderNeraca(data) {
   const tbody = document.getElementById('kas-neraca-tbody');
   const saldoMap = {};
   data.forEach(r => {
@@ -780,7 +768,7 @@ function kasRenderNeraca(data, akunMap) {
   const fmtRp = v => fmtRpFull(v);
   let html = '', totalD = 0, totalK = 0;
   order.forEach(k => {
-    const akuns = Object.values(akunMap).filter(a => a.kelompok === k).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
+    const akuns = Object.values(_kasAkunMap).filter(a => a.kelompok === k).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
     if (!akuns.length) return;
     html += `<tr class="lap-head"><td colspan="6">${kasKelompokLabel(k).toUpperCase()}</td></tr>`;
     akuns.forEach(a => {
@@ -803,8 +791,7 @@ function kasRenderNeraca(data, akunMap) {
   tbody.innerHTML = html || `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>`;
 }
 
-function kasRenderLabaRugi(data, akunMap) {
-  akunMap = akunMap || _kasAkunMap;
+function kasRenderLabaRugi(data) {
   const tbody = document.getElementById('kas-labarugi-tbody');
   const saldoMap = {};
   data.forEach(r => {
@@ -813,8 +800,8 @@ function kasRenderLabaRugi(data, akunMap) {
     if (r.akun_kredit_id) { if (!saldoMap[r.akun_kredit_id]) saldoMap[r.akun_kredit_id] = {debit:0,kredit:0}; saldoMap[r.akun_kredit_id].kredit += n; }
   });
   const fmtRp = v => fmtRpFull(Math.abs(v));
-  const akunPend  = Object.values(akunMap).filter(a => a.kelompok === 'pendapatan');
-  const akunBeban = Object.values(akunMap).filter(a => a.kelompok === 'beban');
+  const akunPend  = Object.values(_kasAkunMap).filter(a => a.kelompok === 'pendapatan');
+  const akunBeban = Object.values(_kasAkunMap).filter(a => a.kelompok === 'beban');
   let totalPend = 0, totalBeban = 0, html = '';
   html += `<tr class="lap-head"><td colspan="2">PENDAPATAN</td></tr>`;
   akunPend.forEach(a => {
@@ -841,8 +828,7 @@ let _arusCurrentPage  = 1;
 let _arusFilteredData = [];
 let _arusSaldoMap     = {}; // id -> saldo kumulatif (dihitung dari ascending)
 
-function kasRenderArusKas(data, akunMap) {
-  akunMap = akunMap || _kasAkunMap;
+function kasRenderArusKas(data) {
   // Helper: cek apakah akun adalah kas/bank — berdasarkan sub_kelompok "KAS & BANK"
   function isKasBank(akun) {
     if (!akun || akun.kelompok !== 'aset') return false;
@@ -851,8 +837,8 @@ function kasRenderArusKas(data, akunMap) {
 
   // Filter: salah satu sisi (debit atau kredit) harus akun KAS & BANK
   const filtered = data.filter(r => {
-    const aD = akunMap[r.akun_debit_id];
-    const aK = akunMap[r.akun_kredit_id];
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const aK = _kasAkunMap[r.akun_kredit_id];
     return isKasBank(aD) || isKasBank(aK);
   });
 
@@ -867,7 +853,7 @@ function kasRenderArusKas(data, akunMap) {
   let runSaldo = 0;
   ascending.forEach(r => {
     const n = r.nominal || r.debit || 0;
-    const aD = akunMap[r.akun_debit_id];
+    const aD = _kasAkunMap[r.akun_debit_id];
     const isMasuk = isKasBank(aD);
     if (isMasuk) runSaldo += n; else runSaldo -= n;
     saldoByIdMap[r.id] = runSaldo;
