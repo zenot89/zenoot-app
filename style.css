@@ -1364,7 +1364,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: auto;
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
   touch-action: pan-y pan-x;
+  will-change: scroll-position;
 }
 /* Thead sticky di dalam scroll container — top:0 cukup karena header sudah di luar */
 #jp-tbl-wrap .tbl th {
@@ -2378,6 +2380,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;  /* smooth momentum scroll iOS */
+  touch-action: pan-y;               /* no jitter: hanya vertical pan */
+  will-change: scroll-position;      /* GPU layer: eliminasi jitter */
   padding: 10px 4px 0;
 }
 /* Panel Jurnal: flex column — HANYA saat .active agar tidak bocor ke tab lain */

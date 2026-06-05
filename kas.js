@@ -77,7 +77,7 @@ document.getElementById('page-kas').innerHTML = `
 </div>
 
 <!-- PANEL: LAPORAN -->
-<div id="kas-panel-laporan" class="kas-panel" style="overflow-y:auto;overscroll-behavior:none;touch-action:pan-y">
+<div id="kas-panel-laporan" class="kas-panel">
   <!-- Navigasi 3 sub-laporan -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink);flex-wrap:wrap">
     <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"
@@ -355,13 +355,8 @@ function kasGotoTab(tab) {
   var targetPanel = document.getElementById('kas-panel-' + tab);
   if (targetPanel) {
     targetPanel.classList.add('active');
-    // Tab Laporan & Kelola Akun: CSS flex sudah handle height + overflow via style.css.
-    // Jangan set inline height — offsetHeight bisa 0 saat panel baru aktif → calc salah → scroll mati.
-    // Cukup pastikan touch-action agar iOS Safari mau scroll.
-    if (tab !== 'jurnal') {
-      targetPanel.style.webkitOverflowScrolling = 'touch';
-      targetPanel.style.touchAction             = 'pan-y';
-    }
+    // Tab Laporan & Kelola Akun: CSS flex + touch-action sudah handle semua.
+    // Tidak perlu set inline style — akan race dengan CSS dan bisa menyebabkan jitter.
   }
   // Tampilkan toolbar hanya di tab jurnal
   var toolbar = document.getElementById('kas-jurnal-toolbar');
@@ -1184,22 +1179,40 @@ if (_kasOrigShowModal) {
 function _kasEnsureFlexLayout() {
   var pg = document.getElementById('page-kas');
   if (!pg || !pg.classList.contains('active')) return;
+
+  // Fix full height chain: html → body → .main → .content
+  // Sama seperti _jpEnsureFlexLayout agar iOS Safari resolve flex:1 dengan benar
+  var htmlEl = document.documentElement;
+  if (htmlEl) { htmlEl.style.height = '100%'; }
+
+  var bodyEl = document.body;
+  if (bodyEl) { bodyEl.style.height = '100%'; bodyEl.style.minHeight = '0'; }
+
+  var mainEl = document.querySelector('.main');
+  if (mainEl) {
+    mainEl.style.height           = '100%';
+    mainEl.style.minHeight        = '0';
+    mainEl.style.overflow         = 'hidden';
+    mainEl.style.display          = '-webkit-flex';
+    mainEl.style.webkitFlex       = '1 1 0';
+    mainEl.style.flex             = '1 1 0';
+    mainEl.style.flexDirection    = 'column';
+    mainEl.style.webkitFlexDirection = 'column';
+  }
+
   var contentEl = document.querySelector('.content');
-  if (!contentEl) return;
-  // Cek tab aktif — hanya jurnal yang butuh flex layout (scroll di tbl-wrap)
-  // Laporan & Akun: content boleh scroll normal, jangan di-hidden
-  var activeTab = pg.querySelector('.kas-tab.active');
-  var tabName = activeTab ? activeTab.getAttribute('onclick') : '';
-  var isJurnal = !tabName || tabName.indexOf("'jurnal'") !== -1;
-  if (isJurnal) {
-    contentEl.style.overflowY = 'hidden';
-    contentEl.style.padding   = '0';
-    contentEl.style.height    = '100%';
-  } else {
-    // Reset semua — panel laporan/akun pakai flex:1 dari CSS, bukan inline height
-    contentEl.style.overflowY = 'hidden';
-    contentEl.style.padding   = '0';
-    contentEl.style.height    = '100%';
+  if (contentEl) {
+    contentEl.style.overflowY          = 'hidden';
+    contentEl.style.overflow           = 'hidden';
+    contentEl.style.padding            = '0';
+    contentEl.style.display            = '-webkit-flex';
+    contentEl.style.display            = 'flex';
+    contentEl.style.flexDirection      = 'column';
+    contentEl.style.webkitFlexDirection = 'column';
+    contentEl.style.height             = '100%';
+    contentEl.style.webkitFlex         = '1 1 0';
+    contentEl.style.flex               = '1 1 0';
+    contentEl.style.minHeight          = '0';
   }
 }
 window.addEventListener('resize', function() {
