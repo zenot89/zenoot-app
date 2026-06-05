@@ -38,7 +38,7 @@ var JS_APP_FILES = [
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v7 — smooth scroll fix: kas-panel-laporan/akun + jp-tbl-wrap (will-change, touch-action CSS)
-var JS_CACHE = 'zenot-js-20260605-scroll-smooth-v7';
+var JS_CACHE = 'zenot-js-20260605-2ebc8149eb71';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
