@@ -344,26 +344,52 @@ if (document.readyState === 'loading') {
 function kasGotoTab(tab) {
   const tabs = ['jurnal','laporan','akun'];
   document.querySelectorAll('#page-kas .kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
-  // Scope selector ke #page-kas agar tidak bertabrakan dengan komponen lain
   document.querySelectorAll('#page-kas .kas-panel').forEach(p => {
     p.classList.remove('active');
     p.style.overflowY = '';
     p.style.height    = '';
     p.style.maxHeight = '';
     p.style.padding   = '';
+    p.style.flex      = '';
+    p.style.minHeight = '';
   });
   var targetPanel = document.getElementById('kas-panel-' + tab);
   if (targetPanel) {
     targetPanel.classList.add('active');
-    // Tab Laporan & Kelola Akun: CSS flex + touch-action sudah handle semua.
-    // Tidak perlu set inline style — akan race dengan CSS dan bisa menyebabkan jitter.
+    if (tab === 'laporan' || tab === 'akun') {
+      // Lock height eksplisit pakai window.innerHeight — tidak ikut dvh dinamis
+      // (dvh berubah saat Chrome/Safari address bar show/hide = scrollbar jitter)
+      _kasLockPanelHeight(targetPanel);
+      if (!targetPanel._kasResizeHandler) {
+        targetPanel._kasResizeHandler = function() {
+          var active = document.querySelector('#page-kas .kas-panel.active');
+          if (active && (active.id === 'kas-panel-laporan' || active.id === 'kas-panel-akun')) {
+            _kasLockPanelHeight(active);
+          }
+        };
+        window.addEventListener('resize', targetPanel._kasResizeHandler, { passive: true });
+      }
+    }
   }
-  // Tampilkan toolbar hanya di tab jurnal
   var toolbar = document.getElementById('kas-jurnal-toolbar');
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
-  // Fetch fresh data saat switch tab
-  if (tab === 'laporan') kasRenderLaporan();   // async: fetch fresh jurnal + akun
-  if (tab === 'akun')    kasLoadAkun();         // async: fetch fresh akun list
+  if (tab === 'laporan') kasRenderLaporan();
+  if (tab === 'akun')    kasLoadAkun();
+}
+
+function _kasLockPanelHeight(panel) {
+  var topBar = document.getElementById('kas-top-bar');
+  var tabsEl = document.querySelector('#page-kas > .kas-tabs');
+  var topH   = topBar ? topBar.getBoundingClientRect().height : 0;
+  var tabH   = tabsEl ? tabsEl.getBoundingClientRect().height : 0;
+  var avail  = window.innerHeight - topH - tabH;
+  if (avail > 100) {
+    panel.style.height    = avail + 'px';
+    panel.style.maxHeight = avail + 'px';
+    panel.style.flex      = 'none';
+    panel.style.minHeight = '0';
+    panel.style.overflowY = 'auto';
+  }
 }
 
 // ─── LOAD AKUN ───────────────────────────────────────────────
