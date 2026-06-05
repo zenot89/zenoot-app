@@ -1217,4 +1217,3 @@ async function _keuRenderArusKasImpl() {
     console.error('[ARUS KAS]', e);
   }
 }
-}
