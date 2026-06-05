@@ -107,32 +107,26 @@ document.getElementById('page-kas').innerHTML = `
 
     <!-- Sub-panel: Neraca Saldo -->
     <div id="lap-panel-neraca">
-      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
-        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th></tr></thead>
-          <tbody id="kas-neraca-tbody"></tbody>
-        </table></div>
-      </div>
+      <table class="tbl kas-lap-tbl">
+        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th></tr></thead>
+        <tbody id="kas-neraca-tbody"></tbody>
+      </table>
     </div>
 
     <!-- Sub-panel: Laba Rugi -->
     <div id="lap-panel-labarugi" style="display:none">
-      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
-        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Uraian</th><th style="text-align:right">Jumlah</th></tr></thead>
-          <tbody id="kas-labarugi-tbody"></tbody>
-        </table></div>
-      </div>
+      <table class="tbl kas-lap-tbl">
+        <thead><tr><th>Uraian</th><th style="text-align:right">Jumlah</th></tr></thead>
+        <tbody id="kas-labarugi-tbody"></tbody>
+      </table>
     </div>
 
     <!-- Sub-panel: Arus Kas -->
     <div id="lap-panel-aruskas" style="display:none">
-      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
-        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Akun</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
-          <tbody id="kas-aruskas-tbody"></tbody>
-        </table></div>
-      </div>
+      <table class="tbl kas-lap-tbl">
+        <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Akun</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
+        <tbody id="kas-aruskas-tbody"></tbody>
+      </table>
     </div>
 
   </div><!-- /kas-lap-tbl-wrap -->
@@ -149,10 +143,12 @@ document.getElementById('page-kas').innerHTML = `
       <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)</span>
       <button class="btn btn-sm btn-primary" onclick="kasShowFormAkun()"><i class="ti ti-plus"></i> Tambah Akun</button>
     </div>
-    <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-      <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Sub Kelompok</th><th>Aksi</th></tr></thead>
-      <tbody id="kas-akun-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
-    </table></div>
+    <div id="kas-akun-tbl-scroll">
+      <table class="tbl kas-akun-tbl">
+        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Sub Kelompok</th><th>Aksi</th></tr></thead>
+        <tbody id="kas-akun-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 `;

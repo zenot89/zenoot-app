@@ -1705,39 +1705,81 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream2);
 }
 
-/* Scroll area: mengisi sisa ruang, scroll sendiri */
+/* Scroll area: mengisi sisa ruang, both-axis scroll */
 #kas-lap-tbl-wrap {
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: pan-y pan-x;
   will-change: scroll-position;
   padding: 0;
 }
 
-/* Thead sticky di dalam scroll area */
-#kas-lap-tbl-wrap .tbl th {
+/* Table langsung di scroll container — sticky work */
+#kas-lap-tbl-wrap .kas-lap-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Thead sticky di dalam scroll area — work karena tidak ada overflow wrapper antara */
+#kas-lap-tbl-wrap .kas-lap-tbl thead th {
   position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--cream3);
+  background: var(--cream3, #1a1a1a);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
-/* Akun panel: scroll biasa */
-#kas-panel-akun {
+/* Akun panel: flex column agar card title freeze + tabel scroll */
+#kas-panel-akun.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+#kas-panel-akun .card {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+#kas-panel-akun .card-title {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#kas-panel-akun .kas-akun-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+#kas-akun-tbl-scroll {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: auto;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: pan-y pan-x;
   will-change: scroll-position;
-  padding: 8px;
 }
+#kas-akun-tbl-scroll .kas-akun-tbl thead th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3, #1a1a1a);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
   #kas-lap-sticky-header { padding: 8px 10px 0; }
