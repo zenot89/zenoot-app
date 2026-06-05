@@ -38,7 +38,7 @@ var JS_APP_FILES = [
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v10 — laporan panel: freeze header + inner scroll (pola JP)
-var JS_CACHE = 'zenot-js-20260605-scroll-v10';
+var JS_CACHE = 'zenot-js-20260605-a71ac7bd7872';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
