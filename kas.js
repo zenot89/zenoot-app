@@ -78,59 +78,64 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- PANEL: LAPORAN -->
 <div id="kas-panel-laporan" class="kas-panel">
-  <!-- Navigasi 3 sub-laporan -->
-  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink);flex-wrap:wrap">
-    <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"
-      style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;background:var(--ink);color:var(--cream);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-scale"></i> Neraca Saldo
-    </button>
-    <button id="lap-tab-labarugi" onclick="kasLapTab('labarugi')"
-      style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-chart-line"></i> Laba Rugi
-    </button>
-    <button id="lap-tab-aruskas" onclick="kasLapTab('aruskas')"
-      style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-arrows-exchange"></i> Arus Kas
-    </button>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;padding-bottom:4px">
-      <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
-      <input type="month" id="kas-lap-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasRenderLaporan()">
-      <button class="btn btn-sm" onclick="document.getElementById('kas-lap-bulan').value='';kasRenderLaporan()">Semua</button>
+
+  <!-- FREEZE: Tab bar + filter — tidak ikut scroll -->
+  <div id="kas-lap-sticky-header">
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--ink);flex-wrap:wrap">
+      <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"
+        style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;background:var(--ink);color:var(--cream);cursor:pointer;margin-bottom:-2px">
+        <i class="ti ti-scale"></i> Neraca Saldo
+      </button>
+      <button id="lap-tab-labarugi" onclick="kasLapTab('labarugi')"
+        style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
+        <i class="ti ti-chart-line"></i> Laba Rugi
+      </button>
+      <button id="lap-tab-aruskas" onclick="kasLapTab('aruskas')"
+        style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
+        <i class="ti ti-arrows-exchange"></i> Arus Kas
+      </button>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;padding-bottom:4px">
+        <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
+        <input type="month" id="kas-lap-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasRenderLaporan()">
+        <button class="btn btn-sm" onclick="document.getElementById('kas-lap-bulan').value='';kasRenderLaporan()">Semua</button>
+      </div>
     </div>
   </div>
 
-  <!-- Sub-panel: Neraca Saldo -->
-  <div id="lap-panel-neraca">
-    <div class="card">
-      <div class="card-title"><i class="ti ti-scale"></i> Neraca Saldo</div>
-      <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th></tr></thead>
-        <tbody id="kas-neraca-tbody"></tbody>
-      </table></div>
-    </div>
-  </div>
+  <!-- SCROLL: area konten tabel -->
+  <div id="kas-lap-tbl-wrap">
 
-  <!-- Sub-panel: Laba Rugi -->
-  <div id="lap-panel-labarugi" style="display:none">
-    <div class="card">
-      <div class="card-title"><i class="ti ti-chart-line"></i> Laporan Laba Rugi</div>
-      <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-        <thead><tr><th>Uraian</th><th style="text-align:right">Jumlah</th></tr></thead>
-        <tbody id="kas-labarugi-tbody"></tbody>
-      </table></div>
+    <!-- Sub-panel: Neraca Saldo -->
+    <div id="lap-panel-neraca">
+      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th></tr></thead>
+          <tbody id="kas-neraca-tbody"></tbody>
+        </table></div>
+      </div>
     </div>
-  </div>
 
-  <!-- Sub-panel: Arus Kas -->
-  <div id="lap-panel-aruskas" style="display:none">
-    <div class="card">
-      <div class="card-title"><i class="ti ti-arrows-exchange"></i> Arus Kas</div>
-      <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-        <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Akun</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
-        <tbody id="kas-aruskas-tbody"></tbody>
-      </table></div>
+    <!-- Sub-panel: Laba Rugi -->
+    <div id="lap-panel-labarugi" style="display:none">
+      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Uraian</th><th style="text-align:right">Jumlah</th></tr></thead>
+          <tbody id="kas-labarugi-tbody"></tbody>
+        </table></div>
+      </div>
     </div>
-  </div>
+
+    <!-- Sub-panel: Arus Kas -->
+    <div id="lap-panel-aruskas" style="display:none">
+      <div class="card" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Akun</th><th style="text-align:right">Masuk</th><th style="text-align:right">Keluar</th><th style="text-align:right">Saldo</th></tr></thead>
+          <tbody id="kas-aruskas-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div><!-- /kas-lap-tbl-wrap -->
 </div>
 
 <!-- PANEL: KELOLA AKUN -->
@@ -356,20 +361,18 @@ function kasGotoTab(tab) {
   var targetPanel = document.getElementById('kas-panel-' + tab);
   if (targetPanel) {
     targetPanel.classList.add('active');
-    if (tab === 'laporan' || tab === 'akun') {
-      // Lock height eksplisit pakai window.innerHeight — tidak ikut dvh dinamis
-      // (dvh berubah saat Chrome/Safari address bar show/hide = scrollbar jitter)
+    if (tab === 'akun') {
+      // Panel akun: lock height via window.innerHeight agar tidak ikut dvh dinamis
       _kasLockPanelHeight(targetPanel);
       if (!targetPanel._kasResizeHandler) {
         targetPanel._kasResizeHandler = function() {
           var active = document.querySelector('#page-kas .kas-panel.active');
-          if (active && (active.id === 'kas-panel-laporan' || active.id === 'kas-panel-akun')) {
-            _kasLockPanelHeight(active);
-          }
+          if (active && active.id === 'kas-panel-akun') _kasLockPanelHeight(active);
         };
         window.addEventListener('resize', targetPanel._kasResizeHandler, { passive: true });
       }
     }
+    // Panel laporan: pakai flex column chain — tidak perlu lock height manual
   }
   var toolbar = document.getElementById('kas-jurnal-toolbar');
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';

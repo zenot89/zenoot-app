@@ -1686,15 +1686,63 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Panel Laporan & Kelola Akun: scroll normal (bukan full-height) */
-#kas-panel-laporan,
+/* Laporan panel: flex column, isi sisa ruang di bawah top bar */
+#kas-panel-laporan.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Freeze: tab bar + filter */
+#kas-lap-sticky-header {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 16px 0;
+  background: var(--cream2);
+}
+
+/* Scroll area: mengisi sisa ruang, scroll sendiri */
+#kas-lap-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  will-change: scroll-position;
+  padding: 0;
+}
+
+/* Thead sticky di dalam scroll area */
+#kas-lap-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* Akun panel: scroll biasa */
 #kas-panel-akun {
   overflow-y: auto;
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  will-change: scroll-position;
   padding: 8px;
 }
-@media (max-width: 767px) {
-  #kas-panel-laporan,
-  #kas-panel-akun { padding: 6px; }
+@media (max-width: 900px),
+       (hover: none) and (pointer: coarse) {
+  #kas-lap-sticky-header { padding: 8px 10px 0; }
+  #kas-lap-tbl-wrap      { padding-bottom: 70px; }
+  #kas-panel-akun        { padding-bottom: 70px; }
 }
 
 /* ── kas padding override — full-height pakai 0, handled above ── */
@@ -2371,8 +2419,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   margin-bottom: 0;
   padding: 8px 4px 6px;
 }
-/* Panel Laporan & Akun: scroll normal */
-#kas-panel-laporan,
+/* Panel Laporan: flex column (freeze header + inner scroll) */
+#kas-panel-laporan {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+/* Panel Akun: scroll normal */
 #kas-panel-akun {
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
@@ -2380,9 +2435,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;  /* smooth momentum scroll iOS */
-  touch-action: pan-y;               /* no jitter: hanya vertical pan */
-  will-change: scroll-position;      /* GPU layer: eliminasi jitter */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  will-change: scroll-position;
   padding: 10px 4px 0;
 }
 /* Panel Jurnal: flex column — HANYA saat .active agar tidak bocor ke tab lain */
