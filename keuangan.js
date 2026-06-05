@@ -1037,7 +1037,24 @@ function keuSyncPickerLabel(pickerId, selectId, placeholder) {
 // close listener: handled by unified handler in app.js
 
 // ─── ARUS KAS ────────────────────────────────────────────────
+// Guard: mencegah double-render / jitter saat tab dibuka berulang
+var _keuArusKasLoading = false;
+var _keuArusKasPending = false;
+var _keuArusKasHasData = false;
+
 async function keuRenderArusKas() {
+  if (_keuArusKasLoading) { _keuArusKasPending = true; return; }
+  _keuArusKasLoading = true;
+  _keuArusKasPending = false;
+  await _keuRenderArusKasImpl();
+  _keuArusKasLoading = false;
+  if (_keuArusKasPending) {
+    _keuArusKasPending = false;
+    setTimeout(keuRenderArusKas, 50);
+  }
+}
+
+async function _keuRenderArusKasImpl() {
   const fmtRp = v => fmtRpFull(Math.abs(v));
 
   // Bulan ini
@@ -1199,4 +1216,5 @@ async function keuRenderArusKas() {
   } catch(e) {
     console.error('[ARUS KAS]', e);
   }
+}
 }

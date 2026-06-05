@@ -728,14 +728,29 @@ function kasLapTab(tab) {
   });
 }
 
+// ─── DEBOUNCE + GUARD untuk kasRenderLaporan ─────────────────
+// Mencegah jitter/bergetar akibat double-render saat switch tab / filter bulan
+var _kasLaporanLoading = false;   // true saat sedang fetch
+var _kasLaporanPending = false;   // ada request baru masuk saat loading
+var _kasLaporanHasData = false;   // sudah pernah render data (jangan flash loading lagi)
+
 async function kasRenderLaporan() {
-  // Tampilkan loading state dulu
-  var loadingHtml = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  // Kalau sedang fetch, tandai pending — jalankan ulang setelah selesai
+  if (_kasLaporanLoading) { _kasLaporanPending = true; return; }
+
+  _kasLaporanLoading = true;
+  _kasLaporanPending = false;
+
   var tbodies = ['kas-neraca-tbody','kas-labarugi-tbody','kas-aruskas-tbody'];
-  tbodies.forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.innerHTML = loadingHtml;
-  });
+
+  // Tampilkan "Memuat..." HANYA saat pertama kali (belum ada data) agar tidak flicker
+  if (!_kasLaporanHasData) {
+    var loadingHtml = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+    tbodies.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = loadingHtml;
+    });
+  }
 
   // Selalu fetch fresh dari DB agar data tidak stale/bocor dari cache jurnal harian
   try {
@@ -746,17 +761,27 @@ async function kasRenderLaporan() {
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
     _kasJurnalAll = jurnal || [];
+    _kasLaporanHasData = true;
   } catch(e) {
     console.error('[kasRenderLaporan] gagal fetch data:', e.message);
     tbodies.forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Gagal memuat data. Cek koneksi dan refresh.</td></tr>';
     });
-    return; // jangan render dengan data lama yang mungkin salah
+    _kasLaporanLoading = false;
+    return;
   }
   const bulan = document.getElementById('kas-lap-bulan') ? document.getElementById('kas-lap-bulan').value : '';
   const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
   kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(data);
+
+  _kasLaporanLoading = false;
+
+  // Ada request pending saat kita fetch tadi? Jalankan sekali lagi
+  if (_kasLaporanPending) {
+    _kasLaporanPending = false;
+    setTimeout(kasRenderLaporan, 50);
+  }
 }
 
 function kasRenderNeraca(data) {
