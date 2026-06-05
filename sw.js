@@ -38,7 +38,7 @@ var JS_APP_FILES = [
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v8 — fix jitter (kas/jp scroll) + keuangan.js orphan brace fix
-var JS_CACHE = 'zenot-js-20260605-scroll-v8';
+var JS_CACHE = 'zenot-js-20260605-3e0b0ad3e65a';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
