@@ -2635,3 +2635,37 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     min-height: 0;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   KAS — FIX GAP BAWAH TABEL DI iPHONE
+   Masalah: area kosong hitam setelah row terakhir.
+   Penyebab: tbl-wrap flex:1 stretch penuh ke bawah,
+   area di bawah tabel transparan → page bg (#000) kelihatan.
+   Solusi: beri background sama ke semua layer chain.
+   ═══════════════════════════════════════════════════════════ */
+#kas-jurnal-card,
+#kas-jurnal-tbl-wrap,
+#kas-sticky-header {
+  background: var(--cream2);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KAS — CARD FIX HEIGHT, TBL-WRAP SCROLL DI DALAM
+   Card di-set height eksplisit via JS (_kasEnsureFlexLayout).
+   tbl-wrap mengisi sisa tinggi card setelah sticky header.
+   ═══════════════════════════════════════════════════════════ */
+#kas-jurnal-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#kas-sticky-header {
+  flex-shrink: 0;
+}
+#kas-jurnal-tbl-wrap {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}

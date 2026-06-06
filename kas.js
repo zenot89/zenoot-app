@@ -1207,48 +1207,43 @@ function _kasEnsureFlexLayout() {
   var pg = document.getElementById('page-kas');
   if (!pg || !pg.classList.contains('active')) return;
 
-  // Tandai body agar CSS @supports iOS dapat target saat kas aktif
   document.body.classList.add('kas-active');
-
-  // Fix full height chain: html → body → .main → .content
-  // Sama seperti _jpEnsureFlexLayout agar iOS Safari resolve flex:1 dengan benar
-  var htmlEl = document.documentElement;
-  if (htmlEl) { htmlEl.style.height = '100%'; }
-
-  var bodyEl = document.body;
-  if (bodyEl) { bodyEl.style.height = '100%'; bodyEl.style.minHeight = '0'; }
-
-  var mainEl = document.querySelector('.main');
-  if (mainEl) {
-    mainEl.style.height              = '100%';
-    mainEl.style.minHeight           = '0';
-    mainEl.style.overflow            = 'hidden';
-    mainEl.style.display             = '-webkit-flex';
-    mainEl.style.webkitFlex          = '1 1 0';
-    mainEl.style.flex                = '1 1 0';
-    mainEl.style.flexDirection       = 'column';
-    mainEl.style.webkitFlexDirection = 'column';
-  }
-
-  var contentEl = document.querySelector('.content');
-  if (contentEl) {
-    contentEl.style.overflow             = 'hidden';
-    contentEl.style.overflowY            = 'hidden';
-    contentEl.style.padding              = '0';
-    contentEl.style.display              = '-webkit-flex';
-    contentEl.style.display              = 'flex';
-    contentEl.style.flexDirection        = 'column';
-    contentEl.style.webkitFlexDirection  = 'column';
-    contentEl.style.height               = '100%';
-    contentEl.style.webkitFlex           = '1 1 0';
-    contentEl.style.flex                 = '1 1 0';
-    contentEl.style.minHeight            = '0';
-  }
-
-  // Pastikan #page-kas sendiri height:100% agar iOS Safari resolve flex:1
-  pg.style.height    = '100%';
-  pg.style.minHeight = '0';
+  _kasSetCardHeight();
 }
+
+function _kasSetCardHeight() {
+  var pg = document.getElementById('page-kas');
+  if (!pg || !pg.classList.contains('active')) return;
+
+  var card = document.getElementById('kas-jurnal-card');
+  if (!card) return;
+
+  requestAnimationFrame(function() {
+    var rect     = card.getBoundingClientRect();
+    var winH     = window.innerHeight;
+    var paddingB = 8;
+    var newH     = winH - rect.top - paddingB;
+    if (newH > 100) {
+      card.style.height    = newH + 'px';
+      card.style.minHeight = newH + 'px';
+      card.style.maxHeight = newH + 'px';
+      card.style.flex      = 'none';
+      card.style.overflow  = 'hidden';
+    }
+  });
+}
+
+// Re-kalkulasi card height setiap kali top-bar collapse/expand selesai (0.25s transition)
+(function() {
+  var _kasTopBar = document.getElementById('kas-top-bar');
+  if (!_kasTopBar) return;
+  _kasTopBar.addEventListener('transitionend', function(e) {
+    if (e.propertyName === 'max-height') {
+      // Tunggu satu frame lagi agar DOM settle
+      setTimeout(_kasSetCardHeight, 16);
+    }
+  });
+})();
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-kas');
   if (pg && pg.classList.contains('active')) _kasEnsureFlexLayout();
