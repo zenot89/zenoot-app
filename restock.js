@@ -170,7 +170,7 @@ async function loadRestock() {
     const isKritisMode = window._restockFilterKritis === true;
     window._restockFilterKritis = false;
 
-    const [penjualan, produkAll, supplierAll, stokRaw, jpAllRaw] = await Promise.all([
+    const [penjualan, produkAll, supplierAll, stokData, jurnalAllData] = await Promise.all([
       dbGet('jurnal_penjualan', '&tanggal=gte.' + dari + '&order=tanggal.desc'),
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
@@ -178,20 +178,23 @@ async function loadRestock() {
       dbGet('jurnal_penjualan', '&select=sku,qty')
     ]);
 
-    // ── Hitung sisa stok per SKU ──
-    const masukMap = {};
-    (stokRaw || []).forEach(s => {
+    // ── Hitung sisa stok per SKU — logika IDENTIK dengan stok.js ──
+    // stok.js: _stokMasukMap[key] = { id, qty } → overwrite, 1 record per SKU
+    const _masukMap = {};
+    (stokData || []).forEach(s => {
       const key = (s.sku_variasi || '').trim().toUpperCase();
-      if (key) masukMap[key] = (masukMap[key] || 0) + (s.stok_masuk || 0);
+      if (key) _masukMap[key] = s.stok_masuk || 0;
     });
-    const keluarMapAll = {};
-    (jpAllRaw || []).forEach(r => {
+    // stok.js: keluarMap[key] += qty → akumulasi semua penjualan
+    const _keluarMap = {};
+    (jurnalAllData || []).forEach(r => {
       const key = (r.sku || '').trim().toUpperCase();
-      if (key) keluarMapAll[key] = (keluarMapAll[key] || 0) + (r.qty || 0);
+      if (key) _keluarMap[key] = (_keluarMap[key] || 0) + (r.qty || 0);
     });
+    // sisa = masuk - keluar, identik stok.js line 294-296
     const sisaMap = {};
-    Object.keys(masukMap).forEach(k => {
-      sisaMap[k] = (masukMap[k] || 0) - (keluarMapAll[k] || 0);
+    Object.keys(_masukMap).forEach(k => {
+      sisaMap[k] = _masukMap[k] - (_keluarMap[k] || 0);
     });
 
     // ── Tren: qty 7 hari pertama vs 7 hari terakhir ──
