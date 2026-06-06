@@ -1113,13 +1113,14 @@ async function _jpRefreshSisakMap() {
   try {
     const [produkList, stokList, jurnalAll] = await Promise.all([
       dbGet('produk', '&select=sku_variasi'),
-      dbGet('stok',   '&select=sku_variasi,stok_masuk'),
+      dbGet('stok',   '&select=sku_variasi,stok_masuk&order=id.desc'),
       dbGet('jurnal_penjualan', '&select=sku,qty'),
     ]);
+    // Sama persis dengan stok.js: last-write-wins per SKU (bukan akumulasi)
     const masukMap = {};
     (stokList || []).forEach(function(r) {
       const k = (r.sku_variasi || '').toUpperCase();
-      masukMap[k] = (masukMap[k] || 0) + (r.stok_masuk || 0);
+      if (!(k in masukMap)) masukMap[k] = r.stok_masuk || 0;
     });
     const keluarMap = {};
     (jurnalAll || []).forEach(function(j) {
