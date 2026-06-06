@@ -387,6 +387,14 @@ window.addEventListener('resize', function() {
   }
 });
 
+// orientationchange: portrait ↔ landscape — re-apply flex layout setelah browser selesai resize
+window.addEventListener('orientationchange', function() {
+  var pg = document.getElementById('page-jurnal-penjualan');
+  if (!pg || !pg.classList.contains('active')) return;
+  // Delay 300ms: beri waktu browser selesai relayout setelah rotasi
+  setTimeout(_jpEnsureFlexLayout, 300);
+});
+
 // ─── STATE ───────────────────────────────────────────────────
 let _jpAllData    = [];
 let _jpChannelMap = {};
@@ -792,6 +800,8 @@ async function loadJurnalPenjualan() {
     filterJP();
     jpLoadTargetHarian(); // progress bar target harian
     _jpRefreshSisakMap(); // refresh sisa stok all-time untuk picker (async, non-blocking)
+    // Re-apply flex layout setelah data selesai — pastikan portrait juga flat seperti landscape
+    _jpEnsureFlexLayout();
   } catch(err) {
     tbody.innerHTML = '<tr><td colspan="9" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
