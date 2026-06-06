@@ -1219,26 +1219,9 @@ function _kasSetCardHeight() {
   if (!card) return;
 
   requestAnimationFrame(function() {
-    var rect = card.getBoundingClientRect();
-    var winH = window.innerHeight;
-
-    // Deteksi safe-area-inset-bottom (PWA/standalone mode iPhone)
-    // CSS env() tidak bisa dibaca JS langsung, pakai trick div dummy
-    var safeB = 0;
-    try {
-      var dummy = document.getElementById('_kas_safe_dummy');
-      if (!dummy) {
-        dummy = document.createElement('div');
-        dummy.id = '_kas_safe_dummy';
-        dummy.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);pointer-events:none;opacity:0;z-index:-1';
-        document.body.appendChild(dummy);
-      }
-      safeB = dummy.getBoundingClientRect().height || 0;
-    } catch(e) { safeB = 0; }
-
-    // Hamburger button height ~60px + safe area + 4px gap
-    var paddingB = Math.max(safeB + 64, 72);
-    var newH     = winH - rect.top - paddingB;
+    var cardTop = card.getBoundingClientRect().top;
+    var winH    = window.innerHeight;
+    var newH    = winH - cardTop; // mentok penuh ke bawah layar
     if (newH > 100) {
       card.style.height    = newH + 'px';
       card.style.minHeight = newH + 'px';
