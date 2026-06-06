@@ -38,7 +38,7 @@ var JS_APP_FILES = [
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
 // BUMP: JS_CACHE v15 — fix tambah stok: cek _stokMasukMap langsung, bukan inp-id
-var JS_CACHE = 'zenot-js-20260606-045c69876715';
+var JS_CACHE = 'zenot-js-20260606-8116fee8c49a';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
