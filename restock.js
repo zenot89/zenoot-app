@@ -265,6 +265,23 @@ async function loadRestock() {
       const sisa_stok = sisaMap[sku] !== undefined ? sisaMap[sku] : null;
 
       if (!bossList[bossKey]) bossList[bossKey] = { items: [], sup };
+      // Days of Stock: berapa hari stok sisa cukup
+      const dos = (sisa_stok !== null && avg_harian > 0)
+        ? Math.round(sisa_stok / avg_harian)
+        : null;
+
+      // Prioritas: SEGERA / PERLU / TUNDA
+      let prioritas = 'PERLU';
+      if (dos !== null && dos <= sup.lead_time) {
+        prioritas = 'SEGERA'; // stok habis sebelum barang datang
+      } else if (sisa_stok !== null && sisa_stok <= 3) {
+        prioritas = 'SEGERA';
+      } else if (tren === 'turun' && (dos === null || dos > 21)) {
+        prioritas = 'TUNDA';
+      } else if (tren === 'naik' || (dos !== null && dos <= 14)) {
+        prioritas = 'PERLU';
+      }
+
       bossList[bossKey].items.push({
         katalog      : p.katalog || '—',
         sku,
@@ -277,12 +294,19 @@ async function loadRestock() {
         nilai,
         cover_hari,
         tren,
-        sisa_stok
+        sisa_stok,
+        dos,
+        prioritas
       });
     });
 
     Object.values(bossList).forEach(b => {
-      b.items.sort((a, z) => z.qty_order - a.qty_order);
+      const _p = { SEGERA: 0, PERLU: 1, TUNDA: 2 };
+    b.items.sort((a, z) => {
+      const pd = (_p[a.prioritas] || 1) - (_p[z.prioritas] || 1);
+      if (pd !== 0) return pd;
+      return z.qty_order - a.qty_order;
+    });
     });
 
     const bossSorted = Object.keys(bossList).sort();
@@ -431,6 +455,19 @@ function sisaBadge(sisa) {
   if (sisa <= 3)      return `<span style="color:var(--danger)">${sisa}</span>`;
   if (sisa <= 8)      return `<span style="color:var(--warn)">${sisa}</span>`;
   return `<span style="color:var(--ink2)">${sisa}</span>`;
+}
+
+function prioritasBadge(p) {
+  if (p === 'SEGERA') return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(224,82,82,0.15);color:var(--danger);border:1px solid var(--danger)">SEGERA</span>';
+  if (p === 'TUNDA')  return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(80,80,96,0.3);color:var(--ink3);border:1px solid var(--ink3)">TUNDA</span>';
+  return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(230,168,23,0.12);color:var(--warn);border:1px solid var(--warn)">PERLU</span>';
+}
+
+function dosBadge(dos, lead_time) {
+  if (dos === null) return '<span style="color:var(--ink3)">—</span>';
+  if (dos <= lead_time) return '<b style="color:var(--danger)">' + dos + ' hr</b>';
+  if (dos <= 14)        return '<b style="color:var(--warn)">'   + dos + ' hr</b>';
+  return '<span style="color:var(--ink2)">' + dos + ' hr</span>';
 }
 
 // ── Tab Summary ──
@@ -609,43 +646,37 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
             <th>#</th>
             <th>Katalog</th>
             <th>Variant (SKU)</th>
+            <th style="text-align:center">Prioritas</th>
+            <th style="text-align:center">DoS</th>
             <th style="text-align:center">Tren</th>
             <th style="text-align:center">Sisa</th>
             <th style="text-align:center">Qty 14hr</th>
             <th style="text-align:center">Avg/hari</th>
-            <th style="text-align:center">ROP+SS</th>
             <th style="text-align:center;color:var(--warn)">Order</th>
-            <th style="text-align:center">Cover</th>
-            <th style="text-align:right">HPP</th>
             <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
           </tr>
         </thead>
         <tbody>
           ${items.map((r, i) => `
-            <tr>
+            <tr style="${r.prioritas === 'SEGERA' ? 'background:rgba(224,82,82,0.05)' : r.prioritas === 'TUNDA' ? 'opacity:0.6' : ''}">
               <td style="color:var(--ink3);font-size:11px">${i + 1}</td>
               <td style="color:var(--ink3)">${r.katalog}</td>
               <td><b style="color:var(--ink)">${r.sku}</b></td>
+              <td style="text-align:center">${prioritasBadge(r.prioritas)}</td>
+              <td style="text-align:center">${dosBadge(r.dos, sup.lead_time)}</td>
               <td style="text-align:center">${trenIcon(r.tren)}</td>
               <td style="text-align:center">${sisaBadge(r.sisa_stok)}</td>
               <td style="text-align:center">${r.qty14}</td>
               <td style="text-align:center;color:var(--ink3)">${r.avg_harian}</td>
-              <td style="text-align:center;color:var(--ink2)">${r.rop}</td>
               <td style="text-align:center;font-weight:700;font-size:16px;color:var(--warn)">${r.qty_order}</td>
-              <td style="text-align:center;font-size:12px;${coverHariStyle(r.cover_hari, sup.lead_time)}">
-                ${r.cover_hari !== null ? r.cover_hari + ' hr' : '—'}
-              </td>
-              <td style="text-align:right;color:var(--ink3);font-size:12px">${fmtRp(r.hpp)}</td>
               <td style="text-align:right;font-weight:600;color:${r.nilai ? 'var(--ok)' : 'var(--ink3)'}">
                 ${fmtRp(r.nilai)}
               </td>
             </tr>
           `).join('')}
           <tr style="font-weight:700;border-top:2px solid var(--ink3)">
-            <td colspan="8" style="color:var(--ink2)">Total</td>
+            <td colspan="9" style="color:var(--ink2)">Total</td>
             <td style="text-align:center;font-size:18px;color:var(--warn)">${totalQty}</td>
-            <td></td>
-            <td></td>
             <td style="text-align:right;color:var(--ok);font-size:15px">${fmtRp(totalNilai)}</td>
           </tr>
         </tbody>
