@@ -1374,13 +1374,13 @@ document.addEventListener('zenot:page', function(e) {
   window._jpReloadTimer = setTimeout(loadJurnalPenjualan, 250);
 });
 
-// ─── SWIPE GESTURE — collapse jp-top-bar di landscape touch ─────────
+// ─── SWIPE GESTURE — collapse jp-top-bar (semua touch device: portrait + landscape) ─────────
 (function() {
-  var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
+  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   function _jpInitSwipe() {
-    if (!_mq.matches) return;
-    var zone     = document.getElementById('jp-sticky-header');
-    var topBar   = document.getElementById('jp-top-bar');
+    if (!_isTouchDevice) return;
+    var zone   = document.getElementById('jp-sticky-header');
+    var topBar = document.getElementById('jp-top-bar');
     if (!zone || !topBar) return;
     // Gabung jp-top-bar sebagai swipe zone juga
     initSwipeCollapse(zone,   topBar, 50);

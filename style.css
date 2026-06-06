@@ -1822,10 +1822,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* landscape collapse — handled by jp-topbar-collapsed class + scroll listener */
+/* collapse — handled by jp-topbar-collapsed class, aktif di semua touch device (portrait + landscape) */
 
-/* ── jp-top-bar COLLAPSE saat scroll di landscape touch ── */
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+/* ── jp-top-bar COLLAPSE saat swipe di semua touch device ── */
+@media (hover: none) and (pointer: coarse) {
   #jp-top-bar {
     display: -webkit-flex !important;
     display: flex !important;
@@ -1842,6 +1842,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     opacity: 0;
     pointer-events: none;
   }
+}
+
+/* ── jp-aksi-mobile / laptop visibility di landscape touch ── */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
   /* jp-aksi-mobile tetap tampil di dalam card */
   #jp-aksi-mobile {
     display: -webkit-flex !important;
