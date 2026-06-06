@@ -2580,5 +2580,38 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .content-el {
     height: -webkit-fill-available;
   }
+
+  /* ── KAS: Full-height chain fix di iOS Safari portrait ──
+     flex:1 tidak resolve jika parent tidak punya height eksplisit.
+     Solusi: pastikan .content saat kas aktif = overflow:hidden,
+     dan tbl-wrap padding-bottom = safe-area-inset-bottom agar
+     konten mentok ke garis merah (home indicator) tanpa terpotong.
+  ────────────────────────────────────────────────────────── */
+
+  /* .content harus overflow:hidden agar flex chain resolve di iOS */
+  /* (JS _kasEnsureFlexLayout sudah set ini, CSS sebagai backup) */
+  body.kas-active .content {
+    overflow: hidden !important;
+  }
+
+  /* Tbl-wrap: padding-bottom = hamburger (70px) + safe-area */
+  #kas-jurnal-tbl-wrap {
+    padding-bottom: max(70px, calc(50px + env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Laporan & Akun panel: sama */
+  #kas-lap-tbl-wrap,
+  #kas-panel-akun,
+  #kas-akun-tbl-scroll {
+    padding-bottom: max(70px, calc(50px + env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Pastikan #page-kas mengisi tinggi penuh secara eksplisit di iOS */
+  #page-kas.active {
+    height: 100%;
+    min-height: 0;
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+  }
 }
 

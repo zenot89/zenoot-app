@@ -1207,6 +1207,9 @@ function _kasEnsureFlexLayout() {
   var pg = document.getElementById('page-kas');
   if (!pg || !pg.classList.contains('active')) return;
 
+  // Tandai body agar CSS @supports iOS dapat target saat kas aktif
+  document.body.classList.add('kas-active');
+
   // Fix full height chain: html → body → .main → .content
   // Sama seperti _jpEnsureFlexLayout agar iOS Safari resolve flex:1 dengan benar
   var htmlEl = document.documentElement;
@@ -1217,30 +1220,34 @@ function _kasEnsureFlexLayout() {
 
   var mainEl = document.querySelector('.main');
   if (mainEl) {
-    mainEl.style.height           = '100%';
-    mainEl.style.minHeight        = '0';
-    mainEl.style.overflow         = 'hidden';
-    mainEl.style.display          = '-webkit-flex';
-    mainEl.style.webkitFlex       = '1 1 0';
-    mainEl.style.flex             = '1 1 0';
-    mainEl.style.flexDirection    = 'column';
+    mainEl.style.height              = '100%';
+    mainEl.style.minHeight           = '0';
+    mainEl.style.overflow            = 'hidden';
+    mainEl.style.display             = '-webkit-flex';
+    mainEl.style.webkitFlex          = '1 1 0';
+    mainEl.style.flex                = '1 1 0';
+    mainEl.style.flexDirection       = 'column';
     mainEl.style.webkitFlexDirection = 'column';
   }
 
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    contentEl.style.overflowY          = 'hidden';
-    contentEl.style.overflow           = 'hidden';
-    contentEl.style.padding            = '0';
-    contentEl.style.display            = '-webkit-flex';
-    contentEl.style.display            = 'flex';
-    contentEl.style.flexDirection      = 'column';
-    contentEl.style.webkitFlexDirection = 'column';
-    contentEl.style.height             = '100%';
-    contentEl.style.webkitFlex         = '1 1 0';
-    contentEl.style.flex               = '1 1 0';
-    contentEl.style.minHeight          = '0';
+    contentEl.style.overflow             = 'hidden';
+    contentEl.style.overflowY            = 'hidden';
+    contentEl.style.padding              = '0';
+    contentEl.style.display              = '-webkit-flex';
+    contentEl.style.display              = 'flex';
+    contentEl.style.flexDirection        = 'column';
+    contentEl.style.webkitFlexDirection  = 'column';
+    contentEl.style.height               = '100%';
+    contentEl.style.webkitFlex           = '1 1 0';
+    contentEl.style.flex                 = '1 1 0';
+    contentEl.style.minHeight            = '0';
   }
+
+  // Pastikan #page-kas sendiri height:100% agar iOS Safari resolve flex:1
+  pg.style.height    = '100%';
+  pg.style.minHeight = '0';
 }
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-kas');
@@ -1255,7 +1262,11 @@ window.addEventListener('orientationchange', function() {
 
 // ─── HOOK zenot:page ─────────────────────────────────────────
 document.addEventListener('zenot:page', function(e) {
-  if (e.detail.page !== 'kas') return;
+  // Bersihkan kas-active saat navigasi ke halaman lain
+  if (e.detail.page !== 'kas') {
+    document.body.classList.remove('kas-active');
+    return;
+  }
   setTimeout(_kasEnsureFlexLayout, 60);
   setTimeout(function() {
     var tb = document.getElementById('kas-top-bar');
