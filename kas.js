@@ -1231,7 +1231,9 @@ function _kasSetCardHeight() {
       safeBottom = testEl.getBoundingClientRect().height || 0;
       document.body.removeChild(testEl);
     } catch(e) { safeBottom = 0; }
-    var newH = winH - cardTop - safeBottom;
+    // Tambah clearance untuk hamburger (52px) + jarak dari bottom (20px)
+    var hamburgerClearance = 52 + 20 + safeBottom;
+    var newH = winH - cardTop - hamburgerClearance;
     if (newH > 100) {
       card.style.height    = newH + 'px';
       card.style.minHeight = newH + 'px';
