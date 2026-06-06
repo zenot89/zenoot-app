@@ -1666,7 +1666,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
   #kas-top-bar        { padding: 8px 10px 6px; }
-  #kas-jurnal-tbl-wrap { padding-bottom: 70px; }
+  #kas-jurnal-tbl-wrap { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
 
 /* ── kas-top-bar COLLAPSE — semua mode: HP portrait, landscape, laptop ── */
@@ -2556,7 +2556,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
-  #kas-jurnal-tbl-wrap { padding-bottom: 70px; }
+  #kas-jurnal-tbl-wrap { padding-bottom: env(safe-area-inset-bottom, 0px); }
   #kas-panel-laporan,
   #kas-panel-akun      { padding-bottom: 70px; }
 }
