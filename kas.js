@@ -572,6 +572,8 @@ async function loadKasJurnal() {
     kasPopulateAkunDropdown(akun || []);
     _kasJurnalAll = jurnal || [];
     kasApplyFilter();
+    // Re-apply flex layout setelah data selesai — pastikan portrait flat seperti landscape
+    _kasEnsureFlexLayout();
   } catch(e) {
     document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
@@ -1243,6 +1245,12 @@ function _kasEnsureFlexLayout() {
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-kas');
   if (pg && pg.classList.contains('active')) _kasEnsureFlexLayout();
+});
+
+window.addEventListener('orientationchange', function() {
+  var pg = document.getElementById('page-kas');
+  if (!pg || !pg.classList.contains('active')) return;
+  setTimeout(_kasEnsureFlexLayout, 300);
 });
 
 // ─── HOOK zenot:page ─────────────────────────────────────────
