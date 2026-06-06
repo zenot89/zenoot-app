@@ -436,13 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── SVG ICONS (monokrom, ikut currentColor tema app) ─────────
 var CH_SVG = {
-  shopee: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<rect x="8" y="28" width="84" height="64" rx="10" fill="currentColor"/>' +
-    '<path d="M34 28 C34 14 66 14 66 28" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round"/>' +
-    '<path d="M58 44C58 39.6 54.4 36 50 36C45.6 36 42 39.6 42 44C42 48.4 45.6 52 50 52C54.4 52 58 55.6 58 60C58 64.4 54.4 68 50 68C45.6 68 42 64.4 42 60" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/>' +
-    '<line x1="50" y1="33" x2="50" y2="38" stroke="white" stroke-width="5" stroke-linecap="round"/>' +
-    '<line x1="50" y1="67" x2="50" y2="72" stroke="white" stroke-width="5" stroke-linecap="round"/>' +
-  '</svg>',
+  shopee: '<i class="ti ti-brand-shopee" style="font-size:15px;flex-shrink:0"></i>',
 
   lazada: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
     '<rect x="6" y="6" width="88" height="88" rx="14" fill="currentColor"/>' +
