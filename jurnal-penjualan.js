@@ -783,6 +783,7 @@ async function loadJurnalPenjualan() {
     _jpAllData = data || [];
     filterJP();
     jpLoadTargetHarian(); // progress bar target harian
+    _jpRefreshSisakMap(); // refresh sisa stok all-time untuk picker (async, non-blocking)
   } catch(err) {
     tbody.innerHTML = '<tr><td colspan="9" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
@@ -1094,39 +1095,45 @@ function renderTabelJP(data) {
     document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
   }
 
-  // Bangun sisakMap dari data stok + jurnal (sama logika stok.js)
-  Promise.all([
-    dbGet('produk', '&select=sku_variasi,id'),
-    dbGet('stok', '&select=sku_variasi,stok_masuk'),
-    dbGet('jurnal_penjualan', '&select=sku,qty'),
-  ]).then(function(results) {
-    const produkList = results[0] || [];
-    const stokList = results[1] || [];
-    const jurnalAll = results[2] || [];
-    // stok masuk per SKU (dari tabel stok, field stok_masuk)
+  // Render pakai _jpSisakMap terkini (sudah di-refresh oleh _jpRefreshSisakMap di loadJurnalPenjualan)
+  _jpRenderWithStok(_jpSisakMap);
+}
+
+// ─── REFRESH SISAK MAP (all-time, independen dari filter periode) ─────────────
+// Dipanggil setiap loadJurnalPenjualan() agar picker selalu tampil nilai aktual
+async function _jpRefreshSisakMap() {
+  try {
+    const [produkList, stokList, jurnalAll] = await Promise.all([
+      dbGet('produk', '&select=sku_variasi'),
+      dbGet('stok',   '&select=sku_variasi,stok_masuk'),
+      dbGet('jurnal_penjualan', '&select=sku,qty'),
+    ]);
     const masukMap = {};
-    stokList.forEach(function(r) {
-      const k = (r.sku_variasi||'').toUpperCase();
-      masukMap[k] = (masukMap[k]||0) + (r.stok_masuk||0);
+    (stokList || []).forEach(function(r) {
+      const k = (r.sku_variasi || '').toUpperCase();
+      masukMap[k] = (masukMap[k] || 0) + (r.stok_masuk || 0);
     });
-    // stok keluar per SKU
     const keluarMap = {};
-    jurnalAll.forEach(function(j) {
-      const k = (j.sku||'').toUpperCase();
-      keluarMap[k] = (keluarMap[k]||0) + (j.qty||0);
+    (jurnalAll || []).forEach(function(j) {
+      const k = (j.sku || '').toUpperCase();
+      keluarMap[k] = (keluarMap[k] || 0) + (j.qty || 0);
     });
-    // sisa per SKU
     const sisakMap = {};
-    produkList.forEach(function(p) {
-      const k = (p.sku_variasi||'').toUpperCase();
-      sisakMap[k] = (masukMap[k]||0) - (keluarMap[k]||0);
+    (produkList || []).forEach(function(p) {
+      const k = (p.sku_variasi || '').toUpperCase();
+      sisakMap[k] = (masukMap[k] || 0) - (keluarMap[k] || 0);
     });
-    _jpSisakMap = sisakMap; // expose ke picker variasi
-    _jpRenderWithStok(sisakMap);
-  }).catch(function() {
-    // Kalau fetch gagal, render tanpa sisa stok
-    _jpRenderWithStok({});
-  });
+    _jpSisakMap = sisakMap;
+    // Re-render tabel pakai sisakMap fresh (kalau tabel sudah ada datanya)
+    if (Object.keys(sisakMap).length) {
+      const tbody = document.getElementById('jp-tbody');
+      if (tbody && tbody.querySelectorAll('tr').length > 0) {
+        filterJP(); // trigger render ulang dengan data + sisakMap baru
+      }
+    }
+  } catch(e) {
+    // Gagal fetch — biarkan _jpSisakMap tetap nilai sebelumnya
+  }
 }
 
 function updateMetricsJP(data) {
