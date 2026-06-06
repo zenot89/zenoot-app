@@ -210,28 +210,7 @@ function gotoPage(page, btn) {
       contentEl.style.webkitFlex           = '1 1 0';
       contentEl.style.flex                 = '1 1 0';
       contentEl.style.minHeight            = '0';
-      // iOS Safari: gunakan window.innerHeight eksplisit sebagai fallback
-      // -webkit-fill-available tidak selalu resolve via flex chain
-      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (isIOS) {
-        // Kurangi tinggi .topbar agar .content tidak overflow layar
-        var topbarEl = document.querySelector('.topbar');
-        var topbarH  = topbarEl ? topbarEl.getBoundingClientRect().height : 0;
-        contentEl.style.height = (window.innerHeight - topbarH) + 'px';
-        // Update saat orientasi/resize berubah
-        if (!contentEl._iosResizeHandler) {
-          contentEl._iosResizeHandler = function() {
-            if (contentEl.style.flex === '1 1 0') {
-              var tb = document.querySelector('.topbar');
-              var tbH = tb ? tb.getBoundingClientRect().height : 0;
-              contentEl.style.height = (window.innerHeight - tbH) + 'px';
-            }
-          };
-          window.addEventListener('resize', contentEl._iosResizeHandler, { passive: true });
-        }
-      } else {
-        contentEl.style.height = '100%';
-      }
+      contentEl.style.height               = '100%';
     } else {
       // Normal scroll pages: reset semua inline styles
       document.documentElement.style.height = '';

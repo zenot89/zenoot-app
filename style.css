@@ -2615,3 +2615,23 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   iOS SAFARI — FINAL HEIGHT FIX
+   Masalah: iOS Safari tidak resolve flex:1 tanpa height eksplisit.
+   Solusi: set .main ke -webkit-fill-available (tinggi viewport
+   dikurangi safe-area otomatis oleh browser), lalu biarkan
+   flex chain (.content → #page-kas → dst) bekerja natural.
+   Tidak menyentuh halaman lain.
+   ═══════════════════════════════════════════════════════════ */
+@supports (-webkit-touch-callout: none) {
+  /* .main mengisi seluruh viewport yang tersisa setelah sidebar/topbar */
+  .main {
+    height: -webkit-fill-available;
+    min-height: 0;
+  }
+  /* .content flex:1 dari .main — tidak perlu height px lagi */
+  .content {
+    min-height: 0;
+  }
+}
