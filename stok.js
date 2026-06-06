@@ -255,6 +255,7 @@ loadStok();
 let _stokAllData  = [];   // hasil merge produk + stok + jurnal
 let _stokMasukMap = {};   // sku -> {id, qty}  (dari tabel stok)
 let _produkForStok = [];  // dari tabel produk
+let _stokSelectedSku = ''; // SKU variasi yang dipilih dari picker — reliable vs hidden select
 
 // ─── LOAD UTAMA ───────────────────────────────────────────────
 async function loadStok() {
@@ -410,9 +411,10 @@ function stokOverlayClose(e) {
 
 function showTambahStok() {
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Stok Masuk';
-  document.getElementById('inp-id').value      = '';
+  document.getElementById('inp-id').value        = '';
   document.getElementById('inp-sku-induk').value = '';
-  document.getElementById('inp-masuk').value   = '';
+  document.getElementById('inp-masuk').value     = '';
+  _stokSelectedSku = ''; // reset selected SKU
   // Reset picker variasi
   document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lbl = document.getElementById('stok-picker-variasi-label');
@@ -427,6 +429,7 @@ function showTambahStok() {
 function cancelStokForm() {
   document.getElementById('modal-stok-masuk').classList.remove('open');
   stokTutupKatalogDropdown();
+  _stokSelectedSku = ''; // reset saat modal ditutup
   // Reset label picker
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
@@ -438,6 +441,7 @@ function editStok(sku) {
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok Masuk';
   document.getElementById('inp-id').value    = existing ? existing.id : '';
   document.getElementById('inp-masuk').value = existing ? existing.qty : 0;
+  _stokSelectedSku = skuKey; // set agar validasi di simpanStok() pass saat edit
   stokTutupKatalogDropdown();
   // Cari produk untuk isi katalog & picker
   var found = _produkForStok.find(function(p) {
@@ -464,13 +468,18 @@ function editStok(sku) {
 
 async function simpanStok() {
   var id  = document.getElementById('inp-id').value;
-  var sku = (document.getElementById('inp-sku').value || '').trim();
-  // Fallback ke inp-sku-induk kalau variasi belum dipilih
-  if (!sku) sku = (document.getElementById('inp-sku-induk').value || '').trim().toUpperCase();
+  // Prioritas: _stokSelectedSku (dari picker) → inp-sku.value → bukan fallback ke katalog
+  var sku = (_stokSelectedSku || '').trim().toUpperCase();
+  if (!sku) sku = (document.getElementById('inp-sku').value || '').trim().toUpperCase();
   var qty = parseInt(document.getElementById('inp-masuk').value) || 0;
 
-  if (!sku) { alert('SKU Variasi wajib diisi!'); return; }
+  if (!sku) { alert('Pilih SKU Variasi terlebih dahulu!'); return; }
   if (qty <= 0) { alert('Stok masuk harus lebih dari 0!'); return; }
+  // Validasi: SKU harus ada di produk (bukan nama katalog yang nyasar)
+  var valid = _produkForStok.some(function(p) {
+    return (p.sku_variasi || '').toUpperCase() === sku;
+  });
+  if (!valid) { alert('SKU "' + sku + '" tidak ditemukan di data produk. Pilih variasi dari picker.'); return; }
 
   var prod = _produkForStok.find(function(p) {
     return (p.sku_variasi || '').toUpperCase() === sku.toUpperCase();
@@ -488,9 +497,15 @@ async function simpanStok() {
   var btnSimpan = document.querySelector('#modal-stok-masuk .btn-primary');
   if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
   try {
-    if (id) {
-      await dbUpdate('stok', id, { stok_masuk: qty });
+    // Selalu cek _stokMasukMap — jangan bergantung inp-id yang hanya diisi saat editStok()
+    // Ini mencegah duplicate INSERT saat user Tambah SKU yang sudah punya record
+    var existingRec = _stokMasukMap[sku];
+    if (existingRec && existingRec.id) {
+      // SKU sudah ada di DB — akumulasi
+      var oldQty = existingRec.qty || 0;
+      await dbUpdate('stok', existingRec.id, { stok_masuk: oldQty + qty });
     } else {
+      // SKU belum ada — insert baru
       await dbInsert('stok', payload);
     }
     cancelStokForm();
@@ -702,8 +717,10 @@ function stokPickerVariasiSelect(item) {
   if (!list) return;
   var val   = item.dataset.val || '';
   var label = item.textContent.trim();
-  var sel   = document.getElementById('inp-sku');
-  if (sel) { sel.value = val; }
+  // Simpan ke JS variable — lebih reliable dari hidden select .value
+  _stokSelectedSku = val.toUpperCase();
+  var sel = document.getElementById('inp-sku');
+  if (sel) { sel.value = val; } // tetap set untuk kompatibilitas
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = val ? label : '— Pilih Variasi —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
   list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); });
@@ -800,7 +817,7 @@ async function simpanPasteStok() {
         hpp:         prod ? prod.hpp     : 0,
       };
       if (existing) {
-        // Mode Tambah: stok_masuk baru = stok lama + qty yang diinput
+        // Akumulasi: stok_masuk += qty baru (sisa = stok_masuk - keluar dari jurnal)
         const stokBaru = (existing.qty || 0) + row.stok_masuk;
         await dbUpdate('stok', existing.id, { stok_masuk: stokBaru });
       } else {

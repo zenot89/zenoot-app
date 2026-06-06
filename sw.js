@@ -37,8 +37,8 @@ var JS_APP_FILES = [
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
 var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
-// BUMP: JS_CACHE v11 — sticky thead fix: tbl-wrap wrapper dihapus, tabel langsung di scroll container
-var JS_CACHE = 'zenot-js-20260605-40202a5e991a';
+// BUMP: JS_CACHE v15 — fix tambah stok: cek _stokMasukMap langsung, bukan inp-id
+var JS_CACHE = 'zenot-js-20260606-stok-v15';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
