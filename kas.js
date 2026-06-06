@@ -1221,19 +1221,7 @@ function _kasSetCardHeight() {
   requestAnimationFrame(function() {
     var cardTop = card.getBoundingClientRect().top;
     var winH    = window.innerHeight;
-    // Subtract safe-area-inset-bottom (home indicator iPhone) agar tabel
-    // tidak terpotong di bawah. CSS.supports check untuk fallback browser lama.
-    var safeBottom = 0;
-    try {
-      var testEl = document.createElement('div');
-      testEl.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden';
-      document.body.appendChild(testEl);
-      safeBottom = testEl.getBoundingClientRect().height || 0;
-      document.body.removeChild(testEl);
-    } catch(e) { safeBottom = 0; }
-    // Tambah clearance untuk hamburger (52px) + jarak dari bottom (20px)
-    var hamburgerClearance = 52 + 20 + safeBottom;
-    var newH = winH - cardTop - hamburgerClearance;
+    var newH    = winH - cardTop; // mentok penuh ke bawah layar
     if (newH > 100) {
       card.style.height    = newH + 'px';
       card.style.minHeight = newH + 'px';
