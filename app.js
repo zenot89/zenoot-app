@@ -438,34 +438,11 @@ document.addEventListener('DOMContentLoaded', function() {
 var CH_SVG = {
   shopee: '<i class="ti ti-brand-shopee" style="font-size:15px;flex-shrink:0"></i>',
 
-  lazada: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<rect x="6" y="6" width="88" height="88" rx="14" fill="currentColor"/>' +
-    '<path d="M28 72V28h14v32h30v12H28z" fill="white"/>' +
-  '</svg>',
-
-  tiktok: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<path d="M65 8c0 11 9 20 20 20v13c-7.5 0-14.5-2.5-20-6.7V62c0 15.2-12.3 27.5-27.5 27.5S10 77.2 10 62s12.3-27.5 27.5-27.5c1.3 0 2.5.1 3.8.3v13.7c-1.2-.3-2.5-.5-3.8-.5C30 48 22 56 22 66s8 18 15.5 18S53 74 53 64V8h12z" fill="currentColor"/>' +
-  '</svg>',
-
-  reseller: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<circle cx="35" cy="32" r="14" stroke="currentColor" stroke-width="7" fill="none"/>' +
-    '<circle cx="68" cy="28" r="11" stroke="currentColor" stroke-width="6" fill="none"/>' +
-    '<path d="M6 80c0-16 13-28 29-28s29 12 29 28" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round"/>' +
-    '<path d="M68 52c10 0 22 7 22 22" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>' +
-  '</svg>',
-
-  offline: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<path d="M10 45L50 10l40 35v45H62V70H38v30H10z" stroke="currentColor" stroke-width="7" fill="none" stroke-linejoin="round"/>' +
-  '</svg>',
-
-  default: '<svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">' +
-    '<circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="7" fill="none"/>' +
-    '<path d="M50 8C50 8 30 30 30 50s20 42 20 42" stroke="currentColor" stroke-width="5" fill="none"/>' +
-    '<path d="M50 8c0 0 20 22 20 42s-20 42-20 42" stroke="currentColor" stroke-width="5" fill="none"/>' +
-    '<line x1="8" y1="50" x2="92" y2="50" stroke="currentColor" stroke-width="5"/>' +
-    '<line x1="14" y1="28" x2="86" y2="28" stroke="currentColor" stroke-width="5"/>' +
-    '<line x1="14" y1="72" x2="86" y2="72" stroke="currentColor" stroke-width="5"/>' +
-  '</svg>'
+  lazada:   '<i class="ti ti-shopping-bag"   style="font-size:15px;flex-shrink:0"></i>',
+  tiktok:   '<i class="ti ti-brand-tiktok"   style="font-size:15px;flex-shrink:0"></i>',
+  reseller: '<i class="ti ti-users"           style="font-size:15px;flex-shrink:0"></i>',
+  offline:  '<i class="ti ti-map-pin"         style="font-size:15px;flex-shrink:0"></i>',
+  default:  '<i class="ti ti-antenna"         style="font-size:15px;flex-shrink:0"></i>'
 };
 
 // ── HELPER: icon saja (tanpa label) ──────────────────────────
