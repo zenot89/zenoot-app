@@ -342,6 +342,7 @@ body.sidebar-mini .sidebar-footer::before{
 .topbar{
   background:var(--cream2);border-bottom:1px solid rgba(255,255,255,0.05);
   padding:10px 20px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   display:-webkit-flex;display:flex;
   -webkit-align-items:center;align-items:center;
   -webkit-justify-content:space-between;justify-content:space-between;
@@ -699,10 +700,10 @@ body.sidebar-mini .sidebar-footer::before{
     position:fixed;top:0;left:0;height:100vh;height:100dvh;
     -webkit-transform:translateX(-100%);transform:translateX(-100%);
     box-shadow:4px 0 16px rgba(0,0,0,0.2);
-    /* FIX: pastikan sidebar flex column dengan height penuh agar footer selalu tampil */
     display:-webkit-flex;display:flex;
     -webkit-flex-direction:column;flex-direction:column;
     overflow:hidden;
+    padding-top: env(safe-area-inset-top, 0px);
   }
   .sidebar.open{-webkit-transform:translateX(0);transform:translateX(0)}
   .sidebar-overlay.open{display:block}
