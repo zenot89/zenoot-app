@@ -475,73 +475,144 @@ function dosBadge(dos, lead_time) {
 
 // ── Tab Summary ──
 function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis) {
-  const grandBudget  = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
-  const grandQty     = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
-  const grandSKU     = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
+  const grandBudget = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
+  const grandQty    = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
+  const grandSKU    = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
+  const allItems    = bossSorted.flatMap(b => bossList[b].items.map(r => ({ ...r, _boss: b, _sup: bossList[b].sup })));
 
-  const allItems       = bossSorted.flatMap(b => bossList[b].items);
-  const skuKritis      = allItems.filter(r => r.sisa_stok !== null && r.sisa_stok <= 3);
-  const skuNaik        = allItems.filter(r => r.tren === 'naik');
-  const skuTurun       = allItems.filter(r => r.tren === 'turun');
-  const skuCoverPendek = allItems.filter(r => {
-    const sup = bossSorted.map(b => bossList[b]).find(b => b.items.includes(r));
-    return r.cover_hari !== null && r.cover_hari <= (sup ? sup.sup.lead_time + 3 : 10);
-  });
+  // ── Klasifikasi ──
+  const segera  = allItems.filter(r => r.prioritas === 'SEGERA');
+  const perlu   = allItems.filter(r => r.prioritas === 'PERLU');
+  const tunda   = allItems.filter(r => r.prioritas === 'TUNDA');
+  const skuNaik = allItems.filter(r => r.tren === 'naik' || r.tren === 'baru');
 
-  const alerts = [];
-  if (skuKritis.length)      alerts.push(`<span style="color:var(--danger)"><b>${skuKritis.length} SKU</b> stok kritis (≤3 pcs)</span>`);
-  if (skuCoverPendek.length) alerts.push(`<span style="color:var(--warn)"><b>${skuCoverPendek.length} SKU</b> cover pendek</span>`);
-  if (skuNaik.length)        alerts.push(`<span style="color:var(--ok)"><b>${skuNaik.length} SKU</b> tren naik ↑</span>`);
-  if (skuTurun.length)       alerts.push(`<span style="color:var(--ink3)"><b>${skuTurun.length} SKU</b> tren turun ↓</span>`);
+  // ── Deadline order: SKU dengan DoS paling pendek ──
+  const dosSorted = allItems.filter(r => r.dos !== null).sort((a,z) => a.dos - z.dos);
+  const deadlineSku = dosSorted[0] || null;
 
-  const alertBar = alerts.length ? `
-    <div style="display:flex;flex-wrap:wrap;gap:16px;padding:10px 14px;margin-bottom:14px;
-                background:var(--cream2);border-radius:6px;border-left:3px solid var(--warn);font-size:13px">
-      ${alerts.join('<span style="color:var(--ink3)">·</span>')}
+  // ── Metric cards ──
+  const cards = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⚡ Harus Order Sekarang</div>
+        <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — stok hampir habis</div>
+      </div>
+      <div style="background:rgba(230,168,23,0.08);border:1.5px solid var(--warn);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">📋 Perlu Diorder</div>
+        <div style="font-size:28px;font-weight:700;color:var(--warn);line-height:1">${perlu.length}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — dalam waktu dekat</div>
+      </div>
+      <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">💰 Total Belanja</div>
+        <div style="font-size:20px;font-weight:700;color:var(--ok);line-height:1.2">${fmtRp(grandBudget)}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">${grandQty} pcs · ${grandSKU} SKU</div>
+      </div>
+      <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⏸ Tunda Dulu</div>
+        <div style="font-size:28px;font-weight:700;color:var(--ink3);line-height:1">${tunda.length}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — tren turun</div>
+      </div>
+    </div>`;
+
+  // ── Deadline warning ──
+  const deadlineBar = deadlineSku ? (() => {
+    const dos = deadlineSku.dos;
+    const color = dos <= 3 ? 'var(--danger)' : dos <= 7 ? 'var(--warn)' : 'var(--ok)';
+    const msg = dos <= 0
+      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> sudah HABIS — order sekarang juga!`
+      : dos <= deadlineSku._sup.lead_time
+      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> habis dalam <b>${dos} hari</b> — lebih cepat dari lead time supplier!`
+      : `SKU paling kritis: <b style="color:${color}">${deadlineSku.sku}</b> — sisa stok cukup <b>${dos} hari</b>`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:14px;
+                  background:rgba(224,82,82,0.06);border-radius:6px;border-left:3px solid ${color}">
+        <i class="ti ti-alarm" style="color:${color};font-size:16px;flex-shrink:0"></i>
+        <span style="font-size:13px;color:var(--ink2)">${msg}</span>
+      </div>`;
+  })() : '';
+
+  // ── SKU SEGERA — daftar actionable lintas supplier ──
+  const segeraBlock = segera.length ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${segera.map(r => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:var(--ink)">${r.sku}</div>
+              <div style="font-size:11px;color:var(--ink3)">${r.katalog} · via <b>${r._boss}</b></div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:11px;color:var(--ink3)">Sisa</div>
+              <div style="font-size:14px;font-weight:700;color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok + ' pcs' : '—'}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:11px;color:var(--ink3)">Habis</div>
+              <div style="font-size:14px;font-weight:700;color:var(--danger)">${r.dos !== null ? r.dos + ' hr' : '—'}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:11px;color:var(--ink3)">Order</div>
+              <div style="font-size:14px;font-weight:700;color:var(--warn)">${r.qty_order} pcs</div>
+            </div>
+            <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0"></i>
+          </div>
+        `).join('')}
+      </div>
     </div>` : '';
 
+  // ── SKU Tren Naik — momentum jangan sampai kehabisan ──
+  const naikBlock = skuNaik.length ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-trending-up"></i> Lagi Naik Daun — ${skuNaik.length} SKU
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${skuNaik.map(r => `
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer;font-size:12px" onclick="restockSwitchTab('${r._boss}')">
+            <span style="font-weight:700;color:var(--ink)">${r.sku}</span>
+            <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
+            <span style="color:var(--ink3)">·</span>
+            <span style="color:var(--warn)">${r.qty_order} pcs</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
+
+  // ── Tabel per supplier (ringkas) ──
   const rows = bossSorted.map(boss => {
     const { items, sup } = bossList[boss];
-    const totalQty   = items.reduce((s,r) => s + r.qty_order, 0);
-    const totalNilai = items.reduce((s,r) => s + r.nilai, 0);
-    const budgetSisa = sup.budget ? sup.budget - totalNilai : null;
-    const skuKritisN = items.filter(r => r.sisa_stok !== null && r.sisa_stok <= 3).length;
-    const trenNaikN  = items.filter(r => r.tren === 'naik').length;
-    const trenTurunN = items.filter(r => r.tren === 'turun').length;
+    const totalQty    = items.reduce((s,r) => s + r.qty_order, 0);
+    const totalNilai  = items.reduce((s,r) => s + r.nilai, 0);
+    const budgetSisa  = sup.budget ? sup.budget - totalNilai : null;
+    const segeraN     = items.filter(r => r.prioritas === 'SEGERA').length;
+    const perluN      = items.filter(r => r.prioritas === 'PERLU').length;
+    const tundaN      = items.filter(r => r.prioritas === 'TUNDA').length;
+
+    const prioritasCell = [
+      segeraN ? `<span style="color:var(--danger);font-weight:700">${segeraN} segera</span>` : '',
+      perluN  ? `<span style="color:var(--warn)">${perluN} perlu</span>` : '',
+      tundaN  ? `<span style="color:var(--ink3)">${tundaN} tunda</span>` : '',
+    ].filter(Boolean).join(' · ');
 
     const budgetCell = sup.budget
-      ? `<div style="font-size:12px;color:var(--warn)">${fmtRp(sup.budget)}</div>
-         <div style="font-size:11px;color:${budgetSisa >= 0 ? 'var(--ok)' : 'var(--danger)'}">
-           ${budgetSisa >= 0 ? 'sisa ' + fmtRp(budgetSisa) : 'over ' + fmtRp(Math.abs(budgetSisa))}
-         </div>`
-      : `<span style="color:var(--ink3);font-size:12px">—</span>`;
-
-    const trenCell = [
-      trenNaikN  ? `<span style="color:var(--ok)">↑${trenNaikN}</span>` : '',
-      trenTurunN ? `<span style="color:var(--danger)">↓${trenTurunN}</span>` : '',
-    ].filter(Boolean).join(' ') || '<span style="color:var(--ink3)">→</span>';
-
-    const kritisCell = skuKritisN
-      ? `<span style="color:var(--danger);font-weight:700">⚠ ${skuKritisN}</span>`
+      ? `${fmtRp(sup.budget)} <span style="font-size:11px;color:${budgetSisa >= 0 ? 'var(--ok)' : 'var(--danger)'}">(${budgetSisa >= 0 ? 'sisa ' + fmtRp(budgetSisa) : 'over ' + fmtRp(Math.abs(budgetSisa))})</span>`
       : `<span style="color:var(--ink3)">—</span>`;
 
     return `
       <tr>
         <td>
-          <b style="font-size:14px;cursor:pointer;color:var(--ink)" onclick="restockSwitchTab('${boss}')">${boss}</b>
-          <div style="font-size:11px;color:var(--ink3)">LT ${sup.lead_time}h · SS ${sup.buffer_hari}h · min ${sup.min_order}pcs</div>
-          ${sup.catatan ? `<div style="font-size:10px;color:var(--ink3);margin-top:2px"><i class="ti ti-note"></i> ${sup.catatan}</div>` : ''}
+          <b style="cursor:pointer;color:var(--ink)" onclick="restockSwitchTab('${boss}')">${boss}</b>
+          <div style="font-size:11px;color:var(--ink3)">LT ${sup.lead_time}h · min ${sup.min_order}pcs${sup.catatan ? ' · ' + sup.catatan : ''}</div>
         </td>
-        <td style="text-align:center">${items.length}</td>
-        <td style="text-align:center;font-size:18px;font-weight:700;color:var(--warn)">${totalQty}</td>
+        <td style="text-align:center;font-size:13px">${prioritasCell || '—'}</td>
+        <td style="text-align:center;font-weight:700;color:var(--warn)">${totalQty} pcs</td>
         <td style="text-align:right;font-weight:700;color:var(--ok)">${fmtRp(totalNilai)}</td>
-        <td style="text-align:center">${budgetCell}</td>
-        <td style="text-align:center;font-size:13px">${trenCell}</td>
-        <td style="text-align:center">${kritisCell}</td>
+        <td style="text-align:right;font-size:12px">${budgetCell}</td>
         <td style="text-align:center">
-          <button class="btn btn-sm" onclick="restockSwitchTab('${boss}')" style="font-size:11px">
-            Detail →
-          </button>
+          <button class="btn btn-sm" onclick="restockSwitchTab('${boss}')" style="font-size:11px">Detail →</button>
         </td>
       </tr>`;
   }).join('');
@@ -549,43 +620,47 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   const totalRow = `
     <tr style="font-weight:700;border-top:2px solid var(--ink3)">
       <td style="color:var(--ink2)">TOTAL — ${bossSorted.length} supplier</td>
-      <td style="text-align:center;color:var(--ink2)">${grandSKU} SKU</td>
-      <td style="text-align:center;font-size:20px;color:var(--warn)">${grandQty}</td>
+      <td style="text-align:center;font-size:12px;color:var(--ink3)">${grandSKU} SKU aktif</td>
+      <td style="text-align:center;font-size:18px;color:var(--warn)">${grandQty} pcs</td>
       <td style="text-align:right;font-size:15px;color:var(--ok)">${fmtRp(grandBudget)}</td>
-      <td colspan="4"></td>
+      <td colspan="2"></td>
     </tr>`;
+
+  // ── Clearance ──
+  const clearanceBlock = (clearanceList && clearanceList.length) ? `
+    <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--cream2);border-radius:6px;border-left:3px solid var(--ink3)">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:3px"><i class="ti ti-tag"></i> Clearance Monitor</div>
+        <div style="font-size:12px;color:var(--ink3)">${clearanceList.length} SKU non-aktif · Modal tertahan: <b style="color:var(--warn)">${fmtRp(clearanceList.reduce((s,r) => s + r.nilai, 0))}</b></div>
+      </div>
+      <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px"><i class="ti ti-tag"></i> Lihat Clearance</button>
+    </div>` : '';
 
   return `
     ${bannerKritis || ''}
-    ${alertBar}
+    ${cards}
+    ${deadlineBar}
+    ${segeraBlock}
+    ${naikBlock}
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em">
+      <i class="ti ti-building-warehouse"></i> Ringkasan per Supplier
+    </div>
     <div class="tbl-wrap">
       <table class="tbl">
         <thead>
           <tr>
             <th>Supplier</th>
-            <th style="text-align:center">SKU</th>
+            <th style="text-align:center">Prioritas SKU</th>
             <th style="text-align:center;color:var(--warn)">Total Order</th>
             <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
-            <th style="text-align:center">Budget</th>
-            <th style="text-align:center">Tren</th>
-            <th style="text-align:center">Kritis</th>
+            <th style="text-align:right">Budget</th>
             <th></th>
           </tr>
         </thead>
-        <tbody>
-          ${rows}
-          ${totalRow}
-        </tbody>
+        <tbody>${rows}${totalRow}</tbody>
       </table>
     </div>
-    ${(clearanceList && clearanceList.length) ? `
-    <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--cream2);border-radius:6px;border-left:3px solid var(--ink3)">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:3px"><i class="ti ti-tag"></i> Clearance Monitor</div>
-        <div style="font-size:12px;color:var(--ink3)">${clearanceList.length} SKU non-aktif &nbsp;·&nbsp; Nilai tertahan: <b style="color:var(--warn)">${fmtRp(clearanceList.reduce((s,r) => s + r.nilai, 0))}</b></div>
-      </div>
-      <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px"><i class="ti ti-tag"></i> Lihat Clearance Monitor</button>
-    </div>` : ''}`;
+    ${clearanceBlock}`;
 }
 
 // ── Tampilan full 1 supplier (tab individual) ──
