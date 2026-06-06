@@ -633,7 +633,25 @@ function jpKatalogKeyNav(e) {
   }
 }
 
-function jpPilihKatalog(katalog) {
+function _jpRenderPickerVariasiList(varList, sisakMap) {
+  var list = document.getElementById('jp-picker-variasi-list');
+  if (!list) return;
+  var html = '<div class="kas-akun-item" data-val="" data-hpp="" onclick="jpPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
+  varList.forEach(function(p) {
+    var sku = _jpGetSku(p);
+    var sisa = sisakMap[sku.toUpperCase()];
+    var sisakHtml = '';
+    if (sisa !== undefined) {
+      var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
+      sisakHtml = ' <span style="font-size:11px;font-weight:700;color:' + col + ';margin-left:6px">stok: ' + sisa + '</span>';
+    }
+    html += '<div class="kas-akun-item" data-val="' + sku + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)" style="display:flex;align-items:center;justify-content:space-between">'
+      + '<span>' + sku + '</span>' + sisakHtml + '</div>';
+  });
+  list.innerHTML = html;
+}
+
+async function jpPilihKatalog(katalog) {
   document.getElementById('jp-sku-induk').value = katalog;
   jpTutupDropdownSKU();
   const varList = _jpProdukList.filter(p => _jpGetKatalog(p) === katalog);
@@ -647,23 +665,12 @@ function jpPilihKatalog(katalog) {
     opt.dataset.sku   = _jpGetSku(p);
     sel.appendChild(opt);
   });
-  // Render ke picker list
-  var list = document.getElementById('jp-picker-variasi-list');
-  if (list) {
-    var html = '<div class="kas-akun-item" data-val="" data-hpp="" onclick="jpPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
-    varList.forEach(function(p) {
-      var sku = _jpGetSku(p);
-      var sisa = _jpSisakMap[sku.toUpperCase()];
-      var sisakHtml = '';
-      if (sisa !== undefined) {
-        var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
-        sisakHtml = ' <span style="font-size:11px;font-weight:700;color:' + col + ';margin-left:6px">stok: ' + sisa + '</span>';
-      }
-      html += '<div class="kas-akun-item" data-val="' + sku + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)" style="display:flex;align-items:center;justify-content:space-between">'
-        + '<span>' + sku + '</span>' + sisakHtml + '</div>';
-    });
-    list.innerHTML = html;
-  }
+  // Render picker list dulu pakai _jpSisakMap yang ada (cepat, mungkin stale)
+  _jpRenderPickerVariasiList(varList, _jpSisakMap);
+  // Fetch fresh dari DB, lalu update picker list dengan nilai aktual
+  _jpRefreshSisakMap().then(function() {
+    _jpRenderPickerVariasiList(varList, _jpSisakMap);
+  });
   // Reset label picker variasi
   var lbl = document.getElementById('jp-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
@@ -672,10 +679,11 @@ function jpPilihKatalog(katalog) {
     sel.selectedIndex = 1;
     jpOnPilihVariasi();
     // Sync picker label juga
-    if (list) {
-      var items = list.querySelectorAll('.kas-akun-item[data-val]');
+    var listEl = document.getElementById('jp-picker-variasi-list');
+    if (listEl) {
+      var items = listEl.querySelectorAll('.kas-akun-item[data-val]');
       items.forEach(function(el) { el.classList.remove('active'); });
-      var first = list.querySelector('.kas-akun-item[data-val="' + _jpGetSku(varList[0]) + '"]');
+      var first = listEl.querySelector('.kas-akun-item[data-val="' + _jpGetSku(varList[0]) + '"]');
       if (first) {
         first.classList.add('active');
         if (lbl) { lbl.textContent = first.textContent.trim(); lbl.style.color = 'var(--ink)'; }
