@@ -1268,11 +1268,11 @@ document.addEventListener('zenot:page', function(e) {
     var summary     = document.querySelector('#kas-panel-jurnal .kas-summary');
     if (!topBar) return;
     // Swipe di top-bar sendiri
-    initSwipeCollapse(topBar, topBar, 50);
+    initSwipeCollapse(topBar, topBar, 50, 'kas-topbar-collapsed');
     // Swipe di sticky header dalam card juga bisa expand/collapse
-    if (stickyHdr) initSwipeCollapse(stickyHdr, topBar, 50);
+    if (stickyHdr) initSwipeCollapse(stickyHdr, topBar, 50, 'kas-topbar-collapsed');
     // Swipe di summary juga
-    if (summary) initSwipeCollapse(summary, topBar, 50);
+    if (summary) initSwipeCollapse(summary, topBar, 50, 'kas-topbar-collapsed');
   }
   setTimeout(_kasInitSwipe, 300);
   document.addEventListener('zenot:page', function(e) {

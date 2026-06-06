@@ -665,9 +665,10 @@ if ('serviceWorker' in navigator) {
 // swipeZoneEl  : elemen yang disentuh user untuk trigger gesture
 // collapseEl   : elemen yang collapse/expand
 // threshold    : jarak swipe minimal (px) — default 50
-function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
+function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
   if (!swipeZoneEl || !collapseEl) return;
   threshold = threshold || 50;
+  className = className || 'landscape-collapsed';
   var _startY = 0;
   var _startX = 0;
   var _tracking = false;
@@ -691,10 +692,10 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold) {
 
     if (dy < 0) {
       // Swipe UP → collapse
-      collapseEl.classList.add('landscape-collapsed');
+      collapseEl.classList.add(className);
     } else {
       // Swipe DOWN → expand
-      collapseEl.classList.remove('landscape-collapsed');
+      collapseEl.classList.remove(className);
     }
   }, { passive: true });
 }
