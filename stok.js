@@ -256,6 +256,7 @@ let _stokAllData  = [];   // hasil merge produk + stok + jurnal
 let _stokMasukMap = {};   // sku -> {id, qty}  (dari tabel stok)
 let _produkForStok = [];  // dari tabel produk
 let _stokSelectedSku = ''; // SKU variasi yang dipilih dari picker — reliable vs hidden select
+let _stokEditMode    = false; // true = edit existing record (replace), false = tambah baru (akumulasi)
 
 // ─── LOAD UTAMA ───────────────────────────────────────────────
 async function loadStok() {
@@ -415,6 +416,7 @@ function showTambahStok() {
   document.getElementById('inp-sku-induk').value = '';
   document.getElementById('inp-masuk').value     = '';
   _stokSelectedSku = ''; // reset selected SKU
+  _stokEditMode    = false;
   // Reset picker variasi
   document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lbl = document.getElementById('stok-picker-variasi-label');
@@ -430,6 +432,7 @@ function cancelStokForm() {
   document.getElementById('modal-stok-masuk').classList.remove('open');
   stokTutupKatalogDropdown();
   _stokSelectedSku = ''; // reset saat modal ditutup
+  _stokEditMode    = false;
   // Reset label picker
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
@@ -442,6 +445,7 @@ function editStok(sku) {
   document.getElementById('inp-id').value    = existing ? existing.id : '';
   document.getElementById('inp-masuk').value = existing ? existing.qty : 0;
   _stokSelectedSku = skuKey; // set agar validasi di simpanStok() pass saat edit
+  _stokEditMode    = true;   // mode edit → simpanStok akan REPLACE, bukan akumulasi
   stokTutupKatalogDropdown();
   // Cari produk untuk isi katalog & picker
   var found = _produkForStok.find(function(p) {
@@ -501,9 +505,15 @@ async function simpanStok() {
     // Ini mencegah duplicate INSERT saat user Tambah SKU yang sudah punya record
     var existingRec = _stokMasukMap[sku];
     if (existingRec && existingRec.id) {
-      // SKU sudah ada di DB — akumulasi
-      var oldQty = existingRec.qty || 0;
-      await dbUpdate('stok', existingRec.id, { stok_masuk: oldQty + qty });
+      // SKU sudah ada di DB
+      if (_stokEditMode) {
+        // Mode EDIT: user mengoreksi nilai → REPLACE langsung
+        await dbUpdate('stok', existingRec.id, { stok_masuk: qty });
+      } else {
+        // Mode TAMBAH: user menambah stock baru → AKUMULASI
+        var oldQty = existingRec.qty || 0;
+        await dbUpdate('stok', existingRec.id, { stok_masuk: oldQty + qty });
+      }
     } else {
       // SKU belum ada — insert baru
       await dbInsert('stok', payload);
