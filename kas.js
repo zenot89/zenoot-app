@@ -1220,8 +1220,8 @@ function _kasSetCardHeight() {
 
   requestAnimationFrame(function() {
     var cardTop = card.getBoundingClientRect().top;
-    var winH    = window.innerHeight;
-    var newH    = winH - cardTop; // mentok penuh ke bawah layar
+    var winH    = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    var newH    = winH - cardTop;
     if (newH > 100) {
       card.style.height    = newH + 'px';
       card.style.minHeight = newH + 'px';
