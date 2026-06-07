@@ -2784,3 +2784,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     font-size: 9px !important;
   }
 }
+
+/* ── Summary minicard: swipe-to-collapse ── */
+#sum-cards-wrap {
+  transition: none;
+}
+#sum-cards-inner {
+  transition: max-height .3s ease, opacity .25s ease;
+  max-height: 300px;
+  opacity: 1;
+  overflow: hidden;
+}
+#sum-cards-wrap.sum-cards-collapsed #sum-cards-inner {
+  max-height: 0 !important;
+  opacity: 0;
+}

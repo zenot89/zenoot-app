@@ -425,6 +425,12 @@ function renderRestockTabs() {
   if (_restockActiveTab === 'SUMMARY') {
     body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
     _sumDualMode = 'segera';
+    // Init swipe-to-collapse minicard — identik dengan JP
+    (function() {
+      var wrap = document.getElementById('sum-cards-wrap');
+      if (!wrap) return;
+      initSwipeCollapse(wrap, wrap, 40, 'sum-cards-collapsed');
+    })();
   } else {
     const bossData = bossList[_restockActiveTab];
     if (!bossData) return;
@@ -546,21 +552,11 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   const dosSorted = allItems.filter(r => r.dos !== null).sort((a,z) => a.dos - z.dos);
   const deadlineSku = dosSorted[0] || null;
 
-  // ── Minicard collapsible ──
+  // ── Minicard — swipe up to collapse (initSwipeCollapse) ──
   const cards = `
-    <div id="sum-cards-wrap" style="margin-bottom:12px">
-      <!-- Toggle bar -->
-      <div onclick="sumCardsToggle()"
-           style="display:flex;align-items:center;justify-content:space-between;
-                  padding:8px 0;cursor:pointer;user-select:none">
-        <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px">
-          <i class="ti ti-layout-grid" style="font-size:13px"></i> Overview
-        </div>
-        <i id="sum-cards-chevron" class="ti ti-chevron-up" style="color:var(--ink3);font-size:14px;transition:transform .25s"></i>
-      </div>
-      <!-- Cards -->
+    <div id="sum-cards-wrap" style="margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)">
       <div id="sum-cards-inner" style="overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:300px;opacity:1">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px" class="sum-cards-grid">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 0 2px" class="sum-cards-grid">
           <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 10px;min-width:0">
             <div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⚡ Order Kini</div>
             <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
