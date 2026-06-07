@@ -2300,6 +2300,42 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream3);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
+
+/* ── sup-tbl-wrap: scroll container sendiri untuk tab supplier ──
+   overflow:auto di sini agar thead sticky bisa referensi ke sup-tbl-wrap
+   (bukan ke restock-tbl-scroll yang sekarang overflow:visible) */
+#sup-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
+
+/* Override: sup-tbl-wrap tidak pakai min-width:max-content dari parent rule */
+#restock-tbl-scroll #sup-tbl-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* Thead sticky di dalam sup-tbl-wrap */
+#sup-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* Tabel di dalam sup-tbl-wrap: lebar penuh konten */
+#sup-tbl-wrap .tbl {
+  min-width: max-content;
+}
 @media (hover: none) and (pointer: coarse) {
   #restock-tbl-scroll {  }
 }
@@ -2694,18 +2730,26 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ── Restock Supplier: Portrait Mobile ── */
 
-/* Info box wrapper */
+/* Info box wrapper — hidden di portrait, tampil di landscape/laptop */
 .sup-info-box {
   position: relative;
+  display: none; /* hidden by default (portrait mobile) */
 }
 .sup-info-inner {
   transition: max-height .3s ease, opacity .3s ease;
   overflow: hidden;
 }
 
-/* Toggle button — hanya portrait */
+/* Toggle button — selalu hidden (tidak diperlukan lagi) */
 .sup-info-toggle {
   display: none;
+}
+
+/* Tampil di landscape atau layar lebar */
+@media (orientation: landscape), (min-width: 901px) {
+  .sup-info-box {
+    display: block;
+  }
 }
 
 @media (max-width: 900px) and (orientation: portrait) {
@@ -2714,44 +2758,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
   /* Sub-text portrait (katalog + dos) tampil */
   .col-portrait-sub { display: block !important; }
-
-  /* Toggle button tampil */
-  .sup-info-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 5px 14px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ink3);
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: var(--cream2);
-    letter-spacing: .04em;
-    text-transform: uppercase;
-  }
-  .sup-info-toggle:active { opacity: .7; }
-
-  .sup-info-chevron {
-    transition: transform .25s ease;
-    font-size: 13px;
-  }
-
-  /* Collapsed state */
-  .sup-info-collapsed .sup-info-inner {
-    max-height: 0 !important;
-    opacity: 0;
-  }
-  .sup-info-collapsed .sup-info-chevron {
-    transform: rotate(-90deg);
-  }
-
-  /* Default: expanded */
-  .sup-info-inner {
-    max-height: 400px;
-    opacity: 1;
-  }
 }
 
 /* Portrait sub-text default hidden (tampil hanya di portrait via class) */

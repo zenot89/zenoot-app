@@ -450,13 +450,16 @@ function renderRestockTabs() {
       if (header) initSwipeCollapse(header, cardsEl, 40, 'sum-cards-collapsed');
     })();
   } else {
+    // Supplier tab: restock-tbl-scroll harus overflow:visible
+    // supaya sup-tbl-wrap jadi scroll container sendiri
+    // dan thead sticky bisa referensi ke sup-tbl-wrap (iOS Safari fix)
     if (scrollEl) {
-      scrollEl.style.overflowY = 'auto';
-      scrollEl.style.overflowX = 'auto';
-      scrollEl.style.overflow  = '';
+      scrollEl.style.overflowY = 'visible';
+      scrollEl.style.overflowX = 'visible';
+      scrollEl.style.overflow  = 'visible';
     }
-    body.style.height   = '';
-    body.style.overflow = '';
+    body.style.height   = '100%';
+    body.style.overflow = 'hidden';
     const bossData = bossList[_restockActiveTab];
     if (!bossData) return;
     body.innerHTML = renderSupplierFull(_restockActiveTab, bossData, fmtRp);
