@@ -411,17 +411,25 @@ function renderRestockTabs() {
             <span class="restock-tab-meta" id="restock-tab-dropdown-meta">${activeMeta}</span>
             <i class="ti ti-chevron-down" id="restock-tab-dropdown-chevron"></i>
           </button>
-          <div id="restock-tab-dropdown-menu" class="restock-dropdown-menu" style="display:none">
-            ${dropItems.map(item => `
-              <div class="restock-dropdown-item${_restockActiveTab === item.key ? ' restock-dropdown-active' : ''}"
-                   onclick="restockSwitchTab('${item.key}');restockDropdownClose()">
-                <i class="ti ${item.icon}"></i>
-                <span class="restock-dropdown-item-label">${item.label}</span>
-                <span class="restock-dropdown-item-meta">${item.meta}</span>
-              </div>`).join('')}
-          </div>
         </div>
       </div>`;
+
+    // Render dropdown menu langsung ke body (keluar dari overflow container)
+    var oldMenu = document.getElementById('restock-tab-dropdown-menu');
+    if (oldMenu) oldMenu.remove();
+    var menuEl = document.createElement('div');
+    menuEl.id = 'restock-tab-dropdown-menu';
+    menuEl.className = 'restock-dropdown-menu';
+    menuEl.style.display = 'none';
+    menuEl.innerHTML = dropItems.map(function(item) {
+      return '<div class="restock-dropdown-item' + (_restockActiveTab === item.key ? ' restock-dropdown-active' : '') + '"' +
+        ' onclick="restockSwitchTab('' + item.key + '');restockDropdownClose()">' +
+        '<i class="ti ' + item.icon + '"></i>' +
+        '<span class="restock-dropdown-item-label">' + item.label + '</span>' +
+        '<span class="restock-dropdown-item-meta">' + item.meta + '</span>' +
+        '</div>';
+    }).join('');
+    document.body.appendChild(menuEl);
   }
 
   // ── Info bar — periode + budget ──
