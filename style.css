@@ -2750,10 +2750,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .col-portrait-sub { display: none; }
 
 /* ── Restock Summary: Portrait Mobile ── */
+
+/* Pastikan cards tidak overflow horizontal di semua ukuran */
+.sum-cards-grid {
+  width: 100%;
+  box-sizing: border-box;
+}
+.sum-cards-grid > div {
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
 @media (max-width: 900px) and (orientation: portrait) {
   /* Cards 2x2 grid */
   .sum-cards-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
-  /* Tunda card — full width di baris ke-2 kanan */
+  /* Paksa font lebih kecil di card supaya tidak overflow */
+  .sum-cards-grid > div {
+    padding: 10px 10px !important;
+  }
+  .sum-cards-grid > div > div:first-child {
+    font-size: 9px !important;
+  }
 }

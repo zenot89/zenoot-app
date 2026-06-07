@@ -531,25 +531,25 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   // ── Metric cards ──
   const cards = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" class="sum-cards-grid">
-      <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⚡ Harus Order Sekarang</div>
+      <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 10px;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⚡ Order Kini</div>
         <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — stok hampir habis</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU kritis</div>
       </div>
-      <div style="background:rgba(230,168,23,0.08);border:1.5px solid var(--warn);border-radius:8px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">📋 Perlu Diorder</div>
+      <div style="background:rgba(230,168,23,0.08);border:1.5px solid var(--warn);border-radius:8px;padding:12px 10px;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">📋 Perlu Order</div>
         <div style="font-size:28px;font-weight:700;color:var(--warn);line-height:1">${perlu.length}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — dalam waktu dekat</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU segera</div>
       </div>
-      <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">💰 Total Belanja</div>
-        <div style="font-size:20px;font-weight:700;color:var(--ok);line-height:1.2">${fmtRp(grandBudget)}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px">${grandQty} pcs · ${grandSKU} SKU</div>
+      <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 10px;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💰 Total</div>
+        <div style="font-size:16px;font-weight:700;color:var(--ok);line-height:1.2;word-break:break-all">${fmtRp(grandBudget)}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:4px">${grandQty}pcs · ${grandSKU} SKU</div>
       </div>
-      <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⏸ Tunda Dulu</div>
+      <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 10px;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⏸ Tunda</div>
         <div style="font-size:28px;font-weight:700;color:var(--ink3);line-height:1">${tunda.length}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px">SKU — tren turun</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU turun</div>
       </div>
     </div>`;
 
