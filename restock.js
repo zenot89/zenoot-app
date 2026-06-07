@@ -384,25 +384,43 @@ function renderRestockTabs() {
 
   // ── Tab bar — dirender ke sticky header ──
   if (tabWrap) {
+    const isSummary = _restockActiveTab === 'SUMMARY';
+    const activeLabel = isSummary
+      ? '<i class="ti ti-clipboard-list"></i> Summary'
+      : '<i class="ti ti-user"></i> ' + _restockActiveTab;
+    const activeMeta = isSummary
+      ? bossSorted.length + ' supplier'
+      : (() => {
+          const d = bossList[_restockActiveTab];
+          return d ? d.items.reduce((s,r) => s + r.qty_order, 0) + ' pcs' : '';
+        })();
+
+    const dropItems = [
+      { key: 'SUMMARY', icon: 'ti-clipboard-list', label: 'Summary', meta: bossSorted.length + ' supplier' },
+      ...bossSorted.map(boss => {
+        const totalQty = bossList[boss].items.reduce((s,r) => s + r.qty_order, 0);
+        return { key: boss, icon: 'ti-user', label: boss, meta: totalQty + ' pcs' };
+      })
+    ];
+
     tabWrap.innerHTML = `
       <div id="restock-tab-bar">
-        <button
-          onclick="restockSwitchTab('SUMMARY')"
-          class="restock-tab-btn${_restockActiveTab === 'SUMMARY' ? ' restock-tab-active' : ''}">
-          <i class="ti ti-clipboard-list"></i> Summary
-          <span class="restock-tab-meta">${bossSorted.length} supplier</span>
-        </button>
-        ${bossSorted.map(boss => {
-          const { items } = bossList[boss];
-          const totalQty = items.reduce((s,r) => s + r.qty_order, 0);
-          const isActive = _restockActiveTab === boss;
-          return `<button
-            onclick="restockSwitchTab('${boss}')"
-            class="restock-tab-btn${isActive ? ' restock-tab-active' : ''}">
-            <i class="ti ti-user"></i> ${boss}
-            <span class="restock-tab-meta">${totalQty} pcs</span>
-          </button>`;
-        }).join('')}
+        <div id="restock-tab-dropdown-wrap">
+          <button id="restock-tab-dropdown-btn" onclick="restockDropdownToggle(event)">
+            <span id="restock-tab-dropdown-label">${activeLabel}</span>
+            <span class="restock-tab-meta" id="restock-tab-dropdown-meta">${activeMeta}</span>
+            <i class="ti ti-chevron-down" id="restock-tab-dropdown-chevron"></i>
+          </button>
+          <div id="restock-tab-dropdown-menu" class="restock-dropdown-menu" style="display:none">
+            ${dropItems.map(item => `
+              <div class="restock-dropdown-item${_restockActiveTab === item.key ? ' restock-dropdown-active' : ''}"
+                   onclick="restockSwitchTab('${item.key}');restockDropdownClose()">
+                <i class="ti ${item.icon}"></i>
+                <span class="restock-dropdown-item-label">${item.label}</span>
+                <span class="restock-dropdown-item-meta">${item.meta}</span>
+              </div>`).join('')}
+          </div>
+        </div>
       </div>`;
   }
 
@@ -444,11 +462,13 @@ function renderRestockTabs() {
       if (!cardsEl) return;
       // Swipe di minicard sendiri
       initSwipeCollapse(cardsEl, cardsEl, 40, 'sum-cards-collapsed');
-      // Swipe di list zona bawah juga bisa collapse/expand minicard
-      if (listZone) initSwipeCollapse(listZone, cardsEl, 40, 'sum-cards-collapsed');
       // Swipe di header "Order Sekarang" juga
       if (header) initSwipeCollapse(header, cardsEl, 40, 'sum-cards-collapsed');
+      // CATATAN: list zone TIDAK pakai initSwipeCollapse lagi —
+      // diganti initSumCardsScrollCollapse (scroll-based collapse + double-swipe expand)
     })();
+    // Poin 1+2: scroll collapse + double-swipe expand
+    initSumCardsScrollCollapse();
   } else {
     // Supplier tab: restock-tbl-scroll harus overflow:visible
     // supaya sup-tbl-wrap jadi scroll container sendiri
@@ -471,9 +491,104 @@ function renderRestockTabs() {
 function restockSwitchTab(boss) {
   _restockActiveTab = boss;
   renderRestockTabs();
-  // Scroll tbl-scroll ke atas saat ganti tab
   var sc = document.getElementById('restock-tbl-scroll');
   if (sc) sc.scrollTop = 0;
+}
+
+// ── Dropdown toggle ──
+function restockDropdownToggle(e) {
+  e.stopPropagation();
+  var menu = document.getElementById('restock-tab-dropdown-menu');
+  var chevron = document.getElementById('restock-tab-dropdown-chevron');
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  if (isOpen) {
+    menu.style.display = 'none';
+    if (chevron) chevron.style.transform = '';
+  } else {
+    menu.style.display = 'block';
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+    // Close saat touch di luar
+    setTimeout(function() {
+      document.addEventListener('touchstart', restockDropdownOutside, { once: true, passive: true });
+      document.addEventListener('mousedown', restockDropdownOutside, { once: true });
+    }, 10);
+  }
+}
+function restockDropdownOutside(e) {
+  var wrap = document.getElementById('restock-tab-dropdown-wrap');
+  if (wrap && wrap.contains(e.target)) return;
+  restockDropdownClose();
+}
+function restockDropdownClose() {
+  var menu = document.getElementById('restock-tab-dropdown-menu');
+  var chevron = document.getElementById('restock-tab-dropdown-chevron');
+  if (menu) menu.style.display = 'none';
+  if (chevron) chevron.style.transform = '';
+}
+
+// ── Poin 1: Scroll list ke atas → collapse cards + banner ──
+// ── Poin 2: 2x swipe down di sticky header → expand ──
+function initSumCardsScrollCollapse() {
+  var listZone = document.getElementById('sum-list-zone');
+  var cardsWrap = document.getElementById('sum-cards-wrap');
+  var stickyHeader = document.getElementById('restock-sticky-header');
+  if (!listZone || !cardsWrap || !stickyHeader) return;
+
+  // Poin 1: scroll list ke atas → collapse
+  listZone.addEventListener('scroll', function() {
+    if (listZone.scrollTop > 40) {
+      if (!cardsWrap.classList.contains('sum-cards-collapsed')) {
+        cardsWrap.classList.add('sum-cards-collapsed');
+      }
+    }
+  }, { passive: true });
+
+  // Poin 2: 2x swipe down di sticky header → expand
+  var _swipe1Time = 0;
+  var _swipe1Done = false;
+  var _startY = 0;
+  var _startX = 0;
+
+  stickyHeader.addEventListener('touchstart', function(e) {
+    if (e.target.closest('button') || e.target.closest('.restock-dropdown-item')) return;
+    _startY = e.touches[0].clientY;
+    _startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  stickyHeader.addEventListener('touchend', function(e) {
+    var dy = e.changedTouches[0].clientY - _startY;
+    var dx = e.changedTouches[0].clientX - _startX;
+    // Harus dominan vertikal ke bawah, min 30px
+    if (Math.abs(dx) > Math.abs(dy)) return;
+    if (dy < 30) return;
+    // Hanya aktif saat cards sedang collapsed
+    if (!cardsWrap.classList.contains('sum-cards-collapsed')) return;
+
+    var now = Date.now();
+    if (!_swipe1Done) {
+      // Swipe pertama — catat waktu, tidak ada visual
+      _swipe1Done = true;
+      _swipe1Time = now;
+    } else {
+      // Swipe kedua — cek window 600ms
+      if (now - _swipe1Time <= 600) {
+        // Expand!
+        cardsWrap.classList.remove('sum-cards-collapsed');
+        listZone.scrollTop = 0;
+      }
+      _swipe1Done = false;
+      _swipe1Time = 0;
+    }
+  }, { passive: true });
+
+  // Reset state jika timeout 600ms
+  stickyHeader.addEventListener('touchstart', function() {
+    if (_swipe1Done && Date.now() - _swipe1Time > 600) {
+      _swipe1Done = false;
+      _swipe1Time = 0;
+    }
+  }, { passive: true });
 }
 
 // ── Helper: ikon tren ──
