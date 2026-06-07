@@ -2248,14 +2248,17 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .restock-dropdown-menu {
   position: fixed;
   /* top/right di-set via JS saat open */
-  min-width: 200px;
+  min-width: 210px;
   background: var(--cream3);
   border: 1.5px solid rgba(255,255,255,0.12);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 9999;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 60vh;
   padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Item dropdown */

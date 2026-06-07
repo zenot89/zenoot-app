@@ -510,6 +510,9 @@ function restockDropdownToggle(e) {
     // Posisi fixed: align kanan tombol, tepat di bawah tombol
     var rect = btn.getBoundingClientRect();
     menu.style.display = 'block';
+    // Hitung max-height agar tidak keluar bawah viewport
+    var spaceBelow = window.innerHeight - rect.bottom - 10;
+    menu.style.maxHeight = Math.min(spaceBelow, window.innerHeight * 0.6) + 'px';
     menu.style.top  = (rect.bottom + 6) + 'px';
     menu.style.right = (window.innerWidth - rect.right) + 'px';
     menu.style.left = 'auto';
@@ -701,10 +704,29 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   const dosSorted = allItems.filter(r => r.dos !== null).sort((a,z) => a.dos - z.dos);
   const deadlineSku = dosSorted[0] || null;
 
-  // ── Minicard — swipe up to collapse (initSwipeCollapse) ──
+  // ── Deadline warning — dideklarasi dulu sebelum cards ──
+  const deadlineBar = deadlineSku ? (() => {
+    const dos = deadlineSku.dos;
+    const color = dos <= 3 ? 'var(--danger)' : dos <= 7 ? 'var(--warn)' : 'var(--ok)';
+    const msg = dos <= 0
+      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> sudah HABIS — order sekarang juga!`
+      : dos <= deadlineSku._sup.lead_time
+      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> habis dalam <b>${dos} hari</b> — lebih cepat dari lead time supplier!`
+      : `SKU paling kritis: <b style="color:${color}">${deadlineSku.sku}</b> — sisa stok cukup <b>${dos} hari</b>`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px;
+                  background:rgba(224,82,82,0.06);border-radius:6px;border-left:3px solid ${color}">
+        <i class="ti ti-alarm" style="color:${color};font-size:16px;flex-shrink:0"></i>
+        <span style="font-size:13px;color:var(--ink2)">${msg}</span>
+      </div>`;
+  })() : '';
+
+  // ── Minicard — bannerKritis + deadlineBar ikut collapse bersama cards ──
   const cards = `
     <div id="sum-cards-wrap" style="margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)">
-      <div id="sum-cards-inner" style="overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:300px;opacity:1">
+      <div id="sum-cards-inner" style="overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:600px;opacity:1">
+        ${bannerKritis ? '<div style="margin-bottom:8px">' + bannerKritis + '</div>' : ''}
+        ${deadlineBar}
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 0 2px" class="sum-cards-grid">
           <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 10px;min-width:0">
             <div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⚡ Order Kini</div>
@@ -729,23 +751,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
         </div>
       </div>
     </div>`;
-
-  // ── Deadline warning ──
-  const deadlineBar = deadlineSku ? (() => {
-    const dos = deadlineSku.dos;
-    const color = dos <= 3 ? 'var(--danger)' : dos <= 7 ? 'var(--warn)' : 'var(--ok)';
-    const msg = dos <= 0
-      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> sudah HABIS — order sekarang juga!`
-      : dos <= deadlineSku._sup.lead_time
-      ? `<b style="color:var(--danger)">${deadlineSku.sku}</b> habis dalam <b>${dos} hari</b> — lebih cepat dari lead time supplier!`
-      : `SKU paling kritis: <b style="color:${color}">${deadlineSku.sku}</b> — sisa stok cukup <b>${dos} hari</b>`;
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:14px;
-                  background:rgba(224,82,82,0.06);border-radius:6px;border-left:3px solid ${color}">
-        <i class="ti ti-alarm" style="color:${color};font-size:16px;flex-shrink:0"></i>
-        <span style="font-size:13px;color:var(--ink2)">${msg}</span>
-      </div>`;
-  })() : '';
 
   // ── SKU SEGERA + Naik Daun — toggle, default Order Sekarang ──
   const segeraBlock = '';
