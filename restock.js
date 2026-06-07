@@ -517,7 +517,7 @@ function sumDualToggle(segeraLen, naikLen) {
     btn.style.background = 'rgba(224,82,82,0.07)';
     btn.innerHTML = '<i class="ti ti-urgent" style="font-size:12px"></i> Order ' + segeraLen;
     // Render naik list
-    list.innerHTML = window._sumNaikHtml || '';
+    list.innerHTML = window._sumNaikHtml || '<div style="color:var(--ink3);padding:10px 0">Belum ada tren naik</div>';
   } else {
     label.textContent = 'Order Sekarang — ' + segeraLen + ' SKU';
     title.style.color = 'var(--danger)';
@@ -526,7 +526,7 @@ function sumDualToggle(segeraLen, naikLen) {
     btn.style.borderColor = 'rgba(46,204,122,0.3)';
     btn.style.background = 'rgba(46,204,122,0.07)';
     btn.innerHTML = '<i class="ti ti-trending-up" style="font-size:12px"></i> Naik ' + naikLen;
-    list.innerHTML = window._sumSegeraHtml || '';
+    list.innerHTML = window._sumSegeraHtml || '<div style="color:var(--ink3);padding:10px 0">Semua stok aman 👌</div>';
   }
 }
 
@@ -654,9 +654,11 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       `).join('')}
     </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>';
 
-  // Simpan rendered HTML ke window untuk toggle
-  window._sumSegeraHtml = _renderSegeraList();
-  window._sumNaikHtml   = _renderNaikList();
+  // Pre-render list HTML — harus sebelum template string return
+  const _segeraHtml = _renderSegeraList();
+  const _naikHtml   = _renderNaikList();
+  window._sumSegeraHtml = _segeraHtml;
+  window._sumNaikHtml   = _naikHtml;
 
   const dualBlock = '';
 
@@ -738,7 +740,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
     </div>
     <!-- ZONA BAWAH: flex:1, scroll mandiri -->
     <div id="sum-list-zone" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
-      <div id="sum-dual-list">${window._sumSegeraHtml}</div>
+      <div id="sum-dual-list">${_segeraHtml}</div>
     </div>`;
 }
 
