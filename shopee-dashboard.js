@@ -127,6 +127,14 @@ document.getElementById(PAGE_ID).innerHTML = `
             <input type="file" accept=".csv" onchange="sdFileInput(event,'iklan')" style="display:none" id="fi-iklan">
             <button class="sdz-btn" onclick="document.getElementById('fi-iklan').click()">Pilih File</button>
           </div>
+          <div class="sdash-drop-zone" id="dz-order-prev" ondragover="sdDragOver(event)" ondragleave="sdDragLeave(event)" ondrop="sdDrop(event,'order_prev')">
+            <i class="ti ti-history"></i>
+            <div class="sdz-label">Order Bulan Sebelumnya</div>
+            <div class="sdz-hint">Order_completed_bulan_lalu.xlsx</div>
+            <div class="sdz-status" id="dzs-order-prev">Opsional — untuk proyeksi</div>
+            <input type="file" accept=".xlsx" onchange="sdFileInput(event,'order_prev')" style="display:none" id="fi-order-prev">
+            <button class="sdz-btn" onclick="document.getElementById('fi-order-prev').click()">Pilih File</button>
+          </div>
         </div>
 
         <!-- ERROR LOG -->
@@ -248,7 +256,7 @@ _style.textContent = `
 .sdash-modal-close{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;padding:4px}
 .sdash-modal-body{padding:16px 20px}
 .sdash-upload-info{font-size:12px;color:var(--color-text-secondary);padding:10px 12px;background:var(--color-background-secondary);border-radius:8px;margin-bottom:14px;line-height:1.6}
-.sdash-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sdash-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 @media(max-width:500px){.sdash-upload-grid{grid-template-columns:1fr}.sd-grid2,.sd-grid3,.sd-proj-grid{grid-template-columns:1fr}}
 .sdash-drop-zone{border:1.5px dashed var(--color-border-secondary);border-radius:10px;padding:14px 12px;text-align:center;transition:border-color .15s;cursor:default}
 .sdash-drop-zone.drag-over{border-color:#185FA5;background:rgba(24,95,165,.06)}
@@ -260,13 +268,13 @@ _style.textContent = `
 .sdz-status{font-size:11px;color:var(--color-text-secondary);margin-bottom:8px;min-height:14px}
 .sdash-drop-zone.done .sdz-status{color:#0F6E56;font-weight:500}
 .sdash-drop-zone.error .sdz-status{color:#D85A30}
-.sdz-btn{padding:4px 12px;border:.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;font-size:11px}
+.sdz-btn{padding:4px 12px;border:.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;font-size:11px;pointer-events:auto;position:relative;z-index:1}
 .sdz-btn:hover{background:var(--color-background-tertiary,var(--color-background-secondary))}
 `;
 document.head.appendChild(_style);
 
 // ─── IMPORT STATE (per upload session) ───────────────────────────────────────
-let _importSession = { income: null, order: null, produk: null, iklan: null };
+let _importSession = { income: null, order: null, order_prev: null, produk: null, iklan: null };
 
 // ─── TOKO SWITCHER ────────────────────────────────────────────────────────────
 window.sdSwitchToko = function(tokoId) {
@@ -775,7 +783,7 @@ function sdTabProyeksi(tokoId, currentMonth) {
 window.sdOpenUpload = function() {
   _importSession = { income: null, order: null, produk: null, iklan: null };
   _importErrors = [];
-  ['income','order','produk','iklan'].forEach(t => {
+  ['income','order','order_prev','produk','iklan'].forEach(t => {
     const dz = document.getElementById('dz-' + t);
     const st = document.getElementById('dzs-' + t);
     if (dz) { dz.className = 'sdash-drop-zone'; }
@@ -788,7 +796,12 @@ window.sdOpenUpload = function() {
 window.sdCloseUpload = function() {
   document.getElementById('sd-upload-modal').style.display = 'none';
 };
-window.sdDragOver = function(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
+window.sdDragOver = function(e) {
+  // Don't activate drag-over if user is hovering the button
+  if (e.target.classList.contains('sdz-btn')) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+};
 window.sdDragLeave = function(e) { e.currentTarget.classList.remove('drag-over'); };
 window.sdDrop = function(e, type) {
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
@@ -813,12 +826,14 @@ function sdProcessFile(file, type) {
         dz.className = 'sdash-drop-zone done';
         st.textContent = '✓ ' + file.name;
       } else {
-        sdParseXlsx(ev.target.result, type, file.name, function(result, err) {
+        // order_prev uses same parser as order
+        const parseType = type === 'order_prev' ? 'order' : type;
+        sdParseXlsx(ev.target.result, parseType, file.name, function(result, err) {
           if (err) {
             dz.className = 'sdash-drop-zone error';
             st.textContent = '✗ ' + err;
           } else {
-            _importSession[type] = result;
+            _importSession[type] = result; // type is original (order_prev stays order_prev key)
             dz.className = 'sdash-drop-zone done';
             st.textContent = '✓ ' + file.name;
           }
@@ -1120,6 +1135,14 @@ function sdParseAdwords(text) {
   return { _type: 'iklan', username, dateStr, totalSpend, daily };
 }
 
+// ─── DETECT MONTH FROM ORDER ─────────────────────────────────────────────────
+function sdDetectMonthFromOrder(orderData) {
+  // order date_from format from filename: '20260401'
+  const df = orderData.date_from || '';
+  if (df.length >= 6) return df.slice(0,6);
+  return '';
+}
+
 // ─── SAVE IMPORT ─────────────────────────────────────────────────────────────
 window.sdSaveImport = function() {
   const s = _importSession;
@@ -1150,6 +1173,30 @@ window.sdSaveImport = function() {
   const merged = sdMergeData(s, tokoId, monthKey);
 
   localStorage.setItem(LS_PREFIX + tokoId + '_' + monthKey, JSON.stringify(merged));
+
+  // If order_prev uploaded, detect its month and save separately (order data only, no overwrite if full data exists)
+  if (s.order_prev) {
+    const prevMonthKey = sdDetectMonthFromOrder(s.order_prev);
+    if (prevMonthKey && prevMonthKey !== monthKey) {
+      const existingKey = LS_PREFIX + tokoId + '_' + prevMonthKey;
+      const existing = localStorage.getItem(existingKey);
+      if (!existing) {
+        // Save minimal order-only data for prev month so it shows in proyeksi history
+        const prevData = {
+          _toko: tokoId, _bulan: prevMonthKey, _saved: Date.now(), _partial: true,
+          total_pesanan: s.order_prev.total_pesanan || 0,
+          hari_aktif: s.order_prev.hari_aktif || 0,
+          provinsi: s.order_prev.provinsi || [],
+          kota_top: s.order_prev.kota_top || [],
+          metode_bayar: s.order_prev.metode_bayar || [],
+          variasi_top: s.order_prev.variasi_top || [],
+          sku_top: s.order_prev.sku_top || [],
+          omset: 0, total_dilepas: 0, iklan_spend: 0,
+        };
+        localStorage.setItem(existingKey, JSON.stringify(prevData));
+      }
+    }
+  }
 
   // Switch to detected toko
   _activeToko = tokoId;
