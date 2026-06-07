@@ -2748,3 +2748,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Portrait sub-text default hidden (tampil hanya di portrait via class) */
 .col-portrait-sub { display: none; }
+
+/* ── Restock Summary: Portrait Mobile ── */
+@media (max-width: 900px) and (orientation: portrait) {
+  /* Cards 2x2 grid */
+  .sum-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Tunda card — full width di baris ke-2 kanan */
+}

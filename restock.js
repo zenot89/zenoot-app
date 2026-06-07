@@ -424,6 +424,7 @@ function renderRestockTabs() {
   // ── Content berdasarkan tab aktif ──
   if (_restockActiveTab === 'SUMMARY') {
     body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
+    _sumDualMode = 'segera';
   } else {
     const bossData = bossList[_restockActiveTab];
     if (!bossData) return;
@@ -464,6 +465,39 @@ function sisaBadge(sisa) {
   return `<span style="color:var(--ink2)">${sisa}</span>`;
 }
 
+// ── Summary dual toggle: Order Sekarang ↔ Naik Daun ──
+var _sumDualMode = 'segera'; // 'segera' | 'naik'
+
+function sumDualToggle(segeraLen, naikLen) {
+  _sumDualMode = _sumDualMode === 'segera' ? 'naik' : 'segera';
+  const list    = document.getElementById('sum-dual-list');
+  const label   = document.getElementById('sum-dual-label');
+  const title   = document.getElementById('sum-dual-title');
+  const btn     = document.getElementById('sum-dual-toggle');
+  if (!list || !label || !title || !btn) return;
+
+  if (_sumDualMode === 'naik') {
+    label.textContent = 'Lagi Naik Daun — ' + naikLen + ' SKU';
+    title.style.color = 'var(--ok)';
+    title.querySelector('i').className = 'ti ti-trending-up';
+    btn.style.color = 'var(--danger)';
+    btn.style.borderColor = 'rgba(224,82,82,0.3)';
+    btn.style.background = 'rgba(224,82,82,0.07)';
+    btn.innerHTML = '<i class="ti ti-urgent" style="font-size:12px"></i> Order ' + segeraLen;
+    // Render naik list
+    list.innerHTML = window._sumNaikHtml || '';
+  } else {
+    label.textContent = 'Order Sekarang — ' + segeraLen + ' SKU';
+    title.style.color = 'var(--danger)';
+    title.querySelector('i').className = 'ti ti-urgent';
+    btn.style.color = 'var(--ok)';
+    btn.style.borderColor = 'rgba(46,204,122,0.3)';
+    btn.style.background = 'rgba(46,204,122,0.07)';
+    btn.innerHTML = '<i class="ti ti-trending-up" style="font-size:12px"></i> Naik ' + naikLen;
+    list.innerHTML = window._sumSegeraHtml || '';
+  }
+}
+
 function prioritasBadge(p) {
   if (p === 'SEGERA') return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(224,82,82,0.15);color:var(--danger);border:1px solid var(--danger)">SEGERA</span>';
   if (p === 'TUNDA')  return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(80,80,96,0.3);color:var(--ink3);border:1px solid var(--ink3)">TUNDA</span>';
@@ -496,7 +530,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
 
   // ── Metric cards ──
   const cards = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" class="sum-cards-grid">
       <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 14px">
         <div style="font-size:10px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">⚡ Harus Order Sekarang</div>
         <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
@@ -536,68 +570,75 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       </div>`;
   })() : '';
 
-  // ── SKU SEGERA + Naik Daun — side by side ──
+  // ── SKU SEGERA + Naik Daun — toggle, default Order Sekarang ──
   const segeraBlock = '';
   const naikBlock   = '';
+
+  const _renderSegeraList = () => segera.length ? `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${segera.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
+            <div style="font-size:11px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;line-height:1.4">
+            <div style="font-size:10px;color:var(--ink3)">sisa · habis · order</div>
+            <div style="font-size:12px;font-weight:700">
+              <span style="color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok : '—'}</span>
+              <span style="color:var(--ink3)"> · </span>
+              <span style="color:var(--danger)">${r.dos !== null ? r.dos+'hr' : '—'}</span>
+              <span style="color:var(--ink3)"> · </span>
+              <span style="color:var(--warn)">${r.qty_order}pcs</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
+        </div>
+      `).join('')}
+    </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Semua stok aman 👌</div>';
+
+  const _renderNaikList = () => skuNaik.length ? `
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${skuNaik.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
+            <div style="font-size:11px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;line-height:1.4">
+            <div style="font-size:10px;color:var(--ink3)">tren · order</div>
+            <div style="font-size:12px;font-weight:700">
+              <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
+              <span style="color:var(--ink3)"> · </span>
+              <span style="color:var(--warn)">${r.qty_order}pcs</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
+        </div>
+      `).join('')}
+    </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>';
+
+  // Simpan rendered HTML ke window untuk toggle
+  window._sumSegeraHtml = _renderSegeraList();
+  window._sumNaikHtml   = _renderNaikList();
+
   const dualBlock = (segera.length || skuNaik.length) ? `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;align-items:start">
-
-      <!-- KIRI: Order Sekarang -->
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
+    <div style="margin-bottom:16px">
+      <!-- Header toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
         </div>
-        ${segera.length ? `
-        <div style="display:flex;flex-direction:column;gap:5px">
-          ${segera.map(r => `
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
-                <div style="font-size:10px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
-              </div>
-              <div style="text-align:right;flex-shrink:0;line-height:1.3">
-                <div style="font-size:10px;color:var(--ink3)">sisa · habis · order</div>
-                <div style="font-size:12px;font-weight:700">
-                  <span style="color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok : '—'}</span>
-                  <span style="color:var(--ink3)">·</span>
-                  <span style="color:var(--danger)">${r.dos !== null ? r.dos + 'hr' : '—'}</span>
-                  <span style="color:var(--ink3)">·</span>
-                  <span style="color:var(--warn)">${r.qty_order}pcs</span>
-                </div>
-              </div>
-              <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
-            </div>
-          `).join('')}
-        </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Semua stok aman 👌</div>'}
+        <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
+          style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+                 border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
+                 color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-trending-up" style="font-size:12px"></i>
+          Naik ${skuNaik.length}
+        </button>
       </div>
-
-      <!-- KANAN: Lagi Naik Daun -->
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <i class="ti ti-trending-up"></i> Lagi Naik Daun — ${skuNaik.length} SKU
-        </div>
-        ${skuNaik.length ? `
-        <div style="display:flex;flex-direction:column;gap:5px">
-          ${skuNaik.map(r => `
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
-                <div style="font-size:10px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
-              </div>
-              <div style="text-align:right;flex-shrink:0;line-height:1.3">
-                <div style="font-size:10px;color:var(--ink3)">tren · order</div>
-                <div style="font-size:12px;font-weight:700">
-                  <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
-                  <span style="color:var(--ink3)">·</span>
-                  <span style="color:var(--warn)">${r.qty_order}pcs</span>
-                </div>
-              </div>
-              <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
-            </div>
-          `).join('')}
-        </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>'}
-      </div>
-
+      <!-- List content -->
+      <div id="sum-dual-list">${window._sumSegeraHtml}</div>
     </div>` : '';
 
   // ── Tabel per supplier (ringkas) ──
