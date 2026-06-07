@@ -102,6 +102,17 @@
     </div>
   </div>
 
+  <!-- ANALISIS TOKO -->
+  <div class="nav-group" id="group-analisis">
+    <div class="nav-group-header" onclick="toggleNavGroup('group-analisis')">
+      <span class="nav-group-label"><i class="ti ti-chart-arrows-vertical"></i> Analisis Toko</span>
+      <span class="nav-group-arrow">▾</span>
+    </div>
+    <div class="nav-group-body">
+      <button class="nav-item" onclick="gotoPage('shopee-dashboard',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Analisis Shopee</span></button>
+    </div>
+  </div>
+
   <!-- DATABASE -->
   <div class="nav-group" id="group-db">
     <div class="nav-group-header" onclick="toggleNavGroup('group-db')">
@@ -152,6 +163,7 @@
     <div id="page-clearance" class="page"></div>
     <div id="page-hpp" class="page"></div>
     <div id="page-shopee-auth" class="page"></div>
+    <div id="page-shopee-dashboard" class="page"></div>
   </div>
 </div>
 
@@ -177,7 +189,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260526-010e70896dbd';
-  window.APP_BUILD = '20260607-e04b2bed62cd';
+  window.APP_BUILD = '20260607-9d776986563e';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -190,7 +202,7 @@
       'jurnal-penjualan.js','produk-terjual.js','price-list.js',
       'dataorder.js','rekap.js','channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',
-      'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','hpp.js','notif.js'
+      'beban-operasional.js','anggaran.js','keuangan.js','clearance.js','hpp.js','notif.js','shopee-dashboard.js'
     ];
     var i = 0;
     var _timer = null;
