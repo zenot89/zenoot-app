@@ -422,7 +422,17 @@ function renderRestockTabs() {
   }
 
   // ── Content berdasarkan tab aktif ──
+  // Summary: restock-tbl-scroll harus overflow:visible supaya sum-list-zone
+  // jadi satu-satunya scroll boundary (iOS Safari nested flex scroll fix)
+  const scrollEl = document.getElementById('restock-tbl-scroll');
   if (_restockActiveTab === 'SUMMARY') {
+    if (scrollEl) {
+      scrollEl.style.overflowY = 'visible';
+      scrollEl.style.overflowX = 'visible';
+      scrollEl.style.overflow  = 'visible';
+    }
+    body.style.height   = '100%';
+    body.style.overflow = 'hidden';
     body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
     _sumDualMode = 'segera';
     // Init swipe-to-collapse minicard — identik dengan kas.js (3 zona swipe)
@@ -440,6 +450,13 @@ function renderRestockTabs() {
       if (header) initSwipeCollapse(header, cardsEl, 40, 'sum-cards-collapsed');
     })();
   } else {
+    if (scrollEl) {
+      scrollEl.style.overflowY = 'auto';
+      scrollEl.style.overflowX = 'auto';
+      scrollEl.style.overflow  = '';
+    }
+    body.style.height   = '';
+    body.style.overflow = '';
     const bossData = bossList[_restockActiveTab];
     if (!bossData) return;
     body.innerHTML = renderSupplierFull(_restockActiveTab, bossData, fmtRp);
