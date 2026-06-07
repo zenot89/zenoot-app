@@ -535,7 +535,10 @@ function restockDropdownToggle(e) {
 }
 function restockDropdownOutside(e) {
   var wrap = document.getElementById('restock-tab-dropdown-wrap');
+  var menu = document.getElementById('restock-tab-dropdown-menu');
+  // Jangan close jika touch di tombol atau di menu (menu sekarang di body, bukan di dalam wrap)
   if (wrap && wrap.contains(e.target)) return;
+  if (menu && menu.contains(e.target)) return;
   restockDropdownClose();
 }
 function restockDropdownClose() {

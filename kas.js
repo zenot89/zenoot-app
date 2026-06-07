@@ -1029,6 +1029,11 @@ function _kasReturnListToWrap(list) {
 
 function kasClosePicker(list) {
   if (!list) return;
+  // Cleanup visualViewport listener
+  if (list._vpHandler && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', list._vpHandler);
+    delete list._vpHandler;
+  }
   // Reset search & tampilkan semua item
   var inp = list.querySelector('.kas-akun-search');
   if (inp) inp.value = '';
@@ -1093,8 +1098,24 @@ function kasTogglePicker(pickerId) {
   list.style.display   = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
-  // Auto-focus search
-  if (inp) setTimeout(function() { inp.focus(); }, 50);
+  // Auto-focus search — delay lebih panjang di iOS agar tidak trigger outside handler
+  if (inp) setTimeout(function() { inp.focus(); }, 80);
+
+  // iOS Safari: saat keyboard muncul, viewport resize → posisi fixed bergeser
+  // Re-calculate posisi picker saat visualViewport berubah
+  if (window.visualViewport) {
+    var _vpHandler = function() {
+      if (list.style.display !== 'block') {
+        window.visualViewport.removeEventListener('resize', _vpHandler);
+        return;
+      }
+      var freshRect = picker.getBoundingClientRect();
+      list.style.top  = (freshRect.bottom + 2) + 'px';
+      list.style.left = freshRect.left + 'px';
+    };
+    window.visualViewport.addEventListener('resize', _vpHandler);
+    list._vpHandler = _vpHandler;
+  }
 }
 
 function kasPickerFilter(inp) {
