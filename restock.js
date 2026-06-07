@@ -425,11 +425,19 @@ function renderRestockTabs() {
   if (_restockActiveTab === 'SUMMARY') {
     body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
     _sumDualMode = 'segera';
-    // Init swipe-to-collapse minicard — identik dengan JP
+    // Init swipe-to-collapse minicard — identik dengan kas.js (3 zona swipe)
     (function() {
-      var wrap = document.getElementById('sum-cards-wrap');
-      if (!wrap) return;
-      initSwipeCollapse(wrap, wrap, 40, 'sum-cards-collapsed');
+      var topZone  = document.getElementById('sum-top-zone');
+      var cardsEl  = document.getElementById('sum-cards-wrap');
+      var listZone = document.getElementById('sum-list-zone');
+      var header   = document.getElementById('sum-dual-header');
+      if (!cardsEl) return;
+      // Swipe di minicard sendiri
+      initSwipeCollapse(cardsEl, cardsEl, 40, 'sum-cards-collapsed');
+      // Swipe di list zona bawah juga bisa collapse/expand minicard
+      if (listZone) initSwipeCollapse(listZone, cardsEl, 40, 'sum-cards-collapsed');
+      // Swipe di header "Order Sekarang" juga
+      if (header) initSwipeCollapse(header, cardsEl, 40, 'sum-cards-collapsed');
     })();
   } else {
     const bossData = bossList[_restockActiveTab];

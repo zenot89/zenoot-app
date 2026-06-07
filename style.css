@@ -2785,17 +2785,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ── Summary minicard: swipe-to-collapse ── */
+/* ── Summary minicard: swipe-to-collapse — identik dengan kas-top-bar ── */
 #sum-cards-wrap {
-  transition: none;
-}
-#sum-cards-inner {
-  transition: max-height .3s ease, opacity .25s ease;
-  max-height: 300px;
-  opacity: 1;
   overflow: hidden;
+  -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+  transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+  max-height: 400px;
+  opacity: 1;
 }
-#sum-cards-wrap.sum-cards-collapsed #sum-cards-inner {
+#sum-cards-wrap.sum-cards-collapsed {
   max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   opacity: 0;
+  pointer-events: none;
 }
