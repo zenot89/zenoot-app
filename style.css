@@ -2201,36 +2201,49 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #restock-tab-bar {
   display: -webkit-flex;
   display: flex;
-  gap: 0;
+  gap: 6px;
   flex-wrap: wrap;
-  border-bottom: 2px solid var(--ink);
-  padding: 0 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 14px 0;
 }
 .restock-tab-btn {
-  padding: 6px 14px;
+  padding: 7px 16px;
   font-family: var(--f);
   font-size: 12px;
   font-weight: 700;
-  border: 2px solid var(--ink);
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255,255,255,0.12);
   border-bottom: none;
+  border-radius: 8px 8px 0 0;
   cursor: pointer;
-  margin-bottom: -2px;
-  background: var(--cream);
-  color: var(--ink);
+  margin-bottom: -1px;
+  background: rgba(255,255,255,0.03);
+  color: var(--ink3);
   display: -webkit-inline-flex;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.restock-tab-btn:hover:not(.restock-tab-active) {
+  background: rgba(255,255,255,0.06);
+  color: var(--ink2);
+  border-color: rgba(255,255,255,0.18);
 }
 .restock-tab-btn.restock-tab-active {
-  background: var(--ink);
-  color: var(--cream);
+  background: var(--cream2);
+  color: var(--ink);
+  border-color: rgba(255,255,255,0.18);
+  border-bottom: 1px solid var(--cream2);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
 }
 .restock-tab-meta {
   font-size: 10px;
-  opacity: 0.7;
-  margin-left: 2px;
+  font-weight: 600;
+  opacity: 0.6;
+  margin-left: 1px;
+  letter-spacing: 0;
 }
 
 /* Info bar: periode + budget */
