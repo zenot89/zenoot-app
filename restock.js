@@ -532,53 +532,68 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       </div>`;
   })() : '';
 
-  // ── SKU SEGERA — daftar actionable lintas supplier ──
-  const segeraBlock = segera.length ? `
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${segera.map(r => `
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:700;color:var(--ink)">${r.sku}</div>
-              <div style="font-size:11px;color:var(--ink3)">${r.katalog} · via <b>${r._boss}</b></div>
-            </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:11px;color:var(--ink3)">Sisa</div>
-              <div style="font-size:14px;font-weight:700;color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok + ' pcs' : '—'}</div>
-            </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:11px;color:var(--ink3)">Habis</div>
-              <div style="font-size:14px;font-weight:700;color:var(--danger)">${r.dos !== null ? r.dos + ' hr' : '—'}</div>
-            </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:11px;color:var(--ink3)">Order</div>
-              <div style="font-size:14px;font-weight:700;color:var(--warn)">${r.qty_order} pcs</div>
-            </div>
-            <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0"></i>
-          </div>
-        `).join('')}
-      </div>
-    </div>` : '';
+  // ── SKU SEGERA + Naik Daun — side by side ──
+  const segeraBlock = '';
+  const naikBlock   = '';
+  const dualBlock = (segera.length || skuNaik.length) ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;align-items:start">
 
-  // ── SKU Tren Naik — momentum jangan sampai kehabisan ──
-  const naikBlock = skuNaik.length ? `
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-trending-up"></i> Lagi Naik Daun — ${skuNaik.length} SKU
+      <!-- KIRI: Order Sekarang -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
+        </div>
+        ${segera.length ? `
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${segera.map(r => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
+                <div style="font-size:10px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;line-height:1.3">
+                <div style="font-size:10px;color:var(--ink3)">sisa · habis · order</div>
+                <div style="font-size:12px;font-weight:700">
+                  <span style="color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok : '—'}</span>
+                  <span style="color:var(--ink3)">·</span>
+                  <span style="color:var(--danger)">${r.dos !== null ? r.dos + 'hr' : '—'}</span>
+                  <span style="color:var(--ink3)">·</span>
+                  <span style="color:var(--warn)">${r.qty_order}pcs</span>
+                </div>
+              </div>
+              <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
+            </div>
+          `).join('')}
+        </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Semua stok aman 👌</div>'}
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${skuNaik.map(r => `
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer;font-size:12px" onclick="restockSwitchTab('${r._boss}')">
-            <span style="font-weight:700;color:var(--ink)">${r.sku}</span>
-            <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
-            <span style="color:var(--ink3)">·</span>
-            <span style="color:var(--warn)">${r.qty_order} pcs</span>
-          </div>
-        `).join('')}
+
+      <!-- KANAN: Lagi Naik Daun -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-trending-up"></i> Lagi Naik Daun — ${skuNaik.length} SKU
+        </div>
+        ${skuNaik.length ? `
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${skuNaik.map(r => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
+                <div style="font-size:10px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;line-height:1.3">
+                <div style="font-size:10px;color:var(--ink3)">tren · order</div>
+                <div style="font-size:12px;font-weight:700">
+                  <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
+                  <span style="color:var(--ink3)">·</span>
+                  <span style="color:var(--warn)">${r.qty_order}pcs</span>
+                </div>
+              </div>
+              <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
+            </div>
+          `).join('')}
+        </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>'}
       </div>
+
     </div>` : '';
 
   // ── Tabel per supplier (ringkas) ──
@@ -640,8 +655,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
     ${bannerKritis || ''}
     ${cards}
     ${deadlineBar}
-    ${segeraBlock}
-    ${naikBlock}
+    ${dualBlock}
     <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em">
       <i class="ti ti-building-warehouse"></i> Ringkasan per Supplier
     </div>
