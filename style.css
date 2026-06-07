@@ -2202,6 +2202,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: -webkit-flex;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  -webkit-justify-content: flex-end;
   padding: 8px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   gap: 8px;
@@ -2209,7 +2211,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Dropdown wrapper */
 #restock-tab-dropdown-wrap {
-  position: relative;
+  position: static;
 }
 
 /* Tombol dropdown */
@@ -2242,17 +2244,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: transform .2s ease;
 }
 
-/* Dropdown menu */
+/* Dropdown menu — fixed supaya tidak ter-clip overflow:hidden parent */
 .restock-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  position: fixed;
+  /* top/right di-set via JS saat open */
   min-width: 200px;
   background: var(--cream3);
   border: 1.5px solid rgba(255,255,255,0.12);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  z-index: 200;
+  z-index: 9999;
   overflow: hidden;
   padding: 4px 0;
 }

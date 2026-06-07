@@ -498,15 +498,21 @@ function restockSwitchTab(boss) {
 // ── Dropdown toggle ──
 function restockDropdownToggle(e) {
   e.stopPropagation();
+  var btn  = document.getElementById('restock-tab-dropdown-btn');
   var menu = document.getElementById('restock-tab-dropdown-menu');
   var chevron = document.getElementById('restock-tab-dropdown-chevron');
-  if (!menu) return;
+  if (!menu || !btn) return;
   var isOpen = menu.style.display !== 'none';
   if (isOpen) {
     menu.style.display = 'none';
     if (chevron) chevron.style.transform = '';
   } else {
+    // Posisi fixed: align kanan tombol, tepat di bawah tombol
+    var rect = btn.getBoundingClientRect();
     menu.style.display = 'block';
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - rect.right) + 'px';
+    menu.style.left = 'auto';
     if (chevron) chevron.style.transform = 'rotate(180deg)';
     // Close saat touch di luar
     setTimeout(function() {
