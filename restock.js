@@ -422,8 +422,9 @@ function renderRestockTabs() {
     menuEl.className = 'restock-dropdown-menu';
     menuEl.style.display = 'none';
     menuEl.innerHTML = dropItems.map(function(item) {
-      return '<div class="restock-dropdown-item' + (_restockActiveTab === item.key ? ' restock-dropdown-active' : '') + '"' +
-        ' onclick="restockSwitchTab('' + item.key + '');restockDropdownClose()">' +
+      var activeClass = _restockActiveTab === item.key ? ' restock-dropdown-active' : '';
+      return '<div class="restock-dropdown-item' + activeClass + '"' +
+        ' onclick="restockSwitchTab(\'' + item.key + '\');restockDropdownClose()">' +
         '<i class="ti ' + item.icon + '"></i>' +
         '<span class="restock-dropdown-item-label">' + item.label + '</span>' +
         '<span class="restock-dropdown-item-meta">' + item.meta + '</span>' +
