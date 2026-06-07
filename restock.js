@@ -305,11 +305,15 @@ async function loadRestock() {
 
     Object.values(bossList).forEach(b => {
       const _p = { SEGERA: 0, PERLU: 1, TUNDA: 2 };
-    b.items.sort((a, z) => {
-      const pd = (_p[a.prioritas] || 1) - (_p[z.prioritas] || 1);
-      if (pd !== 0) return pd;
-      return z.qty_order - a.qty_order;
-    });
+      b.items.sort((a, z) => {
+        // Primary: Prioritas (SEGERA → PERLU → TUNDA)
+        const pd = (_p[a.prioritas] ?? 1) - (_p[z.prioritas] ?? 1);
+        if (pd !== 0) return pd;
+        // Secondary: DoS ascending (makin cepat habis, makin atas)
+        const aDos = a.dos !== null ? a.dos : 9999;
+        const zDos = z.dos !== null ? z.dos : 9999;
+        return aDos - zDos;
+      });
     });
 
     const bossSorted = Object.keys(bossList).sort();
