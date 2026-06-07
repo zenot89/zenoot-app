@@ -694,86 +694,115 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
       ${trenBaru  ? `<span style="color:var(--warn)">★ ${trenBaru} SKU mulai laku</span>` : ''}
     </div>` : '';
 
+  // ── Portrait mobile: info box collapsible, tabel 4 kolom ──
   return `
-    <div style="padding:10px 14px">
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 14px;
-                  background:var(--cream2);border:2px dashed var(--ink3);border-radius:4px">
-        <div style="font-size:13px">
-          <span style="color:var(--ink3)">Lead Time:</span>
-          <b style="color:var(--ink);margin-left:4px">${sup.lead_time} hari</b>
+    <!-- INFO BOX — collapsible di portrait -->
+    <div id="sup-info-box" class="sup-info-box">
+      <div class="sup-info-inner">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;
+                    background:var(--cream2);border:1px dashed rgba(255,255,255,0.15);border-radius:6px;margin:10px 14px 0">
+          <div style="font-size:13px"><span style="color:var(--ink3)">Lead Time:</span> <b>${sup.lead_time} hari</b></div>
+          <div style="font-size:13px"><span style="color:var(--ink3)">Safety Stock:</span> <b style="color:var(--ink2)">${sup.buffer_hari} hari buffer</b></div>
+          <div style="font-size:13px"><span style="color:var(--ink3)">Min Order:</span> <b>${sup.min_order} pcs</b></div>
+          <div style="font-size:13px"><span style="color:var(--ink3)">Kelipatan:</span> <b>× ${sup.kelipatan}</b></div>
+          ${sup.budget ? `
+            <div style="font-size:13px;margin-left:auto">
+              <span style="color:var(--ink3)">Budget:</span>
+              <b style="color:var(--warn);margin-left:4px">${fmtRp(sup.budget)}</b>
+              <span style="margin-left:6px;color:${budgetSisa >= 0 ? 'var(--ok)' : 'var(--danger)'}">
+                ${budgetSisa >= 0 ? '(Sisa '+fmtRp(budgetSisa)+')' : '(Over '+fmtRp(Math.abs(budgetSisa))+')'}
+              </span>
+            </div>` : ''}
+          ${sup.catatan ? `<div style="width:100%;font-size:11px;color:var(--ink3)"><i class="ti ti-note"></i> ${sup.catatan}</div>` : ''}
+          ${trenSummary}
         </div>
-        <div style="font-size:13px">
-          <span style="color:var(--ink3)">Safety Stock:</span>
-          <b style="color:var(--ink2);margin-left:4px">${sup.buffer_hari} hari buffer</b>
+        <div style="padding:6px 14px 8px;font-size:11px;color:var(--ink3)">
+          Cover: <span style="color:var(--danger)">merah</span> = pendek · <span style="color:var(--warn)">kuning</span> = cukup · <span style="color:var(--ok)">hijau</span> = aman
+          &nbsp;·&nbsp; Tren: ↑ naik · ↓ turun · → stabil · ★ baru
         </div>
-        <div style="font-size:13px">
-          <span style="color:var(--ink3)">Min Order:</span>
-          <b style="color:var(--ink);margin-left:4px">${sup.min_order} pcs</b>
-        </div>
-        <div style="font-size:13px">
-          <span style="color:var(--ink3)">Kelipatan:</span>
-          <b style="color:var(--ink);margin-left:4px">× ${sup.kelipatan}</b>
-        </div>
-        ${sup.budget ? `
-          <div style="font-size:13px;margin-left:auto">
-            <span style="color:var(--ink3)">Budget:</span>
-            <b style="color:var(--warn);margin-left:4px">${fmtRp(sup.budget)}</b>
-            <span style="margin-left:8px;color:${budgetSisa >= 0 ? 'var(--ok)' : 'var(--danger)'}">
-              ${budgetSisa >= 0 ? '(Sisa ' + fmtRp(budgetSisa) + ')' : '(Over ' + fmtRp(Math.abs(budgetSisa)) + ')'}
-            </span>
-          </div>
-        ` : ''}
-        ${sup.catatan ? `<div style="width:100%;font-size:11px;color:var(--ink3)"><i class="ti ti-note"></i> ${sup.catatan}</div>` : ''}
-        ${trenSummary}
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--ink3)">
-        <span>Cover: <span style="color:var(--danger)">merah</span> = supply pendek, <span style="color:var(--warn)">kuning</span> = cukup, <span style="color:var(--ok)">hijau</span> = aman</span>
-        <span>Tren: ↑ naik · ↓ turun · → stabil · ★ baru</span>
+      <!-- Toggle hint — hanya portrait -->
+      <div class="sup-info-toggle" onclick="supInfoToggle()">
+        <span class="sup-info-toggle-label">Detail Supplier</span>
+        <i class="ti ti-chevron-down sup-info-chevron"></i>
       </div>
     </div>
-    <div class="tbl-wrap">
+
+    <!-- TABEL -->
+    <div class="tbl-wrap" id="sup-tbl-wrap" onscroll="supInfoAutoCollapse(this)">
       <table class="tbl">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Katalog</th>
+            <!-- Desktop: semua kolom -->
+            <th class="col-desktop">#</th>
+            <th class="col-desktop">Katalog</th>
             <th>Variant (SKU)</th>
             <th style="text-align:center">Prioritas</th>
-            <th style="text-align:center">DoS</th>
+            <th class="col-desktop" style="text-align:center">DoS</th>
             <th style="text-align:center">Tren</th>
             <th style="text-align:center">Sisa</th>
-            <th style="text-align:center">Qty 14hr</th>
-            <th style="text-align:center">Avg/hari</th>
+            <th class="col-desktop" style="text-align:center">Qty 14hr</th>
+            <th class="col-desktop" style="text-align:center">Avg/hari</th>
             <th style="text-align:center;color:var(--warn)">Order</th>
-            <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
+            <th class="col-desktop" style="text-align:right;color:var(--ok)">Nilai HPP</th>
           </tr>
         </thead>
         <tbody>
           ${items.map((r, i) => `
             <tr style="${r.prioritas === 'SEGERA' ? 'background:rgba(224,82,82,0.05)' : r.prioritas === 'TUNDA' ? 'opacity:0.6' : ''}">
-              <td style="color:var(--ink3);font-size:11px">${i + 1}</td>
-              <td style="color:var(--ink3)">${r.katalog}</td>
-              <td><b style="color:var(--ink)">${r.sku}</b></td>
+              <td class="col-desktop" style="color:var(--ink3);font-size:11px">${i + 1}</td>
+              <td class="col-desktop" style="color:var(--ink3)">${r.katalog}</td>
+              <td>
+                <b style="color:var(--ink)">${r.sku}</b>
+                <!-- Sub-text portrait: dos + katalog -->
+                <div class="col-portrait-sub" style="font-size:10px;color:var(--ink3);margin-top:2px">${r.katalog} · <span style="color:${r.dos !== null && r.dos <= sup.lead_time ? 'var(--danger)' : r.dos !== null && r.dos <= 14 ? 'var(--warn)' : 'var(--ink3)'}">${r.dos !== null ? r.dos+'hr' : '—'}</span></div>
+              </td>
               <td style="text-align:center">${prioritasBadge(r.prioritas)}</td>
-              <td style="text-align:center">${dosBadge(r.dos, sup.lead_time)}</td>
+              <td class="col-desktop" style="text-align:center">${dosBadge(r.dos, sup.lead_time)}</td>
               <td style="text-align:center">${trenIcon(r.tren)}</td>
               <td style="text-align:center">${sisaBadge(r.sisa_stok)}</td>
-              <td style="text-align:center">${r.qty14}</td>
-              <td style="text-align:center;color:var(--ink3)">${r.avg_harian}</td>
+              <td class="col-desktop" style="text-align:center">${r.qty14}</td>
+              <td class="col-desktop" style="text-align:center;color:var(--ink3)">${r.avg_harian}</td>
               <td style="text-align:center;font-weight:700;font-size:16px;color:var(--warn)">${r.qty_order}</td>
-              <td style="text-align:right;font-weight:600;color:${r.nilai ? 'var(--ok)' : 'var(--ink3)'}">
+              <td class="col-desktop" style="text-align:right;font-weight:600;color:${r.nilai ? 'var(--ok)' : 'var(--ink3)'}">
                 ${fmtRp(r.nilai)}
               </td>
             </tr>
           `).join('')}
           <tr style="font-weight:700;border-top:2px solid var(--ink3)">
-            <td colspan="9" style="color:var(--ink2)">Total</td>
+            <td class="col-desktop"></td>
+            <td class="col-desktop" style="color:var(--ink2)">Total</td>
+            <td style="color:var(--ink2)">Total</td>
+            <td colspan="2" class="col-desktop"></td>
+            <td class="col-desktop"></td>
+            <td class="col-desktop"></td>
+            <td class="col-desktop"></td>
+            <td class="col-desktop"></td>
             <td style="text-align:center;font-size:18px;color:var(--warn)">${totalQty}</td>
-            <td style="text-align:right;color:var(--ok);font-size:15px">${fmtRp(totalNilai)}</td>
+            <td class="col-desktop" style="text-align:right;color:var(--ok);font-size:15px">${fmtRp(totalNilai)}</td>
           </tr>
         </tbody>
       </table>
     </div>`;
+}
+
+// ── Info box collapse (portrait) ──
+function supInfoToggle() {
+  const box = document.getElementById('sup-info-box');
+  if (!box) return;
+  box.classList.toggle('sup-info-collapsed');
+}
+
+function supInfoAutoCollapse(el) {
+  const box = document.getElementById('sup-info-box');
+  if (!box) return;
+  // Hanya aktif di portrait
+  if (window.innerWidth > 900 || window.innerHeight < window.innerWidth) return;
+  if (el.scrollTop > 30) {
+    box.classList.add('sup-info-collapsed');
+  } else if (el.scrollTop < 5) {
+    box.classList.remove('sup-info-collapsed');
+  }
 }
 
 function bulatkanKelipatan(nilai, kelipatan, min_order) {
