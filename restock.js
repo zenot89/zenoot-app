@@ -654,28 +654,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   window._sumSegeraHtml = _renderSegeraList();
   window._sumNaikHtml   = _renderNaikList();
 
-  const dualBlock = (segera.length || skuNaik.length) ? `
-    <div style="display:flex;flex-direction:column;flex:1;min-height:0">
-      <!-- Header frozen -->
-      <div id="sum-dual-header" style="position:sticky;top:0;z-index:10;
-           background:var(--cream);padding:10px 0 8px;
-           display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-        <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
-          <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
-        </div>
-        <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
-          style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
-                 border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
-                 color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
-          <i class="ti ti-trending-up" style="font-size:12px"></i>
-          Naik ${skuNaik.length}
-        </button>
-      </div>
-      <!-- List scrollable -->
-      <div id="sum-dual-list" style="overflow-y:auto;flex:1;padding-bottom:16px">
-        ${window._sumSegeraHtml}
-      </div>
-    </div>` : '';
+  const dualBlock = '';
 
   // ── Tabel per supplier (ringkas) ──
   const rows = bossSorted.map(boss => {
@@ -733,10 +712,30 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
     </div>` : '';
 
   return `
-    ${bannerKritis || ''}
-    ${cards}
-    ${deadlineBar}
-    ${dualBlock}`;
+    <!-- ZONA ATAS: fixed, tidak scroll -->
+    <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
+      ${bannerKritis || ''}
+      ${cards}
+      ${deadlineBar}
+      <!-- Header frozen Order Sekarang -->
+      ${(segera.length || skuNaik.length) ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
+        <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
+        </div>
+        <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
+          style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+                 border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
+                 color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-trending-up" style="font-size:12px"></i>
+          Naik ${skuNaik.length}
+        </button>
+      </div>` : ''}
+    </div>
+    <!-- ZONA BAWAH: flex:1, scroll mandiri -->
+    <div id="sum-list-zone" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
+      <div id="sum-dual-list">${window._sumSegeraHtml}</div>
+    </div>`;
 }
 
 // ── Tampilan full 1 supplier (tab individual) ──
