@@ -466,6 +466,24 @@ function sisaBadge(sisa) {
 }
 
 // ── Summary dual toggle: Order Sekarang ↔ Naik Daun ──
+// ── Minicard collapse toggle ──
+var _sumCardsCollapsed = false;
+function sumCardsToggle() {
+  _sumCardsCollapsed = !_sumCardsCollapsed;
+  const inner   = document.getElementById('sum-cards-inner');
+  const chevron = document.getElementById('sum-cards-chevron');
+  if (!inner || !chevron) return;
+  if (_sumCardsCollapsed) {
+    inner.style.maxHeight = '0';
+    inner.style.opacity   = '0';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    inner.style.maxHeight = '300px';
+    inner.style.opacity   = '1';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
 var _sumDualMode = 'segera'; // 'segera' | 'naik'
 
 function sumDualToggle(segeraLen, naikLen) {
@@ -528,28 +546,42 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   const dosSorted = allItems.filter(r => r.dos !== null).sort((a,z) => a.dos - z.dos);
   const deadlineSku = dosSorted[0] || null;
 
-  // ── Metric cards ──
+  // ── Minicard collapsible ──
   const cards = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" class="sum-cards-grid">
-      <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 10px;min-width:0">
-        <div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⚡ Order Kini</div>
-        <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU kritis</div>
+    <div id="sum-cards-wrap" style="margin-bottom:12px">
+      <!-- Toggle bar -->
+      <div onclick="sumCardsToggle()"
+           style="display:flex;align-items:center;justify-content:space-between;
+                  padding:8px 0;cursor:pointer;user-select:none">
+        <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-layout-grid" style="font-size:13px"></i> Overview
+        </div>
+        <i id="sum-cards-chevron" class="ti ti-chevron-up" style="color:var(--ink3);font-size:14px;transition:transform .25s"></i>
       </div>
-      <div style="background:rgba(230,168,23,0.08);border:1.5px solid var(--warn);border-radius:8px;padding:12px 10px;min-width:0">
-        <div style="font-size:9px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">📋 Perlu Order</div>
-        <div style="font-size:28px;font-weight:700;color:var(--warn);line-height:1">${perlu.length}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU segera</div>
-      </div>
-      <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 10px;min-width:0">
-        <div style="font-size:9px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💰 Total</div>
-        <div style="font-size:16px;font-weight:700;color:var(--ok);line-height:1.2;word-break:break-all">${fmtRp(grandBudget)}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:4px">${grandQty}pcs · ${grandSKU} SKU</div>
-      </div>
-      <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 10px;min-width:0">
-        <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⏸ Tunda</div>
-        <div style="font-size:28px;font-weight:700;color:var(--ink3);line-height:1">${tunda.length}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU turun</div>
+      <!-- Cards -->
+      <div id="sum-cards-inner" style="overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:300px;opacity:1">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px" class="sum-cards-grid">
+          <div style="background:rgba(224,82,82,0.08);border:1.5px solid var(--danger);border-radius:8px;padding:12px 10px;min-width:0">
+            <div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⚡ Order Kini</div>
+            <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">${segera.length}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU kritis</div>
+          </div>
+          <div style="background:rgba(230,168,23,0.08);border:1.5px solid var(--warn);border-radius:8px;padding:12px 10px;min-width:0">
+            <div style="font-size:9px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">📋 Perlu Order</div>
+            <div style="font-size:28px;font-weight:700;color:var(--warn);line-height:1">${perlu.length}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU segera</div>
+          </div>
+          <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 10px;min-width:0">
+            <div style="font-size:9px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💰 Total</div>
+            <div style="font-size:16px;font-weight:700;color:var(--ok);line-height:1.2;word-break:break-all">${fmtRp(grandBudget)}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">${grandQty}pcs · ${grandSKU} SKU</div>
+          </div>
+          <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 10px;min-width:0">
+            <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⏸ Tunda</div>
+            <div style="font-size:28px;font-weight:700;color:var(--ink3);line-height:1">${tunda.length}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU turun</div>
+          </div>
+        </div>
       </div>
     </div>`;
 
@@ -623,9 +655,11 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   window._sumNaikHtml   = _renderNaikList();
 
   const dualBlock = (segera.length || skuNaik.length) ? `
-    <div style="margin-bottom:16px">
-      <!-- Header toggle -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <!-- Header frozen -->
+      <div id="sum-dual-header" style="position:sticky;top:0;z-index:10;
+           background:var(--cream);padding:10px 0 8px;
+           display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
           <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
         </div>
@@ -637,8 +671,10 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
           Naik ${skuNaik.length}
         </button>
       </div>
-      <!-- List content -->
-      <div id="sum-dual-list">${window._sumSegeraHtml}</div>
+      <!-- List scrollable -->
+      <div id="sum-dual-list" style="overflow-y:auto;flex:1;padding-bottom:16px">
+        ${window._sumSegeraHtml}
+      </div>
     </div>` : '';
 
   // ── Tabel per supplier (ringkas) ──
@@ -700,26 +736,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
     ${bannerKritis || ''}
     ${cards}
     ${deadlineBar}
-    ${dualBlock}
-    <div style="margin-bottom:8px;font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em">
-      <i class="ti ti-building-warehouse"></i> Ringkasan per Supplier
-    </div>
-    <div class="tbl-wrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Supplier</th>
-            <th style="text-align:center">Prioritas SKU</th>
-            <th style="text-align:center;color:var(--warn)">Total Order</th>
-            <th style="text-align:right;color:var(--ok)">Nilai HPP</th>
-            <th style="text-align:right">Budget</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>${rows}${totalRow}</tbody>
-      </table>
-    </div>
-    ${clearanceBlock}`;
+    ${dualBlock}`;
 }
 
 // ── Tampilan full 1 supplier (tab individual) ──
