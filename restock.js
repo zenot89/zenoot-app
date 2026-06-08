@@ -881,24 +881,44 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       ${bannerKritis || ''}
       ${cards}
       ${deadlineBar}
-      <!-- Header frozen Order Sekarang -->
       ${(segera.length || skuNaik.length) ? `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
-        <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
-          <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
+        <!-- Portrait: toggle button -->
+        <div class="sum-header-portrait" style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
+            <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
+          </div>
+          <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
+            style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+                   border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
+                   color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
+            <i class="ti ti-trending-up" style="font-size:12px"></i>
+            Naik ${skuNaik.length}
+          </button>
         </div>
-        <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
-          style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
-                 border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
-                 color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
-          <i class="ti ti-trending-up" style="font-size:12px"></i>
-          Naik ${skuNaik.length}
-        </button>
+        <!-- Laptop: judul dua kolom -->
+        <div class="sum-header-laptop" style="display:none;width:100%;align-items:center;gap:0">
+          <div style="flex:1;font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
+            <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
+          </div>
+          <div style="flex:1;font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.06)">
+            <i class="ti ti-trending-up"></i> Lagi Naik — ${skuNaik.length} SKU
+          </div>
+        </div>
       </div>` : ''}
     </div>
-    <!-- ZONA BAWAH: flex:1, scroll mandiri -->
-    <div id="sum-list-zone" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
+    <!-- Portrait: single list dengan toggle -->
+    <div id="sum-list-zone" class="sum-list-portrait" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
       <div id="sum-dual-list">${_segeraHtml}</div>
+    </div>
+    <!-- Laptop: dua kolom side-by-side -->
+    <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid rgba(255,255,255,0.06)">
+        ${_segeraHtml}
+      </div>
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
+        ${_naikHtml}
+      </div>
     </div>`;
 }
 

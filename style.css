@@ -2863,3 +2863,27 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   pointer-events: none;
 }
+
+/* ── Summary split layout: portrait vs laptop ── */
+/* Portrait (≤767px): toggle mode — split hidden */
+@media (max-width: 767px) {
+  .sum-list-portrait { display: -webkit-flex !important; display: flex !important; -webkit-flex-direction: column; flex-direction: column; }
+  .sum-list-laptop   { display: none !important; }
+  .sum-header-portrait { display: -webkit-flex !important; display: flex !important; }
+  .sum-header-laptop   { display: none !important; }
+}
+/* Laptop (≥768px): split mode — portrait toggle hidden */
+@media (min-width: 768px) {
+  .sum-list-portrait { display: none !important; }
+  .sum-list-laptop   {
+    display: -webkit-flex !important;
+    display: flex !important;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+  .sum-header-portrait { display: none !important; }
+  .sum-header-laptop   { display: -webkit-flex !important; display: flex !important; }
+}
