@@ -4,7 +4,7 @@
 // Layout: Full-Height Flex Table Layout (same pattern as jurnal-penjualan)
 
 document.getElementById('page-restock').innerHTML = `
-  <!-- TOP BAR: judul halaman + tombol aksi (laptop) — diam di atas, LUAR card -->
+  <!-- TOP BAR: judul + 3 tombol sejajar (laptop) -->
   <div id="restock-top-bar">
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-weight:700;font-size:15px"><i class="ti ti-refresh"></i> Re-Stock</span>
@@ -16,6 +16,7 @@ document.getElementById('page-restock').innerHTML = `
         <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
           <i class="ti ti-tag"></i> Produk Clearance
         </button>
+        <div id="restock-summary-btn-wrap"></div>
       </div>
     </div>
   </div>
@@ -23,20 +24,17 @@ document.getElementById('page-restock').innerHTML = `
   <!-- CARD tabel: flex:1, mengisi sisa ruang -->
   <div class="card" id="restock-wrap">
 
-    <!-- STICKY HEADER dalam card: judul + tombol mobile + tab bar + info bar -->
+    <!-- STICKY HEADER dalam card: tombol mobile + tab bar + info bar -->
     <div id="restock-sticky-header">
 
-      <!-- Card title + tombol aksi (mobile fallback) -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px">
-        <span style="font-weight:700;font-size:14px"><i class="ti ti-refresh"></i> Re-Stock — Penjualan 14 Hari Terakhir</span>
-        <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center">
-          <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
-            <i class="ti ti-refresh"></i>
-          </button>
-          <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-            <i class="ti ti-tag"></i> Clearance
-          </button>
-        </div>
+      <!-- Tombol aksi mobile only (portrait HP) -->
+      <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center;padding:8px 14px 6px">
+        <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
+          <i class="ti ti-refresh"></i>
+        </button>
+        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+          <i class="ti ti-tag"></i> Clearance
+        </button>
       </div>
 
       <!-- Tab bar + info bar: diisi oleh renderRestockTabs() -->
@@ -413,6 +411,16 @@ function renderRestockTabs() {
           </button>
         </div>
       </div>`;
+
+    // Inject Summary button ke top bar laptop (sejajar dengan Refresh + Clearance)
+    var summarySlot = document.getElementById('restock-summary-btn-wrap');
+    if (summarySlot) {
+      summarySlot.innerHTML = `
+        <button class="btn btn-sm" onclick="restockDropdownToggle(event)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+          <i class="ti ti-clipboard-list"></i> ${activeLabel.replace(/<[^>]+>/g,'')} <span style="font-size:10px;color:var(--ink3)">${activeMeta}</span>
+          <i class="ti ti-chevron-down" style="font-size:10px"></i>
+        </button>`;
+    }
 
     // Render dropdown menu langsung ke body (keluar dari overflow container)
     var oldMenu = document.getElementById('restock-tab-dropdown-menu');

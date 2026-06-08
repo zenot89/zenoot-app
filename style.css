@@ -2871,6 +2871,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .sum-list-laptop   { display: none !important; }
   .sum-header-portrait { display: -webkit-flex !important; display: flex !important; }
   .sum-header-laptop   { display: none !important; }
+  #restock-summary-btn-wrap { display: none !important; }
+  #restock-tab-bar-wrap { display: block !important; }
 }
 /* Laptop (≥768px): split mode — portrait toggle hidden */
 @media (min-width: 768px) {
@@ -2886,4 +2888,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
   .sum-header-portrait { display: none !important; }
   .sum-header-laptop   { display: -webkit-flex !important; display: flex !important; }
+  #restock-summary-btn-wrap { display: inline-flex !important; }
+  #restock-tab-bar-wrap { display: none !important; }
 }
