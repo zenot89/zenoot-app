@@ -32,7 +32,7 @@ var JS_APP_FILES = [
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'style.css',
+  'rough-ui.js', 'style.css', 'shopee-dashboard.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
