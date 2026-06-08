@@ -759,14 +759,14 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
             <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU segera</div>
           </div>
           <div style="background:rgba(46,204,122,0.08);border:1.5px solid var(--ok);border-radius:8px;padding:12px 10px;min-width:0">
-            <div style="font-size:9px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💰 Total</div>
-            <div style="font-size:16px;font-weight:700;color:var(--ok);line-height:1.2;word-break:break-all">${fmtRp(grandBudget)}</div>
-            <div style="font-size:10px;color:var(--ink3);margin-top:4px">${grandQty}pcs · ${grandSKU} SKU</div>
+            <div style="font-size:9px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💰 Total Order</div>
+            <div style="font-size:28px;font-weight:700;color:var(--ok);line-height:1">${grandQty}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">pcs · ${grandSKU} SKU</div>
           </div>
-          <div style="background:var(--cream2);border:1.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 10px;min-width:0">
-            <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">⏸ Tunda</div>
-            <div style="font-size:28px;font-weight:700;color:var(--ink3);line-height:1">${tunda.length}</div>
-            <div style="font-size:10px;color:var(--ink3);margin-top:4px">SKU turun</div>
+          <div style="background:rgba(24,95,165,0.08);border:1.5px solid rgba(24,95,165,0.4);border-radius:8px;padding:12px 10px;min-width:0">
+            <div style="font-size:9px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap">💳 Total Budget</div>
+            <div style="font-size:16px;font-weight:700;color:#5ba3e0;line-height:1.2;word-break:break-all">${fmtRp(grandBudget)}</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:4px">${grandQty}pcs · ${grandSKU} SKU</div>
           </div>
         </div>
       </div>
