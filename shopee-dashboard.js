@@ -254,7 +254,7 @@ function hbar(label,v,max,color,unit=''){
 function hbarList(arr,color,useVal=false){
   if(!arr||!arr.length) return '<div style="color:var(--color-text-tertiary);font-size:12px;padding:8px 0">—</div>';
   const max=arr[0].v;
-  return arr.map(({n,v})=>hbar(n,v,max,color,useVal?'':''))join('');
+  return arr.map(({n,v})=>hbar(n,v,max,color,useVal?'':'')).join('');
 }
 function monthLabel(yyyymm){
   const y=yyyymm.slice(0,4), m=parseInt(yyyymm.slice(4,6))-1;
