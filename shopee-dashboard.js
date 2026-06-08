@@ -21,85 +21,86 @@ let _activeMonthKey = null;
 let _importSession  = { income:null, order:null, order_prev:null, produk:null, iklan:null };
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
+// Mapping ke design tokens app: --ink/--ink2/--ink3/--cream/--cream2/--f
 const _css = document.createElement('style');
 _css.textContent = `
 /* ROOT */
-.sd2{padding:.5rem 0;font-family:var(--font-sans);color:var(--color-text-primary)}
+.sd2{padding:.5rem 0;font-family:var(--f);color:var(--ink);line-height:1.5}
 /* TOPBAR */
 .sd2-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .sd2-toko-tabs{display:flex;gap:6px;flex-wrap:wrap}
-.sd2-toko-btn{padding:5px 14px;border:.5px solid var(--color-border-secondary);border-radius:20px;background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:5px}
+.sd2-toko-btn{padding:5px 14px;border:.5px solid var(--ink3);border-radius:20px;background:transparent;color:var(--ink2);cursor:pointer;font-size:12px;font-weight:500;font-family:var(--f);transition:all .15s;display:flex;align-items:center;gap:5px}
 .sd2-toko-btn.active{background:var(--tc,#185FA5);color:#fff;border-color:transparent}
-.sd2-upload-btn{padding:5px 14px;border:.5px solid var(--color-border-secondary);border-radius:8px;background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:12px;font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap;pointer-events:auto}
-.sd2-upload-btn:hover{background:var(--color-background-secondary)}
+.sd2-upload-btn{padding:5px 14px;border:.5px solid var(--ink3);border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer;font-size:12px;font-weight:500;font-family:var(--f);display:flex;align-items:center;gap:5px;white-space:nowrap;pointer-events:auto}
+.sd2-upload-btn:hover{background:var(--cream2)}
 /* MONTH BAR */
 .sd2-monthbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.sd2-mchip{padding:3px 12px;border:.5px solid var(--color-border-secondary);border-radius:12px;background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:11px;transition:all .12s;pointer-events:auto}
-.sd2-mchip.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:transparent}
+.sd2-mchip{padding:3px 12px;border:.5px solid var(--ink3);border-radius:12px;background:transparent;color:var(--ink2);cursor:pointer;font-size:11px;font-family:var(--f);transition:all .12s;pointer-events:auto}
+.sd2-mchip.active{background:var(--ink);color:var(--cream);border-color:transparent}
 /* EMPTY */
 .sd2-empty{text-align:center;padding:60px 20px}
 /* TABS */
-.sd2-tabbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;border-bottom:.5px solid var(--color-border-tertiary);padding-bottom:10px}
-.sd2-tab{padding:5px 13px;border:.5px solid transparent;border-radius:var(--border-radius-md,8px);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:12px;font-weight:500;transition:all .12s;pointer-events:auto}
+.sd2-tabbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;border-bottom:.5px solid var(--ink3);padding-bottom:10px}
+.sd2-tab{padding:5px 13px;border:.5px solid transparent;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer;font-size:12px;font-weight:500;font-family:var(--f);transition:all .12s;pointer-events:auto}
 .sd2-tab.active{background:#185FA5;color:#E6F1FB;border-color:#185FA5}
 /* ALERT BANNER */
-.sd2-alert{border-radius:8px;padding:.6rem 1rem;margin-bottom:10px;font-size:12px;line-height:1.6;display:flex;gap:8px;align-items:flex-start}
-.sd2-alert.danger{background:rgba(216,90,48,.12);border:.5px solid rgba(216,90,48,.3);color:#D85A30}
-.sd2-alert.warn{background:rgba(186,117,23,.1);border:.5px solid rgba(186,117,23,.25);color:#BA7517}
-.sd2-alert.ok{background:rgba(15,110,86,.1);border:.5px solid rgba(15,110,86,.25);color:#0F6E56}
-.sd2-alert.info{background:rgba(24,95,165,.1);border:.5px solid rgba(24,95,165,.25);color:#185FA5}
+.sd2-alert{border-radius:8px;padding:.6rem 1rem;margin-bottom:10px;font-size:12.5px;line-height:1.65;display:flex;gap:8px;align-items:flex-start}
+.sd2-alert.danger{background:rgba(216,90,48,.12);border:.5px solid rgba(216,90,48,.3);color:#e07050}
+.sd2-alert.warn{background:rgba(186,117,23,.1);border:.5px solid rgba(186,117,23,.25);color:#c9922a}
+.sd2-alert.ok{background:rgba(15,110,86,.1);border:.5px solid rgba(15,110,86,.25);color:#2ecc7a}
+.sd2-alert.info{background:rgba(24,95,165,.1);border:.5px solid rgba(24,95,165,.25);color:#5ba3e0}
 /* KPI ROW */
 .sd2-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
-.sd2-kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md,8px);padding:.7rem .9rem;position:relative;overflow:hidden}
+.sd2-kpi{background:var(--cream2);border-radius:8px;padding:.7rem .9rem;position:relative;overflow:hidden}
 .sd2-kpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--kpi-accent,transparent)}
-.sd2-kpi .kl{font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.sd2-kpi .kv{font-size:20px;font-weight:600;line-height:1.1;color:var(--kpi-color,var(--color-text-primary))}
-.sd2-kpi .ks{font-size:11px;color:var(--color-text-secondary);margin-top:3px}
-.sd2-kpi .kd{font-size:11px;margin-top:3px;font-weight:500}
+.sd2-kpi .kl{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sd2-kpi .kv{font-size:20px;font-weight:600;line-height:1.15;color:var(--kpi-color,var(--ink))}
+.sd2-kpi .ks{font-size:11.5px;color:var(--ink2);margin-top:3px}
+.sd2-kpi .kd{font-size:11.5px;margin-top:3px;font-weight:500}
 /* CARDS */
-.sd2-card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg,12px);padding:.9rem 1rem;margin-bottom:10px}
-.sd2-card-title{font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.05em}
+.sd2-card{background:var(--cream2);border:.5px solid var(--ink3);border-radius:10px;padding:.9rem 1rem;margin-bottom:10px}
+.sd2-card-title{font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.05em}
 .sd2-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .sd2-g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 /* FUNNEL */
 .sd2-funnel{display:flex;flex-direction:column;gap:4px;padding:4px 0}
 .sd2-frow{display:flex;align-items:center;gap:8px}
-.sd2-fl{font-size:11px;color:var(--color-text-secondary);min-width:60px}
-.sd2-fg{flex:1;height:20px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;position:relative}
+.sd2-fl{font-size:12px;color:var(--ink2);min-width:60px}
+.sd2-fg{flex:1;height:20px;background:var(--cream);border-radius:4px;overflow:hidden;position:relative}
 .sd2-ff{height:20px;border-radius:4px;display:flex;align-items:center;padding:0 6px}
 .sd2-ft{font-size:10px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden}
-.sd2-fv{font-size:11px;font-weight:600;min-width:40px;text-align:right;color:var(--color-text-primary)}
-.sd2-fdrop{font-size:10px;color:var(--color-text-tertiary);min-width:52px;text-align:right}
+.sd2-fv{font-size:12px;font-weight:600;min-width:40px;text-align:right;color:var(--ink)}
+.sd2-fdrop{font-size:11px;color:var(--ink3);min-width:52px;text-align:right}
 /* HBAR */
 .sd2-hbar{display:flex;align-items:center;gap:6px;margin-bottom:5px}
-.sd2-hl{font-size:11px;color:var(--color-text-secondary);min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sd2-hg{flex:1;height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden}
+.sd2-hl{font-size:12px;color:var(--ink2);min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sd2-hg{flex:1;height:6px;background:var(--cream);border-radius:3px;overflow:hidden}
 .sd2-hf{height:6px;border-radius:3px}
-.sd2-hv{font-size:11px;font-weight:500;min-width:30px;text-align:right;color:var(--color-text-primary)}
+.sd2-hv{font-size:12px;font-weight:500;min-width:30px;text-align:right;color:var(--ink)}
 /* FEE TABLE */
-.sd2-fee{display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--color-border-tertiary);font-size:12px}
+.sd2-fee{display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--ink3);font-size:12.5px}
 .sd2-fee:last-child{border-bottom:none}
-.sd2-fee .fk{color:var(--color-text-secondary)}
+.sd2-fee .fk{color:var(--ink2)}
 .sd2-fee .fv{font-weight:500}
-.sd2-fee .fv.neg{color:#D85A30}
-.sd2-fee .fv.pos{color:#0F6E56}
-.sd2-fee .fv.bold{font-weight:700;color:var(--color-text-primary)}
-.sd2-fee .fv.muted{color:var(--color-text-tertiary)}
+.sd2-fee .fv.neg{color:#e07050}
+.sd2-fee .fv.pos{color:#2ecc7a}
+.sd2-fee .fv.bold{font-weight:700;color:var(--ink)}
+.sd2-fee .fv.muted{color:var(--ink3)}
 /* TABLE */
-.sd2-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.sd2-tbl th{color:var(--color-text-tertiary);font-weight:500;text-align:left;padding:4px 6px 6px;border-bottom:.5px solid var(--color-border-tertiary);font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.sd2-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.sd2-tbl th{color:var(--ink3);font-weight:500;text-align:left;padding:4px 6px 6px;border-bottom:.5px solid var(--ink3);font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .sd2-tbl th.r,.sd2-tbl td.r{text-align:right}
-.sd2-tbl td{padding:6px 6px;border-bottom:.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:middle}
+.sd2-tbl td{padding:7px 6px;border-bottom:.5px solid rgba(255,255,255,0.04);color:var(--ink);vertical-align:middle}
 .sd2-tbl tr:last-child td{border-bottom:none}
-.sd2-tbl .tn{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text-secondary)}
+.sd2-tbl .tn{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
 /* BADGES */
 .sd2-b{display:inline-block;font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;white-space:nowrap;line-height:1.4}
-.sd2-b.ok{background:rgba(15,110,86,.15);color:#0F6E56}
-.sd2-b.warn{background:rgba(186,117,23,.15);color:#BA7517}
-.sd2-b.danger{background:rgba(216,90,48,.15);color:#D85A30}
-.sd2-b.info{background:rgba(24,95,165,.15);color:#185FA5}
-.sd2-b.gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
-.sd2-b.purple{background:rgba(83,74,183,.15);color:#534AB7}
+.sd2-b.ok{background:rgba(46,204,122,.15);color:#2ecc7a}
+.sd2-b.warn{background:rgba(186,117,23,.15);color:#c9922a}
+.sd2-b.danger{background:rgba(216,90,48,.15);color:#e07050}
+.sd2-b.info{background:rgba(24,95,165,.15);color:#5ba3e0}
+.sd2-b.gray{background:var(--cream);color:var(--ink2)}
+.sd2-b.purple{background:rgba(83,74,183,.15);color:#9b8fe8}
 /* PROJ */
 .sd2-proj3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
 .sd2-pcard{border-radius:8px;padding:.8rem;text-align:center}
@@ -107,51 +108,51 @@ _css.textContent = `
 .sd2-pcard.exp{background:rgba(24,95,165,.12);border:.5px solid rgba(24,95,165,.35)}
 .sd2-pcard.best{background:rgba(29,158,117,.1);border:.5px solid rgba(29,158,117,.3)}
 .sd2-pcard .pt{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
-.sd2-pcard.worst .pt{color:#D85A30}
-.sd2-pcard.exp .pt{color:#185FA5}
-.sd2-pcard.best .pt{color:#0F6E56}
-.sd2-pcard .pv{font-size:20px;font-weight:700;line-height:1;color:var(--color-text-primary)}
-.sd2-pcard .ps{font-size:10px;color:var(--color-text-tertiary);margin-top:3px}
+.sd2-pcard.worst .pt{color:#e07050}
+.sd2-pcard.exp .pt{color:#5ba3e0}
+.sd2-pcard.best .pt{color:#2ecc7a}
+.sd2-pcard .pv{font-size:20px;font-weight:700;line-height:1;color:var(--ink)}
+.sd2-pcard .ps{font-size:10px;color:var(--ink3);margin-top:3px}
 /* IKLAN BAR */
 .sd2-iday{display:flex;align-items:center;gap:5px;margin-bottom:3px}
-.sd2-id{font-size:10px;color:var(--color-text-tertiary);width:36px;text-align:right;flex-shrink:0}
-.sd2-ig{flex:1;height:16px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden}
+.sd2-id{font-size:10px;color:var(--ink3);width:36px;text-align:right;flex-shrink:0}
+.sd2-ig{flex:1;height:16px;background:var(--cream);border-radius:3px;overflow:hidden}
 .sd2-if{height:16px;border-radius:3px;background:#534AB7;display:flex;align-items:center;padding:0 5px}
 .sd2-it{font-size:9px;color:#fff;white-space:nowrap;overflow:hidden}
-.sd2-iv{font-size:10px;font-weight:500;min-width:55px;text-align:right;color:var(--color-text-primary)}
+.sd2-iv{font-size:10px;font-weight:500;min-width:55px;text-align:right;color:var(--ink)}
 /* OPPORTUNITY CARD */
-.sd2-opp{border:.5px solid var(--color-border-tertiary);border-radius:10px;padding:.8rem 1rem;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
-.sd2-opp-icon{font-size:20px;flex-shrink:0;line-height:1.2}
-.sd2-opp-body{}
-.sd2-opp-title{font-size:13px;font-weight:600;color:var(--color-text-primary);margin-bottom:3px}
-.sd2-opp-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
-.sd2-opp-action{font-size:11px;font-weight:600;margin-top:6px;padding:3px 10px;border-radius:6px;display:inline-block}
-.sd2-opp-action.do{background:rgba(24,95,165,.15);color:#185FA5}
-.sd2-opp-action.fix{background:rgba(216,90,48,.15);color:#D85A30}
-.sd2-opp-action.boost{background:rgba(15,110,86,.15);color:#0F6E56}
+.sd2-opp{border-left:3px solid var(--opp-accent,var(--ink3));border-radius:0 8px 8px 0;padding:.9rem 1rem;margin-bottom:10px;background:var(--cream2);display:flex;gap:12px;align-items:flex-start}
+.sd2-opp-icon{font-size:18px;flex-shrink:0;line-height:1.3}
+.sd2-opp-body{flex:1}
+.sd2-opp-title{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:5px;line-height:1.4}
+.sd2-opp-desc{font-size:12.5px;color:var(--ink2);line-height:1.65}
+.sd2-opp-action{font-size:11.5px;font-weight:600;margin-top:8px;padding:4px 12px;border-radius:6px;display:inline-block}
+.sd2-opp-action.do{background:rgba(24,95,165,.18);color:#5ba3e0}
+.sd2-opp-action.fix{background:rgba(216,90,48,.18);color:#e07050}
+.sd2-opp-action.boost{background:rgba(46,204,122,.15);color:#2ecc7a}
 /* SECTION DIVIDER */
-.sd2-divider{font-size:10px;font-weight:700;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 8px;padding-bottom:4px;border-bottom:.5px solid var(--color-border-tertiary)}
+.sd2-divider{font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.06em;margin:18px 0 10px;padding-bottom:6px;border-bottom:.5px solid var(--ink3)}
 /* UTILS */
-.up{color:#0F6E56}.dn{color:#D85A30}.neu{color:var(--color-text-tertiary)}
+.up{color:#2ecc7a}.dn{color:#e07050}.neu{color:var(--ink3)}
 /* UPLOAD MODAL */
-.sd2-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px}
-.sd2-modal{background:var(--color-background-primary);border-radius:var(--border-radius-xl,16px);width:100%;max-width:700px;max-height:90vh;overflow-y:auto}
-.sd2-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:.5px solid var(--color-border-tertiary);font-size:14px;font-weight:600}
-.sd2-modal-close{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);font-size:18px;padding:4px;pointer-events:auto;position:relative;z-index:1}
+.sd2-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px}
+.sd2-modal{background:var(--cream2);border-radius:12px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;border:.5px solid var(--ink3)}
+.sd2-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:.5px solid var(--ink3);font-size:14px;font-weight:600;color:var(--ink)}
+.sd2-modal-close{background:none;border:none;cursor:pointer;color:var(--ink2);font-size:18px;padding:4px;pointer-events:auto;position:relative;z-index:1}
 .sd2-modal-body{padding:14px 18px}
-.sd2-upload-note{font-size:12px;color:var(--color-text-secondary);padding:9px 12px;background:var(--color-background-secondary);border-radius:8px;margin-bottom:12px;line-height:1.6}
+.sd2-upload-note{font-size:12px;color:var(--ink2);padding:9px 12px;background:var(--cream);border-radius:8px;margin-bottom:12px;line-height:1.65}
 .sd2-dz-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
-.sd2-dz{border:1.5px dashed var(--color-border-secondary);border-radius:10px;padding:12px 10px;text-align:center;transition:all .15s}
+.sd2-dz{border:1.5px dashed var(--ink3);border-radius:10px;padding:12px 10px;text-align:center;transition:all .15s}
 .sd2-dz.drag-over{border-color:#185FA5;background:rgba(24,95,165,.06)}
-.sd2-dz.done{border-color:#0F6E56;border-style:solid}
-.sd2-dz.error{border-color:#D85A30;border-style:solid}
-.sd2-dz i{font-size:20px;color:var(--color-text-tertiary);margin-bottom:4px}
-.sd2-dz-label{font-size:12px;font-weight:600;color:var(--color-text-primary);margin-bottom:2px}
-.sd2-dz-hint{font-size:10px;color:var(--color-text-tertiary);margin-bottom:6px;font-style:italic}
-.sd2-dz-status{font-size:11px;color:var(--color-text-secondary);margin-bottom:6px;min-height:14px}
-.sd2-dz.done .sd2-dz-status{color:#0F6E56;font-weight:500}
-.sd2-dz.error .sd2-dz-status{color:#D85A30}
-.sd2-dz-btn{padding:4px 12px;border:.5px solid var(--color-border-secondary);border-radius:6px;background:var(--color-background-secondary);color:var(--color-text-primary);cursor:pointer;font-size:11px;pointer-events:auto;position:relative;z-index:1}
+.sd2-dz.done{border-color:#2ecc7a;border-style:solid}
+.sd2-dz.error{border-color:#e07050;border-style:solid}
+.sd2-dz i{font-size:20px;color:var(--ink3);margin-bottom:4px}
+.sd2-dz-label{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.sd2-dz-hint{font-size:10px;color:var(--ink3);margin-bottom:6px;font-style:italic}
+.sd2-dz-status{font-size:11px;color:var(--ink2);margin-bottom:6px;min-height:14px}
+.sd2-dz.done .sd2-dz-status{color:#2ecc7a;font-weight:500}
+.sd2-dz.error .sd2-dz-status{color:#e07050}
+.sd2-dz-btn{padding:4px 12px;border:.5px solid var(--ink3);border-radius:6px;background:var(--cream);color:var(--ink);cursor:pointer;font-size:11px;font-family:var(--f);pointer-events:auto;position:relative;z-index:1}
 @media(max-width:540px){.sd2-dz-grid,.sd2-g2,.sd2-g3,.sd2-proj3{grid-template-columns:1fr}}
 `;
 document.head.appendChild(_css);
@@ -668,48 +669,101 @@ function tabIklan(d){
 // ─── TAB: SCALE UP ──────────────────────────────────────────────────────────
 function tabScaleUp(d,prev){
   const totalViews=(d.produk_performa||[]).reduce((a,p)=>a+(p.views||0),0);
-  const funnelCTR=totalViews>0?((d.produk_performa||[]).reduce((a,p)=>a+(p.klik||0),0)/totalViews*100):0;
+  const totalKlik=(d.produk_performa||[]).reduce((a,p)=>a+(p.klik||0),0);
+  const funnelCTR=totalViews>0?(totalKlik/totalViews*100):0;
   const marginRate=d.omset>0?((d.total_dilepas||0)/d.omset*100):0;
   const roas=d.iklan_spend>0?(d.omset/d.iklan_spend):0;
   const notComp=d.harga_tidak_kompetitif||[];
   const highCartNoOrder=(d.produk_performa||[]).filter(p=>(p.keranjang||0)>5&&(p.orders||0)===0);
+  const topProv=d.provinsi&&d.provinsi[0]?d.provinsi[0].n:'—';
+  const topProvQty=d.provinsi&&d.provinsi[0]?d.provinsi[0].v:0;
+  const bulanIni=monthLabel(_activeMonthKey);
+  const bulanLalu=prev?monthLabel(getAllMonths(_activeToko)[getAllMonths(_activeToko).indexOf(_activeMonthKey)+1]||''):'bulan lalu';
 
   const opps=[];
 
   if(notComp.length>0){
     const lostViews=notComp.reduce((a,p)=>a+(p.views||0),0);
-    opps.push({priority:1,type:'fix',icon:'🏷️',title:`Perbaiki Harga ${notComp.length} Produk Tidak Kompetitif`,desc:`${lostViews.toLocaleString('id-ID')} views/bln terbuang sia-sia. Dengan CVR rata-rata 2.2% dan harga ${fRp(d.omset/d.total_pesanan,0)}/order, potensi omset hilang: <b>~${fRp(lostViews*0.022*(d.omset/(d.total_pesanan||1)),0)}/bln</b>.`,action:'Turunkan harga atau tambah bundling'});
+    const lostOmset=Math.round(lostViews*0.022*(d.omset/(d.total_pesanan||1)));
+    opps.push({priority:1,type:'fix',icon:'🏷️',
+      title:`${notComp.length} produk harganya terlalu tinggi — traffic terbuang`,
+      desc:`Bulan ini ada ${lostViews.toLocaleString('id-ID')} views yang masuk ke produk ini, tapi Shopee mendeteksi hargamu di atas kompetitor. Hasilnya? 0 order. Kalau CTR normal, potensi omset yang hilang sekitar <b>${fRp(lostOmset)}/bulan</b>.`,
+      action:`Cek harga kompetitor, turunkan atau tambah bundling (misal: free ongkir/bonus item)`});
   }
   if(highCartNoOrder.length>0){
-    opps.push({priority:2,type:'fix',icon:'🛒',title:`${highCartNoOrder.length} Produk Keranjang Tinggi Tapi 0 Order`,desc:`Pembeli sudah intent membeli (masuk keranjang) tapi tidak checkout. Kemungkinan: harga lebih mahal dari kompetitor, review kurang, atau tidak ada promo. Produk: ${highCartNoOrder.slice(0,2).map(p=>shortName(p.nama)).join(', ')}.`,action:'Aktifkan diskon atau voucher untuk produk ini'});
+    const names=highCartNoOrder.slice(0,2).map(p=>shortName(p.nama)).join(' dan ');
+    opps.push({priority:2,type:'fix',icon:'🛒',
+      title:`${highCartNoOrder.length} produk banyak masuk keranjang tapi tidak jadi beli`,
+      desc:`${names}${highCartNoOrder.length>2?' (dan lainnya)':''} sudah diminati — orang sampai klik "masuk keranjang". Tapi mereka tidak checkout. Biasanya ini soal harga sedikit terlalu mahal, review kurang, atau tidak ada trigger untuk beli sekarang.`,
+      action:`Pasang flash sale 1–2 hari, atau aktifkan voucher diskon khusus produk ini`});
   }
-  if(funnelCTR<2){
-    opps.push({priority:3,type:'fix',icon:'📸',title:`CTR Rendah ${fPct(funnelCTR)} — Foto & Judul Perlu Diupgrade`,desc:`Dari ${totalViews.toLocaleString('id-ID')} views, hanya ${fPct(funnelCTR)} yang klik. Benchmark toko sweater pria: 2.5–4%. Meningkatkan CTR ke 3% = +${Math.round(totalViews*0.03)-Math.round(totalViews*funnelCTR/100)} klik baru tanpa tambah budget.`,action:'A/B test foto cover, ganti background putih, tambah overlay teks harga'});
+  if(funnelCTR<2.5){
+    const klikTambahan=Math.round(totalViews*0.025)-totalKlik;
+    opps.push({priority:3,type:'fix',icon:'📸',
+      title:`CTR ${fPct(funnelCTR)} — orang lihat tapi jarang yang klik`,
+      desc:`Dari ${totalViews.toLocaleString('id-ID')} views bulan ini, yang klik cuma ${totalKlik.toLocaleString('id-ID')}. Benchmark normal toko sweater pria: 2.5–4%. Kalau bisa naik ke 2.5% saja, itu +${klikTambahan.toLocaleString('id-ID')} klik baru — tanpa tambah budget iklan sama sekali.`,
+      action:`Ganti foto cover: background putih/terang, model pakai produk, tambah overlay harga`});
   }
   if(prev&&d.total_pesanan<prev.total_pesanan){
     const drop=prev.total_pesanan-d.total_pesanan;
-    opps.push({priority:4,type:'do',icon:'📉',title:`Recovery: Pesanan Turun ${drop} dari Bulan Lalu`,desc:`April ${prev.total_pesanan} pesanan → Mei ${d.total_pesanan} pesanan. Cek apakah ada produk yang tiba-tiba stop terjual, kompetitor baru, atau penurunan iklan.`,action:'Bandingkan performa per produk April vs Mei di tab Produk'});
+    const dropPct=Math.round(drop/prev.total_pesanan*100);
+    opps.push({priority:4,type:'do',icon:'📉',
+      title:`Pesanan turun ${drop} (${dropPct}%) dari ${bulanLalu}`,
+      desc:`${bulanLalu}: ${prev.total_pesanan} pesanan → ${bulanIni}: ${d.total_pesanan} pesanan. Ini bukan angka kecil. Cek di tab Produk: apakah ada SKU yang tiba-tiba berhenti terjual? Atau budget iklan yang dikurangi?`,
+      action:`Bandingkan performa per produk ${bulanLalu} vs ${bulanIni} di tab Produk`});
   }
   if(d.iklan_spend>0&&roas>=4){
     const safeIncrease=Math.round(d.iklan_spend*0.3);
-    opps.push({priority:5,type:'boost',icon:'📢',title:`ROAS ${roas.toFixed(1)}× — Aman untuk Scale Iklan`,desc:`ROAS di atas 4× artinya setiap penambahan Rp 1 iklan masih menguntungkan. Dengan margin platform ${fPct(marginRate)}, scale budget iklan +30% (${fRp(safeIncrease)}) berpotensi tambah omset ${fRp(safeIncrease*roas)}.`,action:`Naikkan budget iklan Rp ${fRp(safeIncrease)}/bulan`});
+    const omsetTambahan=Math.round(safeIncrease*roas);
+    opps.push({priority:5,type:'boost',icon:'📢',
+      title:`ROAS ${roas.toFixed(1)}× — iklan lagi perform, aman untuk dinaikkan`,
+      desc:`Setiap Rp 1 yang kamu masukkan ke iklan sekarang menghasilkan Rp ${roas.toFixed(1)} omset. Ini bagus. Dengan margin platform ${fPct(marginRate)}, kalau budget iklan naik 30% (tambah ${fRp(safeIncrease)}/bln), estimasi omset tambahan sekitar ${fRp(omsetTambahan)}.`,
+      action:`Naikkan budget GMV Max bertahap — tambah ${fRp(safeIncrease)}/bulan, pantau ROAS 3 hari`});
   }
-  opps.push({priority:6,type:'do',icon:'🗺️',title:'Ekspansi Provinsi: Jawa Timur Dominan',desc:`Jawa Timur top ${d.total_pesanan} pesanan. DKI Jakarta yang dulu kuat (Apr: top 2) turun ke posisi bawah. Aktifkan campaign khusus Jabodetabek — pasar besar yang underperform.`,action:'Buat promo bebas ongkir khusus Jabodetabek'});
-  opps.push({priority:7,type:'boost',icon:'🔁',title:'Repeat Order: Potensi Belum Digarap',desc:`Data menunjukkan beberapa pembeli melakukan repeat order (18% di Kaos Rajut). Belum ada program loyalitas aktif. Follow up pembeli lama bisa jadi channel baru tanpa biaya iklan.`,action:'Aktifkan Shopee Chat blast untuk pembeli bulan lalu'});
+  if(topProv&&topProvQty>0){
+    const topProvPct=Math.round(topProvQty/d.total_pesanan*100);
+    const isJabar=topProv.toLowerCase().includes('barat')||topProv.toLowerCase().includes('jabar');
+    opps.push({priority:6,type:'do',icon:'🗺️',
+      title:`${topProvPct}% pesanan dari ${topProv} — pasar lain belum digarap`,
+      desc:`${topProv} jadi kekuatan utama bulan ini dengan ${topProvQty} pesanan. Tapi ini juga berarti provinsi lain yang potensial (Jawa Tengah, DKI, Sulsel) masih under-penetrated. Ada peluang besar kalau bisa masuk lebih dalam ke sana.`,
+      action:isJabar?`Aktifkan campaign khusus pengiriman same-day untuk Jabodetabek`:`Coba flash sale + bebas ongkir khusus luar ${topProv}`});
+  }
+  // Repeat order — dinamis dari data SKU top
+  const topSku=d.sku_top&&d.sku_top[0]?d.sku_top[0].n:'produk terlaris';
+  opps.push({priority:7,type:'boost',icon:'🔁',
+    title:`Pembeli lama bisa jadi sumber order baru yang murah`,
+    desc:`Kalau ada yang pernah beli ${topSku}, mereka sudah percaya sama toko. Biaya akuisisi repeat buyer jauh lebih rendah dari buyer baru. Tinggal ada alasan untuk balik — promo, produk baru, atau sekadar diingetin.`,
+    action:`Kirim Shopee Chat blast ke pembeli bulan lalu: "Hai! Ada koleksi baru / promo spesial buat kamu"`});
+
+  const lostViews2=notComp.length?notComp.reduce((a,p)=>a+(p.views||0),0):0;
+  const budgetIdeal=Math.round(d.omset*0.1);
+  const budgetGap=budgetIdeal-d.iklan_spend;
 
   return `
-  <div class="sd2-divider">📊 Diagnosa Bulan Ini</div>
+  <div class="sd2-divider">Ringkasan Bulan Ini</div>
   <div class="sd2-g3">
-    <div class="sd2-kpi" style="--kpi-accent:#E85630"><div class="kl">Potensi Pesanan Hilang</div><div class="kv dn">${notComp.length?'~'+Math.round(notComp.reduce((a,p)=>a+(p.views||0),0)*0.022)+' order':'0'}</div><div class="ks">dari produk harga tidak kompetitif</div></div>
-    <div class="sd2-kpi" style="--kpi-accent:#BA7517"><div class="kl">CTR Gap ke Benchmark</div><div class="kv ${funnelCTR<2?'dn':' up'}">${fPct(funnelCTR)} vs 2.5%</div><div class="ks">${funnelCTR<2?`+${((0.025-funnelCTR/100)*totalViews).toFixed(0)} klik jika capai 2.5%`:'Di atas benchmark'}</div></div>
-    <div class="sd2-kpi" style="--kpi-accent:#0F6E56"><div class="kl">Budget Iklan Optimal</div><div class="kv">${fRp(d.omset*0.1,0)}</div><div class="ks">~10% omset = ${fRp(d.iklan_spend,0)} saat ini (${d.omset>0?fPct(d.iklan_spend/d.omset*100):'—'})</div></div>
+    <div class="sd2-kpi" style="--kpi-accent:#E85630">
+      <div class="kl">Omset potensial hilang</div>
+      <div class="kv dn">${notComp.length?'~'+fRp(Math.round(lostViews2*0.022*(d.omset/(d.total_pesanan||1)))):'—'}</div>
+      <div class="ks">${notComp.length?`dari ${notComp.length} produk harga tidak kompetitif`:'semua produk harga oke'}</div>
+    </div>
+    <div class="sd2-kpi" style="--kpi-accent:#BA7517">
+      <div class="kl">CTR vs benchmark</div>
+      <div class="kv ${funnelCTR<2.5?'dn':'up'}">${fPct(funnelCTR)} <span style="font-size:13px;font-weight:400">vs 2.5%</span></div>
+      <div class="ks">${funnelCTR<2.5?`masih di bawah, foto perlu diupgrade`:'di atas benchmark, bagus'}</div>
+    </div>
+    <div class="sd2-kpi" style="--kpi-accent:#2ecc7a">
+      <div class="kl">Budget iklan ${budgetGap>0?'bisa dinaikkan':'sudah optimal'}</div>
+      <div class="kv ${budgetGap>0?'up':'neu'}">${budgetGap>0?'+'+fRp(budgetGap):fRp(d.iklan_spend)}</div>
+      <div class="ks">${budgetGap>0?`target 10% omset = ${fRp(budgetIdeal)}`:`${fPct(d.iklan_spend/d.omset*100)} dari omset`}</div>
+    </div>
   </div>
-  <div class="sd2-divider">🎯 Peluang & Aksi — Diurutkan Prioritas</div>
-  ${opps.sort((a,b)=>a.priority-b.priority).map(o=>`
-  <div class="sd2-opp">
+  <div class="sd2-divider">Yang perlu dilakukan — urut dari yang paling berdampak</div>
+  ${opps.sort((a,b)=>a.priority-b.priority).map((o,i)=>`
+  <div class="sd2-opp" style="--opp-accent:${o.type==='fix'?'#e07050':o.type==='boost'?'#2ecc7a':'#5ba3e0'}">
     <div class="sd2-opp-icon">${o.icon}</div>
     <div class="sd2-opp-body">
-      <div class="sd2-opp-title">${o.priority}. ${o.title}</div>
+      <div class="sd2-opp-title">${i+1}. ${o.title}</div>
       <div class="sd2-opp-desc">${o.desc}</div>
       <span class="sd2-opp-action ${o.type}">→ ${o.action}</span>
     </div>
