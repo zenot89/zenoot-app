@@ -189,7 +189,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260526-010e70896dbd';
-  window.APP_BUILD = '20260608-1fa75d483043';
+  window.APP_BUILD = '20260608-998b2a94b3b1';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -250,7 +250,7 @@ function showUpdateBanner() {
 
       // ── 1. Sudah ada SW waiting sejak awal (misal: user buka ulang setelah klik Nanti) ──
       if (reg.waiting) {
-        showUpdateBanner();
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
 
       // ── 2. SW baru ketemu saat install (updatefound dipasang SEBELUM reg.update()) ──
@@ -258,9 +258,9 @@ function showUpdateBanner() {
         var newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener('statechange', function() {
-          // installed + sudah ada controller = ada versi lama yang aktif → ada update baru
+          // installed + sudah ada controller = ada versi lama yang aktif → langsung take over
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner();
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         });
       });
@@ -272,7 +272,7 @@ function showUpdateBanner() {
       document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
           reg.update().then(function() {
-            if (reg.waiting) showUpdateBanner();
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }).catch(function(){});
         }
       });
