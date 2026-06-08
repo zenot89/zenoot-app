@@ -251,7 +251,7 @@ function showUpdateBanner() {
       // ── 1. Sudah ada SW waiting sejak awal → langsung skip ──
       if (reg.waiting) {
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        showUpdateBanner();
+        // controllerchange akan trigger reload otomatis (lihat listener di bawah)
       }
 
       // ── 2. SW baru ketemu saat install → langsung skip tanpa tunggu user ──
@@ -261,7 +261,7 @@ function showUpdateBanner() {
         newWorker.addEventListener('statechange', function() {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             newWorker.postMessage({ type: 'SKIP_WAITING' });
-            showUpdateBanner();
+            // Tidak perlu showUpdateBanner — controllerchange langsung reload
           }
         });
       });
@@ -275,7 +275,7 @@ function showUpdateBanner() {
           reg.update().then(function() {
             if (reg.waiting) {
               reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-              showUpdateBanner();
+              // controllerchange akan trigger reload otomatis
             }
           }).catch(function(){});
         }

@@ -157,7 +157,10 @@ _css.textContent = `
 document.head.appendChild(_css);
 
 // ─── INJECT HTML ─────────────────────────────────────────────────────────────
-document.getElementById(PAGE_ID).innerHTML = `
+function _injectHTML() {
+  var el = document.getElementById(PAGE_ID);
+  if (!el) return;
+  el.innerHTML = `
 <div class="sd2">
   <div class="sd2-topbar">
     <div class="sd2-toko-tabs" id="sd2-toko-tabs">
@@ -223,6 +226,8 @@ document.getElementById(PAGE_ID).innerHTML = `
   </div>
 </div>
 `;
+}
+_injectHTML();
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function fRp(v, dec) {
@@ -1088,6 +1093,20 @@ function sd2Toast(msg){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// Panggil sekali saat script load (normal flow)
 renderMonthBar();
+
+// Safety net: render ulang setiap kali tab Analisis Shopee dibuka.
+// Menangani SW stale (script lama di-serve dari cache) → HTML belum ter-inject,
+// atau page dibuka ulang setelah navigate ke tab lain.
+document.addEventListener('zenot:page', function(e) {
+  if (!e.detail || e.detail.page !== 'shopee-dashboard') return;
+  // Kalau elemen kunci tidak ada → HTML belum ter-inject, inject ulang
+  if (!document.getElementById('sd2-month-chips')) {
+    _injectHTML();
+  }
+  // Selalu render ulang state aktif
+  renderMonthBar();
+});
 
 })();
