@@ -598,16 +598,26 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // Mousedown / touchend di luar picker → tutup semua
+  // Mousedown / touchstart di luar picker → tutup semua
+  // CATATAN: pakai touchstart bukan touchend — iOS touchend dari picker-toggle
+  // bubble ke document dan langsung nutup picker yang baru dibuka.
+  var _pickerJustOpened = false;
+  window._kasPickerJustOpened = function() {
+    _pickerJustOpened = true;
+    setTimeout(function() { _pickerJustOpened = false; }, 300);
+  };
   function _onOutsideDown(e) {
+    if (_pickerJustOpened) return;
     if (e.target.closest && (
       e.target.closest('.kas-akun-picker') ||
-      e.target.closest('.kas-akun-list')
+      e.target.closest('.kas-akun-list') ||
+      e.target.closest('.keu-akun-picker') ||
+      e.target.closest('.keu-akun-list')
     )) return;
     document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
   }
   document.addEventListener('mousedown', _onOutsideDown);
-  document.addEventListener('touchend',  _onOutsideDown, { passive: true });
+  document.addEventListener('touchstart', _onOutsideDown, { passive: true });
 
   // Scroll di luar list → tutup yang sedang float di body
   document.addEventListener('scroll', function(e) {

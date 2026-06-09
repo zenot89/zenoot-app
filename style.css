@@ -2988,8 +2988,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow: hidden;
 }
 .numpad-btn {
-  background: #222;
+  background: linear-gradient(180deg, #2c2c2c 0%, #222 100%);
   border: none;
+  border-bottom: 2px solid #111;
   padding: 0;
   height: 52px;
   font-size: 20px;
@@ -3000,27 +3001,47 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.08s;
+  transition: background 0.08s, transform 0.06s;
   user-select: none;
   -webkit-user-select: none;
+  box-shadow: 0 2px 0 #111;
 }
-.numpad-btn:active { background: #333; }
+.numpad-btn:active {
+  background: linear-gradient(180deg, #1e1e1e 0%, #1a1a1a 100%);
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #111;
+}
 .numpad-btn.op {
   color: var(--ok);
   font-size: 22px;
+  background: linear-gradient(180deg, #1f2e22 0%, #192419 100%);
+  border-bottom: 2px solid #0d160e;
+  box-shadow: 0 2px 0 #0d160e;
+}
+.numpad-btn.op:active {
+  background: linear-gradient(180deg, #172019 0%, #131c14 100%);
 }
 .numpad-btn.op-del {
-  background: #2a2020;
+  background: linear-gradient(180deg, #2e1f1f 0%, #231515 100%);
+  border-bottom: 2px solid #160d0d;
+  box-shadow: 0 2px 0 #160d0d;
   color: var(--danger);
 }
-.numpad-btn.op-del:active { background: #3a2828; }
+.numpad-btn.op-del:active {
+  background: linear-gradient(180deg, #211515 0%, #1a1010 100%);
+}
 .numpad-btn.btn-clear {
   color: var(--ok);
   font-size: 16px;
   font-weight: 700;
+  background: linear-gradient(180deg, #1f2e22 0%, #192419 100%);
+  border-bottom: 2px solid #0d160e;
+  box-shadow: 0 2px 0 #0d160e;
 }
 .numpad-btn.btn-selesai {
-  background: var(--ok);
+  background: linear-gradient(180deg, #3ecf6e 0%, #28a855 100%);
+  border-bottom: 2px solid #1a7038;
+  box-shadow: 0 2px 0 #1a7038;
   color: #fff;
   font-size: 15px;
   font-weight: 700;
@@ -3028,7 +3049,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   height: 105px;
   border-radius: 0 0 10px 0;
 }
-.numpad-btn.btn-selesai:active { background: #2aa05a; }
+.numpad-btn.btn-selesai:active {
+  background: linear-gradient(180deg, #2db85e 0%, #228f47 100%);
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #1a7038;
+}
 .numpad-btn.btn-zero { font-size: 20px; }
 .numpad-btn.btn-000 { font-size: 16px; }
 

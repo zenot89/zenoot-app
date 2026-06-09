@@ -1261,6 +1261,9 @@ function kasTogglePicker(pickerId) {
   var emp = list.querySelector('.kas-akun-empty');
   if (emp) emp.style.display = 'none';
 
+  // Tandai baru dibuka — cegah outside handler langsung nutup (iOS touchend bubble)
+  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
+
   // Float ke body
   var rect = picker.getBoundingClientRect();
   list.style.position  = 'fixed';
