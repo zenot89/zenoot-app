@@ -550,10 +550,14 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    // SW aktif versi baru → tampil banner kecil di dalam app (fallback)
+    // SW aktif versi baru → di PWA standalone langsung reload, di browser tampil banner
     if (e.data.type === 'SW_UPDATED') {
-      // Tampil banner tipis di atas app sebagai fallback
-      // (notif HP sudah dikirim via showNotification di sw.js)
+      // PWA standalone (tidak ada browser UI) → auto reload aman, user tidak kehilangan konteks
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        window.location.reload();
+        return;
+      }
+      // Browser biasa → tampil banner, biarkan user yang reload
       var existing = document.getElementById('zenot-update-banner');
       if (existing) return; // jangan duplikat
 

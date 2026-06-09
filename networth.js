@@ -73,7 +73,7 @@
     const alerts  = document.getElementById('dash-alerts-wrap');
     const anchor  = metrics || alerts;
     if (!anchor) {
-      // Anchor belum ada (dashboard.js belum selesai render) — retry
+      console.log('[NW] anchor not found, retry in 300ms');
       setTimeout(function() {
         _nwRendered = false;
         _injectWidget();
@@ -81,7 +81,7 @@
       return;
     }
     anchor.parentNode.insertBefore(el, anchor);
-
+    console.log('[NW] widget injected before', anchor.id);
     _injectStyles();
     _nwRendered = true;
   }
@@ -266,6 +266,7 @@
 
   // ─── KALKULASI & RENDER ──────────────────────────────────────
   async function _calculate() {
+    console.log('[NW] _calculate start, nw-total el:', !!document.getElementById('nw-total'));
     const icon = document.getElementById('nw-refresh-icon');
     if (icon) icon.classList.add('nw-refresh-spin');
 
@@ -340,17 +341,17 @@
   // Setelah networth.js load & window.nwUpdate terdaftar, cek apakah
   // dashboard sudah punya data (_dashKasAkunMap) → kalau ya, panggil nwUpdate().
   function _catchUp() {
+    console.log('[NW] _catchUp, _dashKasAkunMap:', !!window._dashKasAkunMap);
     if (window._dashKasAkunMap) {
-      // Dashboard sudah selesai tapi nwUpdate belum sempat dipanggil
       window.nwUpdate();
     }
   }
 
   // ─── INIT ────────────────────────────────────────────────────
   function _init() {
+    console.log('[NW] _init start, _dashKasAkunMap:', !!window._dashKasAkunMap);
     _injectWidget();
     _startPolling();
-    // Kalau dashboard sudah selesai fetch sebelum kita load → catch up
     _catchUp();
   }
 
