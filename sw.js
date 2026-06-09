@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v18 — fix Android: pre-cache JS sebelum hapus cache lama
-var JS_CACHE = 'zenot-js-20260610-fix-android-nw';
+var JS_CACHE = 'zenot-js-20260609-8f913364fb36';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
