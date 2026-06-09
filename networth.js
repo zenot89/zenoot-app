@@ -347,13 +347,42 @@
   // ─── CATCH-UP: dashboard sudah selesai fetch sebelum networth.js load ───
   // Di Android lambat: dashboard.js panggil nwUpdate() saat networth.js
   // belum selesai load → nwUpdate tidak terdaftar → Net Worth tidak pernah render.
-  // Setelah networth.js load & window.nwUpdate terdaftar, cek apakah
-  // dashboard sudah punya data (_dashKasAkunMap) → kalau ya, panggil nwUpdate().
+  // Fix: retry sampai anchor dash-metrics siap, inject widget, lalu kalkulasi.
   function _catchUp() {
     console.log('[NW] _catchUp, _dashKasAkunMap:', !!window._dashKasAkunMap);
-    if (window._dashKasAkunMap) {
-      window.nwUpdate();
+    if (!window._dashKasAkunMap) return; // dashboard belum fetch, tunggu retry dari dashboard.js
+
+    var _retry = 0;
+    var _maxRetry = 20; // max 4 detik (20 x 200ms)
+
+    function _doInjectAndCalc() {
+      var anchor = document.getElementById('dash-metrics') || document.getElementById('dash-alerts-wrap');
+      if (!anchor && _retry < _maxRetry) {
+        _retry++;
+        setTimeout(_doInjectAndCalc, 200);
+        return;
+      }
+      // Paksa inject ulang jika widget belum ada atau di luar page-dashboard
+      var existing = document.getElementById('nw-widget');
+      var pageEl   = document.getElementById('page-dashboard');
+      var inPage   = existing && pageEl && pageEl.contains(existing);
+      if (!existing || !inPage) {
+        _nwRendered = false;
+        _injectWidget();
+      }
+      // Tunggu nw-total benar-benar ada di DOM sebelum kalkulasi
+      var _calcRetry = 0;
+      function _waitAndCalc() {
+        if (document.getElementById('nw-total')) {
+          _calculate();
+        } else if (_calcRetry < 10) {
+          _calcRetry++;
+          setTimeout(_waitAndCalc, 150);
+        }
+      }
+      _waitAndCalc();
     }
+    _doInjectAndCalc();
   }
 
   // ─── INIT ────────────────────────────────────────────────────

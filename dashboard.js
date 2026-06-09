@@ -1564,7 +1564,23 @@ async function loadDashboard() {
     document.getElementById('d-saldo').style.color     = saldo>=0?'var(--ok)':'var(--danger)';
 
     // ─ Trigger Net Worth update (networth.js)
-    if (typeof nwUpdate === 'function') nwUpdate();
+    // Android fix: networth.js mungkin belum selesai load saat dashboard fetch selesai.
+    // Gunakan retry loop — coba tiap 200ms max 15x (3 detik) sampai nwUpdate terdaftar.
+    (function() {
+      var _nwRetry = 0;
+      var _nwMax   = 15;
+      function _tryNwUpdate() {
+        if (typeof nwUpdate === 'function') {
+          nwUpdate();
+        } else if (_nwRetry < _nwMax) {
+          _nwRetry++;
+          setTimeout(_tryNwUpdate, 200);
+        } else {
+          console.warn('[dash] nwUpdate tidak tersedia setelah 3 detik');
+        }
+      }
+      _tryNwUpdate();
+    })();
 
     // ─ Metric 5-8
     const jpBulan   = _dashJPData.filter(r => r.tanggal && String(r.tanggal).slice(0,7) === todayYM);
