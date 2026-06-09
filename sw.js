@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v17 — networth.js masuk cache dengan fallback (fix Android)
-var JS_CACHE = 'zenot-js-20260609-bff773a1e675';
+// BUMP: JS_CACHE v18 — fix Android: pre-cache JS sebelum hapus cache lama
+var JS_CACHE = 'zenot-js-20260610-fix-android-nw';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
@@ -72,18 +72,51 @@ self.addEventListener('install', function(e) {
 // ─── ACTIVATE ────────────────────────────────────────────────
 self.addEventListener('activate', function(e) {
   e.waitUntil(
-    caches.keys().then(function(keys) {
-      // JS_CACHE wajib masuk kept — tanpa ini cache JS terhapus setiap aktivasi SW
-      // yang menyebabkan semua script harus fetch ulang dari network.
-      // Jika network lambat/offline saat PWA dibuka → semua script gagal load → blank page.
-      var kept = [CACHE_VERSION, CACHE_CDN, JS_CACHE];
+    // STEP 1: Pre-cache semua JS files ke JS_CACHE BARU dulu SEBELUM hapus cache lama.
+    // Root cause Android: SW lama dihapus → reload → fetch JS network lambat/gagal
+    // → fallback JS_CACHE baru KOSONG → script tidak load → widget hilang.
+    // Fix: isi JS_CACHE baru dari network, kalau gagal copy dari cache lama.
+    caches.open(JS_CACHE).then(function(newCache) {
       return Promise.all(
-        keys.filter(function(k) { return kept.indexOf(k) === -1; })
-            .map(function(k) { return caches.delete(k); })
+        JS_APP_FILES.map(function(file) {
+          var url = './' + file;
+          return newCache.match(url).then(function(existing) {
+            if (existing) return;
+            return fetch(url, { cache: 'no-store' }).then(function(res) {
+              if (res.ok) return newCache.put(url, res);
+            }).catch(function() {
+              // Network gagal → copy dari cache lama sebagai fallback
+              return caches.keys().then(function(keys) {
+                var oldKeys = keys.filter(function(k) {
+                  return k.indexOf('zenot-js-') === 0 && k !== JS_CACHE;
+                });
+                return Promise.all(oldKeys.map(function(oldKey) {
+                  return caches.open(oldKey).then(function(oldCache) {
+                    return oldCache.match(url).then(function(oldRes) {
+                      if (oldRes) return newCache.put(url, oldRes);
+                    });
+                  });
+                }));
+              });
+            });
+          });
+        })
       );
-    }).then(function() {
+    })
+    // STEP 2: Baru hapus cache lama setelah JS_CACHE baru sudah terisi
+    .then(function() {
+      return caches.keys().then(function(keys) {
+        var kept = [CACHE_VERSION, CACHE_CDN, JS_CACHE];
+        return Promise.all(
+          keys.filter(function(k) { return kept.indexOf(k) === -1; })
+              .map(function(k) { return caches.delete(k); })
+        );
+      });
+    })
+    .then(function() {
       return self.clients.claim();
-    }).then(function() {
+    })
+    .then(function() {
       return self.clients.matchAll({ type: 'window' }).then(function(clients) {
         clients.forEach(function(c) { c.postMessage({ type: 'SW_UPDATED' }); });
       });
