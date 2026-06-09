@@ -3061,3 +3061,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (min-width: 768px) {
   #kas-numpad-overlay { display: none !important; }
 }
+
+/* ── Kas: No. Referensi — hidden di HP ── */
+@media (max-width: 767px) {
+  .kas-ref-field { display: none !important; }
+}
+
+/* ── Kas modal actions: Batal kiri, Simpan kanan ── */
+#modal-kas-transaksi .modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+#modal-kas-transaksi .modal-actions .btn {
+  flex: 1;
+}
+
+/* ── Picker list scroll saat keyboard iOS muncul ── */
+.kas-akun-list[data-floated] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

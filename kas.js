@@ -187,7 +187,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchend="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -198,7 +198,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchend="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -208,14 +208,14 @@ if (document.readyState === 'loading') {
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-jrn-ket" placeholder="mis: bayar iklan Shopee..."></div>
-      <div class="form-group" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
+      <div class="form-group kas-ref-field" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
     </div>
     <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
       <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()"><i class="ti ti-device-floppy"></i> Simpan</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')"><i class="ti ti-x"></i> Batal</button>
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>
   </div>
 </div>
@@ -277,7 +277,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchend="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -288,7 +288,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchend="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -298,14 +298,14 @@ if (document.readyState === 'loading') {
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-jrn-ket" placeholder="mis: bayar iklan Shopee..."></div>
-      <div class="form-group" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
+      <div class="form-group kas-ref-field" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
     </div>
     <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
       <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()"><i class="ti ti-device-floppy"></i> Simpan</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')"><i class="ti ti-x"></i> Batal</button>
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>
   </div>
 </div>
@@ -1279,16 +1279,33 @@ function kasTogglePicker(pickerId) {
   // Auto-focus search — delay lebih panjang di iOS agar tidak trigger outside handler
   if (inp) setTimeout(function() { inp.focus(); }, 80);
 
-  // iOS Safari: saat keyboard muncul, viewport resize → posisi fixed bergeser
-  // Re-calculate posisi picker saat visualViewport berubah
+  // iOS Safari: saat keyboard muncul, viewport resize → reposisi list di atas keyboard
   if (window.visualViewport) {
     var _vpHandler = function() {
       if (list.style.display !== 'block') {
         window.visualViewport.removeEventListener('resize', _vpHandler);
         return;
       }
+      var vp = window.visualViewport;
+      // Batas bawah area visible (di atas keyboard)
+      var visibleBottom = vp.offsetTop + vp.height;
       var freshRect = picker.getBoundingClientRect();
-      list.style.top  = (freshRect.bottom + 2) + 'px';
+      var listTop = freshRect.bottom + 2;
+      // Hitung max-height agar list tidak tertutup keyboard
+      var maxH = visibleBottom - listTop - 8;
+      if (maxH < 80) {
+        // Picker tertutup keyboard — taruh list di atas picker
+        var aboveH = freshRect.top - 8;
+        if (aboveH > 80) {
+          list.style.top = '';
+          list.style.bottom = (window.innerHeight - freshRect.top + 2) + 'px';
+          list.style.maxHeight = Math.min(aboveH, 260) + 'px';
+        }
+      } else {
+        list.style.bottom = '';
+        list.style.top  = listTop + 'px';
+        list.style.maxHeight = Math.min(maxH, 260) + 'px';
+      }
       list.style.left = freshRect.left + 'px';
     };
     window.visualViewport.addEventListener('resize', _vpHandler);
