@@ -72,7 +72,14 @@
     const metrics = document.getElementById('dash-metrics');
     const alerts  = document.getElementById('dash-alerts-wrap');
     const anchor  = metrics || alerts;
-    if (!anchor) { document.body.prepend(el); return; }
+    if (!anchor) {
+      // Anchor belum ada (dashboard.js belum selesai render) — retry
+      setTimeout(function() {
+        _nwRendered = false;
+        _injectWidget();
+      }, 300);
+      return;
+    }
     anchor.parentNode.insertBefore(el, anchor);
 
     _injectStyles();
@@ -336,7 +343,7 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _init);
   } else {
-    setTimeout(_init, 500);
+    setTimeout(_init, 800);
   }
 
 })();
