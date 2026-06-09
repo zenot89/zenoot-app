@@ -450,9 +450,6 @@ function renderRestockTabs() {
           &nbsp;·&nbsp; ${bossSorted.length} supplier
           &nbsp;·&nbsp; ${totalSKU} SKU aktif
         </div>
-        <div style="margin-left:auto;font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap">
-          Total Budget: ${fmtRp(grandBudget)}
-        </div>
       </div>`;
   }
 
@@ -886,7 +883,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
   return `
     <!-- ZONA ATAS: fixed, tidak scroll -->
     <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
-      ${bannerKritis || ''}
       ${cards}
       ${deadlineBar}
       ${(segera.length || skuNaik.length) ? `
