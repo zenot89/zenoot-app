@@ -28,13 +28,14 @@ document.getElementById('page-restock').innerHTML = `
     <div id="restock-sticky-header">
 
       <!-- Tombol aksi mobile only (portrait HP) -->
-      <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center;padding:8px 14px 6px">
+      <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center;padding:8px 14px 6px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
           <i class="ti ti-refresh"></i>
         </button>
         <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
           <i class="ti ti-tag"></i> Clearance
         </button>
+        <div id="restock-tab-bar-wrap-mobile" style="margin-left:auto"></div>
       </div>
 
       <!-- Tab bar + info bar: diisi oleh renderRestockTabs() -->
@@ -416,6 +417,15 @@ function renderRestockTabs() {
     var summarySlot = document.getElementById('restock-summary-btn-wrap');
     if (summarySlot) {
       summarySlot.innerHTML = `
+        <button class="btn btn-sm" onclick="restockDropdownToggle(event)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+          <i class="ti ti-clipboard-list"></i> ${activeLabel.replace(/<[^>]+>/g,'')} <span style="font-size:10px;color:var(--ink3)">${activeMeta}</span>
+          <i class="ti ti-chevron-down" style="font-size:10px"></i>
+        </button>`;
+    }
+    // Inject Summary button ke mobile slot (portrait HP) — sejajar dengan Refresh + Clearance
+    var summarySlotMobile = document.getElementById('restock-tab-bar-wrap-mobile');
+    if (summarySlotMobile) {
+      summarySlotMobile.innerHTML = `
         <button class="btn btn-sm" onclick="restockDropdownToggle(event)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
           <i class="ti ti-clipboard-list"></i> ${activeLabel.replace(/<[^>]+>/g,'')} <span style="font-size:10px;color:var(--ink3)">${activeMeta}</span>
           <i class="ti ti-chevron-down" style="font-size:10px"></i>
@@ -884,7 +894,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
     <!-- ZONA ATAS: fixed, tidak scroll -->
     <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
       ${cards}
-      ${deadlineBar}
       ${(segera.length || skuNaik.length) ? `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
         <!-- Portrait: toggle button -->
