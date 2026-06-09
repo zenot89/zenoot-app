@@ -334,16 +334,36 @@
     _calculate();
   };
 
+  // ─── CATCH-UP: dashboard sudah selesai fetch sebelum networth.js load ───
+  // Di Android lambat: dashboard.js panggil nwUpdate() saat networth.js
+  // belum selesai load → nwUpdate tidak terdaftar → Net Worth tidak pernah render.
+  // Setelah networth.js load & window.nwUpdate terdaftar, cek apakah
+  // dashboard sudah punya data (_dashKasAkunMap) → kalau ya, panggil nwUpdate().
+  function _catchUp() {
+    if (window._dashKasAkunMap) {
+      // Dashboard sudah selesai tapi nwUpdate belum sempat dipanggil
+      window.nwUpdate();
+    }
+  }
+
   // ─── INIT ────────────────────────────────────────────────────
   function _init() {
     _injectWidget();
     _startPolling();
+    // Kalau dashboard sudah selesai fetch sebelum kita load → catch up
+    _catchUp();
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _init);
   } else {
-    setTimeout(_init, 800);
+    // networth.js load setelah dashboard.js — di Android yang lambat,
+    // dashboard.js sudah selesai fetch dan panggil nwUpdate() SEBELUM
+    // networth.js selesai load, sehingga nwUpdate tidak pernah jalan.
+    // Fix: langsung _init(), lalu cek apakah dashboard sudah siap
+    // (ada _dashKasAkunMap) — kalau ya, window.nwUpdate sudah di-expose
+    // dan dashboard tinggal menunggu; cukup inject + hitung sekali.
+    _init();
   }
 
 })();
