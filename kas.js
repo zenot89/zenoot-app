@@ -180,7 +180,7 @@ if (document.readyState === 'loading') {
           <option value="jurnal">📋 Jurnal Umum</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()"></div>
+      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" readonly style="cursor:pointer"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
@@ -270,7 +270,7 @@ if (document.readyState === 'loading') {
           <option value="jurnal">📋 Jurnal Umum</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()"></div>
+      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" readonly style="cursor:pointer"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
@@ -501,10 +501,183 @@ function kasShowForm() {
   document.getElementById('kas-preview-entry').style.display = 'none';
   kasOnTipeChange();
   showModal('modal-kas-transaksi');
-  setTimeout(function() { if (typeof idrInput === 'function') idrInput('kas-jrn-nominal'); }, 50);
+  setTimeout(function() {
+    if (window.innerWidth >= 768 && typeof idrInput === 'function') idrInput('kas-jrn-nominal');
+    if (window.innerWidth < 768) kasNumpadOpen();
+  }, 80);
 }
 
-function kasCancelForm() { hideModal('modal-kas-transaksi'); }
+function kasCancelForm() { kasNumpadClose(); hideModal('modal-kas-transaksi'); }
+
+// ═══════════════════════════════════════════════════════════
+// KAS NUMPAD — custom calculator keyboard (mobile only)
+// ═══════════════════════════════════════════════════════════
+(function() {
+  var _expr   = '';   // expression string mis "255000+15000"
+  var _dispParts = []; // [{val, op}] untuk display formatted
+
+  // ── Inject DOM sekali ke body ──────────────────────────
+  function _inject() {
+    if (document.getElementById('kas-numpad-overlay')) return;
+    var el = document.createElement('div');
+    el.id = 'kas-numpad-overlay';
+    el.innerHTML = `
+<div id="kas-numpad-sheet">
+  <div id="kas-numpad-display">
+    <span class="numpad-currency">Rp</span>
+    <span class="numpad-expr" id="kas-numpad-expr">0</span>
+  </div>
+  <div id="kas-numpad-history"></div>
+  <div id="kas-numpad-grid">
+    <button class="numpad-btn btn-clear" ontouchend="event.preventDefault();kasNumpadKey('C')" onclick="kasNumpadKey('C')">C</button>
+    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('÷')" onclick="kasNumpadKey('÷')">÷</button>
+    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('×')" onclick="kasNumpadKey('×')">×</button>
+    <button class="numpad-btn op-del"    ontouchend="event.preventDefault();kasNumpadKey('⌫')" onclick="kasNumpadKey('⌫')">⌫</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('7')" onclick="kasNumpadKey('7')">7</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('8')" onclick="kasNumpadKey('8')">8</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('9')" onclick="kasNumpadKey('9')">9</button>
+    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('−')" onclick="kasNumpadKey('−')">−</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('4')" onclick="kasNumpadKey('4')">4</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('5')" onclick="kasNumpadKey('5')">5</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('6')" onclick="kasNumpadKey('6')">6</button>
+    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('+')" onclick="kasNumpadKey('+')">+</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('1')" onclick="kasNumpadKey('1')">1</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('2')" onclick="kasNumpadKey('2')">2</button>
+    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('3')" onclick="kasNumpadKey('3')">3</button>
+    <button class="numpad-btn btn-selesai" ontouchend="event.preventDefault();kasNumpadSelesai()" onclick="kasNumpadSelesai()">SELESAI</button>
+    <button class="numpad-btn btn-zero"  ontouchend="event.preventDefault();kasNumpadKey('0')" onclick="kasNumpadKey('0')">0</button>
+    <button class="numpad-btn btn-000"   ontouchend="event.preventDefault();kasNumpadKey('000')" onclick="kasNumpadKey('000')">000</button>
+    <button class="numpad-btn btn-000"   ontouchend="event.preventDefault();kasNumpadKey('00')" onclick="kasNumpadKey('00')">00</button>
+  </div>
+</div>`;
+    // Tap backdrop → tutup
+    el.addEventListener('touchstart', function(e) {
+      if (e.target === el) kasNumpadClose();
+    }, { passive: true });
+    el.addEventListener('mousedown', function(e) {
+      if (e.target === el) kasNumpadClose();
+    });
+    document.body.appendChild(el);
+  }
+
+  // ── Update display ─────────────────────────────────────
+  function _updateDisplay() {
+    var disp = document.getElementById('kas-numpad-expr');
+    if (!disp) return;
+    if (!_expr) { disp.textContent = '0'; disp.classList.remove('has-op'); return; }
+    // Format: pisah angka dan operator
+    // Parse expr jadi tokens untuk display
+    var tokens = _expr.split(/([\+\-\*\/])/).filter(Boolean);
+    var formatted = tokens.map(function(t) {
+      if (/[\+\-\*\/]/.test(t)) {
+        var op = t === '+' ? '+' : t === '-' ? '−' : t === '*' ? '×' : '÷';
+        return ' ' + op + ' ';
+      }
+      var n = parseInt(t, 10);
+      return isNaN(n) ? t : n.toLocaleString('id-ID');
+    }).join('');
+    disp.textContent = formatted || '0';
+    disp.classList.toggle('has-op', _expr.search(/[\+\-\*\/]/) >= 0);
+  }
+
+  // ── Key handler ────────────────────────────────────────
+  window.kasNumpadKey = function(k) {
+    var lastChar = _expr.slice(-1);
+    var isOp = function(c) { return /[\+\-\*\/]/.test(c); };
+
+    if (k === 'C') {
+      _expr = '';
+    } else if (k === '⌫') {
+      // Hapus karakter terakhir
+      _expr = _expr.slice(0, -1);
+    } else if (k === '+' || k === '−' || k === '×' || k === '÷') {
+      if (!_expr) return;
+      var opChar = k === '+' ? '+' : k === '−' ? '-' : k === '×' ? '*' : '/';
+      // Ganti operator terakhir jika sudah ada
+      if (isOp(lastChar)) {
+        _expr = _expr.slice(0, -1) + opChar;
+      } else {
+        _expr += opChar;
+      }
+    } else {
+      // Angka / 000 / 00
+      var digits = k; // '0'-'9', '000', '00'
+      // Jangan awali expression dengan multi-zero
+      if (!_expr && (digits === '000' || digits === '00')) digits = '0';
+      // Jangan lebih dari 12 digit per segmen
+      var segments = _expr.split(/[\+\-\*\/]/);
+      var lastSeg = segments[segments.length - 1];
+      if (lastSeg.length >= 12) return;
+      _expr += digits;
+    }
+    _updateDisplay();
+  };
+
+  // ── Selesai: eval dan tulis ke input ──────────────────
+  window.kasNumpadSelesai = function() {
+    var result = 0;
+    if (_expr) {
+      try {
+        // Evaluasi expression (hanya angka dan +-*/)
+        var safe = _expr.replace(/[^0-9\+\-\*\/]/g, '');
+        result = Math.round(Function('"use strict";return (' + safe + ')')());
+        if (!isFinite(result) || isNaN(result) || result < 0) result = 0;
+      } catch(e) { result = 0; }
+    }
+    idrSet('kas-jrn-nominal', result);
+    kasHitungJurnal();
+    kasNumpadClose();
+  };
+
+  // ── Chip history tap ──────────────────────────────────
+  window.kasNumpadChipTap = function(val) {
+    _expr = String(val);
+    _updateDisplay();
+  };
+
+  // ── Buka numpad ───────────────────────────────────────
+  window.kasNumpadOpen = function() {
+    if (window.innerWidth >= 768) return; // laptop: skip
+    _inject();
+    // Isi dari nilai input saat ini
+    var cur = idrVal('kas-jrn-nominal');
+    _expr = cur > 0 ? String(cur) : '';
+    _updateDisplay();
+    // History chips: 5 nominal unik terakhir dari _kasJurnalAll
+    var hist = document.getElementById('kas-numpad-history');
+    if (hist) {
+      var seen = [], chips = [];
+      var list = (_kasJurnalAll || []).slice().reverse();
+      for (var i = 0; i < list.length && chips.length < 6; i++) {
+        var v = list[i].nominal || list[i].debit || 0;
+        if (v > 0 && seen.indexOf(v) < 0) { seen.push(v); chips.push(v); }
+      }
+      hist.innerHTML = chips.length
+        ? chips.map(function(v) {
+            return '<button class="numpad-chip" ontouchend="event.preventDefault();kasNumpadChipTap(' + v + ')" onclick="kasNumpadChipTap(' + v + ')">'
+              + v.toLocaleString('id-ID') + '</button>';
+          }).join('')
+        : '';
+    }
+    var overlay = document.getElementById('kas-numpad-overlay');
+    var sheet   = document.getElementById('kas-numpad-sheet');
+    overlay.classList.add('open');
+    // Slight delay biar transition jalan
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { sheet.classList.add('open'); });
+    });
+  };
+
+  // ── Tutup numpad ──────────────────────────────────────
+  window.kasNumpadClose = function() {
+    var overlay = document.getElementById('kas-numpad-overlay');
+    var sheet   = document.getElementById('kas-numpad-sheet');
+    if (!overlay) return;
+    sheet.classList.remove('open');
+    setTimeout(function() { overlay.classList.remove('open'); }, 230);
+  };
+
+})();
 
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
@@ -707,7 +880,9 @@ async function kasEditJurnal(id) {
   document.getElementById('kas-jrn-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
   document.getElementById('kas-jrn-tipe').value    = r.tipe || 'masuk';
   idrSet('kas-jrn-nominal', r.nominal || r.debit || 0);
-  setTimeout(function() { if (typeof idrInput === 'function') idrInput('kas-jrn-nominal'); }, 50);
+  setTimeout(function() {
+    if (window.innerWidth >= 768 && typeof idrInput === 'function') idrInput('kas-jrn-nominal');
+  }, 50);
   document.getElementById('kas-jrn-ket').value     = r.keterangan || '';
   document.getElementById('kas-jrn-ref').value     = r.referensi || '';
   kasOnTipeChange();
