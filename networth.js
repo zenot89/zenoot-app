@@ -77,6 +77,9 @@
       setTimeout(function() {
         _nwRendered = false;
         _injectWidget();
+        // Widget baru tersedia setelah retry — langsung hitung agar tidak kosong
+        // (race condition: _startPolling() sudah jalan sebelum widget ada di DOM)
+        _calculate();
       }, 300);
       return;
     }
@@ -266,6 +269,12 @@
 
   // ─── KALKULASI & RENDER ──────────────────────────────────────
   async function _calculate() {
+    // Guard: jangan render kalau widget belum ada di DOM (race condition Android)
+    // Retry akan dipanggil oleh _injectWidget() setelah anchor ditemukan
+    if (!document.getElementById('nw-total')) {
+      console.log('[NW] _calculate skip — widget belum di DOM');
+      return;
+    }
     console.log('[NW] _calculate start, nw-total el:', !!document.getElementById('nw-total'));
     const icon = document.getElementById('nw-refresh-icon');
     if (icon) icon.classList.add('nw-refresh-spin');
