@@ -1302,38 +1302,8 @@ function kasTogglePicker(pickerId) {
   // Auto-focus search — delay lebih panjang di iOS agar tidak trigger outside handler
   if (inp) setTimeout(function() { inp.focus(); }, 80);
 
-  // iOS Safari: saat keyboard muncul, viewport resize → reposisi list di atas keyboard
-  if (window.visualViewport) {
-    var _vpHandler = function() {
-      if (list.style.display !== 'block') {
-        window.visualViewport.removeEventListener('resize', _vpHandler);
-        return;
-      }
-      var vp = window.visualViewport;
-      // Batas bawah area visible (di atas keyboard)
-      var visibleBottom = vp.offsetTop + vp.height;
-      var freshRect = picker.getBoundingClientRect();
-      var listTop = freshRect.bottom + 2;
-      // Hitung max-height agar list tidak tertutup keyboard
-      var maxH = visibleBottom - listTop - 8;
-      if (maxH < 80) {
-        // Picker tertutup keyboard — taruh list di atas picker
-        var aboveH = freshRect.top - 8;
-        if (aboveH > 80) {
-          list.style.top = '';
-          list.style.bottom = (window.innerHeight - freshRect.top + 2) + 'px';
-          list.style.maxHeight = Math.min(aboveH, 260) + 'px';
-        }
-      } else {
-        list.style.bottom = '';
-        list.style.top  = listTop + 'px';
-        list.style.maxHeight = Math.min(maxH, 260) + 'px';
-      }
-      list.style.left = freshRect.left + 'px';
-    };
-    window.visualViewport.addEventListener('resize', _vpHandler);
-    list._vpHandler = _vpHandler;
-  }
+  // maxHeight fixed — TANPA visualViewport listener (bikin loncat di Android Samsung Browser)
+  list.style.maxHeight = '260px';
 }
 
 function kasPickerFilter(inp) {
