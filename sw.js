@@ -35,10 +35,11 @@ var JS_APP_FILES = [
   'rough-ui.js', 'style.css', 'shopee-dashboard.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
-// networth.js + shopee-sync.js: TIDAK di-cache — kritis, harus selalu versi terbaru
-var NO_CACHE_PATTERNS = ['index.html', 'networth.js', 'shopee-sync.js'];
-// BUMP: JS_CACHE v16 — add shopee-dashboard.js (Analisis Toko)
-var JS_CACHE = 'zenot-js-20260609-025f455b0933';
+// index.html: tidak di-cache (selalu fresh)
+// networth.js & shopee-sync.js: network-first dengan fallback cache
+var NO_CACHE_PATTERNS = ['index.html'];
+// BUMP: JS_CACHE v17 — networth.js masuk cache dengan fallback (fix Android)
+var JS_CACHE = 'zenot-js-20260609-v17-nwcache';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

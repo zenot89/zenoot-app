@@ -607,13 +607,15 @@ if ('serviceWorker' in navigator) {
     setTimeout(function() { _pickerJustOpened = false; }, 300);
   };
   function _onOutsideDown(e) {
-    if (_pickerJustOpened) return;
-    if (e.target.closest && (
-      e.target.closest('.kas-akun-picker') ||
-      e.target.closest('.kas-akun-list') ||
-      e.target.closest('.keu-akun-picker') ||
+    // Guard: tap di dalam picker element atau list → jangan tutup
+    if (!e.target.closest) return;
+    if (
+      e.target.closest('[data-picker]')     ||
+      e.target.closest('.kas-akun-picker')  ||
+      e.target.closest('.kas-akun-list')    ||
+      e.target.closest('.keu-akun-picker')  ||
       e.target.closest('.keu-akun-list')
-    )) return;
+    ) return;
     document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
   }
   document.addEventListener('mousedown', _onOutsideDown);

@@ -187,7 +187,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -198,7 +198,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -277,7 +277,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
         <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" onmousedown="event.stopPropagation();kasTogglePicker('picker-debit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-debit')">
+          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
             <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -288,7 +288,7 @@ if (document.readyState === 'loading') {
         <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
         <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" onmousedown="event.stopPropagation();kasTogglePicker('picker-kredit')" ontouchstart="event.preventDefault();event.stopPropagation();kasTogglePicker('picker-kredit')">
+          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
             <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
@@ -508,6 +508,29 @@ function kasShowForm() {
 }
 
 function kasCancelForm() { kasNumpadClose(); hideModal('modal-kas-transaksi'); }
+
+// ── Picker delegation: setup SEKALI per modal ─────────────────
+// Hindari inline ontouchstart/onmousedown yang tidak reliable di Android
+(function() {
+  var _bound = false;
+  window._kasPickerDelegateInit = function() {
+    if (_bound) return;
+    _bound = true;
+    // Gunakan 'pointerdown' — works di semua browser modern (Chrome Android, iOS Safari 13+)
+    // Fallback touchstart untuk iOS Safari < 13
+    var evName = window.PointerEvent ? 'pointerdown' : 'touchstart';
+    document.addEventListener(evName, function(e) {
+      var picker = e.target.closest ? e.target.closest('[data-picker]') : null;
+      if (!picker) return;
+      // stopPropagation cegah outside handler
+      e.stopPropagation();
+      // preventDefault hanya untuk touch agar tidak double-fire dengan click
+      if (e.type === 'touchstart') e.preventDefault();
+      kasTogglePicker(picker.dataset.picker);
+    }, evName === 'touchstart' ? { passive: false } : true);
+  };
+  window._kasPickerDelegateInit();
+})();
 
 // ═══════════════════════════════════════════════════════════
 // KAS NUMPAD — custom calculator keyboard (mobile only)
