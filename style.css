@@ -2872,7 +2872,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .sum-header-portrait { display: -webkit-flex !important; display: flex !important; }
   .sum-header-laptop   { display: none !important; }
   #restock-summary-btn-wrap { display: none !important; }
-  #restock-tab-bar-wrap { display: block !important; }
+  /* restock-tab-bar-wrap hidden di portrait — Summary button sudah ada di restock-aksi-mobile */
+  #restock-tab-bar-wrap { display: none !important; }
 }
 /* Laptop (≥768px): split mode — portrait toggle hidden */
 @media (min-width: 768px) {

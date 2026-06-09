@@ -525,14 +525,15 @@ function restockDropdownToggle(e) {
   var btn  = document.getElementById('restock-tab-dropdown-btn');
   var menu = document.getElementById('restock-tab-dropdown-menu');
   var chevron = document.getElementById('restock-tab-dropdown-chevron');
-  if (!menu || !btn) return;
+  if (!menu) return;
   var isOpen = menu.style.display !== 'none';
   if (isOpen) {
     menu.style.display = 'none';
     if (chevron) chevron.style.transform = '';
   } else {
-    // Posisi fixed: align kanan tombol, tepat di bawah tombol
-    var rect = btn.getBoundingClientRect();
+    // Posisi fixed: pakai btn jika visible, fallback ke tombol yang diklik (laptop mode)
+    var anchorBtn = (btn && btn.getBoundingClientRect().width > 0) ? btn : e.currentTarget;
+    var rect = anchorBtn.getBoundingClientRect();
     menu.style.display = 'block';
     // Hitung max-height agar tidak keluar bawah viewport
     var spaceBelow = window.innerHeight - rect.bottom - 10;
