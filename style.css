@@ -3083,3 +3083,89 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+/* ─── NET WORTH WIDGET ───────────────────────────────────────── */
+#nw-widget { margin: 0 0 10px 0; }
+.nw-card {
+  background: var(--cream2);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+.nw-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.nw-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink3, #888);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nw-actions { display: flex; align-items: center; gap: 8px; }
+.nw-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.nw-badge-live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
+.nw-badge-loading { background: rgba(255,193,7,0.15); color: #f0b429; }
+.nw-badge-offline { background: rgba(224,82,82,0.15); color: var(--danger,#e05252); }
+.nw-refresh-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--ink3,#888); padding: 4px; border-radius: 6px;
+  line-height: 1; transition: color .2s, background .2s;
+}
+.nw-refresh-btn:hover { color: var(--ink,#eee); background: rgba(255,255,255,0.06); }
+.nw-refresh-spin { animation: nw-spin 1s linear infinite; }
+@keyframes nw-spin { to { transform: rotate(360deg); } }
+.nw-total-wrap { margin-bottom: 12px; }
+.nw-total {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  color: var(--ink,#eee);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.nw-update-time { font-size: 11px; color: var(--ink3,#888); margin-top: 3px; }
+.nw-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+}
+@media (max-width: 600px) { .nw-breakdown { grid-template-columns: 1fr; } }
+.nw-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.nw-row-label {
+  color: var(--ink3,#888);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nw-row-val { font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; }
+.nw-pos { color: var(--ok,#4caf50); }
+.nw-neg { color: var(--danger,#e05252); }
+.nw-shopee-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.nw-shopee-badge.live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
+.nw-shopee-badge.offline { background: rgba(255,193,7,0.12); color: #f0b429; }

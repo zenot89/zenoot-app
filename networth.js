@@ -182,6 +182,11 @@
   // ─── KALKULASI & RENDER ──────────────────────────────────────
   async function _calculate() {
     if (!document.getElementById('nw-total')) return;
+    // Guard: dbGet dari supabase.js harus sudah tersedia
+    if (typeof dbGet !== 'function') {
+      setTimeout(_calculate, 300);
+      return;
+    }
     const icon = document.getElementById('nw-refresh-icon');
     if (icon) icon.classList.add('nw-refresh-spin');
 
@@ -235,7 +240,6 @@
 
   // ─── INIT ────────────────────────────────────────────────────
   function _init() {
-    _injectStyles();
     _calculate();
     _startPolling();
   }
