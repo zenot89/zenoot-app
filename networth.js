@@ -119,11 +119,11 @@
   async function _getTotalAset() {
     try {
       const [kasAkun, jurnal, produk, stok, jual] = await Promise.all([
-        dbGet('kas_akun', '').catch(() => []),
-        dbGet('jurnal',   '').catch(() => []),
-        dbGet('produk',   '').catch(() => []),
-        dbGet('stok',     '').catch(() => []),
-        dbGet('jurnal_penjualan', '&select=sku,qty').catch(() => [])
+        _withTimeout(dbGet('kas_akun', ''),                    [], 8000).catch(() => []),
+        _withTimeout(dbGet('jurnal',   ''),                    [], 8000).catch(() => []),
+        _withTimeout(dbGet('produk',   ''),                    [], 8000).catch(() => []),
+        _withTimeout(dbGet('stok',     ''),                    [], 8000).catch(() => []),
+        _withTimeout(dbGet('jurnal_penjualan', '&select=sku,qty'), [], 8000).catch(() => [])
       ]);
       const akunMap = {};
       (kasAkun || []).forEach(a => { akunMap[a.id] = {...a, saldoDebit: 0, saldoKredit: 0}; });
@@ -152,8 +152,8 @@
   async function _getTotalHutang() {
     try {
       const [hutangList, bayarList] = await Promise.all([
-        dbGet('hutang',      '').catch(() => []),
-        dbGet('hutang_bayar','').catch(() => [])
+        _withTimeout(dbGet('hutang',      ''), [], 8000).catch(() => []),
+        _withTimeout(dbGet('hutang_bayar',''), [], 8000).catch(() => [])
       ]);
       const bayarMap = {};
       (bayarList || []).forEach(b => {
@@ -179,6 +179,16 @@
     } catch(e) { return null; }
   }
 
+  // ─── FETCH DENGAN TIMEOUT ───────────────────────────────────
+  // Android kadang hang tanpa error — paksa resolve kosong setelah 8 detik
+  function _withTimeout(promise, fallback, ms) {
+    ms = ms || 8000;
+    return Promise.race([
+      promise,
+      new Promise(function(resolve) { setTimeout(function() { resolve(fallback); }, ms); })
+    ]);
+  }
+
   // ─── KALKULASI & RENDER ──────────────────────────────────────
   async function _calculate() {
     if (!document.getElementById('nw-total')) return;
@@ -191,9 +201,9 @@
     if (icon) icon.classList.add('nw-refresh-spin');
 
     const [totalAset, totalHutang, shopeeCache] = await Promise.all([
-      _getTotalAset(),
-      _getTotalHutang(),
-      _fetchShopeeCache()
+      _withTimeout(_getTotalAset(),      0,    10000),
+      _withTimeout(_getTotalHutang(),    0,    10000),
+      _withTimeout(_fetchShopeeCache(),  null, 10000)
     ]);
 
     const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit  || 0) : 0;
@@ -226,6 +236,16 @@
     const jam = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     _set('nw-update-time', 'Update ' + jam + ' WIB · auto-refresh 15 mnt');
     if (icon) icon.classList.remove('nw-refresh-spin');
+
+    // Kalau semua data 0 dan shopee null — kemungkinan timeout, tampilkan info
+    if (totalAset === 0 && totalHutang === 0 && shopeeCache === null) {
+      const b = document.getElementById('nw-status-badge');
+      if (b && b.textContent.indexOf('Memuat') !== -1) {
+        b.textContent = '⚠ Gagal memuat';
+        b.className = 'nw-badge nw-badge-offline';
+        _set('nw-update-time', 'Tap refresh untuk coba lagi');
+      }
+    }
   }
 
   // ─── POLLING ─────────────────────────────────────────────────
