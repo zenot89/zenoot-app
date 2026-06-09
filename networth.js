@@ -6,7 +6,8 @@
 (function () {
 
   const NW_POLL_MS = 15 * 60 * 1000; // 15 menit
-  let _nwTimer = null;
+  let _nwTimer     = null;
+  let _nwRunning   = false; // guard anti-concurrent fetch
 
   // ─── FORMAT RUPIAH ───────────────────────────────────────────
   function _rp(val) {
@@ -180,7 +181,6 @@
   }
 
   // ─── FETCH DENGAN TIMEOUT ───────────────────────────────────
-  // Android kadang hang tanpa error — paksa resolve kosong setelah 8 detik
   function _withTimeout(promise, fallback, ms) {
     ms = ms || 8000;
     return Promise.race([
@@ -189,62 +189,113 @@
     ]);
   }
 
+  // ─── WAIT UNTIL dbGet READY — retry loop, bukan single retry ─
+  // Android PWA dari cache: dbGet bisa belum tersedia saat networth.js jalan.
+  // Loop dengan backoff sampai 10 detik sebelum menyerah.
+  function _waitForDbGet(callback) {
+    var attempts = 0;
+    var delays = [100, 200, 300, 500, 800, 1000, 1500, 2000, 2000, 1600]; // ~10 detik total
+    function check() {
+      if (typeof dbGet === 'function') {
+        callback();
+        return;
+      }
+      if (attempts >= delays.length) {
+        // Gagal total — tampilkan error di widget
+        var badge = document.getElementById('nw-status-badge');
+        if (badge) {
+          badge.textContent = '⚠ Gagal memuat';
+          badge.className = 'nw-badge nw-badge-offline';
+        }
+        _set('nw-update-time', 'Tap refresh untuk coba lagi');
+        return;
+      }
+      setTimeout(check, delays[attempts++]);
+    }
+    check();
+  }
+
   // ─── KALKULASI & RENDER ──────────────────────────────────────
   async function _calculate() {
     if (!document.getElementById('nw-total')) return;
-    // Guard: dbGet dari supabase.js harus sudah tersedia
+
+    // Anti-concurrent: skip kalau sedang fetch
+    if (_nwRunning) return;
+    _nwRunning = true;
+
+    // dbGet belum ready? tunggu dulu
     if (typeof dbGet !== 'function') {
-      setTimeout(_calculate, 300);
+      _nwRunning = false;
+      _waitForDbGet(function() { _calculate(); });
       return;
     }
+
     const icon = document.getElementById('nw-refresh-icon');
     if (icon) icon.classList.add('nw-refresh-spin');
 
-    const [totalAset, totalHutang, shopeeCache] = await Promise.all([
-      _withTimeout(_getTotalAset(),      0,    10000),
-      _withTimeout(_getTotalHutang(),    0,    10000),
-      _withTimeout(_fetchShopeeCache(),  null, 10000)
-    ]);
-
-    const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit  || 0) : 0;
-    const wallet   = shopeeCache ? Number(shopeeCache.wallet_balance  || 0) : 0;
-    const isLive   = shopeeCache !== null;
-    const netWorth = totalAset - totalHutang + escrow + wallet;
-
-    _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
-    const totalEl = document.getElementById('nw-total');
-    if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#4caf50)' : 'var(--danger,#e05252)';
-
-    _set('nw-aset',   '+' + _rp(totalAset));
-    _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
-    _set('nw-escrow', '+' + _rp(escrow));
-    _set('nw-wallet', '+' + _rp(wallet));
-
-    ['nw-escrow-badge', 'nw-wallet-badge'].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = isLive ? 'LIVE' : 'offline';
-      el.className   = 'nw-shopee-badge ' + (isLive ? 'live' : 'offline');
-    });
-
-    const badge = document.getElementById('nw-status-badge');
-    if (badge) {
-      badge.textContent = isLive ? '● LIVE' : '○ Shopee Offline';
-      badge.className   = 'nw-badge ' + (isLive ? 'nw-badge-live' : 'nw-badge-offline');
+    // Set badge loading saat mulai hitung
+    var badge = document.getElementById('nw-status-badge');
+    if (badge && badge.textContent.indexOf('LIVE') === -1) {
+      badge.textContent = '⏳ Memuat...';
+      badge.className   = 'nw-badge nw-badge-loading';
     }
 
-    const jam = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    _set('nw-update-time', 'Update ' + jam + ' WIB · auto-refresh 15 mnt');
-    if (icon) icon.classList.remove('nw-refresh-spin');
+    try {
+      const [totalAset, totalHutang, shopeeCache] = await Promise.all([
+        _withTimeout(_getTotalAset(),      0,    10000),
+        _withTimeout(_getTotalHutang(),    0,    10000),
+        _withTimeout(_fetchShopeeCache(),  null, 10000)
+      ]);
 
-    // Kalau semua data 0 dan shopee null — kemungkinan timeout, tampilkan info
-    if (totalAset === 0 && totalHutang === 0 && shopeeCache === null) {
-      const b = document.getElementById('nw-status-badge');
-      if (b && b.textContent.indexOf('Memuat') !== -1) {
-        b.textContent = '⚠ Gagal memuat';
-        b.className = 'nw-badge nw-badge-offline';
-        _set('nw-update-time', 'Tap refresh untuk coba lagi');
+      const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit  || 0) : 0;
+      const wallet   = shopeeCache ? Number(shopeeCache.wallet_balance  || 0) : 0;
+      const isLive   = shopeeCache !== null;
+      const netWorth = totalAset - totalHutang + escrow + wallet;
+
+      _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
+      const totalEl = document.getElementById('nw-total');
+      if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#4caf50)' : 'var(--danger,#e05252)';
+
+      _set('nw-aset',   '+' + _rp(totalAset));
+      _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
+      _set('nw-escrow', '+' + _rp(escrow));
+      _set('nw-wallet', '+' + _rp(wallet));
+
+      ['nw-escrow-badge', 'nw-wallet-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = isLive ? 'LIVE' : 'offline';
+        el.className   = 'nw-shopee-badge ' + (isLive ? 'live' : 'offline');
+      });
+
+      if (badge) {
+        badge.textContent = isLive ? '● LIVE' : '○ Shopee Offline';
+        badge.className   = 'nw-badge ' + (isLive ? 'nw-badge-live' : 'nw-badge-offline');
       }
+
+      const jam = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      _set('nw-update-time', 'Update ' + jam + ' WIB · auto-refresh 15 mnt');
+
+      // Deteksi timeout total: semua data 0 dan shopee null
+      // Ini tandanya semua request timeout, bukan data kosong beneran
+      if (totalAset === 0 && totalHutang === 0 && shopeeCache === null) {
+        if (badge) {
+          badge.textContent = '⚠ Timeout';
+          badge.className = 'nw-badge nw-badge-offline';
+        }
+        _set('nw-update-time', 'Jaringan lambat · tap refresh untuk coba lagi');
+      }
+
+    } catch(e) {
+      console.warn('[NetWorth] Error:', e);
+      if (badge) {
+        badge.textContent = '⚠ Error';
+        badge.className = 'nw-badge nw-badge-offline';
+      }
+      _set('nw-update-time', 'Tap refresh untuk coba lagi');
+    } finally {
+      if (icon) icon.classList.remove('nw-refresh-spin');
+      _nwRunning = false;
     }
   }
 
@@ -254,14 +305,42 @@
     _nwTimer = setInterval(_calculate, NW_POLL_MS);
   }
 
+  // ─── ANDROID PWA WAKE-UP ─────────────────────────────────────
+  // Saat app di-minimize & dibuka lagi, setInterval sudah mati.
+  // visibilitychange + pageshow memastikan hitung ulang saat kembali ke foreground.
+  function _attachWakeListeners() {
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        // Restart timer (sudah mati saat background)
+        _startPolling();
+        // Hitung ulang segera
+        _calculate();
+      }
+    });
+
+    // pageshow: difire saat navigasi back/forward dari cache (bfcache)
+    // Penting untuk Android PWA & iOS Safari
+    window.addEventListener('pageshow', function(e) {
+      if (e.persisted) {
+        // Halaman restore dari bfcache — timer sudah mati, restart
+        _startPolling();
+        _calculate();
+      }
+    });
+  }
+
   // ─── PUBLIC API ──────────────────────────────────────────────
   window.nwRefresh = function() { _calculate(); };
   window.nwUpdate  = function() { _calculate(); };
 
   // ─── INIT ────────────────────────────────────────────────────
   function _init() {
-    _calculate();
-    _startPolling();
+    _injectStyles();       // BUG FIX: sebelumnya tidak pernah dipanggil
+    _attachWakeListeners(); // BARU: handle Android foreground/background
+    _waitForDbGet(function() {
+      _calculate();
+      _startPolling();
+    });
   }
 
   if (document.readyState === 'loading') {
