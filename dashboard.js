@@ -8,6 +8,29 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ ALERT STRIP ════════════════════════════════════════ -->
   <div id="dash-alerts-wrap"></div>
 
+  <!-- ═══ NET WORTH CARD — HTML static, data diisi networth.js ══ -->
+  <div id="nw-widget" style="margin:0 0 10px 0">
+    <div class="nw-card">
+      <div class="nw-header">
+        <div class="nw-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
+        <div class="nw-actions">
+          <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
+          <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
+        </div>
+      </div>
+      <div class="nw-total-wrap">
+        <div class="nw-total" id="nw-total">Rp —</div>
+        <div class="nw-update-time" id="nw-update-time">menghitung...</div>
+      </div>
+      <div class="nw-breakdown">
+        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
+        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
+        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
+        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-wallet"></i> Wallet Shopee <span id="nw-wallet-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-wallet">—</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <div class="metrics" id="dash-metrics">
     <div class="metric">
@@ -1564,23 +1587,7 @@ async function loadDashboard() {
     document.getElementById('d-saldo').style.color     = saldo>=0?'var(--ok)':'var(--danger)';
 
     // ─ Trigger Net Worth update (networth.js)
-    // Android fix: networth.js mungkin belum selesai load saat dashboard fetch selesai.
-    // Gunakan retry loop — coba tiap 200ms max 15x (3 detik) sampai nwUpdate terdaftar.
-    (function() {
-      var _nwRetry = 0;
-      var _nwMax   = 15;
-      function _tryNwUpdate() {
-        if (typeof nwUpdate === 'function') {
-          nwUpdate();
-        } else if (_nwRetry < _nwMax) {
-          _nwRetry++;
-          setTimeout(_tryNwUpdate, 200);
-        } else {
-          console.warn('[dash] nwUpdate tidak tersedia setelah 3 detik');
-        }
-      }
-      _tryNwUpdate();
-    })();
+    if (typeof nwUpdate === 'function') nwUpdate();
 
     // ─ Metric 5-8
     const jpBulan   = _dashJPData.filter(r => r.tanggal && String(r.tanggal).slice(0,7) === todayYM);
