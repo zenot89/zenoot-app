@@ -87,6 +87,11 @@
     console.log('[NW] widget injected before', anchor.id);
     _injectStyles();
     _nwRendered = true;
+    // Langsung calculate setelah inject — jangan tunggu caller
+    // Di Android _startPolling() bisa jalan sebelum widget ada di DOM
+    // sehingga _calculate() skip. Dengan trigger di sini, widget
+    // pasti sudah di DOM saat _calculate() dipanggil.
+    setTimeout(function() { _calculate(); }, 0);
   }
 
   // ─── STYLES ───────────────────────────────────────────────────
@@ -326,7 +331,10 @@
 
   // ─── POLLING ─────────────────────────────────────────────────
   function _startPolling() {
-    _calculate();
+    // Jangan langsung _calculate() di sini — widget mungkin belum ada di DOM
+    // saat _startPolling dipanggil dari _init() (Android: _injectWidget retry 300ms
+    // belum selesai). _calculate() sudah di-trigger dari _injectWidget() setelah
+    // widget benar-benar masuk DOM.
     if (_nwTimer) clearInterval(_nwTimer);
     _nwTimer = setInterval(_calculate, NW_POLL_MS);
   }
@@ -338,10 +346,14 @@
     const existing = document.getElementById('nw-widget');
     const inPage   = existing && document.getElementById('page-dashboard')?.contains(existing);
     if (!existing || !inPage) {
+      // Widget belum ada — inject dulu. _calculate() akan dipanggil
+      // dari dalam _injectWidget() setelah widget benar-benar di DOM.
       _nwRendered = false;
       _injectWidget();
+    } else {
+      // Widget sudah ada di DOM — langsung calculate
+      _calculate();
     }
-    _calculate();
   };
 
   // ─── CATCH-UP: dashboard sudah selesai fetch sebelum networth.js load ───
