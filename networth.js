@@ -5,15 +5,7 @@
   let _nwTimer   = null;
   let _nwRunning = false;
 
-  // ─── DEBUG LOG (tampil di widget, auto-hilang setelah 60 detik) ──
-  var _dbgLines = [];
-  function _log(msg) {
-    var t = new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    _dbgLines.push('[' + t + '] ' + msg);
-    if (_dbgLines.length > 12) _dbgLines.shift();
-    var el = document.getElementById('nw-debug');
-    if (el) el.textContent = _dbgLines.join('\n');
-  }
+  function _log() {} // debug disabled
 
   // ─── FORMAT RUPIAH ───────────────────────────────────────────
   function _rp(val) {
@@ -65,28 +57,11 @@
       .nw-shopee-badge { font-size:9px; padding:1px 5px; border-radius:10px; font-weight:600; }
       .nw-shopee-badge.live    { background:rgba(76,175,80,0.15);  color:var(--ok,#4caf50); }
       .nw-shopee-badge.offline { background:rgba(255,193,7,0.12);  color:#f0b429; }
-      #nw-debug {
-        font-size:9px; font-family:monospace; color:#aaa;
-        background:rgba(0,0,0,0.4); border-radius:6px;
-        padding:6px 8px; margin-top:8px;
-        white-space:pre-wrap; word-break:break-all;
-        max-height:120px; overflow-y:auto;
-        border: 1px solid rgba(255,255,255,0.06);
-      }
     `;
     document.head.appendChild(s);
   }
 
-  // ─── INJECT DEBUG BOX ke widget (setelah nw-breakdown) ──────
-  function _injectDebugBox() {
-    if (document.getElementById('nw-debug')) return;
-    var breakdown = document.querySelector('.nw-breakdown');
-    if (!breakdown) return;
-    var box = document.createElement('pre');
-    box.id = 'nw-debug';
-    box.textContent = 'debug aktif...';
-    breakdown.parentNode.insertBefore(box, breakdown.nextSibling);
-  }
+
 
   // ─── HITUNG TOTAL ASET ───────────────────────────────────────
   async function _getTotalAset() {
@@ -304,7 +279,6 @@
 
   function _init() {
     _injectStyles();
-    _injectDebugBox();
     _attachWakeListeners();
     _log('init — dbGet ready: ' + (typeof dbGet === 'function'));
     _log('APP_BUILD: ' + (window.APP_BUILD || '?'));
