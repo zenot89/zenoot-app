@@ -222,6 +222,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
               style="background:var(--cream2);border:2px solid var(--ink);border-left:none;
                      padding:0 10px;cursor:pointer;font-size:14px;color:var(--ink);
                      min-height:44px;flex-shrink:0">&#9660;</button>
+            <button id="jp-btn-tambah-sku"
+              onclick="jpSimpanDanTambah()"
+              title="Simpan & tambah SKU lain"
+              style="display:none;background:var(--ok);border:2px solid var(--ok);border-left:none;
+                     padding:0 12px;cursor:pointer;font-size:16px;color:#fff;font-weight:700;
+                     min-height:44px;flex-shrink:0;border-radius:0 4px 4px 0">+</button>
           </div>
         </div>
       </div>
@@ -1189,6 +1195,8 @@ function showTambahJP() {
   document.getElementById('jp-sku-induk').value  = '';
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
   document.getElementById('jp-qty').value        = '';
+  var _btnT = document.getElementById('jp-btn-tambah-sku');
+  if (_btnT) _btnT.style.display = 'none';
 
   // Isi channel dari last channel hari ini
   var lastCh = _jpGetLastChannel();
@@ -1290,6 +1298,60 @@ async function simpanJP() {
       btnSimpan.innerHTML = '<i class="ti ti-device-floppy"></i> SIMPAN';
       btnSimpan.disabled = false;
     }
+  }
+}
+
+// ─── SIMPAN & TAMBAH SKU LAIN ───────────────────────────────
+async function jpSimpanDanTambah() {
+  const qty   = parseInt(document.getElementById('jp-qty').value) || 0;
+  const harga = idrVal('jp-harga');
+  const total = idrVal('jp-total') || qty * harga;
+  const chIdRaw = document.getElementById('jp-channel').value;
+  const chId    = chIdRaw ? chIdRaw : null;
+  const skuV  = document.getElementById('jp-sku-variasi').value;
+  const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
+  const sku   = (skuV || skuI).trim().toUpperCase();
+  const tgl   = document.getElementById('jp-tgl').value;
+  const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
+
+  if (!tgl)     { alert('Tanggal wajib diisi!');      return; }
+  if (!sku)     { alert('SKU wajib diisi!');          return; }
+  if (qty <= 0) { alert('Qty harus lebih dari 0!');   return; }
+  if (harga <= 0){ alert('Harga satuan harus diisi!'); return; }
+
+  const btn = document.getElementById('jp-btn-tambah-sku');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+  try {
+    await dbInsert('jurnal_penjualan', { tanggal: tgl, waktu, channel_id: chId, sku, qty, harga_satuan: harga, total });
+
+    // Reset hanya SKU — pertahankan tanggal, waktu, channel
+    document.getElementById('jp-sku-induk').value = '';
+    document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+    document.getElementById('jp-qty').value = '';
+    idrSet('jp-harga', 0);
+    idrSet('jp-total', 0);
+
+    // Reset picker variasi label
+    var lblV = document.getElementById('jp-picker-variasi-label');
+    if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
+
+    // Sembunyikan tombol + lagi sampai variasi dipilih
+    if (btn) { btn.textContent = '+'; btn.disabled = false; btn.style.display = 'none'; }
+
+    // Refresh data di background
+    loadJurnalPenjualan();
+    if (typeof loadDashboard === 'function') loadDashboard();
+
+    // Focus ke SKU induk
+    setTimeout(function() {
+      var inp = document.getElementById('jp-sku-induk');
+      if (inp) inp.focus();
+    }, 100);
+
+  } catch(err) {
+    alert('Gagal simpan: ' + err.message);
+    if (btn) { btn.textContent = '+'; btn.disabled = false; }
   }
 }
 
@@ -1565,6 +1627,9 @@ function jpPickerVariasiSelect(item) {
   list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
   item.classList.add('active');
   jpClosePicker(list);
+  // Tampilkan tombol + saat variasi sudah dipilih
+  var btnTambah = document.getElementById('jp-btn-tambah-sku');
+  if (btnTambah) btnTambah.style.display = val ? 'block' : 'none';
   // Trigger hitung harga
   if (val) jpOnPilihVariasi();
 }
