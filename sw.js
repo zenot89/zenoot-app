@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v19 — fix networth stuck Android: _waitForDbGet loop + visibilitychange wake-up
-var JS_CACHE = 'zenot-js-20260610-4c71067afacc';
+var JS_CACHE = 'zenot-js-20260610-7c0bec8241b1';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
