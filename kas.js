@@ -180,7 +180,7 @@ if (document.readyState === 'loading') {
           <option value="jurnal">📋 Jurnal Umum</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" readonly style="cursor:pointer"></div>
+      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" style="cursor:pointer"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
@@ -270,7 +270,7 @@ if (document.readyState === 'loading') {
           <option value="jurnal">📋 Jurnal Umum</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" readonly style="cursor:pointer"></div>
+      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" style="cursor:pointer"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
