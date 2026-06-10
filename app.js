@@ -614,11 +614,15 @@ if ('serviceWorker' in navigator) {
     // Guard: tap di dalam picker element atau list → jangan tutup
     if (!e.target.closest) return;
     if (
-      e.target.closest('[data-picker]')     ||
-      e.target.closest('.kas-akun-picker')  ||
-      e.target.closest('.kas-akun-list')    ||
-      e.target.closest('.keu-akun-picker')  ||
-      e.target.closest('.keu-akun-list')
+      e.target.closest('[data-picker]')          ||
+      e.target.closest('.kas-akun-picker')       ||
+      e.target.closest('.kas-akun-list')         ||
+      e.target.closest('.kas-akun-search-wrap')  ||
+      e.target.closest('.kas-akun-search')       ||
+      e.target.closest('.keu-akun-picker')       ||
+      e.target.closest('.keu-akun-list')         ||
+      e.target.closest('.keu-akun-search-wrap')  ||
+      e.target.closest('.keu-akun-search')
     ) return;
     document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
   }
@@ -736,4 +740,182 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
       container.scrollTop += dy;
     }
   }, { passive: false });
+})();
+
+// ─── CUSTOM DATE PICKER (shared) ─────────────────────────────
+// Replace semua input[type=date] dengan custom kalender
+// Konsisten di Android, iPhone, laptop
+(function() {
+  var _dp = null; // overlay aktif
+  var _dpTarget = null; // input yg sedang di-edit
+
+  // Nama hari dan bulan Indonesia
+  var HARI  = ['MIN','SEN','SEL','RAB','KAM','JUM','SAB'];
+  var BULAN = ['Januari','Februari','Maret','April','Mei','Juni',
+               'Juli','Agustus','September','Oktober','November','Desember'];
+
+  function _dpCreate() {
+    if (document.getElementById('zenot-datepicker')) return;
+    var el = document.createElement('div');
+    el.id = 'zenot-datepicker';
+    el.style.cssText = [
+      'position:fixed','z-index:999999','inset:0',
+      'display:flex','align-items:center','justify-content:center',
+      'background:rgba(0,0,0,0.55)','padding:16px','box-sizing:border-box'
+    ].join(';');
+    el.innerHTML = [
+      '<div style="background:var(--cream2,#1e1e1e);border-radius:16px;padding:20px;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.6)">',
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">',
+          '<button id="dp-prev" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:22px;padding:4px 10px;border-radius:8px">&#8249;</button>',
+          '<button id="dp-month-label" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:16px;font-weight:700;padding:4px 8px"></button>',
+          '<button id="dp-next" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:22px;padding:4px 10px;border-radius:8px">&#8250;</button>',
+        '</div>',
+        '<div id="dp-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px"></div>',
+        '<div style="display:flex;gap:8px;justify-content:flex-end">',
+          '<button id="dp-reset" style="background:var(--cream4,#333);border:none;cursor:pointer;color:var(--ink3,#888);border-radius:10px;padding:8px 18px;font-size:13px;font-weight:600">Atur Ulang</button>',
+          '<button id="dp-ok" style="background:#2979ff;border:none;cursor:pointer;color:#fff;border-radius:50%;width:42px;height:42px;font-size:20px;font-weight:700">✓</button>',
+        '</div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(el);
+
+    // Close on overlay tap
+    el.addEventListener('click', function(e) {
+      if (e.target === el) _dpClose();
+    });
+    el.addEventListener('touchstart', function(e) {
+      if (e.target === el) _dpClose();
+    }, { passive: true });
+
+    document.getElementById('dp-prev').onclick = function() { _dpNav(-1); };
+    document.getElementById('dp-next').onclick = function() { _dpNav(1); };
+    document.getElementById('dp-reset').onclick = function() { _dpSelectDate(null); };
+    document.getElementById('dp-ok').onclick = _dpConfirm;
+  }
+
+  var _dpYear, _dpMonth, _dpDay; // state kalender
+
+  function _dpOpen(inputEl) {
+    _dpCreate();
+    _dpTarget = inputEl;
+    var val = inputEl.value; // YYYY-MM-DD
+    var now = new Date();
+    if (val && val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      var parts = val.split('-');
+      _dpYear  = parseInt(parts[0]);
+      _dpMonth = parseInt(parts[1]) - 1;
+      _dpDay   = parseInt(parts[2]);
+    } else {
+      _dpYear  = now.getFullYear();
+      _dpMonth = now.getMonth();
+      _dpDay   = now.getDate();
+    }
+    _dpRender();
+    document.getElementById('zenot-datepicker').style.display = 'flex';
+    // Stop scroll behind
+    document.body.style.overflow = 'hidden';
+  }
+
+  function _dpClose() {
+    var el = document.getElementById('zenot-datepicker');
+    if (el) el.style.display = 'none';
+    document.body.style.overflow = '';
+    _dpTarget = null;
+  }
+
+  function _dpNav(dir) {
+    _dpMonth += dir;
+    if (_dpMonth > 11) { _dpMonth = 0; _dpYear++; }
+    if (_dpMonth < 0)  { _dpMonth = 11; _dpYear--; }
+    _dpRender();
+  }
+
+  function _dpRender() {
+    var label = document.getElementById('dp-month-label');
+    var grid  = document.getElementById('dp-grid');
+    if (!label || !grid) return;
+    label.textContent = BULAN[_dpMonth] + ' ' + _dpYear;
+
+    var html = '';
+    // Header hari
+    HARI.forEach(function(h) {
+      html += '<div style="text-align:center;font-size:10px;font-weight:700;color:var(--ink3,#888);padding:4px 0">' + h + '</div>';
+    });
+    // Offset hari pertama
+    var firstDay = new Date(_dpYear, _dpMonth, 1).getDay();
+    for (var i = 0; i < firstDay; i++) {
+      html += '<div></div>';
+    }
+    // Hari dalam bulan
+    var daysInMonth = new Date(_dpYear, _dpMonth + 1, 0).getDate();
+    var today = new Date();
+    for (var d = 1; d <= daysInMonth; d++) {
+      var isSelected = (d === _dpDay);
+      var isToday    = (d === today.getDate() && _dpMonth === today.getMonth() && _dpYear === today.getFullYear());
+      var bg  = isSelected ? '#2979ff' : 'transparent';
+      var clr = isSelected ? '#fff' : (isToday ? '#2979ff' : 'var(--ink,#eee)');
+      var fw  = (isSelected || isToday) ? '700' : '400';
+      var border = isToday && !isSelected ? '2px solid #2979ff' : '2px solid transparent';
+      html += '<div onclick="_dpSelectDate(' + d + ')" style="' +
+        'text-align:center;padding:7px 2px;border-radius:50%;cursor:pointer;' +
+        'background:' + bg + ';color:' + clr + ';font-weight:' + fw + ';' +
+        'border:' + border + ';font-size:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center' +
+      '">' + d + '</div>';
+    }
+    grid.innerHTML = html;
+  }
+
+  function _dpSelectDate(d) {
+    _dpDay = d;
+    _dpRender();
+  }
+
+  function _dpConfirm() {
+    if (!_dpTarget) { _dpClose(); return; }
+    if (_dpDay) {
+      var mm = String(_dpMonth + 1).padStart(2, '0');
+      var dd = String(_dpDay).padStart(2, '0');
+      _dpTarget.value = _dpYear + '-' + mm + '-' + dd;
+      // Trigger change event supaya form listeners tahu
+      _dpTarget.dispatchEvent(new Event('change', { bubbles: true }));
+      _dpTarget.dispatchEvent(new Event('input',  { bubbles: true }));
+    } else {
+      _dpTarget.value = '';
+    }
+    _dpClose();
+  }
+
+  // Expose global
+  window._dpOpen = _dpOpen;
+
+  // Auto-attach ke semua input[type=date] saat DOM ready + saat halaman ganti
+  function _dpAttachAll() {
+    document.querySelectorAll('input[type="date"]').forEach(function(inp) {
+      if (inp.dataset.dpAttached) return;
+      inp.dataset.dpAttached = '1';
+      inp.readOnly = true;
+      inp.style.cursor = 'pointer';
+      inp.style.caretColor = 'transparent';
+      inp.addEventListener('click',      function(e) { e.preventDefault(); _dpOpen(inp); });
+      inp.addEventListener('touchend',   function(e) { e.preventDefault(); _dpOpen(inp); });
+      inp.addEventListener('keydown',    function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _dpOpen(inp); } });
+    });
+  }
+
+  // Attach saat DOMContentLoaded dan saat navigasi page
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _dpAttachAll);
+  } else {
+    _dpAttachAll();
+  }
+  // Re-attach setiap kali halaman berubah (zenot:page event)
+  document.addEventListener('zenot:page', function() {
+    setTimeout(_dpAttachAll, 100);
+  });
+  // Re-attach setiap kali modal dibuka (ada innerHTML injection)
+  var _dpObserver = new MutationObserver(function() {
+    _dpAttachAll();
+  });
+  _dpObserver.observe(document.body, { childList: true, subtree: true });
+
 })();
