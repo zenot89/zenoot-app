@@ -249,6 +249,25 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
       </div>
 
+      <!-- List sementara sebelum simpan -->
+      <div id="jp-pending-list" style="display:none;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">
+          Akan Disimpan <span id="jp-pending-count" style="color:var(--ok)">0</span> item
+        </div>
+        <table style="width:100%;font-size:12px;border-collapse:collapse" id="jp-pending-tbl">
+          <thead>
+            <tr style="color:var(--ink3);border-bottom:1px solid var(--cream4)">
+              <th style="text-align:left;padding:3px 4px">SKU</th>
+              <th style="text-align:right;padding:3px 4px">Qty</th>
+              <th style="text-align:right;padding:3px 4px">Harga</th>
+              <th style="text-align:right;padding:3px 4px">Total</th>
+              <th style="width:24px"></th>
+            </tr>
+          </thead>
+          <tbody id="jp-pending-tbody"></tbody>
+        </table>
+      </div>
+
       <!-- Tombol aksi -->
       <div class="modal-actions"
         style="border-top:1.5px dashed var(--ink3);padding-top:12px">
@@ -426,6 +445,9 @@ function jpOverlayClose(e) {
   if (e.target === document.getElementById('modal-jp')) closeModalJP();
 }
 function closeModalJP() {
+  _jpPendingItems = [];
+  var list = document.getElementById('jp-pending-list');
+  if (list) list.style.display = 'none';
   document.getElementById('modal-jp').classList.remove('open');
   jpTutupDropdownSKU();
 }
@@ -1266,28 +1288,54 @@ async function simpanJP() {
   const skuV  = document.getElementById('jp-sku-variasi').value;
   const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
   const sku   = (skuV || skuI).trim().toUpperCase();
+  const tgl   = document.getElementById('jp-tgl').value;
   const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
 
-  const payload = {
-    tanggal:      document.getElementById('jp-tgl').value,
-    waktu,
-    channel_id:   chId,
-    sku,
-    qty,
-    harga_satuan: harga,
-    total,
-  };
+  // Kalau ada pending items, item di form sekarang harus juga valid
+  // Kalau tidak ada pending items, validasi normal
+  const hasPending = _jpPendingItems.length > 0;
 
-  if (!payload.tanggal) { alert('Tanggal wajib diisi!');      return; }
-  if (!sku)             { alert('SKU wajib diisi!');          return; }
-  if (qty <= 0)         { alert('Qty harus lebih dari 0!');   return; }
-  if (harga <= 0)       { alert('Harga satuan harus diisi!'); return; }
+  if (!tgl) { alert('Tanggal wajib diisi!'); return; }
+
+  // Kalau form saat ini ada isinya, validasi dan tambah ke batch
+  var allItems = _jpPendingItems.slice(); // copy
+  if (sku || qty > 0 || harga > 0) {
+    if (!sku)      { alert('SKU wajib diisi!');           return; }
+    if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
+    if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
+    allItems.push({ sku, qty, harga, total: total||qty*harga, channel_id: chId, tgl, waktu });
+  } else if (!hasPending) {
+    // Form kosong dan tidak ada pending
+    if (!sku)      { alert('SKU wajib diisi!');           return; }
+    if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
+    if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
+  }
+
+  if (allItems.length === 0) { alert('Tidak ada item untuk disimpan!'); return; }
 
   const btnSimpan = document.querySelector('#modal-jp .btn-primary');
   if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
+
   try {
-    if (id) await dbUpdate('jurnal_penjualan', id, payload);
-    else    await dbInsert('jurnal_penjualan', payload);
+    if (id) {
+      // Mode edit — simpan item pertama saja
+      const p = allItems[0];
+      await dbUpdate('jurnal_penjualan', id, {
+        tanggal: tgl, waktu: p.waktu, channel_id: p.channel_id,
+        sku: p.sku, qty: p.qty, harga_satuan: p.harga, total: p.total
+      });
+    } else {
+      // Mode tambah — simpan semua item (pending + form)
+      for (var i = 0; i < allItems.length; i++) {
+        var p = allItems[i];
+        await dbInsert('jurnal_penjualan', {
+          tanggal: p.tgl || tgl, waktu: p.waktu || waktu,
+          channel_id: p.channel_id, sku: p.sku,
+          qty: p.qty, harga_satuan: p.harga, total: p.total
+        });
+      }
+    }
+    _jpPendingItems = []; // clear pending
     closeModalJP();
     loadJurnalPenjualan();
     if (typeof loadDashboard === 'function') loadDashboard();
@@ -1301,8 +1349,37 @@ async function simpanJP() {
   }
 }
 
+// ─── PENDING LIST ────────────────────────────────────────────
+var _jpPendingItems = []; // [{sku, qty, harga, total, channel_id, tgl, waktu, skuLabel}]
+
+function _jpRenderPending() {
+  var list  = document.getElementById('jp-pending-list');
+  var tbody = document.getElementById('jp-pending-tbody');
+  var count = document.getElementById('jp-pending-count');
+  if (!list || !tbody) return;
+  if (_jpPendingItems.length === 0) { list.style.display = 'none'; return; }
+  list.style.display = 'block';
+  if (count) count.textContent = _jpPendingItems.length;
+  tbody.innerHTML = _jpPendingItems.map(function(item, idx) {
+    return '<tr style="border-bottom:1px solid var(--cream4)">' +
+      '<td style="padding:4px 4px;font-weight:600">' + item.skuLabel + '</td>' +
+      '<td style="text-align:right;padding:4px 4px">' + item.qty + '</td>' +
+      '<td style="text-align:right;padding:4px 4px;color:var(--ink3)">' + (item.harga ? 'Rp'+item.harga.toLocaleString('id-ID') : '—') + '</td>' +
+      '<td style="text-align:right;padding:4px 4px;color:var(--ok);font-weight:700">Rp' + (item.total||0).toLocaleString('id-ID') + '</td>' +
+      '<td style="text-align:center;padding:4px 2px">' +
+        '<button onclick="_jpRemovePending(' + idx + ')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px">×</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function _jpRemovePending(idx) {
+  _jpPendingItems.splice(idx, 1);
+  _jpRenderPending();
+}
+
 // ─── SIMPAN & TAMBAH SKU LAIN ───────────────────────────────
-async function jpSimpanDanTambah() {
+function jpSimpanDanTambah() {
   const qty   = parseInt(document.getElementById('jp-qty').value) || 0;
   const harga = idrVal('jp-harga');
   const total = idrVal('jp-total') || qty * harga;
@@ -1311,48 +1388,37 @@ async function jpSimpanDanTambah() {
   const skuV  = document.getElementById('jp-sku-variasi').value;
   const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
   const sku   = (skuV || skuI).trim().toUpperCase();
+  const skuLabel = skuV || sku;
   const tgl   = document.getElementById('jp-tgl').value;
   const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
 
-  if (!tgl)     { alert('Tanggal wajib diisi!');      return; }
-  if (!sku)     { alert('SKU wajib diisi!');          return; }
-  if (qty <= 0) { alert('Qty harus lebih dari 0!');   return; }
-  if (harga <= 0){ alert('Harga satuan harus diisi!'); return; }
+  if (!tgl)      { alert('Tanggal wajib diisi!');       return; }
+  if (!sku)      { alert('SKU wajib diisi!');           return; }
+  if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
+  if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
 
-  const btn = document.getElementById('jp-btn-tambah-sku');
-  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  // Tambah ke list sementara — belum ke DB
+  _jpPendingItems.push({ sku, skuLabel, qty, harga, total, channel_id: chId, tgl, waktu });
+  _jpRenderPending();
 
-  try {
-    await dbInsert('jurnal_penjualan', { tanggal: tgl, waktu, channel_id: chId, sku, qty, harga_satuan: harga, total });
+  // Reset SKU — pertahankan tanggal, waktu, channel
+  document.getElementById('jp-sku-induk').value = '';
+  document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  document.getElementById('jp-qty').value = '';
+  idrSet('jp-harga', 0);
+  idrSet('jp-total', 0);
 
-    // Reset hanya SKU — pertahankan tanggal, waktu, channel
-    document.getElementById('jp-sku-induk').value = '';
-    document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
-    document.getElementById('jp-qty').value = '';
-    idrSet('jp-harga', 0);
-    idrSet('jp-total', 0);
+  var lblV = document.getElementById('jp-picker-variasi-label');
+  if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
 
-    // Reset picker variasi label
-    var lblV = document.getElementById('jp-picker-variasi-label');
-    if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
+  var btn = document.getElementById('jp-btn-tambah-sku');
+  if (btn) btn.style.display = 'none';
 
-    // Sembunyikan tombol + lagi sampai variasi dipilih
-    if (btn) { btn.textContent = '+'; btn.disabled = false; btn.style.display = 'none'; }
-
-    // Refresh data di background
-    loadJurnalPenjualan();
-    if (typeof loadDashboard === 'function') loadDashboard();
-
-    // Focus ke SKU induk
-    setTimeout(function() {
-      var inp = document.getElementById('jp-sku-induk');
-      if (inp) inp.focus();
-    }, 100);
-
-  } catch(err) {
-    alert('Gagal simpan: ' + err.message);
-    if (btn) { btn.textContent = '+'; btn.disabled = false; }
-  }
+  // Focus ke SKU induk untuk input berikutnya
+  setTimeout(function() {
+    var inp = document.getElementById('jp-sku-induk');
+    if (inp) inp.focus();
+  }, 80);
 }
 
 // ─── HAPUS ───────────────────────────────────────────────────
