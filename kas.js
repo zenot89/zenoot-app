@@ -108,7 +108,7 @@ document.getElementById('page-kas').innerHTML = `
     <!-- Sub-panel: Neraca Saldo -->
     <div id="lap-panel-neraca">
       <table class="tbl kas-lap-tbl">
-        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th style="text-align:right">Saldo</th></tr></thead>
+        <thead><tr><th>Kode</th><th>Nama Akun</th><th style="text-align:right">Saldo</th><th>Kelompok</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th></tr></thead>
         <tbody id="kas-neraca-tbody"></tbody>
       </table>
     </div>
@@ -997,12 +997,12 @@ function kasRenderNeraca(data) {
       totalD += s.debit; totalK += s.kredit;
       html += `<tr>
         <td style="font-family:monospace;font-size:12px">${a.kode||'—'}</td><td>${a.nama}</td>
-        <td><span class="akun-badge akun-${k}">${kasKelompokLabel(k)}</span></td>
-        <td style="text-align:right;color:var(--ok)">${fmtRp(s.debit)}</td>
-        <td style="text-align:right;color:var(--danger)">${fmtRp(s.kredit)}</td>
         <td style="text-align:right;font-weight:700;color:${saldo>=0?'var(--ok)':'var(--danger)'}">
           ${saldo<0?'(':''}${fmtRp(Math.abs(saldo))}${saldo<0?')':''}
         </td>
+        <td><span class="akun-badge akun-${k}">${kasKelompokLabel(k)}</span></td>
+        <td style="text-align:right;color:var(--ok)">${fmtRp(s.debit)}</td>
+        <td style="text-align:right;color:var(--danger)">${fmtRp(s.kredit)}</td>
       </tr>`;
     });
   });

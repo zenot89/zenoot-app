@@ -1555,16 +1555,19 @@ async function loadDashboard() {
     const kritis    = _dashStokData.filter(r => r.sisa <= 3 && (r.kategori_produk || 'aktif') === 'aktif').length;
     const nilaiStok = _dashStokData.reduce((s,r) => s + (r.nilai_stok || 0), 0);
     // ─ Saldo KAS: hanya akun sub_kelompok 'KAS & BANK' — debit masuk, kredit keluar
-    const saldo = (jurnalAllData || []).reduce((s, r) => {
-      const n  = Number(r.nominal || r.debit || 0);
+    // Saldo KAS — sama persis dengan kas.js kasUpdateSummary:
+    // masuk = nominal/debit saat akun KAS & BANK di posisi debit
+    // keluar = nominal/kredit saat akun KAS & BANK di posisi kredit
+    let _kasMasuk = 0, _kasKeluar = 0;
+    (jurnalAllData || []).forEach(r => {
       const aD = _dashKasAkunMap[r.akun_debit_id];
       const aK = _dashKasAkunMap[r.akun_kredit_id];
-      const isKasDebit  = aD && aD.kelompok === 'aset' && (aD.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
-      const isKasKredit = aK && aK.kelompok === 'aset' && (aK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
-      if (isKasDebit)  return s + n;
-      if (isKasKredit) return s - n;
-      return s;
-    }, 0);
+      const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      if (isKasD) _kasMasuk  += Number(r.nominal || r.debit  || 0);
+      if (isKasK) _kasKeluar += Number(r.nominal || r.kredit || 0);
+    });
+    const saldo = _kasMasuk - _kasKeluar;
 
     document.getElementById('d-sku').textContent       = _dashStokData.length;
     document.getElementById('d-kritis').textContent    = kritis + ' sku' + (kritis>0?'!':'');
