@@ -36,13 +36,21 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- Baris 1: UANG HARI INI vs AKTIVITAS | Baris 2: PENJUALAN vs TARGET | Baris 3: UNTUNG vs BEBAN | Baris 4: STOK -->
   <div class="metrics" id="dash-metrics">
 
-    <!-- BARIS 1 — Uang & Aktivitas Hari Ini -->
+    <!-- BARIS 1 — Kas Hari Ini -->
     <div class="metric">
       <div class="m-label">Saldo Kas</div>
       <div class="m-value" id="d-saldo">—</div>
       <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
       <div class="doodle"><i class="ti ti-wallet"></i></div>
     </div>
+    <div class="metric" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);">
+      <div class="m-label">Cash Flow</div>
+      <div class="m-value" id="d-cashflow">—</div>
+      <div class="m-delta" id="d-cashflow-delta">bulan ini</div>
+      <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
+    </div>
+
+    <!-- BARIS 2 — Order & Penjualan -->
     <div class="metric">
       <div class="m-label">Order Hari Ini</div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
@@ -51,15 +59,8 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
       </div>
       <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:3px">Omset bulan: <span id="d-omset-abu">—</span></div>
       <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
-    </div>
-
-    <!-- BARIS 2 — Penjualan vs Target -->
-    <div class="metric">
-      <div class="m-label">Omset Bulan Ini</div>
-      <div class="m-value" id="d-omset">—</div>
-      <div class="m-delta" id="d-omset-delta">dari jurnal penjualan</div>
-      <div class="doodle"><i class="ti ti-trending-up"></i></div>
     </div>
     <div class="metric">
       <div class="m-label">Target Omset <span class="target-link" onclick="openTargetModal()">✎ set</span></div>
@@ -1570,6 +1571,26 @@ async function loadDashboard() {
     document.getElementById('d-saldo').textContent     = (saldo>=0?'+':'')+_fmtRp(Math.abs(saldo));
     document.getElementById('d-saldo').style.color     = saldo>=0?'var(--ok)':'var(--danger)';
 
+    // ─ Cash Flow bulan ini (masuk - keluar dari akun KAS & BANK, bulan berjalan)
+    const cfMasuk = (jurnalAllData||[]).filter(r => {
+      const aD = _dashKasAkunMap[r.akun_debit_id];
+      return aD && aD.kelompok==='aset' && (aD.sub_kelompok||'').trim().toUpperCase()==='KAS & BANK'
+          && String(r.tanggal||'').slice(0,7)===todayYM;
+    }).reduce((s,r)=>s+(Number(r.nominal||r.debit)||0),0);
+    const cfKeluar = (jurnalAllData||[]).filter(r => {
+      const aK = _dashKasAkunMap[r.akun_kredit_id];
+      return aK && aK.kelompok==='aset' && (aK.sub_kelompok||'').trim().toUpperCase()==='KAS & BANK'
+          && String(r.tanggal||'').slice(0,7)===todayYM;
+    }).reduce((s,r)=>s+(Number(r.nominal||r.kredit)||0),0);
+    const cf = cfMasuk - cfKeluar;
+    const elCf = document.getElementById('d-cashflow');
+    const elCfDelta = document.getElementById('d-cashflow-delta');
+    if (elCf) {
+      elCf.textContent = (cf>0?'+':cf<0?'-':'') + _fmtRp(Math.abs(cf));
+      elCf.style.color = cf>0?'var(--ok)':cf<0?'var(--danger)':'var(--ink2)';
+    }
+    if (elCfDelta) elCfDelta.textContent = todayYM.replace('-','/');
+
     // ─ Trigger Net Worth update (networth.js)
     if (typeof nwUpdate === 'function') nwUpdate();
 
@@ -1591,6 +1612,8 @@ async function loadDashboard() {
     if (elQty)   elQty.textContent  = qtyHariIni || '0';
     if (elOmHr)  elOmHr.textContent = omsetHari>0 ? _fmtRp(omsetHari) : 'Rp0';
     if (elDelta) elDelta.textContent = jpHariIni.length + ' transaksi hari ini';
+    const elOmsetAbu = document.getElementById('d-omset-abu');
+    if (elOmsetAbu) elOmsetAbu.textContent = _fmtRp(omsetBln);
 
     // ─ AOV — BARU
     const elAov = document.getElementById('d-aov');
