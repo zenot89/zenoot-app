@@ -1162,22 +1162,55 @@ function updateMetricsJP(data) {
   document.getElementById('jp-total-item').textContent      = item.toLocaleString('id-ID') + ' item';
 }
 
+// ─── LAST CHANNEL MEMORY — reset jam 00.00 ───────────────────
+function _jpGetLastChannel() {
+  try {
+    var today = new Date().toISOString().slice(0,10);
+    var saved = localStorage.getItem('jp_last_channel');
+    if (!saved) return null;
+    var obj = JSON.parse(saved);
+    if (obj.date !== today) { localStorage.removeItem('jp_last_channel'); return null; }
+    return obj; // { date, val, label }
+  } catch(e) { return null; }
+}
+function _jpSaveLastChannel(val, label) {
+  try {
+    var today = new Date().toISOString().slice(0,10);
+    localStorage.setItem('jp_last_channel', JSON.stringify({ date: today, val: val, label: label }));
+  } catch(e) {}
+}
+
 // ─── BUKA MODAL ──────────────────────────────────────────────
 function showTambahJP() {
   document.getElementById('jp-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Penjualan';
   document.getElementById('jp-id').value         = '';
   document.getElementById('jp-tgl').value        = _jpNowDate();
   document.getElementById('jp-waktu').value      = _jpNowTime();
-  document.getElementById('jp-channel').value    = '';
   document.getElementById('jp-sku-induk').value  = '';
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
   document.getElementById('jp-qty').value        = '';
-  
-  
+
+  // Isi channel dari last channel hari ini
+  var lastCh = _jpGetLastChannel();
+  var chVal = lastCh ? lastCh.val : '';
+  var chLabel = lastCh ? lastCh.label : '— Pilih Channel —';
+  document.getElementById('jp-channel').value = chVal;
+  var lblC = document.getElementById('jp-picker-channel-label');
+  if (lblC) { lblC.textContent = chLabel; lblC.style.color = chVal ? 'var(--ink)' : 'var(--ink3)'; }
+  // Tandai aktif di picker list
+  setTimeout(function() {
+    var list = document.getElementById('jp-picker-channel-list');
+    if (list && chVal) {
+      list.querySelectorAll('.kas-akun-item').forEach(function(el) {
+        el.classList.toggle('active', el.dataset.val === chVal);
+      });
+    }
+  }, 200);
+
   jpTutupDropdownSKU();
   loadProdukListJP();
   document.getElementById('modal-jp').classList.add('open');
-setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
+  setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
 
 // ─── EDIT ────────────────────────────────────────────────────
@@ -1486,6 +1519,8 @@ function jpPickerChannelSelect(item) {
   // Update label
   var lbl = document.getElementById('jp-picker-channel-label');
   if (lbl) { lbl.textContent = val ? label : '— Pilih Channel —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  // Simpan sebagai last channel hari ini
+  if (val) _jpSaveLastChannel(val, label);
   // Tandai aktif
   list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
   item.classList.add('active');
