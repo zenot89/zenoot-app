@@ -32,53 +32,34 @@ document.getElementById('page-dashboard').innerHTML = `
   </div>
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
+  <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
+  <!-- Baris 1: UANG HARI INI vs AKTIVITAS | Baris 2: PENJUALAN vs TARGET | Baris 3: UNTUNG vs BEBAN | Baris 4: STOK -->
   <div class="metrics" id="dash-metrics">
-    <div class="metric">
-      <div class="m-label">Total SKU Aktif</div>
-      <div class="m-value" id="d-sku">—</div>
-      <div class="m-delta">produk terdaftar</div>
-      <div class="doodle"><i class="ti ti-package"></i></div>
-    </div>
-    <div class="metric">
-      <div class="m-label">Nilai Stok</div>
-      <div class="m-value" id="d-nilaiStok">—</div>
-      <div class="m-delta">HPP × sisa stok</div>
-      <div class="doodle"><i class="ti ti-coin"></i></div>
-    </div>
-    <div class="metric" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
-      <div class="m-label">SKU Kritis</div>
-      <div class="m-value" id="d-kritis">—</div>
-      <div class="m-delta">stok ≤ 3 · klik untuk restock</div>
-      <div class="doodle"><i class="ti ti-alert-triangle"></i></div>
-    </div>
+
+    <!-- BARIS 1 — Uang & Aktivitas Hari Ini -->
     <div class="metric">
       <div class="m-label">Saldo Kas</div>
       <div class="m-value" id="d-saldo">—</div>
-      <div class="m-delta">dari jurnal</div>
-      <div class="doodle"><i class="ti ti-receipt"></i></div>
+      <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
+      <div class="doodle"><i class="ti ti-wallet"></i></div>
     </div>
-  </div>
+    <div class="metric">
+      <div class="m-label">Order Hari Ini</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+        <div class="m-value" id="d-order-qty" style="margin:0">—</div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
+        <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
+      </div>
+      <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
+      <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
+    </div>
 
-  <!-- ═══ ROW 2: 4 METRIC CARDS ════════════════════════════════ -->
-  <div class="metrics">
+    <!-- BARIS 2 — Penjualan vs Target -->
     <div class="metric">
       <div class="m-label">Omset Bulan Ini</div>
       <div class="m-value" id="d-omset">—</div>
       <div class="m-delta" id="d-omset-delta">dari jurnal penjualan</div>
       <div class="doodle"><i class="ti ti-trending-up"></i></div>
-    </div>
-    <div class="metric">
-      <div class="m-label">Target Harian</div>
-      <div class="m-value" id="d-target-harian">—</div>
-      <div class="m-delta">
-        <div id="d-target-harian-bar-wrap" style="margin-top:4px;display:none">
-          <div style="background:var(--cream4);height:6px;border-radius:3px;overflow:hidden;border:1px solid var(--ink4)">
-            <div id="d-target-harian-bar" style="height:100%;background:var(--ok);transition:width .5s;width:0%"></div>
-          </div>
-          <span id="d-target-harian-pct" style="font-size:10px;color:var(--ink3)">0%</span>
-        </div>
-      </div>
-      <div class="doodle"><i class="ti ti-calendar"></i></div>
     </div>
     <div class="metric">
       <div class="m-label">Target Omset <span class="target-link" onclick="openTargetModal()">✎ set</span></div>
@@ -93,31 +74,13 @@ document.getElementById('page-dashboard').innerHTML = `
       </div>
       <div class="doodle"><i class="ti ti-target"></i></div>
     </div>
-    <div class="metric">
-      <div class="m-label">Order Hari Ini</div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
-        <div class="m-value" id="d-order-qty" style="margin:0">—</div>
-        <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
-        <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
-      </div>
-      <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
-      <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
-    </div>
-  </div>
 
-  <!-- ═══ ROW 2b: METRIC BARU — AOV + LABA KOTOR + BEBAN ═══════ -->
-  <div class="metrics">
+    <!-- BARIS 3 — Laba vs Beban -->
     <div class="metric">
-      <div class="m-label">AOV Bulan Ini</div>
-      <div class="m-value" id="d-aov">—</div>
-      <div class="m-delta">rata-rata per transaksi</div>
-      <div class="doodle"><i class="ti ti-calculator"></i></div>
-    </div>
-    <div class="metric">
-      <div class="m-label">Est. Laba Kotor</div>
-      <div class="m-value" id="d-laba">—</div>
-      <div class="m-delta" id="d-laba-delta">omset − HPP terjual</div>
-      <div class="doodle"><i class="ti ti-chart-bar"></i></div>
+      <div class="m-label">Est. Laba Bersih</div>
+      <div class="m-value" id="d-laba-bersih">—</div>
+      <div class="m-delta">laba kotor − beban</div>
+      <div class="doodle"><i class="ti ti-trophy"></i></div>
     </div>
     <div class="metric" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
       <div class="m-label">Beban vs Kas</div>
@@ -126,12 +89,33 @@ document.getElementById('page-dashboard').innerHTML = `
       <div id="d-beban-realisasi" style="font-size:11px;color:var(--ink3);margin-top:2px"></div>
       <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
+
+    <!-- BARIS 4 — Stok -->
     <div class="metric">
-      <div class="m-label">Est. Laba Bersih</div>
-      <div class="m-value" id="d-laba-bersih">—</div>
-      <div class="m-delta">laba kotor − beban</div>
-      <div class="doodle"><i class="ti ti-trophy"></i></div>
+      <div class="m-label">Nilai Stok</div>
+      <div class="m-value" id="d-nilaiStok">—</div>
+      <div class="m-delta">HPP × sisa stok</div>
+      <div class="doodle"><i class="ti ti-coin"></i></div>
     </div>
+    <div class="metric" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
+      <div class="m-label">SKU Kritis</div>
+      <div class="m-value" id="d-kritis">—</div>
+      <div class="m-delta">stok ≤ 3 · klik untuk restock</div>
+      <div class="doodle"><i class="ti ti-alert-triangle"></i></div>
+    </div>
+
+  </div>
+
+  <!-- Hidden elements untuk backward compat (ID masih dipakai JS tapi card tidak ditampilkan) -->
+  <div style="display:none">
+    <div id="d-sku"></div>
+    <div id="d-aov"></div>
+    <div id="d-laba"></div>
+    <div id="d-laba-delta"></div>
+    <div id="d-target-harian"></div>
+    <div id="d-target-harian-bar-wrap"></div>
+    <div id="d-target-harian-bar"></div>
+    <div id="d-target-harian-pct"></div>
   </div>
 
   <!-- ═══ ROW 3: GRAFIK PENJUALAN + TOP SKU ════════════════════ -->
