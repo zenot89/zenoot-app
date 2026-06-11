@@ -671,7 +671,7 @@ function kasCancelForm() { kasNumpadClose(); hideModal('modal-kas-transaksi'); }
     if (hist) {
       var seen = [], chips = [];
       var list = (_kasJurnalAll || []).slice().reverse();
-      for (var i = 0; i < list.length && chips.length < 6; i++) {
+      for (var i = 0; i < list.length && chips.length < 3; i++) {
         var v = list[i].nominal || list[i].debit || 0;
         if (v > 0 && seen.indexOf(v) < 0) { seen.push(v); chips.push(v); }
       }
@@ -1299,8 +1299,9 @@ function kasTogglePicker(pickerId) {
   list.style.display   = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
-  // Auto-focus search — delay lebih panjang di iOS agar tidak trigger outside handler
-  if (inp) setTimeout(function() { inp.focus(); }, 80);
+  // Auto-focus search — skip di iOS Safari (focus() di fixed element dismiss modal)
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (inp && !isIOS) setTimeout(function() { inp.focus(); }, 80);
 
   // maxHeight fixed — TANPA visualViewport listener (bikin loncat di Android Samsung Browser)
   list.style.maxHeight = '260px';
