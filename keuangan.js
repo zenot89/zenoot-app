@@ -108,6 +108,18 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
       <div class="form-group" style="flex:0 1 120px"><label>Tanggal</label><input type="date" id="keu-bayar-tgl"></div>
       <div class="form-group" style="flex:1 1 120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="keu-bayar-nominal" placeholder="0"></div>
+      <div class="form-group" style="flex:1 1 160px"><label>Bayar dari Akun</label>
+        <div class="kas-akun-wrap">
+          <select id="keu-bayar-akun-id" style="display:none"><option value="">— Pilih Akun —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-bayar-akun" data-target="keu-bayar-akun-id"
+            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')"
+            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')">
+            <span id="keu-picker-bayar-akun-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+          </div>
+          <div class="kas-akun-list" id="keu-picker-bayar-akun-list" style="display:none"></div>
+        </div>
+      </div>
       <div class="form-group" style="flex:2 1 160px"><label>Keterangan</label><input type="text" id="keu-bayar-ket" placeholder="mis: cicilan bulan Mei"></div>
       <button class="btn btn-primary btn-sm" onclick="keuSimpanPembayaran()" style="margin-bottom:2px"><i class="ti ti-check"></i> Catat</button>
     </div>
@@ -426,6 +438,7 @@ async function keuLoadHutang() {
     keuRenderBayarTabel(bayar || [], _keuHutangAll);
     keuUpdateHutangSummary(_keuHutangAll, bayar || []);
     keuPopulateBayarDropdown(_keuHutangAll);
+    keuPopulateAkunBayar();
   } catch(e) {
     document.getElementById('keu-hutang-tbody').innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
@@ -627,31 +640,58 @@ async function keuHapusHutang(id, nama) {
 }
 
 async function keuSimpanPembayaran() {
-  const hutangId = document.getElementById('keu-bayar-hutang-id').value;
-  const tgl      = document.getElementById('keu-bayar-tgl').value;
-  const nominal  = idrVal('keu-bayar-nominal');
-  const ket      = document.getElementById('keu-bayar-ket').value.trim();
-  if (!hutangId) { alert('Pilih hutang dulu!'); return; }
-  if (!tgl)      { alert('Tanggal wajib diisi!'); return; }
-  if (!nominal)  { alert('Nominal wajib diisi!'); return; }
+  const hutangId  = document.getElementById('keu-bayar-hutang-id').value;
+  const tgl       = document.getElementById('keu-bayar-tgl').value;
+  const nominal   = idrVal('keu-bayar-nominal');
+  const ket       = document.getElementById('keu-bayar-ket').value.trim();
+  const akunKasId = document.getElementById('keu-bayar-akun-id').value;
+
+  if (!hutangId)  { alert('Pilih hutang dulu!');        return; }
+  if (!tgl)       { alert('Tanggal wajib diisi!');      return; }
+  if (!nominal)   { alert('Nominal wajib diisi!');      return; }
+  if (!akunKasId) { alert('Pilih akun bayar dulu!');   return; }
+
   try {
     await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
-    // Generate jurnal bayar hutang otomatis jika hutang punya akun terdaftar
+
+    // Generate jurnal double-entry
     const htg = _keuHutangAll.find(h => String(h.id) === String(hutangId));
-    if (htg && htg.akun_kwj_id && htg.akun_aset_id) {
+    // akun kewajiban: dari data hutang jika ada, fallback cari by nama kreditur
+    const akunKwjId = htg && htg.akun_kwj_id ? htg.akun_kwj_id : null;
+
+    if (akunKwjId) {
+      // Debit kewajiban (hutang berkurang) | Kredit kas (kas berkurang)
       await dbInsert('jurnal', {
         tanggal:        tgl,
         tipe:           'keluar',
         nominal:        nominal,
-        akun_debit_id:  htg.akun_kwj_id,   // Debit kewajiban (kurangi hutang)
-        akun_kredit_id: htg.akun_aset_id,  // Kredit aset (kas keluar)
-        keterangan:     'Bayar hutang ' + htg.kreditur + (ket ? ' — ' + ket : ''),
+        akun_debit_id:  akunKwjId,  // kewajiban berkurang
+        akun_kredit_id: akunKasId,  // kas keluar
+        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : ''),
+        referensi:      null,
+      });
+    } else {
+      // Hutang belum punya akun kewajiban — buat jurnal kas keluar saja
+      // agar saldo kas tetap bergerak
+      await dbInsert('jurnal', {
+        tanggal:        tgl,
+        tipe:           'keluar',
+        nominal:        nominal,
+        akun_debit_id:  null,
+        akun_kredit_id: akunKasId,
+        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '') + ' (akun kwj belum diset)',
         referensi:      null,
       });
     }
+
+    // Simpan akun terakhir ke localStorage
+    try { localStorage.setItem('keu_last_bayar_akun', akunKasId); } catch(e) {}
+
     idrSet('keu-bayar-nominal', 0);
     document.getElementById('keu-bayar-ket').value = '';
     keuLoadHutang();
+    // Refresh saldo kas di dashboard
+    if (typeof loadDashboard === 'function') loadDashboard();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
 }
 
@@ -1215,5 +1255,54 @@ async function _keuRenderArusKasImpl() {
 
   } catch(e) {
     console.error('[ARUS KAS]', e);
+  }
+}
+
+// ─── AKUN BAYAR CICILAN ──────────────────────────────────────
+async function keuPopulateAkunBayar() {
+  var selEl  = document.getElementById('keu-bayar-akun-id');
+  var listEl = document.getElementById('keu-picker-bayar-akun-list');
+  if (!selEl || !listEl) return;
+  var akuns = await dbGet('kas_akun', '&order=kode.asc').catch(function() { return []; });
+  var asetOpts = akuns.filter(function(a) { return a.kelompok === 'aset'; });
+  var lastId = '';
+  try { lastId = localStorage.getItem('keu_last_bayar_akun') || ''; } catch(e) {}
+
+  selEl.innerHTML = '<option value="">— Pilih Akun —</option>' +
+    asetOpts.map(function(a) {
+      return '<option value="' + a.id + '"' + (String(a.id)===lastId?' selected':'') + '>' +
+        (a.kode ? a.kode+' · ' : '') + a.nama + '</option>';
+    }).join('');
+
+  var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelectBayarAkun(this)"><span style="color:var(--ink3)">— Pilih Akun —</span></div>';
+  asetOpts.forEach(function(a) {
+    html += '<div class="kas-akun-item' + (String(a.id)===lastId?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelectBayarAkun(this)">' +
+      (a.kode ? a.kode+' · ' : '') + a.nama + '</div>';
+  });
+  listEl.innerHTML = html;
+
+  if (lastId) {
+    var found = asetOpts.find(function(a) { return String(a.id) === lastId; });
+    var lbl = document.getElementById('keu-picker-bayar-akun-label');
+    if (lbl && found) {
+      lbl.textContent = (found.kode ? found.kode+' · ' : '') + found.nama;
+      lbl.style.color = 'var(--ink)';
+    }
+    if (selEl) selEl.value = lastId;
+  }
+}
+
+function keuPickerSelectBayarAkun(item) {
+  var val   = item.dataset.val;
+  var label = item.textContent.trim();
+  var sel   = document.getElementById('keu-bayar-akun-id');
+  var lbl   = document.getElementById('keu-picker-bayar-akun-label');
+  var list  = document.getElementById('keu-picker-bayar-akun-list');
+  if (sel) sel.value = val;
+  if (lbl) { lbl.textContent = val ? label : '— Pilih Akun —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
+  if (list) {
+    list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
+    if (val) item.classList.add('active');
+    list.style.display = 'none';
   }
 }
