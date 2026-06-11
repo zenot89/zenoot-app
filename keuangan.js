@@ -609,13 +609,15 @@ async function keuSimpanHutang() {
       await dbInsert('hutang', data);
       if (akunAsetId && akunKwjId && data.pokok > 0) {
         await dbInsert('jurnal', {
-          tanggal:      tglMulai,
-          tipe:         'masuk',
-          nominal:      data.pokok,
+          tanggal:        tglMulai,
+          tipe:           'masuk',
+          nominal:        data.pokok,
+          debit:          data.pokok,
+          kredit:         data.pokok,
           akun_debit_id:  akunAsetId,
           akun_kredit_id: akunKwjId,
-          keterangan:   'Hutang ' + data.kreditur + (data.keterangan ? ' — ' + data.keterangan : ''),
-          referensi:    null,
+          keterangan:     'Hutang ' + data.kreditur + (data.keterangan ? ' — ' + data.keterangan : ''),
+          referensi:      null,
         });
       }
     }
@@ -706,6 +708,8 @@ async function keuSimpanPembayaran() {
         tanggal:        tgl,
         tipe:           'keluar',
         nominal:        nominal,
+        debit:          nominal,
+        kredit:         nominal,
         akun_debit_id:  akunKwjId,  // kewajiban berkurang
         akun_kredit_id: akunKasId,  // kas keluar
         keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : ''),
@@ -718,6 +722,8 @@ async function keuSimpanPembayaran() {
         tanggal:        tgl,
         tipe:           'keluar',
         nominal:        nominal,
+        debit:          nominal,
+        kredit:         nominal,
         akun_debit_id:  null,
         akun_kredit_id: akunKasId,
         keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '') + ' (akun kwj belum diset)',
