@@ -675,13 +675,13 @@ async function keuHapusHutang(id, nama) {
 async function keuSimpanPembayaran() {
   const hutangId  = document.getElementById('keu-bayar-hutang-id').value;
   const tgl       = document.getElementById('keu-bayar-tgl').value;
-  const nominal   = idrVal('keu-bayar-nominal');
+  let   nominal   = idrVal('keu-bayar-nominal');
   const ket       = document.getElementById('keu-bayar-ket').value.trim();
   const akunKasId = document.getElementById('keu-bayar-akun-id').value;
   // Fallback: baca langsung dari input kalau idrVal return 0
   var nominalEl = document.getElementById('keu-bayar-nominal');
   if (!nominal && nominalEl) {
-    nominal = parseInt((nominalEl.value||'').replace(/\D/g,'')) || 0;
+    nominal = parseInt((nominalEl.value||'').replace(/[^0-9]/g,'')) || 0;
   }
 
   if (!hutangId)  { alert('Pilih hutang dulu!');        return; }
@@ -1355,12 +1355,11 @@ document.addEventListener('change', function(e) {
 
 // ─── MODAL CATAT CICILAN ─────────────────────────────────────
 function keuOpenCicilan() {
-  // Set tanggal default hari ini
   var today = new Date().toISOString().slice(0,10);
   var tglEl = document.getElementById('keu-bayar-tgl');
   if (tglEl && !tglEl.value) tglEl.value = today;
-  // Reset nominal
   if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', 0);
+  if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
   document.getElementById('modal-keu-cicilan').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
