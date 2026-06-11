@@ -895,7 +895,9 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
   }
 
   // Expose global
-  window._dpOpen = _dpOpen;
+  window._dpOpen       = _dpOpen;
+  window._dpSelectDate = _dpSelectDate;
+  window._dpNavYear    = _dpNavYear;
 
   // Auto-attach ke semua input[type=date] saat DOM ready + saat halaman ganti
   function _dpAttachAll() {

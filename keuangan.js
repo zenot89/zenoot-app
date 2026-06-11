@@ -1350,8 +1350,28 @@ document.addEventListener('change', function(e) {
   if (e.target && e.target.id === 'keu-htg-frekuensi') {
     var lbl = document.getElementById('keu-htg-tenor-label');
     if (lbl) lbl.textContent = e.target.value === 'tahunan' ? '(tahun)' : '(bulan)';
+    _keuAutoJatuhTempo();
+  }
+  if (e.target && (e.target.id === 'keu-htg-tenor' || e.target.id === 'keu-htg-tgl-mulai')) {
+    _keuAutoJatuhTempo();
   }
 });
+
+function _keuAutoJatuhTempo() {
+  var tglMulai = document.getElementById('keu-htg-tgl-mulai').value;
+  var tenor    = parseInt(document.getElementById('keu-htg-tenor').value) || 0;
+  var frekuensi = document.getElementById('keu-htg-frekuensi').value || 'bulanan';
+  if (!tglMulai || !tenor) return;
+  var d = new Date(tglMulai);
+  if (frekuensi === 'tahunan') {
+    d.setFullYear(d.getFullYear() + tenor);
+  } else {
+    d.setMonth(d.getMonth() + tenor);
+  }
+  var hasil = d.toISOString().slice(0,10);
+  var jtEl = document.getElementById('keu-htg-jatuh-tempo');
+  if (jtEl) jtEl.value = hasil;
+}
 
 // ─── MODAL CATAT CICILAN ─────────────────────────────────────
 function keuOpenCicilan() {
