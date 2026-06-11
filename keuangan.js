@@ -101,7 +101,7 @@ document.getElementById('page-keuangan').innerHTML = `
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="form-group"><label>Pilih Hutang</label>
           <div class="kas-akun-wrap">
-            <select id="keu-bayar-hutang-id" style="display:none"><option value="">— Pilih —</option></select>
+            <select id="keu-bayar-hutang-id" style="display:none" onchange="keuBayarHutangChange()"><option value="">— Pilih —</option></select>
             <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
               onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
               ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
@@ -1387,10 +1387,31 @@ function keuOpenCicilan() {
   var today = new Date().toISOString().slice(0,10);
   var tglEl = document.getElementById('keu-bayar-tgl');
   if (tglEl && !tglEl.value) tglEl.value = today;
-  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', 0);
+  document.getElementById('keu-bayar-ket').value = '';
+  // Auto-fill nominal dari cicilan hutang yang dipilih
+  var selId = document.getElementById('keu-bayar-hutang-id').value;
+  var defaultNominal = 0;
+  if (selId) {
+    var htg = _keuHutangAll.find(function(x){ return String(x.id) === String(selId); });
+    if (htg) defaultNominal = htg.cicilan_nominal || htg.cicilan_per_bulan || 0;
+  }
+  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', defaultNominal);
   if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
   document.getElementById('modal-keu-cicilan').style.display = 'flex';
   document.body.style.overflow = 'hidden';
+}
+
+// Dipanggil saat user memilih hutang di picker — auto-fill nominal cicilan
+function keuBayarHutangChange() {
+  var sel = document.getElementById('keu-bayar-hutang-id');
+  if (!sel || !sel.value) return;
+  var htg = _keuHutangAll.find(function(x){ return String(x.id) === String(sel.value); });
+  if (!htg) return;
+  var nominal = htg.cicilan_nominal || htg.cicilan_per_bulan || 0;
+  if (nominal && typeof idrSet === 'function') {
+    idrSet('keu-bayar-nominal', nominal);
+    if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
+  }
 }
 
 function keuCloseCicilan() {
