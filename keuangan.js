@@ -90,38 +90,58 @@ document.getElementById('page-keuangan').innerHTML = `
     </table></div>
   </div>
 
+  <!-- Modal Catat Cicilan -->
+  <div class="modal-overlay" id="modal-keu-cicilan" style="display:none" onclick="if(event.target===this)keuCloseCicilan()">
+    <div class="modal" style="max-width:480px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-history"></i> Catat Pembayaran Cicilan</div>
+        <button onclick="keuCloseCicilan()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group"><label>Pilih Hutang</label>
+          <div class="kas-akun-wrap">
+            <select id="keu-bayar-hutang-id" style="display:none"><option value="">— Pilih —</option></select>
+            <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
+              onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
+              ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
+              <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
+              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+            </div>
+            <div class="kas-akun-list" id="keu-picker-bayar-list" style="display:none"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="form-group" style="flex:1 1 130px"><label>Tanggal</label><input type="date" id="keu-bayar-tgl"></div>
+          <div class="form-group" style="flex:1 1 130px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="keu-bayar-nominal" placeholder="0" onfocus="this.select()"></div>
+        </div>
+        <div class="form-group"><label>Bayar dari Akun</label>
+          <div class="kas-akun-wrap">
+            <select id="keu-bayar-akun-id" style="display:none"><option value="">— Pilih Akun —</option></select>
+            <div class="kas-akun-picker" id="keu-picker-bayar-akun" data-target="keu-bayar-akun-id"
+              onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')"
+              ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')">
+              <span id="keu-picker-bayar-akun-label" style="color:var(--ink3)">— Pilih Akun —</span>
+              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
+            </div>
+            <div class="kas-akun-list" id="keu-picker-bayar-akun-list" style="display:none"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>Keterangan</label><input type="text" id="keu-bayar-ket" placeholder="mis: cicilan bulan Juni"></div>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;padding-top:12px;border-top:1.5px dashed var(--ink3)">
+        <button class="btn btn-sm" onclick="keuCloseCicilan()"><i class="ti ti-x"></i> Batal</button>
+        <button class="btn btn-primary btn-sm" onclick="keuSimpanPembayaran()" style="font-weight:700;font-size:14px;padding:8px 16px"><i class="ti ti-check"></i> Catat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Riwayat pembayaran -->
   <div class="card" style="margin-top:14px">
-    <div class="card-title"><i class="ti ti-history"></i> Catat Pembayaran Cicilan</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 160px"><label>Pilih Hutang</label>
-        <div class="kas-akun-wrap">
-          <select id="keu-bayar-hutang-id" style="display:none"><option value="">— Pilih —</option></select>
-          <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
-            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
-            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
-            <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
-            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-          </div>
-          <div class="kas-akun-list" id="keu-picker-bayar-list" style="display:none"></div>
-        </div>
-      </div>
-      <div class="form-group" style="flex:0 1 120px"><label>Tanggal</label><input type="date" id="keu-bayar-tgl"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="keu-bayar-nominal" placeholder="0"></div>
-      <div class="form-group" style="flex:1 1 160px"><label>Bayar dari Akun</label>
-        <div class="kas-akun-wrap">
-          <select id="keu-bayar-akun-id" style="display:none"><option value="">— Pilih Akun —</option></select>
-          <div class="kas-akun-picker" id="keu-picker-bayar-akun" data-target="keu-bayar-akun-id"
-            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')"
-            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')">
-            <span id="keu-picker-bayar-akun-label" style="color:var(--ink3)">— Pilih Akun —</span>
-            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-          </div>
-          <div class="kas-akun-list" id="keu-picker-bayar-akun-list" style="display:none"></div>
-        </div>
-      </div>
-      <div class="form-group" style="flex:2 1 160px"><label>Keterangan</label><input type="text" id="keu-bayar-ket" placeholder="mis: cicilan bulan Mei"></div>
-      <button class="btn btn-primary btn-sm" onclick="keuSimpanPembayaran()" style="margin-bottom:2px"><i class="ti ti-check"></i> Catat</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-title" style="margin:0;border:none;padding:0"><i class="ti ti-history"></i> Riwayat Pembayaran Cicilan</div>
+      <button class="btn btn-primary btn-sm" onclick="keuOpenCicilan()" style="font-weight:700">
+        <i class="ti ti-plus"></i> Catat Cicilan
+      </button>
     </div>
     <div class="tbl-wrap" style="max-height:240px;overflow-y:auto;overflow-x:auto"><table class="tbl">
       <thead><tr><th>Tanggal</th><th>Kreditur</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead>
@@ -706,8 +726,8 @@ async function keuSimpanPembayaran() {
 
     idrSet('keu-bayar-nominal', 0);
     document.getElementById('keu-bayar-ket').value = '';
+    keuCloseCicilan();
     keuLoadHutang();
-    // Refresh saldo kas di dashboard
     if (typeof loadDashboard === 'function') loadDashboard();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
 }
@@ -1331,3 +1351,20 @@ document.addEventListener('change', function(e) {
     if (lbl) lbl.textContent = e.target.value === 'tahunan' ? '(tahun)' : '(bulan)';
   }
 });
+
+// ─── MODAL CATAT CICILAN ─────────────────────────────────────
+function keuOpenCicilan() {
+  // Set tanggal default hari ini
+  var today = new Date().toISOString().slice(0,10);
+  var tglEl = document.getElementById('keu-bayar-tgl');
+  if (tglEl && !tglEl.value) tglEl.value = today;
+  // Reset nominal
+  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', 0);
+  document.getElementById('modal-keu-cicilan').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function keuCloseCicilan() {
+  document.getElementById('modal-keu-cicilan').style.display = 'none';
+  document.body.style.overflow = '';
+}
