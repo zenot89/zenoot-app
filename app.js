@@ -766,9 +766,11 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     el.innerHTML = [
       '<div style="background:var(--cream2,#1e1e1e);border-radius:16px;padding:20px;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.6)">',
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">',
+          '<button id="dp-prev-yr" style="background:none;border:none;cursor:pointer;color:var(--ink3,#888);font-size:14px;padding:4px 6px;border-radius:8px" title="Tahun sebelumnya">&#8249;&#8249;</button>',
           '<button id="dp-prev" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:22px;padding:4px 10px;border-radius:8px">&#8249;</button>',
           '<button id="dp-month-label" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:16px;font-weight:700;padding:4px 8px"></button>',
           '<button id="dp-next" style="background:none;border:none;cursor:pointer;color:var(--ink,#eee);font-size:22px;padding:4px 10px;border-radius:8px">&#8250;</button>',
+          '<button id="dp-next-yr" style="background:none;border:none;cursor:pointer;color:var(--ink3,#888);font-size:14px;padding:4px 6px;border-radius:8px" title="Tahun berikutnya">&#8250;&#8250;</button>',
         '</div>',
         '<div id="dp-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px"></div>',
         '<div style="display:flex;gap:8px;justify-content:flex-end">',
@@ -789,6 +791,8 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
 
     document.getElementById('dp-prev').onclick = function() { _dpNav(-1); };
     document.getElementById('dp-next').onclick = function() { _dpNav(1); };
+    document.getElementById('dp-prev-yr').onclick = function() { _dpNavYear(-1); };
+    document.getElementById('dp-next-yr').onclick = function() { _dpNavYear(1); };
     document.getElementById('dp-reset').onclick = function() { _dpSelectDate(null); };
     document.getElementById('dp-ok').onclick = _dpConfirm;
   }
@@ -827,6 +831,11 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     _dpMonth += dir;
     if (_dpMonth > 11) { _dpMonth = 0; _dpYear++; }
     if (_dpMonth < 0)  { _dpMonth = 11; _dpYear--; }
+    _dpRender();
+  }
+
+  function _dpNavYear(dir) {
+    _dpYear += dir;
     _dpRender();
   }
 
