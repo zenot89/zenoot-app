@@ -675,14 +675,17 @@ async function keuHapusHutang(id, nama) {
 async function keuSimpanPembayaran() {
   const hutangId  = document.getElementById('keu-bayar-hutang-id').value;
   const tgl       = document.getElementById('keu-bayar-tgl').value;
-  let   nominal   = idrVal('keu-bayar-nominal');
   const ket       = document.getElementById('keu-bayar-ket').value.trim();
   const akunKasId = document.getElementById('keu-bayar-akun-id').value;
-  // Fallback: baca langsung dari input kalau idrVal return 0
+
+  // Baca nominal — flexible: support format titik ribuan ATAU angka biasa
   var nominalEl = document.getElementById('keu-bayar-nominal');
-  if (!nominal && nominalEl) {
-    nominal = parseInt((nominalEl.value||'').replace(/[^0-9]/g,'')) || 0;
+  var nominal   = 0;
+  if (nominalEl) {
+    var raw = (nominalEl.value || '').toString().replace(/\./g, '').replace(/,/g, '').replace(/[^0-9]/g, '');
+    nominal = parseInt(raw, 10) || 0;
   }
+  if (!nominal) nominal = idrVal('keu-bayar-nominal');
 
   if (!hutangId)  { alert('Pilih hutang dulu!');        return; }
   if (!tgl)       { alert('Tanggal wajib diisi!');      return; }
