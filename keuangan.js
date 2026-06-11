@@ -76,8 +76,9 @@ document.getElementById('page-keuangan').innerHTML = `
     <div class="rasio-item"><div class="r-label">Cicilan/Bulan</div><div class="r-value" id="keu-total-cicilan">—</div><div class="r-desc">total kewajiban bulanan</div></div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between;align-items:center">
     <button class="btn btn-sm btn-primary" onclick="keuShowFormHutang()"><i class="ti ti-plus"></i> Tambah Hutang</button>
+    <button class="btn btn-sm" onclick="keuOpenCicilan()" style="font-weight:700;border:2px solid var(--ok);color:var(--ok)"><i class="ti ti-history"></i> + Catat Cicilan</button>
   </div>
 
   <!-- Form hutang -->
@@ -137,14 +138,9 @@ document.getElementById('page-keuangan').innerHTML = `
 
   <!-- Riwayat pembayaran -->
   <div class="card" style="margin-top:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div class="card-title" style="margin:0;border:none;padding:0"><i class="ti ti-history"></i> Riwayat Pembayaran Cicilan</div>
-      <button class="btn btn-primary btn-sm" onclick="keuOpenCicilan()" style="font-weight:700">
-        <i class="ti ti-plus"></i> Catat Cicilan
-      </button>
-    </div>
-    <div class="tbl-wrap" style="max-height:240px;overflow-y:auto;overflow-x:auto"><table class="tbl">
-      <thead><tr><th>Tanggal</th><th>Kreditur</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead>
+    <div class="card-title"><i class="ti ti-history"></i> Riwayat Pembayaran Cicilan</div>
+    <div class="tbl-wrap" style="max-height:320px;overflow-y:auto;overflow-x:auto;border-radius:6px"><table class="tbl" style="min-width:100%">
+      <thead style="position:sticky;top:0;z-index:2;background:var(--cream2)"><tr><th>Tanggal</th><th>Kreditur</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead>
       <tbody id="keu-bayar-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
     </table></div>
   </div>
@@ -682,6 +678,11 @@ async function keuSimpanPembayaran() {
   const nominal   = idrVal('keu-bayar-nominal');
   const ket       = document.getElementById('keu-bayar-ket').value.trim();
   const akunKasId = document.getElementById('keu-bayar-akun-id').value;
+  // Fallback: baca langsung dari input kalau idrVal return 0
+  var nominalEl = document.getElementById('keu-bayar-nominal');
+  if (!nominal && nominalEl) {
+    nominal = parseInt((nominalEl.value||'').replace(/\D/g,'')) || 0;
+  }
 
   if (!hutangId)  { alert('Pilih hutang dulu!');        return; }
   if (!tgl)       { alert('Tanggal wajib diisi!');      return; }
