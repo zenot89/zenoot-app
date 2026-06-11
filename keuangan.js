@@ -383,8 +383,14 @@ document.getElementById('page-keuangan').innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 130px"><label>Pokok Pinjaman (Rp)</label><input type="text" inputmode="numeric" id="keu-htg-pokok" placeholder="0"></div>
       <div class="form-group" style="flex:1 1 120px"><label>Bunga / Tahun (%)</label><input type="number" id="keu-htg-bunga" placeholder="0" step="0.1"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Tenor (bulan)</label><input type="number" id="keu-htg-tenor" placeholder="mis: 24"></div>
-      <div class="form-group" style="flex:1 1 130px"><label>Cicilan / Bulan (Rp)</label><input type="text" inputmode="numeric" id="keu-htg-cicilan" placeholder="0"></div>
+      <div class="form-group" style="flex:1 1 120px"><label>Frekuensi Cicilan</label>
+        <select id="keu-htg-frekuensi" style="width:100%">
+          <option value="bulanan">Bulanan</option>
+          <option value="tahunan">Tahunan</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1 1 120px"><label>Tenor <span id="keu-htg-tenor-label">(bulan)</span></label><input type="number" id="keu-htg-tenor" placeholder="mis: 24"></div>
+      <div class="form-group" style="flex:1 1 130px"><label>Nominal Cicilan (Rp)</label><input type="text" inputmode="numeric" id="keu-htg-cicilan" placeholder="0"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 130px"><label>Tanggal Mulai</label><input type="date" id="keu-htg-tgl-mulai"></div>
@@ -464,7 +470,7 @@ function keuRenderHutangTabel(hutang, bayar) {
       <td style="font-size:12px">${jenisLabel[h.jenis]||h.jenis||'—'}</td>
       <td style="text-align:right">${fmtRp(h.pokok)}</td>
       <td style="text-align:right;font-size:12px;color:var(--ink3)">${h.bunga ? h.bunga+'%/thn' : '—'}</td>
-      <td style="text-align:right">${h.cicilan_per_bulan ? fmtRp(h.cicilan_per_bulan) : '—'}</td>
+      <td style="text-align:right">${(h.cicilan_nominal||h.cicilan_per_bulan) ? fmtRp(h.cicilan_nominal||h.cicilan_per_bulan) + '<br><span style="font-size:10px;color:var(--ink3)">/' + (h.frekuensi==='tahunan'?'thn':'bln') + '</span>' : '—'}</td>
       <td style="text-align:right;color:var(--ok)">${fmtRp(sudahBayar)}</td>
       <td style="text-align:right;font-weight:700;color:${isLunas?'var(--ok)':'var(--danger)'}">${isLunas ? '✅ LUNAS' : fmtRp(sisa)}</td>
       <td style="font-size:12px">${jatuhTempo}</td>
@@ -538,6 +544,9 @@ function keuShowFormHutang(data) {
   idrSet('keu-htg-pokok', data?.pokok || 0);
   document.getElementById('keu-htg-bunga').value         = data?.bunga || '';
   document.getElementById('keu-htg-tenor').value         = data?.tenor || '';
+  document.getElementById('keu-htg-frekuensi').value     = data?.frekuensi || 'bulanan';
+  var tenorLbl = document.getElementById('keu-htg-tenor-label');
+  if (tenorLbl) tenorLbl.textContent = (data?.frekuensi === 'tahunan') ? '(tahun)' : '(bulan)';
   idrSet('keu-htg-cicilan', data?.cicilan_per_bulan || 0);
   document.getElementById('keu-htg-tgl-mulai').value     = data?.tgl_mulai ? data.tgl_mulai.split('T')[0] : '';
   document.getElementById('keu-htg-jatuh-tempo').value   = data?.jatuh_tempo ? data.jatuh_tempo.split('T')[0] : '';
@@ -559,7 +568,15 @@ async function keuSimpanHutang() {
     pokok:            idrVal('keu-htg-pokok'),
     bunga:            parseFloat(document.getElementById('keu-htg-bunga').value) || 0,
     tenor:            parseInt(document.getElementById('keu-htg-tenor').value) || null,
-    cicilan_per_bulan:idrVal('keu-htg-cicilan'),
+    frekuensi:        document.getElementById('keu-htg-frekuensi').value || 'bulanan',
+    cicilan_per_bulan:(function() {
+      var nominal = idrVal('keu-htg-cicilan');
+      var frek = document.getElementById('keu-htg-frekuensi').value;
+      // Simpan nominal asli per periode — untuk tampilan di tabel
+      // cicilan_per_bulan dikonversi ke ekuivalen bulanan untuk summary total
+      return frek === 'tahunan' ? Math.round(nominal / 12) : nominal;
+    })(),
+    cicilan_nominal:  idrVal('keu-htg-cicilan'),
     tgl_mulai:        tglMulai,
     jatuh_tempo:      document.getElementById('keu-htg-jatuh-tempo').value || null,
     keterangan:       document.getElementById('keu-htg-ket').value.trim() || null,
@@ -1306,3 +1323,11 @@ function keuPickerSelectBayarAkun(item) {
     list.style.display = 'none';
   }
 }
+
+// ─── UPDATE TENOR LABEL SAAT FREKUENSI BERUBAH ───────────────
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'keu-htg-frekuensi') {
+    var lbl = document.getElementById('keu-htg-tenor-label');
+    if (lbl) lbl.textContent = e.target.value === 'tahunan' ? '(tahun)' : '(bulan)';
+  }
+});
