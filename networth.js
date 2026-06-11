@@ -123,6 +123,34 @@
     }
   }
 
+  // ─── HITUNG LABA / RUGI ──────────────────────────────────────
+  async function _getLabaRugi() {
+    try {
+      _log('fetch labarugi...');
+      const [kasAkun, jurnal] = await Promise.all([
+        _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
+        _withTimeout(dbGet('jurnal',   ''), [], 8000).catch(() => [])
+      ]);
+      const saldoMap = {};
+      (jurnal || []).forEach(r => {
+        const n = Number(r.nominal || r.debit || 0);
+        if (r.akun_debit_id)  { if (!saldoMap[r.akun_debit_id])  saldoMap[r.akun_debit_id]  = {debit:0,kredit:0}; saldoMap[r.akun_debit_id].debit   += n; }
+        if (r.akun_kredit_id) { if (!saldoMap[r.akun_kredit_id]) saldoMap[r.akun_kredit_id] = {debit:0,kredit:0}; saldoMap[r.akun_kredit_id].kredit += n; }
+      });
+      let totalPend = 0, totalBeban = 0;
+      (kasAkun || []).forEach(a => {
+        const s = saldoMap[a.id] || {debit:0, kredit:0};
+        if (a.kelompok === 'pendapatan') totalPend  += (s.kredit - s.debit);
+        if (a.kelompok === 'beban')      totalBeban += (s.debit  - s.kredit);
+      });
+      _log('labaRugi: pend=' + totalPend + ' beban=' + totalBeban);
+      return { totalPend, totalBeban, laba: totalPend - totalBeban };
+    } catch(e) {
+      _log('ERROR _getLabaRugi: ' + e.message);
+      return { totalPend: 0, totalBeban: 0, laba: 0 };
+    }
+  }
+
   // ─── AMBIL DATA SHOPEE ───────────────────────────────────────
   async function _fetchShopeeCache() {
     try {
@@ -198,18 +226,19 @@
     }
 
     try {
-      const [totalAset, totalHutang, shopeeCache] = await Promise.all([
+      const [totalAset, totalHutang, shopeeCache, labaRugi] = await Promise.all([
         _withTimeout(_getTotalAset(),     0,    10000),
         _withTimeout(_getTotalHutang(),   0,    10000),
-        _withTimeout(_fetchShopeeCache(), null, 10000)
+        _withTimeout(_fetchShopeeCache(), null, 10000),
+        _withTimeout(_getLabaRugi(),      {totalPend:0,totalBeban:0,laba:0}, 10000)
       ]);
 
-      _log('RESULT aset=' + totalAset + ' hutang=' + totalHutang + ' shopee=' + (shopeeCache?'ok':'null'));
+      _log('RESULT aset=' + totalAset + ' hutang=' + totalHutang + ' laba=' + labaRugi.laba + ' shopee=' + (shopeeCache?'ok':'null'));
 
       const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit || 0) : 0;
       const wallet   = shopeeCache ? Number(shopeeCache.wallet_balance || 0) : 0;
       const isLive   = shopeeCache !== null;
-      const netWorth = totalAset - totalHutang + escrow + wallet;
+      const netWorth = totalAset - totalHutang + escrow + wallet + labaRugi.laba;
 
       _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
       const totalEl = document.getElementById('nw-total');
@@ -219,6 +248,11 @@
       _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
       _set('nw-escrow', '+' + _rp(escrow));
       _set('nw-wallet', '+' + _rp(wallet));
+      const labaEl = document.getElementById('nw-laba');
+      if (labaEl) {
+        labaEl.textContent = (labaRugi.laba >= 0 ? '+' : '-') + _rp(labaRugi.laba);
+        labaEl.style.color = labaRugi.laba >= 0 ? 'var(--ok,#4caf50)' : 'var(--danger,#e05252)';
+      }
 
       ['nw-escrow-badge','nw-wallet-badge'].forEach(id => {
         const el = document.getElementById(id);

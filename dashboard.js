@@ -27,6 +27,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-wallet"></i> Wallet Shopee <span id="nw-wallet-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-wallet">—</span></div>
+        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
       </div>
     </div>
   </div>
