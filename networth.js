@@ -83,7 +83,7 @@
         if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].saldoKredit += n;
       });
       const totalAsetJurnal = Object.values(akunMap)
-        .filter(a => a.kelompok === 'aset')
+        .filter(a => a.kelompok === 'aset' && a.sub_kelompok !== 'Persediaan')
         .reduce((s, a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0);
       const stokMap = {};
       (stok || []).forEach(s => { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk || 0; });
