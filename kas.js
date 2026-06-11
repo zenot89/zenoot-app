@@ -1288,23 +1288,37 @@ function kasTogglePicker(pickerId) {
   if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
 
   // Float ke body
-  var rect = picker.getBoundingClientRect();
-  list.style.position  = 'fixed';
-  list.style.top       = (rect.bottom + 2) + 'px';
-  list.style.left      = rect.left + 'px';
-  list.style.width     = rect.width + 'px';
-  list.style.maxWidth  = '320px';
-  list.style.zIndex    = '99999';
+  var rect     = picker.getBoundingClientRect();
+  var vpH      = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  var listH    = 260; // maxHeight
+  var spaceBelow = vpH - rect.bottom - 4;
+  var spaceAbove = rect.top - 4;
+
+  list.style.position = 'fixed';
+  list.style.left     = rect.left + 'px';
+  list.style.width    = rect.width + 'px';
+  list.style.maxWidth = '320px';
+  list.style.zIndex   = '99999';
   list.dataset.floated = '1';
-  list.style.display   = 'block';
+
+  // Flip ke atas jika ruang bawah tidak cukup dan ruang atas lebih besar
+  if (spaceBelow < listH && spaceAbove > spaceBelow) {
+    var actualH = Math.min(listH, spaceAbove);
+    list.style.maxHeight = actualH + 'px';
+    list.style.top       = '';
+    list.style.bottom    = (vpH - rect.top + 2) + 'px';
+  } else {
+    list.style.maxHeight = Math.min(listH, spaceBelow) + 'px';
+    list.style.top       = (rect.bottom + 2) + 'px';
+    list.style.bottom    = '';
+  }
+
+  list.style.display = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
   // Auto-focus search — skip di iOS Safari (focus() di fixed element dismiss modal)
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   if (inp && !isIOS) setTimeout(function() { inp.focus(); }, 80);
-
-  // maxHeight fixed — TANPA visualViewport listener (bikin loncat di Android Samsung Browser)
-  list.style.maxHeight = '260px';
 }
 
 function kasPickerFilter(inp) {
