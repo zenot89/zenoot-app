@@ -1266,12 +1266,39 @@ function kasTogglePicker(pickerId) {
   if (!list.querySelector('.kas-akun-search-wrap')) {
     var wrap = document.createElement('div');
     wrap.className = 'kas-akun-search-wrap';
-    wrap.innerHTML =
-      '<span class="kas-akun-search-icon">🔍</span>' +
-      '<input class="kas-akun-search" type="text" placeholder="Cari..." autocomplete="off" ' +
-        'onmousedown="event.stopPropagation()" ' +
-        'ontouchstart="event.stopPropagation()" ' +
-        'oninput="kasPickerFilter(this)">';
+
+    var searchIcon = document.createElement('span');
+    searchIcon.className = 'kas-akun-search-icon';
+    searchIcon.textContent = '🔍';
+
+    var searchInp = document.createElement('input');
+    searchInp.className = 'kas-akun-search';
+    searchInp.type = 'text';
+    searchInp.placeholder = 'Cari...';
+    searchInp.autocomplete = 'off';
+    searchInp.setAttribute('autocorrect', 'off');
+    searchInp.setAttribute('autocapitalize', 'none');
+    searchInp.setAttribute('spellcheck', 'false');
+
+    // Proper DOM event — inline attributes tidak reliable di iOS Safari untuk pointer events
+    // Harus stop propagation di SEMUA event types yang bisa trigger outside handler
+    function _stopProp(ev) { ev.stopPropagation(); }
+    searchInp.addEventListener('mousedown',   _stopProp);
+    searchInp.addEventListener('touchstart',  _stopProp, { passive: true });
+    searchInp.addEventListener('pointerdown', _stopProp);
+    searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
+
+    // iOS Safari: focus() pada fixed element bisa trigger scroll + dismiss
+    // Gunakan touchend untuk trigger focus — lebih late dalam event cycle,
+    // setelah touchstart guard sudah clear, sehingga tidak conflict dengan outside handler
+    searchInp.addEventListener('touchend', function(ev) {
+      ev.stopPropagation();
+      // Delay focus kecil agar iOS tidak re-trigger outside close handler
+      setTimeout(function() { searchInp.focus(); }, 50);
+    }, { passive: false });
+
+    wrap.appendChild(searchIcon);
+    wrap.appendChild(searchInp);
     list.insertBefore(wrap, list.firstChild);
   }
 

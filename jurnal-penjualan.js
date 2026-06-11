@@ -1585,12 +1585,33 @@ function jpTogglePicker(pickerId) {
   if (!list.querySelector('.kas-akun-search-wrap')) {
     var wrap = document.createElement('div');
     wrap.className = 'kas-akun-search-wrap';
-    wrap.innerHTML =
-      '<span class="kas-akun-search-icon">🔍</span>' +
-      '<input class="kas-akun-search" type="text" placeholder="Cari..." autocomplete="off" ' +
-        'onmousedown="event.stopPropagation()" ' +
-        'ontouchstart="event.stopPropagation()" ' +
-        'oninput="kasPickerFilter(this)">';
+
+    var searchIcon = document.createElement('span');
+    searchIcon.className = 'kas-akun-search-icon';
+    searchIcon.textContent = '🔍';
+
+    var searchInp = document.createElement('input');
+    searchInp.className = 'kas-akun-search';
+    searchInp.type = 'text';
+    searchInp.placeholder = 'Cari...';
+    searchInp.autocomplete = 'off';
+    searchInp.setAttribute('autocorrect', 'off');
+    searchInp.setAttribute('autocapitalize', 'none');
+    searchInp.setAttribute('spellcheck', 'false');
+
+    function _stopProp(ev) { ev.stopPropagation(); }
+    searchInp.addEventListener('mousedown',   _stopProp);
+    searchInp.addEventListener('touchstart',  _stopProp, { passive: true });
+    searchInp.addEventListener('pointerdown', _stopProp);
+    searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
+
+    searchInp.addEventListener('touchend', function(ev) {
+      ev.stopPropagation();
+      setTimeout(function() { searchInp.focus(); }, 50);
+    }, { passive: false });
+
+    wrap.appendChild(searchIcon);
+    wrap.appendChild(searchInp);
     list.insertBefore(wrap, list.firstChild);
   }
 
@@ -1613,8 +1634,9 @@ function jpTogglePicker(pickerId) {
   list.style.display   = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
-  // Auto-focus search
-  if (inp) setTimeout(function() { inp.focus(); }, 50);
+  // Auto-focus search — skip iOS Safari
+  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (inp && !_isIOS) setTimeout(function() { inp.focus(); }, 80);
 }
 
 function jpClosePicker(list) {

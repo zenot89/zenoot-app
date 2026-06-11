@@ -602,32 +602,52 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // Mousedown / touchstart di luar picker → tutup semua
-  // CATATAN: pakai touchstart bukan touchend — iOS touchend dari picker-toggle
-  // bubble ke document dan langsung nutup picker yang baru dibuka.
+  // Mousedown / touchstart / pointerdown di luar picker → tutup semua
+  // Guard _pickerJustOpened diperpanjang ke 400ms untuk iOS Safari:
+  // pada iOS, touchstart dari tap yang sama bisa bubble ke document
+  // setelah pointerdown yang membuka picker — tanpa guard cukup panjang,
+  // picker langsung tertutup lagi setelah dibuka (race condition).
   var _pickerJustOpened = false;
+  var _pickerJustOpenedTimer = null;
   window._kasPickerJustOpened = function() {
     _pickerJustOpened = true;
-    setTimeout(function() { _pickerJustOpened = false; }, 300);
+    if (_pickerJustOpenedTimer) clearTimeout(_pickerJustOpenedTimer);
+    _pickerJustOpenedTimer = setTimeout(function() {
+      _pickerJustOpened = false;
+      _pickerJustOpenedTimer = null;
+    }, 400); // 400ms — cukup cover seluruh touch gesture di iOS
   };
+  function _isInsidePicker(target) {
+    if (!target || !target.closest) return false;
+    return !!(
+      target.closest('[data-picker]')          ||
+      target.closest('.kas-akun-picker')       ||
+      target.closest('.kas-akun-list')         ||
+      target.closest('.kas-akun-search-wrap')  ||
+      target.closest('.kas-akun-search')       ||
+      target.closest('.keu-akun-picker')       ||
+      target.closest('.keu-akun-list')         ||
+      target.closest('.keu-akun-search-wrap')  ||
+      target.closest('.keu-akun-search')       ||
+      target.closest('[id^="jp-picker"]')      ||
+      target.closest('.jp-akun-list')          ||
+      target.closest('[class*="jp-picker"]')
+    );
+  }
   function _onOutsideDown(e) {
-    // Guard: tap di dalam picker element atau list → jangan tutup
-    if (!e.target.closest) return;
-    if (
-      e.target.closest('[data-picker]')          ||
-      e.target.closest('.kas-akun-picker')       ||
-      e.target.closest('.kas-akun-list')         ||
-      e.target.closest('.kas-akun-search-wrap')  ||
-      e.target.closest('.kas-akun-search')       ||
-      e.target.closest('.keu-akun-picker')       ||
-      e.target.closest('.keu-akun-list')         ||
-      e.target.closest('.keu-akun-search-wrap')  ||
-      e.target.closest('.keu-akun-search')
-    ) return;
+    if (_pickerJustOpened) return; // guard: picker baru dibuka dalam 400ms terakhir
+    if (_isInsidePicker(e.target)) return;
     document.querySelectorAll('.kas-akun-list').forEach(_closeAllPickers);
   }
-  document.addEventListener('mousedown', _onOutsideDown);
+  document.addEventListener('mousedown',  _onOutsideDown);
   document.addEventListener('touchstart', _onOutsideDown, { passive: true });
+  // pointerdown untuk browser modern (iOS Safari 13+, Chrome Android)
+  if (window.PointerEvent) {
+    document.addEventListener('pointerdown', function(e) {
+      if (!e.isPrimary) return; // hanya primary pointer, hindari multi-touch noise
+      _onOutsideDown(e);
+    });
+  }
 
   // Scroll di luar list → tutup yang sedang float di body
   document.addEventListener('scroll', function(e) {
@@ -929,4 +949,128 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
   });
   _dpObserver.observe(document.body, { childList: true, subtree: true });
 
+})();
+
+// ─── iOS KEYBOARD PUSH-UP ─────────────────────────────────────
+// iOS Safari TIDAK menaikkan konten saat keyboard muncul untuk
+// elemen position:fixed. Akibatnya modal tertimpa keyboard.
+// Fix: listen visualViewport resize, adjust bottom padding modal-overlay
+// sehingga konten naik mengikuti keyboard — identik dengan Android.
+//
+// Hanya aktif di iOS. Android & desktop tidak perlu ini karena
+// browser mereka sudah handle dengan benar.
+(function() {
+  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (!_isIOS) return;
+  if (!window.visualViewport) return;
+
+  var _lastKeyboardH = 0;
+  var _raf = null;
+
+  function _applyKeyboardOffset() {
+    _raf = null;
+    // Hitung tinggi keyboard: selisih window height vs visual viewport height
+    // Jika ada safe area bottom, dikurangi untuk akurasi
+    var vvH     = window.visualViewport.height;
+    var winH    = window.innerHeight;
+    var safeB   = 0;
+    // Coba baca env(safe-area-inset-bottom) via computed style trick
+    var _safeEl = document.getElementById('_zenot-safe-probe');
+    if (_safeEl) safeB = parseInt(getComputedStyle(_safeEl).paddingBottom) || 0;
+
+    var keyboardH = Math.max(0, winH - vvH - safeB);
+    if (Math.abs(keyboardH - _lastKeyboardH) < 5) return; // debounce kecil
+    _lastKeyboardH = keyboardH;
+
+    // Semua modal-overlay yang sedang open → geser ke atas sebesar keyboard
+    document.querySelectorAll('.modal-overlay.open').forEach(function(overlay) {
+      if (keyboardH > 0) {
+        overlay.style.bottom    = keyboardH + 'px';
+        overlay.style.top       = '0';
+        overlay.style.alignItems = 'flex-start';
+        overlay.style.paddingTop = Math.max(16, (window.innerHeight - keyboardH - 420) / 2) + 'px';
+      } else {
+        overlay.style.bottom    = '';
+        overlay.style.top       = '';
+        overlay.style.alignItems = '';
+        overlay.style.paddingTop = '';
+      }
+    });
+
+    // Repositioning picker yang sedang float (jika ada)
+    document.querySelectorAll('.kas-akun-list[data-floated][style*="display: block"], .kas-akun-list[data-floated][style*="display:block"]').forEach(function(list) {
+      // Recalculate posisi berdasarkan visualViewport height baru
+      var pickerId = list.id.replace('-list', '');
+      var picker = document.getElementById(pickerId);
+      if (!picker) return;
+      var rect = picker.getBoundingClientRect();
+      var vpH = vvH;
+      var listH = 260;
+      var spaceBelow = vpH - rect.bottom - 4;
+      var spaceAbove = rect.top - 4;
+      if (spaceBelow < listH && spaceAbove > spaceBelow) {
+        var actualH = Math.min(listH, spaceAbove);
+        list.style.maxHeight = actualH + 'px';
+        list.style.top       = '';
+        list.style.bottom    = (vpH - rect.top + 2) + 'px';
+      } else {
+        list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
+        list.style.top       = (rect.bottom + 2) + 'px';
+        list.style.bottom    = '';
+      }
+    });
+  }
+
+  // Safe area probe element — invisible div untuk baca CSS env()
+  (function() {
+    var probe = document.createElement('div');
+    probe.id = '_zenot-safe-probe';
+    probe.style.cssText = 'position:fixed;bottom:0;left:0;width:0;height:0;' +
+      'padding-bottom:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(probe);
+  })();
+
+  // Listen resize: keyboard muncul/hilang
+  window.visualViewport.addEventListener('resize', function() {
+    if (_raf) cancelAnimationFrame(_raf);
+    _raf = requestAnimationFrame(_applyKeyboardOffset);
+  });
+
+  // Reset saat modal ditutup
+  document.addEventListener('zenot:modal:close', function() {
+    _lastKeyboardH = 0;
+  });
+
+  // MutationObserver: detect saat modal dibuka/ditutup → reset atau apply offset
+  // Lebih reliable dari patch showModal karena tidak terpengaruh urutan script load
+  var _modalObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.type !== 'attributes' || m.attributeName !== 'class') return;
+      var el = m.target;
+      if (!el.classList.contains('modal-overlay')) return;
+      if (!el.classList.contains('open')) {
+        // Modal ditutup → bersihkan offset
+        el.style.bottom    = '';
+        el.style.top       = '';
+        el.style.alignItems = '';
+        el.style.paddingTop = '';
+        _lastKeyboardH = 0;
+      }
+      // Saat modal dibuka, biarkan _applyKeyboardOffset handle jika keyboard sudah muncul
+    });
+  });
+  // Observe semua modal-overlay yang ada dan yang mungkin ditambahkan nanti
+  function _observeModals() {
+    document.querySelectorAll('.modal-overlay').forEach(function(el) {
+      _modalObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _observeModals);
+  } else {
+    _observeModals();
+  }
+  // Re-observe setiap kali DOM berubah (modal diinject dinamis)
+  var _domWatcher = new MutationObserver(function() { _observeModals(); });
+  _domWatcher.observe(document.body, { childList: true, subtree: false });
 })();
