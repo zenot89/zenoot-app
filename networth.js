@@ -238,7 +238,12 @@
       const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit || 0) : 0;
       const wallet   = shopeeCache ? Number(shopeeCache.wallet_balance || 0) : 0;
       const isLive   = shopeeCache !== null;
-      const netWorth = totalAset - totalHutang + escrow + wallet + labaRugi.laba;
+      // CATATAN: labaRugi.laba TIDAK ditambahkan ke netWorth.
+      // Setiap transaksi beban/pendapatan yang dicatat via jurnal (kas keluar/masuk)
+      // sudah otomatis mengubah saldo akun aset (totalAset). Menambahkan labaRugi.laba
+      // lagi di sini akan menghitung dampak transaksi tersebut DUA KALI.
+      // Identitas akuntansi: Aset - Hutang = Modal (sudah termasuk akumulasi laba/rugi).
+      const netWorth = totalAset - totalHutang + escrow + wallet;
 
       _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
       const totalEl = document.getElementById('nw-total');
