@@ -55,12 +55,24 @@ document.getElementById('page-keuangan').innerHTML = `
     .keu-neraca-toggle button.active { background:var(--ink); color:var(--cream); }
     .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
     .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
+
+    /* Hide-on-scroll: sticky header (tab bar) + Net Worth/Status minicards */
+    #keu-sticky-header, #keu-neraca-minicards-wrap {
+      max-height:300px; overflow:hidden;
+      transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
+    }
+    #keu-sticky-header.keu-header-collapsed,
+    #keu-neraca-minicards-wrap.keu-header-collapsed {
+      max-height:0 !important; opacity:0; margin:0 !important;
+    }
   }
   @media(min-width:601px){
     .keu-neraca-toggle { display:none; }
   }
 </style>
 
+<!-- Sticky header: collapse on scroll (mobile, Neraca only) -->
+<div id="keu-sticky-header">
 <!-- Baris 1: Hutang | Neraca | Refresh -->
 <div class="keu-tabs-row">
   <button class="keu-tab active" onclick="keuGotoTab('hutang')">🏦 Hutang</button>
@@ -72,6 +84,7 @@ document.getElementById('page-keuangan').innerHTML = `
   <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
   <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
   <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
+</div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -161,7 +174,7 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- PANEL: NERACA                                              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+  <div id="keu-neraca-minicards-wrap" style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
     <div class="keu-minicards">
       <!-- Mini card: Net Worth -->
       <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
@@ -448,6 +461,7 @@ function keuGotoTab(tab) {
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.keu-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('keu-panel-' + tab).classList.add('active');
+  keuNeracaExpandHeader();
   if (tab === 'neraca')  keuRenderNeraca();
   if (tab === 'rasio')   keuRenderRasio();
   if (tab === 'valuasi') keuRenderValuasi();
@@ -472,6 +486,62 @@ function keuNeracaToggle(view) {
   document.querySelectorAll('.keu-neraca-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.view === view);
   });
+  keuNeracaExpandHeader();
+}
+
+function keuNeracaExpandHeader() {
+  const header = document.getElementById('keu-sticky-header');
+  const mini   = document.getElementById('keu-neraca-minicards-wrap');
+  if (header) header.classList.remove('keu-header-collapsed');
+  if (mini)   mini.classList.remove('keu-header-collapsed');
+}
+
+let _keuNeracaScrollInit = false;
+// Hide-on-scroll (mobile, panel Neraca): scroll ke bawah → collapse tab bar + minicards.
+// 2x swipe-down di sticky header saat collapsed → expand lagi.
+function initKeuNeracaScrollCollapse() {
+  if (_keuNeracaScrollInit) return;
+  _keuNeracaScrollInit = true;
+
+  const grid   = document.getElementById('keu-neraca-grid');
+  const header = document.getElementById('keu-sticky-header');
+  const mini   = document.getElementById('keu-neraca-minicards-wrap');
+  if (!grid || !header) return;
+
+  grid.addEventListener('scroll', function() {
+    if (grid.scrollTop > 40) {
+      header.classList.add('keu-header-collapsed');
+      if (mini) mini.classList.add('keu-header-collapsed');
+    }
+  }, { passive: true });
+
+  // 2x swipe-down di sticky header (dalam 600ms) saat collapsed → expand
+  let _swipe1Done = false, _swipe1Time = 0, _startY = 0, _startX = 0;
+  header.addEventListener('touchstart', function(e) {
+    if (e.target.closest('button')) return;
+    _startY = e.touches[0].clientY;
+    _startX = e.touches[0].clientX;
+    if (_swipe1Done && Date.now() - _swipe1Time > 600) { _swipe1Done = false; _swipe1Time = 0; }
+  }, { passive: true });
+
+  header.addEventListener('touchend', function(e) {
+    const dy = e.changedTouches[0].clientY - _startY;
+    const dx = e.changedTouches[0].clientX - _startX;
+    if (Math.abs(dx) > Math.abs(dy)) return;
+    if (dy < 30) return;
+    if (!header.classList.contains('keu-header-collapsed')) return;
+
+    const now = Date.now();
+    if (!_swipe1Done) {
+      _swipe1Done = true; _swipe1Time = now;
+    } else {
+      if (now - _swipe1Time <= 600) {
+        keuNeracaExpandHeader();
+        grid.scrollTop = 0;
+      }
+      _swipe1Done = false; _swipe1Time = 0;
+    }
+  }, { passive: true });
 }
 
 // ─── HUTANG ──────────────────────────────────────────────────
@@ -946,6 +1016,8 @@ async function keuRenderNeraca() {
   document.getElementById('keu-neraca-total-km').style.color = netWorth >= 0 ? 'var(--ok)' : 'var(--danger)';
   document.getElementById('keu-neraca-check').textContent = netWorth >= 0 ? '✅ Sehat' : '⚠ Hutang > Aset';
   document.getElementById('keu-neraca-check').style.color = netWorth >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+  initKeuNeracaScrollCollapse();
 }
 
 // ─── RASIO & NET WORTH ────────────────────────────────────────
