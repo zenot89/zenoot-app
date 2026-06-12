@@ -47,6 +47,17 @@ document.getElementById('page-keuangan').innerHTML = `
     .keu-neraca-grid { grid-template-columns:1fr; max-height:calc(100vh - 220px); overflow-y:auto; overscroll-behavior:none; touch-action:pan-y; }
     .keu-minicards { margin-left:0; width:100%; justify-content:center; }
     .keu-minicards > div { flex:1 1 0; min-width:0; }
+    .keu-neraca-toggle { display:flex; gap:6px; margin-bottom:10px; }
+    .keu-neraca-toggle button {
+      flex:1; padding:8px 10px; border:2px solid var(--ink); background:var(--cream);
+      font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink);
+    }
+    .keu-neraca-toggle button.active { background:var(--ink); color:var(--cream); }
+    .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
+    .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
+  }
+  @media(min-width:601px){
+    .keu-neraca-toggle { display:none; }
   }
 </style>
 
@@ -165,9 +176,13 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
     </div>
   </div>
-  <div class="keu-neraca-grid" id="keu-neraca-grid">
+  <div class="keu-neraca-toggle">
+    <button class="active" data-view="aset" onclick="keuNeracaToggle('aset')">📈 ASET</button>
+    <button data-view="kewajiban" onclick="keuNeracaToggle('kewajiban')">📉 KEWAJIBAN & MODAL</button>
+  </div>
+  <div class="keu-neraca-grid" id="keu-neraca-grid" data-view="aset">
     <!-- ASET -->
-    <div class="card">
+    <div class="card" id="keu-neraca-card-aset">
       <div class="card-title" style="color:var(--ok)"><i class="ti ti-trending-up"></i> ASET</div>
       <table class="tbl"><tbody id="keu-neraca-aset"></tbody></table>
       <div style="margin-top:8px;padding-top:8px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;font-weight:700">
@@ -175,7 +190,7 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
     </div>
     <!-- KEWAJIBAN + MODAL -->
-    <div class="card">
+    <div class="card" id="keu-neraca-card-kewajiban">
       <div class="card-title" style="color:var(--danger)"><i class="ti ti-trending-down"></i> KEWAJIBAN</div>
       <table class="tbl"><tbody id="keu-neraca-kewajiban"></tbody></table>
       <div style="margin-top:8px;padding-top:8px;border-top:2px dashed var(--ink3);display:flex;justify-content:space-between;font-weight:700">
@@ -445,6 +460,18 @@ function keuRefreshAktif() {
   if (_keuTabAktif === 'rasio')   keuRenderRasio();
   if (_keuTabAktif === 'valuasi') keuRenderValuasi();
   if (_keuTabAktif === 'aruskas') keuRenderArusKas();
+}
+
+// Toggle tampilan ASET ↔ KEWAJIBAN & MODAL (khusus mobile, lihat CSS @media max-width:600px)
+function keuNeracaToggle(view) {
+  const grid = document.getElementById('keu-neraca-grid');
+  if (grid) {
+    grid.dataset.view = view;
+    grid.scrollTop = 0;
+  }
+  document.querySelectorAll('.keu-neraca-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
 }
 
 // ─── HUTANG ──────────────────────────────────────────────────
@@ -842,7 +869,7 @@ async function keuRenderNeraca() {
 
   let asetHtml = '';
   // Grup 1: Kas & Saku
-  asetHtml += grpHdr('Kas & Saku');
+  asetHtml += grpHdr('Kas dan Setara Kas');
   if (kasAkun.length) {
     kasAkun.forEach(a => {
       const saldo = Math.max(0, a.saldoDebit - a.saldoKredit);
@@ -851,14 +878,14 @@ async function keuRenderNeraca() {
   } else {
     asetHtml += `<tr><td colspan="2" style="padding-left:12px;color:var(--ink3);font-style:italic">Belum ada akun kas/saku</td></tr>`;
   }
-  asetHtml += `<tr><td style="padding-left:12px"><b>Total Kas & Saku</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalKas)}</b>${pctAset(totalKas)}</td></tr>`;
+  asetHtml += `<tr><td style="padding-left:12px"><b>Total Kas dan Setara Kas</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalKas)}</b>${pctAset(totalKas)}</td></tr>`;
 
   // Grup 2: Shopee (Escrow saja — Wallet disembunyikan, data tidak reliable)
   asetHtml += grpHdr('Shopee');
   asetHtml += `<tr><td style="padding-left:12px">Escrow Shopee${shopeeCache ? ' <span style="color:var(--ok);font-size:10px">● LIVE</span>' : ''}</td><td style="text-align:right;color:var(--ok)">${fmtRp(escrow)}${pctAset(escrow)}</td></tr>`;
 
   // Grup 3: Aset Lainnya
-  asetHtml += grpHdr('Aset Lainnya');
+  asetHtml += grpHdr('Persediaan & Aset Tetap');
   lainAkun.forEach(a => {
     const saldo = Math.max(0, a.saldoDebit - a.saldoKredit);
     asetHtml += `<tr><td style="padding-left:12px">${a.nama}</td><td style="text-align:right;color:var(--ok)">${fmtRp(saldo)}${pctAset(saldo)}</td></tr>`;
@@ -866,7 +893,7 @@ async function keuRenderNeraca() {
   if (nilaiPersediaan > 0) {
     asetHtml += `<tr><td style="padding-left:12px">Persediaan Barang</td><td style="text-align:right;color:var(--ok)">${fmtRp(nilaiPersediaan)}${pctAset(nilaiPersediaan)}</td></tr>`;
   }
-  asetHtml += `<tr><td style="padding-left:12px"><b>Total Aset Lainnya</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalLain)}</b>${pctAset(totalLain)}</td></tr>`;
+  asetHtml += `<tr><td style="padding-left:12px"><b>Total Persediaan & Aset Tetap</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalLain)}</b>${pctAset(totalLain)}</td></tr>`;
 
   document.getElementById('keu-neraca-aset').innerHTML = asetHtml;
   document.getElementById('keu-neraca-total-aset').textContent = fmtRp(totalAset);
