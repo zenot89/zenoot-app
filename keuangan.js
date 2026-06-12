@@ -44,15 +44,46 @@ document.getElementById('page-keuangan').innerHTML = `
   .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
   @media(max-width:600px){
-    .keu-neraca-grid { grid-template-columns:1fr; max-height:calc(100vh - 220px); overflow-y:auto; overscroll-behavior:none; touch-action:pan-y; }
+    /* ═══ FULL-HEIGHT FLEX, sama pola dengan Restock ═══
+       chain: .content (definite height) → #page-keuangan.active (height:100%, flex column)
+              → #keu-sticky-header (flex-shrink:0)
+              → #keu-panels-wrap (flex:1 1 0, min-height:0)
+                 → .keu-panel.active (flex:1 1 0, min-height:0, overflow-y:auto) ← scroll zone asli
+    */
+    #page-keuangan.active {
+      display:-webkit-flex; display:flex;
+      -webkit-flex-direction:column; flex-direction:column;
+      height:100%; overflow:hidden; padding:0;
+    }
+    #keu-sticky-header { -webkit-flex-shrink:0; flex-shrink:0; }
+    #keu-panels-wrap {
+      -webkit-flex:1 1 0; flex:1 1 0; min-height:0; overflow:hidden;
+      display:-webkit-flex; display:flex; -webkit-flex-direction:column; flex-direction:column;
+    }
+    .keu-panel.active {
+      -webkit-flex:1 1 0; flex:1 1 0; min-height:0;
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      overscroll-behavior:none; touch-action:pan-y;
+      padding-bottom:24px;
+    }
+
+    /* Neraca grid: stack penuh, scroll-nya sekarang di .keu-panel-neraca.active (parent) */
+    .keu-neraca-grid { grid-template-columns:1fr; max-height:none; overflow:visible; }
     .keu-minicards { margin-left:0; width:100%; justify-content:center; }
     .keu-minicards > div { flex:1 1 0; min-width:0; }
-    .keu-neraca-toggle { display:flex; gap:6px; margin-bottom:10px; }
-    .keu-neraca-toggle button {
-      flex:1; padding:8px 10px; border:2px solid var(--ink); background:var(--cream);
-      font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink);
+
+    /* Toggle ASET / KEWAJIBAN — segmented control, minimalis */
+    .keu-neraca-toggle {
+      display:flex; gap:3px; margin-bottom:10px;
+      background:var(--cream2); border:1px solid rgba(255,255,255,0.06);
+      border-radius:8px; padding:3px;
     }
-    .keu-neraca-toggle button.active { background:var(--ink); color:var(--cream); }
+    .keu-neraca-toggle button {
+      flex:1; padding:7px 8px; border:none; background:transparent;
+      font-family:var(--f); font-size:12px; font-weight:600; cursor:pointer;
+      border-radius:6px; color:var(--ink3); transition:background .15s ease,color .15s ease;
+    }
+    .keu-neraca-toggle button.active { background:var(--ink4); color:var(--ink); }
     .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
     .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
 
@@ -86,6 +117,8 @@ document.getElementById('page-keuangan').innerHTML = `
   <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
 </div>
 </div>
+
+<div id="keu-panels-wrap">
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- PANEL: HUTANG                                              -->
@@ -380,6 +413,9 @@ document.getElementById('page-keuangan').innerHTML = `
     </tbody>
   </table>
 </div>
+
+</div><!-- /keu-panels-wrap -->
+
 <div class="modal-overlay" id="modal-keu-hutang" onclick="if(event.target===this)hideModal('modal-keu-hutang')">
   <div class="modal" style="max-width:560px;width:100%">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
@@ -478,11 +514,10 @@ function keuRefreshAktif() {
 
 // Toggle tampilan ASET ↔ KEWAJIBAN & MODAL (khusus mobile, lihat CSS @media max-width:600px)
 function keuNeracaToggle(view) {
-  const grid = document.getElementById('keu-neraca-grid');
-  if (grid) {
-    grid.dataset.view = view;
-    grid.scrollTop = 0;
-  }
+  const grid  = document.getElementById('keu-neraca-grid');
+  const panel = document.getElementById('keu-panel-neraca');
+  if (grid) grid.dataset.view = view;
+  if (panel) panel.scrollTop = 0;
   document.querySelectorAll('.keu-neraca-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.view === view);
   });
@@ -503,13 +538,13 @@ function initKeuNeracaScrollCollapse() {
   if (_keuNeracaScrollInit) return;
   _keuNeracaScrollInit = true;
 
-  const grid   = document.getElementById('keu-neraca-grid');
+  const panel  = document.getElementById('keu-panel-neraca');
   const header = document.getElementById('keu-sticky-header');
   const mini   = document.getElementById('keu-neraca-minicards-wrap');
-  if (!grid || !header) return;
+  if (!panel || !header) return;
 
-  grid.addEventListener('scroll', function() {
-    if (grid.scrollTop > 40) {
+  panel.addEventListener('scroll', function() {
+    if (panel.scrollTop > 40) {
       header.classList.add('keu-header-collapsed');
       if (mini) mini.classList.add('keu-header-collapsed');
     }
@@ -537,7 +572,7 @@ function initKeuNeracaScrollCollapse() {
     } else {
       if (now - _swipe1Time <= 600) {
         keuNeracaExpandHeader();
-        grid.scrollTop = 0;
+        panel.scrollTop = 0;
       }
       _swipe1Done = false; _swipe1Time = 0;
     }
