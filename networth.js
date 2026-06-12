@@ -236,14 +236,14 @@
       _log('RESULT aset=' + totalAset + ' hutang=' + totalHutang + ' laba=' + labaRugi.laba + ' shopee=' + (shopeeCache?'ok':'null'));
 
       const escrow   = shopeeCache ? Number(shopeeCache.escrow_transit || 0) : 0;
-      const wallet   = shopeeCache ? Number(shopeeCache.wallet_balance || 0) : 0;
       const isLive   = shopeeCache !== null;
       // CATATAN: labaRugi.laba TIDAK ditambahkan ke netWorth.
       // Setiap transaksi beban/pendapatan yang dicatat via jurnal (kas keluar/masuk)
       // sudah otomatis mengubah saldo akun aset (totalAset). Menambahkan labaRugi.laba
       // lagi di sini akan menghitung dampak transaksi tersebut DUA KALI.
       // Identitas akuntansi: Aset - Hutang = Modal (sudah termasuk akumulasi laba/rugi).
-      const netWorth = totalAset - totalHutang + escrow + wallet;
+      // Wallet Shopee sengaja tidak dihitung — data via API tidak reliable/lambat update.
+      const netWorth = totalAset - totalHutang + escrow;
 
       _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
       const totalEl = document.getElementById('nw-total');
@@ -252,14 +252,13 @@
       _set('nw-aset',   '+' + _rp(totalAset));
       _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
       _set('nw-escrow', '+' + _rp(escrow));
-      _set('nw-wallet', '+' + _rp(wallet));
       const labaEl = document.getElementById('nw-laba');
       if (labaEl) {
         labaEl.textContent = (labaRugi.laba >= 0 ? '+' : '-') + _rp(labaRugi.laba);
         labaEl.style.color = labaRugi.laba >= 0 ? 'var(--ok,#4caf50)' : 'var(--danger,#e05252)';
       }
 
-      ['nw-escrow-badge','nw-wallet-badge'].forEach(id => {
+      ['nw-escrow-badge'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         el.textContent = isLive ? 'LIVE' : 'offline';

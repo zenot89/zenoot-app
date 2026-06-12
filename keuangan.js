@@ -810,44 +810,78 @@ async function keuHitungNilaiPersediaan() {
 async function keuRenderNeraca() {
   await keuLoadKasData();
   // Pastikan data hutang selalu fresh — tidak bergantung tab Hutang sudah dibuka duluan
-  const [hutangFresh, bayar] = await Promise.all([
+  const [hutangFresh, bayar, shopeeCacheArr] = await Promise.all([
     dbGet('hutang', '&order=created_at.desc').catch(() => []),
     dbGet('hutang_bayar').catch(() => []),
+    fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
+      { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
   ]);
   _keuHutangAll = hutangFresh || [];
   const akunMap = keuHitungSaldoAkun();
   const fmtRp = v => fmtRpFull(v||0);
 
-  // ASET
-  const asetAkun = Object.values(akunMap).filter(a => a.kelompok === 'aset');
-  let totalAset = 0;
-  document.getElementById('keu-neraca-aset').innerHTML = asetAkun.map(a => {
-    const saldo = Math.max(0, a.saldoDebit - a.saldoKredit); totalAset += saldo;
-    return `<tr><td style="padding-left:12px">${a.nama}</td><td style="text-align:right;color:var(--ok)">${fmtRp(saldo)}</td></tr>`;
-  }).join('') || `<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada akun aset</td></tr>`;
-  // Tambah Persediaan Barang — pakai helper agar konsisten dengan tab Rasio
-  const nilaiPersediaan = await keuHitungNilaiPersediaan();
-  if (nilaiPersediaan > 0) {
-    document.getElementById('keu-neraca-aset').innerHTML += `<tr><td style="padding-left:12px">Persediaan Barang</td><td style="text-align:right;color:var(--ok)">${fmtRp(nilaiPersediaan)}</td></tr>`;
-    totalAset += nilaiPersediaan;
-  }
+  // ASET — dikelompokkan: Kas & Saku, Escrow Shopee, Aset Lainnya
+  const asetAkun  = Object.values(akunMap).filter(a => a.kelompok === 'aset');
+  const isKasBank = a => (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+  const kasAkun   = asetAkun.filter(isKasBank);
+  const lainAkun  = asetAkun.filter(a => !isKasBank(a));
 
+  // Escrow Shopee (Wallet Shopee sengaja tidak ditampilkan — data tidak reliable via API)
+  const shopeeCache = (shopeeCacheArr && shopeeCacheArr.length > 0) ? shopeeCacheArr[0] : null;
+  const escrow = shopeeCache ? Number(shopeeCache.escrow_transit || 0) : 0;
+
+  // Nilai Persediaan — pakai helper agar konsisten dengan tab Rasio
+  const nilaiPersediaan = await keuHitungNilaiPersediaan();
+
+  // Hitung subtotal dulu (dibutuhkan untuk persentase)
+  const totalKas = kasAkun.reduce((s,a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0);
+  const totalLain = lainAkun.reduce((s,a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0) + nilaiPersediaan;
+  const totalAset = totalKas + escrow + totalLain;
+  const pctAset = v => totalAset > 0 ? ` <span style="color:var(--ink3);font-size:11px">(${(v/totalAset*100).toFixed(1)}%)</span>` : '';
+  const grpHdr = label => `<tr><td colspan="2" style="padding-top:10px;padding-bottom:2px;color:var(--ink3);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">${label}</td></tr>`;
+
+  let asetHtml = '';
+  // Grup 1: Kas & Saku
+  asetHtml += grpHdr('Kas & Saku');
+  if (kasAkun.length) {
+    kasAkun.forEach(a => {
+      const saldo = Math.max(0, a.saldoDebit - a.saldoKredit);
+      asetHtml += `<tr><td style="padding-left:12px">${a.nama}</td><td style="text-align:right;color:var(--ok)">${fmtRp(saldo)}${pctAset(saldo)}</td></tr>`;
+    });
+  } else {
+    asetHtml += `<tr><td colspan="2" style="padding-left:12px;color:var(--ink3);font-style:italic">Belum ada akun kas/saku</td></tr>`;
+  }
+  asetHtml += `<tr><td style="padding-left:12px"><b>Total Kas & Saku</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalKas)}</b>${pctAset(totalKas)}</td></tr>`;
+
+  // Grup 2: Shopee (Escrow saja — Wallet disembunyikan, data tidak reliable)
+  asetHtml += grpHdr('Shopee');
+  asetHtml += `<tr><td style="padding-left:12px">Escrow Shopee${shopeeCache ? ' <span style="color:var(--ok);font-size:10px">● LIVE</span>' : ''}</td><td style="text-align:right;color:var(--ok)">${fmtRp(escrow)}${pctAset(escrow)}</td></tr>`;
+
+  // Grup 3: Aset Lainnya
+  asetHtml += grpHdr('Aset Lainnya');
+  lainAkun.forEach(a => {
+    const saldo = Math.max(0, a.saldoDebit - a.saldoKredit);
+    asetHtml += `<tr><td style="padding-left:12px">${a.nama}</td><td style="text-align:right;color:var(--ok)">${fmtRp(saldo)}${pctAset(saldo)}</td></tr>`;
+  });
+  if (nilaiPersediaan > 0) {
+    asetHtml += `<tr><td style="padding-left:12px">Persediaan Barang</td><td style="text-align:right;color:var(--ok)">${fmtRp(nilaiPersediaan)}${pctAset(nilaiPersediaan)}</td></tr>`;
+  }
+  asetHtml += `<tr><td style="padding-left:12px"><b>Total Aset Lainnya</b></td><td style="text-align:right;color:var(--ok)"><b>${fmtRp(totalLain)}</b>${pctAset(totalLain)}</td></tr>`;
+
+  document.getElementById('keu-neraca-aset').innerHTML = asetHtml;
   document.getElementById('keu-neraca-total-aset').textContent = fmtRp(totalAset);
 
   // KEWAJIBAN
-  // Sumber 1: modul Hutang — tampil per kreditur (bukan lump sum)
-  const kwjAkun = Object.values(akunMap).filter(a => a.kelompok === 'kewajiban');
-  let totalKwj = 0;
-  let kwjHtml = '';
-  // Per kreditur dari modul Hutang
-  _keuHutangAll.forEach(h => {
-    const sisa = Math.max(0, (h.pokok||0) - keuGetSudahBayar(h.id, bayar));
-    if (sisa > 0) {
-      totalKwj += sisa;
-      kwjHtml += `<tr><td style="padding-left:12px">${h.kreditur||'Hutang'}</td><td style="text-align:right;color:var(--danger)">${fmtRp(sisa)}</td></tr>`;
-    }
-  });
-  // Sumber kewajiban HANYA dari tabel hutang — tidak campur akun jurnal
+  // Sumber kewajiban HANYA dari tabel hutang — tidak campur akun jurnal. Tampil per kreditur + persentase.
+  const kwjList = _keuHutangAll.map(h => ({
+    nama: h.kreditur || 'Hutang',
+    sisa: Math.max(0, (h.pokok||0) - keuGetSudahBayar(h.id, bayar))
+  })).filter(x => x.sisa > 0);
+  const totalKwj = kwjList.reduce((s,x) => s + x.sisa, 0);
+  const pctKwj = v => totalKwj > 0 ? ` <span style="color:var(--ink3);font-size:11px">(${(v/totalKwj*100).toFixed(1)}%)</span>` : '';
+  const kwjHtml = kwjList.map(x =>
+    `<tr><td style="padding-left:12px">${x.nama}</td><td style="text-align:right;color:var(--danger)">${fmtRp(x.sisa)}${pctKwj(x.sisa)}</td></tr>`
+  ).join('');
   document.getElementById('keu-neraca-kewajiban').innerHTML = kwjHtml || `<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Tidak ada kewajiban</td></tr>`;
   document.getElementById('keu-neraca-total-kewajiban').textContent = fmtRp(totalKwj);
 

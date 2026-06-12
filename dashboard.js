@@ -26,7 +26,6 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-wallet"></i> Wallet Shopee <span id="nw-wallet-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-wallet">—</span></div>
         <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
       </div>
     </div>
@@ -1929,8 +1928,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 
     const cache  = shopeeCache && shopeeCache.length > 0 ? shopeeCache[0] : null;
     const escrow = cache ? Number(cache.escrow_transit || 0) : 0;
-    const wallet = cache ? Number(cache.wallet_balance || 0) : 0;
-    const totalKas = saldoKas + escrow + wallet;
+    const totalKas = saldoKas + escrow;
 
     const isDefisit = totalKas < totalKeluar;
     const selisih   = Math.abs(totalKas - totalKeluar);
