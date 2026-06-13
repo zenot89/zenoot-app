@@ -85,6 +85,17 @@ document.getElementById('page-keuangan').innerHTML = `
     .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
     .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
 
+    /* Cegah horizontal overflow: label kolom kiri (mis. "Total Persediaan & Aset Tetap")
+       boleh wrap, kolom kanan (nominal + persen) tetap nowrap agar tidak putus. */
+    #keu-neraca-card-aset .tbl td:first-child,
+    #keu-neraca-card-kewajiban .tbl td:first-child {
+      white-space:normal; word-break:break-word; padding-right:6px;
+    }
+    #keu-neraca-card-aset .tbl td:last-child,
+    #keu-neraca-card-kewajiban .tbl td:last-child {
+      white-space:nowrap;
+    }
+
     /* Hide-on-scroll: sticky header (tab bar) + Net Worth/Status minicards */
     #keu-sticky-header, #keu-neraca-minicards-wrap {
       max-height:300px; overflow:hidden;
