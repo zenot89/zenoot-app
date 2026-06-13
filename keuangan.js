@@ -930,9 +930,9 @@ async function keuPopulateAkunHutang(selectedKwj, selectedAset) {
 
 async function keuEditHutang(id) {
   const h = _keuHutangAll.find(x => String(x.id) === String(id)); if (!h) return;
+  keuShowFormHutang(h); // ShowForm reset keu-htg-id ke '' — set ID setelahnya
   document.getElementById('keu-hutang-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Hutang';
-  document.getElementById('keu-htg-id').value = h.id;
-  keuShowFormHutang(h);
+  document.getElementById('keu-htg-id').value = h.id; // ← SETELAH ShowForm, bukan sebelum
 }
 
 async function keuHapusHutang(id, nama) {
