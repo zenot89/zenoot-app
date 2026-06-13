@@ -1885,6 +1885,7 @@ function fcShowForm(id) {
     document.getElementById('fc-inp-nama').value     = r.nama || '';
     document.getElementById('fc-inp-kategori').value = r.kategori || 'operasional';
     document.getElementById('fc-inp-nominal').value  = _fmtRp(Number(r.nominal)||0);
+    if (typeof idrSet === 'function') setTimeout(() => idrSet('fc-inp-nominal', Number(r.nominal)||0), 30);
     document.getElementById('fc-inp-ket').value      = r.keterangan || '';
     document.getElementById('fc-inp-aktif').checked  = !!r.aktif;
     if (title) title.textContent = 'Edit Fix Cost';
@@ -1898,7 +1899,8 @@ function fcShowForm(id) {
   }
   el.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-}
+  // Aktifkan auto-format titik ribuan
+  if (typeof idrInput === 'function') setTimeout(() => idrInput('fc-inp-nominal'), 30);
 
 function fcCloseForm() {
   const el = document.getElementById('modal-fixcost');
@@ -1911,7 +1913,7 @@ async function fcSimpan() {
   const nama     = (document.getElementById('fc-inp-nama').value || '').trim();
   const kategori = document.getElementById('fc-inp-kategori').value || 'operasional';
   const nomStr   = (document.getElementById('fc-inp-nominal').value || '').replace(/\./g,'').replace(/[^0-9]/g,'');
-  const nominal  = parseInt(nomStr) || 0;
+  const nominal  = typeof idrVal === 'function' ? idrVal('fc-inp-nominal') : (parseInt(nomStr) || 0);
   const ket      = (document.getElementById('fc-inp-ket').value || '').trim();
   const aktif    = document.getElementById('fc-inp-aktif').checked;
 
