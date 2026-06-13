@@ -142,15 +142,6 @@ document.getElementById('page-keuangan').innerHTML = `
       white-space:nowrap;
     }
 
-    /* Hide-on-scroll: sticky header (tab bar) + Net Worth/Status minicards */
-    #keu-sticky-header, #keu-neraca-minicards-wrap {
-      max-height:300px; overflow:hidden;
-      transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
-    }
-    #keu-sticky-header.keu-header-collapsed,
-    #keu-neraca-minicards-wrap.keu-header-collapsed {
-      max-height:0 !important; opacity:0; margin:0 !important;
-    }
   }
   @media(min-width:601px){
     .keu-neraca-toggle { display:none; }
@@ -773,67 +764,35 @@ function keuNeracaToggle(view) {
 
 function keuNeracaExpandHeader() {
   const header = document.getElementById('keu-sticky-header');
-  const mini   = document.getElementById('keu-neraca-minicards-wrap');
   if (header) header.classList.remove('keu-header-collapsed');
-  if (mini) {
-    mini.classList.remove('keu-header-collapsed');
-    mini.style.maxHeight = '';
-    mini.style.opacity   = '';
-    mini.style.padding   = '';
-    mini.style.overflow  = '';
+}
+
+// ─── SWIPE GESTURE — collapse keu-sticky-header (semua touch device: portrait + landscape) ───
+// Mirror exact pattern jurnal-penjualan.js: initSwipeCollapse(zone, collapseEl, threshold, className)
+// Swipe UP → collapse, Swipe DOWN → expand
+(function() {
+  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  function _keuInitSwipe() {
+    if (!_isTouchDevice) return;
+    var panel  = document.getElementById('keu-panel-neraca');
+    var header = document.getElementById('keu-sticky-header');
+    if (!panel || !header) return;
+    // Panel neraca sebagai swipe zone + header itu sendiri sebagai zone kedua
+    initSwipeCollapse(panel,  header, 50, 'keu-header-collapsed');
+    initSwipeCollapse(header, header, 50, 'keu-header-collapsed');
   }
-}
+  setTimeout(_keuInitSwipe, 250);
+  // Re-init + reset saat zenot:page
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'keuangan') return;
+    setTimeout(function() {
+      keuNeracaExpandHeader();
+      _keuInitSwipe();
+    }, 80);
+  });
+})();
 
-let _keuNeracaScrollInit = false;
-// Hide-on-scroll (mobile, panel Neraca): scroll ke bawah → collapse tab bar + minicards.
-// 2x swipe-down di sticky header saat collapsed → expand lagi.
-function initKeuNeracaScrollCollapse() {
-  if (_keuNeracaScrollInit) return;
-  _keuNeracaScrollInit = true;
-
-  const zone   = document.getElementById('keu-neraca-scroll-zone');
-  const header = document.getElementById('keu-sticky-header');
-  const mini   = document.getElementById('keu-neraca-minicards-wrap');
-  if (!zone || !header) return;
-
-  zone.addEventListener('scroll', function() {
-    if (zone.scrollTop > 80) {
-      header.classList.add('keu-header-collapsed');
-      if (mini) mini.style.maxHeight = '0';
-      if (mini) mini.style.opacity   = '0';
-      if (mini) mini.style.padding   = '0';
-      if (mini) mini.style.overflow  = 'hidden';
-    }
-  }, { passive: true });
-
-  // 2x swipe-down di sticky header (dalam 600ms) saat collapsed → expand
-  let _swipe1Done = false, _swipe1Time = 0, _startY = 0, _startX = 0;
-  header.addEventListener('touchstart', function(e) {
-    if (e.target.closest('button')) return;
-    _startY = e.touches[0].clientY;
-    _startX = e.touches[0].clientX;
-    if (_swipe1Done && Date.now() - _swipe1Time > 600) { _swipe1Done = false; _swipe1Time = 0; }
-  }, { passive: true });
-
-  header.addEventListener('touchend', function(e) {
-    const dy = e.changedTouches[0].clientY - _startY;
-    const dx = e.changedTouches[0].clientX - _startX;
-    if (Math.abs(dx) > Math.abs(dy)) return;
-    if (dy < 30) return;
-    if (!header.classList.contains('keu-header-collapsed')) return;
-
-    const now = Date.now();
-    if (!_swipe1Done) {
-      _swipe1Done = true; _swipe1Time = now;
-    } else {
-      if (now - _swipe1Time <= 600) {
-        keuNeracaExpandHeader();
-        zone.scrollTop = 0;
-      }
-      _swipe1Done = false; _swipe1Time = 0;
-    }
-  }, { passive: true });
-}
+function initKeuNeracaScrollCollapse() { /* deprecated — diganti initSwipeCollapse */ }
 
 // ─── HUTANG ──────────────────────────────────────────────────
 async function keuLoadHutang() {

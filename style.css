@@ -3202,3 +3202,22 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     opacity: 0.18;
   }
 }
+
+/* ── keu-sticky-header COLLAPSE saat swipe — semua touch device (portrait + landscape) ── */
+/* Mirror exact pattern jp-top-bar collapse di jurnal-penjualan */
+@media (hover: none) and (pointer: coarse) {
+  #keu-sticky-header {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #keu-sticky-header.keu-header-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
