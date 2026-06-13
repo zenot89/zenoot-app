@@ -1853,11 +1853,11 @@ async function fcLoad() {
   // ── 4. Update summary cards ────────────────────────────────
   // NPM + Beban Ops (20% dari omset, weighted per channel) = totalBebanEst
   // Total Fix Cost = cicilan hutang + anggaran beban
-  // Sisa Setelah Fix Cost = Total Fix Cost − (NPM + Beban Ops)
-  //   → positif = masih KURANG (defisit), negatif/0 = sudah ketutup (surplus)
+  // Sisa Setelah Fix Cost = (NPM + Beban Ops) − Total Fix Cost
+  //   → negatif = KURANG/defisit, positif = surplus
   const npmBebanOps = totalBebanEst;
   const totalFC     = totalCicilan + totalAnggaran;
-  const sisa        = totalFC - npmBebanOps;
+  const sisa        = npmBebanOps - totalFC;
   const avgNpmHari  = npmBebanOps / dayOfMonth;
   const hariKejar   = avgNpmHari > 0 ? Math.ceil(totalFC / avgNpmHari) : null;
 
@@ -1873,9 +1873,9 @@ async function fcLoad() {
 
   if (elTotal) elTotal.textContent = totalFC > 0 ? fmt(totalFC) : '—';
   if (elOmset) { elOmset.textContent = omsetBln > 0 ? fmt(omsetBln) : '—'; elOmset.style.color = omsetBln > 0 ? 'var(--ok)' : 'var(--ink3)'; }
-  // sisa <= 0 → fix cost sudah ketutup oleh NPM+Beban Ops (surplus, hijau)
-  // sisa > 0  → masih kurang sebesar nilai ini (defisit, merah)
-  if (elSisa)  { elSisa.textContent = totalFC > 0 ? fmt(sisa) : '—'; elSisa.style.color = sisa <= 0 ? 'var(--ok)' : 'var(--danger)'; }
+  // sisa >= 0 → NPM+Beban Ops sudah ketutup fix cost (surplus, hijau)
+  // sisa < 0  → masih kurang sebesar nilai ini (defisit, merah)
+  if (elSisa)  { elSisa.textContent = totalFC > 0 ? fmt(sisa) : '—'; elSisa.style.color = sisa >= 0 ? 'var(--ok)' : 'var(--danger)'; }
   if (elHari)  {
     elHari.textContent = hariKejar !== null ? hariKejar + ' hari' : '—';
     elHari.style.color = (hariKejar !== null && hariKejar <= dayOfMonth) ? 'var(--ok)' : 'var(--danger)';
@@ -1890,8 +1890,8 @@ async function fcLoad() {
     elStatus.style.border = '2px solid ' + (covered ? 'var(--ok)' : 'var(--danger)');
     elStatus.style.color  = covered ? 'var(--ok)' : 'var(--danger)';
     elStatus.innerHTML = covered
-      ? `✅ NPM+Beban Ops sudah menutup fix cost (${pct}%) — surplus ${fmt(Math.abs(sisa))}`
-      : `⚠️ NPM+Beban Ops baru ${pct}% dari fix cost — kurang ${fmt(sisa)}`;
+      ? `✅ NPM+Beban Ops sudah menutup fix cost (${pct}%) — surplus ${fmt(sisa)}`
+      : `⚠️ NPM+Beban Ops baru ${pct}% dari fix cost — kurang ${fmt(Math.abs(sisa))}`;
   } else if (elStatus) {
     elStatus.style.display = 'none';
   }
