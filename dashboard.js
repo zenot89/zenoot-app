@@ -63,8 +63,8 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
     </div>
     <div class="metric">
-      <div class="m-label">Target Omset <span class="target-link" onclick="openTargetModal()">✎ set</span></div>
-      <div class="m-value" id="d-target" style="cursor:pointer" onclick="openTargetModal()">—</div>
+      <div class="m-label">Target Omset</div>
+      <div class="m-value" id="d-target">—</div>
       <div class="m-delta">
         <div id="d-target-bar-wrap" style="margin-top:4px;display:none">
           <div style="background:var(--cream4);height:6px;border-radius:3px;overflow:hidden;border:1px solid var(--ink4)">
@@ -1605,10 +1605,30 @@ async function loadDashboard() {
     const omsetHari = jpHariIni.reduce((s,r)=>s+(Number(r.total)||0),0);
     const aov       = jpBulan.length>0 ? Math.round(omsetBln/jpBulan.length) : 0;
 
-    // Avg Pendapatan/Hari bulan berjalan — ditaruh di delta card Cash Flow
+    // Avg Beban/Hari = weighted (beban% + npm%) per channel × omset bulan ini / hari berjalan
     const dayOfMonth = Math.max(1, Number(today.slice(8,10)) || 1);
-    const avgPerHari = omsetBln / dayOfMonth;
-    if (elCfDelta) elCfDelta.textContent = 'Avg/hari: ' + _fmtRp(avgPerHari);
+    try {
+      const chBebanRows = await dbGet('channel_beban', '').catch(() => []);
+      const chBebanMap  = {};
+      (chBebanRows || []).forEach(b => {
+        chBebanMap[b.channel_id] = (Number(b.beban_persen||0) + Number(b.npm_persen||0)) / 100;
+      });
+      // weighted: tiap transaksi punya channel_id → ambil pct-nya, kalikan total
+      let totalBebanEst = 0;
+      jpBulan.forEach(r => {
+        const pct = chBebanMap[r.channel_id] || 0;
+        totalBebanEst += (Number(r.total)||0) * pct;
+      });
+      // fallback: kalau tidak ada channel match, rata-rata semua channel
+      if (totalBebanEst === 0 && omsetBln > 0 && chBebanRows && chBebanRows.length) {
+        const avgPct = chBebanRows.reduce((s,b) => s + Number(b.beban_persen||0) + Number(b.npm_persen||0), 0) / chBebanRows.length / 100;
+        totalBebanEst = omsetBln * avgPct;
+      }
+      const avgBebanHari = totalBebanEst / dayOfMonth;
+      if (elCfDelta) elCfDelta.textContent = 'Avg beban/hari: ' + _fmtRp(Math.round(avgBebanHari));
+    } catch(e) {
+      if (elCfDelta) elCfDelta.textContent = 'bulan ini';
+    }
 
     document.getElementById('d-omset').textContent = _fmtRp(omsetBln);
     const omsetDeltaEl = document.getElementById('d-omset-delta');
