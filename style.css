@@ -721,8 +721,8 @@ body.sidebar-mini .sidebar-footer::before{
   .main{width:100%}
   .topbar{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top, 0px))}
   .topbar::before{display:none}
-  .page-title{font-size:18px;padding-left:0}
-  .page-sub{padding-left:0}
+  .page-title{font-size:18px;padding-left:4px}
+  .page-sub{padding-left:4px}
   .date-pill{display:none}
   .content{padding:10px 10px 10px 14px;}
   .metrics .metric{-webkit-flex:1 1 calc(50% - 10px);flex:1 1 calc(50% - 10px)}
