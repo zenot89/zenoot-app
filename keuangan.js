@@ -432,7 +432,7 @@ document.getElementById('page-keuangan').innerHTML = `
     <div class="rasio-item">
       <div class="r-label">Total Fix Cost/Bulan</div>
       <div class="r-value" id="fc-total-val" style="color:var(--danger)">—</div>
-      <div class="r-desc">cicilan + anggaran beban</div>
+      <div class="r-desc">beban% + npm% dari omset</div>
     </div>
     <div class="rasio-item">
       <div class="r-label">Omset Bulan Ini</div>
@@ -1767,7 +1767,7 @@ async function fcLoad() {
       tbodyHutang.innerHTML = hutangList.map(h => {
         const lunas = (h.sudah_bayar||0) >= (h.pokok||0);
         const cicilanBln = Number(h.cicilan_per_bulan)||0;
-        const asalFrek   = h.frekuensi === 'tahunan' ? ' (÷12/thn)' : '/bln';
+        const asalFrek   = '/bln';
         return `<tr style="opacity:${lunas?'0.4':'1'}">
           <td style="font-weight:600">${h.kreditur||'—'} ${lunas?'<span style="font-size:10px;color:var(--ok)">✅ LUNAS</span>':''}</td>
           <td style="text-align:right;color:${lunas?'var(--ink3)':'var(--danger)'};font-weight:600;font-variant-numeric:tabular-nums">
@@ -1785,7 +1785,7 @@ async function fcLoad() {
   try {
     [anggaranList, akunList] = await Promise.all([
       dbGet('kas_anggaran', '&bulan=eq.' + ym + '&order=akun_id.asc'),
-      dbGet('akun_kas', '&kelompok=eq.beban&order=nama.asc')
+      dbGet('kas_akun', '&kelompok=eq.beban&order=nama.asc')
     ]);
     anggaranList = anggaranList || [];
     akunList     = akunList     || [];
@@ -1812,18 +1812,39 @@ async function fcLoad() {
     }
   }
 
-  // ── 3. Omset bulan berjalan ────────────────────────────────
-  let omsetBln = 0;
+  // ── 3. Omset bulan berjalan + weighted beban/npm dari channel ──
+  let omsetBln = 0, jpBulan = [];
   try {
-    const jpData = await dbGet('jurnal_penjualan', '&tanggal=gte.' + ym + '-01&order=tanggal.desc').catch(()=>[]);
-    omsetBln = (jpData||[]).reduce((s,r) => s + (Number(r.total)||0), 0);
+    jpBulan  = await dbGet('jurnal_penjualan', '&tanggal=gte.' + ym + '-01&order=tanggal.desc').catch(()=>[]);
+    omsetBln = (jpBulan||[]).reduce((s,r) => s + (Number(r.total)||0), 0);
+  } catch(e) {}
+
+  // Weighted beban% + npm% per channel (sama dengan logika Avg/hari di dashboard)
+  let totalBebanEst = 0;
+  try {
+    const chBebanRows = await dbGet('channel_beban', '').catch(() => []);
+    const chBebanMap  = {};
+    (chBebanRows || []).forEach(b => {
+      chBebanMap[b.channel_id] = (Number(b.beban_persen||0) + Number(b.npm_persen||0)) / 100;
+    });
+    (jpBulan||[]).forEach(r => {
+      const pct = chBebanMap[r.channel_id] || 0;
+      totalBebanEst += (Number(r.total)||0) * pct;
+    });
+    // fallback rata-rata semua channel
+    if (totalBebanEst === 0 && omsetBln > 0 && chBebanRows && chBebanRows.length) {
+      const avgPct = chBebanRows.reduce((s,b) => s + Number(b.beban_persen||0) + Number(b.npm_persen||0), 0) / chBebanRows.length / 100;
+      totalBebanEst = omsetBln * avgPct;
+    }
   } catch(e) {}
 
   // ── 4. Update summary cards ────────────────────────────────
-  const totalFC    = totalCicilan + totalAnggaran;
-  const sisa       = omsetBln - totalFC;
-  const avgHari    = omsetBln / dayOfMonth;
-  const hariKejar  = avgHari > 0 ? Math.ceil(totalFC / avgHari) : null;
+  // totalFC untuk indikator = beban channel (20% omset) — bukan cicilan+anggaran
+  // cicilan & anggaran tetap tampil di tabel sebagai referensi
+  const totalFC   = Math.round(totalBebanEst);
+  const sisa      = omsetBln - totalFC;
+  const avgHari   = omsetBln / dayOfMonth;
+  const hariKejar = avgHari > 0 ? Math.ceil(totalFC / avgHari) : null;
 
   const elTotal = document.getElementById('fc-total-val');
   const elOmset = document.getElementById('fc-omset-val');
