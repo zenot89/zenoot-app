@@ -44,24 +44,22 @@ document.getElementById('page-keuangan').innerHTML = `
   .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
   @media(max-width:600px){
-    /* ═══ FULL-HEIGHT FLEX, sama pola dengan Restock ═══
-       chain: .content (definite height) → #page-keuangan.active (height:100%, flex column)
-              → #keu-sticky-header (flex-shrink:0)
-              → #keu-panels-wrap (flex:1 1 0, min-height:0)
-                 → .keu-panel.active (flex:1 1 0, min-height:0, overflow-y:auto) ← scroll zone asli
+    /* ═══ FULL-HEIGHT SCROLL ZONE, pola sama dengan Kas & Jurnal ═══
+       #keu-panels-wrap diberi height eksplisit via JS (_keuSetPanelHeight,
+       getBoundingClientRect — bukan persentase CSS, karena flex:1/height:100%
+       tidak resolve reliable di iOS Safari standalone tanpa overflow:hidden
+       eksplisit di .content). body.keu-active .content{overflow:hidden}
+       mencegah double-scroll.
+       chain: .content (overflow:hidden saat keu-active)
+              → #page-keuangan.active (block biasa)
+                 → #keu-sticky-header (tinggi natural, collapse via class)
+                 → #keu-panels-wrap (height:Npx via JS, overflow:hidden)
+                    → .keu-panel.active (height:100%, overflow-y:auto) ← scroll zone asli
     */
-    #page-keuangan.active {
-      display:-webkit-flex; display:flex;
-      -webkit-flex-direction:column; flex-direction:column;
-      height:100%; overflow:hidden; padding:0;
-    }
-    #keu-sticky-header { -webkit-flex-shrink:0; flex-shrink:0; }
-    #keu-panels-wrap {
-      -webkit-flex:1 1 0; flex:1 1 0; min-height:0; overflow:hidden;
-      display:-webkit-flex; display:flex; -webkit-flex-direction:column; flex-direction:column;
-    }
+    body.keu-active .content { overflow:hidden !important; }
+    #keu-panels-wrap { overflow:hidden; }
     .keu-panel.active {
-      -webkit-flex:1 1 0; flex:1 1 0; min-height:0;
+      height:100%; box-sizing:border-box;
       overflow-y:auto; -webkit-overflow-scrolling:touch;
       overscroll-behavior:none; touch-action:pan-y;
       padding-bottom:24px;
@@ -487,6 +485,7 @@ document.getElementById('page-keuangan').innerHTML = `
 `;
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-keuangan')); }, 80);
+setTimeout(_keuEnsureFlexLayout, 100);
 
 // ─── TAB ─────────────────────────────────────────────────────
 let _keuTabAktif = 'hutang';
@@ -502,7 +501,68 @@ function keuGotoTab(tab) {
   if (tab === 'rasio')   keuRenderRasio();
   if (tab === 'valuasi') keuRenderValuasi();
   if (tab === 'aruskas') keuRenderArusKas();
+  _keuSetPanelHeight();
 }
+
+// ─── FULL-HEIGHT SCROLL ZONE (mobile) — pola sama dengan _kasEnsureFlexLayout ──
+function _keuEnsureFlexLayout() {
+  const pg = document.getElementById('page-keuangan');
+  if (!pg || !pg.classList.contains('active')) return;
+  document.body.classList.add('keu-active');
+  _keuSetPanelHeight();
+}
+
+function _keuSetPanelHeight() {
+  const pg = document.getElementById('page-keuangan');
+  if (!pg || !pg.classList.contains('active')) return;
+  const wrap = document.getElementById('keu-panels-wrap');
+  const content = document.querySelector('.content');
+  if (!wrap || !content) return;
+  requestAnimationFrame(() => {
+    const wrapTop = wrap.getBoundingClientRect().top;
+    const contentBottom = content.getBoundingClientRect().bottom;
+    const newH = contentBottom - wrapTop;
+    if (newH > 100) {
+      wrap.style.height    = newH + 'px';
+      wrap.style.minHeight = newH + 'px';
+      wrap.style.maxHeight = newH + 'px';
+    }
+  });
+}
+
+// Recalc tinggi setiap kali sticky-header collapse/expand selesai (transisi 0.25s)
+(function() {
+  const header = document.getElementById('keu-sticky-header');
+  if (!header) return;
+  header.addEventListener('transitionend', function(e) {
+    if (e.propertyName === 'max-height') setTimeout(_keuSetPanelHeight, 16);
+  });
+})();
+
+window.addEventListener('resize', function() {
+  const pg = document.getElementById('page-keuangan');
+  if (pg && pg.classList.contains('active')) _keuEnsureFlexLayout();
+});
+window.addEventListener('orientationchange', function() {
+  const pg = document.getElementById('page-keuangan');
+  if (!pg || !pg.classList.contains('active')) return;
+  setTimeout(_keuEnsureFlexLayout, 300);
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', function() {
+    const pg = document.getElementById('page-keuangan');
+    if (pg && pg.classList.contains('active')) _keuSetPanelHeight();
+  });
+}
+
+// ─── HOOK zenot:page ───────────────────────────────────────────
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'keuangan') {
+    document.body.classList.remove('keu-active');
+    return;
+  }
+  setTimeout(_keuEnsureFlexLayout, 60);
+});
 
 function keuRefreshAktif() {
   if (_keuTabAktif === 'hutang')  keuLoadHutang();
