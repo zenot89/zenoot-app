@@ -432,7 +432,7 @@ document.getElementById('page-keuangan').innerHTML = `
     <div class="rasio-item">
       <div class="r-label">Total Fix Cost/Bulan</div>
       <div class="r-value" id="fc-total-val" style="color:var(--danger)">—</div>
-      <div class="r-desc">beban% + npm% dari omset</div>
+      <div class="r-desc">cicilan hutang + anggaran beban</div>
     </div>
     <div class="rasio-item">
       <div class="r-label">Omset Bulan Ini</div>
@@ -445,7 +445,10 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="r-desc">omset − fix cost</div>
     </div>
     <div class="rasio-item">
-      <div class="r-label">Hari Kejar Fix Cost</div>
+      <div class="r-label">Beban Channel</div>
+      <div class="r-value" id="fc-beban-ch-val" style="color:var(--warn)">—</div>
+      <div class="r-desc">sudah dalam omset</div>
+    </div>
       <div class="r-value" id="fc-hari-val">—</div>
       <div class="r-desc" id="fc-hari-desc">berdasarkan avg omset/hari</div>
     </div>
@@ -1756,8 +1759,14 @@ async function fcLoad() {
 
   const tbodyHutang = document.getElementById('fc-hutang-tbody');
   const totalCicilan = hutangList.reduce((s, h) => {
-    const lunas = h.sudah_bayar >= h.pokok;
-    return s + (lunas ? 0 : (Number(h.cicilan_per_bulan)||0));
+    const lunas = (h.sudah_bayar||0) >= (h.pokok||0);
+    if (lunas) return s;
+    // tahunan: pakai cicilan_nominal (angka asli per tahun) ÷ 12
+    // bulanan: pakai cicilan_per_bulan langsung
+    const perBulan = h.frekuensi === 'tahunan'
+      ? Math.round((Number(h.cicilan_nominal)||0) / 12)
+      : (Number(h.cicilan_per_bulan)||0);
+    return s + perBulan;
   }, 0);
 
   if (tbodyHutang) {
@@ -1766,13 +1775,14 @@ async function fcLoad() {
     } else {
       tbodyHutang.innerHTML = hutangList.map(h => {
         const lunas = (h.sudah_bayar||0) >= (h.pokok||0);
-        const cicilanBln = Number(h.cicilan_per_bulan)||0;
-        const asalFrek   = '/bln';
+        const perBulan = h.frekuensi === 'tahunan'
+          ? Math.round((Number(h.cicilan_nominal)||0) / 12)
+          : (Number(h.cicilan_per_bulan)||0);
+        const asalInfo = h.frekuensi === 'tahunan' ? ` <span style="font-size:10px;color:var(--ink3)">(${fmt(h.cicilan_nominal)}/thn ÷12)</span>` : '';
         return `<tr style="opacity:${lunas?'0.4':'1'}">
           <td style="font-weight:600">${h.kreditur||'—'} ${lunas?'<span style="font-size:10px;color:var(--ok)">✅ LUNAS</span>':''}</td>
           <td style="text-align:right;color:${lunas?'var(--ink3)':'var(--danger)'};font-weight:600;font-variant-numeric:tabular-nums">
-            ${lunas ? '—' : fmt(cicilanBln)}
-            <span style="font-size:10px;color:var(--ink3)">${asalFrek}</span>
+            ${lunas ? '—' : fmt(perBulan) + '/bln'}${asalInfo}
           </td>
           <td style="font-size:12px;color:var(--ink3)">${h.jenis||'—'}</td>
         </tr>`;
@@ -1839,12 +1849,15 @@ async function fcLoad() {
   } catch(e) {}
 
   // ── 4. Update summary cards ────────────────────────────────
-  // totalFC untuk indikator = beban channel (20% omset) — bukan cicilan+anggaran
-  // cicilan & anggaran tetap tampil di tabel sebagai referensi
-  const totalFC   = Math.round(totalBebanEst);
+  // Total Fix Cost = cicilan hutang + anggaran beban
+  // Beban channel (20% omset) adalah informasi terpisah — sudah ada dalam omset
+  const totalFC   = totalCicilan + totalAnggaran;
   const sisa      = omsetBln - totalFC;
   const avgHari   = omsetBln / dayOfMonth;
   const hariKejar = avgHari > 0 ? Math.ceil(totalFC / avgHari) : null;
+
+  const elBebanCh = document.getElementById('fc-beban-ch-val');
+  if (elBebanCh) elBebanCh.textContent = totalBebanEst > 0 ? fmt(Math.round(totalBebanEst)) : '—';
 
   const elTotal = document.getElementById('fc-total-val');
   const elOmset = document.getElementById('fc-omset-val');
