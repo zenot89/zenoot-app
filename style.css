@@ -48,7 +48,7 @@ body{
   position:static;
   background:transparent;
   border:none;
-  width:36px;height:36px;
+  width:32px;height:32px;
   cursor:pointer;font-size:24px;
   -webkit-align-items:center;align-items:center;
   -webkit-justify-content:center;justify-content:center;
@@ -58,7 +58,7 @@ body{
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
   -webkit-flex-shrink:0;flex-shrink:0;
-  margin-right:4px;
+  margin:0;
 }
 .hamburger i{color:var(--ink);font-size:24px}
 .hamburger:active{opacity:.6;transform:scale(.95);background:rgba(255,255,255,0.06)}
@@ -723,7 +723,8 @@ body.sidebar-mini .sidebar-footer::before{
   .main{width:100%}
   .topbar{padding:10px 14px}
   .topbar::before{display:none}
-  .page-title{font-size:18px}
+  .page-title{font-size:18px;padding-left:4px}
+  .page-sub{padding-left:4px}
   .date-pill{display:none}
   .content{padding:10px;}
   .metrics .metric{-webkit-flex:1 1 calc(50% - 10px);flex:1 1 calc(50% - 10px)}
