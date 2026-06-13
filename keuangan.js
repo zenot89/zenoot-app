@@ -440,17 +440,19 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="r-desc">dari jurnal penjualan</div>
     </div>
     <div class="rasio-item">
+      <div class="r-label">Income Riil (Channel)</div>
+      <div class="r-value" id="fc-beban-ch-val" style="color:var(--warn)">—</div>
+      <div class="r-desc">omset − beban &amp; NPM channel</div>
+    </div>
+    <div class="rasio-item" id="fc-sisa-card">
       <div class="r-label">Sisa Setelah Fix Cost</div>
       <div class="r-value" id="fc-sisa-val">—</div>
-      <div class="r-desc">omset − fix cost</div>
+      <div class="r-desc">income riil − fix cost</div>
     </div>
-    <div class="rasio-item">
-      <div class="r-label">Beban Channel</div>
-      <div class="r-value" id="fc-beban-ch-val" style="color:var(--warn)">—</div>
-      <div class="r-desc">sudah dalam omset</div>
-    </div>
+    <div class="rasio-item" id="fc-hari-card">
+      <div class="r-label">Hari Kejar Fix Cost</div>
       <div class="r-value" id="fc-hari-val">—</div>
-      <div class="r-desc" id="fc-hari-desc">berdasarkan avg omset/hari</div>
+      <div class="r-desc" id="fc-hari-desc">berdasarkan avg income/hari</div>
     </div>
   </div>
 
@@ -1849,15 +1851,18 @@ async function fcLoad() {
   } catch(e) {}
 
   // ── 4. Update summary cards ────────────────────────────────
+  // Income Riil = omset − beban&NPM channel (10%+10% per channel, weighted)
   // Total Fix Cost = cicilan hutang + anggaran beban
-  // Beban channel (20% omset) adalah informasi terpisah — sudah ada dalam omset
-  const totalFC   = totalCicilan + totalAnggaran;
-  const sisa      = omsetBln - totalFC;
-  const avgHari   = omsetBln / dayOfMonth;
-  const hariKejar = avgHari > 0 ? Math.ceil(totalFC / avgHari) : null;
+  // Sisa Setelah Fix Cost = Income Riil − Total Fix Cost (BUKAN omset − fix cost,
+  //   karena omset masih kotor sebelum dipotong beban channel)
+  const incomeRiil = omsetBln - totalBebanEst;
+  const totalFC    = totalCicilan + totalAnggaran;
+  const sisa       = incomeRiil - totalFC;
+  const avgIncomeHari = incomeRiil / dayOfMonth;
+  const hariKejar  = avgIncomeHari > 0 ? Math.ceil(totalFC / avgIncomeHari) : null;
 
   const elBebanCh = document.getElementById('fc-beban-ch-val');
-  if (elBebanCh) elBebanCh.textContent = totalBebanEst > 0 ? fmt(Math.round(totalBebanEst)) : '—';
+  if (elBebanCh) elBebanCh.textContent = omsetBln > 0 ? fmt(Math.round(incomeRiil)) : '—';
 
   const elTotal = document.getElementById('fc-total-val');
   const elOmset = document.getElementById('fc-omset-val');
@@ -1873,18 +1878,18 @@ async function fcLoad() {
     elHari.textContent = hariKejar !== null ? hariKejar + ' hari' : '—';
     elHari.style.color = (hariKejar !== null && hariKejar <= dayOfMonth) ? 'var(--ok)' : 'var(--danger)';
   }
-  if (elHDesc) elHDesc.textContent = hariKejar !== null ? ('dari ' + dayOfMonth + ' hari berjalan') : 'avg omset/hari belum ada';
+  if (elHDesc) elHDesc.textContent = hariKejar !== null ? ('dari ' + dayOfMonth + ' hari berjalan') : 'avg income/hari belum ada';
 
   if (elStatus && totalFC > 0) {
-    const pct = omsetBln > 0 ? Math.min((omsetBln / totalFC * 100), 999).toFixed(0) : 0;
-    const covered = omsetBln >= totalFC;
+    const pct = incomeRiil > 0 ? Math.min((incomeRiil / totalFC * 100), 999).toFixed(0) : 0;
+    const covered = incomeRiil >= totalFC;
     elStatus.style.display = 'block';
     elStatus.style.background = covered ? 'rgba(76,175,80,0.12)' : 'rgba(224,82,82,0.12)';
     elStatus.style.border = '2px solid ' + (covered ? 'var(--ok)' : 'var(--danger)');
     elStatus.style.color  = covered ? 'var(--ok)' : 'var(--danger)';
     elStatus.innerHTML = covered
-      ? `✅ Omset sudah menutup fix cost (${pct}%) — surplus ${fmt(sisa)}`
-      : `⚠️ Omset baru ${pct}% dari fix cost — kurang ${fmt(Math.abs(sisa))}`;
+      ? `✅ Income riil sudah menutup fix cost (${pct}%) — surplus ${fmt(sisa)}`
+      : `⚠️ Income riil baru ${pct}% dari fix cost — kurang ${fmt(Math.abs(sisa))}`;
   } else if (elStatus) {
     elStatus.style.display = 'none';
   }
