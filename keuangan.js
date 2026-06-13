@@ -71,17 +71,7 @@ document.getElementById('page-keuangan').innerHTML = `
     .keu-minicards > div { flex:1 1 0; min-width:0; }
 
     /* Toggle ASET / KEWAJIBAN — segmented control, minimalis */
-    .keu-neraca-toggle {
-      display:flex; gap:3px; margin-bottom:10px;
-      background:var(--cream2); border:1px solid rgba(255,255,255,0.06);
-      border-radius:8px; padding:3px;
-    }
-    .keu-neraca-toggle button {
-      flex:1; padding:7px 8px; border:none; background:transparent;
-      font-family:var(--f); font-size:12px; font-weight:600; cursor:pointer;
-      border-radius:6px; color:var(--ink3); transition:background .15s ease,color .15s ease;
-    }
-    .keu-neraca-toggle button.active { background:var(--ink4); color:var(--ink); }
+      /* keu-neraca-toggle lama diganti keuNeracaViewToggle button */
     .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
     .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
 
@@ -218,7 +208,7 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
   <div id="keu-neraca-minicards-wrap" style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-    <div class="keu-minicards">
+    <div class="keu-minicards" style="flex:1;min-width:0">
       <!-- Mini card: Net Worth -->
       <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
         <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Net Worth</div>
@@ -231,10 +221,15 @@ document.getElementById('page-keuangan').innerHTML = `
         <div id="keu-neraca-check" style="font-size:13px;font-weight:700">—</div>
       </div>
     </div>
-  </div>
-  <div class="keu-neraca-toggle">
-    <button class="active" data-view="aset" onclick="keuNeracaToggle('aset')">📈 ASET</button>
-    <button data-view="kewajiban" onclick="keuNeracaToggle('kewajiban')">📉 KEWAJIBAN & MODAL</button>
+    <!-- Toggle button: ASET ↔ KEWAJIBAN — satu tombol, ganti view -->
+    <button id="keu-neraca-view-toggle" onclick="keuNeracaViewToggle()"
+      style="flex-shrink:0;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+             padding:6px 12px;border-radius:20px;border:1.5px solid rgba(46,204,122,0.4);
+             background:rgba(46,204,122,0.08);color:var(--ok);cursor:pointer;
+             transition:color .2s,background .2s,border-color .2s;white-space:nowrap">
+      <i class="ti ti-trending-down" style="font-size:13px"></i>
+      <span id="keu-neraca-toggle-label">Kewajiban <span id="keu-neraca-kwj-count">—</span></span>
+    </button>
   </div>
   <div class="keu-neraca-grid" id="keu-neraca-grid" data-view="aset">
     <!-- ASET -->
@@ -648,15 +643,55 @@ function keuRefreshAktif() {
 }
 
 // Toggle tampilan ASET ↔ KEWAJIBAN & MODAL (khusus mobile, lihat CSS @media max-width:600px)
-function keuNeracaToggle(view) {
-  const grid  = document.getElementById('keu-neraca-grid');
+// ─── NERACA VIEW TOGGLE — satu tombol ASET ↔ KEWAJIBAN ──────────
+let _keuNeracaView = 'aset'; // state: 'aset' | 'kewajiban'
+
+function keuNeracaViewToggle() {
+  _keuNeracaView = _keuNeracaView === 'aset' ? 'kewajiban' : 'aset';
+  keuNeracaApplyView();
+  // scroll ke atas panel
   const panel = document.getElementById('keu-panel-neraca');
-  if (grid) grid.dataset.view = view;
   if (panel) panel.scrollTop = 0;
-  document.querySelectorAll('.keu-neraca-toggle button').forEach(b => {
-    b.classList.toggle('active', b.dataset.view === view);
-  });
   keuNeracaExpandHeader();
+}
+
+function keuNeracaApplyView(asetCount, kwjCount) {
+  const grid = document.getElementById('keu-neraca-grid');
+  const btn  = document.getElementById('keu-neraca-view-toggle');
+  const lbl  = document.getElementById('keu-neraca-toggle-label');
+  const cnt  = document.getElementById('keu-neraca-kwj-count');
+  if (!grid || !btn) return;
+
+  // Pakai count dari argumen (saat render) atau biarkan badge tetap
+  if (asetCount !== undefined && cnt) {
+    // saat ini view ASET: badge tampilkan jumlah Kewajiban (ajakan ke sana)
+    // saat ini view KEWAJIBAN: badge tampilkan jumlah Aset item
+    cnt.textContent = _keuNeracaView === 'aset' ? kwjCount : asetCount;
+  }
+
+  grid.dataset.view = _keuNeracaView;
+
+  if (_keuNeracaView === 'aset') {
+    // Tombol: tawarin pindah ke Kewajiban
+    btn.style.color       = 'var(--ok)';
+    btn.style.background  = 'rgba(46,204,122,0.08)';
+    btn.style.borderColor = 'rgba(46,204,122,0.4)';
+    btn.querySelector('i').className = 'ti ti-trending-down';
+    if (lbl) lbl.innerHTML = 'Kewajiban <span id="keu-neraca-kwj-count">' + (cnt ? cnt.textContent : '—') + '</span>';
+  } else {
+    // Tombol: tawarin pindah ke Aset
+    btn.style.color       = 'var(--danger)';
+    btn.style.background  = 'rgba(255,80,80,0.08)';
+    btn.style.borderColor = 'rgba(255,80,80,0.4)';
+    btn.querySelector('i').className = 'ti ti-trending-up';
+    if (lbl) lbl.innerHTML = 'Aset <span id="keu-neraca-kwj-count">' + (cnt ? cnt.textContent : '—') + '</span>';
+  }
+}
+
+function keuNeracaToggle(view) {
+  // legacy — tidak dipakai lagi tapi dijaga agar tidak error
+  _keuNeracaView = view;
+  keuNeracaApplyView();
 }
 
 function keuNeracaExpandHeader() {
@@ -1186,6 +1221,12 @@ async function keuRenderNeraca() {
   document.getElementById('keu-neraca-total-km').style.color = netWorth >= 0 ? 'var(--ok)' : 'var(--danger)';
   document.getElementById('keu-neraca-check').textContent = netWorth >= 0 ? '✅ Sehat' : '⚠ Hutang > Aset';
   document.getElementById('keu-neraca-check').style.color = netWorth >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+  // Update badge toggle: berapa item di masing-masing sisi
+  const asetItemCount = kasAkun.length + 1 + lainAkun.length + (nilaiPersediaan > 0 ? 1 : 0); // +1 Escrow
+  const kwjItemCount  = kwjList.length + modalAkun.length + 1; // +1 Laba/Rugi
+  _keuNeracaView = _keuNeracaView || 'aset';
+  keuNeracaApplyView(asetItemCount, kwjItemCount);
 
   initKeuNeracaScrollCollapse();
 }
