@@ -1594,7 +1594,6 @@ async function loadDashboard() {
       elCf.textContent = (cf>0?'+':cf<0?'-':'') + _fmtRp(Math.abs(cf));
       elCf.style.color = cf>0?'var(--ok)':cf<0?'var(--danger)':'var(--ink2)';
     }
-    if (elCfDelta) elCfDelta.textContent = todayYM.replace('-','/');
 
     // ─ Trigger Net Worth update (networth.js)
     if (typeof nwUpdate === 'function') nwUpdate();
@@ -1605,6 +1604,11 @@ async function loadDashboard() {
     const omsetBln  = jpBulan.reduce((s,r)=>s+(Number(r.total)||0),0);
     const omsetHari = jpHariIni.reduce((s,r)=>s+(Number(r.total)||0),0);
     const aov       = jpBulan.length>0 ? Math.round(omsetBln/jpBulan.length) : 0;
+
+    // Avg Pendapatan/Hari bulan berjalan — ditaruh di delta card Cash Flow
+    const dayOfMonth = Math.max(1, Number(today.slice(8,10)) || 1);
+    const avgPerHari = omsetBln / dayOfMonth;
+    if (elCfDelta) elCfDelta.textContent = 'Avg/hari: ' + _fmtRp(avgPerHari);
 
     document.getElementById('d-omset').textContent = _fmtRp(omsetBln);
     const omsetDeltaEl = document.getElementById('d-omset-delta');

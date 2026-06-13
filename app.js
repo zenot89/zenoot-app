@@ -97,11 +97,11 @@ function toggleSidebar() {
   if (isOpen) {
     sb.classList.remove('open');
     ov.classList.remove('open');
-    if (btn) { btn.innerHTML = '<i class="ti ti-menu-2"></i>'; btn.setAttribute('aria-label','Buka menu'); }
+    if (btn) { btn.classList.remove('hb-hidden'); btn.innerHTML = '<i class="ti ti-menu-2"></i>'; btn.setAttribute('aria-label','Buka menu'); }
   } else {
     sb.classList.add('open');
     ov.classList.add('open');
-    if (btn) { btn.innerHTML = '<i class="ti ti-x"></i>'; btn.setAttribute('aria-label','Tutup menu'); }
+    if (btn) { btn.classList.add('hb-hidden'); btn.innerHTML = '<i class="ti ti-menu-2"></i>'; btn.setAttribute('aria-label','Tutup menu'); }
   }
 }
 function closeSidebar() {
@@ -110,7 +110,7 @@ function closeSidebar() {
   var btn = $id('btn-hamburger');
   if (sb) sb.classList.remove('open');
   if (ov) ov.classList.remove('open');
-  if (btn) { btn.innerHTML = '<i class="ti ti-menu-2"></i>'; btn.setAttribute('aria-label','Buka menu'); }
+  if (btn) { btn.classList.remove('hb-hidden'); btn.innerHTML = '<i class="ti ti-menu-2"></i>'; btn.setAttribute('aria-label','Buka menu'); }
 }
 
 // Swipe-to-close sidebar (Samsung & Safari)
