@@ -33,6 +33,62 @@ document.getElementById('page-keuangan').innerHTML = `
   .neraca-head td { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
   .neraca-sub  td { padding-left:20px !important; }
   .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
+
+  /* ── Neraca freeze+scroll layout ── */
+  #keu-neraca-minicards-wrap {
+    padding: 0 0 10px 0;
+    transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+  }
+  #keu-neraca-scroll-zone {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+  .keu-neraca-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--cream);
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 4px;
+  }
+  .keu-neraca-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .keu-aset-label { color: var(--ok); }
+  .keu-kwj-label  { color: var(--danger); }
+  .keu-neraca-card {
+    padding-bottom: 16px;
+  }
+  .keu-neraca-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 2px solid var(--ink);
+  }
+  .keu-neraca-modal-head {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink2);
+    padding: 14px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-top: 1px solid var(--ink4);
+    margin-top: 8px;
+  }
 </style>
 
 <style>
@@ -105,16 +161,16 @@ document.getElementById('page-keuangan').innerHTML = `
 <div id="keu-sticky-header">
 <!-- Baris 1: Hutang | Neraca | Refresh -->
 <div class="keu-tabs-row">
-  <button class="keu-tab active" onclick="keuGotoTab('hutang')">🏦 Hutang</button>
-  <button class="keu-tab" onclick="keuGotoTab('neraca')">⚖ Neraca</button>
+  <button class="keu-tab active" onclick="keuGotoTab('hutang')"><i class="ti ti-building-bank"></i> Hutang</button>
+  <button class="keu-tab" onclick="keuGotoTab('neraca')"><i class="ti ti-scale"></i> Neraca</button>
   <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
 <!-- Baris 2: Rasio | Valuasi | Arus Kas | Fix Cost -->
 <div class="keu-tabs-row2">
-  <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
-  <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
-  <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
-  <button class="keu-tab" onclick="keuGotoTab('fixcost')">📌 Fix Cost</button>
+  <button class="keu-tab" onclick="keuGotoTab('rasio')"><i class="ti ti-chart-bar"></i> Rasio & Net Worth</button>
+  <button class="keu-tab" onclick="keuGotoTab('valuasi')"><i class="ti ti-diamond"></i> Valuasi Bisnis</button>
+  <button class="keu-tab" onclick="keuGotoTab('aruskas')"><i class="ti ti-cash"></i> Arus Kas</button>
+  <button class="keu-tab" onclick="keuGotoTab('fixcost')"><i class="ti ti-pin"></i> Fix Cost</button>
 </div>
 </div>
 
@@ -207,50 +263,79 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- PANEL: NERACA                                              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-neraca" class="keu-panel">
-  <div id="keu-neraca-minicards-wrap" style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-    <div class="keu-minicards" style="flex:1;min-width:0">
-      <!-- Mini card: Net Worth -->
-      <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:160px">
+  <!-- ── FREEZE HEADER: Net Worth + Status (collapse on scroll) ── -->
+  <div id="keu-neraca-minicards-wrap">
+    <div style="display:flex;gap:8px">
+      <!-- Net Worth -->
+      <div style="flex:1;padding:8px 12px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2)">
         <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Net Worth</div>
-        <div id="keu-neraca-total-km" style="font-size:15px;font-weight:700;color:var(--ink)">—</div>
+        <div id="keu-neraca-total-km" style="font-size:15px;font-weight:700">—</div>
         <div style="font-size:10px;color:var(--ink3)">Aset − Kewajiban</div>
       </div>
-      <!-- Mini card: Status Neraca -->
-      <div style="padding:6px 14px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2);min-width:140px">
+      <!-- Status Neraca -->
+      <div style="flex:1;padding:8px 12px;border:2px solid var(--ink);border-radius:2px;background:var(--cream2)">
         <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px">Status Neraca</div>
         <div id="keu-neraca-check" style="font-size:13px;font-weight:700">—</div>
       </div>
     </div>
-    <!-- Toggle button: ASET ↔ KEWAJIBAN — satu tombol, ganti view -->
-    <button id="keu-neraca-view-toggle" onclick="keuNeracaViewToggle()"
-      style="flex-shrink:0;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
-             padding:6px 12px;border-radius:20px;border:1.5px solid rgba(46,204,122,0.4);
-             background:rgba(46,204,122,0.08);color:var(--ok);cursor:pointer;
-             transition:color .2s,background .2s,border-color .2s;white-space:nowrap">
-      <i class="ti ti-trending-down" style="font-size:13px"></i>
-      <span id="keu-neraca-toggle-label">Kewajiban <span id="keu-neraca-kwj-count">—</span></span>
-    </button>
   </div>
-  <div class="keu-neraca-grid" id="keu-neraca-grid" data-view="aset">
-    <!-- ASET -->
-    <div class="card" id="keu-neraca-card-aset">
-      <div class="card-title" style="color:var(--ok)"><i class="ti ti-trending-up"></i> ASET</div>
+
+  <!-- ── SCROLL ZONE: konten neraca (freeze section header + scroll tabel) ── -->
+  <div id="keu-neraca-scroll-zone">
+
+    <!-- Section header ASET — freeze di atas scroll zone -->
+    <div id="keu-neraca-section-aset" class="keu-neraca-section-head" data-view="aset">
+      <span class="keu-neraca-section-label keu-aset-label">
+        <i class="ti ti-trending-up"></i> ASET
+      </span>
+      <button id="keu-neraca-view-toggle" onclick="keuNeracaViewToggle()"
+        style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+               padding:5px 11px;border-radius:20px;cursor:pointer;
+               border:1.5px solid rgba(46,204,122,0.4);
+               background:rgba(46,204,122,0.08);color:var(--ok);
+               transition:color .2s,background .2s,border-color .2s;white-space:nowrap">
+        <i class="ti ti-trending-down" style="font-size:12px"></i>
+        <span id="keu-neraca-toggle-label">Kewajiban <span id="keu-neraca-kwj-count">—</span></span>
+      </button>
+    </div>
+
+    <!-- Tabel ASET -->
+    <div id="keu-neraca-card-aset" class="keu-neraca-card">
       <table class="tbl"><tbody id="keu-neraca-aset"></tbody></table>
-      <div style="margin-top:8px;padding-top:8px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;font-weight:700">
+      <div class="keu-neraca-total-row">
         <span>Total Aset</span><span id="keu-neraca-total-aset" style="color:var(--ok)">—</span>
       </div>
     </div>
-    <!-- KEWAJIBAN + MODAL -->
-    <div class="card" id="keu-neraca-card-kewajiban">
-      <div class="card-title" style="color:var(--danger)"><i class="ti ti-trending-down"></i> KEWAJIBAN</div>
+
+    <!-- Section header KEWAJIBAN — muncul saat view kewajiban -->
+    <div id="keu-neraca-section-kwj" class="keu-neraca-section-head" data-view="kewajiban" style="display:none">
+      <span class="keu-neraca-section-label keu-kwj-label">
+        <i class="ti ti-trending-down"></i> KEWAJIBAN
+      </span>
+      <button onclick="keuNeracaViewToggle()"
+        style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+               padding:5px 11px;border-radius:20px;cursor:pointer;
+               border:1.5px solid rgba(255,80,80,0.4);
+               background:rgba(255,80,80,0.08);color:var(--danger);
+               transition:color .2s,background .2s,border-color .2s;white-space:nowrap">
+        <i class="ti ti-trending-up" style="font-size:12px"></i>
+        <span id="keu-neraca-toggle-label2">Aset <span id="keu-neraca-aset-count">—</span></span>
+      </button>
+    </div>
+
+    <!-- Tabel KEWAJIBAN + MODAL -->
+    <div id="keu-neraca-card-kewajiban" class="keu-neraca-card" style="display:none">
       <table class="tbl"><tbody id="keu-neraca-kewajiban"></tbody></table>
-      <div style="margin-top:8px;padding-top:8px;border-top:2px dashed var(--ink3);display:flex;justify-content:space-between;font-weight:700">
+      <div class="keu-neraca-total-row" style="border-top:2px dashed var(--ink3)">
         <span>Total Kewajiban</span><span id="keu-neraca-total-kewajiban" style="color:var(--danger)">—</span>
       </div>
-      <div class="card-title" style="color:var(--ink);margin-top:14px"><i class="ti ti-user"></i> MODAL</div>
+      <div class="keu-neraca-modal-head">
+        <i class="ti ti-user"></i> MODAL
+      </div>
       <table class="tbl"><tbody id="keu-neraca-modal"></tbody></table>
     </div>
-  </div>
+
+  </div><!-- /keu-neraca-scroll-zone -->
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -656,36 +741,28 @@ function keuNeracaViewToggle() {
 }
 
 function keuNeracaApplyView(asetCount, kwjCount) {
-  const grid = document.getElementById('keu-neraca-grid');
-  const btn  = document.getElementById('keu-neraca-view-toggle');
-  const lbl  = document.getElementById('keu-neraca-toggle-label');
-  const cnt  = document.getElementById('keu-neraca-kwj-count');
-  if (!grid || !btn) return;
+  const cardAset = document.getElementById('keu-neraca-card-aset');
+  const cardKwj  = document.getElementById('keu-neraca-card-kewajiban');
+  const secAset  = document.getElementById('keu-neraca-section-aset');
+  const secKwj   = document.getElementById('keu-neraca-section-kwj');
+  const cntKwj   = document.getElementById('keu-neraca-kwj-count');
+  const cntAset  = document.getElementById('keu-neraca-aset-count');
+  const zone     = document.getElementById('keu-neraca-scroll-zone');
 
-  // Pakai count dari argumen (saat render) atau biarkan badge tetap
-  if (asetCount !== undefined && cnt) {
-    // saat ini view ASET: badge tampilkan jumlah Kewajiban (ajakan ke sana)
-    // saat ini view KEWAJIBAN: badge tampilkan jumlah Aset item
-    cnt.textContent = _keuNeracaView === 'aset' ? kwjCount : asetCount;
+  if (asetCount !== undefined) {
+    if (cntKwj)  cntKwj.textContent  = kwjCount  ?? '—';
+    if (cntAset) cntAset.textContent = asetCount ?? '—';
   }
 
-  grid.dataset.view = _keuNeracaView;
+  const isAset = _keuNeracaView === 'aset';
 
-  if (_keuNeracaView === 'aset') {
-    // Tombol: tawarin pindah ke Kewajiban
-    btn.style.color       = 'var(--ok)';
-    btn.style.background  = 'rgba(46,204,122,0.08)';
-    btn.style.borderColor = 'rgba(46,204,122,0.4)';
-    btn.querySelector('i').className = 'ti ti-trending-down';
-    if (lbl) lbl.innerHTML = 'Kewajiban <span id="keu-neraca-kwj-count">' + (cnt ? cnt.textContent : '—') + '</span>';
-  } else {
-    // Tombol: tawarin pindah ke Aset
-    btn.style.color       = 'var(--danger)';
-    btn.style.background  = 'rgba(255,80,80,0.08)';
-    btn.style.borderColor = 'rgba(255,80,80,0.4)';
-    btn.querySelector('i').className = 'ti ti-trending-up';
-    if (lbl) lbl.innerHTML = 'Aset <span id="keu-neraca-kwj-count">' + (cnt ? cnt.textContent : '—') + '</span>';
-  }
+  if (cardAset)  cardAset.style.display  = isAset ? '' : 'none';
+  if (cardKwj)   cardKwj.style.display   = isAset ? 'none' : '';
+  if (secAset)   secAset.style.display   = isAset ? '' : 'none';
+  if (secKwj)    secKwj.style.display    = isAset ? 'none' : '';
+
+  // Scroll zone kembali ke atas saat ganti view
+  if (zone) zone.scrollTop = 0;
 }
 
 function keuNeracaToggle(view) {
@@ -698,7 +775,13 @@ function keuNeracaExpandHeader() {
   const header = document.getElementById('keu-sticky-header');
   const mini   = document.getElementById('keu-neraca-minicards-wrap');
   if (header) header.classList.remove('keu-header-collapsed');
-  if (mini)   mini.classList.remove('keu-header-collapsed');
+  if (mini) {
+    mini.classList.remove('keu-header-collapsed');
+    mini.style.maxHeight = '';
+    mini.style.opacity   = '';
+    mini.style.padding   = '';
+    mini.style.overflow  = '';
+  }
 }
 
 let _keuNeracaScrollInit = false;
@@ -708,15 +791,18 @@ function initKeuNeracaScrollCollapse() {
   if (_keuNeracaScrollInit) return;
   _keuNeracaScrollInit = true;
 
-  const panel  = document.getElementById('keu-panel-neraca');
+  const zone   = document.getElementById('keu-neraca-scroll-zone');
   const header = document.getElementById('keu-sticky-header');
   const mini   = document.getElementById('keu-neraca-minicards-wrap');
-  if (!panel || !header) return;
+  if (!zone || !header) return;
 
-  panel.addEventListener('scroll', function() {
-    if (panel.scrollTop > 40) {
+  zone.addEventListener('scroll', function() {
+    if (zone.scrollTop > 80) {
       header.classList.add('keu-header-collapsed');
-      if (mini) mini.classList.add('keu-header-collapsed');
+      if (mini) mini.style.maxHeight = '0';
+      if (mini) mini.style.opacity   = '0';
+      if (mini) mini.style.padding   = '0';
+      if (mini) mini.style.overflow  = 'hidden';
     }
   }, { passive: true });
 
@@ -742,7 +828,7 @@ function initKeuNeracaScrollCollapse() {
     } else {
       if (now - _swipe1Time <= 600) {
         keuNeracaExpandHeader();
-        panel.scrollTop = 0;
+        zone.scrollTop = 0;
       }
       _swipe1Done = false; _swipe1Time = 0;
     }
