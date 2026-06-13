@@ -114,7 +114,7 @@ document.getElementById('page-keuangan').innerHTML = `
     */
     body.keu-active .content { overflow:hidden !important; }
     #keu-panels-wrap { overflow:hidden; }
-    .keu-panel.active {
+    .keu-panel.active:not(.keu-panel-neraca) {
       height:100%; box-sizing:border-box;
       overflow-y:auto; -webkit-overflow-scrolling:touch;
       overscroll-behavior:none; touch-action:pan-y;
@@ -795,22 +795,80 @@ function keuNeracaExpandHeader() {
   if (header) header.classList.remove('keu-header-collapsed');
 }
 
-// ─── SWIPE GESTURE — collapse keu-sticky-header (semua touch device: portrait + landscape) ───
-// Mirror exact pattern jurnal-penjualan.js: initSwipeCollapse(zone, collapseEl, threshold, className)
-// Swipe UP → collapse, Swipe DOWN → expand
+// ─── SWIPE GESTURE — keu-sticky-header collapse/expand ───────────────────────
+// Collapse : swipe UP di scroll-zone → langsung collapse (1x)
+// Expand   : swipe DOWN 2x di header collapsed dalam 600ms → expand
 (function() {
   var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  var _collapseInit  = false;
+  var _expandInit    = false;
+
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
+
     var zone   = document.getElementById('keu-neraca-scroll-zone');
     var header = document.getElementById('keu-sticky-header');
     if (!zone || !header) return;
-    // scroll-zone sebagai swipe zone utama + header itu sendiri sebagai zone kedua
-    initSwipeCollapse(zone,   header, 50, 'keu-header-collapsed');
-    initSwipeCollapse(header, header, 50, 'keu-header-collapsed');
+
+    // ── COLLAPSE: swipe UP di scroll-zone (1x, langsung) ──
+    if (!_collapseInit) {
+      _collapseInit = true;
+      var _startY = 0, _startX = 0, _tracking = false;
+      zone.addEventListener('touchstart', function(e) {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        _startY   = e.touches[0].clientY;
+        _startX   = e.touches[0].clientX;
+        _tracking = true;
+      }, { passive: true });
+      zone.addEventListener('touchend', function(e) {
+        if (!_tracking) return;
+        _tracking = false;
+        var dy = e.changedTouches[0].clientY - _startY;
+        var dx = e.changedTouches[0].clientX - _startX;
+        if (Math.abs(dx) > Math.abs(dy)) return;
+        if (dy < -50) {
+          // swipe UP → collapse
+          header.classList.add('keu-header-collapsed');
+        }
+      }, { passive: true });
+    }
+
+    // ── EXPAND: 2x swipe DOWN di header dalam 600ms ──
+    if (!_expandInit) {
+      _expandInit = true;
+      var _s1Y = 0, _s1X = 0, _s1Done = false, _s1Time = 0;
+      header.addEventListener('touchstart', function(e) {
+        if (e.target.closest('button') || e.target.closest('input')) return;
+        _s1Y = e.touches[0].clientY;
+        _s1X = e.touches[0].clientX;
+        // reset swipe ke-1 kalau sudah lebih dari 600ms
+        if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
+      }, { passive: true });
+      header.addEventListener('touchend', function(e) {
+        if (!header.classList.contains('keu-header-collapsed')) return;
+        var dy = e.changedTouches[0].clientY - _s1Y;
+        var dx = e.changedTouches[0].clientX - _s1X;
+        if (Math.abs(dx) > Math.abs(dy)) return;
+        if (dy < 50) return; // harus swipe DOWN cukup jauh
+        var now = Date.now();
+        if (!_s1Done) {
+          // swipe DOWN ke-1
+          _s1Done = true;
+          _s1Time = now;
+        } else if (now - _s1Time <= 600) {
+          // swipe DOWN ke-2 dalam 600ms → expand
+          keuNeracaExpandHeader();
+          _s1Done = false;
+        } else {
+          // terlalu lama, reset ke swipe ke-1
+          _s1Done = true;
+          _s1Time = now;
+        }
+      }, { passive: true });
+    }
   }
+
   setTimeout(_keuInitSwipe, 250);
-  // Re-init + reset saat zenot:page
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'keuangan') return;
     setTimeout(function() {
@@ -820,7 +878,7 @@ function keuNeracaExpandHeader() {
   });
 })();
 
-function initKeuNeracaScrollCollapse() { /* deprecated — diganti initSwipeCollapse */ }
+function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
 // ─── HUTANG ──────────────────────────────────────────────────
 async function keuLoadHutang() {
