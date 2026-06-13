@@ -441,7 +441,7 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
     <div class="rasio-item">
       <div class="r-label">NPM + Beban Ops (20%)</div>
-      <div class="r-value" id="fc-beban-ch-val" style="color:var(--warn)">—</div>
+      <div class="r-value" id="fc-beban-ch-val" style="color:var(--ok)">—</div>
       <div class="r-desc">10% beban ops + 10% NPM dari omset</div>
     </div>
     <div class="rasio-item" id="fc-sisa-card">
@@ -1872,7 +1872,7 @@ async function fcLoad() {
   const elStatus= document.getElementById('fc-status-bar');
 
   if (elTotal) elTotal.textContent = totalFC > 0 ? fmt(totalFC) : '—';
-  if (elOmset) { elOmset.textContent = omsetBln > 0 ? fmt(omsetBln) : '—'; elOmset.style.color = omsetBln > 0 ? 'var(--ok)' : 'var(--ink3)'; }
+  if (elOmset) { elOmset.textContent = omsetBln > 0 ? fmt(omsetBln) : '—'; elOmset.style.color = omsetBln > 0 ? 'var(--info)' : 'var(--ink3)'; }
   // sisa >= 0 → NPM+Beban Ops sudah ketutup fix cost (surplus, hijau)
   // sisa < 0  → masih kurang sebesar nilai ini (defisit, merah)
   if (elSisa)  { elSisa.textContent = totalFC > 0 ? fmt(sisa) : '—'; elSisa.style.color = sisa >= 0 ? 'var(--ok)' : 'var(--danger)'; }
