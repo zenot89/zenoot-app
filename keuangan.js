@@ -121,7 +121,35 @@ document.getElementById('page-keuangan').innerHTML = `
       padding-bottom:24px;
     }
 
-    /* Neraca grid: stack penuh, scroll-nya sekarang di .keu-panel-neraca.active (parent) */
+    /* ── Neraca: panel jadi flex column, minicards freeze, scroll-zone yang scroll ──
+       chain: .keu-panel-neraca.active (flex column, overflow:hidden)
+                → #keu-neraca-minicards-wrap (shrink:0, freeze — Net Worth + Status)
+                → #keu-neraca-scroll-zone (flex:1, overflow-y:auto) ← scroll zone eksklusif
+    */
+    .keu-panel-neraca.active {
+      display: -webkit-flex !important;
+      display: flex !important;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden !important;
+      overflow-y: hidden !important;
+    }
+    #keu-neraca-minicards-wrap {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+    #keu-neraca-scroll-zone {
+      -webkit-flex: 1 1 0;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: none;
+      touch-action: pan-y;
+      padding-bottom: 24px;
+    }
+
+    /* Neraca grid: stack penuh, scroll-nya sekarang di #keu-neraca-scroll-zone */
     .keu-neraca-grid { grid-template-columns:1fr; max-height:none; overflow:visible; }
     .keu-minicards { margin-left:0; width:100%; justify-content:center; }
     .keu-minicards > div { flex:1 1 0; min-width:0; }
@@ -774,11 +802,11 @@ function keuNeracaExpandHeader() {
   var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
-    var panel  = document.getElementById('keu-panel-neraca');
+    var zone   = document.getElementById('keu-neraca-scroll-zone');
     var header = document.getElementById('keu-sticky-header');
-    if (!panel || !header) return;
-    // Panel neraca sebagai swipe zone + header itu sendiri sebagai zone kedua
-    initSwipeCollapse(panel,  header, 50, 'keu-header-collapsed');
+    if (!zone || !header) return;
+    // scroll-zone sebagai swipe zone utama + header itu sendiri sebagai zone kedua
+    initSwipeCollapse(zone,   header, 50, 'keu-header-collapsed');
     initSwipeCollapse(header, header, 50, 'keu-header-collapsed');
   }
   setTimeout(_keuInitSwipe, 250);
