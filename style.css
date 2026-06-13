@@ -34,8 +34,6 @@ body{
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
   overscroll-behavior: none;
   /* touch-action:none — body tidak boleh scroll, semua scroll di inner container */
   touch-action: none;
@@ -347,6 +345,7 @@ body.sidebar-mini .sidebar-footer::before{
   display:-webkit-flex;display:flex;
   -webkit-align-items:center;align-items:center;
   -webkit-justify-content:space-between;justify-content:space-between;
+  gap:8px;
   -webkit-flex-shrink:0;flex-shrink:0;
   position:relative;
 }
