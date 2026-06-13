@@ -440,14 +440,14 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="r-desc">dari jurnal penjualan</div>
     </div>
     <div class="rasio-item">
-      <div class="r-label">Income Riil (Channel)</div>
+      <div class="r-label">NPM + Beban Ops (20%)</div>
       <div class="r-value" id="fc-beban-ch-val" style="color:var(--warn)">—</div>
-      <div class="r-desc">omset − beban &amp; NPM channel</div>
+      <div class="r-desc">10% beban ops + 10% NPM dari omset</div>
     </div>
     <div class="rasio-item" id="fc-sisa-card">
       <div class="r-label">Sisa Setelah Fix Cost</div>
       <div class="r-value" id="fc-sisa-val">—</div>
-      <div class="r-desc">income riil − fix cost</div>
+      <div class="r-desc">fix cost − (NPM+beban ops)</div>
     </div>
     <div class="rasio-item" id="fc-hari-card">
       <div class="r-label">Hari Kejar Fix Cost</div>
@@ -1851,18 +1851,18 @@ async function fcLoad() {
   } catch(e) {}
 
   // ── 4. Update summary cards ────────────────────────────────
-  // Income Riil = omset − beban&NPM channel (10%+10% per channel, weighted)
+  // NPM + Beban Ops (20% dari omset, weighted per channel) = totalBebanEst
   // Total Fix Cost = cicilan hutang + anggaran beban
-  // Sisa Setelah Fix Cost = Income Riil − Total Fix Cost (BUKAN omset − fix cost,
-  //   karena omset masih kotor sebelum dipotong beban channel)
-  const incomeRiil = omsetBln - totalBebanEst;
-  const totalFC    = totalCicilan + totalAnggaran;
-  const sisa       = incomeRiil - totalFC;
-  const avgIncomeHari = incomeRiil / dayOfMonth;
-  const hariKejar  = avgIncomeHari > 0 ? Math.ceil(totalFC / avgIncomeHari) : null;
+  // Sisa Setelah Fix Cost = Total Fix Cost − (NPM + Beban Ops)
+  //   → positif = masih KURANG (defisit), negatif/0 = sudah ketutup (surplus)
+  const npmBebanOps = totalBebanEst;
+  const totalFC     = totalCicilan + totalAnggaran;
+  const sisa        = totalFC - npmBebanOps;
+  const avgNpmHari  = npmBebanOps / dayOfMonth;
+  const hariKejar   = avgNpmHari > 0 ? Math.ceil(totalFC / avgNpmHari) : null;
 
   const elBebanCh = document.getElementById('fc-beban-ch-val');
-  if (elBebanCh) elBebanCh.textContent = omsetBln > 0 ? fmt(Math.round(incomeRiil)) : '—';
+  if (elBebanCh) elBebanCh.textContent = omsetBln > 0 ? fmt(Math.round(npmBebanOps)) : '—';
 
   const elTotal = document.getElementById('fc-total-val');
   const elOmset = document.getElementById('fc-omset-val');
@@ -1873,23 +1873,25 @@ async function fcLoad() {
 
   if (elTotal) elTotal.textContent = totalFC > 0 ? fmt(totalFC) : '—';
   if (elOmset) { elOmset.textContent = omsetBln > 0 ? fmt(omsetBln) : '—'; elOmset.style.color = omsetBln > 0 ? 'var(--ok)' : 'var(--ink3)'; }
-  if (elSisa)  { elSisa.textContent = totalFC > 0 ? fmt(sisa) : '—'; elSisa.style.color = sisa >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+  // sisa <= 0 → fix cost sudah ketutup oleh NPM+Beban Ops (surplus, hijau)
+  // sisa > 0  → masih kurang sebesar nilai ini (defisit, merah)
+  if (elSisa)  { elSisa.textContent = totalFC > 0 ? fmt(sisa) : '—'; elSisa.style.color = sisa <= 0 ? 'var(--ok)' : 'var(--danger)'; }
   if (elHari)  {
     elHari.textContent = hariKejar !== null ? hariKejar + ' hari' : '—';
     elHari.style.color = (hariKejar !== null && hariKejar <= dayOfMonth) ? 'var(--ok)' : 'var(--danger)';
   }
-  if (elHDesc) elHDesc.textContent = hariKejar !== null ? ('dari ' + dayOfMonth + ' hari berjalan') : 'avg income/hari belum ada';
+  if (elHDesc) elHDesc.textContent = hariKejar !== null ? ('dari ' + dayOfMonth + ' hari berjalan') : 'avg NPM+beban ops/hari belum ada';
 
   if (elStatus && totalFC > 0) {
-    const pct = incomeRiil > 0 ? Math.min((incomeRiil / totalFC * 100), 999).toFixed(0) : 0;
-    const covered = incomeRiil >= totalFC;
+    const pct = totalFC > 0 ? Math.min((npmBebanOps / totalFC * 100), 999).toFixed(0) : 0;
+    const covered = npmBebanOps >= totalFC;
     elStatus.style.display = 'block';
     elStatus.style.background = covered ? 'rgba(76,175,80,0.12)' : 'rgba(224,82,82,0.12)';
     elStatus.style.border = '2px solid ' + (covered ? 'var(--ok)' : 'var(--danger)');
     elStatus.style.color  = covered ? 'var(--ok)' : 'var(--danger)';
     elStatus.innerHTML = covered
-      ? `✅ Income riil sudah menutup fix cost (${pct}%) — surplus ${fmt(sisa)}`
-      : `⚠️ Income riil baru ${pct}% dari fix cost — kurang ${fmt(Math.abs(sisa))}`;
+      ? `✅ NPM+Beban Ops sudah menutup fix cost (${pct}%) — surplus ${fmt(Math.abs(sisa))}`
+      : `⚠️ NPM+Beban Ops baru ${pct}% dari fix cost — kurang ${fmt(sisa)}`;
   } else if (elStatus) {
     elStatus.style.display = 'none';
   }
