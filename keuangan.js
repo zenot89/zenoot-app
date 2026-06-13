@@ -119,11 +119,12 @@ document.getElementById('page-keuangan').innerHTML = `
   <button class="keu-tab" onclick="keuGotoTab('neraca')">⚖ Neraca</button>
   <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
-<!-- Baris 2: Rasio & Net Worth | Valuasi Bisnis -->
+<!-- Baris 2: Rasio | Valuasi | Arus Kas | Fix Cost -->
 <div class="keu-tabs-row2">
   <button class="keu-tab" onclick="keuGotoTab('rasio')">📐 Rasio & Net Worth</button>
   <button class="keu-tab" onclick="keuGotoTab('valuasi')">💎 Valuasi Bisnis</button>
   <button class="keu-tab" onclick="keuGotoTab('aruskas')">💸 Arus Kas</button>
+  <button class="keu-tab" onclick="keuGotoTab('fixcost')">📌 Fix Cost</button>
 </div>
 </div>
 
@@ -423,6 +424,60 @@ document.getElementById('page-keuangan').innerHTML = `
   </table>
 </div>
 
+<!-- ═══ FIX COST PANEL ═══ -->
+<div id="keu-panel-fixcost" class="keu-panel">
+
+  <!-- Summary cards -->
+  <div class="rasio-card" id="fc-summary-cards">
+    <div class="rasio-item">
+      <div class="r-label">Total Fix Cost/Bulan</div>
+      <div class="r-value" id="fc-total-val" style="color:var(--danger)">—</div>
+      <div class="r-desc">semua item aktif</div>
+    </div>
+    <div class="rasio-item">
+      <div class="r-label">Omset Bulan Ini</div>
+      <div class="r-value" id="fc-omset-val">—</div>
+      <div class="r-desc">dari jurnal penjualan</div>
+    </div>
+    <div class="rasio-item">
+      <div class="r-label">Sisa Setelah Fix Cost</div>
+      <div class="r-value" id="fc-sisa-val">—</div>
+      <div class="r-desc">omset − fix cost</div>
+    </div>
+    <div class="rasio-item">
+      <div class="r-label">Hari Balik Modal</div>
+      <div class="r-value" id="fc-hari-val">—</div>
+      <div class="r-desc" id="fc-hari-desc">hari untuk kejar fix cost</div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="fc-status-bar" style="padding:12px 16px;border-radius:4px;margin-bottom:14px;font-weight:700;font-size:14px;display:none"></div>
+
+  <!-- Action -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em">Daftar Fix Cost</div>
+    <button class="btn btn-sm btn-primary" onclick="fcShowForm()"><i class="ti ti-plus"></i> Tambah</button>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table class="tbl" style="min-width:100%">
+      <thead><tr>
+        <th>Nama</th>
+        <th>Kategori</th>
+        <th style="text-align:right">Nominal/Bln</th>
+        <th>Ket.</th>
+        <th style="text-align:center">Aktif</th>
+        <th>Aksi</th>
+      </tr></thead>
+      <tbody id="fc-tbody">
+        <tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 </div><!-- /keu-panels-wrap -->
 
 <div class="modal-overlay" id="modal-keu-hutang" onclick="if(event.target===this)hideModal('modal-keu-hutang')">
@@ -503,7 +558,7 @@ let _keuTabAktif = 'hutang';
 
 function keuGotoTab(tab) {
   _keuTabAktif = tab;
-  const tabs = ['hutang','neraca','rasio','valuasi','aruskas'];
+  const tabs = ['hutang','neraca','rasio','valuasi','aruskas','fixcost'];
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.keu-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('keu-panel-' + tab).classList.add('active');
@@ -512,6 +567,7 @@ function keuGotoTab(tab) {
   if (tab === 'rasio')   keuRenderRasio();
   if (tab === 'valuasi') keuRenderValuasi();
   if (tab === 'aruskas') keuRenderArusKas();
+  if (tab === 'fixcost') fcLoad();
   _keuSetPanelHeight();
 }
 
@@ -1678,4 +1734,215 @@ function keuBayarHutangChange() {
 function keuCloseCicilan() {
   document.getElementById('modal-keu-cicilan').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FIX COST — CRUD + Indikator Dashboard
+// Tabel Supabase: fix_cost { id, nama, kategori, nominal, keterangan, aktif }
+// ═══════════════════════════════════════════════════════════════
+
+let _fcData = [];
+let _fcEditId = null;
+
+// ── Modal HTML (inject sekali) ───────────────────────────────
+(function() {
+  if (document.getElementById('modal-fixcost')) return;
+  const m = document.createElement('div');
+  m.innerHTML = `
+  <div class="modal-overlay" id="modal-fixcost" onclick="if(event.target===this)fcCloseForm()" style="display:none">
+    <div class="modal" style="max-width:420px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+        <div style="font-weight:700;font-size:15px" id="fc-modal-title">Tambah Fix Cost</div>
+        <button onclick="fcCloseForm()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <div class="form-group">
+        <label>Nama Biaya <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="fc-inp-nama" placeholder="mis: Sewa Gudang, Gaji, Listrik" style="font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <select id="fc-inp-kategori" style="font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
+          <option value="operasional">Operasional</option>
+          <option value="hutang">Cicilan / Hutang</option>
+          <option value="gaji">Gaji / SDM</option>
+          <option value="sewa">Sewa</option>
+          <option value="utilitas">Utilitas (Listrik, Air, dll)</option>
+          <option value="lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nominal per Bulan (Rp) <span style="color:var(--danger)">*</span></label>
+        <input type="text" inputmode="numeric" id="fc-inp-nominal" placeholder="mis: 1.500.000" style="font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
+      </div>
+      <div class="form-group">
+        <label>Keterangan</label>
+        <input type="text" id="fc-inp-ket" placeholder="Opsional" style="font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="fc-inp-aktif" checked style="width:16px;height:16px;cursor:pointer">
+        <label for="fc-inp-aktif" style="margin:0;cursor:pointer;font-size:13px">Aktif (masuk kalkulasi)</label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary btn-sm" onclick="fcSimpan()"><i class="ti ti-check"></i> Simpan</button>
+        <button class="btn btn-sm" onclick="fcCloseForm()"><i class="ti ti-x"></i> Batal</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(m.firstElementChild);
+})();
+
+// ── Load & Render ────────────────────────────────────────────
+async function fcLoad() {
+  const tbody = document.getElementById('fc-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  try {
+    _fcData = await dbGet('fix_cost', '&order=kategori.asc,nama.asc') || [];
+  } catch(e) { _fcData = []; }
+  fcRender();
+  fcUpdateSummary();
+}
+
+function fcRender() {
+  const tbody = document.getElementById('fc-tbody');
+  if (!tbody) return;
+  if (!_fcData.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--ink3);font-style:italic">Belum ada fix cost. Klik + Tambah untuk mulai.</td></tr>';
+    return;
+  }
+  const katLabel = { operasional:'Operasional', hutang:'Cicilan/Hutang', gaji:'Gaji/SDM', sewa:'Sewa', utilitas:'Utilitas', lainnya:'Lainnya' };
+  tbody.innerHTML = _fcData.map(r => `
+    <tr style="opacity:${r.aktif?'1':'0.45'}">
+      <td style="font-weight:600">${r.nama||'—'}</td>
+      <td><span style="font-size:10px;padding:2px 6px;border:1px solid var(--ink3);border-radius:2px;color:var(--ink3)">${katLabel[r.kategori]||r.kategori||'—'}</span></td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--danger);font-weight:600">${_fmtRp(Number(r.nominal)||0)}</td>
+      <td style="color:var(--ink3);font-size:12px">${r.keterangan||'—'}</td>
+      <td style="text-align:center">
+        <span style="font-size:18px;cursor:pointer" onclick="fcToggleAktif('${r.id}',${r.aktif})" title="Toggle aktif">${r.aktif?'✅':'⬜'}</span>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="fcShowForm('${r.id}')" style="padding:2px 6px;margin-right:4px"><i class="ti ti-pencil"></i></button>
+        <button class="btn btn-sm" onclick="fcHapus('${r.id}')" style="padding:2px 6px;color:var(--danger);border-color:var(--danger)"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+async function fcUpdateSummary() {
+  const aktif = _fcData.filter(r => r.aktif);
+  const totalFC = aktif.reduce((s,r) => s + (Number(r.nominal)||0), 0);
+
+  // Ambil omset bulan berjalan dari jurnal penjualan
+  let omsetBln = 0;
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const ym = today.slice(0,7);
+    const jpData = await dbGet('jurnal_penjualan', '&tanggal=gte.' + ym + '-01&order=tanggal.desc').catch(()=>[]);
+    omsetBln = (jpData||[]).reduce((s,r) => s + (Number(r.total)||0), 0);
+  } catch(e) {}
+
+  const dayOfMonth = Math.max(1, new Date().getDate());
+  const avgOmsetHari = omsetBln / dayOfMonth;
+  const sisa = omsetBln - totalFC;
+  const hariKejar = avgOmsetHari > 0 ? Math.ceil(totalFC / avgOmsetHari) : null;
+
+  const elTotal  = document.getElementById('fc-total-val');
+  const elOmset  = document.getElementById('fc-omset-val');
+  const elSisa   = document.getElementById('fc-sisa-val');
+  const elHari   = document.getElementById('fc-hari-val');
+  const elHDesc  = document.getElementById('fc-hari-desc');
+  const elStatus = document.getElementById('fc-status-bar');
+
+  if (elTotal)  { elTotal.textContent = totalFC > 0 ? _fmtRp(totalFC) : '—'; }
+  if (elOmset)  { elOmset.textContent = omsetBln > 0 ? _fmtRp(omsetBln) : '—'; elOmset.style.color = omsetBln > 0 ? 'var(--ok)' : 'var(--ink3)'; }
+  if (elSisa)   { elSisa.textContent = omsetBln > 0 ? _fmtRp(sisa) : '—'; elSisa.style.color = sisa >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+  if (elHari)   { elHari.textContent = hariKejar !== null ? hariKejar + ' hari' : '—'; elHari.style.color = hariKejar !== null && hariKejar <= dayOfMonth ? 'var(--ok)' : 'var(--danger)'; }
+  if (elHDesc)  { elHDesc.textContent = hariKejar !== null ? ('dari ' + dayOfMonth + ' hari berjalan') : 'hari untuk kejar fix cost'; }
+
+  // Status bar
+  if (elStatus && totalFC > 0 && omsetBln > 0) {
+    const pct = Math.min((omsetBln / totalFC) * 100, 200).toFixed(0);
+    const covered = omsetBln >= totalFC;
+    elStatus.style.display = 'block';
+    elStatus.style.background = covered ? 'rgba(76,175,80,0.12)' : 'rgba(224,82,82,0.12)';
+    elStatus.style.border = '2px solid ' + (covered ? 'var(--ok)' : 'var(--danger)');
+    elStatus.style.color = covered ? 'var(--ok)' : 'var(--danger)';
+    elStatus.innerHTML = covered
+      ? `✅ Omset sudah menutup fix cost (${pct}%) — surplus ${_fmtRp(sisa)}`
+      : `⚠️ Omset baru menutup ${pct}% fix cost — kurang ${_fmtRp(Math.abs(sisa))}`;
+  } else if (elStatus) {
+    elStatus.style.display = 'none';
+  }
+}
+
+// ── CRUD ─────────────────────────────────────────────────────
+function fcShowForm(id) {
+  _fcEditId = id || null;
+  const el = document.getElementById('modal-fixcost');
+  const title = document.getElementById('fc-modal-title');
+  if (!el) return;
+  if (id) {
+    const r = _fcData.find(x => String(x.id) === String(id));
+    if (!r) return;
+    document.getElementById('fc-inp-nama').value     = r.nama || '';
+    document.getElementById('fc-inp-kategori').value = r.kategori || 'operasional';
+    document.getElementById('fc-inp-nominal').value  = _fmtRp(Number(r.nominal)||0);
+    document.getElementById('fc-inp-ket').value      = r.keterangan || '';
+    document.getElementById('fc-inp-aktif').checked  = !!r.aktif;
+    if (title) title.textContent = 'Edit Fix Cost';
+  } else {
+    document.getElementById('fc-inp-nama').value     = '';
+    document.getElementById('fc-inp-kategori').value = 'operasional';
+    document.getElementById('fc-inp-nominal').value  = '';
+    document.getElementById('fc-inp-ket').value      = '';
+    document.getElementById('fc-inp-aktif').checked  = true;
+    if (title) title.textContent = 'Tambah Fix Cost';
+  }
+  el.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function fcCloseForm() {
+  const el = document.getElementById('modal-fixcost');
+  if (el) el.style.display = 'none';
+  document.body.style.overflow = '';
+  _fcEditId = null;
+}
+
+async function fcSimpan() {
+  const nama     = (document.getElementById('fc-inp-nama').value || '').trim();
+  const kategori = document.getElementById('fc-inp-kategori').value || 'operasional';
+  const nomStr   = (document.getElementById('fc-inp-nominal').value || '').replace(/\./g,'').replace(/[^0-9]/g,'');
+  const nominal  = parseInt(nomStr) || 0;
+  const ket      = (document.getElementById('fc-inp-ket').value || '').trim();
+  const aktif    = document.getElementById('fc-inp-aktif').checked;
+
+  if (!nama) { alert('Nama biaya wajib diisi.'); return; }
+  if (!nominal) { alert('Nominal wajib diisi.'); return; }
+
+  const payload = { nama, kategori, nominal, keterangan: ket, aktif };
+  try {
+    if (_fcEditId) {
+      await dbUpdate('fix_cost', _fcEditId, payload);
+    } else {
+      await dbInsert('fix_cost', payload);
+    }
+    fcCloseForm();
+    fcLoad();
+  } catch(e) {
+    alert('Gagal menyimpan: ' + (e.message || e));
+  }
+}
+
+async function fcHapus(id) {
+  if (!confirm('Hapus fix cost ini?')) return;
+  try {
+    await dbDelete('fix_cost', id);
+    fcLoad();
+  } catch(e) { alert('Gagal hapus: ' + (e.message||e)); }
+}
+
+async function fcToggleAktif(id, currentAktif) {
+  try {
+    await dbUpdate('fix_cost', id, { aktif: !currentAktif });
+    fcLoad();
+  } catch(e) { alert('Gagal update: ' + (e.message||e)); }
 }
