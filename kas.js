@@ -1189,6 +1189,51 @@ loadKasJurnal();
 // Menggantikan <select> native yang muncul sebagai bottom sheet Android.
 // <select> tetap ada (display:none) sebagai source of truth untuk semua logic lama.
 
+// Ambil tinggi safe-area-inset-top (notch/status bar) dengan andal di semua
+// platform. app.js (iOS-only) sudah bikin probe '_zenot-safe-probe-top', tapi
+// di sini kita pastikan probe selalu ada terlepas dari urutan load script,
+// supaya posisi list TIDAK PERNAH kehalangan notch di iPhone.
+function _kasGetSafeTop() {
+  var probe = document.getElementById('_zenot-safe-probe-top');
+  if (!probe) {
+    probe = document.createElement('div');
+    probe.id = '_zenot-safe-probe-top';
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;' +
+      'padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(probe);
+  }
+  return parseInt(getComputedStyle(probe).paddingTop) || 0;
+}
+
+// Hitung & terapkan posisi float list berdasarkan rect picker saat ini.
+// Dipakai baik untuk initial open maupun untuk reposisi (resize/scroll).
+// minTop memastikan list tidak pernah render di bawah notch/status bar.
+window._kasPositionPickerList = _kasPositionPickerList;
+function _kasPositionPickerList(list, picker, listH) {
+  var rect    = picker.getBoundingClientRect();
+  var vpH     = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  var minTop  = _kasGetSafeTop() + 4;
+  var spaceBelow = vpH - rect.bottom - 4;
+  var spaceAbove = rect.top - minTop;
+
+  list.style.position = 'fixed';
+  list.style.left     = rect.left + 'px';
+  list.style.width    = rect.width + 'px';
+  list.style.maxWidth = '320px';
+  list.style.zIndex   = '99999';
+
+  if (spaceBelow < listH && spaceAbove > spaceBelow) {
+    var actualH = Math.min(listH, spaceAbove);
+    list.style.maxHeight = actualH + 'px';
+    list.style.bottom    = '';
+    list.style.top       = Math.max(minTop, rect.top - actualH - 2) + 'px';
+  } else {
+    list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
+    list.style.top       = (rect.bottom + 2) + 'px';
+    list.style.bottom    = '';
+  }
+}
+
 function kasPopulatePickerList(listId, akunData) {
   var list = document.getElementById(listId);
   if (!list) return;
@@ -1312,75 +1357,47 @@ function kasTogglePicker(pickerId) {
   if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
 
   // Float ke body
-  var rect     = picker.getBoundingClientRect();
-  var vpH      = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  var listH    = 260; // maxHeight
-  var spaceBelow = vpH - rect.bottom - 4;
-  var spaceAbove = rect.top - 4;
+  var listH = 260; // maxHeight
 
-  list.style.position = 'fixed';
-  list.style.left     = rect.left + 'px';
-  list.style.width    = rect.width + 'px';
-  list.style.maxWidth = '320px';
-  list.style.zIndex   = '99999';
   list.dataset.floated = '1';
 
-  // Flip ke atas jika ruang bawah tidak cukup dan ruang atas lebih besar
-  if (spaceBelow < listH && spaceAbove > spaceBelow) {
-    var actualH = Math.min(listH, spaceAbove);
-    list.style.maxHeight = actualH + 'px';
-    list.style.bottom    = '';
-    list.style.top       = Math.max(4, rect.top - actualH - 2) + 'px';
-  } else {
-    list.style.maxHeight = Math.min(listH, spaceBelow) + 'px';
-    list.style.top       = (rect.bottom + 2) + 'px';
-    list.style.bottom    = '';
-  }
+  // Posisi awal — dihitung dari rect picker SAAT INI (keyboard belum tentu
+  // muncul). Ini cuma posisi sementara supaya list tidak invisible saat
+  // langsung di-display; akan dikoreksi ulang setelah keyboard settle (lihat
+  // _settle di bawah).
+  _kasPositionPickerList(list, picker, listH);
 
   list.style.display = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
-  // Auto-focus search input
-  if (inp) setTimeout(function() { inp.focus(); }, 80);
+  // Reposisi list setelah keyboard benar2 muncul & modal (jika ikut shift)
+  // sudah settle. Posisi awal di atas dihitung dari viewport SEBELUM keyboard
+  // tampil, jadi BUKAN posisi final — harus dikoreksi ulang begitu
+  // visualViewport resize (keyboard) selesai, baru lalu fokus ke search box.
+  // Urutan ini (reposisi dulu, fokus belakangan) mencegah list "lompat" /
+  // muncul di tempat salah saat keyboard baru naik.
+  function _settle() {
+    if (list.style.display !== 'block') return;
+    _kasPositionPickerList(list, picker, listH);
+  }
+  function _settleDeferred() {
+    requestAnimationFrame(function() { requestAnimationFrame(_settle); });
+  }
 
-  // Reposisi list saat keyboard naik/turun (visualViewport resize)
-  // Keyboard menyebabkan vpH mengecil/membesar → posisi top/bottom list harus
-  // disesuaikan ulang relatif ke posisi picker yang baru.
-  //
-  // PENTING — kenapa di-skip untuk iOS:
-  // app.js punya handler khusus iOS (_applyKeyboardOffset) yang, saat
-  // visualViewport resize, (1) reposisi .modal-overlay dulu lalu (2) baru
-  // reposisi .kas-akun-list[data-floated] pakai rect picker yang SUDAH BARU.
-  // Handler di sini jalan SINKRON pada event resize yang sama (sebelum
-  // requestAnimationFrame app.js sempat geser overlay) → rect picker yang
-  // dibaca di sini masih versi LAMA. Kalau dua-duanya aktif di iOS, list
-  // jadi reposisi 2x dengan rect berbeda → kelihatan "lompat/kedip".
-  // Android & desktop tidak punya handler app.js itu (iOS-only), jadi
-  // handler di sini tetap WAJIB jalan untuk mereka.
-  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (window.visualViewport && !_isIOS) {
-    function _reposisi() {
-      if (list.style.display !== 'block') return;
-      var r     = picker.getBoundingClientRect();
-      var vpH2  = window.visualViewport.height;
-      var sBelow = vpH2 - r.bottom - 4;
-      var sAbove = r.top - 4;
-      if (sBelow < listH && sAbove > sBelow) {
-        var aH = Math.min(listH, sAbove);
-        list.style.maxHeight = aH + 'px';
-        list.style.bottom    = '';
-        list.style.top       = Math.max(4, r.top - aH - 2) + 'px';
-      } else {
-        list.style.maxHeight = Math.min(listH, sBelow) + 'px';
-        list.style.top       = (r.bottom + 2) + 'px';
-        list.style.bottom    = '';
-      }
-    }
-    function _reposisiDeferred() {
-      requestAnimationFrame(function() { requestAnimationFrame(_reposisi); });
-    }
-    list._vpHandler = _reposisiDeferred;
-    window.visualViewport.addEventListener('resize', _reposisiDeferred);
+  if (window.visualViewport) {
+    list._vpHandler = _settleDeferred;
+    window.visualViewport.addEventListener('resize', _settleDeferred);
+  }
+
+  // Auto-focus search input — picu keyboard, lalu visualViewport resize akan
+  // memanggil _settleDeferred di atas untuk koreksi posisi final.
+  // Fallback timeout (350ms, di luar resize) untuk browser yang tidak fire
+  // visualViewport resize secara konsisten saat keyboard animasi.
+  if (inp) {
+    setTimeout(function() {
+      inp.focus();
+      setTimeout(_settle, 350);
+    }, 80);
   }
 }
 

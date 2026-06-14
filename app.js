@@ -1027,29 +1027,21 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
       }
     });
 
-    // Repositioning picker yang sedang float (jika ada)
-    document.querySelectorAll('.kas-akun-list[data-floated][style*="display: block"], .kas-akun-list[data-floated][style*="display:block"]').forEach(function(list) {
-      // Recalculate posisi berdasarkan visualViewport height baru
-      var pickerId = list.id.replace('-list', '');
-      var picker = document.getElementById(pickerId);
-      if (!picker) return;
-      var rect = picker.getBoundingClientRect();
-      var vpH = vvH;
-      var listH = 260;
-      var spaceBelow = vpH - rect.bottom - 4;
-      var spaceAbove = rect.top - 4;
-      if (spaceBelow < listH && spaceAbove > spaceBelow) {
-        var actualH = Math.min(listH, spaceAbove);
-        list.style.maxHeight = actualH + 'px';
-        list.style.bottom    = '';
-        list.style.top       = Math.max(4, rect.top - actualH - 2) + 'px';
-      } else {
-        list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
-        list.style.top       = (rect.bottom + 2) + 'px';
-        list.style.bottom    = '';
-      }
-    });
+    // Repositioning picker yang sedang float (jika ada) — delegasikan ke
+    // helper bersama di kas.js (_kasPositionPickerList) supaya logika posisi
+    // & clamp safe-area-inset-top (notch) konsisten dengan initial-open di
+    // kasTogglePicker. Sebelumnya app.js punya kalkulasi duplikat tanpa
+    // clamp top, itu sebabnya list bisa nongol di bawah notch di iPhone.
+    if (typeof window._kasPositionPickerList === 'function') {
+      document.querySelectorAll('.kas-akun-list[data-floated][style*="display: block"], .kas-akun-list[data-floated][style*="display:block"]').forEach(function(list) {
+        var pickerId = list.id.replace('-list', '');
+        var picker = document.getElementById(pickerId);
+        if (!picker) return;
+        window._kasPositionPickerList(list, picker, 260);
+      });
+    }
   }
+
 
   // Safe area probe elements — invisible div untuk baca CSS env()
   (function() {
