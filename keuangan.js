@@ -700,6 +700,14 @@ function _keuSetPanelHeight() {
       wrap.style.height    = newH + 'px';
       wrap.style.minHeight = newH + 'px';
       wrap.style.maxHeight = newH + 'px';
+      // Neraca panel: set height eksplisit agar flex chain resolve
+      // (flex:1 di #keu-neraca-scroll-zone butuh parent punya height pasti)
+      const neracaPanel = document.getElementById('keu-panel-neraca');
+      if (neracaPanel && neracaPanel.classList.contains('active')) {
+        neracaPanel.style.height    = newH + 'px';
+        neracaPanel.style.minHeight = newH + 'px';
+        neracaPanel.style.maxHeight = newH + 'px';
+      }
     }
   });
 }
@@ -833,34 +841,30 @@ function keuNeracaExpandHeader() {
       }, { passive: true });
     }
 
-    // ── EXPAND: 2x swipe DOWN di header dalam 600ms ──
+    // ── EXPAND: 2x swipe DOWN di scroll-zone (sama kayak JP — swipe di content area) ──
     if (!_expandInit) {
       _expandInit = true;
       var _s1Y = 0, _s1X = 0, _s1Done = false, _s1Time = 0;
-      header.addEventListener('touchstart', function(e) {
+      zone.addEventListener('touchstart', function(e) {
         if (e.target.closest('button') || e.target.closest('input')) return;
         _s1Y = e.touches[0].clientY;
         _s1X = e.touches[0].clientX;
-        // reset swipe ke-1 kalau sudah lebih dari 600ms
         if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
       }, { passive: true });
-      header.addEventListener('touchend', function(e) {
+      zone.addEventListener('touchend', function(e) {
         if (!header.classList.contains('keu-header-collapsed')) return;
         var dy = e.changedTouches[0].clientY - _s1Y;
         var dx = e.changedTouches[0].clientX - _s1X;
         if (Math.abs(dx) > Math.abs(dy)) return;
-        if (dy < 50) return; // harus swipe DOWN cukup jauh
+        if (dy < 50) return;
         var now = Date.now();
         if (!_s1Done) {
-          // swipe DOWN ke-1
           _s1Done = true;
           _s1Time = now;
         } else if (now - _s1Time <= 600) {
-          // swipe DOWN ke-2 dalam 600ms → expand
           keuNeracaExpandHeader();
           _s1Done = false;
         } else {
-          // terlalu lama, reset ke swipe ke-1
           _s1Done = true;
           _s1Time = now;
         }
