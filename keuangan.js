@@ -45,12 +45,6 @@ document.getElementById('page-keuangan').innerHTML = `
   #keu-neraca-section-bar {
     flex-shrink: 0;
   }
-  #keu-neraca-scroll-zone {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-  }
   .keu-neraca-section-head {
     display: flex;
     align-items: center;
