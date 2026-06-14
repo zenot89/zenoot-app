@@ -1633,13 +1633,31 @@ function keuTogglePicker(pickerId) {
 
   // Float ke body agar tidak terpotong overflow modal
   var rect = picker.getBoundingClientRect();
+  // Pakai visualViewport.height jika ada (iOS keyboard-aware)
+  var vph = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  var spaceBelow = vph - rect.bottom - 8;
+  var spaceAbove = rect.top - 8;
+  var maxH = Math.min(220, Math.max(spaceBelow, spaceAbove) - 8);
+
   list.style.position  = 'fixed';
-  list.style.top       = (rect.bottom + 2) + 'px';
   list.style.left      = rect.left + 'px';
   list.style.width     = rect.width + 'px';
   list.style.maxWidth  = '340px';
+  list.style.maxHeight = maxH + 'px';
+  list.style.overflowY = 'auto';
   list.style.zIndex    = '99999';
   list.dataset.floated = '1';
+
+  if (spaceBelow >= 180 || spaceBelow >= spaceAbove) {
+    // Cukup ruang di bawah — posisi normal ke bawah
+    list.style.top    = (rect.bottom + 2) + 'px';
+    list.style.bottom = '';
+  } else {
+    // Sempit di bawah (keyboard naik) — posisi ke atas picker
+    list.style.bottom = (vph - rect.top + 2) + 'px';
+    list.style.top    = '';
+  }
+
   list.style.display   = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
