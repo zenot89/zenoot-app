@@ -733,9 +733,9 @@ function _keuSetPanelHeight() {
       wrap.style.maxHeight = newH + 'px';
 
       if (neracaPanel && neracaPanel.classList.contains('active')) {
-        neracaPanel.style.height    = newH + 'px';
-        neracaPanel.style.minHeight = newH + 'px';
-        neracaPanel.style.maxHeight = newH + 'px';
+        neracaPanel.style.height    = '100%';
+        neracaPanel.style.minHeight = '0';
+        neracaPanel.style.maxHeight = '100%';
       }
     }
   });
