@@ -589,6 +589,10 @@ if ('serviceWorker' in navigator) {
   function _closeAllPickers(list) {
     // Detect dan panggil close function yang sesuai berdasarkan id prefix
     if (!list) return;
+    // iOS Safari fix: jangan tutup picker jika search input di dalamnya sedang focused
+    // (keyboard muncul → visualViewport resize → scroll event → picker ditutup salah)
+    var searchInp = list.querySelector('.kas-akun-search');
+    if (searchInp && document.activeElement === searchInp) return;
     var id = list.id || '';
     if (typeof kasClosePicker === 'function' && (id.indexOf('picker-debit') !== -1 || id.indexOf('picker-kredit') !== -1)) {
       kasClosePicker(list);
@@ -650,8 +654,10 @@ if ('serviceWorker' in navigator) {
   }
 
   // Scroll di luar list → tutup yang sedang float di body
+  // Skip jika search input sedang focused (iOS keyboard resize memicu scroll event palsu)
   document.addEventListener('scroll', function(e) {
     if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
+    if (document.activeElement && document.activeElement.classList.contains('kas-akun-search')) return;
     document.querySelectorAll('.kas-akun-list[data-floated]').forEach(_closeAllPickers);
   }, true);
 })();
