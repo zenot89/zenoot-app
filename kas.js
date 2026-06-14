@@ -1288,13 +1288,14 @@ function kasTogglePicker(pickerId) {
     searchInp.addEventListener('pointerdown', _stopProp);
     searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
 
-    // iOS Safari: focus() pada fixed element bisa trigger scroll + dismiss
-    // Gunakan touchend untuk trigger focus — lebih late dalam event cycle,
-    // setelah touchstart guard sudah clear, sehingga tidak conflict dengan outside handler
+    // iOS Safari: focus() pada fixed element trigger keyboard naik → modal layout berantakan
+    // Skip focus sama sekali di iOS — user tap langsung ke list item tanpa perlu search
+    var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     searchInp.addEventListener('touchend', function(ev) {
       ev.stopPropagation();
-      // Delay focus kecil agar iOS tidak re-trigger outside close handler
-      setTimeout(function() { searchInp.focus(); }, 50);
+      if (!_isIOS) {
+        setTimeout(function() { searchInp.focus(); }, 50);
+      }
     }, { passive: false });
 
     wrap.appendChild(searchIcon);
