@@ -666,8 +666,19 @@ if ('serviceWorker' in navigator) {
   }
 
   // Scroll di luar list → tutup yang sedang float di body
-  // Skip jika search input sedang focused (iOS keyboard resize memicu scroll event palsu)
+  // Guard ganda:
+  // 1. _pickerJustOpened (400ms) — picker yang BARU dibuka sering memicu
+  //    scroll bawaan browser (mis. .modal overflow-y:auto auto-scroll
+  //    untuk bring tapped element into view) SEBELUM search input di-focus
+  //    pada 80ms. Tanpa guard ini, scroll event tsb membuat _closeAllPickers
+  //    jalan dan list langsung ditutup ulang — lalu reposisi berikutnya
+  //    (visualViewport resize / _settle) bekerja pada list yang sudah
+  //    'display:none', menghasilkan posisi akhir yang tidak konsisten
+  //    ("pindah-pindah") tergantung timing scroll vs focus per device.
+  // 2. activeElement === .kas-akun-search — skip jika user sedang ketik
+  //    di search box (iOS keyboard resize memicu scroll event palsu).
   document.addEventListener('scroll', function(e) {
+    if (_pickerJustOpened) return;
     if (e.target && e.target.closest && e.target.closest('.kas-akun-list')) return;
     if (document.activeElement && document.activeElement.classList.contains('kas-akun-search')) return;
     document.querySelectorAll('.kas-akun-list[data-floated]').forEach(_closeAllPickers);

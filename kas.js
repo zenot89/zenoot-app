@@ -1277,6 +1277,12 @@ function kasClosePicker(list) {
     window.visualViewport.removeEventListener('resize', list._vpHandler);
     delete list._vpHandler;
   }
+  // Cleanup modal scroll listener
+  if (list._modalScrollEl && list._modalScrollHandler) {
+    list._modalScrollEl.removeEventListener('scroll', list._modalScrollHandler);
+    delete list._modalScrollEl;
+    delete list._modalScrollHandler;
+  }
   // Reset search & tampilkan semua item
   var inp = list.querySelector('.kas-akun-search');
   if (inp) inp.value = '';
@@ -1387,6 +1393,20 @@ function kasTogglePicker(pickerId) {
   if (window.visualViewport) {
     list._vpHandler = _settleDeferred;
     window.visualViewport.addEventListener('resize', _settleDeferred);
+  }
+
+  // Reposisi juga saat .modal (overflow-y:auto) scroll — bukan cuma saat
+  // visualViewport (keyboard) resize. Tap pada picker yang dekat tepi modal
+  // sering memicu browser auto-scroll .modal untuk bring element into view;
+  // ini MENGUBAH picker.getBoundingClientRect() tanpa memicu visualViewport
+  // resize sama sekali. Tanpa listener ini, list float tetap di posisi LAMA
+  // (relatif viewport) sementara picker sudah pindah — keduanya jadi tidak
+  // sinkron, salah satu penyebab "pindah-pindah".
+  var _modalEl = picker.closest('.modal');
+  if (_modalEl) {
+    list._modalScrollEl = _modalEl;
+    list._modalScrollHandler = _settleDeferred;
+    _modalEl.addEventListener('scroll', _settleDeferred, { passive: true });
   }
 
   // Auto-focus search input — picu keyboard, lalu visualViewport resize akan
