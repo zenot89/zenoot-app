@@ -37,6 +37,8 @@ document.getElementById('page-keuangan').innerHTML = `
   /* ── Neraca 3-bagian layout ── */
   #keu-neraca-minicards-wrap {
     padding: 0 0 10px 0;
+    max-height: 200px;
+    overflow: hidden;
     transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
   }
   /* Bagian 2: section bar (ASET/KEWAJIBAN label + toggle) — statis, tidak scroll */
@@ -720,7 +722,7 @@ function _keuSetPanelHeight() {
         if (mcH > 0) {
           minicards.style.height    = mcH + 'px';
           minicards.style.minHeight = mcH + 'px';
-          minicards.style.maxHeight = mcH + 'px';
+          minicards.style.maxHeight = mcH + 'px'; // pin setelah measured — hanya kalau > 0
         }
         minicards.style.flexShrink = '0';
         minicards.style.webkitFlexShrink = '0';
@@ -825,13 +827,11 @@ function keuNeracaToggle(view) {
 }
 
 function keuNeracaExpandHeader() {
-  const header    = document.getElementById('keu-sticky-header');
-  const minicards = document.getElementById('keu-neraca-minicards-wrap');
-  if (header)    header.classList.remove('keu-header-collapsed');
-  if (minicards) minicards.classList.remove('keu-minicards-collapsed');
+  const header = document.getElementById('keu-sticky-header');
+  if (header) header.classList.remove('keu-header-collapsed');
 }
 
-// ─── SWIPE GESTURE — keu-neraca-minicards collapse/expand ────────────────────
+// ─── SWIPE GESTURE — keu-sticky-header collapse/expand ───────────────────────
 // Collapse : swipe UP di scroll-zone → langsung collapse (1x)
 // Expand   : swipe DOWN 2x di scroll-zone dalam 600ms → expand
 (function() {
@@ -842,9 +842,9 @@ function keuNeracaExpandHeader() {
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
 
-    var zone     = document.getElementById('keu-neraca-scroll-zone');
-    var minicards = document.getElementById('keu-neraca-minicards-wrap');
-    if (!zone || !minicards) return;
+    var zone   = document.getElementById('keu-neraca-scroll-zone');
+    var header = document.getElementById('keu-sticky-header');
+    if (!zone || !header) return;
 
     // ── COLLAPSE: swipe UP di scroll-zone (1x, langsung) ──
     if (!_collapseInit) {
@@ -863,8 +863,7 @@ function keuNeracaExpandHeader() {
         var dx = e.changedTouches[0].clientX - _startX;
         if (Math.abs(dx) > Math.abs(dy)) return;
         if (dy < -50) {
-          minicards.classList.add('keu-minicards-collapsed');
-          setTimeout(_keuSetPanelHeight, 280);
+          header.classList.add('keu-header-collapsed');
         }
       }, { passive: true });
     }
@@ -880,7 +879,7 @@ function keuNeracaExpandHeader() {
         if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
       }, { passive: true });
       zone.addEventListener('touchend', function(e) {
-        if (!minicards.classList.contains('keu-minicards-collapsed')) return;
+        if (!header.classList.contains('keu-header-collapsed')) return;
         var dy = e.changedTouches[0].clientY - _s1Y;
         var dx = e.changedTouches[0].clientX - _s1X;
         if (Math.abs(dx) > Math.abs(dy)) return;
@@ -890,8 +889,7 @@ function keuNeracaExpandHeader() {
           _s1Done = true;
           _s1Time = now;
         } else if (now - _s1Time <= 600) {
-          minicards.classList.remove('keu-minicards-collapsed');
-          setTimeout(_keuSetPanelHeight, 280);
+          keuNeracaExpandHeader();
           _s1Done = false;
         } else {
           _s1Done = true;
