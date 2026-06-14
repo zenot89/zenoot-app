@@ -1288,14 +1288,10 @@ function kasTogglePicker(pickerId) {
     searchInp.addEventListener('pointerdown', _stopProp);
     searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
 
-    // iOS Safari: focus() pada fixed element trigger keyboard naik → modal layout berantakan
-    // Skip focus sama sekali di iOS — user tap langsung ke list item tanpa perlu search
-    var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // iOS Safari: gunakan touchend untuk trigger focus — lebih late dalam event cycle
     searchInp.addEventListener('touchend', function(ev) {
       ev.stopPropagation();
-      if (!_isIOS) {
-        setTimeout(function() { searchInp.focus(); }, 50);
-      }
+      setTimeout(function() { searchInp.focus(); }, 50);
     }, { passive: false });
 
     wrap.appendChild(searchIcon);
@@ -1344,9 +1340,8 @@ function kasTogglePicker(pickerId) {
   list.style.display = 'block';
   if (list.parentNode !== document.body) document.body.appendChild(list);
 
-  // Auto-focus search — skip di iOS Safari (focus() di fixed element dismiss modal)
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (inp && !isIOS) setTimeout(function() { inp.focus(); }, 80);
+  // Auto-focus search input
+  if (inp) setTimeout(function() { inp.focus(); }, 80);
 
   // iOS Safari: reposisi list saat keyboard naik (visualViewport resize)
   // Keyboard menyebabkan vpH mengecil → posisi bottom picker harus disesuaikan

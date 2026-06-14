@@ -315,11 +315,42 @@ function showModal(id) {
         if (inp.id) idrInput(inp.id);
       });
     }, 60);
+
+    // iOS Safari: saat keyboard naik, viewport mengecil tapi modal-overlay (position:fixed inset:0)
+    // tidak ikut menyesuaikan → konten modal terdorong ke atas dan picker salah posisi.
+    // Fix: lock overlay ke visualViewport agar tetap stabil saat keyboard naik/turun.
+    var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (_isIOS && window.visualViewport) {
+      function _lockOverlay() {
+        var vp = window.visualViewport;
+        el.style.top    = vp.offsetTop + 'px';
+        el.style.left   = vp.offsetLeft + 'px';
+        el.style.width  = vp.width + 'px';
+        el.style.height = vp.height + 'px';
+      }
+      _lockOverlay();
+      el._vpLock = _lockOverlay;
+      window.visualViewport.addEventListener('resize', _lockOverlay);
+      window.visualViewport.addEventListener('scroll', _lockOverlay);
+    }
   }
 }
 function hideModal(id) {
   var el = document.getElementById(id);
-  if (el) el.classList.remove('open');
+  if (el) {
+    el.classList.remove('open');
+    // Cleanup iOS visualViewport lock
+    if (el._vpLock && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', el._vpLock);
+      window.visualViewport.removeEventListener('scroll', el._vpLock);
+      delete el._vpLock;
+    }
+    // Reset inline styles yang di-set saat lock
+    el.style.top = '';
+    el.style.left = '';
+    el.style.width = '';
+    el.style.height = '';
+  }
 }
 // (modal-overlay click handler sudah terdaftar di atas — tidak diduplikasi di sini)
 
