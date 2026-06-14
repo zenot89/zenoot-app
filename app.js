@@ -997,7 +997,6 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     if (_safeEl) safeB = parseInt(getComputedStyle(_safeEl).paddingBottom) || 0;
 
     var keyboardH = Math.max(0, winH - vvH - safeB);
-    if (Math.abs(keyboardH - _lastKeyboardH) < 5) return; // debounce kecil
     _lastKeyboardH = keyboardH;
 
     // Semua modal-overlay yang sedang open → geser ke atas sebesar keyboard
@@ -1027,19 +1026,15 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
       }
     });
 
-    // Repositioning picker yang sedang float (jika ada) — delegasikan ke
-    // helper bersama di kas.js (_kasPositionPickerList) supaya logika posisi
-    // & clamp safe-area-inset-top (notch) konsisten dengan initial-open di
-    // kasTogglePicker. Sebelumnya app.js punya kalkulasi duplikat tanpa
-    // clamp top, itu sebabnya list bisa nongol di bawah notch di iPhone.
-    if (typeof window._kasPositionPickerList === 'function') {
-      document.querySelectorAll('.kas-akun-list[data-floated][style*="display: block"], .kas-akun-list[data-floated][style*="display:block"]').forEach(function(list) {
-        var pickerId = list.id.replace('-list', '');
-        var picker = document.getElementById(pickerId);
-        if (!picker) return;
-        window._kasPositionPickerList(list, picker, 260);
-      });
-    }
+    // CATATAN: repositioning .kas-akun-list[data-floated] TIDAK dilakukan di
+    // sini lagi. Sebelumnya ada 2 listener visualViewport.resize yang
+    // sama-sama reposisi picker list (di sini DAN di kas.js _settleDeferred),
+    // dengan timing RAF berbeda (1x RAF vs 2x RAF) — race condition ini
+    // menyebabkan posisi akhir list "berubah-ubah" tiap kali keyboard
+    // animasi (tergantung urutan eksekusi mana yang menang).
+    // Sekarang HANYA kas.js (_settleDeferred, double-RAF) yang reposisi
+    // picker list, dan ia berjalan SETELAH overlay-shift di atas selesai
+    // (1x RAF) — sehingga rect picker yang dibaca sudah final untuk tick ini.
   }
 
 
