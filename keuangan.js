@@ -708,27 +708,32 @@ function _keuSetPanelHeight() {
     const contentBottom = content.getBoundingClientRect().bottom;
     const newH = contentBottom - wrapTop;
     if (newH > 100) {
+      // iOS Safari fix: measure & pin minicards height SEBELUM panel di-resize
+      // Saat parent maxHeight berubah, iOS Safari compress flex children meski flex-shrink:0
+      const neracaPanel = document.getElementById('keu-panel-neraca');
+      const minicards   = document.getElementById('keu-neraca-minicards-wrap');
+      if (neracaPanel && neracaPanel.classList.contains('active') && minicards) {
+        // Reset dulu agar measure natural
+        minicards.style.height    = '';
+        minicards.style.minHeight = '';
+        const mcH = minicards.getBoundingClientRect().height;
+        if (mcH > 0) {
+          minicards.style.height    = mcH + 'px';
+          minicards.style.minHeight = mcH + 'px';
+          minicards.style.maxHeight = mcH + 'px';
+        }
+        minicards.style.flexShrink = '0';
+        minicards.style.webkitFlexShrink = '0';
+      }
+
       wrap.style.height    = newH + 'px';
       wrap.style.minHeight = newH + 'px';
       wrap.style.maxHeight = newH + 'px';
-      // Neraca panel: set height eksplisit agar flex chain resolve
-      const neracaPanel = document.getElementById('keu-panel-neraca');
+
       if (neracaPanel && neracaPanel.classList.contains('active')) {
         neracaPanel.style.height    = newH + 'px';
         neracaPanel.style.minHeight = newH + 'px';
         neracaPanel.style.maxHeight = newH + 'px';
-        // iOS Safari fix: pin minicards-wrap height eksplisit agar tidak ikut compress
-        const minicards = document.getElementById('keu-neraca-minicards-wrap');
-        if (minicards && !minicards.classList.contains('keu-minicards-collapsed')) {
-          minicards.style.height    = '';
-          minicards.style.minHeight = '';
-          const mcH = minicards.getBoundingClientRect().height;
-          if (mcH > 0) {
-            minicards.style.height    = mcH + 'px';
-            minicards.style.minHeight = mcH + 'px';
-          }
-          minicards.style.flexShrink = '0';
-        }
       }
     }
   });

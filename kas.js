@@ -1346,6 +1346,29 @@ function kasTogglePicker(pickerId) {
   // Auto-focus search — skip di iOS Safari (focus() di fixed element dismiss modal)
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   if (inp && !isIOS) setTimeout(function() { inp.focus(); }, 80);
+
+  // iOS Safari: reposisi list saat keyboard naik (visualViewport resize)
+  // Keyboard menyebabkan vpH mengecil → posisi bottom picker harus disesuaikan
+  if (isIOS && window.visualViewport) {
+    function _reposisi() {
+      if (list.style.display !== 'block') return;
+      var r     = picker.getBoundingClientRect();
+      var vpH2  = window.visualViewport.height;
+      var sBelow = vpH2 - r.bottom - 4;
+      var sAbove = r.top - 4;
+      if (sBelow < listH && sAbove > sBelow) {
+        list.style.maxHeight = Math.min(listH, sAbove) + 'px';
+        list.style.top       = '';
+        list.style.bottom    = (vpH2 - r.top + 2) + 'px';
+      } else {
+        list.style.maxHeight = Math.min(listH, sBelow) + 'px';
+        list.style.top       = (r.bottom + 2) + 'px';
+        list.style.bottom    = '';
+      }
+    }
+    list._vpHandler = _reposisi;
+    window.visualViewport.addEventListener('resize', _reposisi);
+  }
 }
 
 function kasPickerFilter(inp) {
