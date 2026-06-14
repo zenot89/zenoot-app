@@ -851,7 +851,8 @@ function keuNeracaViewToggle() {
   // scroll ke atas zona konten (bagian 3)
   const zone = document.getElementById('keu-neraca-scroll-zone');
   if (zone) zone.scrollTop = 0;
-  keuNeracaExpandHeader();
+  // keuNeracaExpandHeader() sengaja tidak dipanggil di sini
+  // agar tab bar tetap collapsed jika sedang collapsed
 }
 
 function keuNeracaApplyView(asetCount, kwjCount) {
