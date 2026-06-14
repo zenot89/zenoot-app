@@ -139,18 +139,6 @@ document.getElementById('page-keuangan').innerHTML = `
     #keu-neraca-minicards-wrap {
       -webkit-flex-shrink: 0;
       flex-shrink: 0;
-      overflow: hidden;
-      max-height: 200px;
-      opacity: 1;
-      -webkit-transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
-      transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
-    }
-    #keu-neraca-minicards-wrap.keu-minicards-collapsed {
-      max-height: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      opacity: 0;
-      pointer-events: none;
     }
     #keu-neraca-section-bar {
       -webkit-flex-shrink: 0;
@@ -821,16 +809,13 @@ function keuNeracaToggle(view) {
 }
 
 function keuNeracaExpandHeader() {
-  const minicards = document.getElementById('keu-neraca-minicards-wrap');
-  if (minicards) {
-    minicards.classList.remove('keu-minicards-collapsed');
-    setTimeout(_keuSetPanelHeight, 270);
-  }
+  const header = document.getElementById('keu-sticky-header');
+  if (header) header.classList.remove('keu-header-collapsed');
 }
 
-// ─── SWIPE GESTURE — #keu-neraca-minicards-wrap collapse/expand ──────────────
-// Bagian 1 (minicards) collapse : swipe UP di scroll-zone → langsung collapse
-// Bagian 1 (minicards) expand   : swipe DOWN 2x di scroll-zone dalam 600ms
+// ─── SWIPE GESTURE — keu-sticky-header collapse/expand ───────────────────────
+// Collapse : swipe UP di scroll-zone → langsung collapse (1x)
+// Expand   : swipe DOWN 2x di scroll-zone dalam 600ms → expand
 (function() {
   var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   var _collapseInit  = false;
@@ -839,9 +824,9 @@ function keuNeracaExpandHeader() {
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
 
-    var zone      = document.getElementById('keu-neraca-scroll-zone');
-    var minicards = document.getElementById('keu-neraca-minicards-wrap');
-    if (!zone || !minicards) return;
+    var zone   = document.getElementById('keu-neraca-scroll-zone');
+    var header = document.getElementById('keu-sticky-header');
+    if (!zone || !header) return;
 
     // ── COLLAPSE: swipe UP di scroll-zone (1x, langsung) ──
     if (!_collapseInit) {
@@ -860,9 +845,7 @@ function keuNeracaExpandHeader() {
         var dx = e.changedTouches[0].clientX - _startX;
         if (Math.abs(dx) > Math.abs(dy)) return;
         if (dy < -50) {
-          // swipe UP → collapse bagian 1
-          minicards.classList.add('keu-minicards-collapsed');
-          setTimeout(_keuSetPanelHeight, 270);
+          header.classList.add('keu-header-collapsed');
         }
       }, { passive: true });
     }
@@ -878,7 +861,7 @@ function keuNeracaExpandHeader() {
         if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
       }, { passive: true });
       zone.addEventListener('touchend', function(e) {
-        if (!minicards.classList.contains('keu-minicards-collapsed')) return;
+        if (!header.classList.contains('keu-header-collapsed')) return;
         var dy = e.changedTouches[0].clientY - _s1Y;
         var dx = e.changedTouches[0].clientX - _s1X;
         if (Math.abs(dx) > Math.abs(dy)) return;
