@@ -1005,8 +1005,14 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
       if (keyboardH > 0) {
         var modal = overlay.querySelector('.modal');
         var modalH = modal ? modal.getBoundingClientRect().height : 0;
+        var safeT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0') || 0;
+        if (!safeT) {
+          // fallback: baca dari probe element top
+          var _probeT = document.getElementById('_zenot-safe-probe-top');
+          if (_probeT) safeT = parseInt(getComputedStyle(_probeT).paddingTop) || 0;
+        }
         var availH = window.innerHeight - keyboardH;
-        var topPad = modalH > 0 ? Math.max(8, (availH - modalH) / 2) : 16;
+        var topPad = modalH > 0 ? Math.max(safeT + 8, (availH - modalH) / 2) : (safeT + 16);
         overlay.style.bottom     = keyboardH + 'px';
         overlay.style.top        = '0';
         overlay.style.height     = availH + 'px';
@@ -1045,13 +1051,19 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     });
   }
 
-  // Safe area probe element — invisible div untuk baca CSS env()
+  // Safe area probe elements — invisible div untuk baca CSS env()
   (function() {
     var probe = document.createElement('div');
     probe.id = '_zenot-safe-probe';
     probe.style.cssText = 'position:fixed;bottom:0;left:0;width:0;height:0;' +
       'padding-bottom:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden;';
     document.body.appendChild(probe);
+
+    var probeT = document.createElement('div');
+    probeT.id = '_zenot-safe-probe-top';
+    probeT.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;' +
+      'padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+    document.body.appendChild(probeT);
   })();
 
   // Listen resize: keyboard muncul/hilang
