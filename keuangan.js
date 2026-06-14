@@ -685,54 +685,119 @@ function keuGotoTab(tab) {
   _keuSetPanelHeight();
 }
 
-// ─── FULL-HEIGHT SCROLL ZONE (mobile) — pola sama dengan _kasEnsureFlexLayout ──
+// ─── FULL-HEIGHT SCROLL ZONE (mobile) — pola sama dengan _restockEnsureFlexLayout ──
 function _keuEnsureFlexLayout() {
-  const pg = document.getElementById('page-keuangan');
+  var pg = document.getElementById('page-keuangan');
   if (!pg || !pg.classList.contains('active')) return;
-  document.body.classList.add('keu-active');
-  _keuSetPanelHeight();
+
+  var htmlEl = document.documentElement;
+  if (htmlEl) { htmlEl.style.height = '100%'; }
+
+  var bodyEl = document.body;
+  if (bodyEl) { bodyEl.style.height = '100%'; bodyEl.style.minHeight = '0'; }
+
+  var mainEl = document.querySelector('.main');
+  if (mainEl) {
+    mainEl.style.height        = '100%';
+    mainEl.style.minHeight     = '0';
+    mainEl.style.overflow      = 'hidden';
+    mainEl.style.display       = '-webkit-flex';
+    mainEl.style.display       = 'flex';
+    mainEl.style.webkitFlex    = '1 1 0';
+    mainEl.style.flex          = '1 1 0';
+    mainEl.style.flexDirection = 'column';
+    mainEl.style.webkitFlexDirection = 'column';
+  }
+
+  var contentEl = document.querySelector('.content');
+  if (contentEl) {
+    contentEl.style.overflowY        = 'hidden';
+    contentEl.style.overflow         = 'hidden';
+    contentEl.style.display          = 'flex';
+    contentEl.style.flexDirection    = 'column';
+    contentEl.style.webkitFlexDirection = 'column';
+    contentEl.style.height           = '100%';
+    contentEl.style.webkitFlex       = '1 1 0';
+    contentEl.style.flex             = '1 1 0';
+    contentEl.style.minHeight        = '0';
+  }
+
+  // page-keuangan: flex column, mengisi .content
+  pg.style.display       = 'flex';
+  pg.style.flexDirection = 'column';
+  pg.style.flex          = '1 1 0';
+  pg.style.minHeight     = '0';
+  pg.style.overflow      = 'hidden';
+
+  // keu-sticky-header: natural height, flex-shrink:0
+  var stickyEl = document.getElementById('keu-sticky-header');
+  if (stickyEl) {
+    stickyEl.style.flexShrink = '0';
+    stickyEl.style.webkitFlexShrink = '0';
+  }
+
+  // keu-panels-wrap: flex:1, overflow hidden
+  var wrap = document.getElementById('keu-panels-wrap');
+  if (wrap) {
+    wrap.style.display       = 'flex';
+    wrap.style.flex          = '1 1 0';
+    wrap.style.webkitFlex    = '1 1 0';
+    wrap.style.minHeight     = '0';
+    wrap.style.overflow      = 'hidden';
+    wrap.style.flexDirection = 'column';
+  }
+
+  _keuApplyNeracaFlexChain();
+}
+
+function _keuApplyNeracaFlexChain() {
+  var neracaPanel = document.getElementById('keu-panel-neraca');
+  if (!neracaPanel) return;
+
+  // Panel aktif: flex:1 mengisi wrap
+  var activePanel = document.querySelector('.keu-panel.active');
+  if (activePanel) {
+    activePanel.style.flex       = '1 1 0';
+    activePanel.style.webkitFlex = '1 1 0';
+    activePanel.style.minHeight  = '0';
+    activePanel.style.overflow   = 'hidden';
+  }
+
+  // Neraca panel khusus: flex column
+  if (neracaPanel.classList.contains('active')) {
+    neracaPanel.style.display          = 'flex';
+    neracaPanel.style.flexDirection    = 'column';
+    neracaPanel.style.webkitFlexDirection = 'column';
+
+    // minicards: flex-shrink:0
+    var minicards = document.getElementById('keu-neraca-minicards-wrap');
+    if (minicards) {
+      minicards.style.flexShrink       = '0';
+      minicards.style.webkitFlexShrink = '0';
+    }
+
+    // section-bar: flex-shrink:0
+    var sectionBar = document.getElementById('keu-neraca-section-bar');
+    if (sectionBar) {
+      sectionBar.style.flexShrink       = '0';
+      sectionBar.style.webkitFlexShrink = '0';
+    }
+
+    // scroll-zone: flex:1, satu-satunya yang scroll
+    var scrollZone = document.getElementById('keu-neraca-scroll-zone');
+    if (scrollZone) {
+      scrollZone.style.flex          = '1 1 0';
+      scrollZone.style.webkitFlex    = '1 1 0';
+      scrollZone.style.minHeight     = '0';
+      scrollZone.style.overflowY     = 'auto';
+      scrollZone.style.webkitOverflowScrolling = 'touch';
+      scrollZone.style.overscrollBehavior      = 'none';
+    }
+  }
 }
 
 function _keuSetPanelHeight() {
-  const pg = document.getElementById('page-keuangan');
-  if (!pg || !pg.classList.contains('active')) return;
-  const wrap = document.getElementById('keu-panels-wrap');
-  const content = document.querySelector('.content');
-  if (!wrap || !content) return;
-  requestAnimationFrame(() => {
-    const wrapTop = wrap.getBoundingClientRect().top;
-    const contentBottom = content.getBoundingClientRect().bottom;
-    const newH = contentBottom - wrapTop;
-    if (newH > 100) {
-      // iOS Safari fix: measure & pin minicards height SEBELUM panel di-resize
-      // Saat parent maxHeight berubah, iOS Safari compress flex children meski flex-shrink:0
-      const neracaPanel = document.getElementById('keu-panel-neraca');
-      const minicards   = document.getElementById('keu-neraca-minicards-wrap');
-      if (neracaPanel && neracaPanel.classList.contains('active') && minicards) {
-        // Reset dulu agar measure natural
-        minicards.style.height    = '';
-        minicards.style.minHeight = '';
-        const mcH = minicards.getBoundingClientRect().height;
-        if (mcH > 0) {
-          minicards.style.height    = mcH + 'px';
-          minicards.style.minHeight = mcH + 'px';
-          minicards.style.maxHeight = mcH + 'px'; // pin setelah measured — hanya kalau > 0
-        }
-        minicards.style.flexShrink = '0';
-        minicards.style.webkitFlexShrink = '0';
-      }
-
-      wrap.style.height    = newH + 'px';
-      wrap.style.minHeight = newH + 'px';
-      wrap.style.maxHeight = newH + 'px';
-
-      if (neracaPanel && neracaPanel.classList.contains('active')) {
-        neracaPanel.style.height    = '100%';
-        neracaPanel.style.minHeight = '0';
-        neracaPanel.style.maxHeight = '100%';
-      }
-    }
-  });
+  _keuApplyNeracaFlexChain();
 }
 
 // Recalc tinggi setiap kali sticky-header atau minicards collapse/expand selesai (transisi 0.25s)
