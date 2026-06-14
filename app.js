@@ -580,6 +580,18 @@ if ('serviceWorker' in navigator) {
       document.body.insertBefore(banner, document.body.firstChild);
     }
   });
+
+  // iOS Safari fix: postMessage dari SW ke existing clients tidak reliable di iOS.
+  // controllerchange adalah event yang SELALU firing di iOS Safari saat SW baru take control —
+  // tidak bergantung pada postMessage delivery. Ini fallback yang proper untuk auto update iOS.
+  var _reloadOnController = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (_reloadOnController) return; // cegah double reload
+    _reloadOnController = true;
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      window.location.reload();
+    }
+  });
 }
 
 // ─── UNIFIED PICKER CLOSE HANDLER ────────────────────────────
