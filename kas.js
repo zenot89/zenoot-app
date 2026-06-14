@@ -1329,8 +1329,8 @@ function kasTogglePicker(pickerId) {
   if (spaceBelow < listH && spaceAbove > spaceBelow) {
     var actualH = Math.min(listH, spaceAbove);
     list.style.maxHeight = actualH + 'px';
-    list.style.top       = '';
-    list.style.bottom    = (vpH - rect.top + 2) + 'px';
+    list.style.bottom    = '';
+    list.style.top       = Math.max(4, rect.top - actualH - 2) + 'px';
   } else {
     list.style.maxHeight = Math.min(listH, spaceBelow) + 'px';
     list.style.top       = (rect.bottom + 2) + 'px';
@@ -1366,17 +1366,21 @@ function kasTogglePicker(pickerId) {
       var sBelow = vpH2 - r.bottom - 4;
       var sAbove = r.top - 4;
       if (sBelow < listH && sAbove > sBelow) {
-        list.style.maxHeight = Math.min(listH, sAbove) + 'px';
-        list.style.top       = '';
-        list.style.bottom    = (vpH2 - r.top + 2) + 'px';
+        var aH = Math.min(listH, sAbove);
+        list.style.maxHeight = aH + 'px';
+        list.style.bottom    = '';
+        list.style.top       = Math.max(4, r.top - aH - 2) + 'px';
       } else {
         list.style.maxHeight = Math.min(listH, sBelow) + 'px';
         list.style.top       = (r.bottom + 2) + 'px';
         list.style.bottom    = '';
       }
     }
-    list._vpHandler = _reposisi;
-    window.visualViewport.addEventListener('resize', _reposisi);
+    function _reposisiDeferred() {
+      requestAnimationFrame(function() { requestAnimationFrame(_reposisi); });
+    }
+    list._vpHandler = _reposisiDeferred;
+    window.visualViewport.addEventListener('resize', _reposisiDeferred);
   }
 }
 

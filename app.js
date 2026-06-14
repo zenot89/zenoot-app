@@ -1041,8 +1041,8 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
       if (spaceBelow < listH && spaceAbove > spaceBelow) {
         var actualH = Math.min(listH, spaceAbove);
         list.style.maxHeight = actualH + 'px';
-        list.style.top       = '';
-        list.style.bottom    = (vpH - rect.top + 2) + 'px';
+        list.style.bottom    = '';
+        list.style.top       = Math.max(4, rect.top - actualH - 2) + 'px';
       } else {
         list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
         list.style.top       = (rect.bottom + 2) + 'px';
