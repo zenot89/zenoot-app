@@ -1343,9 +1343,22 @@ function kasTogglePicker(pickerId) {
   // Auto-focus search input
   if (inp) setTimeout(function() { inp.focus(); }, 80);
 
-  // iOS Safari: reposisi list saat keyboard naik (visualViewport resize)
-  // Keyboard menyebabkan vpH mengecil → posisi bottom picker harus disesuaikan
-  if (isIOS && window.visualViewport) {
+  // Reposisi list saat keyboard naik/turun (visualViewport resize)
+  // Keyboard menyebabkan vpH mengecil/membesar → posisi top/bottom list harus
+  // disesuaikan ulang relatif ke posisi picker yang baru.
+  //
+  // PENTING — kenapa di-skip untuk iOS:
+  // app.js punya handler khusus iOS (_applyKeyboardOffset) yang, saat
+  // visualViewport resize, (1) reposisi .modal-overlay dulu lalu (2) baru
+  // reposisi .kas-akun-list[data-floated] pakai rect picker yang SUDAH BARU.
+  // Handler di sini jalan SINKRON pada event resize yang sama (sebelum
+  // requestAnimationFrame app.js sempat geser overlay) → rect picker yang
+  // dibaca di sini masih versi LAMA. Kalau dua-duanya aktif di iOS, list
+  // jadi reposisi 2x dengan rect berbeda → kelihatan "lompat/kedip".
+  // Android & desktop tidak punya handler app.js itu (iOS-only), jadi
+  // handler di sini tetap WAJIB jalan untuk mereka.
+  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (window.visualViewport && !_isIOS) {
     function _reposisi() {
       if (list.style.display !== 'block') return;
       var r     = picker.getBoundingClientRect();
