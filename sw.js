@@ -38,8 +38,9 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v19 — fix networth stuck Android: _waitForDbGet loop + visibilitychange wake-up
-var JS_CACHE = 'zenot-js-20260614-be8a8aa92246';
+// BUMP: JS_CACHE v20 — fix picker akun pindah-pindah: scroll-guard race close
+// + reposisi saat .modal scroll (kas.js, app.js)
+var JS_CACHE = 'zenot-js-20260615-c1440201fbcf';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
