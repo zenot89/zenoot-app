@@ -34,10 +34,14 @@ document.getElementById('page-keuangan').innerHTML = `
   .neraca-sub  td { padding-left:20px !important; }
   .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
 
-  /* ── Neraca freeze+scroll layout ── */
+  /* ── Neraca 3-bagian layout ── */
   #keu-neraca-minicards-wrap {
     padding: 0 0 10px 0;
     transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+  }
+  /* Bagian 2: section bar (ASET/KEWAJIBAN label + toggle) — statis, tidak scroll */
+  #keu-neraca-section-bar {
+    flex-shrink: 0;
   }
   #keu-neraca-scroll-zone {
     flex: 1;
@@ -50,9 +54,6 @@ document.getElementById('page-keuangan').innerHTML = `
     align-items: center;
     justify-content: space-between;
     padding: 10px 0 8px 0;
-    position: sticky;
-    top: 0;
-    z-index: 10;
     background: var(--cream);
     border-bottom: 2px solid var(--ink);
     margin-bottom: 4px;
@@ -121,10 +122,11 @@ document.getElementById('page-keuangan').innerHTML = `
       padding-bottom:24px;
     }
 
-    /* ── Neraca: panel jadi flex column, minicards freeze, scroll-zone yang scroll ──
+    /* ── Neraca: panel jadi flex column, minicards collapse on swipe, section-bar freeze ──
        chain: .keu-panel-neraca.active (flex column, overflow:hidden)
-                → #keu-neraca-minicards-wrap (shrink:0, freeze — Net Worth + Status)
-                → #keu-neraca-scroll-zone (flex:1, overflow-y:auto) ← scroll zone eksklusif
+                → #keu-neraca-minicards-wrap   (bagian 1 — collapse on swipe UP)
+                → #keu-neraca-section-bar      (bagian 2 — sticky/freeze, tidak scroll)
+                → #keu-neraca-scroll-zone      (bagian 3 — satu-satunya yang scroll)
     */
     .keu-panel-neraca.active {
       display: -webkit-flex !important;
@@ -135,6 +137,22 @@ document.getElementById('page-keuangan').innerHTML = `
       overflow-y: hidden !important;
     }
     #keu-neraca-minicards-wrap {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      overflow: hidden;
+      max-height: 200px;
+      opacity: 1;
+      -webkit-transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+      transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+    }
+    #keu-neraca-minicards-wrap.keu-minicards-collapsed {
+      max-height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #keu-neraca-section-bar {
       -webkit-flex-shrink: 0;
       flex-shrink: 0;
     }
@@ -299,10 +317,10 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
   </div>
 
-  <!-- ── SCROLL ZONE: konten neraca (freeze section header + scroll tabel) ── -->
-  <div id="keu-neraca-scroll-zone">
+  <!-- ── BAGIAN 2: Section bar ASET / KEWAJIBAN — freeze, tidak ikut scroll ── -->
+  <div id="keu-neraca-section-bar">
 
-    <!-- Section header ASET — freeze di atas scroll zone -->
+    <!-- Section header ASET -->
     <div id="keu-neraca-section-aset" class="keu-neraca-section-head" data-view="aset">
       <span class="keu-neraca-section-label keu-aset-label">
         <i class="ti ti-trending-up"></i> ASET
@@ -316,14 +334,6 @@ document.getElementById('page-keuangan').innerHTML = `
         <i class="ti ti-trending-down" style="font-size:12px"></i>
         <span id="keu-neraca-toggle-label">Kewajiban <span id="keu-neraca-kwj-count">—</span></span>
       </button>
-    </div>
-
-    <!-- Tabel ASET -->
-    <div id="keu-neraca-card-aset" class="keu-neraca-card">
-      <table class="tbl"><tbody id="keu-neraca-aset"></tbody></table>
-      <div class="keu-neraca-total-row">
-        <span>Total Aset</span><span id="keu-neraca-total-aset" style="color:var(--ok)">—</span>
-      </div>
     </div>
 
     <!-- Section header KEWAJIBAN — muncul saat view kewajiban -->
@@ -340,6 +350,19 @@ document.getElementById('page-keuangan').innerHTML = `
         <i class="ti ti-trending-up" style="font-size:12px"></i>
         <span id="keu-neraca-toggle-label2">Aset <span id="keu-neraca-aset-count">—</span></span>
       </button>
+    </div>
+
+  </div><!-- /keu-neraca-section-bar -->
+
+  <!-- ── BAGIAN 3: Scroll zone — satu-satunya yang scroll ── -->
+  <div id="keu-neraca-scroll-zone">
+
+    <!-- Tabel ASET -->
+    <div id="keu-neraca-card-aset" class="keu-neraca-card">
+      <table class="tbl"><tbody id="keu-neraca-aset"></tbody></table>
+      <div class="keu-neraca-total-row">
+        <span>Total Aset</span><span id="keu-neraca-total-aset" style="color:var(--ok)">—</span>
+      </div>
     </div>
 
     <!-- Tabel KEWAJIBAN + MODAL -->
@@ -712,13 +735,12 @@ function _keuSetPanelHeight() {
   });
 }
 
-// Recalc tinggi setiap kali sticky-header collapse/expand selesai (transisi 0.25s)
+// Recalc tinggi setiap kali sticky-header atau minicards collapse/expand selesai (transisi 0.25s)
 (function() {
-  const header = document.getElementById('keu-sticky-header');
-  if (!header) return;
-  header.addEventListener('transitionend', function(e) {
-    if (e.propertyName === 'max-height') setTimeout(_keuSetPanelHeight, 16);
-  });
+  const header    = document.getElementById('keu-sticky-header');
+  const minicards = document.getElementById('keu-neraca-minicards-wrap');
+  if (header)    header.addEventListener('transitionend',    function(e) { if (e.propertyName === 'max-height') setTimeout(_keuSetPanelHeight, 16); });
+  if (minicards) minicards.addEventListener('transitionend', function(e) { if (e.propertyName === 'max-height') setTimeout(_keuSetPanelHeight, 16); });
 })();
 
 window.addEventListener('resize', function() {
@@ -761,9 +783,9 @@ let _keuNeracaView = 'aset'; // state: 'aset' | 'kewajiban'
 function keuNeracaViewToggle() {
   _keuNeracaView = _keuNeracaView === 'aset' ? 'kewajiban' : 'aset';
   keuNeracaApplyView();
-  // scroll ke atas panel
-  const panel = document.getElementById('keu-panel-neraca');
-  if (panel) panel.scrollTop = 0;
+  // scroll ke atas zona konten (bagian 3)
+  const zone = document.getElementById('keu-neraca-scroll-zone');
+  if (zone) zone.scrollTop = 0;
   keuNeracaExpandHeader();
 }
 
@@ -799,13 +821,16 @@ function keuNeracaToggle(view) {
 }
 
 function keuNeracaExpandHeader() {
-  const header = document.getElementById('keu-sticky-header');
-  if (header) header.classList.remove('keu-header-collapsed');
+  const minicards = document.getElementById('keu-neraca-minicards-wrap');
+  if (minicards) {
+    minicards.classList.remove('keu-minicards-collapsed');
+    setTimeout(_keuSetPanelHeight, 270);
+  }
 }
 
-// ─── SWIPE GESTURE — keu-sticky-header collapse/expand ───────────────────────
-// Collapse : swipe UP di scroll-zone → langsung collapse (1x)
-// Expand   : swipe DOWN 2x di header collapsed dalam 600ms → expand
+// ─── SWIPE GESTURE — #keu-neraca-minicards-wrap collapse/expand ──────────────
+// Bagian 1 (minicards) collapse : swipe UP di scroll-zone → langsung collapse
+// Bagian 1 (minicards) expand   : swipe DOWN 2x di scroll-zone dalam 600ms
 (function() {
   var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   var _collapseInit  = false;
@@ -814,9 +839,9 @@ function keuNeracaExpandHeader() {
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
 
-    var zone   = document.getElementById('keu-neraca-scroll-zone');
-    var header = document.getElementById('keu-sticky-header');
-    if (!zone || !header) return;
+    var zone      = document.getElementById('keu-neraca-scroll-zone');
+    var minicards = document.getElementById('keu-neraca-minicards-wrap');
+    if (!zone || !minicards) return;
 
     // ── COLLAPSE: swipe UP di scroll-zone (1x, langsung) ──
     if (!_collapseInit) {
@@ -835,13 +860,14 @@ function keuNeracaExpandHeader() {
         var dx = e.changedTouches[0].clientX - _startX;
         if (Math.abs(dx) > Math.abs(dy)) return;
         if (dy < -50) {
-          // swipe UP → collapse
-          header.classList.add('keu-header-collapsed');
+          // swipe UP → collapse bagian 1
+          minicards.classList.add('keu-minicards-collapsed');
+          setTimeout(_keuSetPanelHeight, 270);
         }
       }, { passive: true });
     }
 
-    // ── EXPAND: 2x swipe DOWN di scroll-zone (sama kayak JP — swipe di content area) ──
+    // ── EXPAND: 2x swipe DOWN di scroll-zone dalam 600ms ──
     if (!_expandInit) {
       _expandInit = true;
       var _s1Y = 0, _s1X = 0, _s1Done = false, _s1Time = 0;
@@ -852,7 +878,7 @@ function keuNeracaExpandHeader() {
         if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
       }, { passive: true });
       zone.addEventListener('touchend', function(e) {
-        if (!header.classList.contains('keu-header-collapsed')) return;
+        if (!minicards.classList.contains('keu-minicards-collapsed')) return;
         var dy = e.changedTouches[0].clientY - _s1Y;
         var dx = e.changedTouches[0].clientX - _s1X;
         if (Math.abs(dx) > Math.abs(dy)) return;
