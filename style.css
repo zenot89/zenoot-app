@@ -3208,8 +3208,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (hover: none) and (pointer: coarse) {
   #keu-sticky-header {
     overflow: hidden;
-    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    -webkit-transition: max-height .3s ease, opacity .3s ease;
+    transition: max-height .3s ease, opacity .3s ease;
     max-height: 200px;
     opacity: 1;
   }

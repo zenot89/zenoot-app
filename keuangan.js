@@ -712,12 +712,23 @@ function _keuSetPanelHeight() {
       wrap.style.minHeight = newH + 'px';
       wrap.style.maxHeight = newH + 'px';
       // Neraca panel: set height eksplisit agar flex chain resolve
-      // (flex:1 di #keu-neraca-scroll-zone butuh parent punya height pasti)
       const neracaPanel = document.getElementById('keu-panel-neraca');
       if (neracaPanel && neracaPanel.classList.contains('active')) {
         neracaPanel.style.height    = newH + 'px';
         neracaPanel.style.minHeight = newH + 'px';
         neracaPanel.style.maxHeight = newH + 'px';
+        // iOS Safari fix: pin minicards-wrap height eksplisit agar tidak ikut compress
+        const minicards = document.getElementById('keu-neraca-minicards-wrap');
+        if (minicards && !minicards.classList.contains('keu-minicards-collapsed')) {
+          minicards.style.height    = '';
+          minicards.style.minHeight = '';
+          const mcH = minicards.getBoundingClientRect().height;
+          if (mcH > 0) {
+            minicards.style.height    = mcH + 'px';
+            minicards.style.minHeight = mcH + 'px';
+          }
+          minicards.style.flexShrink = '0';
+        }
       }
     }
   });
