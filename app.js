@@ -315,42 +315,11 @@ function showModal(id) {
         if (inp.id) idrInput(inp.id);
       });
     }, 60);
-
-    // iOS Safari: saat keyboard naik, viewport mengecil tapi modal-overlay (position:fixed inset:0)
-    // tidak ikut menyesuaikan → konten modal terdorong ke atas dan picker salah posisi.
-    // Fix: lock overlay ke visualViewport agar tetap stabil saat keyboard naik/turun.
-    var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (_isIOS && window.visualViewport) {
-      function _lockOverlay() {
-        var vp = window.visualViewport;
-        el.style.top    = vp.offsetTop + 'px';
-        el.style.left   = vp.offsetLeft + 'px';
-        el.style.width  = vp.width + 'px';
-        el.style.height = vp.height + 'px';
-      }
-      _lockOverlay();
-      el._vpLock = _lockOverlay;
-      window.visualViewport.addEventListener('resize', _lockOverlay);
-      window.visualViewport.addEventListener('scroll', _lockOverlay);
-    }
   }
 }
 function hideModal(id) {
   var el = document.getElementById(id);
-  if (el) {
-    el.classList.remove('open');
-    // Cleanup iOS visualViewport lock
-    if (el._vpLock && window.visualViewport) {
-      window.visualViewport.removeEventListener('resize', el._vpLock);
-      window.visualViewport.removeEventListener('scroll', el._vpLock);
-      delete el._vpLock;
-    }
-    // Reset inline styles yang di-set saat lock
-    el.style.top = '';
-    el.style.left = '';
-    el.style.width = '';
-    el.style.height = '';
-  }
+  if (el) el.classList.remove('open');
 }
 // (modal-overlay click handler sudah terdaftar di atas — tidak diduplikasi di sini)
 
@@ -1034,13 +1003,19 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     // Semua modal-overlay yang sedang open → geser ke atas sebesar keyboard
     document.querySelectorAll('.modal-overlay.open').forEach(function(overlay) {
       if (keyboardH > 0) {
-        overlay.style.bottom    = keyboardH + 'px';
-        overlay.style.top       = '0';
+        var modal = overlay.querySelector('.modal');
+        var modalH = modal ? modal.getBoundingClientRect().height : 0;
+        var availH = window.innerHeight - keyboardH;
+        var topPad = modalH > 0 ? Math.max(8, (availH - modalH) / 2) : 16;
+        overlay.style.bottom     = keyboardH + 'px';
+        overlay.style.top        = '0';
+        overlay.style.height     = availH + 'px';
         overlay.style.alignItems = 'flex-start';
-        overlay.style.paddingTop = Math.max(16, (window.innerHeight - keyboardH - 420) / 2) + 'px';
+        overlay.style.paddingTop = topPad + 'px';
       } else {
-        overlay.style.bottom    = '';
-        overlay.style.top       = '';
+        overlay.style.bottom     = '';
+        overlay.style.top        = '';
+        overlay.style.height     = '';
         overlay.style.alignItems = '';
         overlay.style.paddingTop = '';
       }
