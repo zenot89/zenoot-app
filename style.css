@@ -3221,3 +3221,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     pointer-events: none;
   }
 }
+
+/* ── keu-neraca-minicards COLLAPSE saat swipe UP di scroll-zone (Neraca ASET & KEWAJIBAN) ── */
+@media (hover: none) and (pointer: coarse) {
+  #keu-neraca-minicards-wrap {
+    overflow: hidden;
+    -webkit-transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+    transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #keu-neraca-minicards-wrap.keu-minicards-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}

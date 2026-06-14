@@ -825,11 +825,13 @@ function keuNeracaToggle(view) {
 }
 
 function keuNeracaExpandHeader() {
-  const header = document.getElementById('keu-sticky-header');
-  if (header) header.classList.remove('keu-header-collapsed');
+  const header    = document.getElementById('keu-sticky-header');
+  const minicards = document.getElementById('keu-neraca-minicards-wrap');
+  if (header)    header.classList.remove('keu-header-collapsed');
+  if (minicards) minicards.classList.remove('keu-minicards-collapsed');
 }
 
-// ─── SWIPE GESTURE — keu-sticky-header collapse/expand ───────────────────────
+// ─── SWIPE GESTURE — keu-neraca-minicards collapse/expand ────────────────────
 // Collapse : swipe UP di scroll-zone → langsung collapse (1x)
 // Expand   : swipe DOWN 2x di scroll-zone dalam 600ms → expand
 (function() {
@@ -840,9 +842,9 @@ function keuNeracaExpandHeader() {
   function _keuInitSwipe() {
     if (!_isTouchDevice) return;
 
-    var zone   = document.getElementById('keu-neraca-scroll-zone');
-    var header = document.getElementById('keu-sticky-header');
-    if (!zone || !header) return;
+    var zone     = document.getElementById('keu-neraca-scroll-zone');
+    var minicards = document.getElementById('keu-neraca-minicards-wrap');
+    if (!zone || !minicards) return;
 
     // ── COLLAPSE: swipe UP di scroll-zone (1x, langsung) ──
     if (!_collapseInit) {
@@ -861,7 +863,8 @@ function keuNeracaExpandHeader() {
         var dx = e.changedTouches[0].clientX - _startX;
         if (Math.abs(dx) > Math.abs(dy)) return;
         if (dy < -50) {
-          header.classList.add('keu-header-collapsed');
+          minicards.classList.add('keu-minicards-collapsed');
+          setTimeout(_keuSetPanelHeight, 280);
         }
       }, { passive: true });
     }
@@ -877,7 +880,7 @@ function keuNeracaExpandHeader() {
         if (_s1Done && Date.now() - _s1Time > 600) { _s1Done = false; }
       }, { passive: true });
       zone.addEventListener('touchend', function(e) {
-        if (!header.classList.contains('keu-header-collapsed')) return;
+        if (!minicards.classList.contains('keu-minicards-collapsed')) return;
         var dy = e.changedTouches[0].clientY - _s1Y;
         var dx = e.changedTouches[0].clientX - _s1X;
         if (Math.abs(dx) > Math.abs(dy)) return;
@@ -887,7 +890,8 @@ function keuNeracaExpandHeader() {
           _s1Done = true;
           _s1Time = now;
         } else if (now - _s1Time <= 600) {
-          keuNeracaExpandHeader();
+          minicards.classList.remove('keu-minicards-collapsed');
+          setTimeout(_keuSetPanelHeight, 280);
           _s1Done = false;
         } else {
           _s1Done = true;
