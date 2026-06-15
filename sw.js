@@ -30,17 +30,16 @@ var JS_APP_FILES = [
   'stok.js', 'restock.js', 'kas.js', 'jurnal-penjualan.js',
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
-  'anggaran.js', 'keuangan.js', 'clearance.js', 'hpp.js', 'notif.js',
+  'anggaran.js', 'keuangan.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'style.css', 'shopee-dashboard.js',
+  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'autocomplete.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v20 — fix picker akun pindah-pindah: scroll-guard race close
-// + reposisi saat .modal scroll (kas.js, app.js)
-var JS_CACHE = 'zenot-js-20260615-c0e58573a254';
+// BUMP: JS_CACHE v21 — tambah penutupan-periode.js + autocomplete.js
+var JS_CACHE = 'zenot-js-20260615-v21-pp-ac';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
