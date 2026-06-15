@@ -40,7 +40,7 @@ var JS_APP_FILES = [
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v20 — fix picker akun pindah-pindah: scroll-guard race close
 // + reposisi saat .modal scroll (kas.js, app.js)
-var JS_CACHE = 'zenot-js-20260615-f9f10b872e7a';
+var JS_CACHE = 'zenot-js-20260615-c0e58573a254';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
