@@ -128,7 +128,9 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   <div class="pp-periode-sel">
     <div class="form-group" style="flex:1 1 160px;margin:0">
       <label>Periode (Bulan - Tahun)</label>
-      <input type="month" id="pp-bulan" style="width:100%">
+      <select id="pp-bulan" style="width:100%">
+        <option value="">Memuat periode...</option>
+      </select>
     </div>
     <button class="btn btn-sm" onclick="ppValidasi()" style="flex-shrink:0">
       <i class="ti ti-search"></i> Cek Periode
@@ -272,14 +274,8 @@ function _ppEnsureLayout() {
 
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'penutupan-periode') return;
-  // Default bulan = bulan lalu (yang lazim ditutup)
-  var d = new Date();
-  d.setMonth(d.getMonth() - 1);
-  var ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  var el = document.getElementById('pp-bulan');
-  if (el && !el.value) el.value = ym;
-
   setTimeout(_ppEnsureLayout, 60);
+  ppLoadBulanDropdown();
   ppLoadHistori();
 });
 
@@ -289,6 +285,52 @@ window.addEventListener('resize', function() {
 });
 
 // ─── FORMAT ───────────────────────────────────────────────────
+// ─── LOAD DROPDOWN BULAN ─────────────────────────────────────
+// Fetch distinct periode (YYYY-MM) dari tabel jurnal,
+// populate select#pp-bulan, auto-select bulan lalu.
+async function ppLoadBulanDropdown() {
+  var sel = document.getElementById('pp-bulan');
+  if (!sel) return;
+
+  sel.innerHTML = '<option value="">Memuat...</option>';
+
+  // Fetch semua jurnal, ambil field tanggal saja (minimal data)
+  var rows = await dbGet('jurnal', '&select=tanggal&order=tanggal.desc').catch(function() { return []; });
+
+  // Ekstrak distinct YYYY-MM dari tanggal, urutkan desc (terbaru dulu)
+  var seen = {};
+  var periodes = [];
+  (rows || []).forEach(function(r) {
+    if (!r.tanggal) return;
+    var ym = r.tanggal.substring(0, 7); // 'YYYY-MM'
+    if (!seen[ym]) { seen[ym] = true; periodes.push(ym); }
+  });
+  // periodes sudah desc karena order=tanggal.desc
+
+  var bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
+                   'Juli','Agustus','September','Oktober','November','Desember'];
+
+  // Default: bulan lalu
+  var d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  var defaultYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+
+  if (periodes.length === 0) {
+    sel.innerHTML = '<option value="">Tidak ada data jurnal</option>';
+    return;
+  }
+
+  sel.innerHTML = periodes.map(function(ym) {
+    var parts  = ym.split('-');
+    var label  = bulanNama[parseInt(parts[1]) - 1] + ' ' + parts[0];
+    var sel_   = (ym === defaultYm) ? ' selected' : '';
+    return '<option value="' + ym + '"' + sel_ + '>' + label + '</option>';
+  }).join('');
+
+  // Jika defaultYm tidak ada di list, pilih opsi pertama (terbaru)
+  if (!seen[defaultYm]) sel.selectedIndex = 0;
+}
+
 function _ppFmt(v) { return fmtRpFull(Math.abs(Number(v) || 0)); }
 
 function _ppPeriodeLabel(ym) {
