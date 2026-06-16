@@ -361,15 +361,27 @@ async function ppValidasi() {
     });
 
     // Hitung P&L periode ini saja
+    // Agregasi per akun (bukan per baris jurnal) agar jurnal penutup 1 baris per akun
     var totalPend  = 0, totalBeban = 0;
-    var pendDetail = [], bebanDetail = [];
+    var pendAggr   = {};  // akunId → { id, nama, total }
+    var bebanAggr  = {};  // akunId → { id, nama, total }
     jurnal.forEach(function(r) {
       var n  = Number(r.nominal || r.debit || 0);
       var aD = akunMap[r.akun_debit_id];
       var aK = akunMap[r.akun_kredit_id];
-      if (aK && aK.kelompok === 'pendapatan') { totalPend  += n; pendDetail.push({ nama: aK.nama, n: n }); }
-      if (aD && aD.kelompok === 'beban')      { totalBeban += n; bebanDetail.push({ nama: aD.nama, n: n }); }
+      if (aK && aK.kelompok === 'pendapatan') {
+        totalPend += n;
+        if (!pendAggr[r.akun_kredit_id]) pendAggr[r.akun_kredit_id] = { id: r.akun_kredit_id, nama: aK.nama, total: 0 };
+        pendAggr[r.akun_kredit_id].total += n;
+      }
+      if (aD && aD.kelompok === 'beban') {
+        totalBeban += n;
+        if (!bebanAggr[r.akun_debit_id]) bebanAggr[r.akun_debit_id] = { id: r.akun_debit_id, nama: aD.nama, total: 0 };
+        bebanAggr[r.akun_debit_id].total += n;
+      }
     });
+    var pendDetail  = Object.values(pendAggr);   // [{ id, nama, total }]
+    var bebanDetail = Object.values(bebanAggr);  // [{ id, nama, total }]
     var labaRugi = totalPend - totalBeban;
 
     // Total aset & kewajiban (all-time neraca)
@@ -491,16 +503,16 @@ async function ppValidasi() {
     var previewHtml = '';
     if (totalPend > 0 || totalBeban > 0) {
       previewHtml += '<table class="tbl" style="margin-bottom:10px"><thead><tr><th>Keterangan</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th></tr></thead><tbody>';
-      // Tutup pendapatan: Debit Pendapatan → Kredit Ikhtisar Laba Rugi
+      // Tutup pendapatan: Debit Pendapatan → Kredit Laba Ditahan (1 jurnal per akun)
       pendDetail.forEach(function(p) {
-        previewHtml += '<tr><td style="font-size:12px">Tutup: ' + p.nama + '</td><td style="text-align:right;color:var(--ok)">' + _ppFmt(p.n) + '</td><td style="text-align:right">—</td></tr>';
+        previewHtml += '<tr><td style="font-size:12px">Tutup Pend: ' + p.nama + '</td><td style="text-align:right;color:var(--ok)">' + _ppFmt(p.total) + '</td><td style="text-align:right">—</td></tr>';
       });
-      // Tutup beban: Debit Ikhtisar Laba Rugi → Kredit Beban
+      // Tutup beban: Debit Laba Ditahan → Kredit Beban (1 jurnal per akun)
       bebanDetail.forEach(function(b) {
-        previewHtml += '<tr><td style="font-size:12px">Tutup: ' + b.nama + '</td><td style="text-align:right">—</td><td style="text-align:right;color:var(--danger)">' + _ppFmt(b.n) + '</td></tr>';
+        previewHtml += '<tr><td style="font-size:12px">Tutup Beban: ' + b.nama + '</td><td style="text-align:right">—</td><td style="text-align:right;color:var(--danger)">' + _ppFmt(b.total) + '</td></tr>';
       });
-      // Hasil akhir ke Laba Ditahan
-      previewHtml += '<tr style="border-top:2px solid var(--ink);font-weight:700"><td>' + (labaRugi >= 0 ? 'Laba' : 'Rugi') + ' → Laba Ditahan</td>' +
+      // Baris ringkasan net
+      previewHtml += '<tr style="border-top:2px solid var(--ink);font-weight:700"><td>Net ' + (labaRugi >= 0 ? 'Laba' : 'Rugi') + ' → Laba Ditahan</td>' +
         '<td style="text-align:right;color:' + (labaRugi >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (labaRugi < 0 ? _ppFmt(Math.abs(labaRugi)) : '—') + '</td>' +
         '<td style="text-align:right;color:' + (labaRugi >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (labaRugi >= 0 ? _ppFmt(labaRugi) : '—') + '</td></tr>';
       previewHtml += '</tbody></table>';
@@ -579,27 +591,52 @@ async function ppTutupPeriode() {
     });
     await Promise.all(lockPromises);
 
-    // ── STEP 2: Buat jurnal penutup jika ada laba/rugi ───────
+    // ── STEP 2: Buat jurnal penutup per akun (proper double-entry) ──────
+    // Pendapatan: Debit akun Pendapatan, Kredit Laba Ditahan
+    // Beban:      Debit Laba Ditahan, Kredit akun Beban
+    // Tidak ada akun_debit_id atau akun_kredit_id yang null.
     var jurnalPenutupId = null;
-    if (labaRugi !== 0 && snap.totalPend > 0) {
-      // Jurnal penutup: Laba → Kredit Laba Ditahan (atau Rugi → Debit Laba Ditahan)
-      // Satu entri ringkasan: nominal = laba bersih
-      var jurnalPenutup = {
+    var _ket = 'Jurnal Penutup ' + _ppPeriodeLabel(snap.periode) + (catatan ? ' — ' + catatan : '');
+    var _ref = 'TUTUP-' + snap.periode;
+    var penutupPromises = [];
+
+    snap.pendDetail.forEach(function(p) {
+      if (!p.id || !p.total || !akunLabaDitahanId) return;
+      penutupPromises.push(dbInsert('jurnal', {
         tanggal:        today,
-        tipe:           labaRugi >= 0 ? 'masuk' : 'keluar',
-        nominal:        Math.abs(labaRugi),
-        debit:          Math.abs(labaRugi),
-        kredit:         Math.abs(labaRugi),
-        akun_debit_id:  labaRugi >= 0 ? null : akunLabaDitahanId,
-        akun_kredit_id: labaRugi >= 0 ? akunLabaDitahanId : null,
-        keterangan:     'Jurnal Penutup ' + _ppPeriodeLabel(snap.periode) +
-                        (catatan ? ' — ' + catatan : ''),
-        referensi:      'TUTUP-' + snap.periode,
+        tipe:           'masuk',
+        nominal:        p.total,
+        debit:          p.total,
+        kredit:         p.total,
+        akun_debit_id:  p.id,
+        akun_kredit_id: akunLabaDitahanId,
+        keterangan:     _ket + ' (Tutup Pend: ' + p.nama + ')',
+        referensi:      _ref,
         is_locked:      true,
         periode:        snap.periode,
-      };
-      var hasilJurnal = await dbInsert('jurnal', jurnalPenutup);
-      if (hasilJurnal && hasilJurnal[0]) jurnalPenutupId = hasilJurnal[0].id;
+      }));
+    });
+
+    snap.bebanDetail.forEach(function(b) {
+      if (!b.id || !b.total || !akunLabaDitahanId) return;
+      penutupPromises.push(dbInsert('jurnal', {
+        tanggal:        today,
+        tipe:           'keluar',
+        nominal:        b.total,
+        debit:          b.total,
+        kredit:         b.total,
+        akun_debit_id:  akunLabaDitahanId,
+        akun_kredit_id: b.id,
+        keterangan:     _ket + ' (Tutup Beban: ' + b.nama + ')',
+        referensi:      _ref,
+        is_locked:      true,
+        periode:        snap.periode,
+      }));
+    });
+
+    if (penutupPromises.length > 0) {
+      var hasilPenutup = await Promise.all(penutupPromises);
+      if (hasilPenutup[0] && hasilPenutup[0][0]) jurnalPenutupId = hasilPenutup[0][0].id;
     }
 
     // ── STEP 3: Simpan record penutupan ──────────────────────
