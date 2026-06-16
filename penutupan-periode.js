@@ -502,19 +502,35 @@ async function ppValidasi() {
     // ── Render jurnal penutup preview ──
     var previewHtml = '';
     if (totalPend > 0 || totalBeban > 0) {
-      previewHtml += '<table class="tbl" style="margin-bottom:10px"><thead><tr><th>Keterangan</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th></tr></thead><tbody>';
-      // Tutup pendapatan: Debit Pendapatan → Kredit Laba Ditahan (1 jurnal per akun)
+      // Preview: 4 kolom — Akun Debit | Nominal | Akun Kredit | Nominal
+      previewHtml += '<table class="tbl" style="margin-bottom:10px;font-size:12px"><thead><tr>' +
+        '<th>Akun Debit</th><th style="text-align:right">Debit</th>' +
+        '<th>Akun Kredit</th><th style="text-align:right">Kredit</th>' +
+        '</tr></thead><tbody>';
+      // Tutup tiap Pendapatan: Debit akun Pendapatan → Kredit Laba Ditahan
       pendDetail.forEach(function(p) {
-        previewHtml += '<tr><td style="font-size:12px">Tutup Pend: ' + p.nama + '</td><td style="text-align:right;color:var(--ok)">' + _ppFmt(p.total) + '</td><td style="text-align:right">—</td></tr>';
+        previewHtml += '<tr>' +
+          '<td>' + p.nama + '</td>' +
+          '<td style="text-align:right;color:var(--ok)">' + _ppFmt(p.total) + '</td>' +
+          '<td style="color:var(--ink2)">Laba Ditahan</td>' +
+          '<td style="text-align:right;color:var(--ok)">' + _ppFmt(p.total) + '</td>' +
+          '</tr>';
       });
-      // Tutup beban: Debit Laba Ditahan → Kredit Beban (1 jurnal per akun)
+      // Tutup tiap Beban: Debit Laba Ditahan → Kredit akun Beban
       bebanDetail.forEach(function(b) {
-        previewHtml += '<tr><td style="font-size:12px">Tutup Beban: ' + b.nama + '</td><td style="text-align:right">—</td><td style="text-align:right;color:var(--danger)">' + _ppFmt(b.total) + '</td></tr>';
+        previewHtml += '<tr>' +
+          '<td style="color:var(--ink2)">Laba Ditahan</td>' +
+          '<td style="text-align:right;color:var(--danger)">' + _ppFmt(b.total) + '</td>' +
+          '<td>' + b.nama + '</td>' +
+          '<td style="text-align:right;color:var(--danger)">' + _ppFmt(b.total) + '</td>' +
+          '</tr>';
       });
-      // Baris ringkasan net
-      previewHtml += '<tr style="border-top:2px solid var(--ink);font-weight:700"><td>Net ' + (labaRugi >= 0 ? 'Laba' : 'Rugi') + ' → Laba Ditahan</td>' +
-        '<td style="text-align:right;color:' + (labaRugi >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (labaRugi < 0 ? _ppFmt(Math.abs(labaRugi)) : '—') + '</td>' +
-        '<td style="text-align:right;color:' + (labaRugi >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (labaRugi >= 0 ? _ppFmt(labaRugi) : '—') + '</td></tr>';
+      // Baris total — jumlah jurnal yang akan dibuat
+      var nJurnal = pendDetail.length + bebanDetail.length;
+      previewHtml += '<tr style="border-top:2px solid var(--ink);font-weight:700;color:var(--ink2)">' +
+        '<td colspan="2">' + nJurnal + ' jurnal penutup akan dibuat</td>' +
+        '<td colspan="2" style="text-align:right">Setiap baris balance ✓</td>' +
+        '</tr>';
       previewHtml += '</tbody></table>';
     } else {
       previewHtml = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Tidak ada akun pendapatan/beban di periode ini.</div>';
