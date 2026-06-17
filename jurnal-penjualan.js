@@ -151,7 +151,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
              style="margin:0;border:none;padding:0;font-size:18px">
           <i class="ti ti-plus"></i> Tambah Penjualan
         </div>
-        <button onclick="closeModalJP()"
+        <button onclick="closeModalJP()" id="jp-btn-close-x"
           style="background:none;border:none;font-size:22px;cursor:pointer;
                  color:var(--ink3);line-height:1;padding:4px 8px;">&#10005;</button>
       </div>
@@ -271,7 +271,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <!-- Tombol aksi -->
       <div class="modal-actions"
         style="border-top:1.5px dashed var(--ink3);padding-top:12px">
-        <button class="btn btn-sm" onclick="closeModalJP()"
+        <button class="btn btn-sm" onclick="closeModalJP()" id="jp-btn-batal"
           style="min-width:80px">
           <i class="ti ti-x"></i> Batal
         </button>
@@ -445,11 +445,25 @@ function jpOverlayClose(e) {
   if (e.target === document.getElementById('modal-jp')) closeModalJP();
 }
 function closeModalJP() {
+  if (_jpIsSaving) return; // sedang proses simpan ke Supabase — jangan biarkan modal ditutup, biar tidak ada data yang "lolos" tercatat setelah dibatalkan
   _jpPendingItems = [];
   var list = document.getElementById('jp-pending-list');
   if (list) list.style.display = 'none';
   document.getElementById('modal-jp').classList.remove('open');
   jpTutupDropdownSKU();
+}
+
+// Kunci/lepas tombol Batal & X selama dbInsert/dbUpdate JP berjalan,
+// supaya user tidak mengira aksi batal mereka diabaikan diam-diam.
+function _jpSetCancelLocked(locked) {
+  var batal = document.getElementById('jp-btn-batal');
+  var x     = document.getElementById('jp-btn-close-x');
+  [batal, x].forEach(function(btn) {
+    if (!btn) return;
+    btn.disabled = locked;
+    btn.style.opacity = locked ? '0.4' : '';
+    btn.style.cursor = locked ? 'not-allowed' : 'pointer';
+  });
 }
 
 // ─── LOAD CHANNEL ────────────────────────────────────────────
@@ -1315,6 +1329,8 @@ async function simpanJP() {
 
   const btnSimpan = document.querySelector('#modal-jp .btn-primary');
   if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
+  _jpIsSaving = true;
+  _jpSetCancelLocked(true);
 
   try {
     if (id) {
@@ -1335,11 +1351,15 @@ async function simpanJP() {
         });
       }
     }
+    _jpIsSaving = false;
+    _jpSetCancelLocked(false);
     _jpPendingItems = []; // clear pending
     closeModalJP();
     loadJurnalPenjualan();
     if (typeof loadDashboard === 'function') loadDashboard();
   } catch(err) {
+    _jpIsSaving = false;
+    _jpSetCancelLocked(false);
     alert('Gagal simpan: ' + err.message);
   } finally {
     if (btnSimpan) {
@@ -1351,6 +1371,7 @@ async function simpanJP() {
 
 // ─── PENDING LIST ────────────────────────────────────────────
 var _jpPendingItems = []; // [{sku, qty, harga, total, channel_id, tgl, waktu, skuLabel}]
+var _jpIsSaving = false; // true selama dbInsert/dbUpdate JP berjalan — cegah Batal/X/overlay menutup modal di tengah proses simpan
 
 function _jpRenderPending() {
   var list  = document.getElementById('jp-pending-list');

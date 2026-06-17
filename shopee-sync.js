@@ -79,7 +79,7 @@ async function _getOrderDetailBatch(tok, orderSnList) {
         shop_id:                  tok.shop_id,
         access_token:             tok.access_token,
         order_sn_list:            orderSnList.slice(0, 50).join(','),
-        response_optional_fields: 'buyer_total_amount,create_time',
+        response_optional_fields: 'total_amount,create_time',
       })
     });
     const data = await res.json();
@@ -188,7 +188,7 @@ async function syncActiveOrderEscrow(tok) {
       });
       const det = await detRes.json();
       const f   = _parseOrderIncome(det);
-      const fallbackOmset = parseFloat(orderDetailMap[sn]?.buyer_total_amount || 0);
+      const fallbackOmset = parseFloat(orderDetailMap[sn]?.total_amount || 0);
       const omset = f.omset > 0 ? f.omset : fallbackOmset;
       if (omset <= 0) continue;
 
@@ -215,7 +215,20 @@ async function syncActiveOrderEscrow(tok) {
 }
 
 // ─── CORE SYNC ORDERS → jurnal_penjualan ─────────────────────
+var _shopeeSyncOrdersRunning = false; // cegah 2 trigger (on-load, interval 30menit, refresh token, connect baru) jalan bersamaan → duplikat insert
 async function shopeeSyncOrders(tok) {
+  if (_shopeeSyncOrdersRunning) {
+    console.log('[shopee-sync] shopeeSyncOrders sudah berjalan di proses lain, skip — cegah duplikat.');
+    return 0;
+  }
+  _shopeeSyncOrdersRunning = true;
+  try {
+    return await _shopeeSyncOrdersImpl(tok);
+  } finally {
+    _shopeeSyncOrdersRunning = false;
+  }
+}
+async function _shopeeSyncOrdersImpl(tok) {
   if (!tok) {
     tok = await _getValidToken();
     if (!tok) { console.log('[shopee-sync] shopeeSyncOrders: tidak ada token valid'); return 0; }
@@ -279,9 +292,9 @@ async function shopeeSyncOrders(tok) {
         } catch(e) { /* fallback di bawah */ }
       }
 
-      // Fallback: pakai buyer_total_amount dari order_detail
+      // Fallback: pakai total_amount dari order_detail
       if (f.omset <= 0) {
-        f.omset = parseFloat(orderDetailMap[sn]?.buyer_total_amount || 0);
+        f.omset = parseFloat(orderDetailMap[sn]?.total_amount || 0);
       }
 
       if (f.omset <= 0) {
