@@ -51,7 +51,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     font-weight: 700;
     font-family: var(--f2);
     line-height: 1;
-    margin: 8px 0 4px;
+    margin: 6px 0 0;
   }
   .pp-nw-label {
     font-size: 10px;
@@ -60,10 +60,17 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     text-transform: uppercase;
     letter-spacing: .06em;
   }
+  .pp-nw-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+  }
   .pp-nw-delta {
     font-size: 12px;
     font-weight: 700;
-    margin-top: 2px;
+    line-height: 1;
   }
 
   /* ── Baris metrik ── */
@@ -185,8 +192,10 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     </div>
     <div class="pp-col-bulan" id="pp-lalu-label">—</div>
     <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
-    <div class="pp-nw-big" id="pp-lalu-nw">—</div>
-    <div class="pp-nw-delta" id="pp-lalu-delta"></div>
+    <div class="pp-nw-row">
+      <div class="pp-nw-big" id="pp-lalu-nw">—</div>
+      <div class="pp-nw-delta" id="pp-lalu-delta"></div>
+    </div>
 
     <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
     <div class="pp-row"><span class="pp-row-label">Kas &amp; Bank</span><span class="pp-row-val" id="pp-lalu-kas">—</span></div>
@@ -210,8 +219,10 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     </div>
     <div class="pp-col-bulan" id="pp-skrg-label">—</div>
     <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
-    <div class="pp-nw-big" id="pp-skrg-nw">—</div>
-    <div class="pp-nw-delta" id="pp-skrg-delta"></div>
+    <div class="pp-nw-row">
+      <div class="pp-nw-big" id="pp-skrg-nw">—</div>
+      <div class="pp-nw-delta" id="pp-skrg-delta"></div>
+    </div>
 
     <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
     <div class="pp-row">
@@ -379,12 +390,12 @@ async function _ppFetchData(ym) {
       if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].sK += n;
     });
 
-    // Kas & Bank saja
+    // Kas & Bank saja (untuk display card)
     var totalKas = Object.values(akunMap)
       .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK'; })
       .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
 
-    // Nilai stok
+    // Nilai stok (HPP x sisa qty) — sama dengan Dashboard
     var stokMap = {};
     (stok || []).forEach(function(s) { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk || 0; });
     var keluarMap = {};
@@ -394,6 +405,13 @@ async function _ppFetchData(ym) {
       var sisa = (stokMap[key]||0) - (keluarMap[key]||0);
       return s + (sisa > 0 ? sisa * (p.hpp||0) : 0);
     }, 0);
+
+    // Total Aset = semua aset (jurnal, sub_kelompok != Persediaan) + nilai persediaan
+    // Persis sama dengan Dashboard (_getTotalAset)
+    var totalAsetJurnal = Object.values(akunMap)
+      .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'') !== 'Persediaan'; })
+      .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
+    var totalAset = totalAsetJurnal + nilaiStok;
 
     // Hutang sisa
     var bayarMap = {};
@@ -407,7 +425,7 @@ async function _ppFetchData(ym) {
     var escrow = 0;
     if (Array.isArray(shopeeRaw) && shopeeRaw.length > 0) escrow = Number(shopeeRaw[0].escrow_transit || 0);
 
-    // P&L bulan
+    // P&L bulan ini saja (filter by periode)
     var totalPend = 0, totalBeban = 0;
     (jurnalBulan || []).forEach(function(r) {
       var n  = Number(r.nominal || r.debit || 0);
@@ -417,7 +435,8 @@ async function _ppFetchData(ym) {
       if (aD && aD.kelompok === 'beban')      totalBeban += n;
     });
 
-    var netWorth = totalKas + nilaiStok + escrow - totalHutang;
+    // Net Worth = Total Aset + Escrow - Hutang (sama persis dengan Dashboard)
+    var netWorth = totalAset + escrow - totalHutang;
 
     return {
       periode:          ym,
@@ -425,6 +444,7 @@ async function _ppFetchData(ym) {
       nilai_stok:       nilaiStok,
       escrow_shopee:    escrow,
       net_worth:        netWorth,
+      total_aset:       totalAset,
       total_pendapatan: totalPend,
       total_beban:      totalBeban,
       laba_rugi:        totalPend - totalBeban,
