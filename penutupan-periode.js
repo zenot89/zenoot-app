@@ -1,7 +1,6 @@
-// ─── PENUTUPAN-PERIODE.JS — Snapshot Bulanan Bisnis ──────────
-// Simpel: setiap bulan, simpan kondisi bisnis (kas, stok, hutang,
-// net worth, pendapatan, beban, laba/rugi). Tidak ada jurnal penutup,
-// tidak ada lock. Auto-snapshot bulan lalu saat app dibuka.
+// ─── PENUTUPAN-PERIODE.JS — Laporan Bulanan ──────────────────
+// Layout: 2 kolom — Bulan Lalu (snapshot) | Bulan Berjalan (live)
+// Auto-snapshot bulan lalu saat app dibuka (sekali per bulan).
 
 document.getElementById('page-penutupan-periode').innerHTML = `
 <style>
@@ -13,71 +12,135 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   }
   .pp-section { margin-bottom: 14px; }
 
-  /* ── Snapshot hero ── */
-  .pp-hero {
-    text-align: center;
-    padding: 18px 12px 12px;
-    border-bottom: 1px solid var(--ink4);
+  /* ── 2 kolom utama ── */
+  .pp-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
     margin-bottom: 14px;
   }
-  .pp-hero-label { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .07em; }
-  .pp-hero-val   { font-size: 32px; font-weight: 700; font-family: var(--f2); line-height: 1.1; margin: 4px 0 2px; }
-  .pp-hero-sub   { font-size: 12px; color: var(--ink3); }
-  .pp-hero-delta { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  @media (max-width: 640px) {
+    .pp-cols { grid-template-columns: 1fr; }
+  }
 
-  /* ── Kartu metrik ── */
-  .pp-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+  /* ── Header kolom ── */
+  .pp-col-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--ink3);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--ink4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pp-col-header .pp-col-bulan {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ── Net Worth besar di tiap kolom ── */
+  .pp-nw-big {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: var(--f2);
+    line-height: 1;
+    margin: 8px 0 4px;
+  }
+  .pp-nw-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .pp-nw-delta {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  /* ── Baris metrik ── */
+  .pp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--ink4);
     gap: 8px;
-    margin-bottom: 10px;
   }
-  @media (max-width: 600px) {
-    .pp-grid { grid-template-columns: repeat(2, 1fr); }
+  .pp-row:last-child { border-bottom: none; }
+  .pp-row-label {
+    font-size: 12px;
+    color: var(--ink3);
+    flex-shrink: 0;
   }
-  .pp-card {
-    padding: 10px 12px;
-    background: var(--cream2);
-    border: 1.5px solid var(--ink4);
-    border-radius: 2px;
+  .pp-row-val {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--f2);
+    text-align: right;
   }
-  .pp-card-label { font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; margin-bottom: 3px; }
-  .pp-card-val   { font-size: 16px; font-weight: 700; font-family: var(--f2); }
-  .pp-card-sub   { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+  .pp-row-delta {
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+    min-width: 60px;
+  }
+
+  /* ── Divider label dalam kolom ── */
+  .pp-divider {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 10px 0 4px;
+  }
 
   /* ── Histori ── */
   .pp-hist-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
+    padding: 9px 0;
     border-bottom: 1px solid var(--ink4);
     gap: 12px;
-    cursor: pointer;
   }
   .pp-hist-row:last-child { border-bottom: none; }
-  .pp-hist-row:hover { opacity: 0.8; }
   .pp-hist-periode { font-weight: 700; font-size: 13px; }
   .pp-hist-detail  { font-size: 11px; color: var(--ink3); margin-top: 2px; }
   .pp-hist-right   { text-align: right; flex-shrink: 0; }
-  .pp-hist-nw      { font-size: 14px; font-weight: 700; }
+  .pp-hist-nw      { font-size: 13px; font-weight: 700; }
   .pp-hist-delta   { font-size: 11px; font-weight: 700; margin-top: 2px; }
-  .pp-empty { color: var(--ink3); font-style: italic; font-size: 13px; padding: 12px 0; }
+  .pp-empty { color: var(--ink3); font-style: italic; font-size: 13px; padding: 10px 0; }
 
-  /* ── Status badge ── */
-  .pp-badge {
-    display: inline-block;
-    font-size: 11px;
+  /* ── Badge live ── */
+  .pp-live-badge {
+    font-size: 10px;
     font-weight: 700;
-    padding: 2px 8px;
+    background: rgba(76,175,80,0.15);
+    color: var(--ok);
+    padding: 2px 7px;
     border-radius: 99px;
-    margin-left: 6px;
-    vertical-align: middle;
+    letter-spacing: .04em;
   }
-  .pp-badge-ok   { background: rgba(76,175,80,0.15); color: var(--ok); }
-  .pp-badge-warn { background: rgba(255,180,0,0.15); color: var(--warn,#ffb400); }
+  .pp-snap-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.07);
+    color: var(--ink3);
+    padding: 2px 7px;
+    border-radius: 99px;
+  }
 
-  /* ── Toast notif ── */
+  /* ── Toast ── */
   #pp-toast {
     position: fixed;
     bottom: 24px;
@@ -92,6 +155,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     z-index: 9999;
     transition: transform .3s ease;
     white-space: nowrap;
+    pointer-events: none;
   }
   #pp-toast.show { transform: translateX(-50%) translateY(0); }
 </style>
@@ -99,81 +163,113 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 <div id="pp-toast"></div>
 <div id="pp-scroll-zone">
 
-<!-- ── Pilih Periode ── -->
-<div class="card pp-section">
-  <div class="card-title"><i class="ti ti-calendar-month"></i> Laporan Bulanan</div>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-    <div class="form-group" style="flex:1 1 160px;margin:0">
-      <label>Pilih Bulan</label>
-      <select id="pp-bulan" style="width:100%" onchange="ppTampilSnapshot()">
-        <option value="">Memuat...</option>
-      </select>
-    </div>
-    <button class="btn btn-sm" onclick="ppAmbilSnapshot()" id="pp-btn-ambil" style="flex-shrink:0;display:none">
-      <i class="ti ti-refresh"></i> Perbarui Snapshot
+<!-- ── Header ── -->
+<div class="card pp-section" style="padding-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-title" style="margin:0"><i class="ti ti-chart-bar"></i> Laporan Bulanan</div>
+    <button class="btn btn-sm" onclick="ppPerbarui()" id="pp-btn-perbarui" style="display:none">
+      <i class="ti ti-refresh"></i> Perbarui
     </button>
   </div>
-  <div id="pp-periode-status" style="margin-top:8px;font-size:12px;color:var(--ink3)"></div>
+  <div id="pp-status" style="font-size:12px;color:var(--ink3);margin-top:6px"></div>
 </div>
 
-<!-- ── Snapshot kondisi bisnis ── -->
-<div class="card pp-section" id="pp-card-snapshot" style="display:none">
-  <!-- Hero: Net Worth -->
-  <div class="pp-hero">
-    <div class="pp-hero-label">Net Worth</div>
-    <div class="pp-hero-val" id="pp-snap-nw">—</div>
-    <div class="pp-hero-delta" id="pp-snap-nw-delta"></div>
-    <div class="pp-hero-sub">Kas + Stok + Escrow − Hutang</div>
+<!-- ── 2 Kolom: Bulan Lalu | Bulan Berjalan ── -->
+<div class="pp-cols">
+
+  <!-- KIRI: Bulan Lalu (snapshot) -->
+  <div class="card pp-section" id="pp-col-lalu">
+    <div class="pp-col-header">
+      <span>Bulan Lalu</span>
+      <span class="pp-snap-badge" id="pp-lalu-badge">snapshot</span>
+    </div>
+    <div class="pp-col-bulan" id="pp-lalu-label">—</div>
+    <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
+    <div class="pp-nw-big" id="pp-lalu-nw">—</div>
+    <div class="pp-nw-delta" id="pp-lalu-delta"></div>
+
+    <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
+    <div class="pp-row"><span class="pp-row-label">Kas &amp; Bank</span><span class="pp-row-val" id="pp-lalu-kas">—</span></div>
+    <div class="pp-row"><span class="pp-row-label">Stok</span><span class="pp-row-val" id="pp-lalu-stok">—</span></div>
+    <div class="pp-row"><span class="pp-row-label">Escrow Shopee</span><span class="pp-row-val" id="pp-lalu-escrow">—</span></div>
+    <div class="pp-row"><span class="pp-row-label">Hutang</span><span class="pp-row-val" id="pp-lalu-hutang" style="color:var(--danger)">—</span></div>
+
+    <div class="pp-divider">Kinerja Bulan</div>
+    <div class="pp-row"><span class="pp-row-label">Pendapatan</span><span class="pp-row-val" id="pp-lalu-pend" style="color:var(--ok)">—</span></div>
+    <div class="pp-row"><span class="pp-row-label">Beban</span><span class="pp-row-val" id="pp-lalu-beban" style="color:var(--danger)">—</span></div>
+    <div class="pp-row"><span class="pp-row-label">Laba / Rugi</span><span class="pp-row-val" id="pp-lalu-lb">—</span></div>
+
+    <div id="pp-lalu-meta" style="font-size:11px;color:var(--ink3);margin-top:8px;text-align:right"></div>
   </div>
 
-  <!-- 8 mini card: 2 baris x 4 -->
-  <div class="pp-grid">
-    <div class="pp-card">
-      <div class="pp-card-label">Kas &amp; Bank</div>
-      <div class="pp-card-val" id="pp-snap-kas">—</div>
-      <div class="pp-card-sub">uang cash &amp; rekening</div>
+  <!-- KANAN: Bulan Berjalan (live) -->
+  <div class="card pp-section" id="pp-col-skrg">
+    <div class="pp-col-header">
+      <span>Bulan Berjalan</span>
+      <span class="pp-live-badge">● LIVE</span>
     </div>
-    <div class="pp-card">
-      <div class="pp-card-label">Stok</div>
-      <div class="pp-card-val" id="pp-snap-stok">—</div>
-      <div class="pp-card-sub">nilai HPP × qty</div>
+    <div class="pp-col-bulan" id="pp-skrg-label">—</div>
+    <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
+    <div class="pp-nw-big" id="pp-skrg-nw">—</div>
+    <div class="pp-nw-delta" id="pp-skrg-delta"></div>
+
+    <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Kas &amp; Bank</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-kas">—</div>
+        <div class="pp-row-delta" id="pp-skrg-kas-d"></div>
+      </div>
     </div>
-    <div class="pp-card">
-      <div class="pp-card-label">Escrow Shopee</div>
-      <div class="pp-card-val" id="pp-snap-escrow">—</div>
-      <div class="pp-card-sub">belum cair</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Stok</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-stok">—</div>
+        <div class="pp-row-delta" id="pp-skrg-stok-d"></div>
+      </div>
     </div>
-    <div class="pp-card" style="border-color:var(--danger)">
-      <div class="pp-card-label">Hutang</div>
-      <div class="pp-card-val" id="pp-snap-hutang" style="color:var(--danger)">—</div>
-      <div class="pp-card-sub">sisa belum lunas</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Escrow Shopee</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-escrow">—</div>
+        <div class="pp-row-delta" id="pp-skrg-escrow-d"></div>
+      </div>
     </div>
-    <div class="pp-card" style="border-color:var(--ok)">
-      <div class="pp-card-label">Pendapatan</div>
-      <div class="pp-card-val" id="pp-snap-pend" style="color:var(--ok)">—</div>
-      <div class="pp-card-sub">total masuk bulan ini</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Hutang</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-hutang" style="color:var(--danger)">—</div>
+        <div class="pp-row-delta" id="pp-skrg-hutang-d"></div>
+      </div>
     </div>
-    <div class="pp-card" style="border-color:var(--danger)">
-      <div class="pp-card-label">Beban</div>
-      <div class="pp-card-val" id="pp-snap-beban" style="color:var(--danger)">—</div>
-      <div class="pp-card-sub">total keluar bulan ini</div>
+
+    <div class="pp-divider">Kinerja Bulan</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Pendapatan</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-pend" style="color:var(--ok)">—</div>
+        <div class="pp-row-delta" id="pp-skrg-pend-d"></div>
+      </div>
     </div>
-    <div class="pp-card" id="pp-snap-lb-card">
-      <div class="pp-card-label">Laba / Rugi</div>
-      <div class="pp-card-val" id="pp-snap-lb">—</div>
-      <div class="pp-card-sub">pendapatan − beban</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Beban</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-beban" style="color:var(--danger)">—</div>
+        <div class="pp-row-delta" id="pp-skrg-beban-d"></div>
+      </div>
     </div>
-    <div class="pp-card" id="pp-snap-nw-card">
-      <div class="pp-card-label">Net Worth</div>
-      <div class="pp-card-val" id="pp-snap-nw-card-val">—</div>
-      <div class="pp-card-sub">kas+stok+escrow−hutang</div>
+    <div class="pp-row">
+      <span class="pp-row-label">Laba / Rugi</span>
+      <div style="text-align:right">
+        <div class="pp-row-val" id="pp-skrg-lb">—</div>
+        <div class="pp-row-delta" id="pp-skrg-lb-d"></div>
+      </div>
     </div>
   </div>
 
-  <div id="pp-snap-meta" style="font-size:11px;color:var(--ink3);margin-top:6px;text-align:right"></div>
-</div>
+</div><!-- /pp-cols -->
 
-<!-- ── Histori ── -->
+<!-- ── Riwayat Bulanan ── -->
 <div class="card pp-section">
   <div class="card-title"><i class="ti ti-history"></i> Riwayat Bulanan</div>
   <div id="pp-histori-body"><div class="pp-empty">Memuat...</div></div>
@@ -185,15 +281,14 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 setTimeout(function() { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-penutupan-periode')); }, 80);
 
 // ─── STATE ────────────────────────────────────────────────────
-var _ppPeriode   = '';
-var _ppHistoriCache = [];  // cache histori untuk delta net worth
+var _ppHistoriCache = [];
 
 // ─── LAYOUT ──────────────────────────────────────────────────
 function _ppEnsureLayout() {
   var pg = document.getElementById('page-penutupan-periode');
   if (!pg || !pg.classList.contains('active')) return;
   document.documentElement.style.height = '100%';
-  document.body.style.height    = '100%';
+  document.body.style.height = '100%';
   document.body.style.minHeight = '0';
   var mainEl = document.querySelector('.main');
   if (mainEl) { mainEl.style.height='100%'; mainEl.style.minHeight='0'; mainEl.style.overflow='hidden'; mainEl.style.display='flex'; mainEl.style.flex='1 1 0'; mainEl.style.flexDirection='column'; }
@@ -203,7 +298,6 @@ function _ppEnsureLayout() {
   var zone = document.getElementById('pp-scroll-zone');
   if (zone) { zone.style.flex='1 1 0'; zone.style.minHeight='0'; zone.style.overflowY='auto'; }
 }
-
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-penutupan-periode');
   if (pg && pg.classList.contains('active')) _ppEnsureLayout();
@@ -211,6 +305,20 @@ window.addEventListener('resize', function() {
 
 // ─── HELPERS ─────────────────────────────────────────────────
 function _ppFmt(v) { return fmtRpFull(Math.abs(Number(v) || 0)); }
+
+function _ppFmtVal(v) {
+  var n = Number(v) || 0;
+  return (n < 0 ? '(' : '') + _ppFmt(n) + (n < 0 ? ')' : '');
+}
+
+function _ppColor(v) { return Number(v) >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+
+function _ppDeltaHtml(curr, prev) {
+  if (prev === null || prev === undefined) return '';
+  var d = Number(curr) - Number(prev);
+  var sign = d >= 0 ? '+' : '';
+  return '<span style="color:' + (d >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + sign + _ppFmt(d) + '</span>';
+}
 
 function _ppPeriodeLabel(ym) {
   if (!ym) return '';
@@ -228,168 +336,25 @@ function _ppToast(msg, ms) {
   setTimeout(function() { t.classList.remove('show'); }, ms || 3000);
 }
 
-// ─── LOAD DROPDOWN BULAN ─────────────────────────────────────
-// Isi dari tabel penutupan_periode (sudah ada snapshot) PLUS
-// bulan-bulan di jurnal yang belum punya snapshot.
-async function ppLoadBulanDropdown() {
-  var sel = document.getElementById('pp-bulan');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Memuat...</option>';
-
-  var [snapRows, jurnalRows] = await Promise.all([
-    dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; }),
-    dbGet('jurnal', '&select=tanggal&order=tanggal.desc').catch(function() { return []; }),
-  ]);
-
-  _ppHistoriCache = snapRows || [];
-
-  // Distinct periode dari jurnal
-  var seen = {};
-  var periodes = [];
-  (jurnalRows || []).forEach(function(r) {
-    if (!r.tanggal) return;
-    var ym = r.tanggal.substring(0, 7);
-    if (!seen[ym]) { seen[ym] = true; periodes.push(ym); }
-  });
-  // Tambahkan periode dari snapshot yang mungkin tidak ada di jurnal lagi
-  (snapRows || []).forEach(function(r) {
-    if (r.periode && !seen[r.periode]) { seen[r.periode] = true; periodes.push(r.periode); }
-  });
-  // Sort desc
-  periodes.sort(function(a, b) { return b > a ? 1 : -1; });
-
-  if (periodes.length === 0) {
-    sel.innerHTML = '<option value="">Tidak ada data</option>';
-    return;
-  }
-
-  var snapMap = {};
-  (snapRows || []).forEach(function(r) { snapMap[r.periode] = r; });
-
-  var bulanNama = ['Januari','Februari','Maret','April','Mei','Juni',
-                   'Juli','Agustus','September','Oktober','November','Desember'];
-
-  // Default: bulan lalu
-  var d = new Date();
-  d.setMonth(d.getMonth() - 1);
-  var defaultYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-
-  sel.innerHTML = periodes.map(function(ym) {
-    var parts  = ym.split('-');
-    var label  = bulanNama[parseInt(parts[1]) - 1] + ' ' + parts[0];
-    var sudah  = snapMap[ym] ? ' ✓' : '';
-    var isDefault = ym === defaultYm;
-    return '<option value="' + ym + '"' + (isDefault ? ' selected' : '') + '>' + label + sudah + '</option>';
-  }).join('');
-
-  if (!seen[defaultYm]) sel.selectedIndex = 0;
-
-  // Tampilkan snapshot bulan yang terpilih
-  ppTampilSnapshot();
+function _ppSet(id, val, color) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  if (color) el.style.color = color;
 }
 
-// ─── TAMPIL SNAPSHOT DARI HISTORI (jika sudah ada) ───────────
-async function ppTampilSnapshot() {
-  var sel = document.getElementById('pp-bulan');
-  if (!sel) return;
-  _ppPeriode = sel.value;
-  if (!_ppPeriode) return;
-
-  var snapMap = {};
-  _ppHistoriCache.forEach(function(r) { snapMap[r.periode] = r; });
-  var snap = snapMap[_ppPeriode];
-
-  var statusEl  = document.getElementById('pp-periode-status');
-  var btnAmbil  = document.getElementById('pp-btn-ambil');
-  var cardSnap  = document.getElementById('pp-card-snapshot');
-
-  // Cek apakah bulan berjalan
-  var now = new Date();
-  var currentYm = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  var isCurrent = _ppPeriode >= currentYm;
-
-  if (snap) {
-    // Sudah ada snapshot — tampilkan
-    _ppRenderSnap(snap);
-    if (statusEl) statusEl.innerHTML = '<span style="color:var(--ok)">✓ Snapshot tersimpan ' + new Date(snap.tanggal_tutup).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) + '</span>';
-    if (btnAmbil) btnAmbil.style.display = '';
-    if (cardSnap) cardSnap.style.display = '';
-  } else if (isCurrent) {
-    // Bulan berjalan — ambil live tapi tidak simpan
-    if (statusEl) statusEl.innerHTML = '<span style="color:var(--ink3)">Bulan berjalan — data live, tidak disimpan</span>';
-    if (btnAmbil) btnAmbil.style.display = 'none';
-    if (cardSnap) cardSnap.style.display = '';
-    ppAmbilLive();
-  } else {
-    // Bulan lalu belum ada snapshot
-    if (statusEl) statusEl.innerHTML = '<span style="color:var(--warn,#ffb400)">⚠ Belum ada snapshot untuk periode ini</span>';
-    if (btnAmbil) btnAmbil.style.display = '';
-    if (cardSnap) cardSnap.style.display = 'none';
-  }
+function _ppSetHtml(id, html) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
 }
 
-// ─── AMBIL DATA LIVE (untuk bulan berjalan / preview) ────────
-async function ppAmbilLive() {
-  var data = await _ppFetchData(_ppPeriode);
-  if (!data) return;
-  _ppRenderSnap(data);
-}
-
-// ─── AMBIL SNAPSHOT & SIMPAN ─────────────────────────────────
-async function ppAmbilSnapshot() {
-  if (!_ppPeriode) return;
-
-  var btnAmbil = document.getElementById('pp-btn-ambil');
-  if (btnAmbil) { btnAmbil.disabled = true; btnAmbil.innerHTML = '<i class="ti ti-refresh"></i> Mengambil...'; }
-
-  try {
-    var data = await _ppFetchData(_ppPeriode);
-    if (!data) throw new Error('Gagal ambil data');
-
-    // Cek sudah ada snapshot sebelumnya — kalau ada, update; kalau tidak, insert
-    var existing = await dbGet('penutupan_periode', '&periode=eq.' + _ppPeriode).catch(function() { return []; });
-    var payload = {
-      periode:          data.periode,
-      tanggal_tutup:    new Date().toISOString().split('T')[0],
-      total_pendapatan: data.total_pendapatan,
-      total_beban:      data.total_beban,
-      laba_rugi:        data.laba_rugi,
-      total_aset:       data.total_aset,
-      total_kewajiban:  data.total_kewajiban,
-      total_modal:      0,
-      total_kas:        data.total_kas,
-      nilai_stok:       data.nilai_stok,
-      escrow_shopee:    data.escrow_shopee,
-      net_worth:        data.net_worth,
-      catatan:          null,
-    };
-
-    if (existing && existing.length > 0) {
-      await dbUpdate('penutupan_periode', existing[0].id, payload);
-    } else {
-      await dbInsert('penutupan_periode', payload);
-    }
-
-    _ppToast('✅ Snapshot ' + _ppPeriodeLabel(_ppPeriode) + ' tersimpan');
-    // Reload dropdown & histori
-    await ppLoadBulanDropdown();
-    await ppLoadHistori();
-
-  } catch(e) {
-    _ppToast('❌ Gagal: ' + e.message, 4000);
-    console.error('[PP] ambil snapshot error', e);
-  } finally {
-    if (btnAmbil) { btnAmbil.disabled = false; btnAmbil.innerHTML = '<i class="ti ti-refresh"></i> Perbarui Snapshot'; }
-  }
-}
-
-// ─── FETCH SEMUA DATA UNTUK SATU PERIODE ─────────────────────
+// ─── FETCH DATA UNTUK SATU PERIODE ───────────────────────────
 async function _ppFetchData(ym) {
   try {
-    var parts    = ym.split('-');
-    var lastDay  = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
-    var ymStart  = ym + '-01';
-    var ymEnd    = ym + '-' + String(lastDay).padStart(2, '0');
+    var parts   = ym.split('-');
+    var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+    var ymStart = ym + '-01';
+    var ymEnd   = ym + '-' + String(lastDay).padStart(2, '0');
 
     var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, hutang, bayar, shopeeRaw] = await Promise.all([
       dbGet('kas_akun', '').catch(function() { return []; }),
@@ -405,21 +370,21 @@ async function _ppFetchData(ym) {
         .then(function(r) { return r.json(); }).catch(function() { return []; }),
     ]);
 
-    // Build akunMap
+    // Build akunMap + saldo
     var akunMap = {};
-    (kasAkun || []).forEach(function(a) { akunMap[a.id] = Object.assign({}, a, {saldoDebit:0, saldoKredit:0}); });
+    (kasAkun || []).forEach(function(a) { akunMap[a.id] = Object.assign({}, a, { sD: 0, sK: 0 }); });
     (allJurnal || []).forEach(function(r) {
       var n = Number(r.nominal || r.debit || 0);
-      if (akunMap[r.akun_debit_id])  akunMap[r.akun_debit_id].saldoDebit   += n;
-      if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].saldoKredit += n;
+      if (akunMap[r.akun_debit_id])  akunMap[r.akun_debit_id].sD  += n;
+      if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].sK += n;
     });
 
-    // Kas & Bank: hanya akun sub_kelompok 'KAS & BANK' (uang cash riil)
+    // Kas & Bank saja
     var totalKas = Object.values(akunMap)
       .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK'; })
-      .reduce(function(s, a) { return s + Math.max(0, a.saldoDebit - a.saldoKredit); }, 0);
+      .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
 
-    // Nilai stok: HPP × sisa qty
+    // Nilai stok
     var stokMap = {};
     (stok || []).forEach(function(s) { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk || 0; });
     var keluarMap = {};
@@ -438,16 +403,11 @@ async function _ppFetchData(ym) {
       return s + (sisa > 0 ? sisa : 0);
     }, 0);
 
-    // Escrow Shopee
+    // Escrow
     var escrow = 0;
-    if (Array.isArray(shopeeRaw) && shopeeRaw.length > 0) {
-      escrow = Number(shopeeRaw[0].escrow_transit || 0);
-    }
+    if (Array.isArray(shopeeRaw) && shopeeRaw.length > 0) escrow = Number(shopeeRaw[0].escrow_transit || 0);
 
-    // Net Worth
-    var netWorth = totalKas + nilaiStok + escrow - totalHutang;
-
-    // P&L bulan ini
+    // P&L bulan
     var totalPend = 0, totalBeban = 0;
     (jurnalBulan || []).forEach(function(r) {
       var n  = Number(r.nominal || r.debit || 0);
@@ -457,10 +417,7 @@ async function _ppFetchData(ym) {
       if (aD && aD.kelompok === 'beban')      totalBeban += n;
     });
 
-    // Total aset (all-time neraca)
-    var totalAset = Object.values(akunMap)
-      .filter(function(a) { return a.kelompok === 'aset'; })
-      .reduce(function(s, a) { return s + Math.max(0, a.saldoDebit - a.saldoKredit); }, 0);
+    var netWorth = totalKas + nilaiStok + escrow - totalHutang;
 
     return {
       periode:          ym,
@@ -471,9 +428,7 @@ async function _ppFetchData(ym) {
       total_pendapatan: totalPend,
       total_beban:      totalBeban,
       laba_rugi:        totalPend - totalBeban,
-      total_aset:       totalAset,
       total_kewajiban:  totalHutang,
-      tanggal_tutup:    null,  // live, belum disimpan
     };
   } catch(e) {
     console.error('[PP] _ppFetchData error', e);
@@ -481,108 +436,188 @@ async function _ppFetchData(ym) {
   }
 }
 
-// ─── RENDER SNAPSHOT KE UI ───────────────────────────────────
-function _ppRenderSnap(snap) {
-  var lb = Number(snap.laba_rugi || 0);
+// ─── RENDER KOLOM KIRI (Bulan Lalu / snapshot) ───────────────
+function _ppRenderLalu(snap, prevSnap) {
   var nw = Number(snap.net_worth || 0);
+  var lb = Number(snap.laba_rugi || 0);
 
-  // Net Worth hero
-  var nwEl = document.getElementById('pp-snap-nw');
-  if (nwEl) { nwEl.textContent = (nw < 0 ? '(' : '') + _ppFmt(nw) + (nw < 0 ? ')' : ''); nwEl.style.color = nw >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+  _ppSet('pp-lalu-label', _ppPeriodeLabel(snap.periode));
+  _ppSet('pp-lalu-nw', _ppFmtVal(nw), _ppColor(nw));
 
-  // Delta net worth vs bulan sebelumnya
-  var deltaEl = document.getElementById('pp-snap-nw-delta');
-  if (deltaEl) {
-    var prevSnap = _ppGetPrevSnap(snap.periode);
-    if (prevSnap) {
-      var delta = nw - Number(prevSnap.net_worth || 0);
-      var sign  = delta >= 0 ? '+' : '';
-      deltaEl.textContent = sign + _ppFmt(delta) + ' dari ' + _ppPeriodeLabel(prevSnap.periode);
-      deltaEl.style.color = delta >= 0 ? 'var(--ok)' : 'var(--danger)';
-    } else {
-      deltaEl.textContent = '';
-    }
+  // Delta NW vs snapshot 2 bulan lalu
+  if (prevSnap) {
+    var d = nw - Number(prevSnap.net_worth || 0);
+    _ppSetHtml('pp-lalu-delta', _ppDeltaHtml(nw, prevSnap.net_worth) + ' vs ' + _ppPeriodeLabel(prevSnap.periode));
+  } else {
+    _ppSet('pp-lalu-delta', '');
   }
 
-  // Kartu aset
-  var kasEl = document.getElementById('pp-snap-kas');
-  if (kasEl) kasEl.textContent = _ppFmt(snap.total_kas || snap.total_aset);
-  var stokEl = document.getElementById('pp-snap-stok');
-  if (stokEl) stokEl.textContent = _ppFmt(snap.nilai_stok);
-  var escrowEl = document.getElementById('pp-snap-escrow');
-  if (escrowEl) escrowEl.textContent = _ppFmt(snap.escrow_shopee);
-  var hutangEl = document.getElementById('pp-snap-hutang');
-  if (hutangEl) hutangEl.textContent = _ppFmt(snap.total_kewajiban);
+  _ppSet('pp-lalu-kas',    _ppFmt(snap.total_kas));
+  _ppSet('pp-lalu-stok',   _ppFmt(snap.nilai_stok));
+  _ppSet('pp-lalu-escrow', _ppFmt(snap.escrow_shopee));
+  _ppSet('pp-lalu-hutang', _ppFmt(snap.total_kewajiban));
+  _ppSet('pp-lalu-pend',   _ppFmt(snap.total_pendapatan));
+  _ppSet('pp-lalu-beban',  _ppFmt(snap.total_beban));
+  _ppSet('pp-lalu-lb',     _ppFmtVal(lb), _ppColor(lb));
 
-  // Kartu P&L
-  var pendEl = document.getElementById('pp-snap-pend');
-  if (pendEl) pendEl.textContent = _ppFmt(snap.total_pendapatan);
-  var bebanEl = document.getElementById('pp-snap-beban');
-  if (bebanEl) bebanEl.textContent = _ppFmt(snap.total_beban);
-  var lbEl = document.getElementById('pp-snap-lb');
-  if (lbEl) { lbEl.textContent = (lb < 0 ? '(' : '') + _ppFmt(lb) + (lb < 0 ? ')' : ''); lbEl.style.color = lb >= 0 ? 'var(--ok)' : 'var(--danger)'; }
-  var lbCard = document.getElementById('pp-snap-lb-card');
-  if (lbCard) lbCard.style.borderColor = lb >= 0 ? 'var(--ok)' : 'var(--danger)';
-
-  // Card ke-8: Net Worth
-  var nwCardVal = document.getElementById('pp-snap-nw-card-val');
-  var nwCard    = document.getElementById('pp-snap-nw-card');
-  if (nwCardVal) { nwCardVal.textContent = (nw < 0 ? '(' : '') + _ppFmt(nw) + (nw < 0 ? ')' : ''); nwCardVal.style.color = nw >= 0 ? 'var(--ok)' : 'var(--danger)'; }
-  if (nwCard)    nwCard.style.borderColor = nw >= 0 ? 'var(--ok)' : 'var(--danger)';
-
-  // Meta
-  var metaEl = document.getElementById('pp-snap-meta');
-  if (metaEl) {
-    if (snap.tanggal_tutup) {
-      metaEl.textContent = 'Snapshot diambil ' + new Date(snap.tanggal_tutup).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'});
-    } else {
-      metaEl.textContent = 'Data live — belum disimpan';
-    }
+  var metaEl = document.getElementById('pp-lalu-meta');
+  if (metaEl && snap.tanggal_tutup) {
+    metaEl.textContent = 'Snapshot ' + new Date(snap.tanggal_tutup).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
   }
+
+  // Tampilkan tombol perbarui
+  var btn = document.getElementById('pp-btn-perbarui');
+  if (btn) btn.style.display = '';
 }
 
-// Ambil snapshot bulan sebelumnya dari cache
-function _ppGetPrevSnap(ym) {
-  var parts = ym.split('-');
-  var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 2, 1); // bulan sebelumnya
-  var prevYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  return _ppHistoriCache.find(function(r) { return r.periode === prevYm; }) || null;
+// ─── RENDER KOLOM KANAN (Bulan Berjalan / live) ──────────────
+function _ppRenderSkrg(live, snapLalu) {
+  var nw = Number(live.net_worth || 0);
+  var lb = Number(live.laba_rugi || 0);
+
+  _ppSet('pp-skrg-label', _ppPeriodeLabel(live.periode));
+  _ppSet('pp-skrg-nw', _ppFmtVal(nw), _ppColor(nw));
+
+  // Delta NW vs bulan lalu
+  if (snapLalu) {
+    _ppSetHtml('pp-skrg-delta', _ppDeltaHtml(nw, snapLalu.net_worth) + ' vs ' + _ppPeriodeLabel(snapLalu.periode));
+  } else {
+    _ppSet('pp-skrg-delta', '');
+  }
+
+  // Posisi keuangan + delta vs bulan lalu
+  var fields = [
+    ['kas',    live.total_kas,        snapLalu && snapLalu.total_kas],
+    ['stok',   live.nilai_stok,       snapLalu && snapLalu.nilai_stok],
+    ['escrow', live.escrow_shopee,    snapLalu && snapLalu.escrow_shopee],
+    ['hutang', live.total_kewajiban,  snapLalu && snapLalu.total_kewajiban],
+    ['pend',   live.total_pendapatan, null],
+    ['beban',  live.total_beban,      null],
+    ['lb',     live.laba_rugi,        null],
+  ];
+
+  fields.forEach(function(f) {
+    var key = f[0], val = f[1], prev = f[2];
+    var n = Number(val);
+    var isNeg = key === 'hutang' || key === 'beban';
+    _ppSet('pp-skrg-' + key, (key === 'lb' || key === 'hutang') ? _ppFmtVal(n) : _ppFmt(n),
+      key === 'lb' ? _ppColor(n) : undefined);
+    if (prev !== null && prev !== undefined && prev !== false) {
+      _ppSetHtml('pp-skrg-' + key + '-d', _ppDeltaHtml(val, prev));
+    } else {
+      _ppSet('pp-skrg-' + key + '-d', '');
+    }
+  });
 }
 
-// ─── AUTO-SNAPSHOT: cek & simpan bulan lalu saat app dibuka ──
-async function ppAutoSnapshot() {
+// ─── LOAD UTAMA ──────────────────────────────────────────────
+async function ppLoadUtama() {
+  var statusEl = document.getElementById('pp-status');
+  if (statusEl) statusEl.textContent = 'Memuat data...';
+
+  // Periode
+  var now = new Date();
+  var ymSkrg  = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  var dLalu   = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var ymLalu  = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
+  var dDuaLalu = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  var ymDuaLalu = dDuaLalu.getFullYear() + '-' + String(dDuaLalu.getMonth() + 1).padStart(2, '0');
+
   try {
-    var d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    var bulanLalu = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    // Ambil snapshot tersimpan + data live bulan ini secara paralel
+    var [snapRows, liveData] = await Promise.all([
+      dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; }),
+      _ppFetchData(ymSkrg),
+    ]);
 
-    // Cek apakah sudah ada snapshot bulan lalu
-    var existing = await dbGet('penutupan_periode', '&periode=eq.' + bulanLalu).catch(function() { return []; });
-    if (existing && existing.length > 0) return; // sudah ada, skip
+    _ppHistoriCache = snapRows || [];
+    var snapMap = {};
+    (snapRows || []).forEach(function(r) { snapMap[r.periode] = r; });
 
-    // Belum ada — ambil dan simpan
-    var data = await _ppFetchData(bulanLalu);
-    if (!data) return;
+    var snapLalu    = snapMap[ymLalu];
+    var snapDuaLalu = snapMap[ymDuaLalu];
 
-    await dbInsert('penutupan_periode', {
-      periode:          data.periode,
-      tanggal_tutup:    new Date().toISOString().split('T')[0],
-      total_pendapatan: data.total_pendapatan,
-      total_beban:      data.total_beban,
-      laba_rugi:        data.laba_rugi,
-      total_aset:       data.total_aset,
-      total_kewajiban:  data.total_kewajiban,
-      total_modal:      0,
-      total_kas:        data.total_kas,
-      nilai_stok:       data.nilai_stok,
-      escrow_shopee:    data.escrow_shopee,
-      net_worth:        data.net_worth,
-      catatan:          null,
-    });
+    // Kolom kiri — bulan lalu
+    if (snapLalu) {
+      _ppRenderLalu(snapLalu, snapDuaLalu || null);
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--ok)">✓ Snapshot ' + _ppPeriodeLabel(ymLalu) + ' tersimpan</span>';
+    } else {
+      // Belum ada snapshot bulan lalu — ambil live dan simpan otomatis
+      if (statusEl) statusEl.textContent = 'Mengambil snapshot ' + _ppPeriodeLabel(ymLalu) + '...';
+      var dataLalu = await _ppFetchData(ymLalu);
+      if (dataLalu) {
+        await dbInsert('penutupan_periode', {
+          periode:          dataLalu.periode,
+          tanggal_tutup:    now.toISOString().split('T')[0],
+          total_pendapatan: dataLalu.total_pendapatan,
+          total_beban:      dataLalu.total_beban,
+          laba_rugi:        dataLalu.laba_rugi,
+          total_aset:       0,
+          total_kewajiban:  dataLalu.total_kewajiban,
+          total_modal:      0,
+          total_kas:        dataLalu.total_kas,
+          nilai_stok:       dataLalu.nilai_stok,
+          escrow_shopee:    dataLalu.escrow_shopee,
+          net_worth:        dataLalu.net_worth,
+          catatan:          null,
+        });
+        dataLalu.tanggal_tutup = now.toISOString().split('T')[0];
+        _ppRenderLalu(dataLalu, null);
+        snapLalu = dataLalu;
+        _ppToast('📸 Snapshot ' + _ppPeriodeLabel(ymLalu) + ' otomatis tersimpan');
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--ok)">✓ Snapshot ' + _ppPeriodeLabel(ymLalu) + ' tersimpan</span>';
+        // Reload histori
+        var newSnaps = await dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; });
+        _ppHistoriCache = newSnaps || [];
+      }
+    }
 
-    _ppToast('📸 Snapshot ' + _ppPeriodeLabel(bulanLalu) + ' otomatis tersimpan');
+    // Kolom kanan — bulan berjalan live
+    if (liveData) _ppRenderSkrg(liveData, snapLalu || null);
+
+    ppLoadHistori();
+
   } catch(e) {
-    console.warn('[PP] auto-snapshot gagal:', e.message);
+    console.error('[PP] loadUtama error', e);
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Error: ' + e.message + '</span>';
+  }
+}
+
+// ─── PERBARUI SNAPSHOT BULAN LALU ────────────────────────────
+async function ppPerbarui() {
+  var btn = document.getElementById('pp-btn-perbarui');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-refresh"></i> Memperbarui...'; }
+
+  var now = new Date();
+  var dLalu = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
+
+  try {
+    var data = await _ppFetchData(ymLalu);
+    if (!data) throw new Error('Gagal ambil data');
+
+    var existing = await dbGet('penutupan_periode', '&periode=eq.' + ymLalu).catch(function() { return []; });
+    var payload = {
+      periode: data.periode, tanggal_tutup: now.toISOString().split('T')[0],
+      total_pendapatan: data.total_pendapatan, total_beban: data.total_beban,
+      laba_rugi: data.laba_rugi, total_aset: 0, total_kewajiban: data.total_kewajiban,
+      total_modal: 0, total_kas: data.total_kas, nilai_stok: data.nilai_stok,
+      escrow_shopee: data.escrow_shopee, net_worth: data.net_worth, catatan: null,
+    };
+
+    if (existing && existing.length > 0) {
+      await dbUpdate('penutupan_periode', existing[0].id, payload);
+    } else {
+      await dbInsert('penutupan_periode', payload);
+    }
+
+    _ppToast('✅ Snapshot ' + _ppPeriodeLabel(ymLalu) + ' diperbarui');
+    ppLoadUtama();
+    ppLoadHistori();
+  } catch(e) {
+    _ppToast('❌ Gagal: ' + e.message, 4000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Perbarui'; }
   }
 }
 
@@ -590,67 +625,56 @@ async function ppAutoSnapshot() {
 async function ppLoadHistori() {
   var bodyEl = document.getElementById('pp-histori-body');
   if (!bodyEl) return;
-  bodyEl.innerHTML = '<div class="pp-empty">Memuat...</div>';
 
-  try {
-    var data = await dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; });
-    _ppHistoriCache = data || [];
+  var data = _ppHistoriCache.length > 0 ? _ppHistoriCache
+    : await dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; });
 
-    if (!data || data.length === 0) {
-      bodyEl.innerHTML = '<div class="pp-empty">Belum ada snapshot tersimpan.</div>';
-      return;
-    }
-
-    bodyEl.innerHTML = data.map(function(r, i) {
-      var nw   = Number(r.net_worth || 0);
-      var lb   = Number(r.laba_rugi || 0);
-      var prev = data[i + 1];
-      var deltaHtml = '';
-      if (prev) {
-        var delta = nw - Number(prev.net_worth || 0);
-        var sign  = delta >= 0 ? '▲ +' : '▼ ';
-        deltaHtml = '<div class="pp-hist-delta" style="color:' + (delta >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' +
-          sign + _ppFmt(delta) + '</div>';
-      }
-      var tgl = r.tanggal_tutup ? new Date(r.tanggal_tutup).toLocaleDateString('id-ID', {day:'2-digit',month:'short'}) : '—';
-      return '<div class="pp-hist-row" onclick="ppPilihPeriode(\'' + r.periode + '\')">' +
-        '<div>' +
-          '<div class="pp-hist-periode">' + _ppPeriodeLabel(r.periode) + '</div>' +
-          '<div class="pp-hist-detail">' + tgl + ' · Pend: ' + _ppFmt(r.total_pendapatan) + ' · Beban: ' + _ppFmt(r.total_beban) + '</div>' +
-          '<div class="pp-hist-detail" style="margin-top:2px">L/R: <span style="color:' + (lb >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (lb < 0 ? '(' : '') + _ppFmt(lb) + (lb < 0 ? ')' : '') + '</span></div>' +
-        '</div>' +
-        '<div class="pp-hist-right">' +
-          '<div class="pp-hist-nw" style="color:' + (nw >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (nw < 0 ? '(' : '') + _ppFmt(nw) + (nw < 0 ? ')' : '') + '</div>' +
-          deltaHtml +
-        '</div>' +
-      '</div>';
-    }).join('');
-  } catch(e) {
-    bodyEl.innerHTML = '<div class="pp-empty" style="color:var(--danger)">Error: ' + e.message + '</div>';
+  if (!data || data.length === 0) {
+    bodyEl.innerHTML = '<div class="pp-empty">Belum ada snapshot tersimpan.</div>';
+    return;
   }
-}
 
-// Klik histori → pilih periode itu di dropdown
-function ppPilihPeriode(ym) {
-  var sel = document.getElementById('pp-bulan');
-  if (!sel) return;
-  sel.value = ym;
-  ppTampilSnapshot();
-  // Scroll ke atas
-  var zone = document.getElementById('pp-scroll-zone');
-  if (zone) zone.scrollTop = 0;
+  bodyEl.innerHTML = data.map(function(r, i) {
+    var nw   = Number(r.net_worth || 0);
+    var lb   = Number(r.laba_rugi || 0);
+    var prev = data[i + 1];
+    var deltaHtml = '';
+    if (prev) {
+      var d = nw - Number(prev.net_worth || 0);
+      deltaHtml = '<div class="pp-hist-delta" style="color:' + (d >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' +
+        (d >= 0 ? '▲ +' : '▼ ') + _ppFmt(d) + '</div>';
+    }
+    var tgl = r.tanggal_tutup ? new Date(r.tanggal_tutup).toLocaleDateString('id-ID', { day:'2-digit', month:'short' }) : '—';
+    return '<div class="pp-hist-row">' +
+      '<div>' +
+        '<div class="pp-hist-periode">' + _ppPeriodeLabel(r.periode) + '</div>' +
+        '<div class="pp-hist-detail">' + tgl + ' · L/R: <span style="color:' + (lb >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + _ppFmtVal(lb) + '</span> · Pend: ' + _ppFmt(r.total_pendapatan) + ' · Beban: ' + _ppFmt(r.total_beban) + '</div>' +
+      '</div>' +
+      '<div class="pp-hist-right">' +
+        '<div class="pp-hist-nw" style="color:' + (nw >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + _ppFmtVal(nw) + '</div>' +
+        deltaHtml +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // ─── EVENT: BUKA HALAMAN ─────────────────────────────────────
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'penutupan-periode') return;
   setTimeout(_ppEnsureLayout, 60);
-  ppLoadBulanDropdown();
-  ppLoadHistori();
+  ppLoadUtama();
 });
 
-// ─── AUTO-SNAPSHOT: jalankan saat app.js selesai load ────────
-// Delay 3 detik — beri waktu dbGet siap dan halaman lain load dulu
+// ─── AUTO-SNAPSHOT: 3 detik setelah app load ─────────────────
 setTimeout(function() {
-  if (typeof dbGet === 'function') ppAutoSnapshot();
+  if (typeof dbGet !== 'function') return;
+  var now = new Date();
+  var dLalu = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
+  dbGet('penutupan_periode', '&periode=eq.' + ymLalu).then(function(rows) {
+    if (!rows || rows.length === 0) {
+      // Snapshot belum ada — akan dibuat saat halaman dibuka pertama kali
+      console.log('[PP] Auto-snapshot bulan lalu akan dibuat saat halaman dibuka.');
+    }
+  }).catch(function() {});
 }, 3000);
