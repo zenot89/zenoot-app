@@ -28,9 +28,12 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   /* ── Kartu metrik ── */
   .pp-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     margin-bottom: 10px;
+  }
+  @media (max-width: 600px) {
+    .pp-grid { grid-template-columns: repeat(2, 1fr); }
   }
   .pp-card {
     padding: 10px 12px;
@@ -123,12 +126,12 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     <div class="pp-hero-sub">Kas + Stok + Escrow − Hutang</div>
   </div>
 
-  <!-- Row 1: Kas, Stok, Escrow, Hutang -->
+  <!-- 8 mini card: 2 baris x 4 -->
   <div class="pp-grid">
     <div class="pp-card">
-      <div class="pp-card-label">Kas</div>
+      <div class="pp-card-label">Kas &amp; Bank</div>
       <div class="pp-card-val" id="pp-snap-kas">—</div>
-      <div class="pp-card-sub">semua rekening</div>
+      <div class="pp-card-sub">uang cash &amp; rekening</div>
     </div>
     <div class="pp-card">
       <div class="pp-card-label">Stok</div>
@@ -145,25 +148,25 @@ document.getElementById('page-penutupan-periode').innerHTML = `
       <div class="pp-card-val" id="pp-snap-hutang" style="color:var(--danger)">—</div>
       <div class="pp-card-sub">sisa belum lunas</div>
     </div>
-  </div>
-
-  <!-- Row 2: Pendapatan, Beban, Laba/Rugi -->
-  <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin:10px 0 6px">Kinerja Bulan Ini</div>
-  <div class="pp-grid">
     <div class="pp-card" style="border-color:var(--ok)">
       <div class="pp-card-label">Pendapatan</div>
       <div class="pp-card-val" id="pp-snap-pend" style="color:var(--ok)">—</div>
-      <div class="pp-card-sub">total masuk</div>
+      <div class="pp-card-sub">total masuk bulan ini</div>
     </div>
     <div class="pp-card" style="border-color:var(--danger)">
       <div class="pp-card-label">Beban</div>
       <div class="pp-card-val" id="pp-snap-beban" style="color:var(--danger)">—</div>
-      <div class="pp-card-sub">total keluar</div>
+      <div class="pp-card-sub">total keluar bulan ini</div>
     </div>
     <div class="pp-card" id="pp-snap-lb-card">
       <div class="pp-card-label">Laba / Rugi</div>
       <div class="pp-card-val" id="pp-snap-lb">—</div>
       <div class="pp-card-sub">pendapatan − beban</div>
+    </div>
+    <div class="pp-card" id="pp-snap-nw-card">
+      <div class="pp-card-label">Net Worth</div>
+      <div class="pp-card-val" id="pp-snap-nw-card-val">—</div>
+      <div class="pp-card-sub">kas+stok+escrow−hutang</div>
     </div>
   </div>
 
@@ -411,9 +414,9 @@ async function _ppFetchData(ym) {
       if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].saldoKredit += n;
     });
 
-    // Kas: semua akun kelompok aset kecuali persediaan
+    // Kas & Bank: hanya akun sub_kelompok 'KAS & BANK' (uang cash riil)
     var totalKas = Object.values(akunMap)
-      .filter(function(a) { return a.kelompok === 'aset' && a.sub_kelompok !== 'Persediaan'; })
+      .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK'; })
       .reduce(function(s, a) { return s + Math.max(0, a.saldoDebit - a.saldoKredit); }, 0);
 
     // Nilai stok: HPP × sisa qty
@@ -520,6 +523,12 @@ function _ppRenderSnap(snap) {
   if (lbEl) { lbEl.textContent = (lb < 0 ? '(' : '') + _ppFmt(lb) + (lb < 0 ? ')' : ''); lbEl.style.color = lb >= 0 ? 'var(--ok)' : 'var(--danger)'; }
   var lbCard = document.getElementById('pp-snap-lb-card');
   if (lbCard) lbCard.style.borderColor = lb >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+  // Card ke-8: Net Worth
+  var nwCardVal = document.getElementById('pp-snap-nw-card-val');
+  var nwCard    = document.getElementById('pp-snap-nw-card');
+  if (nwCardVal) { nwCardVal.textContent = (nw < 0 ? '(' : '') + _ppFmt(nw) + (nw < 0 ? ')' : ''); nwCardVal.style.color = nw >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+  if (nwCard)    nwCard.style.borderColor = nw >= 0 ? 'var(--ok)' : 'var(--danger)';
 
   // Meta
   var metaEl = document.getElementById('pp-snap-meta');
