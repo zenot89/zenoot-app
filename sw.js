@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v21 — tambah penutupan-periode.js + autocomplete.js
-var JS_CACHE = 'zenot-js-20260618-06cc0a16ac84';
+var JS_CACHE = 'zenot-js-20260619-f9314865ce0d';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
