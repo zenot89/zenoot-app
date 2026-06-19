@@ -18,6 +18,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-bottom: 14px;
+    align-items: start;
   }
   @media (max-width: 640px) {
     .pp-cols { grid-template-columns: 1fr; }
@@ -30,19 +31,24 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     text-transform: uppercase;
     letter-spacing: .07em;
     color: var(--ink3);
-    margin-bottom: 8px;
+    min-height: 32px;
     padding-bottom: 6px;
     border-bottom: 2px solid var(--ink4);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-sizing: border-box;
+    margin-bottom: 0;
   }
-  .pp-col-header .pp-col-bulan {
+  .pp-col-bulan {
     font-size: 13px;
     font-weight: 700;
     color: var(--ink);
-    text-transform: none;
-    letter-spacing: 0;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+    box-sizing: border-box;
   }
 
   /* ── Net Worth besar di tiap kolom ── */
@@ -50,8 +56,8 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     font-size: 26px;
     font-weight: 700;
     font-family: var(--f2);
-    line-height: 1;
-    margin: 6px 0 0;
+    line-height: 1.1;
+    margin: 0;
   }
   .pp-nw-label {
     font-size: 10px;
@@ -59,12 +65,17 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     color: var(--ink3);
     text-transform: uppercase;
     letter-spacing: .06em;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
   }
   .pp-nw-row {
     display: flex;
     align-items: baseline;
     gap: 10px;
     flex-wrap: wrap;
+    min-height: 36px;
     margin-bottom: 2px;
   }
   .pp-nw-delta {
@@ -77,10 +88,12 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   .pp-row {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    padding: 7px 0;
+    align-items: center;
+    min-height: 36px;
+    padding: 0;
     border-bottom: 1px solid var(--ink4);
     gap: 8px;
+    box-sizing: border-box;
   }
   .pp-row:last-child { border-bottom: none; }
   .pp-row-label {
@@ -108,7 +121,12 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     color: var(--ink3);
     text-transform: uppercase;
     letter-spacing: .06em;
-    margin: 10px 0 4px;
+    min-height: 28px;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 4px;
+    margin: 6px 0 0;
+    box-sizing: border-box;
   }
 
   /* ── Histori ── */
@@ -191,13 +209,13 @@ document.getElementById('page-penutupan-periode').innerHTML = `
       <span class="pp-snap-badge" id="pp-lalu-badge">snapshot</span>
     </div>
     <div class="pp-col-bulan" id="pp-lalu-label">—</div>
-    <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
+    <div class="pp-nw-label">Net Worth</div>
     <div class="pp-nw-row">
       <div class="pp-nw-big" id="pp-lalu-nw">—</div>
       <div class="pp-nw-delta" id="pp-lalu-delta"></div>
     </div>
 
-    <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
+    <div class="pp-divider">Posisi Keuangan</div>
     <div class="pp-row"><span class="pp-row-label">Kas &amp; Bank</span><span class="pp-row-val" id="pp-lalu-kas">—</span></div>
     <div class="pp-row"><span class="pp-row-label">Stok</span><span class="pp-row-val" id="pp-lalu-stok">—</span></div>
     <div class="pp-row"><span class="pp-row-label">Escrow Shopee</span><span class="pp-row-val" id="pp-lalu-escrow">—</span></div>
@@ -218,13 +236,13 @@ document.getElementById('page-penutupan-periode').innerHTML = `
       <span class="pp-live-badge">● LIVE</span>
     </div>
     <div class="pp-col-bulan" id="pp-skrg-label">—</div>
-    <div class="pp-nw-label" style="margin-top:10px">Net Worth</div>
+    <div class="pp-nw-label">Net Worth</div>
     <div class="pp-nw-row">
       <div class="pp-nw-big" id="pp-skrg-nw">—</div>
       <div class="pp-nw-delta" id="pp-skrg-delta"></div>
     </div>
 
-    <div class="pp-divider" style="margin-top:14px">Posisi Keuangan</div>
+    <div class="pp-divider">Posisi Keuangan</div>
     <div class="pp-row">
       <span class="pp-row-label">Kas &amp; Bank</span>
       <div style="text-align:right">
@@ -488,6 +506,9 @@ function _ppRenderLalu(snap, prevSnap) {
   // Tampilkan tombol perbarui
   var btn = document.getElementById('pp-btn-perbarui');
   if (btn) btn.style.display = '';
+
+  // Sync baris setelah kedua kolom render
+  setTimeout(_ppSyncRows, 100);
 }
 
 // ─── RENDER KOLOM KANAN (Bulan Berjalan / live) ──────────────
@@ -676,6 +697,25 @@ async function ppLoadHistori() {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+// ─── SYNC TINGGI BARIS ANTAR 2 KOLOM ────────────────────────
+// Pasangkan baris per indeks — kiri[i] dan kanan[i] dikunci sama tinggi
+function _ppSyncRows() {
+  var kiri   = document.querySelectorAll('#pp-col-lalu  .pp-row, #pp-col-lalu  .pp-divider, #pp-col-lalu  .pp-nw-row, #pp-col-lalu  .pp-nw-label, #pp-col-lalu  .pp-col-header, #pp-col-lalu  .pp-col-bulan');
+  var kanan  = document.querySelectorAll('#pp-col-skrg .pp-row, #pp-col-skrg .pp-divider, #pp-col-skrg .pp-nw-row, #pp-col-skrg .pp-nw-label, #pp-col-skrg .pp-col-header, #pp-col-skrg .pp-col-bulan');
+  var len = Math.min(kiri.length, kanan.length);
+  // Reset dulu
+  for (var i = 0; i < len; i++) {
+    kiri[i].style.minHeight  = '';
+    kanan[i].style.minHeight = '';
+  }
+  // Sync
+  for (var i = 0; i < len; i++) {
+    var h = Math.max(kiri[i].offsetHeight, kanan[i].offsetHeight);
+    kiri[i].style.minHeight  = h + 'px';
+    kanan[i].style.minHeight = h + 'px';
+  }
 }
 
 // ─── EVENT: BUKA HALAMAN ─────────────────────────────────────
