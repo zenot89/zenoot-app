@@ -1111,45 +1111,89 @@ function renderTabelJP(data) {
     return;
   }
 
-  // ─── Hitung sisa stok per SKU dari data stok global (sama persis logika stok.js) ───
-  // Pakai _stokAllData kalau tersedia (di-load oleh stok.js), kalau tidak fetch sendiri
+  // ─── Render tabel dengan sisakMap ────────────────────────────
   function _jpRenderWithStok(sisakMap) {
-    tbody.innerHTML = data.map(row => {
-      const tgl = new Date(row.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
-      const jam = row.waktu ? String(row.waktu).slice(0,5) : '—';
-      const ch  = _jpChannelMap[row.channel_id];
-      const chHtml  = ch ? chBadge({ nama: ch.nama, kategori: ch.kategori||'' }) : '<span style="color:var(--ink3)">—</span>';
-      // Sisa stok untuk SKU ini
-      const skuKey  = (row.sku || '').toUpperCase();
-      const sisaVal = sisakMap[skuKey];
-      const sisaHtml = sisaVal === undefined
+    tbody.innerHTML = data.map(function(row) {
+      const tgl    = new Date(row.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      const jam    = row.waktu ? String(row.waktu).slice(0,5) : '—';
+      const ch     = _jpChannelMap[row.channel_id];
+      const chHtml = ch ? chBadge({ nama: ch.nama, kategori: ch.kategori||'' }) : '<span style="color:var(--ink3)">—</span>';
+
+      // ─── Baris Shopee vs Manual ───────────────────────────
+      const isShopee = !!(row.no_order);
+      const skuKey   = (row.sku || '').toUpperCase();
+
+      // SKU cell: untuk Shopee tampilkan SKU + badge no_order ringkas
+      var skuHtml;
+      if (isShopee) {
+        const noOrderShort = String(row.no_order).slice(-8);
+        const skuLabel     = row.sku
+          ? '<b style="color:var(--accent)">' + row.sku + '</b>'
+          : '<span style="color:var(--ink3);font-style:italic">No SKU</span>';
+        skuHtml = '<div style="line-height:1.3">'
+          + skuLabel
+          + '<div style="font-size:10px;color:var(--ink3);margin-top:1px">'
+          + '<span style="font-family:monospace;letter-spacing:.02em">⋯⋯⋯' + noOrderShort + '</span>'
+          + '</div></div>';
+      } else {
+        skuHtml = row.sku
+          ? '<b style="color:var(--accent)">' + row.sku + '</b>'
+          : '<span style="color:var(--ink3)">—</span>';
+      }
+
+      // ─── Sisa stok ───────────────────────────────────────
+      const sisaVal  = sisakMap[skuKey];
+      const sisaHtml = !row.sku
         ? '<span style="color:var(--ink3)">—</span>'
-        : sisaVal <= 0
-          ? '<b style="color:var(--danger)">' + sisaVal + '</b>'
-          : sisaVal <= 3
-            ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
-            : '<b style="color:var(--ok)">' + sisaVal + '</b>';
-      // Status — dari field shopee_status kalau ada, kosong kalau manual
-      const statusVal = row.shopee_status || '';
-      const statusHtml = statusVal === 'READY_TO_SHIP'
-        ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000">Perlu Kirim</span>'
-        : statusVal === 'SHIPPED'
-          ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ok);color:#000">Dikirim</span>'
-          : statusVal === 'COMPLETED'
-            ? '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ink2);color:var(--bg)">Selesai</span>'
-            : '<span style="color:var(--ink3);font-size:10px">—</span>';
-      return '<tr>'
+        : sisaVal === undefined
+          ? '<span style="color:var(--ink3)">—</span>'
+          : sisaVal <= 0
+            ? '<b style="color:var(--danger)">' + sisaVal + '</b>'
+            : sisaVal <= 3
+              ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
+              : '<b style="color:var(--ok)">' + sisaVal + '</b>';
+
+      // ─── Status order ─────────────────────────────────────
+      const statusVal = row.order_status || '';
+      var statusHtml;
+      if (statusVal === 'READY_TO_SHIP') {
+        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000;white-space:nowrap">Perlu Kirim</span>';
+      } else if (statusVal === 'PROCESSED') {
+        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000;white-space:nowrap">Diproses</span>';
+      } else if (statusVal === 'SHIPPED') {
+        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ok);color:#000;white-space:nowrap">Dikirim</span>';
+      } else if (statusVal === 'COMPLETED') {
+        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ink2);color:var(--bg);white-space:nowrap">Selesai</span>';
+      } else if (statusVal === 'CANCELLED') {
+        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--danger);color:#fff;white-space:nowrap">Dibatal</span>';
+      } else {
+        statusHtml = '<span style="color:var(--ink3);font-size:10px">Manual</span>';
+      }
+
+      // ─── Qty & Harga: kosong kalau Shopee tanpa SKU ───────
+      const qtyDisplay   = (!row.sku && isShopee)
+        ? '<span style="color:var(--ink3)">—</span>'
+        : (row.qty || 0);
+      const hargaDisplay = (!row.sku && isShopee)
+        ? '<span style="color:var(--ink3)">—</span>'
+        : fmtRp(row.harga_satuan);
+
+      // ─── Row style: border kiri untuk baris Shopee ────────
+      const rowStyle = isShopee ? 'border-left:2px solid var(--accent);' : '';
+
+      const safeSku = (row.sku||'').replace(/'/g, "\'");
+      return '<tr style="' + rowStyle + '">'
         + '<td style="white-space:nowrap"><b>' + tgl + '</b> <span style="font-size:11px;color:var(--ink3)">' + jam + '</span></td>'
         + '<td>' + chHtml + '</td>'
-        + '<td><b style="color:var(--accent)">' + (row.sku||'—') + '</b></td>'
-        + '<td style="text-align:center">' + (row.qty||0) + '</td>'
-        + '<td>' + fmtRp(row.harga_satuan) + '</td>'
+        + '<td>' + skuHtml + '</td>'
+        + '<td style="text-align:center">' + qtyDisplay + '</td>'
+        + '<td>' + hargaDisplay + '</td>'
         + '<td><b style="color:var(--ok)">' + fmtRp(row.total) + '</b></td>'
         + '<td style="text-align:center">' + sisaHtml + '</td>'
         + '<td style="text-align:center">' + statusHtml + '</td>'
         + '<td>'
         + '<button class="btn btn-sm" onclick="editJP(' + row.id + ')" style="margin-right:4px"><i class="ti ti-edit"></i></button>'
-        + '<button class="btn btn-sm btn-danger" onclick="hapusJP(' + row.id + ',\'' + (row.sku||'').replace(/'/g,"\\'") + '\')"><i class="ti ti-trash"></i></button>'
+        + '<button class="btn btn-sm btn-danger" onclick="hapusJP(' + row.id + ',\'' + safeSku + '\')"><i class="ti ti-trash"></i></button>'
         + '</td></tr>';
     }).join('');
     document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';

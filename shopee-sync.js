@@ -79,7 +79,7 @@ async function _getOrderDetailBatch(tok, orderSnList) {
         shop_id:                  tok.shop_id,
         access_token:             tok.access_token,
         order_sn_list:            orderSnList.slice(0, 50).join(','),
-        response_optional_fields: 'total_amount,create_time',
+        response_optional_fields: 'total_amount,create_time,item_list',
       })
     });
     const data = await res.json();
@@ -173,35 +173,31 @@ async function syncActiveOrderEscrow(tok) {
   const orderDetailMap = await _getOrderDetailBatch(tok, allSns);
 
   let updated = 0;
-  for (const order of allOrders) {
-    const sn = order.order_sn;
+  for (var ai = 0; ai < allOrders.length; ai++) {
+    const order = allOrders[ai];
+    const sn    = order.order_sn;
+    const det   = orderDetailMap[sn] || {};
     try {
-      const detRes = await fetch(SHOPEE_EDGE, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-        body:    JSON.stringify({
-          action:       'get_escrow_detail',
-          shop_id:      tok.shop_id,
-          access_token: tok.access_token,
-          order_sn:     sn,
-        })
-      });
-      const det = await detRes.json();
-      const f   = _parseOrderIncome(det);
-      const fallbackOmset = parseFloat(orderDetailMap[sn]?.total_amount || 0);
-      const omset = f.omset > 0 ? f.omset : fallbackOmset;
+      const f             = _parseOrderIncome(det);
+      const fallbackOmset = parseFloat(det.total_amount || 0);
+      const omset         = f.omset > 0 ? f.omset : fallbackOmset;
       if (omset <= 0) continue;
 
+      // Update semua baris dengan no_order = sn (bisa >1 baris kalau multi-item)
+      // Hanya update status + escrow/biaya — jangan overwrite total per-item
       await fetch(
         SUPABASE_URL + '/rest/v1/jurnal_penjualan?no_order=eq.' + encodeURIComponent(sn),
         {
           method: 'PATCH',
           headers: { ..._headers(), 'Prefer': 'return=minimal' },
           body: JSON.stringify({
-            total: omset, omset, escrow: f.escrow,
-            biaya_komisi: f.b_komisi, biaya_admin: f.b_admin,
-            biaya_layanan: f.b_layanan, biaya_proses: f.b_proses,
-            biaya_kampanye: f.b_kampanye, order_status: order.order_status,
+            order_status:   order.order_status,
+            escrow:         f.escrow,
+            biaya_komisi:   f.b_komisi,
+            biaya_admin:    f.b_admin,
+            biaya_layanan:  f.b_layanan,
+            biaya_proses:   f.b_proses,
+            biaya_kampanye: f.b_kampanye,
           }),
         }
       );
@@ -228,6 +224,24 @@ async function shopeeSyncOrders(tok) {
     _shopeeSyncOrdersRunning = false;
   }
 }
+// ─── HELPER: Ekstrak item_list dari order_detail response ─────
+// Shopee order_detail mengembalikan item_list di dalam order object.
+// Setiap item memiliki: item_sku, variation_sku, model_quantity_purchased,
+// model_original_price, model_discounted_price, item_name.
+// Kita pakai variation_sku (lebih spesifik) lalu fallback item_sku.
+function _parseItemList(orderDetail) {
+  const items = orderDetail.item_list || [];
+  return items.map(function(item) {
+    const sku     = (item.variation_sku || item.item_sku || '').trim().toUpperCase();
+    const qty     = parseInt(item.model_quantity_purchased || item.quantity_purchased || 0);
+    // Harga per satuan: pakai discounted_price (harga bayar buyer), fallback original_price
+    const harga   = parseFloat(item.model_discounted_price || item.model_original_price || 0);
+    const nama    = item.item_name || '';
+    const varNama = item.variation_name || '';
+    return { sku, qty, harga, nama, varNama };
+  }).filter(function(item) { return item.qty > 0; }); // hanya item dengan qty valid
+}
+
 async function _shopeeSyncOrdersImpl(tok) {
   if (!tok) {
     tok = await _getValidToken();
@@ -249,86 +263,157 @@ async function _shopeeSyncOrdersImpl(tok) {
 
   // Deduplicate order_sn dari API (bisa muncul di 2 window)
   const seen = new Set();
-  allOrders = allOrders.filter(o => { if (seen.has(o.order_sn)) return false; seen.add(o.order_sn); return true; });
+  allOrders = allOrders.filter(function(o) {
+    if (seen.has(o.order_sn)) return false;
+    seen.add(o.order_sn);
+    return true;
+  });
 
-  // Cek yang sudah ada di DB
-  let existingOrders = [];
-  try { existingOrders = await dbGet('jurnal_penjualan', '&no_order=not.is.null&select=no_order'); } catch(e) {}
-  const existSet = new Set((existingOrders || []).map(r => r.no_order));
+  // Ambil semua baris Shopee yang sudah ada di DB (no_order tidak null)
+  let existingRows = [];
+  try {
+    existingRows = await dbGet('jurnal_penjualan', '&no_order=not.is.null&select=id,no_order,sku');
+  } catch(e) {}
 
-  const newOrders = allOrders.filter(o => !existSet.has(o.order_sn));
-  if (!newOrders.length) {
-    console.log('[shopee-sync] Semua order sudah ada di DB (' + allOrders.length + ' total).');
+  // Pisahkan: baris lama tanpa SKU (stale) vs baris yang sudah lengkap
+  // Stale = no_order ada tapi sku kosong/null → hasil insert lama yang tidak punya item detail
+  const staleIds   = [];  // id baris lama yang akan di-delete dan di-replace
+  const staleSnSet = new Set(); // no_order dari baris stale
+  const doneSnSet  = new Set(); // no_order yang sudah lengkap (ada sku), tidak perlu re-insert
+
+  (existingRows || []).forEach(function(r) {
+    if (!r.sku || r.sku === '') {
+      staleIds.push(r.id);
+      staleSnSet.add(r.no_order);
+    } else {
+      doneSnSet.add(r.no_order);
+    }
+  });
+
+  // Hapus baris stale (tanpa SKU) dari DB
+  if (staleIds.length > 0) {
+    console.log('[shopee-sync] Hapus ' + staleIds.length + ' baris lama tanpa SKU...');
+    for (var di = 0; di < staleIds.length; di++) {
+      try {
+        await fetch(SUPABASE_URL + '/rest/v1/jurnal_penjualan?id=eq.' + staleIds[di], {
+          method: 'DELETE', headers: _headers(),
+        });
+      } catch(e) { console.warn('[shopee-sync] Gagal hapus baris stale id=' + staleIds[di]); }
+    }
+  }
+
+  // Order yang perlu di-sync: stale (sudah delete, perlu insert ulang) + benar-benar baru
+  const ordersToSync = allOrders.filter(function(o) {
+    return staleSnSet.has(o.order_sn) || !doneSnSet.has(o.order_sn);
+  });
+
+  if (!ordersToSync.length) {
+    console.log('[shopee-sync] Semua order sudah lengkap di DB (' + allOrders.length + ' total).');
     return 0;
   }
 
-  // Batch fetch order detail untuk semua order baru (fallback omset)
-  const newSns = newOrders.map(o => o.order_sn);
-  const orderDetailMap = await _getOrderDetailBatch(tok, newSns);
+  // Batch fetch order detail untuk order yang perlu di-sync
+  const syncSns     = ordersToSync.map(function(o) { return o.order_sn; });
+  const orderDetailMap = await _getOrderDetailBatch(tok, syncSns);
 
   let inserted = 0;
-  for (const order of newOrders) {
+  for (var oi = 0; oi < ordersToSync.length; oi++) {
+    const order  = ordersToSync[oi];
     const sn     = order.order_sn;
     const status = order.order_status;
+    const det    = orderDetailMap[sn] || {};
+
     try {
+      // ─── 1. Data finansial order ──────────────────────────
       let f = { omset: 0, escrow: 0, b_komisi: 0, b_admin: 0, b_layanan: 0, b_proses: 0, b_kampanye: 0 };
 
-      // COMPLETED: coba escrow detail (data keuangan lengkap)
       if (status === 'COMPLETED') {
         try {
           const detRes = await fetch(SHOPEE_EDGE, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
             body:    JSON.stringify({
-              action:       'get_escrow_detail',
-              shop_id:      tok.shop_id,
-              access_token: tok.access_token,
-              order_sn:     sn,
+              action: 'get_escrow_detail', shop_id: tok.shop_id,
+              access_token: tok.access_token, order_sn: sn,
             })
           });
-          const det    = await detRes.json();
-          const parsed = _parseOrderIncome(det);
+          const escDet = await detRes.json();
+          const parsed = _parseOrderIncome(escDet);
           if (parsed.omset > 0) f = parsed;
         } catch(e) { /* fallback di bawah */ }
       }
 
-      // Fallback: pakai total_amount dari order_detail
-      if (f.omset <= 0) {
-        f.omset = parseFloat(orderDetailMap[sn]?.total_amount || 0);
-      }
-
+      // Fallback omset dari total_amount
+      if (f.omset <= 0) f.omset = parseFloat(det.total_amount || 0);
       if (f.omset <= 0) {
         console.warn('[shopee-sync] Skip order omset=0:', sn, status);
         continue;
       }
 
-      // Validasi create_time — fallback ke orderDetailMap atau today kalau 0
-      const rawCt   = order.create_time || orderDetailMap[sn]?.create_time || 0;
+      // ─── 2. Tanggal & waktu order ─────────────────────────
+      const rawCt    = order.create_time || det.create_time || 0;
       const createMs = rawCt > 0 ? rawCt * 1000 : Date.now();
-      const tanggal = new Date(createMs).toISOString().split('T')[0];
-      const waktu   = new Date(createMs).toTimeString().slice(0, 5);
+      const tanggal  = new Date(createMs).toISOString().split('T')[0];
+      const waktu    = new Date(createMs).toTimeString().slice(0, 5);
 
-      await dbInsert('jurnal_penjualan', {
-        tanggal, waktu, channel_id: channelId,
-        no_order: sn,
-        total:          f.omset,
-        omset:          f.omset,
-        escrow:         f.escrow,
-        biaya_komisi:   f.b_komisi,
-        biaya_admin:    f.b_admin,
-        biaya_layanan:  f.b_layanan,
-        biaya_proses:   f.b_proses,
-        biaya_kampanye: f.b_kampanye,
-        order_status:   status,
-        created_at:     new Date().toISOString(),
-      });
-      inserted++;
+      // ─── 3. Parse item list (SKU per item) ────────────────
+      const items = _parseItemList(det);
+
+      if (items.length === 0) {
+        // Tidak ada item_list dari API → insert 1 baris ringkasan tanpa SKU
+        // (akan di-clean up lagi di sync berikutnya kalau API sudah tersedia)
+        await dbInsert('jurnal_penjualan', {
+          tanggal, waktu, channel_id: channelId, no_order: sn,
+          sku: null, qty: 0, harga_satuan: 0,
+          total: f.omset, omset: f.omset, escrow: f.escrow,
+          biaya_komisi: f.b_komisi, biaya_admin: f.b_admin,
+          biaya_layanan: f.b_layanan, biaya_proses: f.b_proses,
+          biaya_kampanye: f.b_kampanye, order_status: status,
+          created_at: new Date().toISOString(),
+        });
+        inserted++;
+        continue;
+      }
+
+      // ─── 4. Insert 1 baris per item (pecah per SKU) ───────
+      // Total order dibagi proporsional berdasarkan (harga × qty) per item
+      const totalItemValue = items.reduce(function(s, it) { return s + (it.harga * it.qty); }, 0);
+
+      for (var ii = 0; ii < items.length; ii++) {
+        const item      = items[ii];
+        const itemValue = item.harga * item.qty;
+        // Total proporsional: kalau totalItemValue = 0, bagi rata
+        const totalProporsional = totalItemValue > 0
+          ? Math.round(f.omset * itemValue / totalItemValue)
+          : Math.round(f.omset / items.length);
+
+        // Biaya proporsional
+        const rasio = totalItemValue > 0 ? itemValue / totalItemValue : 1 / items.length;
+
+        await dbInsert('jurnal_penjualan', {
+          tanggal, waktu, channel_id: channelId, no_order: sn,
+          sku:          item.sku    || null,
+          qty:          item.qty,
+          harga_satuan: Math.round(item.harga),
+          total:        totalProporsional,
+          omset:        totalProporsional,
+          escrow:       Math.round(f.escrow      * rasio),
+          biaya_komisi: Math.round(f.b_komisi    * rasio),
+          biaya_admin:  Math.round(f.b_admin     * rasio),
+          biaya_layanan:Math.round(f.b_layanan   * rasio),
+          biaya_proses: Math.round(f.b_proses    * rasio),
+          biaya_kampanye: Math.round(f.b_kampanye * rasio),
+          order_status: status,
+          created_at:   new Date().toISOString(),
+        });
+        inserted++;
+      }
     } catch(e) {
       console.warn('[shopee-sync] Skip order', sn, e.message);
     }
   }
 
-  console.log('[shopee-sync] Selesai. ' + inserted + '/' + newOrders.length + ' order baru di-insert.');
+  console.log('[shopee-sync] Selesai. ' + inserted + ' baris di-insert dari ' + ordersToSync.length + ' order.');
 
   if (inserted > 0 && typeof loadJurnalPenjualan === 'function') {
     const page = document.querySelector('.page.active');
