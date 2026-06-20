@@ -1224,8 +1224,14 @@ async function _jpRefreshSisakMap() {
       keluarMap[k] = (keluarMap[k] || 0) + (j.qty || 0);
     });
     const sisakMap = {};
-    (produkList || []).forEach(function(p) {
-      const k = (p.sku_variasi || '').toUpperCase();
+    // Union semua key dari masukMap (tabel stok) dan keluarMap (jurnal_penjualan)
+    // agar semua SKU yang pernah ada di stok atau terjual tampil sisa stoknya,
+    // termasuk SKU Shopee yang tidak terdaftar di tabel produk.
+    const _allStokKeys = new Set([
+      ...Object.keys(masukMap),
+      ...Object.keys(keluarMap),
+    ]);
+    _allStokKeys.forEach(function(k) {
       sisakMap[k] = (masukMap[k] || 0) - (keluarMap[k] || 0);
     });
     _jpSisakMap = sisakMap;

@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v21 — tambah penutupan-periode.js + autocomplete.js
-var JS_CACHE = 'zenot-js-20260619-379728264fdc';
+// BUMP: JS_CACHE v22 — fix shopee-sync SKU mapping + jurnal sisakMap union
+var JS_CACHE = 'zenot-js-20260620-sisakmap-v22';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

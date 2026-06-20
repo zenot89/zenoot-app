@@ -227,12 +227,36 @@ async function shopeeSyncOrders(tok) {
 // ─── HELPER: Ekstrak item_list dari order_detail response ─────
 // Shopee order_detail mengembalikan item_list di dalam order object.
 // Setiap item memiliki: item_sku, variation_sku, model_quantity_purchased,
-// model_original_price, model_discounted_price, item_name.
-// Kita pakai variation_sku (lebih spesifik) lalu fallback item_sku.
+// model_original_price, model_discounted_price, item_name, variation_name.
+// Prioritas SKU:
+//   1. variation_sku (sudah lengkap, contoh: Turtleneck_HITAM-M)
+//   2. Mapping dari item_sku + variation_name (contoh: "Hitam,M" → TURTLENECK_HITAM-M)
+//      Berlaku untuk produk yang variation_sku-nya kosong di Shopee.
+//      Size S/M → suffix -M, size L/XL → suffix -XL
+//   3. item_sku saja (fallback terakhir)
 function _parseItemList(orderDetail) {
   const items = orderDetail.item_list || [];
   return items.map(function(item) {
-    const sku     = (item.variation_sku || item.item_sku || '').trim().toUpperCase();
+    let sku = (item.variation_sku || '').trim();
+
+    // Kalau variation_sku kosong, coba bangun dari item_sku + variation_name
+    if (!sku) {
+      const itemSku  = (item.item_sku || '').trim();
+      const varNamaRaw = (item.variation_name || '').trim();
+      if (itemSku && varNamaRaw) {
+        // variation_name format: "Warna,Ukuran" — contoh: "Hitam,M" / "Abu muda,XL"
+        const parts  = varNamaRaw.split(',');
+        const warna  = (parts[0] || '').trim();
+        const size   = (parts[parts.length - 1] || '').trim().toUpperCase();
+        // Mapping ukuran: S atau M → -M, L atau XL → -XL
+        const sizeKey = (size === 'S' || size === 'M') ? 'M' : 'XL';
+        sku = itemSku + '_' + warna + '-' + sizeKey;
+      } else {
+        sku = itemSku;
+      }
+    }
+
+    sku = sku.toUpperCase();
     const qty     = parseInt(item.model_quantity_purchased || item.quantity_purchased || 0);
     // Harga per satuan: pakai discounted_price (harga bayar buyer), fallback original_price
     const harga   = parseFloat(item.model_discounted_price || item.model_original_price || 0);
