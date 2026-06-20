@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v22 — fix shopee-sync SKU mapping + jurnal sisakMap union
-var JS_CACHE = 'zenot-js-20260620-sisakmap-v22';
+var JS_CACHE = 'zenot-js-20260620-6045efa081e8';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
