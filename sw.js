@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v23 — keuangan.js style scoped ke #page-keuangan, pindah ke style.css
-var JS_CACHE = 'zenot-js-20260621-7cb0fc8987b5';
+// BUMP: JS_CACHE v24 — rollback keuangan.js ke original
+var JS_CACHE = 'zenot-js-20260621-rollback-v24';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

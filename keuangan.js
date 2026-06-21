@@ -5,8 +5,178 @@ let _keuKasAkun   = [];
 let _keuKasJurnal = [];
 
 document.getElementById('page-keuangan').innerHTML = `
+<style>
+  .keu-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .keu-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
+  .keu-tab.active { background:var(--ink); color:var(--cream); }
+  .keu-panel { display:none; }
+  .keu-panel.active { display:block; }
+  .rasio-card {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px;
+  }
+  .rasio-item {
+    background:var(--cream2); border:2px solid var(--ink3); padding:12px 14px; border-radius:2px;
+  }
+  .rasio-item .r-label { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+  .rasio-item .r-value { font-size:20px; font-weight:700; font-family:var(--f2); }
+  .rasio-item .r-desc  { font-size:11px; color:var(--ink3); margin-top:2px; }
+  .rasio-item.r-ok     { border-color:var(--ok); }
+  .rasio-item.r-warn   { border-color:var(--warn); }
+  .rasio-item.r-danger { border-color:var(--danger); }
+  .hutang-status-aktif  { color:var(--warn); font-weight:700; font-size:12px; }
+  .hutang-status-lunas  { color:var(--ok);   font-weight:700; font-size:12px; }
+  .val-card { background:var(--cream2); border:2px solid var(--ink); padding:14px 16px; margin-bottom:10px; border-radius:2px; }
+  .val-card .v-method { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; }
+  .val-card .v-value  { font-size:22px; font-weight:700; font-family:var(--f2); color:var(--ink); margin:4px 0; }
+  .val-card .v-desc   { font-size:12px; color:var(--ink2); }
+  .neraca-section { margin-bottom:4px; }
+  .neraca-head td { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
+  .neraca-sub  td { padding-left:20px !important; }
+  .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
 
+  /* ── Neraca 3-bagian layout ── */
+  #keu-neraca-minicards-wrap {
+    padding: 0 0 10px 0;
+    max-height: 200px;
+    overflow: hidden;
+    transition: max-height .25s ease, opacity .2s ease, padding .25s ease;
+  }
+  /* Bagian 2: section bar (ASET/KEWAJIBAN label + toggle) — statis, tidak scroll */
+  #keu-neraca-section-bar {
+    flex-shrink: 0;
+  }
+  .keu-neraca-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0 8px 0;
+    background: var(--cream);
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 4px;
+  }
+  .keu-neraca-section-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .keu-aset-label { color: var(--ok); }
+  .keu-kwj-label  { color: var(--danger); }
+  .keu-neraca-card {
+    padding-bottom: 16px;
+  }
+  .keu-neraca-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 2px solid var(--ink);
+  }
+  .keu-neraca-modal-head {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink2);
+    padding: 14px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-top: 1px solid var(--ink4);
+    margin-top: 8px;
+  }
+</style>
 
+<style>
+</style>
+
+<style>
+  .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
+  .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
+  .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  @media(max-width:600px){
+    /* ═══ FULL-HEIGHT SCROLL ZONE, pola sama dengan Kas & Jurnal ═══
+       #keu-panels-wrap diberi height eksplisit via JS (_keuSetPanelHeight,
+       getBoundingClientRect — bukan persentase CSS, karena flex:1/height:100%
+       tidak resolve reliable di iOS Safari standalone tanpa overflow:hidden
+       eksplisit di .content). body.keu-active .content{overflow:hidden}
+       mencegah double-scroll.
+       chain: .content (overflow:hidden saat keu-active)
+              → #page-keuangan.active (block biasa)
+                 → #keu-sticky-header (tinggi natural, collapse via class)
+                 → #keu-panels-wrap (height:Npx via JS, overflow:hidden)
+                    → .keu-panel.active (height:100%, overflow-y:auto) ← scroll zone asli
+    */
+    body.keu-active .content { overflow:hidden !important; }
+    #keu-panels-wrap { overflow:hidden; }
+    .keu-panel.active:not(.keu-panel-neraca) {
+      height:100%; box-sizing:border-box;
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      overscroll-behavior:none; touch-action:pan-y;
+      padding-bottom:24px;
+    }
+
+    /* ── Neraca: panel jadi flex column, minicards collapse on swipe, section-bar freeze ──
+       chain: .keu-panel-neraca.active (flex column, overflow:hidden)
+                → #keu-neraca-minicards-wrap   (bagian 1 — collapse on swipe UP)
+                → #keu-neraca-section-bar      (bagian 2 — sticky/freeze, tidak scroll)
+                → #keu-neraca-scroll-zone      (bagian 3 — satu-satunya yang scroll)
+    */
+    .keu-panel-neraca.active {
+      display: -webkit-flex !important;
+      display: flex !important;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden !important;
+      overflow-y: hidden !important;
+    }
+    #keu-neraca-minicards-wrap {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+    #keu-neraca-section-bar {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+    }
+    #keu-neraca-scroll-zone {
+      -webkit-flex: 1 1 0;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: none;
+      touch-action: pan-y;
+      padding-bottom: 24px;
+    }
+
+    /* Neraca grid: stack penuh, scroll-nya sekarang di #keu-neraca-scroll-zone */
+    .keu-neraca-grid { grid-template-columns:1fr; max-height:none; overflow:visible; }
+    .keu-minicards { margin-left:0; width:100%; justify-content:center; }
+    .keu-minicards > div { flex:1 1 0; min-width:0; }
+
+    /* Toggle ASET / KEWAJIBAN — segmented control, minimalis */
+      /* keu-neraca-toggle lama diganti keuNeracaViewToggle button */
+    .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
+    .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
+
+    /* Cegah horizontal overflow: label kolom kiri (mis. "Total Persediaan & Aset Tetap")
+       boleh wrap, kolom kanan (nominal + persen) tetap nowrap agar tidak putus. */
+    #keu-neraca-card-aset .tbl td:first-child,
+    #keu-neraca-card-kewajiban .tbl td:first-child {
+      white-space:normal; word-break:break-word; padding-right:6px;
+    }
+    #keu-neraca-card-aset .tbl td:last-child,
+    #keu-neraca-card-kewajiban .tbl td:last-child {
+      white-space:nowrap;
+    }
+
+  }
+  @media(min-width:601px){
+    .keu-neraca-toggle { display:none; }
+  }
+</style>
 
 <!-- Sticky header: collapse on scroll (mobile, Neraca only) -->
 <div id="keu-sticky-header">
