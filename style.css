@@ -3239,9 +3239,3 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     pointer-events: none;
   }
 }
-
-/* ── keu-panel show/hide — diperkuat di style.css agar tidak bergantung
-   pada <style> inject via innerHTML yang behavior-nya inconsistent di PWA ── */
-.keu-panel              { display: none !important; }
-.keu-panel.active       { display: block !important; }
-.keu-panel-neraca.active { display: flex !important; flex-direction: column; }
