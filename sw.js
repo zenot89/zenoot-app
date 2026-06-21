@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v25 — keu-panel display fix di style.css
-var JS_CACHE = 'zenot-js-20260621-keupanel-v25';
+var JS_CACHE = 'zenot-js-20260621-f882e5eac460';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
