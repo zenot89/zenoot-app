@@ -653,14 +653,6 @@ body.sidebar-mini .sidebar-footer::before{
 }
 
 /* ─── STICKY NOTE ────────────────────────────────────────── */
-.sticky{
-  background:#2a2610;border:1.5px solid #e6a817;padding:8px 10px;
-  font-size:12px;font-weight:600;color:#f0d070;
-  -webkit-transform:rotate(1.5deg);transform:rotate(1.5deg);
-  box-shadow:2px 3px 6px rgba(0,0,0,0.25);line-height:1.4;
-  margin:8px 10px 4px;font-family:var(--f2);
-}
-.sticky::before{content:'📌';display:block;font-size:13px;margin-bottom:2px}
 
 /* ─── DOODLE ─────────────────────────────────────────────── */
 .doodle{position:absolute;bottom:8px;right:10px;color:var(--ink4);font-size:22px;line-height:1;opacity:0.45;}
