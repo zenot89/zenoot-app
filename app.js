@@ -1111,21 +1111,3 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
   _domWatcher.observe(document.body, { childList: true, subtree: false });
 })();
 
-// ─── PROYEKSI HARGA — iframe loader ──────────────────────────
-// Inject iframe sekali, tidak reload tiap ganti tab.
-(function() {
-  var _proyeksiLoaded = false;
-  document.addEventListener('zenot:page', function(e) {
-    if (!e.detail || e.detail.page !== 'proyeksi-harga') return;
-    if (_proyeksiLoaded) return;
-    _proyeksiLoaded = true;
-    var pg = document.getElementById('page-proyeksi-harga');
-    if (!pg) return;
-    pg.style.cssText = 'padding:0;margin:0;height:100%;';
-    var iframe = document.createElement('iframe');
-    iframe.src             = 'kalkulator-harga-jual.html';
-    iframe.style.cssText   = 'width:100%;height:100%;border:none;display:block;';
-    iframe.setAttribute('allowfullscreen', '');
-    pg.appendChild(iframe);
-  });
-})();

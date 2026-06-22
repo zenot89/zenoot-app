@@ -32,14 +32,14 @@ var JS_APP_FILES = [
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'autocomplete.js',
+  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'autocomplete.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v26 — keuangan.js fix CSS scope leak + neraca bocor semua panel
-var JS_CACHE = 'zenot-js-20260622-4bcd867286b5';
+// BUMP: JS_CACHE v27 — tambah proyeksi-harga.js
+var JS_CACHE = 'zenot-js-20260622-proyeksi-v27';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
