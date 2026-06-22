@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Harga Jual — Multi Toko</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #121212;
+    --panel: #181818;
+    --panel-2: #1f1f1f;
+    --border: #2c2c2c;
+    --border-soft: #232323;
+    --text: #ece9e4;
+    --text-dim: #9b968d;
+    --text-faint: #635f58;
+    --accent: #ece9e4;
+    --accent-dim: rgba(236,233,228,0.07);
+    --accent-ink: #121212;
+    --cost: #c9c2b4;
+    --cost-dim: rgba(201,194,180,0.08);
+    --danger: #c98f8f;
+    --shopee: #cfc9bf;
+    --tiktok: #cfc9bf;
+    --lazada: #cfc9bf;
+    --radius: 6px;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Source Serif 4', Georgia, serif;
+    --body: 'Inter', sans-serif;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    padding: 32px 22px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  /* Header */
+  header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:30px; }
+  .brand-eyebrow{ font-family: var(--mono); font-size:10.5px; letter-spacing:0.18em; color: var(--text-faint); text-transform:uppercase; margin-bottom:8px; }
+  h1{ font-family: var(--display); font-size:27px; font-weight:500; margin:0; letter-spacing:-0.005em; }
+  .sub{ color: var(--text-dim); font-size:13px; margin-top:7px; line-height:1.5; }
+
+  /* Layout */
+  .grid{ display:grid; grid-template-columns: 300px 1fr; gap:18px; align-items:start; }
+  @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel{
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:20px;
+  }
+  .panel + .panel{ margin-top:18px; }
+  .panel-title{
+    font-family: var(--body); font-weight:600; font-size:11.5px;
+    text-transform:uppercase; letter-spacing:0.08em; color: var(--text-faint);
+    margin:0 0 16px 0; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+
+  /* Store selector */
+  .store-pill-list{ display:flex; flex-direction:column; gap:6px; }
+  .store-pill{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--panel-2); border:1px solid var(--border-soft); border-radius:6px;
+    padding:10px 12px; cursor:pointer; transition: border-color .15s, background .15s;
+  }
+  .store-pill:hover{ border-color:#3a3a3a; }
+  .store-pill.active{ border-color: var(--text-dim); background: var(--accent-dim); }
+  .store-pill .name{ font-weight:600; font-size:14px; }
+  .store-pill .count{ font-family: var(--mono); font-size:11px; color: var(--text-faint); }
+  .store-actions{ display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+  .store-pill:hover .store-actions{ opacity:1; }
+
+  .icon-btn{
+    background:none; border:none; color: var(--text-faint); cursor:pointer;
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    border-radius:6px; transition: color .15s, background .15s; font-size:13px;
+  }
+  .icon-btn:hover{ color: var(--text); background: rgba(255,255,255,0.05); }
+  .icon-btn.danger:hover{ color: var(--danger); }
+  .icon-btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+    outline: 1px solid var(--text-dim); outline-offset:2px;
+  }
+
+  .add-row{ display:flex; gap:6px; margin-top:10px; }
+  input[type="text"], input[type="number"]{
+    background: var(--panel-2); border:1px solid var(--border-soft); color: var(--text);
+    border-radius:6px; padding:8px 10px; font-family: var(--body); font-size:13px; width:100%;
+  }
+  input[type="text"]:focus, input[type="number"]:focus{ border-color: var(--text-dim); }
+  input:disabled{ opacity:0.4; cursor:not-allowed; }
+  input[type="checkbox"]{ width:auto; accent-color: var(--text-dim); cursor:pointer; }
+  .btn{
+    font-family: var(--body); font-weight:600; font-size:13px; cursor:pointer;
+    border-radius:6px; border:1px solid var(--border-soft); padding:8px 12px;
+    background: var(--panel-2); color: var(--text); transition: all .15s;
+    white-space:nowrap;
+  }
+  .btn:hover{ border-color:#3a3a3a; }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; }
+  .btn-accent{ background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn-accent:hover{ filter:brightness(0.92); }
+  .btn-ghost{ background:none; border-color: var(--border-soft); color: var(--text-dim); }
+  .btn-sm{ padding:5px 9px; font-size:12px; }
+
+  /* Product list */
+  .product-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 4px; border-bottom:1px solid var(--border-soft);
+  }
+  .product-row:last-child{ border-bottom:none; }
+  .product-row .pname{ font-size:13px; font-weight:500; word-break:break-word; }
+  .product-row .phpp{ font-family: var(--mono); font-size:12px; color: var(--text-dim); }
+  .product-row.selected{ background: var(--accent-dim); border-radius:6px; }
+  .product-row .store-actions{ opacity:0; }
+  .product-row:hover .store-actions{ opacity:1; }
+  .empty-hint{ color: var(--text-faint); font-size:12.5px; padding:8px 2px; line-height:1.5; }
+
+  /* Platform tabs */
+  .platform-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .ptab{
+    flex:1; min-width:110px; border-radius:6px; border:1px solid var(--border-soft);
+    background: var(--panel-2); padding:12px 14px; cursor:pointer; transition: all .15s;
+    text-align:left;
+  }
+  .ptab:disabled{ opacity:0.4; cursor:not-allowed; }
+  .ptab .pname{ font-family: var(--body); font-weight:600; font-size:14px; }
+  .ptab .pdefault{ font-family: var(--mono); font-size:11px; color: var(--text-faint); margin-top:3px; }
+  .ptab[data-active="true"]{ border-color: var(--text-dim); box-shadow: inset 0 0 0 1px var(--text-dim); background: var(--accent-dim); }
+  .ptab .dot{ width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:7px; background: var(--text-faint); }
+
+  .settings-note{ display:flex; align-items:center; gap:8px; margin-top:14px; font-size:11.5px; color: var(--text-faint); }
+  .saved-badge{ font-family: var(--mono); font-size:11px; color: var(--text-dim); opacity:0; transition: opacity .3s; white-space:nowrap; }
+  .saved-badge.show{ opacity:1; }
+
+  .field-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px; }
+  @media (max-width:520px){ .field-row{ grid-template-columns:1fr; } }
+  label{ display:block; font-size:11.5px; color: var(--text-faint); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
+  .input-suffix{ position:relative; }
+  .input-suffix span{ position:absolute; right:10px; top:50%; transform:translateY(-50%); font-family:var(--mono); font-size:12px; color: var(--text-faint); pointer-events:none; }
+  .input-suffix input{ padding-right:30px; }
+  .input-prefix span{ position:absolute; left:10px; top:50%; transform:translateY(-50%); font-family:var(--mono); font-size:12px; color: var(--text-faint); pointer-events:none; }
+  .input-prefix input{ padding-left:34px; }
+  .input-prefix{ position:relative; }
+
+  /* Result */
+  .hero-result{
+    margin-top:4px; padding:26px 22px; border-radius:8px;
+    background: var(--panel-2);
+    border:1px solid var(--border); text-align:center;
+  }
+  .hero-label{ font-family: var(--mono); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color: var(--text-faint); }
+  .hero-number{ font-family: var(--display); font-size:40px; font-weight:500; margin-top:8px; letter-spacing:-0.005em; transition: opacity .2s; }
+  .hero-sub{ font-size:12.5px; color: var(--text-dim); margin-top:8px; }
+
+  .error-box{
+    margin-top:4px; padding:14px 16px; border-radius:6px;
+    background: rgba(201,143,143,0.08); border:1px solid rgba(201,143,143,0.3);
+    color: #d9b3b3; font-size:13px;
+  }
+
+  /* breakdown bar */
+  .bar-wrap{ margin-top:18px; }
+  .bar{ display:flex; height:10px; border-radius:5px; overflow:hidden; background:var(--panel-2); }
+  .bar .seg{ height:100%; transition: width .35s ease; }
+  .leg-dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; display:inline-block; margin-right:7px; }
+
+  /* breakdown table */
+  table.breakdown-table{ width:100%; border-collapse:collapse; margin-top:16px; font-size:13px; }
+  .breakdown-table th{ text-align:left; padding:7px 10px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); border-bottom:1px solid var(--border-soft); }
+  .breakdown-table th.num, .breakdown-table td.num{ text-align:right; }
+  .breakdown-table td{ padding:11px 10px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  .breakdown-table td:first-child{ display:flex; align-items:center; }
+  .breakdown-table td.num{ font-family:var(--mono); color: var(--text-dim); }
+  .breakdown-table tr.total-row td{ border-top:1px solid var(--border); border-bottom:none; font-weight:600; color:var(--text); padding-top:14px; font-family:var(--display); font-size:15px; }
+  .breakdown-table tr.total-row td.num{ font-family:var(--mono); font-size:14px; color: var(--text); }
+
+  .metrics-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+  @media (max-width:640px){ .metrics-grid{ grid-template-columns:repeat(2,1fr); } }
+  .metric{ background: var(--panel-2); border:1px solid var(--border-soft); border-radius:6px; padding:13px; }
+  .metric .mlabel{ font-size:10.5px; color: var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; }
+  .metric .mval{ font-family: var(--mono); font-size:17px; font-weight:500; margin-top:5px; }
+
+  /* Store summary table */
+  .summary-table-wrap{ overflow-x:auto; margin-top:6px; border:1px solid var(--border-soft); border-radius:6px; }
+  table.summary-table{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:520px; }
+  .summary-table thead th{ background:var(--panel-2); padding:9px 10px; text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); border-bottom:1px solid var(--border); position:sticky; top:0; }
+  .summary-table th.num{ text-align:right; }
+  .summary-table td{ padding:8px 10px; border-bottom:1px solid var(--border-soft); }
+  .summary-table td.num{ text-align:right; font-family:var(--mono); }
+  .summary-table tbody tr{ cursor:pointer; transition: background .12s; }
+  .summary-table tbody tr:hover td{ background: rgba(255,255,255,0.025); }
+  .summary-table tbody tr.selected td{ background: var(--accent-dim); }
+  .summary-table tbody tr:last-child td{ border-bottom:none; }
+  .summary-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; gap:10px; flex-wrap:wrap; }
+
+  /* Paste / import boxes (shared style) */
+  details.parse-box{
+    margin-top:16px; border:1px solid var(--border-soft); border-radius:6px;
+    background: var(--panel-2); padding:0; overflow:hidden;
+  }
+  details.parse-box summary{
+    cursor:pointer; list-style:none; padding:11px 14px; font-size:13px; font-weight:600;
+    color: var(--text-dim); display:flex; align-items:center; gap:8px; user-select:none;
+  }
+  details.parse-box summary::-webkit-details-marker{ display:none; }
+  details.parse-box summary:before{ content:'▸'; font-size:11px; color: var(--text-faint); transition: transform .15s; }
+  details.parse-box[open] summary:before{ transform: rotate(90deg); }
+  details.parse-box summary:hover{ color: var(--text); }
+  .parse-body{ padding:0 14px 16px; border-top:1px solid var(--border-soft); }
+  .parse-hint{ font-size:11.5px; color: var(--text-faint); margin:12px 0 8px; line-height:1.5; }
+  textarea#orderPasteText, textarea#importPasteText{
+    width:100%; min-height:110px; resize:vertical;
+    background: var(--bg); border:1px solid var(--border-soft); color: var(--text);
+    border-radius:6px; padding:10px; font-family: var(--mono); font-size:12px; line-height:1.5;
+  }
+  textarea:focus{ border-color: var(--text-dim); }
+  .parse-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .parse-status{ font-size:12px; margin-top:10px; padding:9px 11px; border-radius:6px; line-height:1.5; }
+  .parse-status.ok{ background: rgba(255,255,255,0.04); border:1px solid var(--border); color: var(--text-dim); }
+  .parse-status.fail{ background: rgba(201,143,143,0.08); border:1px solid rgba(201,143,143,0.3); color:#d9b3b3; }
+  .parse-manual-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  @media (max-width:520px){ .parse-manual-row{ grid-template-columns:1fr; } }
+  .parse-preview{
+    margin-top:12px; padding:10px 12px; background: var(--bg); border:1px solid var(--border-soft);
+    border-radius:6px; font-family: var(--mono); font-size:12.5px; color: var(--text-dim);
+  }
+  .parse-preview b{ color: var(--text); }
+
+  table.import-preview-table{ width:100%; border-collapse:collapse; font-size:12px; }
+  .import-preview-table thead th{ background:var(--panel-2); padding:7px 9px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); position:sticky; top:0; }
+  .import-preview-table th.num{ text-align:right; }
+  .import-preview-table td{ padding:7px 9px; border-top:1px solid var(--border-soft); }
+  .import-preview-table td.num{ text-align:right; font-family:var(--mono); }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(10px);
+    background: var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:10px 16px; border-radius:6px; font-size:13px; opacity:0; pointer-events:none;
+    transition: all .25s; z-index:50; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  ::placeholder{ color: var(--text-faint); }
+
+  /* ---------- App shell: nav + section tabs ---------- */
+  .app-shell{ display:flex; min-height:100vh; }
+
+  .nav-rail{
+    width:56px; flex-shrink:0; background: var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; gap:18px; padding:18px 0;
+  }
+  .nav-rail .icon-tile{
+    width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    color: var(--text-faint); font-size:17px;
+  }
+  .nav-rail .icon-tile.active{ background: var(--accent-dim); color: var(--text); }
+
+  .section-rail{
+    width:208px; flex-shrink:0; background: var(--panel); border-right:1px solid var(--border);
+    padding:24px 14px; display:flex; flex-direction:column; gap:6px;
+    position:fixed; top:0; left:0; height:100vh; overflow-y:auto; z-index:20;
+  }
+  .section-rail .rail-header{
+    font-family: var(--display); font-size:19px; font-weight:600; letter-spacing:.015em;
+    color: var(--text); background: #0a0a0a; border:1px solid var(--border);
+    padding:15px 14px; border-radius:7px; margin:0 0 0; text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .section-rail .rail-header:empty{ display:none; }
+  .section-rail .rail-header-wrap{
+    padding-bottom:18px; margin-bottom:6px;
+    border-bottom:1px solid var(--border);
+  }
+  .section-rail .rail-footer-wrap{
+    border-top:1px solid var(--border);
+    padding-top:14px; margin-top:4px;
+  }
+  .section-rail .rail-footer{
+    font-family: var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color: var(--text-faint); text-align:center; margin:0 4px 4px; line-height:1.5;
+    background: #0a0a0a; border:1px solid var(--border-soft); border-radius:6px; padding:10px 8px;
+  }
+  .section-tab{
+    display:flex; align-items:center; gap:13px; padding:13px 13px; border-radius:7px;
+    color: var(--text-dim); font-size:14.5px; font-weight:500; cursor:pointer; white-space:nowrap;
+    border:1px solid transparent; background:none; text-align:left; width:100%; font-family:var(--body);
+  }
+  .section-tab .tab-ico{ width:20px; height:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .section-tab .tab-ico svg{ width:19px; height:19px; }
+  .section-tab:hover{ background: var(--panel-2); color: var(--text); }
+  .section-tab.active{ background: var(--accent-dim); color: var(--text); border-color: var(--border); }
+  .rail-spacer{ flex:1 1 auto; min-height:8px; }
+
+  /* Collapsible nav group (Shopee-style: expands/collapses top-to-bottom, not sideways) */
+  .section-tab.has-children{ justify-content:space-between; }
+  .nav-chev{ display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:auto; color:var(--text-faint); transition:transform .2s ease; }
+  .nav-chev svg{ width:14px; height:14px; }
+  .nav-chev.open{ transform:rotate(180deg); }
+  .nav-submenu{ overflow:hidden; max-height:0; transition:max-height .2s ease; display:flex; flex-direction:column; gap:3px; }
+  .nav-submenu.open{ max-height:170px; }
+  .nav-subitem{
+    display:flex; align-items:center; gap:10px; padding:11px 12px 11px 42px; border-radius:7px;
+    font-size:13.5px; color: var(--text-dim); background:none; border:1px solid transparent;
+    text-align:left; width:100%; cursor:pointer; font-family:var(--body); white-space:nowrap;
+  }
+  .nav-subitem:hover{ background: var(--panel-2); color: var(--text); }
+  .nav-subitem.active{ background: var(--accent-dim); color: var(--text); }
+
+  .proyeksi-sub-label{
+    font-family: var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color: var(--text-faint); margin:22px 2px 8px;
+  }
+  .proyeksi-sub-label:first-child{ margin-top:0; }
+
+  .app-main{ flex:1; min-width:0; padding: 28px 22px 64px; margin-left:208px; }
+  .app-main .wrap{ padding:0; }
+
+  .section-pane{ display:none; }
+  .section-pane.active{ display:block; }
+
+  /* Collapsible panel title (Toko) */
+  .panel-title.collapsible{ cursor:pointer; user-select:none; }
+  .panel-title.collapsible .chev{ transition: transform .15s; color: var(--text-faint); font-size:11px; }
+  .panel-title.collapsible.collapsed .chev{ transform: rotate(-90deg); }
+  .panel-collapse-body{ overflow:hidden; }
+  .panel-collapse-body.collapsed{ display:none; }
+
+  @media (max-width: 760px){
+    .section-rail{ width:172px; padding:18px 10px; }
+    .app-main{ padding:16px 12px 48px; margin-left:172px; }
+    .section-tab{ font-size:13px; padding:11px 10px; gap:10px; }
+    .section-rail .rail-header{ font-size:16px; padding:12px 10px; }
+  }
+  @media (max-width: 560px){
+    .nav-rail{ display:none; }
+  }
+
+  .pesanan-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
+  .pesanan-grid .panel{ margin-top:0; }
+  @media (max-width: 760px){
+    .pesanan-grid{ grid-template-columns: 1fr; }
+  }
+
+  .biaya-split-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
+  .biaya-split-grid .panel{ margin-top:0; }
+  @media (max-width: 760px){
+    .biaya-split-grid{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- SECTION RAIL: 4 section tab -->
+  <nav class="section-rail" id="sectionRail">
+    <div class="rail-header-wrap">
+      <div class="rail-header" id="railActiveStoreBadge"></div>
+    </div>
+    <button class="section-tab" data-section="pesanan" type="button"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="14" x2="13" y2="14"/></svg></span><span>Pesanan &amp; bayar</span></button>
+    <button class="section-tab" data-section="hpp" type="button"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 3v9M12 12l8-4.5M12 12l-8-4.5"/></svg></span><span>HPP</span></button>
+    <button class="section-tab active" data-section="biaya" type="button"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.2"/><rect x="13" y="3" width="8" height="8" rx="1.2"/><rect x="3" y="13" width="8" height="8" rx="1.2"/><rect x="13" y="13" width="8" height="8" rx="1.2"/></svg></span><span>Price Analysis</span></button>
+
+    <button class="section-tab has-children" id="proyeksiToggle" type="button">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 19V11"/><path d="M12 19V6"/><path d="M17 19v-9"/></svg></span><span>Proyeksi</span>
+      <span class="nav-chev" id="proyeksiChev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="nav-submenu" id="proyeksiSubmenu">
+      <button class="nav-subitem" data-section="proyeksi-ringkasan" type="button">Proyeksi Harga</button>
+      <button class="nav-subitem" data-section="proyeksi-platform" type="button">Platform</button>
+    </div>
+
+    <div class="rail-spacer"></div>
+    <button class="section-tab" data-section="setting" type="button"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V19a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H4a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.04 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09A1.7 1.7 0 0 0 11.13 4V4a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.04H20a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04z"/></svg></span><span>Setting</span></button>
+    <div class="rail-footer-wrap">
+      <div class="rail-footer">Kalkulator Harga Jual</div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <div class="wrap">
+      <header>
+        <div>
+          <div class="brand-eyebrow">Pricing Engine</div>
+          <h1 id="sectionHeading">Biaya & Benefit</h1>
+          <div class="sub" id="sectionSub">Total biaya & komponen biaya real per pesanan, dari Rincian Penghasilan.</div>
+        </div>
+        <div id="pesananHeaderAction" style="display:none;">
+          <button class="btn btn-accent btn-sm" id="pesananActionBtn">Parse Otomatis</button>
+        </div>
+        <div id="proyeksiHeaderAction" style="display:none; gap:12px; align-items:flex-end;">
+          <div style="width:130px;">
+            <label for="npmHeaderInput" style="margin-bottom:4px; white-space:nowrap;">Target Profit</label>
+            <div class="input-prefix"><span>Rp</span><input type="number" id="npmHeaderInput" step="100" placeholder="10000"></div>
+          </div>
+        </div>
+        <div id="biayaHeaderAction" style="display:none; gap:12px; align-items:flex-end;">
+          <div style="width:108px;">
+            <label for="affiliateAktualInput" style="margin-bottom:4px; white-space:nowrap;">Affiliate (%)</label>
+            <div class="input-suffix"><input type="number" id="affiliateAktualInput" step="0.01" placeholder="0"><span>%</span></div>
+          </div>
+          <div style="width:108px;">
+            <label for="adsAcosAktualInput" style="margin-bottom:4px; white-space:nowrap;">ACOS (%)</label>
+            <div class="input-suffix"><input type="number" id="adsAcosAktualInput" step="0.01" placeholder="0"><span>%</span></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTION 1: TOKO -->
+      <section class="section-pane" id="pane-setting">
+        <div class="panel">
+          <div class="panel-title collapsible" id="tokoPanelTitle">
+            <span>Toko</span>
+            <span class="chev">▾</span>
+          </div>
+          <div class="panel-collapse-body" id="tokoPanelBody">
+            <div class="store-pill-list" id="storeList"></div>
+            <div class="add-row">
+              <input type="text" id="newStoreName" placeholder="Nama toko baru...">
+              <button class="btn btn-accent btn-sm" id="addStoreBtn">+ Toko</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- SECTION 2: PESANAN & BAYAR -->
+      <section class="section-pane" id="pane-pesanan">
+        <div class="pesanan-grid">
+          <div class="panel">
+            <div class="panel-title"><span>Rincian Penghasilan</span><span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">sisi penjual</span></div>
+            <div class="parse-hint">Paste seluruh detail "Rincian Penghasilan" dari halaman pesanan platform — termasuk Subtotal, Ongkir, Voucher, dan rincian Biaya Lainnya.</div>
+            <textarea id="penghasilanPasteText" placeholder="Paste di sini teks Rincian Penghasilan, persis seperti yang ditampilkan di aplikasi/web platform..."></textarea>
+            <div id="penghasilanStatus"></div>
+            <div class="parse-preview" id="penghasilanPreview"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title"><span>Pembayaran Pembeli</span><span style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;">sisi pembeli</span></div>
+            <div class="parse-hint">Paste detail "Total Pembayaran Pembeli" — Subtotal, Ongkir, Voucher, Biaya Layanan yang dilihat pembeli.</div>
+            <textarea id="pembayaranPasteText" placeholder="Paste di sini teks Pembayaran Pembeli..."></textarea>
+            <div id="pembayaranStatus"></div>
+            <div class="parse-preview" id="pembayaranPreview"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: HPP -->
+      <section class="section-pane" id="pane-hpp">
+        <div class="panel">
+          <div class="panel-title">
+            <span>Produk / SKU Induk</span>
+            <span id="productStoreLabel" style="color:var(--text-faint); font-weight:400; text-transform:none; letter-spacing:0;"></span>
+            <button class="btn btn-ghost btn-sm" id="clearAllProductsBtn" style="margin-left:auto;">Hapus semua produk</button>
+          </div>
+          <div id="productList"></div>
+          <div class="add-row" style="flex-wrap:wrap;">
+            <input type="text" id="newProductName" placeholder="Nama produk..." style="flex:1.4; min-width:90px;">
+            <input type="number" id="newProductHpp" placeholder="HPP (Rp)" style="flex:1; min-width:80px;">
+            <button class="btn btn-accent btn-sm" id="addProductBtn">+ Produk</button>
+          </div>
+
+          <details class="parse-box" id="importBox">
+            <summary>Import banyak produk (paste dari Excel/Spreadsheet)</summary>
+            <div class="parse-body">
+              <div class="parse-hint">1 baris = 1 produk. Pisahkan kolom dengan TAB (hasil copy langsung dari Excel/Google Sheets) atau titik koma ( ; ). Format kolom: <b style="color:var(--text-dim)">SKU Induk &#9; SKU Variasi &#9; HPP</b> (3 kolom — disarankan, biar Proyeksi Harga bisa dikelompokkan rapi). Kalau cuma 2 kolom (Nama &#9; HPP), SKU Induk dianggap sama dengan nama produknya. Baris header otomatis dilewati.</div>
+              <textarea id="importPasteText" placeholder="Turtleneck&#9;Turtleneck_HITAM-S&#9;41.000&#10;Turtleneck&#9;Turtleneck_HITAM-M&#9;41.000&#10;..."></textarea>
+              <div class="parse-actions">
+                <button class="btn btn-accent btn-sm" id="importParseBtn">Cek Data</button>
+                <button class="btn btn-ghost btn-sm" id="importClearBtn">Bersihkan</button>
+              </div>
+              <div id="importPreviewWrap"></div>
+            </div>
+          </details>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">HPP</div>
+          <div class="field-row">
+            <div>
+              <label for="hppInput">HPP (modal produk) — produk aktif</label>
+              <div class="input-prefix"><span>Rp</span><input type="number" id="hppInput" placeholder="0"></div>
+            </div>
+          </div>
+
+          <details class="parse-box" id="hppBulkBox" style="margin-top:14px;">
+            <summary>Update HPP banyak produk sekaligus (paste)</summary>
+            <div class="parse-body">
+              <div class="parse-hint">
+                1 baris = 1 produk/variasi. Pisahkan kolom dengan TAB (hasil copy dari Excel/Google Sheets) atau titik koma ( ; ). Format kolom: <b style="color:var(--text-dim)">SKU Induk &#9; SKU Variasi &#9; HPP</b> (3 kolom — disarankan). Kalau cuma 2 kolom (Nama &#9; HPP), SKU Induk dianggap sama dengan nama produknya. Kolom SKU Variasi kalau berisi rentang dengan tanda <b style="color:var(--text-dim)">-></b> (contoh <code>Turtleneck_HITAM-M -> Turtleneck_Mocca-M</code>), kedua kode tersebut akan dipakai sebagai dua produk terpisah dengan HPP dan SKU Induk yang sama. Produk yang nama / kode-nya sudah ada akan di-update HPP-nya, yang belum ada akan dibuat baru. Baris header otomatis dilewati.
+              </div>
+              <textarea id="hppBulkPasteText" placeholder="Turtleneck&#9;Turtleneck_HITAM-M -> Turtleneck_Mocca-M&#9;41.000&#10;Turtleneck&#9;Turtleneck_HITAM-S&#9;41.000&#10;..."></textarea>
+              <div class="parse-actions">
+                <button class="btn btn-accent btn-sm" id="hppBulkParseBtn">Cek Data</button>
+                <button class="btn btn-ghost btn-sm" id="hppBulkClearBtn">Bersihkan</button>
+              </div>
+              <div id="hppBulkPreviewWrap"></div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- SECTION 4: BIAYA & BENEFIT -->
+      <section class="section-pane active" id="pane-biaya">
+        <div class="panel">
+          <div class="panel-title">Total Biaya &amp; Benefit (per order)</div>
+          <div id="biayaEmptyHint" class="parse-hint">Paste "Rincian Penghasilan" di section Pesanan &amp; Pembayaran dulu untuk lihat total biaya &amp; benefit real per order.</div>
+          <div class="metrics-grid" id="biayaMetricsGrid" style="display:none;">
+            <div class="metric"><div class="mlabel">Cost Ratio</div><div class="mval" id="mBiayaPct">0%</div></div>
+            <div class="metric"><div class="mlabel">Net Profit Margin</div><div class="mval" id="mEstimasiNpm">–</div></div>
+            <div class="metric"><div class="mlabel">Gross Margin</div><div class="mval" id="mGrossMarginPct">–</div></div>
+            <div class="metric"><div class="mlabel">Platform Fee</div><div class="mval" id="mPlatformFeePct">0%</div></div>
+            <div class="metric"><div class="mlabel">Total Cost</div><div class="mval" id="mTotalBiaya" style="color:var(--danger)">Rp 0</div></div>
+            <div class="metric"><div class="mlabel">Profit Aktual</div><div class="mval" id="mBenefit">isi HPP dulu</div></div>
+            <div class="metric"><div class="mlabel">Subtotal</div><div class="mval" id="mSubtotal">Rp 0</div></div>
+            <div class="metric"><div class="mlabel">Biaya Platform</div><div class="mval" id="mPlatformFeeIdr" style="color:var(--danger)">Rp 0</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Komponen Biaya</div>
+          <div id="biayaBenefitCard"></div>
+        </div>
+      </section>
+
+      <!-- SECTION 5a: PROYEKSI - RINGKASAN PRODUK -->
+      <section class="section-pane" id="pane-proyeksi-ringkasan">
+        <div class="panel" id="storeSummaryPanel">
+          <div id="storeSummaryArea"></div>
+        </div>
+      </section>
+
+      <!-- SECTION 5b: PROYEKSI - PLATFORM -->
+      <section class="section-pane" id="pane-proyeksi-platform">
+        <div class="panel">
+          <div class="panel-title">Platform</div>
+          <div class="platform-tabs" id="platformTabs"></div>
+
+          <div class="field-row">
+            <div>
+              <label for="admInput">Adm % (biaya platform)</label>
+              <div class="input-suffix"><input type="number" id="admInput" step="0.01"><span>%</span></div>
+            </div>
+            <div>
+              <label for="acosInput">ACOS % (iklan)</label>
+              <div class="input-suffix"><input type="number" id="acosInput" step="0.01"><span>%</span></div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="npmInput">Target profit / pesanan</label>
+              <div class="input-prefix"><span>Rp</span><input type="number" id="npmInput" value="10000"></div>
+            </div>
+          </div>
+
+          <div class="settings-note">
+            <span>Adm %, ACOS %, dan Target Profit tersimpan otomatis untuk toko ini.</span>
+            <span class="saved-badge" id="savedBadge">✓ Tersimpan</span>
+            <button class="btn btn-ghost btn-sm" id="resetPlatformBtn" style="margin-left:auto;">↺ Reset ke default platform</button>
+          </div>
+
+          <div id="resultArea"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'zenoot-pricing-tool-data-v1';
+  const LAST_STORE_KEY = 'zenoot-pricing-tool-last-store-v1';
+  const PLATFORM_META = {
+    Shopee: { color: 'var(--shopee)' },
+    TikTok: { color: 'var(--tiktok)' },
+    Lazada: { color: 'var(--lazada)' }
+  };
+  const PLATFORM_PRESETS = {
+    Shopee: { adm: 41.25, acos: 10 },
+    TikTok: { adm: 50.65, acos: 10 },
+    Lazada: { adm: 27.70, acos: 10 }
+  };
+
+  /* Breakdown lengkap: Rincian Penghasilan (sisi penjual) & Pembayaran Pembeli (sisi pembeli) */
+  const PENGHASILAN_FIELDS = [
+    { key: 'subtotalPesanan', label: 'Subtotal Pesanan', group: 'omset' },
+    { key: 'hargaProduk', label: 'Harga Produk', group: 'omset' },
+    { key: 'ongkirDibayarPembeli', label: 'Ongkir Dibayar Pembeli', group: 'omset' },
+    { key: 'potonganOngkirShopee', label: 'Estimasi Potongan Ongkos Kirim dari Shopee', group: 'omset' },
+    { key: 'voucherSubsidiShopee', label: 'Voucher & Subsidi Shopee', group: 'potongan' },
+    { key: 'voucherToko', label: 'Voucher Toko yang ditanggung Penjual', group: 'potongan' },
+    { key: 'biayaAdministrasi', label: 'Biaya Administrasi', group: 'biaya' },
+    { key: 'biayaLayanan', label: 'Biaya Layanan', group: 'biaya' },
+    { key: 'biayaProsesPesanan', label: 'Biaya Proses Pesanan', group: 'biaya' },
+    { key: 'biayaIsiSaldo', label: 'Biaya Isi Saldo Otomatis', group: 'biaya' },
+    { key: 'totalPenghasilan', label: 'Estimasi Total Penghasilan', group: 'total' }
+  ];
+
+  const PEMBAYARAN_FIELDS = [
+    { key: 'subtotalPesanan', label: 'Subtotal Pesanan', group: 'omset' },
+    { key: 'ongkosKirim', label: 'Ongkos Kirim', group: 'omset' },
+    { key: 'voucherShopee', label: 'Voucher Shopee', group: 'potongan' },
+    { key: 'voucherToko', label: 'Voucher Toko', group: 'potongan' },
+    { key: 'biayaLayanan', label: 'Biaya Layanan', group: 'biaya' },
+    { key: 'totalPembayaran', label: 'Total Pembayaran Pembeli', group: 'total' }
+  ];
+
+  /* Cari SEMUA kemunculan label (bukan cuma yang pertama) lalu ambil yang paling masuk akal:
+     skip baris yang isinya cuma label "Estimasi Subtotal Ongkos Kirim" dkk yang mirip tapi bukan match persis. */
+  function findFieldValue(lines, label){
+    const target = label.toLowerCase();
+    for(let i = 0; i < lines.length; i++){
+      const lineLower = lines[i].toLowerCase();
+      if(lineLower === target || lineLower.startsWith(target)){
+        for(let j = i + 1; j < Math.min(lines.length, i + 3); j++){
+          const val = parseRupiahLine(lines[j]);
+          if(val !== null) return val;
+        }
+      }
+    }
+    return null;
+  }
+
+  function parseBreakdown(text, fieldDefs){
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const result = {};
+    let foundCount = 0;
+    fieldDefs.forEach(f => {
+      const val = findFieldValue(lines, f.label);
+      result[f.key] = val;
+      if(val !== null) foundCount++;
+    });
+    return { values: result, foundCount, totalFields: fieldDefs.length };
+  }
+
+  /* ---------- Section tabs + collapsible Toko ---------- */
+  const SECTION_META = {
+    setting: { title: 'Setting', sub: 'Kelola toko — tambah, hapus, dan pilih toko aktif. Pengaturan & data tersimpan terpisah per toko.' },
+    pesanan: { title: 'Pesanan & Pembayaran', sub: 'Paste Rincian Penghasilan & Pembayaran Pembeli untuk hitung biaya otomatis.' },
+    hpp: { title: 'HPP', sub: 'Modal produk — dipakai untuk hitung profit & harga jual.' },
+    biaya: { title: 'Price Analysis', sub: 'Total biaya & komponen biaya real per pesanan, dari Rincian Penghasilan.' },
+    'proyeksi-ringkasan': { title: 'Proyeksi · Proyeksi Harga', sub: 'Ringkasan harga jual per SKU Induk — HPP, harga jual, profit, dan GPM.' },
+    'proyeksi-platform': { title: 'Proyeksi · Platform', sub: 'Kalkulator harga jual minimum per platform — Adm%, ACOS%, Target Profit.' }
+  };
+
+  function setProyeksiSubmenuOpen(open){
+    document.getElementById('proyeksiSubmenu').classList.toggle('open', open);
+    document.getElementById('proyeksiChev').classList.toggle('open', open);
+  }
+
+  function switchSection(key){
+    document.querySelectorAll('.section-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === key);
+    });
+    document.querySelectorAll('.nav-subitem').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === key);
+    });
+    document.getElementById('proyeksiToggle').classList.toggle('active', key === 'proyeksi-ringkasan' || key === 'proyeksi-platform');
+    document.getElementById('proyeksiToggle').classList.toggle('parent-active', key === 'proyeksi-ringkasan' || key === 'proyeksi-platform');
+    document.querySelectorAll('.section-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.id === 'pane-' + key);
+    });
+    if(key === 'proyeksi-ringkasan' || key === 'proyeksi-platform') setProyeksiSubmenuOpen(true);
+    document.getElementById('pesananHeaderAction').style.display = (key === 'pesanan') ? 'flex' : 'none';
+    document.getElementById('biayaHeaderAction').style.display = (key === 'biaya') ? 'flex' : 'none';
+    document.getElementById('proyeksiHeaderAction').style.display = (key === 'proyeksi-ringkasan') ? 'flex' : 'none';
+    const meta = SECTION_META[key];
+    if(meta){
+      document.getElementById('sectionHeading').textContent = meta.title;
+      document.getElementById('sectionSub').textContent = meta.sub;
+    }
+  }
+
+  document.querySelectorAll('.section-tab[data-section]').forEach(btn => {
+    btn.addEventListener('click', () => switchSection(btn.dataset.section));
+  });
+
+  document.querySelectorAll('.nav-subitem').forEach(btn => {
+    btn.addEventListener('click', () => switchSection(btn.dataset.section));
+  });
+
+  document.getElementById('proyeksiToggle').addEventListener('click', () => {
+    const submenu = document.getElementById('proyeksiSubmenu');
+    setProyeksiSubmenuOpen(!submenu.classList.contains('open'));
+  });
+
+  document.getElementById('tokoPanelTitle').addEventListener('click', () => {
+    document.getElementById('tokoPanelTitle').classList.toggle('collapsed');
+    document.getElementById('tokoPanelBody').classList.toggle('collapsed');
+  });
+
+  /* ---------- DATA / STATE ---------- */
+  let data = null;
+  let state = { storeId: null, productId: null };
+  let pendingImportRows = null;
+  let saveTimer = null;
+
+  function uid(){ return Math.random().toString(36).slice(2, 10); }
+
+  function defaultStoreSettings(){
+    return {
+      platform: 'Shopee',
+      targetNpm: 10000,
+      platformSettings: {
+        Shopee: { adm: PLATFORM_PRESETS.Shopee.adm, acos: PLATFORM_PRESETS.Shopee.acos },
+        TikTok: { adm: PLATFORM_PRESETS.TikTok.adm, acos: PLATFORM_PRESETS.TikTok.acos },
+        Lazada: { adm: PLATFORM_PRESETS.Lazada.adm, acos: PLATFORM_PRESETS.Lazada.acos }
+      },
+      lastParsedPenghasilan: null,
+      lastParsedPembayaran: null,
+      activeProductId: null,
+      manualHpp: null,
+      adsAcosAktual: null,
+      affiliateAktual: null
+    };
+  }
+
+  function defaultData(){
+    return {
+      stores: [
+        Object.assign({ id: uid(), name: 'ZENOOT', products: [ { id: uid(), name: 'TURTLENECK', hpp: 42000, parentSku: 'TURTLENECK' } ] }, defaultStoreSettings()),
+        Object.assign({ id: uid(), name: 'ALLEY', products: [ { id: uid(), name: 'MAYRA', hpp: 57500, parentSku: 'MAYRA' } ] }, defaultStoreSettings()),
+        Object.assign({ id: uid(), name: 'ELENZ', products: [] }, defaultStoreSettings())
+      ]
+    };
+  }
+
+  async function loadData(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw === null) throw new Error('no data yet');
+      data = JSON.parse(raw);
+    }catch(e){
+      data = defaultData();
+      await persist();
+      return;
+    }
+    migrateData();
+  }
+
+  function migrateData(){
+    if(!data || !Array.isArray(data.stores)){ data = defaultData(); return; }
+    let migrated = false;
+    const legacyDefaults = data.platformDefaults || null;
+    data.stores.forEach(store => {
+      if(!Array.isArray(store.products)){ store.products = []; migrated = true; }
+      store.products.forEach(p => {
+        if(!p.parentSku || typeof p.parentSku !== 'string' || !p.parentSku.trim()){ p.parentSku = p.name; migrated = true; }
+      });
+      if(!store.platformSettings || typeof store.platformSettings !== 'object'){
+        const base = legacyDefaults || PLATFORM_PRESETS;
+        store.platformSettings = {
+          Shopee: { adm: (base.Shopee||PLATFORM_PRESETS.Shopee).adm, acos: (base.Shopee||PLATFORM_PRESETS.Shopee).acos },
+          TikTok: { adm: (base.TikTok||PLATFORM_PRESETS.TikTok).adm, acos: (base.TikTok||PLATFORM_PRESETS.TikTok).acos },
+          Lazada: { adm: (base.Lazada||PLATFORM_PRESETS.Lazada).adm, acos: (base.Lazada||PLATFORM_PRESETS.Lazada).acos }
+        };
+        migrated = true;
+      }
+      if(!store.platform || !PLATFORM_META[store.platform]){ store.platform = 'Shopee'; migrated = true; }
+      if(typeof store.targetNpm !== 'number' || isNaN(store.targetNpm)){ store.targetNpm = 10000; migrated = true; }
+      if(store.lastParsedPenghasilan === undefined){ store.lastParsedPenghasilan = null; migrated = true; }
+      if(store.lastParsedPembayaran === undefined){ store.lastParsedPembayaran = null; migrated = true; }
+      if(store.activeProductId === undefined){ store.activeProductId = null; migrated = true; }
+      if(store.manualHpp === undefined){ store.manualHpp = null; migrated = true; }
+      if(store.adsAcosAktual === undefined){ store.adsAcosAktual = null; migrated = true; }
+      if(store.affiliateAktual === undefined){ store.affiliateAktual = null; migrated = true; }
+    });
+    if(data.platformDefaults){ delete data.platformDefaults; migrated = true; }
+    if(migrated) persist();
+  }
+
+  async function persist(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }catch(e){
+      showToast('Gagal menyimpan data. Cek storage browser lalu coba lagi.');
+    }
+  }
+
+  function debouncedSave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { persist(); flashSaved(); }, 500);
+  }
+
+  function flashSaved(){
+    const b = document.getElementById('savedBadge');
+    if(!b) return;
+    b.classList.add('show');
+    clearTimeout(b._t);
+    b._t = setTimeout(()=>b.classList.remove('show'), 1400);
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  function rupiah(n){
+    if(isNaN(n) || n === null) return 'Rp 0';
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  }
+  function pct(n){
+    if(isNaN(n) || n === null) return '0%';
+    return n.toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
+  }
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  /* Parse satu angka rupiah dari sebuah baris teks bebas. */
+  function parseRupiahLine(str){
+    if(str == null) return null;
+    if(!/[0-9]/.test(str)) return null;
+    let s = String(str).trim();
+    const negative = /-/.test(s);
+    s = s.replace(/Rp/gi, '').replace(/-/g, '').replace(/\s/g, '');
+    if(s === '') return null;
+
+    const hasComma = s.includes(',');
+    const hasDot = s.includes('.');
+    let num;
+
+    if(hasComma && hasDot){
+      num = parseFloat(s.replace(/,/g, ''));
+    } else if(hasDot && !hasComma){
+      const parts = s.split('.');
+      const lastLen = parts[parts.length - 1].length;
+      num = (parts.length > 1 && lastLen === 3) ? parseFloat(parts.join('')) : parseFloat(s);
+    } else if(hasComma && !hasDot){
+      const parts = s.split(',');
+      const lastLen = parts[parts.length - 1].length;
+      num = (parts.length > 1 && lastLen === 3) ? parseFloat(parts.join('')) : parseFloat(s.replace(',', '.'));
+    } else {
+      num = parseFloat(s);
+    }
+    if(isNaN(num)) return null;
+    return negative ? -num : num;
+  }
+
+  function currentStore(){ return data.stores.find(s => s.id === state.storeId) || null; }
+
+  function setActiveProduct(store, p){
+    state.productId = p.id;
+    store.activeProductId = p.id;
+    store.manualHpp = null;
+    document.getElementById('hppInput').value = p.hpp;
+    persist();
+    calculate();
+    renderBiayaBenefit();
+  }
+
+  // Dipanggil setelah bulk-paste/import: kalau belum ada produk aktif, pakai produk pertama;
+  // kalau produk aktif kebetulan baru saja diupdate HPP-nya lewat paste, sinkronkan tampilan.
+  function ensureActiveProduct(store){
+    if(!store || !store.products.length) return;
+    let activeProduct = store.activeProductId ? store.products.find(p => p.id === store.activeProductId) : null;
+    if(!activeProduct){
+      activeProduct = store.products[0];
+      store.activeProductId = activeProduct.id;
+      store.manualHpp = null;
+    }
+    state.productId = activeProduct.id;
+    const hppInput = document.getElementById('hppInput');
+    if(hppInput) hppInput.value = activeProduct.hpp;
+    persist();
+  }
+  function saveLastActiveStore(storeId){
+    try{
+      if(storeId) localStorage.setItem(LAST_STORE_KEY, storeId);
+    }catch(e){ /* abaikan, tidak kritis */ }
+  }
+
+  function readLastActiveStore(){
+    try{
+      return localStorage.getItem(LAST_STORE_KEY) || null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function currentProduct(){
+    const s = currentStore();
+    if(!s) return null;
+    return s.products.find(p => p.id === state.productId) || null;
+  }
+
+  /* ---------- RENDER: stores ---------- */
+  function renderStores(){
+    const list = document.getElementById('storeList');
+    list.innerHTML = '';
+    if(data.stores.length === 0){
+      list.innerHTML = '<div class="empty-hint">Belum ada toko. Tambahkan di bawah.</div>';
+    }
+    data.stores.forEach(store => {
+      const pill = document.createElement('div');
+      pill.className = 'store-pill' + (store.id === state.storeId ? ' active' : '');
+      pill.innerHTML = `
+        <div>
+          <div class="name">${escapeHtml(store.name)}</div>
+          <div class="count">${store.products.length} produk · ${escapeHtml(store.platform)}</div>
+        </div>
+        <div class="store-actions">
+          <button class="icon-btn" data-action="rename" title="Ganti nama">&#9998;</button>
+          <button class="icon-btn danger" data-action="delete" title="Hapus">&#10005;</button>
+        </div>`;
+      pill.addEventListener('click', (e) => {
+        if(e.target.closest('[data-action]')) return;
+        state.storeId = store.id;
+        state.productId = null;
+        saveLastActiveStore(store.id);
+        renderAll();
+      });
+      pill.querySelector('[data-action="rename"]').addEventListener('click', (e) => { e.stopPropagation(); renameStore(store.id); });
+      pill.querySelector('[data-action="delete"]').addEventListener('click', (e) => { e.stopPropagation(); deleteStore(store.id); });
+      list.appendChild(pill);
+    });
+  }
+
+  function renameStore(id){
+    const store = data.stores.find(s => s.id === id);
+    const name = prompt('Nama baru untuk toko:', store.name);
+    if(name && name.trim()){
+      store.name = name.trim();
+      persist(); renderAll();
+    }
+  }
+
+  function deleteStore(id){
+    const store = data.stores.find(s => s.id === id);
+    if(!confirm(`Hapus toko "${store.name}" beserta semua produknya? Tindakan ini tidak bisa dibatalkan.`)) return;
+    data.stores = data.stores.filter(s => s.id !== id);
+    if(state.storeId === id){
+      state.storeId = data.stores[0]?.id || null;
+      state.productId = null;
+      saveLastActiveStore(state.storeId);
+    }
+    persist(); renderAll();
+  }
+
+  /* ---------- RENDER: products ---------- */
+  function renderProducts(){
+    const list = document.getElementById('productList');
+    const label = document.getElementById('productStoreLabel');
+    const store = currentStore();
+    list.innerHTML = '';
+    label.textContent = store ? store.name : '';
+
+    if(!store){
+      list.innerHTML = '<div class="empty-hint">Pilih toko dulu di atas.</div>';
+      return;
+    }
+    if(store.products.length === 0){
+      list.innerHTML = '<div class="empty-hint">Belum ada produk di toko ini. Tambah manual di bawah, atau import banyak sekaligus dari spreadsheet.</div>';
+      return;
+    }
+    store.products.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'product-row' + (p.id === state.productId ? ' selected' : '');
+      row.style.cursor = 'pointer';
+      row.innerHTML = `
+        <div>
+          <div class="pname">${escapeHtml(p.name)}</div>
+          <div class="phpp">HPP ${rupiah(p.hpp)}</div>
+        </div>
+        <div class="store-actions">
+          <button class="icon-btn" data-action="edit" title="Ganti nama / SKU induk">&#9998;</button>
+          <button class="icon-btn danger" data-action="delete" title="Hapus">&#10005;</button>
+        </div>`;
+      row.addEventListener('click', (e) => {
+        if(e.target.closest('[data-action]')) return;
+        setActiveProduct(store, p);
+        renderProducts();
+      });
+      row.querySelector('[data-action="edit"]').addEventListener('click', (e) => { e.stopPropagation(); renameProduct(p.id); });
+      row.querySelector('[data-action="delete"]').addEventListener('click', (e) => { e.stopPropagation(); deleteProduct(p.id); });
+      list.appendChild(row);
+    });
+  }
+
+  function renameProduct(id){
+    const store = currentStore();
+    if(!store) return;
+    const p = store.products.find(x => x.id === id);
+    if(!p) return;
+    const name = prompt('Nama / SKU induk baru:', p.name);
+    if(name && name.trim()){
+      p.name = name.trim();
+      persist(); renderProducts(); renderBiayaBenefit();
+    }
+  }
+
+  function deleteProduct(id){
+    const store = currentStore();
+    const p = store.products.find(x => x.id === id);
+    if(!confirm(`Hapus produk "${p.name}"?`)) return;
+    store.products = store.products.filter(x => x.id !== id);
+    if(state.productId === id) state.productId = null;
+    if(store.activeProductId === id) store.activeProductId = null;
+    persist(); renderProducts(); calculate(); renderBiayaBenefit();
+  }
+
+  /* ---------- RENDER: platform tabs ---------- */
+  function renderPlatformTabs(){
+    const wrap = document.getElementById('platformTabs');
+    wrap.innerHTML = '';
+    const store = currentStore();
+    Object.keys(PLATFORM_META).forEach(name => {
+      const meta = PLATFORM_META[name];
+      const ps = store ? store.platformSettings[name] : PLATFORM_PRESETS[name];
+      const tab = document.createElement('button');
+      tab.className = 'ptab';
+      tab.disabled = !store;
+      tab.style.setProperty('--dot', meta.color);
+      tab.dataset.active = (!!store && store.platform === name).toString();
+      tab.innerHTML = `<div class="pname"><span class="dot" style="background:${meta.color}"></span>${name}</div>
+        <div class="pdefault">${ps.adm.toFixed(2)}% adm &middot; ${ps.acos.toFixed(2)}% acos</div>`;
+      tab.addEventListener('click', () => {
+        if(!store) return;
+        store.platform = name;
+        persist();
+        loadStoreSettingsToInputs();
+        renderPlatformTabs();
+        calculate();
+        renderBiayaBenefit();
+      });
+      wrap.appendChild(tab);
+    });
+  }
+
+  function loadStoreSettingsToInputs(){
+    const store = currentStore();
+    const admInput = document.getElementById('admInput');
+    const acosInput = document.getElementById('acosInput');
+    const npmInput = document.getElementById('npmInput');
+    const npmHeaderInput = document.getElementById('npmHeaderInput');
+    const hppInput = document.getElementById('hppInput');
+    const adsAcosAktualInput = document.getElementById('adsAcosAktualInput');
+    const affiliateAktualInput = document.getElementById('affiliateAktualInput');
+    if(!store){
+      admInput.value = ''; acosInput.value = ''; npmInput.value = '';
+      admInput.disabled = true; acosInput.disabled = true; npmInput.disabled = true;
+      if(npmHeaderInput){ npmHeaderInput.value = ''; npmHeaderInput.disabled = true; }
+      state.productId = null;
+      if(hppInput){ hppInput.value = ''; hppInput.disabled = true; }
+      if(adsAcosAktualInput){ adsAcosAktualInput.value = ''; adsAcosAktualInput.disabled = true; }
+      if(affiliateAktualInput){ affiliateAktualInput.value = ''; affiliateAktualInput.disabled = true; }
+      return;
+    }
+    admInput.disabled = false; acosInput.disabled = false; npmInput.disabled = false;
+    const ps = store.platformSettings[store.platform];
+    admInput.value = ps.adm;
+    acosInput.value = ps.acos;
+    npmInput.value = store.targetNpm;
+    if(npmHeaderInput){
+      npmHeaderInput.disabled = false;
+      npmHeaderInput.value = store.targetNpm;
+    }
+
+    if(adsAcosAktualInput){
+      adsAcosAktualInput.disabled = false;
+      adsAcosAktualInput.value = (store.adsAcosAktual === null || store.adsAcosAktual === undefined) ? '' : store.adsAcosAktual;
+    }
+
+    if(affiliateAktualInput){
+      affiliateAktualInput.disabled = false;
+      affiliateAktualInput.value = (store.affiliateAktual === null || store.affiliateAktual === undefined) ? '' : store.affiliateAktual;
+    }
+
+    if(hppInput){
+      hppInput.disabled = false;
+      let activeProduct = store.activeProductId ? store.products.find(p => p.id === store.activeProductId) : null;
+      if(!activeProduct && (store.manualHpp === null || store.manualHpp === undefined) && store.products.length > 0){
+        // belum ada produk aktif / nilai manual sama sekali — otomatis pakai produk pertama
+        // biar HPP & Benefit nggak nyangkut "isi HPP dulu" padahal produknya udah ada HPP-nya
+        activeProduct = store.products[0];
+        store.activeProductId = activeProduct.id;
+        debouncedSave();
+      }
+      if(activeProduct){
+        state.productId = activeProduct.id;
+        hppInput.value = activeProduct.hpp;
+      } else if(store.manualHpp !== null && store.manualHpp !== undefined){
+        state.productId = null;
+        hppInput.value = store.manualHpp;
+      } else {
+        state.productId = null;
+        hppInput.value = '';
+      }
+    }
+  }
+
+  /* ---------- Paste & parse order data (untuk update Adm %) ---------- */
+  const FIELD_LABEL_SHORT = {
+    subtotalPesanan: 'Subtotal Pesanan',
+    hargaProduk: 'Harga Produk',
+    ongkirDibayarPembeli: 'Ongkir Dibayar Pembeli',
+    potonganOngkirShopee: 'Potongan Ongkir dari Shopee',
+    voucherSubsidiShopee: 'Voucher & Subsidi Shopee',
+    voucherToko: 'Voucher Toko',
+    biayaAdministrasi: 'Biaya Administrasi',
+    biayaLayanan: 'Biaya Layanan',
+    biayaProsesPesanan: 'Biaya Proses Pesanan',
+    biayaIsiSaldo: 'Biaya Isi Saldo Otomatis',
+    totalPenghasilan: 'Estimasi Total Penghasilan',
+    ongkosKirim: 'Ongkos Kirim',
+    voucherShopee: 'Voucher Shopee',
+    totalPembayaran: 'Total Pembayaran Pembeli'
+  };
+
+  function renderParsePreview(containerId, fieldDefs, values){
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    const subtotal = values.subtotalPesanan;
+    const rows = fieldDefs.map(f => {
+      const v = values[f.key];
+      const ok = v !== null;
+      const ratio = (ok && subtotal && f.key !== 'subtotalPesanan') ? (v / subtotal) * 100 : null;
+      const rowClass = f.group === 'total' ? 'total-row' : '';
+      return `<tr class="${rowClass}">
+        <td style="color:${ok ? '' : 'var(--danger)'};">${FIELD_LABEL_SHORT[f.key] || f.label}</td>
+        <td class="num" style="color:${ok ? '' : 'var(--danger)'};">${ok ? rupiah(v) : 'tidak ketemu'}</td>
+        <td class="num" style="color:var(--text-faint); font-size:12px;">${ratio !== null ? pct(ratio) : '&mdash;'}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<table class="breakdown-table">
+      <thead><tr><th>Komponen</th><th class="num">Nilai</th><th class="num">% Subtotal</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function applyPenghasilanParse(text){
+    const status = document.getElementById('penghasilanStatus');
+    if(!text.trim()){
+      status.className = 'parse-status fail';
+      status.textContent = 'Belum ada teks yang di-paste.';
+      return;
+    }
+    const { values, foundCount, totalFields } = parseBreakdown(text, PENGHASILAN_FIELDS);
+    renderParsePreview('penghasilanPreview', PENGHASILAN_FIELDS, values);
+    if(foundCount === 0){
+      status.className = 'parse-status fail';
+      status.textContent = 'Gak nemu satu pun baris yang dikenali. Cek format teks yang di-paste.';
+      return;
+    }
+    status.className = foundCount === totalFields ? 'parse-status ok' : 'parse-status fail';
+    status.textContent = foundCount === totalFields
+      ? `Lengkap! ${foundCount}/${totalFields} field ketemu.`
+      : `${foundCount}/${totalFields} field ketemu — sebagian gak kebaca, cek hasil di bawah.`;
+
+    const store = currentStore();
+    if(store && values.subtotalPesanan !== null && values.totalPenghasilan !== null){
+      store.lastParsedPenghasilan = { values, parsedAt: Date.now() };
+      debouncedSave();
+      updatePesananActionBtn();
+      const totalPotongan = values.subtotalPesanan - values.totalPenghasilan;
+      const admPct = (totalPotongan / values.subtotalPesanan) * 100;
+      const admRounded = parseFloat(admPct.toFixed(2));
+      store.platformSettings[store.platform].adm = admRounded;
+      document.getElementById('admInput').value = admRounded;
+      renderPlatformTabs();
+      calculate();
+      showToast(`Adm % ${store.platform} otomatis terupdate jadi ${pct(admRounded)}`);
+    }
+    renderBiayaBenefit();
+  }
+
+  function applyPembayaranParse(text){
+    const status = document.getElementById('pembayaranStatus');
+    if(!text.trim()){
+      status.className = 'parse-status fail';
+      status.textContent = 'Belum ada teks yang di-paste.';
+      return;
+    }
+    const { values, foundCount, totalFields } = parseBreakdown(text, PEMBAYARAN_FIELDS);
+    renderParsePreview('pembayaranPreview', PEMBAYARAN_FIELDS, values);
+    if(foundCount === 0){
+      status.className = 'parse-status fail';
+      status.textContent = 'Gak nemu satu pun baris yang dikenali. Cek format teks yang di-paste.';
+      return;
+    }
+    status.className = foundCount === totalFields ? 'parse-status ok' : 'parse-status fail';
+    status.textContent = foundCount === totalFields
+      ? `Lengkap! ${foundCount}/${totalFields} field ketemu.`
+      : `${foundCount}/${totalFields} field ketemu — sebagian gak kebaca, cek hasil di bawah.`;
+
+    const store = currentStore();
+    if(store){
+      store.lastParsedPembayaran = { values, parsedAt: Date.now() };
+      debouncedSave();
+      updatePesananActionBtn();
+    }
+    renderBiayaBenefit();
+  }
+
+  function setActionBtnMode(btnId, hasData){
+    const btn = document.getElementById(btnId);
+    if(!btn) return;
+    if(hasData){
+      btn.textContent = 'Bersihkan Data';
+      btn.classList.remove('btn-accent');
+      btn.classList.add('btn-ghost');
+    } else {
+      btn.textContent = 'Parse Otomatis';
+      btn.classList.remove('btn-ghost');
+      btn.classList.add('btn-accent');
+    }
+  }
+
+  function updatePesananActionBtn(){
+    const store = currentStore();
+    const hasData = !!(store && (store.lastParsedPenghasilan || store.lastParsedPembayaran));
+    setActionBtnMode('pesananActionBtn', hasData);
+  }
+
+  function resetPenghasilanBox(){
+    const ta = document.getElementById('penghasilanPasteText');
+    if(ta) ta.value = '';
+    document.getElementById('penghasilanStatus').innerHTML = '';
+    document.getElementById('penghasilanPreview').innerHTML = '';
+  }
+
+  function resetPembayaranBox(){
+    const ta = document.getElementById('pembayaranPasteText');
+    if(ta) ta.value = '';
+    document.getElementById('pembayaranStatus').innerHTML = '';
+    document.getElementById('pembayaranPreview').innerHTML = '';
+  }
+
+  function loadParsedPreviewsForStore(){
+    const store = currentStore();
+    resetPenghasilanBox();
+    resetPembayaranBox();
+    if(!store){ updatePesananActionBtn(); return; }
+    if(store.lastParsedPenghasilan){
+      renderParsePreview('penghasilanPreview', PENGHASILAN_FIELDS, store.lastParsedPenghasilan.values);
+      document.getElementById('penghasilanStatus').className = 'parse-status ok';
+      document.getElementById('penghasilanStatus').textContent = 'Data tersimpan dari paste terakhir.';
+    }
+    if(store.lastParsedPembayaran){
+      renderParsePreview('pembayaranPreview', PEMBAYARAN_FIELDS, store.lastParsedPembayaran.values);
+      document.getElementById('pembayaranStatus').className = 'parse-status ok';
+      document.getElementById('pembayaranStatus').textContent = 'Data tersimpan dari paste terakhir.';
+    }
+    updatePesananActionBtn();
+  }
+
+
+  /* ---------- Import banyak produk dari spreadsheet ---------- */
+  function splitColumns(line){
+    if(line.includes('\t')) return line.split('\t').map(s => s.trim());
+    if(line.includes(';')) return line.split(';').map(s => s.trim());
+    if(/ {2,}/.test(line)) return line.split(/ {2,}/).map(s => s.trim());
+    return null;
+  }
+
+  function parseImportText(text){
+    const rawLines = text.split('\n').map(l => l.replace(/\r$/, '')).filter(l => l.trim().length > 0);
+    const rows = [];
+    rawLines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      const cols = splitColumns(trimmed);
+      if(!cols || cols.length < 2){
+        rows.push({ raw: trimmed, status: 'error', reason: 'Format kolom tidak dikenali. Pisahkan dengan TAB atau titik koma ( ; ).' });
+        return;
+      }
+      const hppRaw = cols[cols.length - 1];
+      const name = cols[cols.length - 2];
+      const parentSku = cols.length >= 3 ? cols[cols.length - 3] : name;
+      const hpp = parseRupiahLine(hppRaw);
+      if(idx === 0 && hpp === null && /hpp|harga|modal|cost/i.test(name + ' ' + hppRaw)){
+        return; // baris header, lewati diam-diam
+      }
+      if(!name){
+        rows.push({ raw: trimmed, status: 'error', reason: 'Nama produk / kode variasi kosong.' });
+        return;
+      }
+      if(hpp === null || hpp <= 0){
+        rows.push({ raw: trimmed, name, status: 'error', reason: 'Nilai HPP tidak valid.' });
+        return;
+      }
+      rows.push({ raw: trimmed, name, parentSku: parentSku || name, hpp, status: 'pending' });
+    });
+    return rows;
+  }
+
+  function statusBadge(s){
+    const map = {
+      new:   { c: '#ece9e4', bg: 'rgba(236,233,228,0.10)', label: 'Baru' },
+      update:{ c: '#c9c2b4', bg: 'rgba(201,194,180,0.08)', label: 'Update' },
+      skip:  { c: 'var(--text-faint)', bg: 'rgba(255,255,255,0.05)', label: 'Dilewati' },
+      error: { c: '#d9b3b3', bg: 'rgba(201,143,143,0.12)', label: 'Error' }
+    };
+    const m = map[s] || map.error;
+    return `<span style="color:${m.c};background:${m.bg};padding:2px 7px;border-radius:5px;font-size:11px;white-space:nowrap;">${m.label}</span>`;
+  }
+
+  function renderImportPreview(){
+    const wrap = document.getElementById('importPreviewWrap');
+    if(!pendingImportRows || !pendingImportRows.length){ wrap.innerHTML = ''; return; }
+    const store = currentStore();
+    if(!store){ wrap.innerHTML = ''; return; }
+    const overwriteChk = document.getElementById('importOverwriteChk');
+    const overwrite = overwriteChk ? overwriteChk.checked : true;
+
+    let countNew = 0, countUpdate = 0, countSkip = 0, countError = 0;
+    const rowsHtml = pendingImportRows.map(row => {
+      if(row.status === 'error'){
+        countError++;
+        return `<tr><td colspan="2" style="color:var(--text-dim);">${escapeHtml(row.raw)}</td><td style="color:#d9b3b3;">${escapeHtml(row.reason)}</td><td>${statusBadge('error')}</td></tr>`;
+      }
+      const existing = store.products.find(p => p.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+      let st;
+      if(existing) st = overwrite ? 'update' : 'skip';
+      else st = 'new';
+      if(st === 'new') countNew++; else if(st === 'update') countUpdate++; else countSkip++;
+      const ket = (st === 'update') ? `sebelumnya ${rupiah(existing.hpp)}` : (st === 'skip' ? 'sudah ada, tidak ditimpa' : '');
+      return `<tr><td style="color:var(--text-faint);">${escapeHtml(row.parentSku)}</td><td>${escapeHtml(row.name)}</td><td class="num">${rupiah(row.hpp)}</td><td style="color:var(--text-faint);">${ket}</td><td>${statusBadge(st)}</td></tr>`;
+    }).join('');
+
+    const totalActionable = countNew + countUpdate;
+    wrap.innerHTML = `
+      <label style="display:flex; align-items:center; gap:7px; margin-top:12px; font-size:12.5px; color:var(--text-dim); text-transform:none; letter-spacing:0;">
+        <input type="checkbox" id="importOverwriteChk" ${overwrite ? 'checked' : ''}>
+        Timpa HPP kalau nama / kode variasi sudah ada di toko ini
+      </label>
+      <div style="max-height:240px; overflow-y:auto; margin-top:8px; border:1px solid var(--border-soft); border-radius:7px;">
+        <table class="import-preview-table">
+          <thead><tr><th>SKU Induk</th><th>Nama / Kode Variasi</th><th class="num">HPP</th><th>Keterangan</th><th>Status</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="parse-preview">${countNew} baru &middot; ${countUpdate} update &middot; ${countSkip} dilewati &middot; ${countError} error</div>
+      <div class="parse-actions" style="margin-top:10px;">
+        <button class="btn btn-accent btn-sm" id="importConfirmBtn" ${totalActionable === 0 ? 'disabled style="opacity:.45;cursor:not-allowed;"' : ''}>Tambahkan ke ${escapeHtml(store.name)}</button>
+      </div>
+    `;
+    const newChk = document.getElementById('importOverwriteChk');
+    if(newChk) newChk.addEventListener('change', renderImportPreview);
+    const confirmBtn = document.getElementById('importConfirmBtn');
+    if(confirmBtn && totalActionable > 0) confirmBtn.addEventListener('click', applyImport);
+  }
+
+  function applyImport(){
+    const store = currentStore();
+    if(!store || !pendingImportRows) return;
+    const overwriteChk = document.getElementById('importOverwriteChk');
+    const overwrite = overwriteChk ? overwriteChk.checked : true;
+    let added = 0, updated = 0, skipped = 0;
+    pendingImportRows.forEach(row => {
+      if(row.status === 'error'){ skipped++; return; }
+      const existing = store.products.find(p => p.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+      if(existing){
+        if(overwrite){ existing.hpp = row.hpp; existing.parentSku = row.parentSku; updated++; }
+        else { existing.parentSku = row.parentSku; skipped++; }
+      } else {
+        store.products.push({ id: uid(), name: row.name, hpp: row.hpp, parentSku: row.parentSku });
+        added++;
+      }
+    });
+    persist();
+    resetImportBox();
+    ensureActiveProduct(store);
+    renderProducts();
+    calculate();
+    renderBiayaBenefit();
+    showToast(`Import selesai: ${added} produk baru, ${updated} di-update, ${skipped} dilewati`);
+  }
+
+  function resetImportBox(){
+    pendingImportRows = null;
+    const ta = document.getElementById('importPasteText');
+    if(ta) ta.value = '';
+    const wrap = document.getElementById('importPreviewWrap');
+    if(wrap) wrap.innerHTML = '';
+    const box = document.getElementById('importBox');
+    if(box) box.open = false;
+  }
+
+  /* ---------- Update HPP banyak produk dari spreadsheet (section HPP) ---------- */
+  let pendingHppBulkRows = null;
+
+  function parseHppBulkText(text){
+    const rawLines = text.split('\n').map(l => l.replace(/\r$/, '')).filter(l => l.trim().length > 0);
+    const rows = [];
+    rawLines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      const cols = splitColumns(trimmed);
+      if(!cols || cols.length < 2){
+        rows.push({ raw: trimmed, status: 'error', reason: 'Format kolom tidak dikenali. Pisahkan dengan TAB atau titik koma ( ; ).' });
+        return;
+      }
+      const hppRaw = cols[cols.length - 1];
+      const nameRaw = cols[cols.length - 2];
+      const parentSkuRaw = cols.length >= 3 ? cols[cols.length - 3] : null;
+      const hpp = parseRupiahLine(hppRaw);
+      if(idx === 0 && hpp === null && /hpp|harga|modal|cost/i.test(nameRaw + ' ' + hppRaw)){
+        return; // baris header, lewati diam-diam
+      }
+      if(!nameRaw){
+        rows.push({ raw: trimmed, status: 'error', reason: 'Nama produk / kode variasi kosong.' });
+        return;
+      }
+      if(hpp === null || hpp <= 0){
+        rows.push({ raw: trimmed, name: nameRaw, status: 'error', reason: 'Nilai HPP tidak valid.' });
+        return;
+      }
+      // dukung rentang "Kode A -> Kode B": jadi dua produk terpisah dengan HPP sama
+      const names = nameRaw.split('->').map(s => s.trim()).filter(Boolean);
+      if(names.length === 0){
+        rows.push({ raw: trimmed, name: nameRaw, status: 'error', reason: 'Nama produk / kode variasi kosong.' });
+        return;
+      }
+      names.forEach(n => {
+        rows.push({ raw: trimmed, name: n, parentSku: parentSkuRaw || n, hpp, status: 'pending' });
+      });
+    });
+    return rows;
+  }
+
+  function renderHppBulkPreview(){
+    const wrap = document.getElementById('hppBulkPreviewWrap');
+    if(!pendingHppBulkRows || !pendingHppBulkRows.length){ wrap.innerHTML = ''; return; }
+    const store = currentStore();
+    if(!store){ wrap.innerHTML = ''; return; }
+
+    let countNew = 0, countUpdate = 0, countError = 0;
+    const rowsHtml = pendingHppBulkRows.map(row => {
+      if(row.status === 'error'){
+        countError++;
+        return `<tr><td colspan="2" style="color:var(--text-dim);">${escapeHtml(row.raw)}</td><td style="color:#d9b3b3;">${escapeHtml(row.reason)}</td><td>${statusBadge('error')}</td></tr>`;
+      }
+      const existing = store.products.find(p => p.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+      const st = existing ? 'update' : 'new';
+      if(st === 'new') countNew++; else countUpdate++;
+      const ket = (st === 'update') ? `sebelumnya ${rupiah(existing.hpp)}` : 'produk baru';
+      return `<tr><td style="color:var(--text-faint);">${escapeHtml(row.parentSku)}</td><td>${escapeHtml(row.name)}</td><td class="num">${rupiah(row.hpp)}</td><td style="color:var(--text-faint);">${ket}</td><td>${statusBadge(st)}</td></tr>`;
+    }).join('');
+
+    const totalActionable = countNew + countUpdate;
+    wrap.innerHTML = `
+      <div style="max-height:240px; overflow-y:auto; margin-top:12px; border:1px solid var(--border-soft); border-radius:7px;">
+        <table class="import-preview-table">
+          <thead><tr><th>SKU Induk</th><th>Nama / Kode Variasi</th><th class="num">HPP baru</th><th>Keterangan</th><th>Status</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="parse-preview">${countNew} produk baru &middot; ${countUpdate} di-update &middot; ${countError} error</div>
+      <div class="parse-actions" style="margin-top:10px;">
+        <button class="btn btn-accent btn-sm" id="hppBulkConfirmBtn" ${totalActionable === 0 ? 'disabled style="opacity:.45;cursor:not-allowed;"' : ''}>Terapkan ke ${escapeHtml(store.name)}</button>
+      </div>
+    `;
+    const confirmBtn = document.getElementById('hppBulkConfirmBtn');
+    if(confirmBtn && totalActionable > 0) confirmBtn.addEventListener('click', applyHppBulk);
+  }
+
+  function applyHppBulk(){
+    const store = currentStore();
+    if(!store || !pendingHppBulkRows) return;
+    let added = 0, updated = 0, skipped = 0;
+    pendingHppBulkRows.forEach(row => {
+      if(row.status === 'error'){ skipped++; return; }
+      const existing = store.products.find(p => p.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+      if(existing){
+        existing.hpp = row.hpp; existing.parentSku = row.parentSku; updated++;
+      } else {
+        store.products.push({ id: uid(), name: row.name, hpp: row.hpp, parentSku: row.parentSku });
+        added++;
+      }
+    });
+    persist();
+    resetHppBulkBox();
+    ensureActiveProduct(store);
+    renderProducts();
+    calculate();
+    renderBiayaBenefit();
+    showToast(`HPP diperbarui: ${added} produk baru, ${updated} di-update`);
+  }
+
+  function resetHppBulkBox(){
+    pendingHppBulkRows = null;
+    const ta = document.getElementById('hppBulkPasteText');
+    if(ta) ta.value = '';
+    const wrap = document.getElementById('hppBulkPreviewWrap');
+    if(wrap) wrap.innerHTML = '';
+    const box = document.getElementById('hppBulkBox');
+    if(box) box.open = false;
+  }
+
+  /* ---------- CALCULATE ---------- */
+  // Hitung Cost Ratio REAL (sama persis dengan rumus di Price Analysis):
+  // Biaya Admin/Layanan/Proses + Voucher Toko + Biaya Iklan (ACOS aktual) + Biaya Affiliate (aktual),
+  // dibagi Subtotal Pesanan. Dipakai sebagai acuan "Total Potongan" di Proyeksi Harga.
+  function computeRealCostRatioPct(store){
+    const parsed = store.lastParsedPenghasilan;
+    if(!parsed || parsed.values.subtotalPesanan === null || parsed.values.totalPenghasilan === null) return null;
+    const v = parsed.values;
+    const subtotal = v.subtotalPesanan;
+    if(!subtotal || subtotal <= 0) return null;
+    const acosAktual = (store.adsAcosAktual === null || store.adsAcosAktual === undefined || isNaN(store.adsAcosAktual)) ? 0 : store.adsAcosAktual;
+    const affiliateAktual = (store.affiliateAktual === null || store.affiliateAktual === undefined || isNaN(store.affiliateAktual)) ? 0 : store.affiliateAktual;
+    const platformCost = Math.abs((v.biayaAdministrasi || 0) + (v.biayaLayanan || 0) + (v.biayaProsesPesanan || 0));
+    const voucherTokoCost = Math.abs(v.voucherToko || 0);
+    const adsBiaya = acosAktual > 0 ? (subtotal * acosAktual / 100) : 0;
+    const affiliateBiaya = affiliateAktual > 0 ? (subtotal * affiliateAktual / 100) : 0;
+    const costRatioTotal = platformCost + voucherTokoCost + adsBiaya + affiliateBiaya;
+    return (costRatioTotal / subtotal) * 100;
+  }
+
+  function renderBiayaBenefit(){
+    const emptyHint = document.getElementById('biayaEmptyHint');
+    const grid = document.getElementById('biayaMetricsGrid');
+    const card = document.getElementById('biayaBenefitCard');
+    if(!grid || !card) return;
+    const store = currentStore();
+    if(!store){
+      emptyHint.style.display = '';
+      grid.style.display = 'none';
+      card.innerHTML = '';
+      return;
+    }
+
+    const parsed = store.lastParsedPenghasilan;
+    const hpp = parseFloat(document.getElementById('hppInput') ? document.getElementById('hppInput').value : 0) || 0;
+    const acosAktual = (store.adsAcosAktual === null || store.adsAcosAktual === undefined || isNaN(store.adsAcosAktual)) ? 0 : store.adsAcosAktual;
+    const affiliateAktual = (store.affiliateAktual === null || store.affiliateAktual === undefined || isNaN(store.affiliateAktual)) ? 0 : store.affiliateAktual;
+
+    if(!parsed || parsed.values.subtotalPesanan === null || parsed.values.totalPenghasilan === null){
+      emptyHint.style.display = '';
+      grid.style.display = 'none';
+      card.innerHTML = '';
+      return;
+    }
+
+    emptyHint.style.display = 'none';
+    grid.style.display = '';
+
+    const v = parsed.values;
+    const subtotal = v.subtotalPesanan;
+    const totalPenghasilan = v.totalPenghasilan;
+    const totalBiaya = subtotal - totalPenghasilan;
+    // FYI-only: nilai subsidi Shopee asli dari sisi Pembayaran Pembeli (kalau ada datanya).
+    // Murni informasi buat tau besaran subsidi Shopee ke buyer. TIDAK dipakai di Cost Ratio/NPM/Profit Aktual manapun.
+    const pembayaranVals = (store.lastParsedPembayaran && store.lastParsedPembayaran.values) ? store.lastParsedPembayaran.values : null;
+    const pembayaranSubtotal = (pembayaranVals && pembayaranVals.subtotalPesanan !== null && pembayaranVals.subtotalPesanan !== undefined) ? pembayaranVals.subtotalPesanan : null;
+    const voucherShopeeFyi = (pembayaranVals && pembayaranVals.voucherShopee !== null && pembayaranVals.voucherShopee !== undefined) ? pembayaranVals.voucherShopee : null;
+    const voucherTokoPembayaranFyi = (pembayaranVals && pembayaranVals.voucherToko !== null && pembayaranVals.voucherToko !== undefined) ? pembayaranVals.voucherToko : null;
+    const fyiPct = (val) => (pembayaranSubtotal ? pct((val / pembayaranSubtotal) * 100) : '–');
+    // Cost Ratio: semua potongan real ke seller — admin, layanan, proses, voucher toko, ads, affiliate.
+    // EXCLUDE Voucher & Subsidi Shopee (value ke buyer, bukan biaya seller).
+    // EXCLUDE Biaya Isi Saldo Otomatis (itu top-up aset ke saldo ads, bukan potongan/biaya).
+    const platformCost = Math.abs((v.biayaAdministrasi || 0) + (v.biayaLayanan || 0) + (v.biayaProsesPesanan || 0));
+    const voucherTokoCost = Math.abs(v.voucherToko || 0);
+    // ads & affiliate dihitung setelah adsBiaya & affiliateBiaya tersedia di bawah
+
+    // Biaya iklan aktual dihitung dari ACOS % yang diisi manual (ACOS = biaya iklan / subtotal).
+    const adsBiaya = acosAktual > 0 ? (subtotal * acosAktual / 100) : 0;
+    const roas = acosAktual > 0 ? (100 / acosAktual) : null;
+
+    // Biaya Affiliate (proyeksi): manual, karena Shopee baru nampilin Biaya Komisi AMS
+    // setelah pesanan berstatus Selesai (belum ada saat masih diproses/dikirim).
+    const affiliateBiaya = affiliateAktual > 0 ? (subtotal * affiliateAktual / 100) : 0;
+
+    // Cost Ratio final: platform + voucher toko + ads + affiliate (exclude Voucher Subsidi Shopee & Biaya Isi Saldo Otomatis)
+    const costRatioTotal = platformCost + voucherTokoCost + adsBiaya + affiliateBiaya;
+    const costRatioPct = subtotal > 0 ? (costRatioTotal / subtotal) * 100 : 0;
+
+    const benefit = hpp > 0 ? (totalPenghasilan - hpp - adsBiaya - affiliateBiaya) : null;
+
+    // Estimasi NPM: subtotal dikurangi potongan Shopee (adm + layanan + proses pesanan),
+    // Voucher Toko (kalau ada), biaya iklan aktual, biaya affiliate aktual, lalu dikurangi HPP.
+    const potonganShopee = (v.biayaAdministrasi || 0) + (v.biayaLayanan || 0) + (v.biayaProsesPesanan || 0) + (v.voucherToko || 0);
+    const estimasiNpm = hpp > 0 ? (subtotal + potonganShopee - adsBiaya - affiliateBiaya - hpp) : null;
+    const estimasiNpmPct = (estimasiNpm !== null && subtotal > 0) ? (estimasiNpm / subtotal) * 100 : null;
+
+    // Rasio Admin & Layanan: SUM semua komponen biaya (admin, layanan, proses pesanan, dll),
+    // SKIP Biaya Isi Saldo Otomatis, lalu dibagi Subtotal Pesanan.
+    const rasioAdminLayananRows = [
+      ['Biaya Administrasi', v.biayaAdministrasi],
+      ['Biaya Layanan', v.biayaLayanan],
+      ['Biaya Proses Pesanan', v.biayaProsesPesanan]
+    ].filter(r => r[1] !== null);
+    const rasioAdminLayananSum = rasioAdminLayananRows.reduce((sum, [, val]) => sum + val, 0);
+    const rasioAdminLayananPct = subtotal ? (rasioAdminLayananSum / subtotal) * 100 : null;
+
+    const rincianRows = [
+      ['Voucher & Subsidi Shopee', v.voucherSubsidiShopee],
+      ['Voucher Toko', v.voucherToko],
+      ['Biaya Administrasi', v.biayaAdministrasi],
+      ['Biaya Layanan', v.biayaLayanan],
+      ['Biaya Proses Pesanan', v.biayaProsesPesanan],
+      ['Biaya Isi Saldo Otomatis', v.biayaIsiSaldo]
+    ].filter(r => r[1] !== null);
+
+    const rowPct = (val) => subtotal ? pct((val / subtotal) * 100) : '–';
+
+    // Gross Margin: (Harga Jual - HPP) / Harga Jual
+    const grossMargin = hpp > 0 ? (subtotal - hpp) : null;
+    const grossMarginPct = (grossMargin !== null && subtotal > 0) ? (grossMargin / subtotal) * 100 : null;
+
+    // Platform Fee IDR & %: admin + layanan + proses pesanan only
+    const platformFeeIdr = Math.abs((v.biayaAdministrasi || 0) + (v.biayaLayanan || 0) + (v.biayaProsesPesanan || 0));
+    const platformFeePct = subtotal > 0 ? (platformFeeIdr / subtotal) * 100 : 0;
+
+    document.getElementById('mSubtotal').textContent = rupiah(subtotal);
+    document.getElementById('mTotalBiaya').textContent = rupiah(costRatioTotal);
+    document.getElementById('mBiayaPct').textContent = pct(costRatioPct);
+    const mBenefit = document.getElementById('mBenefit');
+    mBenefit.textContent = benefit !== null ? rupiah(benefit) : 'isi HPP dulu';
+    mBenefit.style.color = benefit !== null && benefit >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const mEstimasiNpm = document.getElementById('mEstimasiNpm');
+    mEstimasiNpm.textContent = estimasiNpmPct !== null ? pct(estimasiNpmPct) : 'isi HPP dulu';
+    mEstimasiNpm.style.color = estimasiNpmPct !== null && estimasiNpmPct >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const mGrossMarginPct = document.getElementById('mGrossMarginPct');
+    mGrossMarginPct.textContent = grossMarginPct !== null ? pct(grossMarginPct) : 'isi HPP dulu';
+    mGrossMarginPct.style.color = grossMarginPct !== null && grossMarginPct >= 0 ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('mPlatformFeePct').textContent = pct(platformFeePct);
+    document.getElementById('mPlatformFeeIdr').textContent = rupiah(platformFeeIdr);
+
+
+    const costRatioSumDisplay = -costRatioTotal;
+
+    card.innerHTML = `
+      <table class="breakdown-table">
+        <thead><tr><th>Komponen Biaya</th><th class="num">Nilai</th><th class="num">% Subtotal</th></tr></thead>
+        <tbody>
+          ${v.hargaProduk !== null ? `<tr><td>Harga Produk</td><td class="num">${rupiah(v.hargaProduk)}</td><td class="num">${rowPct(v.hargaProduk)}</td></tr>` : ''}
+          ${hpp > 0 ? `<tr><td>HPP</td><td class="num">${rupiah(hpp)}</td><td class="num">${rowPct(-hpp)}</td></tr>` : ''}
+          ${(v.hargaProduk !== null || hpp > 0) ? `<tr><td colspan="3" style="border-bottom:none; padding-top:14px;"></td></tr>` : ''}
+          <tr style="background:rgba(255,255,255,0.045);"><td style="font-weight:700;">Rasio Admin &amp; Layanan</td><td class="num" style="font-weight:700;">${rupiah(rasioAdminLayananSum)}</td><td class="num" style="font-weight:700;">${rasioAdminLayananPct !== null ? pct(rasioAdminLayananPct) : '–'}</td></tr>
+          ${rasioAdminLayananRows.map(([label, val]) => `<tr><td style="color:var(--text-faint); padding-left:20px;">${label}</td><td class="num" style="color:var(--text-faint);">${rupiah(val)}</td><td class="num" style="color:var(--text-faint);">${rowPct(val)}</td></tr>`).join('')}
+          ${acosAktual > 0 ? `<tr><td>Biaya Iklan (ROAS ${roas.toFixed(2)}x)</td><td class="num">${rupiah(-adsBiaya)}</td><td class="num">${rowPct(-adsBiaya)}</td></tr>` : ''}
+          ${affiliateAktual > 0 ? `<tr><td>Biaya Affiliate (${affiliateAktual}%, proyeksi)</td><td class="num">${rupiah(-affiliateBiaya)}</td><td class="num">${rowPct(-affiliateBiaya)}</td></tr>` : ''}
+          ${v.voucherToko !== null ? `<tr><td>Voucher Toko</td><td class="num">${rupiah(v.voucherToko)}</td><td class="num">${rowPct(v.voucherToko)}</td></tr>` : ''}
+          <tr><td colspan="3" style="border-bottom:none; padding-top:14px;"></td></tr>
+          <tr style="background:rgba(255,255,255,0.045);"><td style="font-weight:700;">Cost Ratio (Total Cost)</td><td class="num" style="font-weight:700; color:var(--danger);">${rupiah(costRatioSumDisplay)}</td><td class="num" style="font-weight:700; color:var(--danger);">${rowPct(costRatioSumDisplay)}</td></tr>
+          <tr class="total-row"><td>Estimasi Total Penghasilan</td><td class="num">${rupiah(totalPenghasilan)}</td><td class="num">${rowPct(totalPenghasilan)}</td></tr>
+          ${hpp > 0 ? `<tr class="total-row"><td>Net Profit Margin</td><td class="num">${rupiah(estimasiNpm)}</td><td class="num">${estimasiNpmPct !== null ? pct(estimasiNpmPct) : '–'}</td></tr><tr><td style="color:var(--text-faint);">Profit Aktual</td><td class="num">${rupiah(benefit)}</td><td class="num">${rowPct(benefit)}</td></tr>` : ''}
+          ${v.biayaIsiSaldo !== null ? `<tr><td colspan="3" style="border-bottom:none; padding-top:14px;"></td></tr>` : ''}
+          ${v.biayaIsiSaldo !== null ? `<tr><td style="color:var(--text-faint);">Biaya Isi Saldo Otomatis (dari Penghasilan)</td><td class="num" style="color:var(--text-faint);">${rupiah(v.biayaIsiSaldo)}</td><td class="num" style="color:var(--text-faint);">${rowPct(v.biayaIsiSaldo)}</td></tr>` : ''}
+        </tbody>
+      </table>
+      ${(voucherShopeeFyi !== null || voucherTokoPembayaranFyi !== null) ? `
+      <div style="margin-top:16px; padding:14px 16px; border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(255,255,255,0.02);">
+        <div style="font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px; font-weight:700;">Info — Voucher dari Pembayaran Pembeli (di luar perhitungan toko)</div>
+        ${voucherShopeeFyi !== null ? `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:4px 0;">
+          <span style="color:var(--text-faint); font-size:13px;">Voucher Shopee (subsidi ke buyer)</span>
+          <span style="display:flex; gap:14px;"><span style="font-family:var(--f); color:var(--text-faint);">${rupiah(voucherShopeeFyi)}</span><span style="font-family:var(--f); font-weight:700; color:var(--text-faint); min-width:60px; text-align:right;">${fyiPct(voucherShopeeFyi)}</span></span>
+        </div>` : ''}
+        ${voucherTokoPembayaranFyi !== null ? `<div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:4px 0;">
+          <span style="color:var(--text-faint); font-size:13px;">Voucher Toko (versi Pembayaran Pembeli)</span>
+          <span style="display:flex; gap:14px;"><span style="font-family:var(--f); color:var(--text-faint);">${rupiah(voucherTokoPembayaranFyi)}</span><span style="font-family:var(--f); font-weight:700; color:var(--text-faint); min-width:60px; text-align:right;">${fyiPct(voucherTokoPembayaranFyi)}</span></span>
+        </div>` : ''}
+      </div>` : ''}
+    `;
+  }
+
+  function calculate(){
+    const store = currentStore();
+    const area = document.getElementById('resultArea');
+    const summaryArea = document.getElementById('storeSummaryArea');
+
+    if(!store){
+      area.innerHTML = `<div class="error-box">Pilih atau buat toko dulu di panel kiri untuk mulai menghitung.</div>`;
+      summaryArea.innerHTML = '';
+      return;
+    }
+
+    const hpp = parseFloat(document.getElementById('hppInput').value) || 0;
+    const targetNpm = parseFloat(document.getElementById('npmInput').value) || 0;
+    const adm = parseFloat(document.getElementById('admInput').value) || 0;
+    const acos = parseFloat(document.getElementById('acosInput').value) || 0;
+    const totalPct = (adm + acos) / 100;
+    const meta = PLATFORM_META[store.platform];
+
+    if(totalPct >= 1){
+      area.innerHTML = `<div class="error-box">Adm % + ACOS % (${pct(adm+acos)}) sudah &ge; 100%. Harga jual tidak bisa dihitung &mdash; turunkan salah satu nilai dulu.</div>`;
+    } else if(hpp <= 0){
+      area.innerHTML = `<div class="error-box">Isi HPP dulu (pilih produk dari daftar, import dari spreadsheet, atau input manual) untuk menghitung harga jual.</div>`;
+    } else {
+      const hargaJual = (hpp + targetNpm) / (1 - totalPct);
+      const admRp = hargaJual * (adm / 100);
+      const acosRp = hargaJual * (acos / 100);
+      const gpm = ((hargaJual - hpp) / hargaJual) * 100;
+      const npmRasio = (targetNpm / hargaJual) * 100;
+      const roas = acos > 0 ? (100 / acos) : null;
+      const rounded = Math.ceil(hargaJual / 100) * 100;
+
+      area.innerHTML = `
+        <div class="hero-result">
+          <div class="hero-label">Harga Jual Minimum &middot; ${store.platform}</div>
+          <div class="hero-number">${rupiah(hargaJual)}</div>
+          <div class="hero-sub">Supaya profit bersih ${rupiah(targetNpm)} / pesanan tercapai &middot; dibulatkan ke atas: <b style="color:var(--text)">${rupiah(rounded)}</b></div>
+        </div>
+
+        <div class="bar-wrap">
+          <div class="bar">
+            <div class="seg" style="width:${(hpp/hargaJual*100).toFixed(2)}%; background:#3a3a3a;"></div>
+            <div class="seg" style="width:${(admRp/hargaJual*100).toFixed(2)}%; background:#5c5c5c;"></div>
+            <div class="seg" style="width:${(acosRp/hargaJual*100).toFixed(2)}%; background:#8a8a8a;"></div>
+            <div class="seg" style="width:${(targetNpm/hargaJual*100).toFixed(2)}%; background:var(--accent);"></div>
+          </div>
+        </div>
+
+        <table class="breakdown-table">
+          <thead><tr><th>Komponen</th><th class="num">Nilai</th><th class="num">% Harga Jual</th></tr></thead>
+          <tbody>
+            <tr><td><span class="leg-dot" style="background:#3a3a3a;"></span>HPP (modal produk)</td><td class="num">${rupiah(hpp)}</td><td class="num">${pct(hpp/hargaJual*100)}</td></tr>
+            <tr><td><span class="leg-dot" style="background:#5c5c5c;"></span>Biaya Admin (${pct(adm)})</td><td class="num">${rupiah(admRp)}</td><td class="num">${pct(admRp/hargaJual*100)}</td></tr>
+            <tr><td><span class="leg-dot" style="background:#8a8a8a;"></span>Biaya Iklan / ACOS (${pct(acos)})</td><td class="num">${rupiah(acosRp)}</td><td class="num">${pct(acosRp/hargaJual*100)}</td></tr>
+            <tr><td><span class="leg-dot" style="background:var(--accent);"></span>Profit Bersih (Target NPM)</td><td class="num">${rupiah(targetNpm)}</td><td class="num">${pct(npmRasio)}</td></tr>
+            <tr class="total-row"><td>Harga Jual</td><td class="num">${rupiah(hargaJual)}</td><td class="num">100%</td></tr>
+          </tbody>
+        </table>
+
+        <div class="metrics-grid">
+          <div class="metric"><div class="mlabel">GPM</div><div class="mval">${pct(gpm)}</div></div>
+          <div class="metric"><div class="mlabel">NPM (rasio)</div><div class="mval">${pct(npmRasio)}</div></div>
+          <div class="metric"><div class="mlabel">Total Potongan</div><div class="mval">${pct(adm+acos)}</div></div>
+          <div class="metric"><div class="mlabel">ROAS</div><div class="mval">${roas !== null ? roas.toFixed(2)+'x' : '&mdash;'}</div></div>
+        </div>
+      `;
+    }
+
+    renderStoreSummary(store, adm, acos, targetNpm, totalPct, computeRealCostRatioPct(store));
+  }
+
+  function renderStoreSummary(store, adm, acos, targetNpm, totalPct, realCostRatioPct){
+    const wrap = document.getElementById('storeSummaryArea');
+    if(!store.products.length){
+      wrap.innerHTML = `
+        <div class="panel-title" style="margin-top:0;"><span>Proyeksi Harga &middot; ${escapeHtml(store.name)}</span></div>
+        <div class="empty-hint">Belum ada produk di toko ini. Tambah manual atau import banyak sekaligus dari spreadsheet di panel kiri.</div>`;
+      return;
+    }
+
+    // Acuan "Total Potongan" untuk proyeksi: PRIORITASKAN Cost Ratio REAL dari Price Analysis
+    // (Biaya Admin/Layanan/Proses + Voucher Toko + ACOS aktual + Affiliate aktual / Subtotal Pesanan).
+    // Kalau belum ada data Rincian Penghasilan yang di-parse, fallback ke Adm%+ACOS% manual.
+    const usingRealData = realCostRatioPct !== null && realCostRatioPct !== undefined && !isNaN(realCostRatioPct);
+    const effectivePct = usingRealData ? (realCostRatioPct / 100) : totalPct;
+    const effectivePctLabel = usingRealData ? pct(realCostRatioPct) : pct(adm + acos);
+
+    // Kelompokkan produk per SKU Induk (parentSku). HPP diasumsikan sama
+    // untuk semua variasi dalam 1 SKU Induk, jadi cukup 1 baris per grup.
+    const groups = [];
+    const groupIndex = new Map();
+    store.products.forEach(p => {
+      const key = (p.parentSku || p.name || '').trim() || p.name;
+      if(!groupIndex.has(key)){
+        groupIndex.set(key, groups.length);
+        groups.push({ parentSku: key, products: [] });
+      }
+      groups[groupIndex.get(key)].products.push(p);
+    });
+
+    let rowsHtml = '';
+    const tsvRows = ['SKU Induk\tJumlah Variasi\tHPP\tHarga Jual\tProfit\tGPM%'];
+    let sumHarga = 0;
+    groups.forEach(g => {
+      const rep = g.products[0]; // representatif — HPP diasumsikan sama dalam 1 grup
+      let hj = null, gpmPct = null;
+      if(effectivePct < 1 && rep.hpp > 0){
+        hj = (rep.hpp + targetNpm) / (1 - effectivePct);
+        gpmPct = ((hj - rep.hpp) / hj) * 100;
+        sumHarga += hj;
+      }
+      const selected = g.products.some(p => p.id === state.productId) ? ' selected' : '';
+      const varLabel = g.products.length > 1 ? `<span style="color:var(--text-faint); font-weight:400;"> &middot; ${g.products.length} variasi</span>` : '';
+      rowsHtml += `<tr class="${selected}" data-id="${rep.id}">
+        <td>${escapeHtml(g.parentSku)}${varLabel}</td>
+        <td class="num">${rupiah(rep.hpp)}</td>
+        <td class="num">${hj !== null ? rupiah(hj) : '&mdash;'}</td>
+        <td class="num">${hj !== null ? rupiah(targetNpm) : '&mdash;'}</td>
+        <td class="num">${gpmPct !== null ? pct(gpmPct) : '&mdash;'}</td>
+      </tr>`;
+      tsvRows.push(`${g.parentSku}\t${g.products.length}\t${rep.hpp}\t${hj !== null ? Math.round(hj) : ''}\t${hj !== null ? targetNpm : ''}\t${gpmPct !== null ? gpmPct.toFixed(2) : ''}`);
+    });
+
+    wrap.innerHTML = `
+      <div class="panel-title" style="margin-top:0;">
+        <span>Proyeksi Harga &middot; ${escapeHtml(store.name)}</span>
+      </div>
+      <div class="summary-table-wrap">
+        <table class="summary-table">
+          <thead><tr><th>SKU Induk</th><th class="num">HPP</th><th class="num">Harga Jual</th><th class="num">Profit</th><th class="num">GPM</th></tr></thead>
+          <tbody id="summaryTbody">${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div class="summary-foot">
+        <div class="hero-sub" style="margin:0;">Total estimasi omset (kalau semua SKU induk laku 1x): <b style="color:var(--text)">${rupiah(sumHarga)}</b></div>
+        <button class="btn btn-ghost btn-sm" id="copySummaryBtn">Salin sebagai TSV</button>
+      </div>
+    `;
+
+    wrap.querySelectorAll('#summaryTbody tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const pid = tr.dataset.id;
+        const p = store.products.find(x => x.id === pid);
+        if(!p) return;
+        setActiveProduct(store, p);
+        renderProducts();
+      });
+    });
+
+    const copyBtn = document.getElementById('copySummaryBtn');
+    if(copyBtn){
+      copyBtn.addEventListener('click', async () => {
+        try{
+          await navigator.clipboard.writeText(tsvRows.join('\n'));
+          showToast('Disalin! Tinggal paste ke spreadsheet kamu.');
+        }catch(e){
+          showToast('Gagal menyalin otomatis. Select manual lalu copy.');
+        }
+      });
+    }
+  }
+
+  function renderActiveStoreBadge(){
+    const badge = document.getElementById('railActiveStoreBadge');
+    if(!badge) return;
+    const store = currentStore();
+    badge.textContent = store ? store.name : '';
+    const wrap = badge.closest('.rail-header-wrap');
+    if(wrap) wrap.style.display = (store && store.name) ? '' : 'none';
+  }
+
+  function renderAll(){
+    renderActiveStoreBadge();
+    renderStores();
+    loadStoreSettingsToInputs();
+    renderProducts();
+    renderPlatformTabs();
+    loadParsedPreviewsForStore();
+    resetImportBox();
+    resetHppBulkBox();
+    calculate();
+    renderBiayaBenefit();
+  }
+
+  /* ---------- EVENTS ---------- */
+  document.getElementById('addStoreBtn').addEventListener('click', () => {
+    const input = document.getElementById('newStoreName');
+    const name = input.value.trim();
+    if(!name) return;
+    const newStore = Object.assign({ id: uid(), name, products: [] }, defaultStoreSettings());
+    data.stores.push(newStore);
+    state.storeId = newStore.id;
+    state.productId = null;
+    saveLastActiveStore(newStore.id);
+    input.value = '';
+    persist(); renderAll();
+  });
+  document.getElementById('newStoreName').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') document.getElementById('addStoreBtn').click();
+  });
+
+  document.getElementById('addProductBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store){ showToast('Pilih toko dulu'); return; }
+    const nameInput = document.getElementById('newProductName');
+    const hppInput = document.getElementById('newProductHpp');
+    const name = nameInput.value.trim();
+    const hpp = parseFloat(hppInput.value);
+    if(!name || isNaN(hpp) || hpp <= 0){ showToast('Isi nama produk & HPP yang valid'); return; }
+    store.products.push({ id: uid(), name, hpp, parentSku: name });
+    nameInput.value = ''; hppInput.value = '';
+    persist();
+    ensureActiveProduct(store);
+    renderProducts(); calculate(); renderBiayaBenefit();
+  });
+  document.getElementById('newProductHpp').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') document.getElementById('addProductBtn').click();
+  });
+  document.getElementById('clearAllProductsBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store){ showToast('Pilih toko dulu'); return; }
+    if(!store.products.length){ showToast('Belum ada produk di toko ini'); return; }
+    if(!confirm(`Hapus SEMUA ${store.products.length} produk di toko "${store.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    store.products = [];
+    store.activeProductId = null;
+    persist();
+    ensureActiveProduct(store);
+    renderProducts(); calculate(); renderBiayaBenefit();
+    showToast('Semua produk dihapus. Silakan import ulang.');
+  });
+
+  document.getElementById('admInput').addEventListener('input', () => {
+    const store = currentStore(); if(!store) return;
+    const v = parseFloat(document.getElementById('admInput').value);
+    store.platformSettings[store.platform].adm = isNaN(v) ? 0 : v;
+    debouncedSave();
+    renderPlatformTabs();
+    calculate();
+  });
+  document.getElementById('acosInput').addEventListener('input', () => {
+    const store = currentStore(); if(!store) return;
+    const v = parseFloat(document.getElementById('acosInput').value);
+    store.platformSettings[store.platform].acos = isNaN(v) ? 0 : v;
+    debouncedSave();
+    renderPlatformTabs();
+    calculate();
+  });
+  document.getElementById('npmInput').addEventListener('input', () => {
+    const store = currentStore(); if(!store) return;
+    const v = parseFloat(document.getElementById('npmInput').value);
+    store.targetNpm = isNaN(v) ? 0 : v;
+    const npmHeaderInput = document.getElementById('npmHeaderInput');
+    if(npmHeaderInput) npmHeaderInput.value = document.getElementById('npmInput').value;
+    debouncedSave();
+    calculate();
+  });
+  document.getElementById('npmHeaderInput').addEventListener('input', () => {
+    const store = currentStore(); if(!store) return;
+    const v = parseFloat(document.getElementById('npmHeaderInput').value);
+    store.targetNpm = isNaN(v) ? 0 : v;
+    document.getElementById('npmInput').value = document.getElementById('npmHeaderInput').value;
+    debouncedSave();
+    calculate();
+  });
+  document.getElementById('hppInput').addEventListener('input', () => {
+    const store = currentStore();
+    if(store){
+      const raw = document.getElementById('hppInput').value;
+      const v = raw === '' ? null : parseFloat(raw);
+      const activeProduct = state.productId ? store.products.find(p => p.id === state.productId) : null;
+      if(activeProduct && activeProduct.hpp === v){
+        // nilai masih sama dengan produk terpilih, tidak perlu ubah apa-apa
+      } else {
+        state.productId = null;
+        store.activeProductId = null;
+        store.manualHpp = (v === null || isNaN(v)) ? null : v;
+        debouncedSave();
+      }
+    }
+    calculate(); renderBiayaBenefit();
+  });
+
+  document.getElementById('adsAcosAktualInput').addEventListener('input', () => {
+    const store = currentStore();
+    if(store){
+      const raw = document.getElementById('adsAcosAktualInput').value;
+      const v = raw === '' ? null : parseFloat(raw);
+      store.adsAcosAktual = (v === null || isNaN(v)) ? null : v;
+      debouncedSave();
+    }
+    renderBiayaBenefit();
+  });
+
+  document.getElementById('affiliateAktualInput').addEventListener('input', () => {
+    const store = currentStore();
+    if(store){
+      const raw = document.getElementById('affiliateAktualInput').value;
+      const v = raw === '' ? null : parseFloat(raw);
+      store.affiliateAktual = (v === null || isNaN(v)) ? null : v;
+      debouncedSave();
+    }
+    renderBiayaBenefit();
+  });
+
+  document.getElementById('resetPlatformBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store) return;
+    const preset = PLATFORM_PRESETS[store.platform];
+    store.platformSettings[store.platform] = { adm: preset.adm, acos: preset.acos };
+    persist();
+    loadStoreSettingsToInputs();
+    renderPlatformTabs();
+    calculate();
+    showToast(`Adm/ACOS ${store.platform} di-reset ke default (${preset.adm}% / ${preset.acos}%)`);
+  });
+
+  document.getElementById('pesananActionBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store){ showToast('Pilih toko dulu'); return; }
+    const hasData = !!(store.lastParsedPenghasilan || store.lastParsedPembayaran);
+    if(hasData){
+      resetPenghasilanBox();
+      resetPembayaranBox();
+      store.lastParsedPenghasilan = null;
+      store.lastParsedPembayaran = null;
+      debouncedSave();
+      renderBiayaBenefit();
+      updatePesananActionBtn();
+      return;
+    }
+    applyPenghasilanParse(document.getElementById('penghasilanPasteText').value);
+    applyPembayaranParse(document.getElementById('pembayaranPasteText').value);
+  });
+
+  document.getElementById('importParseBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store){ showToast('Pilih toko dulu'); return; }
+    const text = document.getElementById('importPasteText').value;
+    if(!text.trim()){ showToast('Paste data dari spreadsheet dulu'); return; }
+    pendingImportRows = parseImportText(text);
+    renderImportPreview();
+  });
+  document.getElementById('importClearBtn').addEventListener('click', resetImportBox);
+
+  document.getElementById('hppBulkParseBtn').addEventListener('click', () => {
+    const store = currentStore();
+    if(!store){ showToast('Pilih toko dulu'); return; }
+    const text = document.getElementById('hppBulkPasteText').value;
+    if(!text.trim()){ showToast('Paste data dari spreadsheet dulu'); return; }
+    pendingHppBulkRows = parseHppBulkText(text);
+    renderHppBulkPreview();
+  });
+  document.getElementById('hppBulkClearBtn').addEventListener('click', resetHppBulkBox);
+
+  /* ---------- INIT ---------- */
+  function detectStoreFromUrl(){
+    try{
+      const params = new URLSearchParams(window.location.search);
+      const tokoParam = (params.get('toko') || '').trim().toLowerCase();
+      if(!tokoParam) return null;
+      const match = data.stores.find(s => s.name.trim().toLowerCase() === tokoParam);
+      return match ? match.id : null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  async function init(){
+    await loadData();
+    const detectedId = detectStoreFromUrl();
+    const lastId = readLastActiveStore();
+    const lastValid = lastId && data.stores.some(s => s.id === lastId) ? lastId : null;
+    state.storeId = detectedId || lastValid || data.stores[0]?.id || null;
+    state.productId = null;
+    saveLastActiveStore(state.storeId);
+    switchSection('biaya');
+    renderAll();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
