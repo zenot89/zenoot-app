@@ -6,33 +6,34 @@ let _keuKasJurnal = [];
 
 document.getElementById('page-keuangan').innerHTML = `
 <style>
-  .keu-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-  .keu-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
-  .keu-tab.active { background:var(--ink); color:var(--cream); }
-  .keu-panel { display:none; }
-  .keu-panel.active { display:block; }
-  .rasio-card {
+  /* ── SCOPED ke #page-keuangan — tidak bocor ke halaman lain ── */
+  #page-keuangan .keu-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  #page-keuangan .keu-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
+  #page-keuangan .keu-tab.active { background:var(--ink); color:var(--cream); }
+  #page-keuangan .keu-panel { display:none; }
+  #page-keuangan .keu-panel.active { display:block; }
+  #page-keuangan .rasio-card {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px;
   }
-  .rasio-item {
+  #page-keuangan .rasio-item {
     background:var(--cream2); border:2px solid var(--ink3); padding:12px 14px; border-radius:2px;
   }
-  .rasio-item .r-label { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; margin-bottom:4px; }
-  .rasio-item .r-value { font-size:20px; font-weight:700; font-family:var(--f2); }
-  .rasio-item .r-desc  { font-size:11px; color:var(--ink3); margin-top:2px; }
-  .rasio-item.r-ok     { border-color:var(--ok); }
-  .rasio-item.r-warn   { border-color:var(--warn); }
-  .rasio-item.r-danger { border-color:var(--danger); }
-  .hutang-status-aktif  { color:var(--warn); font-weight:700; font-size:12px; }
-  .hutang-status-lunas  { color:var(--ok);   font-weight:700; font-size:12px; }
-  .val-card { background:var(--cream2); border:2px solid var(--ink); padding:14px 16px; margin-bottom:10px; border-radius:2px; }
-  .val-card .v-method { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; }
-  .val-card .v-value  { font-size:22px; font-weight:700; font-family:var(--f2); color:var(--ink); margin:4px 0; }
-  .val-card .v-desc   { font-size:12px; color:var(--ink2); }
-  .neraca-section { margin-bottom:4px; }
-  .neraca-head td { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
-  .neraca-sub  td { padding-left:20px !important; }
-  .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
+  #page-keuangan .rasio-item .r-label { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+  #page-keuangan .rasio-item .r-value { font-size:20px; font-weight:700; font-family:var(--f2); }
+  #page-keuangan .rasio-item .r-desc  { font-size:11px; color:var(--ink3); margin-top:2px; }
+  #page-keuangan .rasio-item.r-ok     { border-color:var(--ok); }
+  #page-keuangan .rasio-item.r-warn   { border-color:var(--warn); }
+  #page-keuangan .rasio-item.r-danger { border-color:var(--danger); }
+  #page-keuangan .hutang-status-aktif  { color:var(--warn); font-weight:700; font-size:12px; }
+  #page-keuangan .hutang-status-lunas  { color:var(--ok);   font-weight:700; font-size:12px; }
+  #page-keuangan .val-card { background:var(--cream2); border:2px solid var(--ink); padding:14px 16px; margin-bottom:10px; border-radius:2px; }
+  #page-keuangan .val-card .v-method { font-size:11px; color:var(--ink3); font-weight:700; text-transform:uppercase; }
+  #page-keuangan .val-card .v-value  { font-size:22px; font-weight:700; font-family:var(--f2); color:var(--ink); margin:4px 0; }
+  #page-keuangan .val-card .v-desc   { font-size:12px; color:var(--ink2); }
+  #page-keuangan .neraca-section { margin-bottom:4px; }
+  #page-keuangan .neraca-head td { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
+  #page-keuangan .neraca-sub  td { padding-left:20px !important; }
+  #page-keuangan .neraca-total td{ font-weight:700; border-top:2px dashed var(--ink3); border-bottom:2px solid var(--ink); }
 
   /* ── Neraca 3-bagian layout ── */
   #keu-neraca-minicards-wrap {
@@ -45,7 +46,7 @@ document.getElementById('page-keuangan').innerHTML = `
   #keu-neraca-section-bar {
     flex-shrink: 0;
   }
-  .keu-neraca-section-head {
+  #page-keuangan .keu-neraca-section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -54,7 +55,7 @@ document.getElementById('page-keuangan').innerHTML = `
     border-bottom: 2px solid var(--ink);
     margin-bottom: 4px;
   }
-  .keu-neraca-section-label {
+  #page-keuangan .keu-neraca-section-label {
     font-size: 13px;
     font-weight: 700;
     letter-spacing: .05em;
@@ -62,12 +63,12 @@ document.getElementById('page-keuangan').innerHTML = `
     align-items: center;
     gap: 6px;
   }
-  .keu-aset-label { color: var(--ok); }
-  .keu-kwj-label  { color: var(--danger); }
-  .keu-neraca-card {
+  #page-keuangan .keu-aset-label { color: var(--ok); }
+  #page-keuangan .keu-kwj-label  { color: var(--danger); }
+  #page-keuangan .keu-neraca-card {
     padding-bottom: 16px;
   }
-  .keu-neraca-total-row {
+  #page-keuangan .keu-neraca-total-row {
     display: flex;
     justify-content: space-between;
     font-weight: 700;
@@ -75,7 +76,7 @@ document.getElementById('page-keuangan').innerHTML = `
     margin-top: 8px;
     border-top: 2px solid var(--ink);
   }
-  .keu-neraca-modal-head {
+  #page-keuangan .keu-neraca-modal-head {
     font-size: 13px;
     font-weight: 700;
     color: var(--ink2);
@@ -86,16 +87,13 @@ document.getElementById('page-keuangan').innerHTML = `
     border-top: 1px solid var(--ink4);
     margin-top: 8px;
   }
-</style>
 
-<style>
-</style>
+  /* ── Tab rows & Neraca grid ── */
+  #page-keuangan .keu-tabs-row  { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
+  #page-keuangan .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
+  #page-keuangan .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  #page-keuangan .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
 
-<style>
-  .keu-tabs-row { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:6px; }
-  .keu-tabs-row2 { display:flex; gap:6px; flex-wrap:nowrap; margin-bottom:14px; }
-  .keu-neraca-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .keu-minicards { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
   @media(max-width:600px){
     /* ═══ FULL-HEIGHT SCROLL ZONE, pola sama dengan Kas & Jurnal ═══
        #keu-panels-wrap diberi height eksplisit via JS (_keuSetPanelHeight,
@@ -111,7 +109,7 @@ document.getElementById('page-keuangan').innerHTML = `
     */
     body.keu-active .content { overflow:hidden !important; }
     #keu-panels-wrap { overflow:hidden; }
-    .keu-panel.active:not(.keu-panel-neraca) {
+    #page-keuangan .keu-panel.active:not(.keu-panel-neraca) {
       height:100%; box-sizing:border-box;
       overflow-y:auto; -webkit-overflow-scrolling:touch;
       overscroll-behavior:none; touch-action:pan-y;
@@ -124,7 +122,7 @@ document.getElementById('page-keuangan').innerHTML = `
                 → #keu-neraca-section-bar      (bagian 2 — sticky/freeze, tidak scroll)
                 → #keu-neraca-scroll-zone      (bagian 3 — satu-satunya yang scroll)
     */
-    .keu-panel-neraca.active {
+    #page-keuangan .keu-panel-neraca.active {
       display: -webkit-flex !important;
       display: flex !important;
       -webkit-flex-direction: column;
@@ -152,12 +150,11 @@ document.getElementById('page-keuangan').innerHTML = `
     }
 
     /* Neraca grid: stack penuh, scroll-nya sekarang di #keu-neraca-scroll-zone */
-    .keu-neraca-grid { grid-template-columns:1fr; max-height:none; overflow:visible; }
-    .keu-minicards { margin-left:0; width:100%; justify-content:center; }
-    .keu-minicards > div { flex:1 1 0; min-width:0; }
+    #page-keuangan .keu-neraca-grid { grid-template-columns:1fr; max-height:none; overflow:visible; }
+    #page-keuangan .keu-minicards { margin-left:0; width:100%; justify-content:center; }
+    #page-keuangan .keu-minicards > div { flex:1 1 0; min-width:0; }
 
     /* Toggle ASET / KEWAJIBAN — segmented control, minimalis */
-      /* keu-neraca-toggle lama diganti keuNeracaViewToggle button */
     .keu-neraca-grid[data-view="aset"]      #keu-neraca-card-kewajiban { display:none; }
     .keu-neraca-grid[data-view="kewajiban"] #keu-neraca-card-aset      { display:none; }
 
@@ -171,10 +168,9 @@ document.getElementById('page-keuangan').innerHTML = `
     #keu-neraca-card-kewajiban .tbl td:last-child {
       white-space:nowrap;
     }
-
   }
   @media(min-width:601px){
-    .keu-neraca-toggle { display:none; }
+    #page-keuangan .keu-neraca-toggle { display:none; }
   }
 </style>
 
@@ -283,7 +279,7 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- PANEL: NERACA                                              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-<div id="keu-panel-neraca" class="keu-panel">
+<div id="keu-panel-neraca" class="keu-panel keu-panel-neraca">
   <!-- ── FREEZE HEADER: Net Worth + Status (collapse on scroll) ── -->
   <div id="keu-neraca-minicards-wrap">
     <div style="display:flex;gap:8px">
@@ -839,6 +835,7 @@ function keuRefreshAktif() {
   if (_keuTabAktif === 'rasio')   keuRenderRasio();
   if (_keuTabAktif === 'valuasi') keuRenderValuasi();
   if (_keuTabAktif === 'aruskas') keuRenderArusKas();
+  if (_keuTabAktif === 'fixcost') fcLoad();
 }
 
 // Toggle tampilan ASET ↔ KEWAJIBAN & MODAL (khusus mobile, lihat CSS @media max-width:600px)
@@ -2037,19 +2034,30 @@ async function fcLoad() {
   const dayOfMonth = Math.max(1, new Date().getDate());
 
   // ── 1. Cicilan Hutang ──────────────────────────────────────
-  let hutangList = [];
-  try { hutangList = await dbGet('hutang', '&order=kreditur.asc') || []; } catch(e) {}
+  // Fetch hutang_bayar untuk hitung sisa hutang yang benar (bukan field sudah_bayar yg tidak di-sync)
+  let hutangList = [], hutangBayarList = [];
+  try {
+    [hutangList, hutangBayarList] = await Promise.all([
+      dbGet('hutang', '&order=kreditur.asc').catch(() => []),
+      dbGet('hutang_bayar', '').catch(() => [])
+    ]);
+    hutangList     = hutangList     || [];
+    hutangBayarList= hutangBayarList|| [];
+  } catch(e) {}
+
+  // Helper: aggregate sudah_bayar dari tabel hutang_bayar (konsisten dengan panel lain)
+  const fcGetSudahBayar = (hutangId) =>
+    hutangBayarList.filter(b => String(b.hutang_id) === String(hutangId))
+                   .reduce((s, b) => s + (Number(b.nominal)||0), 0);
 
   const tbodyHutang = document.getElementById('fc-hutang-tbody');
   const totalCicilan = hutangList.reduce((s, h) => {
-    const lunas = (h.sudah_bayar||0) >= (h.pokok||0);
-    if (lunas) return s;
-    // tahunan: pakai cicilan_nominal (angka asli per tahun) ÷ 12
-    // bulanan: pakai cicilan_per_bulan langsung
-    const perBulan = h.frekuensi === 'tahunan'
-      ? Math.round((Number(h.cicilan_nominal)||0) / 12)
-      : (Number(h.cicilan_per_bulan)||0);
-    return s + perBulan;
+    const sisaHutang = (h.pokok||0) - fcGetSudahBayar(h.id);
+    if (sisaHutang <= 0) return s; // lunas — skip
+    // cicilan_per_bulan sudah disimpan sebagai ekuivalen bulanan saat insert
+    // (tahunan: cicilan_nominal÷12, bulanan: cicilan_nominal apa adanya)
+    // → gunakan cicilan_per_bulan langsung, tidak ÷12 lagi
+    return s + (Number(h.cicilan_per_bulan)||0);
   }, 0);
 
   if (tbodyHutang) {
@@ -2057,10 +2065,10 @@ async function fcLoad() {
       tbodyHutang.innerHTML = '<tr><td colspan="3" style="padding:12px 4px;color:var(--ink3);font-style:italic">Belum ada data hutang.</td></tr>';
     } else {
       tbodyHutang.innerHTML = hutangList.map(h => {
-        const lunas = (h.sudah_bayar||0) >= (h.pokok||0);
-        const perBulan = h.frekuensi === 'tahunan'
-          ? Math.round((Number(h.cicilan_nominal)||0) / 12)
-          : (Number(h.cicilan_per_bulan)||0);
+        const sisaHutang = (h.pokok||0) - fcGetSudahBayar(h.id);
+        const lunas = sisaHutang <= 0;
+        // cicilan_per_bulan sudah ekuivalen bulanan — pakai langsung
+        const perBulan = Number(h.cicilan_per_bulan)||0;
         const asalInfo = h.frekuensi === 'tahunan' ? ` <span style="font-size:10px;color:var(--ink3)">(${fmt(h.cicilan_nominal)}/thn ÷12)</span>` : '';
         return `<tr style="opacity:${lunas?'0.4':'1'}">
           <td style="font-weight:600">${h.kreditur||'—'} ${lunas?'<span style="font-size:10px;color:var(--ok)">✅ LUNAS</span>':''}</td>
