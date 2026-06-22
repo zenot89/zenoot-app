@@ -670,7 +670,13 @@ function keuGotoTab(tab) {
   _keuTabAktif = tab;
   const tabs = ['hutang','neraca','rasio','valuasi','aruskas','fixcost'];
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
-  document.querySelectorAll('.keu-panel').forEach(p => p.classList.remove('active'));
+  // Clear inline display style dulu agar CSS display:none bisa berlaku,
+  // lalu set class active. Tanpa ini, neraca yang pernah dapat inline
+  // display:flex dari _keuApplyNeracaFlexChain tidak akan tersembunyi oleh CSS.
+  document.querySelectorAll('.keu-panel').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = ''; // reset inline style — biarkan CSS yang kontrol
+  });
   document.getElementById('keu-panel-' + tab).classList.add('active');
   keuNeracaExpandHeader();
   if (tab === 'neraca')  keuRenderNeraca();
@@ -759,7 +765,7 @@ function _keuApplyNeracaFlexChain() {
     activePanel.style.overflow   = 'hidden';
   }
 
-  // Neraca panel khusus: flex column
+  // Neraca panel khusus: flex column saat active, clear inline display saat tidak active
   if (neracaPanel.classList.contains('active')) {
     neracaPanel.style.display          = 'flex';
     neracaPanel.style.flexDirection    = 'column';
@@ -789,6 +795,9 @@ function _keuApplyNeracaFlexChain() {
       scrollZone.style.webkitOverflowScrolling = 'touch';
       scrollZone.style.overscrollBehavior      = 'none';
     }
+  } else {
+    // Neraca tidak active — pastikan inline display ter-reset agar CSS display:none menang
+    neracaPanel.style.display = '';
   }
 }
 
