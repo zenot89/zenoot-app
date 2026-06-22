@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v26 — keuangan.js fix CSS scope leak + neraca bocor semua panel
-var JS_CACHE = 'zenot-js-20260622-ba3a99ac772d';
+var JS_CACHE = 'zenot-js-20260622-fed0426f0815';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
