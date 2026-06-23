@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v28 — disable notif.js
-var JS_CACHE = 'zenot-js-20260623-4566ba3539a9';
+// BUMP: JS_CACHE v28 — force evict notif.js lama
+var JS_CACHE = 'zenot-js-20260623-v28';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
@@ -80,26 +80,11 @@ self.addEventListener('activate', function(e) {
       return Promise.all(
         JS_APP_FILES.map(function(file) {
           var url = './' + file;
-          return newCache.match(url).then(function(existing) {
-            if (existing) return;
-            return fetch(url, { cache: 'no-store' }).then(function(res) {
+          return fetch(url, { cache: 'no-store' }).then(function(res) {
               if (res.ok) return newCache.put(url, res);
             }).catch(function() {
-              // Network gagal → copy dari cache lama sebagai fallback
-              return caches.keys().then(function(keys) {
-                var oldKeys = keys.filter(function(k) {
-                  return k.indexOf('zenot-js-') === 0 && k !== JS_CACHE;
-                });
-                return Promise.all(oldKeys.map(function(oldKey) {
-                  return caches.open(oldKey).then(function(oldCache) {
-                    return oldCache.match(url).then(function(oldRes) {
-                      if (oldRes) return newCache.put(url, oldRes);
-                    });
-                  });
-                }));
-              });
+              // Network gagal → skip, jangan fallback ke cache lama (bisa serve versi stale)
             });
-          });
         })
       );
     })
