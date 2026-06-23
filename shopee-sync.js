@@ -237,9 +237,12 @@ async function shopeeSyncOrders(tok) {
 function _parseItemList(orderDetail) {
   const items = orderDetail.item_list || [];
   return items.map(function(item) {
+    // Priority: variation_sku → model_sku → item_sku+variation_name → item_sku
     let sku = (item.variation_sku || '').trim();
 
-    // Kalau variation_sku kosong, coba bangun dari item_sku + variation_name
+    if (!sku) sku = (item.model_sku || '').trim();
+
+    // Kalau masih kosong, coba bangun dari item_sku + variation_name
     if (!sku) {
       const itemSku  = (item.item_sku || '').trim();
       const varNamaRaw = (item.variation_name || '').trim();
