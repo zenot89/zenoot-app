@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v27 — tambah proyeksi-harga.js
-var JS_CACHE = 'zenot-js-20260622-c2a55b8755d0';
+var JS_CACHE = 'zenot-js-20260623-bc2424dc304e';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
