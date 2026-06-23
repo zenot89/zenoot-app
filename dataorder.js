@@ -15,13 +15,13 @@ document.getElementById('page-dataorder').innerHTML = `
     <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth"><table class="tbl">
       <thead>
         <tr>
-          <th>No. Pesanan</th><th>SKU</th><th>Variasi</th><th>Qty</th>
-          <th>Harga Diskon</th><th>Total Bayar</th><th>Kota</th><th>Waktu Selesai</th>
-          <th style="text-align:center">Sisa Stok</th>
+          <th>No. Pesanan</th><th>SKU</th><th>Qty</th>
+          <th>Harga Diskon</th><th>Total Bayar</th><th>Waktu Selesai</th>
+          <th style="text-align:center">Status</th><th style="text-align:center">Sisa Stok</th>
         </tr>
       </thead>
       <tbody id="order-tbody">
-        <tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table></div>
   </div>
@@ -33,12 +33,12 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 async function loadDataOrder() {
   const tbody = document.getElementById('order-tbody');
   const info  = document.getElementById('order-info');
-  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   try {
     // Load orders + stok data paralel
     const [orders, stokList, jurnalAll, produkList] = await Promise.all([
-      dbGet('jurnal_penjualan', '&no_order=not.is.null&order=tanggal.desc,id.desc&limit=500'),
+      dbGet('jurnal_penjualan', '&no_order=not.is.null&order=tanggal.desc,id.desc&limit=500&select=id,no_order,sku,qty,harga_satuan,total,omset,tanggal,waktu,order_status'),
       dbGet('stok', '&select=sku_variasi,stok_masuk'),
       dbGet('jurnal_penjualan', '&select=sku,qty'),
       dbGet('produk', '&select=sku_variasi'),
@@ -67,7 +67,7 @@ async function loadDataOrder() {
     renderOrders(_orderData);
     info.textContent = _orderData.length + ' order';
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
     document.getElementById('order-info').textContent = 'Gagal memuat data';
   }
 }
@@ -77,15 +77,15 @@ function renderOrders(data) {
   const tbody   = document.getElementById('order-tbody');
   const sisakMap = window._orderSisakMap || {};
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada data order</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Belum ada data order</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(r => {
-    // Remap size untuk lookup stok: S/M → _M, L/XL/XLL → _XL
+    // Remap size untuk lookup stok: S/M → -M, L/XL/XLL → -XL (pertahankan separator -)
     const skuRaw  = (r.sku||'').toUpperCase();
-    const skuKey  = skuRaw.replace(/[_-](S|M|L|XL|XLL|XXL)$/i, function(_, size) {
+    const skuKey  = skuRaw.replace(/-(S|M|L|XL|XLL|XXL)$/i, function(_, size) {
       const s = size.toUpperCase();
-      return (s === 'S' || s === 'M') ? '_M' : '_XL';
+      return (s === 'S' || s === 'M') ? '-M' : '-XL';
     });
     const sisaVal = sisakMap[skuKey];
     const sisaHtml = sisaVal === undefined
@@ -96,15 +96,21 @@ function renderOrders(data) {
           ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
           : '<b style="color:var(--ok)">' + sisaVal + '</b>';
     const waktu = (r.tanggal || '—') + (r.waktu ? ' ' + String(r.waktu).slice(0,5) : '');
+    const stMap = { COMPLETED:'Selesai', SHIPPED:'Dikirim', READY_TO_SHIP:'Siap Kirim', PROCESSED:'Diproses', CANCELLED:'Batal' };
+    const stLabel = stMap[r.order_status] || (r.order_status || '—');
+    const stColor = r.order_status === 'COMPLETED' ? 'var(--ok)'
+      : r.order_status === 'CANCELLED' ? 'var(--danger)'
+      : r.order_status === 'SHIPPED' ? '#7eb8f7'
+      : 'var(--ink3)';
+    const stHtml = '<span style="font-size:11px;color:' + stColor + '">' + stLabel + '</span>';
     return '<tr>'
       + '<td style="font-size:11px">' + (r.no_order||'—') + '</td>'
       + '<td><b style="color:var(--accent)">' + (r.sku||'—') + '</b></td>'
-      + '<td style="font-size:11px;color:var(--ink3)">—</td>'
       + '<td style="text-align:center">' + (r.qty||0) + '</td>'
       + '<td>' + (r.harga_satuan ? 'Rp'+Number(r.harga_satuan).toLocaleString('id-ID') : '—') + '</td>'
       + '<td><b>' + (r.total||r.omset ? 'Rp'+Number(r.total||r.omset).toLocaleString('id-ID') : '—') + '</b></td>'
-      + '<td style="font-size:11px">—</td>'
       + '<td style="font-size:11px;white-space:nowrap">' + waktu + '</td>'
+      + '<td style="text-align:center">' + stHtml + '</td>'
       + '<td style="text-align:center">' + sisaHtml + '</td>'
       + '</tr>';
   }).join('');
