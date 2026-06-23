@@ -13,14 +13,15 @@ html{
   touch-action: none;
 }
 :root{
-  --ink:#f0f0f0;--ink2:#a0a0a0;--ink3:#505060;--ink4:#1a1a1a;
-  --cream:#0d0d0d;--cream2:#060606;--cream3:#030303;--cream4:#000000;
-  --paper-line:rgba(255,255,255,0.01);
-  --card-shadow:inset 0 2px 8px rgba(0,0,0,0.8),inset 0 1px 2px rgba(0,0,0,0.9),0 1px 0 rgba(255,255,255,0.03);
+  --ink:#ece9e4;--ink2:#9b968d;--ink3:#635f58;--ink4:#2c2c2c;
+  --cream:#121212;--cream2:#181818;--cream3:#1f1f1f;--cream4:#0a0a0a;
+  --paper-line:rgba(255,255,255,0.015);
+  --card-shadow:inset 0 2px 8px rgba(0,0,0,0.6),inset 0 1px 2px rgba(0,0,0,0.7),0 1px 0 rgba(255,255,255,0.04);
   --f:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
-  --f2:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
-  --warn:#e6a817;--danger:#e05252;--ok:#2ecc7a;--info:#3b9eff;
-  --active-nav:#2C2C2E;
+  --f2:'Source Serif 4','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --warn:#c9a84c;--danger:#c98f8f;--ok:#2ecc7a;--info:#3b9eff;
+  --active-nav:#252525;
   --sidebar-w:200px;
 }
 
@@ -83,14 +84,14 @@ body{
 }
 .hole{
   width:15px;height:15px;border-radius:50%;
-  background:var(--cream);border:1px solid rgba(255,255,255,0.06);flex-shrink:0;
+  background:var(--cream);border:1px solid rgba(255,255,255,0.05);flex-shrink:0;
   -webkit-flex-shrink:0;
 }
 
 /* ─── SIDEBAR ────────────────────────────────────────────── */
 .sidebar{
   width:var(--sidebar-w);min-width:var(--sidebar-w);
-  background:#060606;
+  background:#0e0e0e;
   border-right:1px solid rgba(255,255,255,0.05);
   display:-webkit-flex;display:flex;
   -webkit-flex-direction:column;flex-direction:column;
@@ -119,7 +120,7 @@ body{
   -webkit-flex-direction:row;flex-direction:row;
   -webkit-align-items:center;align-items:center;
   gap:8px;
-  background:#060606;
+  background:#0e0e0e;
   z-index:10;
 }
 .logo-img{
@@ -210,7 +211,7 @@ body.sidebar-mini .sidebar-minimize-btn i{
   border-top:1px solid rgba(255,255,255,0.04);
   text-align:center;
   -webkit-flex-shrink:0;flex-shrink:0;
-  background:#060606;
+  background:#0e0e0e;
   z-index:10;
 }
 .footer-by{
@@ -362,7 +363,7 @@ body.sidebar-mini .sidebar-footer::before{
 }
 .page-sub{
   font-size:12px;color:var(--ink3);padding-left:10px;
-  font-family:var(--f2);margin-top:1px;
+  font-family:var(--f);margin-top:1px;letter-spacing:.02em;
 }
 .date-pill{
   font-size:12px;font-family:var(--f2);font-weight:700;
@@ -456,11 +457,11 @@ body.sidebar-mini .sidebar-footer::before{
   font-family:var(--f2);position:relative;z-index:1;
 }
 .m-value{
-  font-size:26px;font-weight:700;line-height:1.15;
-  margin:4px 0 2px;letter-spacing:-.5px;
-  font-family:var(--f2);position:relative;z-index:1;
+  font-size:26px;font-weight:600;line-height:1.15;
+  margin:4px 0 2px;letter-spacing:-.3px;
+  font-family:var(--mono);position:relative;z-index:1;
 }
-.m-delta{font-size:11px;color:var(--ink3);font-family:var(--f2);position:relative;z-index:1}
+.m-delta{font-size:11px;color:var(--ink3);font-family:var(--f);position:relative;z-index:1}
 
 /* ─── GRID ───────────────────────────────────────────────── */
 .grid2{
@@ -1163,7 +1164,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #zenot-splash {
   position: fixed;
   inset: 0;
-  background: #060606;
+  background: #0e0e0e;
   z-index: 9999;
   display: -webkit-flex;
   display: flex;
@@ -1726,7 +1727,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--cream3, #1a1a1a);
+  background: var(--cream3, #1f1f1f);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
@@ -1771,7 +1772,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--cream3, #1a1a1a);
+  background: var(--cream3, #1f1f1f);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
@@ -2902,7 +2903,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-numpad-sheet {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  background: #1a1a1a;
+  background: #1f1f1f;
   border-radius: 16px 16px 0 0;
   padding: 0 0 env(safe-area-inset-bottom, 12px);
   box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
@@ -3001,7 +3002,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 2px 0 #111;
 }
 .numpad-btn:active {
-  background: linear-gradient(180deg, #1e1e1e 0%, #1a1a1a 100%);
+  background: linear-gradient(180deg, #1f1f1f 0%, #181818 100%);
   transform: translateY(1px);
   box-shadow: 0 1px 0 #111;
 }
@@ -3127,8 +3128,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-total-wrap { margin-bottom: 12px; }
 .nw-total {
   font-size: clamp(22px, 4vw, 32px);
-  font-weight: 700;
-  color: var(--ink,#eee);
+  font-weight: 600;
+  font-family: var(--mono,'IBM Plex Mono',monospace);
+  color: var(--ink,#ece9e4);
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
@@ -3152,7 +3154,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 5px;
 }
-.nw-row-val { font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; }
+.nw-row-val { font-weight: 500; font-size: 12px; font-family: var(--mono,'IBM Plex Mono',monospace); }
 .nw-pos { color: var(--ok,#4caf50); }
 .nw-neg { color: var(--danger,#e05252); }
 .nw-shopee-badge {
