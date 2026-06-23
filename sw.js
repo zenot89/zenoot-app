@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v29 — proyeksi-harga: hapus tab Proyeksi, tambah tombol Platform
-var JS_CACHE = 'zenot-js-20260624-v29';
+var JS_CACHE = 'zenot-js-20260623-c9f93fb99145';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
