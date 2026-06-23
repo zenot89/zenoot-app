@@ -57,13 +57,6 @@
     '#ph-tabs-bar .ph-tab.ph-active{background:var(--ph-accent-dim);color:var(--ph-text);border-color:var(--ph-border);}',
     '#ph-tabs-bar .ph-tab-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}',
     '#ph-tabs-bar .ph-tab-ico svg{width:17px;height:17px;}',
-    '#ph-tabs-bar .ph-submenu{overflow:hidden;max-height:0;transition:max-height .2s ease;display:flex;flex-direction:column;gap:2px;}',
-    '#ph-tabs-bar .ph-submenu.ph-open{max-height:120px;}',
-    '#ph-tabs-bar .ph-subitem{display:flex;align-items:center;padding:9px 10px 9px 38px;border-radius:7px;font-size:12.5px;color:var(--ph-dim);background:none;border:1px solid transparent;text-align:left;width:100%;cursor:pointer;font-family:inherit;white-space:nowrap;}',
-    '#ph-tabs-bar .ph-subitem:hover{background:var(--ph-panel2);color:var(--ph-text);}',
-    '#ph-tabs-bar .ph-subitem.ph-active{background:var(--ph-accent-dim);color:var(--ph-text);}',
-    '#ph-tabs-bar .ph-chev{margin-left:auto;transition:transform .2s ease;display:flex;}',
-    '#ph-tabs-bar .ph-chev.ph-open{transform:rotate(180deg);}',
     '#ph-tabs-bar .ph-rail-badge{font-family:var(--ph-mono);font-size:11px;text-align:center;background:#0a0a0a;border:1px solid var(--ph-border);border-radius:6px;padding:10px 8px;color:var(--ph-text);margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
     '#ph-tabs-bar .ph-rail-badge:empty{display:none;}',
     '#ph-tabs-bar .ph-rail-foot{font-family:var(--ph-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ph-faint);text-align:center;background:#0a0a0a;border:1px solid var(--ph-border-s);border-radius:6px;padding:8px;margin-top:auto;}',
@@ -202,7 +195,7 @@
 
     /* Responsive */
     '@media(max-width:600px){#ph-tabs-bar{width:140px;padding:12px 8px;}#ph-tabs-bar .ph-tab{font-size:12px;padding:9px 8px;}#ph-main{padding:14px 12px 48px;}#page-proyeksi-harga .ph-grid2{grid-template-columns:1fr;}#page-proyeksi-harga .ph-field-row{grid-template-columns:1fr;}}',
-    '@media(max-width:420px){#ph-tabs-bar{width:44px;}#ph-tabs-bar .ph-tab span:not(.ph-tab-ico){display:none;}#ph-tabs-bar .ph-subitem{padding:9px 10px;}#ph-tabs-bar .ph-subitem span{display:none;}}'
+    '@media(max-width:420px){#ph-tabs-bar{width:44px;}#ph-tabs-bar .ph-tab span:not(.ph-tab-ico){display:none;}}'
   ].join('\n');
 
   /* ═══════════════════════════════════════════════════════════════
@@ -215,8 +208,7 @@
       '<button class="ph-tab" data-sec="pesanan" type="button"><span class="ph-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="14" x2="13" y2="14"/></svg></span><span>Pesanan</span></button>' +
       '<button class="ph-tab" data-sec="hpp" type="button"><span class="ph-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 3v9M12 12l8-4.5M12 12l-8-4.5"/></svg></span><span>HPP</span></button>' +
       '<button class="ph-tab ph-active" data-sec="biaya" type="button"><span class="ph-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.2"/><rect x="13" y="3" width="8" height="8" rx="1.2"/><rect x="3" y="13" width="8" height="8" rx="1.2"/><rect x="13" y="13" width="8" height="8" rx="1.2"/></svg></span><span>Price Analysis</span></button>' +
-      '<button class="ph-tab ph-has-children" id="ph-proyeksi-toggle" type="button"><span class="ph-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 19V11"/><path d="M12 19V6"/><path d="M17 19v-9"/></svg></span><span>Proyeksi</span><span class="ph-chev" id="ph-proy-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>' +
-      '<div class="ph-submenu" id="ph-proy-submenu"><button class="ph-subitem" data-sec="proyeksi-ringkasan" type="button"><span>Proyeksi Harga</span></button><button class="ph-subitem" data-sec="proyeksi-platform" type="button"><span>Platform</span></button></div>' +
+      '<button class="ph-tab" data-sec="proyeksi-ringkasan" type="button"><span class="ph-tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M7 19V11"/><path d="M12 19V6"/><path d="M17 19v-9"/></svg></span><span>Proyeksi Harga</span></button>' +
       '<div style="flex:1 1 auto;min-height:8px;"></div>' +
       '<div class="ph-rail-foot">Pricing Engine</div>' +
     '</nav>' +
@@ -420,17 +412,9 @@
       'proyeksi-platform':   {title:'Proyeksi · Platform', sub:'Kalkulator harga jual minimum per platform — Adm%, ACOS%, Target Profit.'}
     };
 
-    function setProyeksiOpen(open){
-      $('ph-proy-submenu').classList.toggle('ph-open',open);
-      $('ph-proy-chev').classList.toggle('ph-open',open);
-    }
-
     function switchSection(key){
-      $$('.ph-tab').forEach(function(b){b.classList.toggle('ph-active',b.dataset.sec===key);});
-      $$('.ph-subitem').forEach(function(b){b.classList.toggle('ph-active',b.dataset.sec===key);});
-      $('ph-proyeksi-toggle').classList.toggle('ph-active',key==='proyeksi-ringkasan'||key==='proyeksi-platform');
+      $$('.ph-tab').forEach(function(b){b.classList.toggle('ph-active',b.dataset.sec===key||( b.dataset.sec==='proyeksi-ringkasan'&&key==='proyeksi-platform'));});
       $$('.ph-pane').forEach(function(p){p.classList.toggle('ph-active',p.id==='ph-pane-'+key);});
-      if(key==='proyeksi-ringkasan'||key==='proyeksi-platform') setProyeksiOpen(true);
       var hdrAction=$('ph-hdr-action');
       hdrAction.style.display='none'; hdrAction.innerHTML='';
       if(key==='biaya'){
@@ -445,18 +429,18 @@
         }
       }
       if(key==='proyeksi-ringkasan'){
-        hdrAction.style.display='flex';
-        hdrAction.innerHTML='<div><label class="ph-label">Target Profit</label><div class="ph-input-wrap"><span class="ph-prefix">Rp</span><input type="number" id="ph-npm-header-input" step="100" placeholder="10000" style="width:130px"></div></div>';
+        hdrAction.style.display='flex'; hdrAction.style.alignItems='center'; hdrAction.style.gap='10px'; hdrAction.style.flexWrap='wrap';
+        hdrAction.innerHTML='<div><label class="ph-label">Target Profit</label><div class="ph-input-wrap"><span class="ph-prefix">Rp</span><input type="number" id="ph-npm-header-input" step="100" placeholder="10000" style="width:130px"></div></div>' +
+          '<button class="ph-btn ph-btn-sm" id="ph-goto-platform" type="button" style="display:inline-flex;align-items:center;gap:5px;margin-top:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Platform</button>';
         var store=currentStore();
         if(store&&$('ph-npm-header-input')){ $('ph-npm-header-input').value=store.targetNpm; $('ph-npm-header-input').addEventListener('input',function(){var s=currentStore();if(!s)return;var v=parseFloat(this.value);s.targetNpm=isNaN(v)?0:v;if($('ph-npm-input'))$('ph-npm-input').value=this.value;debouncedSave();calculate();}); }
+        if($('ph-goto-platform')) $('ph-goto-platform').addEventListener('click',function(){switchSection('proyeksi-platform');});
       }
       var meta=SECTION_META[key];
       if(meta){ $('ph-heading').textContent=meta.title; $('ph-sub').textContent=meta.sub; }
     }
 
     $$('.ph-tab[data-sec]').forEach(function(b){ b.addEventListener('click',function(){switchSection(b.dataset.sec);}); });
-    $$('.ph-subitem').forEach(function(b){ b.addEventListener('click',function(){switchSection(b.dataset.sec);}); });
-    $('ph-proyeksi-toggle').addEventListener('click',function(){setProyeksiOpen(!$('ph-proy-submenu').classList.contains('ph-open'));});
     $('ph-toko-title').addEventListener('click',function(){this.classList.toggle('ph-collapsed');$('ph-toko-body').classList.toggle('ph-collapsed');});
 
     /* ── render stores ── */
@@ -957,7 +941,7 @@
     var lastId=readLastStore();
     var lastValid=lastId&&data.stores.some(function(s){return s.id===lastId;})?lastId:null;
     state.storeId=lastValid||( data.stores[0]?data.stores[0].id:null );
-    switchSection('biaya');
+    switchSection('proyeksi-ringkasan');
     renderAll();
   }
 

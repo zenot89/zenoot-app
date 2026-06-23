@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v28 — force evict notif.js lama
-var JS_CACHE = 'zenot-js-20260623-3b06e92503eb';
+// BUMP: JS_CACHE v29 — proyeksi-harga: hapus tab Proyeksi, tambah tombol Platform
+var JS_CACHE = 'zenot-js-20260624-v29';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
