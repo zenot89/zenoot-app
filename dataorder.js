@@ -81,7 +81,12 @@ function renderOrders(data) {
     return;
   }
   tbody.innerHTML = data.map(r => {
-    const skuKey  = (r.sku||'').toUpperCase();
+    // Remap size untuk lookup stok: S/M → _M, L/XL/XLL → _XL
+    const skuRaw  = (r.sku||'').toUpperCase();
+    const skuKey  = skuRaw.replace(/[_-](S|M|L|XL|XLL|XXL)$/i, function(_, size) {
+      const s = size.toUpperCase();
+      return (s === 'S' || s === 'M') ? '_M' : '_XL';
+    });
     const sisaVal = sisakMap[skuKey];
     const sisaHtml = sisaVal === undefined
       ? '<span style="color:var(--ink3)">—</span>'
