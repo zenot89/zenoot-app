@@ -38,7 +38,7 @@ async function loadDataOrder() {
   try {
     // Load orders + stok data paralel
     const [orders, stokList, jurnalAll, produkList] = await Promise.all([
-      dbGet('shopee_orders', '&order=create_time.desc&limit=500'),
+      dbGet('jurnal_penjualan', '&no_order=not.is.null&order=tanggal.desc,id.desc&limit=500'),
       dbGet('stok', '&select=sku_variasi,stok_masuk'),
       dbGet('jurnal_penjualan', '&select=sku,qty'),
       dbGet('produk', '&select=sku_variasi'),
@@ -90,18 +90,15 @@ function renderOrders(data) {
         : sisaVal <= 3
           ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
           : '<b style="color:var(--ok)">' + sisaVal + '</b>';
-    const waktu = r.create_time
-      ? new Date(r.create_time * 1000).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'}) +
-        ' ' + new Date(r.create_time * 1000).toTimeString().slice(0,5)
-      : (r.tanggal || '—');
+    const waktu = (r.tanggal || '—') + (r.waktu ? ' ' + String(r.waktu).slice(0,5) : '');
     return '<tr>'
-      + '<td style="font-size:11px">' + (r.order_sn||'—') + '</td>'
+      + '<td style="font-size:11px">' + (r.no_order||'—') + '</td>'
       + '<td><b style="color:var(--accent)">' + (r.sku||'—') + '</b></td>'
-      + '<td style="font-size:11px;color:var(--ink3)">' + (r.variasi||'—') + '</td>'
+      + '<td style="font-size:11px;color:var(--ink3)">—</td>'
       + '<td style="text-align:center">' + (r.qty||0) + '</td>'
-      + '<td>' + (r.harga_diskon ? 'Rp'+Number(r.harga_diskon).toLocaleString('id-ID') : '—') + '</td>'
-      + '<td><b>' + (r.total_bayar||r.omset ? 'Rp'+Number(r.total_bayar||r.omset).toLocaleString('id-ID') : '—') + '</b></td>'
-      + '<td style="font-size:11px">' + (r.kota||'—') + '</td>'
+      + '<td>' + (r.harga_satuan ? 'Rp'+Number(r.harga_satuan).toLocaleString('id-ID') : '—') + '</td>'
+      + '<td><b>' + (r.total||r.omset ? 'Rp'+Number(r.total||r.omset).toLocaleString('id-ID') : '—') + '</b></td>'
+      + '<td style="font-size:11px">—</td>'
       + '<td style="font-size:11px;white-space:nowrap">' + waktu + '</td>'
       + '<td style="text-align:center">' + sisaHtml + '</td>'
       + '</tr>';
@@ -113,9 +110,7 @@ function filterOrders() {
   const q = (document.getElementById('order-search').value||'').toLowerCase();
   const filtered = _orderData.filter(r =>
     (r.sku||'').toLowerCase().includes(q) ||
-    (r.kota||'').toLowerCase().includes(q) ||
-    (r.variasi||'').toLowerCase().includes(q) ||
-    (r.order_sn||'').toLowerCase().includes(q)
+    (r.no_order||'').toLowerCase().includes(q)
   );
   renderOrders(filtered);
 }
@@ -124,7 +119,7 @@ function filterOrders() {
 function exportOrderCSV() {
   if (_orderData.length === 0) { alert('Belum ada data.'); return; }
   const headers = ['No. Pesanan','SKU','Variasi','Qty','Harga Diskon','Total Bayar','Kota','Waktu'];
-  const rows = _orderData.map(r => [r.order_sn,r.sku,r.variasi,r.qty,r.harga_diskon,r.total_bayar||r.omset,r.kota,r.tanggal]);
+  const rows = _orderData.map(r => [r.no_order,r.sku,'—',r.qty,r.harga_satuan,r.total||r.omset,'—',r.tanggal+(r.waktu?' '+String(r.waktu).slice(0,5):'')]);
   exportCSV('zenoot-orders.csv', headers, rows);
 }
 

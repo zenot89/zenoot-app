@@ -1092,6 +1092,7 @@ function filterJP() {
   const fcEl = document.getElementById('jp-filter-channel');
   const kat = fcEl ? fcEl.value : '';
   let hasil = _jpAllData.filter(r => {
+    if (r.no_order) return false; // Shopee orders → Data Order, bukan Jurnal
     const ch = (_jpChannelMap[r.channel_id] ? _jpChannelMap[r.channel_id].nama : '').toLowerCase();
     const cocokQ  = !q || (r.sku||'').toLowerCase().includes(q) || ch.includes(q);
     const cocokCh = !kat || String(r.channel_id) === String(kat);
