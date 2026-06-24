@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v31 — sidebar sub-nav Proyeksi Harga, hide ph-tabs-bar
-var JS_CACHE = 'zenot-js-20260624-v31';
+var JS_CACHE = 'zenot-js-20260624-98ed7dc22a0f';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
