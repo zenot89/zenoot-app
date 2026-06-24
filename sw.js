@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v34 — app.js: controllerchange selalu auto-reload (fix HP browser non-standalone)
-var JS_CACHE = 'zenot-js-20260624-v34';
+var JS_CACHE = 'zenot-js-20260624-7960be2dff1d';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
