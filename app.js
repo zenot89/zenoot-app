@@ -262,6 +262,10 @@ function phGoto(section, btn) {
   }
   // Navigate ke page proyeksi-harga
   gotoPage('proyeksi-harga', $id('ni-proyeksi-harga-group'));
+  // Auto-expand sub-menu saat landing ke proyeksi-harga
+  var subList2 = $id('ni-proyeksi-sub');
+  var group2   = $id('ni-proyeksi-harga-group');
+  if (subList2) { subList2.classList.add('ni-sub-open'); group2 && group2.classList.add('ni-sub-active'); }
   // Switch section di dalam proyeksi-harga
   if (typeof switchPhSection === 'function') {
     switchPhSection(section);
@@ -625,9 +629,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (_reloadOnController) return; // cegah double reload
     _reloadOnController = true;
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-      window.location.reload();
-    }
+    // Auto reload saat SW baru take control — standalone maupun browser biasa
+    window.location.reload();
   });
 }
 
