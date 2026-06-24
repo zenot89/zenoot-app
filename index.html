@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="style.css" id="style-main">
 </head>
@@ -108,7 +108,17 @@
     </div>
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('shopee-dashboard',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Analisis Shopee</span></button>
-      <button class="nav-item" onclick="gotoPage('proyeksi-harga',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span></button>
+      <div class="nav-item-group" id="ni-proyeksi-harga-group">
+        <button class="nav-item nav-item-parent" onclick="phGoto('proyeksi-ringkasan',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span><span class="ni-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg></span></button>
+        <div class="ni-sub-list" id="ni-proyeksi-sub">
+          <button class="ni-sub" onclick="phGoto('setting',this)"><i class="ti ti-settings"></i><span>Setting</span></button>
+          <button class="ni-sub" onclick="phGoto('pesanan',this)"><i class="ti ti-receipt"></i><span>Pesanan</span></button>
+          <button class="ni-sub" onclick="phGoto('hpp',this)"><i class="ti ti-box"></i><span>HPP</span></button>
+          <button class="ni-sub" onclick="phGoto('biaya',this)"><i class="ti ti-layout-grid"></i><span>Price Analysis</span></button>
+          <button class="ni-sub" onclick="phGoto('proyeksi-ringkasan',this)"><i class="ti ti-bar-chart"></i><span>Proyeksi Harga</span></button>
+          <button class="ni-sub" onclick="phGoto('proyeksi-platform',this)"><i class="ti ti-device-desktop"></i><span>Platform</span></button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -192,7 +202,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260623-2f69a22bfe4d';
+  window.APP_BUILD = '20260623-2eba4264ec46';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible

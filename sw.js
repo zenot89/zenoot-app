@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v30 — proyeksi-harga: fix default landing ke Proyeksi Harga
-var JS_CACHE = 'zenot-js-20260623-2f69a22bfe4d';
+// BUMP: JS_CACHE v31 — sidebar sub-nav Proyeksi Harga, hide ph-tabs-bar
+var JS_CACHE = 'zenot-js-20260624-v31';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

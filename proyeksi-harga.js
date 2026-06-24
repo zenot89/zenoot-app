@@ -51,7 +51,7 @@
 
     /* Shell */
     '#ph-shell{display:flex;flex:1;min-height:0;overflow:hidden;}',
-    '#ph-tabs-bar{flex-shrink:0;background:var(--ph-panel);border-right:1px solid var(--ph-border);display:flex;flex-direction:column;gap:4px;padding:16px 10px;overflow-y:auto;width:180px;}',
+    '#ph-tabs-bar{display:none;}',
     '#ph-tabs-bar .ph-tab{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:7px;color:var(--ph-dim);font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid transparent;background:none;text-align:left;width:100%;font-family:inherit;white-space:nowrap;}',
     '#ph-tabs-bar .ph-tab:hover{background:var(--ph-panel2);color:var(--ph-text);}',
     '#ph-tabs-bar .ph-tab.ph-active{background:var(--ph-accent-dim);color:var(--ph-text);border-color:var(--ph-border);}',
@@ -413,6 +413,7 @@
     };
 
     function switchSection(key){
+      window.switchPhSection = switchSection; // expose global for sidebar nav
       $$('.ph-tab').forEach(function(b){b.classList.toggle('ph-active',b.dataset.sec===key||( b.dataset.sec==='proyeksi-ringkasan'&&key==='proyeksi-platform'));});
       $$('.ph-pane').forEach(function(p){p.classList.toggle('ph-active',p.id==='ph-pane-'+key);});
       var hdrAction=$('ph-hdr-action');

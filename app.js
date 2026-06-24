@@ -244,6 +244,41 @@ function gotoPage(page, btn) {
   }
 }
 
+// ─── PROYEKSI HARGA NAV ──────────────────────────────────────
+function phGoto(section, btn) {
+  // Toggle sub-list visibility
+  var subList = $id('ni-proyeksi-sub');
+  var group   = $id('ni-proyeksi-harga-group');
+  if (subList) {
+    var isOpen = subList.classList.contains('ni-sub-open');
+    // Jika klik parent (proyeksi-ringkasan) dan sub sudah open → toggle tutup, kecuali klik sub-item
+    if (btn && btn.classList.contains('nav-item-parent')) {
+      subList.classList.toggle('ni-sub-open');
+      group && group.classList.toggle('ni-sub-active', subList.classList.contains('ni-sub-open'));
+    } else {
+      subList.classList.add('ni-sub-open');
+      group && group.classList.add('ni-sub-active');
+    }
+  }
+  // Navigate ke page proyeksi-harga
+  gotoPage('proyeksi-harga', $id('ni-proyeksi-harga-group'));
+  // Switch section di dalam proyeksi-harga
+  if (typeof switchPhSection === 'function') {
+    switchPhSection(section);
+  } else {
+    // Tunggu sampai page ready lalu switch
+    var tries = 0;
+    var poll = setInterval(function() {
+      tries++;
+      if (typeof switchPhSection === 'function') { clearInterval(poll); switchPhSection(section); }
+      else if (tries > 20) clearInterval(poll);
+    }, 100);
+  }
+  // Active state untuk sub-items
+  $all('.ni-sub').forEach(function(b) { b.classList.remove('ni-sub-active-item'); });
+  if (btn && btn.classList.contains('ni-sub')) btn.classList.add('ni-sub-active-item');
+}
+
 // ─── MODAL ───────────────────────────────────────────────────
 function closeModal(id) {
   var el = $id(id);
