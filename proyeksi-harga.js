@@ -30,12 +30,13 @@
       document.head.appendChild(lnk);
     }
 
-    if (!document.getElementById('ph-style')) {
-      var s = document.createElement('style');
-      s.id = 'ph-style';
-      s.textContent = PH_CSS;
-      document.head.appendChild(s);
-    }
+    // Force re-inject CSS setiap boot agar perubahan style langsung aktif
+    var _phOldStyle = document.getElementById('ph-style');
+    if (_phOldStyle) _phOldStyle.remove();
+    var s = document.createElement('style');
+    s.id = 'ph-style';
+    s.textContent = PH_CSS;
+    document.head.appendChild(s);
 
     pg.innerHTML = PH_HTML;
     pg.style.cssText = 'padding:0;overflow:hidden;height:100%;';
@@ -511,20 +512,11 @@
       if (!pane || pane.querySelector('#ph-biaya-hdr-inputs')) return;
       var div = document.createElement('div');
       div.id = 'ph-biaya-hdr-inputs';
-      div.style.cssText = 'display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
+      div.style.cssText = 'display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
       div.innerHTML =
-        '<div>' +
-          '<label class="ph-label">Toko</label>' +
-          '<select id="ph-biaya-toko-label" disabled style="background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-dim);border-radius:6px;padding:7px 10px;font-family:var(--ph-mono);font-size:13px;min-width:120px;"></select>' +
-        '</div>' +
-        '<div style="display:flex;align-items:flex-end;gap:10px;">' +
-          '<div><label class="ph-label">Affiliate (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-affiliate-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
-          '<div><label class="ph-label">ACOS (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-acos-aktual-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
-        '</div>';
+        '<div><label class="ph-label">Affiliate (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-affiliate-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
+        '<div><label class="ph-label">ACOS (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-acos-aktual-input" step="0.01" placeholder="0" style="width:90px"></div></div>';
       pane.insertBefore(div, pane.firstChild);
-      // Sync toko label
-      var tokoLbl = document.getElementById('ph-biaya-toko-label');
-      if (tokoLbl && state.tokoNama) { tokoLbl.innerHTML = '<option>'+state.tokoNama+'</option>'; }
 
       document.getElementById('ph-affiliate-input').value = state.affiliateAktual || '';
       document.getElementById('ph-acos-aktual-input').value = state.acosAktual || '';
