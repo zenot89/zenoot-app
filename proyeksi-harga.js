@@ -451,6 +451,16 @@
       var status = $('ph-penghasilan-status');
       if (!text.trim()) { status.className='ph-parse-status fail'; status.textContent='Belum ada teks.'; return; }
       var r = parseBreakdown(text, PENGHASILAN_FIELDS);
+      // Extract Kode Variasi untuk HPP matching
+      var kodeVariasiMatch = text.match(/Kode\s+Variasi\s*:\s*([^\n]+)/i);
+      var kodeVariasiRaw = kodeVariasiMatch ? kodeVariasiMatch[1].trim() : null;
+      // Ambil prefix sebelum '_' (misal "MAYRA_ MARUN" → "MAYRA")
+      var katalogPrefix = null;
+      if (kodeVariasiRaw) {
+        var prefixMatch = kodeVariasiRaw.match(/^([^_]+)/);
+        if (prefixMatch) katalogPrefix = prefixMatch[1].trim().toUpperCase();
+      }
+      state.katalogFromPaste = katalogPrefix;
       renderParsePreview('ph-penghasilan-preview', PENGHASILAN_FIELDS, r.values);
       if (!r.foundCount) { status.className='ph-parse-status fail'; status.textContent='Tidak ada field yang dikenali.'; return; }
       status.className = r.foundCount === r.totalFields ? 'ph-parse-status ok' : 'ph-parse-status fail';
@@ -539,9 +549,20 @@
       var acos       = state.acosAktual || 0;
       var aff        = state.affiliateAktual || 0;
 
-      // Cari HPP dari katalog aktif — pakai katalog pertama sebagai default jika ada
-      var hppKatalog = Object.keys(state.hpp)[0];
-      var hpp        = hppKatalog ? (state.hpp[hppKatalog] || 0) : 0;
+      // Cari HPP dari katalog — match ke Kode Variasi yang dipaste, fallback ke pertama
+      var hppKatalog = null;
+      if (state.katalogFromPaste) {
+        var prefix = state.katalogFromPaste;
+        // Cari exact match dulu (case-insensitive)
+        hppKatalog = Object.keys(state.hpp).find(function(k){ return k.toUpperCase() === prefix; }) || null;
+        // Kalau tidak ketemu, cari yang starts-with
+        if (!hppKatalog) {
+          hppKatalog = Object.keys(state.hpp).find(function(k){ return k.toUpperCase().startsWith(prefix); }) || null;
+        }
+      }
+      // Fallback ke katalog pertama kalau tidak ada match
+      if (!hppKatalog) hppKatalog = Object.keys(state.hpp)[0] || null;
+      var hpp = hppKatalog ? (state.hpp[hppKatalog] || 0) : 0;
 
       var platformCost = Math.abs((v.biayaAdministrasi||0) + (v.biayaLayanan||0) + (v.biayaProsesPesanan||0));
       var voucherToko  = Math.abs(v.voucherToko || 0);
