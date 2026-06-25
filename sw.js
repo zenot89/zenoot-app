@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — proyeksi-harga: fix HPP lookup by Kode Variasi dari paste
-var JS_CACHE = 'zenot-js-20260625-fe2930ef3279';
+// BUMP: JS_CACHE — proyeksi-harga: fix skuMap lookup + NPM konsisten totalPenh
+var JS_CACHE = 'zenot-js-20260625-5y9g7ny8';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

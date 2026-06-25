@@ -313,12 +313,17 @@
         .then(function(rows) {
           // Group by katalog, ambil hpp pertama yang tidak null/0
           var hpp = {};
+          var skuMap = {}; // sku_variasi.toUpperCase() → katalog
           (rows || []).forEach(function(r) {
             var kat = (r.katalog || '').trim();
             if (!kat) return;
             if (hpp[kat] == null && r.hpp) hpp[kat] = r.hpp;
+            // Build kamus: CALYRA_HITAM → CALYRA, DC_HITAM → D_CURLY
+            var skuVar = (r.sku_variasi || '').trim().toUpperCase().replace(/\s+/g, '');
+            if (skuVar) skuMap[skuVar] = kat;
           });
-          state.hpp = hpp;
+          state.hpp    = hpp;
+          state.skuMap = skuMap;
         })
         .catch(function(){ state.hpp = {}; });
 
@@ -451,16 +456,11 @@
       var status = $('ph-penghasilan-status');
       if (!text.trim()) { status.className='ph-parse-status fail'; status.textContent='Belum ada teks.'; return; }
       var r = parseBreakdown(text, PENGHASILAN_FIELDS);
-      // Extract Kode Variasi untuk HPP matching
+      // Extract Kode Variasi untuk HPP matching via skuMap
       var kodeVariasiMatch = text.match(/Kode\s+Variasi\s*:\s*([^\n]+)/i);
       var kodeVariasiRaw = kodeVariasiMatch ? kodeVariasiMatch[1].trim() : null;
-      // Ambil prefix sebelum '_' (misal "MAYRA_ MARUN" → "MAYRA")
-      var katalogPrefix = null;
-      if (kodeVariasiRaw) {
-        var prefixMatch = kodeVariasiRaw.match(/^([^_]+)/);
-        if (prefixMatch) katalogPrefix = prefixMatch[1].trim().toUpperCase();
-      }
-      state.katalogFromPaste = katalogPrefix;
+      // Simpan raw sku_variasi untuk exact match ke skuMap (misal "MAYRA_ MARUN" → "MAYRA_MARUN")
+      state.skuRawFromPaste = kodeVariasiRaw || null;
       renderParsePreview('ph-penghasilan-preview', PENGHASILAN_FIELDS, r.values);
       if (!r.foundCount) { status.className='ph-parse-status fail'; status.textContent='Tidak ada field yang dikenali.'; return; }
       status.className = r.foundCount === r.totalFields ? 'ph-parse-status ok' : 'ph-parse-status fail';
@@ -549,16 +549,11 @@
       var acos       = state.acosAktual || 0;
       var aff        = state.affiliateAktual || 0;
 
-      // Cari HPP dari katalog — match ke Kode Variasi yang dipaste, fallback ke pertama
+      // Cari HPP: exact match sku_variasi dari paste → katalog via skuMap
       var hppKatalog = null;
-      if (state.katalogFromPaste) {
-        var prefix = state.katalogFromPaste;
-        // Cari exact match dulu (case-insensitive)
-        hppKatalog = Object.keys(state.hpp).find(function(k){ return k.toUpperCase() === prefix; }) || null;
-        // Kalau tidak ketemu, cari yang starts-with
-        if (!hppKatalog) {
-          hppKatalog = Object.keys(state.hpp).find(function(k){ return k.toUpperCase().startsWith(prefix); }) || null;
-        }
+      if (state.skuRawFromPaste && state.skuMap) {
+        var skuKey = state.skuRawFromPaste.toUpperCase().replace(/\s+/g, '');
+        hppKatalog = state.skuMap[skuKey] || null;
       }
       // Fallback ke katalog pertama kalau tidak ada match
       if (!hppKatalog) hppKatalog = Object.keys(state.hpp)[0] || null;
@@ -570,9 +565,9 @@
       var affBiaya     = aff  > 0 ? (subtotal * aff  / 100) : 0;
       var costTotal    = platformCost + voucherToko + adsBiaya + affBiaya;
       var costRatioPct = subtotal > 0 ? (costTotal / subtotal) * 100 : 0;
+      // Profit Aktual & NPM keduanya dari totalPenh — konsisten, sudah include semua potongan Shopee
       var benefit      = hpp > 0 ? (totalPenh - hpp - adsBiaya - affBiaya) : null;
-      var potongan     = (v.biayaAdministrasi||0) + (v.biayaLayanan||0) + (v.biayaProsesPesanan||0) + (v.voucherToko||0);
-      var npm          = hpp > 0 ? (subtotal + potongan - adsBiaya - affBiaya - hpp) : null;
+      var npm          = benefit; // sama: totalPenh - hpp - ads - aff
       var npmPct       = (npm !== null && subtotal > 0) ? (npm/subtotal)*100 : null;
       var gm           = hpp > 0 ? (subtotal - hpp) : null;
       var gmPct        = (gm !== null && subtotal > 0) ? (gm/subtotal)*100 : null;
