@@ -115,8 +115,9 @@
     /* Metrics grid */
     '#page-proyeksi-harga .ph-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px;}',
     '#page-proyeksi-harga .ph-metric{background:var(--ph-panel2);border:1px solid var(--ph-border-s);border-radius:6px;padding:10px 12px;}',
-    '#page-proyeksi-harga .ph-mlabel{font-family:var(--ph-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ph-faint);margin-bottom:4px;}',
-    '#page-proyeksi-harga .ph-mval{font-size:18px;font-weight:700;color:var(--ph-text);}',
+    '#page-proyeksi-harga .ph-mlabel{font-family:var(--ph-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ph-faint);margin-bottom:6px;}',
+    '#page-proyeksi-harga .ph-mval{font-size:16px;font-weight:700;color:var(--ph-text);line-height:1.2;}',
+    '#page-proyeksi-harga .ph-mval-sub{font-family:var(--ph-mono);font-size:11px;color:var(--ph-faint);margin-top:3px;}',
     /* Bar */
     '#page-proyeksi-harga .ph-bar-wrap{margin-top:14px;}',
     '#page-proyeksi-harga .ph-bar{height:10px;border-radius:4px;overflow:hidden;display:flex;background:#232323;}',
@@ -190,7 +191,7 @@
 
         /* Pane: Price Analysis */
         '<section class="ph-pane" id="ph-pane-biaya">' +
-          '<div class="ph-panel"><div class="ph-panel-title">Total Biaya & Benefit (per order)</div><div id="ph-biaya-empty" class="ph-parse-hint">Paste "Rincian Penghasilan" di section Pesanan dulu untuk lihat total biaya & benefit real per order.</div><div class="ph-metrics" id="ph-biaya-metrics" style="display:none"><div class="ph-metric"><div class="ph-mlabel">Cost Ratio</div><div class="ph-mval" id="ph-m-cost-ratio">0%</div></div><div class="ph-metric"><div class="ph-mlabel">Net Profit Margin</div><div class="ph-mval" id="ph-m-npm">-</div></div><div class="ph-metric"><div class="ph-mlabel">Gross Margin</div><div class="ph-mval" id="ph-m-gm">-</div></div><div class="ph-metric"><div class="ph-mlabel">Platform Fee</div><div class="ph-mval" id="ph-m-pf-pct">0%</div></div><div class="ph-metric"><div class="ph-mlabel">Total Cost</div><div class="ph-mval" id="ph-m-total-cost" style="color:var(--ph-danger)">Rp 0</div></div><div class="ph-metric"><div class="ph-mlabel">Profit Aktual</div><div class="ph-mval" id="ph-m-benefit">isi HPP dulu</div></div><div class="ph-metric"><div class="ph-mlabel">Subtotal</div><div class="ph-mval" id="ph-m-subtotal">Rp 0</div></div><div class="ph-metric"><div class="ph-mlabel">Biaya Platform</div><div class="ph-mval" id="ph-m-pf-idr" style="color:var(--ph-danger)">Rp 0</div></div></div></div>' +
+          '<div class="ph-panel"><div class="ph-panel-title">Total Biaya & Benefit (per order)</div><div id="ph-biaya-empty" class="ph-parse-hint">Paste "Rincian Penghasilan" di section Pesanan dulu untuk lihat total biaya & benefit real per order.</div><div class="ph-metrics" id="ph-biaya-metrics" style="display:none"><div class="ph-metric"><div class="ph-mlabel">Cost Ratio</div><div class="ph-mval" id="ph-m-cost-ratio">0%</div><div class="ph-mval-sub" id="ph-m-cost-ratio-idr">Rp 0</div></div><div class="ph-metric"><div class="ph-mlabel">Net Profit Margin</div><div class="ph-mval" id="ph-m-npm">-</div><div class="ph-mval-sub" id="ph-m-npm-idr">—</div></div><div class="ph-metric"><div class="ph-mlabel">Gross Margin</div><div class="ph-mval" id="ph-m-gm">-</div><div class="ph-mval-sub" id="ph-m-gm-idr">—</div></div><div class="ph-metric"><div class="ph-mlabel">Platform Fee</div><div class="ph-mval" id="ph-m-pf-pct">0%</div><div class="ph-mval-sub" id="ph-m-pf-idr" style="color:var(--ph-danger)">Rp 0</div></div><div class="ph-metric"><div class="ph-mlabel">Total Cost</div><div class="ph-mval" id="ph-m-total-cost" style="color:var(--ph-danger)">Rp 0</div><div class="ph-mval-sub" id="ph-m-cost-ratio-pct">0%</div></div><div class="ph-metric"><div class="ph-mlabel">Profit Aktual</div><div class="ph-mval" id="ph-m-benefit">isi HPP dulu</div><div class="ph-mval-sub" id="ph-m-benefit-pct">—</div></div><div class="ph-metric"><div class="ph-mlabel">Subtotal</div><div class="ph-mval" id="ph-m-subtotal">Rp 0</div><div class="ph-mval-sub">100,00%</div></div><div class="ph-metric"><div class="ph-mlabel">Biaya Platform</div><div class="ph-mval" id="ph-m-pf-idr-val" style="color:var(--ph-danger)">Rp 0</div><div class="ph-mval-sub" id="ph-m-pf-pct-sub">0%</div></div></div></div>' +
           '<div class="ph-panel"><div class="ph-panel-title">Komponen Biaya</div><div id="ph-biaya-card"></div></div>' +
         '</section>' +
 
@@ -510,11 +511,20 @@
       if (!pane || pane.querySelector('#ph-biaya-hdr-inputs')) return;
       var div = document.createElement('div');
       div.id = 'ph-biaya-hdr-inputs';
-      div.style.cssText = 'display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
+      div.style.cssText = 'display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
       div.innerHTML =
-        '<div><label class="ph-label">Affiliate (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-affiliate-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
-        '<div><label class="ph-label">ACOS (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-acos-aktual-input" step="0.01" placeholder="0" style="width:90px"></div></div>';
+        '<div>' +
+          '<label class="ph-label">Toko</label>' +
+          '<select id="ph-biaya-toko-label" disabled style="background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-dim);border-radius:6px;padding:7px 10px;font-family:var(--ph-mono);font-size:13px;min-width:120px;"></select>' +
+        '</div>' +
+        '<div style="display:flex;align-items:flex-end;gap:10px;">' +
+          '<div><label class="ph-label">Affiliate (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-affiliate-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
+          '<div><label class="ph-label">ACOS (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-acos-aktual-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
+        '</div>';
       pane.insertBefore(div, pane.firstChild);
+      // Sync toko label
+      var tokoLbl = document.getElementById('ph-biaya-toko-label');
+      if (tokoLbl && state.tokoNama) { tokoLbl.innerHTML = '<option>'+state.tokoNama+'</option>'; }
 
       document.getElementById('ph-affiliate-input').value = state.affiliateAktual || '';
       document.getElementById('ph-acos-aktual-input').value = state.acosAktual || '';
@@ -565,9 +575,11 @@
       var affBiaya     = aff  > 0 ? (subtotal * aff  / 100) : 0;
       var costTotal    = platformCost + voucherToko + adsBiaya + affBiaya;
       var costRatioPct = subtotal > 0 ? (costTotal / subtotal) * 100 : 0;
-      // Profit Aktual & NPM keduanya dari totalPenh — konsisten, sudah include semua potongan Shopee
+      // Profit Aktual & NPM: totalPenh sudah include semua potongan Shopee.
+      // biayaIsiSaldo ditambah balik karena masuk ke aset saldo ads, bukan biaya hilang.
+      var isiSaldo     = Math.abs(v.biayaIsiSaldo || 0);
       var benefit      = hpp > 0 ? (totalPenh - hpp - adsBiaya - affBiaya) : null;
-      var npm          = benefit; // sama: totalPenh - hpp - ads - aff
+      var npm          = hpp > 0 ? (totalPenh - hpp - adsBiaya - affBiaya + isiSaldo) : null;
       var npmPct       = (npm !== null && subtotal > 0) ? (npm/subtotal)*100 : null;
       var gm           = hpp > 0 ? (subtotal - hpp) : null;
       var gmPct        = (gm !== null && subtotal > 0) ? (gm/subtotal)*100 : null;
@@ -575,23 +587,51 @@
       var pfPct        = subtotal > 0 ? (pfIdr/subtotal)*100 : 0;
       var rowPct       = function(val){ return subtotal ? pct((val/subtotal)*100) : '-'; };
 
-      $('ph-m-subtotal').textContent   = rupiah(subtotal);
-      $('ph-m-total-cost').textContent = rupiah(costTotal);
-      $('ph-m-cost-ratio').textContent = pct(costRatioPct);
-      $('ph-m-pf-pct').textContent     = pct(pfPct);
-      $('ph-m-pf-idr').textContent     = rupiah(pfIdr);
+      // Subtotal
+      $('ph-m-subtotal').textContent = rupiah(subtotal);
 
+      // Cost Ratio: % atas, IDR bawah
+      $('ph-m-cost-ratio').textContent = pct(costRatioPct);
+      if ($('ph-m-cost-ratio-idr')) $('ph-m-cost-ratio-idr').textContent = rupiah(costTotal);
+
+      // Total Cost: IDR atas, % bawah
+      $('ph-m-total-cost').textContent = rupiah(costTotal);
+      $('ph-m-total-cost').style.color = 'var(--ph-danger)';
+      if ($('ph-m-cost-ratio-pct')) { $('ph-m-cost-ratio-pct').textContent = pct(costRatioPct); $('ph-m-cost-ratio-pct').style.color = 'var(--ph-danger)'; }
+
+      // Platform Fee: % atas, IDR bawah
+      $('ph-m-pf-pct').textContent = pct(pfPct);
+      if ($('ph-m-pf-idr'))     $('ph-m-pf-idr').textContent     = rupiah(pfIdr);
+      if ($('ph-m-pf-idr-val')) $('ph-m-pf-idr-val').textContent = rupiah(pfIdr);
+      if ($('ph-m-pf-idr-val')) $('ph-m-pf-idr-val').style.color = 'var(--ph-danger)';
+      if ($('ph-m-pf-pct-sub')) $('ph-m-pf-pct-sub').textContent = pct(pfPct);
+
+      // Profit Aktual: IDR atas, % bawah
       var mB = $('ph-m-benefit');
       mB.textContent = benefit !== null ? rupiah(benefit) : 'isi HPP dulu';
       mB.style.color = benefit !== null && benefit >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      if ($('ph-m-benefit-pct')) {
+        $('ph-m-benefit-pct').textContent = benefit !== null && subtotal > 0 ? pct((benefit/subtotal)*100) : '—';
+        $('ph-m-benefit-pct').style.color = benefit !== null && benefit >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      }
 
+      // NPM: % atas, IDR bawah
       var mN = $('ph-m-npm');
       mN.textContent = npmPct !== null ? pct(npmPct) : 'isi HPP dulu';
       mN.style.color = npmPct !== null && npmPct >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      if ($('ph-m-npm-idr')) {
+        $('ph-m-npm-idr').textContent = npm !== null ? rupiah(npm) : '—';
+        $('ph-m-npm-idr').style.color = npm !== null && npm >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      }
 
+      // Gross Margin: % atas, IDR bawah
       var mG = $('ph-m-gm');
       mG.textContent = gmPct !== null ? pct(gmPct) : 'isi HPP dulu';
       mG.style.color = gmPct !== null && gmPct >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      if ($('ph-m-gm-idr')) {
+        $('ph-m-gm-idr').textContent = gm !== null ? rupiah(gm) : '—';
+        $('ph-m-gm-idr').style.color = gmPct !== null && gmPct >= 0 ? 'var(--ph-ok)' : 'var(--ph-danger)';
+      }
 
       var adminRows = [['Biaya Administrasi',v.biayaAdministrasi],['Biaya Layanan',v.biayaLayanan],['Biaya Proses Pesanan',v.biayaProsesPesanan]].filter(function(r){ return r[1] !== null; });
       var adminSum  = adminRows.reduce(function(s,r){ return s + r[1]; }, 0);
