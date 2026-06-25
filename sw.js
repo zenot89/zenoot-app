@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — proyeksi-harga: header sejajar, minicard 4col 2-baris
-var JS_CACHE = 'zenot-js-20260625-9li62wl0';
+var JS_CACHE = 'zenot-js-20260625-2834e15f5dba';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
