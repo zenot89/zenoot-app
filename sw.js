@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v40 — proyeksi-harga: fix semua SyntaxError CSS array
-var JS_CACHE = 'zenot-js-20260625-v40';
+var JS_CACHE = 'zenot-js-20260625-eb0490d4dfda';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
