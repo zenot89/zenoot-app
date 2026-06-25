@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v34 — app.js: controllerchange selalu auto-reload (fix HP browser non-standalone)
-var JS_CACHE = 'zenot-js-20260625-94ce1aa82b48';
+// BUMP: JS_CACHE v36 — app.js: auto-expand sub-menu proyeksi-harga + controllerchange always reload
+var JS_CACHE = 'zenot-js-20260625-v36';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
