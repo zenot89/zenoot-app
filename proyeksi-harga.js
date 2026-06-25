@@ -100,11 +100,11 @@
     '#page-proyeksi-harga .ph-ptab .ph-ptab-name{font-weight:600;font-size:13.5px;}',
     '#page-proyeksi-harga .ph-ptab .ph-ptab-def{font-family:var(--ph-mono);font-size:11px;color:var(--ph-faint);margin-top:2px;}',
     '#page-proyeksi-harga .ph-ptab[data-active="true"]{border-color:var(--ph-dim);background:var(--ph-accent-dim);}',
-    '#page-proyeksi-harga .ph-saved{font-family:var(--ph-mono);font-size:11px;color:var(--ph-dim);opacity:0;transition:opacity .3s;}'
+    '#page-proyeksi-harga .ph-saved{font-family:var(--ph-mono);font-size:11px;color:var(--ph-dim);opacity:0;transition:opacity .3s;}',
     /* Tab bar */
-    '#ph-tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--ph-border);margin-bottom:18px;}'
-    '#ph-tab-bar button{background:none;border:none;color:var(--ph-faint);font-family:inherit;font-size:13px;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;}'
-    '#ph-tab-bar button:hover{color:var(--ph-dim);}'
+    '#ph-tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--ph-border);margin-bottom:18px;}',
+    '#ph-tab-bar button{background:none;border:none;color:var(--ph-faint);font-family:inherit;font-size:13px;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;}',
+    '#ph-tab-bar button:hover{color:var(--ph-dim);}',
     '#ph-tab-bar button.ph-tab-active{color:var(--ph-text);border-bottom-color:var(--ph-text);font-weight:600;}',
     '#page-proyeksi-harga .ph-saved.ph-show{opacity:1;}',
     /* Hero */
@@ -123,7 +123,7 @@
     '#page-proyeksi-harga .ph-seg{height:100%;}',
     '#page-proyeksi-harga .ph-leg-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}',
     /* Tables */
-    '#page-proyeksi-harga .ph-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px;}'
+    '#page-proyeksi-harga .ph-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px;}',
     '#page-proyeksi-harga .ph-tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px;}',
     '#page-proyeksi-harga .ph-tbl thead th{background:var(--ph-panel2);padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ph-faint);border-bottom:1px solid var(--ph-border);}',
     '#page-proyeksi-harga .ph-tbl thead th.num{text-align:right;}',
