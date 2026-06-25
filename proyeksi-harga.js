@@ -58,7 +58,7 @@
     '#ph-hdr{margin-bottom:18px;}',
     '#ph-hdr h2{font-family:var(--ph-display);font-size:24px;font-weight:500;margin:0 0 4px;letter-spacing:-.005em;color:var(--ph-text);}',
     '#ph-hdr .ph-sub{color:var(--ph-dim);font-size:12.5px;line-height:1.5;}',
-    '#ph-hdr-action{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
+    '#ph-hdr-action{margin-top:10px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;}',
     /* Toko selector */
     '#ph-toko-select{background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);border-radius:6px;padding:7px 10px;font-family:var(--ph-mono);font-size:13px;cursor:pointer;min-width:140px;}',
     '#ph-toko-select:focus{outline:none;border-color:var(--ph-dim);}',
@@ -114,7 +114,7 @@
     '#page-proyeksi-harga .ph-hero-num{font-family:var(--ph-display);font-size:36px;font-weight:500;margin-top:6px;letter-spacing:-.005em;}',
     '#page-proyeksi-harga .ph-hero-sub{font-size:12px;color:var(--ph-dim);margin-top:6px;}',
     /* Metrics grid */
-    '#page-proyeksi-harga .ph-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px;}',
+    '#page-proyeksi-harga .ph-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}',
     '#page-proyeksi-harga .ph-metric{background:var(--ph-panel2);border:1px solid var(--ph-border-s);border-radius:6px;padding:10px 12px;}',
     '#page-proyeksi-harga .ph-mlabel{font-family:var(--ph-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ph-faint);margin-bottom:6px;}',
     '#page-proyeksi-harga .ph-mval{font-size:16px;font-weight:700;color:var(--ph-text);line-height:1.2;}',
@@ -177,7 +177,10 @@
               '<label class="ph-label">Toko</label>' +
               '<select id="ph-toko-select"><option value="">Memuat toko...</option></select>' +
             '</div>' +
-            '<div id="ph-ch-badge"></div>' +
+            '<div style="display:flex;align-items:flex-end;gap:10px;">' +
+              '<div id="ph-ch-badge"></div>' +
+              '<div id="ph-acos-aff-global"></div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
 
@@ -507,16 +510,13 @@
 
     /* ── Price Analysis (biaya) pane ── */
     function renderBiayaHeaderInputs() {
-      // ACOS & Affiliate input di header pane biaya — inject di atas panel jika belum ada
-      var pane = $('ph-pane-biaya');
-      if (!pane || pane.querySelector('#ph-biaya-hdr-inputs')) return;
-      var div = document.createElement('div');
-      div.id = 'ph-biaya-hdr-inputs';
-      div.style.cssText = 'display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
-      div.innerHTML =
+      // Inject Affiliate+ACOS ke global header (sejajar dengan Toko) — sekali saja
+      var globalSlot = $('ph-acos-aff-global');
+      if (!globalSlot || globalSlot.querySelector('#ph-affiliate-input')) return;
+      globalSlot.style.cssText = 'display:flex;align-items:flex-end;gap:10px;';
+      globalSlot.innerHTML =
         '<div><label class="ph-label">Affiliate (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-affiliate-input" step="0.01" placeholder="0" style="width:90px"></div></div>' +
         '<div><label class="ph-label">ACOS (%)</label><div class="ph-input-wrap ph-suf"><span class="ph-suffix">%</span><input type="number" id="ph-acos-aktual-input" step="0.01" placeholder="0" style="width:90px"></div></div>';
-      pane.insertBefore(div, pane.firstChild);
 
       document.getElementById('ph-affiliate-input').value = state.affiliateAktual || '';
       document.getElementById('ph-acos-aktual-input').value = state.acosAktual || '';
