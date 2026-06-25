@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE v36 — app.js: auto-expand sub-menu proyeksi-harga + controllerchange always reload
-var JS_CACHE = 'zenot-js-20260625-c418e7f27320';
+// BUMP: JS_CACHE v38 — proyeksi-harga: sub-menu jadi tab bar dalam halaman, hapus ni-sub dari sidebar
+var JS_CACHE = 'zenot-js-20260625-v38';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

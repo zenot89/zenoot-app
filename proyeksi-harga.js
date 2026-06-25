@@ -100,7 +100,12 @@
     '#page-proyeksi-harga .ph-ptab .ph-ptab-name{font-weight:600;font-size:13.5px;}',
     '#page-proyeksi-harga .ph-ptab .ph-ptab-def{font-family:var(--ph-mono);font-size:11px;color:var(--ph-faint);margin-top:2px;}',
     '#page-proyeksi-harga .ph-ptab[data-active="true"]{border-color:var(--ph-dim);background:var(--ph-accent-dim);}',
-    '#page-proyeksi-harga .ph-saved{font-family:var(--ph-mono);font-size:11px;color:var(--ph-dim);opacity:0;transition:opacity .3s;}',
+    '#page-proyeksi-harga .ph-saved{font-family:var(--ph-mono);font-size:11px;color:var(--ph-dim);opacity:0;transition:opacity .3s;}'
+    /* Tab bar */
+    '#ph-tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--ph-border);margin-bottom:18px;}'
+    '#ph-tab-bar button{background:none;border:none;color:var(--ph-faint);font-family:inherit;font-size:13px;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;}'
+    '#ph-tab-bar button:hover{color:var(--ph-dim);}'
+    '#ph-tab-bar button.ph-tab-active{color:var(--ph-text);border-bottom-color:var(--ph-text);font-weight:600;}',
     '#page-proyeksi-harga .ph-saved.ph-show{opacity:1;}',
     /* Hero */
     '#page-proyeksi-harga .ph-hero{margin-top:4px;padding:22px 18px;border-radius:8px;background:var(--ph-panel2);border:1px solid var(--ph-border);text-align:center;}',
@@ -118,7 +123,8 @@
     '#page-proyeksi-harga .ph-seg{height:100%;}',
     '#page-proyeksi-harga .ph-leg-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}',
     /* Tables */
-    '#page-proyeksi-harga .ph-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px;}',
+    '#page-proyeksi-harga .ph-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px;}'
+    '#page-proyeksi-harga .ph-tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px;}',
     '#page-proyeksi-harga .ph-tbl thead th{background:var(--ph-panel2);padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ph-faint);border-bottom:1px solid var(--ph-border);}',
     '#page-proyeksi-harga .ph-tbl thead th.num{text-align:right;}',
     '#page-proyeksi-harga .ph-tbl tbody td{padding:7px 8px;border-top:1px solid var(--ph-border-s);}',
@@ -156,6 +162,11 @@
   var PH_HTML =
     '<div id="ph-shell">' +
       '<div id="ph-main">' +
+        '<div id="ph-tab-bar">' +
+          '<button onclick="switchPhSection(\'proyeksi-ringkasan\',this)" class="ph-tab-active"><i class="ti ti-bar-chart"></i>Proyeksi Harga</button>' +
+          '<button onclick="switchPhSection(\'pesanan\',this)"><i class="ti ti-receipt"></i>Pesanan</button>' +
+          '<button onclick="switchPhSection(\'biaya\',this)"><i class="ti ti-layout-grid"></i>Price Analysis</button>' +
+        '</div>' +
         '<div id="ph-hdr">' +
           '<h2 id="ph-heading">Proyeksi Harga</h2>' +
           '<div class="ph-sub" id="ph-sub">Harga jual minimum per SKU — berdasarkan HPP, beban operasional, dan target NPM.</div>' +
@@ -338,7 +349,16 @@
       });
       var meta = SECTION_META[key];
       if (meta) { $('ph-heading').textContent = meta.title; $('ph-sub').textContent = meta.sub; }
-
+      // Sync tab bar active state
+      var tabBar = document.getElementById('ph-tab-bar');
+      if (tabBar) {
+        tabBar.querySelectorAll('button').forEach(function(b) { b.classList.remove('ph-tab-active'); });
+        tabBar.querySelectorAll('button').forEach(function(b) {
+          if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + key + "'") !== -1) {
+            b.classList.add('ph-tab-active');
+          }
+        });
+      }
       if (key === 'biaya') {
         renderBiayaHeaderInputs();
       }
@@ -635,14 +655,14 @@
           '<span>Proyeksi Harga &middot; ' + esc(tokoNama) + '</span>' +
           '<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ph-dim)">Beban ' + pct(bebanPct) + ' · Target NPM ' + pct(targetNpmPct) + '</span>' +
         '</div>' +
-        '<table class="ph-tbl"><thead><tr>' +
+        '<div class="ph-tbl-wrap"><table class="ph-tbl"><thead><tr>' +
           '<th>SKU Induk</th>' +
           '<th class="num">HPP</th>' +
           '<th class="num">Harga Jual Min</th>' +
           '<th class="num">Profit (Rp)</th>' +
           '<th class="num">GPM</th>' +
           '<th class="num">NPM</th>' +
-        '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+        '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
         '<div class="ph-summary-foot">' +
           '<div style="font-size:12px;color:var(--ph-faint)">Total estimasi omset (1x per SKU): <b style="color:var(--ph-text)">' + rupiah(sumHarga) + '</b></div>' +
           '<button class="ph-btn ph-btn-ghost ph-btn-sm" id="ph-copy-summary-btn">Salin TSV</button>' +

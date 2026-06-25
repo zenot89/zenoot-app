@@ -108,14 +108,7 @@
     </div>
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('shopee-dashboard',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Analisis Shopee</span></button>
-      <div class="nav-item-group" id="ni-proyeksi-harga-group">
-        <button class="nav-item nav-item-parent" onclick="phGoto('proyeksi-ringkasan',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span><span class="ni-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg></span></button>
-        <div class="ni-sub-list" id="ni-proyeksi-sub">
-          <button class="ni-sub" onclick="phGoto('pesanan',this)"><i class="ti ti-receipt"></i><span>Pesanan</span></button>
-          <button class="ni-sub" onclick="phGoto('biaya',this)"><i class="ti ti-layout-grid"></i><span>Price Analysis</span></button>
-          <button class="ni-sub" onclick="phGoto('proyeksi-ringkasan',this)"><i class="ti ti-bar-chart"></i><span>Proyeksi Harga</span></button>
-        </div>
-      </div>
+      <button class="nav-item" id="ni-proyeksi-harga-group" onclick="phGoto('proyeksi-ringkasan',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span></button>
     </div>
   </div>
 
@@ -199,7 +192,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260625-c418e7f27320';
+  window.APP_BUILD = '20260624-98ed7dc22a0f';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
