@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — proyeksi-harga: NPM+isiSaldo, layout header, minicard 2-baris
-var JS_CACHE = 'zenot-js-20260625-x9zbmm1c';
+var JS_CACHE = 'zenot-js-20260625-b5ceaed86c27';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
