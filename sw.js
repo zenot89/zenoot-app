@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — proyeksi-harga: fix skuMap lookup + NPM konsisten totalPenh
-var JS_CACHE = 'zenot-js-20260625-5y9g7ny8';
+var JS_CACHE = 'zenot-js-20260625-c4f38b99a01c';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
