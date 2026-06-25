@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v38 — proyeksi-harga: sub-menu jadi tab bar dalam halaman, hapus ni-sub dari sidebar
-var JS_CACHE = 'zenot-js-20260625-v38';
+var JS_CACHE = 'zenot-js-20260625-2f5ce6a00fdf';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
