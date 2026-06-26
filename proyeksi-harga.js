@@ -332,6 +332,10 @@
       state.tokoId   = tid;
       state.tokoNama = tobj ? tobj.nama : tid;
 
+      // Update label rekap pane kalau sudah ter-render
+      var rekapLabel = document.getElementById('ph-rekap-toko-label');
+      if (rekapLabel) rekapLabel.textContent = state.tokoNama || '';
+
       // Paralel: load beban + HPP produk
       var p1 = sbGet('channel_beban', '&channel_id=eq.' + tid)
         .then(function(rows) {
