@@ -398,10 +398,14 @@
     }
 
     function findFieldValue(lines, label) {
-      var target = label.toLowerCase();
+      // label bisa string atau array of strings (untuk pesanan selesai vs estimasi)
+      var targets = Array.isArray(label)
+        ? label.map(function(l){ return l.toLowerCase(); })
+        : [label.toLowerCase()];
       for (var i = 0; i < lines.length; i++) {
         var ll = lines[i].toLowerCase();
-        if (ll === target || ll.startsWith(target)) {
+        var matched = targets.some(function(t){ return ll === t || ll.startsWith(t); });
+        if (matched) {
           for (var j = i+1; j < Math.min(lines.length, i+3); j++) {
             var val = parseRupiahLine(lines[j]);
             if (val !== null) return val;
@@ -415,14 +419,16 @@
       {key:'subtotalPesanan',   label:'Subtotal Pesanan'},
       {key:'hargaProduk',       label:'Harga Produk'},
       {key:'ongkirDibayarPembeli', label:'Ongkir Dibayar Pembeli'},
-      {key:'potonganOngkirShopee', label:'Estimasi Potongan Ongkos Kirim dari Shopee'},
+      // pesanan selesai: "Potongan Ongkos Kirim dari Shopee" (tanpa "Estimasi")
+      {key:'potonganOngkirShopee', label:['Estimasi Potongan Ongkos Kirim dari Shopee','Potongan Ongkos Kirim dari Shopee']},
       {key:'voucherSubsidiShopee', label:'Voucher & Subsidi Shopee'},
       {key:'voucherToko',       label:'Voucher Toko yang ditanggung Penjual'},
       {key:'biayaAdministrasi', label:'Biaya Administrasi'},
       {key:'biayaLayanan',      label:'Biaya Layanan'},
       {key:'biayaProsesPesanan',label:'Biaya Proses Pesanan'},
       {key:'biayaIsiSaldo',     label:'Biaya Isi Saldo Otomatis'},
-      {key:'totalPenghasilan',  label:'Estimasi Total Penghasilan'},
+      // pesanan selesai: "Total Penghasilan" (tanpa "Estimasi")
+      {key:'totalPenghasilan',  label:['Estimasi Total Penghasilan','Total Penghasilan']},
     ];
     var PEMBAYARAN_FIELDS = [
       {key:'subtotalPesanan',   label:'Subtotal Pesanan'},
@@ -450,7 +456,8 @@
       var rows = fieldDefs.map(function(f) {
         var v = values[f.key]; var ok = v !== null;
         var ratio = (ok && subtotal && f.key !== 'subtotalPesanan') ? (v/subtotal)*100 : null;
-        return '<tr><td style="color:'+(ok?'':'var(--ph-danger)')+'">'+f.label+'</td>' +
+        var fLabel = Array.isArray(f.label) ? f.label[0] : f.label;
+        return '<tr><td style="color:'+(ok?'':'var(--ph-danger)')+'">'+fLabel+'</td>' +
           '<td class="num" style="color:'+(ok?'':'var(--ph-danger)')+'">'+( ok ? rupiah(v) : 'tidak ketemu')+'</td>' +
           '<td class="num" style="color:var(--ph-faint);font-size:11px">'+(ratio!==null?pct(ratio):'&mdash;')+'</td></tr>';
       }).join('');
