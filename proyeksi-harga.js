@@ -551,14 +551,42 @@
       var acos       = state.acosAktual || 0;
       var aff        = state.affiliateAktual || 0;
 
-      // Cari HPP: exact match sku_variasi dari paste → katalog via skuMap
+      // Cari HPP: 4-layer lookup
+      // Layer 1: exact match sku_variasi dari paste → katalog via skuMap
+      // Layer 2: size remap (S/M→-M, L/XL/XLL→-XL) — konsisten dgn shopee-sync.js
+      // Layer 3: fallback ke katalog yang sama (SKU induk)
+      // Layer 4: tidak ketemu → hpp=0, tampil warning
       var hppKatalog = null;
+      var hppMatchInfo = '';
       if (state.skuRawFromPaste && state.skuMap) {
         var skuKey = state.skuRawFromPaste.toUpperCase().replace(/\s+/g, '');
-        hppKatalog = state.skuMap[skuKey] || null;
+        // Layer 1: exact match
+        if (state.skuMap[skuKey]) {
+          hppKatalog = state.skuMap[skuKey];
+          hppMatchInfo = 'exact';
+        } else {
+          // Layer 2: size remap — ganti suffix ukuran
+          var skuRemapped = skuKey.replace(/[-_](S|M|L|XL|XLL)$/i, function(_, sz) {
+            return '-' + (['S','M'].indexOf(sz.toUpperCase()) !== -1 ? 'M' : 'XL');
+          });
+          if (skuRemapped !== skuKey && state.skuMap[skuRemapped]) {
+            hppKatalog = state.skuMap[skuRemapped];
+            hppMatchInfo = 'size-remap';
+          } else {
+            // Layer 3: fallback ke katalog (SKU induk) — ambil HPP dari katalog yang sama
+            // Cari katalog dari skuKey prefix (sebelum '_')
+            var skuPrefix = skuKey.split('_')[0];
+            var katMatch = Object.keys(state.hpp).find(function(k) {
+              return k.toUpperCase() === skuPrefix;
+            }) || null;
+            if (katMatch) {
+              hppKatalog = katMatch;
+              hppMatchInfo = 'sku-induk';
+            }
+            // Layer 4: tidak ketemu sama sekali → hppKatalog null, hpp=0
+          }
+        }
       }
-      // Fallback ke katalog pertama kalau tidak ada match
-      if (!hppKatalog) hppKatalog = Object.keys(state.hpp)[0] || null;
       var hpp = hppKatalog ? (state.hpp[hppKatalog] || 0) : 0;
 
       var platformCost = Math.abs((v.biayaAdministrasi||0) + (v.biayaLayanan||0) + (v.biayaProsesPesanan||0));
@@ -632,7 +660,9 @@
       card.innerHTML =
         '<table class="ph-tbl"><thead><tr><th>Komponen Biaya</th><th class="num">Nilai</th><th class="num">% Subtotal</th></tr></thead><tbody>' +
         (v.hargaProduk !== null ? '<tr><td>Harga Produk</td><td class="num">'+rupiah(v.hargaProduk)+'</td><td class="num">'+rowPct(v.hargaProduk)+'</td></tr>' : '') +
-        (hpp > 0 ? '<tr><td>HPP <span style="color:var(--ph-faint);font-size:11px">('+esc(hppKatalog)+')</span></td><td class="num">'+rupiah(hpp)+'</td><td class="num">'+rowPct(-hpp)+'</td></tr>' : '<tr><td style="color:var(--ph-faint)">HPP <span style="font-size:11px">(belum ada produk di Supabase)</span></td><td class="num">—</td><td class="num">—</td></tr>') +
+        (hpp > 0
+          ? '<tr><td>HPP <span style="color:var(--ph-faint);font-size:11px">('+esc(hppKatalog)+(hppMatchInfo==='size-remap'?' · size remap':hppMatchInfo==='sku-induk'?' · dari SKU induk':'')+')</span></td><td class="num">'+rupiah(hpp)+'</td><td class="num">'+rowPct(-hpp)+'</td></tr>'
+          : '<tr><td style="color:var(--ph-danger)">HPP <span style="font-size:11px">(SKU tidak ditemukan di master produk — tambah di halaman Produk)</span></td><td class="num">—</td><td class="num">—</td></tr>') +
         '<tr style="background:rgba(255,255,255,.04)"><td style="font-weight:700">Rasio Admin & Layanan</td><td class="num" style="font-weight:700">'+rupiah(adminSum)+'</td><td class="num" style="font-weight:700">'+(adminPct!==null?pct(adminPct):'–')+'</td></tr>' +
         adminRows.map(function(r){ return '<tr><td style="color:var(--ph-faint);padding-left:18px">'+r[0]+'</td><td class="num" style="color:var(--ph-faint)">'+rupiah(r[1])+'</td><td class="num" style="color:var(--ph-faint)">'+rowPct(r[1])+'</td></tr>'; }).join('') +
         (acos > 0 ? '<tr><td>Biaya Iklan (ACOS '+pct(acos)+')</td><td class="num">'+rupiah(-adsBiaya)+'</td><td class="num">'+rowPct(-adsBiaya)+'</td></tr>' : '') +

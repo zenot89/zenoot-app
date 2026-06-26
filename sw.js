@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — proyeksi-harga: header sejajar, minicard 4col 2-baris
-var JS_CACHE = 'zenot-js-20260625-2834e15f5dba';
+// BUMP: JS_CACHE — proyeksi-harga: 4-layer HPP lookup (exact→size-remap→sku-induk→warning)
+var JS_CACHE = 'zenot-js-20260626-v32';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
