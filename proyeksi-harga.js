@@ -168,6 +168,7 @@
           '<button onclick="switchPhSection(\'proyeksi-ringkasan\',this)" class="ph-tab-active"><i class="ti ti-bar-chart"></i>Proyeksi Harga</button>' +
           '<button onclick="switchPhSection(\'pesanan\',this)"><i class="ti ti-receipt"></i>Pesanan</button>' +
           '<button onclick="switchPhSection(\'biaya\',this)"><i class="ti ti-layout-grid"></i>Price Analysis</button>' +
+          '<button onclick="switchPhSection(\'rekap\',this)"><i class="ti ti-chart-bar"></i>Rekap Toko</button>' +
         '</div>' +
         '<div id="ph-hdr">' +
           '<h2 id="ph-heading">Proyeksi Harga</h2>' +
@@ -191,6 +192,25 @@
             '<div class="ph-panel"><div class="ph-panel-title"><span>Pembayaran Pembeli</span><span style="color:var(--ph-faint);font-weight:400;text-transform:none;letter-spacing:0">sisi pembeli</span></div><div class="ph-parse-hint">Paste detail "Total Pembayaran Pembeli" dari sisi pembeli.</div><textarea id="ph-pembayaran-ta" placeholder="Paste teks Pembayaran Pembeli..."></textarea><div id="ph-pembayaran-status"></div><div class="ph-parse-preview" id="ph-pembayaran-preview"></div></div>' +
           '</div>' +
           '<div style="margin-top:10px;"><button class="ph-btn ph-btn-accent" id="ph-pesanan-action-btn">Parse Otomatis</button></div>' +
+        '</section>' +
+
+        /* Pane: Rekap Toko */
+        '<section class="ph-pane" id="ph-pane-rekap">' +
+          '<div class="ph-panel">' +
+            '<div class="ph-panel-title"><span>Data Rekap Toko</span><span style="color:var(--ph-faint);font-weight:400;text-transform:none;letter-spacing:0" id="ph-rekap-toko-label"></span></div>' +
+            '<div class="ph-parse-hint">Paste data rekap dari spreadsheet. Data disimpan per toko &amp; periode ke Supabase.</div>' +
+            '<div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:10px">' +
+              '<div><label class="ph-label">Periode</label><input type="date" id="ph-rekap-periode" style="background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);border-radius:6px;padding:7px 10px;font-size:13px"></div>' +
+            '</div>' +
+            '<textarea id="ph-rekap-ta" placeholder="Paste data rekap dari spreadsheet..." style="height:220px"></textarea>' +
+            '<div id="ph-rekap-status"></div>' +
+            '<div id="ph-rekap-preview" class="ph-parse-preview"></div>' +
+            '<div style="margin-top:10px;display:flex;gap:8px">' +
+              '<button class="ph-btn ph-btn-accent" id="ph-rekap-parse-btn">Parse Otomatis</button>' +
+              '<button class="ph-btn" id="ph-rekap-save-btn" style="display:none">Simpan ke Supabase</button>' +
+            '</div>' +
+            '<div id="ph-rekap-history" style="margin-top:16px"></div>' +
+          '</div>' +
         '</section>' +
 
         /* Pane: Price Analysis */
@@ -269,6 +289,8 @@
           });
           renderTokoSelect();
           loadTokoData();
+          // Fetch rekap terbaru untuk toko awal → populate ACOS & Affiliate
+          fetchLatestRekap(state.tokoId);
         })
         .catch(function(err) {
           $('ph-toko-select').innerHTML = '<option value="">Error load toko</option>';
@@ -286,9 +308,14 @@
           }).join('')
         : '<option value="">Belum ada toko di Channel Master</option>';
 
-      // Pertahankan pilihan sebelumnya kalau masih ada
-      if (prev && state.tokoList.some(function(t){ return t.id == prev; })) {
-        sel.value = prev;
+      // Restore dari localStorage, fallback ke pilihan sebelumnya atau toko pertama
+      var saved = ''; try { saved = localStorage.getItem('ph_last_toko') || ''; } catch(e) {}
+      var restoreId = saved || prev;
+      if (restoreId && state.tokoList.some(function(t){ return t.id == restoreId; })) {
+        sel.value = restoreId;
+        state.tokoId = restoreId;
+        var tobj = state.tokoList.find(function(t){ return t.id == restoreId; });
+        state.tokoNama = tobj ? tobj.nama : restoreId;
       } else if (state.tokoList.length) {
         state.tokoId   = state.tokoList[0].id;
         state.tokoNama = state.tokoList[0].nama;
@@ -348,6 +375,7 @@
     /* ── section navigation ── */
     var SECTION_META = {
       'pesanan':            { title:'Pesanan & Pembayaran', sub:'Paste Rincian Penghasilan & Pembayaran Pembeli untuk hitung biaya otomatis.' },
+      'rekap':              { title:'Rekap Toko',           sub:'Paste data rekap mingguan dari spreadsheet. Disimpan per toko & periode.' },
       'biaya':              { title:'Price Analysis',       sub:'Total biaya & komponen biaya real per pesanan, dari Rincian Penghasilan.' },
       'proyeksi-ringkasan': { title:'Proyeksi Harga',       sub:'Harga jual minimum per SKU — HPP, beban operasional, dan target NPM dari Channel Master.' },
     };
@@ -372,11 +400,226 @@
       if (key === 'biaya') {
         renderBiayaHeaderInputs();
       }
+      if (key === 'rekap') {
+        initRekapPane();
+      }
+    }
+
+    /* ── Rekap Toko: field definitions ── */
+    var REKAP_FIELDS = [
+      { key: 'acos_persen',      label: 'IKLAN',                              pct: true  },
+      { key: 'affiliate_persen', label: 'Biaya Komisi AMS',                   pct: true  },
+      { key: 'npm_persen',       label: ['Net Cash Flow', 'RASIO LABA'],       pct: true  },
+      { key: 'gpm_persen',       label: 'GPM AKTUAL',                         pct: true  },
+      { key: 'aov',              label: 'AOV AKTUAL',                         pct: false },
+      { key: 'roas',             label: 'ROAS AKTUAL',                        pct: false },
+    ];
+
+    function parseRekapLine(str) {
+      // Untuk nilai persen: cari angka dengan %, contoh "22,70%" → 22.70
+      var pctMatch = String(str).match(/([\d.,]+)%/);
+      if (pctMatch) {
+        var s = pctMatch[1].replace(',', '.');
+        var n = parseFloat(s);
+        return isNaN(n) ? null : { val: n, isPct: true };
+      }
+      // Untuk nilai IDR/angka biasa
+      var numMatch = String(str).replace(/[Rp\s]/gi, '').replace(/\.(?=\d{3})/g, '').replace(',', '.');
+      var n2 = parseFloat(numMatch);
+      return isNaN(n2) ? null : { val: n2, isPct: false };
+    }
+
+    function parseRekapBreakdown(text) {
+      var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+      var result = {}, foundCount = 0;
+      REKAP_FIELDS.forEach(function(f) {
+        var labels = Array.isArray(f.label) ? f.label : [f.label];
+        var targets = labels.map(function(l){ return l.toLowerCase(); });
+        for (var i = 0; i < lines.length; i++) {
+          var ll = lines[i].toLowerCase();
+          var matched = targets.some(function(t){ return ll === t || ll.startsWith(t); });
+          if (matched) {
+            // Cari nilai di sisa baris (tab-separated) atau baris berikutnya
+            var parts = lines[i].split('\t');
+            // Coba kolom persen dulu (kolom 2 atau 3), lalu kolom nilai
+            var found = null;
+            if (f.pct) {
+              // Scan parts untuk yang ada %
+              for (var p = 1; p < parts.length; p++) {
+                var r = parseRekapLine(parts[p]);
+                if (r && r.isPct) { found = r.val; break; }
+              }
+              // Kalau tidak ada di parts, cek baris berikutnya
+              if (found === null) {
+                for (var j = i+1; j < Math.min(lines.length, i+3); j++) {
+                  var r2 = parseRekapLine(lines[j]);
+                  if (r2 && r2.isPct) { found = r2.val; break; }
+                }
+              }
+            } else {
+              // Nilai biasa: cari angka di parts atau baris berikut
+              for (var p2 = 1; p2 < parts.length; p2++) {
+                var r3 = parseRekapLine(parts[p2]);
+                if (r3) { found = r3.val; break; }
+              }
+              if (found === null) {
+                for (var j2 = i+1; j2 < Math.min(lines.length, i+3); j2++) {
+                  var r4 = parseRekapLine(lines[j2]);
+                  if (r4) { found = r4.val; break; }
+                }
+              }
+            }
+            if (found !== null) { result[f.key] = found; foundCount++; }
+            break;
+          }
+        }
+      });
+      return { values: result, foundCount: foundCount, totalFields: REKAP_FIELDS.length };
+    }
+
+    var _rekapParsed = null; // hasil parse terakhir
+
+    function initRekapPane() {
+      // Set default periode ke hari ini kalau belum diset
+      var periodeEl = document.getElementById('ph-rekap-periode');
+      if (periodeEl && !periodeEl.value) {
+        periodeEl.value = new Date().toISOString().slice(0, 10);
+      }
+      // Label toko aktif
+      var label = document.getElementById('ph-rekap-toko-label');
+      if (label) label.textContent = state.tokoNama || '';
+      // Load history
+      if (state.tokoId) loadRekapHistory();
+      // Bind parse button
+      var parseBtn = document.getElementById('ph-rekap-parse-btn');
+      if (parseBtn && !parseBtn._bound) {
+        parseBtn._bound = true;
+        parseBtn.addEventListener('click', function() {
+          var ta = document.getElementById('ph-rekap-ta');
+          if (!ta || !ta.value.trim()) return;
+          var r = parseRekapBreakdown(ta.value);
+          _rekapParsed = r.foundCount > 0 ? r.values : null;
+          renderRekapPreview(r);
+          var saveBtn = document.getElementById('ph-rekap-save-btn');
+          if (saveBtn) saveBtn.style.display = r.foundCount > 0 ? '' : 'none';
+        });
+      }
+      // Bind save button
+      var saveBtn = document.getElementById('ph-rekap-save-btn');
+      if (saveBtn && !saveBtn._bound) {
+        saveBtn._bound = true;
+        saveBtn.addEventListener('click', saveRekap);
+      }
+    }
+
+    function renderRekapPreview(r) {
+      var status = document.getElementById('ph-rekap-status');
+      var preview = document.getElementById('ph-rekap-preview');
+      if (!status || !preview) return;
+      status.className = 'ph-parse-status ' + (r.foundCount > 0 ? 'ok' : 'fail');
+      status.textContent = r.foundCount + '/' + r.totalFields + ' field ketemu.';
+      var rows = REKAP_FIELDS.map(function(f) {
+        var v = r.values[f.key];
+        var ok = v !== null && v !== undefined;
+        var displayLabel = Array.isArray(f.label) ? f.label[0] : f.label;
+        var displayVal = ok ? (f.pct ? v.toFixed(2) + '%' : v.toLocaleString('id-ID')) : 'tidak ketemu';
+        return '<tr><td style="color:'+(ok?'':'var(--ph-danger)')+'">'+displayLabel+'</td>' +
+          '<td class="num" style="color:'+(ok?'':'var(--ph-danger)')+'">'+displayVal+'</td></tr>';
+      }).join('');
+      preview.innerHTML = '<table class="ph-tbl"><thead><tr><th>Field</th><th class="num">Nilai</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    }
+
+    function saveRekap() {
+      if (!_rekapParsed || !state.tokoId) return;
+      var periodeEl = document.getElementById('ph-rekap-periode');
+      var periode = periodeEl ? periodeEl.value : new Date().toISOString().slice(0,10);
+      var saveBtn = document.getElementById('ph-rekap-save-btn');
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...'; }
+
+      var payload = Object.assign({ channel_id: parseInt(state.tokoId), periode: periode }, _rekapParsed);
+
+      // Cek apakah sudah ada row untuk channel_id + periode ini
+      sbGet('channel_rekap', '&channel_id=eq.' + state.tokoId + '&periode=eq.' + periode)
+        .then(function(rows) {
+          var p;
+          if (rows && rows.length > 0) {
+            p = (typeof dbUpdate === 'function')
+              ? dbUpdate('channel_rekap', rows[0].id, payload)
+              : Promise.reject(new Error('dbUpdate not available'));
+          } else {
+            p = (typeof dbInsert === 'function')
+              ? dbInsert('channel_rekap', payload)
+              : Promise.reject(new Error('dbInsert not available'));
+          }
+          return p;
+        })
+        .then(function() {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Simpan ke Supabase'; }
+          var status = document.getElementById('ph-rekap-status');
+          if (status) { status.className = 'ph-parse-status ok'; status.textContent = 'Tersimpan! Periode: ' + periode; }
+          // Auto-populate ACOS & Affiliate
+          applyRekapToInputs(_rekapParsed);
+          loadRekapHistory();
+        })
+        .catch(function(err) {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Simpan ke Supabase'; }
+          var status = document.getElementById('ph-rekap-status');
+          if (status) { status.className = 'ph-parse-status fail'; status.textContent = 'Gagal simpan: ' + (err.message || err); }
+        });
+    }
+
+    function fetchLatestRekap(tokoId) {
+      if (!tokoId) return;
+      sbGet('channel_rekap', '&channel_id=eq.' + tokoId + '&order=periode.desc&limit=1')
+        .then(function(rows) {
+          if (rows && rows[0]) applyRekapToInputs(rows[0]);
+        })
+        .catch(function(){});
+    }
+
+    function applyRekapToInputs(data) {
+      // Populate state
+      if (data.acos_persen != null)      state.acosAktual      = parseFloat(data.acos_persen);
+      if (data.affiliate_persen != null) state.affiliateAktual = parseFloat(data.affiliate_persen);
+      // Populate input elements kalau sudah ter-render
+      var acosEl = document.getElementById('ph-acos-aktual-input');
+      var affEl  = document.getElementById('ph-affiliate-input');
+      if (acosEl) acosEl.value = state.acosAktual || '';
+      if (affEl)  affEl.value  = state.affiliateAktual || '';
+    }
+
+    function loadRekapHistory() {
+      var histEl = document.getElementById('ph-rekap-history');
+      if (!histEl || !state.tokoId) return;
+      histEl.innerHTML = '<div class="ph-loading" style="font-size:12px">Memuat history...</div>';
+      sbGet('channel_rekap', '&channel_id=eq.' + state.tokoId + '&order=periode.desc&limit=8')
+        .then(function(rows) {
+          if (!rows || !rows.length) { histEl.innerHTML = '<div style="color:var(--ph-faint);font-size:12px">Belum ada data rekap tersimpan.</div>'; return; }
+          var hdrs = '<th>Periode</th><th class="num">ACOS%</th><th class="num">Affiliate%</th><th class="num">NPM%</th><th class="num">GPM%</th><th class="num">AOV</th><th class="num">ROAS</th>';
+          var rowsHtml = rows.map(function(r) {
+            return '<tr>' +
+              '<td>' + (r.periode || '-') + '</td>' +
+              '<td class="num">' + (r.acos_persen != null ? r.acos_persen.toFixed(2)+'%' : '-') + '</td>' +
+              '<td class="num">' + (r.affiliate_persen != null ? r.affiliate_persen.toFixed(2)+'%' : '-') + '</td>' +
+              '<td class="num">' + (r.npm_persen != null ? r.npm_persen.toFixed(2)+'%' : '-') + '</td>' +
+              '<td class="num">' + (r.gpm_persen != null ? r.gpm_persen.toFixed(2)+'%' : '-') + '</td>' +
+              '<td class="num">' + (r.aov != null ? r.aov.toLocaleString('id-ID') : '-') + '</td>' +
+              '<td class="num">' + (r.roas != null ? r.roas.toFixed(2) : '-') + '</td>' +
+              '</tr>';
+          }).join('');
+          histEl.innerHTML = '<div class="ph-panel-title" style="font-size:12px;margin-bottom:6px">History Rekap</div>' +
+            '<table class="ph-tbl"><thead><tr>'+hdrs+'</tr></thead><tbody>'+rowsHtml+'</tbody></table>';
+        })
+        .catch(function() { histEl.innerHTML = ''; });
     }
 
     /* ── Toko select event ── */
     $('ph-toko-select').addEventListener('change', function() {
+      // Simpan pilihan toko terakhir
+      try { localStorage.setItem('ph_last_toko', this.value); } catch(e) {}
       loadTokoData();
+      // Fetch rekap terbaru untuk toko ini → populate ACOS & Affiliate
+      fetchLatestRekap(this.value);
     });
 
     /* ── Parse helpers ── */
