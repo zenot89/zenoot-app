@@ -399,16 +399,17 @@
 
     function findFieldValue(lines, label) {
       // label bisa string atau array of strings (untuk pesanan selesai vs estimasi)
-      var targets = Array.isArray(label)
-        ? label.map(function(l){ return l.toLowerCase(); })
-        : [label.toLowerCase()];
+      var labelList = Array.isArray(label) ? label : [label];
+      var targets = labelList.map(function(l){ return l.toLowerCase(); });
       for (var i = 0; i < lines.length; i++) {
         var ll = lines[i].toLowerCase();
-        var matched = targets.some(function(t){ return ll === t || ll.startsWith(t); });
-        if (matched) {
-          for (var j = i+1; j < Math.min(lines.length, i+3); j++) {
-            var val = parseRupiahLine(lines[j]);
-            if (val !== null) return val;
+        for (var ti = 0; ti < targets.length; ti++) {
+          var t = targets[ti];
+          if (ll === t || ll.startsWith(t)) {
+            for (var j = i+1; j < Math.min(lines.length, i+3); j++) {
+              var val = parseRupiahLine(lines[j]);
+              if (val !== null) return { value: val, matchedLabel: labelList[ti] };
+            }
           }
         }
       }
@@ -441,22 +442,30 @@
 
     function parseBreakdown(text, fieldDefs) {
       var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
-      var result = {}, foundCount = 0;
+      var result = {}, matchedLabels = {}, foundCount = 0;
       fieldDefs.forEach(function(f) {
-        var val = findFieldValue(lines, f.label);
-        result[f.key] = val;
-        if (val !== null) foundCount++;
+        var found = findFieldValue(lines, f.label);
+        if (found !== null) {
+          result[f.key] = found.value;
+          matchedLabels[f.key] = found.matchedLabel;
+          foundCount++;
+        } else {
+          result[f.key] = null;
+        }
       });
-      return { values: result, foundCount: foundCount, totalFields: fieldDefs.length };
+      return { values: result, matchedLabels: matchedLabels, foundCount: foundCount, totalFields: fieldDefs.length };
     }
 
-    function renderParsePreview(containerId, fieldDefs, values) {
+    function renderParsePreview(containerId, fieldDefs, values, matchedLabels) {
       var el = $(containerId); if (!el) return;
       var subtotal = values.subtotalPesanan;
       var rows = fieldDefs.map(function(f) {
         var v = values[f.key]; var ok = v !== null;
         var ratio = (ok && subtotal && f.key !== 'subtotalPesanan') ? (v/subtotal)*100 : null;
-        var fLabel = Array.isArray(f.label) ? f.label[0] : f.label;
+        // Pakai label yang actual match dari paste; fallback ke label pertama
+        var fLabel = (matchedLabels && matchedLabels[f.key])
+          ? matchedLabels[f.key]
+          : (Array.isArray(f.label) ? f.label[0] : f.label);
         return '<tr><td style="color:'+(ok?'':'var(--ph-danger)')+'">'+fLabel+'</td>' +
           '<td class="num" style="color:'+(ok?'':'var(--ph-danger)')+'">'+( ok ? rupiah(v) : 'tidak ketemu')+'</td>' +
           '<td class="num" style="color:var(--ph-faint);font-size:11px">'+(ratio!==null?pct(ratio):'&mdash;')+'</td></tr>';
@@ -473,7 +482,7 @@
       var kodeVariasiRaw = kodeVariasiMatch ? kodeVariasiMatch[1].trim() : null;
       // Simpan raw sku_variasi untuk exact match ke skuMap (misal "MAYRA_ MARUN" → "MAYRA_MARUN")
       state.skuRawFromPaste = kodeVariasiRaw || null;
-      renderParsePreview('ph-penghasilan-preview', PENGHASILAN_FIELDS, r.values);
+      renderParsePreview('ph-penghasilan-preview', PENGHASILAN_FIELDS, r.values, r.matchedLabels);
       if (!r.foundCount) { status.className='ph-parse-status fail'; status.textContent='Tidak ada field yang dikenali.'; return; }
       status.className = r.foundCount === r.totalFields ? 'ph-parse-status ok' : 'ph-parse-status fail';
       status.textContent = r.foundCount + '/' + r.totalFields + ' field ketemu.';
@@ -488,7 +497,7 @@
       var status = $('ph-pembayaran-status');
       if (!text.trim()) { status.className='ph-parse-status fail'; status.textContent='Belum ada teks.'; return; }
       var r = parseBreakdown(text, PEMBAYARAN_FIELDS);
-      renderParsePreview('ph-pembayaran-preview', PEMBAYARAN_FIELDS, r.values);
+      renderParsePreview('ph-pembayaran-preview', PEMBAYARAN_FIELDS, r.values, r.matchedLabels);
       if (!r.foundCount) { status.className='ph-parse-status fail'; status.textContent='Tidak ada field yang dikenali.'; return; }
       status.className = r.foundCount === r.totalFields ? 'ph-parse-status ok' : 'ph-parse-status fail';
       status.textContent = r.foundCount + '/' + r.totalFields + ' field ketemu.';
