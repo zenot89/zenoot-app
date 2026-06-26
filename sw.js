@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — proyeksi-harga: dynamic label display (matchedLabel dari paste)
-var JS_CACHE = 'zenot-js-20260626-v34';
+var JS_CACHE = 'zenot-js-20260626-6049162352db';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
