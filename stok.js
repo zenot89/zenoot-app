@@ -280,7 +280,7 @@ async function loadStok() {
     }
 
     // 3. Ambil sum keluar dari jurnal_penjualan per SKU (all-time)
-    const jurnalData = await dbGet('jurnal_penjualan', '&select=sku,qty');
+    const jurnalData = await dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED');
     const keluarMap = {};
     if (Array.isArray(jurnalData)) {
       jurnalData.forEach(j => {
@@ -298,9 +298,9 @@ async function loadStok() {
     const tgl90Str = tgl90.toISOString().slice(0, 10);
 
     const [jurnal7Data, jurnal30Data, jurnal90Data] = await Promise.all([
-      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str),
-      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl30Str),
-      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl90Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED&tanggal=gte.' + tgl7Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED&tanggal=gte.' + tgl30Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED&tanggal=gte.' + tgl90Str),
     ]);
 
     const sales7Map = {}, sales30Map = {}, sales90Map = {};
