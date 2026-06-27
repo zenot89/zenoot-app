@@ -51,13 +51,6 @@ document.getElementById('page-stok').innerHTML = `
           <i class="ti ti-chevron-right" style="font-size:11px"></i>
         </div>
 
-        <!-- Menu: Status -->
-        <div id="mi-status" onclick="stokOpenSub('status',event)"
-          style="padding:8px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--ink4)">
-          <span><i class="ti ti-circle-check" style="font-size:12px;margin-right:6px"></i>Status <span id="badge-status" style="font-size:10px;color:var(--ink3)"></span></span>
-          <i class="ti ti-chevron-right" style="font-size:11px"></i>
-        </div>
-
         <!-- Reset dipindah ke luar dropdown -->
       </div>
 
@@ -67,9 +60,6 @@ document.getElementById('page-stok').innerHTML = `
         box-shadow:4px 4px 0 var(--ink4)"></div>
       <div id="dd-filter-katalog" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:190px;max-height:260px;overflow-y:auto;
-        box-shadow:4px 4px 0 var(--ink4)"></div>
-      <div id="dd-filter-status" style="display:none;position:fixed;z-index:9999;
-        background:var(--cream);border:2px solid var(--ink);min-width:160px;
         box-shadow:4px 4px 0 var(--ink4)"></div>
       <div id="dd-filter-kategori_produk" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:180px;
@@ -194,17 +184,28 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-package"></i> Semua SKU
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
+
+    <!-- TAB STATUS -->
+    <div id="stok-status-tabs" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="stok-tab-btn stok-tab-active" data-tab="all"   onclick="stokTabStatus('all')">Semua</button>
+      <button class="stok-tab-btn" data-tab="fast"  onclick="stokTabStatus('fast')">🟢 Fast</button>
+      <button class="stok-tab-btn" data-tab="slow"  onclick="stokTabStatus('slow')">🟡 Slow</button>
+      <button class="stok-tab-btn" data-tab="dead"  onclick="stokTabStatus('dead')">⚫ Dead</button>
+      <button class="stok-tab-btn" data-tab="habis" onclick="stokTabStatus('habis')">🔴 Habis</button>
+    </div>
+
     <div id="stok-tbl-wrap"><table class="tbl">
       <thead><tr>
         <th>Katalog</th><th>SKU Variasi</th><th>Boss</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
+        <th>Aksi</th>
         <th onclick="stokToggleSort('sales')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales 7hr <span id="sort-icon-sales">⇅</span></th>
         <th onclick="stokToggleSort('sales_total')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales Total <span id="sort-icon-sales_total">⇅</span></th>
         <th>HPP</th><th onclick="stokToggleSort('nilai')" style="cursor:pointer;user-select:none;white-space:nowrap">Nilai Stok <span id="sort-icon-nilai">⇅</span></th>
-        <th>Status</th><th>Kategori</th><th>Aksi</th>
+        <th>Status</th><th>Kategori</th>
       </tr></thead>
       <tbody id="stok-tbody">
-        <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="11" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
     </div>
@@ -212,6 +213,15 @@ document.getElementById('page-stok').innerHTML = `
 `;
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-stok')); }, 80);
+
+// Inject CSS tab stok status
+(function() {
+  if (document.getElementById('stok-tab-style')) return;
+  var s = document.createElement('style');
+  s.id = 'stok-tab-style';
+  s.textContent = '.stok-tab-btn{padding:4px 12px;font-size:12px;font-weight:600;border:1.5px solid var(--ink3);background:transparent;color:var(--ink3);cursor:pointer;border-radius:3px;font-family:var(--f);transition:all .15s}.stok-tab-btn:hover{border-color:var(--ink);color:var(--ink)}.stok-tab-btn.stok-tab-active{border-color:var(--ink);background:var(--ink);color:var(--cream)}';
+  document.head.appendChild(s);
+})();
 
 
 // ─── BADGE & HELPER KATEGORI PRODUK ──────────────────────────
@@ -362,16 +372,16 @@ function renderStok(data) {
       <td><b>${row.sku_variasi || '—'}</b></td>
       <td>${row.boss || '—'}</td>
       <td style="text-align:center"><b>${row.sisa}</b></td>
+      <td>
+        <button class="btn btn-sm" data-action="ganti-kat" data-id="${row.produk_id}" data-sku="${safeSku}" data-kat="${kat}" style="margin-right:4px" title="Ganti Kategori"><i class="ti ti-tag"></i></button>
+        <button class="btn btn-sm" data-action="edit-stok" data-sku="${safeSku}" title="Edit stok masuk"><i class="ti ti-edit"></i></button>
+      </td>
       <td style="text-align:center;color:var(--ok)">${row.sales7 || 0}</td>
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
       <td style="color:var(--ok);font-weight:700">${nilai}</td>
       <td>${statusBadge(row.sisa, kat, row.sales7, row.stok_keluar)}</td>
       <td>${katBadgeStok(kat)}</td>
-      <td>
-        <button class="btn btn-sm" data-action="ganti-kat" data-id="${row.produk_id}" data-sku="${safeSku}" data-kat="${kat}" style="margin-right:4px" title="Ganti Kategori"><i class="ti ti-tag"></i></button>
-        <button class="btn btn-sm" data-action="edit-stok" data-sku="${safeSku}" title="Edit stok masuk"><i class="ti ti-edit"></i></button>
-      </td>
     </tr>`;
   }).join('');
   // Re-render rough UI setelah data selesai
@@ -380,20 +390,37 @@ function renderStok(data) {
   });
 }
 
+// ─── STATUS TABS ──────────────────────────────────────────────
+var _filterStatusTab = null; // null = semua
+
+function stokTabStatus(tab) {
+  _filterStatusTab = tab === 'all' ? null : tab;
+  // Update active state tombol
+  document.querySelectorAll('.stok-tab-btn').forEach(function(btn) {
+    if (btn.dataset.tab === tab) {
+      btn.classList.add('stok-tab-active');
+    } else {
+      btn.classList.remove('stok-tab-active');
+    }
+  });
+  filterStok();
+}
+
 // ─── FILTER ───────────────────────────────────────────────────
 function filterStok() {
   const filtered = _stokAllData.filter(r => {
     if (_filterBoss    && (r.boss    || '') !== _filterBoss)    return false;
     if (_filterKatalog && (r.katalog || '') !== _filterKatalog) return false;
     if (_filterKategoriProduk && (r.kategori_produk || 'aktif') !== _filterKategoriProduk) return false;
-    if (_filterStatus) {
-      const sisa  = r.sisa;
-      const s7    = r.sales7 || 0;
+    // Tab status filter
+    if (_filterStatusTab) {
+      const sisa   = r.sisa;
+      const s7     = r.sales7 || 0;
       const stotal = r.stok_keluar || 0;
-      if (_filterStatus === 'habis' && !(sisa <= 0))                         return false;
-      if (_filterStatus === 'fast'  && !(sisa > 0 && s7 > 0))               return false;
-      if (_filterStatus === 'slow'  && !(sisa > 0 && s7 === 0 && stotal > 0)) return false;
-      if (_filterStatus === 'dead'  && !(sisa > 0 && stotal === 0))          return false;
+      if (_filterStatusTab === 'habis' && !(sisa <= 0))                          return false;
+      if (_filterStatusTab === 'fast'  && !(sisa > 0 && s7 > 0))                return false;
+      if (_filterStatusTab === 'slow'  && !(sisa > 0 && s7 === 0 && stotal > 0)) return false;
+      if (_filterStatusTab === 'dead'  && !(sisa > 0 && stotal === 0))           return false;
     }
     return true;
   });
@@ -932,7 +959,7 @@ function stokOpenSub(type, e) {
   if (!el) return;
 
   // Tutup semua submenu lain, reset highlight
-  ['boss','katalog','status','kategori_produk'].forEach(function(t) {
+  ['boss','katalog','kategori_produk'].forEach(function(t) {
     if (t !== type) {
       var s = document.getElementById('dd-filter-' + t);
       if (s) s.style.display = 'none';
@@ -1021,13 +1048,18 @@ function stokResetAllFilter() {
   _filterKatalog        = null;
   _filterStatus         = null;
   _filterKategoriProduk = null;
-  ['boss','katalog','status','kategori_produk'].forEach(function(t) {
+  ['boss','katalog','kategori_produk'].forEach(function(t) {
     var b = document.getElementById('badge-' + t);
     if (b) b.textContent = '';
     var s = document.getElementById('dd-filter-' + t);
     if (s) s.style.display = 'none';
     var m = document.getElementById('mi-' + t);
     if (m) { m.style.background = ''; m.style.color = ''; }
+  });
+  // Reset tab status juga
+  _filterStatusTab = null;
+  document.querySelectorAll('.stok-tab-btn').forEach(function(btn){
+    btn.classList.toggle('stok-tab-active', btn.dataset.tab === 'all');
   });
   _stokUpdateFilterLabel();
   document.getElementById('dd-filter-all').style.display = 'none';
@@ -1070,7 +1102,7 @@ function stokSetFilter(type, val) {
 
   // Tutup semua submenu dan main dropdown secara langsung
   // (jangan pakai stokToggleFilterAll() karena bisa toggle arah salah)
-  ['boss','katalog','status','kategori_produk'].forEach(function(t) {
+  ['boss','katalog','kategori_produk'].forEach(function(t) {
     var s = document.getElementById('dd-filter-' + t);
     if (s) s.style.display = 'none';
     var m = document.getElementById(_miId(t));
@@ -1086,7 +1118,7 @@ function stokSetFilter(type, val) {
 document.addEventListener('click', function(e) {
   var dd  = document.getElementById('dd-filter-all');
   var btn = document.getElementById('btn-filter-all');
-  var subs = ['dd-filter-boss','dd-filter-katalog','dd-filter-status','dd-filter-kategori_produk'];
+  var subs = ['dd-filter-boss','dd-filter-katalog','dd-filter-kategori_produk'];
   // Cek apakah klik di dalam salah satu submenu
   var inSub = subs.some(function(id) {
     var s = document.getElementById(id);
@@ -1094,7 +1126,7 @@ document.addEventListener('click', function(e) {
   });
   if (inSub) return; // jangan tutup kalau klik di submenu
   // Cek apakah klik di dalam main menu items (mi-boss, mi-katalog, mi-status)
-  var inMenuItem = ['mi-boss','mi-katalog','mi-status','mi-kategori-produk'].some(function(id) {
+  var inMenuItem = ['mi-boss','mi-katalog','mi-kategori-produk'].some(function(id) {
     var m = document.getElementById(id);
     return m && m.contains(e.target);
   });
