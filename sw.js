@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — hapus kolom Kategori (stok+produk), velocity-based restock block Dead/Zombie
-var JS_CACHE = 'zenot-js-20260628-v46';
+var JS_CACHE = 'zenot-js-20260627-cb8f3be044ba';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
