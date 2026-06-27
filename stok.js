@@ -478,7 +478,7 @@ function stokRenderSummary() {
   var html = '';
   cfg.forEach(function(s) {
     var n = counts[s.key];
-    html += '<div style="border:1.5px solid ' + s.color + ';padding:10px 12px;cursor:pointer" onclick="stokTabStatus('' + s.key + '')">'
+    html += '<div style="border:1.5px solid ' + s.color + ';padding:10px 12px;cursor:pointer" onclick="stokTabStatus(\'' + s.key + '\')">'
       + '<div style="font-size:11px;color:' + s.color + ';font-weight:700">' + s.label + '</div>'
       + '<div style="font-size:24px;font-weight:700;line-height:1.2">' + n + ' <span style="font-size:11px;color:var(--ink3);font-weight:400">SKU</span></div>'
       + '<div style="font-size:10px;color:var(--ink3);margin-top:2px">' + s.sub + '</div>'
