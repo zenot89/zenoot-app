@@ -164,9 +164,13 @@ document.getElementById('page-stok').innerHTML = `
         </div>
       </div>
 
-      <!-- Stok Masuk -->
+      <!-- Stok Masuk / Set Sisa -->
+      <div id="stok-info-sisa" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--cream2);border:1.5px dashed var(--ink3);font-size:13px">
+        Sisa saat ini: <b id="stok-info-sisa-val" style="color:var(--ok)">0</b> pcs
+        &nbsp;·&nbsp; Sales (keluar): <b id="stok-info-keluar-val" style="color:var(--ink3)">0</b> pcs
+      </div>
       <div class="form-group" style="margin-bottom:16px">
-        <label>Stok Masuk (Qty)</label>
+        <label id="lbl-inp-masuk">Stok Masuk (Qty)</label>
         <input type="number" id="inp-masuk" placeholder="0" min="0"
           style="font-size:20px;font-weight:700;width:100%;box-sizing:border-box">
       </div>
@@ -309,7 +313,7 @@ async function loadStok() {
       };
     });
 
-    renderStok(_stokAllData);
+    filterStok(); // jaga filter aktif setelah reload
   } catch(err) {
     tbody.innerHTML = `<tr><td colspan="11" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
   }
@@ -417,6 +421,11 @@ function showTambahStok() {
   document.getElementById('inp-masuk').value     = '';
   _stokSelectedSku = ''; // reset selected SKU
   _stokEditMode    = false;
+  // Reset info sisa
+  var infoEl = document.getElementById('stok-info-sisa');
+  if (infoEl) infoEl.style.display = 'none';
+  var lblMasuk = document.getElementById('lbl-inp-masuk');
+  if (lblMasuk) lblMasuk.textContent = 'Stok Masuk (Qty)';
   // Reset picker variasi
   document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lbl = document.getElementById('stok-picker-variasi-label');
@@ -436,29 +445,47 @@ function cancelStokForm() {
   // Reset label picker
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  // Reset info sisa
+  var infoEl = document.getElementById('stok-info-sisa');
+  if (infoEl) infoEl.style.display = 'none';
+  var lblMasuk = document.getElementById('lbl-inp-masuk');
+  if (lblMasuk) lblMasuk.textContent = 'Stok Masuk (Qty)';
 }
 
 function editStok(sku) {
   var skuKey   = sku.toUpperCase();
   var existing = _stokMasukMap[skuKey];
-  document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok Masuk';
+  document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok';
   document.getElementById('inp-id').value    = existing ? existing.id : '';
-  document.getElementById('inp-masuk').value = existing ? existing.qty : 0;
   _stokSelectedSku = skuKey; // set agar validasi di simpanStok() pass saat edit
-  _stokEditMode    = true;   // mode edit → simpanStok akan REPLACE, bukan akumulasi
+  _stokEditMode    = true;   // mode edit → user isi sisa target, system convert ke stok_masuk
   stokTutupKatalogDropdown();
+  // Hitung sisa current dari _stokAllData
+  var dataRow = _stokAllData.find(function(r){ return (r.sku_variasi||'').toUpperCase() === skuKey; });
+  var sisaCurrent = dataRow ? dataRow.sisa : 0;
+  var keluarCurrent = dataRow ? dataRow.stok_keluar : 0;
+  // Tampilkan info sisa + ubah label
+  var infoEl = document.getElementById('stok-info-sisa');
+  if (infoEl) infoEl.style.display = 'block';
+  var sisaVal = document.getElementById('stok-info-sisa-val');
+  if (sisaVal) sisaVal.textContent = sisaCurrent;
+  var keluarVal = document.getElementById('stok-info-keluar-val');
+  if (keluarVal) keluarVal.textContent = keluarCurrent;
+  var lblMasuk = document.getElementById('lbl-inp-masuk');
+  if (lblMasuk) lblMasuk.textContent = 'Set Sisa Menjadi (Qty)';
+  // Pre-fill dengan sisa current
+  document.getElementById('inp-masuk').value = sisaCurrent >= 0 ? sisaCurrent : 0;
   // Cari produk untuk isi katalog & picker
   var found = _produkForStok.find(function(p) {
     return (p.sku_variasi || '').toUpperCase() === skuKey;
   });
   if (found) {
-    document.getElementById('inp-sku-induk').value = found.katalog || '';
-    stokPilihKatalog(found.katalog || '');
-    setTimeout(function() {
-      document.getElementById('inp-sku').value = sku;
-      var lbl = document.getElementById('stok-picker-variasi-label');
-      if (lbl) { lbl.textContent = sku; lbl.style.color = 'var(--ink)'; }
-    }, 80);
+    // skipAutoOpen=true: populate list variasi tanpa reset label dan tanpa auto-open picker
+    stokPilihKatalog(found.katalog || '', true);
+    // Langsung set label + hidden select — tidak perlu setTimeout
+    document.getElementById('inp-sku').value = sku;
+    var lbl = document.getElementById('stok-picker-variasi-label');
+    if (lbl) { lbl.textContent = sku; lbl.style.color = 'var(--ink)'; }
   } else {
     document.getElementById('inp-sku-induk').value = sku;
     document.getElementById('inp-sku').innerHTML =
@@ -467,7 +494,7 @@ function editStok(sku) {
     if (lbl) { lbl.textContent = sku; lbl.style.color = 'var(--ink)'; }
   }
   document.getElementById('modal-stok-masuk').classList.add('open');
-  setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 100);
+  setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
 }
 
 async function simpanStok() {
@@ -478,7 +505,8 @@ async function simpanStok() {
   var qty = parseInt(document.getElementById('inp-masuk').value) || 0;
 
   if (!sku) { alert('Pilih SKU Variasi terlebih dahulu!'); return; }
-  if (qty <= 0) { alert('Stok masuk harus lebih dari 0!'); return; }
+  if (!_stokEditMode && qty <= 0) { alert('Stok masuk harus lebih dari 0!'); return; }
+  if (_stokEditMode && qty < 0) { alert('Sisa tidak boleh negatif!'); return; }
   // Validasi: SKU harus ada di produk (bukan nama katalog yang nyasar)
   var valid = _produkForStok.some(function(p) {
     return (p.sku_variasi || '').toUpperCase() === sku;
@@ -501,21 +529,22 @@ async function simpanStok() {
   var btnSimpan = document.querySelector('#modal-stok-masuk .btn-primary');
   if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
   try {
-    // Selalu cek _stokMasukMap — jangan bergantung inp-id yang hanya diisi saat editStok()
-    // Ini mencegah duplicate INSERT saat user Tambah SKU yang sudah punya record
     var existingRec = _stokMasukMap[sku];
     if (existingRec && existingRec.id) {
-      // SKU sudah ada di DB
       if (_stokEditMode) {
-        // Mode EDIT: user mengoreksi nilai → REPLACE langsung
-        await dbUpdate('stok', existingRec.id, { stok_masuk: qty });
+        // Mode EDIT (Opsi B): user input = sisa target
+        // stok_masuk_baru = sisa_target + keluar_jurnal (agar sisa = stok_masuk - keluar = target)
+        var dataRow = _stokAllData.find(function(r){ return (r.sku_variasi||'').toUpperCase() === sku; });
+        var keluarJurnal = dataRow ? (dataRow.stok_keluar || 0) : 0;
+        var stokMasukBaru = qty + keluarJurnal;
+        await dbUpdate('stok', existingRec.id, { stok_masuk: stokMasukBaru });
       } else {
-        // Mode TAMBAH: user menambah stock baru → AKUMULASI
+        // Mode TAMBAH: akumulasi
         var oldQty = existingRec.qty || 0;
         await dbUpdate('stok', existingRec.id, { stok_masuk: oldQty + qty });
       }
     } else {
-      // SKU belum ada — insert baru
+      // SKU belum ada — insert baru (Tambah mode: qty = stok masuk langsung)
       await dbInsert('stok', payload);
     }
     cancelStokForm();
@@ -624,7 +653,7 @@ function stokKatalogKeyNav(e) {
   }
 }
 
-function stokPilihKatalog(katalog) {
+function stokPilihKatalog(katalog, skipAutoOpen) {
   document.getElementById('inp-sku-induk').value = katalog;
   stokTutupKatalogDropdown();
   // Isi picker variasi
@@ -646,6 +675,8 @@ function stokPilihKatalog(katalog) {
     });
     list.innerHTML = html;
   }
+  // Kalau skipAutoOpen (mode edit) — jangan reset label, jangan auto-open picker
+  if (skipAutoOpen) return;
   // Reset label picker
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
