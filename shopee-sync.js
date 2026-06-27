@@ -260,6 +260,17 @@ function _parseItemList(orderDetail) {
     }
 
     sku = sku.toUpperCase();
+
+    // ── Size remap untuk TURTLENECK: L/XL/XLL → XL, S/M → M ──
+    // Berlaku untuk semua path (variation_sku maupun fallback)
+    // karena Shopee kadang kirim variation_sku lengkap tapi size-nya L/XLL
+    if (sku.startsWith('TURTLENECK_')) {
+      sku = sku
+        .replace(/-XLL$/, '-XL')  // XLL → XL
+        .replace(/-L$/, '-XL')   // L   → XL
+        .replace(/-S$/,    '-M'); // S   → M
+    }
+
     const qty     = parseInt(item.model_quantity_purchased || item.quantity_purchased || 0);
     // Harga per satuan: pakai discounted_price (harga bayar buyer), fallback original_price
     const harga   = parseFloat(item.model_discounted_price || item.model_original_price || 0);

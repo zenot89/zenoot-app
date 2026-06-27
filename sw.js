@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — exclude CANCELLED dari semua velocity + stok keluar calc
-var JS_CACHE = 'zenot-js-20260627-bd98dc2d4a2c';
+// BUMP: JS_CACHE — TURTLENECK size remap (L/XLL→XL, S→M) apply ke semua SKU path
+var JS_CACHE = 'zenot-js-20260628-v48';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
