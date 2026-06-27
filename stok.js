@@ -11,7 +11,11 @@ function statusBadge(sisa, kat, sales7, salesTotal) {
     if (sisa <= 0) return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px;opacity:0.5">Habis</span>';
     return '<span style="font-size:10px;color:var(--ink3);opacity:0.5">—</span>';
   }
-  if (sisa <= 0) return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis</span>';
+  if (sisa <= 0) {
+    // Habis tapi masih Fast (laku 7hr lalu) → urgent restock
+    if ((sales7 || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis 🔥</span>';
+    return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis</span>';
+  }
   if ((sales7 || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:#00c896;padding:2px 6px;border:1.5px solid #00c896;border-radius:2px">Fast</span>';
   if ((salesTotal || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:#c8a000;padding:2px 6px;border:1.5px solid #c8a000;border-radius:2px">Slow</span>';
   return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px">Dead</span>';
@@ -412,15 +416,17 @@ function filterStok() {
     if (_filterBoss    && (r.boss    || '') !== _filterBoss)    return false;
     if (_filterKatalog && (r.katalog || '') !== _filterKatalog) return false;
     if (_filterKategoriProduk && (r.kategori_produk || 'aktif') !== _filterKategoriProduk) return false;
-    // Tab status filter
+    // Tab status filter — velocity adalah sifat produk, bukan kondisi stok
+    // Fast/Slow/Dead: basis sales, tidak peduli sisa
+    // Habis: basis sisa <= 0, tidak peduli sales
     if (_filterStatusTab) {
       const sisa   = r.sisa;
       const s7     = r.sales7 || 0;
       const stotal = r.stok_keluar || 0;
-      if (_filterStatusTab === 'habis' && !(sisa <= 0))                          return false;
-      if (_filterStatusTab === 'fast'  && !(sisa > 0 && s7 > 0))                return false;
-      if (_filterStatusTab === 'slow'  && !(sisa > 0 && s7 === 0 && stotal > 0)) return false;
-      if (_filterStatusTab === 'dead'  && !(sisa > 0 && stotal === 0))           return false;
+      if (_filterStatusTab === 'habis' && !(sisa <= 0))           return false;
+      if (_filterStatusTab === 'fast'  && !(s7 > 0))              return false;
+      if (_filterStatusTab === 'slow'  && !(s7 === 0 && stotal > 0)) return false;
+      if (_filterStatusTab === 'dead'  && !(stotal === 0))         return false;
     }
     return true;
   });
