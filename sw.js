@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — exclude CANCELLED dari semua velocity + stok keluar calc
-var JS_CACHE = 'zenot-js-20260628-v47';
+var JS_CACHE = 'zenot-js-20260627-95cbc6c1170e';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
