@@ -1,12 +1,4 @@
-function katBadgeProduk(kat) {
-  var map = {
-    aktif:        '<span style="font-size:11px;font-weight:700;color:var(--ok);padding:2px 6px;border:1.5px solid var(--ok);border-radius:2px">Aktif</span>',
-    discontinued: '<span style="font-size:11px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px">Discontinued</span>',
-    seasonal:     '<span style="font-size:11px;font-weight:700;color:#c8a000;padding:2px 6px;border:1.5px solid #c8a000;border-radius:2px">Seasonal</span>',
-    clearance:    '<span style="font-size:11px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Clearance</span>',
-  };
-  return map[kat] || map['aktif'];
-}
+
 
 // ─── PRODUK.JS — Kelola Produk (master SKU + paste massal) ───
 
@@ -74,7 +66,6 @@ document.getElementById('page-produk').innerHTML = `
           <th>SKU Variasi</th>
           <th>HPP</th>
           <th>Boss</th>
-          <th>Kategori</th>
           <th>Aksi</th>
         </tr></thead>
         <tbody id="produk-tbody">
@@ -162,7 +153,6 @@ function renderProduk(data) {
     const triangle = expanded ? '▼' : '▶';
     const hpp      = rows[0] ? rows[0].hpp || 0 : 0;
     const boss     = rows[0] ? rows[0].boss || '—' : '—';
-    const kat_prd  = rows[0] ? rows[0].kategori_produk || 'aktif' : 'aktif';
     const allIds   = rows.map(r => r.id).join(',');
     const allSelected = rows.every(r => _produkSelected[r.id]);
 
@@ -176,9 +166,8 @@ function renderProduk(data) {
         <b style="font-size:14px">${kat}</b>
         <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
       </td>
-      <td>${katBadgeProduk(kat_prd)}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm" data-action="edit-katalog" data-kat="${kat}" data-hpp="${hpp}" data-boss="${boss}" data-katprd="${kat_prd}" title="Edit semua varian katalog ini" style="margin-right:4px">
+        <button class="btn btn-sm" data-action="edit-katalog" data-kat="${kat}" data-hpp="${hpp}" data-boss="${boss}" title="Edit semua varian katalog ini" style="margin-right:4px">
           <i class="ti ti-edit"></i>
         </button>
       </td>
@@ -196,7 +185,6 @@ function renderProduk(data) {
           <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
           <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
           <td>${row.boss || '—'}</td>
-          <td>${katBadgeProduk(row.kategori_produk || 'aktif')}</td>
           <td></td>
         </tr>`;
       });
@@ -260,11 +248,10 @@ ${skus.slice(0,120)}...`, async () => {
 }
 
 // Edit per katalog (update semua varian)
-async function editKatalog(kat, hpp, boss, katPrd) {
+async function editKatalog(kat, hpp, boss) {
   document.getElementById('kat-edit-nama').textContent = kat;
   idrSet('kat-hpp', hpp);
   document.getElementById('kat-boss').value = boss;
-  document.getElementById('kat-kategori').value = katPrd || 'aktif';
   showModal('modal-edit-katalog');
 }
 
@@ -272,12 +259,11 @@ async function simpanEditKatalog() {
   var kat     = document.getElementById('kat-edit-nama').textContent;
   var hpp     = idrVal('kat-hpp');
   var boss    = document.getElementById('kat-boss').value.trim().toUpperCase();
-  var katPrd  = document.getElementById('kat-kategori').value || 'aktif';
   var rows    = _produkData.filter(r => (r.katalog||'—') === kat);
   if (!rows.length) { hideModal('modal-edit-katalog'); return; }
   try {
     for (const r of rows) {
-      await dbUpdate('produk', r.id, { hpp: hpp, boss: boss, kategori_produk: katPrd });
+      await dbUpdate('produk', r.id, { hpp: hpp, boss: boss });
     }
     hideModal('modal-edit-katalog');
     loadProduk();
@@ -301,7 +287,6 @@ function showFormProduk() {
   document.getElementById('prd-sku').value = '';
   idrSet('prd-hpp', 0);
   document.getElementById('prd-boss').value = '';
-  document.getElementById('prd-kategori').value = 'aktif';
   showModal('modal-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
   sketchForm('form-produk');
@@ -320,7 +305,6 @@ async function editProduk(id) {
   document.getElementById('prd-sku').value     = r.sku_variasi || '';
   idrSet('prd-hpp', r.hpp || 0);
   document.getElementById('prd-boss').value     = r.boss || '';
-  document.getElementById('prd-kategori').value = r.kategori_produk || 'aktif';
   showModal('modal-produk');
   sketchForm('form-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
@@ -333,7 +317,6 @@ async function simpanProduk() {
     sku_variasi: document.getElementById('prd-sku').value.trim(),
     hpp:         idrVal('prd-hpp'),
     boss:        document.getElementById('prd-boss').value.trim().toUpperCase(),
-    kategori_produk: document.getElementById('prd-kategori').value || 'aktif',
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
   try {
@@ -452,7 +435,7 @@ document.getElementById('page-produk').addEventListener('click', function(e) {
     const sku = btn.dataset.sku;
     hapusProduk(id, sku);
   } else if (action === 'edit-katalog') {
-    editKatalog(btn.dataset.kat, btn.dataset.hpp, btn.dataset.boss, btn.dataset.katprd);
+    editKatalog(btn.dataset.kat, btn.dataset.hpp, btn.dataset.boss);
   }
 });
 
@@ -469,15 +452,7 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
       <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="kat-hpp" placeholder="0"></div>
       <div class="form-group" style="flex:1 1 120px"><label>Boss</label><input type="text" id="kat-boss" placeholder="mis: ALAN"></div>
     </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label>Kategori Produk</label>
-      <select id="kat-kategori" style="font-family:var(--f);font-size:13px;padding:5px 8px;border:2px solid var(--ink);background:var(--cream);width:100%">
-        <option value="aktif">✅ Aktif</option>
-        <option value="discontinued">🚫 Discontinued</option>
-        <option value="seasonal">🌙 Seasonal</option>
-        <option value="clearance">🏷️ Clearance</option>
-      </select>
-    </div>
+
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanEditKatalog()"><i class="ti ti-device-floppy"></i> Simpan Semua Varian</button>
       <button class="btn btn-sm" onclick="hideModal('modal-edit-katalog')"><i class="ti ti-x"></i> Batal</button>
@@ -500,17 +475,7 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
       <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="prd-hpp" placeholder="0"></div>
       <div class="form-group" style="flex:1 1 120px"><label>Boss</label><input type="text" id="prd-boss" placeholder="mis: ALAN"></div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 200px">
-        <label>Kategori Produk</label>
-        <select id="prd-kategori" style="font-family:var(--f);font-size:13px;padding:5px 8px;border:2px solid var(--ink);background:var(--cream);width:100%">
-          <option value="aktif">✅ Aktif</option>
-          <option value="discontinued">🚫 Discontinued</option>
-          <option value="seasonal">🌙 Seasonal</option>
-          <option value="clearance">🏷️ Clearance</option>
-        </select>
-      </div>
-    </div>
+
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanProduk()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-produk')"><i class="ti ti-x"></i> Batal</button>

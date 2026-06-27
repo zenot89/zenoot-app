@@ -169,12 +169,19 @@ async function loadRestock() {
     const isKritisMode = window._restockFilterKritis === true;
     window._restockFilterKritis = false;
 
-    const [penjualan, produkAll, supplierAll, stokData, jurnalAllData] = await Promise.all([
+    const tgl30 = new Date(today); tgl30.setDate(tgl30.getDate() - 30);
+    const tgl90 = new Date(today); tgl90.setDate(tgl90.getDate() - 90);
+    const dari30 = tgl30.toISOString().slice(0, 10);
+    const dari90 = tgl90.toISOString().slice(0, 10);
+
+    const [penjualan, produkAll, supplierAll, stokData, jurnalAllData, jurnal30Data, jurnal90Data] = await Promise.all([
       dbGet('jurnal_penjualan', '&tanggal=gte.' + dari + '&order=tanggal.desc'),
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&select=sku,qty')
+      dbGet('jurnal_penjualan', '&select=sku,qty'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + dari30),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + dari90),
     ]);
 
     // ── Hitung sisa stok per SKU — logika IDENTIK dengan stok.js ──
@@ -240,13 +247,40 @@ async function loadRestock() {
       qtyMap[sku] = (qtyMap[sku] || 0) + (row.qty || 0);
     });
 
+    // ── Hitung sales 30hr dan 90hr per SKU (untuk velocity Dead/Zombie) ──
+    const sales30Map = {}, sales90Map = {};
+    (jurnal30Data || []).forEach(r => {
+      const k = (r.sku || '').trim().toUpperCase();
+      if (k) sales30Map[k] = (sales30Map[k] || 0) + (r.qty || 0);
+    });
+    (jurnal90Data || []).forEach(r => {
+      const k = (r.sku || '').trim().toUpperCase();
+      if (k) sales90Map[k] = (sales90Map[k] || 0) + (r.qty || 0);
+    });
+
+    // ── Velocity helper (identik stok.js) ──
+    const _velocity = (s7, s30, s90) => {
+      if ((s7  || 0) > 0) return 'fast';
+      if ((s30 || 0) > 0) return 'slow';
+      if ((s90 || 0) > 0) return 'dead';
+      return 'zombie';
+    };
+
+    const zombieList = []; // SKU zombie — diblok dari restock
+
     const bossList = {};
     Object.entries(qtyMap).forEach(([sku, qty14]) => {
       const p = produkMap[sku];
       if (!p) return;
-      const kat = (p.kategori_produk || 'aktif').toLowerCase();
-      if (kat !== 'aktif') return;
       if (isKritisMode && sisaFilterSet && !sisaFilterSet.has(sku)) return;
+
+      // ── Velocity check: Dead=warning, Zombie=block ──
+      const vel = _velocity(qty14, sales30Map[sku], sales90Map[sku]);
+      if (vel === 'zombie') {
+        // Kumpulkan untuk ditampilkan di Summary sebagai "SKU Diabaikan"
+        zombieList.push({ sku, katalog: p.katalog || '—', boss: (p.boss || '—').trim().toUpperCase() });
+        return; // skip dari bossList
+      }
 
       const bossKey    = (p.boss || '—').trim().toUpperCase();
       const sup        = supplierMap[bossKey] || DEFAULT_SUPPLIER;
@@ -298,7 +332,9 @@ async function loadRestock() {
         tren,
         sisa_stok,
         dos,
-        prioritas
+        prioritas,
+        vel,          // 'fast'|'slow'|'dead'
+        isDead       : vel === 'dead',
       });
     });
 
@@ -358,7 +394,7 @@ async function loadRestock() {
     });
     clearanceList.sort((a, z) => z.nilai - a.nilai);
 
-    window._restockData = { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList };
+    window._restockData = { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList };
 
     if (_restockActiveTab !== 'SUMMARY' && !bossSorted.includes(_restockActiveTab)) {
       _restockActiveTab = 'SUMMARY';
@@ -379,7 +415,7 @@ function renderRestockTabs() {
   const infoWrap = document.getElementById('restock-info-bar-wrap');
   if (!body || !window._restockData) return;
 
-  const { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList } = window._restockData;
+  const { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList } = window._restockData;
 
   // ── Tab bar — dirender ke sticky header ──
   if (tabWrap) {
@@ -475,7 +511,7 @@ function renderRestockTabs() {
     }
     body.style.height   = '100%';
     body.style.overflow = 'hidden';
-    body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis);
+    body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList);
     _sumDualMode = 'segera';
     // Init swipe-to-collapse minicard — identik dengan kas.js (3 zona swipe)
     (function() {
@@ -716,7 +752,7 @@ function dosBadge(dos, lead_time) {
 }
 
 // ── Tab Summary ──
-function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis) {
+function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList) {
   const grandBudget = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
   const grandQty    = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
   const grandSKU    = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
@@ -891,6 +927,18 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px"><i class="ti ti-tag"></i> Lihat Clearance</button>
     </div>` : '';
 
+  // ── Zombie section ──
+  const zombieBlock = (zombieList && zombieList.length) ? `
+    <div style="margin-top:12px;padding:10px 14px;background:rgba(80,80,96,0.1);border:1.5px solid var(--ink3);border-radius:6px">
+      <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px">
+        ⛔ SKU Zombie Diabaikan (${zombieList.length} SKU) — tidak pernah laku >90hr
+        <span style="font-size:11px;font-weight:400;margin-left:8px">Pertimbangkan discontinue</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${zombieList.map(z => `<span style="font-size:11px;padding:2px 8px;border:1px solid var(--ink3);color:var(--ink3);border-radius:3px">${z.sku}</span>`).join('')}
+      </div>
+    </div>` : '';
+
   return `
     <!-- ZONA ATAS: fixed, tidak scroll -->
     <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
@@ -933,6 +981,11 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis)
       <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
         ${_naikHtml}
       </div>
+    </div>
+    <!-- Clearance + Zombie monitor — di luar scroll zone, padding bawah -->
+    <div style="padding:0 14px 16px;flex-shrink:0">
+      ${clearanceBlock}
+      ${zombieBlock}
     </div>`;
 }
 
@@ -1008,7 +1061,7 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
         </thead>
         <tbody>
           ${items.map((r, i) => `
-            <tr style="${r.prioritas === 'SEGERA' ? 'background:rgba(224,82,82,0.05)' : r.prioritas === 'TUNDA' ? 'opacity:0.6' : ''}">
+            <tr style="${r.isDead ? 'background:rgba(224,92,0,0.07);opacity:0.8' : r.prioritas === 'SEGERA' ? 'background:rgba(224,82,82,0.05)' : r.prioritas === 'TUNDA' ? 'opacity:0.6' : ''}">
               <td class="col-desktop" style="color:var(--ink3);font-size:11px">${i + 1}</td>
               <td class="col-desktop" style="color:var(--ink3)">${r.katalog}</td>
               <td>
@@ -1016,7 +1069,7 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
                 <!-- Sub-text portrait: dos + katalog -->
                 <div class="col-portrait-sub" style="font-size:10px;color:var(--ink3);margin-top:2px">${r.katalog} · <span style="color:${r.dos !== null && r.dos <= sup.lead_time ? 'var(--danger)' : r.dos !== null && r.dos <= 14 ? 'var(--warn)' : 'var(--ink3)'}">${r.dos !== null ? r.dos+'hr' : '—'}</span></div>
               </td>
-              <td style="text-align:center">${prioritasBadge(r.prioritas)}</td>
+              <td style="text-align:center">${r.isDead ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(224,92,0,0.12);color:#e05c00;border:1px solid #e05c00">⚠️ Dead</span>' : prioritasBadge(r.prioritas)}</td>
               <td class="col-desktop" style="text-align:center">${dosBadge(r.dos, sup.lead_time)}</td>
               <td style="text-align:center">${trenIcon(r.tren)}</td>
               <td style="text-align:center">${sisaBadge(r.sisa_stok)}</td>

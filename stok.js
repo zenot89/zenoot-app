@@ -13,14 +13,13 @@ function _stokVelocity(sales7, sales30, sales90) {
   return 'zombie';
 }
 
-function statusBadge(sisa, kat, sales7, sales30, sales90) {
-  const _s = (x) => x || 0;
-  // Non-aktif: redup
-  if (kat && kat !== 'aktif') {
-    if (sisa <= 0) return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px;opacity:0.5">Habis</span>';
-    return '<span style="font-size:10px;color:var(--ink3);opacity:0.5">—</span>';
+// statusBadge: parameter ke-2 adalah velocity string (bukan kat)
+// dipanggil dengan: statusBadge(sisa, vel, sales7, sales30, sales90)
+function statusBadge(sisa, vel, sales7, sales30, sales90) {
+  // Jika vel belum dihitung (legacy call), hitung dari sales
+  if (!vel || vel === 'aktif' || vel === 'discontinued' || vel === 'seasonal' || vel === 'clearance') {
+    vel = _stokVelocity(sales7, sales30, sales90);
   }
-  const vel = _stokVelocity(sales7, sales30, sales90);
   if (sisa <= 0) {
     if (vel === 'fast')   return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis 🔥</span>';
     if (vel === 'slow')   return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis</span>';
@@ -59,12 +58,7 @@ document.getElementById('page-stok').innerHTML = `
           <i class="ti ti-chevron-right" style="font-size:11px"></i>
         </div>
 
-        <!-- Menu: Kategori Produk -->
-        <div id="mi-kategori-produk" onclick="stokOpenSub('kategori_produk',event)"
-          style="padding:8px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--ink4)">
-          <span><i class="ti ti-tag" style="font-size:12px;margin-right:6px"></i>Kategori <span id="badge-kategori_produk" style="font-size:10px;color:var(--ink3)"></span></span>
-          <i class="ti ti-chevron-right" style="font-size:11px"></i>
-        </div>
+
 
         <!-- Reset dipindah ke luar dropdown -->
       </div>
@@ -76,9 +70,7 @@ document.getElementById('page-stok').innerHTML = `
       <div id="dd-filter-katalog" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:190px;max-height:260px;overflow-y:auto;
         box-shadow:4px 4px 0 var(--ink4)"></div>
-      <div id="dd-filter-kategori_produk" style="display:none;position:fixed;z-index:9999;
-        background:var(--cream);border:2px solid var(--ink);min-width:180px;
-        box-shadow:4px 4px 0 var(--ink4)"></div>
+
     </div>
 
     <!-- RESET FILTER — sejajar tombol Filter -->
@@ -236,10 +228,10 @@ document.getElementById('page-stok').innerHTML = `
         <th onclick="stokToggleSort('sales')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales 7hr <span id="sort-icon-sales">⇅</span></th>
         <th onclick="stokToggleSort('sales_total')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales Total <span id="sort-icon-sales_total">⇅</span></th>
         <th>HPP</th><th onclick="stokToggleSort('nilai')" style="cursor:pointer;user-select:none;white-space:nowrap">Nilai Stok <span id="sort-icon-nilai">⇅</span></th>
-        <th>Status</th><th>Kategori</th>
+        <th>Status</th>
       </tr></thead>
       <tbody id="stok-tbody">
-        <tr><td colspan="11" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
     </div>
@@ -258,48 +250,7 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 })();
 
 
-// ─── BADGE & HELPER KATEGORI PRODUK ──────────────────────────
-function katBadgeStok(kat) {
-  var map = {
-    aktif:        '<span style="font-size:10px;font-weight:700;color:var(--ok);white-space:nowrap">Aktif</span>',
-    discontinued: '<span style="font-size:10px;font-weight:700;color:var(--ink3);white-space:nowrap">Discontinued</span>',
-    seasonal:     '<span style="font-size:10px;font-weight:700;color:#c8a000;white-space:nowrap">Seasonal</span>',
-    clearance:    '<span style="font-size:10px;font-weight:700;color:var(--danger);white-space:nowrap">Clearance</span>',
-  };
-  return map[kat||'aktif'] || map['aktif'];
-}
 
-async function gantiKategoriStok(produkId, skuNama, katSaat) {
-  var opts = [
-    { val:'aktif',        label:'✅ Aktif — normal, restock seperti biasa' },
-    { val:'discontinued', label:'🚫 Discontinued — tidak produksi lagi, skip restock' },
-    { val:'seasonal',     label:'🌙 Seasonal — musiman, skip restock di luar musim' },
-    { val:'clearance',    label:'🏷️ Clearance — jual habis stok sisa, tidak restock' },
-  ];
-  var html = opts.map(function(o) {
-    var active = o.val === katSaat;
-    return '<div onclick="stokPilihKat(\''+o.val+'\','+produkId+')" style="'+
-      'padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px dashed var(--ink4);'+
-      'background:'+(active?'var(--ink)':'')+'px;color:'+(active?'var(--cream)':'')+'"' +
-      ' onmouseenter="this.style.background=\'var(--cream2)\'" onmouseleave="this.style.background=\''+(active?'var(--ink)':'')+'\'">' +
-      o.label + (active?' ✓':'') + '</div>';
-  }).join('');
-  var modal = document.getElementById('modal-ganti-kat-stok');
-  document.getElementById('ganti-kat-title').textContent = skuNama;
-  document.getElementById('ganti-kat-opts').innerHTML = html;
-  document.getElementById('modal-ganti-kat-stok').style.display = 'flex';
-}
-
-async function stokPilihKat(kat, produkId) {
-  try {
-    await dbUpdate('produk', produkId, { kategori_produk: kat });
-    document.getElementById('modal-ganti-kat-stok').style.display = 'none';
-    
-
-
-loadStok();
-  } catch(err) { alert('Gagal: ' + err.message); }
-}
 
 // ─── STATE ────────────────────────────────────────────────────
 let _stokAllData  = [];   // hasil merge produk + stok + jurnal
@@ -311,7 +262,7 @@ let _stokEditMode    = false; // true = edit existing record (replace), false = 
 // ─── LOAD UTAMA ───────────────────────────────────────────────
 async function loadStok() {
   const tbody = document.getElementById('stok-tbody');
-  tbody.innerHTML = '<tr><td colspan="11" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
 
   try {
     // 1. Ambil semua produk (basis SKU)
@@ -389,7 +340,7 @@ async function loadStok() {
 
     filterStok(); // jaga filter aktif setelah reload
   } catch(err) {
-    tbody.innerHTML = `<tr><td colspan="11" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
   }
 }
 
@@ -397,7 +348,7 @@ async function loadStok() {
 function renderStok(data) {
   const tbody = document.getElementById('stok-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
     return;
   }
 
@@ -412,24 +363,20 @@ function renderStok(data) {
     const hpp   = row.hpp   ? `Rp${row.hpp.toLocaleString('id-ID')}` : 'Rp—';
     const nilai = row.nilai_stok > 0 ? `Rp${row.nilai_stok.toLocaleString('id-ID')}` : '—';
     const safeSku = (row.sku_variasi || '').replace(/"/g, '&quot;');
-    const kat = row.kategori_produk || 'aktif';
-    const isNonAktif = kat !== 'aktif';
-    const rowStyle = isNonAktif ? ' style="opacity:0.42"' : '';
-    return `<tr${rowStyle}>
+    const vel = _stokVelocity(row.sales7, row.sales30, row.sales90);
+    return `<tr>
       <td>${row.katalog || '—'}</td>
       <td><b>${row.sku_variasi || '—'}</b></td>
       <td>${row.boss || '—'}</td>
       <td style="text-align:center"><b>${row.sisa}</b></td>
       <td>
-        <button class="btn btn-sm" data-action="ganti-kat" data-id="${row.produk_id}" data-sku="${safeSku}" data-kat="${kat}" style="margin-right:4px" title="Ganti Kategori"><i class="ti ti-tag"></i></button>
         <button class="btn btn-sm" data-action="edit-stok" data-sku="${safeSku}" title="Edit stok masuk"><i class="ti ti-edit"></i></button>
       </td>
       <td style="text-align:center;color:var(--ok)">${row.sales7 || 0}</td>
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
       <td style="color:var(--ok);font-weight:700">${nilai}</td>
-      <td>${statusBadge(row.sisa, kat, row.sales7, row.sales30, row.sales90)}</td>
-      <td>${katBadgeStok(kat)}</td>
+      <td>${statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
     </tr>`;
   }).join('');
   // Re-render rough UI setelah data selesai
@@ -454,7 +401,6 @@ function stokRenderSummary() {
   var cashLocked = 0; // nilai IDR mandeg di dead+zombie
 
   _stokAllData.forEach(function(r) {
-    if (r.kategori_produk && r.kategori_produk !== 'aktif') return; // skip non-aktif
     var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
     var sisa = Math.max(0, r.sisa || 0);
     if (r.sisa <= 0) {
@@ -518,7 +464,6 @@ function filterStok() {
   const filtered = _stokAllData.filter(r => {
     if (_filterBoss    && (r.boss    || '') !== _filterBoss)    return false;
     if (_filterKatalog && (r.katalog || '') !== _filterKatalog) return false;
-    if (_filterKategoriProduk && (r.kategori_produk || 'aktif') !== _filterKategoriProduk) return false;
     // Tab status filter — velocity adalah sifat produk, bukan kondisi stok
     if (_filterStatusTab) {
       const sisa = r.sisa;
@@ -556,8 +501,6 @@ document.getElementById('page-stok').addEventListener('click', function(e) {
   if (!btn) return;
   if (btn.dataset.action === 'edit-stok') {
     editStok(btn.dataset.sku);
-  } else if (btn.dataset.action === 'ganti-kat') {
-    gantiKategoriStok(btn.dataset.id, btn.dataset.sku, btn.dataset.kat);
   }
 });
 
@@ -1060,7 +1003,6 @@ function stokToggleSort(col) {
 let _filterBoss           = null;
 let _filterKatalog        = null;
 let _filterStatus         = null;
-let _filterKategoriProduk = null;
 
 function stokToggleFilterAll() {
   var dd = document.getElementById('dd-filter-all');
@@ -1080,7 +1022,7 @@ function stokToggleFilterAll() {
 }
 
 function _miId(type) {
-  return type === 'kategori_produk' ? 'mi-kategori-produk' : 'mi-' + type;
+  return 'mi-' + type;
 }
 
 function stokOpenSub(type, e) {
@@ -1089,7 +1031,7 @@ function stokOpenSub(type, e) {
   if (!el) return;
 
   // Tutup semua submenu lain, reset highlight
-  ['boss','katalog','kategori_produk'].forEach(function(t) {
+  ['boss','katalog'].forEach(function(t) {
     if (t !== type) {
       var s = document.getElementById('dd-filter-' + t);
       if (s) s.style.display = 'none';
@@ -1126,17 +1068,9 @@ function stokOpenSub(type, e) {
       { val: 'dead',  label: '⚫ Dead Stock — belum pernah laku' },
       { val: 'habis', label: '🔴 Habis' },
     ];
-  } else if (type === 'kategori_produk') {
-    opsi = [
-      { val: null,           label: 'Semua Kategori' },
-      { val: 'aktif',        label: '✅ Aktif' },
-      { val: 'discontinued', label: '🚫 Discontinued' },
-      { val: 'seasonal',     label: '🌙 Seasonal' },
-      { val: 'clearance',    label: '🏷️ Clearance' },
-    ];
   }
 
-  var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : type === 'kategori_produk' ? _filterKategoriProduk : _filterStatus;
+  var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : _filterStatus;
   sub.innerHTML = opsi.map(function(o) {
     var active = o.val === currVal;
     var valAttr = o.val === null ? '' : o.val;
@@ -1177,8 +1111,7 @@ function stokResetAllFilter() {
   _filterBoss           = null;
   _filterKatalog        = null;
   _filterStatus         = null;
-  _filterKategoriProduk = null;
-  ['boss','katalog','kategori_produk'].forEach(function(t) {
+  ['boss','katalog'].forEach(function(t) {
     var b = document.getElementById('badge-' + t);
     if (b) b.textContent = '';
     var s = document.getElementById('dd-filter-' + t);
@@ -1201,7 +1134,6 @@ function _stokUpdateFilterLabel() {
   if (_filterBoss)           parts.push(_filterBoss);
   if (_filterKatalog)        parts.push(_filterKatalog);
   if (_filterStatus)         parts.push(_filterStatus.charAt(0).toUpperCase() + _filterStatus.slice(1));
-  if (_filterKategoriProduk) parts.push(_filterKategoriProduk.charAt(0).toUpperCase() + _filterKategoriProduk.slice(1));
   var lbl = document.getElementById('lbl-filter-all');
   if (lbl) lbl.textContent = parts.length ? parts.join(', ') : 'Filter';
   var btn = document.getElementById('btn-filter-all');
@@ -1218,7 +1150,6 @@ function stokSetFilter(type, val) {
   if (type === 'boss')            _filterBoss           = val;
   if (type === 'katalog')         _filterKatalog        = val;
   if (type === 'status')          _filterStatus         = val;
-  if (type === 'kategori_produk') _filterKategoriProduk = val;
 
   // Update badge di menu item
   var lblMap = { habis:'Habis', kritis:'Kritis', ati2:'Ati2', aman:'Aman' };
@@ -1232,7 +1163,7 @@ function stokSetFilter(type, val) {
 
   // Tutup semua submenu dan main dropdown secara langsung
   // (jangan pakai stokToggleFilterAll() karena bisa toggle arah salah)
-  ['boss','katalog','kategori_produk'].forEach(function(t) {
+  ['boss','katalog'].forEach(function(t) {
     var s = document.getElementById('dd-filter-' + t);
     if (s) s.style.display = 'none';
     var m = document.getElementById(_miId(t));
@@ -1248,7 +1179,7 @@ function stokSetFilter(type, val) {
 document.addEventListener('click', function(e) {
   var dd  = document.getElementById('dd-filter-all');
   var btn = document.getElementById('btn-filter-all');
-  var subs = ['dd-filter-boss','dd-filter-katalog','dd-filter-kategori_produk'];
+  var subs = ['dd-filter-boss','dd-filter-katalog'];
   // Cek apakah klik di dalam salah satu submenu
   var inSub = subs.some(function(id) {
     var s = document.getElementById(id);
@@ -1256,7 +1187,7 @@ document.addEventListener('click', function(e) {
   });
   if (inSub) return; // jangan tutup kalau klik di submenu
   // Cek apakah klik di dalam main menu items (mi-boss, mi-katalog, mi-status)
-  var inMenuItem = ['mi-boss','mi-katalog','mi-kategori-produk'].some(function(id) {
+  var inMenuItem = ['mi-boss','mi-katalog'].some(function(id) {
     var m = document.getElementById(id);
     return m && m.contains(e.target);
   });
@@ -1281,17 +1212,6 @@ document.addEventListener('click', function(e) {
 
 
 
-// ─── MODAL GANTI KATEGORI ─────────────────────────────────────
-document.body.insertAdjacentHTML('beforeend', `
-<div id="modal-ganti-kat-stok" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
-  <div style="background:var(--cream);border:2px solid var(--ink);max-width:380px;width:90%;box-shadow:4px 4px 0 var(--ink4)">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:2px dashed var(--ink3)">
-      <div style="font-weight:700;font-size:15px"><i class="ti ti-tag"></i> Kategori — <span id="ganti-kat-title"></span></div>
-      <button onclick="document.getElementById('modal-ganti-kat-stok').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3)">&#10005;</button>
-    </div>
-    <div id="ganti-kat-opts"></div>
-  </div>
-</div>`);
 
 setTimeout(loadStok, 0);
 
