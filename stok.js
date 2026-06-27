@@ -1,29 +1,40 @@
 // ─── STOK.JS v3 — basis dari produk, keluar dari jurnal ───────
 
-// ─── STATUS BADGE — basis velocity 7 hari (konsep China: cash jangan mandeg di stok) ───
-// Fast  : sisa > 0 & ada sales 7hr terakhir → eligible restock
-// Slow  : sisa > 0 & pernah laku tapi >7hr lalu → monitor, jangan restock dulu
-// Dead  : sisa > 0 & belum pernah laku sama sekali → clearance / bundle
-// Habis : sisa <= 0
-function statusBadge(sisa, kat, sales7, salesTotal) {
-  // Non-aktif: tampilkan redup tanpa badge velocity
+// ─── STATUS BADGE — 5-level velocity (konsep China: cash jangan mandeg di stok) ───
+// Fast   : sales 7hr > 0                          → restock agresif
+// Slow   : sales 7hr = 0, sales 30hr > 0          → monitor, promo dulu
+// Dead   : sales 30hr = 0, sales 90hr > 0         → BLOCK restock, clearance
+// Zombie : sales 90hr = 0                         → discontinue, jual rugi
+// Habis  : sisa <= 0                              → urgent jika Fast, ignore jika Dead/Zombie
+function _stokVelocity(sales7, sales30, sales90) {
+  if ((sales7  || 0) > 0) return 'fast';
+  if ((sales30 || 0) > 0) return 'slow';
+  if ((sales90 || 0) > 0) return 'dead';
+  return 'zombie';
+}
+
+function statusBadge(sisa, kat, sales7, sales30, sales90) {
+  const _s = (x) => x || 0;
+  // Non-aktif: redup
   if (kat && kat !== 'aktif') {
     if (sisa <= 0) return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px;opacity:0.5">Habis</span>';
     return '<span style="font-size:10px;color:var(--ink3);opacity:0.5">—</span>';
   }
+  const vel = _stokVelocity(sales7, sales30, sales90);
   if (sisa <= 0) {
-    // Habis tapi masih Fast (laku 7hr lalu) → urgent restock
-    if ((sales7 || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis 🔥</span>';
-    return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis</span>';
+    if (vel === 'fast')   return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis 🔥</span>';
+    if (vel === 'slow')   return '<span style="font-size:10px;font-weight:700;color:var(--danger);padding:2px 6px;border:1.5px solid var(--danger);border-radius:2px">Habis</span>';
+    return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px;opacity:0.6">Habis</span>';
   }
-  if ((sales7 || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:#00c896;padding:2px 6px;border:1.5px solid #00c896;border-radius:2px">Fast</span>';
-  if ((salesTotal || 0) > 0) return '<span style="font-size:10px;font-weight:700;color:#c8a000;padding:2px 6px;border:1.5px solid #c8a000;border-radius:2px">Slow</span>';
-  return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px">Dead</span>';
+  if (vel === 'fast')   return '<span style="font-size:10px;font-weight:700;color:#00c896;padding:2px 6px;border:1.5px solid #00c896;border-radius:2px">Fast</span>';
+  if (vel === 'slow')   return '<span style="font-size:10px;font-weight:700;color:#c8a000;padding:2px 6px;border:1.5px solid #c8a000;border-radius:2px">Slow</span>';
+  if (vel === 'dead')   return '<span style="font-size:10px;font-weight:700;color:#e05c00;padding:2px 6px;border:1.5px solid #e05c00;border-radius:2px">Dead</span>';
+  return '<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:2px">Zombie</span>';
 }
 
 // page-stok flex column sudah diatur via CSS #page-stok
 document.getElementById('page-stok').innerHTML = `
-  <div id="stok-filter-bar">
+  <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <!-- KIRI: Filter — nested submenu -->
     <div style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;text-align:left;padding-right:24px">
@@ -76,11 +87,25 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-x"></i> Reset Filter
     </button>
 
+    <!-- Tombol Summary -->
+    <button class="btn btn-sm" onclick="stokToggleSummary()" style="border-color:var(--ink3);color:var(--ink)">
+      <i class="ti ti-chart-bar"></i> Summary
+    </button>
+
     <!-- KANAN: Paste Massal + Tambah -->
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" onclick="showPasteStok()"><i class="ti ti-clipboard"></i> Paste Massal</button>
       <button class="btn btn-sm btn-primary" onclick="showTambahStok()"><i class="ti ti-plus"></i> Tambah</button>
     </div>
+  </div>
+
+  <!-- PANEL SUMMARY STOK -->
+  <div id="stok-summary-panel" style="display:none;margin-bottom:14px;padding:14px 16px;border:2px solid var(--ink);background:var(--cream2)">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;display:flex;justify-content:space-between">
+      <span><i class="ti ti-chart-bar"></i> Summary Stok</span>
+      <span id="stok-summary-cash-locked" style="color:var(--danger);font-size:12px"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px" id="stok-summary-cards"></div>
   </div>
 
   <!-- MODAL PASTE MASSAL STOK -->
@@ -195,11 +220,12 @@ document.getElementById('page-stok').innerHTML = `
 
     <!-- TAB STATUS -->
     <div id="stok-status-tabs" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-      <button class="stok-tab-btn stok-tab-active" data-tab="all"   onclick="stokTabStatus('all')">Semua</button>
-      <button class="stok-tab-btn" data-tab="fast"  onclick="stokTabStatus('fast')">🟢 Fast</button>
-      <button class="stok-tab-btn" data-tab="slow"  onclick="stokTabStatus('slow')">🟡 Slow</button>
-      <button class="stok-tab-btn" data-tab="dead"  onclick="stokTabStatus('dead')">⚫ Dead</button>
-      <button class="stok-tab-btn" data-tab="habis" onclick="stokTabStatus('habis')">🔴 Habis</button>
+      <button class="stok-tab-btn stok-tab-active" data-tab="all"    onclick="stokTabStatus('all')">Semua</button>
+      <button class="stok-tab-btn" data-tab="fast"   onclick="stokTabStatus('fast')">🟢 Fast</button>
+      <button class="stok-tab-btn" data-tab="slow"   onclick="stokTabStatus('slow')">🟡 Slow</button>
+      <button class="stok-tab-btn" data-tab="dead"   onclick="stokTabStatus('dead')">🔴 Dead</button>
+      <button class="stok-tab-btn" data-tab="zombie" onclick="stokTabStatus('zombie')">⚫ Zombie</button>
+      <button class="stok-tab-btn" data-tab="habis"  onclick="stokTabStatus('habis')">💀 Habis</button>
     </div>
 
     <div id="stok-tbl-wrap"><table class="tbl">
@@ -313,17 +339,29 @@ async function loadStok() {
     }
 
     // 3b. Ambil sales 7 hari terakhir per SKU (untuk status Fast/Slow/Dead)
-    const tgl7 = new Date();
-    tgl7.setDate(tgl7.getDate() - 7);
-    const tgl7Str = tgl7.toISOString().slice(0, 10);
-    const jurnal7Data = await dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str);
-    const sales7Map = {};
-    if (Array.isArray(jurnal7Data)) {
-      jurnal7Data.forEach(j => {
+    const tgl7 = new Date(); tgl7.setDate(tgl7.getDate() - 7);
+    const tgl30 = new Date(); tgl30.setDate(tgl30.getDate() - 30);
+    const tgl90 = new Date(); tgl90.setDate(tgl90.getDate() - 90);
+    const tgl7Str  = tgl7.toISOString().slice(0, 10);
+    const tgl30Str = tgl30.toISOString().slice(0, 10);
+    const tgl90Str = tgl90.toISOString().slice(0, 10);
+
+    const [jurnal7Data, jurnal30Data, jurnal90Data] = await Promise.all([
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl30Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl90Str),
+    ]);
+
+    const sales7Map = {}, sales30Map = {}, sales90Map = {};
+    const _buildMap = (data, map) => {
+      if (Array.isArray(data)) data.forEach(j => {
         const key = (j.sku || '').toUpperCase();
-        sales7Map[key] = (sales7Map[key] || 0) + (j.qty || 0);
+        map[key] = (map[key] || 0) + (j.qty || 0);
       });
-    }
+    };
+    _buildMap(jurnal7Data,  sales7Map);
+    _buildMap(jurnal30Data, sales30Map);
+    _buildMap(jurnal90Data, sales90Map);
 
     // 4. Merge: semua SKU dari produk sebagai basis
     _stokAllData = _produkForStok.map(p => {
@@ -340,7 +378,9 @@ async function loadStok() {
         produk_id:        p.id,
         stok_masuk:       masuk,
         stok_keluar:      keluar,
-        sales7:           sales7Map[skuKey] || 0,
+        sales7:           sales7Map[skuKey]  || 0,
+        sales30:          sales30Map[skuKey] || 0,
+        sales90:          sales90Map[skuKey] || 0,
         sisa,
         nilai_stok:       sisa > 0 ? sisa * (p.hpp || 0) : 0,
         _stok_id:         _stokMasukMap[skuKey] ? _stokMasukMap[skuKey].id : null,
@@ -388,7 +428,7 @@ function renderStok(data) {
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
       <td style="color:var(--ok);font-weight:700">${nilai}</td>
-      <td>${statusBadge(row.sisa, kat, row.sales7, row.stok_keluar)}</td>
+      <td>${statusBadge(row.sisa, kat, row.sales7, row.sales30, row.sales90)}</td>
       <td>${katBadgeStok(kat)}</td>
     </tr>`;
   }).join('');
@@ -396,6 +436,65 @@ function renderStok(data) {
   requestAnimationFrame(function() {
     if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-stok'));
   });
+}
+
+// ─── SUMMARY ──────────────────────────────────────────────────
+function stokToggleSummary() {
+  var panel = document.getElementById('stok-summary-panel');
+  if (!panel) return;
+  var open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if (!open) stokRenderSummary();
+}
+
+function stokRenderSummary() {
+  if (!_stokAllData || !_stokAllData.length) return;
+  var counts = { fast:0, slow:0, dead:0, zombie:0, habis:0 };
+  var skus   = { fast:[], slow:[], dead:[], zombie:[], habis:[] };
+  var cashLocked = 0; // nilai IDR mandeg di dead+zombie
+
+  _stokAllData.forEach(function(r) {
+    if (r.kategori_produk && r.kategori_produk !== 'aktif') return; // skip non-aktif
+    var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
+    var sisa = Math.max(0, r.sisa || 0);
+    if (r.sisa <= 0) {
+      counts.habis++;
+      skus.habis.push({ sku: r.sku_variasi, vel: vel });
+    } else {
+      counts[vel]++;
+      skus[vel].push(r.sku_variasi);
+      if (vel === 'dead' || vel === 'zombie') cashLocked += sisa * (r.hpp || 0);
+    }
+  });
+
+  var cfg = [
+    { key:'fast',   label:'🟢 Fast Moving',  sub:'Laku 7hr terakhir',        color:'#00c896', action:'Restock' },
+    { key:'slow',   label:'🟡 Slow Moving',  sub:'Tidak laku 7–30hr',         color:'#c8a000', action:'Promo' },
+    { key:'dead',   label:'🔴 Dead Stock',   sub:'Tidak laku 30–90hr',        color:'#e05c00', action:'Clearance' },
+    { key:'zombie', label:'⚫ Zombie',        sub:'Tidak laku >90hr',          color:'var(--ink3)', action:'Discontinue' },
+    { key:'habis',  label:'💀 Habis',        sub:'Stok = 0',                  color:'var(--danger)', action:'Cek demand' },
+  ];
+
+  var html = '';
+  cfg.forEach(function(s) {
+    var n = counts[s.key];
+    html += '<div style="border:1.5px solid ' + s.color + ';padding:10px 12px;cursor:pointer" onclick="stokTabStatus('' + s.key + '')">'
+      + '<div style="font-size:11px;color:' + s.color + ';font-weight:700">' + s.label + '</div>'
+      + '<div style="font-size:24px;font-weight:700;line-height:1.2">' + n + ' <span style="font-size:11px;color:var(--ink3);font-weight:400">SKU</span></div>'
+      + '<div style="font-size:10px;color:var(--ink3);margin-top:2px">' + s.sub + '</div>'
+      + '<div style="font-size:10px;margin-top:4px;padding:2px 6px;display:inline-block;border:1px solid ' + s.color + ';color:' + s.color + '">' + s.action + '</div>'
+      + '</div>';
+  });
+
+  var cards = document.getElementById('stok-summary-cards');
+  if (cards) cards.innerHTML = html;
+
+  var cashEl = document.getElementById('stok-summary-cash-locked');
+  if (cashEl) {
+    cashEl.textContent = cashLocked > 0
+      ? '💰 Cash mandeg di Dead+Zombie: Rp' + cashLocked.toLocaleString('id-ID')
+      : '';
+  }
 }
 
 // ─── STATUS TABS ──────────────────────────────────────────────
@@ -421,16 +520,14 @@ function filterStok() {
     if (_filterKatalog && (r.katalog || '') !== _filterKatalog) return false;
     if (_filterKategoriProduk && (r.kategori_produk || 'aktif') !== _filterKategoriProduk) return false;
     // Tab status filter — velocity adalah sifat produk, bukan kondisi stok
-    // Fast/Slow/Dead: basis sales, tidak peduli sisa
-    // Habis: basis sisa <= 0, tidak peduli sales
     if (_filterStatusTab) {
-      const sisa   = r.sisa;
-      const s7     = r.sales7 || 0;
-      const stotal = r.stok_keluar || 0;
-      if (_filterStatusTab === 'habis' && !(sisa <= 0))           return false;
-      if (_filterStatusTab === 'fast'  && !(s7 > 0))              return false;
-      if (_filterStatusTab === 'slow'  && !(s7 === 0 && stotal > 0)) return false;
-      if (_filterStatusTab === 'dead'  && !(stotal === 0))         return false;
+      const sisa = r.sisa;
+      const vel  = _stokVelocity(r.sales7, r.sales30, r.sales90);
+      if (_filterStatusTab === 'habis'  && !(sisa <= 0))    return false;
+      if (_filterStatusTab === 'fast'   && vel !== 'fast')  return false;
+      if (_filterStatusTab === 'slow'   && vel !== 'slow')  return false;
+      if (_filterStatusTab === 'dead'   && vel !== 'dead')  return false;
+      if (_filterStatusTab === 'zombie' && vel !== 'zombie') return false;
     }
     return true;
   });
