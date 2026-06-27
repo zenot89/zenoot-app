@@ -1030,17 +1030,23 @@ async function simpanPasteStok() {
 var _stokSort = { col: null, dir: 'desc' };
 
 function stokToggleSort(col) {
+  // 3 state: netral(⇅) → desc(▼) → asc(▲) → netral
   if (_stokSort.col === col) {
-    _stokSort.dir = _stokSort.dir === 'desc' ? 'asc' : 'desc';
+    if (_stokSort.dir === 'desc') {
+      _stokSort.dir = 'asc';
+    } else {
+      _stokSort.col = null; // reset ke netral
+      _stokSort.dir = 'desc';
+    }
   } else {
     _stokSort.col = col;
     _stokSort.dir = 'desc';
   }
-  // Update icons
+  // Update icons semua kolom
   ['sisa','sales','sales_total','nilai'].forEach(function(c) {
     var el = document.getElementById('sort-icon-' + c);
     if (!el) return;
-    if (c === col) {
+    if (c === _stokSort.col) {
       el.textContent = _stokSort.dir === 'desc' ? '▼' : '▲';
       el.style.color = 'var(--ok)';
     } else {

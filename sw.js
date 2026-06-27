@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — proyeksi-harga: tab Rekap Toko + channel_rekap + localStorage toko
-var JS_CACHE = 'zenot-js-20260627-7b82a113a3d6';
+var JS_CACHE = 'zenot-js-20260627-v45';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

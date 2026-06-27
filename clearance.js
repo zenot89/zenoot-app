@@ -236,17 +236,27 @@ function clUpdateMetrics(data) {
   if (el('cl-total-nilai')) el('cl-total-nilai').textContent = fmtRp(data.reduce((s,r) => s + r.nilai, 0));
 }
 
-// ─── SORT ────────────────────────────────────────────────────
+// ─── SORT — 3 state: desc(▼) → asc(▲) → default(nilai desc) ──
 function clSort(col) {
-  if (_clSort.col === col) _clSort.dir = _clSort.dir === 'asc' ? 'desc' : 'asc';
-  else { _clSort.col = col; _clSort.dir = col === 'nilai' || col === 'sisa' ? 'desc' : 'asc'; }
+  if (_clSort.col === col) {
+    if (_clSort.dir === 'desc') {
+      _clSort.dir = 'asc';
+    } else {
+      // asc → reset ke default
+      _clSort.col = 'nilai';
+      _clSort.dir = 'desc';
+    }
+  } else {
+    _clSort.col = col;
+    _clSort.dir = (col === 'nilai' || col === 'sisa') ? 'desc' : 'asc';
+  }
   clRenderAll();
 }
 function clUpdateSortIcons() {
   ['kat','sku','sisa','nilai'].forEach(c => {
     const el = document.getElementById('cl-sort-' + c);
     if (!el) return;
-    el.textContent = _clSort.col === c ? (_clSort.dir === 'asc' ? '↑' : '↓') : '↕';
+    el.textContent = _clSort.col === c ? (_clSort.dir === 'asc' ? '▲' : '▼') : '⇅';
     el.style.color = _clSort.col === c ? 'var(--accent)' : 'var(--ink3)';
   });
 }
