@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — dashboard+keuangan: filter CANCELLED dari hitungan sisa stok & nilai persediaan
-var JS_CACHE = 'zenot-js-20260628-v52';
+var JS_CACHE = 'zenot-js-20260628-07e74c1c0a4e';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
