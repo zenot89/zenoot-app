@@ -175,13 +175,13 @@ async function loadRestock() {
     const dari90 = tgl90.toISOString().slice(0, 10);
 
     const [penjualan, produkAll, supplierAll, stokData, jurnalAllData, jurnal30Data, jurnal90Data] = await Promise.all([
-      dbGet('jurnal_penjualan', '&order_status=not.eq.CANCELLED&tanggal=gte.' + dari + '&order=tanggal.desc'),
+      dbGet('jurnal_penjualan', '&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari + '&order=tanggal.desc'),
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED'),
-      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED&tanggal=gte.' + dari30),
-      dbGet('jurnal_penjualan', '&select=sku,qty&order_status=not.eq.CANCELLED&tanggal=gte.' + dari90),
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari30),
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari90),
     ]);
 
     // ── Hitung sisa stok per SKU — logika IDENTIK dengan stok.js ──
