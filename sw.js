@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — dataorder: Tgl Order pindah ke kolom pertama, label fix
-var JS_CACHE = 'zenot-js-20260628-v51';
+var JS_CACHE = 'zenot-js-20260628-213d1c2a5c28';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
