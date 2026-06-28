@@ -581,6 +581,27 @@ async function loadProdukListJP() {
 // ─── SKU HELPERS ─────────────────────────────────────────────
 function _jpGetKatalog(p) { return p.katalog || p.nama_katalog || p.catalog || p.nama || ''; }
 function _jpGetSku(p)     { return p.sku || p.sku_variasi || p.kode || ''; }
+
+// ── SKU Resolver: normalize + validasi vs produk list ──────────────────────
+// Return: { sku: string, ok: boolean, warned: boolean }
+function _jpResolveSku(raw) {
+  const all = _jpProdukList.map(p => _jpGetSku(p)).filter(Boolean);
+
+  // 1. Exact match
+  if (all.includes(raw)) return { sku: raw, ok: true };
+
+  // 2. Normalize: uppercase sudah — coba spasi → underscore, strip double spaces
+  const norm = raw.replace(/\s+/g, '_').replace(/__+/g, '_');
+  if (all.includes(norm)) return { sku: norm, ok: true };
+
+  // 3. Case-insensitive match
+  const lower = norm.toLowerCase();
+  const found = all.find(s => s.toLowerCase() === lower);
+  if (found) return { sku: found, ok: true };
+
+  // 4. Tidak ketemu — kembalikan as-is, tandai warn
+  return { sku: raw, ok: false };
+}
 function _jpGetHpp(p)     { return p.hpp || p.harga_pokok || p.cost || 0; }
 
 function _jpRenderDropdown(katalogs, katalogMap) {
@@ -1368,7 +1389,17 @@ async function simpanJP() {
     if (!sku)      { alert('SKU wajib diisi!');           return; }
     if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
     if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
-    allItems.push({ sku, qty, harga, total: total||qty*harga, channel_id: chId, tgl, waktu });
+    // ── Resolve SKU: normalize dan validasi vs produk list ──
+    const resolved = _jpResolveSku(sku);
+    if (!resolved.ok) {
+      const lanjut = confirm(
+        'SKU "' + sku + '" tidak ditemukan di master produk.\n' +
+        'Pastikan SKU sudah benar sebelum menyimpan.\n\n' +
+        'Tetap simpan?'
+      );
+      if (!lanjut) return;
+    }
+    allItems.push({ sku: resolved.sku, qty, harga, total: total||qty*harga, channel_id: chId, tgl, waktu });
   } else if (!hasPending) {
     // Form kosong dan tidak ada pending
     if (!sku)      { alert('SKU wajib diisi!');           return; }
