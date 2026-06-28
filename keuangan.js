@@ -765,38 +765,53 @@ function _keuApplyNeracaFlexChain() {
     activePanel.style.overflow   = 'hidden';
   }
 
-  // Neraca panel khusus: flex column saat active, clear inline display saat tidak active
+  // Neraca panel khusus:
+  // - Portrait mobile (<=600px): flex column chain
+  // - Landscape HP + Laptop (>600px): clear inline style, CSS grid 1fr 1fr yang handle
   if (neracaPanel.classList.contains('active')) {
-    neracaPanel.style.display          = 'flex';
-    neracaPanel.style.flexDirection    = 'column';
-    neracaPanel.style.webkitFlexDirection = 'column';
+    if (window.innerWidth <= 600) {
+      neracaPanel.style.display             = 'flex';
+      neracaPanel.style.flexDirection       = 'column';
+      neracaPanel.style.webkitFlexDirection = 'column';
 
-    // minicards: flex-shrink:0
-    var minicards = document.getElementById('keu-neraca-minicards-wrap');
-    if (minicards) {
-      minicards.style.flexShrink       = '0';
-      minicards.style.webkitFlexShrink = '0';
-    }
+      var minicards = document.getElementById('keu-neraca-minicards-wrap');
+      if (minicards) { minicards.style.flexShrink = '0'; minicards.style.webkitFlexShrink = '0'; }
 
-    // section-bar: flex-shrink:0
-    var sectionBar = document.getElementById('keu-neraca-section-bar');
-    if (sectionBar) {
-      sectionBar.style.flexShrink       = '0';
-      sectionBar.style.webkitFlexShrink = '0';
-    }
+      var sectionBar = document.getElementById('keu-neraca-section-bar');
+      if (sectionBar) { sectionBar.style.flexShrink = '0'; sectionBar.style.webkitFlexShrink = '0'; }
 
-    // scroll-zone: flex:1, satu-satunya yang scroll
-    var scrollZone = document.getElementById('keu-neraca-scroll-zone');
-    if (scrollZone) {
-      scrollZone.style.flex          = '1 1 0';
-      scrollZone.style.webkitFlex    = '1 1 0';
-      scrollZone.style.minHeight     = '0';
-      scrollZone.style.overflowY     = 'auto';
-      scrollZone.style.webkitOverflowScrolling = 'touch';
-      scrollZone.style.overscrollBehavior      = 'none';
+      var scrollZone = document.getElementById('keu-neraca-scroll-zone');
+      if (scrollZone) {
+        scrollZone.style.flex                    = '1 1 0';
+        scrollZone.style.webkitFlex              = '1 1 0';
+        scrollZone.style.minHeight               = '0';
+        scrollZone.style.overflowY               = 'auto';
+        scrollZone.style.webkitOverflowScrolling = 'touch';
+        scrollZone.style.overscrollBehavior      = 'none';
+      }
+    } else {
+      // Landscape HP + Laptop — clear semua inline style, CSS grid 1fr 1fr yang handle
+      neracaPanel.style.display             = '';
+      neracaPanel.style.flexDirection       = '';
+      neracaPanel.style.webkitFlexDirection = '';
+
+      var minicards2 = document.getElementById('keu-neraca-minicards-wrap');
+      if (minicards2) { minicards2.style.flexShrink = ''; minicards2.style.webkitFlexShrink = ''; }
+
+      var sectionBar2 = document.getElementById('keu-neraca-section-bar');
+      if (sectionBar2) { sectionBar2.style.flexShrink = ''; sectionBar2.style.webkitFlexShrink = ''; }
+
+      var scrollZone2 = document.getElementById('keu-neraca-scroll-zone');
+      if (scrollZone2) {
+        scrollZone2.style.flex                    = '';
+        scrollZone2.style.webkitFlex              = '';
+        scrollZone2.style.minHeight               = '';
+        scrollZone2.style.overflowY               = '';
+        scrollZone2.style.webkitOverflowScrolling = '';
+        scrollZone2.style.overscrollBehavior      = '';
+      }
     }
   } else {
-    // Neraca tidak active — pastikan inline display ter-reset agar CSS display:none menang
     neracaPanel.style.display = '';
   }
 }
@@ -1317,7 +1332,7 @@ async function keuHitungNilaiPersediaan() {
     const [produkArr, stokArr, jualArr] = await Promise.all([
       dbGet('produk', '').catch(()=>[]),
       dbGet('stok',   '').catch(()=>[]),
-      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(()=>[]) // exclude CANCELLED
+      dbGet('jurnal_penjualan', '&select=sku,qty').catch(()=>[])
     ]);
     const stokMap   = {};
     (stokArr||[]).forEach(s => { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk||0; });
