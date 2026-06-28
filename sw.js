@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — keuangan neraca: side by side di landscape HP + laptop
-var JS_CACHE = 'zenot-js-20260628-a2ae1401e7fe';
+// BUMP: JS_CACHE — keuangan neraca: side by side kiri kanan di laptop+landscape
+var JS_CACHE = 'zenot-js-20260628-v54';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

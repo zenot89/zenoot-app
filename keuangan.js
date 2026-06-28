@@ -892,10 +892,33 @@ function keuNeracaApplyView(asetCount, kwjCount) {
 
   const isAset = _keuNeracaView === 'aset';
 
-  if (cardAset)  cardAset.style.display  = isAset ? '' : 'none';
-  if (cardKwj)   cardKwj.style.display   = isAset ? 'none' : '';
-  if (secAset)   secAset.style.display   = isAset ? '' : 'none';
-  if (secKwj)    secKwj.style.display    = isAset ? 'none' : '';
+  const isWide = window.innerWidth > 600;
+
+  if (isWide) {
+    // Laptop + landscape: tampilkan keduanya side by side
+    if (cardAset) cardAset.style.display = '';
+    if (cardKwj)  cardKwj.style.display  = '';
+    if (secAset)  secAset.style.display  = 'none';
+    if (secKwj)   secKwj.style.display   = 'none';
+    if (zone) {
+      zone.style.display             = 'grid';
+      zone.style.gridTemplateColumns = '1fr 1fr';
+      zone.style.gap                 = '14px';
+      zone.style.alignItems          = 'start';
+    }
+  } else {
+    // Portrait mobile: toggle satu per satu
+    if (cardAset)  cardAset.style.display  = isAset ? '' : 'none';
+    if (cardKwj)   cardKwj.style.display   = isAset ? 'none' : '';
+    if (secAset)   secAset.style.display   = isAset ? '' : 'none';
+    if (secKwj)    secKwj.style.display    = isAset ? 'none' : '';
+    if (zone) {
+      zone.style.display             = '';
+      zone.style.gridTemplateColumns = '';
+      zone.style.gap                 = '';
+      zone.style.alignItems          = '';
+    }
+  }
 
   // Scroll zone kembali ke atas saat ganti view
   if (zone) zone.scrollTop = 0;
