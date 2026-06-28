@@ -1502,7 +1502,7 @@ async function loadDashboard() {
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => []),
-      dbGet('jurnal_penjualan', '&select=sku,qty').catch(() => []) // all-time untuk hitung sisa stok
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []) // all-time untuk hitung sisa stok (exclude CANCELLED)
     ]);
     // jpData & jpChart30 sama-sama 30 hari — satu fetch, reuse keduanya
     const jpData    = _jpData30 || [];

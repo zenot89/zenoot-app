@@ -1317,7 +1317,7 @@ async function keuHitungNilaiPersediaan() {
     const [produkArr, stokArr, jualArr] = await Promise.all([
       dbGet('produk', '').catch(()=>[]),
       dbGet('stok',   '').catch(()=>[]),
-      dbGet('jurnal_penjualan', '&select=sku,qty').catch(()=>[])
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(()=>[]) // exclude CANCELLED
     ]);
     const stokMap   = {};
     (stokArr||[]).forEach(s => { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk||0; });

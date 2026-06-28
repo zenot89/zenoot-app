@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — dataorder: Tgl Order pindah ke kolom pertama, label fix
-var JS_CACHE = 'zenot-js-20260628-213d1c2a5c28';
+// BUMP: JS_CACHE — dashboard+keuangan: filter CANCELLED dari hitungan sisa stok & nilai persediaan
+var JS_CACHE = 'zenot-js-20260628-v52';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
