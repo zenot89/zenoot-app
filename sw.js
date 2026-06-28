@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — keuangan neraca: side by side kiri kanan di laptop+landscape
-var JS_CACHE = 'zenot-js-20260628-v54';
+var JS_CACHE = 'zenot-js-20260628-6cc4855ea9a8';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
