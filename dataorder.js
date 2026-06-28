@@ -15,8 +15,8 @@ document.getElementById('page-dataorder').innerHTML = `
     <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth"><table class="tbl">
       <thead>
         <tr>
-          <th>No. Pesanan</th><th>SKU</th><th>Qty</th>
-          <th>Harga Diskon</th><th>Total Bayar</th><th>Waktu Selesai</th>
+          <th>Tgl Order</th><th>No. Pesanan</th><th>SKU</th><th>Qty</th>
+          <th>Harga Diskon</th><th>Total Bayar</th>
           <th style="text-align:center">Status</th><th style="text-align:center">Sisa Stok</th>
         </tr>
       </thead>
@@ -104,12 +104,12 @@ function renderOrders(data) {
       : 'var(--ink3)';
     const stHtml = '<span style="font-size:11px;color:' + stColor + '">' + stLabel + '</span>';
     return '<tr>'
+      + '<td style="font-size:11px;white-space:nowrap">' + waktu + '</td>'
       + '<td style="font-size:11px">' + (r.no_order||'—') + '</td>'
       + '<td><b style="color:var(--accent)">' + (r.sku||'—') + '</b></td>'
       + '<td style="text-align:center">' + (r.qty||0) + '</td>'
       + '<td>' + (r.harga_satuan ? 'Rp'+Number(r.harga_satuan).toLocaleString('id-ID') : '—') + '</td>'
       + '<td><b>' + (r.total||r.omset ? 'Rp'+Number(r.total||r.omset).toLocaleString('id-ID') : '—') + '</b></td>'
-      + '<td style="font-size:11px;white-space:nowrap">' + waktu + '</td>'
       + '<td style="text-align:center">' + stHtml + '</td>'
       + '<td style="text-align:center">' + sisaHtml + '</td>'
       + '</tr>';
