@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — fix PostgREST query: not.eq → neq + include null (entry manual)
-var JS_CACHE = 'zenot-js-20260628-v50';
+var JS_CACHE = 'zenot-js-20260628-c7a931cdfd98';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
