@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — SKU resolver di jurnal-penjualan: normalize + warn jika tidak ada di produk
-var JS_CACHE = 'zenot-js-20260628-v49';
+var JS_CACHE = 'zenot-js-20260628-3e263eb40bf7';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
