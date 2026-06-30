@@ -313,7 +313,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div>
 
   <!-- TABEL -->
-  <div class="card">
+  <div class="card" id="jp-table-card">
     <div id="jp-sticky-header">
       <!-- Target Harian + Tambah Penjualan — 1 baris -->
       <div id="jp-target-wrap" style="display:none;padding:6px 14px 4px">
