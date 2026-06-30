@@ -18,27 +18,60 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </div>
     </div>
 
-    <!-- TOMBOL AKSI LAPTOP — tersembunyi di mobile -->
-    <div id="jp-aksi-laptop" style="display:flex;gap:6px;margin-bottom:0;align-items:center;flex-wrap:nowrap">
-      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
-        <i class="ti ti-refresh"></i>
-      </button>
-      <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
-        <i class="ti ti-calendar"></i>
-        <span class="jp-periode-label-sync">Hari Ini</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
-        <i class="ti ti-building-store"></i>
-        <span class="jp-channel-label-sync">Channel</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
-        <i class="ti ti-chart-bar"></i> Produk Terjual
-      </button>
+  <!-- TREN PENJUALAN — chart gaya Shopee, toggle filter periode/channel di kanan atas -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <span><i class="ti ti-chart-line"></i> Tren Penjualan</span>
+      <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+        <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+          <i class="ti ti-refresh"></i>
+        </button>
+        <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
+          style="display:flex;align-items:center;gap:4px;font-size:12px">
+          <i class="ti ti-calendar"></i>
+          <span class="jp-periode-label-sync">Hari Ini</span>
+          <span style="font-size:10px">&#9662;</span>
+        </button>
+        <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
+          style="display:flex;align-items:center;gap:4px;font-size:12px">
+          <i class="ti ti-building-store"></i>
+          <span class="jp-channel-label-sync">Channel</span>
+          <span style="font-size:10px">&#9662;</span>
+        </button>
+      </div>
     </div>
+    <div style="position:relative;height:200px">
+      <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
+      <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
+        Belum ada penjualan di periode ini
+      </div>
+      <div id="jp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR MOBILE — toggle filter versi mobile, disembunyikan di laptop via CSS -->
+  <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
+    <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+      <i class="ti ti-refresh"></i>
+    </button>
+    <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-calendar"></i>
+      <span id="jp-periode-label">Hari Ini</span>
+      <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
+      style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <i class="ti ti-building-store"></i>
+      <span id="jp-channel-label">Channel</span>
+      <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+      <span style="font-size:10px">&#9662;</span>
+    </button>
+    <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
+      <i class="ti ti-chart-bar"></i> Produk Terjual
+    </button>
+  </div>
   </div>
 
 
@@ -303,29 +336,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <i class="ti ti-plus"></i> Tambah Penjualan
         </button>
       </div>
-      <!-- Toolbar mobile -->
-      <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:0;align-items:center;flex-wrap:nowrap">
-      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
-        <i class="ti ti-refresh"></i>
-      </button>
-      <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
-        <i class="ti ti-calendar"></i>
-        <span id="jp-periode-label">Hari Ini</span>
-        <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
-        <i class="ti ti-building-store"></i>
-        <span id="jp-channel-label">Channel</span>
-        <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
-        <i class="ti ti-chart-bar"></i> Produk Terjual
-      </button>
-      </div><!-- /jp-aksi-mobile -->
     </div><!-- /jp-sticky-header -->
     <div id="jp-tbl-wrap"><table class="tbl">
       <thead>
@@ -415,6 +425,7 @@ window.addEventListener('orientationchange', function() {
 // ─── STATE ───────────────────────────────────────────────────
 let _jpAllData    = [];
 let _jpChannelMap = {};
+let _jpChartPoints = []; // titik chart Tren Penjualan, untuk tooltip hover
 let _jpProdukList = [];
 let _jpSkuIndex   = -1;
 let _jpDdMode     = 'bulan'; // default: bulan ini
@@ -1107,6 +1118,152 @@ function _jpChItem(id, label, _unused, _unused2) {
     + label + '</div>';
 }
 
+// ─── CHART TREN PENJUALAN (gaya Shopee) ───────────────────────
+// Granularitas otomatis: hari-ini/kemarin → per jam (00:00-23:00),
+// periode lain → per hari (sesuai tanggal unik yang ada di data hasil filter).
+function _jpRenderChartTren(data) {
+  const canvas  = document.getElementById('jp-chart-tren');
+  const tooltip = document.getElementById('jp-chart-tooltip');
+  const emptyEl = document.getElementById('jp-chart-empty');
+  if (!canvas) return;
+
+  const mode     = _jpWaktuMode || 'hari-ini';
+  const isHourly = (mode === 'hari-ini' || mode === 'kemarin');
+  const labels = [], totals = [], dateKeys = [];
+
+  if (isHourly) {
+    let baseDate;
+    if (mode === 'kemarin') {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      baseDate = _jpLocalDate(d);
+    } else {
+      baseDate = _jpLocalDate(new Date());
+    }
+    for (let h = 0; h <= 23; h++) {
+      const hStr = String(h).padStart(2,'0');
+      labels.push(hStr + ':00');
+      const sum = data
+        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === baseDate && String(r.waktu||'00:00').slice(0,2) === hStr)
+        .reduce((s,r) => s + (Number(r.total)||0), 0);
+      totals.push(sum);
+      dateKeys.push(baseDate);
+    }
+  } else {
+    const dateSet = {};
+    data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
+    const dates = Object.keys(dateSet).sort();
+    dates.forEach(dt => {
+      const sum = data
+        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+        .reduce((s,r) => s + (Number(r.total)||0), 0);
+      const dObj = new Date(dt + 'T00:00:00');
+      labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+      totals.push(sum);
+      dateKeys.push(dt);
+    });
+  }
+
+  const totalAll = totals.reduce((a,b) => a+b, 0);
+
+  if (totals.length === 0 || totalAll === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'flex';
+    if (tooltip) tooltip.style.display = 'none';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
+    if (canvas.offsetParent === null) return; // halaman lagi nggak aktif, jangan retry terus
+    setTimeout(() => _jpRenderChartTren(data), 80);
+    return;
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth;
+  const H   = canvas.offsetHeight || 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const padL=48, padR=16, padT=14, padB=28;
+  const cW=W-padL-padR, cH=H-padT-padB;
+  const maxVal = Math.max(...totals, 1);
+  const step   = cW / Math.max(totals.length-1, 1);
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.08)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid horizontal + label nominal
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + cH - (cH * i / 4);
+    ctx.strokeStyle = colGrid; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+cW,y); ctx.stroke();
+    ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(_fmtRpShort(maxVal*i/4), padL-6, y+3);
+  }
+
+  // Area fill
+  ctx.beginPath();
+  totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0 ? ctx.moveTo(x,padT+cH) : ctx.lineTo(x,y); });
+  ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
+  ctx.closePath(); ctx.fillStyle = colFill; ctx.fill();
+
+  // Garis
+  ctx.beginPath(); ctx.strokeStyle = colLine; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.stroke();
+
+  // Titik + label sumbu X (skip biar nggak numpuk)
+  _jpChartPoints = [];
+  const skip = Math.max(Math.ceil(labels.length/8), 1);
+  totals.forEach((v,i) => {
+    const x = padL+i*step, y = padT+cH-(v/maxVal)*cH;
+    _jpChartPoints.push({ x, y, label: labels[i], val: v, dateKey: dateKeys[i] });
+    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle = v>0 ? colLine : colGrid; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+    if (i % skip === 0 || i === labels.length-1) {
+      ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(labels[i], x, H-padB+14);
+    }
+  });
+
+  // Tooltip hover — titik merah + box info, gaya Shopee
+  if (tooltip) {
+    canvas.onmousemove = function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      let closest = null, minDist = 30;
+      _jpChartPoints.forEach(pt => {
+        const dist = Math.abs(mx - pt.x);
+        if (dist < minDist) { minDist = dist; closest = pt; }
+      });
+      if (closest) {
+        const txn = data.filter(r => {
+          if (!r.tanggal || String(r.tanggal).slice(0,10) !== closest.dateKey) return false;
+          if (!isHourly) return true;
+          return String(r.waktu||'00:00').slice(0,2) === closest.label.slice(0,2);
+        });
+        const qty = txn.reduce((s,r) => s + (Number(r.qty)||0), 0);
+        tooltip.innerHTML = '<b>' + closest.label + '</b> &middot; ' + fmtRpFull(closest.val) + ' &middot; ' + qty + ' pcs &middot; ' + txn.length + ' trx';
+        const tx = Math.min(closest.x + 10, W - 180);
+        const ty = Math.max(closest.y - 38, 0);
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top  = ty + 'px';
+        tooltip.style.display = 'block';
+      } else {
+        tooltip.style.display = 'none';
+      }
+    };
+    canvas.onmouseleave = function() { tooltip.style.display = 'none'; };
+  }
+}
+
 function filterJP() {
   const q   = '';
   const fcEl = document.getElementById('jp-filter-channel');
@@ -1120,6 +1277,7 @@ function filterJP() {
   });
   renderTabelJP(hasil);
   updateMetricsJP(hasil);
+  _jpRenderChartTren(hasil);
 }
 
 // ─── RENDER TABEL ────────────────────────────────────────────

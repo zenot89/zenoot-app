@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix dropdown filter Periode/Channel ketutup sendiri di laptop (outside-click listener salah cek elemen mobile + listener nyangkut)
-var JS_CACHE = 'zenot-js-20260630-f92a051e3316';
+// BUMP: JS_CACHE — jurnal-penjualan: tambah chart Tren Penjualan (gaya Shopee, per jam/hari, hover tooltip) + toggle filter periode/channel dipindah ke kanan atas card chart
+var JS_CACHE = 'zenot-js-20260630-6a1a5a6ffb2d';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
