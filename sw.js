@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: tambah id jp-table-card biar CSS layout flex-grow nggak ke-apply ke card chart baru
-var JS_CACHE = 'zenot-js-20260630-f50082def20a';
+var JS_CACHE = 'zenot-js-20260630-3926642ca0b8';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
