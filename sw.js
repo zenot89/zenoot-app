@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — keuangan neraca: side by side kiri kanan di laptop+landscape
-var JS_CACHE = 'zenot-js-20260628-6cc4855ea9a8';
+// BUMP: JS_CACHE — jurnal-penjualan: fix filter periode (gte/lt bukan lte) + default Hari Ini, hapus mode Custom, tambah Semua
+var JS_CACHE = 'zenot-js-20260630-61f3389c0d1e';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
