@@ -35,10 +35,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span class="jp-channel-label-sync">Channel</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
-      <button class="btn btn-sm" id="jp-reset-btn-laptop" onclick="jpResetFilter()"
-        style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
-        <i class="ti ti-x"></i> Reset
-      </button>
       <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
         <i class="ti ti-chart-bar"></i> Produk Terjual
       </button>
@@ -325,10 +321,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span id="jp-channel-label">Channel</span>
         <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" id="jp-reset-btn" onclick="jpResetFilter()"
-        style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
-        <i class="ti ti-x"></i> Reset
       </button>
       <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
         <i class="ti ti-chart-bar"></i> Produk Terjual
@@ -1017,18 +1009,12 @@ function jpToggleFilter() {} // legacy stub — sudah diganti 2 panel
 function jpUpdateBadge() {
   var mode    = _jpWaktuMode || 'hari-ini';
   var channel = (document.getElementById('jp-filter-channel') || {}).value || '';
-  // Badge Periode
+  // Badge Periode (titik indikator kalau filter bukan default)
   var pBadge = document.getElementById('jp-periode-badge');
   if (pBadge) pBadge.style.display = mode !== 'hari-ini' ? 'inline' : 'none';
   // Badge Channel
   var cBadge = document.getElementById('jp-channel-badge');
   if (cBadge) cBadge.style.display = channel ? 'inline' : 'none';
-  // Tombol Reset — muncul bila ada filter non-default aktif
-  var resetBtn = document.getElementById('jp-reset-btn');
-  var filterAktif = (mode !== 'hari-ini') || (channel !== '');
-  if (resetBtn) resetBtn.style.display = filterAktif ? 'inline-flex' : 'none';
-  var resetBtnLaptop = document.getElementById('jp-reset-btn-laptop');
-  if (resetBtnLaptop) resetBtnLaptop.style.display = filterAktif ? 'inline-flex' : 'none';
   // Update label
   jpUpdatePeriodeLabel();
   jpUpdateChannelLabel();

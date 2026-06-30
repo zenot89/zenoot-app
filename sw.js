@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix filter periode (gte/lt bukan lte) + default Hari Ini, hapus mode Custom, tambah Semua
-var JS_CACHE = 'zenot-js-20260630-a430f8dd0ee2';
+// BUMP: JS_CACHE — jurnal-penjualan: hapus tombol Reset (filter periode/channel langsung pilih, gaya Shopee)
+var JS_CACHE = 'zenot-js-20260630-2e9c679ce97c';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
