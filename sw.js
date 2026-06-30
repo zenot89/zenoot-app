@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v6'; // fix: #jp-top-bar mobile layout (flex-direction column, max-height) + scope #jp-table-card biar chart Tren Penjualan nggak gepeng/numpuk di HP
+var CACHE_VERSION = 'zenot-static-v7'; // metrics Total Penjualan/Item balik tampil di mobile, jadi 1 blok collapse bareng chart Tren Penjualan + toolbar
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: tambah id jp-table-card biar CSS layout flex-grow nggak ke-apply ke card chart baru
-var JS_CACHE = 'zenot-js-20260630-3926642ca0b8';
+// BUMP: JS_CACHE — jurnal-penjualan: fix bug swipe-collapse nggak jalan di portrait (parameter className kelewat, default-nya 'landscape-collapsed' bukan 'jp-topbar-collapsed')
+var JS_CACHE = 'zenot-js-20260630-ff70cd9e00a1';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

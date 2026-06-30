@@ -1810,8 +1810,8 @@ document.addEventListener('zenot:page', function(e) {
     var topBar = document.getElementById('jp-top-bar');
     if (!zone || !topBar) return;
     // Gabung jp-top-bar sebagai swipe zone juga
-    initSwipeCollapse(zone,   topBar, 50);
-    initSwipeCollapse(topBar, topBar, 50);
+    initSwipeCollapse(zone,   topBar, 50, 'jp-topbar-collapsed');
+    initSwipeCollapse(topBar, topBar, 50, 'jp-topbar-collapsed');
   }
   setTimeout(_jpInitSwipe, 250);
   // Re-init saat zenot:page
