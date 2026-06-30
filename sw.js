@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: hapus tombol Reset (filter periode/channel langsung pilih, gaya Shopee)
-var JS_CACHE = 'zenot-js-20260630-49e4117026f3';
+// BUMP: JS_CACHE — jurnal-penjualan: fix dropdown filter Periode/Channel ketutup sendiri di laptop (outside-click listener salah cek elemen mobile + listener nyangkut)
+var JS_CACHE = 'zenot-js-20260630-925f6d2e78e1';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

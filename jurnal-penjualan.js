@@ -886,6 +886,7 @@ function jpSetWaktu(mode) {
     // Tutup panel periode setelah pilih (kecuali bulan yang butuh sub-input)
     var panel = document.getElementById('jp-periode-panel');
     if (panel) panel.style.display = 'none';
+    document.removeEventListener('click', jpClosePeriodeOutside);
   }
 }
 
@@ -907,20 +908,24 @@ function jpTogglePeriode() {
   if (chPanel) { chPanel.style.display = 'none'; document.removeEventListener('click', jpCloseChannelOutside); }
   var isOpen = panel.style.display !== 'none';
   var activeBtn = window.innerWidth > 520 ? 'jp-periode-btn-laptop' : 'jp-periode-btn';
-  if (!isOpen) _jpPositionPanel(activeBtn, 'jp-periode-panel');
-  panel.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
+  if (isOpen) {
+    panel.style.display = 'none';
+    document.removeEventListener('click', jpClosePeriodeOutside);
+  } else {
+    _jpPositionPanel(activeBtn, 'jp-periode-panel');
+    panel.style.display = 'block';
+    document.removeEventListener('click', jpClosePeriodeOutside); // jaga-jaga: pastikan nggak dobel sebelum pasang baru
     setTimeout(function() {
       document.addEventListener('click', jpClosePeriodeOutside);
     }, 50);
-  } else {
-    document.removeEventListener('click', jpClosePeriodeOutside);
   }
 }
 function jpClosePeriodeOutside(e) {
-  var panel = document.getElementById('jp-periode-panel');
-  var btn   = document.getElementById('jp-periode-btn');
-  if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+  var panel    = document.getElementById('jp-periode-panel');
+  var btnLap   = document.getElementById('jp-periode-btn-laptop');
+  var btnMob   = document.getElementById('jp-periode-btn');
+  var diDalamTombol = (btnLap && btnLap.contains(e.target)) || (btnMob && btnMob.contains(e.target));
+  if (panel && !panel.contains(e.target) && !diDalamTombol) {
     panel.style.display = 'none';
     document.removeEventListener('click', jpClosePeriodeOutside);
   }
@@ -943,23 +948,27 @@ function jpToggleChannel() {
   var panel = document.getElementById('jp-channel-panel');
   var perPanel = document.getElementById('jp-periode-panel');
   if (!panel) return;
-  if (perPanel) perPanel.style.display = 'none';
+  if (perPanel) { perPanel.style.display = 'none'; document.removeEventListener('click', jpClosePeriodeOutside); }
   var isOpen = panel.style.display !== 'none';
   var activeCh = window.innerWidth > 520 ? 'jp-channel-btn-laptop' : 'jp-channel-btn';
-  if (!isOpen) _jpPositionPanel(activeCh, 'jp-channel-panel');
-  panel.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
+  if (isOpen) {
+    panel.style.display = 'none';
+    document.removeEventListener('click', jpCloseChannelOutside);
+  } else {
+    _jpPositionPanel(activeCh, 'jp-channel-panel');
+    panel.style.display = 'block';
+    document.removeEventListener('click', jpCloseChannelOutside); // jaga-jaga: pastikan nggak dobel sebelum pasang baru
     setTimeout(function() {
       document.addEventListener('click', jpCloseChannelOutside);
     }, 50);
-  } else {
-    document.removeEventListener('click', jpCloseChannelOutside);
   }
 }
 function jpCloseChannelOutside(e) {
-  var panel = document.getElementById('jp-channel-panel');
-  var btn   = document.getElementById('jp-channel-btn');
-  if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+  var panel    = document.getElementById('jp-channel-panel');
+  var btnLap   = document.getElementById('jp-channel-btn-laptop');
+  var btnMob   = document.getElementById('jp-channel-btn');
+  var diDalamTombol = (btnLap && btnLap.contains(e.target)) || (btnMob && btnMob.contains(e.target));
+  if (panel && !panel.contains(e.target) && !diDalamTombol) {
     panel.style.display = 'none';
     document.removeEventListener('click', jpCloseChannelOutside);
   }
