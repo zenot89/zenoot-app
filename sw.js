@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: fix bug swipe-collapse nggak jalan di portrait (parameter className kelewat, default-nya 'landscape-collapsed' bukan 'jp-topbar-collapsed')
-var JS_CACHE = 'zenot-js-20260630-ff70cd9e00a1';
+var JS_CACHE = 'zenot-js-20260630-d29177b3f641';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
