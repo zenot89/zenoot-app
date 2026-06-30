@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: tambah chart Tren Penjualan (gaya Shopee, per jam/hari, hover tooltip) + toggle filter periode/channel dipindah ke kanan atas card chart
-var JS_CACHE = 'zenot-js-20260630-6a1a5a6ffb2d';
+var JS_CACHE = 'zenot-js-20260630-4936fc7bfaa3';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
