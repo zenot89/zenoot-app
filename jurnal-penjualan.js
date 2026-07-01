@@ -1344,11 +1344,12 @@ var _jpActiveTab = 'jurnal';
 var _jpBsSortBy  = 'rp'; // 'rp' | 'qty'
 var _jpLastFilterData = [];
 
+var _jpTrenWheelHandler = null;
+
 function jpSwitchTab(tab) {
   _jpActiveTab = tab;
   var pJurnal = document.getElementById('jp-pane-jurnal');
   var pTren   = document.getElementById('jp-pane-tren');
-  // Semua kombinasi tab button ID (laptop + mobile)
   var tJurnal  = document.getElementById('jp-tab-jurnal');
   var tTren    = document.getElementById('jp-tab-tren');
   var tJurnalM = document.getElementById('jp-tab-jurnal-mob');
@@ -1359,6 +1360,11 @@ function jpSwitchTab(tab) {
     el.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
     el.style.color = active ? 'var(--ink)' : 'var(--ink3)';
   };
+  // Hapus wheel handler lama biar nggak dobel
+  if (_jpTrenWheelHandler) {
+    document.removeEventListener('wheel', _jpTrenWheelHandler);
+    _jpTrenWheelHandler = null;
+  }
   if (tab === 'jurnal') {
     pJurnal.style.display = 'flex';
     pTren.style.display   = 'none';
@@ -1372,7 +1378,22 @@ function jpSwitchTab(tab) {
     _jpRenderChartTren(_jpLastFilterData);
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
-    _jpRenderChannelTerbaik(_jpLastFilterData);
+    // Wheel handler khusus: parent .content pakai overflow:hidden, scroll native nggak jalan
+    // Intercept wheel event dan forward langsung ke pane tren
+    _jpTrenWheelHandler = function(e) {
+      if (!pTren || pTren.style.display === 'none') return;
+      if (!pTren.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('.modal-overlay, #jp-periode-panel, #jp-channel-panel')) return;
+      var lineH = 60;
+      var dy = e.deltaMode === 1 ? e.deltaY * lineH : (e.deltaMode === 2 ? e.deltaY * window.innerHeight * 0.8 : e.deltaY);
+      var atTop    = pTren.scrollTop <= 0;
+      var atBottom = pTren.scrollTop + pTren.clientHeight >= pTren.scrollHeight - 1;
+      if (dy < 0 && atTop)    return;
+      if (dy > 0 && atBottom) return;
+      e.preventDefault();
+      pTren.scrollTop += dy;
+    };
+    document.addEventListener('wheel', _jpTrenWheelHandler, { passive: false });
   }
 }
 
