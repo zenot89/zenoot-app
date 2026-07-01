@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix chart Tren hilang (early-return saat offsetParent null diganti retry maks 20x sampai canvas visible)
-var JS_CACHE = 'zenot-js-20260701-e88c639ed9f3';
+// BUMP: JS_CACHE — jurnal-penjualan: fix chart Tren hilang (deep fix via requestAnimationFrame double-frame, bukan retry counter yang tidak reliable)
+var JS_CACHE = 'zenot-js-20260702-4ad51614cb52';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

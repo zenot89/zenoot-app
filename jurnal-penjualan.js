@@ -1252,14 +1252,12 @@ function _jpRenderChartTren(data) {
   if (emptyEl) emptyEl.style.display = 'none';
 
   if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
-    // Canvas belum visible (pane sedang display:none) — retry sampai visible, maks 20x (~2 detik)
-    var _retryCount = (data.__chartRetry || 0) + 1;
-    if (_retryCount > 20) return; // berhenti kalau nggak kunjung visible
-    data.__chartRetry = _retryCount;
-    setTimeout(() => _jpRenderChartTren(data), 100);
+    // Canvas belum punya ukuran — harusnya tidak terjadi lagi karena dipanggil via rAF,
+    // tapi kalau masih terjadi (mis. iOS lambat), retry sekali lagi
+    setTimeout(function() { _jpRenderChartTren(data); }, 150);
     return;
   }
-  data.__chartRetry = 0; // reset counter kalau berhasil
+  // Reset flag kalau ada
 
   const dpr = window.devicePixelRatio || 1;
   const W   = canvas.offsetWidth;
@@ -1379,9 +1377,16 @@ function jpSwitchTab(tab) {
     pTren.style.display   = 'flex';
     setActive(tJurnal, false);  setActive(tTren, true);
     setActive(tJurnalM, false); setActive(tTrenM, true);
-    _jpRenderChartTren(_jpLastFilterData);
+    // Render best seller + channel langsung (tidak butuh canvas layout)
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
+    // Chart canvas butuh browser selesai layout dulu setelah display:flex
+    // requestAnimationFrame double: frame 1 = browser paint, frame 2 = layout computed
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        _jpRenderChartTren(_jpLastFilterData);
+      });
+    });
     // Wheel handler khusus: parent .content pakai overflow:hidden, scroll native nggak jalan
     // Intercept wheel event dan forward langsung ke pane tren
     _jpTrenWheelHandler = function(e) {
