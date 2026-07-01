@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: fix scroll Tab Tren & Best Seller via wheel intercept (parent .content overflow:hidden memblok native scroll)
-var JS_CACHE = 'zenot-js-20260701-eb079994cde5';
+var JS_CACHE = 'zenot-js-20260701-4c96e923f380';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
