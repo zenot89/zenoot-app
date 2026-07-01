@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: tab Jurnal/Tren inline dgn filter toolbar, variasi best seller langsung tampil, tambah card Channel Terbaik (omset+top3 variasi per channel)
-var JS_CACHE = 'zenot-js-20260701-a10c02bc1359';
+var JS_CACHE = 'zenot-js-20260701-888c6961a62e';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
