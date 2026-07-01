@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: 2-tab (Jurnal | Tren & Best Seller), Best Seller accordion per SKU induk+variasi toggle sort Rp/Qty, default periode 7 hari terakhir
-var JS_CACHE = 'zenot-js-20260701-3faa092dbf49';
+var JS_CACHE = 'zenot-js-20260701-340a1a6332f2';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
