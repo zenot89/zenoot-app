@@ -2,10 +2,10 @@
 
 document.getElementById('page-jurnal-penjualan').innerHTML = `
 
-  <!-- TOP BAR: collapse on swipe — berisi filter toolbar -->
+  <!-- TOP BAR: collapse on swipe — berisi filter + tab dalam 1 baris -->
   <div id="jp-top-bar">
-    <!-- FILTER TOOLBAR LAPTOP -->
-    <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;margin-bottom:8px">
+    <!-- TOOLBAR LAPTOP: filter + tab dalam satu baris -->
+    <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;margin-bottom:0;border-bottom:2px solid var(--ink4);padding-bottom:0">
       <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
         <i class="ti ti-refresh"></i>
       </button>
@@ -21,39 +21,49 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span class="jp-channel-label-sync">Channel</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
+      <!-- Tab buttons sejajar filter -->
+      <div style="display:flex;gap:0;margin-left:auto;align-self:stretch">
+        <button id="jp-tab-jurnal" onclick="jpSwitchTab('jurnal')"
+          style="padding:6px 16px;font-family:var(--f);font-size:12px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
+          <i class="ti ti-receipt"></i> Jurnal
+        </button>
+        <button id="jp-tab-tren" onclick="jpSwitchTab('tren')"
+          style="padding:6px 16px;font-family:var(--f);font-size:12px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
+          <i class="ti ti-chart-line"></i> Tren & Best Seller
+        </button>
+      </div>
     </div>
-    <!-- FILTER TOOLBAR MOBILE -->
-    <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:nowrap">
+    <!-- TOOLBAR MOBILE: filter + tab dalam satu baris -->
+    <div id="jp-aksi-mobile" style="display:flex;gap:4px;margin-bottom:0;align-items:center;flex-wrap:nowrap;border-bottom:2px solid var(--ink4);padding-bottom:0">
       <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
         <i class="ti ti-refresh"></i>
       </button>
       <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        style="display:flex;align-items:center;gap:3px;font-size:11px">
         <i class="ti ti-calendar"></i>
         <span id="jp-periode-label">7 Hari Terakhir</span>
         <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
       <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        style="display:flex;align-items:center;gap:3px;font-size:11px">
         <i class="ti ti-building-store"></i>
         <span id="jp-channel-label">Channel</span>
         <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
+      <!-- Tab buttons mobile -->
+      <div style="display:flex;gap:0;margin-left:auto;align-self:stretch">
+        <button id="jp-tab-jurnal-mob" onclick="jpSwitchTab('jurnal')"
+          style="padding:6px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
+          Jurnal
+        </button>
+        <button id="jp-tab-tren-mob" onclick="jpSwitchTab('tren')"
+          style="padding:6px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
+          Tren
+        </button>
+      </div>
     </div>
-  </div>
-
-  <!-- TAB BAR -->
-  <div id="jp-tab-bar" style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--ink4)">
-    <button id="jp-tab-jurnal" onclick="jpSwitchTab('jurnal')"
-      style="padding:8px 18px;font-family:var(--f);font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
-      <i class="ti ti-receipt"></i> Jurnal
-    </button>
-    <button id="jp-tab-tren" onclick="jpSwitchTab('tren')"
-      style="padding:8px 18px;font-family:var(--f);font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
-      <i class="ti ti-chart-line"></i> Tren & Best Seller
-    </button>
   </div>
 
 
@@ -105,6 +115,14 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
       </div>
       <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0">
+        <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+      </div>
+    </div>
+
+    <!-- CHANNEL TERBAIK -->
+    <div class="card" style="padding:14px">
+      <div class="card-title" style="margin-bottom:10px"><i class="ti ti-building-store"></i> Channel Terbaik</div>
+      <div id="jp-channel-terbaik-list" style="display:flex;flex-direction:column;gap:0">
         <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
       </div>
     </div>
@@ -1325,22 +1343,31 @@ function jpSwitchTab(tab) {
   _jpActiveTab = tab;
   var pJurnal = document.getElementById('jp-pane-jurnal');
   var pTren   = document.getElementById('jp-pane-tren');
-  var tJurnal = document.getElementById('jp-tab-jurnal');
-  var tTren   = document.getElementById('jp-tab-tren');
+  // Semua kombinasi tab button ID (laptop + mobile)
+  var tJurnal  = document.getElementById('jp-tab-jurnal');
+  var tTren    = document.getElementById('jp-tab-tren');
+  var tJurnalM = document.getElementById('jp-tab-jurnal-mob');
+  var tTrenM   = document.getElementById('jp-tab-tren-mob');
   if (!pJurnal || !pTren) return;
+  var setActive = function(el, active) {
+    if (!el) return;
+    el.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+    el.style.color = active ? 'var(--ink)' : 'var(--ink3)';
+  };
   if (tab === 'jurnal') {
     pJurnal.style.display = 'flex';
     pTren.style.display   = 'none';
-    if (tJurnal) { tJurnal.style.borderBottomColor = 'var(--accent)'; tJurnal.style.color = 'var(--ink)'; }
-    if (tTren)   { tTren.style.borderBottomColor   = 'transparent';   tTren.style.color   = 'var(--ink3)'; }
+    setActive(tJurnal, true);  setActive(tTren, false);
+    setActive(tJurnalM, true); setActive(tTrenM, false);
   } else {
     pJurnal.style.display = 'none';
     pTren.style.display   = 'flex';
-    if (tJurnal) { tJurnal.style.borderBottomColor = 'transparent';   tJurnal.style.color = 'var(--ink3)'; }
-    if (tTren)   { tTren.style.borderBottomColor   = 'var(--accent)'; tTren.style.color   = 'var(--ink)'; }
-    // Render chart + best seller saat switch ke tab tren
+    setActive(tJurnal, false);  setActive(tTren, true);
+    setActive(tJurnalM, false); setActive(tTrenM, true);
     _jpRenderChartTren(_jpLastFilterData);
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
+    _jpRenderChannelTerbaik(_jpLastFilterData);
+    _jpRenderChannelTerbaik(_jpLastFilterData);
   }
 }
 
@@ -1376,7 +1403,6 @@ function _jpRenderBestSeller(data, sortBy) {
     listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
     return;
   }
-  // Agregasi per SKU Induk
   var indukMap = {};
   data.forEach(function(r) {
     var induk = _jpSkuInduk(r.sku);
@@ -1388,18 +1414,17 @@ function _jpRenderBestSeller(data, sortBy) {
     indukMap[induk].variasi[vari].rp  += (r.total||0);
     indukMap[induk].variasi[vari].qty += (r.qty||0);
   });
-  // Sort induk
   var indukList = Object.keys(indukMap).map(function(k){ return {induk:k, data:indukMap[k]}; });
   indukList.sort(function(a,b){ return sortBy==='rp' ? b.data.rp-a.data.rp : b.data.qty-a.data.qty; });
-  var totalRp  = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
+  var totalRp = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
 
   listEl.innerHTML = indukList.map(function(item, idx) {
     var pct = totalRp > 0 ? Math.round(item.data.rp / totalRp * 100) : 0;
-    // Sort variasi
     var variList = Object.keys(item.data.variasi).map(function(k){ return {sku:k, d:item.data.variasi[k]}; });
     variList.sort(function(a,b){ return sortBy==='rp' ? b.d.rp-a.d.rp : b.d.qty-a.d.qty; });
+    // Variasi tampil langsung tanpa klik
     var variHtml = variList.map(function(v){
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 16px;border-top:1px solid var(--ink4);font-size:12px">'
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 24px;border-top:1px solid var(--ink4);font-size:12px">'
         + '<span style="color:var(--ink2)">' + v.sku + '</span>'
         + '<div style="display:flex;gap:16px;align-items:center">'
         + '<span style="color:var(--ink3)">' + v.d.qty + ' pcs</span>'
@@ -1407,26 +1432,65 @@ function _jpRenderBestSeller(data, sortBy) {
         + '</div></div>';
     }).join('');
     return '<div style="border-top:2px solid var(--ink4)">'
-      + '<div onclick="jpBsToggle(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">'
+      + '<div style="display:flex;align-items:center;gap:10px;padding:10px 0">'
       + '<span style="font-size:11px;font-weight:700;color:var(--ink3);min-width:20px;text-align:center">' + (idx+1) + '</span>'
       + '<span style="font-weight:700;flex:1;font-size:14px">' + item.induk + '</span>'
       + '<span style="font-size:11px;color:var(--ink3);margin-right:6px">' + pct + '%</span>'
       + '<span style="font-size:12px;color:var(--ink3);margin-right:6px">' + item.data.qty + ' pcs</span>'
       + '<span style="font-weight:700;color:var(--ok);font-size:14px;min-width:90px;text-align:right">' + fmtRpFull(item.data.rp) + '</span>'
-      + '<span style="font-size:12px;color:var(--ink3);margin-left:8px">▾</span>'
       + '</div>'
-      + '<div class="jp-bs-variasi" style="display:none">' + variHtml + '</div>'
+      + variHtml
       + '</div>';
   }).join('');
 }
 
-function jpBsToggle(headerEl) {
-  var variEl = headerEl.parentElement.querySelector('.jp-bs-variasi');
-  var arrow  = headerEl.querySelector('span:last-child');
-  if (!variEl) return;
-  var open = variEl.style.display === 'block';
-  variEl.style.display = open ? 'none' : 'block';
-  if (arrow) arrow.textContent = open ? '▾' : '▴';
+function _jpRenderChannelTerbaik(data) {
+  var listEl = document.getElementById('jp-channel-terbaik-list');
+  if (!listEl) return;
+  if (!data || !data.length) {
+    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    return;
+  }
+  // Agregasi per channel
+  var chMap = {};
+  data.forEach(function(r) {
+    var chNama = (_jpChannelMap[r.channel_id] ? _jpChannelMap[r.channel_id].nama : 'Channel ' + r.channel_id) || '—';
+    if (!chMap[chNama]) chMap[chNama] = { rp:0, qty:0, variasi:{} };
+    chMap[chNama].rp  += (r.total||0);
+    chMap[chNama].qty += (r.qty||0);
+    var vari = (r.sku||'').toUpperCase();
+    if (!chMap[chNama].variasi[vari]) chMap[chNama].variasi[vari] = {rp:0, qty:0};
+    chMap[chNama].variasi[vari].rp  += (r.total||0);
+    chMap[chNama].variasi[vari].qty += (r.qty||0);
+  });
+  var chList = Object.keys(chMap).map(function(k){ return {nama:k, data:chMap[k]}; });
+  chList.sort(function(a,b){ return b.data.rp - a.data.rp; });
+  var totalRp = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
+
+  listEl.innerHTML = chList.map(function(ch, idx) {
+    var pct = totalRp > 0 ? Math.round(ch.data.rp / totalRp * 100) : 0;
+    // Top 3 variasi by qty
+    var variList = Object.keys(ch.data.variasi).map(function(k){ return {sku:k, d:ch.data.variasi[k]}; });
+    variList.sort(function(a,b){ return b.d.qty - a.d.qty; });
+    var topVari = variList.slice(0, 3).map(function(v, vi){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 4px 20px;border-top:1px solid var(--ink4);font-size:12px">'
+        + '<span style="color:var(--ink3);min-width:18px">' + (vi+1) + '.</span>'
+        + '<span style="color:var(--ink2);flex:1">' + v.sku + '</span>'
+        + '<span style="color:var(--ink3);margin-right:10px">' + v.d.qty + ' pcs</span>'
+        + '<span style="color:var(--ok);font-weight:700;min-width:75px;text-align:right">' + fmtRpFull(v.d.rp) + '</span>'
+        + '</div>';
+    }).join('');
+    return '<div style="border-top:2px solid var(--ink4)">'
+      + '<div style="display:flex;align-items:center;gap:10px;padding:10px 0">'
+      + '<span style="font-size:11px;font-weight:700;color:var(--ink3);min-width:20px;text-align:center">' + (idx+1) + '</span>'
+      + '<span style="font-weight:700;flex:1;font-size:14px">' + ch.nama + '</span>'
+      + '<span style="font-size:11px;color:var(--ink3);margin-right:6px">' + pct + '%</span>'
+      + '<span style="font-size:12px;color:var(--ink3);margin-right:6px">' + ch.data.qty + ' pcs</span>'
+      + '<span style="font-weight:700;color:var(--ok);font-size:14px;min-width:90px;text-align:right">' + fmtRpFull(ch.data.rp) + '</span>'
+      + '</div>'
+      + (topVari ? '<div style="padding-bottom:6px">' + topVari + '</div>' : '')
+      + '</div>';
+  }).join('');
 }
 
 function filterJP() {
@@ -1452,6 +1516,7 @@ function filterJP() {
   if (_jpActiveTab === 'tren') {
     _jpRenderChartTren(hasil);
     _jpRenderBestSeller(hasil, _jpBsSortBy);
+    _jpRenderChannelTerbaik(hasil);
   }
 }
 
