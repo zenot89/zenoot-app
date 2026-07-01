@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix bug swipe-collapse nggak jalan di portrait (parameter className kelewat, default-nya 'landscape-collapsed' bukan 'jp-topbar-collapsed')
-var JS_CACHE = 'zenot-js-20260630-d29177b3f641';
+// BUMP: JS_CACHE — jurnal-penjualan: 2-tab (Jurnal | Tren & Best Seller), Best Seller accordion per SKU induk+variasi toggle sort Rp/Qty, default periode 7 hari terakhir
+var JS_CACHE = 'zenot-js-20260701-3faa092dbf49';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

@@ -2,79 +2,114 @@
 
 document.getElementById('page-jurnal-penjualan').innerHTML = `
 
-  <!-- TOP BAR: Metrics + Toolbar Laptop — diam di atas -->
+  <!-- TOP BAR: collapse on swipe — berisi filter toolbar -->
   <div id="jp-top-bar">
-    <!-- METRICS -->
-    <div class="metrics" style="margin-bottom:10px">
+    <!-- FILTER TOOLBAR LAPTOP -->
+    <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;margin-bottom:8px">
+      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+        <i class="ti ti-refresh"></i>
+      </button>
+      <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-calendar"></i>
+        <span class="jp-periode-label-sync">7 Hari</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+      <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-building-store"></i>
+        <span class="jp-channel-label-sync">Channel</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+    </div>
+    <!-- FILTER TOOLBAR MOBILE -->
+    <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:nowrap">
+      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+        <i class="ti ti-refresh"></i>
+      </button>
+      <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-calendar"></i>
+        <span id="jp-periode-label">7 Hari Terakhir</span>
+        <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+      <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px">
+        <i class="ti ti-building-store"></i>
+        <span id="jp-channel-label">Channel</span>
+        <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="jp-tab-bar" style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--ink4)">
+    <button id="jp-tab-jurnal" onclick="jpSwitchTab('jurnal')"
+      style="padding:8px 18px;font-family:var(--f);font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
+      <i class="ti ti-receipt"></i> Jurnal
+    </button>
+    <button id="jp-tab-tren" onclick="jpSwitchTab('tren')"
+      style="padding:8px 18px;font-family:var(--f);font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
+      <i class="ti ti-chart-line"></i> Tren & Best Seller
+    </button>
+  </div>
+
+
+
+  </div><!-- /jp-pane-jurnal -->
+
+  <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
+  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px">
+
+    <!-- MINI CARDS -->
+    <div class="metrics" style="margin-bottom:0">
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
-        <div class="m-value" id="jp-total-penjualan">—</div>
+        <div class="m-value" id="jp-total-penjualan2">—</div>
         <div class="m-delta">semua transaksi</div>
       </div>
       <div class="metric">
         <div class="m-label">Total Item Terjual</div>
-        <div class="m-value" id="jp-total-item">—</div>
+        <div class="m-value" id="jp-total-item2">—</div>
         <div class="m-delta">qty keseluruhan</div>
       </div>
     </div>
 
-  <!-- TREN PENJUALAN — chart gaya Shopee, toggle filter periode/channel di kanan atas -->
-  <div class="card" style="margin-bottom:10px">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-      <span><i class="ti ti-chart-line"></i> Tren Penjualan</span>
-      <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
-        <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
-          <i class="ti ti-refresh"></i>
-        </button>
-        <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
-          style="display:flex;align-items:center;gap:4px;font-size:12px">
-          <i class="ti ti-calendar"></i>
-          <span class="jp-periode-label-sync">Hari Ini</span>
-          <span style="font-size:10px">&#9662;</span>
-        </button>
-        <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
-          style="display:flex;align-items:center;gap:4px;font-size:12px">
-          <i class="ti ti-building-store"></i>
-          <span class="jp-channel-label-sync">Channel</span>
-          <span style="font-size:10px">&#9662;</span>
-        </button>
+    <!-- TREN PENJUALAN CHART -->
+    <div class="card" style="padding:14px">
+      <div class="card-title" style="margin-bottom:10px"><i class="ti ti-chart-line"></i> Tren Penjualan</div>
+      <div style="position:relative;height:200px">
+        <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
+        <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
+          Belum ada penjualan di periode ini
+        </div>
+        <div id="jp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
       </div>
     </div>
-    <div style="position:relative;height:200px">
-      <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
-      <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
-        Belum ada penjualan di periode ini
+
+    <!-- BEST SELLER -->
+    <div class="card" style="padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+        <div class="card-title" style="margin-bottom:0"><i class="ti ti-trophy"></i> Best Seller</div>
+        <div style="display:flex;gap:4px">
+          <button id="jp-bs-sort-rp" onclick="jpBsSort('rp')"
+            style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer">
+            Omset (Rp)
+          </button>
+          <button id="jp-bs-sort-qty" onclick="jpBsSort('qty')"
+            style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer">
+            Qty (pcs)
+          </button>
+        </div>
       </div>
-      <div id="jp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
+      <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0">
+        <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+      </div>
     </div>
-  </div>
 
-  <!-- TOOLBAR MOBILE — toggle filter versi mobile, disembunyikan di laptop via CSS -->
-  <div id="jp-aksi-mobile" style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:nowrap">
-    <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
-      <i class="ti ti-refresh"></i>
-    </button>
-    <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
-      style="display:flex;align-items:center;gap:4px;font-size:12px">
-      <i class="ti ti-calendar"></i>
-      <span id="jp-periode-label">Hari Ini</span>
-      <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-      <span style="font-size:10px">&#9662;</span>
-    </button>
-    <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
-      style="display:flex;align-items:center;gap:4px;font-size:12px">
-      <i class="ti ti-building-store"></i>
-      <span id="jp-channel-label">Channel</span>
-      <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-      <span style="font-size:10px">&#9662;</span>
-    </button>
-    <button class="btn btn-sm" onclick="gotoPage('produk-terjual',null)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">
-      <i class="ti ti-chart-bar"></i> Produk Terjual
-    </button>
-  </div>
-  </div>
-
-
+  </div><!-- /jp-pane-tren -->
 
   <!-- ═══ CSS RESPONSIVE MODAL ═══ -->
   <style>
@@ -309,6 +344,23 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <i class="ti ti-device-floppy"></i> SIMPAN
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB PANE: JURNAL ═══ -->
+  <div id="jp-pane-jurnal" style="display:flex;flex-direction:column;flex:1;min-height:0">
+
+  <!-- MINI METRICS TAB 1 -->
+  <div class="metrics" style="margin:10px 0 8px">
+    <div class="metric">
+      <div class="m-label">Total Penjualan</div>
+      <div class="m-value" id="jp-total-penjualan">—</div>
+      <div class="m-delta">semua transaksi</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Total Item Terjual</div>
+      <div class="m-value" id="jp-total-item">—</div>
+      <div class="m-delta">qty keseluruhan</div>
     </div>
   </div>
 
@@ -827,7 +879,7 @@ async function loadJurnalPenjualan() {
   const tbody = document.getElementById('jp-tbody');
   tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
-    const mode = _jpWaktuMode || 'hari-ini';
+    const mode = _jpWaktuMode || '7hari';
     const now  = new Date();
     let filter = '';
 
@@ -883,7 +935,7 @@ async function loadJurnalPenjualan() {
 
 
 // ─── FILTER WAKTU BERGAYA SHOPEE ─────────────────────────────
-var _jpWaktuMode = 'hari-ini'; // default: hari ini
+var _jpWaktuMode = '7hari'; // default: 7 hari terakhir
 
 function jpSetWaktu(mode) {
   _jpWaktuMode = mode;
@@ -942,9 +994,9 @@ function jpClosePeriodeOutside(e) {
   }
 }
 function jpResetPeriode() {
-  _jpWaktuMode = 'hari-ini';
+  _jpWaktuMode = '7hari';
   var radios = document.querySelectorAll('input[name="jp-waktu"]');
-  radios.forEach(function(r) { r.checked = r.value === 'hari-ini'; });
+  radios.forEach(function(r) { r.checked = r.value === '7hari'; });
   var bulanWrap = document.getElementById('jp-bulan-wrap');
   if (bulanWrap) bulanWrap.style.display = 'none';
   jpUpdateBadge();
@@ -1027,11 +1079,11 @@ function jpUpdateChannelLabel() {
 
 function jpToggleFilter() {} // legacy stub — sudah diganti 2 panel
 function jpUpdateBadge() {
-  var mode    = _jpWaktuMode || 'hari-ini';
+  var mode    = _jpWaktuMode || '7hari';
   var channel = (document.getElementById('jp-filter-channel') || {}).value || '';
   // Badge Periode (titik indikator kalau filter bukan default)
   var pBadge = document.getElementById('jp-periode-badge');
-  if (pBadge) pBadge.style.display = mode !== 'hari-ini' ? 'inline' : 'none';
+  if (pBadge) pBadge.style.display = mode !== '7hari' ? 'inline' : 'none';
   // Badge Channel
   var cBadge = document.getElementById('jp-channel-badge');
   if (cBadge) cBadge.style.display = channel ? 'inline' : 'none';
@@ -1264,6 +1316,119 @@ function _jpRenderChartTren(data) {
   }
 }
 
+// ─── TAB SWITCH ──────────────────────────────────────────────
+var _jpActiveTab = 'jurnal';
+var _jpBsSortBy  = 'rp'; // 'rp' | 'qty'
+var _jpLastFilterData = [];
+
+function jpSwitchTab(tab) {
+  _jpActiveTab = tab;
+  var pJurnal = document.getElementById('jp-pane-jurnal');
+  var pTren   = document.getElementById('jp-pane-tren');
+  var tJurnal = document.getElementById('jp-tab-jurnal');
+  var tTren   = document.getElementById('jp-tab-tren');
+  if (!pJurnal || !pTren) return;
+  if (tab === 'jurnal') {
+    pJurnal.style.display = 'flex';
+    pTren.style.display   = 'none';
+    if (tJurnal) { tJurnal.style.borderBottomColor = 'var(--accent)'; tJurnal.style.color = 'var(--ink)'; }
+    if (tTren)   { tTren.style.borderBottomColor   = 'transparent';   tTren.style.color   = 'var(--ink3)'; }
+  } else {
+    pJurnal.style.display = 'none';
+    pTren.style.display   = 'flex';
+    if (tJurnal) { tJurnal.style.borderBottomColor = 'transparent';   tJurnal.style.color = 'var(--ink3)'; }
+    if (tTren)   { tTren.style.borderBottomColor   = 'var(--accent)'; tTren.style.color   = 'var(--ink)'; }
+    // Render chart + best seller saat switch ke tab tren
+    _jpRenderChartTren(_jpLastFilterData);
+    _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
+  }
+}
+
+function jpBsSort(by) {
+  _jpBsSortBy = by;
+  var btnRp  = document.getElementById('jp-bs-sort-rp');
+  var btnQty = document.getElementById('jp-bs-sort-qty');
+  var activeStyle   = 'padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer';
+  var inactiveStyle = 'padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer';
+  if (btnRp)  btnRp.style.cssText  = by === 'rp'  ? activeStyle : inactiveStyle;
+  if (btnQty) btnQty.style.cssText = by === 'qty' ? activeStyle : inactiveStyle;
+  _jpRenderBestSeller(_jpLastFilterData, by);
+}
+
+// Ekstrak SKU Induk dari nama SKU variasi
+// TURTLENECK_HITAM-XL → TURTLENECK | DC_BATA → DC_BATA | LUNEA_MARUN → LUNEA
+function _jpSkuInduk(sku) {
+  if (!sku) return '—';
+  var s = sku.toUpperCase();
+  // Hapus suffix ukuran (-M, -L, -XL, -XLL, -XXL)
+  var noSize = s.replace(/[-_](XXL|XLL|XL|L|M|S)\s*$/i, '');
+  // Hapus suffix warna (kata terakhir setelah _ jika > 1 segment)
+  var parts = noSize.split('_');
+  if (parts.length >= 3) return parts.slice(0, parts.length - 1).join('_');
+  if (parts.length === 2) return parts[0]; // LUNEA_MARUN → LUNEA (1 kata induk)
+  return noSize;
+}
+
+function _jpRenderBestSeller(data, sortBy) {
+  var listEl = document.getElementById('jp-bestseller-list');
+  if (!listEl) return;
+  if (!data || !data.length) {
+    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    return;
+  }
+  // Agregasi per SKU Induk
+  var indukMap = {};
+  data.forEach(function(r) {
+    var induk = _jpSkuInduk(r.sku);
+    var vari  = (r.sku||'').toUpperCase();
+    if (!indukMap[induk]) indukMap[induk] = { rp:0, qty:0, variasi:{} };
+    indukMap[induk].rp  += (r.total||0);
+    indukMap[induk].qty += (r.qty||0);
+    if (!indukMap[induk].variasi[vari]) indukMap[induk].variasi[vari] = {rp:0, qty:0};
+    indukMap[induk].variasi[vari].rp  += (r.total||0);
+    indukMap[induk].variasi[vari].qty += (r.qty||0);
+  });
+  // Sort induk
+  var indukList = Object.keys(indukMap).map(function(k){ return {induk:k, data:indukMap[k]}; });
+  indukList.sort(function(a,b){ return sortBy==='rp' ? b.data.rp-a.data.rp : b.data.qty-a.data.qty; });
+  var totalRp  = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
+
+  listEl.innerHTML = indukList.map(function(item, idx) {
+    var pct = totalRp > 0 ? Math.round(item.data.rp / totalRp * 100) : 0;
+    // Sort variasi
+    var variList = Object.keys(item.data.variasi).map(function(k){ return {sku:k, d:item.data.variasi[k]}; });
+    variList.sort(function(a,b){ return sortBy==='rp' ? b.d.rp-a.d.rp : b.d.qty-a.d.qty; });
+    var variHtml = variList.map(function(v){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 16px;border-top:1px solid var(--ink4);font-size:12px">'
+        + '<span style="color:var(--ink2)">' + v.sku + '</span>'
+        + '<div style="display:flex;gap:16px;align-items:center">'
+        + '<span style="color:var(--ink3)">' + v.d.qty + ' pcs</span>'
+        + '<span style="color:var(--ok);font-weight:700;min-width:80px;text-align:right">' + fmtRpFull(v.d.rp) + '</span>'
+        + '</div></div>';
+    }).join('');
+    return '<div style="border-top:2px solid var(--ink4)">'
+      + '<div onclick="jpBsToggle(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">'
+      + '<span style="font-size:11px;font-weight:700;color:var(--ink3);min-width:20px;text-align:center">' + (idx+1) + '</span>'
+      + '<span style="font-weight:700;flex:1;font-size:14px">' + item.induk + '</span>'
+      + '<span style="font-size:11px;color:var(--ink3);margin-right:6px">' + pct + '%</span>'
+      + '<span style="font-size:12px;color:var(--ink3);margin-right:6px">' + item.data.qty + ' pcs</span>'
+      + '<span style="font-weight:700;color:var(--ok);font-size:14px;min-width:90px;text-align:right">' + fmtRpFull(item.data.rp) + '</span>'
+      + '<span style="font-size:12px;color:var(--ink3);margin-left:8px">▾</span>'
+      + '</div>'
+      + '<div class="jp-bs-variasi" style="display:none">' + variHtml + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function jpBsToggle(headerEl) {
+  var variEl = headerEl.parentElement.querySelector('.jp-bs-variasi');
+  var arrow  = headerEl.querySelector('span:last-child');
+  if (!variEl) return;
+  var open = variEl.style.display === 'block';
+  variEl.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▾' : '▴';
+}
+
 function filterJP() {
   const q   = '';
   const fcEl = document.getElementById('jp-filter-channel');
@@ -1277,7 +1442,17 @@ function filterJP() {
   });
   renderTabelJP(hasil);
   updateMetricsJP(hasil);
-  _jpRenderChartTren(hasil);
+  _jpLastFilterData = hasil;
+  // Sync metrics ke Tab 2
+  var el2 = document.getElementById('jp-total-penjualan2');
+  var el3 = document.getElementById('jp-total-item2');
+  if (el2) el2.textContent = document.getElementById('jp-total-penjualan').textContent;
+  if (el3) el3.textContent = document.getElementById('jp-total-item').textContent;
+  // Render chart + bestseller hanya kalau Tab Tren aktif (hemat resource)
+  if (_jpActiveTab === 'tren') {
+    _jpRenderChartTren(hasil);
+    _jpRenderBestSeller(hasil, _jpBsSortBy);
+  }
 }
 
 // ─── RENDER TABEL ────────────────────────────────────────────
@@ -1761,8 +1936,8 @@ async function exportJurnalPenjualan() {
 })();
 
 // ─── INIT ────────────────────────────────────────────────────
-// Default periode: hari ini
-_jpWaktuMode = 'hari-ini';
+// Default periode: 7 hari terakhir
+_jpWaktuMode = '7hari';
 // Guard: pastikan elemen sudah ada sebelum mengisi nilai (IIFE inject sudah jalan di atas)
 (function _jpSafeInit() {
   var bulanEl = document.getElementById('jp-filter-bulan');
