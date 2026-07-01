@@ -1252,10 +1252,14 @@ function _jpRenderChartTren(data) {
   if (emptyEl) emptyEl.style.display = 'none';
 
   if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
-    if (canvas.offsetParent === null) return; // halaman lagi nggak aktif, jangan retry terus
-    setTimeout(() => _jpRenderChartTren(data), 80);
+    // Canvas belum visible (pane sedang display:none) — retry sampai visible, maks 20x (~2 detik)
+    var _retryCount = (data.__chartRetry || 0) + 1;
+    if (_retryCount > 20) return; // berhenti kalau nggak kunjung visible
+    data.__chartRetry = _retryCount;
+    setTimeout(() => _jpRenderChartTren(data), 100);
     return;
   }
+  data.__chartRetry = 0; // reset counter kalau berhasil
 
   const dpr = window.devicePixelRatio || 1;
   const W   = canvas.offsetWidth;

@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix scroll Tab Tren & Best Seller via wheel intercept (parent .content overflow:hidden memblok native scroll)
-var JS_CACHE = 'zenot-js-20260701-4c96e923f380';
+// BUMP: JS_CACHE — jurnal-penjualan: fix chart Tren hilang (early-return saat offsetParent null diganti retry maks 20x sampai canvas visible)
+var JS_CACHE = 'zenot-js-20260702-df2399a39405';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
