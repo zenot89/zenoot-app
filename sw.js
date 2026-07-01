@@ -39,7 +39,7 @@ var JS_APP_FILES = [
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: fix pane Tren bisa scroll + Best Seller & Channel Terbaik layout kiri-kanan
-var JS_CACHE = 'zenot-js-20260701-195775729c3a';
+var JS_CACHE = 'zenot-js-20260701-d10449b4a116';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
