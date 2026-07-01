@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v7'; // metrics Total Penjualan/Item balik tampil di mobile, jadi 1 blok collapse bareng chart Tren Penjualan + toolbar
+var CACHE_VERSION = 'zenot-static-v8'; // tambah CSS #jp-pane-tren scroll (flex:1, overflow-y:auto, iOS webkit touch)
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -38,8 +38,8 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: tab Jurnal/Tren inline dgn filter toolbar, variasi best seller langsung tampil, tambah card Channel Terbaik (omset+top3 variasi per channel)
-var JS_CACHE = 'zenot-js-20260701-888c6961a62e';
+// BUMP: JS_CACHE — jurnal-penjualan: fix pane Tren bisa scroll + Best Seller & Channel Terbaik layout kiri-kanan
+var JS_CACHE = 'zenot-js-20260701-195775729c3a';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

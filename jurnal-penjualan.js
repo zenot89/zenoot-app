@@ -71,7 +71,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div><!-- /jp-pane-jurnal -->
 
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
-  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px">
+  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0">
 
     <!-- MINI CARDS -->
     <div class="metrics" style="margin-bottom:0">
@@ -99,32 +99,37 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </div>
     </div>
 
-    <!-- BEST SELLER -->
-    <div class="card" style="padding:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div class="card-title" style="margin-bottom:0"><i class="ti ti-trophy"></i> Best Seller</div>
-        <div style="display:flex;gap:4px">
-          <button id="jp-bs-sort-rp" onclick="jpBsSort('rp')"
-            style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer">
-            Omset (Rp)
-          </button>
-          <button id="jp-bs-sort-qty" onclick="jpBsSort('qty')"
-            style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer">
-            Qty (pcs)
-          </button>
+    <!-- BEST SELLER + CHANNEL TERBAIK: side by side -->
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+
+      <!-- BEST SELLER (kiri) -->
+      <div class="card" style="padding:14px;flex:1;min-width:280px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+          <div class="card-title" style="margin-bottom:0"><i class="ti ti-trophy"></i> Best Seller</div>
+          <div style="display:flex;gap:4px">
+            <button id="jp-bs-sort-rp" onclick="jpBsSort('rp')"
+              style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer">
+              Omset (Rp)
+            </button>
+            <button id="jp-bs-sort-qty" onclick="jpBsSort('qty')"
+              style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer">
+              Qty (pcs)
+            </button>
+          </div>
+        </div>
+        <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
         </div>
       </div>
-      <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0">
-        <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
-      </div>
-    </div>
 
-    <!-- CHANNEL TERBAIK -->
-    <div class="card" style="padding:14px">
-      <div class="card-title" style="margin-bottom:10px"><i class="ti ti-building-store"></i> Channel Terbaik</div>
-      <div id="jp-channel-terbaik-list" style="display:flex;flex-direction:column;gap:0">
-        <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+      <!-- CHANNEL TERBAIK (kanan) -->
+      <div class="card" style="padding:14px;flex:1;min-width:280px">
+        <div class="card-title" style="margin-bottom:10px"><i class="ti ti-building-store"></i> Channel Terbaik</div>
+        <div id="jp-channel-terbaik-list" style="display:flex;flex-direction:column;gap:0">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+        </div>
       </div>
+
     </div>
 
   </div><!-- /jp-pane-tren -->

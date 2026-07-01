@@ -1364,6 +1364,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-direction: column;
   flex-direction: column;
 }
+/* Tab pane Tren & Best Seller — scrollable, mengisi sisa tinggi */
+#jp-pane-tren {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
 /* Header dalam card (judul + toolbar mobile + target bar) — juga freeze */
 #jp-sticky-header {
   -webkit-flex-shrink: 0;
