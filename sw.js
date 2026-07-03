@@ -38,9 +38,9 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: tambah debug log sementara di _jpRenderChartTren
+// BUMP: JS_CACHE v28 — jurnal-penjualan: fix chart tren terpotong + hapus debug log
 // buat diagnose kenapa chart Tren kosong khusus mode 7hari/30hari (hari-ini normal)
-var JS_CACHE = 'zenot-js-20260703-7d8e62047b62';
+var JS_CACHE = 'zenot-js-20260704-tren-v28';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

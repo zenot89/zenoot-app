@@ -90,7 +90,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <!-- TREN PENJUALAN CHART -->
     <div class="card" id="jp-tren-card" style="padding:14px">
       <div class="card-title" style="margin-bottom:10px"><i class="ti ti-chart-line"></i> Tren Penjualan</div>
-      <div id="jp-tren-chart-wrap" style="position:relative;height:200px">
+      <div id="jp-tren-chart-wrap" style="position:relative;height:220px">
         <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
         <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
           Belum ada penjualan di periode ini
@@ -1242,17 +1242,6 @@ function _jpRenderChartTren(data, _retry) {
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
 
-  // ─── DEBUG SEMENTARA — hapus setelah root cause chart Tren ketemu ───
-  console.log('[DEBUG jp-chart]', {
-    mode: mode,
-    isHourly: isHourly,
-    dataLength: data.length,
-    labels: labels,
-    totals: totals,
-    uniqueDateKeys: [...new Set(dateKeys)],
-    totalAll: totalAll,
-    sample3Rows: data.slice(0,3).map(r => ({ tanggal: r.tanggal, waktu: r.waktu, total: r.total, typeofTotal: typeof r.total, typeofTanggal: typeof r.tanggal }))
-  });
 
   if (totals.length === 0 || totalAll === 0) {
     canvas.style.display = 'none';
@@ -1396,7 +1385,6 @@ function jpSwitchTab(tab) {
   } else {
     pJurnal.style.display = 'none';
     pTren.style.display   = 'flex';
-    pTren.scrollTop = 0; // jaga-jaga posisi scroll nyangkut dari sesi sebelumnya, chart card ketutup ke atas
     setActive(tJurnal, false);  setActive(tTren, true);
     setActive(tJurnalM, false); setActive(tTrenM, true);
     // Render best seller + channel langsung (tidak butuh canvas layout)
@@ -1406,6 +1394,7 @@ function jpSwitchTab(tab) {
     // requestAnimationFrame double: frame 1 = browser paint, frame 2 = layout computed
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
+        pTren.scrollTop = 0; // reset scroll setelah layout computed — bukan sebelum
         _jpRenderChartTren(_jpLastFilterData);
       });
     });
