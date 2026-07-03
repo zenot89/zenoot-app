@@ -38,8 +38,9 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: JS_CACHE — jurnal-penjualan: fix chart Tren hilang (deep fix via requestAnimationFrame double-frame, bukan retry counter yang tidak reliable)
-var JS_CACHE = 'zenot-js-20260702-c051527f6a1c';
+// BUMP: JS_CACHE — jurnal-penjualan: chart Tren hardening (retry-cap + fallback width,
+// reset scrollTop saat switch tab, CSS min-height safety net di #jp-tren-chart-wrap)
+var JS_CACHE = 'zenot-js-20260703-a19f4e0d2b7c';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

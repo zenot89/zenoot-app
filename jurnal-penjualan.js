@@ -88,9 +88,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
 
     <!-- TREN PENJUALAN CHART -->
-    <div class="card" style="padding:14px">
+    <div class="card" id="jp-tren-card" style="padding:14px">
       <div class="card-title" style="margin-bottom:10px"><i class="ti ti-chart-line"></i> Tren Penjualan</div>
-      <div style="position:relative;height:200px">
+      <div id="jp-tren-chart-wrap" style="position:relative;height:200px">
         <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
         <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
           Belum ada penjualan di periode ini
@@ -1196,7 +1196,8 @@ function _jpChItem(id, label, _unused, _unused2) {
 // ─── CHART TREN PENJUALAN (gaya Shopee) ───────────────────────
 // Granularitas otomatis: hari-ini/kemarin → per jam (00:00-23:00),
 // periode lain → per hari (sesuai tanggal unik yang ada di data hasil filter).
-function _jpRenderChartTren(data) {
+function _jpRenderChartTren(data, _retry) {
+  _retry = _retry || 0;
   const canvas  = document.getElementById('jp-chart-tren');
   const tooltip = document.getElementById('jp-chart-tooltip');
   const emptyEl = document.getElementById('jp-chart-empty');
@@ -1252,10 +1253,18 @@ function _jpRenderChartTren(data) {
   if (emptyEl) emptyEl.style.display = 'none';
 
   if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
-    // Canvas belum punya ukuran — harusnya tidak terjadi lagi karena dipanggil via rAF,
-    // tapi kalau masih terjadi (mis. iOS lambat), retry sekali lagi
-    setTimeout(function() { _jpRenderChartTren(data); }, 150);
-    return;
+    // Canvas belum punya ukuran — biasanya karena layout belum selesai
+    // (display:none -> flex baru saja terjadi). Retry maksimal 10x (1.5 detik).
+    // Kalau tetap 0 (kasus langka: parent width bermasalah), fallback pakai
+    // lebar wrapper div (#jp-tren-chart-wrap) langsung — supaya chart TIDAK
+    // pernah diam-diam kosong selamanya tanpa fallback.
+    if (_retry < 10) {
+      setTimeout(function() { _jpRenderChartTren(data, _retry + 1); }, 150);
+      return;
+    }
+    const wrap = canvas.parentElement;
+    var fallbackW = (wrap && wrap.clientWidth > 10) ? wrap.clientWidth : 300;
+    canvas.style.width = fallbackW + 'px';
   }
   // Reset flag kalau ada
 
@@ -1375,6 +1384,7 @@ function jpSwitchTab(tab) {
   } else {
     pJurnal.style.display = 'none';
     pTren.style.display   = 'flex';
+    pTren.scrollTop = 0; // jaga-jaga posisi scroll nyangkut dari sesi sebelumnya, chart card ketutup ke atas
     setActive(tJurnal, false);  setActive(tTren, true);
     setActive(tJurnalM, false); setActive(tTrenM, true);
     // Render best seller + channel langsung (tidak butuh canvas layout)

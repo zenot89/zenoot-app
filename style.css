@@ -1373,6 +1373,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
+/* Jaring pengaman kedua: pastikan area chart Tren Penjualan SELALU punya
+   tinggi 200px, independen dari inline style — kalau ada CSS lain yang
+   collapse elemen ini, ini mencegah card-nya hilang total secara visual */
+#jp-tren-chart-wrap {
+  min-height: 200px !important;
+}
 /* Header dalam card (judul + toolbar mobile + target bar) — juga freeze */
 #jp-sticky-header {
   -webkit-flex-shrink: 0;
