@@ -1242,6 +1242,18 @@ function _jpRenderChartTren(data, _retry) {
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
 
+  // ─── DEBUG SEMENTARA — hapus setelah root cause chart Tren ketemu ───
+  console.log('[DEBUG jp-chart]', {
+    mode: mode,
+    isHourly: isHourly,
+    dataLength: data.length,
+    labels: labels,
+    totals: totals,
+    uniqueDateKeys: [...new Set(dateKeys)],
+    totalAll: totalAll,
+    sample3Rows: data.slice(0,3).map(r => ({ tanggal: r.tanggal, waktu: r.waktu, total: r.total, typeofTotal: typeof r.total, typeofTanggal: typeof r.tanggal }))
+  });
+
   if (totals.length === 0 || totalAll === 0) {
     canvas.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'flex';
