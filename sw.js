@@ -40,7 +40,7 @@ var JS_APP_FILES = [
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE — jurnal-penjualan: chart Tren hardening (retry-cap + fallback width,
 // reset scrollTop saat switch tab, CSS min-height safety net di #jp-tren-chart-wrap)
-var JS_CACHE = 'zenot-js-20260703-a19f4e0d2b7c';
+var JS_CACHE = 'zenot-js-20260703-504f0977801b';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
