@@ -40,7 +40,7 @@ var JS_APP_FILES = [
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v28 — jurnal-penjualan: fix chart tren terpotong + hapus debug log
 // buat diagnose kenapa chart Tren kosong khusus mode 7hari/30hari (hari-ini normal)
-var JS_CACHE = 'zenot-js-20260704-tren-v28';
+var JS_CACHE = 'zenot-js-20260703-0db87cd19166';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
