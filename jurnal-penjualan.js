@@ -1207,7 +1207,7 @@ function _jpScheduleChartRender(data) {
   var token = _jpChartRenderToken;
   requestAnimationFrame(function() {
     if (token !== _jpChartRenderToken) return; // sudah ada request lebih baru
-    _jpRenderChartTren(data, 0, token);
+    _jpRenderChartTren(data, null, token);
   });
 }
 
@@ -1215,8 +1215,6 @@ function _jpRenderChartTren(data, _retry, _token) {
   // ── Render guard: batalkan kalau ada render lebih baru dijadwalkan ──
   if (_token === undefined) _token = _jpChartRenderToken; // backward-compat safety
   if (_token !== _jpChartRenderToken) return;
-
-  _retry = _retry || 0;
   const canvas  = document.getElementById('jp-chart-tren');
   const tooltip = document.getElementById('jp-chart-tooltip');
   const emptyEl = document.getElementById('jp-chart-empty');
@@ -1272,22 +1270,17 @@ function _jpRenderChartTren(data, _retry, _token) {
   canvas.style.display = 'block';
   if (emptyEl) emptyEl.style.display = 'none';
 
-  // Ambil lebar canvas dari parent. Kalau masih 0 (layout belum settle),
-  // retry max 5x dengan rAF — jangan fallback ke 600px agar chart tidak salah lebar.
+  // Ambil lebar canvas. Prioritas: wrap → pane-tren → page → content → viewport.
+  // Semua fallback ini punya width terdefinisi dari CSS, tidak bergantung timing layout.
   const wrap = canvas.parentElement;
-  const forcedW = (wrap && wrap.clientWidth > 10)   ? wrap.clientWidth
-                : (canvas.offsetWidth > 10)          ? canvas.offsetWidth
-                : (document.getElementById('jp-pane-tren') && document.getElementById('jp-pane-tren').clientWidth > 10)
-                  ? document.getElementById('jp-pane-tren').clientWidth - 28
-                : 0;
-  if (forcedW === 0) {
-    if (_retry < 5 && _token === _jpChartRenderToken) {
-      requestAnimationFrame(function() {
-        _jpRenderChartTren(data, _retry + 1, _token);
-      });
-    }
-    return;
-  }
+  function _getW(el) { return el ? el.clientWidth : 0; }
+  const forcedW = (_getW(wrap) > 10)                                                ? _getW(wrap)
+                : (_getW(document.getElementById('jp-pane-tren')) > 10)             ? _getW(document.getElementById('jp-pane-tren')) - 28
+                : (_getW(document.getElementById('page-jurnal-penjualan')) > 10)    ? _getW(document.getElementById('page-jurnal-penjualan')) - 28
+                : (_getW(document.querySelector('.content')) > 10)                  ? _getW(document.querySelector('.content')) - 28
+                : (window.innerWidth > 200)                                         ? window.innerWidth - 200
+                : 400;
+  // forcedW tidak akan pernah 0 karena window.innerWidth selalu ada
   canvas.style.width  = forcedW + 'px';
   canvas.style.height = '240px';
 
