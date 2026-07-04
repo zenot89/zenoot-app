@@ -40,7 +40,7 @@ var JS_APP_FILES = [
 var NO_CACHE_PATTERNS = ['index.html'];
 // BUMP: JS_CACHE v31 — jurnal-penjualan: fix totalAll===0 hide chart
 // buat diagnose kenapa chart Tren kosong khusus mode 7hari/30hari (hari-ini normal)
-var JS_CACHE = 'zenot-js-20260704-03807e89cc91';
+var JS_CACHE = 'zenot-js-20260704-tren-v31';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
