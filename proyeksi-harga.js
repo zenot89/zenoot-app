@@ -160,25 +160,42 @@
     /* Periode trigger button */
     '#ph-rekap-periode-btn{background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 11px;font-family:var(--ph-mono);font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}',
     '#ph-rekap-periode-btn:hover{border-color:var(--ph-dim);}',
-    /* Date range dropdown */
-    '#ph-rekap-drp{position:absolute;z-index:9999;background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:8px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;min-width:260px;}',
-    '#ph-rekap-drp.open{display:block;}',
-    '#ph-rekap-drp label{display:block;font-size:10px;color:var(--ph-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;margin-top:10px;}',
-    '#ph-rekap-drp label:first-child{margin-top:0;}',
-    '#ph-rekap-drp input[type=date]{width:100%;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:7px 10px;font-family:var(--ph-mono);font-size:13px;box-sizing:border-box;}',
-    '#ph-rekap-drp input[type=date]:focus{outline:none;border-color:var(--ph-dim);}',
-    '#ph-rekap-drp-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}',
-    '#ph-rekap-drp-shortcuts button{font-size:11px;padding:4px 8px;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-dim);border-radius:4px;cursor:pointer;}',
-    '#ph-rekap-drp-shortcuts button:hover{color:var(--ph-text);border-color:var(--ph-dim);}',
-    '#ph-rekap-drp-apply{margin-top:12px;width:100%;padding:7px;background:var(--ph-accent);color:var(--ph-ink);border:none;border-radius:6px;font-weight:600;font-size:12.5px;cursor:pointer;}',
+    /* Shopee-style calendar range picker popup */
+    '#ph-rekap-cal-popup{position:absolute;z-index:9999;background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:10px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.65);display:none;min-width:280px;top:calc(100% + 6px);left:0;}',
+    '#ph-rekap-cal-popup.open{display:block;}',
+    '#ph-rekap-cal-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}',
+    '#ph-rekap-cal-shortcuts button{font-size:11px;padding:4px 9px;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-dim);border-radius:20px;cursor:pointer;font-family:inherit;}',
+    '#ph-rekap-cal-shortcuts button:hover{color:var(--ph-text);border-color:var(--ph-dim);}',
+    '#ph-rekap-cal-shortcuts button.active{background:var(--ph-accent);color:var(--ph-ink);border-color:var(--ph-accent);}',
+    '#ph-rekap-cal-hint{font-size:11px;color:var(--ph-faint);text-align:center;margin-bottom:10px;min-height:16px;}',
+    '#ph-rekap-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}',
+    '#ph-rekap-cal-nav button{background:none;border:1px solid var(--ph-border-s);color:var(--ph-dim);border-radius:5px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}',
+    '#ph-rekap-cal-nav button:hover{color:var(--ph-text);border-color:var(--ph-dim);}',
+    '#ph-rekap-cal-nav .cal-month-label{font-family:var(--ph-mono);font-size:13px;font-weight:600;color:var(--ph-text);}',
+    '#ph-rekap-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}',
+    '#ph-rekap-cal-grid .cal-dow{text-align:center;font-size:10px;font-family:var(--ph-mono);color:var(--ph-faint);padding:3px 0;text-transform:uppercase;}',
+    '#ph-rekap-cal-grid .cal-day{text-align:center;padding:5px 0;border-radius:5px;font-size:12.5px;cursor:pointer;border:1px solid transparent;transition:all .1s;font-family:var(--ph-mono);}',
+    '#ph-rekap-cal-grid .cal-day:hover:not(.cal-empty):not(.cal-other){background:var(--ph-panel2);border-color:var(--ph-border-s);}',
+    '#ph-rekap-cal-grid .cal-day.cal-empty{cursor:default;}',
+    '#ph-rekap-cal-grid .cal-day.cal-other{color:var(--ph-faint);cursor:default;}',
+    '#ph-rekap-cal-grid .cal-day.cal-start,#ph-rekap-cal-grid .cal-day.cal-end{background:var(--ph-accent);color:var(--ph-ink);border-color:var(--ph-accent);font-weight:700;}',
+    '#ph-rekap-cal-grid .cal-day.cal-in-range{background:rgba(236,233,228,0.10);border-radius:0;}',
+    '#ph-rekap-cal-grid .cal-day.cal-start.cal-in-range,#ph-rekap-cal-grid .cal-day.cal-end.cal-in-range{border-radius:5px;}',
+    '#ph-rekap-cal-grid .cal-day.cal-today{border-color:var(--ph-dim);}',
     /* Modal overlay */
-    '#ph-rekap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center;}',
+    '#ph-rekap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;}',
     '#ph-rekap-modal-overlay.open{display:flex;}',
-    '#ph-rekap-modal{background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:10px;width:min(560px,94vw);max-height:90vh;overflow-y:auto;padding:20px 22px 18px;}',
-    '#ph-rekap-modal h3{font-family:var(--ph-display);font-size:17px;font-weight:500;margin:0 0 4px;color:var(--ph-text);}',
-    '#ph-rekap-modal .ph-modal-sub{font-size:12px;color:var(--ph-faint);margin-bottom:14px;}',
-    '#ph-rekap-modal textarea{height:200px;font-size:12px;width:100%;box-sizing:border-box;}',
-    '#ph-rekap-modal .ph-modal-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}',
+    '#ph-rekap-modal{background:var(--ph-panel);border:2px solid var(--ph-border);border-radius:12px;width:min(420px,94vw);max-height:90vh;overflow-y:auto;padding:22px 22px 18px;}',
+    '#ph-rekap-modal .ph-modal-title{font-family:var(--ph-display);font-size:19px;font-weight:600;margin:0 0 16px;color:var(--ph-text);letter-spacing:-.01em;}',
+    '#ph-rekap-modal .ph-modal-sub{font-size:12px;color:var(--ph-faint);margin-bottom:14px;line-height:1.5;}',
+    '#ph-rekap-modal .ph-modal-infos{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}',
+    '#ph-rekap-modal .ph-modal-infopill{flex:1;min-width:120px;background:var(--ph-panel2);border:2px solid var(--ph-border);border-radius:8px;padding:9px 12px;text-align:center;}',
+    '#ph-rekap-modal .ph-modal-infopill .pil-lbl{font-family:var(--ph-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ph-faint);margin-bottom:4px;}',
+    '#ph-rekap-modal .ph-modal-infopill .pil-val{font-family:var(--ph-mono);font-size:13px;font-weight:700;color:var(--ph-text);}',
+    '#ph-rekap-modal textarea{height:180px;font-size:12.5px;width:100%;box-sizing:border-box;border-radius:8px;border:2px dashed var(--ph-border);background:var(--ph-panel2);}',
+    '#ph-rekap-modal textarea:focus{border-style:solid;border-color:var(--ph-dim);}',
+    '#ph-rekap-modal .ph-modal-actions{display:flex;gap:8px;margin-top:14px;}',
+    '#ph-rekap-modal .ph-modal-actions .ph-btn{flex:1;padding:11px;font-size:13.5px;border-radius:8px;border-width:2px;}',
     '#ph-rekap-history .ph-hist-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;min-width:700px;}',
     '#ph-rekap-history .ph-hist-tbl th{background:var(--ph-panel2);padding:5px 7px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ph-faint);border-bottom:1px solid var(--ph-border);}',
     '#ph-rekap-history .ph-hist-tbl th.num{text-align:right;}',
@@ -231,20 +248,22 @@
             '<div class="ph-panel-title"><span>Rekap Toko</span></div>' +
             /* Bar */
             '<div id="ph-rekap-bar">' +
-              /* Periode trigger + dropdown wrapper */
+              /* Periode trigger + Shopee-style calendar popup */
               '<div style="position:relative">' +
                 '<button id="ph-rekap-periode-btn">📅 <span id="ph-rekap-periode-label">Pilih Periode</span> ▾</button>' +
-                '<div id="ph-rekap-drp">' +
-                  '<div id="ph-rekap-drp-shortcuts">' +
+                '<div id="ph-rekap-cal-popup">' +
+                  '<div id="ph-rekap-cal-shortcuts">' +
                     '<button data-sc="bln">Bulan Ini</button>' +
                     '<button data-sc="blnlalu">Bulan Lalu</button>' +
                     '<button data-sc="3bln">3 Bulan</button>' +
                   '</div>' +
-                  '<label>Dari</label>' +
-                  '<input type="date" id="ph-rekap-tgl-awal">' +
-                  '<label>Sampai</label>' +
-                  '<input type="date" id="ph-rekap-tgl-akhir">' +
-                  '<button id="ph-rekap-drp-apply">Terapkan</button>' +
+                  '<div id="ph-rekap-cal-hint">Pilih tanggal mulai</div>' +
+                  '<div id="ph-rekap-cal-nav">' +
+                    '<button id="ph-rekap-cal-prev">‹</button>' +
+                    '<span class="cal-month-label" id="ph-rekap-cal-monthlabel"></span>' +
+                    '<button id="ph-rekap-cal-next">›</button>' +
+                  '</div>' +
+                  '<div id="ph-rekap-cal-grid"></div>' +
                 '</div>' +
               '</div>' +
               '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn" style="margin-left:4px">+ Input Data</button>' +
@@ -256,15 +275,25 @@
         /* Modal overlay — di luar panel supaya full screen */
         '<div id="ph-rekap-modal-overlay">' +
           '<div id="ph-rekap-modal">' +
-            '<h3>Input Data Rekap</h3>' +
-            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI dari spreadsheet HASIL (tanpa header).</div>' +
-            '<textarea id="ph-rekap-ta" placeholder="Paste data di sini..."></textarea>' +
+            '<div class="ph-modal-title">Input Data Rekap</div>' +
+            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI (tanpa header).</div>' +
+            '<div class="ph-modal-infos">' +
+              '<div class="ph-modal-infopill">' +
+                '<div class="pil-lbl">Toko Aktif</div>' +
+                '<div class="pil-val" id="ph-rekap-modal-toko">—</div>' +
+              '</div>' +
+              '<div class="ph-modal-infopill">' +
+                '<div class="pil-lbl">Tanggal</div>' +
+                '<div class="pil-val" id="ph-rekap-modal-tanggal">—</div>' +
+              '</div>' +
+            '</div>' +
+            '<textarea id="ph-rekap-ta" placeholder="PASTE DATA DI SINI"></textarea>' +
             '<div id="ph-rekap-status" style="margin-top:8px;font-size:12px"></div>' +
             '<div id="ph-rekap-preview" style="margin-top:8px"></div>' +
             '<div class="ph-modal-actions">' +
-              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-parse-btn">Proses Data</button>' +
+              '<button class="ph-btn ph-btn-ghost" id="ph-rekap-cancel-btn">BATAL</button>' +
+              '<button class="ph-btn ph-btn-accent" id="ph-rekap-parse-btn">PROSES</button>' +
               '<button class="ph-btn ph-btn-sm" id="ph-rekap-save-btn" style="display:none">Simpan</button>' +
-              '<button class="ph-btn ph-btn-ghost ph-btn-sm" id="ph-rekap-cancel-btn">Batal</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -573,10 +602,119 @@
       _rekapTglAkhir = b;
       var lbl = document.getElementById('ph-rekap-periode-label');
       if (lbl) lbl.textContent = _rekapFmtLabel(a, b) || 'Pilih Periode';
-      var ia = document.getElementById('ph-rekap-tgl-awal');
-      var ib = document.getElementById('ph-rekap-tgl-akhir');
-      if (ia) ia.value = a;
-      if (ib) ib.value = b;
+    }
+
+    /* ── Calendar range picker state ── */
+    var _calViewYear  = new Date().getFullYear();
+    var _calViewMonth = new Date().getMonth(); // 0-based
+    var _calPickStart = null; // 'YYYY-MM-DD'
+    var _calPickEnd   = null; // 'YYYY-MM-DD'
+    var _calPhase     = 0;    // 0=belum, 1=start dipilih, tunggu end
+
+    function _calPad(n){ return n < 10 ? '0'+n : ''+n; }
+    function _calIso(y,m,d){ return y+'-'+_calPad(m+1)+'-'+_calPad(d); }
+    function _calCmp(a,b){ return a < b ? -1 : a > b ? 1 : 0; }
+
+    function _calSetShortcutActive(sc) {
+      var popup = document.getElementById('ph-rekap-cal-popup');
+      if (!popup) return;
+      popup.querySelectorAll('[data-sc]').forEach(function(b){ b.classList.remove('active'); });
+      if (sc) {
+        var btn = popup.querySelector('[data-sc="'+sc+'"]');
+        if (btn) btn.classList.add('active');
+      }
+    }
+
+    function _calApplyRange(a, b) {
+      /* Pastikan a <= b */
+      if (_calCmp(a, b) > 0) { var tmp=a; a=b; b=tmp; }
+      _calPickStart = a;
+      _calPickEnd   = b;
+      _calPhase = 0;
+      _rekapSetPeriode(a, b);
+      _calRenderGrid();
+      _calUpdateHint();
+      /* Tutup popup + refresh */
+      var popup = document.getElementById('ph-rekap-cal-popup');
+      if (popup) popup.classList.remove('open');
+      loadRekapHistory();
+    }
+
+    function _calUpdateHint() {
+      var hint = document.getElementById('ph-rekap-cal-hint');
+      if (!hint) return;
+      if (_calPhase === 1 && _calPickStart) {
+        hint.textContent = 'Pilih tanggal akhir  (mulai: '+_rekapFmtLabel(_calPickStart, '')+ ')';
+      } else if (_calPickStart && _calPickEnd) {
+        hint.textContent = _rekapFmtLabel(_calPickStart, _calPickEnd);
+      } else {
+        hint.textContent = 'Pilih tanggal mulai';
+      }
+    }
+
+    function _calRenderGrid() {
+      var grid = document.getElementById('ph-rekap-cal-grid');
+      var lbl  = document.getElementById('ph-rekap-cal-monthlabel');
+      if (!grid) return;
+
+      var y = _calViewYear, m = _calViewMonth;
+      var monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+      if (lbl) lbl.textContent = monthNames[m] + ' ' + y;
+
+      var firstDay = new Date(y, m, 1).getDay(); // 0=Sun
+      /* Shopee start Senin: offset = (firstDay+6)%7 */
+      var offset = (firstDay + 6) % 7;
+      var daysInMonth = new Date(y, m+1, 0).getDate();
+      var today = new Date().toISOString().slice(0,10);
+
+      var html = '';
+      /* Day-of-week headers */
+      ['Sen','Sel','Rab','Kam','Jum','Sab','Min'].forEach(function(d){
+        html += '<div class="cal-dow">'+d+'</div>';
+      });
+      /* Empty cells */
+      for (var i=0; i<offset; i++) html += '<div class="cal-day cal-empty"></div>';
+      /* Day cells */
+      for (var d=1; d<=daysInMonth; d++) {
+        var iso = _calIso(y, m, d);
+        var cls = 'cal-day';
+        var st = _calPickStart, en = _calPickEnd;
+        if (iso === today) cls += ' cal-today';
+        if (st && en) {
+          var lo = _calCmp(st,en)<=0 ? st : en;
+          var hi = _calCmp(st,en)<=0 ? en : st;
+          if (iso === lo) cls += ' cal-start cal-in-range';
+          else if (iso === hi) cls += ' cal-end cal-in-range';
+          else if (_calCmp(iso,lo)>0 && _calCmp(iso,hi)<0) cls += ' cal-in-range';
+        } else if (st && iso === st) {
+          cls += ' cal-start';
+        }
+        html += '<div class="'+cls+'" data-iso="'+iso+'">'+d+'</div>';
+      }
+      grid.innerHTML = html;
+
+      /* Click handler di-delegate ke grid container */
+      if (!grid._calBound) {
+        grid._calBound = true;
+        grid.addEventListener('click', function(e) {
+          var cell = e.target.closest('.cal-day');
+          if (!cell || cell.classList.contains('cal-empty') || cell.classList.contains('cal-other')) return;
+          var iso = cell.getAttribute('data-iso');
+          if (!iso) return;
+          _calSetShortcutActive(null);
+          if (_calPhase === 0) {
+            /* Pilih start */
+            _calPickStart = iso;
+            _calPickEnd   = null;
+            _calPhase = 1;
+          } else {
+            /* Pilih end → apply */
+            _calApplyRange(_calPickStart, iso);
+          }
+          _calRenderGrid();
+          _calUpdateHint();
+        });
+      }
     }
 
     function initRekapPane() {
@@ -584,49 +722,100 @@
       if (!_rekapTglAwal) {
         var now = new Date();
         var y = now.getFullYear(), m = now.getMonth();
-        var awal  = y+'-'+(m+1<10?'0':'')+(m+1)+'-01';
+        _calViewYear  = y;
+        _calViewMonth = m;
+        var awal  = y+'-'+_calPad(m+1)+'-01';
         var akhir = new Date(y, m+1, 0).toISOString().slice(0,10);
+        _calPickStart = awal;
+        _calPickEnd   = akhir;
         _rekapSetPeriode(awal, akhir);
+      } else {
+        /* Sudah ada periode, sinkron ke calendar state */
+        _calPickStart = _rekapTglAwal;
+        _calPickEnd   = _rekapTglAkhir;
+        if (_rekapTglAwal) {
+          var p = _rekapTglAwal.split('-');
+          _calViewYear  = parseInt(p[0]);
+          _calViewMonth = parseInt(p[1]) - 1;
+        }
       }
 
-      /* ── Periode dropdown ── */
+      /* ── Periode button → toggle calendar popup ── */
       var periodeBtn = document.getElementById('ph-rekap-periode-btn');
-      var drp        = document.getElementById('ph-rekap-drp');
-      if (periodeBtn && drp && !periodeBtn._bound) {
+      var calPopup   = document.getElementById('ph-rekap-cal-popup');
+      if (periodeBtn && calPopup && !periodeBtn._bound) {
         periodeBtn._bound = true;
         periodeBtn.addEventListener('click', function(e) {
           e.stopPropagation();
-          drp.classList.toggle('open');
+          var isOpen = calPopup.classList.contains('open');
+          if (isOpen) {
+            calPopup.classList.remove('open');
+          } else {
+            /* Sync view ke bulan periode awal yang aktif */
+            if (_rekapTglAwal) {
+              var pArr = _rekapTglAwal.split('-');
+              _calViewYear  = parseInt(pArr[0]);
+              _calViewMonth = parseInt(pArr[1]) - 1;
+            }
+            _calPhase = 0;
+            _calPickStart = _rekapTglAwal || null;
+            _calPickEnd   = _rekapTglAkhir || null;
+            _calRenderGrid();
+            _calUpdateHint();
+            calPopup.classList.add('open');
+          }
         });
-        drp.querySelectorAll('[data-sc]').forEach(function(btn) {
-          btn.addEventListener('click', function() {
+
+        /* Shortcut buttons */
+        calPopup.querySelectorAll('[data-sc]').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             var sc = this.getAttribute('data-sc');
             var now2 = new Date(), y2 = now2.getFullYear(), m2 = now2.getMonth();
             var a2, b2;
             if (sc === 'bln') {
-              a2 = y2+'-'+(m2+1<10?'0':'')+(m2+1)+'-01';
+              a2 = y2+'-'+_calPad(m2+1)+'-01';
               b2 = new Date(y2,m2+1,0).toISOString().slice(0,10);
             } else if (sc === 'blnlalu') {
-              var pm = m2===0?11:m2-1, py = m2===0?y2-1:y2;
-              a2 = py+'-'+(pm+1<10?'0':'')+(pm+1)+'-01';
-              b2 = new Date(py,pm+1,0).toISOString().slice(0,10);
-            } else {
+              var pm2 = m2===0?11:m2-1, py2 = m2===0?y2-1:y2;
+              a2 = py2+'-'+_calPad(pm2+1)+'-01';
+              b2 = new Date(py2,pm2+1,0).toISOString().slice(0,10);
+            } else { /* 3bln */
               b2 = new Date(y2,m2+1,0).toISOString().slice(0,10);
               a2 = new Date(y2,m2-2,1).toISOString().slice(0,10);
             }
-            _rekapSetPeriode(a2, b2);
+            _calSetShortcutActive(sc);
+            _calApplyRange(a2, b2);
           });
         });
-        var applyBtn = document.getElementById('ph-rekap-drp-apply');
-        if (applyBtn) applyBtn.addEventListener('click', function() {
-          var ia = document.getElementById('ph-rekap-tgl-awal');
-          var ib = document.getElementById('ph-rekap-tgl-akhir');
-          _rekapSetPeriode(ia?ia.value:_rekapTglAwal, ib?ib.value:_rekapTglAkhir);
-          drp.classList.remove('open');
-          loadRekapHistory();
-        });
+
+        /* Nav prev/next month */
+        var prevBtn = document.getElementById('ph-rekap-cal-prev');
+        var nextBtn = document.getElementById('ph-rekap-cal-next');
+        if (prevBtn && !prevBtn._bound) {
+          prevBtn._bound = true;
+          prevBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            _calViewMonth--;
+            if (_calViewMonth < 0) { _calViewMonth = 11; _calViewYear--; }
+            _calRenderGrid();
+          });
+        }
+        if (nextBtn && !nextBtn._bound) {
+          nextBtn._bound = true;
+          nextBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            _calViewMonth++;
+            if (_calViewMonth > 11) { _calViewMonth = 0; _calViewYear++; }
+            _calRenderGrid();
+          });
+        }
+
+        /* Close on outside click */
         document.addEventListener('click', function(e) {
-          if (!drp.contains(e.target) && e.target !== periodeBtn) drp.classList.remove('open');
+          if (!calPopup.contains(e.target) && e.target !== periodeBtn) {
+            calPopup.classList.remove('open');
+          }
         });
       }
 
@@ -635,8 +824,12 @@
       if (inputBtn && !inputBtn._bound) {
         inputBtn._bound = true;
         inputBtn.addEventListener('click', function() {
-          var sub = document.getElementById('ph-rekap-modal-sub');
-          if (sub) sub.textContent = 'Periode: '+_rekapFmtLabel(_rekapTglAwal,_rekapTglAkhir)+' · Paste kolom NILAI (tanpa header).';
+          /* Update info pills di modal */
+          var elToko = document.getElementById('ph-rekap-modal-toko');
+          var elTgl  = document.getElementById('ph-rekap-modal-tanggal');
+          if (elToko) elToko.textContent = state.tokoNama || '—';
+          if (elTgl)  elTgl.textContent  = _rekapFmtLabel(_rekapTglAwal, _rekapTglAkhir) || '—';
+          /* Reset form */
           var ta=document.getElementById('ph-rekap-ta'), st=document.getElementById('ph-rekap-status'),
               pv=document.getElementById('ph-rekap-preview'), sb=document.getElementById('ph-rekap-save-btn');
           if (ta) ta.value='';
