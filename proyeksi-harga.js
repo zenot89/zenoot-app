@@ -155,14 +155,30 @@
     '#ph-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);padding:9px 15px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:all .25s;z-index:99999;max-width:90vw;text-align:center;}',
     '#ph-toast.ph-show{opacity:1;transform:translateX(-50%) translateY(0);}',
     /* Rekap bar */
-    '#ph-rekap-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}',
+    '#ph-rekap-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;}',
     '#ph-rekap-bar .ph-rbar-label{font-size:11px;color:var(--ph-faint);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}',
-    '#ph-rekap-bar input[type=date]{background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 9px;font-size:12.5px;font-family:var(--ph-mono);cursor:pointer;}',
-    '#ph-rekap-bar input[type=date]:focus{outline:none;border-color:var(--ph-dim);}',
-    '#ph-rekap-paste-panel{display:none;margin-bottom:14px;border:1px solid var(--ph-border-s);border-radius:8px;background:var(--ph-panel2);overflow:hidden;}',
-    '#ph-rekap-paste-panel.open{display:block;}',
-    '#ph-rekap-paste-inner{padding:12px 14px 14px;}',
-    '#ph-rekap-paste-panel textarea{height:180px;font-size:12px;}',
+    /* Periode trigger button */
+    '#ph-rekap-periode-btn{background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 11px;font-family:var(--ph-mono);font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}',
+    '#ph-rekap-periode-btn:hover{border-color:var(--ph-dim);}',
+    /* Date range dropdown */
+    '#ph-rekap-drp{position:absolute;z-index:9999;background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:8px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;min-width:260px;}',
+    '#ph-rekap-drp.open{display:block;}',
+    '#ph-rekap-drp label{display:block;font-size:10px;color:var(--ph-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;margin-top:10px;}',
+    '#ph-rekap-drp label:first-child{margin-top:0;}',
+    '#ph-rekap-drp input[type=date]{width:100%;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:7px 10px;font-family:var(--ph-mono);font-size:13px;box-sizing:border-box;}',
+    '#ph-rekap-drp input[type=date]:focus{outline:none;border-color:var(--ph-dim);}',
+    '#ph-rekap-drp-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}',
+    '#ph-rekap-drp-shortcuts button{font-size:11px;padding:4px 8px;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-dim);border-radius:4px;cursor:pointer;}',
+    '#ph-rekap-drp-shortcuts button:hover{color:var(--ph-text);border-color:var(--ph-dim);}',
+    '#ph-rekap-drp-apply{margin-top:12px;width:100%;padding:7px;background:var(--ph-accent);color:var(--ph-ink);border:none;border-radius:6px;font-weight:600;font-size:12.5px;cursor:pointer;}',
+    /* Modal overlay */
+    '#ph-rekap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center;}',
+    '#ph-rekap-modal-overlay.open{display:flex;}',
+    '#ph-rekap-modal{background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:10px;width:min(560px,94vw);max-height:90vh;overflow-y:auto;padding:20px 22px 18px;}',
+    '#ph-rekap-modal h3{font-family:var(--ph-display);font-size:17px;font-weight:500;margin:0 0 4px;color:var(--ph-text);}',
+    '#ph-rekap-modal .ph-modal-sub{font-size:12px;color:var(--ph-faint);margin-bottom:14px;}',
+    '#ph-rekap-modal textarea{height:200px;font-size:12px;width:100%;box-sizing:border-box;}',
+    '#ph-rekap-modal .ph-modal-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}',
     '#ph-rekap-history .ph-hist-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;min-width:700px;}',
     '#ph-rekap-history .ph-hist-tbl th{background:var(--ph-panel2);padding:5px 7px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ph-faint);border-bottom:1px solid var(--ph-border);}',
     '#ph-rekap-history .ph-hist-tbl th.num{text-align:right;}',
@@ -213,34 +229,47 @@
         '<section class="ph-pane" id="ph-pane-rekap">' +
           '<div class="ph-panel">' +
             '<div class="ph-panel-title"><span>Rekap Toko</span></div>' +
-            /* Bar: toko + tgl awal + tgl akhir + tombol paste */
+            /* Bar */
             '<div id="ph-rekap-bar">' +
               '<span class="ph-rbar-label">Toko</span>' +
               '<select id="ph-rekap-toko-sel" style="background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 9px;font-family:var(--ph-mono);font-size:12.5px;cursor:pointer;"></select>' +
-              '<span class="ph-rbar-label" style="margin-left:4px">Dari</span>' +
-              '<input type="date" id="ph-rekap-tgl-awal">' +
-              '<span class="ph-rbar-label">s/d</span>' +
-              '<input type="date" id="ph-rekap-tgl-akhir">' +
-              '<button class="ph-btn ph-btn-sm" id="ph-rekap-toggle-btn" style="margin-left:4px">+ Input Data</button>' +
-            '</div>' +
-            /* Paste panel — hidden by default */
-            '<div id="ph-rekap-paste-panel">' +
-              '<div id="ph-rekap-paste-inner">' +
-                '<div class="ph-parse-hint" style="margin-top:0;margin-bottom:8px">Paste kolom NILAI dari spreadsheet HASIL (tanpa header).</div>' +
-                '<textarea id="ph-rekap-ta" placeholder="Paste data rekap di sini..."></textarea>' +
-                '<div id="ph-rekap-status" style="margin-top:8px"></div>' +
-                '<div id="ph-rekap-preview" class="ph-parse-preview" style="margin-top:8px"></div>' +
-                '<div style="margin-top:10px;display:flex;gap:8px">' +
-                  '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-parse-btn">Proses Data</button>' +
-                  '<button class="ph-btn ph-btn-sm" id="ph-rekap-save-btn" style="display:none">Simpan ke Supabase</button>' +
-                  '<button class="ph-btn ph-btn-ghost ph-btn-sm" id="ph-rekap-cancel-btn">Batal</button>' +
+              /* Periode trigger + dropdown wrapper */
+              '<div style="position:relative">' +
+                '<button id="ph-rekap-periode-btn">📅 <span id="ph-rekap-periode-label">Pilih Periode</span> ▾</button>' +
+                '<div id="ph-rekap-drp">' +
+                  '<div id="ph-rekap-drp-shortcuts">' +
+                    '<button data-sc="bln">Bulan Ini</button>' +
+                    '<button data-sc="blnlalu">Bulan Lalu</button>' +
+                    '<button data-sc="3bln">3 Bulan</button>' +
+                  '</div>' +
+                  '<label>Dari</label>' +
+                  '<input type="date" id="ph-rekap-tgl-awal">' +
+                  '<label>Sampai</label>' +
+                  '<input type="date" id="ph-rekap-tgl-akhir">' +
+                  '<button id="ph-rekap-drp-apply">Terapkan</button>' +
                 '</div>' +
               '</div>' +
+              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn" style="margin-left:4px">+ Input Data</button>' +
             '</div>' +
-            /* History table */
+            /* History */
             '<div id="ph-rekap-history"></div>' +
           '</div>' +
         '</section>' +
+        /* Modal overlay — di luar panel supaya full screen */
+        '<div id="ph-rekap-modal-overlay">' +
+          '<div id="ph-rekap-modal">' +
+            '<h3>Input Data Rekap</h3>' +
+            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI dari spreadsheet HASIL (tanpa header).</div>' +
+            '<textarea id="ph-rekap-ta" placeholder="Paste data di sini..."></textarea>' +
+            '<div id="ph-rekap-status" style="margin-top:8px;font-size:12px"></div>' +
+            '<div id="ph-rekap-preview" style="margin-top:8px"></div>' +
+            '<div class="ph-modal-actions">' +
+              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-parse-btn">Proses Data</button>' +
+              '<button class="ph-btn ph-btn-sm" id="ph-rekap-save-btn" style="display:none">Simpan</button>' +
+              '<button class="ph-btn ph-btn-ghost ph-btn-sm" id="ph-rekap-cancel-btn">Batal</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
 
         /* Pane: Price Analysis */
         '<section class="ph-pane" id="ph-pane-biaya">' +
@@ -529,94 +558,144 @@
       return { values: result, foundCount: foundCount, totalFields: REKAP_FIELDS.length };
     }
 
-    var _rekapParsed = null; // hasil parse terakhir
-    var _rekapTokoId = null; // toko aktif di rekap pane (bisa beda dari state.tokoId)
+    var _rekapParsed = null;
+    var _rekapTglAwal = '';
+    var _rekapTglAkhir = '';
+
+    function _rekapFmtLabel(a, b) {
+      function fmtD(s) {
+        if (!s) return '';
+        var p = s.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
+      }
+      return fmtD(a) + (b && b !== a ? ' – ' + fmtD(b) : '');
+    }
+
+    function _rekapSetPeriode(a, b) {
+      _rekapTglAwal  = a;
+      _rekapTglAkhir = b;
+      var lbl = document.getElementById('ph-rekap-periode-label');
+      if (lbl) lbl.textContent = _rekapFmtLabel(a, b) || 'Pilih Periode';
+      var ia = document.getElementById('ph-rekap-tgl-awal');
+      var ib = document.getElementById('ph-rekap-tgl-akhir');
+      if (ia) ia.value = a;
+      if (ib) ib.value = b;
+    }
 
     function initRekapPane() {
-      // Populate toko selector di rekap bar
+      /* ── Toko selector ── */
       var tokoSel = document.getElementById('ph-rekap-toko-sel');
       if (tokoSel && !tokoSel._bound) {
         tokoSel.innerHTML = state.tokoList.map(function(t) {
-          return '<option value="' + t.id + '"' + (t.id == state.tokoId ? ' selected' : '') + '>' + esc(t.nama) + '</option>';
+          return '<option value="'+t.id+'"'+(t.id==state.tokoId?' selected':'')+'>'+esc(t.nama)+'</option>';
         }).join('');
-        _rekapTokoId = tokoSel.value;
         tokoSel._bound = true;
-        tokoSel.addEventListener('change', function() {
-          _rekapTokoId = this.value;
+        tokoSel.addEventListener('change', function() { loadRekapHistory(); });
+      }
+
+      /* ── Default periode: bulan berjalan ── */
+      if (!_rekapTglAwal) {
+        var now = new Date();
+        var y = now.getFullYear(), m = now.getMonth();
+        var awal  = y+'-'+(m+1<10?'0':'')+(m+1)+'-01';
+        var akhir = new Date(y, m+1, 0).toISOString().slice(0,10);
+        _rekapSetPeriode(awal, akhir);
+      }
+
+      /* ── Periode dropdown ── */
+      var periodeBtn = document.getElementById('ph-rekap-periode-btn');
+      var drp        = document.getElementById('ph-rekap-drp');
+      if (periodeBtn && drp && !periodeBtn._bound) {
+        periodeBtn._bound = true;
+        periodeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          drp.classList.toggle('open');
+        });
+        drp.querySelectorAll('[data-sc]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var sc = this.getAttribute('data-sc');
+            var now2 = new Date(), y2 = now2.getFullYear(), m2 = now2.getMonth();
+            var a2, b2;
+            if (sc === 'bln') {
+              a2 = y2+'-'+(m2+1<10?'0':'')+(m2+1)+'-01';
+              b2 = new Date(y2,m2+1,0).toISOString().slice(0,10);
+            } else if (sc === 'blnlalu') {
+              var pm = m2===0?11:m2-1, py = m2===0?y2-1:y2;
+              a2 = py+'-'+(pm+1<10?'0':'')+(pm+1)+'-01';
+              b2 = new Date(py,pm+1,0).toISOString().slice(0,10);
+            } else {
+              b2 = new Date(y2,m2+1,0).toISOString().slice(0,10);
+              a2 = new Date(y2,m2-2,1).toISOString().slice(0,10);
+            }
+            _rekapSetPeriode(a2, b2);
+          });
+        });
+        var applyBtn = document.getElementById('ph-rekap-drp-apply');
+        if (applyBtn) applyBtn.addEventListener('click', function() {
+          var ia = document.getElementById('ph-rekap-tgl-awal');
+          var ib = document.getElementById('ph-rekap-tgl-akhir');
+          _rekapSetPeriode(ia?ia.value:_rekapTglAwal, ib?ib.value:_rekapTglAkhir);
+          drp.classList.remove('open');
           loadRekapHistory();
         });
-      } else if (tokoSel) {
-        _rekapTokoId = tokoSel.value;
-      }
-
-      // Default tanggal: awal = hari ini - 30 hari, akhir = hari ini
-      var today = new Date().toISOString().slice(0, 10);
-      var tglAwal = document.getElementById('ph-rekap-tgl-awal');
-      var tglAkhir = document.getElementById('ph-rekap-tgl-akhir');
-      if (tglAwal && !tglAwal.value) {
-        var d = new Date(); d.setDate(d.getDate() - 30);
-        tglAwal.value = d.toISOString().slice(0, 10);
-      }
-      if (tglAkhir && !tglAkhir.value) tglAkhir.value = today;
-
-      // Toggle paste panel
-      var toggleBtn = document.getElementById('ph-rekap-toggle-btn');
-      if (toggleBtn && !toggleBtn._bound) {
-        toggleBtn._bound = true;
-        toggleBtn.addEventListener('click', function() {
-          var panel = document.getElementById('ph-rekap-paste-panel');
-          var isOpen = panel.classList.contains('open');
-          panel.classList.toggle('open', !isOpen);
-          this.textContent = isOpen ? '+ Input Data' : '− Tutup';
+        document.addEventListener('click', function(e) {
+          if (!drp.contains(e.target) && e.target !== periodeBtn) drp.classList.remove('open');
         });
       }
 
-      // Cancel button
+      /* ── + Input Data → buka modal ── */
+      var inputBtn = document.getElementById('ph-rekap-input-btn');
+      if (inputBtn && !inputBtn._bound) {
+        inputBtn._bound = true;
+        inputBtn.addEventListener('click', function() {
+          var sub = document.getElementById('ph-rekap-modal-sub');
+          if (sub) sub.textContent = 'Periode: '+_rekapFmtLabel(_rekapTglAwal,_rekapTglAkhir)+' · Paste kolom NILAI (tanpa header).';
+          var ta=document.getElementById('ph-rekap-ta'), st=document.getElementById('ph-rekap-status'),
+              pv=document.getElementById('ph-rekap-preview'), sb=document.getElementById('ph-rekap-save-btn');
+          if (ta) ta.value='';
+          if (st){st.className='';st.textContent='';}
+          if (pv) pv.innerHTML='';
+          if (sb) sb.style.display='none';
+          _rekapParsed=null;
+          document.getElementById('ph-rekap-modal-overlay').classList.add('open');
+          setTimeout(function(){if(ta)ta.focus();},100);
+        });
+      }
+
+      /* ── Modal: Batal / klik overlay ── */
       var cancelBtn = document.getElementById('ph-rekap-cancel-btn');
-      if (cancelBtn && !cancelBtn._bound) {
-        cancelBtn._bound = true;
-        cancelBtn.addEventListener('click', function() {
-          var panel = document.getElementById('ph-rekap-paste-panel');
-          panel.classList.remove('open');
-          var toggleBtn2 = document.getElementById('ph-rekap-toggle-btn');
-          if (toggleBtn2) toggleBtn2.textContent = '+ Input Data';
-          // Reset textarea & status
-          var ta = document.getElementById('ph-rekap-ta');
-          var st = document.getElementById('ph-rekap-status');
-          var pv = document.getElementById('ph-rekap-preview');
-          var sb = document.getElementById('ph-rekap-save-btn');
-          if (ta) ta.value = '';
-          if (st) { st.className = ''; st.textContent = ''; }
-          if (pv) pv.innerHTML = '';
-          if (sb) sb.style.display = 'none';
-          _rekapParsed = null;
-        });
+      if (cancelBtn && !cancelBtn._bound) { cancelBtn._bound=true; cancelBtn.addEventListener('click', _closeRekapModal); }
+      var overlay = document.getElementById('ph-rekap-modal-overlay');
+      if (overlay && !overlay._bound) {
+        overlay._bound=true;
+        overlay.addEventListener('click', function(e){ if(e.target===overlay) _closeRekapModal(); });
       }
 
-      // Parse button
+      /* ── Modal: Proses Data ── */
       var parseBtn = document.getElementById('ph-rekap-parse-btn');
       if (parseBtn && !parseBtn._bound) {
-        parseBtn._bound = true;
+        parseBtn._bound=true;
         parseBtn.addEventListener('click', function() {
-          var ta = document.getElementById('ph-rekap-ta');
-          if (!ta || !ta.value.trim()) return;
-          var r = parseRekapBreakdown(ta.value);
-          _rekapParsed = r.foundCount > 0 ? r.values : null;
+          var ta=document.getElementById('ph-rekap-ta');
+          if (!ta||!ta.value.trim()) return;
+          var r=parseRekapBreakdown(ta.value);
+          _rekapParsed=r.foundCount>0?r.values:null;
           renderRekapPreview(r);
-          var saveBtn = document.getElementById('ph-rekap-save-btn');
-          if (saveBtn) saveBtn.style.display = r.foundCount > 0 ? '' : 'none';
+          var sb=document.getElementById('ph-rekap-save-btn');
+          if(sb) sb.style.display=r.foundCount>0?'':'none';
         });
       }
 
-      // Save button
+      /* ── Modal: Simpan ── */
       var saveBtn = document.getElementById('ph-rekap-save-btn');
-      if (saveBtn && !saveBtn._bound) {
-        saveBtn._bound = true;
-        saveBtn.addEventListener('click', saveRekap);
-      }
+      if (saveBtn && !saveBtn._bound) { saveBtn._bound=true; saveBtn.addEventListener('click', saveRekap); }
 
-      // Load history
       loadRekapHistory();
+    }
+
+    function _closeRekapModal() {
+      var overlay = document.getElementById('ph-rekap-modal-overlay');
+      if (overlay) overlay.classList.remove('open');
+      _rekapParsed = null;
     }
 
     function renderRekapPreview(r) {
@@ -639,48 +718,33 @@
     function saveRekap() {
       if (!_rekapParsed) return;
       var tokoSel = document.getElementById('ph-rekap-toko-sel');
-      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : (state.tokoId);
+      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : state.tokoId;
       if (!tid) return;
-      var tglAwal  = (document.getElementById('ph-rekap-tgl-awal')  || {}).value  || new Date().toISOString().slice(0,10);
-      var tglAkhir = (document.getElementById('ph-rekap-tgl-akhir') || {}).value || tglAwal;
+      var tglAwal  = _rekapTglAwal  || new Date().toISOString().slice(0,10);
+      var tglAkhir = _rekapTglAkhir || tglAwal;
       var saveBtn  = document.getElementById('ph-rekap-save-btn');
-      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...'; }
+      if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='Menyimpan...'; }
 
-      var payload = Object.assign({
-        channel_id:    parseInt(tid),
-        periode:       tglAwal,
-        periode_akhir: tglAkhir
-      }, _rekapParsed);
+      var payload = Object.assign({ channel_id: parseInt(tid), periode: tglAwal, periode_akhir: tglAkhir }, _rekapParsed);
 
-      // Cek duplikat: channel_id + periode (tgl awal)
-      sbGet('channel_rekap', '&channel_id=eq.' + tid + '&periode=eq.' + tglAwal)
+      sbGet('channel_rekap', '&channel_id=eq.'+tid+'&periode=eq.'+tglAwal)
         .then(function(rows) {
-          return (rows && rows.length > 0)
-            ? dbUpdate('channel_rekap', rows[0].id, payload)
-            : dbInsert('channel_rekap', payload);
+          return (rows && rows.length > 0) ? dbUpdate('channel_rekap', rows[0].id, payload) : dbInsert('channel_rekap', payload);
         })
         .then(function() {
-          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Simpan ke Supabase'; }
-          var status = document.getElementById('ph-rekap-status');
-          if (status) { status.className = 'ph-parse-status ok'; status.textContent = 'Tersimpan! ' + tglAwal + ' s/d ' + tglAkhir; }
+          if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent='Simpan'; }
           applyRekapToInputs(_rekapParsed);
-          // Tutup paste panel
-          var panel = document.getElementById('ph-rekap-paste-panel');
-          if (panel) panel.classList.remove('open');
-          var toggleBtn = document.getElementById('ph-rekap-toggle-btn');
-          if (toggleBtn) toggleBtn.textContent = '+ Input Data';
-          _rekapParsed = null;
+          _closeRekapModal();
           loadRekapHistory();
-          // Scroll ke history setelah render
           setTimeout(function() {
-            var histEl = document.getElementById('ph-rekap-history');
-            if (histEl) histEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var h = document.getElementById('ph-rekap-history');
+            if (h) h.scrollIntoView({ behavior:'smooth', block:'start' });
           }, 300);
         })
         .catch(function(err) {
-          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Simpan ke Supabase'; }
-          var status = document.getElementById('ph-rekap-status');
-          if (status) { status.className = 'ph-parse-status fail'; status.textContent = 'Gagal simpan: ' + (err.message || err); }
+          if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent='Simpan'; }
+          var st = document.getElementById('ph-rekap-status');
+          if (st) { st.className='ph-parse-status fail'; st.textContent='Gagal: '+(err.message||err); }
         });
     }
 
