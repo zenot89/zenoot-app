@@ -670,6 +670,11 @@
           if (toggleBtn) toggleBtn.textContent = '+ Input Data';
           _rekapParsed = null;
           loadRekapHistory();
+          // Scroll ke history setelah render
+          setTimeout(function() {
+            var histEl = document.getElementById('ph-rekap-history');
+            if (histEl) histEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 300);
         })
         .catch(function(err) {
           if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Simpan ke Supabase'; }
