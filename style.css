@@ -1879,7 +1879,40 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* jp-top-bar: flat always — collapse system dihapus */
+/* ── jp-top-bar COLLAPSE saat swipe di semua touch device (portrait + landscape) ── */
+@media (hover: none) and (pointer: coarse) {
+  #jp-top-bar {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    max-height: 200px;
+    opacity: 1;
+  }
+  #jp-top-bar.jp-topbar-collapsed {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── jp-tren-sticky: mini cards + chart — collapse saat swipe di tab Tren ── */
+@media (hover: none) and (pointer: coarse) {
+  #jp-tren-sticky {
+    overflow: hidden;
+    -webkit-transition: max-height 0.25s ease, opacity 0.2s ease;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 400px;
+    opacity: 1;
+    flex-shrink: 0;
+  }
+  #jp-tren-sticky.jp-tren-sticky-collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
 
 /* ── jp-aksi-mobile / laptop visibility di landscape touch ── */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {

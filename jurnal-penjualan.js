@@ -69,6 +69,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
   <div id="jp-pane-tren" style="display:none;flex-direction:column;flex:1;min-height:0;gap:10px;padding:10px;overflow:hidden;">
 
+    <!-- STICKY: mini cards + chart (collapsible on swipe) -->
+    <div id="jp-tren-sticky">
+
     <!-- MINI CARDS -->
     <div class="metrics" style="margin-bottom:0;flex-shrink:0">
       <div class="metric">
@@ -94,6 +97,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <div id="jp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
       </div>
     </div>
+
+    </div><!-- /jp-tren-sticky -->
 
     <!-- BEST SELLER + CHANNEL TERBAIK: side by side -->
     <div id="jp-bs-ch-wrap" style="display:flex;gap:10px;align-items:stretch;flex:1;min-height:0;overflow:hidden">
@@ -2079,6 +2084,10 @@ document.addEventListener('zenot:page', function(e) {
   var raf = window.requestAnimationFrame || function(fn) { setTimeout(fn, 16); };
   raf(function() {
     _jpEnsureFlexLayout();
+    var tb = document.getElementById('jp-top-bar');
+    if (tb) tb.classList.remove('jp-topbar-collapsed');
+    var st = document.getElementById('jp-tren-sticky');
+    if (st) st.classList.remove('jp-tren-sticky-collapsed');
     // Re-scroll ke atas
     var wrap = document.getElementById('jp-tbl-wrap');
     if (wrap) wrap.scrollTop = 0;
@@ -2088,7 +2097,42 @@ document.addEventListener('zenot:page', function(e) {
   window._jpReloadTimer = setTimeout(loadJurnalPenjualan, 250);
 });
 
-// jp-top-bar swipe collapse dihapus — topbar selalu flat
+// ─── SWIPE GESTURE — collapse jp-top-bar + jp-tren-sticky ─────────────────
+(function() {
+  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+  function _jpInitSwipeTopBar() {
+    if (!_isTouchDevice) return;
+    var zone   = document.getElementById('jp-sticky-header');
+    var topBar = document.getElementById('jp-top-bar');
+    if (!zone || !topBar) return;
+    initSwipeCollapse(zone,   topBar, 50, 'jp-topbar-collapsed');
+    initSwipeCollapse(topBar, topBar, 50, 'jp-topbar-collapsed');
+  }
+
+  function _jpInitSwipeTren() {
+    if (!_isTouchDevice) return;
+    var sticky = document.getElementById('jp-tren-sticky');
+    var bsWrap = document.getElementById('jp-bs-ch-wrap');
+    if (!sticky || !bsWrap) return;
+    initSwipeCollapse(bsWrap,  sticky, 50, 'jp-tren-sticky-collapsed');
+    initSwipeCollapse(sticky,  sticky, 50, 'jp-tren-sticky-collapsed');
+  }
+
+  setTimeout(function() { _jpInitSwipeTopBar(); _jpInitSwipeTren(); }, 250);
+
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'jurnal-penjualan') return;
+    setTimeout(function() {
+      var tb = document.getElementById('jp-top-bar');
+      if (tb) tb.classList.remove('jp-topbar-collapsed');
+      var st = document.getElementById('jp-tren-sticky');
+      if (st) st.classList.remove('jp-tren-sticky-collapsed');
+      _jpInitSwipeTopBar();
+      _jpInitSwipeTren();
+    }, 80);
+  });
+})();
 
 // ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────
 
