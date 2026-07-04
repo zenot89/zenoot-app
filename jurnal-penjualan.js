@@ -467,13 +467,12 @@ function _jpEnsureFlexLayout() {
   // scroll native browser (wheel, scrollbar, trackpad, keyboard — semua otomatis
   // jalan tanpa JS tambahan). Tab JURNAL, atau device touch: tetap overflow:hidden
   // karena tabelnya butuh layout freeze (sticky header + scroll internal jp-tbl-wrap).
-  var _isTouchDevice     = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  var _jpWantNativeScroll = (_jpActiveTab === 'tren') && !_isTouchDevice;
-
+  // .content selalu overflow:hidden — scroll ditangani jp-pane-tren / jp-tbl-wrap sendiri.
+  // Ini menghilangkan race condition overflow yang bikin chart terpotong di laptop.
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    contentEl.style.overflowY     = _jpWantNativeScroll ? 'auto' : 'hidden';
-    contentEl.style.overflow      = _jpWantNativeScroll ? 'auto' : 'hidden';
+    contentEl.style.overflow      = 'hidden';
+    contentEl.style.overflowY     = 'hidden';
     contentEl.style.padding       = '0';
     contentEl.style.display       = '-webkit-flex';
     contentEl.style.display       = 'flex';
@@ -1412,30 +1411,19 @@ function jpSwitchTab(tab) {
     pTren.style.display   = 'flex';
     setActive(tJurnal, false);  setActive(tTren, true);
     setActive(tJurnalM, false); setActive(tTrenM, true);
-    if (!_isTouchDevice) {
-      // Laptop/desktop: murni scroll native — .content yang scroll (di-buka oleh
-      // _jpEnsureFlexLayout di bawah), jp-pane-tren dibikin tinggi natural (bukan
-      // kotak ber-scroll sendiri) supaya isinya nyambung jadi satu scrollbar saja.
-      pTren.style.flex      = '0 0 auto';
-      pTren.style.minHeight = '';
-      pTren.style.overflowY = 'visible';
-      pTren.style.overflowX = 'visible';
-    } else {
-      // Touch device (HP/tablet): tetap pola lama — jp-pane-tren scroll sendiri.
-      pTren.style.flex      = '';
-      pTren.style.minHeight = '';
-      pTren.style.overflowY = '';
-      pTren.style.overflowX = '';
-    }
+    // Semua device: jp-pane-tren scroll sendiri — simple, konsisten, tidak ada
+    // race condition dengan _jpEnsureFlexLayout yang ubah overflow .content.
+    pTren.style.flex      = '1 1 0';
+    pTren.style.minHeight = '0';
+    pTren.style.overflowY = 'auto';
+    pTren.style.overflowX = 'hidden';
     _jpEnsureFlexLayout();
     // Render best seller + channel langsung (tidak butuh canvas layout)
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
-    // Chart canvas butuh browser selesai layout dulu setelah display:flex
+    // Chart: 1 rAF agar browser selesai layout flex setelah display:flex
     requestAnimationFrame(function() {
-      pTren.scrollTop = 0; // reset scroll internal (mode touch)
-      var contentEl = document.querySelector('.content');
-      if (contentEl) contentEl.scrollTop = 0; // reset scroll native (mode laptop)
+      pTren.scrollTop = 0;
       _jpScheduleChartRender(_jpLastFilterData);
     });
   }
