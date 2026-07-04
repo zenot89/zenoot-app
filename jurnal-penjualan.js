@@ -66,10 +66,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
   </div>
 
-
-
-  </div><!-- /jp-pane-jurnal -->
-
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
   <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
 
@@ -467,10 +463,17 @@ function _jpEnsureFlexLayout() {
     mainEl.style.webkitFlexDirection = 'column';
   }
 
+  // Tab TREN di laptop/desktop (non-touch): lepas kunci overflow, murni pakai
+  // scroll native browser (wheel, scrollbar, trackpad, keyboard — semua otomatis
+  // jalan tanpa JS tambahan). Tab JURNAL, atau device touch: tetap overflow:hidden
+  // karena tabelnya butuh layout freeze (sticky header + scroll internal jp-tbl-wrap).
+  var _isTouchDevice     = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  var _jpWantNativeScroll = (_jpActiveTab === 'tren') && !_isTouchDevice;
+
   var contentEl = document.querySelector('.content');
   if (contentEl) {
-    contentEl.style.overflowY     = 'hidden';
-    contentEl.style.overflow      = 'hidden';
+    contentEl.style.overflowY     = _jpWantNativeScroll ? 'auto' : 'hidden';
+    contentEl.style.overflow      = _jpWantNativeScroll ? 'auto' : 'hidden';
     contentEl.style.padding       = '0';
     contentEl.style.display       = '-webkit-flex';
     contentEl.style.display       = 'flex';
@@ -1351,8 +1354,6 @@ var _jpActiveTab = 'jurnal';
 var _jpBsSortBy  = 'rp'; // 'rp' | 'qty'
 var _jpLastFilterData = [];
 
-var _jpTrenWheelHandler = null;
-
 function jpSwitchTab(tab) {
   _jpActiveTab = tab;
   var pJurnal = document.getElementById('jp-pane-jurnal');
@@ -1367,21 +1368,41 @@ function jpSwitchTab(tab) {
     el.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
     el.style.color = active ? 'var(--ink)' : 'var(--ink3)';
   };
-  // Hapus wheel handler lama biar nggak dobel
-  if (_jpTrenWheelHandler) {
-    document.removeEventListener('wheel', _jpTrenWheelHandler);
-    _jpTrenWheelHandler = null;
-  }
+  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
   if (tab === 'jurnal') {
     pJurnal.style.display = 'flex';
     pTren.style.display   = 'none';
     setActive(tJurnal, true);  setActive(tTren, false);
     setActive(tJurnalM, true); setActive(tTrenM, false);
+    // Balikin jp-pane-tren ke mode default (flex:1, overflow-y:auto dari CSS)
+    // dan kunci lagi .content — tabel jurnal butuh layout freeze.
+    pTren.style.flex       = '';
+    pTren.style.minHeight  = '';
+    pTren.style.overflowY  = '';
+    pTren.style.overflowX  = '';
+    _jpEnsureFlexLayout();
   } else {
     pJurnal.style.display = 'none';
     pTren.style.display   = 'flex';
     setActive(tJurnal, false);  setActive(tTren, true);
     setActive(tJurnalM, false); setActive(tTrenM, true);
+    if (!_isTouchDevice) {
+      // Laptop/desktop: murni scroll native — .content yang scroll (di-buka oleh
+      // _jpEnsureFlexLayout di bawah), jp-pane-tren dibikin tinggi natural (bukan
+      // kotak ber-scroll sendiri) supaya isinya nyambung jadi satu scrollbar saja.
+      pTren.style.flex      = '0 0 auto';
+      pTren.style.minHeight = '';
+      pTren.style.overflowY = 'visible';
+      pTren.style.overflowX = 'visible';
+    } else {
+      // Touch device (HP/tablet): tetap pola lama — jp-pane-tren scroll sendiri.
+      pTren.style.flex      = '';
+      pTren.style.minHeight = '';
+      pTren.style.overflowY = '';
+      pTren.style.overflowX = '';
+    }
+    _jpEnsureFlexLayout();
     // Render best seller + channel langsung (tidak butuh canvas layout)
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
@@ -1389,26 +1410,12 @@ function jpSwitchTab(tab) {
     // requestAnimationFrame double: frame 1 = browser paint, frame 2 = layout computed
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
-        pTren.scrollTop = 0; // reset scroll setelah layout computed — bukan sebelum
+        pTren.scrollTop = 0; // reset scroll internal (mode touch)
+        var contentEl = document.querySelector('.content');
+        if (contentEl) contentEl.scrollTop = 0; // reset scroll native (mode laptop)
         _jpRenderChartTren(_jpLastFilterData);
       });
     });
-    // Wheel handler khusus: parent .content pakai overflow:hidden, scroll native nggak jalan
-    // Intercept wheel event dan forward langsung ke pane tren
-    _jpTrenWheelHandler = function(e) {
-      if (!pTren || pTren.style.display === 'none') return;
-      if (!pTren.contains(e.target)) return;
-      if (e.target.closest && e.target.closest('.modal-overlay, #jp-periode-panel, #jp-channel-panel')) return;
-      var lineH = 60;
-      var dy = e.deltaMode === 1 ? e.deltaY * lineH : (e.deltaMode === 2 ? e.deltaY * window.innerHeight * 0.8 : e.deltaY);
-      var atTop    = pTren.scrollTop <= 0;
-      var atBottom = pTren.scrollTop + pTren.clientHeight >= pTren.scrollHeight - 1;
-      if (dy < 0 && atTop)    return;
-      if (dy > 0 && atBottom) return;
-      e.preventDefault();
-      pTren.scrollTop += dy;
-    };
-    document.addEventListener('wheel', _jpTrenWheelHandler, { passive: false });
   }
 }
 
