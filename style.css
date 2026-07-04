@@ -1853,29 +1853,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* collapse — handled by jp-topbar-collapsed class, aktif di semua touch device (portrait + landscape) */
-
-/* ── jp-top-bar COLLAPSE saat swipe di semua touch device ── */
-@media (hover: none) and (pointer: coarse) {
-  #jp-top-bar {
-    display: -webkit-flex !important;
-    display: flex !important;
-    -webkit-flex-direction: column !important;
-    flex-direction: column !important;
-    overflow: hidden;
-    -webkit-transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-    max-height: 750px; /* cukup besar utk metrics+card Tren Penjualan+toolbar mobile, jangan kepotong */
-    opacity: 1;
-  }
-  #jp-top-bar.jp-topbar-collapsed {
-    max-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    opacity: 0;
-    pointer-events: none;
-  }
-}
+/* jp-top-bar: flat always — collapse system dihapus */
 
 /* ── jp-aksi-mobile / laptop visibility di landscape touch ── */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {

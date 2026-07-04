@@ -2085,8 +2085,6 @@ document.addEventListener('zenot:page', function(e) {
   var raf = window.requestAnimationFrame || function(fn) { setTimeout(fn, 16); };
   raf(function() {
     _jpEnsureFlexLayout();
-    var tb = document.getElementById('jp-top-bar');
-    if (tb) tb.classList.remove('jp-topbar-collapsed');
     // Re-scroll ke atas
     var wrap = document.getElementById('jp-tbl-wrap');
     if (wrap) wrap.scrollTop = 0;
@@ -2096,29 +2094,7 @@ document.addEventListener('zenot:page', function(e) {
   window._jpReloadTimer = setTimeout(loadJurnalPenjualan, 250);
 });
 
-// ─── SWIPE GESTURE — collapse jp-top-bar (semua touch device: portrait + landscape) ─────────
-(function() {
-  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  function _jpInitSwipe() {
-    if (!_isTouchDevice) return;
-    var zone   = document.getElementById('jp-sticky-header');
-    var topBar = document.getElementById('jp-top-bar');
-    if (!zone || !topBar) return;
-    // Gabung jp-top-bar sebagai swipe zone juga
-    initSwipeCollapse(zone,   topBar, 50, 'jp-topbar-collapsed');
-    initSwipeCollapse(topBar, topBar, 50, 'jp-topbar-collapsed');
-  }
-  setTimeout(_jpInitSwipe, 250);
-  // Re-init saat zenot:page
-  document.addEventListener('zenot:page', function(e) {
-    if (e.detail.page !== 'jurnal-penjualan') return;
-    setTimeout(function() {
-      var tb = document.getElementById('jp-top-bar');
-      if (tb) tb.classList.remove('jp-topbar-collapsed');
-      _jpInitSwipe();
-    }, 80);
-  });
-})();
+// jp-top-bar swipe collapse dihapus — topbar selalu flat
 
 // ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────
 
