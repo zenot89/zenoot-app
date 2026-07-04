@@ -1290,12 +1290,13 @@ function _jpRenderChartTren(data, _retry) {
   const totalAll = totals.reduce((a,b) => a+b, 0);
 
 
-  if (totals.length === 0 || totalAll === 0) {
+  if (totals.length === 0) {
     canvas.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'flex';
     if (tooltip) tooltip.style.display = 'none';
     return;
   }
+  // totalAll bisa 0 (semua hari tidak ada penjualan) — tetap render garis datar
 
   canvas.style.display = 'block';
   if (emptyEl) emptyEl.style.display = 'none';
