@@ -231,8 +231,6 @@
             '<div class="ph-panel-title"><span>Rekap Toko</span></div>' +
             /* Bar */
             '<div id="ph-rekap-bar">' +
-              '<span class="ph-rbar-label">Toko</span>' +
-              '<select id="ph-rekap-toko-sel" style="background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 9px;font-family:var(--ph-mono);font-size:12.5px;cursor:pointer;"></select>' +
               /* Periode trigger + dropdown wrapper */
               '<div style="position:relative">' +
                 '<button id="ph-rekap-periode-btn">📅 <span id="ph-rekap-periode-label">Pilih Periode</span> ▾</button>' +
@@ -582,16 +580,6 @@
     }
 
     function initRekapPane() {
-      /* ── Toko selector ── */
-      var tokoSel = document.getElementById('ph-rekap-toko-sel');
-      if (tokoSel && !tokoSel._bound) {
-        tokoSel.innerHTML = state.tokoList.map(function(t) {
-          return '<option value="'+t.id+'"'+(t.id==state.tokoId?' selected':'')+'>'+esc(t.nama)+'</option>';
-        }).join('');
-        tokoSel._bound = true;
-        tokoSel.addEventListener('change', function() { loadRekapHistory(); });
-      }
-
       /* ── Default periode: bulan berjalan ── */
       if (!_rekapTglAwal) {
         var now = new Date();
@@ -717,8 +705,7 @@
 
     function saveRekap() {
       if (!_rekapParsed) return;
-      var tokoSel = document.getElementById('ph-rekap-toko-sel');
-      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : state.tokoId;
+      var tid = state.tokoId;
       if (!tid) return;
       var tglAwal  = _rekapTglAwal  || new Date().toISOString().slice(0,10);
       var tglAkhir = _rekapTglAkhir || tglAwal;
@@ -771,11 +758,8 @@
     function loadRekapHistory() {
       var histEl = document.getElementById('ph-rekap-history');
       if (!histEl) return;
-      // Ambil tid dari DOM selector aktif, fallback ke state
-      var tokoSel = document.getElementById('ph-rekap-toko-sel');
-      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : (_rekapTokoId || state.tokoId);
+      var tid = state.tokoId;
       if (!tid) { histEl.innerHTML = '<div style="color:var(--ph-faint);font-size:12px;padding:8px 0">Pilih toko dulu.</div>'; return; }
-      _rekapTokoId = tid; // sync
       histEl.innerHTML = '<div class="ph-loading" style="font-size:12px">Memuat data...</div>';
       sbGet('channel_rekap', '&channel_id=eq.' + tid + '&order=periode.desc&limit=12')
         .then(function(rows) {
