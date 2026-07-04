@@ -638,7 +638,8 @@
 
     function saveRekap() {
       if (!_rekapParsed) return;
-      var tid = _rekapTokoId || state.tokoId;
+      var tokoSel = document.getElementById('ph-rekap-toko-sel');
+      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : (state.tokoId);
       if (!tid) return;
       var tglAwal  = (document.getElementById('ph-rekap-tgl-awal')  || {}).value  || new Date().toISOString().slice(0,10);
       var tglAkhir = (document.getElementById('ph-rekap-tgl-akhir') || {}).value || tglAwal;
@@ -706,8 +707,11 @@
     function loadRekapHistory() {
       var histEl = document.getElementById('ph-rekap-history');
       if (!histEl) return;
-      var tid = _rekapTokoId || state.tokoId;
-      if (!tid) return;
+      // Ambil tid dari DOM selector aktif, fallback ke state
+      var tokoSel = document.getElementById('ph-rekap-toko-sel');
+      var tid = (tokoSel && tokoSel.value) ? tokoSel.value : (_rekapTokoId || state.tokoId);
+      if (!tid) { histEl.innerHTML = '<div style="color:var(--ph-faint);font-size:12px;padding:8px 0">Pilih toko dulu.</div>'; return; }
+      _rekapTokoId = tid; // sync
       histEl.innerHTML = '<div class="ph-loading" style="font-size:12px">Memuat data...</div>';
       sbGet('channel_rekap', '&channel_id=eq.' + tid + '&order=periode.desc&limit=12')
         .then(function(rows) {
