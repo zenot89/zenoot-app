@@ -409,74 +409,93 @@
       }
     }
 
-    /* ── Rekap Toko: field definitions ── */
+    /* ── Rekap Toko: field definitions (posisi baris di paste, 1-based) ──
+       Format paste: nilai saja tanpa label, urutan fixed sesuai spreadsheet HASIL.
+       Baris 1  = TOTAL PENDAPATAN   → total_pendapatan    (IDR, kolom 1)
+       Baris 2  = TOTAL PENGHASILAN  → total_penghasilan   (IDR, kolom 1)
+       Baris 3  = HPP                → hpp                 (IDR, kolom 1)
+       Baris 4  = OPERASIONAL        → operasional_persen  (%, kolom 2)
+       Baris 5  = IKLAN              → acos_persen         (%, kolom 2)
+       Baris 6  = RASIO ADMIN        → rasio_admin_persen  (%, kolom 2, abs)
+       Baris 7  = Biaya Komisi AMS   → affiliate_persen    (%, kolom 2, abs)
+       Baris 8  = Biaya Administrasi
+       Baris 9  = Biaya Layanan
+       Baris 10 = Biaya Proses Pesanan
+       Baris 11 = Premi
+       Baris 12 = Biaya Program Hemat Biaya Kirim
+       Baris 13 = Biaya Transaksi
+       Baris 14 = Biaya Kampanye
+       Baris 15 = Biaya Isi Saldo Otomatis
+       Baris 16 = AOV AKTUAL         → aov                 (angka, kolom 1)
+       Baris 17 = BASKET SIZE AKTUAL → basket_size         (angka, kolom 1)
+       Baris 18 = ROAS AKTUAL        → roas                (angka, kolom 1)
+       Baris 19 = GPM AKTUAL         → gpm_persen          (%, kolom 1)
+       Baris 20 = RASIO LABA         → npm_persen          (%, kolom 1)
+       Baris 21 = LABA/RUGI          → laba_rugi           (IDR, kolom 1)
+       Baris 22 = Net Cash Flow      → net_cash_flow_persen(%, kolom 2)
+    ── */
     var REKAP_FIELDS = [
-      { key: 'acos_persen',      label: 'IKLAN',                              pct: true  },
-      { key: 'affiliate_persen', label: 'Biaya Komisi AMS',                   pct: true  },
-      { key: 'npm_persen',       label: ['Net Cash Flow', 'RASIO LABA'],       pct: true  },
-      { key: 'gpm_persen',       label: 'GPM AKTUAL',                         pct: true  },
-      { key: 'aov',              label: 'AOV AKTUAL',                         pct: false },
-      { key: 'roas',             label: 'ROAS AKTUAL',                        pct: false },
+      { key: 'total_pendapatan',    label: 'TOTAL PENDAPATAN',    row: 1,  pct: false },
+      { key: 'total_penghasilan',   label: 'TOTAL PENGHASILAN',   row: 2,  pct: false },
+      { key: 'hpp',                 label: 'HPP',                 row: 3,  pct: false },
+      { key: 'operasional_persen',  label: 'OPERASIONAL',         row: 4,  pct: true  },
+      { key: 'acos_persen',         label: 'IKLAN',               row: 5,  pct: true  },
+      { key: 'rasio_admin_persen',  label: 'RASIO ADMIN',         row: 6,  pct: true  },
+      { key: 'affiliate_persen',    label: 'Biaya Komisi AMS',    row: 7,  pct: true  },
+      { key: 'aov',                 label: 'AOV AKTUAL',          row: 16, pct: false },
+      { key: 'basket_size',         label: 'BASKET SIZE AKTUAL',  row: 17, pct: false },
+      { key: 'roas',                label: 'ROAS AKTUAL',         row: 18, pct: false },
+      { key: 'gpm_persen',          label: 'GPM AKTUAL',          row: 19, pct: true  },
+      { key: 'npm_persen',          label: 'RASIO LABA',          row: 20, pct: true  },
+      { key: 'laba_rugi',           label: 'LABA/RUGI',           row: 21, pct: false },
+      { key: 'net_cash_flow_persen',label: 'Net Cash Flow',       row: 22, pct: true  },
     ];
 
-    function parseRekapLine(str) {
-      // Untuk nilai persen: cari angka dengan %, contoh "22,70%" → 22.70
-      var pctMatch = String(str).match(/([\d.,]+)%/);
+    function parseRekapCell(str) {
+      // Trim whitespace + strip kurung (untuk format negatif "(881.327)")
+      var s = String(str).trim().replace(/^\(/, '-').replace(/\)$/, '');
+      // Persen: ambil angka + %, strip tanda negatif (affiliate dll ditampilkan abs)
+      var pctMatch = s.match(/(-?[\d.,]+)%/);
       if (pctMatch) {
-        var s = pctMatch[1].replace(',', '.');
-        var n = parseFloat(s);
-        return isNaN(n) ? null : { val: n, isPct: true };
+        var pv = parseFloat(pctMatch[1].replace(',', '.'));
+        return isNaN(pv) ? null : { val: Math.abs(pv), isPct: true };
       }
-      // Untuk nilai IDR/angka biasa
-      var numMatch = String(str).replace(/[Rp\s]/gi, '').replace(/\.(?=\d{3})/g, '').replace(',', '.');
-      var n2 = parseFloat(numMatch);
-      return isNaN(n2) ? null : { val: n2, isPct: false };
+      // Angka biasa: hapus titik ribuan (1.470.000 → 1470000), ganti koma desimal
+      var clean = s.replace(/[Rp\s]/gi, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+      var nv = parseFloat(clean);
+      return isNaN(nv) ? null : { val: nv, isPct: false };
     }
 
     function parseRekapBreakdown(text) {
-      var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+      // Split baris, filter baris kosong, pertahankan urutan (termasuk baris "0")
+      var lines = text.split('\n').map(function(l){ return l.trim(); });
+      // Filter: buang baris benar-benar kosong, TAPI pertahankan baris "0" / "0\t0%"
+      lines = lines.filter(function(l){ return l.length > 0; });
+      // Buang baris pertama kalau header "NILAI" (user kadang paste termasuk header)
+      if (lines.length && lines[0].toLowerCase().replace(/\s/g,'') === 'nilai') {
+        lines = lines.slice(1);
+      }
+
       var result = {}, foundCount = 0;
       REKAP_FIELDS.forEach(function(f) {
-        var labels = Array.isArray(f.label) ? f.label : [f.label];
-        var targets = labels.map(function(l){ return l.toLowerCase(); });
-        for (var i = 0; i < lines.length; i++) {
-          var ll = lines[i].toLowerCase();
-          var matched = targets.some(function(t){ return ll === t || ll.startsWith(t); });
-          if (matched) {
-            // Cari nilai di sisa baris (tab-separated) atau baris berikutnya
-            var parts = lines[i].split('\t');
-            // Coba kolom persen dulu (kolom 2 atau 3), lalu kolom nilai
-            var found = null;
-            if (f.pct) {
-              // Scan parts untuk yang ada %
-              for (var p = 1; p < parts.length; p++) {
-                var r = parseRekapLine(parts[p]);
-                if (r && r.isPct) { found = r.val; break; }
-              }
-              // Kalau tidak ada di parts, cek baris berikutnya
-              if (found === null) {
-                for (var j = i+1; j < Math.min(lines.length, i+3); j++) {
-                  var r2 = parseRekapLine(lines[j]);
-                  if (r2 && r2.isPct) { found = r2.val; break; }
-                }
-              }
-            } else {
-              // Nilai biasa: cari angka di parts atau baris berikut
-              for (var p2 = 1; p2 < parts.length; p2++) {
-                var r3 = parseRekapLine(parts[p2]);
-                if (r3) { found = r3.val; break; }
-              }
-              if (found === null) {
-                for (var j2 = i+1; j2 < Math.min(lines.length, i+3); j2++) {
-                  var r4 = parseRekapLine(lines[j2]);
-                  if (r4) { found = r4.val; break; }
-                }
-              }
-            }
-            if (found !== null) { result[f.key] = found; foundCount++; }
-            break;
+        var idx = f.row - 1; // 0-based
+        if (idx >= lines.length) return;
+        var parts = lines[idx].split('\t').map(function(p){ return p.trim(); });
+        var found = null;
+        if (f.pct) {
+          // Cari kolom yang mengandung %
+          for (var i = 0; i < parts.length; i++) {
+            var r = parseRekapCell(parts[i]);
+            if (r && r.isPct) { found = r.val; break; }
+          }
+        } else {
+          // Ambil kolom pertama yang punya angka valid
+          for (var j = 0; j < parts.length; j++) {
+            var r2 = parseRekapCell(parts[j]);
+            if (r2) { found = r2.val; break; }
           }
         }
+        if (found !== null) { result[f.key] = found; foundCount++; }
       });
       return { values: result, foundCount: foundCount, totalFields: REKAP_FIELDS.length };
     }
@@ -525,7 +544,7 @@
       var rows = REKAP_FIELDS.map(function(f) {
         var v = r.values[f.key];
         var ok = v !== null && v !== undefined;
-        var displayLabel = Array.isArray(f.label) ? f.label[0] : f.label;
+        var displayLabel = f.label;
         var displayVal = ok ? (f.pct ? v.toFixed(2) + '%' : v.toLocaleString('id-ID')) : 'tidak ketemu';
         return '<tr><td style="color:'+(ok?'':'var(--ph-danger)')+'">'+displayLabel+'</td>' +
           '<td class="num" style="color:'+(ok?'':'var(--ph-danger)')+'">'+displayVal+'</td></tr>';

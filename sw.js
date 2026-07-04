@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v8'; // tambah CSS #jp-pane-tren scroll (flex:1, overflow-y:auto, iOS webkit touch)
+var CACHE_VERSION = 'zenot-static-v10'; // proyeksi-harga: rekap 14 metrik posisi-based
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
