@@ -38,9 +38,14 @@ var JS_APP_FILES = [
 // index.html: tidak di-cache (selalu fresh)
 // networth.js & shopee-sync.js: network-first dengan fallback cache
 var NO_CACHE_PATTERNS = ['index.html'];
-// BUMP: chart fix final — hardcode width, remove totalAll===0 guard
 // buat diagnose kenapa chart Tren kosong khusus mode 7hari/30hari (hari-ini normal)
-var JS_CACHE = 'zenot-js-20260704-f13d5f234e50';
+// ─── CARA DEPLOY UPDATE ─────────────────────────────────────
+// Setiap upload file JS/CSS baru ke hosting:
+// 1. Jalankan di terminal:  node -e "d=new Date();console.log('zenot-js-'+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+'-'+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2))"
+// 2. Copy hasilnya ke baris JS_CACHE di bawah.
+// 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
+// ─────────────────────────────────────────────────────────────
+var JS_CACHE = 'zenot-js-20260704-0812';
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

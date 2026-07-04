@@ -508,6 +508,7 @@ let _jpProdukList = [];
 let _jpSkuIndex   = -1;
 let _jpDdMode     = 'bulan'; // default: bulan ini
 let _jpSisakMap   = {}; // stok sisa per SKU (uppercase), diisi saat render tabel
+let _jpChartRenderToken = 0; // token untuk cancel render chart lama sebelum render baru
 
 function _jpNowTime() {
   const n = new Date();
@@ -1199,7 +1200,23 @@ function _jpChItem(id, label, _unused, _unused2) {
 // ─── CHART TREN PENJUALAN (gaya Shopee) ───────────────────────
 // Granularitas otomatis: hari-ini/kemarin → per jam (00:00-23:00),
 // periode lain → per hari (sesuai tanggal unik yang ada di data hasil filter).
-function _jpRenderChartTren(data, _retry) {
+// ─── CHART RENDER SCHEDULER ──────────────────────────────────
+// Semua pemanggilan chart wajib lewat sini.
+// Naikkan token → render lama otomatis dibatalkan via guard di dalam _jpRenderChartTren.
+function _jpScheduleChartRender(data) {
+  _jpChartRenderToken = (_jpChartRenderToken + 1) & 0xFFFF;
+  var token = _jpChartRenderToken;
+  requestAnimationFrame(function() {
+    if (token !== _jpChartRenderToken) return; // sudah ada request lebih baru
+    _jpRenderChartTren(data, 0, token);
+  });
+}
+
+function _jpRenderChartTren(data, _retry, _token) {
+  // ── Render guard: batalkan kalau ada render lebih baru dijadwalkan ──
+  if (_token === undefined) _token = _jpChartRenderToken; // backward-compat safety
+  if (_token !== _jpChartRenderToken) return;
+
   _retry = _retry || 0;
   const canvas  = document.getElementById('jp-chart-tren');
   const tooltip = document.getElementById('jp-chart-tooltip');
@@ -1256,14 +1273,22 @@ function _jpRenderChartTren(data, _retry) {
   canvas.style.display = 'block';
   if (emptyEl) emptyEl.style.display = 'none';
 
-  // Hardcode width dari parent — tidak tunggu offsetWidth yang bisa 0
-  // karena timing async/rAF. Ini fix proper untuk chart tidak pernah render.
+  // Ambil lebar canvas dari parent. Kalau masih 0 (layout belum settle),
+  // retry max 5x dengan rAF — jangan fallback ke 600px agar chart tidak salah lebar.
   const wrap = canvas.parentElement;
-  const forcedW = (wrap && wrap.clientWidth > 10) ? wrap.clientWidth
-                : (canvas.offsetWidth > 10)       ? canvas.offsetWidth
+  const forcedW = (wrap && wrap.clientWidth > 10)   ? wrap.clientWidth
+                : (canvas.offsetWidth > 10)          ? canvas.offsetWidth
                 : (document.getElementById('jp-pane-tren') && document.getElementById('jp-pane-tren').clientWidth > 10)
                   ? document.getElementById('jp-pane-tren').clientWidth - 28
-                : 600;
+                : 0;
+  if (forcedW === 0) {
+    if (_retry < 5 && _token === _jpChartRenderToken) {
+      requestAnimationFrame(function() {
+        _jpRenderChartTren(data, _retry + 1, _token);
+      });
+    }
+    return;
+  }
   canvas.style.width  = forcedW + 'px';
   canvas.style.height = '240px';
 
@@ -1407,14 +1432,11 @@ function jpSwitchTab(tab) {
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
     // Chart canvas butuh browser selesai layout dulu setelah display:flex
-    // requestAnimationFrame double: frame 1 = browser paint, frame 2 = layout computed
     requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        pTren.scrollTop = 0; // reset scroll internal (mode touch)
-        var contentEl = document.querySelector('.content');
-        if (contentEl) contentEl.scrollTop = 0; // reset scroll native (mode laptop)
-        _jpRenderChartTren(_jpLastFilterData);
-      });
+      pTren.scrollTop = 0; // reset scroll internal (mode touch)
+      var contentEl = document.querySelector('.content');
+      if (contentEl) contentEl.scrollTop = 0; // reset scroll native (mode laptop)
+      _jpScheduleChartRender(_jpLastFilterData);
     });
   }
 }
@@ -1564,12 +1586,7 @@ function filterJP() {
   if (_jpActiveTab === 'tren') {
     _jpRenderBestSeller(hasil, _jpBsSortBy);
     _jpRenderChannelTerbaik(hasil);
-    // Chart butuh layout computed — pakai rAF agar canvas offsetWidth tidak 0
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() {
-        _jpRenderChartTren(hasil);
-      });
-    });
+    _jpScheduleChartRender(hasil);
   }
 }
 
