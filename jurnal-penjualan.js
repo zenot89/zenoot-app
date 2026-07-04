@@ -1567,6 +1567,10 @@ function filterJP() {
   if (_jpActiveTab === 'tren') {
     _jpRenderBestSeller(hasil, _jpBsSortBy);
     _jpRenderChannelTerbaik(hasil);
+    // Reset scroll pane ke atas setiap kali filter/periode berubah,
+    // agar chart Tren Penjualan tidak ter-scroll keluar viewport.
+    var pTrenEl = document.getElementById('jp-pane-tren');
+    if (pTrenEl) pTrenEl.scrollTop = 0;
     _jpScheduleChartRender(hasil);
   }
 }
