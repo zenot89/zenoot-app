@@ -1226,18 +1226,65 @@ function _jpRenderChartTren(data, _retry) {
       dateKeys.push(baseDate);
     }
   } else {
-    const dateSet = {};
-    data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
-    const dates = Object.keys(dateSet).sort();
-    dates.forEach(dt => {
-      const sum = data
-        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-        .reduce((s,r) => s + (Number(r.total)||0), 0);
-      const dObj = new Date(dt + 'T00:00:00');
-      labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-      totals.push(sum);
-      dateKeys.push(dt);
-    });
+    // Non-hourly: generate semua tanggal dalam range periode
+    // Tidak pakai dateSet dari data — karena kalau data ada tapi total=0
+    // atau tanggal format berbeda, chart kosong padahal seharusnya tampil flat.
+    const now2 = new Date();
+    let startDate, endDate;
+    if (mode === '7hari') {
+      startDate = new Date(now2.getTime() - 7*24*60*60*1000);
+      endDate   = now2;
+    } else if (mode === '30hari') {
+      startDate = new Date(now2.getTime() - 30*24*60*60*1000);
+      endDate   = now2;
+    } else if (mode === 'bulan') {
+      // Ambil dari dateSet kalau mode bulan (tidak ada range fixed)
+      const dateSet2 = {};
+      data.forEach(r => { if (r.tanggal) dateSet2[String(r.tanggal).slice(0,10)] = true; });
+      const dates2 = Object.keys(dateSet2).sort();
+      dates2.forEach(dt => {
+        const sum = data
+          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const dObj = new Date(dt + 'T00:00:00');
+        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+        totals.push(sum);
+        dateKeys.push(dt);
+      });
+      startDate = null; // sudah dihandle
+    } else if (mode === 'semua') {
+      const dateSet3 = {};
+      data.forEach(r => { if (r.tanggal) dateSet3[String(r.tanggal).slice(0,10)] = true; });
+      const dates3 = Object.keys(dateSet3).sort();
+      dates3.forEach(dt => {
+        const sum = data
+          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const dObj = new Date(dt + 'T00:00:00');
+        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+        totals.push(sum);
+        dateKeys.push(dt);
+      });
+      startDate = null;
+    }
+    // Generate range untuk 7hari dan 30hari
+    if (startDate !== null && startDate !== undefined) {
+      const cur = new Date(startDate);
+      cur.setHours(0,0,0,0);
+      const end = new Date(endDate);
+      end.setHours(23,59,59,999);
+      while (cur <= end) {
+        const dt = _jpLocalDate(cur);
+        const sum = data
+          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const dObj = new Date(dt + 'T00:00:00');
+        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+        totals.push(sum);
+        dateKeys.push(dt);
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
   }
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
