@@ -712,7 +712,8 @@
       var saveBtn  = document.getElementById('ph-rekap-save-btn');
       if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='Menyimpan...'; }
 
-      var payload = Object.assign({ channel_id: parseInt(tid), periode: tglAwal, periode_akhir: tglAkhir }, _rekapParsed);
+      var payload = Object.assign({ channel_id: tid, periode: tglAwal, periode_akhir: tglAkhir }, _rekapParsed);
+      console.log('saveRekap → tid:', tid, 'tglAwal:', tglAwal, 'payload:', JSON.stringify(payload));
 
       sbGet('channel_rekap', '&channel_id=eq.'+tid+'&periode=eq.'+tglAwal)
         .then(function(rows) {
@@ -729,6 +730,7 @@
           }, 300);
         })
         .catch(function(err) {
+          console.error('saveRekap error:', err);
           if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent='Simpan'; }
           var st = document.getElementById('ph-rekap-status');
           if (st) { st.className='ph-parse-status fail'; st.textContent='Gagal: '+(err.message||err); }
