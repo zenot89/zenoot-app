@@ -71,7 +71,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div><!-- /jp-pane-jurnal -->
 
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
-  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0">
+  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
 
     <!-- MINI CARDS -->
     <div class="metrics" style="margin-bottom:0">
@@ -90,7 +90,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <!-- TREN PENJUALAN CHART -->
     <div class="card" id="jp-tren-card" style="padding:14px">
       <div class="card-title" style="margin-bottom:10px"><i class="ti ti-chart-line"></i> Tren Penjualan</div>
-      <div id="jp-tren-chart-wrap" style="position:relative;height:220px">
+      <div id="jp-tren-chart-wrap" style="position:relative;height:240px">
         <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
         <div id="jp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
           Belum ada penjualan di periode ini
@@ -1226,65 +1226,18 @@ function _jpRenderChartTren(data, _retry) {
       dateKeys.push(baseDate);
     }
   } else {
-    // Non-hourly: generate semua tanggal dalam range periode
-    // Tidak pakai dateSet dari data — karena kalau data ada tapi total=0
-    // atau tanggal format berbeda, chart kosong padahal seharusnya tampil flat.
-    const now2 = new Date();
-    let startDate, endDate;
-    if (mode === '7hari') {
-      startDate = new Date(now2.getTime() - 7*24*60*60*1000);
-      endDate   = now2;
-    } else if (mode === '30hari') {
-      startDate = new Date(now2.getTime() - 30*24*60*60*1000);
-      endDate   = now2;
-    } else if (mode === 'bulan') {
-      // Ambil dari dateSet kalau mode bulan (tidak ada range fixed)
-      const dateSet2 = {};
-      data.forEach(r => { if (r.tanggal) dateSet2[String(r.tanggal).slice(0,10)] = true; });
-      const dates2 = Object.keys(dateSet2).sort();
-      dates2.forEach(dt => {
-        const sum = data
-          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-          .reduce((s,r) => s + (Number(r.total)||0), 0);
-        const dObj = new Date(dt + 'T00:00:00');
-        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-        totals.push(sum);
-        dateKeys.push(dt);
-      });
-      startDate = null; // sudah dihandle
-    } else if (mode === 'semua') {
-      const dateSet3 = {};
-      data.forEach(r => { if (r.tanggal) dateSet3[String(r.tanggal).slice(0,10)] = true; });
-      const dates3 = Object.keys(dateSet3).sort();
-      dates3.forEach(dt => {
-        const sum = data
-          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-          .reduce((s,r) => s + (Number(r.total)||0), 0);
-        const dObj = new Date(dt + 'T00:00:00');
-        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-        totals.push(sum);
-        dateKeys.push(dt);
-      });
-      startDate = null;
-    }
-    // Generate range untuk 7hari dan 30hari
-    if (startDate !== null && startDate !== undefined) {
-      const cur = new Date(startDate);
-      cur.setHours(0,0,0,0);
-      const end = new Date(endDate);
-      end.setHours(23,59,59,999);
-      while (cur <= end) {
-        const dt = _jpLocalDate(cur);
-        const sum = data
-          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-          .reduce((s,r) => s + (Number(r.total)||0), 0);
-        const dObj = new Date(dt + 'T00:00:00');
-        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-        totals.push(sum);
-        dateKeys.push(dt);
-        cur.setDate(cur.getDate() + 1);
-      }
-    }
+    const dateSet = {};
+    data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
+    const dates = Object.keys(dateSet).sort();
+    dates.forEach(dt => {
+      const sum = data
+        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+        .reduce((s,r) => s + (Number(r.total)||0), 0);
+      const dObj = new Date(dt + 'T00:00:00');
+      labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+      totals.push(sum);
+      dateKeys.push(dt);
+    });
   }
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
@@ -1296,30 +1249,24 @@ function _jpRenderChartTren(data, _retry) {
     if (tooltip) tooltip.style.display = 'none';
     return;
   }
-  // totalAll bisa 0 (semua hari tidak ada penjualan) — tetap render garis datar
 
   canvas.style.display = 'block';
   if (emptyEl) emptyEl.style.display = 'none';
 
-  if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
-    // Canvas belum punya ukuran — biasanya karena layout belum selesai
-    // (display:none -> flex baru saja terjadi). Retry maksimal 10x (1.5 detik).
-    // Kalau tetap 0 (kasus langka: parent width bermasalah), fallback pakai
-    // lebar wrapper div (#jp-tren-chart-wrap) langsung — supaya chart TIDAK
-    // pernah diam-diam kosong selamanya tanpa fallback.
-    if (_retry < 10) {
-      setTimeout(function() { _jpRenderChartTren(data, _retry + 1); }, 150);
-      return;
-    }
-    const wrap = canvas.parentElement;
-    var fallbackW = (wrap && wrap.clientWidth > 10) ? wrap.clientWidth : 300;
-    canvas.style.width = fallbackW + 'px';
-  }
-  // Reset flag kalau ada
+  // Hardcode width dari parent — tidak tunggu offsetWidth yang bisa 0
+  // karena timing async/rAF. Ini fix proper untuk chart tidak pernah render.
+  const wrap = canvas.parentElement;
+  const forcedW = (wrap && wrap.clientWidth > 10) ? wrap.clientWidth
+                : (canvas.offsetWidth > 10)       ? canvas.offsetWidth
+                : (document.getElementById('jp-pane-tren') && document.getElementById('jp-pane-tren').clientWidth > 10)
+                  ? document.getElementById('jp-pane-tren').clientWidth - 28
+                : 600;
+  canvas.style.width  = forcedW + 'px';
+  canvas.style.height = '240px';
 
   const dpr = window.devicePixelRatio || 1;
-  const W   = canvas.offsetWidth;
-  const H   = canvas.offsetHeight || 200;
+  const W   = forcedW;
+  const H   = 240;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
