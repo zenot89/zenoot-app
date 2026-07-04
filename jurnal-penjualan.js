@@ -1560,9 +1560,14 @@ function filterJP() {
   if (el3) el3.textContent = document.getElementById('jp-total-item').textContent;
   // Render chart + bestseller hanya kalau Tab Tren aktif (hemat resource)
   if (_jpActiveTab === 'tren') {
-    _jpRenderChartTren(hasil);
     _jpRenderBestSeller(hasil, _jpBsSortBy);
     _jpRenderChannelTerbaik(hasil);
+    // Chart butuh layout computed — pakai rAF agar canvas offsetWidth tidak 0
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        _jpRenderChartTren(hasil);
+      });
+    });
   }
 }
 
