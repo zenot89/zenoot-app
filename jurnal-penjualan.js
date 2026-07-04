@@ -70,7 +70,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <div id="jp-pane-tren" style="display:none;flex-direction:column;flex:1;min-height:0;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
 
     <!-- MINI CARDS -->
-    <div class="metrics" style="margin-bottom:0">
+    <div class="metrics" style="margin-bottom:0;flex-shrink:0">
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
         <div class="m-value" id="jp-total-penjualan2">—</div>
@@ -84,7 +84,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
 
     <!-- TREN PENJUALAN CHART -->
-    <div class="card" id="jp-tren-card" style="padding:14px">
+    <div class="card" id="jp-tren-card" style="padding:14px;flex-shrink:0">
       <div class="card-title" style="margin-bottom:10px"><i class="ti ti-chart-line"></i> Tren Penjualan</div>
       <div id="jp-tren-chart-wrap" style="position:relative;height:240px">
         <canvas id="jp-chart-tren" style="width:100%;height:100%;display:block"></canvas>
@@ -96,11 +96,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
 
     <!-- BEST SELLER + CHANNEL TERBAIK: side by side -->
-    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;flex:1;min-height:0">
 
       <!-- BEST SELLER (kiri) -->
-      <div class="card" style="padding:14px;flex:1;min-width:280px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <div class="card" style="padding:14px;flex:1;min-width:280px;display:flex;flex-direction:column;min-height:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;flex-shrink:0">
           <div class="card-title" style="margin-bottom:0"><i class="ti ti-trophy"></i> Best Seller</div>
           <div style="display:flex;gap:4px">
             <button id="jp-bs-sort-rp" onclick="jpBsSort('rp')"
@@ -113,15 +113,15 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
             </button>
           </div>
         </div>
-        <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0">
+        <div id="jp-bestseller-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1;min-height:0">
           <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
         </div>
       </div>
 
       <!-- CHANNEL TERBAIK (kanan) -->
-      <div class="card" style="padding:14px;flex:1;min-width:280px">
-        <div class="card-title" style="margin-bottom:10px"><i class="ti ti-building-store"></i> Channel Terbaik</div>
-        <div id="jp-channel-terbaik-list" style="display:flex;flex-direction:column;gap:0">
+      <div class="card" style="padding:14px;flex:1;min-width:280px;display:flex;flex-direction:column;min-height:0">
+        <div class="card-title" style="margin-bottom:10px;flex-shrink:0"><i class="ti ti-building-store"></i> Channel Terbaik</div>
+        <div id="jp-channel-terbaik-list" style="display:flex;flex-direction:column;gap:0;overflow-y:auto;flex:1;min-height:0">
           <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
         </div>
       </div>
