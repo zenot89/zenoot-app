@@ -155,13 +155,10 @@
     '#ph-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);padding:9px 15px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:all .25s;z-index:99999;max-width:90vw;text-align:center;}',
     '#ph-toast.ph-show{opacity:1;transform:translateX(-50%) translateY(0);}',
     /* Rekap bar */
-    '#ph-rekap-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;}',
-    '#ph-rekap-bar .ph-rbar-label{font-size:11px;color:var(--ph-faint);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}',
-    /* Periode trigger button */
-    '#ph-rekap-periode-btn{background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-text);border-radius:6px;padding:6px 11px;font-family:var(--ph-mono);font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}',
-    '#ph-rekap-periode-btn:hover{border-color:var(--ph-dim);}',
+
     /* Shopee-style calendar range picker popup */
-    '#ph-rekap-cal-popup{position:absolute;z-index:9999;background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:10px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.65);display:none;min-width:280px;top:calc(100% + 6px);left:0;}',
+    '#ph-rekap-modal .ph-modal-infopill-tgl:hover{border-color:var(--ph-dim);}',
+    '#ph-rekap-cal-popup{position:absolute;z-index:10100;background:var(--ph-panel);border:1px solid var(--ph-border);border-radius:10px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.8);display:none;min-width:280px;top:calc(100% + 8px);left:50%;transform:translateX(-50%);}',
     '#ph-rekap-cal-popup.open{display:block;}',
     '#ph-rekap-cal-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}',
     '#ph-rekap-cal-shortcuts button{font-size:11px;padding:4px 9px;background:var(--ph-panel2);border:1px solid var(--ph-border-s);color:var(--ph-dim);border-radius:20px;cursor:pointer;font-family:inherit;}',
@@ -203,7 +200,7 @@
     '#ph-rekap-history .ph-hist-tbl td.num{text-align:right;}',
     '#ph-rekap-history .ph-hist-tbl td.pos{color:var(--ph-ok);}',
     '#ph-rekap-history .ph-hist-tbl td.neg{color:var(--ph-danger);}',
-    '@media(max-width:600px){#ph-main{padding:14px 12px 48px;}#page-proyeksi-harga .ph-grid2{grid-template-columns:1fr;}#page-proyeksi-harga .ph-field-row{grid-template-columns:1fr;}#ph-rekap-bar{gap:6px;}}',
+    '@media(max-width:600px){#ph-main{padding:14px 12px 48px;}#page-proyeksi-harga .ph-grid2{grid-template-columns:1fr;}#page-proyeksi-harga .ph-field-row{grid-template-columns:1fr;}}',
   ].join('\n');
 
   /* ═══════════════════════════════════════════════════════════════
@@ -229,6 +226,7 @@
             '<div style="display:flex;align-items:flex-end;gap:10px;">' +
               '<div id="ph-ch-badge"></div>' +
               '<div id="ph-acos-aff-global"></div>' +
+              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn" style="display:none">+ Input Data</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -246,11 +244,22 @@
         '<section class="ph-pane" id="ph-pane-rekap">' +
           '<div class="ph-panel">' +
             '<div class="ph-panel-title"><span>Rekap Toko</span></div>' +
-            /* Bar */
-            '<div id="ph-rekap-bar">' +
-              /* Periode trigger + Shopee-style calendar popup */
-              '<div style="position:relative">' +
-                '<button id="ph-rekap-periode-btn">📅 <span id="ph-rekap-periode-label">Pilih Periode</span> ▾</button>' +
+            '<div id="ph-rekap-history"></div>' +
+          '</div>' +
+        '</section>' +
+        /* Modal overlay — di luar panel supaya full screen */
+        '<div id="ph-rekap-modal-overlay">' +
+          '<div id="ph-rekap-modal">' +
+            '<div class="ph-modal-title">Input Data Rekap</div>' +
+            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI (tanpa header).</div>' +
+            '<div class="ph-modal-infos">' +
+              '<div class="ph-modal-infopill">' +
+                '<div class="pil-lbl">Toko Aktif</div>' +
+                '<div class="pil-val" id="ph-rekap-modal-toko">—</div>' +
+              '</div>' +
+              '<div class="ph-modal-infopill ph-modal-infopill-tgl" id="ph-rekap-tgl-pill" style="cursor:pointer;position:relative">' +
+                '<div class="pil-lbl">Tanggal 📅</div>' +
+                '<div class="pil-val" id="ph-rekap-modal-tanggal">—</div>' +
                 '<div id="ph-rekap-cal-popup">' +
                   '<div id="ph-rekap-cal-shortcuts">' +
                     '<button data-sc="bln">Bulan Ini</button>' +
@@ -265,26 +274,6 @@
                   '</div>' +
                   '<div id="ph-rekap-cal-grid"></div>' +
                 '</div>' +
-              '</div>' +
-              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn" style="margin-left:4px">+ Input Data</button>' +
-            '</div>' +
-            /* History */
-            '<div id="ph-rekap-history"></div>' +
-          '</div>' +
-        '</section>' +
-        /* Modal overlay — di luar panel supaya full screen */
-        '<div id="ph-rekap-modal-overlay">' +
-          '<div id="ph-rekap-modal">' +
-            '<div class="ph-modal-title">Input Data Rekap</div>' +
-            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI (tanpa header).</div>' +
-            '<div class="ph-modal-infos">' +
-              '<div class="ph-modal-infopill">' +
-                '<div class="pil-lbl">Toko Aktif</div>' +
-                '<div class="pil-val" id="ph-rekap-modal-toko">—</div>' +
-              '</div>' +
-              '<div class="ph-modal-infopill">' +
-                '<div class="pil-lbl">Tanggal</div>' +
-                '<div class="pil-val" id="ph-rekap-modal-tanggal">—</div>' +
               '</div>' +
             '</div>' +
             '<textarea id="ph-rekap-ta" placeholder="PASTE DATA DI SINI"></textarea>' +
@@ -486,6 +475,9 @@
           }
         });
       }
+      /* Tampilkan/sembunyikan tombol + Input Data */
+      var inputBtnHdr = document.getElementById('ph-rekap-input-btn');
+      if (inputBtnHdr) inputBtnHdr.style.display = key === 'rekap' ? '' : 'none';
       if (key === 'biaya') {
         renderBiayaHeaderInputs();
       }
@@ -632,12 +624,14 @@
       _calPickEnd   = b;
       _calPhase = 0;
       _rekapSetPeriode(a, b);
+      /* Update pill tanggal di modal */
+      var elTgl = document.getElementById('ph-rekap-modal-tanggal');
+      if (elTgl) elTgl.textContent = _rekapFmtLabel(a, b);
       _calRenderGrid();
       _calUpdateHint();
-      /* Tutup popup + refresh */
+      /* Tutup popup */
       var popup = document.getElementById('ph-rekap-cal-popup');
       if (popup) popup.classList.remove('open');
-      loadRekapHistory();
     }
 
     function _calUpdateHint() {
@@ -740,26 +734,66 @@
         }
       }
 
-      /* ── Periode button → toggle calendar popup ── */
-      var periodeBtn = document.getElementById('ph-rekap-periode-btn');
-      var calPopup   = document.getElementById('ph-rekap-cal-popup');
-      if (periodeBtn && calPopup && !periodeBtn._bound) {
-        periodeBtn._bound = true;
-        periodeBtn.addEventListener('click', function(e) {
+      /* ── Tampilkan tombol + Input Data di header (sejajar toko) ── */
+      var inputBtnHdr = document.getElementById('ph-rekap-input-btn');
+      if (inputBtnHdr) inputBtnHdr.style.display = '';
+
+      /* ── + Input Data → buka modal ── */
+      var inputBtn = document.getElementById('ph-rekap-input-btn');
+      if (inputBtn && !inputBtn._bound) {
+        inputBtn._bound = true;
+        inputBtn.addEventListener('click', function() {
+          /* Set default periode ke bulan ini jika belum dipilih */
+          if (!_rekapTglAwal) {
+            var now3 = new Date(), y3 = now3.getFullYear(), m3 = now3.getMonth();
+            _calPickStart = y3+'-'+_calPad(m3+1)+'-01';
+            _calPickEnd   = new Date(y3,m3+1,0).toISOString().slice(0,10);
+            _rekapSetPeriode(_calPickStart, _calPickEnd);
+          } else {
+            _calPickStart = _rekapTglAwal;
+            _calPickEnd   = _rekapTglAkhir;
+          }
+          /* Update info pills di modal */
+          var elToko = document.getElementById('ph-rekap-modal-toko');
+          var elTgl  = document.getElementById('ph-rekap-modal-tanggal');
+          if (elToko) elToko.textContent = state.tokoNama || '—';
+          if (elTgl)  elTgl.textContent  = _rekapFmtLabel(_rekapTglAwal, _rekapTglAkhir) || '—';
+          /* Reset form */
+          var ta=document.getElementById('ph-rekap-ta'), st=document.getElementById('ph-rekap-status'),
+              pv=document.getElementById('ph-rekap-preview'), sb=document.getElementById('ph-rekap-save-btn');
+          if (ta) ta.value='';
+          if (st){st.className='';st.textContent='';}
+          if (pv) pv.innerHTML='';
+          if (sb) sb.style.display='none';
+          _rekapParsed=null;
+          document.getElementById('ph-rekap-modal-overlay').classList.add('open');
+          setTimeout(function(){if(ta)ta.focus();},100);
+          /* Bind calendar ke pill TANGGAL (sekali) */
+          _bindModalCalendar();
+        });
+      }
+
+      function _bindModalCalendar() {
+        var tglPill = document.getElementById('ph-rekap-tgl-pill');
+        var calPopup = document.getElementById('ph-rekap-cal-popup');
+        if (!tglPill || !calPopup || tglPill._calBoundPill) return;
+        tglPill._calBoundPill = true;
+
+        tglPill.addEventListener('click', function(e) {
+          /* Jangan trigger jika klik di dalam popup itu sendiri */
+          if (calPopup.contains(e.target)) return;
           e.stopPropagation();
           var isOpen = calPopup.classList.contains('open');
           if (isOpen) {
             calPopup.classList.remove('open');
           } else {
-            /* Sync view ke bulan periode awal yang aktif */
-            if (_rekapTglAwal) {
-              var pArr = _rekapTglAwal.split('-');
+            /* Sync view ke bulan periode aktif */
+            if (_calPickStart) {
+              var pArr = _calPickStart.split('-');
               _calViewYear  = parseInt(pArr[0]);
               _calViewMonth = parseInt(pArr[1]) - 1;
             }
             _calPhase = 0;
-            _calPickStart = _rekapTglAwal || null;
-            _calPickEnd   = _rekapTglAkhir || null;
             _calRenderGrid();
             _calUpdateHint();
             calPopup.classList.add('open');
@@ -768,6 +802,8 @@
 
         /* Shortcut buttons */
         calPopup.querySelectorAll('[data-sc]').forEach(function(btn) {
+          if (btn._scBound) return;
+          btn._scBound = true;
           btn.addEventListener('click', function(e) {
             e.stopPropagation();
             var sc = this.getAttribute('data-sc');
@@ -780,7 +816,7 @@
               var pm2 = m2===0?11:m2-1, py2 = m2===0?y2-1:y2;
               a2 = py2+'-'+_calPad(pm2+1)+'-01';
               b2 = new Date(py2,pm2+1,0).toISOString().slice(0,10);
-            } else { /* 3bln */
+            } else {
               b2 = new Date(y2,m2+1,0).toISOString().slice(0,10);
               a2 = new Date(y2,m2-2,1).toISOString().slice(0,10);
             }
@@ -789,7 +825,7 @@
           });
         });
 
-        /* Nav prev/next month */
+        /* Nav prev/next */
         var prevBtn = document.getElementById('ph-rekap-cal-prev');
         var nextBtn = document.getElementById('ph-rekap-cal-next');
         if (prevBtn && !prevBtn._bound) {
@@ -811,34 +847,11 @@
           });
         }
 
-        /* Close on outside click */
+        /* Close calendar jika klik di luar pill */
         document.addEventListener('click', function(e) {
-          if (!calPopup.contains(e.target) && e.target !== periodeBtn) {
+          if (!tglPill.contains(e.target)) {
             calPopup.classList.remove('open');
           }
-        });
-      }
-
-      /* ── + Input Data → buka modal ── */
-      var inputBtn = document.getElementById('ph-rekap-input-btn');
-      if (inputBtn && !inputBtn._bound) {
-        inputBtn._bound = true;
-        inputBtn.addEventListener('click', function() {
-          /* Update info pills di modal */
-          var elToko = document.getElementById('ph-rekap-modal-toko');
-          var elTgl  = document.getElementById('ph-rekap-modal-tanggal');
-          if (elToko) elToko.textContent = state.tokoNama || '—';
-          if (elTgl)  elTgl.textContent  = _rekapFmtLabel(_rekapTglAwal, _rekapTglAkhir) || '—';
-          /* Reset form */
-          var ta=document.getElementById('ph-rekap-ta'), st=document.getElementById('ph-rekap-status'),
-              pv=document.getElementById('ph-rekap-preview'), sb=document.getElementById('ph-rekap-save-btn');
-          if (ta) ta.value='';
-          if (st){st.className='';st.textContent='';}
-          if (pv) pv.innerHTML='';
-          if (sb) sb.style.display='none';
-          _rekapParsed=null;
-          document.getElementById('ph-rekap-modal-overlay').classList.add('open');
-          setTimeout(function(){if(ta)ta.focus();},100);
         });
       }
 
