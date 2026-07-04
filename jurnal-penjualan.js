@@ -67,7 +67,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div>
 
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
-  <div id="jp-pane-tren" style="display:none;flex-direction:column;flex:1;min-height:0;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
+  <div id="jp-pane-tren" style="display:none;flex-direction:column;flex:1;min-height:0;gap:10px;padding:10px;overflow:hidden;">
 
     <!-- MINI CARDS -->
     <div class="metrics" style="margin-bottom:0;flex-shrink:0">
@@ -96,7 +96,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
 
     <!-- BEST SELLER + CHANNEL TERBAIK: side by side -->
-    <div style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;flex:1;min-height:0">
+    <div id="jp-bs-ch-wrap" style="display:flex;gap:10px;align-items:stretch;flex:1;min-height:0;overflow:hidden">
 
       <!-- BEST SELLER (kiri) -->
       <div class="card" style="padding:14px;flex:1;min-width:280px;display:flex;flex-direction:column;min-height:0">
@@ -1408,15 +1408,13 @@ function jpSwitchTab(tab) {
     // race condition dengan _jpEnsureFlexLayout yang ubah overflow .content.
     pTren.style.flex      = '1 1 0';
     pTren.style.minHeight = '0';
-    pTren.style.overflowY = 'auto';
-    pTren.style.overflowX = 'hidden';
+    pTren.style.overflow  = 'hidden';
     _jpEnsureFlexLayout();
-    // Render best seller + channel langsung (tidak butuh canvas layout)
+    // Render best seller + channel langsung
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
     // Chart: 1 rAF agar browser selesai layout flex setelah display:flex
     requestAnimationFrame(function() {
-      pTren.scrollTop = 0;
       _jpScheduleChartRender(_jpLastFilterData);
     });
   }
@@ -1563,14 +1561,10 @@ function filterJP() {
   var el3 = document.getElementById('jp-total-item2');
   if (el2) el2.textContent = document.getElementById('jp-total-penjualan').textContent;
   if (el3) el3.textContent = document.getElementById('jp-total-item').textContent;
-  // Render chart + bestseller hanya kalau Tab Tren aktif (hemat resource)
+  // Render bestseller + channel + chart hanya kalau Tab Tren aktif
   if (_jpActiveTab === 'tren') {
     _jpRenderBestSeller(hasil, _jpBsSortBy);
     _jpRenderChannelTerbaik(hasil);
-    // Reset scroll pane ke atas setiap kali filter/periode berubah,
-    // agar chart Tren Penjualan tidak ter-scroll keluar viewport.
-    var pTrenEl = document.getElementById('jp-pane-tren');
-    if (pTrenEl) pTrenEl.scrollTop = 0;
     _jpScheduleChartRender(hasil);
   }
 }
