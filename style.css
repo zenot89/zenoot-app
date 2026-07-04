@@ -1374,11 +1374,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
-/* Jaring pengaman kedua: pastikan area chart Tren Penjualan SELALU punya
-   tinggi 200px, independen dari inline style — kalau ada CSS lain yang
-   collapse elemen ini, ini mencegah card-nya hilang total secara visual */
+/* Jaring pengaman: chart wrap + card selalu punya tinggi minimum */
 #jp-tren-chart-wrap {
-  min-height: 200px !important;
+  min-height: 240px !important;
+  height: 240px !important;
+  position: relative !important;
+  display: block !important;
+}
+#jp-tren-card {
+  overflow: visible !important;
+  flex-shrink: 0 !important;
 }
 /* Header dalam card (judul + toolbar mobile + target bar) — juga freeze */
 #jp-sticky-header {

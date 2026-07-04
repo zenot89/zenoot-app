@@ -67,7 +67,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   </div>
 
   <!-- ═══ TAB PANE: TREN & BEST SELLER ═══ -->
-  <div id="jp-pane-tren" style="display:none;flex-direction:column;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
+  <div id="jp-pane-tren" style="display:none;flex-direction:column;flex:1;min-height:0;gap:10px;padding:10px;overflow-y:auto;overflow-x:hidden;">
 
     <!-- MINI CARDS -->
     <div class="metrics" style="margin-bottom:0">
