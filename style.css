@@ -1350,6 +1350,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
   padding: 10px 16px 8px;
   background: var(--cream2);
+  overflow: hidden;
 }
 /* Card tabel: flex-grow mengisi sisa tinggi */
 #page-jurnal-penjualan #jp-table-card {
