@@ -200,6 +200,19 @@
     '#ph-rekap-history .ph-hist-tbl td.num{text-align:right;}',
     '#ph-rekap-history .ph-hist-tbl td.pos{color:var(--ph-ok);}',
     '#ph-rekap-history .ph-hist-tbl td.neg{color:var(--ph-danger);}',
+    /* Rekap topbar */
+    '.ph-rekap-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}',
+    '.ph-toko-sel-rekap{background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);border-radius:6px;padding:6px 10px;font-family:var(--ph-mono);font-size:13px;cursor:pointer;min-width:130px;}',
+    /* Sembunyikan ph-hdr saat tab rekap aktif */
+    '#ph-pane-rekap.ph-active ~ #ph-hdr{display:none}',
+    '#page-proyeksi-harga:has(#ph-pane-rekap.ph-active) #ph-hdr{display:none}',
+    /* rv font auto-fit: scale dengan lebar viewport */
+    '#ph-pane-rekap .ph-rv-tbl{font-size:clamp(11px, 0.75vw, 15px);}',
+    '#ph-pane-rekap .ph-rv-lbl{font-size:clamp(10px, 0.72vw, 14px);min-width:clamp(130px, 11vw, 190px);}',
+    '#ph-pane-rekap .ph-rv-lbl.rv-sub{font-size:clamp(9px, 0.65vw, 13px);}',
+    '#ph-pane-rekap .ph-rv-hdr{font-size:clamp(10px, 0.68vw, 13px);min-width:clamp(90px, 6.5vw, 130px);}',
+    '#ph-pane-rekap .ph-rv-cell{font-size:clamp(11px, 0.75vw, 15px);}',
+    '#ph-pane-rekap .ph-rv-cell .rv-both-wrap .rv-pct{font-size:clamp(9px, 0.62vw, 13px);}',
     '@media(max-width:600px){#ph-main{padding:14px 12px 48px;}#page-proyeksi-harga .ph-grid2{grid-template-columns:1fr;}#page-proyeksi-harga .ph-field-row{grid-template-columns:1fr;}}',
   ].join('\n');
 
@@ -242,10 +255,14 @@
 
         /* Pane: Rekap Toko */
         '<section class="ph-pane" id="ph-pane-rekap">' +
-          '<div class="ph-panel">' +
-            '<div class="ph-panel-title"><span>Rekap Toko</span></div>' +
-            '<div id="ph-rekap-history"></div>' +
+          '<div class="ph-rekap-topbar">' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<label class="ph-label" style="margin:0;white-space:nowrap">Toko</label>' +
+              '<select id="ph-toko-select-rekap" class="ph-toko-sel-rekap"></select>' +
+            '</div>' +
+            '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn">+ Input Data</button>' +
           '</div>' +
+          '<div id="ph-rekap-history"></div>' +
         '</section>' +
         /* Modal overlay — di luar panel supaya full screen */
         '<div id="ph-rekap-modal-overlay">' +
@@ -475,9 +492,9 @@
           }
         });
       }
-      /* Tampilkan/sembunyikan tombol + Input Data */
-      var inputBtnHdr = document.getElementById('ph-rekap-input-btn');
-      if (inputBtnHdr) inputBtnHdr.style.display = key === 'rekap' ? '' : 'none';
+      /* Tampilkan/sembunyikan ph-hdr */
+      var phHdr2 = document.getElementById('ph-hdr');
+      if (phHdr2) phHdr2.style.display = key === 'rekap' ? 'none' : '';
       if (key === 'biaya') {
         renderBiayaHeaderInputs();
       }
@@ -755,9 +772,31 @@
         }
       }
 
-      /* ── Tampilkan tombol + Input Data di header (sejajar toko) ── */
-      var inputBtnHdr = document.getElementById('ph-rekap-input-btn');
-      if (inputBtnHdr) inputBtnHdr.style.display = '';
+      /* ── Tampilkan tombol + Input Data sudah ada di pane, sync toko selector ── */
+      /* Sembunyikan ph-hdr via JS (fallback :has()) */
+      var phHdr = document.getElementById('ph-hdr');
+      if (phHdr) phHdr.style.display = 'none';
+
+      /* Sync ph-toko-select-rekap dengan ph-toko-select utama */
+      var mainSel  = document.getElementById('ph-toko-select');
+      var rekapSel = document.getElementById('ph-toko-select-rekap');
+      if (mainSel && rekapSel && !rekapSel._synced) {
+        rekapSel._synced = true;
+        /* Copy options */
+        rekapSel.innerHTML = mainSel.innerHTML;
+        rekapSel.value = mainSel.value;
+        /* Saat rekap selector berubah, update main selector juga */
+        rekapSel.addEventListener('change', function() {
+          mainSel.value = this.value;
+          mainSel.dispatchEvent(new Event('change'));
+        });
+        /* Saat main selector berubah, update rekap selector */
+        mainSel.addEventListener('change', function() {
+          rekapSel.value = this.value;
+        });
+      } else if (mainSel && rekapSel) {
+        rekapSel.value = mainSel.value;
+      }
 
       /* ── + Input Data → buka modal ── */
       var inputBtn = document.getElementById('ph-rekap-input-btn');
