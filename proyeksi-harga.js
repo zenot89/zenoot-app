@@ -655,20 +655,16 @@
       var monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
       if (lbl) lbl.textContent = monthNames[m] + ' ' + y;
 
-      var firstDay = new Date(y, m, 1).getDay(); // 0=Sun
-      /* Shopee start Senin: offset = (firstDay+6)%7 */
+      var firstDay = new Date(y, m, 1).getDay();
       var offset = (firstDay + 6) % 7;
       var daysInMonth = new Date(y, m+1, 0).getDate();
       var today = new Date().toISOString().slice(0,10);
 
       var html = '';
-      /* Day-of-week headers */
       ['Sen','Sel','Rab','Kam','Jum','Sab','Min'].forEach(function(d){
         html += '<div class="cal-dow">'+d+'</div>';
       });
-      /* Empty cells */
       for (var i=0; i<offset; i++) html += '<div class="cal-day cal-empty"></div>';
-      /* Day cells */
       for (var d=1; d<=daysInMonth; d++) {
         var iso = _calIso(y, m, d);
         var cls = 'cal-day';
@@ -686,29 +682,33 @@
         html += '<div class="'+cls+'" data-iso="'+iso+'">'+d+'</div>';
       }
       grid.innerHTML = html;
+    }
 
-      /* Click handler di-delegate ke grid container */
-      if (!grid._calBound) {
-        grid._calBound = true;
-        grid.addEventListener('click', function(e) {
-          var cell = e.target.closest('.cal-day');
-          if (!cell || cell.classList.contains('cal-empty') || cell.classList.contains('cal-other')) return;
-          var iso = cell.getAttribute('data-iso');
-          if (!iso) return;
-          _calSetShortcutActive(null);
-          if (_calPhase === 0) {
-            /* Pilih start */
-            _calPickStart = iso;
-            _calPickEnd   = null;
-            _calPhase = 1;
-          } else {
-            /* Pilih end → apply */
-            _calApplyRange(_calPickStart, iso);
-          }
+    /* Handler klik calendar — di-bind SATU KALI ke popup container, bukan ke grid */
+    function _calBindClickOnce() {
+      var popup = document.getElementById('ph-rekap-cal-popup');
+      if (!popup || popup._calClickBound) return;
+      popup._calClickBound = true;
+      popup.addEventListener('click', function(e) {
+        var cell = e.target.closest('.cal-day');
+        if (!cell || cell.classList.contains('cal-empty') || cell.classList.contains('cal-other')) return;
+        var iso = cell.getAttribute('data-iso');
+        if (!iso) return;
+        e.stopPropagation();
+        _calSetShortcutActive(null);
+        if (_calPhase === 0) {
+          /* Klik pertama: set start, tunggu klik kedua */
+          _calPickStart = iso;
+          _calPickEnd   = null;
+          _calPhase = 1;
           _calRenderGrid();
           _calUpdateHint();
-        });
-      }
+        } else {
+          /* Klik kedua: apply range, tutup popup */
+          _calPhase = 0;
+          _calApplyRange(_calPickStart, iso);
+        }
+      });
     }
 
     function initRekapPane() {
@@ -778,6 +778,9 @@
         var calPopup = document.getElementById('ph-rekap-cal-popup');
         if (!tglPill || !calPopup || tglPill._calBoundPill) return;
         tglPill._calBoundPill = true;
+
+        /* Bind click handler ke popup SATU KALI */
+        _calBindClickOnce();
 
         tglPill.addEventListener('click', function(e) {
           /* Jangan trigger jika klik di dalam popup itu sendiri */
