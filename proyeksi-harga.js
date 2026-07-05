@@ -246,7 +246,6 @@
             '<div style="display:flex;align-items:flex-end;gap:10px;">' +
               '<div id="ph-ch-badge"></div>' +
               '<div id="ph-acos-aff-global"></div>' +
-              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn" style="display:none">+ Input Data</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1116,10 +1115,10 @@
               '.ph-rv-hdr .rv-hdr-acts button{background:none;border:none;cursor:pointer;font-size:13px;padding:1px 3px;opacity:.5;border-radius:3px;}',
               '.ph-rv-hdr .rv-hdr-acts button:hover{opacity:1;background:var(--ph-panel);}',
               '.ph-rv-cell{text-align:right;font-family:var(--ph-mono);font-size:15px;padding:6px 12px;}',
-              '.ph-rv-cell .rv-both-wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;}',
-              '.ph-rv-cell .rv-both-wrap .rv-idr{text-align:left;}',
-              '.ph-rv-cell .rv-both-wrap .rv-pct{font-size:13px;color:var(--ph-faint);text-align:right;}',
-              '.ph-rv-cell.rv-empty{color:var(--ph-faint);opacity:.3;}',
+              '.ph-rv-cell .rv-both-wrap{display:flex;justify-content:space-between;align-items:center;gap:6px;width:100%;}',
+              '.ph-rv-cell .rv-both-wrap .rv-idr{text-align:right;flex:1;}',
+              '.ph-rv-cell .rv-both-wrap .rv-pct{font-size:clamp(9px,0.62vw,13px);color:var(--ph-faint);text-align:right;min-width:50px;}',
+              '.ph-rv-cell.rv-empty{color:var(--ph-faint);opacity:.3;text-align:right;}',
               '.rv-pos{color:var(--ph-ok);}',
               '.rv-neg{color:var(--ph-danger);}',
               '.rv-hl-row td{background:rgba(236,233,228,0.06);}',
@@ -1186,21 +1185,17 @@
                 var iStr = idrV != null ? fmtIdr(idrV) : '-';
                 var pStr = pctV != null ? fmtPct(pctV) : '';
                 var iCls = idrV != null ? clsIdr(idrV) : '';
-                cells += '<td class="ph-rv-cell">' +
-                  '<div class="rv-both-wrap">' +
-                  '<span class="rv-idr ' + iCls + '">' + iStr + '</span>' +
-                  (pStr ? '<span class="rv-pct">' + pStr + '</span>' : '') +
-                  '</div></td>';
+                cells += '<td class="ph-rv-cell"><div class="rv-both-wrap"><span class="rv-idr ' + iCls + '">' + iStr + '</span><span class="rv-pct">' + pStr + '</span></div></td>';
               } else if (m.unit === 'pct') {
                 var pCls = clsPct(pctV);
-                cells += '<td class="ph-rv-cell ' + pCls + '">' + (pctV != null ? fmtPct(pctV) : '-') + '</td>';
+                cells += '<td class="ph-rv-cell"><div class="rv-both-wrap"><span class="rv-idr"></span><span class="rv-pct ' + pCls + '">' + (pctV != null ? fmtPct(pctV) : '-') + '</span></div></td>';
               } else if (m.unit === 'idr') {
-                var iC2 = clsIdr(idrV, m.hl);
-                cells += '<td class="ph-rv-cell ' + iC2 + '">' + fmtIdr(idrV) + '</td>';
+                var iC2 = clsIdr(idrV);
+                cells += '<td class="ph-rv-cell"><div class="rv-both-wrap"><span class="rv-idr ' + iC2 + '">' + fmtIdr(idrV) + '</span><span class="rv-pct"></span></div></td>';
               } else if (m.unit === 'num1') {
-                cells += '<td class="ph-rv-cell">' + fmtNum(idrV, 1) + '</td>';
+                cells += '<td class="ph-rv-cell"><div class="rv-both-wrap"><span class="rv-idr">' + fmtNum(idrV, 1) + '</span><span class="rv-pct"></span></div></td>';
               } else if (m.unit === 'num2') {
-                cells += '<td class="ph-rv-cell">' + fmtNum(idrV, 2) + '</td>';
+                cells += '<td class="ph-rv-cell"><div class="rv-both-wrap"><span class="rv-idr">' + fmtNum(idrV, 2) + '</span><span class="rv-pct"></span></div></td>';
               }
             }
             bodyHtml += '<tr class="' + rowCls + '">' + cells + '</tr>';
