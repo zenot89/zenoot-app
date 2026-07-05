@@ -207,7 +207,9 @@
     /* Sembunyikan ph-hdr saat tab rekap aktif */
     '#ph-pane-rekap.ph-active ~ #ph-hdr{display:none}',
     '#page-proyeksi-harga:has(#ph-pane-rekap.ph-active) #ph-hdr{display:none}',
-    '#page-proyeksi-harga:has(#ph-pane-rekap.ph-active) #ph-main{overflow-y:hidden;}',
+    /* Sembunyikan scrollbar kanan secara visual saat rekap aktif */
+    '#page-proyeksi-harga:has(#ph-pane-rekap.ph-active) #ph-main{scrollbar-width:none;}',
+    '#page-proyeksi-harga:has(#ph-pane-rekap.ph-active) #ph-main::-webkit-scrollbar{display:none;}',
     /* rv font auto-fit: scale dengan lebar viewport */
     '#ph-pane-rekap .ph-rv-tbl{font-size:clamp(11px, 0.75vw, 15px);}',
     '#ph-pane-rekap .ph-rv-lbl{font-size:clamp(10px, 0.72vw, 14px);min-width:clamp(130px, 11vw, 190px);}',
@@ -502,11 +504,19 @@
           }
         });
       }
-      /* Tampilkan/sembunyikan ph-hdr + scroll */
+      /* Tampilkan/sembunyikan ph-hdr + sembunyikan scrollbar kanan saat rekap */
       var phHdr2  = document.getElementById('ph-hdr');
       var phMain  = document.getElementById('ph-main');
       if (phHdr2) phHdr2.style.display = key === 'rekap' ? 'none' : '';
-      if (phMain) phMain.style.overflowY = key === 'rekap' ? 'hidden' : 'auto';
+      if (phMain) {
+        if (key === 'rekap') {
+          phMain.style.scrollbarWidth = 'none';
+          phMain.style.msOverflowStyle = 'none';
+        } else {
+          phMain.style.scrollbarWidth = '';
+          phMain.style.msOverflowStyle = '';
+        }
+      }
       if (key === 'biaya') {
         renderBiayaHeaderInputs();
       }
