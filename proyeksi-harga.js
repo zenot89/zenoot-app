@@ -515,7 +515,9 @@
       { key: 'total_pendapatan',    label: 'TOTAL PENDAPATAN',    row: 1,  pct: false },
       { key: 'total_penghasilan',   label: 'TOTAL PENGHASILAN',   row: 2,  pct: false },
       { key: 'hpp',                 label: 'HPP',                 row: 3,  pct: false },
+      { key: 'operasional_idr',     label: 'OPERASIONAL',         row: 4,  pct: false },
       { key: 'operasional_persen',  label: 'OPERASIONAL',         row: 4,  pct: true  },
+      { key: 'iklan_idr',           label: 'IKLAN',               row: 5,  pct: false },
       { key: 'acos_persen',         label: 'IKLAN',               row: 5,  pct: true  },
       { key: 'rasio_admin_persen',  label: 'RASIO ADMIN',         row: 6,  pct: true  },
       { key: 'affiliate_persen',    label: 'Biaya Komisi AMS',    row: 7,  pct: true  },
@@ -544,36 +546,44 @@
     }
 
     function parseRekapBreakdown(text) {
-      // Split baris, filter baris kosong, pertahankan urutan (termasuk baris "0")
       var lines = text.split('\n').map(function(l){ return l.trim(); });
-      // Filter: buang baris benar-benar kosong, TAPI pertahankan baris "0" / "0\t0%"
       lines = lines.filter(function(l){ return l.length > 0; });
-      // Buang baris pertama kalau header "NILAI" (user kadang paste termasuk header)
       if (lines.length && lines[0].toLowerCase().replace(/\s/g,'') === 'nilai') {
         lines = lines.slice(1);
       }
 
       var result = {}, foundCount = 0;
+
+      /* Group fields by row — multiple keys bisa dari row yang sama */
+      var rowMap = {}; // row → [field, ...]
       REKAP_FIELDS.forEach(function(f) {
-        var idx = f.row - 1; // 0-based
+        if (!rowMap[f.row]) rowMap[f.row] = [];
+        rowMap[f.row].push(f);
+      });
+
+      Object.keys(rowMap).forEach(function(row) {
+        var idx = parseInt(row) - 1;
         if (idx >= lines.length) return;
         var parts = lines[idx].split('\t').map(function(p){ return p.trim(); });
-        var found = null;
-        if (f.pct) {
-          // Cari kolom yang mengandung %
-          for (var i = 0; i < parts.length; i++) {
-            var r = parseRekapCell(parts[i]);
-            if (r && r.isPct) { found = r.val; break; }
+
+        /* Parse semua parts dari baris ini sekali */
+        var idrVal = null, pctVal = null;
+        parts.forEach(function(p) {
+          var r = parseRekapCell(p);
+          if (!r) return;
+          if (r.isPct && pctVal === null) pctVal = r.val;
+          if (!r.isPct && idrVal === null) idrVal = r.val;
+        });
+
+        rowMap[row].forEach(function(f) {
+          var found = f.pct ? pctVal : idrVal;
+          if (found !== null && found !== undefined) {
+            result[f.key] = found;
+            foundCount++;
           }
-        } else {
-          // Ambil kolom pertama yang punya angka valid
-          for (var j = 0; j < parts.length; j++) {
-            var r2 = parseRekapCell(parts[j]);
-            if (r2) { found = r2.val; break; }
-          }
-        }
-        if (found !== null) { result[f.key] = found; foundCount++; }
+        });
       });
+
       return { values: result, foundCount: foundCount, totalFields: REKAP_FIELDS.length };
     }
 
@@ -972,72 +982,135 @@
       var tid = state.tokoId;
       if (!tid) { histEl.innerHTML = '<div style="color:var(--ph-faint);font-size:12px;padding:8px 0">Pilih toko dulu.</div>'; return; }
       histEl.innerHTML = '<div class="ph-loading" style="font-size:12px">Memuat data...</div>';
-      sbGet('channel_rekap', '&channel_id=eq.' + tid + '&order=periode.desc&limit=12')
+      sbGet('channel_rekap', '&channel_id=eq.' + tid + '&order=periode.asc&limit=12')
         .then(function(rows) {
           if (!rows || !rows.length) {
             histEl.innerHTML = '<div style="color:var(--ph-faint);font-size:12px;padding:8px 0">Belum ada data. Klik "+ Input Data" untuk tambah.</div>';
             return;
           }
-          function fmt(n, decimals) {
-            if (n == null) return '-';
-            return (typeof n === 'number' ? n : parseFloat(n)).toFixed(decimals != null ? decimals : 0);
-          }
+
           function fmtIdr(n) {
             if (n == null) return '-';
-            return Math.round(parseFloat(n)).toLocaleString('id-ID');
+            var v = Math.round(parseFloat(n));
+            return v < 0 ? '(' + Math.abs(v).toLocaleString('id-ID') + ')' : v.toLocaleString('id-ID');
           }
-          function fmtPeriode(r) {
-            var a = r.periode || '-';
-            var b = r.periode_akhir;
-            return b && b !== a ? a + '<br><span style="color:var(--ph-faint)">s/d ' + b + '</span>' : a;
+          function fmtPct(n, dec) {
+            if (n == null) return '-';
+            return parseFloat(n).toFixed(dec != null ? dec : 2) + '%';
           }
-          function cls(n, inverse) {
+          function fmtNum(n, dec) {
+            if (n == null) return '-';
+            return parseFloat(n).toFixed(dec != null ? dec : 2);
+          }
+          function clsVal(n, inverse) {
             if (n == null) return '';
-            var pos = inverse ? parseFloat(n) < 0 : parseFloat(n) >= 0;
-            return pos ? 'pos' : 'neg';
+            var v = parseFloat(n);
+            if (isNaN(v)) return '';
+            var isPos = inverse ? v < 0 : v >= 0;
+            return isPos ? 'rv-pos' : 'rv-neg';
+          }
+          function fmtBulan(r) {
+            var a = r.periode || '';
+            if (!a) return '?';
+            var d = new Date(a);
+            var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            return bln[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2);
           }
 
-          var hdrs =
-            '<th>Periode</th>' +
-            '<th class="num">Pendapatan</th>' +
-            '<th class="num">Penghasilan</th>' +
-            '<th class="num">HPP</th>' +
-            '<th class="num">Ops%</th>' +
-            '<th class="num">IKLAN%</th>' +
-            '<th class="num">Admin%</th>' +
-            '<th class="num">AMS%</th>' +
-            '<th class="num">AOV</th>' +
-            '<th class="num">Basket</th>' +
-            '<th class="num">ROAS</th>' +
-            '<th class="num">GPM%</th>' +
-            '<th class="num">NPM%</th>' +
-            '<th class="num">Laba/Rugi</th>' +
-            '<th class="num">NCF%</th>';
+          /* Definisi baris metrik */
+          var METRIK_ROWS = [
+            { label: 'TOTAL PENDAPATAN',  idrKey: 'total_pendapatan',   pctKey: null,                   unit: 'idr',  section: 'top' },
+            { label: 'TOTAL PENGHASILAN', idrKey: 'total_penghasilan',  pctKey: null,                   unit: 'idr',  section: 'top' },
+            { label: 'HPP',               idrKey: 'hpp',                pctKey: null,                   unit: 'idr',  section: 'top' },
+            { label: 'OPERASIONAL',       idrKey: 'operasional_idr',    pctKey: 'operasional_persen',   unit: 'both', section: 'biaya' },
+            { label: 'IKLAN',             idrKey: 'iklan_idr',          pctKey: 'acos_persen',          unit: 'both', section: 'biaya' },
+            { label: 'RASIO ADMIN',       idrKey: null,                 pctKey: 'rasio_admin_persen',   unit: 'pct',  section: 'biaya' },
+            { label: 'Biaya Komisi AMS',  idrKey: null,                 pctKey: 'affiliate_persen',     unit: 'pct',  section: 'biaya', sub: true },
+            { label: 'AOV',               idrKey: 'aov',                pctKey: null,                   unit: 'idr',  section: 'kinerja' },
+            { label: 'BASKET SIZE',       idrKey: 'basket_size',        pctKey: null,                   unit: 'num1', section: 'kinerja' },
+            { label: 'ROAS',              idrKey: 'roas',               pctKey: null,                   unit: 'num2', section: 'kinerja' },
+            { label: 'GPM',               idrKey: null,                 pctKey: 'gpm_persen',           unit: 'pct',  section: 'margin' },
+            { label: 'RASIO LABA',        idrKey: null,                 pctKey: 'npm_persen',           unit: 'pct',  section: 'margin' },
+            { label: 'LABA / RUGI',       idrKey: 'laba_rugi',         pctKey: null,                   unit: 'idr',  section: 'margin', highlight: true },
+            { label: 'NET CASH FLOW',     idrKey: null,                 pctKey: 'net_cash_flow_persen', unit: 'pct',  section: 'margin' },
+          ];
 
-          var rowsHtml = rows.map(function(r) {
-            return '<tr>' +
-              '<td style="white-space:nowrap;font-size:11px">' + fmtPeriode(r) + '</td>' +
-              '<td class="num">' + fmtIdr(r.total_pendapatan) + '</td>' +
-              '<td class="num">' + fmtIdr(r.total_penghasilan) + '</td>' +
-              '<td class="num">' + fmtIdr(r.hpp) + '</td>' +
-              '<td class="num ' + cls(r.operasional_persen) + '">' + (r.operasional_persen != null ? fmt(r.operasional_persen,1)+'%' : '-') + '</td>' +
-              '<td class="num ' + cls(r.acos_persen) + '">' + (r.acos_persen != null ? fmt(r.acos_persen,2)+'%' : '-') + '</td>' +
-              '<td class="num neg">' + (r.rasio_admin_persen != null ? fmt(r.rasio_admin_persen,1)+'%' : '-') + '</td>' +
-              '<td class="num neg">' + (r.affiliate_persen != null ? fmt(r.affiliate_persen,2)+'%' : '-') + '</td>' +
-              '<td class="num">' + (r.aov != null ? fmtIdr(r.aov) : '-') + '</td>' +
-              '<td class="num">' + (r.basket_size != null ? fmt(r.basket_size,1) : '-') + '</td>' +
-              '<td class="num">' + (r.roas != null ? fmt(r.roas,2) : '-') + '</td>' +
-              '<td class="num ' + cls(r.gpm_persen) + '">' + (r.gpm_persen != null ? fmt(r.gpm_persen,2)+'%' : '-') + '</td>' +
-              '<td class="num ' + cls(r.npm_persen) + '">' + (r.npm_persen != null ? fmt(r.npm_persen,2)+'%' : '-') + '</td>' +
-              '<td class="num ' + cls(r.laba_rugi) + '">' + (r.laba_rugi != null ? fmtIdr(r.laba_rugi) : '-') + '</td>' +
-              '<td class="num ' + cls(r.net_cash_flow_persen) + '">' + (r.net_cash_flow_persen != null ? fmt(r.net_cash_flow_persen,2)+'%' : '-') + '</td>' +
-              '</tr>';
-          }).join('');
+          /* CSS untuk tabel vertikal */
+          var styleId = 'ph-rv-style';
+          if (!document.getElementById(styleId)) {
+            var s = document.createElement('style');
+            s.id = styleId;
+            s.textContent = [
+              '.ph-rv-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px;}',
+              '.ph-rv-tbl{border-collapse:collapse;font-size:12px;min-width:500px;}',
+              '.ph-rv-tbl td,.ph-rv-tbl th{padding:5px 10px;white-space:nowrap;border-bottom:1px solid var(--ph-border-s);}',
+              '.ph-rv-tbl .rv-lbl{font-family:var(--ph-mono);font-size:11px;color:var(--ph-faint);text-align:left;min-width:130px;position:sticky;left:0;background:var(--ph-panel);z-index:1;}',
+              '.ph-rv-tbl .rv-lbl.rv-bold{color:var(--ph-text);font-weight:700;}',
+              '.ph-rv-tbl .rv-lbl.rv-sub{padding-left:22px;font-size:10.5px;}',
+              '.ph-rv-tbl .rv-lbl.rv-hl{color:var(--ph-text);font-weight:700;font-size:12px;}',
+              '.ph-rv-tbl .rv-hdr{font-family:var(--ph-mono);font-size:11px;font-weight:700;color:var(--ph-text);text-align:center;background:var(--ph-panel2);border-bottom:2px solid var(--ph-border);padding:6px 12px;}',
+              '.ph-rv-tbl .rv-hdr.rv-hdr-lbl{text-align:left;position:sticky;left:0;z-index:2;background:var(--ph-panel2);}',
+              '.ph-rv-tbl .rv-cell{text-align:right;font-family:var(--ph-mono);font-size:12px;}',
+              '.ph-rv-tbl .rv-cell-idr{color:var(--ph-text);}',
+              '.ph-rv-tbl .rv-cell-pct{color:var(--ph-faint);font-size:11px;}',
+              '.ph-rv-tbl .rv-pos{color:var(--ph-ok);}',
+              '.ph-rv-tbl .rv-neg{color:var(--ph-danger);}',
+              '.ph-rv-tbl .rv-hl-row td{background:rgba(236,233,228,0.06);}',
+              '.ph-rv-tbl .rv-sect-hdr td{background:var(--ph-panel2);font-size:9.5px;font-family:var(--ph-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ph-faint);padding:4px 10px;border-top:2px solid var(--ph-border);}',
+            ].join('');
+            document.head.appendChild(s);
+          }
+
+          /* Header row: METRIK | Bulan1 | Bulan2 | ... */
+          var hdrCells = '<th class="rv-hdr rv-hdr-lbl">METRIK</th>';
+          rows.forEach(function(r) { hdrCells += '<th class="rv-hdr">' + fmtBulan(r) + '</th>'; });
+
+          /* Section separators */
+          var sectionLabels = { top: 'PENDAPATAN', biaya: 'BIAYA', kinerja: 'KINERJA', margin: 'MARGIN & LABA' };
+          var lastSection = null;
+          var bodyHtml = '';
+
+          METRIK_ROWS.forEach(function(m) {
+            /* Section header */
+            if (m.section !== lastSection) {
+              lastSection = m.section;
+              bodyHtml += '<tr class="rv-sect-hdr"><td colspan="' + (rows.length + 1) + '">' + sectionLabels[m.section] + '</td></tr>';
+            }
+
+            var lblCls = 'rv-lbl' + (m.highlight ? ' rv-hl' : m.sub ? ' rv-sub' : m.section === 'top' ? ' rv-bold' : '');
+            var rowCls = m.highlight ? 'rv-hl-row' : '';
+
+            var cells = '<td class="' + lblCls + '">' + m.label + '</td>';
+            rows.forEach(function(r) {
+              var idr = m.idrKey ? r[m.idrKey] : null;
+              var pct = m.pctKey ? r[m.pctKey] : null;
+
+              if (m.unit === 'both') {
+                /* IDR + % dalam satu cell, dua baris */
+                var idrStr = idr != null ? fmtIdr(idr) : '-';
+                var pctStr = pct != null ? fmtPct(pct, 2) : '';
+                var idrCls = 'rv-cell rv-cell-idr ' + clsVal(idr);
+                cells += '<td class="' + idrCls + '">' + idrStr + (pctStr ? '<br><span class="rv-cell-pct">' + pctStr + '</span>' : '') + '</td>';
+              } else if (m.unit === 'pct') {
+                var c = clsVal(pct) + (m.section === 'biaya' ? ' rv-neg' : '');
+                cells += '<td class="rv-cell ' + c + '">' + fmtPct(pct, 2) + '</td>';
+              } else if (m.unit === 'idr') {
+                var c2 = clsVal(idr, m.highlight);
+                cells += '<td class="rv-cell rv-cell-idr ' + c2 + '">' + fmtIdr(idr) + '</td>';
+              } else if (m.unit === 'num1') {
+                cells += '<td class="rv-cell">' + fmtNum(idr, 1) + '</td>';
+              } else if (m.unit === 'num2') {
+                cells += '<td class="rv-cell">' + fmtNum(idr, 2) + '</td>';
+              }
+            });
+            bodyHtml += '<tr class="' + rowCls + '">' + cells + '</tr>';
+          });
 
           histEl.innerHTML =
-            '<div class="ph-panel-title" style="margin-bottom:8px">History Rekap</div>' +
-            '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' +
-            '<table class="ph-hist-tbl"><thead><tr>' + hdrs + '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+            '<div class="ph-panel-title" style="margin-bottom:6px">History Rekap</div>' +
+            '<div class="ph-rv-wrap">' +
+            '<table class="ph-rv-tbl"><thead><tr>' + hdrCells + '</tr></thead>' +
+            '<tbody>' + bodyHtml + '</tbody></table>' +
             '</div>';
         })
         .catch(function() { histEl.innerHTML = '<div style="color:var(--ph-danger);font-size:12px">Gagal load data rekap.</div>'; });
