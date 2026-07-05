@@ -1055,9 +1055,9 @@
               '.ph-rv-hdr .rv-hdr-acts button{background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;opacity:.5;border-radius:3px;}',
               '.ph-rv-hdr .rv-hdr-acts button:hover{opacity:1;background:var(--ph-panel);}',
               '.ph-rv-cell{text-align:right;font-family:var(--ph-mono);font-size:13px;padding:5px 10px;}',
-              '.ph-rv-cell.rv-both{display:flex;justify-content:space-between;align-items:center;gap:10px;}',
-              '.ph-rv-cell.rv-both .rv-idr{text-align:left;}',
-              '.ph-rv-cell.rv-both .rv-pct{font-size:11.5px;color:var(--ph-faint);text-align:right;}',
+              '.ph-rv-cell .rv-both-wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;}',
+              '.ph-rv-cell .rv-both-wrap .rv-idr{text-align:left;}',
+              '.ph-rv-cell .rv-both-wrap .rv-pct{font-size:11.5px;color:var(--ph-faint);text-align:right;}',
               '.ph-rv-cell.rv-empty{color:var(--ph-faint);opacity:.3;}',
               '.rv-pos{color:var(--ph-ok);}',
               '.rv-neg{color:var(--ph-danger);}',
@@ -1125,10 +1125,11 @@
                 var iStr = idrV != null ? fmtIdr(idrV) : '-';
                 var pStr = pctV != null ? fmtPct(pctV) : '';
                 var iCls = idrV != null ? clsIdr(idrV) : '';
-                cells += '<td class="ph-rv-cell rv-both">' +
+                cells += '<td class="ph-rv-cell">' +
+                  '<div class="rv-both-wrap">' +
                   '<span class="rv-idr ' + iCls + '">' + iStr + '</span>' +
                   (pStr ? '<span class="rv-pct">' + pStr + '</span>' : '') +
-                  '</td>';
+                  '</div></td>';
               } else if (m.unit === 'pct') {
                 var pCls = clsPct(pctV);
                 cells += '<td class="ph-rv-cell ' + pCls + '">' + (pctV != null ? fmtPct(pctV) : '-') + '</td>';
