@@ -200,8 +200,9 @@
     '#ph-rekap-history .ph-hist-tbl td.num{text-align:right;}',
     '#ph-rekap-history .ph-hist-tbl td.pos{color:var(--ph-ok);}',
     '#ph-rekap-history .ph-hist-tbl td.neg{color:var(--ph-danger);}',
-    /* Rekap topbar */
-    '.ph-rekap-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}',
+    /* Rekap topbar: year picker kiri, toko+input kanan */
+    '.ph-rekap-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:8px 2px;}',
+    '.ph-rekap-topbar-right{display:flex;align-items:center;gap:8px;}',
     '.ph-toko-sel-rekap{background:var(--ph-panel2);border:1px solid var(--ph-border);color:var(--ph-text);border-radius:6px;padding:6px 10px;font-family:var(--ph-mono);font-size:13px;cursor:pointer;min-width:130px;}',
     /* Sembunyikan ph-hdr saat tab rekap aktif */
     '#ph-pane-rekap.ph-active ~ #ph-hdr{display:none}',
@@ -213,6 +214,9 @@
     '#ph-pane-rekap .ph-rv-hdr{font-size:clamp(10px, 0.68vw, 13px);min-width:clamp(90px, 6.5vw, 130px);}',
     '#ph-pane-rekap .ph-rv-cell{font-size:clamp(11px, 0.75vw, 15px);}',
     '#ph-pane-rekap .ph-rv-cell .rv-both-wrap .rv-pct{font-size:clamp(9px, 0.62vw, 13px);}',
+    /* Garis batas kanan per kolom bulan */
+    '#ph-pane-rekap .ph-rv-tbl th:not(.rv-hdr-lbl){border-right:1px solid var(--ph-border);}',
+    '#ph-pane-rekap .ph-rv-tbl td:not(.ph-rv-lbl){border-right:1px solid var(--ph-border-s);}',
     '@media(max-width:600px){#ph-main{padding:14px 12px 48px;}#page-proyeksi-harga .ph-grid2{grid-template-columns:1fr;}#page-proyeksi-harga .ph-field-row{grid-template-columns:1fr;}}',
   ].join('\n');
 
@@ -256,11 +260,16 @@
         /* Pane: Rekap Toko */
         '<section class="ph-pane" id="ph-pane-rekap">' +
           '<div class="ph-rekap-topbar">' +
-            '<div style="display:flex;align-items:center;gap:8px;">' +
-              '<label class="ph-label" style="margin:0;white-space:nowrap">Toko</label>' +
-              '<select id="ph-toko-select-rekap" class="ph-toko-sel-rekap"></select>' +
+            '<div id="ph-rv-year-wrap" class="ph-rv-year">' +
+              '<!-- year picker dirender oleh loadRekapHistory -->' +
             '</div>' +
-            '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn">+ Input Data</button>' +
+            '<div class="ph-rekap-topbar-right">' +
+              '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<label class="ph-label" style="margin:0;white-space:nowrap">Toko</label>' +
+                '<select id="ph-toko-select-rekap" class="ph-toko-sel-rekap"></select>' +
+              '</div>' +
+              '<button class="ph-btn ph-btn-accent ph-btn-sm" id="ph-rekap-input-btn">+ Input Data</button>' +
+            '</div>' +
           '</div>' +
           '<div id="ph-rekap-history"></div>' +
         '</section>' +
@@ -1185,16 +1194,19 @@
           });
 
           histEl.innerHTML =
-            '<div class="ph-panel-title" style="margin-bottom:6px">History Rekap</div>' +
-            '<div class="ph-rv-year">' +
-              '<button id="ph-rv-prev-yr">‹</button>' +
-              '<span>' + _rekapYear + '</span>' +
-              '<button id="ph-rv-next-yr">›</button>' +
-            '</div>' +
             '<div class="ph-rv-wrap">' +
               '<table class="ph-rv-tbl"><thead><tr>' + hdrCells + '</tr></thead>' +
               '<tbody>' + bodyHtml + '</tbody></table>' +
             '</div>';
+
+          /* Year picker → render ke topbar kiri */
+          var yrWrap = document.getElementById('ph-rv-year-wrap');
+          if (yrWrap) {
+            yrWrap.innerHTML =
+              '<button id="ph-rv-prev-yr">‹</button>' +
+              '<span>' + _rekapYear + '</span>' +
+              '<button id="ph-rv-next-yr">›</button>';
+          }
 
           /* Year nav */
           document.getElementById('ph-rv-prev-yr').addEventListener('click', function() {
