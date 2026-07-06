@@ -180,18 +180,20 @@
     '#ph-rekap-cal-grid .cal-day.cal-start.cal-in-range,#ph-rekap-cal-grid .cal-day.cal-end.cal-in-range{border-radius:5px;}',
     '#ph-rekap-cal-grid .cal-day.cal-today{border-color:var(--ph-dim);}',
     /* Modal overlay */
-    '#ph-rekap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;}',
+    '#ph-rekap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;padding:16px;}',
     '#ph-rekap-modal-overlay.open{display:flex;}',
-    '#ph-rekap-modal{background:var(--ph-panel);border:2px solid var(--ph-border);border-radius:12px;width:min(420px,94vw);max-height:90vh;overflow-y:auto;padding:22px 22px 18px;}',
+    '#ph-rekap-modal{background:var(--ph-panel);border:2px solid var(--ph-border);border-radius:12px;width:min(460px,96vw);height:min(92vh,700px);display:flex;flex-direction:column;overflow:hidden;}',
+    '#ph-rekap-modal .ph-modal-scroll{flex:1;overflow-y:auto;padding:22px 22px 0;-webkit-overflow-scrolling:touch;}',
     '#ph-rekap-modal .ph-modal-title{font-family:var(--ph-display);font-size:19px;font-weight:600;margin:0 0 16px;color:var(--ph-text);letter-spacing:-.01em;}',
     '#ph-rekap-modal .ph-modal-sub{font-size:12px;color:var(--ph-faint);margin-bottom:14px;line-height:1.5;}',
     '#ph-rekap-modal .ph-modal-infos{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}',
     '#ph-rekap-modal .ph-modal-infopill{flex:1;min-width:120px;background:var(--ph-panel2);border:2px solid var(--ph-border);border-radius:8px;padding:9px 12px;text-align:center;}',
     '#ph-rekap-modal .ph-modal-infopill .pil-lbl{font-family:var(--ph-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ph-faint);margin-bottom:4px;}',
     '#ph-rekap-modal .ph-modal-infopill .pil-val{font-family:var(--ph-mono);font-size:13px;font-weight:700;color:var(--ph-text);}',
-    '#ph-rekap-modal textarea{height:180px;font-size:12.5px;width:100%;box-sizing:border-box;border-radius:8px;border:2px dashed var(--ph-border);background:var(--ph-panel2);}',
+    '#ph-rekap-modal textarea{height:150px;font-size:12.5px;width:100%;box-sizing:border-box;border-radius:8px;border:2px dashed var(--ph-border);background:var(--ph-panel2);}',
     '#ph-rekap-modal textarea:focus{border-style:solid;border-color:var(--ph-dim);}',
-    '#ph-rekap-modal .ph-modal-actions{display:flex;gap:8px;margin-top:14px;}',
+    /* Actions sticky di bawah */
+    '#ph-rekap-modal .ph-modal-actions{display:flex;gap:8px;padding:14px 22px;border-top:1px solid var(--ph-border-s);background:var(--ph-panel);flex-shrink:0;}',
     '#ph-rekap-modal .ph-modal-actions .ph-btn{flex:1;padding:11px;font-size:13.5px;border-radius:8px;border-width:2px;}',
     '#ph-rekap-history .ph-hist-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;min-width:700px;}',
     '#ph-rekap-history .ph-hist-tbl th{background:var(--ph-panel2);padding:5px 7px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ph-faint);border-bottom:1px solid var(--ph-border);}',
@@ -278,35 +280,38 @@
         /* Modal overlay — di luar panel supaya full screen */
         '<div id="ph-rekap-modal-overlay">' +
           '<div id="ph-rekap-modal">' +
-            '<div class="ph-modal-title">Input Data Rekap</div>' +
-            '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI (tanpa header).</div>' +
-            '<div class="ph-modal-infos">' +
-              '<div class="ph-modal-infopill">' +
-                '<div class="pil-lbl">Toko Aktif</div>' +
-                '<div class="pil-val" id="ph-rekap-modal-toko">—</div>' +
-              '</div>' +
-              '<div class="ph-modal-infopill ph-modal-infopill-tgl" id="ph-rekap-tgl-pill" style="cursor:pointer;position:relative">' +
-                '<div class="pil-lbl">Tanggal 📅</div>' +
-                '<div class="pil-val" id="ph-rekap-modal-tanggal">—</div>' +
-                '<div id="ph-rekap-cal-popup">' +
-                  '<div id="ph-rekap-cal-shortcuts">' +
-                    '<button data-sc="bln">Bulan Ini</button>' +
-                    '<button data-sc="blnlalu">Bulan Lalu</button>' +
-                    '<button data-sc="3bln">3 Bulan</button>' +
+            '<div class="ph-modal-scroll">' +
+              '<div class="ph-modal-title">Input Data Rekap</div>' +
+              '<div class="ph-modal-sub" id="ph-rekap-modal-sub">Paste kolom NILAI (tanpa header).</div>' +
+              '<div class="ph-modal-infos">' +
+                '<div class="ph-modal-infopill">' +
+                  '<div class="pil-lbl">Toko Aktif</div>' +
+                  '<div class="pil-val" id="ph-rekap-modal-toko">—</div>' +
+                '</div>' +
+                '<div class="ph-modal-infopill ph-modal-infopill-tgl" id="ph-rekap-tgl-pill" style="cursor:pointer;position:relative">' +
+                  '<div class="pil-lbl">Tanggal 📅</div>' +
+                  '<div class="pil-val" id="ph-rekap-modal-tanggal">—</div>' +
+                  '<div id="ph-rekap-cal-popup">' +
+                    '<div id="ph-rekap-cal-shortcuts">' +
+                      '<button data-sc="bln">Bulan Ini</button>' +
+                      '<button data-sc="blnlalu">Bulan Lalu</button>' +
+                      '<button data-sc="3bln">3 Bulan</button>' +
+                    '</div>' +
+                    '<div id="ph-rekap-cal-hint">Pilih tanggal mulai</div>' +
+                    '<div id="ph-rekap-cal-nav">' +
+                      '<button id="ph-rekap-cal-prev">‹</button>' +
+                      '<span class="cal-month-label" id="ph-rekap-cal-monthlabel"></span>' +
+                      '<button id="ph-rekap-cal-next">›</button>' +
+                    '</div>' +
+                    '<div id="ph-rekap-cal-grid"></div>' +
                   '</div>' +
-                  '<div id="ph-rekap-cal-hint">Pilih tanggal mulai</div>' +
-                  '<div id="ph-rekap-cal-nav">' +
-                    '<button id="ph-rekap-cal-prev">‹</button>' +
-                    '<span class="cal-month-label" id="ph-rekap-cal-monthlabel"></span>' +
-                    '<button id="ph-rekap-cal-next">›</button>' +
-                  '</div>' +
-                  '<div id="ph-rekap-cal-grid"></div>' +
                 '</div>' +
               '</div>' +
+              '<textarea id="ph-rekap-ta" placeholder="PASTE DATA DI SINI"></textarea>' +
+              '<div id="ph-rekap-status" style="margin-top:8px;font-size:12px"></div>' +
+              '<div id="ph-rekap-preview" style="margin-top:8px;padding-bottom:8px"></div>' +
             '</div>' +
-            '<textarea id="ph-rekap-ta" placeholder="PASTE DATA DI SINI"></textarea>' +
-            '<div id="ph-rekap-status" style="margin-top:8px;font-size:12px"></div>' +
-            '<div id="ph-rekap-preview" style="margin-top:8px"></div>' +
+            /* Actions sticky di bawah — selalu kelihatan */
             '<div class="ph-modal-actions">' +
               '<button class="ph-btn ph-btn-ghost" id="ph-rekap-cancel-btn">BATAL</button>' +
               '<button class="ph-btn ph-btn-accent" id="ph-rekap-parse-btn">PROSES</button>' +
