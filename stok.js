@@ -233,13 +233,15 @@ document.getElementById('page-stok').innerHTML = `
 
     <div id="stok-tbl-wrap"><table class="tbl">
       <thead><tr>
-        <th>Katalog</th><th>SKU Variasi</th><th>Boss</th>
+        <th>Katalog</th><th>SKU Variasi</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
+        <th>Status</th>
         <th>Aksi</th>
+        <th>Boss</th>
         <th onclick="stokToggleSort('sales')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales 7hr <span id="sort-icon-sales">⇅</span></th>
         <th onclick="stokToggleSort('sales_total')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales Total <span id="sort-icon-sales_total">⇅</span></th>
         <th>HPP</th><th onclick="stokToggleSort('nilai')" style="cursor:pointer;user-select:none;white-space:nowrap">Nilai Stok <span id="sort-icon-nilai">⇅</span></th>
-        <th>Status</th>
+        <th>Boss</th>
       </tr></thead>
       <tbody id="stok-tbody">
         <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
@@ -378,8 +380,8 @@ function renderStok(data) {
     return `<tr>
       <td>${row.katalog || '—'}</td>
       <td><b>${row.sku_variasi || '—'}</b></td>
-      <td>${row.boss || '—'}</td>
       <td style="text-align:center"><b>${row.sisa}</b></td>
+      <td>${statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
       <td>
         <button class="btn btn-sm" data-action="edit-stok" data-sku="${safeSku}" title="Edit stok masuk"><i class="ti ti-edit"></i></button>
       </td>
@@ -387,7 +389,7 @@ function renderStok(data) {
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
       <td style="color:var(--ok);font-weight:700">${nilai}</td>
-      <td>${statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
+      <td>${row.boss || '—'}</td>
     </tr>`;
   }).join('');
   // Re-render rough UI setelah data selesai
