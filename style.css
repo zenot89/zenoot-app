@@ -1152,31 +1152,31 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ─── STOK TABLE — RESPONSIVE MOBILE ────────────────────────
    Di HP (< 600px): sembunyikan kolom yang tidak penting
-   Tampilkan: SKU Variasi, Sisa, HPP, Nilai Stok, Aksi          */
+   Tampilkan: SKU Variasi(2), Sisa(3), Status(4), Sales 7hr(6), Nilai Stok(9) */
 @media (max-width: 600px) {
-  /* Sembunyikan: Katalog, Boss, Sales, Status, Kategori */
-  #stok-tbody td:nth-child(2),
-  #stok-tbody td:nth-child(3),
+  /* Sembunyikan: Katalog(1), Aksi(5), Sales Total(7), HPP(8), Boss(10) */
+  #stok-tbody td:nth-child(1),
   #stok-tbody td:nth-child(5),
+  #stok-tbody td:nth-child(7),
   #stok-tbody td:nth-child(8),
-  #stok-tbody td:nth-child(9),
-  #page-stok .tbl thead tr th:nth-child(2),
-  #page-stok .tbl thead tr th:nth-child(3),
+  #stok-tbody td:nth-child(10),
+  #page-stok .tbl thead tr th:nth-child(1),
   #page-stok .tbl thead tr th:nth-child(5),
+  #page-stok .tbl thead tr th:nth-child(7),
   #page-stok .tbl thead tr th:nth-child(8),
-  #page-stok .tbl thead tr th:nth-child(9) {
+  #page-stok .tbl thead tr th:nth-child(10) {
     display: none;
   }
 
   /* SKU kolom lebih compact */
-  #stok-tbody td:nth-child(1) {
+  #stok-tbody td:nth-child(2) {
     font-size: 11px;
-    max-width: 90px;
+    max-width: 110px;
     word-break: break-all;
   }
 
   /* Nilai stok bold */
-  #stok-tbody td:nth-child(7) {
+  #stok-tbody td:nth-child(9) {
     font-weight: 700;
   }
 }
