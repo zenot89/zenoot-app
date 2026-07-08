@@ -1168,11 +1168,41 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     display: none;
   }
 
-  /* SKU kolom lebih compact */
-  #stok-tbody td:nth-child(2) {
-    font-size: 11px;
-    max-width: 110px;
-    word-break: break-all;
+  /* SKU VARIASI — lebar supaya nama kebaca penuh */
+  #stok-tbody td:nth-child(2),
+  #page-stok .tbl thead tr th:nth-child(2) {
+    font-size: 12px;
+    min-width: 140px;
+    width: 140px;
+  }
+
+  /* SISA — compact */
+  #stok-tbody td:nth-child(3),
+  #page-stok .tbl thead tr th:nth-child(3) {
+    width: 42px;
+    min-width: 42px;
+    text-align: center;
+  }
+
+  /* STATUS — compact */
+  #stok-tbody td:nth-child(4),
+  #page-stok .tbl thead tr th:nth-child(4) {
+    width: 64px;
+    min-width: 64px;
+  }
+
+  /* SALES — compact */
+  #stok-tbody td:nth-child(6),
+  #page-stok .tbl thead tr th:nth-child(6) {
+    width: 44px;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  /* NILAI STOK — auto, sisa ruang */
+  #stok-tbody td:nth-child(9),
+  #page-stok .tbl thead tr th:nth-child(9) {
+    white-space: nowrap;
   }
 
   /* Nilai stok bold */
