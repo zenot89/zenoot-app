@@ -1179,6 +1179,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #stok-tbody td:nth-child(9) {
     font-weight: 700;
   }
+
+  /* Ganti label "Sales 7hr ⇅" jadi "Sales" di portrait — hemat tempat */
+  #page-stok .tbl thead tr th:nth-child(6) {
+    font-size: 0;
+  }
+  #page-stok .tbl thead tr th:nth-child(6)::after {
+    content: 'Sales';
+    font-size: 11px;
+  }
 }
 
 /* ─── SPLASH SCREEN ─────────────────────────────────────── */
