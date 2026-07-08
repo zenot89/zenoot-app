@@ -158,154 +158,227 @@ setTimeout(() => {
   _kasEnsureFlexLayout();
 }, 80);
 
-// Inject modals ke body
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function(){ document.body.insertAdjacentHTML('beforeend', `
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- MODAL: TAMBAH/EDIT TRANSAKSI                               -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-kas-transaksi" onclick="if(event.target===this)hideModal('modal-kas-transaksi')">
-  <div class="modal" style="max-width:520px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" id="kas-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-plus"></i> Tambah Transaksi</div>
-      <button onclick="hideModal('modal-kas-transaksi')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="kas-jrn-id">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-jrn-tgl"></div>
-      <div class="form-group" style="flex:1 1 140px;min-width:130px"><label>Tipe</label>
-        <select id="kas-jrn-tipe" onchange="kasOnTipeChange()" style="width:100%">
-          <option value="masuk">💰 Uang Masuk</option>
-          <option value="keluar">💸 Uang Keluar</option>
-          <option value="jurnal">📋 Jurnal Umum</option>
-        </select>
+// ═══════════════════════════════════════════════════════════
+// INJECT SHEETS & MODALS — BRImo-style flow (mobile) + modal edit (desktop)
+// ═══════════════════════════════════════════════════════════
+function _kasInjectSheets() {
+  if (document.getElementById('kas-brimo-overlay')) return;
+  document.body.insertAdjacentHTML('beforeend', `
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- BRIMO OVERLAY — backdrop semua sheets                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="kas-brimo-overlay" onclick="kasBrimoClose()"></div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SHEET 1: PILIH TIPE TRANSAKSI                          -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="kas-sheet-tipe" class="kas-brimo-sheet">
+  <div class="kas-brimo-handle"></div>
+  <div class="kas-brimo-sheet-title">Jenis Transaksi</div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px 24px">
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('masuk')">
+      <div class="kas-tipe-icon" style="background:rgba(62,207,110,0.15);color:#3ecf6e">💰</div>
+      <div>
+        <div class="kas-tipe-label">Uang Masuk</div>
+        <div class="kas-tipe-desc">Penerimaan kas, pembayaran piutang, pendapatan</div>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" style="cursor:pointer"></div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 160px;min-width:140px">
-        <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
-        <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
-            <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
-          </div>
-          <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
-        </div>
+      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    </button>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('keluar')">
+      <div class="kas-tipe-icon" style="background:rgba(220,53,69,0.15);color:#e05260">💸</div>
+      <div>
+        <div class="kas-tipe-label">Uang Keluar</div>
+        <div class="kas-tipe-desc">Pengeluaran kas, bayar hutang, beban operasional</div>
       </div>
-      <div class="form-group" style="flex:1 1 160px;min-width:140px">
-        <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
-        <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
-            <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
-          </div>
-          <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
-        </div>
+      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    </button>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('jurnal')">
+      <div class="kas-tipe-icon" style="background:rgba(100,149,237,0.15);color:#6495ed">📋</div>
+      <div>
+        <div class="kas-tipe-label">Jurnal Umum</div>
+        <div class="kas-tipe-desc">Penyesuaian, transfer antar akun, koreksi</div>
       </div>
+      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SHEET 2: INPUT NOMINAL (BRImo style)                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="kas-sheet-nominal" class="kas-brimo-sheet kas-sheet-nominal-full">
+  <!-- Header info konteks -->
+  <div id="kas-brimo-nominal-header">
+    <button onclick="kasBrimoBack()" class="kas-brimo-back"><i class="ti ti-arrow-left"></i></button>
+    <div id="kas-brimo-nominal-info">
+      <div id="kas-brimo-tipe-badge"></div>
+      <div class="kas-brimo-nominal-title">Masukkan Nominal</div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-jrn-ket" placeholder="mis: bayar iklan Shopee..."></div>
-      <div class="form-group kas-ref-field" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
+    <button onclick="kasBrimoClose()" class="kas-brimo-close-x">&#10005;</button>
+  </div>
+
+  <!-- Display nominal besar BRImo style -->
+  <div id="kas-brimo-display-wrap">
+    <div id="kas-brimo-display">
+      <span class="kas-brimo-rp">Rp</span>
+      <span id="kas-brimo-expr">0</span>
     </div>
-    <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
-      <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
+    <div id="kas-brimo-hint">Minimal Rp0</div>
+  </div>
+
+  <!-- History chips -->
+  <div id="kas-brimo-history"></div>
+
+  <!-- Numpad BRImo full width -->
+  <div id="kas-brimo-numpad">
+    <div class="kas-brimo-numrow">
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('1')" onclick="kasBrimoKey('1')">1</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('2')" onclick="kasBrimoKey('2')">2</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('3')" onclick="kasBrimoKey('3')">3</button>
     </div>
-    <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
-      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
+    <div class="kas-brimo-numrow">
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('4')" onclick="kasBrimoKey('4')">4</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('5')" onclick="kasBrimoKey('5')">5</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('6')" onclick="kasBrimoKey('6')">6</button>
+    </div>
+    <div class="kas-brimo-numrow">
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('7')" onclick="kasBrimoKey('7')">7</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('8')" onclick="kasBrimoKey('8')">8</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('9')" onclick="kasBrimoKey('9')">9</button>
+    </div>
+    <div class="kas-brimo-numrow">
+      <button class="kas-brimo-key kas-brimo-num kas-brimo-000" ontouchend="event.preventDefault();kasBrimoKey('000')" onclick="kasBrimoKey('000')">000</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('0')" onclick="kasBrimoKey('0')">0</button>
+      <button class="kas-brimo-key kas-brimo-del" ontouchend="event.preventDefault();kasBrimoKey('⌫')" onclick="kasBrimoKey('⌫')">
+        <i class="ti ti-backspace" style="font-size:22px"></i>
+      </button>
+    </div>
+    <div class="kas-brimo-numrow kas-brimo-action-row">
+      <button class="kas-brimo-key kas-brimo-lanjut" ontouchend="event.preventDefault();kasBrimoLanjut()" onclick="kasBrimoLanjut()">Lanjut</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: TAMBAH/EDIT AKUN -->
-<div class="modal-overlay" id="modal-kas-akun" onclick="if(event.target===this)hideModal('modal-kas-akun')">
-  <div class="modal" style="max-width:520px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" id="akun-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-plus"></i> Tambah Akun Baru</div>
-      <button onclick="hideModal('modal-kas-akun')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="akun-edit-id">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
-      <div class="form-group" style="flex:0 1 100px;min-width:90px"><label>Kode Akun</label><input type="text" id="akun-kode" placeholder="mis: 1-001"></div>
-      <div class="form-group" style="flex:1 1 160px;min-width:140px"><label>Nama Akun</label><input type="text" id="akun-nama" placeholder="mis: Kas Tunai"></div>
-      <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Kelompok</label>
-        <select id="akun-kelompok" style="width:100%">
-          <option value="aset">Aset</option>
-          <option value="kewajiban">Kewajiban</option>
-          <option value="modal">Modal</option>
-          <option value="pendapatan">Pendapatan</option>
-          <option value="beban">Beban</option>
-        </select>
-      </div>
-      <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Sub Kelompok <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="akun-sub" placeholder="mis: Kas & Bank"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="kasSimpanAkun()"><i class="ti ti-device-floppy"></i> Simpan</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-kas-akun')"><i class="ti ti-x"></i> Batal</button>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SHEET 3: DETAIL TRANSAKSI                              -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="kas-sheet-detail" class="kas-brimo-sheet">
+  <div class="kas-brimo-handle"></div>
+  <!-- Ringkasan nominal + tipe di atas -->
+  <div id="kas-brimo-detail-summary">
+    <button onclick="kasBrimoBack()" class="kas-brimo-back" style="position:static;margin-right:8px"><i class="ti ti-arrow-left"></i></button>
+    <div>
+      <div id="kas-brimo-detail-badge"></div>
+      <div id="kas-brimo-detail-nominal" style="font-size:22px;font-weight:800;letter-spacing:-0.5px;color:var(--ink)"></div>
     </div>
   </div>
+  <!-- Hidden fields state -->
+  <input type="hidden" id="kas-jrn-id">
+  <input type="hidden" id="kas-jrn-tipe">
+  <input type="hidden" id="kas-jrn-nominal">
+  <!-- Form detail -->
+  <div class="kas-brimo-detail-form">
+    <div class="kas-brimo-field">
+      <label class="kas-brimo-label">Tanggal</label>
+      <input type="date" id="kas-jrn-tgl" class="kas-brimo-input">
+    </div>
+    <div class="kas-brimo-field">
+      <label class="kas-brimo-label" id="kas-lbl-debit">Masuk ke Akun (Debit)</label>
+      <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+      <div class="kas-akun-wrap">
+        <div class="kas-akun-picker kas-brimo-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
+          <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
+      </div>
+    </div>
+    <div class="kas-brimo-field">
+      <label class="kas-brimo-label" id="kas-lbl-kredit">Sumber Dana (Kredit)</label>
+      <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+      <div class="kas-akun-wrap">
+        <div class="kas-akun-picker kas-brimo-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
+          <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
+        </div>
+        <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
+      </div>
+    </div>
+    <div class="kas-brimo-field">
+      <label class="kas-brimo-label">Keterangan</label>
+      <input type="text" id="kas-jrn-ket" class="kas-brimo-input" placeholder="mis: bayar iklan Shopee...">
+    </div>
+    <div class="kas-brimo-field kas-ref-field">
+      <label class="kas-brimo-label">No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+      <input type="text" id="kas-jrn-ref" class="kas-brimo-input" placeholder="mis: INV-001">
+    </div>
+    <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:4px;color:var(--ink2)">
+      <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
+    </div>
+  </div>
+  <!-- Sticky action bar -->
+  <div class="kas-brimo-action-bar">
+    <button class="kas-brimo-btn-batal" onclick="kasBrimoClose()"><i class="ti ti-x"></i> Batal</button>
+    <button class="kas-brimo-btn-simpan" onclick="kasSimpanJurnal()"><i class="ti ti-device-floppy"></i> Simpan</button>
+  </div>
 </div>
-`); });
-} else {
-  document.body.insertAdjacentHTML('beforeend', `
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- MODAL: TAMBAH/EDIT TRANSAKSI                               -->
-<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- MODAL: EDIT TRANSAKSI (desktop + mobile edit)         -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-kas-transaksi" onclick="if(event.target===this)hideModal('modal-kas-transaksi')">
   <div class="modal" style="max-width:520px;width:100%">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" id="kas-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-plus"></i> Tambah Transaksi</div>
+      <div class="modal-title" id="kas-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-edit"></i> Edit Transaksi</div>
       <button onclick="hideModal('modal-kas-transaksi')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
-    <input type="hidden" id="kas-jrn-id">
+    <input type="hidden" id="kas-edit-id">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-jrn-tgl"></div>
+      <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-edit-tgl"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:130px"><label>Tipe</label>
-        <select id="kas-jrn-tipe" onchange="kasOnTipeChange()" style="width:100%">
+        <select id="kas-edit-tipe" onchange="kasOnEditTipeChange()" style="width:100%">
           <option value="masuk">💰 Uang Masuk</option>
           <option value="keluar">💸 Uang Keluar</option>
           <option value="jurnal">📋 Jurnal Umum</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-jrn-nominal" placeholder="0" oninput="kasHitungJurnal()" onfocus="if(window.innerWidth<768){this.blur();kasNumpadOpen();}" style="cursor:pointer"></div>
+      <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-edit-nominal" placeholder="0" oninput="kasHitungEditJurnal()" style="cursor:pointer"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
-        <label id="kas-lbl-debit">Akun Debit (Masuk ke)</label>
-        <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <label id="kas-edit-lbl-debit">Masuk ke Akun (Debit)</label>
+        <select id="kas-edit-akun-debit" style="display:none" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
-            <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <div class="kas-akun-picker" id="picker-edit-debit" data-target="kas-edit-akun-debit" data-picker="picker-edit-debit">
+            <span id="picker-edit-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
-          <div class="kas-akun-list" id="picker-debit-list" style="display:none"></div>
+          <div class="kas-akun-list" id="picker-edit-debit-list" style="display:none"></div>
         </div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
-        <label id="kas-lbl-kredit">Akun Kredit (Keluar dari)</label>
-        <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+        <label id="kas-edit-lbl-kredit">Sumber Dana (Kredit)</label>
+        <select id="kas-edit-akun-kredit" style="display:none" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
-            <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <div class="kas-akun-picker" id="picker-edit-kredit" data-target="kas-edit-akun-kredit" data-picker="picker-edit-kredit">
+            <span id="picker-edit-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
             <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
           </div>
-          <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
+          <div class="kas-akun-list" id="picker-edit-kredit-list" style="display:none"></div>
         </div>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-jrn-ket" placeholder="mis: bayar iklan Shopee..."></div>
-      <div class="form-group kas-ref-field" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-jrn-ref" placeholder="mis: INV-001"></div>
+      <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-edit-ket" placeholder="mis: bayar iklan Shopee..."></div>
+      <div class="form-group" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-ref" placeholder="mis: INV-001"></div>
     </div>
-    <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
-      <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
+    <div id="kas-edit-preview" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
+      <b>Preview Jurnal:</b><br><span id="kas-edit-preview-text"></span>
     </div>
     <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
-      <button class="btn btn-primary btn-sm" onclick="kasSimpanJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
+      <button class="btn btn-primary btn-sm" onclick="kasUpdateJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>
   </div>
 </div>
@@ -339,6 +412,11 @@ if (document.readyState === 'loading') {
   </div>
 </div>
 `);
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _kasInjectSheets);
+} else {
+  _kasInjectSheets();
 }
 
 // ─── TAB ─────────────────────────────────────────────────────
@@ -439,10 +517,14 @@ function kasPopulateAkunDropdown(data) {
     grouped[k].forEach(a => { html += `<option value="${a.id}">${a.kode ? a.kode+' · ' : ''}${a.nama}</option>`; });
     html += '</optgroup>';
   });
-  ['kas-jrn-akun-debit','kas-jrn-akun-kredit'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
-  // Populate custom picker list
+  // Populate semua select — BRImo sheet + modal edit
+  ['kas-jrn-akun-debit','kas-jrn-akun-kredit','kas-edit-akun-debit','kas-edit-akun-kredit'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+  // Populate custom picker list — BRImo sheet
   kasPopulatePickerList('picker-debit-list', data);
   kasPopulatePickerList('picker-kredit-list', data);
+  // Populate custom picker list — modal edit
+  kasPopulatePickerList('picker-edit-debit-list', data);
+  kasPopulatePickerList('picker-edit-kredit-list', data);
 }
 
 async function kasSimpanAkun() {
@@ -484,30 +566,31 @@ async function kasHapusAkun(id, nama) {
 }
 
 // ─── FORM JURNAL ─────────────────────────────────────────────
+// Desktop: langsung buka modal edit-style. Mobile: BRImo sheet flow.
 function kasShowForm() {
-  document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Transaksi';
-  document.getElementById('kas-jrn-id').value = '';
-  (function() {
-    var now = new Date();
-    var y = now.getFullYear();
-    var m = String(now.getMonth()+1).padStart(2,'0');
-    var d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('kas-jrn-tgl').value = y+'-'+m+'-'+d;
-  })();
-  document.getElementById('kas-jrn-tipe').value = 'masuk';
-  idrSet('kas-jrn-nominal', 0);
-  document.getElementById('kas-jrn-ket').value = '';
-  document.getElementById('kas-jrn-ref').value = '';
-  document.getElementById('kas-preview-entry').style.display = 'none';
-  kasOnTipeChange();
-  showModal('modal-kas-transaksi');
-  setTimeout(function() {
-    if (window.innerWidth >= 768 && typeof idrInput === 'function') idrInput('kas-jrn-nominal');
-    if (window.innerWidth < 768) kasNumpadOpen();
-  }, 80);
+  if (window.innerWidth >= 768) {
+    // Desktop: modal klasik (reuse modal-kas-transaksi sebagai tambah)
+    document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Transaksi';
+    document.getElementById('kas-edit-id').value = '';
+    (function() {
+      var now = new Date();
+      document.getElementById('kas-edit-tgl').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    })();
+    document.getElementById('kas-edit-tipe').value = 'masuk';
+    idrSet('kas-edit-nominal', 0);
+    document.getElementById('kas-edit-ket').value = '';
+    document.getElementById('kas-edit-ref').value = '';
+    document.getElementById('kas-edit-preview').style.display = 'none';
+    kasOnEditTipeChange();
+    showModal('modal-kas-transaksi');
+    setTimeout(function() { if (typeof idrInput === 'function') idrInput('kas-edit-nominal'); }, 80);
+  } else {
+    // Mobile: BRImo flow → mulai dari Sheet 1 (pilih tipe)
+    kasBrimoShowStep('tipe');
+  }
 }
 
-function kasCancelForm() { kasNumpadClose(); hideModal('modal-kas-transaksi'); }
+function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 
 // ── Picker delegation: setup SEKALI per modal ─────────────────
 // Hindari inline ontouchstart/onmousedown yang tidak reliable di Android
@@ -533,172 +616,187 @@ function kasCancelForm() { kasNumpadClose(); hideModal('modal-kas-transaksi'); }
 })();
 
 // ═══════════════════════════════════════════════════════════
-// KAS NUMPAD — custom calculator keyboard (mobile only)
+// BRIMO FLOW — sheet-based mobile flow (Tambah Transaksi)
 // ═══════════════════════════════════════════════════════════
 (function() {
-  var _expr   = '';   // expression string mis "255000+15000"
-  var _dispParts = []; // [{val, op}] untuk display formatted
+  var _brimoExpr  = '';
+  var _brimoTipe  = 'masuk';
+  var _brimoStep  = ''; // 'tipe' | 'nominal' | 'detail'
 
-  // ── Inject DOM sekali ke body ──────────────────────────
-  function _inject() {
-    if (document.getElementById('kas-numpad-overlay')) return;
-    var el = document.createElement('div');
-    el.id = 'kas-numpad-overlay';
-    el.innerHTML = `
-<div id="kas-numpad-sheet">
-  <div id="kas-numpad-display">
-    <span class="numpad-currency">Rp</span>
-    <span class="numpad-expr" id="kas-numpad-expr">0</span>
-  </div>
-  <div id="kas-numpad-history"></div>
-  <div id="kas-numpad-grid">
-    <button class="numpad-btn btn-clear" ontouchend="event.preventDefault();kasNumpadKey('C')" onclick="kasNumpadKey('C')">C</button>
-    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('÷')" onclick="kasNumpadKey('÷')">÷</button>
-    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('×')" onclick="kasNumpadKey('×')">×</button>
-    <button class="numpad-btn op-del"    ontouchend="event.preventDefault();kasNumpadKey('⌫')" onclick="kasNumpadKey('⌫')">⌫</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('7')" onclick="kasNumpadKey('7')">7</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('8')" onclick="kasNumpadKey('8')">8</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('9')" onclick="kasNumpadKey('9')">9</button>
-    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('−')" onclick="kasNumpadKey('−')">−</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('4')" onclick="kasNumpadKey('4')">4</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('5')" onclick="kasNumpadKey('5')">5</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('6')" onclick="kasNumpadKey('6')">6</button>
-    <button class="numpad-btn op"        ontouchend="event.preventDefault();kasNumpadKey('+')" onclick="kasNumpadKey('+')">+</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('1')" onclick="kasNumpadKey('1')">1</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('2')" onclick="kasNumpadKey('2')">2</button>
-    <button class="numpad-btn"           ontouchend="event.preventDefault();kasNumpadKey('3')" onclick="kasNumpadKey('3')">3</button>
-    <button class="numpad-btn btn-selesai" ontouchend="event.preventDefault();kasNumpadSelesai()" onclick="kasNumpadSelesai()">SELESAI</button>
-    <button class="numpad-btn btn-zero"  ontouchend="event.preventDefault();kasNumpadKey('0')" onclick="kasNumpadKey('0')">0</button>
-    <button class="numpad-btn btn-000"   ontouchend="event.preventDefault();kasNumpadKey('000')" onclick="kasNumpadKey('000')">000</button>
-    <button class="numpad-btn btn-000"   ontouchend="event.preventDefault();kasNumpadKey('00')" onclick="kasNumpadKey('00')">00</button>
-  </div>
-</div>`;
-    // Tap backdrop → tutup
-    el.addEventListener('touchstart', function(e) {
-      if (e.target === el) kasNumpadClose();
-    }, { passive: true });
-    el.addEventListener('mousedown', function(e) {
-      if (e.target === el) kasNumpadClose();
+  // ── Buka overlay + sheet tertentu ─────────────────────
+  window.kasBrimoShowStep = function(step) {
+    _kasInjectSheets();
+    _brimoStep = step;
+    var overlay = document.getElementById('kas-brimo-overlay');
+    ['tipe','nominal','detail'].forEach(function(s) {
+      var el = document.getElementById('kas-sheet-' + s);
+      if (el) el.classList.remove('open');
     });
-    document.body.appendChild(el);
-  }
-
-  // ── Update display ─────────────────────────────────────
-  function _updateDisplay() {
-    var disp = document.getElementById('kas-numpad-expr');
-    if (!disp) return;
-    if (!_expr) { disp.textContent = '0'; disp.classList.remove('has-op'); return; }
-    // Format: pisah angka dan operator
-    // Parse expr jadi tokens untuk display
-    var tokens = _expr.split(/([\+\-\*\/])/).filter(Boolean);
-    var formatted = tokens.map(function(t) {
-      if (/[\+\-\*\/]/.test(t)) {
-        var op = t === '+' ? '+' : t === '-' ? '−' : t === '*' ? '×' : '÷';
-        return ' ' + op + ' ';
-      }
-      var n = parseInt(t, 10);
-      return isNaN(n) ? t : n.toLocaleString('id-ID');
-    }).join('');
-    disp.textContent = formatted || '0';
-    disp.classList.toggle('has-op', _expr.search(/[\+\-\*\/]/) >= 0);
-  }
-
-  // ── Key handler ────────────────────────────────────────
-  window.kasNumpadKey = function(k) {
-    var lastChar = _expr.slice(-1);
-    var isOp = function(c) { return /[\+\-\*\/]/.test(c); };
-
-    if (k === 'C') {
-      _expr = '';
-    } else if (k === '⌫') {
-      // Hapus karakter terakhir
-      _expr = _expr.slice(0, -1);
-    } else if (k === '+' || k === '−' || k === '×' || k === '÷') {
-      if (!_expr) return;
-      var opChar = k === '+' ? '+' : k === '−' ? '-' : k === '×' ? '*' : '/';
-      // Ganti operator terakhir jika sudah ada
-      if (isOp(lastChar)) {
-        _expr = _expr.slice(0, -1) + opChar;
-      } else {
-        _expr += opChar;
-      }
-    } else {
-      // Angka / 000 / 00
-      var digits = k; // '0'-'9', '000', '00'
-      // Jangan awali expression dengan multi-zero
-      if (!_expr && (digits === '000' || digits === '00')) digits = '0';
-      // Jangan lebih dari 12 digit per segmen
-      var segments = _expr.split(/[\+\-\*\/]/);
-      var lastSeg = segments[segments.length - 1];
-      if (lastSeg.length >= 12) return;
-      _expr += digits;
-    }
-    _updateDisplay();
-  };
-
-  // ── Selesai: eval dan tulis ke input ──────────────────
-  window.kasNumpadSelesai = function() {
-    var result = 0;
-    if (_expr) {
-      try {
-        // Evaluasi expression (hanya angka dan +-*/)
-        var safe = _expr.replace(/[^0-9\+\-\*\/]/g, '');
-        result = Math.round(Function('"use strict";return (' + safe + ')')());
-        if (!isFinite(result) || isNaN(result) || result < 0) result = 0;
-      } catch(e) { result = 0; }
-    }
-    idrSet('kas-jrn-nominal', result);
-    kasHitungJurnal();
-    kasNumpadClose();
-  };
-
-  // ── Chip history tap ──────────────────────────────────
-  window.kasNumpadChipTap = function(val) {
-    _expr = String(val);
-    _updateDisplay();
-  };
-
-  // ── Buka numpad ───────────────────────────────────────
-  window.kasNumpadOpen = function() {
-    if (window.innerWidth >= 768) return; // laptop: skip
-    _inject();
-    // Isi dari nilai input saat ini
-    var cur = idrVal('kas-jrn-nominal');
-    _expr = cur > 0 ? String(cur) : '';
-    _updateDisplay();
-    // History chips: 5 nominal unik terakhir dari _kasJurnalAll
-    var hist = document.getElementById('kas-numpad-history');
-    if (hist) {
-      var seen = [], chips = [];
-      var list = (_kasJurnalAll || []).slice().reverse();
-      for (var i = 0; i < list.length && chips.length < 3; i++) {
-        var v = list[i].nominal || list[i].debit || 0;
-        if (v > 0 && seen.indexOf(v) < 0) { seen.push(v); chips.push(v); }
-      }
-      hist.innerHTML = chips.length
-        ? chips.map(function(v) {
-            return '<button class="numpad-chip" ontouchend="event.preventDefault();kasNumpadChipTap(' + v + ')" onclick="kasNumpadChipTap(' + v + ')">'
-              + v.toLocaleString('id-ID') + '</button>';
-          }).join('')
-        : '';
-    }
-    var overlay = document.getElementById('kas-numpad-overlay');
-    var sheet   = document.getElementById('kas-numpad-sheet');
-    overlay.classList.add('open');
-    // Slight delay biar transition jalan
+    if (overlay) overlay.classList.add('open');
     requestAnimationFrame(function() {
-      requestAnimationFrame(function() { sheet.classList.add('open'); });
+      requestAnimationFrame(function() {
+        var el = document.getElementById('kas-sheet-' + step);
+        if (el) el.classList.add('open');
+        if (step === 'nominal') _brimoUpdateDisplay();
+        if (step === 'nominal') _brimoLoadHistory();
+      });
     });
   };
 
-  // ── Tutup numpad ──────────────────────────────────────
-  window.kasNumpadClose = function() {
-    var overlay = document.getElementById('kas-numpad-overlay');
-    var sheet   = document.getElementById('kas-numpad-sheet');
-    if (!overlay) return;
-    sheet.classList.remove('open');
-    setTimeout(function() { overlay.classList.remove('open'); }, 230);
+  // ── Pilih tipe → ke nominal ────────────────────────────
+  window.kasBrimoSelectTipe = function(tipe) {
+    _brimoTipe = tipe;
+    _brimoExpr = '';
+    var badge = document.getElementById('kas-brimo-tipe-badge');
+    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed' };
+    if (badge) {
+      badge.textContent = labels[tipe] || tipe;
+      badge.style.color = colors[tipe] || 'var(--ink2)';
+      badge.style.fontWeight = '700';
+      badge.style.fontSize = '13px';
+    }
+    var sTipe = document.getElementById('kas-sheet-tipe');
+    if (sTipe) sTipe.classList.remove('open');
+    setTimeout(function() { kasBrimoShowStep('nominal'); }, 180);
   };
+
+  // ── Tombol Lanjut dari nominal → detail ───────────────
+  window.kasBrimoLanjut = function() {
+    var result = _brimoEval();
+    if (!result || result <= 0) {
+      var expr = document.getElementById('kas-brimo-expr');
+      if (expr) { expr.style.color = '#e05260'; setTimeout(function(){ expr.style.color = ''; }, 600); }
+      return;
+    }
+    document.getElementById('kas-jrn-nominal').value = result;
+    document.getElementById('kas-jrn-tipe').value = _brimoTipe;
+    var tglEl = document.getElementById('kas-jrn-tgl');
+    if (tglEl && !tglEl.value) {
+      var now = new Date();
+      tglEl.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    }
+    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed' };
+    var db = document.getElementById('kas-brimo-detail-badge');
+    if (db) { db.textContent = labels[_brimoTipe]; db.style.color = colors[_brimoTipe]; db.style.fontWeight='700'; db.style.fontSize='12px'; }
+    var dn = document.getElementById('kas-brimo-detail-nominal');
+    if (dn) dn.textContent = 'Rp' + result.toLocaleString('id-ID');
+    kasOnTipeChange();
+    ['picker-debit','picker-kredit'].forEach(function(pid) {
+      var lbl = document.getElementById(pid+'-label');
+      if (lbl) { lbl.textContent = '\u2014 Pilih Akun \u2014'; lbl.style.color = 'var(--ink3)'; }
+    });
+    var selD = document.getElementById('kas-jrn-akun-debit');
+    var selK = document.getElementById('kas-jrn-akun-kredit');
+    if (selD) selD.value = '';
+    if (selK) selK.value = '';
+    var prev = document.getElementById('kas-preview-entry');
+    if (prev) prev.style.display = 'none';
+    // Reset keterangan & ref
+    var ketEl = document.getElementById('kas-jrn-ket');
+    var refEl = document.getElementById('kas-jrn-ref');
+    if (ketEl) ketEl.value = '';
+    if (refEl) refEl.value = '';
+    var sNom = document.getElementById('kas-sheet-nominal');
+    if (sNom) sNom.classList.remove('open');
+    setTimeout(function() { kasBrimoShowStep('detail'); }, 200);
+  };
+
+  // ── Tombol Back ────────────────────────────────────────
+  window.kasBrimoBack = function() {
+    if (_brimoStep === 'nominal') {
+      var sNom = document.getElementById('kas-sheet-nominal');
+      if (sNom) sNom.classList.remove('open');
+      setTimeout(function() { kasBrimoShowStep('tipe'); }, 180);
+    } else if (_brimoStep === 'detail') {
+      var sDet = document.getElementById('kas-sheet-detail');
+      if (sDet) sDet.classList.remove('open');
+      setTimeout(function() { kasBrimoShowStep('nominal'); }, 180);
+    }
+  };
+
+  // ── Tutup semua sheets ─────────────────────────────────
+  window.kasBrimoClose = function() {
+    var overlay = document.getElementById('kas-brimo-overlay');
+    ['tipe','nominal','detail'].forEach(function(s) {
+      var el = document.getElementById('kas-sheet-' + s);
+      if (el) el.classList.remove('open');
+    });
+    setTimeout(function() {
+      if (overlay) overlay.classList.remove('open');
+    }, 260);
+    _brimoStep = '';
+    _brimoExpr = '';
+  };
+
+  // ── Key handler numpad BRImo ───────────────────────────
+  window.kasBrimoKey = function(k) {
+    if (k === '\u232B') {
+      _brimoExpr = _brimoExpr.slice(0, -1);
+    } else if (k === '000') {
+      if (!_brimoExpr || _brimoExpr === '0') return;
+      if (_brimoExpr.length >= 12) return;
+      _brimoExpr += k;
+    } else {
+      if (!_brimoExpr && k === '0') { _brimoExpr = '0'; }
+      else if (_brimoExpr === '0' && k !== '0') { _brimoExpr = k; }
+      else {
+        if (_brimoExpr.length >= 13) return;
+        _brimoExpr += k;
+      }
+    }
+    _brimoUpdateDisplay();
+  };
+
+  function _brimoEval() {
+    if (!_brimoExpr || _brimoExpr === '0') return 0;
+    var n = parseInt(_brimoExpr.replace(/[^0-9]/g, ''), 10);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function _brimoUpdateDisplay() {
+    var el = document.getElementById('kas-brimo-expr');
+    if (!el) return;
+    if (!_brimoExpr || _brimoExpr === '0') {
+      el.textContent = '0';
+      el.style.fontSize = '';
+      return;
+    }
+    var n = parseInt(_brimoExpr, 10);
+    var formatted = isNaN(n) ? _brimoExpr : n.toLocaleString('id-ID');
+    el.textContent = formatted;
+    var len = formatted.length;
+    el.style.fontSize = len > 14 ? '28px' : len > 10 ? '36px' : '44px';
+  }
+
+  function _brimoLoadHistory() {
+    var hist = document.getElementById('kas-brimo-history');
+    if (!hist) return;
+    var seen = [], chips = [];
+    var list = (window._kasJurnalAll || []).slice().reverse();
+    for (var i = 0; i < list.length && chips.length < 5; i++) {
+      var v = list[i].nominal || list[i].debit || 0;
+      if (v > 0 && seen.indexOf(v) < 0) { seen.push(v); chips.push(v); }
+    }
+    hist.innerHTML = chips.length
+      ? '<div class="kas-brimo-hist-label">Terakhir</div>' + chips.map(function(v) {
+          return '<button class="kas-brimo-hist-chip" ontouchend="event.preventDefault();kasBrimoChipTap('+v+')" onclick="kasBrimoChipTap('+v+')">'
+            + 'Rp' + v.toLocaleString('id-ID') + '</button>';
+        }).join('')
+      : '';
+  }
+
+  window.kasBrimoChipTap = function(val) {
+    _brimoExpr = String(val);
+    _brimoUpdateDisplay();
+  };
+
+  // Compat shims
+  window.kasNumpadOpen  = function() { kasBrimoShowStep('nominal'); };
+  window.kasNumpadClose = function() { kasBrimoClose(); };
+  window.kasNumpadKey   = function() {};
+  window.kasNumpadChipTap = window.kasBrimoChipTap;
 
 })();
 
@@ -713,12 +811,15 @@ function kasOnTipeChange() {
 }
 
 function kasHitungJurnal() {
-  const nominal = idrVal('kas-jrn-nominal');
+  // nominal dari hidden field (BRImo flow simpan di sini)
+  var nomEl = document.getElementById('kas-jrn-nominal');
+  const nominal = nomEl ? parseInt(nomEl.value, 10) || 0 : 0;
   const akunDId = document.getElementById('kas-jrn-akun-debit').value;
   const akunKId = document.getElementById('kas-jrn-akun-kredit').value;
   const akunD   = _kasAkunMap[akunDId];
   const akunK   = _kasAkunMap[akunKId];
   const preview = document.getElementById('kas-preview-entry');
+  if (!preview) return;
   if (!nominal || !akunD || !akunK) { preview.style.display = 'none'; return; }
   const fmtRp = v => fmtRpFull(v);
   document.getElementById('kas-preview-text').innerHTML =
@@ -728,8 +829,9 @@ function kasHitungJurnal() {
 }
 
 async function kasSimpanJurnal() {
-  const id      = document.getElementById('kas-jrn-id').value;
-  const nominal = idrVal('kas-jrn-nominal');
+  // Baca dari sheet detail (BRImo) — nominal dari hidden input
+  var nomEl = document.getElementById('kas-jrn-nominal');
+  const nominal = nomEl ? parseInt(nomEl.value, 10) || 0 : 0;
   const akunDId = document.getElementById('kas-jrn-akun-debit').value;
   const akunKId = document.getElementById('kas-jrn-akun-kredit').value;
   const tgl     = document.getElementById('kas-jrn-tgl').value;
@@ -740,8 +842,8 @@ async function kasSimpanJurnal() {
   if (akunDId===akunKId){ alert('Akun Debit dan Kredit tidak boleh sama!'); return; }
   const data = {
     tanggal:        tgl,
-    keterangan:     document.getElementById('kas-jrn-ket').value.trim(),
-    referensi:      document.getElementById('kas-jrn-ref').value.trim() || null,
+    keterangan:     (document.getElementById('kas-jrn-ket').value||'').trim(),
+    referensi:      (document.getElementById('kas-jrn-ref').value||'').trim() || null,
     tipe:           document.getElementById('kas-jrn-tipe').value,
     akun_debit_id:  akunDId,
     akun_kredit_id: akunKId,
@@ -750,8 +852,66 @@ async function kasSimpanJurnal() {
     kredit:         nominal,
   };
   try {
+    await dbInsert('jurnal', data);
+    kasBrimoClose();
+    loadKasJurnal();
+  } catch(e) { alert('Gagal simpan: ' + e.message); }
+}
+
+// ── MODAL EDIT (gunakan field kas-edit-*) ──────────────────
+function kasOnEditTipeChange() {
+  const tipe = document.getElementById('kas-edit-tipe').value;
+  const lblD = document.getElementById('kas-edit-lbl-debit');
+  const lblK = document.getElementById('kas-edit-lbl-kredit');
+  if (!lblD || !lblK) return;
+  if (tipe === 'masuk')  { lblD.textContent = 'Masuk ke Akun (Debit)';  lblK.textContent = 'Sumber Dana (Kredit)'; }
+  else if (tipe === 'keluar') { lblD.textContent = 'Beban / Tujuan (Debit)'; lblK.textContent = 'Keluar dari Akun (Kredit)'; }
+  else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
+  kasHitungEditJurnal();
+}
+
+function kasHitungEditJurnal() {
+  const nominal = idrVal('kas-edit-nominal');
+  const akunDId = document.getElementById('kas-edit-akun-debit').value;
+  const akunKId = document.getElementById('kas-edit-akun-kredit').value;
+  const akunD   = _kasAkunMap[akunDId];
+  const akunK   = _kasAkunMap[akunKId];
+  const preview = document.getElementById('kas-edit-preview');
+  if (!preview) return;
+  if (!nominal || !akunD || !akunK) { preview.style.display = 'none'; return; }
+  const fmtRp = v => fmtRpFull(v);
+  document.getElementById('kas-edit-preview-text').innerHTML =
+    `<b>Debit</b>  : ${akunD.kode ? akunD.kode+' ' : ''}${akunD.nama} &nbsp; ${fmtRp(nominal)}<br>` +
+    `<b>Kredit</b> : ${akunK.kode ? akunK.kode+' ' : ''}${akunK.nama} &nbsp; ${fmtRp(nominal)}`;
+  preview.style.display = 'block';
+}
+
+async function kasUpdateJurnal() {
+  const id      = document.getElementById('kas-edit-id').value;
+  const nominal = idrVal('kas-edit-nominal');
+  const akunDId = document.getElementById('kas-edit-akun-debit').value;
+  const akunKId = document.getElementById('kas-edit-akun-kredit').value;
+  const tgl     = document.getElementById('kas-edit-tgl').value;
+  if (!tgl)             { alert('Tanggal wajib diisi!'); return; }
+  if (!nominal)         { alert('Nominal wajib diisi!'); return; }
+  if (!akunDId)         { alert('Akun Debit wajib dipilih!'); return; }
+  if (!akunKId)         { alert('Akun Kredit wajib dipilih!'); return; }
+  if (akunDId===akunKId){ alert('Akun Debit dan Kredit tidak boleh sama!'); return; }
+  const data = {
+    tanggal:        tgl,
+    keterangan:     document.getElementById('kas-edit-ket').value.trim(),
+    referensi:      document.getElementById('kas-edit-ref').value.trim() || null,
+    tipe:           document.getElementById('kas-edit-tipe').value,
+    akun_debit_id:  akunDId,
+    akun_kredit_id: akunKId,
+    nominal:        nominal,
+    debit:          nominal,
+    kredit:         nominal,
+  };
+  try {
     if (id) { await dbUpdate('jurnal', id, data); } else { await dbInsert('jurnal', data); }
-    kasCancelForm(); loadKasJurnal();
+    hideModal('modal-kas-transaksi');
+    loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
 }
 
@@ -899,22 +1059,22 @@ function kasUpdateSummary(data) {
 async function kasEditJurnal(id) {
   const r = _kasJurnalAll.find(x => String(x.id) === String(id)); if (!r) return;
   document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Transaksi';
-  document.getElementById('kas-jrn-id').value      = r.id;
-  document.getElementById('kas-jrn-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
-  document.getElementById('kas-jrn-tipe').value    = r.tipe || 'masuk';
-  idrSet('kas-jrn-nominal', r.nominal || r.debit || 0);
+  document.getElementById('kas-edit-id').value      = r.id;
+  document.getElementById('kas-edit-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
+  document.getElementById('kas-edit-tipe').value    = r.tipe || 'masuk';
+  idrSet('kas-edit-nominal', r.nominal || r.debit || 0);
   setTimeout(function() {
-    if (window.innerWidth >= 768 && typeof idrInput === 'function') idrInput('kas-jrn-nominal');
+    if (typeof idrInput === 'function') idrInput('kas-edit-nominal');
   }, 50);
-  document.getElementById('kas-jrn-ket').value     = r.keterangan || '';
-  document.getElementById('kas-jrn-ref').value     = r.referensi || '';
-  kasOnTipeChange();
+  document.getElementById('kas-edit-ket').value     = r.keterangan || '';
+  document.getElementById('kas-edit-ref').value     = r.referensi || '';
+  kasOnEditTipeChange();
   setTimeout(() => {
-    document.getElementById('kas-jrn-akun-debit').value  = r.akun_debit_id  || '';
-    document.getElementById('kas-jrn-akun-kredit').value = r.akun_kredit_id || '';
-    kasSyncPickerLabel('picker-debit',  'kas-jrn-akun-debit');
-    kasSyncPickerLabel('picker-kredit', 'kas-jrn-akun-kredit');
-    kasHitungJurnal();
+    document.getElementById('kas-edit-akun-debit').value  = r.akun_debit_id  || '';
+    document.getElementById('kas-edit-akun-kredit').value = r.akun_kredit_id || '';
+    kasSyncPickerLabel('picker-edit-debit',  'kas-edit-akun-debit');
+    kasSyncPickerLabel('picker-edit-kredit', 'kas-edit-akun-kredit');
+    kasHitungEditJurnal();
   }, 50);
   showModal('modal-kas-transaksi');
 }
@@ -1508,9 +1668,9 @@ if (_kasOrigShowModal) {
     if (id === 'modal-kas-transaksi') {
       // Cek apakah form baru (bukan edit)
       setTimeout(function() {
-        var kasId = document.getElementById('kas-jrn-id');
+        var kasId = document.getElementById('kas-edit-id');
         if (kasId && !kasId.value) {
-          ['picker-debit','picker-kredit'].forEach(function(pid) {
+          ['picker-edit-debit','picker-edit-kredit'].forEach(function(pid) {
             var lbl = document.getElementById(pid + '-label');
             if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
             var list = document.getElementById(pid + '-list');
