@@ -3450,7 +3450,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Display nominal besar */
 #kas-brimo-display-wrap {
-  padding: 16px 20px 6px;
+  padding: 10px 20px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
 }
@@ -3466,7 +3466,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 #kas-brimo-expr {
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -2px;
@@ -3485,7 +3485,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 16px 4px;
+  padding: 4px 16px 2px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -3528,7 +3528,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 6px;
   flex: 1;
-  min-height: 0;
+  min-height: 62px;
   margin-bottom: 6px;
 }
 .kas-brimo-key {
@@ -3537,7 +3537,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   border: none;
   border-radius: 12px;
   height: auto;
-  min-height: 44px;
+  min-height: 62px;
   font-size: 22px;
   font-weight: 600;
   color: var(--ink);
