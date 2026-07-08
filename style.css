@@ -3399,13 +3399,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-size: 16px;
 }
 
-/* ── Sheet 2: Nominal full BRImo ── */
+/* ── Sheet 2: Nominal — bottom sheet, bukan fullscreen ── */
 .kas-sheet-nominal-full {
-  border-radius: 0;
-  top: 0;
-  height: 100dvh;
-  height: 100vh; /* fallback */
-  max-height: 100dvh;
+  border-radius: 20px 20px 0 0;
+  top: auto;
+  height: auto;
+  max-height: 88vh;
+  max-height: 88dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -3416,8 +3416,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px 8px;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding: 14px 16px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
 }
@@ -3448,9 +3447,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Display nominal besar */
+/* Display nominal */
 #kas-brimo-display-wrap {
-  padding: 10px 20px 4px;
+  padding: 14px 20px 6px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
 }
@@ -3466,7 +3465,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
 }
 #kas-brimo-expr {
-  font-size: 36px;
+  font-size: 38px;
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -2px;
@@ -3485,12 +3484,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 16px 2px;
+  padding: 6px 16px 4px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   flex-shrink: 0;
-  min-height: 0;
 }
 #kas-brimo-history::-webkit-scrollbar { display: none; }
 .kas-brimo-hist-label {
@@ -3515,20 +3513,17 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 .kas-brimo-hist-chip:active { background: #3a3a3a; }
 
-/* Numpad BRImo — proporsional, tidak fixed height */
+/* Numpad BRImo — tinggi key fixed seperti BRImo asli */
 #kas-brimo-numpad {
-  flex: 1;
-  padding: 6px 10px env(safe-area-inset-bottom, 10px);
+  flex-shrink: 0;
+  padding: 8px 10px env(safe-area-inset-bottom, 12px);
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-height: 0;
 }
 .kas-brimo-numrow {
   display: flex;
   gap: 6px;
-  flex: 1;
-  min-height: 62px;
   margin-bottom: 6px;
 }
 .kas-brimo-key {
@@ -3536,8 +3531,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: #242424;
   border: none;
   border-radius: 12px;
-  height: auto;
-  min-height: 62px;
+  height: 56px;
   font-size: 22px;
   font-weight: 600;
   color: var(--ink);
@@ -3560,7 +3554,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--danger);
 }
 .kas-brimo-del:active { background: #3a2a2a; }
-.kas-brimo-action-row { margin-top: 2px; flex: 0 0 auto; margin-bottom: 0; }
+.kas-brimo-action-row { margin-bottom: 0; }
 .kas-brimo-lanjut {
   background: linear-gradient(135deg, #1a6ee0 0%, #1254b8 100%);
   color: #fff;
@@ -3568,7 +3562,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-weight: 700;
   border-radius: 12px;
   height: 50px;
-  min-height: 50px;
   letter-spacing: 0.2px;
 }
 .kas-brimo-lanjut:active {
