@@ -123,6 +123,7 @@ document.getElementById('page-stok').innerHTML = `
         style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none"
         placeholder="Paste di sini..."></textarea>
       <div id="paste-stok-preview" style="margin-top:10px;display:none">
+        <div id="paste-stok-scope-notif" style="display:none;background:rgba(255,180,0,0.1);border:1.5px solid #c8a000;border-radius:6px;padding:8px 12px;font-size:12px;color:#c8a000;margin-bottom:8px;line-height:1.6"></div>
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="paste-stok-count"></div>
         <div class="tbl-wrap" style="max-height:140px;overflow-y:auto">
           <table class="tbl"><thead><tr><th>SKU Variasi</th><th id="paste-stok-col-header">Stok Masuk</th></tr></thead>
@@ -914,12 +915,14 @@ function stokSetPasteMode(mode) {
   } else {
     btnS.style.background = 'var(--ink)';   btnS.style.color = 'var(--cream)';
     btnT.style.background = 'var(--cream)'; btnT.style.color = 'var(--ink)';
-    if (desc) desc.innerHTML = 'Masukkan <b>sisa stok aktual</b> sekarang.<br>Urutan kolom: <b>SKU Variasi → Sisa Aktual</b>. Kolom kosong / SKU tidak ada di paste = <b>sisa jadi 0</b>.';
+    if (desc) desc.innerHTML = 'Format: <b>Nama SKU Induk</b> (tanpa qty) sebagai header grup, lalu varian di bawahnya.<br>Contoh: <code>TURTLENECK</code> → baris header, <code>Turtleneck_HITAM-M &nbsp; 5</code> → varian.<br>Varian tidak ada di paste = sisa jadi <b>0</b>. SKU Induk lain <b>tidak disentuh</b>.';
     if (colH) colH.textContent = 'Sisa Aktual';
   }
   // Reset preview kalau mode berubah
   document.getElementById('paste-stok-preview').style.display = 'none';
   document.getElementById('btn-simpan-paste-stok').style.display = 'none';
+  var sn = document.getElementById('paste-stok-scope-notif');
+  if (sn) { sn.style.display = 'none'; sn.innerHTML = ''; }
   _parsedStok = [];
 }
 
@@ -941,29 +944,80 @@ function parsePasteStok() {
 
   _parsedStok = [];
   const lines = raw.split('\n');
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const cols = line.split('\t').map(c => c.trim());
-    const sku = (cols[0] || '').toUpperCase();
-    if (!sku) continue;
-    const qty = parseInt((cols[1] || '').replace(/[^0-9]/g, '')) || 0;
-    // Mode penyesuaian: qty kosong = 0, tetap dimasukkan
-    // Mode tambah: skip kalau kolom ke-2 tidak ada
-    if (_pasteStokMode === 'tambah' && cols.length < 2) continue;
-    _parsedStok.push({ sku_variasi: sku, qty: qty });
+
+  if (_pasteStokMode === 'penyesuaian') {
+    // ── Mode Penyesuaian: deteksi header SKU Induk ───────────
+    // Header = baris yang kolom-2 kosong DAN nama match katalog di sistem
+    const katalogSet = new Set(
+      _produkForStok.map(p => (p.katalog || '').toUpperCase())
+    );
+
+    let currentKatalog = null;
+    const scopeKatalogs = []; // daftar SKU Induk yang terdeteksi
+    const pasteMap = {};      // SKU_VARIASI → qty
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const cols = line.split('\t').map(c => c.trim());
+      const col0 = (cols[0] || '').toUpperCase();
+      const col1 = (cols[1] || '').replace(/[^0-9]/g, '');
+      if (!col0) continue;
+
+      // Deteksi header: kolom-2 kosong DAN match katalog sistem
+      if (!col1 && katalogSet.has(col0)) {
+        currentKatalog = col0;
+        if (!scopeKatalogs.includes(col0)) scopeKatalogs.push(col0);
+        continue;
+      }
+
+      // Baris variasi — hanya masuk kalau ada SKU Induk aktif
+      if (currentKatalog) {
+        const qty = parseInt(col1) || 0;
+        pasteMap[col0] = qty;
+        _parsedStok.push({ sku_variasi: col0, qty, katalog: currentKatalog });
+      }
+    }
+
+    if (scopeKatalogs.length === 0) {
+      alert('Tidak ada SKU Induk yang terdeteksi.\nPastikan nama katalog di baris pertama setiap grup sesuai dengan data sistem (kolom qty-nya kosong).');
+      return;
+    }
+
+    // Notif scope di preview
+    const scopeNotif = `⚠️ ${scopeKatalogs.length} SKU Induk akan disesuaikan: <b>${scopeKatalogs.join(', ')}</b><br>` +
+      `Varian yang <u>tidak ada</u> dalam paste (per SKU Induk) → sisa jadi <b>0</b>.<br>` +
+      `SKU Induk lain tidak disentuh.`;
+    document.getElementById('paste-stok-scope-notif').innerHTML = scopeNotif;
+    document.getElementById('paste-stok-scope-notif').style.display = 'block';
+
+    document.getElementById('paste-stok-count').textContent =
+      `✓ ${_parsedStok.length} varian dari ${scopeKatalogs.length} SKU Induk siap disesuaikan`;
+    document.getElementById('paste-stok-tbody').innerHTML = _parsedStok.map(r =>
+      `<tr><td>${r.sku_variasi}</td><td><b>${r.qty}</b></td></tr>`
+    ).join('');
+
+  } else {
+    // ── Mode Tambah Masuk (lama) ──────────────────────────────
+    document.getElementById('paste-stok-scope-notif').style.display = 'none';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const cols = line.split('\t').map(c => c.trim());
+      const sku = (cols[0] || '').toUpperCase();
+      if (!sku || cols.length < 2) continue;
+      const qty = parseInt((cols[1] || '').replace(/[^0-9]/g, '')) || 0;
+      _parsedStok.push({ sku_variasi: sku, qty });
+    }
+    if (_parsedStok.length === 0) {
+      alert('Tidak ada data yang terbaca. Format: SKU Variasi (tab) Qty');
+      return;
+    }
+    document.getElementById('paste-stok-count').textContent =
+      `✓ ${_parsedStok.length} SKU siap diimport`;
+    document.getElementById('paste-stok-tbody').innerHTML = _parsedStok.map(r =>
+      `<tr><td>${r.sku_variasi}</td><td><b>${r.qty}</b></td></tr>`
+    ).join('');
   }
 
-  if (_parsedStok.length === 0) {
-    alert('Tidak ada data yang terbaca. Format: SKU Variasi (tab) Qty');
-    return;
-  }
-
-  const colLabel = _pasteStokMode === 'penyesuaian' ? 'Sisa Aktual' : 'Tambah Masuk';
-  document.getElementById('paste-stok-count').textContent =
-    `✓ ${_parsedStok.length} SKU siap di${_pasteStokMode === 'penyesuaian' ? 'sesuaikan' : 'import'}`;
-  document.getElementById('paste-stok-tbody').innerHTML = _parsedStok.map(r =>
-    `<tr><td>${r.sku_variasi}</td><td><b>${r.qty}</b></td></tr>`
-  ).join('');
   document.getElementById('paste-stok-preview').style.display = 'block';
   document.getElementById('btn-simpan-paste-stok').style.display = 'inline-block';
 }
@@ -979,27 +1033,36 @@ async function simpanPasteStok() {
     let ok = 0;
 
     if (isPenyesuaian) {
-      // ── Mode Penyesuaian ──────────────────────────────────────
-      // Bangun map dari paste: SKU → sisa aktual
-      const pasteMap = {};
-      _parsedStok.forEach(r => { pasteMap[r.sku_variasi.toUpperCase()] = r.qty; });
+      // ── Mode Penyesuaian — scope per SKU Induk ───────────────
+      // Bangun: katalog → Set SKU variasi yang ada di paste
+      const scopeMap = {};   // katalog → { sku: qty }
+      _parsedStok.forEach(r => {
+        const kat = (r.katalog || '').toUpperCase();
+        if (!scopeMap[kat]) scopeMap[kat] = {};
+        scopeMap[kat][r.sku_variasi.toUpperCase()] = r.qty;
+      });
 
-      // Loop semua SKU yang ada di sistem
-      const allSkus = Object.keys(_stokMasukMap);
-      const total   = allSkus.length;
-      for (const skuKey of allSkus) {
-        const existing     = _stokMasukMap[skuKey];
-        const dataRow      = _stokAllData.find(r => (r.sku_variasi||'').toUpperCase() === skuKey);
+      const scopeKatalogs = Object.keys(scopeMap);
+      // Kumpulkan semua SKU variasi yang termasuk dalam scope katalog
+      const allSkusInScope = _produkForStok
+        .filter(p => scopeKatalogs.includes((p.katalog || '').toUpperCase()))
+        .map(p => (p.sku_variasi || '').toUpperCase());
+
+      const total = allSkusInScope.length;
+      for (const skuKey of allSkusInScope) {
+        const prod     = _produkForStok.find(p => (p.sku_variasi||'').toUpperCase() === skuKey);
+        const kat      = (prod ? prod.katalog : '').toUpperCase();
+        const existing = _stokMasukMap[skuKey];
+        const dataRow  = _stokAllData.find(r => (r.sku_variasi||'').toUpperCase() === skuKey);
         const keluarJurnal = dataRow ? (dataRow.stok_keluar || 0) : 0;
-        // Sisa aktual dari paste — kalau SKU tidak ada di paste, sisa = 0
-        const sisaTarget   = pasteMap.hasOwnProperty(skuKey) ? pasteMap[skuKey] : 0;
-        // stok_masuk_baru = sisa_target + keluar_jurnal (sama logika editStok)
+        // Kalau SKU ada di paste → pakai qty paste, kalau tidak → sisa = 0
+        const sisaTarget   = (scopeMap[kat] && scopeMap[kat].hasOwnProperty(skuKey))
+          ? scopeMap[kat][skuKey] : 0;
         const stokMasukBaru = sisaTarget + keluarJurnal;
+
         if (existing && existing.id) {
           await dbUpdate('stok', existing.id, { stok_masuk: stokMasukBaru });
         } else {
-          // SKU ada di produk tapi belum ada record stok
-          const prod = _produkForStok.find(p => (p.sku_variasi||'').toUpperCase() === skuKey);
           await dbInsert('stok', {
             sku_variasi: skuKey,
             stok_masuk:  stokMasukBaru,
@@ -1011,21 +1074,6 @@ async function simpanPasteStok() {
         }
         ok++;
         btn.textContent = `Menyimpan ${ok}/${total}...`;
-      }
-      // SKU di paste yang belum ada di sistem sama sekali → insert baru dengan sisa = qty paste
-      for (const skuKey of Object.keys(pasteMap)) {
-        if (_stokMasukMap[skuKey]) continue; // sudah dihandle di atas
-        const prod = _produkForStok.find(p => (p.sku_variasi||'').toUpperCase() === skuKey);
-        if (!prod) continue; // SKU tidak dikenal, skip
-        await dbInsert('stok', {
-          sku_variasi: skuKey,
-          stok_masuk:  pasteMap[skuKey],
-          stok_keluar: 0,
-          katalog:     prod.katalog || '',
-          boss:        prod.boss    || '',
-          hpp:         prod.hpp     || 0,
-        });
-        ok++;
       }
     } else {
       // ── Mode Tambah Masuk (lama) ───────────────────────────────
@@ -1054,7 +1102,7 @@ async function simpanPasteStok() {
 
     closeModal('modal-paste-stok');
     loadStok();
-    alert(`✓ ${ok} SKU berhasil ${isPenyesuaian ? 'disesuaikan' : 'disimpan'}!`);
+    alert(`✓ ${ok} SKU berhasil ${isPenyesuaian ? 'disesuaikan' : 'disimpan'}!`)
   } catch(err) {
     alert('Gagal simpan: ' + err.message);
   } finally {
