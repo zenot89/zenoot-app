@@ -1690,8 +1690,6 @@ async function loadDashboard() {
 
     // ─ Trigger Net Worth update (networth.js)
     if (typeof nwUpdate === 'function') nwUpdate();
-    // Sync mirror portrait setelah nwUpdate selesai
-    setTimeout(_dashSyncNwMirror, 1200);
 
     // ─ Metric 5-8
     const jpBulan   = _dashJPData.filter(r => r.tanggal && String(r.tanggal).slice(0,7) === todayYM);
@@ -2069,25 +2067,6 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     window._akData = { totalBeban: totalBebanDash, totalCicilan, totalKeluar, totalKas, isDefisit };
 
   } catch(e) { console.warn('[BebanVsKas]', e); }
-}
-
-// ─── SYNC NET WORTH MIRROR (portrait slide) ──────────────────
-function _dashSyncNwMirror() {
-  var fields = [
-    ['nw-total',  'nw-mirror-total'],
-    ['nw-aset',   'nw-mirror-aset'],
-    ['nw-hutang', 'nw-mirror-hutang'],
-    ['nw-escrow', 'nw-mirror-escrow'],
-    ['nw-laba',   'nw-mirror-laba'],
-  ];
-  fields.forEach(function(pair) {
-    var src = document.getElementById(pair[0]);
-    var dst = document.getElementById(pair[1]);
-    if (src && dst) {
-      dst.textContent = src.textContent;
-      dst.style.color = src.style.color || window.getComputedStyle(src).color;
-    }
-  });
 }
 
 // ═══════════════════════════════════════════════════════════
