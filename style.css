@@ -3809,6 +3809,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
   .nw-swipe-track {
     display: flex;
+    align-items: flex-start;
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     will-change: transform;
   }
@@ -3817,6 +3818,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     width: 100%;
     flex-shrink: 0;
     box-sizing: border-box;
+    height: auto;
   }
   .nw-swipe-dot-label {
     display: flex;
@@ -3843,7 +3845,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Laptop: semua 3 slide tampil berdampingan (Net Worth | Beban | Income) */
 @media (min-width: 768px) {
   #nw-swipe-container { overflow: visible; }
-  .nw-swipe-track { display: flex; flex-direction: row; gap: 12px; transform: none !important; align-items: flex-start; }
+  .nw-swipe-track { display: flex; flex-direction: row; gap: 12px; transform: none !important; align-items: stretch; }
+  .nw-swipe-slide { display: block; min-width: 0; width: calc(33.333% - 8px); flex-shrink: 0; box-sizing: border-box; }
+  .nw-swipe-slide > .card, .nw-swipe-slide > #nw-widget, .nw-swipe-slide > #nw-widget > .nw-card { height: 100%; box-sizing: border-box; }
   .nw-swipe-dot-label { display: none !important; }
   .nw-swipe-slide { display: block; min-width: 0; width: calc(33.333% - 8px); flex-shrink: 0; box-sizing: border-box; }
 }
