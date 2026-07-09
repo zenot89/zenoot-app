@@ -304,7 +304,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
           <div class="tbl-wrap" style="max-height:260px;overflow-y:auto"><table class="tbl">
-            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th>Debit</th><th>Kredit</th></tr></thead>
+            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th class="dash-jrn-hide">Debit</th><th class="dash-jrn-hide">Kredit</th></tr></thead>
             <tbody id="dash-jurnal-tbody">
               <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
             </tbody>
@@ -1583,7 +1583,7 @@ async function loadDashboard() {
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => []),
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),
-      dbGet('jurnal', '&tanggal=gte=' + todayYM + '-01&order=tanggal.desc').catch(() => []),
+      dbGet('jurnal', '&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
       dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => [])
     ]);
     const jpHariIniSell = jpHariIniRaw || [];
