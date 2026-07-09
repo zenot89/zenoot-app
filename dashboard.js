@@ -1922,6 +1922,8 @@ async function loadDashboard() {
     if (wrap) wrap.innerHTML = '<div class="dash-alert-item danger"><i class="ti ti-wifi-off" style="color:var(--danger)"></i><span>Gagal memuat data: '+err.message+'. Periksa koneksi internet.</span></div>';
     console.error('[dashboard] error:', err);
   }
+  // Init swipe pairs setelah render selesai
+  setTimeout(function() { if (typeof dbSwipeInit === 'function') dbSwipeInit(); }, 100);
 }
 
 loadDashboard();
@@ -1933,7 +1935,10 @@ loadDashboard();
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'dashboard') return;
     clearTimeout(_t);
-    _t = setTimeout(loadDashboard, 400);
+    _t = setTimeout(function() {
+      loadDashboard();
+      setTimeout(function() { if (typeof dbSwipeInit === 'function') dbSwipeInit(); }, 500);
+    }, 400);
   });
 })();
 
@@ -2052,9 +2057,10 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
   }
 
   function initAllSwipes() {
-    // Hanya aktif di portrait mobile < 768px
     if (window.innerWidth >= 768) return;
     document.querySelectorAll('.db-swipe-pair').forEach(function(pair) {
+      // Reset dulu supaya bisa re-init
+      pair._swipeInited = false;
       if (pair._swipeInited) return;
       pair._swipeInited = true;
       initSwipePair(pair);
