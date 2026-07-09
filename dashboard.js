@@ -122,10 +122,12 @@ document.getElementById('page-dashboard').innerHTML = `
   </div>
 
   <!-- ═══ ROW 3: GRAFIK PENJUALAN + TOP SKU ════════════════════ -->
-  <div class="grid2" style="margin-bottom:12px">
-
-    <div class="card" style="overflow:visible">
-      <div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;overflow:visible;z-index:9000;position:relative">
+  <div class="db-swipe-pair" id="swipe-pair-1">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Top SKU</span></div>
+        <div class="card" style="overflow:visible;margin:0">
+          <div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;overflow:visible;z-index:9000;position:relative">
         <span style="flex-shrink:0"><i class="ti ti-chart-line"></i> Tren Penjualan</span>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <div id="trench-active-chips" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"></div>
@@ -191,93 +193,111 @@ document.getElementById('page-dashboard').innerHTML = `
       </div>
       <div id="dash-chart-legend" style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--ink3);flex-wrap:wrap"></div>
     </div>
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-trophy"></i> Top 5 SKU Terlaris</div>
-      <div id="dash-top-sku">
-        <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-      </div>
-    </div>
-
-  </div>
+      </div><!-- /db-swipe-slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Tren Penjualan</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-trophy"></i> Top 5 SKU Terlaris</div>
+          <div id="dash-top-sku">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /db-swipe-slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-1 -->
 
   <!-- ═══ ROW 4: STATUS STOK + PERFORMA BOSS ═══════════════════ -->
-  <div class="grid2" style="margin-bottom:12px">
-
-    <div class="card card-lined">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-        <span><i class="ti ti-package"></i> Status Stok</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <div id="dash-stok-dist" style="display:flex;gap:4px;flex-wrap:wrap"></div>
-          <span id="dash-stok-summary" style="font-size:11px;color:var(--ink3);font-weight:400"></span>
+  <div class="db-swipe-pair" id="swipe-pair-2">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Supplier</span></div>
+        <div class="card card-lined" style="margin:0">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+            <span><i class="ti ti-package"></i> Status Stok</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <div id="dash-stok-dist" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+              <span id="dash-stok-summary" style="font-size:11px;color:var(--ink3);font-weight:400"></span>
+            </div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>SKU</th><th>Boss</th><th>Sisa</th><th>Terjual/7hr</th><th>Turnover</th><th>ROP</th><th>Status</th></tr></thead>
+            <tbody id="dash-stok-tbody">
+              <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
         </div>
-      </div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>SKU</th><th>Boss</th><th>Sisa</th><th>Terjual/7hr</th><th>Turnover</th><th>ROP</th><th>Status</th></tr></thead>
-        <tbody id="dash-stok-tbody">
-          <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-users"></i> Performa Supplier</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Supplier</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
-        <tbody id="dash-boss-tbody">
-          <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-  </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Status Stok</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-users"></i> Performa Supplier</div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Supplier</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
+            <tbody id="dash-boss-tbody">
+              <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-2 -->
 
   <!-- ═══ ROW 5: PERFORMA CHANNEL + GRAFIK OMSET PER KATALOG ═══ -->
-  <div class="grid2" style="margin-bottom:12px">
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Channel</th><th>Trx</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
-        <tbody id="dash-channel-tbody">
-          <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
-      <div style="position:relative;height:220px;width:100%">
-        <canvas id="dash-chart-katalog" style="width:100%;height:100%;display:block"></canvas>
-        <div id="dash-katalog-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
-          Belum ada data
+  <div class="db-swipe-pair" id="swipe-pair-3">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Omset Katalog</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Channel</th><th>Trx</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
+            <tbody id="dash-channel-tbody">
+              <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
         </div>
-      </div>
-    </div>
-
-  </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Channel</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
+          <div style="position:relative;height:220px;width:100%">
+            <canvas id="dash-chart-katalog" style="width:100%;height:100%;display:block"></canvas>
+            <div id="dash-katalog-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
+              Belum ada data
+            </div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-3 -->
 
   <!-- ═══ ROW 6: RINGKASAN BEBAN + JURNAL TERAKHIR ════════════ -->
-  <div class="grid2" style="margin-bottom:12px">
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
-      <div id="dash-beban-wrap">
-        <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th>Debit</th><th>Kredit</th></tr></thead>
-        <tbody id="dash-jurnal-tbody">
-          <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-        </tbody>
-      </table></div>
-    </div>
-
-  </div>
+  <div class="db-swipe-pair" id="swipe-pair-4">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Jurnal</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
+          <div id="dash-beban-wrap">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Beban Operasional</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th>Debit</th><th>Kredit</th></tr></thead>
+            <tbody id="dash-jurnal-tbody">
+              <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-4 -->
 
   <!-- ═══ ROW 7: AKTIVITAS FEED ════════════════════════════════ -->
   <div class="grid2" style="margin-bottom:12px">
@@ -1971,3 +1991,83 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 
   } catch(e) { console.warn('[BebanVsKas]', e); }
 }
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD SWIPE PAIRS — portrait only, landscape/laptop skip
+// ═══════════════════════════════════════════════════════════
+(function() {
+  function initSwipePair(pairEl) {
+    var track = pairEl.querySelector('.db-swipe-track');
+    if (!track) return;
+    var slides = pairEl.querySelectorAll('.db-swipe-slide');
+    var current = 0;
+    var startX = 0, startY = 0, isDragging = false, isHoriz = null;
+
+    function goTo(idx) {
+      if (idx < 0 || idx >= slides.length) return;
+      current = idx;
+      track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+      // Update dot labels
+      slides.forEach(function(slide, i) {
+        var dots = slide.querySelectorAll('.db-dot');
+        dots.forEach(function(d, j) { d.classList.toggle('active', j === idx); });
+      });
+    }
+
+    track.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      isHoriz = null;
+    }, { passive: true });
+
+    track.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (isHoriz === null) {
+        isHoriz = Math.abs(dx) > Math.abs(dy);
+      }
+      if (isHoriz) e.preventDefault();
+    }, { passive: false });
+
+    track.addEventListener('touchend', function(e) {
+      if (!isDragging || !isHoriz) { isDragging = false; return; }
+      var dx = e.changedTouches[0].clientX - startX;
+      isDragging = false;
+      if (dx < -40 && current < slides.length - 1) goTo(current + 1);
+      else if (dx > 40 && current > 0) goTo(current - 1);
+    });
+
+    // Dot click
+    pairEl.querySelectorAll('.db-dot').forEach(function(dot, idx2) {
+      dot.addEventListener('click', function() {
+        // cari index dot dalam dot-label
+        var allDots = Array.from(pairEl.querySelectorAll('.db-swipe-slide:first-child .db-dot'));
+        var i = allDots.indexOf(dot);
+        if (i >= 0) goTo(i);
+        else goTo(idx2 % slides.length);
+      });
+    });
+  }
+
+  function initAllSwipes() {
+    // Hanya aktif di portrait mobile < 768px
+    if (window.innerWidth >= 768) return;
+    document.querySelectorAll('.db-swipe-pair').forEach(function(pair) {
+      if (pair._swipeInited) return;
+      pair._swipeInited = true;
+      initSwipePair(pair);
+    });
+  }
+
+  // Init setelah dashboard render
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initAllSwipes, 400);
+  });
+  // Re-init kalau dashboard direload
+  document.addEventListener('zenot:dashboard-rendered', function() {
+    setTimeout(initAllSwipes, 200);
+  });
+  window.dbSwipeInit = initAllSwipes;
+})();

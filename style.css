@@ -3695,3 +3695,89 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #kas-brimo-overlay { display: none !important; }
   .kas-brimo-sheet  { display: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD SWIPE PAIRS — portrait only
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .db-swipe-pair {
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border-radius: 0;
+  }
+
+  .db-swipe-track {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    will-change: transform;
+  }
+
+  .db-swipe-slide {
+    min-width: 100%;
+    width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  .db-swipe-slide .card {
+    border-radius: 10px;
+  }
+
+  /* Dot indicator + hint label */
+  .db-swipe-dot-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px 6px;
+  }
+
+  .db-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink3);
+    opacity: 0.35;
+    transition: opacity 0.2s, background 0.2s;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .db-dot.active {
+    background: var(--ink);
+    opacity: 1;
+  }
+
+  .db-swipe-hint {
+    font-size: 10px;
+    color: var(--ink3);
+    margin-left: 2px;
+    letter-spacing: 0.2px;
+  }
+}
+
+/* Laptop/landscape: tampilkan seperti grid biasa, sembunyikan dot label */
+@media (min-width: 768px) {
+  .db-swipe-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .db-swipe-track {
+    display: contents;
+  }
+
+  .db-swipe-slide {
+    display: contents;
+  }
+
+  .db-swipe-dot-label {
+    display: none;
+  }
+
+  .db-swipe-slide .card {
+    margin: 0 !important;
+  }
+}
