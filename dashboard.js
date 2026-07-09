@@ -49,13 +49,19 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 2 -->
 
-      <!-- Slide 3: Jurnal Income -->
+      <!-- Slide 3: Jurnal Income + FCF -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
           <div id="dash-income-wrap">
             <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:2px dashed var(--ink4)">
+            <div class="card-title" style="margin-bottom:8px"><i class="ti ti-trending-up"></i> Free Cash Flow <span id="dash-fcf-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
+            <div id="dash-fcf-wrap">
+              <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+            </div>
           </div>
         </div>
       </div><!-- /slide 3 -->
@@ -1536,6 +1542,49 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   '</div>';
 }
 
+
+// FCF
+function _renderFcf(jurnalBulan, akunMap, todayYM) {
+  const el  = document.getElementById('dash-fcf-wrap');
+  const lbl = document.getElementById('dash-fcf-bulan');
+  if (!el) return;
+  if (lbl) {
+    const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const [y, m] = (todayYM || '').split('-');
+    lbl.textContent = (bln[parseInt(m,10)-1] || '') + ' ' + (y || '');
+  }
+  let cashOps = 0;
+  (jurnalBulan || []).forEach(r => {
+    const aD = akunMap[r.akun_debit_id];
+    const aK = akunMap[r.akun_kredit_id];
+    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasD) cashOps += Number(r.nominal || r.debit  || 0);
+    if (isKasK) cashOps -= Number(r.nominal || r.kredit || 0);
+  });
+  let capex = 0;
+  (jurnalBulan || []).forEach(r => {
+    const aD = akunMap[r.akun_debit_id];
+    const isCapex = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'ASET TETAP';
+    if (isCapex) capex += Number(r.nominal || r.debit || 0);
+  });
+  const fcf = cashOps - capex;
+  const fcfColor = fcf >= 0 ? 'var(--ok)' : 'var(--danger)';
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:13px">'
+    + '<span style="color:var(--ink2)">Cash from Ops</span>'
+    + '<span style="color:var(--ok);font-weight:700">' + _fmtRp(cashOps) + '</span>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:13px">'
+    + '<span style="color:var(--ink2)">Capex</span>'
+    + '<span style="color:' + (capex>0?'var(--danger)':'var(--ink3)') + ';font-weight:700">' + (capex>0?'\u2212':'') + _fmtRp(capex) + '</span>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:800">'
+    + '<span>FCF</span>'
+    + '<span style="color:' + fcfColor + ';font-size:15px">' + (fcf>=0?'+':'\u2212') + _fmtRp(Math.abs(fcf)) + '</span>'
+    + '</div>';
+}
+
 function _renderAktivitas(jpData, jurnalData) {
   const feed = document.getElementById('dash-aktivitas-feed');
   if (!feed) return;
@@ -1979,6 +2028,7 @@ async function loadDashboard() {
       _renderKatalog(_jpForRender, _dashStokData); // BARU
       _renderBeban(Object.entries(bebanDetailMap).map(([nama,nominal])=>({nama_beban:nama,nominal})), omsetBln);
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
+      _renderFcf(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       if (typeof rerenderUI === "function") rerenderUI(document.getElementById("page-dashboard"));
     }, 300); // FIX: dinaikkan agar canvas punya offsetWidth saat dirender
 
