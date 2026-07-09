@@ -272,27 +272,47 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-3 -->
 
-  <!-- ═══ ROW 6: RINGKASAN BEBAN + JURNAL INCOME ═══════════════ -->
+  <!-- ═══ ROW 6: NET WORTH + BEBAN + INCOME (3 slide) ══════════ -->
   <div class="db-swipe-pair" id="swipe-pair-4">
     <div class="db-swipe-track">
+
+      <!-- Slide 1: Net Worth — portrait mirror (baca dari nw-widget yg sudah dirender) -->
+      <div class="db-swipe-slide db-nw-mirror">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Beban</span></div>
+        <div id="nw-widget-mirror" class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL <span id="nw-mirror-badge" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
+          <div id="nw-mirror-body" style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+            <div style="font-size:24px;font-weight:800;color:var(--ink)" id="nw-mirror-total">Rp —</div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Total Aset</span><span style="color:var(--ok);font-weight:700" id="nw-mirror-aset">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Total Hutang</span><span style="color:var(--danger);font-weight:700" id="nw-mirror-hutang">—</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Escrow Shopee</span><span style="color:var(--ok);font-weight:700" id="nw-mirror-escrow">—</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--ink3);padding-top:6px"><span style="color:var(--ink3)">Laba / Rugi</span><span style="font-weight:800" id="nw-mirror-laba">—</span></div>
+          </div>
+        </div>
+      </div><!-- /slide 1 -->
+
+      <!-- Slide 2: Beban Operasional -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Income</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
           <div id="dash-beban-wrap">
             <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
           </div>
         </div>
-      </div><!-- /slide 1 -->
+      </div><!-- /slide 2 -->
+
+      <!-- Slide 3: Jurnal Income -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Beban Operasional</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Beban Operasional</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
           <div id="dash-income-wrap">
             <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
           </div>
         </div>
-      </div><!-- /slide 2 -->
+      </div><!-- /slide 3 -->
+
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-4 -->
 
@@ -1680,6 +1700,8 @@ async function loadDashboard() {
 
     // ─ Trigger Net Worth update (networth.js)
     if (typeof nwUpdate === 'function') nwUpdate();
+    // Sync mirror portrait setelah nwUpdate selesai
+    setTimeout(_dashSyncNwMirror, 1200);
 
     // ─ Metric 5-8
     const jpBulan   = _dashJPData.filter(r => r.tanggal && String(r.tanggal).slice(0,7) === todayYM);
@@ -2057,6 +2079,25 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     window._akData = { totalBeban: totalBebanDash, totalCicilan, totalKeluar, totalKas, isDefisit };
 
   } catch(e) { console.warn('[BebanVsKas]', e); }
+}
+
+// ─── SYNC NET WORTH MIRROR (portrait slide) ──────────────────
+function _dashSyncNwMirror() {
+  var fields = [
+    ['nw-total',  'nw-mirror-total'],
+    ['nw-aset',   'nw-mirror-aset'],
+    ['nw-hutang', 'nw-mirror-hutang'],
+    ['nw-escrow', 'nw-mirror-escrow'],
+    ['nw-laba',   'nw-mirror-laba'],
+  ];
+  fields.forEach(function(pair) {
+    var src = document.getElementById(pair[0]);
+    var dst = document.getElementById(pair[1]);
+    if (src && dst) {
+      dst.textContent = src.textContent;
+      dst.style.color = src.style.color || window.getComputedStyle(src).color;
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════

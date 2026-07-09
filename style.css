@@ -3792,3 +3792,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #dash-jurnal-tbody td:nth-child(1) { white-space: nowrap; font-size: 11px; }
   #dash-jurnal-tbody td:nth-child(2) { font-size: 11px; }
 }
+
+/* Pair 4 laptop — 2 kolom (Beban + Income), slide Net Worth mirror disembunyikan */
+@media (min-width: 768px) {
+  .db-nw-mirror { display: none !important; }
+}
