@@ -8,28 +8,60 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ ALERT STRIP ════════════════════════════════════════ -->
   <div id="dash-alerts-wrap"></div>
 
-  <!-- ═══ NET WORTH CARD — HTML static, data diisi networth.js ══ -->
-  <div id="nw-widget" style="margin:0 0 10px 0">
-    <div class="nw-card">
-      <div class="nw-header">
-        <div class="nw-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
-        <div class="nw-actions">
-          <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
-          <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
+  <!-- ═══ NET WORTH + BEBAN + INCOME SWIPE (portrait) / full width (laptop) ══ -->
+  <div class="nw-swipe-pair" id="nw-swipe-container">
+    <div class="nw-swipe-track">
+
+      <!-- Slide 1: Net Worth -->
+      <div class="nw-swipe-slide">
+        <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
+        <div id="nw-widget" style="margin:0">
+          <div class="nw-card">
+            <div class="nw-header">
+              <div class="nw-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
+              <div class="nw-actions">
+                <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
+                <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
+              </div>
+            </div>
+            <div class="nw-total-wrap">
+              <div class="nw-total" id="nw-total">Rp —</div>
+              <div class="nw-update-time" id="nw-update-time">menghitung...</div>
+            </div>
+            <div class="nw-breakdown">
+              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
+              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
+              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
+              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="nw-total-wrap">
-        <div class="nw-total" id="nw-total">Rp —</div>
-        <div class="nw-update-time" id="nw-update-time">menghitung...</div>
-      </div>
-      <div class="nw-breakdown">
-        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
-        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
-        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-        <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
-      </div>
-    </div>
-  </div>
+      </div><!-- /slide 1 -->
+
+      <!-- Slide 2: Beban Operasional -->
+      <div class="nw-swipe-slide">
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
+          <div id="dash-beban-wrap">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+
+      <!-- Slide 3: Jurnal Income -->
+      <div class="nw-swipe-slide">
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
+          <div id="dash-income-wrap">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 3 -->
+
+    </div><!-- /nw-swipe-track -->
+  </div><!-- /nw-swipe-container -->
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
@@ -272,49 +304,7 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-3 -->
 
-  <!-- ═══ ROW 6: NET WORTH + BEBAN + INCOME (3 slide) ══════════ -->
-  <div class="db-swipe-pair" id="swipe-pair-4">
-    <div class="db-swipe-track">
-
-      <!-- Slide 1: Net Worth — portrait mirror (baca dari nw-widget yg sudah dirender) -->
-      <div class="db-swipe-slide db-nw-mirror">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Beban</span></div>
-        <div id="nw-widget-mirror" class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL <span id="nw-mirror-badge" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
-          <div id="nw-mirror-body" style="display:flex;flex-direction:column;gap:6px;font-size:13px">
-            <div style="font-size:24px;font-weight:800;color:var(--ink)" id="nw-mirror-total">Rp —</div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Total Aset</span><span style="color:var(--ok);font-weight:700" id="nw-mirror-aset">—</span></div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Total Hutang</span><span style="color:var(--danger);font-weight:700" id="nw-mirror-hutang">—</span></div>
-            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink3)">Escrow Shopee</span><span style="color:var(--ok);font-weight:700" id="nw-mirror-escrow">—</span></div>
-            <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--ink3);padding-top:6px"><span style="color:var(--ink3)">Laba / Rugi</span><span style="font-weight:800" id="nw-mirror-laba">—</span></div>
-          </div>
-        </div>
-      </div><!-- /slide 1 -->
-
-      <!-- Slide 2: Beban Operasional -->
-      <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
-          <div id="dash-beban-wrap">
-            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-          </div>
-        </div>
-      </div><!-- /slide 2 -->
-
-      <!-- Slide 3: Jurnal Income -->
-      <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Beban Operasional</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
-          <div id="dash-income-wrap">
-            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-          </div>
-        </div>
-      </div><!-- /slide 3 -->
-
-    </div><!-- /db-swipe-track -->
-  </div><!-- /db-swipe-pair-4 -->
+  <!-- pair-4 removed — Beban & Income sudah ada di nw-swipe-container atas -->
 
   <!-- ═══ ROW 7: JURNAL TERAKHIR + AKTIVITAS TERBARU ════════════ -->
   <div class="db-swipe-pair" id="swipe-pair-5">
@@ -2104,6 +2094,40 @@ function _dashSyncNwMirror() {
 // DASHBOARD SWIPE PAIRS — portrait only, landscape/laptop skip
 // ═══════════════════════════════════════════════════════════
 (function() {
+  function initSwipePairNw(pairEl) {
+    var track = pairEl.querySelector('.nw-swipe-track');
+    if (!track) return;
+    var slides = pairEl.querySelectorAll('.nw-swipe-slide');
+    var current = 0;
+    var startX = 0, startY = 0, isDragging = false, isHoriz = null;
+    function goTo(idx) {
+      if (idx < 0 || idx >= slides.length) return;
+      current = idx;
+      track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+      slides.forEach(function(slide, i) {
+        var dots = slide.querySelectorAll('.nw-dot');
+        dots.forEach(function(d, j) { d.classList.toggle('active', j === idx); });
+      });
+    }
+    track.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      isDragging = true; isHoriz = null;
+    }, { passive: true });
+    track.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      var dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+      if (isHoriz === null) isHoriz = Math.abs(dx) > Math.abs(dy);
+      if (isHoriz) e.preventDefault();
+    }, { passive: false });
+    track.addEventListener('touchend', function(e) {
+      if (!isDragging || !isHoriz) { isDragging = false; return; }
+      var dx = e.changedTouches[0].clientX - startX;
+      isDragging = false;
+      if (dx < -40 && current < slides.length - 1) goTo(current + 1);
+      else if (dx > 40 && current > 0) goTo(current - 1);
+    });
+  }
+
   function initSwipePair(pairEl) {
     var track = pairEl.querySelector('.db-swipe-track');
     if (!track) return;
@@ -2161,13 +2185,19 @@ function _dashSyncNwMirror() {
 
   function initAllSwipes() {
     if (window.innerWidth >= 768) return;
+    // Init db-swipe-pair
     document.querySelectorAll('.db-swipe-pair').forEach(function(pair) {
-      // Reset dulu supaya bisa re-init
       pair._swipeInited = false;
       if (pair._swipeInited) return;
       pair._swipeInited = true;
       initSwipePair(pair);
     });
+    // Init nw-swipe-container (Net Worth + Beban + Income)
+    var nwCont = document.getElementById('nw-swipe-container');
+    if (nwCont) {
+      nwCont._swipeInited = false;
+      initSwipePairNw(nwCont);
+    }
   }
 
   // Init setelah dashboard render

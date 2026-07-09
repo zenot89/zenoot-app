@@ -3797,3 +3797,55 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (min-width: 768px) {
   .db-nw-mirror { display: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NW SWIPE CONTAINER — Net Worth + Beban + Income portrait
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  #nw-swipe-container {
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .nw-swipe-track {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    will-change: transform;
+  }
+  .nw-swipe-slide {
+    min-width: 100%;
+    width: 100%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  .nw-swipe-dot-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px 6px;
+  }
+  .nw-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink3);
+    opacity: 0.35;
+    transition: opacity 0.2s, background 0.2s;
+    flex-shrink: 0;
+  }
+  .nw-dot.active { background: var(--ink); opacity: 1; }
+  .nw-swipe-hint {
+    font-size: 10px;
+    color: var(--ink3);
+    margin-left: 2px;
+  }
+}
+
+/* Laptop: nw-swipe-container tampil normal full width, sembunyikan dot labels */
+@media (min-width: 768px) {
+  .nw-swipe-track { display: block; }
+  .nw-swipe-slide { display: block; }
+  .nw-swipe-dot-label { display: none; }
+  /* Slide 2 & 3 (Beban + Income) disembunyikan — sudah ada di pair 4 lama */
+  .nw-swipe-slide:nth-child(2),
+  .nw-swipe-slide:nth-child(3) { display: none; }
+}
