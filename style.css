@@ -3819,6 +3819,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-shrink: 0;
     box-sizing: border-box;
     height: auto;
+    /* Scroll di dalam slide agar konten panjang tidak ekspand container */
+  }
+  .nw-swipe-slide > .card {
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .nw-swipe-dot-label {
     display: flex;
