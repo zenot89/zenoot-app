@@ -15,8 +15,8 @@ document.getElementById('page-dashboard').innerHTML = `
       <!-- Slide 1: Net Worth -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
-        <!-- Header summary -->
-        <div class="nw-slide-header" id="nw-widget" style="margin:0">
+        <!-- Header: biru -->
+        <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
             <div class="nw-slide-label"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
             <div style="display:flex;align-items:center;gap:6px">
@@ -32,17 +32,17 @@ document.getElementById('page-dashboard').innerHTML = `
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-          <div class="nw-row" style="border-top:1px dashed rgba(255,255,255,0.08);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
+          <div class="nw-row" style="border-top:1px dashed rgba(255,255,255,0.1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
       <!-- Slide 2: Beban Operasional -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
-        <!-- Header summary -->
-        <div class="nw-slide-header">
+        <!-- Header: oranye -->
+        <div class="nw-slide-header nw-slide-s2">
           <div class="nw-slide-label"><i class="ti ti-report-money"></i> BEBAN OPERASIONAL</div>
-          <div class="nw-slide-value" id="dash-beban-total" style="color:var(--danger)">Rp —</div>
+          <div class="nw-slide-value" id="dash-beban-total">Rp —</div>
           <div class="nw-slide-sub" id="dash-beban-pct">bulan ini</div>
         </div>
         <!-- Data box -->
@@ -51,14 +51,14 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 2 -->
 
-      <!-- Slide 3: Jurnal Income + FCF -->
+      <!-- Slide 3: FCF + Jurnal Income -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
-        <!-- Header summary -->
-        <div class="nw-slide-header">
-          <div class="nw-slide-label"><i class="ti ti-cash"></i> JURNAL INCOME <span id="dash-income-bulan" style="font-size:10px;font-weight:400;color:var(--ink3);margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
-          <div class="nw-slide-value nw-pos" id="dash-income-total">Rp —</div>
-          <div class="nw-slide-sub">Free Cash Flow: <span id="dash-fcf-val" style="color:var(--ok);font-weight:700">—</span></div>
+        <!-- Header: abu tua, nilai utama = FCF -->
+        <div class="nw-slide-header nw-slide-s3">
+          <div class="nw-slide-label"><i class="ti ti-trending-up"></i> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
+          <div class="nw-slide-value" id="dash-fcf-val">Rp —</div>
+          <div class="nw-slide-sub">Total Income: <span id="dash-income-total" style="color:#049fbb;font-weight:700">—</span></div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data" id="dash-income-wrap">
