@@ -3798,9 +3798,93 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .db-nw-mirror { display: none !important; }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   NW SWIPE CONTAINER — Net Worth + Beban + Income portrait
-   ═══════════════════════════════════════════════════════════════ */
+/* =================================================================
+   NW SWIPE CONTAINER - Net Worth + Beban + Income
+   Global: warna, tipografi, data box (berlaku laptop + mobile)
+   ================================================================= */
+
+/* Header summary box */
+.nw-slide-header {
+  border-radius: 10px 10px 0 0;
+  padding: 14px 16px 16px;
+  margin-bottom: 0;
+}
+
+/* Warna header per slide */
+.nw-slide-s1 { background: #049fbb; }
+.nw-slide-s2 { background: #ee5030; }
+.nw-slide-s3 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
+
+.nw-slide-header .nw-slide-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nw-slide-header .nw-slide-value {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  font-family: var(--mono,'IBM Plex Mono',monospace);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: #fff;
+  margin: 2px 0 3px;
+}
+.nw-slide-s3 .nw-slide-value { color: #049fbb; }
+.nw-slide-header .nw-slide-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 2px;
+}
+
+/* Data box - warna senada header */
+.nw-slide-data {
+  border-radius: 0 0 10px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+.nw-slide-data::-webkit-scrollbar { width: 3px; }
+.nw-slide-data::-webkit-scrollbar-track { background: transparent; }
+.nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
+
+/* Warna data box per slide */
+.nw-slide-s1 + .nw-slide-data { background: #c2ebf3; }
+.nw-slide-s2 + .nw-slide-data { background: #f8d0c7; }
+.nw-slide-s3 + .nw-slide-data {
+  background: #2e2a2a;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-top: none;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+
+/* Teks di data box s1 & s2 - gelap karena bg terang */
+.nw-slide-s1 + .nw-slide-data .nw-row-label,
+.nw-slide-s1 + .nw-slide-data .beban-row span:first-child { color: #084f5e; }
+.nw-slide-s1 + .nw-slide-data .nw-row { border-color: rgba(4,159,187,0.25); }
+.nw-slide-s2 + .nw-slide-data .nw-row-label,
+.nw-slide-s2 + .nw-slide-data .beban-row span:first-child { color: #5c1a0a; }
+.nw-slide-s2 + .nw-slide-data .nw-row { border-color: rgba(238,80,48,0.25); }
+
+/* Badge dan refresh button di header berwarna */
+.nw-slide-s1 .nw-refresh-btn,
+.nw-slide-s2 .nw-refresh-btn { color: rgba(255,255,255,0.75); }
+.nw-slide-s1 .nw-refresh-btn:hover,
+.nw-slide-s2 .nw-refresh-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
+
+/* ======================================================
+   PORTRAIT MOBILE - layout swipe
+   ====================================================== */
 @media (max-width: 767px) {
   #nw-swipe-container {
     width: 100%;
@@ -3819,8 +3903,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-shrink: 0;
     box-sizing: border-box;
   }
+  .nw-slide-data { height: 160px; }
 
-  /* ── Dot label navigasi ── */
   .nw-swipe-dot-label {
     display: flex;
     align-items: center;
@@ -3836,74 +3920,28 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-shrink: 0;
   }
   .nw-dot.active { background: var(--ink); opacity: 1; }
-  .nw-swipe-hint {
-    font-size: 10px;
-    color: var(--ink3);
-    margin-left: 2px;
-  }
-
-  /* ── Header summary box ── */
-  .nw-slide-header {
-    border-radius: 10px 10px 0 0;
-    padding: 14px 16px 16px;
-    margin-bottom: 0;
-  }
-  /* Slide 1: Net Worth → biru #049fbb */
-  .nw-slide-s1 { background: #049fbb; }
-  /* Slide 2: Beban → oranye #ee5030 */
-  .nw-slide-s2 { background: #ee5030; }
-  /* Slide 3: FCF/Income → abu tua #221f1f */
-  .nw-slide-s3 { background: #221f1f; }
-
-  .nw-slide-header .nw-slide-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.65);
-    margin-bottom: 4px;
-  }
-  .nw-slide-header .nw-slide-value {
-    font-size: clamp(24px, 5.5vw, 32px);
-    font-weight: 700;
-    font-family: var(--mono,'IBM Plex Mono',monospace);
-    letter-spacing: -0.01em;
-    line-height: 1.1;
-    color: #fff;
-  }
-  /* Slide 3 nilai utama pakai biru */
-  .nw-slide-s3 .nw-slide-value { color: #049fbb; }
-
-  .nw-slide-header .nw-slide-sub {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    margin-top: 4px;
-  }
-
-  /* ── Data box (fixed height, scroll internal, scrollbar kanan tipis) ── */
-  .nw-slide-data {
-    background: #181616;
-    border-radius: 0 0 10px 10px;
-    height: 160px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding: 10px 14px;
-    box-sizing: border-box;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.15) transparent;
-  }
-  .nw-slide-data::-webkit-scrollbar { width: 3px; }
-  .nw-slide-data::-webkit-scrollbar-track { background: transparent; }
-  .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+  .nw-swipe-hint { font-size: 10px; color: var(--ink3); margin-left: 2px; }
 }
 
-/* Laptop: semua 3 slide tampil berdampingan (Net Worth | Beban | Income) */
+/* ======================================================
+   LAPTOP - 3 slide berdampingan
+   ====================================================== */
 @media (min-width: 768px) {
-  #nw-swipe-container { overflow: visible; }
-  .nw-swipe-track { display: flex; flex-direction: row; gap: 12px; transform: none !important; align-items: stretch; }
-  .nw-swipe-slide { display: block; min-width: 0; width: calc(33.333% - 8px); flex-shrink: 0; box-sizing: border-box; }
-  .nw-swipe-slide > .card, .nw-swipe-slide > #nw-widget, .nw-swipe-slide > #nw-widget > .nw-card { height: 100%; box-sizing: border-box; }
+  #nw-swipe-container { overflow: visible; margin-bottom: 12px; }
+  .nw-swipe-track {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    transform: none !important;
+    align-items: flex-start;
+  }
+  .nw-swipe-slide {
+    display: block;
+    min-width: 0;
+    width: calc(33.333% - 8px);
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  .nw-slide-data { height: 180px; }
   .nw-swipe-dot-label { display: none !important; }
-  .nw-swipe-slide { display: block; min-width: 0; width: calc(33.333% - 8px); flex-shrink: 0; box-sizing: border-box; }
 }
