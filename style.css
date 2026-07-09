@@ -3809,7 +3809,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
   .nw-swipe-track {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     will-change: transform;
   }
@@ -3818,11 +3818,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     width: 100%;
     flex-shrink: 0;
     box-sizing: border-box;
-    height: auto;
-    /* Scroll di dalam slide agar konten panjang tidak ekspand container */
+    display: flex;
+    flex-direction: column;
+  }
+  .nw-swipe-slide > .card,
+  .nw-swipe-slide > #nw-widget,
+  .nw-swipe-slide > #nw-widget > .nw-card {
+    flex: 1;
+    box-sizing: border-box;
   }
   .nw-swipe-slide > .card {
-    max-height: 60vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
