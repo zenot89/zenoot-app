@@ -272,11 +272,11 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-3 -->
 
-  <!-- ═══ ROW 6: RINGKASAN BEBAN + JURNAL TERAKHIR ════════════ -->
+  <!-- ═══ ROW 6: RINGKASAN BEBAN + JURNAL INCOME ═══════════════ -->
   <div class="db-swipe-pair" id="swipe-pair-4">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Jurnal</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Income</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
           <div id="dash-beban-wrap">
@@ -287,27 +287,41 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="db-swipe-slide">
         <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Beban Operasional</span></div>
         <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
-          <div class="tbl-wrap"><table class="tbl">
-            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th>Debit</th><th>Kredit</th></tr></thead>
-            <tbody id="dash-jurnal-tbody">
-              <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-            </tbody>
-          </table></div>
+          <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
+          <div id="dash-income-wrap">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
         </div>
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-4 -->
 
-  <!-- ═══ ROW 7: AKTIVITAS FEED ════════════════════════════════ -->
-  <div class="grid2" style="margin-bottom:12px">
-    <div class="card" style="grid-column:1/-1">
-      <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru</div>
-      <div id="dash-aktivitas-feed" style="display:flex;flex-direction:column;gap:0">
-        <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-      </div>
-    </div>
-  </div>
+  <!-- ═══ ROW 7: JURNAL TERAKHIR + AKTIVITAS TERBARU ════════════ -->
+  <div class="db-swipe-pair" id="swipe-pair-5">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Aktivitas</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
+          <div class="tbl-wrap" style="max-height:260px;overflow-y:auto"><table class="tbl">
+            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th>Debit</th><th>Kredit</th></tr></thead>
+            <tbody id="dash-jurnal-tbody">
+              <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Jurnal Terakhir</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px">hari ini</span></div>
+          <div id="dash-aktivitas-feed" style="display:flex;flex-direction:column;gap:0;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-5 -->
 
   <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
   <div style="text-align:right;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
@@ -1470,11 +1484,53 @@ function _renderBeban(bebanData, omsetBln) {
 }
 
 // ─── AKTIVITAS FEED ───────────────────────────────────────────
+function _renderIncome(jurnalBulan, akunMap, todayYM) {
+  const el = document.getElementById('dash-income-wrap');
+  const lbl = document.getElementById('dash-income-bulan');
+  if (!el) return;
+
+  // Label bulan
+  if (lbl) {
+    const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const [y, m] = (todayYM || '').split('-');
+    lbl.textContent = (bln[parseInt(m,10)-1] || '') + ' ' + (y || '');
+  }
+
+  // Filter: akun kredit kelompok pendapatan (kode 4-xxx)
+  const incomeMap = {}; // nama_akun → total
+  (jurnalBulan || []).forEach(r => {
+    const akun = akunMap && akunMap[r.akun_kredit_id];
+    if (!akun) return;
+    if (akun.kelompok !== 'pendapatan') return;
+    const nama = (akun.kode ? akun.kode + ' · ' : '') + akun.nama;
+    incomeMap[nama] = (incomeMap[nama] || 0) + (r.nominal || r.kredit || 0);
+  });
+
+  const rows = Object.entries(incomeMap).sort((a,b) => b[1]-a[1]);
+  const total = rows.reduce((s,[,v]) => s+v, 0);
+
+  if (!rows.length) {
+    el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada income bulan ini</div>';
+    return;
+  }
+
+  el.innerHTML = rows.map(([nama, val]) =>
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink3);font-size:13px">' +
+      '<span style="color:var(--ink2)">' + nama + '</span>' +
+      '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
+    '</div>'
+  ).join('') +
+  '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:800">' +
+    '<span>Total Income</span>' +
+    '<span style="color:var(--ok)">' + _fmtRp(total) + '</span>' +
+  '</div>';
+}
+
 function _renderAktivitas(jpData, jurnalData) {
   const feed = document.getElementById('dash-aktivitas-feed');
   if (!feed) return;
   const items = [];
-  jpData.slice(0,6).forEach(r => {
+  (jpData || []).forEach(r => {
     const ch = _dashChannelMap[r.channel_id];
     items.push({
       type:'sell',
@@ -1483,7 +1539,7 @@ function _renderAktivitas(jpData, jurnalData) {
       ts:  r.created_at||r.tanggal
     });
   });
-  jurnalData.slice(0,3).forEach(r => {
+  (jurnalData || []).forEach(r => {
     items.push({
       type:'kas',
       text: r.keterangan||'Transaksi kas',
@@ -1495,8 +1551,12 @@ function _renderAktivitas(jpData, jurnalData) {
     const ta=a.ts?new Date(a.ts).getTime():0, tb=b.ts?new Date(b.ts).getTime():0;
     return tb-ta;
   });
-  if (!items.length) { feed.innerHTML='<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada aktivitas</div>'; return; }
-  feed.innerHTML = items.slice(0,8).map(item =>
+  if (!items.length) {
+    feed.innerHTML='<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada aktivitas hari ini</div>';
+    return;
+  }
+  // Max 5 baris
+  feed.innerHTML = items.slice(0,5).map(item =>
     '<div class="dash-feed-item">' +
       '<div class="dash-feed-dot '+item.type+'"></div>' +
       '<div style="flex:1;min-width:0">' +
@@ -1513,7 +1573,7 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
-    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime] = await Promise.all([
+    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime, jurnalBulanIni, jpHariIniRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
       dbGet('jurnal', '&order=created_at.desc&limit=8'),
@@ -1522,8 +1582,11 @@ async function loadDashboard() {
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => []),
-      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []) // all-time untuk hitung sisa stok (exclude CANCELLED)
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),
+      dbGet('jurnal', '&tanggal=gte=' + todayYM + '-01&order=tanggal.desc').catch(() => []),
+      dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => [])
     ]);
+    const jpHariIniSell = jpHariIniRaw || [];
     // jpData & jpChart30 sama-sama 30 hari — satu fetch, reuse keduanya
     const jpData    = _jpData30 || [];
     const jpChart30 = _jpData30 || [];
@@ -1907,11 +1970,12 @@ async function loadDashboard() {
       _renderChannel(_jpForRender);           // BARU
       _renderKatalog(_jpForRender, _dashStokData); // BARU
       _renderBeban(Object.entries(bebanDetailMap).map(([nama,nominal])=>({nama_beban:nama,nominal})), omsetBln);
+      _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       if (typeof rerenderUI === "function") rerenderUI(document.getElementById("page-dashboard"));
     }, 300); // FIX: dinaikkan agar canvas punya offsetWidth saat dirender
 
-    // ─ Aktivitas feed
-    _renderAktivitas(_dashJPData.slice(0,6), jurnalData||[]);
+    // ─ Aktivitas feed — hari ini saja, max 5
+    _renderAktivitas(jpHariIniSell, (jurnalData||[]).filter(r => (r.tanggal||'').startsWith(today)));
 
     // ─ Timestamp
     const tsEl = document.getElementById('dash-last-refresh');
