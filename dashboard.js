@@ -15,54 +15,54 @@ document.getElementById('page-dashboard').innerHTML = `
       <!-- Slide 1: Net Worth -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
-        <div id="nw-widget" style="margin:0">
-          <div class="nw-card">
-            <div class="nw-header">
-              <div class="nw-title"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
-              <div class="nw-actions">
-                <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
-                <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
-              </div>
-            </div>
-            <div class="nw-total-wrap">
-              <div class="nw-total" id="nw-total">Rp —</div>
-              <div class="nw-update-time" id="nw-update-time">menghitung...</div>
-            </div>
-            <div class="nw-breakdown">
-              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
-              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
-              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-              <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
+        <!-- Header summary -->
+        <div class="nw-slide-header" id="nw-widget" style="margin:0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div class="nw-slide-label"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
+              <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
             </div>
           </div>
+          <div class="nw-slide-value" id="nw-total">Rp —</div>
+          <div class="nw-slide-sub" id="nw-update-time">menghitung...</div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data">
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
+          <div class="nw-row" style="border-top:1px dashed rgba(255,255,255,0.08);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
       <!-- Slide 2: Beban Operasional -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-report-money"></i> Ringkasan Beban Operasional</div>
-          <div id="dash-beban-wrap">
-            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-          </div>
+        <!-- Header summary -->
+        <div class="nw-slide-header">
+          <div class="nw-slide-label"><i class="ti ti-report-money"></i> BEBAN OPERASIONAL</div>
+          <div class="nw-slide-value" id="dash-beban-total" style="color:var(--danger)">Rp —</div>
+          <div class="nw-slide-sub" id="dash-beban-pct">bulan ini</div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data" id="dash-beban-wrap">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
         </div>
       </div><!-- /slide 2 -->
 
       <!-- Slide 3: Jurnal Income + FCF -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-cash"></i> Jurnal Income <span id="dash-income-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
-          <div id="dash-income-wrap">
-            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-          </div>
-          <div style="margin-top:14px;padding-top:12px;border-top:2px dashed var(--ink4)">
-            <div class="card-title" style="margin-bottom:8px"><i class="ti ti-trending-up"></i> Free Cash Flow <span id="dash-fcf-bulan" style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px"></span></div>
-            <div id="dash-fcf-wrap">
-              <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-            </div>
-          </div>
+        <!-- Header summary -->
+        <div class="nw-slide-header">
+          <div class="nw-slide-label"><i class="ti ti-cash"></i> JURNAL INCOME <span id="dash-income-bulan" style="font-size:10px;font-weight:400;color:var(--ink3);margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
+          <div class="nw-slide-value nw-pos" id="dash-income-total">Rp —</div>
+          <div class="nw-slide-sub">Free Cash Flow: <span id="dash-fcf-val" style="color:var(--ok);font-weight:700">—</span></div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data" id="dash-income-wrap">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
         </div>
       </div><!-- /slide 3 -->
 
@@ -1463,14 +1463,17 @@ function _turnoverLabel(masuk, keluar) {
 
 // ─── RINGKASAN BEBAN OPERASIONAL — BARU ──────────────────────
 function _renderBeban(bebanData, omsetBln) {
-  const el = document.getElementById('dash-beban-wrap');
+  const el    = document.getElementById('dash-beban-wrap');
+  const elTot = document.getElementById('dash-beban-total');
+  const elPct = document.getElementById('dash-beban-pct');
   if (!el) return;
   if (!bebanData || !bebanData.length) {
+    if (elTot) elTot.textContent = 'Rp0';
+    if (elPct) elPct.textContent = 'belum ada beban bulan ini';
     el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada beban bulan ini. Catat via Kas &amp; Jurnal → pilih akun kelompok Beban.</div>';
     return;
   }
 
-  // Hitung total beban (nominal)
   let totalNominal = 0;
   const rows = bebanData.map(r => {
     const nominal = Number(r.nominal || r.jumlah || 0);
@@ -1479,30 +1482,29 @@ function _renderBeban(bebanData, omsetBln) {
   });
 
   const pctDariOmset = omsetBln>0 ? (totalNominal/omsetBln*100).toFixed(1) : null;
-  const labaBersihEst = omsetBln - totalNominal;
 
-  el.innerHTML =
-    rows.map(r =>
-      '<div class="beban-row">' +
-        '<span style="font-size:13px">' + r.nama + '</span>' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          (r.persen>0 ? '<span style="font-size:11px;color:var(--ink3)">'+r.persen+'%</span>' : '') +
-          '<span style="font-size:13px;font-weight:700;color:var(--danger)">' + _fmtRp(r.nominal) + '</span>' +
-        '</div>' +
-      '</div>'
-    ).join('') +
-    '<div class="beban-row" style="margin-top:6px;border-top:2px solid var(--ink)">' +
-      '<span style="font-size:13px;font-weight:700">Total Beban</span>' +
-      '<span style="font-size:14px;font-weight:700;color:var(--danger)">' + _fmtRp(totalNominal) +
-        (pctDariOmset ? ' <span style="font-size:11px;font-weight:400;color:var(--ink3)">('+pctDariOmset+'% omset)</span>' : '') +
-      '</span>' +
-    '</div>';
+  // Update header
+  if (elTot) elTot.textContent = _fmtRp(totalNominal);
+  if (elPct) elPct.textContent = pctDariOmset ? pctDariOmset + '% dari omset bulan ini' : 'bulan ini';
+
+  // Data box: hanya rows detail, tanpa total row
+  el.innerHTML = rows.map(r =>
+    '<div class="beban-row">' +
+      '<span style="font-size:13px">' + r.nama + '</span>' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        (r.persen>0 ? '<span style="font-size:11px;color:var(--ink3)">'+r.persen+'%</span>' : '') +
+        '<span style="font-size:13px;font-weight:700;color:var(--danger)">' + _fmtRp(r.nominal) + '</span>' +
+      '</div>' +
+    '</div>'
+  ).join('');
 }
 
 // ─── AKTIVITAS FEED ───────────────────────────────────────────
 function _renderIncome(jurnalBulan, akunMap, todayYM) {
-  const el = document.getElementById('dash-income-wrap');
-  const lbl = document.getElementById('dash-income-bulan');
+  const el     = document.getElementById('dash-income-wrap');
+  const lbl    = document.getElementById('dash-income-bulan');
+  const elTot  = document.getElementById('dash-income-total');
+  const elFcf  = document.getElementById('dash-fcf-val');
   if (!el) return;
 
   // Label bulan
@@ -1512,8 +1514,24 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
     lbl.textContent = (bln[parseInt(m,10)-1] || '') + ' ' + (y || '');
   }
 
-  // Filter: akun kredit kelompok pendapatan (kode 4-xxx)
-  const incomeMap = {}; // nama_akun → total
+  // Hitung FCF (Cash from Ops, tanpa Capex)
+  let cashOps = 0;
+  (jurnalBulan || []).forEach(r => {
+    const aD = akunMap[r.akun_debit_id];
+    const aK = akunMap[r.akun_kredit_id];
+    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasD) cashOps += Number(r.nominal || r.debit  || 0);
+    if (isKasK) cashOps -= Number(r.nominal || r.kredit || 0);
+  });
+  if (elFcf) {
+    const fcfColor = cashOps >= 0 ? 'var(--ok)' : 'var(--danger)';
+    elFcf.style.color = fcfColor;
+    elFcf.textContent = (cashOps>=0?'+':'\u2212') + _fmtRp(Math.abs(cashOps));
+  }
+
+  // Filter: akun kredit kelompok pendapatan
+  const incomeMap = {};
   (jurnalBulan || []).forEach(r => {
     const akun = akunMap && akunMap[r.akun_kredit_id];
     if (!akun) return;
@@ -1525,64 +1543,21 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   const rows = Object.entries(incomeMap).sort((a,b) => b[1]-a[1]);
   const total = rows.reduce((s,[,v]) => s+v, 0);
 
+  // Update header total
+  if (elTot) { elTot.textContent = _fmtRp(total); }
+
   if (!rows.length) {
     el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada income bulan ini</div>';
     return;
   }
 
+  // Data box: hanya rows detail, tanpa total row
   el.innerHTML = rows.map(([nama, val]) =>
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink3);font-size:13px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.07);font-size:13px">' +
       '<span style="color:var(--ink2)">' + nama + '</span>' +
       '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
     '</div>'
-  ).join('') +
-  '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:800">' +
-    '<span>Total Income</span>' +
-    '<span style="color:var(--ok)">' + _fmtRp(total) + '</span>' +
-  '</div>';
-}
-
-
-// FCF
-function _renderFcf(jurnalBulan, akunMap, todayYM) {
-  const el  = document.getElementById('dash-fcf-wrap');
-  const lbl = document.getElementById('dash-fcf-bulan');
-  if (!el) return;
-  if (lbl) {
-    const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-    const [y, m] = (todayYM || '').split('-');
-    lbl.textContent = (bln[parseInt(m,10)-1] || '') + ' ' + (y || '');
-  }
-  let cashOps = 0;
-  (jurnalBulan || []).forEach(r => {
-    const aD = akunMap[r.akun_debit_id];
-    const aK = akunMap[r.akun_kredit_id];
-    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    if (isKasD) cashOps += Number(r.nominal || r.debit  || 0);
-    if (isKasK) cashOps -= Number(r.nominal || r.kredit || 0);
-  });
-  let capex = 0;
-  (jurnalBulan || []).forEach(r => {
-    const aD = akunMap[r.akun_debit_id];
-    const isCapex = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'ASET TETAP';
-    if (isCapex) capex += Number(r.nominal || r.debit || 0);
-  });
-  const fcf = cashOps - capex;
-  const fcfColor = fcf >= 0 ? 'var(--ok)' : 'var(--danger)';
-  el.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:13px">'
-    + '<span style="color:var(--ink2)">Cash from Ops</span>'
-    + '<span style="color:var(--ok);font-weight:700">' + _fmtRp(cashOps) + '</span>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:13px">'
-    + '<span style="color:var(--ink2)">Capex</span>'
-    + '<span style="color:' + (capex>0?'var(--danger)':'var(--ink3)') + ';font-weight:700">' + (capex>0?'\u2212':'') + _fmtRp(capex) + '</span>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:800">'
-    + '<span>FCF</span>'
-    + '<span style="color:' + fcfColor + ';font-size:15px">' + (fcf>=0?'+':'\u2212') + _fmtRp(Math.abs(fcf)) + '</span>'
-    + '</div>';
+  ).join('');
 }
 
 function _renderAktivitas(jpData, jurnalData) {
@@ -2028,7 +2003,6 @@ async function loadDashboard() {
       _renderKatalog(_jpForRender, _dashStokData); // BARU
       _renderBeban(Object.entries(bebanDetailMap).map(([nama,nominal])=>({nama_beban:nama,nominal})), omsetBln);
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
-      _renderFcf(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       if (typeof rerenderUI === "function") rerenderUI(document.getElementById("page-dashboard"));
     }, 300); // FIX: dinaikkan agar canvas punya offsetWidth saat dirender
 
