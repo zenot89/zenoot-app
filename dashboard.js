@@ -304,9 +304,9 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
           <div class="tbl-wrap" style="max-height:260px;overflow-y:auto"><table class="tbl">
-            <thead><tr><th>Tgl</th><th>Keterangan</th><th>Akun</th><th class="dash-jrn-hide">Debit</th><th class="dash-jrn-hide">Kredit</th></tr></thead>
+            <thead><tr><th>Tgl</th><th>Akun</th><th>IDR</th></tr></thead>
             <tbody id="dash-jurnal-tbody">
-              <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+              <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
             </tbody>
           </table></div>
         </div>
@@ -1934,28 +1934,26 @@ async function loadDashboard() {
     while (stokRows.length < 5) stokRows.push(EMPTY_ROW);
     document.getElementById('dash-stok-tbody').innerHTML = stokRows.join('');
 
-    // ─ Jurnal terakhir
     const jurnalRecent = (jurnalData||[]).slice(0,5);
     document.getElementById('dash-jurnal-tbody').innerHTML = jurnalRecent.length===0
-      ? '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada jurnal</td></tr>'
+      ? '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada jurnal</td></tr>'
       : jurnalRecent.map(r => {
       const aD = window._dashKasAkunMap && window._dashKasAkunMap[r.akun_debit_id];
       const aK = window._dashKasAkunMap && window._dashKasAkunMap[r.akun_kredit_id];
-      // Uang keluar → tampilkan akun debit (tujuan), uang masuk → akun kredit (sumber)
-      // Logika: tipe 'keluar' atau akun debit bukan KAS → akun debit lebih relevan
-      var akunTampil = '—';
-      if (r.tipe === 'keluar' || r.tipe === 'transfer') {
-        akunTampil = aD ? (aD.kode ? aD.kode+' '+aD.nama : aD.nama) : '—';
-      } else if (r.tipe === 'masuk') {
-        akunTampil = aK ? (aK.kode ? aK.kode+' '+aK.nama : aK.nama) : '—';
-      } else {
-        // fallback: tampilkan akun debit
-        akunTampil = aD ? (aD.kode ? aD.kode+' '+aD.nama : aD.nama) : '—';
-      }
-      return '<tr><td>'+_fmtTgl(r.tanggal||r.created_at)+'</td><td>'+(r.keterangan||'—')+'</td>'+
-        '<td style="font-size:11px;color:var(--ink3)">'+akunTampil+'</td>'+
-        '<td style="color:var(--ok)">'+(r.debit?_fmtRp(r.debit):'—')+'</td>'+
-        '<td style="color:var(--danger)">'+(r.kredit?_fmtRp(r.kredit):'—')+'</td></tr>';
+      const isMasuk = r.tipe === 'masuk';
+      const isKeluar = r.tipe === 'keluar';
+      // Masuk → tampilkan akun kredit (sumber pendapatan), Keluar → akun debit (tujuan beban)
+      const akun = isMasuk
+        ? (aK ? (aK.kode ? aK.kode+' '+aK.nama : aK.nama) : '—')
+        : (aD ? (aD.kode ? aD.kode+' '+aD.nama : aD.nama) : '—');
+      const idr = r.nominal || r.debit || r.kredit || 0;
+      const warna = isMasuk ? 'var(--ok)' : isKeluar ? 'var(--danger)' : 'var(--ink2)';
+      const prefix = isMasuk ? '+' : isKeluar ? '−' : '';
+      return '<tr>' +
+        '<td style="white-space:nowrap;font-size:11px">'+_fmtTgl(r.tanggal||r.created_at)+'</td>' +
+        '<td style="font-size:11px;color:var(--ink2)">'+akun+'</td>' +
+        '<td style="color:'+warna+';font-weight:700;white-space:nowrap;font-size:12px">'+prefix+_fmtRp(idr)+'</td>' +
+      '</tr>';
     }).join('');
 
     // ─ Render semua chart & widget
