@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v19'; // keyboard numpad min-height 62px, compact header
+var CACHE_VERSION = 'zenot-static-v20'; // laptop: nw-swipe 3 slide berdampingan
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
