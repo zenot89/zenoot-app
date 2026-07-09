@@ -3840,12 +3840,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* Laptop: nw-swipe-container tampil normal full width, sembunyikan dot labels */
+/* Laptop: nw-swipe hanya tampilkan slide 1 (Net Worth), sembunyikan dot + slide 2&3 */
 @media (min-width: 768px) {
-  .nw-swipe-track { display: block; }
-  .nw-swipe-slide { display: block; }
-  .nw-swipe-dot-label { display: none; }
-  /* Slide 2 & 3 (Beban + Income) disembunyikan — sudah ada di pair 4 lama */
-  .nw-swipe-slide:nth-child(2),
-  .nw-swipe-slide:nth-child(3) { display: none; }
+  #nw-swipe-container { overflow: visible; }
+  .nw-swipe-track { display: block; transform: none !important; }
+  .nw-swipe-dot-label { display: none !important; }
+  .nw-swipe-slide { display: none; min-width: unset; width: 100%; }
+  .nw-swipe-slide:first-child { display: block; }
 }

@@ -2198,6 +2198,11 @@ function _dashSyncNwMirror() {
       nwCont._swipeInited = false;
       initSwipePairNw(nwCont);
     }
+    // Retry kalau belum jalan (iOS kadang butuh delay)
+    setTimeout(function() {
+      var nc = document.getElementById('nw-swipe-container');
+      if (nc) initSwipePairNw(nc);
+    }, 300);
   }
 
   // Init setelah dashboard render
