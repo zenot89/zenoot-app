@@ -3404,8 +3404,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ─── RIWAYAT SWIPE — dot indicator ──────────────────────────── */
-.keu-riwayat-dot {
+/* ─── HUTANG SWIPE — dot indicator ───────────────────────────── */
+.keu-hdot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -3413,7 +3413,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background .2s, transform .2s;
   display: inline-block;
 }
-.keu-riwayat-dot.active {
+.keu-hdot.active {
   background: var(--ok);
   transform: scale(1.3);
 }

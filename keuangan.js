@@ -198,74 +198,83 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-hutang" class="keu-panel active keu-panel-hutang">
 
-  <!-- ── BAGIAN 1: Collapsible (hide-on-scroll) ── -->
+  <!-- ── BAGIAN 1: Collapsible (hide-on-scroll) — hanya 4 minicard ── -->
   <div id="keu-hutang-collapsible">
-    <!-- Summary minicards -->
-    <div class="rasio-card" style="margin-bottom:12px">
+    <div class="rasio-card" style="margin-bottom:0">
       <div class="rasio-item"><div class="r-label">Total Hutang</div><div class="r-value" id="keu-total-hutang">—</div><div class="r-desc">pokok semua pinjaman</div></div>
       <div class="rasio-item"><div class="r-label">Sudah Dibayar</div><div class="r-value" id="keu-total-bayar">—</div><div class="r-desc">total cicilan terbayar</div></div>
       <div class="rasio-item"><div class="r-label">Sisa Hutang</div><div class="r-value" id="keu-total-sisa" style="color:var(--danger)">—</div><div class="r-desc">belum terlunasi</div></div>
       <div class="rasio-item"><div class="r-label">Cicilan/Bulan</div><div class="r-value" id="keu-total-cicilan">—</div><div class="r-desc">total kewajiban bulanan</div></div>
     </div>
-    <!-- Tombol aksi -->
-    <div style="display:flex;gap:8px;margin-bottom:0;justify-content:space-between;align-items:center">
-      <button class="btn btn-sm btn-primary" onclick="keuShowFormHutang()"><i class="ti ti-plus"></i> Tambah Hutang</button>
-      <button class="btn btn-sm" onclick="keuOpenCicilan()" style="font-weight:700;border:2px solid var(--ok);color:var(--ok)"><i class="ti ti-history"></i> + Catat Cicilan</button>
-    </div>
   </div><!-- /keu-hutang-collapsible -->
 
-  <!-- ── BAGIAN 2: Scroll zone — Daftar Hutang + Riwayat swipe ── -->
+  <!-- ── BAGIAN 2: Scroll zone — 3-slide swipe ── -->
   <div id="keu-hutang-scroll-zone">
+    <div id="keu-hutang-swipe-wrap" style="overflow:hidden">
+      <div id="keu-hutang-swipe-track" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;touch-action:pan-y">
 
-    <!-- Daftar Hutang — full, tidak ada max-height -->
-    <div class="card" style="margin-top:12px">
-      <div class="card-title"><i class="ti ti-list"></i> Daftar Hutang</div>
-      <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-        <thead><tr><th>Kreditur</th><th>Jenis</th><th style="text-align:right">Pokok</th><th style="text-align:right">Bunga</th><th style="text-align:right">Cicilan/bln</th><th style="text-align:right">Sudah Bayar</th><th style="text-align:right">Sisa</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
-        <tbody id="keu-hutang-tbody"><tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
-      </table></div>
-    </div>
+        <!-- ═══ SLIDE 1: Daftar Hutang ═══ -->
+        <div class="keu-hutang-slide" style="min-width:100%;box-sizing:border-box;padding-top:12px">
+          <div class="card">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+              <span><i class="ti ti-list"></i> Daftar Hutang</span>
+              <span class="keu-slide-dots" style="display:flex;gap:5px;align-items:center">
+                <span class="keu-hdot active"></span>
+                <span class="keu-hdot"></span>
+                <span class="keu-hdot"></span>
+              </span>
+            </div>
+            <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+              <thead><tr><th>Kreditur</th><th>Jenis</th><th style="text-align:right">Pokok</th><th style="text-align:right">Bunga</th><th style="text-align:right">Cicilan/bln</th><th style="text-align:right">Sudah Bayar</th><th style="text-align:right">Sisa</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="keu-hutang-tbody"><tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+            </table></div>
+            <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">geser → untuk riwayat cicilan</div>
+          </div>
+        </div>
 
-    <!-- Riwayat Pembayaran Cicilan — swipe horizontal (Daftar ↔ Detail) -->
-    <div id="keu-riwayat-swipe-wrap" style="margin-top:14px;overflow:hidden;border-radius:6px">
-      <div id="keu-riwayat-swipe-track" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;touch-action:pan-y">
-
-        <!-- Slide 0: Daftar Riwayat -->
-        <div class="keu-riwayat-slide" style="min-width:100%;box-sizing:border-box">
+        <!-- ═══ SLIDE 2: Riwayat Cicilan ═══ -->
+        <div class="keu-hutang-slide" style="min-width:100%;box-sizing:border-box;padding-top:12px">
           <div class="card">
             <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
               <span><i class="ti ti-history"></i> Riwayat Cicilan</span>
-              <span id="keu-riwayat-dot-wrap" style="display:flex;gap:5px;align-items:center">
-                <span class="keu-riwayat-dot active"></span>
-                <span class="keu-riwayat-dot"></span>
+              <span class="keu-slide-dots" style="display:flex;gap:5px;align-items:center">
+                <span class="keu-hdot"></span>
+                <span class="keu-hdot active"></span>
+                <span class="keu-hdot"></span>
               </span>
+            </div>
+            <div style="margin-bottom:10px">
+              <button class="btn btn-sm" onclick="keuOpenCicilan()" style="font-weight:700;border:2px solid var(--ok);color:var(--ok);width:100%"><i class="ti ti-history"></i> + Catat Cicilan</button>
             </div>
             <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl" style="min-width:100%">
               <thead style="position:sticky;top:0;z-index:2;background:var(--cream2)"><tr><th>Tanggal</th><th>Kreditur</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead>
               <tbody id="keu-bayar-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
             </table></div>
-            <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← geser untuk detail →</div>
+            <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← daftar hutang &nbsp;|&nbsp; ringkasan →</div>
           </div>
         </div>
 
-        <!-- Slide 1: Ringkasan per Kreditur -->
-        <div class="keu-riwayat-slide" style="min-width:100%;box-sizing:border-box">
+        <!-- ═══ SLIDE 3: Ringkasan per Kreditur ═══ -->
+        <div class="keu-hutang-slide" style="min-width:100%;box-sizing:border-box;padding-top:12px">
           <div class="card">
             <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
               <span><i class="ti ti-chart-bar"></i> Ringkasan per Kreditur</span>
-              <span id="keu-riwayat-dot-wrap2" style="display:flex;gap:5px;align-items:center">
-                <span class="keu-riwayat-dot"></span>
-                <span class="keu-riwayat-dot active"></span>
+              <span class="keu-slide-dots" style="display:flex;gap:5px;align-items:center">
+                <span class="keu-hdot"></span>
+                <span class="keu-hdot"></span>
+                <span class="keu-hdot active"></span>
               </span>
             </div>
+            <div style="margin-bottom:10px">
+              <button class="btn btn-sm btn-primary" onclick="keuShowFormHutang()" style="width:100%"><i class="ti ti-plus"></i> Tambah Hutang</button>
+            </div>
             <div id="keu-riwayat-summary-body" style="padding:4px 0"></div>
-            <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← geser kembali ke daftar</div>
+            <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← geser kembali ke riwayat</div>
           </div>
         </div>
 
-      </div><!-- /keu-riwayat-swipe-track -->
-    </div><!-- /keu-riwayat-swipe-wrap -->
-
+      </div><!-- /keu-hutang-swipe-track -->
+    </div><!-- /keu-hutang-swipe-wrap -->
   </div><!-- /keu-hutang-scroll-zone -->
 
   <!-- Modal Catat Cicilan -->
@@ -1133,23 +1142,26 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
   var _rwCurrent = 0;
 
   function _initRiwayatSwipe() {
-    var wrap  = document.getElementById('keu-riwayat-swipe-wrap');
-    var track = document.getElementById('keu-riwayat-swipe-track');
-    if (!wrap || !track || track._swipeInited) return;
+    var track = document.getElementById('keu-hutang-swipe-track');
+    if (!track || track._swipeInited) return;
     track._swipeInited = true;
 
+    var TOTAL = 3;
     var startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
 
     function goTo(idx) {
-      if (idx < 0 || idx > 1) return;
+      if (idx < 0 || idx >= TOTAL) return;
       _rwCurrent = idx;
       track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-      // update dots
-      document.querySelectorAll('.keu-riwayat-dot').forEach(function(d, i) {
-        d.classList.toggle('active', (i % 2) === idx);
+      // update semua dot sets — tiap slide punya 3 dot
+      document.querySelectorAll('.keu-hdot').forEach(function(d, i) {
+        // i = slideIndex * 3 + dotIndex
+        var slideIdx = Math.floor(i / 3);
+        var dotIdx   = i % 3;
+        d.classList.toggle('active', dotIdx === idx);
       });
-      // render ringkasan saat pindah ke slide 1
-      if (idx === 1) _renderRiwayatSummary();
+      // render ringkasan saat pindah ke slide 2
+      if (idx === 2) _renderRiwayatSummary();
     }
 
     track.addEventListener('touchstart', function(e) {
@@ -1177,8 +1189,8 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
       var dx = e.changedTouches[0].clientX - startX;
       var dt = Date.now() - startT;
       var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
-      if ((dx < -40 || (isFlick && dx < 0)) && _rwCurrent < 1) goTo(1);
-      else if ((dx > 40 || (isFlick && dx > 0)) && _rwCurrent > 0) goTo(0);
+      if ((dx < -40 || (isFlick && dx < 0)) && _rwCurrent < TOTAL - 1) goTo(_rwCurrent + 1);
+      else if ((dx > 40 || (isFlick && dx > 0)) && _rwCurrent > 0) goTo(_rwCurrent - 1);
     }, { passive: true });
 
     track.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
@@ -1572,15 +1584,12 @@ async function keuSimpanPembayaran() {
   if (!akunKasId) { alert('Pilih akun bayar dulu!');   return; }
 
   try {
-    // Insert hutang_bayar dulu — ambil ID-nya untuk referensi jurnal
-    const bayarResult = await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
-    const bayarId = bayarResult && bayarResult[0] ? bayarResult[0].id : null;
-    const refKey  = bayarId ? 'bayar_' + bayarId : null;
+    await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
 
     // Generate jurnal double-entry
-    const htg       = _keuHutangAll.find(h => String(h.id) === String(hutangId));
+    const htg = _keuHutangAll.find(h => String(h.id) === String(hutangId));
+    // akun kewajiban: dari data hutang jika ada, fallback cari by nama kreditur
     const akunKwjId = htg && htg.akun_kwj_id ? htg.akun_kwj_id : null;
-    const ketJurnal = 'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '');
 
     if (akunKwjId) {
       // Debit kewajiban (hutang berkurang) | Kredit kas (kas berkurang)
@@ -1590,13 +1599,14 @@ async function keuSimpanPembayaran() {
         nominal:        nominal,
         debit:          nominal,
         kredit:         nominal,
-        akun_debit_id:  akunKwjId,
-        akun_kredit_id: akunKasId,
-        keterangan:     ketJurnal,
-        referensi:      refKey,
+        akun_debit_id:  akunKwjId,  // kewajiban berkurang
+        akun_kredit_id: akunKasId,  // kas keluar
+        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : ''),
+        referensi:      null,
       });
     } else {
-      // Hutang belum punya akun kewajiban — jurnal kas keluar saja
+      // Hutang belum punya akun kewajiban — buat jurnal kas keluar saja
+      // agar saldo kas tetap bergerak
       await dbInsert('jurnal', {
         tanggal:        tgl,
         tipe:           'keluar',
@@ -1605,8 +1615,8 @@ async function keuSimpanPembayaran() {
         kredit:         nominal,
         akun_debit_id:  null,
         akun_kredit_id: akunKasId,
-        keterangan:     ketJurnal + ' (akun kwj belum diset)',
-        referensi:      refKey,
+        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '') + ' (akun kwj belum diset)',
+        referensi:      null,
       });
     }
 
@@ -1623,18 +1633,7 @@ async function keuSimpanPembayaran() {
 
 async function keuHapusBayar(id) {
   confirmDelete('Hapus catatan pembayaran ini?', async () => {
-    try {
-      // 1. Hapus jurnal terkait dulu (via referensi = 'bayar_{id}')
-      const refKey = 'bayar_' + id;
-      const jurnalTerkait = await dbGet('jurnal', '&referensi=eq.' + refKey).catch(() => []);
-      if (jurnalTerkait && jurnalTerkait.length) {
-        await Promise.all(jurnalTerkait.map(j => dbDelete('jurnal', j.id)));
-      }
-      // 2. Hapus hutang_bayar
-      await dbDelete('hutang_bayar', id);
-      keuLoadHutang();
-      if (typeof loadDashboard === 'function') loadDashboard();
-    } catch(e) { alert('Gagal hapus: ' + e.message); }
+    try { await dbDelete('hutang_bayar', id); keuLoadHutang(); } catch(e) { alert('Gagal hapus: ' + e.message); }
   });
 }
 
