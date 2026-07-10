@@ -45,7 +45,7 @@
       .nw-refresh-spin { animation:nw-spin 1s linear infinite; }
       @keyframes nw-spin { to { transform:rotate(360deg); } }
       .nw-total-wrap { margin-bottom:12px; }
-      .nw-total { font-size:clamp(22px,4vw,32px); font-weight:700; color:var(--ink,#eee); letter-spacing:-0.01em; line-height:1.1; }
+      .nw-total { font-size:clamp(26px,4.5vw,38px); font-weight:800; color:#111; letter-spacing:-0.02em; line-height:1.1; }
       .nw-update-time { font-size:11px; color:var(--ink3,#888); margin-top:3px; }
       .nw-breakdown { display:grid; grid-template-columns:1fr 1fr; gap:4px 24px; }
       @media (max-width:600px) { .nw-breakdown { grid-template-columns:1fr; } }
@@ -247,7 +247,7 @@
 
       _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
       const totalEl = document.getElementById('nw-total');
-      if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#4caf50)' : 'var(--danger,#e05252)';
+      if (totalEl) totalEl.style.color = '#111';
 
       _set('nw-aset',   '+' + _rp(totalAset));
       _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));

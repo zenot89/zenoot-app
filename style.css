@@ -3805,10 +3805,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Header summary box */
 .nw-slide-header {
-  border-radius: 10px 10px 0 0;
+  border-radius: 10px 10px;
   padding: 14px 16px 14px;
-  margin-bottom: 0;
-  border-bottom: 3px solid rgba(0,0,0,0.18);
+  margin-bottom: 6px;
 }
 
 /* Warna header per slide */
@@ -3845,7 +3844,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Data box - warna senada header */
 .nw-slide-data {
-  border-radius: 0 0 10px 10px;
+  border-radius: 10px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3903,6 +3902,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     width: 100%;
     flex-shrink: 0;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
   .nw-slide-data { height: 160px; }
 
@@ -3939,6 +3941,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .nw-swipe-slide {
     display: flex;
     flex-direction: column;
+    gap: 6px;
     min-width: 0;
     width: calc(33.333% - 8px);
     flex-shrink: 0;
