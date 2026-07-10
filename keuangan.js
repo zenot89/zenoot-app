@@ -1572,12 +1572,15 @@ async function keuSimpanPembayaran() {
   if (!akunKasId) { alert('Pilih akun bayar dulu!');   return; }
 
   try {
-    await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
+    // Insert hutang_bayar dulu — ambil ID-nya untuk referensi jurnal
+    const bayarResult = await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
+    const bayarId = bayarResult && bayarResult[0] ? bayarResult[0].id : null;
+    const refKey  = bayarId ? 'bayar_' + bayarId : null;
 
     // Generate jurnal double-entry
-    const htg = _keuHutangAll.find(h => String(h.id) === String(hutangId));
-    // akun kewajiban: dari data hutang jika ada, fallback cari by nama kreditur
+    const htg       = _keuHutangAll.find(h => String(h.id) === String(hutangId));
     const akunKwjId = htg && htg.akun_kwj_id ? htg.akun_kwj_id : null;
+    const ketJurnal = 'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '');
 
     if (akunKwjId) {
       // Debit kewajiban (hutang berkurang) | Kredit kas (kas berkurang)
@@ -1587,14 +1590,13 @@ async function keuSimpanPembayaran() {
         nominal:        nominal,
         debit:          nominal,
         kredit:         nominal,
-        akun_debit_id:  akunKwjId,  // kewajiban berkurang
-        akun_kredit_id: akunKasId,  // kas keluar
-        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : ''),
-        referensi:      null,
+        akun_debit_id:  akunKwjId,
+        akun_kredit_id: akunKasId,
+        keterangan:     ketJurnal,
+        referensi:      refKey,
       });
     } else {
-      // Hutang belum punya akun kewajiban — buat jurnal kas keluar saja
-      // agar saldo kas tetap bergerak
+      // Hutang belum punya akun kewajiban — jurnal kas keluar saja
       await dbInsert('jurnal', {
         tanggal:        tgl,
         tipe:           'keluar',
@@ -1603,8 +1605,8 @@ async function keuSimpanPembayaran() {
         kredit:         nominal,
         akun_debit_id:  null,
         akun_kredit_id: akunKasId,
-        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '') + ' (akun kwj belum diset)',
-        referensi:      null,
+        keterangan:     ketJurnal + ' (akun kwj belum diset)',
+        referensi:      refKey,
       });
     }
 
@@ -1621,7 +1623,18 @@ async function keuSimpanPembayaran() {
 
 async function keuHapusBayar(id) {
   confirmDelete('Hapus catatan pembayaran ini?', async () => {
-    try { await dbDelete('hutang_bayar', id); keuLoadHutang(); } catch(e) { alert('Gagal hapus: ' + e.message); }
+    try {
+      // 1. Hapus jurnal terkait dulu (via referensi = 'bayar_{id}')
+      const refKey = 'bayar_' + id;
+      const jurnalTerkait = await dbGet('jurnal', '&referensi=eq.' + refKey).catch(() => []);
+      if (jurnalTerkait && jurnalTerkait.length) {
+        await Promise.all(jurnalTerkait.map(j => dbDelete('jurnal', j.id)));
+      }
+      // 2. Hapus hutang_bayar
+      await dbDelete('hutang_bayar', id);
+      keuLoadHutang();
+      if (typeof loadDashboard === 'function') loadDashboard();
+    } catch(e) { alert('Gagal hapus: ' + e.message); }
   });
 }
 
