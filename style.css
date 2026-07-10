@@ -745,6 +745,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   .metrics .metric{-webkit-flex:1 1 calc(50% - 10px);flex:1 1 calc(50% - 10px)}
   .grid2 > *{-webkit-flex:1 1 100%;flex:1 1 100%}
   .tbl-wrap{overflow-x:auto;overscroll-behavior:none;touch-action:pan-x pan-y;margin:0 -4px;padding:0 4px}
+  #page-keuangan .tbl-wrap { touch-action:pan-x pan-y !important; overflow-x:auto !important; }
   .ch-switcher{padding:6px 8px;gap:4px}
   .ch-btn{padding:4px 10px;font-size:12px;min-height:36px}
   .form-row{-webkit-flex-direction:column;flex-direction:column}

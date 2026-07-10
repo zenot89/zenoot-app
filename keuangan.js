@@ -112,7 +112,7 @@ document.getElementById('page-keuangan').innerHTML = `
     #page-keuangan .keu-panel.active:not(.keu-panel-neraca) {
       height:100%; box-sizing:border-box;
       overflow-y:auto; -webkit-overflow-scrolling:touch;
-      overscroll-behavior:none; touch-action:pan-y;
+      overscroll-behavior:none; touch-action:pan-y pinch-zoom;
       padding-bottom:24px;
     }
 

@@ -49,9 +49,9 @@
       .nw-update-time { font-size:11px; color:var(--ink3,#888); margin-top:3px; }
       .nw-breakdown { display:grid; grid-template-columns:1fr 1fr; gap:4px 24px; }
       @media (max-width:600px) { .nw-breakdown { grid-template-columns:1fr; } }
-      .nw-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:12px; }
-      .nw-row-label { color:var(--ink3,#888); display:flex; align-items:center; gap:5px; }
-      .nw-row-val { font-weight:600; font-size:12px; font-variant-numeric:tabular-nums; }
+      .nw-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-size:15px; }
+      .nw-row-label { color:rgba(0,0,0,0.55); display:flex; align-items:center; gap:5px; }
+      .nw-row-val { font-weight:700; font-size:15px; font-variant-numeric:tabular-nums; }
       .nw-pos { color:var(--ok,#4caf50); }
       .nw-neg { color:var(--danger,#e05252); }
       .nw-shopee-badge { font-size:9px; padding:1px 5px; border-radius:10px; font-weight:600; }
