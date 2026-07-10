@@ -3258,8 +3258,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
-  font-size: 12px;
+  padding: 6px 0;
+  font-size: 14px;
 }
 .nw-row-label {
   color: var(--ink3,#888);
@@ -3267,7 +3267,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 5px;
 }
-.nw-row-val { font-weight: 500; font-size: 12px; font-family: var(--mono,'IBM Plex Mono',monospace); }
+.nw-row-val { font-weight: 600; font-size: 14px; font-family: var(--mono,'IBM Plex Mono',monospace); }
 .nw-pos { color: var(--ok,#4caf50); }
 .nw-neg { color: var(--danger,#e05252); }
 .nw-shopee-badge {
@@ -3806,7 +3806,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Header summary box */
 .nw-slide-header {
   border-radius: 10px 10px 0 0;
-  padding: 14px 16px 16px;
+  padding: 14px 16px 14px;
   margin-bottom: 0;
 }
 
@@ -3845,6 +3845,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Data box - warna senada header */
 .nw-slide-data {
   border-radius: 0 0 10px 10px;
+  margin-top: -1px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -3933,15 +3934,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-direction: row;
     gap: 12px;
     transform: none !important;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .nw-swipe-slide {
-    display: block;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     width: calc(33.333% - 8px);
     flex-shrink: 0;
     box-sizing: border-box;
   }
-  .nw-slide-data { height: 180px; }
+  .nw-slide-data { flex: 1; height: auto; min-height: 160px; }
   .nw-swipe-dot-label { display: none !important; }
 }

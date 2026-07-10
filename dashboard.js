@@ -398,7 +398,7 @@ document.getElementById('page-dashboard').innerHTML = `
     .target-link{font-size:11px;color:var(--ink4);cursor:pointer;text-decoration:underline dashed;margin-left:4px}
     .target-link:hover{color:var(--ink2)}
     .dist-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:2px solid var(--ink);font-size:11px;font-weight:700;font-family:var(--f)}
-    .beban-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:13px}
+    .beban-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--ink4);font-size:14px}
     .beban-row:last-child{border-bottom:none}
   `;
   document.head.appendChild(s);
