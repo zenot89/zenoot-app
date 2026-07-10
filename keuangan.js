@@ -1061,12 +1061,13 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
 // ─── HUTANG: hide-on-scroll (collapsible) + riwayat swipe ────────────────────
 (function() {
-  var _collapseEl  = null;
-  var _scrollEl    = null;
-  var _lastY       = 0;
-  var _ticking     = false;
-  var THRESHOLD    = 8;   // px min sebelum react
-  var SHOW_ZONE    = 40;  // px dari atas → selalu tampil
+  var _collapseEl       = null;
+  var _scrollEl         = null;
+  var _lastY            = 0;
+  var _ticking          = false;
+  var _expandAfterScroll = false; // guard cegah spring loop
+  var THRESHOLD         = 8;   // px min sebelum react
+  var SHOW_ZONE         = 40;  // px dari atas → selalu tampil
 
   function _onHutangScroll() {
     if (_ticking) return;
@@ -1076,14 +1077,24 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
       if (!_collapseEl || !_scrollEl) return;
       var y  = _scrollEl.scrollTop;
       var dy = y - _lastY;
+      _lastY = y;
+
       if (y < SHOW_ZONE) {
-        _collapseEl.classList.remove('keu-hutang-collapsed');
+        // Dekat atas: expand — tapi jangan recalc height (cegah spring loop)
+        if (_collapseEl.classList.contains('keu-hutang-collapsed')) {
+          _expandAfterScroll = true;
+          _collapseEl.classList.remove('keu-hutang-collapsed');
+        }
       } else if (dy > THRESHOLD) {
+        // Scroll DOWN: collapse
         _collapseEl.classList.add('keu-hutang-collapsed');
       } else if (dy < -THRESHOLD) {
-        _collapseEl.classList.remove('keu-hutang-collapsed');
+        // Scroll UP: expand
+        if (_collapseEl.classList.contains('keu-hutang-collapsed')) {
+          _expandAfterScroll = true;
+          _collapseEl.classList.remove('keu-hutang-collapsed');
+        }
       }
-      _lastY = y;
     });
   }
 
@@ -1092,24 +1103,30 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     _scrollEl   = document.getElementById('keu-hutang-scroll-zone');
     if (!_collapseEl || !_scrollEl) return;
 
-    // Pastikan scroll zone punya height sebelum pasang listener
-    _keuEnsureHutangLayout();
+    // Reset state
+    _lastY            = 0;
+    _expandAfterScroll = false;
+    _collapseEl.classList.remove('keu-hutang-collapsed');
 
-    // Kalau panelH masih 0 (belum render), retry setelah paint
-    var panel = document.getElementById('keu-panel-hutang');
-    if (panel && panel.getBoundingClientRect().height < 50) {
-      setTimeout(function() {
-        _keuEnsureHutangLayout();
-        _scrollEl.removeEventListener('scroll', _onHutangScroll);
-        _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
-        _lastY = _scrollEl.scrollTop;
-      }, 150);
+    // Pasang transitionend SEKALI — hanya recalc saat collapse selesai
+    if (!_collapseEl._hutangTransInited) {
+      _collapseEl._hutangTransInited = true;
+      _collapseEl.addEventListener('transitionend', _keuHutangOnTransitionEnd);
     }
 
+    // Pasang scroll listener
     _scrollEl.removeEventListener('scroll', _onHutangScroll);
     _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
-    _lastY = _scrollEl.scrollTop;
-    _collapseEl.classList.remove('keu-hutang-collapsed');
+
+    // Set height setelah paint (requestAnimationFrame agar getBCR akurat)
+    requestAnimationFrame(function() {
+      _keuEnsureHutangLayout();
+      // Retry 200ms kalau panelH belum resolve (iOS cold load)
+      var panel = document.getElementById('keu-panel-hutang');
+      if (panel && panel.getBoundingClientRect().height < 50) {
+        setTimeout(_keuEnsureHutangLayout, 200);
+      }
+    });
   }
 
   // ── Riwayat swipe (Daftar ↔ Ringkasan per Kreditur) ──
@@ -1216,6 +1233,7 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
   // Flex + explicit height layout untuk keu-panel-hutang
   // Pakai getBoundingClientRect — satu-satunya cara reliable di iOS Safari PWA
+  // PENTING: tidak dipanggil dari transitionend (cegah spring loop scrollTop)
   function _keuEnsureHutangLayout() {
     if (window.innerWidth > 600) return;
     var panel = document.getElementById('keu-panel-hutang');
@@ -1233,11 +1251,23 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     var scrollEl   = document.getElementById('keu-hutang-scroll-zone');
     if (!scrollEl) return;
 
-    // Hitung tinggi eksplisit: panel height - collapsible height
-    // getBoundingClientRect — akurat di iOS Safari PWA
+    // Hitung scroll zone height HANYA dari collapsible dalam kondisi EXPANDED
+    // (collapsed → tinggi 0, jadi kita ambil natural height collapsible dulu)
+    var isCollapsed = collapseEl && collapseEl.classList.contains('keu-hutang-collapsed');
     var panelH    = panel.getBoundingClientRect().height;
-    var collapseH = collapseEl ? collapseEl.getBoundingClientRect().height : 0;
-    var scrollH   = Math.max(100, panelH - collapseH);
+
+    var collapseH;
+    if (isCollapsed || !collapseEl) {
+      // Collapsible sedang collapsed: ambil dari CSS max-height (aprox 320px default)
+      // atau simpan natural height saat pertama kali
+      collapseH = collapseEl ? (collapseEl._naturalH || 0) : 0;
+    } else {
+      collapseH = collapseEl.getBoundingClientRect().height;
+      // Simpan natural height untuk dipakai saat collapsed
+      if (collapseH > 0) collapseEl._naturalH = collapseH;
+    }
+
+    var scrollH = Math.max(120, panelH - collapseH);
 
     scrollEl.style.height                  = scrollH + 'px';
     scrollEl.style.maxHeight               = scrollH + 'px';
@@ -1247,14 +1277,19 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     scrollEl.style.webkitOverflowScrolling = 'touch';
     scrollEl.style.overscrollBehavior      = 'none';
     scrollEl.style.touchAction             = 'pan-y';
+  }
 
-    // Re-calc saat collapsible selesai transisi
-    if (collapseEl && !collapseEl._hutangResizeInited) {
-      collapseEl._hutangResizeInited = true;
-      collapseEl.addEventListener('transitionend', function(e) {
-        if (e.propertyName === 'max-height') setTimeout(_keuEnsureHutangLayout, 16);
-      });
+  // Update height saat collapsible selesai collapse (bukan expand — cegah spring)
+  function _keuHutangOnTransitionEnd(e) {
+    if (e.propertyName !== 'max-height') return;
+    var collapseEl = document.getElementById('keu-hutang-collapsible');
+    if (!collapseEl) return;
+    var isCollapsed = collapseEl.classList.contains('keu-hutang-collapsed');
+    if (isCollapsed) {
+      // Selesai collapse → perbesar scroll zone
+      setTimeout(_keuEnsureHutangLayout, 16);
     }
+    // Saat expand: JANGAN recalc — biarkan scrollTop tetap, cegah spring
   }
 
   // Hook ke tab hutang
