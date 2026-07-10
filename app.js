@@ -1149,3 +1149,71 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
   _domWatcher.observe(document.body, { childList: true, subtree: false });
 })();
 
+
+// ─── HIDE-ON-SCROLL TOPBAR ────────────────────────────────────
+// Topbar tersembunyi saat user scroll DOWN di .content,
+// muncul kembali saat scroll UP atau di dekat puncak halaman.
+// Berlaku di semua halaman (dashboard, stok, kas, dll).
+// Tidak aktif saat fullscreen pages (overflow:hidden) karena .content
+// tidak bisa discroll → tidak ada scroll event yang fire.
+(function() {
+  var _topbar    = null;
+  var _content   = null;
+  var _lastY     = 0;
+  var _ticking   = false;
+  var _hidden    = false;
+  var THRESHOLD  = 6;   // px minimum sebelum react (cegah noise)
+  var SHOW_ZONE  = 60;  // px dari atas → selalu tampil
+
+  function _onScroll() {
+    if (_ticking) return;
+    _ticking = true;
+    requestAnimationFrame(function() {
+      _ticking = false;
+      if (!_topbar || !_content) return;
+      var y   = _content.scrollTop;
+      var dy  = y - _lastY;
+
+      if (y < SHOW_ZONE) {
+        // Dekat atas → selalu tampilkan
+        if (_hidden) { _topbar.classList.remove('topbar-hidden'); _hidden = false; }
+      } else if (dy > THRESHOLD && !_hidden) {
+        // Scroll DOWN → sembunyikan
+        _topbar.classList.add('topbar-hidden');
+        _hidden = true;
+      } else if (dy < -THRESHOLD && _hidden) {
+        // Scroll UP → tampilkan
+        _topbar.classList.remove('topbar-hidden');
+        _hidden = false;
+      }
+      _lastY = y;
+    });
+  }
+
+  function _attachHideScroll() {
+    _topbar  = document.querySelector('.topbar');
+    _content = document.querySelector('.content');
+    if (!_topbar || !_content) return;
+    // Bersihkan listener lama
+    _content.removeEventListener('scroll', _onScroll, { passive: true });
+    _content.addEventListener('scroll', _onScroll, { passive: true });
+    _lastY  = _content.scrollTop;
+    _hidden = false;
+    _topbar.classList.remove('topbar-hidden');
+  }
+
+  // Attach saat DOM siap
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _attachHideScroll);
+  } else {
+    _attachHideScroll();
+  }
+
+  // Re-show topbar saat navigasi halaman (zenot:page)
+  document.addEventListener('zenot:page', function() {
+    if (!_topbar) _topbar = document.querySelector('.topbar');
+    if (_topbar)  { _topbar.classList.remove('topbar-hidden'); _hidden = false; }
+    if (!_content) _content = document.querySelector('.content');
+    if (_content)  _lastY = _content.scrollTop;
+  });
+})();

@@ -373,6 +373,16 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   gap:8px;
   -webkit-flex-shrink:0;flex-shrink:0;
   position:relative;
+  /* Hide-on-scroll */
+  transition: transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.22s ease;
+  will-change: transform;
+  z-index: 10;
+}
+/* State: tersembunyi saat scroll down */
+.topbar.topbar-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+  pointer-events: none;
 }
 .topbar::before{
   content:'';position:absolute;left:52px;top:0;bottom:0;
@@ -3712,6 +3722,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     display: flex;
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     will-change: transform;
+    touch-action: pan-y;
   }
 
   .db-swipe-slide {
@@ -3897,6 +3908,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     align-items: flex-start;
     transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     will-change: transform;
+    touch-action: pan-y;
   }
   .nw-swipe-slide {
     min-width: 100%;

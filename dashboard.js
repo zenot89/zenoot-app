@@ -2102,33 +2102,45 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     if (!track) return;
     var slides = pairEl.querySelectorAll('.nw-swipe-slide');
     var current = 0;
-    var startX = 0, startY = 0, isDragging = false, isHoriz = null;
+    var startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
     function goTo(idx) {
       if (idx < 0 || idx >= slides.length) return;
       current = idx;
       track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-      slides.forEach(function(slide, i) {
+      slides.forEach(function(slide) {
         var dots = slide.querySelectorAll('.nw-dot');
         dots.forEach(function(d, j) { d.classList.toggle('active', j === idx); });
       });
     }
     track.addEventListener('touchstart', function(e) {
-      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-      isDragging = true; isHoriz = null;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startT = Date.now();
+      isDragging = true;
+      isHoriz = null;
     }, { passive: true });
     track.addEventListener('touchmove', function(e) {
       if (!isDragging) return;
-      var dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
-      if (isHoriz === null) isHoriz = Math.abs(dx) > Math.abs(dy);
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      // Tentukan arah hanya sekali, setelah minimal 4px gerakan
+      if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        isHoriz = Math.abs(dx) > Math.abs(dy);
+      }
       if (isHoriz) e.preventDefault();
     }, { passive: false });
     track.addEventListener('touchend', function(e) {
-      if (!isDragging || !isHoriz) { isDragging = false; return; }
-      var dx = e.changedTouches[0].clientX - startX;
+      if (!isDragging) return;
       isDragging = false;
-      if (dx < -40 && current < slides.length - 1) goTo(current + 1);
-      else if (dx > 40 && current > 0) goTo(current - 1);
-    });
+      if (!isHoriz) return;
+      var dx = e.changedTouches[0].clientX - startX;
+      var dt = Date.now() - startT;
+      // Threshold: 40px atau velocity > 0.3px/ms
+      var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+      if ((dx < -40 || (isFlick && dx < 0)) && current < slides.length - 1) goTo(current + 1);
+      else if ((dx > 40 || (isFlick && dx > 0)) && current > 0) goTo(current - 1);
+    }, { passive: true });
+    track.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
   }
 
   function initSwipePair(pairEl) {
@@ -2136,14 +2148,13 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     if (!track) return;
     var slides = pairEl.querySelectorAll('.db-swipe-slide');
     var current = 0;
-    var startX = 0, startY = 0, isDragging = false, isHoriz = null;
+    var startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
 
     function goTo(idx) {
       if (idx < 0 || idx >= slides.length) return;
       current = idx;
       track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-      // Update dot labels
-      slides.forEach(function(slide, i) {
+      slides.forEach(function(slide) {
         var dots = slide.querySelectorAll('.db-dot');
         dots.forEach(function(d, j) { d.classList.toggle('active', j === idx); });
       });
@@ -2152,6 +2163,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     track.addEventListener('touchstart', function(e) {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
+      startT = Date.now();
       isDragging = true;
       isHoriz = null;
     }, { passive: true });
@@ -2160,24 +2172,29 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       if (!isDragging) return;
       var dx = e.touches[0].clientX - startX;
       var dy = e.touches[0].clientY - startY;
-      if (isHoriz === null) {
+      // Tentukan arah hanya sekali, setelah minimal 4px
+      if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
         isHoriz = Math.abs(dx) > Math.abs(dy);
       }
       if (isHoriz) e.preventDefault();
     }, { passive: false });
 
     track.addEventListener('touchend', function(e) {
-      if (!isDragging || !isHoriz) { isDragging = false; return; }
-      var dx = e.changedTouches[0].clientX - startX;
+      if (!isDragging) return;
       isDragging = false;
-      if (dx < -40 && current < slides.length - 1) goTo(current + 1);
-      else if (dx > 40 && current > 0) goTo(current - 1);
-    });
+      if (!isHoriz) return;
+      var dx = e.changedTouches[0].clientX - startX;
+      var dt = Date.now() - startT;
+      var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+      if ((dx < -40 || (isFlick && dx < 0)) && current < slides.length - 1) goTo(current + 1);
+      else if ((dx > 40 || (isFlick && dx > 0)) && current > 0) goTo(current - 1);
+    }, { passive: true });
+
+    track.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
 
     // Dot click
     pairEl.querySelectorAll('.db-dot').forEach(function(dot, idx2) {
       dot.addEventListener('click', function() {
-        // cari index dot dalam dot-label
         var allDots = Array.from(pairEl.querySelectorAll('.db-swipe-slide:first-child .db-dot'));
         var i = allDots.indexOf(dot);
         if (i >= 0) goTo(i);
@@ -2188,24 +2205,18 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 
   function initAllSwipes() {
     if (window.innerWidth >= 768) return;
-    // Init db-swipe-pair
+    // Init db-swipe-pair — guard: skip kalau sudah pernah di-init
     document.querySelectorAll('.db-swipe-pair').forEach(function(pair) {
-      pair._swipeInited = false;
       if (pair._swipeInited) return;
       pair._swipeInited = true;
       initSwipePair(pair);
     });
     // Init nw-swipe-container (Net Worth + Beban + Income)
     var nwCont = document.getElementById('nw-swipe-container');
-    if (nwCont) {
-      nwCont._swipeInited = false;
+    if (nwCont && !nwCont._swipeInited) {
+      nwCont._swipeInited = true;
       initSwipePairNw(nwCont);
     }
-    // Retry kalau belum jalan (iOS kadang butuh delay)
-    setTimeout(function() {
-      var nc = document.getElementById('nw-swipe-container');
-      if (nc) initSwipePairNw(nc);
-    }, 300);
   }
 
   // Init setelah dashboard render
