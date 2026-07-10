@@ -1091,7 +1091,22 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     _collapseEl = document.getElementById('keu-hutang-collapsible');
     _scrollEl   = document.getElementById('keu-hutang-scroll-zone');
     if (!_collapseEl || !_scrollEl) return;
-    _scrollEl.removeEventListener('scroll', _onHutangScroll, { passive: true });
+
+    // Pastikan scroll zone punya height sebelum pasang listener
+    _keuEnsureHutangLayout();
+
+    // Kalau panelH masih 0 (belum render), retry setelah paint
+    var panel = document.getElementById('keu-panel-hutang');
+    if (panel && panel.getBoundingClientRect().height < 50) {
+      setTimeout(function() {
+        _keuEnsureHutangLayout();
+        _scrollEl.removeEventListener('scroll', _onHutangScroll);
+        _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
+        _lastY = _scrollEl.scrollTop;
+      }, 150);
+    }
+
+    _scrollEl.removeEventListener('scroll', _onHutangScroll);
     _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
     _lastY = _scrollEl.scrollTop;
     _collapseEl.classList.remove('keu-hutang-collapsed');
@@ -1199,27 +1214,46 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     _keuEnsureHutangLayout();
   }
 
-  // Flex layout untuk keu-panel-hutang (mirror pola neraca)
+  // Flex + explicit height layout untuk keu-panel-hutang
+  // Pakai getBoundingClientRect — satu-satunya cara reliable di iOS Safari PWA
   function _keuEnsureHutangLayout() {
     if (window.innerWidth > 600) return;
     var panel = document.getElementById('keu-panel-hutang');
     if (!panel || !panel.classList.contains('active')) return;
 
-    // keu-panels-wrap sudah flex:1 dari _keuEnsureFlexLayout
-    panel.style.display       = 'flex';
-    panel.style.flexDirection = 'column';
-    panel.style.flex          = '1 1 0';
-    panel.style.minHeight     = '0';
-    panel.style.overflow      = 'hidden';
+    // Panel: flex column, overflow hidden
+    panel.style.display             = 'flex';
+    panel.style.flexDirection       = 'column';
+    panel.style.flex                = '1 1 0';
+    panel.style.webkitFlex          = '1 1 0';
+    panel.style.minHeight           = '0';
+    panel.style.overflow            = 'hidden';
 
-    var scroll = document.getElementById('keu-hutang-scroll-zone');
-    if (scroll) {
-      scroll.style.flex                    = '1 1 0';
-      scroll.style.webkitFlex              = '1 1 0';
-      scroll.style.minHeight               = '0';
-      scroll.style.overflowY               = 'auto';
-      scroll.style.webkitOverflowScrolling = 'touch';
-      scroll.style.overscrollBehavior      = 'none';
+    var collapseEl = document.getElementById('keu-hutang-collapsible');
+    var scrollEl   = document.getElementById('keu-hutang-scroll-zone');
+    if (!scrollEl) return;
+
+    // Hitung tinggi eksplisit: panel height - collapsible height
+    // getBoundingClientRect — akurat di iOS Safari PWA
+    var panelH    = panel.getBoundingClientRect().height;
+    var collapseH = collapseEl ? collapseEl.getBoundingClientRect().height : 0;
+    var scrollH   = Math.max(100, panelH - collapseH);
+
+    scrollEl.style.height                  = scrollH + 'px';
+    scrollEl.style.maxHeight               = scrollH + 'px';
+    scrollEl.style.flex                    = 'none';
+    scrollEl.style.webkitFlex              = 'none';
+    scrollEl.style.overflowY               = 'auto';
+    scrollEl.style.webkitOverflowScrolling = 'touch';
+    scrollEl.style.overscrollBehavior      = 'none';
+    scrollEl.style.touchAction             = 'pan-y';
+
+    // Re-calc saat collapsible selesai transisi
+    if (collapseEl && !collapseEl._hutangResizeInited) {
+      collapseEl._hutangResizeInited = true;
+      collapseEl.addEventListener('transitionend', function(e) {
+        if (e.propertyName === 'max-height') setTimeout(_keuEnsureHutangLayout, 16);
+      });
     }
   }
 
