@@ -109,10 +109,21 @@ document.getElementById('page-keuangan').innerHTML = `
     */
     body.keu-active .content { overflow:hidden !important; }
     #keu-panels-wrap { overflow:hidden; }
-    #page-keuangan .keu-panel.active:not(.keu-panel-neraca) {
+    #page-keuangan .keu-panel.active:not(.keu-panel-neraca):not(.keu-panel-hutang) {
       height:100%; box-sizing:border-box;
       overflow-y:auto; -webkit-overflow-scrolling:touch;
       overscroll-behavior:none; touch-action:pan-y pinch-zoom;
+      padding-bottom:24px;
+    }
+    /* Hutang panel: flex column seperti Neraca, scroll terjadi di #keu-hutang-scroll-zone */
+    #page-keuangan .keu-panel-hutang.active {
+      display:flex; flex-direction:column;
+      height:100%; box-sizing:border-box; overflow:hidden;
+    }
+    #keu-hutang-scroll-zone {
+      flex:1 1 0; -webkit-flex:1 1 0; min-height:0;
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      overscroll-behavior:none; touch-action:pan-y;
       padding-bottom:24px;
     }
 
@@ -1113,29 +1124,14 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     if (!_collapseEl || !_scrollEl) return;
 
     // Reset state
-    _lastY            = 0;
+    _lastY             = 0;
     _expandAfterScroll = false;
     _collapseEl.classList.remove('keu-hutang-collapsed');
 
-    // Pasang transitionend SEKALI — hanya recalc saat collapse selesai
-    if (!_collapseEl._hutangTransInited) {
-      _collapseEl._hutangTransInited = true;
-      _collapseEl.addEventListener('transitionend', _keuHutangOnTransitionEnd);
-    }
-
-    // Pasang scroll listener
+    // Scroll listener di #keu-hutang-scroll-zone
+    // (CSS sudah set flex:1 + overflow-y:auto di zone ini)
     _scrollEl.removeEventListener('scroll', _onHutangScroll);
     _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
-
-    // Set height setelah paint (requestAnimationFrame agar getBCR akurat)
-    requestAnimationFrame(function() {
-      _keuEnsureHutangLayout();
-      // Retry 200ms kalau panelH belum resolve (iOS cold load)
-      var panel = document.getElementById('keu-panel-hutang');
-      if (panel && panel.getBoundingClientRect().height < 50) {
-        setTimeout(_keuEnsureHutangLayout, 200);
-      }
-    });
   }
 
   // ── Riwayat swipe (Daftar ↔ Ringkasan per Kreditur) ──
