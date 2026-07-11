@@ -199,6 +199,45 @@ document.getElementById('page-keuangan').innerHTML = `
     #page-keuangan .keu-neraca-toggle { display:none; }
   }
 
+  /* ── Desktop slide nav: ◀ ○○◉ ▶ — hanya min-width:901px ── */
+  @media(min-width:901px){
+    .keu-slide-nav {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .keu-slide-nav .keu-nav-arr {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--ink3);
+      padding: 2px 4px;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .keu-slide-nav .keu-nav-arr:hover { color: var(--ink); }
+    .keu-slide-nav .keu-hdot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--ink3);
+      display: inline-block;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      opacity: 0.5;
+    }
+    .keu-slide-nav .keu-hdot.active {
+      background: var(--ok);
+      opacity: 1;
+      transform: scale(1.3);
+    }
+    .keu-slide-nav .keu-hdot:hover { opacity: 1; }
+  }
+  /* Di bawah 901px: sembunyikan nav arrow, dot tetap pakai style lama */
+  @media(max-width:900px){
+    .keu-slide-nav .keu-nav-arr { display: none; }
+  }
+
   /* ── Portrait: slide card full height, tabel kolom minimal ── */
   @media(max-width:600px){
     /* Slide & card full height */
@@ -282,8 +321,12 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-list"></i> Daftar Hutang</span>
-          <span style="display:flex;gap:5px;align-items:center">
-            <span class="keu-hdot active"></span><span class="keu-hdot"></span><span class="keu-hdot"></span>
+          <span class="keu-slide-nav">
+            <button class="keu-nav-arr" onclick="keuSlideNav(-1)">◀</button>
+            <span class="keu-hdot active" onclick="window._keuGoToSlide&&window._keuGoToSlide(0)"></span>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(1)"></span>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(2)"></span>
+            <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
@@ -299,8 +342,12 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-history"></i> Riwayat Cicilan</span>
-          <span style="display:flex;gap:5px;align-items:center">
-            <span class="keu-hdot"></span><span class="keu-hdot active"></span><span class="keu-hdot"></span>
+          <span class="keu-slide-nav">
+            <button class="keu-nav-arr" onclick="keuSlideNav(-1)">◀</button>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(0)"></span>
+            <span class="keu-hdot active" onclick="window._keuGoToSlide&&window._keuGoToSlide(1)"></span>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(2)"></span>
+            <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
         <div style="margin-bottom:10px">
@@ -319,8 +366,12 @@ document.getElementById('page-keuangan').innerHTML = `
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-chart-bar"></i> Ringkasan per Kreditur</span>
-          <span style="display:flex;gap:5px;align-items:center">
-            <span class="keu-hdot"></span><span class="keu-hdot"></span><span class="keu-hdot active"></span>
+          <span class="keu-slide-nav">
+            <button class="keu-nav-arr" onclick="keuSlideNav(-1)">◀</button>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(0)"></span>
+            <span class="keu-hdot" onclick="window._keuGoToSlide&&window._keuGoToSlide(1)"></span>
+            <span class="keu-hdot active" onclick="window._keuGoToSlide&&window._keuGoToSlide(2)"></span>
+            <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
         <div style="margin-bottom:10px">
@@ -1198,6 +1249,9 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
       if (idx === 2) _renderRiwayatSummary();
     }
 
+    // Expose goTo ke window agar tombol desktop bisa memanggil
+    window._keuGoToSlide = goTo;
+
     zone.addEventListener('touchstart', function(e) {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
@@ -1303,10 +1357,19 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
   // Expose untuk akses luar
   window._renderRiwayatSummary = _renderRiwayatSummary;
+  window._keuRwCurrent = function() { return _rwCurrent; };
 
   // Init awal
   setTimeout(_initAll, 300);
 })();
+
+// ─── DESKTOP SLIDE NAV ◀▶ ────────────────────────────────────
+// Cycling infinite: 0→1→2→0→1→2 (dan sebaliknya)
+function keuSlideNav(dir) {
+  var current = typeof window._keuRwCurrent === 'function' ? window._keuRwCurrent() : 0;
+  var next = ((current + dir) % 3 + 3) % 3;
+  if (typeof window._keuGoToSlide === 'function') window._keuGoToSlide(next);
+}
 
 // ─── HUTANG ──────────────────────────────────────────────────
 async function keuLoadHutang() {
