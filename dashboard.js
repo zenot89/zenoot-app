@@ -1607,7 +1607,7 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
-    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime, jurnalBulanIni, jpHariIniRaw] = await Promise.all([
+    const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime, jurnalBulanIni, jpHariIniRaw, supplierRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
       dbGet('jurnal', '&order=created_at.desc&limit=8'),
@@ -1618,7 +1618,8 @@ async function loadDashboard() {
       dbGet('kas_akun', '').catch(() => []),
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),
       dbGet('jurnal', '&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
-      dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => [])
+      dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => []),
+      dbGet('restock_supplier').catch(() => [])
     ]);
     const jpHariIniSell = jpHariIniRaw || [];
     // jpData & jpChart30 sama-sama 30 hari — satu fetch, reuse keduanya
@@ -1645,11 +1646,27 @@ async function loadDashboard() {
       if (key) keluarMap[key] = (keluarMap[key] || 0) + (j.qty || 0);
     });
 
+    // Build sales30Map dari _jpData30 (reuse, no extra fetch)
+    // Filter CANCELLED sama seperti stok.js
+    const _sales30Map = {};
+    (_jpData30 || []).forEach(j => {
+      if ((j.order_status || '') === 'CANCELLED') return;
+      const key = (j.sku || '').toUpperCase();
+      if (key) _sales30Map[key] = (_sales30Map[key] || 0) + (j.qty || 0);
+    });
+
+    // Build supplier lead_time map: boss (uppercase) → lead_time (hari)
+    const _supplierLeadMap = {};
+    (supplierRaw || []).forEach(s => {
+      if (s.boss) _supplierLeadMap[(s.boss || '').toUpperCase()] = Number(s.lead_time) || 7;
+    });
+
     _dashStokData = (produkData || []).map(p => {
       const skuKey = (p.sku_variasi || '').toUpperCase();
       const masuk  = stokMasukMap[skuKey] ? stokMasukMap[skuKey].qty : 0;
       const keluar = keluarMap[skuKey] || 0;
       const sisa   = masuk - keluar;
+      const sales30 = _sales30Map[skuKey] || 0;
       return {
         sku_variasi:     p.sku_variasi,
         katalog:         p.katalog,
@@ -1659,6 +1676,7 @@ async function loadDashboard() {
         stok_masuk:      masuk,
         stok_keluar:     keluar,
         sisa,
+        sales30,
         nilai_stok:      sisa > 0 ? sisa * (p.hpp || 0) : 0
       };
     });
@@ -1669,7 +1687,21 @@ async function loadDashboard() {
     (channelData||[]).forEach(ch => { _dashChannelMap[ch.id] = ch; });
 
     // ─ Metric 1-4
-    const kritis    = _dashStokData.filter(r => r.sisa <= 3 && (r.kategori_produk || 'aktif') === 'aktif').length;
+    // ─ Logika SKU Kritis: Fast velocity + hari sisa stok ≤ lead time supplier
+    // avg30 = rata penjualan harian 30hr (lebih stabil dari 7hr)
+    // hari_sisa = sisa / avg30 — berapa hari stok akan bertahan
+    // lead_time: dari tabel restock_supplier match by boss, fallback 7 hari
+    // PERLU RESTOCK jika: aktif AND fast AND (habis OR hari_sisa ≤ lead_time)
+    const kritis = _dashStokData.filter(r => {
+      if ((r.kategori_produk || 'aktif') !== 'aktif') return false;
+      const isFast = (r.sales30 || 0) > 0; // fast = ada penjualan 30hr terakhir
+      if (!isFast) return false;
+      const leadTime = _supplierLeadMap[(r.boss || '').toUpperCase()] || 7;
+      if (r.sisa <= 0) return true; // habis = selalu kritis kalau fast
+      const avg30    = (r.sales30 || 0) / 30;
+      const hariSisa = avg30 > 0 ? r.sisa / avg30 : Infinity;
+      return hariSisa <= leadTime;
+    }).length;
     const nilaiStok = _dashStokData.reduce((s,r) => s + (r.nilai_stok || 0), 0);
     // ─ Saldo KAS: hanya akun sub_kelompok 'KAS & BANK' — debit masuk, kredit keluar
     // Saldo KAS — sama persis dengan kas.js kasUpdateSummary:
