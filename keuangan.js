@@ -198,6 +198,46 @@ document.getElementById('page-keuangan').innerHTML = `
   @media(min-width:601px){
     #page-keuangan .keu-neraca-toggle { display:none; }
   }
+
+  /* ── Portrait: slide card full height, tabel kolom minimal ── */
+  @media(max-width:600px){
+    /* Slide & card full height */
+    .keu-hutang-slide {
+      display:block;
+      height:100%;
+      box-sizing:border-box;
+    }
+    .keu-hutang-slide > .card {
+      height:100%;
+      box-sizing:border-box;
+      display:flex !important;
+      flex-direction:column !important;
+      margin-bottom:0 !important;
+    }
+    /* Tabel scroll area tumbuh mengisi card */
+    .keu-hutang-slide > .card > .tbl-wrap {
+      flex:1 1 0;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    /* ── Slide 1: Daftar Hutang — sembunyikan kolom tidak penting ── */
+    #keu-slide-0 .tbl th:nth-child(2),
+    #keu-slide-0 .tbl td:nth-child(2) { display:none; } /* JENIS */
+    #keu-slide-0 .tbl th:nth-child(4),
+    #keu-slide-0 .tbl td:nth-child(4) { display:none; } /* BUNGA */
+    #keu-slide-0 .tbl th:nth-child(5),
+    #keu-slide-0 .tbl td:nth-child(5) { display:none; } /* CICILAN/BLN */
+    #keu-slide-0 .tbl th:nth-child(6),
+    #keu-slide-0 .tbl td:nth-child(6) { display:none; } /* SUDAH BAYAR */
+    #keu-slide-0 .tbl th:nth-child(9),
+    #keu-slide-0 .tbl td:nth-child(9) { display:none; } /* STATUS */
+
+    /* ── Slide 2: Riwayat Cicilan — sembunyikan KETERANGAN ── */
+    #keu-slide-1 .tbl th:nth-child(3),
+    #keu-slide-1 .tbl td:nth-child(3) { display:none; } /* KETERANGAN */
+  }
 </style>
 
 <!-- Sticky header: collapse on scroll (mobile, Neraca only) -->
