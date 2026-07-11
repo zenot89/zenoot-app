@@ -264,14 +264,25 @@ async function loadRestock() {
 
     const zombieList = []; // SKU zombie — diblok dari restock
 
+    // Mode kritis: basis dari semua produk aktif (bukan hanya yg ada di qtyMap/14hr)
+    // agar identik dengan dashboard.js yg pakai sales30 sebagai basis
+    const _loopEntries = isKritisMode
+      ? produkAll
+          .filter(p => (p.kategori_produk || 'aktif') === 'aktif')
+          .map(p => {
+            const k = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+            return [k, qtyMap[k] || 0];
+          })
+          .filter(([k]) => k)
+      : Object.entries(qtyMap);
+
     const bossList = {};
-    Object.entries(qtyMap).forEach(([sku, qty14]) => {
+    _loopEntries.forEach(([sku, qty14]) => {
       const p = produkMap[sku];
       if (!p) return;
       // ── Filter Mode Kritis: fast + hari_sisa ≤ lead_time (identik dashboard.js) ──
       if (isKritisMode) {
-        const p2       = produkMap[sku];
-        const bossK2   = (p2 ? p2.boss || '' : '').trim().toUpperCase();
+        const bossK2   = (p.boss || '').trim().toUpperCase();
         const sup2     = supplierMap[bossK2] || DEFAULT_SUPPLIER;
         const isFast2  = (sales30Map[sku] || 0) > 0;
         if (!isFast2) return; // Slow/Dead/Zombie tidak masuk kritis
@@ -768,9 +779,18 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
   const grandSKU    = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
   const allItems    = bossSorted.flatMap(b => bossList[b].items.map(r => ({ ...r, _boss: b, _sup: bossList[b].sup })));
 
-  // ── Klasifikasi ──
-  const segera  = allItems.filter(r => r.prioritas === 'SEGERA');
-  const perlu   = allItems.filter(r => r.prioritas === 'PERLU');
+  // ── Klasifikasi + sort global per DoS (lintas semua boss) ──
+  // Primary: sisa_stok ≤ 0 (habis) dulu, lalu DoS ascending
+  const _sortByUrgency = (a, z) => {
+    const aHabis = (a.sisa_stok !== null && a.sisa_stok <= 0) ? 0 : 1;
+    const zHabis = (z.sisa_stok !== null && z.sisa_stok <= 0) ? 0 : 1;
+    if (aHabis !== zHabis) return aHabis - zHabis;
+    const aDos = a.dos !== null ? a.dos : 9999;
+    const zDos = z.dos !== null ? z.dos : 9999;
+    return aDos - zDos;
+  };
+  const segera  = allItems.filter(r => r.prioritas === 'SEGERA').sort(_sortByUrgency);
+  const perlu   = allItems.filter(r => r.prioritas === 'PERLU').sort(_sortByUrgency);
   const tunda   = allItems.filter(r => r.prioritas === 'TUNDA');
   const skuNaik = allItems.filter(r => r.tren === 'naik' || r.tren === 'baru');
 
