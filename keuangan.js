@@ -260,6 +260,16 @@ document.getElementById('page-keuangan').innerHTML = `
       overflow-x:hidden;
       -webkit-overflow-scrolling:touch;
     }
+    /* card-title dan tombol aksi: fix height, tidak boleh mengecil */
+    .keu-hutang-slide > .card > .card-title { flex-shrink:0; }
+    .keu-hutang-slide > .card > div:not(.tbl-wrap):not(#keu-riwayat-summary-body) { flex-shrink:0; }
+    /* slide 3: summary body tumbuh dan scroll menggantikan tbl-wrap */
+    #keu-slide-2 .card > #keu-riwayat-summary-body {
+      flex:1 1 0;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      min-height:0;
+    }
 
     /* ── Slide 1: Daftar Hutang — sembunyikan kolom tidak penting ── */
     #keu-slide-0 .tbl th:nth-child(2),
