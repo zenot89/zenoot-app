@@ -40,12 +40,12 @@ body{
   touch-action: none;
 }
 
-/* ─── HAMBURGER — gaya Threads: ikon kecil di topbar kiri, mobile only ── */
+/* ─── HAMBURGER — gaya Threads: ikon kecil di topbar kanan, mobile only ── */
 .hamburger{
   display:none;
   position:fixed;
   top:calc(10px + env(safe-area-inset-top, 0px));
-  left:14px;
+  right:14px;
   background:transparent;
   border:none;
   width:32px;height:32px;
@@ -385,7 +385,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   pointer-events: none;
 }
 .topbar::before{
-  content:'';position:absolute;left:52px;top:0;bottom:0;
+  content:'';position:absolute;right:52px;top:0;bottom:0;
   width:1px;background:rgba(200,80,80,0.18);
 }
 .page-title{
@@ -746,7 +746,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
     position:relative;
   }
   .main{width:100%}
-  .topbar{padding:10px 14px 10px 52px;padding-top:calc(10px + env(safe-area-inset-top, 0px))}
+  .topbar{padding:10px 52px 10px 14px;padding-top:calc(10px + env(safe-area-inset-top, 0px))}
   .topbar::before{display:none}
   .page-title{font-size:18px;padding-left:0}
   .page-sub{padding-left:0}
