@@ -1118,57 +1118,20 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
 // ─── HUTANG: hide-on-scroll (collapsible) + riwayat swipe ────────────────────
 (function() {
-  var _collapseEl       = null;
-  var _scrollEl         = null;
-  var _lastY            = 0;
-  var _ticking          = false;
-  var _expandAfterScroll = false; // guard cegah spring loop
-  var THRESHOLD         = 8;   // px min sebelum react
-  var SHOW_ZONE         = 40;  // px dari atas → selalu tampil
-
-  function _onHutangScroll() {
-    if (_ticking) return;
-    _ticking = true;
-    requestAnimationFrame(function() {
-      _ticking = false;
-      if (!_collapseEl || !_scrollEl) return;
-      var y  = _scrollEl.scrollTop;
-      var dy = y - _lastY;
-      _lastY = y;
-
-      if (y < SHOW_ZONE) {
-        // Dekat atas: expand — tapi jangan recalc height (cegah spring loop)
-        if (_collapseEl.classList.contains('keu-hutang-collapsed')) {
-          _expandAfterScroll = true;
-          _collapseEl.classList.remove('keu-hutang-collapsed');
-        }
-      } else if (dy > THRESHOLD) {
-        // Scroll DOWN: collapse
-        _collapseEl.classList.add('keu-hutang-collapsed');
-      } else if (dy < -THRESHOLD) {
-        // Scroll UP: expand
-        if (_collapseEl.classList.contains('keu-hutang-collapsed')) {
-          _expandAfterScroll = true;
-          _collapseEl.classList.remove('keu-hutang-collapsed');
-        }
-      }
-    });
-  }
 
   function _initHutangScroll() {
-    _collapseEl = document.getElementById('keu-hutang-collapsible');
-    _scrollEl   = document.getElementById('keu-hutang-scroll-zone');
-    if (!_collapseEl || !_scrollEl) return;
+    var collapseEl = document.getElementById('keu-hutang-collapsible');
+    var scrollZone = document.getElementById('keu-hutang-scroll-zone');
+    if (!collapseEl || !scrollZone) return;
 
-    // Reset state
-    _lastY             = 0;
-    _expandAfterScroll = false;
-    _collapseEl.classList.remove('keu-hutang-collapsed');
+    // Reset: pastikan expanded
+    collapseEl.classList.remove('keu-hutang-collapsed');
 
-    // Scroll listener di #keu-hutang-scroll-zone
-    // (CSS sudah set flex:1 + overflow-y:auto di zone ini)
-    _scrollEl.removeEventListener('scroll', _onHutangScroll);
-    _scrollEl.addEventListener('scroll', _onHutangScroll, { passive: true });
+    // Pakai initSwipeCollapse persis seperti jurnal-penjualan.js
+    // Swipe UP di scroll zone → collapse minicard
+    // Swipe DOWN di scroll zone → expand minicard
+    initSwipeCollapse(scrollZone,  collapseEl, 40, 'keu-hutang-collapsed');
+    initSwipeCollapse(collapseEl,  collapseEl, 40, 'keu-hutang-collapsed');
   }
 
   // ── Riwayat swipe (Daftar ↔ Ringkasan per Kreditur) ──
