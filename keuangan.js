@@ -133,17 +133,18 @@ document.getElementById('page-keuangan').innerHTML = `
     #keu-hutang-scroll-zone {
       flex:1 1 0 !important; -webkit-flex:1 1 0 !important; min-height:0;
       overflow-y:auto !important; -webkit-overflow-scrolling:touch;
-      overscroll-behavior:none; touch-action:pan-y;
-      padding-bottom:24px;
-      display:flex; flex-direction:column;
+      overscroll-behavior:none !important; touch-action:pan-y;
+      padding-bottom:0;
+      display:flex !important; flex-direction:column !important;
     }
     .keu-hutang-slide {
-      flex:1 1 0; min-height:0;
-      display:flex; flex-direction:column;
+      flex:1 1 0 !important; min-height:0;
+      display:flex !important; flex-direction:column !important;
     }
     .keu-hutang-slide > .card {
-      flex:1 1 0; min-height:0;
-      display:flex; flex-direction:column;
+      flex:1 1 0 !important; min-height:0;
+      display:flex !important; flex-direction:column !important;
+      margin-bottom:0 !important;
     }
 
     /* ── Neraca: panel jadi flex column, minicards collapse on swipe, section-bar freeze ──
@@ -239,10 +240,10 @@ document.getElementById('page-keuangan').innerHTML = `
   </div><!-- /keu-hutang-collapsible -->
 
   <!-- ── BAGIAN 2: Scroll zone — 3 slide show/hide, tumbuh natural ke bawah ── -->
-  <div id="keu-hutang-scroll-zone" style="padding-top:4px">
+  <div id="keu-hutang-scroll-zone">
 
     <!-- ═══ SLIDE 1: Daftar Hutang ═══ -->
-    <div id="keu-slide-0" class="keu-hutang-slide" style="width:100%;box-sizing:border-box;padding-top:12px;height:100%;display:flex;flex-direction:column">
+    <div id="keu-slide-0" class="keu-hutang-slide">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-list"></i> Daftar Hutang</span>
@@ -259,7 +260,7 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
 
     <!-- ═══ SLIDE 2: Riwayat Cicilan ═══ -->
-    <div id="keu-slide-1" class="keu-hutang-slide" style="display:none;width:100%;box-sizing:border-box;padding-top:12px;height:100%;flex-direction:column">
+    <div id="keu-slide-1" class="keu-hutang-slide" style="display:none">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-history"></i> Riwayat Cicilan</span>
@@ -279,7 +280,7 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
 
     <!-- ═══ SLIDE 3: Ringkasan per Kreditur ═══ -->
-    <div id="keu-slide-2" class="keu-hutang-slide" style="display:none;width:100%;box-sizing:border-box;padding-top:12px;height:100%;flex-direction:column">
+    <div id="keu-slide-2" class="keu-hutang-slide" style="display:none">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-chart-bar"></i> Ringkasan per Kreditur</span>
