@@ -216,10 +216,6 @@ async function loadRestock() {
       }
     });
 
-    const sisaFilterSet = isKritisMode ? new Set(
-      Object.entries(sisaMap).filter(([,v]) => v <= 3).map(([k]) => k)
-    ) : null;
-
     const supplierMap = {};
     (supplierAll || []).forEach(s => {
       const key = (s.boss || '').trim().toUpperCase();
@@ -272,7 +268,21 @@ async function loadRestock() {
     Object.entries(qtyMap).forEach(([sku, qty14]) => {
       const p = produkMap[sku];
       if (!p) return;
-      if (isKritisMode && sisaFilterSet && !sisaFilterSet.has(sku)) return;
+      // ── Filter Mode Kritis: fast + hari_sisa ≤ lead_time (identik dashboard.js) ──
+      if (isKritisMode) {
+        const p2       = produkMap[sku];
+        const bossK2   = (p2 ? p2.boss || '' : '').trim().toUpperCase();
+        const sup2     = supplierMap[bossK2] || DEFAULT_SUPPLIER;
+        const isFast2  = (sales30Map[sku] || 0) > 0;
+        if (!isFast2) return; // Slow/Dead/Zombie tidak masuk kritis
+        const sisa2    = sisaMap[sku] !== undefined ? sisaMap[sku] : 0;
+        if (sisa2 <= 0) { /* habis = selalu kritis, lolos */ }
+        else {
+          const avg2      = (sales30Map[sku] || 0) / 30;
+          const hariSisa2 = avg2 > 0 ? sisa2 / avg2 : Infinity;
+          if (hariSisa2 > sup2.lead_time) return; // masih aman, skip
+        }
+      }
 
       // ── Velocity check: Dead=warning, Zombie=block ──
       const vel = _velocity(qty14, sales30Map[sku], sales90Map[sku]);
