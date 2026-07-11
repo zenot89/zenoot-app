@@ -1230,32 +1230,34 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     zone.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
   }
 
-  // Render ringkasan per kreditur dari data riwayat
+  // Render ringkasan per kreditur dari _keuHutangAll + _keuBayarAll
   function _renderRiwayatSummary() {
     var body = document.getElementById('keu-riwayat-summary-body');
     if (!body) return;
 
-    // Ambil data dari tbody riwayat
-    var rows = document.querySelectorAll('#keu-bayar-tbody tr[data-hutang-id]');
-    if (!rows.length) {
-      // Coba dari _keuHutangAll untuk ringkasan
-      if (!window._keuHutangAll || !window._keuHutangAll.length) {
-        body.innerHTML = '<div style="padding:12px;color:var(--ink3);font-size:13px">Belum ada data cicilan.</div>';
-        return;
-      }
+    var hutangList = window._keuHutangAll || [];
+    var bayarList  = window._keuBayarAll  || [];
+
+    if (!hutangList.length) {
+      body.innerHTML = '<div style="padding:12px;color:var(--ink3);font-size:13px">Belum ada data hutang.</div>';
+      return;
     }
 
-    // Grup dari _keuHutangAll: sudah_bayar per kreditur
-    if (!window._keuHutangAll || !window._keuHutangAll.length) return;
-    body.innerHTML = window._keuHutangAll.map(function(h) {
-      var sisa = (h.pokok || 0) - (h.sudah_bayar || 0);
-      var pct  = h.pokok ? Math.round((h.sudah_bayar || 0) / h.pokok * 100) : 0;
+    body.innerHTML = hutangList.map(function(h) {
+      // Hitung sudah_bayar dari _keuBayarAll (akurat, sama dengan panel lain)
+      var sudahBayar = bayarList
+        .filter(function(b) { return String(b.hutang_id) === String(h.id); })
+        .reduce(function(s, b) { return s + (Number(b.nominal) || 0); }, 0);
+      var sisa = Math.max(0, (h.pokok || 0) - sudahBayar);
+      var pct  = h.pokok ? Math.round(sudahBayar / h.pokok * 100) : 0;
       var bar  = Math.max(0, Math.min(100, pct));
+      var isLunas = sisa <= 0;
       return '<div class="keu-riwayat-kredit-card">' +
-        '<div class="krc-name"><i class="ti ti-building-bank"></i> ' + (h.kreditur || '—') + '</div>' +
+        '<div class="krc-name"><i class="ti ti-building-bank"></i> ' + (h.kreditur || '—') +
+          (isLunas ? ' <span style="font-size:10px;color:var(--ok)">✅ LUNAS</span>' : '') + '</div>' +
         '<div class="krc-row"><span>Pokok</span><span class="krc-val">' + _fmtRp(h.pokok || 0) + '</span></div>' +
-        '<div class="krc-row"><span>Sudah Bayar</span><span class="krc-val ok">' + _fmtRp(h.sudah_bayar || 0) + '</span></div>' +
-        '<div class="krc-row"><span>Sisa Hutang</span><span class="krc-val warn">' + _fmtRp(sisa) + '</span></div>' +
+        '<div class="krc-row"><span>Sudah Bayar</span><span class="krc-val" style="color:var(--ok)">' + _fmtRp(sudahBayar) + '</span></div>' +
+        '<div class="krc-row"><span>Sisa Hutang</span><span class="krc-val" style="color:' + (isLunas ? 'var(--ok)' : 'var(--danger)') + '">' + _fmtRp(sisa) + '</span></div>' +
         '<div style="margin-top:7px;height:5px;border-radius:3px;background:var(--ink3);overflow:hidden">' +
           '<div style="width:' + bar + '%;height:100%;background:var(--ok);transition:width .5s ease"></div>' +
         '</div>' +
