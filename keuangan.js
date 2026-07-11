@@ -137,7 +137,7 @@ document.getElementById('page-keuangan').innerHTML = `
       padding-bottom:0;
       display:flex !important; flex-direction:column !important;
     }
-    .keu-hutang-slide {
+    .keu-hutang-slide:not([style*="display:none"]) {
       flex:1 1 0 !important; min-height:0;
       display:flex !important; flex-direction:column !important;
     }
