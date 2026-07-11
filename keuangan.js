@@ -230,9 +230,9 @@ document.getElementById('page-keuangan').innerHTML = `
   </div><!-- /keu-hutang-collapsible -->
 
   <!-- ── BAGIAN 2: Scroll zone — 3-slide swipe ── -->
-  <div id="keu-hutang-scroll-zone">
-    <div id="keu-hutang-swipe-wrap" style="overflow:hidden">
-      <div id="keu-hutang-swipe-track" style="display:flex;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;touch-action:pan-y">
+  <div id="keu-hutang-scroll-zone" style="padding-top:4px">
+    <div id="keu-hutang-swipe-wrap" style="overflow-x:hidden;width:100%">
+      <div id="keu-hutang-swipe-track" style="display:flex;width:100%;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;touch-action:pan-y">
 
         <!-- ═══ SLIDE 1: Daftar Hutang ═══ -->
         <div class="keu-hutang-slide" style="min-width:100%;box-sizing:border-box;padding-top:12px">
