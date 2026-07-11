@@ -1235,8 +1235,10 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     var body = document.getElementById('keu-riwayat-summary-body');
     if (!body) return;
 
-    var hutangList = window._keuHutangAll || [];
-    var bayarList  = window._keuBayarAll  || [];
+    // _keuHutangAll adalah let di scope module — akses via window tidak reliable
+    // window._keuBayarAll di-set di keuLoadHutang
+    var hutangList = (typeof _keuHutangAll !== 'undefined' ? _keuHutangAll : null) || window._keuHutangAll || [];
+    var bayarList  = window._keuBayarAll || [];
 
     if (!hutangList.length) {
       body.innerHTML = '<div style="padding:12px;color:var(--ink3);font-size:13px">Belum ada data hutang.</div>';
@@ -1314,6 +1316,7 @@ async function keuLoadHutang() {
       dbGet('hutang_bayar', '&order=tanggal.desc'),
     ]);
     _keuHutangAll = hutang || [];
+    window._keuHutangAll = _keuHutangAll; // expose ke window untuk akses dari IIFE
     window._keuBayarAll = bayar || []; // expose untuk laporan di kas.js
     keuRenderHutangTabel(_keuHutangAll, bayar || []);
     keuRenderBayarTabel(bayar || [], _keuHutangAll);
