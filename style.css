@@ -724,9 +724,9 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   .hamburger{display:-webkit-flex;display:flex}
   .spiral{display:none}
   .sidebar{
-    position:fixed;top:0;left:0;height:100vh;height:100dvh;
-    -webkit-transform:translateX(-100%);transform:translateX(-100%);
-    box-shadow:4px 0 16px rgba(0,0,0,0.2);
+    position:fixed;top:0;right:0;height:100vh;height:100dvh;
+    -webkit-transform:translateX(100%);transform:translateX(100%);
+    box-shadow:-4px 0 16px rgba(0,0,0,0.2);
     display:-webkit-flex;display:flex;
     -webkit-flex-direction:column;flex-direction:column;
     overflow:hidden;
@@ -781,10 +781,10 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   .spiral{display:none}
   /* Sidebar harus tetap fixed overlay di landscape touch */
   .sidebar{
-    position:fixed;top:0;left:0;
+    position:fixed;top:0;right:0;
     height:100vh;height:100dvh;
-    -webkit-transform:translateX(-100%);transform:translateX(-100%);
-    box-shadow:4px 0 16px rgba(0,0,0,0.2);
+    -webkit-transform:translateX(100%);transform:translateX(100%);
+    box-shadow:-4px 0 16px rgba(0,0,0,0.2);
   }
   .sidebar.open{-webkit-transform:translateX(0);transform:translateX(0)}
   .sidebar-overlay.open{display:block}
