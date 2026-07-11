@@ -1320,6 +1320,8 @@ async function keuLoadHutang() {
     keuUpdateHutangSummary(_keuHutangAll, bayar || []);
     keuPopulateBayarDropdown(_keuHutangAll);
     keuPopulateAkunBayar();
+    // Render slide 3 langsung setelah data ready — tidak nunggu swipe
+    if (typeof window._renderRiwayatSummary === 'function') window._renderRiwayatSummary();
   } catch(e) {
     document.getElementById('keu-hutang-tbody').innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
