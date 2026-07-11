@@ -259,6 +259,7 @@ document.getElementById('page-keuangan').innerHTML = `
       overflow-y:auto;
       overflow-x:hidden;
       -webkit-overflow-scrolling:touch;
+      overscroll-behavior:none;
     }
     /* card-title dan tombol aksi: fix height, tidak boleh mengecil */
     .keu-hutang-slide > .card > .card-title { flex-shrink:0; }
@@ -268,6 +269,7 @@ document.getElementById('page-keuangan').innerHTML = `
       flex:1 1 0;
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
+      overscroll-behavior:none;
       min-height:0;
     }
 
@@ -1223,11 +1225,53 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     // Reset: pastikan expanded
     collapseEl.classList.remove('keu-hutang-collapsed');
 
-    // Pakai initSwipeCollapse persis seperti jurnal-penjualan.js
-    // Swipe UP di scroll zone → collapse minicard
-    // Swipe DOWN di scroll zone → expand minicard
-    initSwipeCollapse(scrollZone,  collapseEl, 40, 'keu-hutang-collapsed');
-    initSwipeCollapse(collapseEl,  collapseEl, 40, 'keu-hutang-collapsed');
+    // ── Custom collapse logic ──────────────────────────────────
+    // COLLAPSE : swipe UP, HANYA saat scroll content di posisi paling atas
+    // EXPAND   : 2x swipe DOWN cepat (dalam 500ms)
+    if (scrollZone._hutangCollapseInited) return;
+    scrollZone._hutangCollapseInited = true;
+
+    var _startY = 0, _startX = 0, _tracking = false;
+    var _downCount = 0, _downTime = 0;
+
+    scrollZone.addEventListener('touchstart', function(e) {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      _startY   = e.touches[0].clientY;
+      _startX   = e.touches[0].clientX;
+      _tracking = true;
+    }, { passive: true });
+
+    scrollZone.addEventListener('touchend', function(e) {
+      if (!_tracking) return;
+      _tracking = false;
+      var dy = e.changedTouches[0].clientY - _startY;
+      var dx = e.changedTouches[0].clientX - _startX;
+      if (Math.abs(dx) > Math.abs(dy)) return;
+      if (Math.abs(dy) < 40) return;
+
+      // Cari scroll container aktif di slide yang sedang tampil
+      var activeSlide = scrollZone.querySelector('.keu-hutang-slide:not([style*="display: none"]):not([style*="display:none"])');
+      var activeScroll = activeSlide
+        ? (activeSlide.querySelector('.tbl-wrap') || activeSlide.querySelector('#keu-riwayat-summary-body'))
+        : null;
+      var atTop = !activeScroll || activeScroll.scrollTop <= 2;
+
+      if (dy < 0 && atTop) {
+        // Swipe UP + di atas → collapse
+        collapseEl.classList.add('keu-hutang-collapsed');
+        _downCount = 0;
+      } else if (dy > 0 && collapseEl.classList.contains('keu-hutang-collapsed')) {
+        // Swipe DOWN saat collapsed → hitung 2x dalam 500ms
+        var now = Date.now();
+        if (_downCount === 0 || now - _downTime > 500) {
+          _downCount = 1;
+          _downTime  = now;
+        } else if (now - _downTime <= 500) {
+          collapseEl.classList.remove('keu-hutang-collapsed');
+          _downCount = 0;
+        }
+      }
+    }, { passive: true });
   }
 
   // ── Riwayat swipe (Daftar ↔ Ringkasan per Kreditur) ──
