@@ -115,14 +115,24 @@ document.getElementById('page-keuangan').innerHTML = `
       overscroll-behavior:none; touch-action:pan-y pinch-zoom;
       padding-bottom:24px;
     }
-    /* Hutang panel: flex column seperti Neraca, scroll terjadi di #keu-hutang-scroll-zone */
+    /* Hutang panel: flex column, scroll terjadi di #keu-hutang-scroll-zone */
     #page-keuangan .keu-panel-hutang.active {
-      display:flex; flex-direction:column;
-      height:100%; box-sizing:border-box; overflow:hidden;
+      display:flex !important; flex-direction:column !important;
+      height:100%; box-sizing:border-box; overflow:hidden !important;
+    }
+    #keu-hutang-collapsible {
+      flex-shrink:0; -webkit-flex-shrink:0;
+      overflow:hidden;
+      transition: max-height .28s cubic-bezier(.4,0,.2,1), opacity .22s ease, padding .28s cubic-bezier(.4,0,.2,1);
+      max-height:400px; opacity:1; padding-bottom:10px;
+    }
+    #keu-hutang-collapsible.keu-hutang-collapsed {
+      max-height:0 !important; opacity:0;
+      padding-bottom:0 !important; pointer-events:none;
     }
     #keu-hutang-scroll-zone {
-      flex:1 1 0; -webkit-flex:1 1 0; min-height:0;
-      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      flex:1 1 0 !important; -webkit-flex:1 1 0 !important; min-height:0;
+      overflow-y:auto !important; -webkit-overflow-scrolling:touch;
       overscroll-behavior:none; touch-action:pan-y;
       padding-bottom:24px;
     }
@@ -1239,65 +1249,26 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     _keuEnsureHutangLayout();
   }
 
-  // Flex + explicit height layout untuk keu-panel-hutang
-  // Pakai getBoundingClientRect — satu-satunya cara reliable di iOS Safari PWA
-  // PENTING: tidak dipanggil dari transitionend (cegah spring loop scrollTop)
+  // CSS scoped sudah handle semua layout via flex chain.
+  // JS hanya perlu pastikan panel hutang punya display:flex saat aktif.
   function _keuEnsureHutangLayout() {
     if (window.innerWidth > 600) return;
     var panel = document.getElementById('keu-panel-hutang');
     if (!panel || !panel.classList.contains('active')) return;
-
-    // Panel: flex column, overflow hidden
-    panel.style.display             = 'flex';
-    panel.style.flexDirection       = 'column';
-    panel.style.flex                = '1 1 0';
-    panel.style.webkitFlex          = '1 1 0';
-    panel.style.minHeight           = '0';
-    panel.style.overflow            = 'hidden';
-
-    var collapseEl = document.getElementById('keu-hutang-collapsible');
-    var scrollEl   = document.getElementById('keu-hutang-scroll-zone');
-    if (!scrollEl) return;
-
-    // Hitung scroll zone height HANYA dari collapsible dalam kondisi EXPANDED
-    // (collapsed → tinggi 0, jadi kita ambil natural height collapsible dulu)
-    var isCollapsed = collapseEl && collapseEl.classList.contains('keu-hutang-collapsed');
-    var panelH    = panel.getBoundingClientRect().height;
-
-    var collapseH;
-    if (isCollapsed || !collapseEl) {
-      // Collapsible sedang collapsed: ambil dari CSS max-height (aprox 320px default)
-      // atau simpan natural height saat pertama kali
-      collapseH = collapseEl ? (collapseEl._naturalH || 0) : 0;
-    } else {
-      collapseH = collapseEl.getBoundingClientRect().height;
-      // Simpan natural height untuk dipakai saat collapsed
-      if (collapseH > 0) collapseEl._naturalH = collapseH;
+    panel.style.display       = 'flex';
+    panel.style.flexDirection = 'column';
+    panel.style.flex          = '1 1 0';
+    panel.style.webkitFlex    = '1 1 0';
+    panel.style.minHeight     = '0';
+    panel.style.overflow      = 'hidden';
+    // Bersihkan inline height di scroll-zone — biarkan CSS flex:1 yang kerja
+    var scrollEl = document.getElementById('keu-hutang-scroll-zone');
+    if (scrollEl) {
+      scrollEl.style.height    = '';
+      scrollEl.style.maxHeight = '';
+      scrollEl.style.flex      = '';
+      scrollEl.style.webkitFlex = '';
     }
-
-    var scrollH = Math.max(120, panelH - collapseH);
-
-    scrollEl.style.height                  = scrollH + 'px';
-    scrollEl.style.maxHeight               = scrollH + 'px';
-    scrollEl.style.flex                    = 'none';
-    scrollEl.style.webkitFlex              = 'none';
-    scrollEl.style.overflowY               = 'auto';
-    scrollEl.style.webkitOverflowScrolling = 'touch';
-    scrollEl.style.overscrollBehavior      = 'none';
-    scrollEl.style.touchAction             = 'pan-y';
-  }
-
-  // Update height saat collapsible selesai collapse (bukan expand — cegah spring)
-  function _keuHutangOnTransitionEnd(e) {
-    if (e.propertyName !== 'max-height') return;
-    var collapseEl = document.getElementById('keu-hutang-collapsible');
-    if (!collapseEl) return;
-    var isCollapsed = collapseEl.classList.contains('keu-hutang-collapsed');
-    if (isCollapsed) {
-      // Selesai collapse → perbesar scroll zone
-      setTimeout(_keuEnsureHutangLayout, 16);
-    }
-    // Saat expand: JANGAN recalc — biarkan scrollTop tetap, cegah spring
   }
 
   // Hook ke tab hutang
