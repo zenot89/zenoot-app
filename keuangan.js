@@ -138,15 +138,8 @@ document.getElementById('page-keuangan').innerHTML = `
       display:block !important;
     }
     .keu-hutang-slide {
-      display:none !important;
-    }
-    .keu-hutang-slide.slide-active {
-      display:flex !important; flex-direction:column !important; min-height:0;
-    }
-    .keu-hutang-slide.slide-active > .card {
-      flex:1 1 0 !important; min-height:0;
-      display:flex !important; flex-direction:column !important;
-      margin-bottom:0 !important;
+      display:block;
+      min-height:0;
     }
 
     /* ── Neraca: panel jadi flex column, minicards collapse on swipe, section-bar freeze ──
@@ -245,7 +238,7 @@ document.getElementById('page-keuangan').innerHTML = `
   <div id="keu-hutang-scroll-zone">
 
     <!-- ═══ SLIDE 1: Daftar Hutang ═══ -->
-    <div id="keu-slide-0" class="keu-hutang-slide slide-active">
+    <div id="keu-slide-0" class="keu-hutang-slide">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-list"></i> Daftar Hutang</span>
@@ -262,7 +255,7 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
 
     <!-- ═══ SLIDE 2: Riwayat Cicilan ═══ -->
-    <div id="keu-slide-1" class="keu-hutang-slide">
+    <div id="keu-slide-1" class="keu-hutang-slide" style="display:none">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-history"></i> Riwayat Cicilan</span>
@@ -282,7 +275,7 @@ document.getElementById('page-keuangan').innerHTML = `
     </div>
 
     <!-- ═══ SLIDE 3: Ringkasan per Kreditur ═══ -->
-    <div id="keu-slide-2" class="keu-hutang-slide">
+    <div id="keu-slide-2" class="keu-hutang-slide" style="display:none">
       <div class="card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
           <span><i class="ti ti-chart-bar"></i> Ringkasan per Kreditur</span>
@@ -1150,13 +1143,10 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     function goTo(idx) {
       if (idx < 0 || idx >= TOTAL) return;
       _rwCurrent = idx;
-      // Show/hide slides via class — CSS .keu-hutang-slide default display:none
+      // Show/hide slides via inline style
       for (var i = 0; i < TOTAL; i++) {
         var sl = document.getElementById('keu-slide-' + i);
-        if (sl) {
-          sl.classList.toggle('slide-active', i === idx);
-          sl.style.display = ''; // clear inline style agar CSS yang kontrol
-        }
+        if (sl) sl.style.display = (i === idx) ? 'block' : 'none';
       }
       // Update dots — tiap slide punya 3 dot, posisi idx = dot aktif
       document.querySelectorAll('.keu-hdot').forEach(function(d, i) {
