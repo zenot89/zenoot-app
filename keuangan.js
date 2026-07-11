@@ -884,9 +884,36 @@ function _keuApplyNeracaFlexChain() {
     neracaPanel.style.display = '';
   }
 
-  // ── Hutang panel juga perlu flex chain saat aktif ──
-  if (typeof window._keuEnsureHutangLayout === 'function') {
-    window._keuEnsureHutangLayout();
+  // ── Hutang panel: flex chain lengkap saat aktif (portrait <=600px) ──
+  var hutangPanel = document.getElementById('keu-panel-hutang');
+  if (hutangPanel && hutangPanel.classList.contains('active') && window.innerWidth <= 600) {
+    hutangPanel.style.display             = 'flex';
+    hutangPanel.style.webkitDisplay       = '-webkit-flex';
+    hutangPanel.style.flexDirection       = 'column';
+    hutangPanel.style.webkitFlexDirection = 'column';
+    hutangPanel.style.flex                = '1 1 0';
+    hutangPanel.style.webkitFlex          = '1 1 0';
+    hutangPanel.style.minHeight           = '0';
+    hutangPanel.style.overflow            = 'hidden';
+
+    var collapseEl = document.getElementById('keu-hutang-collapsible');
+    if (collapseEl) {
+      collapseEl.style.flexShrink         = '0';
+      collapseEl.style.webkitFlexShrink   = '0';
+    }
+
+    var hutangScroll = document.getElementById('keu-hutang-scroll-zone');
+    if (hutangScroll) {
+      hutangScroll.style.flex                    = '1 1 0';
+      hutangScroll.style.webkitFlex              = '1 1 0';
+      hutangScroll.style.minHeight               = '0';
+      hutangScroll.style.height                  = '';
+      hutangScroll.style.maxHeight               = '';
+      hutangScroll.style.overflowY               = 'auto';
+      hutangScroll.style.webkitOverflowScrolling = 'touch';
+      hutangScroll.style.overscrollBehavior      = 'none';
+      hutangScroll.style.touchAction             = 'pan-y';
+    }
   }
 }
 
@@ -1245,30 +1272,8 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
   function _initAll() {
     _initHutangScroll();
     _initRiwayatSwipe();
-    // Apply flex layout hutang
-    _keuEnsureHutangLayout();
-  }
-
-  // CSS scoped sudah handle semua layout via flex chain.
-  // JS hanya perlu pastikan panel hutang punya display:flex saat aktif.
-  function _keuEnsureHutangLayout() {
-    if (window.innerWidth > 600) return;
-    var panel = document.getElementById('keu-panel-hutang');
-    if (!panel || !panel.classList.contains('active')) return;
-    panel.style.display       = 'flex';
-    panel.style.flexDirection = 'column';
-    panel.style.flex          = '1 1 0';
-    panel.style.webkitFlex    = '1 1 0';
-    panel.style.minHeight     = '0';
-    panel.style.overflow      = 'hidden';
-    // Bersihkan inline height di scroll-zone — biarkan CSS flex:1 yang kerja
-    var scrollEl = document.getElementById('keu-hutang-scroll-zone');
-    if (scrollEl) {
-      scrollEl.style.height    = '';
-      scrollEl.style.maxHeight = '';
-      scrollEl.style.flex      = '';
-      scrollEl.style.webkitFlex = '';
-    }
+    // Flex chain di-handle oleh _keuApplyNeracaFlexChain (sudah dipanggil via _keuSetPanelHeight)
+    _keuSetPanelHeight();
   }
 
   // Hook ke tab hutang
@@ -1291,9 +1296,8 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     }, 120);
   });
 
-  // Expose _keuEnsureHutangLayout & _renderRiwayatSummary utk keuGotoTab
-  window._keuEnsureHutangLayout = _keuEnsureHutangLayout;
-  window._renderRiwayatSummary  = _renderRiwayatSummary;
+  // Expose untuk akses luar
+  window._renderRiwayatSummary = _renderRiwayatSummary;
 
   // Init awal
   setTimeout(_initAll, 300);
