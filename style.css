@@ -1,4 +1,4 @@
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;forced-color-adjust:none;-webkit-forced-color-adjust:none}
 html{
   /* position:fixed + inset:0 — KUNCI utama blok iOS rubber-band di root level.
      iOS Safari tidak bisa rubber-band window kalau root element fixed.
@@ -11,6 +11,11 @@ html{
   color-scheme: dark;
   overscroll-behavior: none;
   touch-action: none;
+  background-color: #0d0d0d;
+}
+body {
+  background-color: #0d0d0d;
+  color: #ece9e4;
 }
 :root{
   --ink:#ece9e4;--ink2:#9b968d;--ink3:#635f58;--ink4:#2c2c2c;
@@ -505,7 +510,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
 
 /* ─── CARD ───────────────────────────────────────────────── */
 .card{
-  background:var(--cream2);border:none;
+  background:#1e1e1e;background:var(--cream2);border:none;
   padding:12px 14px;margin-bottom:12px;position:relative;
   border-radius:8px;
   box-shadow:var(--card-shadow);
