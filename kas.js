@@ -21,6 +21,20 @@ document.getElementById('page-kas').innerHTML = `
   .akun-beban     { color:#b03020; }
   .kas-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
   @media(max-width:520px){ .kas-summary{ grid-template-columns:1fr 1fr !important; } }
+
+  /* ── Portrait: sembunyikan kolom verbose, tampilkan kolom ringkas ── */
+  @media(max-width:600px) and (orientation:portrait){
+    #kas-jurnal-tbl-wrap .kas-col-ref,
+    #kas-jurnal-tbl-wrap .kas-col-ket,
+    #kas-jurnal-tbl-wrap .kas-col-akund,
+    #kas-jurnal-tbl-wrap .kas-col-akunk,
+    #kas-jurnal-tbl-wrap .kas-col-debit,
+    #kas-jurnal-tbl-wrap .kas-col-kredit { display:none !important; }
+    #kas-jurnal-tbl-wrap .kas-col-portrait { display:table-cell !important; }
+    #kas-jurnal-tbl-wrap table { min-width:unset; width:100%; }
+  }
+  /* Default: kolom portrait tersembunyi di laptop/landscape */
+  .kas-col-portrait { display:none; }
   .lap-head td  { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
   .lap-sub  td  { padding-left:24px !important; color:var(--ink2); }
   .lap-total td { font-weight:700; border-top:2px dashed var(--ink3); }
@@ -68,7 +82,18 @@ document.getElementById('page-kas').innerHTML = `
     </div>
     <div id="kas-jurnal-tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Tanggal</th><th>Ref</th><th>Keterangan</th><th>Akun Debit</th><th>Akun Kredit</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th><th>Aksi</th></tr></thead>
+        <thead><tr>
+          <th>Tanggal</th>
+          <th class="kas-col-ref">Ref</th>
+          <th class="kas-col-ket">Keterangan</th>
+          <th class="kas-col-akund">Akun Debit</th>
+          <th class="kas-col-akunk">Akun Kredit</th>
+          <th class="kas-col-debit" style="text-align:right">Debit</th>
+          <th class="kas-col-kredit" style="text-align:right">Kredit</th>
+          <th class="kas-col-portrait">Akun</th>
+          <th class="kas-col-portrait" style="text-align:right">Nominal</th>
+          <th>Aksi</th>
+        </tr></thead>
         <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
       <div id="kas-jurnal-footer" style="font-size:12px;color:var(--ink3);padding:8px 10px;text-align:right"></div>
@@ -985,13 +1010,25 @@ function kasRenderJurnalTabel(data) {
     const nmD   = akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—';
     const nmK   = akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—';
     const safeKet = (r.keterangan||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    // Portrait: tentukan akun ringkas dan nominal berwarna
+    var isMasuk   = (r.debit||0) > (r.kredit||0);
+    var akunPort  = isMasuk
+      ? (akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—')
+      : (akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—');
+    var nominalPort = isMasuk
+      ? '<span style="color:var(--ok);font-weight:700">+'+fmtRp(r.debit)+'</span>'
+      : '<span style="color:var(--danger);font-weight:700">-'+fmtRp(r.kredit)+'</span>';
+
     return '<tr>' +
       '<td style="white-space:nowrap">'+tgl+'</td>' +
-      '<td style="color:var(--ink3);font-size:11px">'+(r.referensi||'—')+'</td>' +
-      '<td>'+(r.keterangan||'—')+'</td>' +
-      '<td>'+nmD+'</td><td>'+nmK+'</td>' +
-      '<td style="text-align:right;color:var(--ok);font-weight:600">'+fmtRp(r.debit)+'</td>' +
-      '<td style="text-align:right;color:var(--danger);font-weight:600">'+fmtRp(r.kredit)+'</td>' +
+      '<td class="kas-col-ref" style="color:var(--ink3);font-size:11px">'+(r.referensi||'—')+'</td>' +
+      '<td class="kas-col-ket">'+(r.keterangan||'—')+'</td>' +
+      '<td class="kas-col-akund">'+nmD+'</td>' +
+      '<td class="kas-col-akunk">'+nmK+'</td>' +
+      '<td class="kas-col-debit" style="text-align:right;color:var(--ok);font-weight:600">'+fmtRp(r.debit)+'</td>' +
+      '<td class="kas-col-kredit" style="text-align:right;color:var(--danger);font-weight:600">'+fmtRp(r.kredit)+'</td>' +
+      '<td class="kas-col-portrait">'+akunPort+'</td>' +
+      '<td class="kas-col-portrait" style="text-align:right">'+nominalPort+'</td>' +
       '<td>' +
         '<button class="btn btn-sm" data-action="edit-kas" data-id="'+r.id+'" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
         '<button class="btn btn-sm btn-danger" data-action="hapus-kas" data-id="'+r.id+'" data-ket="'+safeKet+'"><i class="ti ti-trash"></i></button>' +
