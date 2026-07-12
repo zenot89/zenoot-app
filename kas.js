@@ -11,6 +11,58 @@ document.getElementById('page-kas').innerHTML = `
   .kas-tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .kas-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
   .kas-tab.active { background:var(--ink); color:var(--cream); }
+
+  /* ── Dropdown tab kas — portal ke body ── */
+  #kas-tab-trigger {
+    display:flex; align-items:center; gap:7px;
+    padding:7px 14px; border-radius:20px;
+    background:var(--cream); color:var(--ink);
+    font-family:var(--f); font-size:13px; font-weight:700;
+    border:none; cursor:pointer;
+  }
+  #kas-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
+  #kas-tab-trigger.open i.arr { transform:rotate(180deg); }
+  #kas-tab-dropdown {
+    position:fixed;
+    background:var(--cream2); border:1px solid var(--ink3);
+    border-radius:14px; min-width:200px; padding:6px;
+    z-index:99999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
+  }
+  #kas-tab-dropdown.open { display:block; }
+  #kas-tab-dropdown .dd-section {
+    font-size:10px; font-weight:700; color:var(--ink3);
+    text-transform:uppercase; letter-spacing:.07em; padding:5px 10px 3px;
+  }
+  #kas-tab-dropdown .dd-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-weight:500; color:var(--ink2);
+    cursor:pointer; border:none; background:none;
+    width:100%; text-align:left; font-family:var(--f);
+  }
+  #kas-tab-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #kas-tab-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #kas-tab-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; }
+
+  /* Filter bulan dropdown */
+  #kas-bulan-dropdown {
+    position:fixed;
+    background:var(--cream2); border:1px solid var(--ink3);
+    border-radius:14px; min-width:200px; padding:6px;
+    z-index:99999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.3);
+  }
+  #kas-bulan-dropdown.open { display:block; }
+  .kas-btn-pill {
+    display:flex; align-items:center; gap:6px;
+    padding:7px 13px; border-radius:20px;
+    font-family:var(--f); font-size:13px; font-weight:600;
+    cursor:pointer; border:none; background:var(--cream2);
+    color:var(--ink2);
+  }
+  .kas-btn-pill:hover { background:var(--cream); color:var(--ink); }
+  .kas-btn-pill.primary { background:var(--cream); color:var(--ink); }
   .kas-panel { display:none; }
   .kas-panel.active { display:block; }
   .akun-badge { display:inline-block; padding:2px 7px; border-radius:2px; font-size:11px; font-weight:700; border:1.5px solid currentColor; }
@@ -41,30 +93,35 @@ document.getElementById('page-kas').innerHTML = `
   .lap-result td{ font-weight:700; font-size:15px; border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
 </style>
 
-<!-- ═══ KAS TOP BAR — freeze di atas, bisa collapse dengan swipe ═══ -->
+<!-- ═══ KAS TOP BAR ═══ -->
 <div id="kas-top-bar">
-  <!-- Baris 1: Tab navigasi -->
-  <div style="margin-bottom:8px">
-    <div class="kas-tabs">
-      <button class="kas-tab active" onclick="kasGotoTab('jurnal')">📒 Jurnal Harian</button>
-      <button class="kas-tab" onclick="kasGotoTab('laporan')">📊 Laporan</button>
-      <button class="kas-tab" onclick="kasGotoTab('akun')">⚙ Kelola Akun</button>
+  <!-- Baris 1: Refresh + Filter Bulan (kiri) | Tab Dropdown (kanan) -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button class="kas-btn-pill primary" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
+    <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
+      <button class="kas-btn-pill" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
+        <i class="ti ti-calendar"></i>
+        <span id="kas-bulan-label">Semua</span>
+        <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
+      </button>
+    </div>
+    <div style="margin-left:auto">
+      <button id="kas-tab-trigger" onclick="kasToggleTabDD()">
+        <i class="ti ti-notebook" id="kas-tab-icon"></i>
+        <span id="kas-tab-label">Jurnal Harian</span>
+        <i class="ti ti-chevron-down arr"></i>
+      </button>
     </div>
   </div>
-  <!-- Baris 2: Summary metrics — ikut collapse -->
+  <!-- Baris 2: 4 minicard summary -->
   <div class="kas-summary" style="grid-template-columns:repeat(4,1fr)">
     <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta">total debit kas</div></div>
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
     <div class="metric"><div class="m-label">Cash Flow</div><div class="m-value" id="kas-cashflow">—</div><div class="m-delta" id="kas-cashflow-label">periode ini</div></div>
   </div>
-  <!-- Baris 3: Toolbar filter — hanya tampil di Jurnal Harian -->
-  <div id="kas-jurnal-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-    <button class="btn btn-sm" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
-    <button class="btn btn-sm" onclick="kasExportCSV()"><i class="ti ti-download"></i> Export CSV</button>
-    <input type="month" id="kas-filter-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasApplyFilter()">
-    <button class="btn btn-sm" onclick="kasResetFilter()">Semua</button>
-  </div>
+  <!-- input bulan hidden — tetap dipakai fungsi filter -->
+  <input type="month" id="kas-filter-bulan" style="display:none" onchange="kasApplyFilter()">
 </div>
 
 <!-- PANEL: JURNAL -->
@@ -73,7 +130,7 @@ document.getElementById('page-kas').innerHTML = `
     <!-- Sticky header dalam card: judul + Anggaran + Tambah Transaksi -->
     <div id="kas-sticky-header">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
-        <span><i class="ti ti-list"></i> Buku Jurnal Harian</span>
+        <span><i class="ti ti-list"></i> Cash Jurnal</span>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-chart-pie"></i> Anggaran</button>
           <button class="btn btn-sm btn-primary" onclick="kasShowForm()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-plus"></i> Tambah Transaksi</button>
@@ -445,8 +502,136 @@ if (document.readyState === 'loading') {
 }
 
 // ─── TAB ─────────────────────────────────────────────────────
+// ── Kas tab meta ─────────────────────────────────────────────
+var _kasTabMeta = {
+  jurnal:  { label:'Jurnal Harian', icon:'ti-notebook'  },
+  laporan: { label:'Laporan',       icon:'ti-chart-bar' },
+  akun:    { label:'Kelola Akun',   icon:'ti-settings'  }
+};
+
+// ── Tab dropdown portal ───────────────────────────────────────
+function _kasEnsureTabDD() {
+  if (document.getElementById('kas-tab-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'kas-tab-dropdown';
+  dd.innerHTML =
+    '<div class="dd-section">Menu</div>' +
+    '<button class="dd-item active" data-tab="jurnal" onclick="kasGotoTab(&quot;jurnal&quot;)"><i class="ti ti-notebook"></i> Jurnal Harian</button>' +
+    '<button class="dd-item" data-tab="laporan" onclick="kasGotoTab(&quot;laporan&quot;)"><i class="ti ti-chart-bar"></i> Laporan</button>' +
+    '<button class="dd-item" data-tab="akun" onclick="kasGotoTab(&quot;akun&quot;)"><i class="ti ti-settings"></i> Kelola Akun</button>';
+  document.body.appendChild(dd);
+}
+
+function kasToggleTabDD() {
+  _kasEnsureTabDD();
+  var dd  = document.getElementById('kas-tab-dropdown');
+  var btn = document.getElementById('kas-tab-trigger');
+  if (!dd || !btn) return;
+  var isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    dd.style.top   = (rect.bottom + 6) + 'px';
+    dd.style.left  = 'auto';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+  }
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+
+// ── Filter bulan dropdown ─────────────────────────────────────
+function _kasEnsureBulanDD() {
+  if (document.getElementById('kas-bulan-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'kas-bulan-dropdown';
+  // Generate 12 bulan terakhir
+  var html = '<div class="dd-section">Filter Periode</div>';
+  html += '<button class="dd-item active" data-bulan="" onclick="kasSetBulan(&quot;&quot;)">Semua periode</button>';
+  var now = new Date();
+  for (var i = 0; i < 12; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    var lbl = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+    html += '<button class="dd-item" data-bulan="'+val+'" onclick="kasSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
+  }
+  dd.innerHTML = html;
+  document.body.appendChild(dd);
+}
+
+function kasToggleBulanDD() {
+  _kasEnsureBulanDD();
+  var dd  = document.getElementById('kas-bulan-dropdown');
+  var btn = document.getElementById('kas-bulan-trigger');
+  if (!dd || !btn) return;
+  var isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.style.right = 'auto';
+  }
+  dd.classList.toggle('open', !isOpen);
+  var arr = document.getElementById('kas-bulan-arr');
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function kasSetBulan(val) {
+  var inp = document.getElementById('kas-filter-bulan');
+  if (inp) { inp.value = val; kasApplyFilter(); }
+  // Update label
+  var lbl = document.getElementById('kas-bulan-label');
+  if (lbl) {
+    if (!val) { lbl.textContent = 'Semua'; }
+    else {
+      var d = new Date(val + '-01');
+      lbl.textContent = d.toLocaleDateString('id-ID', {month:'short', year:'numeric'});
+    }
+  }
+  // Update active state di dropdown
+  var dd = document.getElementById('kas-bulan-dropdown');
+  if (dd) dd.querySelectorAll('.dd-item').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.bulan === val);
+  });
+  // Tutup dropdown
+  var ddEl = document.getElementById('kas-bulan-dropdown');
+  if (ddEl) ddEl.classList.remove('open');
+  var arr = document.getElementById('kas-bulan-arr');
+  if (arr) arr.style.transform = '';
+}
+
+// Tutup semua dropdown kas kalau klik luar
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#kas-tab-trigger') && !e.target.closest('#kas-tab-dropdown')) {
+    var dd = document.getElementById('kas-tab-dropdown');
+    var btn = document.getElementById('kas-tab-trigger');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+  }
+  if (!e.target.closest('#kas-bulan-wrap') && !e.target.closest('#kas-bulan-dropdown')) {
+    var dd = document.getElementById('kas-bulan-dropdown');
+    if (dd) dd.classList.remove('open');
+    var arr = document.getElementById('kas-bulan-arr');
+    if (arr) arr.style.transform = '';
+  }
+});
+
 function kasGotoTab(tab) {
   const tabs = ['jurnal','laporan','akun'];
+  // Sync dropdown
+  var tabDD = document.getElementById('kas-tab-dropdown');
+  if (tabDD) tabDD.querySelectorAll('.dd-item').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  var meta = _kasTabMeta[tab];
+  if (meta) {
+    var lbl = document.getElementById('kas-tab-label');
+    var icn = document.getElementById('kas-tab-icon');
+    if (lbl) lbl.textContent = meta.label;
+    if (icn) icn.className = 'ti ' + meta.icon;
+  }
+  var dd = document.getElementById('kas-tab-dropdown');
+  var btn = document.getElementById('kas-tab-trigger');
+  if (dd) dd.classList.remove('open');
+  if (btn) btn.classList.remove('open');
   document.querySelectorAll('#page-kas .kas-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('#page-kas .kas-panel').forEach(p => {
     p.classList.remove('active');
