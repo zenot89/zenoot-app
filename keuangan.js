@@ -11,6 +11,42 @@ document.getElementById('page-keuangan').innerHTML = `
   #page-keuangan .keu-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
   #page-keuangan .keu-tab.active { background:var(--ink); color:var(--cream); }
   #page-keuangan .keu-panel { display:none; }
+
+  /* ── Dropdown tab modern ── */
+  #keu-tab-dropdown-wrap { position:relative; display:inline-block; }
+  #keu-tab-trigger {
+    display:flex; align-items:center; gap:7px;
+    padding:7px 14px; border-radius:20px;
+    background:var(--cream); color:var(--ink);
+    font-family:var(--f); font-size:13px; font-weight:700;
+    border:none; cursor:pointer; transition:opacity .15s;
+  }
+  #keu-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
+  #keu-tab-trigger.open i.arr { transform:rotate(180deg); }
+  #keu-tab-dropdown {
+    position:absolute; top:calc(100% + 6px); left:0;
+    background:var(--cream2); border:1px solid var(--ink3);
+    border-radius:14px; min-width:210px; padding:6px;
+    z-index:999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.22), 0 2px 6px rgba(0,0,0,.1);
+  }
+  #keu-tab-dropdown.open { display:block; }
+  #keu-tab-dropdown .dd-section {
+    font-size:10px; font-weight:700; color:var(--ink3);
+    text-transform:uppercase; letter-spacing:.07em;
+    padding:5px 10px 3px;
+  }
+  #keu-tab-dropdown .dd-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-weight:500; color:var(--ink2);
+    cursor:pointer; transition:background .1s; border:none;
+    background:none; width:100%; text-align:left; font-family:var(--f);
+  }
+  #keu-tab-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #keu-tab-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #keu-tab-dropdown .dd-item i { font-size:16px; width:18px; text-align:center; }
+  #keu-tab-dropdown .dd-divider { height:1px; background:var(--ink3); opacity:.2; margin:4px 8px; }
   #page-keuangan .keu-panel.active { display:block; }
   #page-keuangan .rasio-card {
     display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:16px;
@@ -293,18 +329,27 @@ document.getElementById('page-keuangan').innerHTML = `
 
 <!-- Sticky header: collapse on scroll (mobile, Neraca only) -->
 <div id="keu-sticky-header">
-<!-- Baris 1: Hutang | Neraca | Refresh -->
-<div class="keu-tabs-row">
-  <button class="keu-tab active" onclick="keuGotoTab('hutang')"><i class="ti ti-building-bank"></i> Hutang</button>
-  <button class="keu-tab" onclick="keuGotoTab('neraca')"><i class="ti ti-scale"></i> Neraca</button>
+<!-- Tab dropdown modern -->
+<div class="keu-tabs-row" style="align-items:center">
+  <div id="keu-tab-dropdown-wrap">
+    <button id="keu-tab-trigger" onclick="keuToggleTabDD()">
+      <i class="ti ti-building-bank" id="keu-tab-icon"></i>
+      <span id="keu-tab-label">Hutang</span>
+      <i class="ti ti-chevron-down arr"></i>
+    </button>
+    <div id="keu-tab-dropdown">
+      <div class="dd-section">Keuangan</div>
+      <button class="dd-item active" data-tab="hutang" onclick="keuGotoTab('hutang')"><i class="ti ti-building-bank"></i> Hutang</button>
+      <button class="dd-item" data-tab="neraca" onclick="keuGotoTab('neraca')"><i class="ti ti-scale"></i> Neraca</button>
+      <div class="dd-divider"></div>
+      <div class="dd-section">Analisis</div>
+      <button class="dd-item" data-tab="rasio" onclick="keuGotoTab('rasio')"><i class="ti ti-chart-bar"></i> Rasio & Net Worth</button>
+      <button class="dd-item" data-tab="valuasi" onclick="keuGotoTab('valuasi')"><i class="ti ti-diamond"></i> Valuasi Bisnis</button>
+      <button class="dd-item" data-tab="aruskas" onclick="keuGotoTab('aruskas')"><i class="ti ti-cash"></i> Arus Kas</button>
+      <button class="dd-item" data-tab="fixcost" onclick="keuGotoTab('fixcost')"><i class="ti ti-pin"></i> Fix Cost</button>
+    </div>
+  </div>
   <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
-</div>
-<!-- Baris 2: Rasio | Valuasi | Arus Kas | Fix Cost -->
-<div class="keu-tabs-row2">
-  <button class="keu-tab" onclick="keuGotoTab('rasio')"><i class="ti ti-chart-bar"></i> Rasio & Net Worth</button>
-  <button class="keu-tab" onclick="keuGotoTab('valuasi')"><i class="ti ti-diamond"></i> Valuasi Bisnis</button>
-  <button class="keu-tab" onclick="keuGotoTab('aruskas')"><i class="ti ti-cash"></i> Arus Kas</button>
-  <button class="keu-tab" onclick="keuGotoTab('fixcost')"><i class="ti ti-pin"></i> Fix Cost</button>
 </div>
 </div>
 
@@ -833,9 +878,55 @@ setTimeout(_keuEnsureFlexLayout, 100);
 // ─── TAB ─────────────────────────────────────────────────────
 let _keuTabAktif = 'hutang';
 
+// ── Dropdown tab toggle (desktop) ──────────────────────────
+function keuToggleTabDD() {
+  var dd  = document.getElementById('keu-tab-dropdown');
+  var btn = document.getElementById('keu-tab-trigger');
+  if (!dd || !btn) return;
+  var isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+// Tutup dropdown kalau klik di luar
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#keu-tab-dropdown-wrap')) {
+    var dd  = document.getElementById('keu-tab-dropdown');
+    var btn = document.getElementById('keu-tab-trigger');
+    if (dd)  dd.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+  }
+});
+
+// Map tab → {label, icon}
+var _keuTabMeta = {
+  hutang:  { label:'Hutang',          icon:'ti-building-bank' },
+  neraca:  { label:'Neraca',          icon:'ti-scale'         },
+  rasio:   { label:'Rasio & NW',      icon:'ti-chart-bar'     },
+  valuasi: { label:'Valuasi Bisnis',  icon:'ti-diamond'       },
+  aruskas: { label:'Arus Kas',        icon:'ti-cash'          },
+  fixcost: { label:'Fix Cost',        icon:'ti-pin'           }
+};
+
 function keuGotoTab(tab) {
   _keuTabAktif = tab;
   const tabs = ['hutang','neraca','rasio','valuasi','aruskas','fixcost'];
+  // Sync dropdown: active item + trigger label + icon
+  document.querySelectorAll('#keu-tab-dropdown .dd-item').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  var meta = _keuTabMeta[tab];
+  if (meta) {
+    var lbl  = document.getElementById('keu-tab-label');
+    var icn  = document.getElementById('keu-tab-icon');
+    if (lbl) lbl.textContent = meta.label;
+    if (icn) { icn.className = 'ti ' + meta.icon; }
+  }
+  // Tutup dropdown setelah pilih
+  var dd  = document.getElementById('keu-tab-dropdown');
+  var btn = document.getElementById('keu-tab-trigger');
+  if (dd)  dd.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+  // Legacy .keu-tab active (fallback, tidak ada elemen lagi tapi aman)
   document.querySelectorAll('.keu-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   // Clear inline display style dulu agar CSS display:none bisa berlaku,
   // lalu set class active. Tanpa ini, neraca yang pernah dapat inline
