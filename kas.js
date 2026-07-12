@@ -1199,8 +1199,16 @@ function kasRenderJurnalTabel(data) {
     const nmD   = akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—';
     const nmK   = akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—';
     const safeKet = (r.keterangan||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    // Portrait: tentukan akun ringkas dan nominal berwarna
-    var isMasuk   = (r.debit||0) > (r.kredit||0);
+    // Portrait: deteksi masuk/keluar dari kelompok akun
+    // Uang MASUK: akun kredit = pendapatan/modal (uang dari luar masuk ke kas)
+    // Uang KELUAR: akun debit = beban/kewajiban (uang keluar dari kas)
+    // Fallback: akun debit = aset → transfer antar kas (netral, tampil sebagai masuk)
+    var kelompokD = akunD ? akunD.kelompok : '';
+    var kelompokK = akunK ? akunK.kelompok : '';
+    var isMasuk = (kelompokK === 'pendapatan' || kelompokK === 'modal' || kelompokK === 'kewajiban')
+               || (kelompokD === 'aset' && kelompokK === 'aset'); // transfer antar akun aset
+
+    // Akun yang ditampilkan: sumber dana (kredit) kalau masuk, tujuan (debit) kalau keluar
     var akunPort  = isMasuk
       ? (akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—')
       : (akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—');
