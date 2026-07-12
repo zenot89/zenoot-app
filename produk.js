@@ -5,11 +5,45 @@
 document.getElementById('page-produk').innerHTML = `
   <div id="ops-switcher-produk" class="ch-switcher"></div>
 
-  <div id="produk-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <button class="btn btn-sm btn-primary" onclick="showFormProduk()"><i class="ti ti-plus"></i> Tambah SKU</button>
-    <button class="btn btn-sm" onclick="showPasteProduk()"><i class="ti ti-clipboard"></i> Paste Massal</button>
-    <button class="btn btn-sm" onclick="loadProduk()"><i class="ti ti-refresh"></i> Refresh</button>
-    <button class="btn btn-sm" onclick="exportProduk()"><i class="ti ti-download"></i> Export CSV</button>
+  <style>
+    #produk-toolbar-normal { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+    #produk-toolbar-edit   { display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+    .produk-btn-pill       { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; font-family:var(--f); font-size:13px; font-weight:600; cursor:pointer; border:none; }
+    .produk-btn-primary    { background:var(--ink); color:var(--cream); }
+    .produk-btn-ghost      { background:none; color:var(--ink2); border:1px solid var(--ink3); }
+    .produk-btn-danger     { background:none; color:var(--danger); border:1px solid var(--danger); }
+    .produk-btn-cancel     { background:var(--ink); color:var(--cream); margin-left:auto; }
+    #produk-stat-cards     { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+    .produk-stat           { background:var(--cream2); border-radius:8px; padding:12px 14px; border:1px solid var(--ink3); }
+    .produk-stat-lbl       { font-size:10px; color:var(--ink3); margin-bottom:4px; text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+    .produk-stat-val       { font-size:18px; font-weight:700; color:var(--ink); }
+    .produk-stat-sub       { font-size:11px; color:var(--ink3); margin-top:2px; }
+    @media(max-width:600px){ #produk-stat-cards { grid-template-columns:repeat(2,1fr); } }
+  </style>
+
+  <!-- TOOLBAR NORMAL -->
+  <div id="produk-toolbar-normal">
+    <button class="produk-btn-pill produk-btn-primary" onclick="showFormProduk()"><i class="ti ti-plus"></i> Tambah SKU</button>
+    <button class="produk-btn-pill produk-btn-ghost" onclick="showPasteProduk()"><i class="ti ti-clipboard"></i> Paste massal</button>
+    <button class="produk-btn-pill produk-btn-ghost" onclick="exportProduk()"><i class="ti ti-download"></i> Export CSV</button>
+    <button class="produk-btn-pill produk-btn-ghost" onclick="loadProduk()"><i class="ti ti-refresh"></i></button>
+    <button class="produk-btn-pill produk-btn-ghost" onclick="produkEnterEditMode()" style="margin-left:auto"><i class="ti ti-edit"></i> Edit</button>
+  </div>
+
+  <!-- TOOLBAR EDIT/BATCH -->
+  <div id="produk-toolbar-edit">
+    <span id="produk-select-count" style="font-size:13px;color:var(--ink3);font-weight:600">0 dipilih</span>
+    <button class="produk-btn-pill produk-btn-ghost" onclick="produkSelectAll()">Pilih semua</button>
+    <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
+    <button class="produk-btn-pill produk-btn-cancel" onclick="produkExitEditMode()">Batalkan</button>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div id="produk-stat-cards">
+    <div class="produk-stat"><div class="produk-stat-lbl">Total Katalog</div><div class="produk-stat-val" id="pstat-katalog">—</div><div class="produk-stat-sub">produk induk</div></div>
+    <div class="produk-stat"><div class="produk-stat-lbl">Total Varian</div><div class="produk-stat-val" id="pstat-varian">—</div><div class="produk-stat-sub">SKU aktif</div></div>
+    <div class="produk-stat"><div class="produk-stat-lbl">Avg HPP</div><div class="produk-stat-val" id="pstat-hpp">—</div><div class="produk-stat-sub">per varian</div></div>
+    <div class="produk-stat"><div class="produk-stat-lbl">Tanpa HPP</div><div class="produk-stat-val" id="pstat-nohpp" style="color:var(--warn)">—</div><div class="produk-stat-sub">perlu diisi</div></div>
   </div>
 
   <!-- FORM TAMBAH/EDIT SKU -->
@@ -40,17 +74,6 @@ document.getElementById('page-produk').innerHTML = `
     </div>
   </div>
 
-  <!-- TOOLBAR SELEKSI -->
-  <div id="produk-select-bar" style="display:none;margin-bottom:8px;padding:8px 12px;background:var(--ink);color:var(--cream);display:none;align-items:center;gap:10px;flex-wrap:wrap">
-    <span id="produk-select-count" style="font-size:13px;font-weight:700"></span>
-    <button class="btn btn-sm" onclick="produkHapusTerpilih()" style="background:var(--danger);color:#fff;border-color:var(--danger)">
-      <i class="ti ti-trash"></i> Hapus yang Dipilih
-    </button>
-    <button class="btn btn-sm" onclick="produkClearSelect()" style="background:none;color:var(--cream);border-color:rgba(255,255,255,0.4);margin-left:auto">
-      <i class="ti ti-x"></i> Batal
-    </button>
-  </div>
-
   <!-- TABEL PRODUK GROUP BY KATALOG -->
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -60,16 +83,14 @@ document.getElementById('page-produk').innerHTML = `
         oninput="filterProduk()">
     </div>
     <div class="tbl-wrap" style="overflow-x:auto;overscroll-behavior:none;touch-action:pan-x pan-y">
-      <table class="tbl">
-        <thead><tr>
-          <th style="width:24px"></th>
-          <th>SKU Variasi</th>
+      <table class="tbl" id="produk-tbl">
+        <thead><tr id="produk-thead-row">
+          <th>Katalog / SKU</th>
           <th>HPP</th>
           <th>Boss</th>
-          <th>Aksi</th>
         </tr></thead>
         <tbody id="produk-tbody">
-          <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+          <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
         </tbody>
       </table>
     </div>
@@ -131,62 +152,116 @@ async function loadProduk() {
 // ─── STATE EXPAND & SELECT ────────────────────────────────────
 var _produkExpanded = {}; // katalog → true/false
 var _produkSelected = {}; // id → true/false
+var _produkEditMode = false;
+
+// ── Edit mode toggle ──────────────────────────────────────────
+function produkEnterEditMode() {
+  _produkEditMode = true;
+  document.getElementById('produk-toolbar-normal').style.display = 'none';
+  document.getElementById('produk-toolbar-edit').style.display   = 'flex';
+  // Tampilkan kolom checkbox di thead
+  var thead = document.getElementById('produk-thead-row');
+  if (thead) thead.innerHTML = '<th style="width:32px"></th><th>Katalog / SKU</th><th>HPP</th><th>Boss</th>';
+  renderProduk(_produkData);
+}
+
+function produkExitEditMode() {
+  _produkEditMode = false;
+  _produkSelected = {};
+  document.getElementById('produk-toolbar-normal').style.display = 'flex';
+  document.getElementById('produk-toolbar-edit').style.display   = 'none';
+  // Reset thead
+  var thead = document.getElementById('produk-thead-row');
+  if (thead) thead.innerHTML = '<th>Katalog / SKU</th><th>HPP</th><th>Boss</th>';
+  renderProduk(_produkData);
+}
+
+function produkSelectAll() {
+  var allSelected = _produkData.every(r => _produkSelected[r.id]);
+  if (allSelected) {
+    _produkSelected = {};
+  } else {
+    _produkData.forEach(r => { _produkSelected[r.id] = true; });
+  }
+  produkUpdateSelectBar();
+  renderProduk(_produkData);
+}
 
 function renderProduk(data) {
   const tbody = document.getElementById('produk-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
     return;
   }
 
-  // Group by katalog
-  const groups = {};
-  data.forEach(row => {
-    const kat = row.katalog || '—';
-    if (!groups[kat]) groups[kat] = [];
-    groups[kat].push(row);
-  });
+  // Update stat cards
+  var noHpp = data.filter(r => !r.hpp || r.hpp === 0).length;
+  var avgHpp = data.length ? Math.round(data.reduce((s,r) => s + (r.hpp||0), 0) / data.length) : 0;
+  var groups2 = {};
+  data.forEach(r => { var k = r.katalog||'—'; if (!groups2[k]) groups2[k]=[]; groups2[k].push(r); });
+  var el;
+  el = document.getElementById('pstat-katalog'); if(el) el.textContent = Object.keys(groups2).length;
+  el = document.getElementById('pstat-varian');  if(el) el.textContent = data.length;
+  el = document.getElementById('pstat-hpp');     if(el) el.textContent = 'Rp' + avgHpp.toLocaleString('id-ID');
+  el = document.getElementById('pstat-nohpp');   if(el) el.textContent = noHpp;
 
+  // Group by katalog
+  const groups = groups2;
   let html = '';
   Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).forEach(([kat, rows]) => {
-    const expanded = _produkExpanded[kat] === true; // default collapsed
-    const triangle = expanded ? '▼' : '▶';
-    const hpp      = rows[0] ? rows[0].hpp || 0 : 0;
-    const boss     = rows[0] ? rows[0].boss || '—' : '—';
-    const allIds   = rows.map(r => r.id).join(',');
+    const expanded   = _produkExpanded[kat] === true;
+    const hpp        = rows[0] ? rows[0].hpp || 0 : 0;
+    const boss       = rows[0] ? rows[0].boss || '—' : '—';
     const allSelected = rows.every(r => _produkSelected[r.id]);
+    const safeKat    = kat.replace(/'/g, "'");
 
     // Header katalog
-    html += `<tr style="background:var(--cream2);cursor:pointer" data-kat-header="${kat}">
-      <td style="text-align:center;padding:6px 4px">
-        <input type="checkbox" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation();produkToggleKatalog('${kat.replace(/'/g,"\'")}',this.checked)" style="cursor:pointer">
-      </td>
-      <td colspan="3" onclick="produkToggleExpand('${kat.replace(/'/g,"\'")}')">
-        <span style="font-size:13px;margin-right:6px;color:var(--ink3)">${triangle}</span>
-        <b style="font-size:14px">${kat}</b>
-        <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
-      </td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-sm" data-action="edit-katalog" data-kat="${kat}" data-hpp="${hpp}" data-boss="${boss}" title="Edit semua varian katalog ini" style="margin-right:4px">
-          <i class="ti ti-edit"></i>
-        </button>
-      </td>
-    </tr>`;
+    if (_produkEditMode) {
+      html += `<tr style="background:var(--cream2);cursor:pointer">
+        <td style="text-align:center;padding:6px 4px">
+          <input type="checkbox" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation();produkToggleKatalog('${safeKat}',this.checked)" style="cursor:pointer">
+        </td>
+        <td onclick="produkToggleExpand('${safeKat}')">
+          <b style="font-size:14px">${kat}</b>
+          <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
+        </td>
+        <td style="color:var(--ink3);font-size:12px">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</td>
+        <td style="font-size:12px">${boss}</td>
+      </tr>`;
+    } else {
+      html += `<tr style="background:var(--cream2);cursor:pointer" onclick="produkToggleExpand('${safeKat}')">
+        <td>
+          <b style="font-size:14px">${kat}</b>
+          <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
+        </td>
+        <td style="color:var(--ink3);font-size:12px">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</td>
+        <td style="font-size:12px">${boss}</td>
+      </tr>`;
+    }
 
     // Baris varian (hanya tampil jika expanded)
     if (expanded) {
       rows.forEach(row => {
         const safeSku = (row.sku_variasi||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         const checked = _produkSelected[row.id] ? 'checked' : '';
-        html += `<tr data-kat="${kat}" style="background:var(--cream)">
-          <td style="text-align:center;padding:6px 4px">
-            <input type="checkbox" ${checked} data-id="${row.id}" onchange="produkToggleSelect(${row.id},this.checked)" style="cursor:pointer">
-          </td>
-          <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
-          <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
-          <td>${row.boss || '—'}</td>
-          <td></td>
-        </tr>`;
+        if (_produkEditMode) {
+          html += `<tr data-kat="${kat}" style="background:var(--cream)">
+            <td style="text-align:center;padding:6px 4px">
+              <input type="checkbox" ${checked} data-id="${row.id}" onchange="produkToggleSelect(${row.id},this.checked)" style="cursor:pointer">
+            </td>
+            <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
+            <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
+            <td>${row.boss || '—'}</td>
+          </tr>`;
+        } else {
+          html += `<tr data-kat="${kat}" style="background:var(--cream)">
+            <td style="padding-left:24px">
+              <b>${row.sku_variasi}</b>
+            </td>
+            <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
+            <td>${row.boss || '—'}</td>
+          </tr>`;
+        }
       });
     }
   });
@@ -221,16 +296,15 @@ function produkToggleKatalog(kat, checked) {
 
 function produkClearSelect() {
   _produkSelected = {};
-  renderProduk(_produkData);
+  produkExitEditMode();
 }
 
 function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
-  const bar   = document.getElementById('produk-select-bar');
   const lbl   = document.getElementById('produk-select-count');
-  if (!bar) return;
-  bar.style.display = count > 0 ? 'flex' : 'none';
-  if (lbl) lbl.textContent = count + ' SKU dipilih';
+  const btn   = document.getElementById('produk-btn-hapus');
+  if (lbl) lbl.textContent = count + ' dipilih';
+  if (btn) { btn.disabled = count === 0; btn.style.opacity = count === 0 ? '.4' : '1'; }
 }
 
 async function produkHapusTerpilih() {
