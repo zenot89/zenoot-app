@@ -332,14 +332,14 @@ document.getElementById('page-keuangan').innerHTML = `
 <div id="keu-sticky-header">
 <!-- Tab dropdown modern -->
 <div class="keu-tabs-row" style="align-items:center">
-  <div id="keu-tab-dropdown-wrap">
+  <button class="btn btn-sm" onclick="keuRefreshAktif()"><i class="ti ti-refresh"></i> Refresh</button>
+  <div id="keu-tab-dropdown-wrap" style="margin-left:auto">
     <button id="keu-tab-trigger" onclick="keuToggleTabDD()">
       <i class="ti ti-building-bank" id="keu-tab-icon"></i>
       <span id="keu-tab-label">Hutang</span>
       <i class="ti ti-chevron-down arr"></i>
     </button>
   </div>
-  <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
 </div>
 
@@ -895,8 +895,9 @@ function keuToggleTabDD() {
   if (!isOpen) {
     // Hitung posisi trigger untuk fixed portal
     var rect = btn.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 6) + 'px';
-    dd.style.left = rect.left + 'px';
+    dd.style.top   = (rect.bottom + 6) + 'px';
+    dd.style.left  = 'auto';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
   }
   dd.classList.toggle('open', !isOpen);
   btn.classList.toggle('open', !isOpen);
