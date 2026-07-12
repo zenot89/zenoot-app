@@ -260,11 +260,27 @@ function _kasInjectSheets() {
   <div class="kas-brimo-handle"></div>
   <div class="kas-brimo-sheet-title">Jenis Transaksi</div>
   <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px 24px">
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('masuk')">
-      <div class="kas-tipe-icon" style="background:rgba(62,207,110,0.15);color:#3ecf6e">💰</div>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('jurnal')">
+      <div class="kas-tipe-icon" style="background:rgba(100,149,237,0.15);color:#6495ed">📋</div>
       <div>
-        <div class="kas-tipe-label">Uang Masuk</div>
-        <div class="kas-tipe-desc">Penerimaan kas, pembayaran piutang, pendapatan</div>
+        <div class="kas-tipe-label">Jurnal Umum</div>
+        <div class="kas-tipe-desc">Penyesuaian, transfer antar akun, koreksi</div>
+      </div>
+      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    </button>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('bayar_pinjaman')">
+      <div class="kas-tipe-icon" style="background:rgba(255,165,0,0.15);color:#ffa500">💳</div>
+      <div>
+        <div class="kas-tipe-label">Bayar Pinjaman</div>
+        <div class="kas-tipe-desc">Angsuran hutang, cicilan pinjaman</div>
+      </div>
+      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    </button>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('pinjaman')">
+      <div class="kas-tipe-icon" style="background:rgba(138,43,226,0.15);color:#8a2be2">🏦</div>
+      <div>
+        <div class="kas-tipe-label">Pinjaman</div>
+        <div class="kas-tipe-desc">Hutang masuk, tambah pinjaman baru</div>
       </div>
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
@@ -272,15 +288,15 @@ function _kasInjectSheets() {
       <div class="kas-tipe-icon" style="background:rgba(220,53,69,0.15);color:#e05260">💸</div>
       <div>
         <div class="kas-tipe-label">Uang Keluar</div>
-        <div class="kas-tipe-desc">Pengeluaran kas, bayar hutang, beban operasional</div>
+        <div class="kas-tipe-desc">Pengeluaran kas, beban operasional</div>
       </div>
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('jurnal')">
-      <div class="kas-tipe-icon" style="background:rgba(100,149,237,0.15);color:#6495ed">📋</div>
+    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('masuk')">
+      <div class="kas-tipe-icon" style="background:rgba(62,207,110,0.15);color:#3ecf6e">💰</div>
       <div>
-        <div class="kas-tipe-label">Jurnal Umum</div>
-        <div class="kas-tipe-desc">Penyesuaian, transfer antar akun, koreksi</div>
+        <div class="kas-tipe-label">Uang Masuk</div>
+        <div class="kas-tipe-desc">Penerimaan kas, pendapatan</div>
       </div>
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
@@ -421,9 +437,11 @@ function _kasInjectSheets() {
       <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-edit-tgl"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:130px"><label>Tipe</label>
         <select id="kas-edit-tipe" onchange="kasOnEditTipeChange()" style="width:100%">
-          <option value="masuk">💰 Uang Masuk</option>
-          <option value="keluar">💸 Uang Keluar</option>
           <option value="jurnal">📋 Jurnal Umum</option>
+          <option value="bayar_pinjaman">💳 Bayar Pinjaman</option>
+          <option value="pinjaman">🏦 Pinjaman</option>
+          <option value="keluar">💸 Uang Keluar</option>
+          <option value="masuk">💰 Uang Masuk</option>
         </select>
       </div>
       <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-edit-nominal" placeholder="0" oninput="kasHitungEditJurnal()" style="cursor:pointer"></div>
@@ -862,8 +880,8 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     _brimoTipe = tipe;
     _brimoExpr = '';
     var badge = document.getElementById('kas-brimo-tipe-badge');
-    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed' };
+    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum', pinjaman:'\u{1F3E6} Pinjaman', bayar_pinjaman:'\u{1F4B3} Bayar Pinjaman' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500' };
     if (badge) {
       badge.textContent = labels[tipe] || tipe;
       badge.style.color = colors[tipe] || 'var(--ink2)';
@@ -890,8 +908,8 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
       var now = new Date();
       tglEl.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     }
-    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed' };
+    var labels = { masuk:'\u{1F4B0} Uang Masuk', keluar:'\u{1F4B8} Uang Keluar', jurnal:'\u{1F4CB} Jurnal Umum', pinjaman:'\u{1F3E6} Pinjaman', bayar_pinjaman:'\u{1F4B3} Bayar Pinjaman' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500' };
     var db = document.getElementById('kas-brimo-detail-badge');
     if (db) { db.textContent = labels[_brimoTipe]; db.style.color = colors[_brimoTipe]; db.style.fontWeight='700'; db.style.fontSize='12px'; }
     var dn = document.getElementById('kas-brimo-detail-nominal');
@@ -1014,13 +1032,73 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 
 })();
 
+// ── Filter akun dropdown berdasarkan tipe transaksi ─────────
+// Pinjaman     : debit=aset, kredit=kewajiban
+// Bayar Pinjaman: debit=kewajiban, kredit=aset
+// Masuk        : debit=aset, kredit=pendapatan/modal
+// Keluar       : debit=beban, kredit=aset
+// Jurnal Umum  : semua akun (tidak difilter)
+function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
+  var selD = document.getElementById(idDebit);
+  var selK = document.getElementById(idKredit);
+  if (!selD || !selK) return;
+  var allOpts = Array.from(selD.options);
+  // Reset dulu — tampilkan semua
+  allOpts.forEach(function(o) { o.style.display = ''; });
+  Array.from(selK.options).forEach(function(o) { o.style.display = ''; });
+  if (tipe === 'jurnal') return; // semua tampil
+
+  var filterD = null, filterK = null;
+  if (tipe === 'pinjaman')       { filterD = ['aset'];       filterK = ['kewajiban']; }
+  if (tipe === 'bayar_pinjaman') { filterD = ['kewajiban'];  filterK = ['aset']; }
+  if (tipe === 'masuk')          { filterD = ['aset'];       filterK = ['pendapatan','modal','kewajiban']; }
+  if (tipe === 'keluar')         { filterD = ['beban','kewajiban']; filterK = ['aset']; }
+  if (!filterD) return;
+
+  function applyFilter(sel, allowed) {
+    var currentVal = sel.value;
+    var firstAllowed = '';
+    Array.from(sel.options).forEach(function(o) {
+      if (!o.value) { o.style.display = ''; return; } // placeholder selalu tampil
+      var akun = _kasAkunMap[o.value];
+      var show = akun && allowed.indexOf(akun.kelompok) !== -1;
+      o.style.display = show ? '' : 'none';
+      if (show && !firstAllowed) firstAllowed = o.value;
+    });
+    // Kalau nilai aktif tidak allowed, reset
+    if (currentVal && _kasAkunMap[currentVal] && allowed.indexOf(_kasAkunMap[currentVal].kelompok) === -1) {
+      sel.value = '';
+    }
+  }
+  applyFilter(selD, filterD);
+  applyFilter(selK, filterK);
+
+  // Update picker list juga kalau ada
+  var pickerD = idDebit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
+  var pickerK = idKredit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
+  function filterPickerList(listId, allowed) {
+    var list = document.getElementById(listId);
+    if (!list) return;
+    Array.from(list.querySelectorAll('.kas-akun-item')).forEach(function(item) {
+      var id = item.dataset.id;
+      var akun = _kasAkunMap[id];
+      item.style.display = (!akun || allowed.indexOf(akun.kelompok) !== -1) ? '' : 'none';
+    });
+  }
+  filterPickerList(pickerD, filterD);
+  filterPickerList(pickerK, filterK);
+}
+
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
   const lblD = document.getElementById('kas-lbl-debit');
   const lblK = document.getElementById('kas-lbl-kredit');
-  if (tipe === 'masuk')  { lblD.textContent = 'Masuk ke Akun (Debit)';  lblK.textContent = 'Sumber Dana (Kredit)'; }
-  else if (tipe === 'keluar') { lblD.textContent = 'Beban / Tujuan (Debit)'; lblK.textContent = 'Keluar dari Akun (Kredit)'; }
+  if (tipe === 'masuk')           { lblD.textContent = 'Masuk ke Akun (Debit)';   lblK.textContent = 'Sumber Dana (Kredit)'; }
+  else if (tipe === 'keluar')     { lblD.textContent = 'Beban / Tujuan (Debit)';  lblK.textContent = 'Keluar dari Akun (Kredit)'; }
+  else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
+  else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
+  kasFilterAkunByTipe(tipe, 'kas-jrn-akun-debit', 'kas-jrn-akun-kredit');
   kasHitungJurnal();
 }
 
@@ -1078,9 +1156,12 @@ function kasOnEditTipeChange() {
   const lblD = document.getElementById('kas-edit-lbl-debit');
   const lblK = document.getElementById('kas-edit-lbl-kredit');
   if (!lblD || !lblK) return;
-  if (tipe === 'masuk')  { lblD.textContent = 'Masuk ke Akun (Debit)';  lblK.textContent = 'Sumber Dana (Kredit)'; }
-  else if (tipe === 'keluar') { lblD.textContent = 'Beban / Tujuan (Debit)'; lblK.textContent = 'Keluar dari Akun (Kredit)'; }
+  if (tipe === 'masuk')           { lblD.textContent = 'Masuk ke Akun (Debit)';   lblK.textContent = 'Sumber Dana (Kredit)'; }
+  else if (tipe === 'keluar')     { lblD.textContent = 'Beban / Tujuan (Debit)';  lblK.textContent = 'Keluar dari Akun (Kredit)'; }
+  else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
+  else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
+  kasFilterAkunByTipe(tipe, 'kas-edit-akun-debit', 'kas-edit-akun-kredit');
   kasHitungEditJurnal();
 }
 
