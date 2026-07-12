@@ -184,6 +184,26 @@
   </div>
 </div>
 
+<!-- Force CSS variables via JS — Android dark mode tidak bisa override ini -->
+<script>
+(function(){
+  var r = document.documentElement;
+  r.style.setProperty('--cream',  '#0d0d0d');
+  r.style.setProperty('--cream2', '#1e1e1e');
+  r.style.setProperty('--cream3', '#272727');
+  r.style.setProperty('--cream4', '#060606');
+  r.style.setProperty('--ink',    '#ece9e4');
+  r.style.setProperty('--ink2',   '#9b968d');
+  r.style.setProperty('--ink3',   '#635f58');
+  r.style.setProperty('--ink4',   '#2c2c2c');
+  r.style.setProperty('--ok',     '#3ecf6a');
+  r.style.setProperty('--danger', '#e05c4b');
+  r.style.setProperty('--warn',   '#e6a817');
+  document.documentElement.style.backgroundColor = '#0d0d0d';
+  document.documentElement.style.color = '#ece9e4';
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js"></script>
 <script>
   // BUILD VERSION — di-set saat deploy, TIDAK berubah setiap page load.
@@ -194,7 +214,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260712-1f222d980e6b';
+  window.APP_BUILD = '20260711-c48fa8fa4417';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
