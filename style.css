@@ -33,9 +33,9 @@ body {
 body{
   display:-webkit-flex;display:flex;
   height:100vh;height:100dvh;
-  background:var(--cream);
+  background:#0d0d0d;background:var(--cream);
   font-family:var(--f);
-  color:var(--ink);
+  color:#ece9e4;color:var(--ink);
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
@@ -89,7 +89,7 @@ body{
 }
 .hole{
   width:15px;height:15px;border-radius:50%;
-  background:var(--cream);border:1px solid rgba(255,255,255,0.05);flex-shrink:0;
+  background:#0d0d0d;background:var(--cream);border:1px solid rgba(255,255,255,0.05);flex-shrink:0;
   -webkit-flex-shrink:0;
 }
 
@@ -481,7 +481,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   min-width:140px;
 }
 .metric{
-  background:var(--cream2);border:none;
+  background:#1e1e1e;background:var(--cream2);border:none;
   padding:10px 12px;position:relative;
   border-radius:8px;
   box-shadow:var(--card-shadow);
@@ -4063,4 +4063,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
   .nw-slide-data { flex: 1; height: auto; min-height: 160px; }
   .nw-swipe-dot-label { display: none !important; }
+}
+
+/* ── Force override Android dark mode system color injection ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cream:#0d0d0d !important;
+    --cream2:#1e1e1e !important;
+    --cream3:#272727 !important;
+    --cream4:#060606 !important;
+    --ink:#ece9e4 !important;
+    --ink2:#9b968d !important;
+    --ink3:#635f58 !important;
+  }
+  html, body { background-color:#0d0d0d !important; color:#ece9e4 !important; }
+  .card  { background:#1e1e1e !important; }
+  .metric{ background:#1e1e1e !important; }
 }
