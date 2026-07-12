@@ -103,20 +103,31 @@
   }
 
   // ─── HITUNG TOTAL HUTANG ─────────────────────────────────────
+  // ─── HITUNG TOTAL KEWAJIBAN (dari jurnal) ────────────────────
+  // Single source of truth: saldo akun kelompok 'kewajiban' di jurnal
+  // Kewajiban normal balance = kredit, jadi saldo = saldoKredit - saldoDebit
   async function _getTotalHutang() {
     try {
-      _log('fetch hutang...');
-      const [hutangList, bayarList] = await Promise.all([
-        _withTimeout(dbGet('hutang',       ''), [], 8000).catch(() => []),
-        _withTimeout(dbGet('hutang_bayar', ''), [], 8000).catch(() => [])
+      _log('fetch kewajiban dari jurnal...');
+      const [kasAkun, jurnal] = await Promise.all([
+        _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
+        _withTimeout(dbGet('jurnal',   ''), [], 8000).catch(() => [])
       ]);
-      _log('hutang=' + (hutangList||[]).length + ' bayar=' + (bayarList||[]).length);
-      const bayarMap = {};
-      (bayarList||[]).forEach(b => { bayarMap[b.hutang_id] = (bayarMap[b.hutang_id]||0) + Number(b.nominal||0); });
-      return (hutangList||[]).reduce((s, h) => {
-        const sisa = (h.pokok||0) - (bayarMap[h.id]||0);
-        return s + (sisa > 0 ? sisa : 0);
+      const akunMap = {};
+      (kasAkun || []).forEach(a => {
+        if (a.kelompok === 'kewajiban') akunMap[a.id] = { debit:0, kredit:0 };
+      });
+      (jurnal || []).forEach(r => {
+        const n = Number(r.nominal || r.debit || 0);
+        if (akunMap[r.akun_debit_id])  akunMap[r.akun_debit_id].debit   += n;
+        if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].kredit += n;
+      });
+      const total = Object.values(akunMap).reduce((s, a) => {
+        const saldo = a.kredit - a.debit; // kewajiban normal balance kredit
+        return s + (saldo > 0 ? saldo : 0);
       }, 0);
+      _log('totalKewajiban jurnal=' + total);
+      return total;
     } catch(e) {
       _log('ERROR _getTotalHutang: ' + e.message);
       return 0;
