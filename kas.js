@@ -81,7 +81,8 @@ document.getElementById('page-kas').innerHTML = `
     #kas-jurnal-tbl-wrap .kas-col-akund,
     #kas-jurnal-tbl-wrap .kas-col-akunk,
     #kas-jurnal-tbl-wrap .kas-col-debit,
-    #kas-jurnal-tbl-wrap .kas-col-kredit { display:none !important; }
+    #kas-jurnal-tbl-wrap .kas-col-kredit,
+    #kas-jurnal-tbl-wrap .kas-col-aksi { display:none !important; }
     #kas-jurnal-tbl-wrap .kas-col-portrait { display:table-cell !important; }
     #kas-jurnal-tbl-wrap table { min-width:unset; width:100%; }
   }
@@ -149,7 +150,7 @@ document.getElementById('page-kas').innerHTML = `
           <th class="kas-col-kredit" style="text-align:right">Kredit</th>
           <th class="kas-col-portrait">Akun</th>
           <th class="kas-col-portrait" style="text-align:right">Nominal</th>
-          <th>Aksi</th>
+          <th class="kas-col-aksi">Aksi</th>
         </tr></thead>
         <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
@@ -458,7 +459,8 @@ function _kasInjectSheets() {
     <div id="kas-edit-preview" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
       <b>Preview Jurnal:</b><br><span id="kas-edit-preview-text"></span>
     </div>
-    <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;">
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-danger" onclick="kasHapusDariModal()" id="kas-edit-btn-hapus" style="display:none"><i class="ti ti-trash"></i> Hapus</button>
       <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
       <button class="btn btn-primary btn-sm" onclick="kasUpdateJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>
@@ -782,6 +784,8 @@ function kasShowForm() {
     // Desktop: modal klasik (reuse modal-kas-transaksi sebagai tambah)
     document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Transaksi';
     document.getElementById('kas-edit-id').value = '';
+    var btnHapus = document.getElementById('kas-edit-btn-hapus');
+    if (btnHapus) btnHapus.style.display = 'none';
     (function() {
       var now = new Date();
       document.getElementById('kas-edit-tgl').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
@@ -1214,7 +1218,7 @@ function kasRenderJurnalTabel(data) {
       '<td class="kas-col-kredit" style="text-align:right;color:var(--danger);font-weight:600">'+fmtRp(r.kredit)+'</td>' +
       '<td class="kas-col-portrait">'+akunPort+'</td>' +
       '<td class="kas-col-portrait" style="text-align:right">'+nominalPort+'</td>' +
-      '<td>' +
+      '<td class="kas-col-aksi">' +
         '<button class="btn btn-sm" data-action="edit-kas" data-id="'+r.id+'" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
         '<button class="btn btn-sm btn-danger" data-action="hapus-kas" data-id="'+r.id+'" data-ket="'+safeKet+'"><i class="ti ti-trash"></i></button>' +
       '</td></tr>';
@@ -1279,6 +1283,9 @@ function kasUpdateSummary(data) {
 }
 
 async function kasEditJurnal(id) {
+  // Tampilkan tombol Hapus di modal edit
+  var btnHapus = document.getElementById('kas-edit-btn-hapus');
+  if (btnHapus) btnHapus.style.display = 'inline-flex';
   const r = _kasJurnalAll.find(x => String(x.id) === String(id)); if (!r) return;
   document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Transaksi';
   document.getElementById('kas-edit-id').value      = r.id;
@@ -1306,6 +1313,40 @@ async function kasHapusJurnal(id, ket) {
     try { await dbDelete('jurnal', id); loadKasJurnal(); } catch(e) { alert('Gagal hapus: ' + e.message); }
   });
 }
+
+// Hapus dari dalam modal edit
+async function kasHapusDariModal() {
+  var id  = parseInt(document.getElementById('kas-edit-id').value);
+  var ket = document.getElementById('kas-edit-ket').value || 'transaksi ini';
+  if (!id) return;
+  hideModal('modal-kas-transaksi');
+  kasHapusJurnal(id, ket);
+}
+
+// Long press pada row tabel jurnal → hapus
+(function() {
+  var _lpTimer = null;
+  var _lpId    = null;
+  var _lpKet   = null;
+
+  document.addEventListener('touchstart', function(e) {
+    var row = e.target.closest('#kas-jurnal-tbody tr');
+    if (!row) return;
+    var editBtn = row.querySelector('[data-action="edit-kas"]');
+    if (!editBtn) return;
+    _lpId  = parseInt(editBtn.dataset.id);
+    var hapusBtn = row.querySelector('[data-action="hapus-kas"]');
+    _lpKet = hapusBtn ? hapusBtn.dataset.ket : '';
+    _lpTimer = setTimeout(function() {
+      if (_lpId) kasHapusJurnal(_lpId, _lpKet);
+      _lpId = null;
+    }, 600);
+  }, { passive: true });
+
+  document.addEventListener('touchend',   function() { clearTimeout(_lpTimer); }, { passive: true });
+  document.addEventListener('touchmove',  function() { clearTimeout(_lpTimer); }, { passive: true });
+  document.addEventListener('touchcancel',function() { clearTimeout(_lpTimer); }, { passive: true });
+})();
 
 function kasExportCSV() {
   const bulan = document.getElementById('kas-filter-bulan').value;
