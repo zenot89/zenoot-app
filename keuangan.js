@@ -23,13 +23,13 @@ document.getElementById('page-keuangan').innerHTML = `
   }
   #keu-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
   #keu-tab-trigger.open i.arr { transform:rotate(180deg); }
-  #keu-sticky-header { position:relative; z-index:200; }
+  /* Dropdown portal — di-append ke body, posisi via JS */
   #keu-tab-dropdown {
-    position:absolute; top:calc(100% + 6px); left:0;
+    position:fixed;
     background:var(--cream2); border:1px solid var(--ink3);
     border-radius:14px; min-width:210px; padding:6px;
-    z-index:9999; display:none;
-    box-shadow:0 8px 28px rgba(0,0,0,.22), 0 2px 6px rgba(0,0,0,.1);
+    z-index:99999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
   }
   #keu-tab-dropdown.open { display:block; }
   #keu-tab-dropdown .dd-section {
@@ -338,17 +338,6 @@ document.getElementById('page-keuangan').innerHTML = `
       <span id="keu-tab-label">Hutang</span>
       <i class="ti ti-chevron-down arr"></i>
     </button>
-    <div id="keu-tab-dropdown">
-      <div class="dd-section">Keuangan</div>
-      <button class="dd-item active" data-tab="hutang" onclick="keuGotoTab('hutang')"><i class="ti ti-building-bank"></i> Hutang</button>
-      <button class="dd-item" data-tab="neraca" onclick="keuGotoTab('neraca')"><i class="ti ti-scale"></i> Neraca</button>
-      <div class="dd-divider"></div>
-      <div class="dd-section">Analisis</div>
-      <button class="dd-item" data-tab="rasio" onclick="keuGotoTab('rasio')"><i class="ti ti-chart-bar"></i> Rasio & Net Worth</button>
-      <button class="dd-item" data-tab="valuasi" onclick="keuGotoTab('valuasi')"><i class="ti ti-diamond"></i> Valuasi Bisnis</button>
-      <button class="dd-item" data-tab="aruskas" onclick="keuGotoTab('aruskas')"><i class="ti ti-cash"></i> Arus Kas</button>
-      <button class="dd-item" data-tab="fixcost" onclick="keuGotoTab('fixcost')"><i class="ti ti-pin"></i> Fix Cost</button>
-    </div>
   </div>
   <button class="btn btn-sm" onclick="keuRefreshAktif()" style="margin-left:auto"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
@@ -879,18 +868,43 @@ setTimeout(_keuEnsureFlexLayout, 100);
 // ─── TAB ─────────────────────────────────────────────────────
 let _keuTabAktif = 'hutang';
 
-// ── Dropdown tab toggle (desktop) ──────────────────────────
+// ── Dropdown tab — PORTAL ke document.body ─────────────────
+function _keuEnsureDropdownPortal() {
+  if (document.getElementById('keu-tab-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'keu-tab-dropdown';
+  dd.innerHTML =
+    '<div class="dd-section">Keuangan</div>' +
+    '<button class="dd-item active" data-tab="hutang" onclick="keuGotoTab(&quot;hutang&quot;)"><i class="ti ti-building-bank"></i> Hutang</button>' +
+    '<button class="dd-item" data-tab="neraca" onclick="keuGotoTab(&quot;neraca&quot;)"><i class="ti ti-scale"></i> Neraca</button>' +
+    '<div class="dd-divider"></div>' +
+    '<div class="dd-section">Analisis</div>' +
+    '<button class="dd-item" data-tab="rasio" onclick="keuGotoTab(&quot;rasio&quot;)"><i class="ti ti-chart-bar"></i> Rasio & Net Worth</button>' +
+    '<button class="dd-item" data-tab="valuasi" onclick="keuGotoTab(&quot;valuasi&quot;)"><i class="ti ti-diamond"></i> Valuasi Bisnis</button>' +
+    '<button class="dd-item" data-tab="aruskas" onclick="keuGotoTab(&quot;aruskas&quot;)"><i class="ti ti-cash"></i> Arus Kas</button>' +
+    '<button class="dd-item" data-tab="fixcost" onclick="keuGotoTab(&quot;fixcost&quot;)"><i class="ti ti-pin"></i> Fix Cost</button>';
+  document.body.appendChild(dd);
+}
+
 function keuToggleTabDD() {
+  _keuEnsureDropdownPortal();
   var dd  = document.getElementById('keu-tab-dropdown');
   var btn = document.getElementById('keu-tab-trigger');
   if (!dd || !btn) return;
   var isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    // Hitung posisi trigger untuk fixed portal
+    var rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+  }
   dd.classList.toggle('open', !isOpen);
   btn.classList.toggle('open', !isOpen);
 }
+
 // Tutup dropdown kalau klik di luar
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#keu-tab-dropdown-wrap')) {
+  if (!e.target.closest('#keu-tab-dropdown-wrap') && !e.target.closest('#keu-tab-dropdown')) {
     var dd  = document.getElementById('keu-tab-dropdown');
     var btn = document.getElementById('keu-tab-trigger');
     if (dd)  dd.classList.remove('open');
