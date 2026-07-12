@@ -1746,6 +1746,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   border-radius: 0;
   border: none;
 }
+#kas-jurnal-card #kas-sticky-header {
+  margin-left: -14px;
+  margin-right: -14px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
 
 /* Tabel wrap: flex-grow, scroll sendiri — inner scroll */
 #kas-jurnal-tbl-wrap {

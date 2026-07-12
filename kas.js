@@ -129,7 +129,7 @@ document.getElementById('page-kas').innerHTML = `
   <div class="card" id="kas-jurnal-card">
     <!-- Sticky header dalam card: judul + Anggaran + Tambah Transaksi -->
     <div id="kas-sticky-header">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-left:0;padding-right:0;width:100%">
         <span><i class="ti ti-list"></i> Cash Jurnal</span>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-chart-pie"></i> Anggaran</button>
