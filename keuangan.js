@@ -23,11 +23,12 @@ document.getElementById('page-keuangan').innerHTML = `
   }
   #keu-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
   #keu-tab-trigger.open i.arr { transform:rotate(180deg); }
+  #keu-sticky-header { position:relative; z-index:200; }
   #keu-tab-dropdown {
     position:absolute; top:calc(100% + 6px); left:0;
     background:var(--cream2); border:1px solid var(--ink3);
     border-radius:14px; min-width:210px; padding:6px;
-    z-index:999; display:none;
+    z-index:9999; display:none;
     box-shadow:0 8px 28px rgba(0,0,0,.22), 0 2px 6px rgba(0,0,0,.1);
   }
   #keu-tab-dropdown.open { display:block; }
