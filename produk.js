@@ -34,6 +34,9 @@ document.getElementById('page-produk').innerHTML = `
   <div id="produk-toolbar-edit">
     <span id="produk-select-count" style="font-size:13px;color:var(--ink3);font-weight:600">0 dipilih</span>
     <button class="produk-btn-pill produk-btn-ghost" onclick="produkSelectAll()">Pilih semua</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-hpp" onclick="produkBatchHpp()" style="opacity:.4" disabled><i class="ti ti-currency-dollar"></i> Edit HPP</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sup" onclick="produkBatchSupplier()" style="opacity:.4" disabled><i class="ti ti-user"></i> Edit Supplier</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-exp" onclick="produkExportTerpilih()" style="opacity:.4" disabled><i class="ti ti-download"></i> Export</button>
     <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
     <button class="produk-btn-pill produk-btn-cancel" onclick="produkExitEditMode()">Batalkan</button>
   </div>
@@ -215,27 +218,34 @@ function renderProduk(data) {
     const allSelected = rows.every(r => _produkSelected[r.id]);
     const safeKat    = kat.replace(/'/g, "'");
 
-    // Header katalog
+    // Header katalog — 2 baris: nama bold + varian abu di bawah
+    const katCell = `<div style="line-height:1.2">
+      <div style="font-size:14px;font-weight:700">${kat}</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:2px">${rows.length} varian</div>
+    </div>`;
+    const hppCell = `<div style="line-height:1.2">
+      <div style="font-size:14px;font-weight:600">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
+    </div>`;
+    const bossCell = `<div style="line-height:1.2">
+      <div style="font-size:14px;font-weight:600">${boss}</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier</div>
+    </div>`;
+
     if (_produkEditMode) {
       html += `<tr style="background:var(--cream2);cursor:pointer">
-        <td style="text-align:center;padding:6px 4px">
+        <td style="text-align:center;padding:8px 4px;vertical-align:middle">
           <input type="checkbox" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation();produkToggleKatalog('${safeKat}',this.checked)" style="cursor:pointer">
         </td>
-        <td onclick="produkToggleExpand('${safeKat}')">
-          <b style="font-size:14px">${kat}</b>
-          <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
-        </td>
-        <td style="color:var(--ink3);font-size:12px">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</td>
-        <td style="font-size:12px">${boss}</td>
+        <td onclick="produkToggleExpand('${safeKat}')" style="padding:10px 8px">${katCell}</td>
+        <td style="padding:10px 8px">${hppCell}</td>
+        <td style="padding:10px 8px">${bossCell}</td>
       </tr>`;
     } else {
       html += `<tr style="background:var(--cream2);cursor:pointer" onclick="produkToggleExpand('${safeKat}')">
-        <td>
-          <b style="font-size:14px">${kat}</b>
-          <span style="font-size:11px;color:var(--ink3);margin-left:8px">${rows.length} varian</span>
-        </td>
-        <td style="color:var(--ink3);font-size:12px">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</td>
-        <td style="font-size:12px">${boss}</td>
+        <td style="padding:10px 8px">${katCell}</td>
+        <td style="padding:10px 8px">${hppCell}</td>
+        <td style="padding:10px 8px">${bossCell}</td>
       </tr>`;
     }
 
@@ -302,9 +312,13 @@ function produkClearSelect() {
 function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
   const lbl   = document.getElementById('produk-select-count');
-  const btn   = document.getElementById('produk-btn-hapus');
   if (lbl) lbl.textContent = count + ' dipilih';
-  if (btn) { btn.disabled = count === 0; btn.style.opacity = count === 0 ? '.4' : '1'; }
+  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sup','produk-btn-exp'].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    b.disabled     = count === 0;
+    b.style.opacity = count === 0 ? '.4' : '1';
+  });
 }
 
 async function produkHapusTerpilih() {
@@ -494,6 +508,100 @@ async function exportProduk() {
     _produkData.map(r => [r.katalog, r.sku_variasi, r.hpp, r.boss])
   );
 }
+
+// ── BATCH: Export terpilih ────────────────────────────────────
+function produkExportTerpilih() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  const rows = _produkData.filter(r => ids.includes(r.id));
+  exportCSV('zenoot-produk-terpilih.csv',
+    ['Katalog','SKU Variasi','HPP','Boss'],
+    rows.map(r => [r.katalog, r.sku_variasi, r.hpp, r.boss])
+  );
+}
+
+// ── BATCH: Edit HPP massal ────────────────────────────────────
+function produkBatchHpp() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  document.getElementById('batch-hpp-count').textContent = ids.length + ' SKU terpilih';
+  document.getElementById('batch-hpp-input').value = '';
+  showModal('modal-batch-hpp');
+}
+
+async function simpanBatchHpp() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  const raw = document.getElementById('batch-hpp-input').value.replace(/\D/g,'');
+  const hpp = parseInt(raw) || 0;
+  if (!hpp) { alert('Masukkan HPP yang valid'); return; }
+  try {
+    for (const id of ids) { await dbUpdate('produk', id, { hpp }); }
+    hideModal('modal-batch-hpp');
+    produkExitEditMode();
+    loadProduk();
+  } catch(err) { alert('Gagal: ' + err.message); }
+}
+
+// ── BATCH: Edit Supplier massal ───────────────────────────────
+function produkBatchSupplier() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  document.getElementById('batch-sup-count').textContent = ids.length + ' SKU terpilih';
+  document.getElementById('batch-sup-input').value = '';
+  showModal('modal-batch-sup');
+}
+
+async function simpanBatchSupplier() {
+  const ids  = Object.keys(_produkSelected).map(Number);
+  const boss = document.getElementById('batch-sup-input').value.trim().toUpperCase();
+  if (!boss) { alert('Masukkan nama supplier'); return; }
+  try {
+    for (const id of ids) { await dbUpdate('produk', id, { boss }); }
+    hideModal('modal-batch-sup');
+    produkExitEditMode();
+    loadProduk();
+  } catch(err) { alert('Gagal: ' + err.message); }
+}
+
+// ── MODAL: Batch HPP ─────────────────────────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<div class="modal-overlay" id="modal-batch-hpp" onclick="if(event.target===this)hideModal('modal-batch-hpp')">
+  <div class="modal" style="max-width:380px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-currency-dollar"></i> Edit HPP Massal</div>
+      <button onclick="hideModal('modal-batch-hpp')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p id="batch-hpp-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>HPP Baru (Rp)</label>
+      <input type="text" inputmode="numeric" id="batch-hpp-input" placeholder="Contoh: 38000" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="hideModal('modal-batch-hpp')">Batal</button>
+      <button class="btn btn-sm btn-primary" onclick="simpanBatchHpp()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
+  </div>
+</div>`);
+
+// ── MODAL: Batch Supplier ─────────────────────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<div class="modal-overlay" id="modal-batch-sup" onclick="if(event.target===this)hideModal('modal-batch-sup')">
+  <div class="modal" style="max-width:380px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-user"></i> Edit Supplier Massal</div>
+      <button onclick="hideModal('modal-batch-sup')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p id="batch-sup-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Nama Supplier Baru</label>
+      <input type="text" id="batch-sup-input" placeholder="Contoh: HENDRA" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;text-transform:uppercase">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="hideModal('modal-batch-sup')">Batal</button>
+      <button class="btn btn-sm btn-primary" onclick="simpanBatchSupplier()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
+  </div>
+</div>`);
 
 loadProduk();
 
