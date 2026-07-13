@@ -3525,6 +3525,46 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-tap-highlight-color: transparent;
 }
 .kas-tipe-card:active { background: #2e2e2e; border-color: rgba(255,255,255,0.18); }
+
+/* ── Custom Tipe Picker (modal edit desktop) ── */
+.kas-tipe-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--cream2, #1e1e1e);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  min-height: 38px;
+  user-select: none;
+  transition: border-color 0.15s;
+}
+.kas-tipe-picker:hover { border-color: rgba(255,255,255,0.25); }
+.kas-tipe-picker-val {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.kas-tipe-picker-icon { font-size: 16px; display: flex; align-items: center; }
+.kas-tipe-picker-lbl { color: var(--ink); }
+.kas-tipe-portal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink, #f0f0f0);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.kas-tipe-portal-item:hover { background: rgba(255,255,255,0.07); }
+.kas-tipe-portal-item:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
 .kas-tipe-icon {
   width: 44px; height: 44px;
   border-radius: 12px;

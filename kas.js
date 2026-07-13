@@ -436,13 +436,20 @@ function _kasInjectSheets() {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-edit-tgl"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:130px"><label>Tipe</label>
-        <select id="kas-edit-tipe" onchange="kasOnEditTipeChange()" style="width:100%">
-          <option value="jurnal"><i class="ti ti-pencil"></i> Jurnal Umum</option>
-          <option value="bayar_pinjaman"><i class="ti ti-credit-card"></i> Bayar Pinjaman</option>
-          <option value="pinjaman"><i class="ti ti-building-bank"></i> Pinjaman</option>
-          <option value="keluar"><i class="ti ti-arrow-up-right"></i> Uang Keluar</option>
-          <option value="masuk"><i class="ti ti-arrow-down-left"></i> Uang Masuk</option>
+        <select id="kas-edit-tipe" onchange="kasOnEditTipeChange()" style="display:none">
+          <option value="jurnal">Jurnal Umum</option>
+          <option value="bayar_pinjaman">Bayar Pinjaman</option>
+          <option value="pinjaman">Pinjaman</option>
+          <option value="keluar">Uang Keluar</option>
+          <option value="masuk">Uang Masuk</option>
         </select>
+        <div id="kas-edit-tipe-picker" class="kas-tipe-picker" onclick="kasToggleTipePicker(this)" style="position:relative">
+          <div class="kas-tipe-picker-val">
+            <span class="kas-tipe-picker-icon"></span>
+            <span class="kas-tipe-picker-lbl">Pilih Tipe</span>
+          </div>
+          <i class="ti ti-chevron-down" style="font-size:14px;color:var(--ink3);transition:transform 0.2s"></i>
+        </div>
       </div>
       <div class="form-group" style="flex:1 1 130px;min-width:120px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="kas-edit-nominal" placeholder="0" oninput="kasHitungEditJurnal()" style="cursor:pointer"></div>
     </div>
@@ -808,7 +815,7 @@ function kasShowForm() {
       var now = new Date();
       document.getElementById('kas-edit-tgl').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     })();
-    document.getElementById('kas-edit-tipe').value = 'masuk';
+    document.getElementById('kas-edit-tipe').value = 'masuk'; kasSyncTipePicker('masuk');
     idrSet('kas-edit-nominal', 0);
     document.getElementById('kas-edit-ket').value = '';
     document.getElementById('kas-edit-ref').value = '';
@@ -1379,7 +1386,7 @@ async function kasEditJurnal(id) {
   document.getElementById('kas-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Transaksi';
   document.getElementById('kas-edit-id').value      = r.id;
   document.getElementById('kas-edit-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
-  document.getElementById('kas-edit-tipe').value    = r.tipe || 'masuk';
+  document.getElementById('kas-edit-tipe').value    = r.tipe || 'masuk'; kasSyncTipePicker(r.tipe || 'masuk');
   idrSet('kas-edit-nominal', r.nominal || r.debit || 0);
   setTimeout(function() {
     if (typeof idrInput === 'function') idrInput('kas-edit-nominal');
@@ -2010,6 +2017,77 @@ function kasSyncPickerLabel(pickerId, selectId) {
       if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
     }
   }
+}
+
+// ── Custom Tipe Picker (modal Edit desktop) ──────────────────────────────────
+var _KAS_TIPE_META = {
+  jurnal:         { label:'Jurnal Umum',    icon:'ti-pencil',          color:'#6495ed', bg:'rgba(100,149,237,0.15)' },
+  bayar_pinjaman: { label:'Bayar Pinjaman', icon:'ti-credit-card',     color:'#ffa500', bg:'rgba(255,165,0,0.15)' },
+  pinjaman:       { label:'Pinjaman',       icon:'ti-building-bank',   color:'#8a2be2', bg:'rgba(138,43,226,0.15)' },
+  keluar:         { label:'Uang Keluar',    icon:'ti-arrow-up-right',  color:'#e05260', bg:'rgba(220,53,69,0.15)' },
+  masuk:          { label:'Uang Masuk',     icon:'ti-arrow-down-left', color:'#3ecf6e', bg:'rgba(62,207,110,0.15)' }
+};
+
+function kasSyncTipePicker(tipe) {
+  var picker = document.getElementById('kas-edit-tipe-picker');
+  if (!picker) return;
+  var meta = _KAS_TIPE_META[tipe];
+  if (!meta) return;
+  var iconEl = picker.querySelector('.kas-tipe-picker-icon');
+  var lblEl  = picker.querySelector('.kas-tipe-picker-lbl');
+  if (iconEl) { iconEl.innerHTML = '<i class="ti ' + meta.icon + '"></i>'; iconEl.style.color = meta.color; }
+  if (lblEl)  { lblEl.textContent = meta.label; lblEl.style.color = 'var(--ink)'; }
+}
+
+function kasToggleTipePicker(anchor) {
+  // Tutup jika sudah ada portal tipe
+  var existing = document.getElementById('_kas-tipe-portal');
+  if (existing) { existing.remove(); anchor.querySelector('.ti-chevron-down').style.transform = ''; return; }
+
+  var rect = anchor.getBoundingClientRect();
+  var portal = document.createElement('div');
+  portal.id = '_kas-tipe-portal';
+  portal.style.cssText = 'position:fixed;z-index:9999;background:#1e1e1e;border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:' + Math.max(rect.width, 190) + 'px;overflow:hidden;';
+
+  // Posisi: muncul ke bawah, atau ke atas kalau dekat bawah layar
+  var spaceBelow = window.innerHeight - rect.bottom;
+  var menuH = 5 * 40; // estimasi 5 item x 40px
+  if (spaceBelow < menuH + 8) {
+    portal.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    portal.style.top = 'auto';
+  } else {
+    portal.style.top = (rect.bottom + 4) + 'px';
+  }
+  portal.style.left = rect.left + 'px';
+
+  Object.entries(_KAS_TIPE_META).forEach(function(entry) {
+    var val = entry[0], m = entry[1];
+    var item = document.createElement('div');
+    item.className = 'kas-tipe-portal-item';
+    item.innerHTML = '<i class="ti ' + m.icon + '" style="color:' + m.color + ';width:18px;text-align:center"></i> ' + m.label;
+    item.addEventListener('click', function() {
+      document.getElementById('kas-edit-tipe').value = val;
+      kasSyncTipePicker(val);
+      portal.remove();
+      anchor.querySelector('.ti-chevron-down').style.transform = '';
+      kasOnEditTipeChange();
+    });
+    portal.appendChild(item);
+  });
+
+  document.body.appendChild(portal);
+  anchor.querySelector('.ti-chevron-down').style.transform = 'rotate(180deg)';
+
+  // Tutup saat klik luar
+  setTimeout(function() {
+    document.addEventListener('click', function _closeTipe(e) {
+      if (!portal.contains(e.target) && e.target !== anchor) {
+        portal.remove();
+        if (anchor.querySelector) anchor.querySelector('.ti-chevron-down').style.transform = '';
+      }
+      document.removeEventListener('click', _closeTipe);
+    });
+  }, 10);
 }
 
 // Reset picker saat modal dibuka untuk transaksi baru
