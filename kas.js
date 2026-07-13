@@ -259,46 +259,31 @@ function _kasInjectSheets() {
 <div id="kas-sheet-tipe" class="kas-brimo-sheet">
   <div class="kas-brimo-handle"></div>
   <div class="kas-brimo-sheet-title">Jenis Transaksi</div>
-  <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px 24px">
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('jurnal')">
-      <div class="kas-tipe-icon" style="background:rgba(255,255,255,0.08);color:var(--ink2)"><i class="ti ti-pencil"></i></div>
-      <div>
-        <div class="kas-tipe-label">Jurnal Umum</div>
-        <div class="kas-tipe-desc">Penyesuaian, transfer antar akun, koreksi</div>
-      </div>
-      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+  <div class="kas-tipe-grid">
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('pinjaman')">
+      <div class="kas-tipe-icon"><i class="ti ti-building-bank"></i></div>
+      <div class="kas-tipe-label">Pinjaman</div>
+      <div class="kas-tipe-desc">Tambah hutang baru</div>
     </button>
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('bayar_pinjaman')">
-      <div class="kas-tipe-icon" style="background:rgba(255,255,255,0.08);color:var(--ink2)"><i class="ti ti-credit-card"></i></div>
-      <div>
-        <div class="kas-tipe-label">Bayar Pinjaman</div>
-        <div class="kas-tipe-desc">Angsuran hutang, cicilan pinjaman</div>
-      </div>
-      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('bayar_pinjaman')">
+      <div class="kas-tipe-icon"><i class="ti ti-credit-card"></i></div>
+      <div class="kas-tipe-label">Bayar Pinjaman</div>
+      <div class="kas-tipe-desc">Bayar cicilan hutang</div>
     </button>
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('pinjaman')">
-      <div class="kas-tipe-icon" style="background:rgba(255,255,255,0.08);color:var(--ink2)"><i class="ti ti-building-bank"></i></div>
-      <div>
-        <div class="kas-tipe-label">Pinjaman</div>
-        <div class="kas-tipe-desc">Hutang masuk, tambah pinjaman baru</div>
-      </div>
-      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('keluar')">
+      <div class="kas-tipe-icon"><i class="ti ti-arrow-up-right"></i></div>
+      <div class="kas-tipe-label">Uang Keluar</div>
+      <div class="kas-tipe-desc">Bayar & catat beban</div>
     </button>
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('keluar')">
-      <div class="kas-tipe-icon" style="background:rgba(255,255,255,0.08);color:var(--ink2)"><i class="ti ti-arrow-up-right"></i></div>
-      <div>
-        <div class="kas-tipe-label">Uang Keluar</div>
-        <div class="kas-tipe-desc">Pengeluaran kas, beban operasional</div>
-      </div>
-      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('masuk')">
+      <div class="kas-tipe-icon"><i class="ti ti-arrow-down-left"></i></div>
+      <div class="kas-tipe-label">Uang Masuk</div>
+      <div class="kas-tipe-desc">Terima pembayaran</div>
     </button>
-    <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('masuk')">
-      <div class="kas-tipe-icon" style="background:rgba(255,255,255,0.08);color:var(--ink2)"><i class="ti ti-arrow-down-left"></i></div>
-      <div>
-        <div class="kas-tipe-label">Uang Masuk</div>
-        <div class="kas-tipe-desc">Penerimaan kas, pendapatan</div>
-      </div>
-      <i class="ti ti-chevron-right kas-tipe-arrow"></i>
+    <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('jurnal')">
+      <div class="kas-tipe-icon"><i class="ti ti-pencil"></i></div>
+      <div class="kas-tipe-label">Jurnal Umum</div>
+      <div class="kas-tipe-desc">Koreksi & transfer akun</div>
     </button>
   </div>
 </div>
