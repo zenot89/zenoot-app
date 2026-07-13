@@ -1753,6 +1753,17 @@ function _kasPositionPickerList(list, picker, listH) {
   }
 }
 
+// Hitung saldo akun dari _kasJurnalAll (in-memory, no extra query)
+function _kasGetSaldoMap() {
+  var map = {};
+  (_kasJurnalAll || []).forEach(function(r) {
+    var n = r.nominal || r.debit || 0;
+    if (r.akun_debit_id)  { if (!map[r.akun_debit_id])  map[r.akun_debit_id]  = {d:0,k:0}; map[r.akun_debit_id].d  += n; }
+    if (r.akun_kredit_id) { if (!map[r.akun_kredit_id]) map[r.akun_kredit_id] = {d:0,k:0}; map[r.akun_kredit_id].k += n; }
+  });
+  return map;
+}
+
 function kasPopulatePickerList(listId, akunData) {
   var list = document.getElementById(listId);
   if (!list) return;
@@ -1763,9 +1774,19 @@ function kasPopulatePickerList(listId, akunData) {
   order.forEach(function(k) {
     if (!grouped[k].length) return;
     html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
+    var saldoMap = (k === 'aset') ? _kasGetSaldoMap() : null;
     grouped[k].forEach(function(a) {
       var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
-      html += '<div class="kas-akun-item" data-val="' + a.id + '" onclick="kasPickerSelect(this)">' + label + '</div>';
+      var saldoHtml = '';
+      var isKasBankAkun = saldoMap && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      if (isKasBankAkun) {
+        var s = saldoMap[a.id] || {d:0,k:0};
+        var saldo = s.d - s.k;
+        var saldoColor = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
+        var saldoFmt = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
+        saldoHtml = '<span class="kas-akun-saldo" style="color:' + saldoColor + '">' + saldoFmt + '</span>';
+      }
+      html += '<div class="kas-akun-item" data-val="' + a.id + '" onclick="kasPickerSelect(this)"><span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
     });
   });
   list.innerHTML = html;

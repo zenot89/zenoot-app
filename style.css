@@ -2160,11 +2160,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--ink2);
   padding: 6px 12px;
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   -webkit-transition: background 0.1s;
   transition: background 0.1s;
+}
+.kas-akun-nama {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.kas-akun-saldo {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 .kas-akun-item:hover {
   background: rgba(255,255,255,0.06);
