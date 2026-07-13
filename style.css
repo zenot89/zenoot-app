@@ -3535,7 +3535,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   background: var(--cream2, #1e1e1e);
   border: 1.5px solid rgba(255,255,255,0.1);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   cursor: pointer;
   min-height: 38px;
   user-select: none;
@@ -3545,18 +3545,34 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-tipe-picker-val {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   font-size: 14px;
   font-weight: 500;
 }
-.kas-tipe-picker-icon { font-size: 16px; display: flex; align-items: center; }
+.kas-tipe-picker-icon { display: flex; align-items: center; }
 .kas-tipe-picker-lbl { color: var(--ink); }
+
+/* Colored square app icon — dipakai di picker trigger & portal dropdown */
+.kas-sq-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #fff;
+}
+.kas-tipe-portal-item .kas-sq-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
 .kas-tipe-portal-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink, #f0f0f0);
   cursor: pointer;
@@ -3571,6 +3587,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex; align-items: center; justify-content: center;
   font-size: 22px;
   flex-shrink: 0;
+  color: #fff;
 }
 .kas-tipe-label {
   font-size: 15px;

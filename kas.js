@@ -261,7 +261,7 @@ function _kasInjectSheets() {
   <div class="kas-brimo-sheet-title">Jenis Transaksi</div>
   <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px 24px">
     <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('jurnal')">
-      <div class="kas-tipe-icon" style="background:rgba(100,149,237,0.15);color:#6495ed"><i class="ti ti-pencil"></i></div>
+      <div class="kas-tipe-icon" style="background:#5b8cee;color:#fff"><i class="ti ti-pencil"></i></div>
       <div>
         <div class="kas-tipe-label">Jurnal Umum</div>
         <div class="kas-tipe-desc">Penyesuaian, transfer antar akun, koreksi</div>
@@ -269,7 +269,7 @@ function _kasInjectSheets() {
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
     <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('bayar_pinjaman')">
-      <div class="kas-tipe-icon" style="background:rgba(255,165,0,0.15);color:#ffa500"><i class="ti ti-credit-card"></i></div>
+      <div class="kas-tipe-icon" style="background:#e08c2a;color:#fff"><i class="ti ti-credit-card"></i></div>
       <div>
         <div class="kas-tipe-label">Bayar Pinjaman</div>
         <div class="kas-tipe-desc">Angsuran hutang, cicilan pinjaman</div>
@@ -277,7 +277,7 @@ function _kasInjectSheets() {
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
     <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('pinjaman')">
-      <div class="kas-tipe-icon" style="background:rgba(138,43,226,0.15);color:#8a2be2"><i class="ti ti-building-bank"></i></div>
+      <div class="kas-tipe-icon" style="background:#7c3aed;color:#fff"><i class="ti ti-building-bank"></i></div>
       <div>
         <div class="kas-tipe-label">Pinjaman</div>
         <div class="kas-tipe-desc">Hutang masuk, tambah pinjaman baru</div>
@@ -285,7 +285,7 @@ function _kasInjectSheets() {
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
     <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('keluar')">
-      <div class="kas-tipe-icon" style="background:rgba(220,53,69,0.15);color:#e05260"><i class="ti ti-arrow-up-right"></i></div>
+      <div class="kas-tipe-icon" style="background:#e05260;color:#fff"><i class="ti ti-arrow-up-right"></i></div>
       <div>
         <div class="kas-tipe-label">Uang Keluar</div>
         <div class="kas-tipe-desc">Pengeluaran kas, beban operasional</div>
@@ -293,7 +293,7 @@ function _kasInjectSheets() {
       <i class="ti ti-chevron-right kas-tipe-arrow"></i>
     </button>
     <button class="kas-tipe-card" onclick="kasBrimoSelectTipe('masuk')">
-      <div class="kas-tipe-icon" style="background:rgba(62,207,110,0.15);color:#3ecf6e"><i class="ti ti-arrow-down-left"></i></div>
+      <div class="kas-tipe-icon" style="background:#25a660;color:#fff"><i class="ti ti-arrow-down-left"></i></div>
       <div>
         <div class="kas-tipe-label">Uang Masuk</div>
         <div class="kas-tipe-desc">Penerimaan kas, pendapatan</div>
@@ -2021,11 +2021,11 @@ function kasSyncPickerLabel(pickerId, selectId) {
 
 // ── Custom Tipe Picker (modal Edit desktop) ──────────────────────────────────
 var _KAS_TIPE_META = {
-  jurnal:         { label:'Jurnal Umum',    icon:'ti-pencil',          color:'#6495ed', bg:'rgba(100,149,237,0.15)' },
-  bayar_pinjaman: { label:'Bayar Pinjaman', icon:'ti-credit-card',     color:'#ffa500', bg:'rgba(255,165,0,0.15)' },
-  pinjaman:       { label:'Pinjaman',       icon:'ti-building-bank',   color:'#8a2be2', bg:'rgba(138,43,226,0.15)' },
-  keluar:         { label:'Uang Keluar',    icon:'ti-arrow-up-right',  color:'#e05260', bg:'rgba(220,53,69,0.15)' },
-  masuk:          { label:'Uang Masuk',     icon:'ti-arrow-down-left', color:'#3ecf6e', bg:'rgba(62,207,110,0.15)' }
+  jurnal:         { label:'Jurnal Umum',    icon:'ti-pencil',          color:'#fff', sq:'#5b8cee' },
+  bayar_pinjaman: { label:'Bayar Pinjaman', icon:'ti-credit-card',     color:'#fff', sq:'#e08c2a' },
+  pinjaman:       { label:'Pinjaman',       icon:'ti-building-bank',   color:'#fff', sq:'#7c3aed' },
+  keluar:         { label:'Uang Keluar',    icon:'ti-arrow-up-right',  color:'#fff', sq:'#e05260' },
+  masuk:          { label:'Uang Masuk',     icon:'ti-arrow-down-left', color:'#fff', sq:'#25a660' }
 };
 
 function kasSyncTipePicker(tipe) {
@@ -2035,7 +2035,7 @@ function kasSyncTipePicker(tipe) {
   if (!meta) return;
   var iconEl = picker.querySelector('.kas-tipe-picker-icon');
   var lblEl  = picker.querySelector('.kas-tipe-picker-lbl');
-  if (iconEl) { iconEl.innerHTML = '<i class="ti ' + meta.icon + '"></i>'; iconEl.style.color = meta.color; }
+  if (iconEl) { iconEl.innerHTML = '<span class="kas-sq-icon" style="background:' + meta.sq + '"><i class="ti ' + meta.icon + '"></i></span>'; iconEl.style.color = ''; }
   if (lblEl)  { lblEl.textContent = meta.label; lblEl.style.color = 'var(--ink)'; }
 }
 
@@ -2064,7 +2064,7 @@ function kasToggleTipePicker(anchor) {
     var val = entry[0], m = entry[1];
     var item = document.createElement('div');
     item.className = 'kas-tipe-portal-item';
-    item.innerHTML = '<i class="ti ' + m.icon + '" style="color:' + m.color + ';width:18px;text-align:center"></i> ' + m.label;
+    item.innerHTML = '<span class="kas-sq-icon" style="background:' + m.sq + '"><i class="ti ' + m.icon + '"></i></span><span>' + m.label + '</span>';
     item.addEventListener('click', function() {
       document.getElementById('kas-edit-tipe').value = val;
       kasSyncTipePicker(val);
