@@ -263,27 +263,25 @@ function _kasInjectSheets() {
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('pinjaman')">
       <div class="kas-tipe-icon"><i class="ti ti-building-bank"></i></div>
       <div class="kas-tipe-label">Pinjaman</div>
-      <div class="kas-tipe-desc">Tambah hutang baru</div>
     </button>
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('bayar_pinjaman')">
       <div class="kas-tipe-icon"><i class="ti ti-credit-card"></i></div>
       <div class="kas-tipe-label">Bayar Pinjaman</div>
-      <div class="kas-tipe-desc">Bayar cicilan hutang</div>
     </button>
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('keluar')">
       <div class="kas-tipe-icon"><i class="ti ti-arrow-up-right"></i></div>
       <div class="kas-tipe-label">Uang Keluar</div>
-      <div class="kas-tipe-desc">Bayar & catat beban</div>
     </button>
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('masuk')">
       <div class="kas-tipe-icon"><i class="ti ti-arrow-down-left"></i></div>
       <div class="kas-tipe-label">Uang Masuk</div>
-      <div class="kas-tipe-desc">Terima pembayaran</div>
     </button>
     <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('jurnal')">
       <div class="kas-tipe-icon"><i class="ti ti-pencil"></i></div>
-      <div class="kas-tipe-label">Jurnal Umum</div>
-      <div class="kas-tipe-desc">Koreksi & transfer akun</div>
+      <div>
+        <div class="kas-tipe-label">Jurnal Umum</div>
+        <div class="kas-tipe-desc">Koreksi & transfer akun</div>
+      </div>
     </button>
   </div>
 </div>
