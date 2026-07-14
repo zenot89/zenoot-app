@@ -1554,7 +1554,11 @@ function keuRenderHutangTabel(hutang, bayar) {
     const sudahBayar = keuGetSudahBayar(h.id, bayar);
     const sisa       = (h.pokok||0) - sudahBayar;
     const isLunas    = sisa <= 0;
-    const jatuhTempo = h.jatuh_tempo ? new Date(h.jatuh_tempo).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+    const jatuhTempo = (function() {
+      var tglCicilan = h.tgl_cicilan ? '<div style="font-size:10px;color:var(--ink3)">cicilan tgl ' + h.tgl_cicilan + '</div>' : '';
+      var lunas = h.jatuh_tempo ? new Date(h.jatuh_tempo).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+      return lunas + tglCicilan;
+    })();
     const safeKreditur = (h.kreditur||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return `<tr>
       <td style="font-weight:700">${h.kreditur||'—'}</td>

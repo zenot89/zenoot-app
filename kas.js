@@ -417,9 +417,15 @@ function _kasInjectSheets() {
         <label class="kas-brimo-label">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
         <input type="text" id="kas-pjm-cicilan" class="kas-brimo-input kas-idr-input" placeholder="Rp0" inputmode="numeric">
       </div>
-      <div class="kas-brimo-field">
-        <label class="kas-brimo-label">Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
-        <input type="date" id="kas-pjm-jatuh-tempo" class="kas-brimo-input">
+      <div style="display:flex;gap:10px">
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label">Tgl Cicilan/Bln</label>
+          <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric">
+        </div>
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label">Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+          <input type="date" id="kas-pjm-jatuh-tempo" class="kas-brimo-input">
+        </div>
       </div>
     </div>
 
@@ -502,6 +508,7 @@ function _kasInjectSheets() {
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div class="form-group" style="flex:1 1 140px"><label>Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
+        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan/Bln</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31"></div>
         <div class="form-group" style="flex:1 1 140px"><label>Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
       </div>
     </div>
@@ -849,7 +856,7 @@ function kasShowForm() {
     var exEdit = document.getElementById('kas-edit-pinjaman-extra');
     if (exEdit) {
       exEdit.style.display = 'none';
-      ['kas-edit-pjm-kreditur','kas-edit-pjm-bunga','kas-edit-pjm-tenor','kas-edit-pjm-cicilan','kas-edit-pjm-jatuh-tempo']
+      ['kas-edit-pjm-kreditur','kas-edit-pjm-bunga','kas-edit-pjm-tenor','kas-edit-pjm-cicilan','kas-edit-pjm-tgl-cicilan','kas-edit-pjm-jatuh-tempo']
         .forEach(function(eid){ var el=document.getElementById(eid); if(el) el.value=''; });
     }
     kasOnEditTipeChange();
@@ -1003,7 +1010,7 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     var ex = document.getElementById('kas-pinjaman-extra');
     if (ex) {
       ex.style.display = 'none';
-      ['kas-pjm-kreditur','kas-pjm-bunga','kas-pjm-tenor','kas-pjm-cicilan','kas-pjm-jatuh-tempo']
+      ['kas-pjm-kreditur','kas-pjm-bunga','kas-pjm-tenor','kas-pjm-cicilan','kas-pjm-tgl-cicilan','kas-pjm-jatuh-tempo']
         .forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     }
   };
@@ -1218,6 +1225,7 @@ async function kasSimpanJurnal() {
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
+          tgl_cicilan:       parseInt(document.getElementById('kas-pjm-tgl-cicilan').value) || null,
           keterangan:        (document.getElementById('kas-jrn-ket').value||'').trim() || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
@@ -1313,6 +1321,7 @@ async function kasUpdateJurnal() {
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
+          tgl_cicilan:       parseInt(document.getElementById('kas-edit-pjm-tgl-cicilan').value) || null,
           keterangan:        data.keterangan || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
