@@ -492,6 +492,20 @@ function _kasInjectSheets() {
       <div class="form-group" style="flex:2 1 200px"><label>Keterangan</label><input type="text" id="kas-edit-ket" placeholder="mis: bayar iklan Shopee..."></div>
       <div class="form-group" style="flex:1 1 120px"><label>No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-ref" placeholder="mis: INV-001"></div>
     </div>
+    <!-- ── Extra fields: hanya muncul saat tipe = pinjaman (modal Edit) ── -->
+    <div id="kas-edit-pinjaman-extra" style="display:none;margin-bottom:10px">
+      <div style="margin:8px 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;color:var(--ink3);text-transform:uppercase">Detail Pinjaman</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="form-group" style="flex:2 1 160px"><label>Nama Kreditur <span style="color:var(--danger)">*</span></label><input type="text" id="kas-edit-pjm-kreditur" placeholder="mis: KUR BRI, Pak Hasan..."></div>
+        <div class="form-group" style="flex:1 1 90px"><label>Bunga (%/bln)</label><input type="number" id="kas-edit-pjm-bunga" placeholder="0" min="0" step="0.1"></div>
+        <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="form-group" style="flex:1 1 140px"><label>Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
+        <div class="form-group" style="flex:1 1 140px"><label>Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
+      </div>
+    </div>
+
     <div id="kas-edit-preview" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:2px;font-size:12px;margin-bottom:10px;color:var(--ink2)">
       <b>Preview Jurnal:</b><br><span id="kas-edit-preview-text"></span>
     </div>
@@ -831,6 +845,13 @@ function kasShowForm() {
     document.getElementById('kas-edit-ket').value = '';
     document.getElementById('kas-edit-ref').value = '';
     document.getElementById('kas-edit-preview').style.display = 'none';
+    // Reset pinjaman extra (modal)
+    var exEdit = document.getElementById('kas-edit-pinjaman-extra');
+    if (exEdit) {
+      exEdit.style.display = 'none';
+      ['kas-edit-pjm-kreditur','kas-edit-pjm-bunga','kas-edit-pjm-tenor','kas-edit-pjm-cicilan','kas-edit-pjm-jatuh-tempo']
+        .forEach(function(eid){ var el=document.getElementById(eid); if(el) el.value=''; });
+    }
     kasOnEditTipeChange();
     showModal('modal-kas-transaksi');
     setTimeout(function() { if (typeof idrInput === 'function') idrInput('kas-edit-nominal'); }, 80);
@@ -1213,6 +1234,8 @@ async function kasSimpanJurnal() {
 // ── MODAL EDIT (gunakan field kas-edit-*) ──────────────────
 function kasOnEditTipeChange() {
   const tipe = document.getElementById('kas-edit-tipe').value;
+  var extraEl = document.getElementById('kas-edit-pinjaman-extra');
+  if (extraEl) extraEl.style.display = (tipe === 'pinjaman') ? 'block' : 'none';
   const lblD = document.getElementById('kas-edit-lbl-debit');
   const lblK = document.getElementById('kas-edit-lbl-kredit');
   if (!lblD || !lblK) return;
@@ -1265,6 +1288,38 @@ async function kasUpdateJurnal() {
   };
   try {
     if (id) { await dbUpdate('jurnal', id, data); } else { await dbInsert('jurnal', data); }
+
+    // Jika pinjaman baru (bukan edit) → insert juga ke tabel hutang
+    if (!id && data.tipe === 'pinjaman') {
+      const kreditur = (document.getElementById('kas-edit-pjm-kreditur').value||'').trim();
+      if (kreditur) {
+        const bunga   = parseFloat(document.getElementById('kas-edit-pjm-bunga').value)  || 0;
+        const tenor   = parseInt(document.getElementById('kas-edit-pjm-tenor').value)    || null;
+        const cicilan = (function(){
+          var el = document.getElementById('kas-edit-pjm-cicilan');
+          if (!el) return 0;
+          var raw = (el.value||'').replace(/[^0-9]/g,'');
+          return parseInt(raw,10) || 0;
+        })();
+        const jatuhTempo = document.getElementById('kas-edit-pjm-jatuh-tempo').value || null;
+        await dbInsert('hutang', {
+          kreditur:          kreditur,
+          jenis:             'lainnya',
+          pokok:             nominal,
+          bunga:             bunga,
+          tenor:             tenor,
+          frekuensi:         'bulanan',
+          cicilan_per_bulan: cicilan,
+          cicilan_nominal:   cicilan,
+          tgl_mulai:         tgl,
+          jatuh_tempo:       jatuhTempo,
+          keterangan:        data.keterangan || null,
+          akun_kwj_id:       akunKId || null,
+          akun_aset_id:      akunDId || null,
+        });
+      }
+    }
+
     hideModal('modal-kas-transaksi');
     loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
