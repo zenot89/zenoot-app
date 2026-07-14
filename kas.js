@@ -413,14 +413,33 @@ function _kasInjectSheets() {
           <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1">
         </div>
       </div>
-      <div class="kas-brimo-field">
-        <label class="kas-brimo-label">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
-        <input type="text" id="kas-pjm-cicilan" class="kas-brimo-input kas-idr-input" placeholder="Rp0" inputmode="numeric">
+      <div style="display:flex;gap:10px">
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label">Frekuensi</label>
+          <select id="kas-pjm-frekuensi" class="kas-brimo-input" onchange="kasPjmFrekuensiChange(this.value,'kas-pjm')">
+            <option value="bulanan">Bulanan</option>
+            <option value="tahunan">Tahunan</option>
+          </select>
+        </div>
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label kas-pjm-cicilan-lbl">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+          <input type="text" id="kas-pjm-cicilan" class="kas-brimo-input kas-idr-input" placeholder="Rp0" inputmode="numeric">
+        </div>
       </div>
       <div style="display:flex;gap:10px">
         <div class="kas-brimo-field" style="flex:1">
-          <label class="kas-brimo-label">Tgl Cicilan/Bln</label>
+          <label class="kas-brimo-label">Tgl Cicilan</label>
           <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric">
+        </div>
+        <div class="kas-brimo-field kas-pjm-bln-wrap" style="flex:1;display:none">
+          <label class="kas-brimo-label">Bulan Cicilan</label>
+          <select id="kas-pjm-bln-cicilan" class="kas-brimo-input">
+            <option value="">— Pilih —</option>
+            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+          </select>
         </div>
         <div class="kas-brimo-field" style="flex:1">
           <label class="kas-brimo-label">Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
@@ -506,9 +525,26 @@ function _kasInjectSheets() {
         <div class="form-group" style="flex:1 1 90px"><label>Bunga (%/bln)</label><input type="number" id="kas-edit-pjm-bunga" placeholder="0" min="0" step="0.1"></div>
         <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1"></div>
       </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="form-group" style="flex:1 1 100px"><label>Frekuensi</label>
+          <select id="kas-edit-pjm-frekuensi" onchange="kasPjmFrekuensiChange(this.value,'kas-edit-pjm')">
+            <option value="bulanan">Bulanan</option>
+            <option value="tahunan">Tahunan</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1 1 140px"><label class="kas-edit-pjm-cicilan-lbl">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="form-group" style="flex:1 1 140px"><label>Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
-        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan/Bln</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31"></div>
+        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31"></div>
+        <div class="form-group kas-edit-pjm-bln-wrap" style="flex:1 1 110px;display:none"><label>Bulan Cicilan</label>
+          <select id="kas-edit-pjm-bln-cicilan">
+            <option value="">— Pilih —</option>
+            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
         <div class="form-group" style="flex:1 1 140px"><label>Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
       </div>
     </div>
@@ -856,7 +892,7 @@ function kasShowForm() {
     var exEdit = document.getElementById('kas-edit-pinjaman-extra');
     if (exEdit) {
       exEdit.style.display = 'none';
-      ['kas-edit-pjm-kreditur','kas-edit-pjm-bunga','kas-edit-pjm-tenor','kas-edit-pjm-cicilan','kas-edit-pjm-tgl-cicilan','kas-edit-pjm-jatuh-tempo']
+      ['kas-edit-pjm-kreditur','kas-edit-pjm-bunga','kas-edit-pjm-tenor','kas-edit-pjm-frekuensi','kas-edit-pjm-cicilan','kas-edit-pjm-tgl-cicilan','kas-edit-pjm-bln-cicilan','kas-edit-pjm-jatuh-tempo']
         .forEach(function(eid){ var el=document.getElementById(eid); if(el) el.value=''; });
     }
     kasOnEditTipeChange();
@@ -1010,7 +1046,7 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     var ex = document.getElementById('kas-pinjaman-extra');
     if (ex) {
       ex.style.display = 'none';
-      ['kas-pjm-kreditur','kas-pjm-bunga','kas-pjm-tenor','kas-pjm-cicilan','kas-pjm-tgl-cicilan','kas-pjm-jatuh-tempo']
+      ['kas-pjm-kreditur','kas-pjm-bunga','kas-pjm-tenor','kas-pjm-frekuensi','kas-pjm-cicilan','kas-pjm-tgl-cicilan','kas-pjm-bln-cicilan','kas-pjm-jatuh-tempo']
         .forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     }
   };
@@ -1226,6 +1262,8 @@ async function kasSimpanJurnal() {
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
           tgl_cicilan:       parseInt(document.getElementById('kas-pjm-tgl-cicilan').value) || null,
+          bln_cicilan:       parseInt(document.getElementById('kas-pjm-bln-cicilan').value) || null,
+          frekuensi:         document.getElementById('kas-pjm-frekuensi').value || 'bulanan',
           keterangan:        (document.getElementById('kas-jrn-ket').value||'').trim() || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
@@ -1322,6 +1360,8 @@ async function kasUpdateJurnal() {
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
           tgl_cicilan:       parseInt(document.getElementById('kas-edit-pjm-tgl-cicilan').value) || null,
+          bln_cicilan:       parseInt(document.getElementById('kas-edit-pjm-bln-cicilan').value) || null,
+          frekuensi:         document.getElementById('kas-edit-pjm-frekuensi').value || 'bulanan',
           keterangan:        data.keterangan || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
@@ -2155,6 +2195,14 @@ function kasSyncPickerLabel(pickerId, selectId) {
       if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
     }
   }
+}
+
+// ── Frekuensi cicilan show/hide bln_cicilan ──────────────────────────────────
+function kasPjmFrekuensiChange(val, prefix) {
+  var blnWrap  = document.querySelector('.' + prefix + '-bln-wrap');
+  var lblCicil = document.querySelector('.' + prefix + '-cicilan-lbl');
+  if (blnWrap)  blnWrap.style.display  = (val === 'tahunan') ? '' : 'none';
+  if (lblCicil) lblCicil.textContent   = (val === 'tahunan') ? 'Cicilan/Tahun (opsional)' : 'Cicilan/Bulan (opsional)';
 }
 
 // ── Custom Tipe Picker (modal Edit desktop) ──────────────────────────────────
