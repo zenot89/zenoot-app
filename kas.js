@@ -395,6 +395,34 @@ function _kasInjectSheets() {
       <label class="kas-brimo-label">No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
       <input type="text" id="kas-jrn-ref" class="kas-brimo-input" placeholder="mis: INV-001">
     </div>
+
+    <!-- ── Extra fields: hanya muncul saat tipe = pinjaman ── -->
+    <div id="kas-pinjaman-extra" style="display:none">
+      <div style="margin:8px 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;color:var(--ink3);text-transform:uppercase">Detail Pinjaman</div>
+      <div class="kas-brimo-field">
+        <label class="kas-brimo-label">Nama Kreditur <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="kas-pjm-kreditur" class="kas-brimo-input" placeholder="mis: KUR BRI, Pak Hasan...">
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label">Bunga (%/bln)</label>
+          <input type="number" id="kas-pjm-bunga" class="kas-brimo-input" placeholder="0" min="0" step="0.1">
+        </div>
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label">Tenor (bulan)</label>
+          <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1">
+        </div>
+      </div>
+      <div class="kas-brimo-field">
+        <label class="kas-brimo-label">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+        <input type="text" id="kas-pjm-cicilan" class="kas-brimo-input kas-idr-input" placeholder="Rp0" inputmode="numeric">
+      </div>
+      <div class="kas-brimo-field">
+        <label class="kas-brimo-label">Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+        <input type="date" id="kas-pjm-jatuh-tempo" class="kas-brimo-input">
+      </div>
+    </div>
+
     <div id="kas-preview-entry" style="display:none;background:var(--cream2);border:1.5px dashed var(--ink3);padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:4px;color:var(--ink2)">
       <b>Preview Jurnal:</b><br><span id="kas-preview-text"></span>
     </div>
@@ -950,6 +978,13 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     }, 260);
     _brimoStep = '';
     _brimoExpr = '';
+    // Reset pinjaman extra fields
+    var ex = document.getElementById('kas-pinjaman-extra');
+    if (ex) {
+      ex.style.display = 'none';
+      ['kas-pjm-kreditur','kas-pjm-bunga','kas-pjm-tenor','kas-pjm-cicilan','kas-pjm-jatuh-tempo']
+        .forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    }
   };
 
   // ── Key handler numpad BRImo ───────────────────────────
@@ -1081,6 +1116,8 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
 
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
+  var extraEl = document.getElementById('kas-pinjaman-extra');
+  if (extraEl) extraEl.style.display = (tipe === 'pinjaman') ? 'block' : 'none';
   const lblD = document.getElementById('kas-lbl-debit');
   const lblK = document.getElementById('kas-lbl-kredit');
   if (tipe === 'masuk')           { lblD.textContent = 'Masuk ke Akun (Debit)';   lblK.textContent = 'Sumber Dana (Kredit)'; }
@@ -1135,6 +1172,39 @@ async function kasSimpanJurnal() {
   };
   try {
     await dbInsert('jurnal', data);
+
+    // Jika pinjaman → insert juga ke tabel hutang
+    if (tipe === 'pinjaman') {
+      const kreditur = (document.getElementById('kas-pjm-kreditur').value||'').trim();
+      if (kreditur) {
+        const bunga   = parseFloat(document.getElementById('kas-pjm-bunga').value)  || 0;
+        const tenor   = parseInt(document.getElementById('kas-pjm-tenor').value)    || null;
+        const cicilan = (function(){
+          var el = document.getElementById('kas-pjm-cicilan');
+          if (!el) return 0;
+          var raw = el.value.replace(/[^0-9]/g,'');
+          return parseInt(raw,10) || 0;
+        })();
+        const jatuhTempo = document.getElementById('kas-pjm-jatuh-tempo').value || null;
+        const hutangData = {
+          kreditur:          kreditur,
+          jenis:             'lainnya',
+          pokok:             nominal,
+          bunga:             bunga,
+          tenor:             tenor,
+          frekuensi:         'bulanan',
+          cicilan_per_bulan: cicilan,
+          cicilan_nominal:   cicilan,
+          tgl_mulai:         tgl,
+          jatuh_tempo:       jatuhTempo,
+          keterangan:        (document.getElementById('kas-jrn-ket').value||'').trim() || null,
+          akun_kwj_id:       akunKId || null,
+          akun_aset_id:      akunDId || null,
+        };
+        await dbInsert('hutang', hutangData);
+      }
+    }
+
     kasBrimoClose();
     loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
