@@ -363,7 +363,7 @@ function _kasInjectSheets() {
   <div class="kas-brimo-detail-form">
     <div class="kas-brimo-field">
       <label class="kas-brimo-label">Tanggal</label>
-      <input type="date" id="kas-jrn-tgl" class="kas-brimo-input">
+      <input type="date" id="kas-jrn-tgl" class="kas-brimo-input" onchange="kasPjmAutoJatuhTempo('kas-pjm')">
     </div>
     <div class="kas-brimo-field">
       <label class="kas-brimo-label" id="kas-lbl-debit">Masuk ke Akun (Debit)</label>
@@ -410,7 +410,7 @@ function _kasInjectSheets() {
         </div>
         <div class="kas-brimo-field" style="flex:1">
           <label class="kas-brimo-label">Tenor (bulan)</label>
-          <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1">
+          <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
         </div>
       </div>
       <div style="display:flex;gap:10px">
@@ -429,7 +429,7 @@ function _kasInjectSheets() {
       <div style="display:flex;gap:10px">
         <div class="kas-brimo-field" style="flex:1">
           <label class="kas-brimo-label">Tgl Cicilan</label>
-          <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric">
+          <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
         </div>
         <div class="kas-brimo-field kas-pjm-bln-wrap" style="flex:1;display:none">
           <label class="kas-brimo-label">Bulan Cicilan</label>
@@ -470,7 +470,7 @@ function _kasInjectSheets() {
     </div>
     <input type="hidden" id="kas-edit-id">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-edit-tgl"></div>
+      <div class="form-group" style="flex:1 1 120px;min-width:110px"><label>Tanggal</label><input type="date" id="kas-edit-tgl" onchange="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:130px"><label>Tipe</label>
         <select id="kas-edit-tipe" onchange="kasOnEditTipeChange()" style="display:none">
           <option value="jurnal">Jurnal Umum</option>
@@ -523,7 +523,7 @@ function _kasInjectSheets() {
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="form-group" style="flex:2 1 160px"><label>Nama Kreditur <span style="color:var(--danger)">*</span></label><input type="text" id="kas-edit-pjm-kreditur" placeholder="mis: KUR BRI, Pak Hasan..."></div>
         <div class="form-group" style="flex:1 1 90px"><label>Bunga (%/bln)</label><input type="number" id="kas-edit-pjm-bunga" placeholder="0" min="0" step="0.1"></div>
-        <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1"></div>
+        <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="form-group" style="flex:1 1 100px"><label>Frekuensi</label>
@@ -535,7 +535,7 @@ function _kasInjectSheets() {
         <div class="form-group" style="flex:1 1 140px"><label class="kas-edit-pjm-cicilan-lbl">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31"></div>
+        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
         <div class="form-group kas-edit-pjm-bln-wrap" style="flex:1 1 110px;display:none"><label>Bulan Cicilan</label>
           <select id="kas-edit-pjm-bln-cicilan">
             <option value="">— Pilih —</option>
@@ -1182,6 +1182,7 @@ function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
   var extraEl = document.getElementById('kas-pinjaman-extra');
   if (extraEl) extraEl.style.display = (tipe === 'pinjaman') ? 'block' : 'none';
+  if (tipe === 'pinjaman') kasPjmAutoJatuhTempo('kas-pjm');
   const lblD = document.getElementById('kas-lbl-debit');
   const lblK = document.getElementById('kas-lbl-kredit');
   if (tipe === 'masuk')           { lblD.textContent = 'Masuk ke Akun (Debit)';   lblK.textContent = 'Sumber Dana (Kredit)'; }
@@ -2203,6 +2204,45 @@ function kasPjmFrekuensiChange(val, prefix) {
   var lblCicil = document.querySelector('.' + prefix + '-cicilan-lbl');
   if (blnWrap)  blnWrap.style.display  = (val === 'tahunan') ? '' : 'none';
   if (lblCicil) lblCicil.textContent   = (val === 'tahunan') ? 'Cicilan/Tahun (opsional)' : 'Cicilan/Bulan (opsional)';
+  kasPjmAutoJatuhTempo(prefix);
+}
+
+function kasPjmAutoJatuhTempo(prefix) {
+  // Ambil nilai dari prefix yang benar (kas-pjm atau kas-edit-pjm)
+  var tglMulaiId  = (prefix === 'kas-pjm') ? 'kas-jrn-tgl' : 'kas-edit-tgl';
+  var tenorId     = prefix + '-tenor';
+  var tglCicilanId= prefix + '-tgl-cicilan';
+  var blnCicilanId= prefix + '-bln-cicilan';
+  var frekuensiId = prefix + '-frekuensi';
+  var jatuhTempoId= prefix + '-jatuh-tempo';
+
+  var tglMulai   = document.getElementById(tglMulaiId)   ? document.getElementById(tglMulaiId).value   : '';
+  var tenor      = parseInt(document.getElementById(tenorId)     ? document.getElementById(tenorId).value     : '') || 0;
+  var tglCicilan = parseInt(document.getElementById(tglCicilanId)? document.getElementById(tglCicilanId).value: '') || 0;
+  var frekuensi  = document.getElementById(frekuensiId)  ? document.getElementById(frekuensiId).value   : 'bulanan';
+  var jtEl       = document.getElementById(jatuhTempoId);
+
+  if (!tglMulai || !tenor || !tglCicilan || !jtEl) return;
+
+  var d = new Date(tglMulai);
+  if (isNaN(d.getTime())) return;
+
+  // Tambah tenor ke bulan (bulanan) atau tahun (tahunan)
+  if (frekuensi === 'tahunan') {
+    d.setFullYear(d.getFullYear() + tenor);
+  } else {
+    d.setMonth(d.getMonth() + tenor);
+  }
+
+  // Set tanggal ke tgl_cicilan (clamp ke max hari di bulan itu)
+  var maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(tglCicilan, maxDay));
+
+  // Format YYYY-MM-DD untuk input date
+  var yyyy = d.getFullYear();
+  var mm   = String(d.getMonth() + 1).padStart(2, '0');
+  var dd   = String(d.getDate()).padStart(2, '0');
+  jtEl.value = yyyy + '-' + mm + '-' + dd;
 }
 
 // ── Custom Tipe Picker (modal Edit desktop) ──────────────────────────────────
