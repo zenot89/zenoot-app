@@ -411,7 +411,7 @@ function _kasInjectSheets() {
         <div class="kas-brimo-field" style="flex:1">
           <label class="kas-brimo-label">Frekuensi</label>
           <select id="kas-pjm-frekuensi" class="kas-brimo-input" onchange="kasPjmFrekuensiChange(this.value,'kas-pjm')">
-            <option value="bulanan">Bulanan</option>
+            <option value="bulanan" selected>Bulanan</option>
             <option value="tahunan">Tahunan</option>
           </select>
         </div>
@@ -527,7 +527,7 @@ function _kasInjectSheets() {
         <div class="form-group" style="flex:1 1 90px"><label>Bunga (%/bln)</label><input type="number" id="kas-edit-pjm-bunga" placeholder="0" min="0" step="0.1"></div>
         <div class="form-group" style="flex:1 1 100px"><label>Frekuensi</label>
           <select id="kas-edit-pjm-frekuensi" onchange="kasPjmFrekuensiChange(this.value,'kas-edit-pjm')">
-            <option value="bulanan">Bulanan</option>
+            <option value="bulanan" selected>Bulanan</option>
             <option value="tahunan">Tahunan</option>
           </select>
         </div>
@@ -1241,6 +1241,7 @@ async function kasSimpanJurnal() {
     await dbInsert('jurnal', data);
 
     // Jika pinjaman → insert juga ke tabel hutang
+    const tipe = data.tipe;
     if (tipe === 'pinjaman') {
       const kreditur = (document.getElementById('kas-pjm-kreditur').value||'').trim();
       if (kreditur) {
