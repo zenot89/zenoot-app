@@ -409,8 +409,8 @@ function _kasInjectSheets() {
           <input type="number" id="kas-pjm-bunga" class="kas-brimo-input" placeholder="0" min="0" step="0.1">
         </div>
         <div class="kas-brimo-field" style="flex:1">
-          <label class="kas-brimo-label">Tenor (bulan)</label>
-          <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
+          <label class="kas-brimo-label">Tgl Cicilan</label>
+          <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
         </div>
       </div>
       <div style="display:flex;gap:10px">
@@ -427,10 +427,6 @@ function _kasInjectSheets() {
         </div>
       </div>
       <div style="display:flex;gap:10px">
-        <div class="kas-brimo-field" style="flex:1">
-          <label class="kas-brimo-label">Tgl Cicilan</label>
-          <input type="number" id="kas-pjm-tgl-cicilan" class="kas-brimo-input" placeholder="mis: 10" min="1" max="31" inputmode="numeric" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
-        </div>
         <div class="kas-brimo-field kas-pjm-bln-wrap" style="flex:1;display:none">
           <label class="kas-brimo-label">Bulan Cicilan</label>
           <select id="kas-pjm-bln-cicilan" class="kas-brimo-input">
@@ -441,8 +437,14 @@ function _kasInjectSheets() {
             <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
           </select>
         </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.07);margin:8px 0 4px;padding-top:8px;display:flex;gap:10px">
         <div class="kas-brimo-field" style="flex:1">
-          <label class="kas-brimo-label">Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+          <label class="kas-brimo-label" style="color:var(--ink3)">Tenor (bulan) <span style="font-size:10px">↓ auto</span></label>
+          <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
+        </div>
+        <div class="kas-brimo-field" style="flex:1">
+          <label class="kas-brimo-label" style="color:var(--ink3)">Jatuh Tempo <span style="font-size:10px">↓ auto</span></label>
           <input type="date" id="kas-pjm-jatuh-tempo" class="kas-brimo-input">
         </div>
       </div>
@@ -526,6 +528,7 @@ function _kasInjectSheets() {
         <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
         <div class="form-group" style="flex:1 1 100px"><label>Frekuensi</label>
           <select id="kas-edit-pjm-frekuensi" onchange="kasPjmFrekuensiChange(this.value,'kas-edit-pjm')">
             <option value="bulanan">Bulanan</option>
@@ -534,18 +537,18 @@ function _kasInjectSheets() {
         </div>
         <div class="form-group" style="flex:1 1 140px"><label class="kas-edit-pjm-cicilan-lbl">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
-        <div class="form-group kas-edit-pjm-bln-wrap" style="flex:1 1 110px;display:none"><label>Bulan Cicilan</label>
-          <select id="kas-edit-pjm-bln-cicilan">
-            <option value="">— Pilih —</option>
-            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
-            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
-            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
-            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-          </select>
-        </div>
-        <div class="form-group" style="flex:1 1 140px"><label>Jatuh Tempo <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
+      <div class="form-group kas-edit-pjm-bln-wrap" style="display:none"><label>Bulan Cicilan</label>
+        <select id="kas-edit-pjm-bln-cicilan">
+          <option value="">— Pilih —</option>
+          <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+          <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+          <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+          <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.07);margin-top:8px;padding-top:8px">
+        <div class="form-group" style="flex:1 1 80px"><label style="color:var(--ink3)">Tenor (bulan) <span style="font-size:10px">↓ auto</span></label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
+        <div class="form-group" style="flex:1 1 140px"><label style="color:var(--ink3)">Jatuh Tempo <span style="font-size:10px">↓ auto</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
       </div>
     </div>
 
