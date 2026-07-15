@@ -525,15 +525,14 @@ function _kasInjectSheets() {
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="form-group" style="flex:2 1 160px"><label>Nama Kreditur <span style="color:var(--danger)">*</span></label><input type="text" id="kas-edit-pjm-kreditur" placeholder="mis: KUR BRI, Pak Hasan..."></div>
         <div class="form-group" style="flex:1 1 90px"><label>Bunga (%/bln)</label><input type="number" id="kas-edit-pjm-bunga" placeholder="0" min="0" step="0.1"></div>
-        <div class="form-group" style="flex:1 1 90px"><label>Tenor (bulan)</label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="form-group" style="flex:1 1 100px"><label>Frekuensi</label>
           <select id="kas-edit-pjm-frekuensi" onchange="kasPjmFrekuensiChange(this.value,'kas-edit-pjm')">
             <option value="bulanan">Bulanan</option>
             <option value="tahunan">Tahunan</option>
           </select>
         </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="form-group" style="flex:1 1 80px"><label>Tgl Cicilan</label><input type="number" id="kas-edit-pjm-tgl-cicilan" placeholder="mis: 10" min="1" max="31" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
         <div class="form-group" style="flex:1 1 140px"><label class="kas-edit-pjm-cicilan-lbl">Cicilan/Bulan <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="kas-edit-pjm-cicilan" class="kas-idr-input" placeholder="Rp0" inputmode="numeric"></div>
       </div>
