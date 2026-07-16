@@ -1260,14 +1260,13 @@ async function kasSimpanJurnal() {
           pokok:             nominal,
           bunga:             bunga,
           tenor:             tenor,
-          frekuensi:         'bulanan',
+          frekuensi:         document.getElementById('kas-pjm-frekuensi').value || 'bulanan',
           cicilan_per_bulan: cicilan,
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
           tgl_cicilan:       parseInt(document.getElementById('kas-pjm-tgl-cicilan').value) || null,
           bln_cicilan:       parseInt(document.getElementById('kas-pjm-bln-cicilan').value) || null,
-          frekuensi:         document.getElementById('kas-pjm-frekuensi').value || 'bulanan',
           keterangan:        (document.getElementById('kas-jrn-ket').value||'').trim() || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
@@ -1358,14 +1357,13 @@ async function kasUpdateJurnal() {
           pokok:             nominal,
           bunga:             bunga,
           tenor:             tenor,
-          frekuensi:         'bulanan',
+          frekuensi:         document.getElementById('kas-edit-pjm-frekuensi').value || 'bulanan',
           cicilan_per_bulan: cicilan,
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
           tgl_cicilan:       parseInt(document.getElementById('kas-edit-pjm-tgl-cicilan').value) || null,
           bln_cicilan:       parseInt(document.getElementById('kas-edit-pjm-bln-cicilan').value) || null,
-          frekuensi:         document.getElementById('kas-edit-pjm-frekuensi').value || 'bulanan',
           keterangan:        data.keterangan || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
@@ -2230,21 +2228,27 @@ function kasPjmAutoJatuhTempo(prefix) {
   var d = new Date(tglMulai);
   if (isNaN(d.getTime())) return;
 
-  // Tambah tenor ke bulan (bulanan) atau tahun (tahunan)
+  // Hitung target bulan & tahun tanpa menyentuh tanggal dulu
+  // (setMonth pada tanggal 29-31 bisa overflow ke bulan berikutnya di JS)
+  var targetYear  = d.getFullYear();
+  var targetMonth = d.getMonth(); // 0-indexed
+
   if (frekuensi === 'tahunan') {
-    d.setFullYear(d.getFullYear() + tenor);
+    targetYear += tenor;
   } else {
-    d.setMonth(d.getMonth() + tenor);
+    targetMonth += tenor;
+    // Normalize overflow (mis: bulan 13 → tahun+1 bulan 1)
+    while (targetMonth > 11) { targetMonth -= 12; targetYear++; }
   }
 
-  // Set tanggal ke tgl_cicilan (clamp ke max hari di bulan itu)
-  var maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  d.setDate(Math.min(tglCicilan, maxDay));
+  // Clamp tanggal ke max hari di target bulan
+  var maxDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  var targetDay = Math.min(tglCicilan, maxDay);
 
   // Format YYYY-MM-DD untuk input date
-  var yyyy = d.getFullYear();
-  var mm   = String(d.getMonth() + 1).padStart(2, '0');
-  var dd   = String(d.getDate()).padStart(2, '0');
+  var yyyy = targetYear;
+  var mm   = String(targetMonth + 1).padStart(2, '0');
+  var dd   = String(targetDay).padStart(2, '0');
   jtEl.value = yyyy + '-' + mm + '-' + dd;
 }
 
