@@ -310,19 +310,11 @@ document.getElementById('page-keuangan').innerHTML = `
       min-height:0;
     }
 
-    /* ── Slide 1: Daftar Hutang — sembunyikan kolom tidak penting ── */
-    #keu-slide-0 .tbl th:nth-child(2),
-    #keu-slide-0 .tbl td:nth-child(2) { display:none; } /* JENIS */
-    #keu-slide-0 .tbl th:nth-child(4),
-    #keu-slide-0 .tbl td:nth-child(4) { display:none; } /* BUNGA */
+    /* ── Slide 1: Kewajiban (5 kolom) — portrait sembunyikan % ── */
     #keu-slide-0 .tbl th:nth-child(5),
-    #keu-slide-0 .tbl td:nth-child(5) { display:none; } /* CICILAN/BLN */
-    #keu-slide-0 .tbl th:nth-child(6),
-    #keu-slide-0 .tbl td:nth-child(6) { display:none; } /* SUDAH BAYAR */
-    #keu-slide-0 .tbl th:nth-child(9),
-    #keu-slide-0 .tbl td:nth-child(9) { display:none; } /* STATUS */
+    #keu-slide-0 .tbl td:nth-child(5) { display:none; } /* % */
 
-    /* ── Slide 2: Riwayat Cicilan — sembunyikan KETERANGAN ── */
+    /* ── Slide 2: Riwayat Bayar (4 kolom) — portrait sembunyikan KETERANGAN ── */
     #keu-slide-1 .tbl th:nth-child(3),
     #keu-slide-1 .tbl td:nth-child(3) { display:none; } /* KETERANGAN */
   }
@@ -350,13 +342,12 @@ document.getElementById('page-keuangan').innerHTML = `
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="keu-panel-hutang" class="keu-panel active keu-panel-hutang">
 
-  <!-- ── BAGIAN 1: Collapsible (hide-on-scroll) — hanya 4 minicard ── -->
+  <!-- ── BAGIAN 1: Collapsible (hide-on-scroll) — 3 minicard ── -->
   <div id="keu-hutang-collapsible">
     <div class="rasio-card" style="margin-bottom:0">
-      <div class="rasio-item"><div class="r-label">Total Hutang</div><div class="r-value" id="keu-total-hutang">—</div><div class="r-desc">pokok semua pinjaman</div></div>
-      <div class="rasio-item"><div class="r-label">Sudah Dibayar</div><div class="r-value" id="keu-total-bayar">—</div><div class="r-desc">total cicilan terbayar</div></div>
-      <div class="rasio-item"><div class="r-label">Sisa Hutang</div><div class="r-value" id="keu-total-sisa" style="color:var(--danger)">—</div><div class="r-desc">belum terlunasi</div></div>
-      <div class="rasio-item"><div class="r-label">Cicilan/Bulan</div><div class="r-value" id="keu-total-cicilan">—</div><div class="r-desc">total kewajiban bulanan</div></div>
+      <div class="rasio-item"><div class="r-label">Total Masuk</div><div class="r-value" id="keu-total-hutang">—</div><div class="r-desc">total pinjaman diterima</div></div>
+      <div class="rasio-item"><div class="r-label">Sudah Dibayar</div><div class="r-value" id="keu-total-bayar">—</div><div class="r-desc">total pelunasan tercatat</div></div>
+      <div class="rasio-item"><div class="r-label">Sisa Kewajiban</div><div class="r-value" id="keu-total-sisa" style="color:var(--danger)">—</div><div class="r-desc">saldo akun kewajiban</div></div>
     </div>
   </div><!-- /keu-hutang-collapsible -->
 
@@ -377,10 +368,10 @@ document.getElementById('page-keuangan').innerHTML = `
           </span>
         </div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Kreditur</th><th>Jenis</th><th style="text-align:right">Pokok</th><th style="text-align:right">Bunga</th><th style="text-align:right">Cicilan/bln</th><th style="text-align:right">Sudah Bayar</th><th style="text-align:right">Sisa</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody id="keu-hutang-tbody"><tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th>Akun Kewajiban</th><th style="text-align:right">Total Masuk</th><th style="text-align:right">Dibayar</th><th style="text-align:right">Sisa</th><th style="text-align:right">%</th></tr></thead>
+          <tbody id="keu-hutang-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
-        <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">geser → untuk riwayat cicilan</div>
+        <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">geser → untuk riwayat pembayaran</div>
       </div>
     </div>
 
@@ -397,12 +388,9 @@ document.getElementById('page-keuangan').innerHTML = `
             <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
-        <div style="margin-bottom:10px">
-          <button class="btn btn-sm" onclick="keuOpenCicilan()" style="font-weight:700;border:2px solid var(--ok);color:var(--ok);width:100%"><i class="ti ti-history"></i> + Catat Cicilan</button>
-        </div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl" style="min-width:100%">
-          <thead><tr><th>Tanggal</th><th>Kreditur</th><th>Keterangan</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead>
-          <tbody id="keu-bayar-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th>Tanggal</th><th>Akun</th><th>Keterangan</th><th style="text-align:right">Nominal</th></tr></thead>
+          <tbody id="keu-bayar-tbody"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
         <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← daftar hutang &nbsp;|&nbsp; ringkasan →</div>
       </div>
@@ -421,8 +409,8 @@ document.getElementById('page-keuangan').innerHTML = `
             <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
-        <div style="margin-bottom:10px">
-          <button class="btn btn-sm btn-primary" onclick="keuShowFormHutang()" style="width:100%"><i class="ti ti-plus"></i> Tambah Hutang</button>
+        <div style="margin-bottom:8px;padding:8px 10px;background:var(--cream2);border:1.5px dashed var(--ink3);border-radius:4px;font-size:12px;color:var(--ink3)">
+          <i class="ti ti-info-circle"></i> Input hutang via <b>Kas &amp; Jurnal</b> → tipe <b>Pinjaman</b>
         </div>
         <div id="keu-riwayat-summary-body" style="padding:4px 0"></div>
         <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← geser kembali ke riwayat</div>
@@ -791,74 +779,6 @@ document.getElementById('page-keuangan').innerHTML = `
 </div>
 
 </div><!-- /keu-panels-wrap -->
-
-<div class="modal-overlay" id="modal-keu-hutang" onclick="if(event.target===this)hideModal('modal-keu-hutang')">
-  <div class="modal" style="max-width:560px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" id="keu-hutang-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-plus"></i> Tambah Hutang</div>
-      <button onclick="hideModal('modal-keu-hutang')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="keu-htg-id">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:2 1 160px"><label>Nama Kreditur</label><input type="text" id="keu-htg-kreditur" placeholder="mis: KUR BRI, Pak Hasan..."></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Jenis Hutang</label>
-        <select id="keu-htg-jenis" style="width:100%">
-          <option value="bank">🏦 Bank / KUR</option>
-          <option value="keluarga">👨‍👩‍👧 Keluarga / Sodara</option>
-          <option value="investor">💼 Investor / Modal</option>
-          <option value="lainnya">📋 Lainnya</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 180px"><label>Akun Kewajiban (Jurnal Kredit)</label>
-        <div class="kas-akun-wrap">
-          <select id="keu-htg-akun-kwj" style="display:none"><option value="">— pilih akun kewajiban —</option></select>
-          <div class="kas-akun-picker" id="keu-picker-kwj" data-target="keu-htg-akun-kwj"
-            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-kwj')"
-            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-kwj')">
-            <span id="keu-picker-kwj-label" style="color:var(--ink3)">— pilih akun kewajiban —</span>
-            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-          </div>
-          <div class="kas-akun-list" id="keu-picker-kwj-list" style="display:none"></div>
-        </div>
-      </div>
-      <div class="form-group" style="flex:1 1 180px"><label>Masuk ke Akun (Jurnal Debit)</label>
-        <div class="kas-akun-wrap">
-          <select id="keu-htg-akun-aset" style="display:none"><option value="">— pilih akun aset/kas —</option></select>
-          <div class="kas-akun-picker" id="keu-picker-aset" data-target="keu-htg-akun-aset"
-            onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-aset')"
-            ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-aset')">
-            <span id="keu-picker-aset-label" style="color:var(--ink3)">— pilih akun aset/kas —</span>
-            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-          </div>
-          <div class="kas-akun-list" id="keu-picker-aset-list" style="display:none"></div>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 130px"><label>Pokok Pinjaman (Rp)</label><input type="text" inputmode="numeric" id="keu-htg-pokok" placeholder="0"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Bunga / Tahun (%)</label><input type="number" id="keu-htg-bunga" placeholder="0" step="0.1"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Frekuensi Cicilan</label>
-        <select id="keu-htg-frekuensi" style="width:100%">
-          <option value="bulanan">Bulanan</option>
-          <option value="tahunan">Tahunan</option>
-        </select>
-      </div>
-      <div class="form-group" style="flex:1 1 120px"><label>Tenor <span id="keu-htg-tenor-label">(bulan)</span></label><input type="number" id="keu-htg-tenor" placeholder="mis: 24"></div>
-      <div class="form-group" style="flex:1 1 130px"><label>Nominal Cicilan (Rp)</label><input type="text" inputmode="numeric" id="keu-htg-cicilan" placeholder="0"></div>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 130px"><label>Tanggal Mulai</label><input type="date" id="keu-htg-tgl-mulai"></div>
-      <div class="form-group" style="flex:1 1 130px"><label>Jatuh Tempo</label><input type="date" id="keu-htg-jatuh-tempo"></div>
-      <div class="form-group" style="flex:2 1 180px"><label>Keterangan</label><input type="text" id="keu-htg-ket" placeholder="mis: modal tambah stok koleksi baru"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="keuSimpanHutang()"><i class="ti ti-device-floppy"></i> Simpan</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-keu-hutang')"><i class="ti ti-x"></i> Batal</button>
-    </div>
-  </div>
-</div>
 
 `;
 
@@ -1432,40 +1352,34 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     zone.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
   }
 
-  // Render ringkasan per kreditur dari _keuHutangAll + _keuBayarAll
+  // Render ringkasan per akun kewajiban dari window._keuKwjSaldo (derive dari jurnal)
   function _renderRiwayatSummary() {
     var body = document.getElementById('keu-riwayat-summary-body');
     if (!body) return;
 
-    // _keuHutangAll adalah let di scope module — akses via window tidak reliable
-    // window._keuBayarAll di-set di keuLoadHutang
-    var hutangList = (typeof _keuHutangAll !== 'undefined' ? _keuHutangAll : null) || window._keuHutangAll || [];
-    var bayarList  = window._keuBayarAll || [];
+    var saldoMap = window._keuKwjSaldo || {};
+    var rows = Object.values(saldoMap).filter(function(r) { return r.kredit > 0 || r.debit > 0; });
 
-    if (!hutangList.length) {
-      body.innerHTML = '<div style="padding:12px;color:var(--ink3);font-size:13px">Belum ada data hutang.</div>';
+    if (!rows.length) {
+      body.innerHTML = '<div style="padding:12px;color:var(--ink3);font-size:13px">Belum ada kewajiban tercatat di jurnal.</div>';
       return;
     }
 
-    body.innerHTML = hutangList.map(function(h) {
-      // Hitung sudah_bayar dari _keuBayarAll (akurat, sama dengan panel lain)
-      var sudahBayar = bayarList
-        .filter(function(b) { return String(b.hutang_id) === String(h.id); })
-        .reduce(function(s, b) { return s + (Number(b.nominal) || 0); }, 0);
-      var sisa = Math.max(0, (h.pokok || 0) - sudahBayar);
-      var pct  = h.pokok ? Math.round(sudahBayar / h.pokok * 100) : 0;
-      var bar  = Math.max(0, Math.min(100, pct));
-      var isLunas = sisa <= 0;
+    body.innerHTML = rows.map(function(r) {
+      var sisa    = Math.max(0, r.kredit - r.debit);
+      var pct     = r.kredit > 0 ? Math.round(r.debit / r.kredit * 100) : 0;
+      var bar     = Math.max(0, Math.min(100, pct));
+      var isLunas = sisa <= 0 && r.kredit > 0;
       return '<div class="keu-riwayat-kredit-card">' +
-        '<div class="krc-name"><i class="ti ti-building-bank"></i> ' + (h.kreditur || '—') +
+        '<div class="krc-name"><i class="ti ti-credit-card"></i> ' + (r.nama || '—') +
           (isLunas ? ' <span style="font-size:10px;color:var(--ok)">✅ LUNAS</span>' : '') + '</div>' +
-        '<div class="krc-row"><span>Pokok</span><span class="krc-val">' + _fmtRp(h.pokok || 0) + '</span></div>' +
-        '<div class="krc-row"><span>Sudah Bayar</span><span class="krc-val" style="color:var(--ok)">' + _fmtRp(sudahBayar) + '</span></div>' +
-        '<div class="krc-row"><span>Sisa Hutang</span><span class="krc-val" style="color:' + (isLunas ? 'var(--ok)' : 'var(--danger)') + '">' + _fmtRp(sisa) + '</span></div>' +
+        '<div class="krc-row"><span>Total Masuk</span><span class="krc-val">' + _fmtRp(r.kredit) + '</span></div>' +
+        '<div class="krc-row"><span>Sudah Dibayar</span><span class="krc-val" style="color:var(--ok)">' + _fmtRp(r.debit) + '</span></div>' +
+        '<div class="krc-row"><span>Sisa Kewajiban</span><span class="krc-val" style="color:' + (isLunas ? 'var(--ok)' : 'var(--danger)') + '">' + _fmtRp(sisa) + '</span></div>' +
         '<div style="margin-top:7px;height:5px;border-radius:3px;background:var(--ink3);overflow:hidden">' +
           '<div style="width:' + bar + '%;height:100%;background:var(--ok);transition:width .5s ease"></div>' +
         '</div>' +
-        '<div style="text-align:right;font-size:10px;color:var(--ink3);margin-top:2px">' + pct + '% lunas</div>' +
+        '<div style="text-align:right;font-size:10px;color:var(--ink3);margin-top:2px">' + pct + '% terlunasi</div>' +
       '</div>';
     }).join('');
   }
@@ -1519,260 +1433,141 @@ function keuSlideNav(dir) {
   if (typeof window._keuGoToSlide === 'function') window._keuGoToSlide(next);
 }
 
-// ─── HUTANG ──────────────────────────────────────────────────
+// ─── HUTANG (READ-ONLY — derive dari jurnal) ─────────────────
+// Single source of truth: jurnal + kas_akun
+// Akun kewajiban: saldo = total kredit (pinjaman masuk) − total debit (bayar pinjaman)
 async function keuLoadHutang() {
   try {
-    const [hutang, bayar] = await Promise.all([
-      dbGet('hutang', '&order=created_at.desc'),
-      dbGet('hutang_bayar', '&order=tanggal.desc'),
+    const [akuns, jurnal] = await Promise.all([
+      dbGet('kas_akun', '&order=kode.asc'),
+      dbGet('jurnal', '&order=tanggal.desc'),
     ]);
-    _keuHutangAll = hutang || [];
-    window._keuHutangAll = _keuHutangAll; // expose ke window untuk akses dari IIFE
-    window._keuBayarAll = bayar || []; // expose untuk laporan di kas.js
-    keuRenderHutangTabel(_keuHutangAll, bayar || []);
-    keuRenderBayarTabel(bayar || [], _keuHutangAll);
-    keuUpdateHutangSummary(_keuHutangAll, bayar || []);
-    keuPopulateBayarDropdown(_keuHutangAll);
+    const akunArr  = akuns  || [];
+    const jurnalArr= jurnal || [];
+
+    // Build akun kewajiban map
+    const kwjAkun = akunArr.filter(a => a.kelompok === 'kewajiban');
+    const akunMap = {};
+    akunArr.forEach(a => { akunMap[a.id] = a; });
+
+    // Hitung saldo per akun kewajiban: kredit = masuk, debit = dibayar
+    const saldoMap = {}; // akun_id → { nama, kredit, debit }
+    kwjAkun.forEach(a => { saldoMap[a.id] = { nama: a.nama, kode: a.kode, kredit: 0, debit: 0 }; });
+    jurnalArr.forEach(r => {
+      const n = Number(r.nominal || r.debit || 0);
+      if (saldoMap[r.akun_kredit_id]) saldoMap[r.akun_kredit_id].kredit += n;
+      if (saldoMap[r.akun_debit_id])  saldoMap[r.akun_debit_id].debit   += n;
+    });
+
+    // Expose ke window untuk akses dari IIFE + modul lain
+    window._keuKwjSaldo = saldoMap;
+    window._keuAkunMap  = akunMap;
+    // Expose jurnal bayar_pinjaman untuk slide 2
+    window._keuBayarJurnal = jurnalArr.filter(r => r.tipe === 'bayar_pinjaman');
+
+    keuRenderHutangTabel(saldoMap);
+    keuRenderBayarTabel(window._keuBayarJurnal, akunMap);
+    keuUpdateHutangSummary(saldoMap);
+    keuPopulateBayarDropdown(kwjAkun, saldoMap);
     keuPopulateAkunBayar();
-    // Render slide 3 langsung setelah data ready — tidak nunggu swipe
     if (typeof window._renderRiwayatSummary === 'function') window._renderRiwayatSummary();
   } catch(e) {
-    document.getElementById('keu-hutang-tbody').innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    document.getElementById('keu-hutang-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
-function keuGetSudahBayar(hutangId, bayarList) {
-  return bayarList.filter(b => String(b.hutang_id) === String(hutangId)).reduce((s,b) => s + (b.nominal||0), 0);
-}
-
-function keuRenderHutangTabel(hutang, bayar) {
+function keuRenderHutangTabel(saldoMap) {
   const tbody = document.getElementById('keu-hutang-tbody');
-  if (!hutang.length) { tbody.innerHTML = `<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Belum ada hutang</td></tr>`; return; }
   const fmtRp = v => fmtRpFull(v||0);
-  const jenisLabel = { bank:'🏦 Bank/KUR', keluarga:'👨‍👩‍👧 Keluarga', investor:'💼 Investor', lainnya:'📋 Lainnya' };
-  tbody.innerHTML = hutang.map(h => {
-    const sudahBayar = keuGetSudahBayar(h.id, bayar);
-    const sisa       = (h.pokok||0) - sudahBayar;
-    const isLunas    = sisa <= 0;
-    const jatuhTempo = (function() {
-      var bulanArr = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
-      var frek = h.frekuensi || 'bulanan';
-      var siklus = '';
-      if (h.tgl_cicilan) {
-        if (frek === 'tahunan' && h.bln_cicilan) {
-          siklus = '<div style="font-size:10px;color:var(--ink3)">cicilan tgl ' + h.tgl_cicilan + ' ' + (bulanArr[h.bln_cicilan]||'') + ' / tahun</div>';
-        } else {
-          siklus = '<div style="font-size:10px;color:var(--ink3)">cicilan tgl ' + h.tgl_cicilan + ' / bulan</div>';
-        }
-      }
-      var lunas = h.jatuh_tempo ? new Date(h.jatuh_tempo).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
-      return lunas + siklus;
-    })();
-    const safeKreditur = (h.kreditur||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  const rows = Object.values(saldoMap).filter(s => s.kredit > 0 || s.debit > 0);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada kewajiban tercatat di jurnal</td></tr>';
+    return;
+  }
+  const totalKredit = rows.reduce((s, r) => s + r.kredit, 0);
+  tbody.innerHTML = rows.map(r => {
+    const sisa  = Math.max(0, r.kredit - r.debit);
+    const pct   = r.kredit > 0 ? (r.debit / r.kredit * 100).toFixed(1) : '0.0';
+    const pctStr= totalKredit > 0 ? (sisa / totalKredit * 100).toFixed(1) + '%' : '—';
+    const lunas = sisa <= 0 && r.kredit > 0;
     return `<tr>
-      <td style="font-weight:700">${h.kreditur||'—'}</td>
-      <td style="font-size:12px">${jenisLabel[h.jenis]||h.jenis||'—'}</td>
-      <td style="text-align:right">${fmtRp(h.pokok)}</td>
-      <td style="text-align:right;font-size:12px;color:var(--ink3)">${h.bunga ? h.bunga+'%/thn' : '—'}</td>
-      <td style="text-align:right">${(h.cicilan_nominal||h.cicilan_per_bulan) ? fmtRp(h.cicilan_nominal||h.cicilan_per_bulan) + '<br><span style="font-size:10px;color:var(--ink3)">/' + (h.frekuensi==='tahunan'?'thn':'bln') + '</span>' : '—'}</td>
-      <td style="text-align:right;color:var(--ok)">${fmtRp(sudahBayar)}</td>
-      <td style="text-align:right;font-weight:700;color:${isLunas?'var(--ok)':'var(--danger)'}">${isLunas ? '✅ LUNAS' : fmtRp(sisa)}</td>
-      <td style="font-size:12px">${jatuhTempo}</td>
-      <td><span class="${isLunas ? 'hutang-status-lunas' : 'hutang-status-aktif'}">${isLunas ? '✅ Lunas' : '⏳ Aktif'}</span></td>
-      <td>
-        <button class="btn btn-sm" data-action="edit-hutang" data-id="${h.id}" style="margin-right:4px"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" data-action="hapus-hutang" data-id="${h.id}" data-nama="${safeKreditur}"><i class="ti ti-trash"></i></button>
-      </td>
+      <td style="font-weight:700">${r.nama || '—'}${lunas ? ' <span style="font-size:10px;color:var(--ok)">✅</span>' : ''}</td>
+      <td style="text-align:right;color:var(--ink2)">${fmtRp(r.kredit)}</td>
+      <td style="text-align:right;color:var(--ok)">${fmtRp(r.debit)}</td>
+      <td style="text-align:right;font-weight:700;color:${lunas ? 'var(--ok)' : 'var(--danger)'}">${lunas ? 'LUNAS' : fmtRp(sisa)}</td>
+      <td style="text-align:right;font-size:12px;color:var(--ink3)">${pctStr}</td>
     </tr>`;
   }).join('');
 }
 
-function keuRenderBayarTabel(bayar, hutang) {
+function keuRenderBayarTabel(bayarJurnal, akunMap) {
   const tbody = document.getElementById('keu-bayar-tbody');
-  if (!bayar.length) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada pembayaran</td></tr>`; return; }
-  const htgMap = {}; hutang.forEach(h => htgMap[h.id] = h);
   const fmtRp = v => fmtRpFull(v||0);
-  tbody.innerHTML = bayar.map(b => {
-    const tgl = new Date(b.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'});
-    const h   = htgMap[b.hutang_id];
+  if (!bayarJurnal.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Belum ada pembayaran tercatat</td></tr>';
+    return;
+  }
+  tbody.innerHTML = bayarJurnal.map(r => {
+    const tgl    = r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+    const akunD  = akunMap[r.akun_debit_id];
+    const nama   = akunD ? akunD.nama : (r.keterangan || '—');
     return `<tr>
       <td>${tgl}</td>
-      <td style="font-weight:700">${h ? h.kreditur : '—'}</td>
-      <td>${b.keterangan||'—'}</td>
-      <td style="text-align:right;color:var(--ok);font-weight:700">${fmtRp(b.nominal)}</td>
-      <td><button class="btn btn-sm btn-danger" data-action="hapus-bayar" data-id="${b.id}"><i class="ti ti-trash"></i></button></td>
+      <td style="font-weight:600">${nama}</td>
+      <td style="font-size:12px;color:var(--ink3)">${r.keterangan||'—'}</td>
+      <td style="text-align:right;color:var(--ok);font-weight:700">${fmtRp(r.nominal||r.debit||0)}</td>
     </tr>`;
   }).join('');
-  // Refresh ringkasan swipe slide 1 jika sudah visible
   if (typeof window._renderRiwayatSummary === 'function') {
     setTimeout(window._renderRiwayatSummary, 50);
   }
 }
 
-function keuUpdateHutangSummary(hutang, bayar) {
-  const totalPokok   = hutang.reduce((s,h) => s+(h.pokok||0), 0);
-  const totalBayar   = bayar.reduce((s,b) => s+(b.nominal||0), 0);
-  const totalSisa    = hutang.reduce((s,h) => s + Math.max(0,(h.pokok||0) - keuGetSudahBayar(h.id, bayar)), 0);
-  const totalCicilan = hutang.filter(h => {
-    const sisa = (h.pokok||0) - keuGetSudahBayar(h.id, bayar);
-    return sisa > 0;
-  }).reduce((s,h) => s+(h.cicilan_per_bulan||0), 0);
+function keuUpdateHutangSummary(saldoMap) {
+  const rows = Object.values(saldoMap);
+  const totalKredit = rows.reduce((s, r) => s + r.kredit, 0);
+  const totalDebit  = rows.reduce((s, r) => s + r.debit,  0);
+  const totalSisa   = rows.reduce((s, r) => s + Math.max(0, r.kredit - r.debit), 0);
   const fmtRp = v => fmtRpFull(v);
-  document.getElementById('keu-total-hutang').textContent  = fmtRp(totalPokok);
-  document.getElementById('keu-total-bayar').textContent   = fmtRp(totalBayar);
-  document.getElementById('keu-total-sisa').textContent    = fmtRp(totalSisa);
-  document.getElementById('keu-total-cicilan').textContent = fmtRp(totalCicilan);
+  document.getElementById('keu-total-hutang').textContent = fmtRp(totalKredit);
+  document.getElementById('keu-total-bayar').textContent  = fmtRp(totalDebit);
+  document.getElementById('keu-total-sisa').textContent   = fmtRp(totalSisa);
 }
 
-function keuPopulateBayarDropdown(hutang) {
-  const sel = document.getElementById('keu-bayar-hutang-id');
-  sel.innerHTML = '<option value="">— Pilih Hutang —</option>' +
-    hutang.map(h => `<option value="${h.id}">${h.kreditur} (Rp${(h.pokok||0).toLocaleString('id-ID')})</option>`).join('');
-  // Render ke picker list
-  var list = document.getElementById('keu-picker-bayar-list');
+function keuPopulateBayarDropdown(kwjAkun, saldoMap) {
+  const sel  = document.getElementById('keu-bayar-hutang-id');
+  const list = document.getElementById('keu-picker-bayar-list');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Pilih Akun Kewajiban —</option>' +
+    kwjAkun.map(a => {
+      const s = saldoMap[a.id] || {};
+      const sisa = Math.max(0, (s.kredit||0) - (s.debit||0));
+      return `<option value="${a.id}">${a.nama} (sisa ${fmtRpFull(sisa)})</option>`;
+    }).join('');
   if (list) {
-    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— Pilih Hutang —</span></div>';
-    hutang.forEach(function(h) {
-      html += '<div class="kas-akun-item" data-val="' + h.id + '" onclick="keuPickerSelect(this)">' +
-        h.kreditur + ' (Rp' + (h.pokok||0).toLocaleString('id-ID') + ')</div>';
+    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— Pilih Akun Kewajiban —</span></div>';
+    kwjAkun.forEach(function(a) {
+      const s = saldoMap[a.id] || {};
+      const sisa = Math.max(0, (s.kredit||0) - (s.debit||0));
+      html += '<div class="kas-akun-item" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' +
+        a.nama + ' <span style="color:var(--ink3);font-size:11px">(sisa ' + fmtRpFull(sisa) + ')</span></div>';
     });
     list.innerHTML = html;
   }
-  // Reset label picker
   var lbl = document.getElementById('keu-picker-bayar-label');
-  if (lbl) { lbl.textContent = '— Pilih Hutang —'; lbl.style.color = 'var(--ink3)'; }
+  if (lbl) { lbl.textContent = '— Pilih Akun Kewajiban —'; lbl.style.color = 'var(--ink3)'; }
 }
 
-function keuShowFormHutang(data) {
-  document.getElementById('keu-hutang-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Hutang';
-  document.getElementById('keu-htg-id').value            = '';
-  document.getElementById('keu-htg-kreditur').value      = data?.kreditur || '';
-  document.getElementById('keu-htg-jenis').value         = data?.jenis || 'bank';
-  keuPopulateAkunHutang(data?.akun_kwj_id || '', data?.akun_aset_id || '');
-  idrSet('keu-htg-pokok', data?.pokok || 0);
-  document.getElementById('keu-htg-bunga').value         = data?.bunga || '';
-  document.getElementById('keu-htg-tenor').value         = data?.tenor || '';
-  document.getElementById('keu-htg-frekuensi').value     = data?.frekuensi || 'bulanan';
-  var tenorLbl = document.getElementById('keu-htg-tenor-label');
-  if (tenorLbl) tenorLbl.textContent = (data?.frekuensi === 'tahunan') ? '(tahun)' : '(bulan)';
-  idrSet('keu-htg-cicilan', data?.cicilan_per_bulan || 0);
-  document.getElementById('keu-htg-tgl-mulai').value     = data?.tgl_mulai ? data.tgl_mulai.split('T')[0] : '';
-  document.getElementById('keu-htg-jatuh-tempo').value   = data?.jatuh_tempo ? data.jatuh_tempo.split('T')[0] : '';
-  document.getElementById('keu-htg-ket').value           = data?.keterangan || '';
-  showModal('modal-keu-hutang');
-  idrInputAll(); // aktifkan auto-format titik ribuan pada field nominal
-}
-
-function keuCancelFormHutang() { hideModal('modal-keu-hutang'); }
-
-async function keuSimpanHutang() {
-  const id        = document.getElementById('keu-htg-id').value;
-  const akunKwjId = document.getElementById('keu-htg-akun-kwj').value  || null;
-  const akunAsetId= document.getElementById('keu-htg-akun-aset').value || null;
-  const tglMulai  = document.getElementById('keu-htg-tgl-mulai').value || new Date().toISOString().split('T')[0];
-  const data = {
-    kreditur:         document.getElementById('keu-htg-kreditur').value.trim(),
-    jenis:            document.getElementById('keu-htg-jenis').value,
-    pokok:            idrVal('keu-htg-pokok'),
-    bunga:            parseFloat(document.getElementById('keu-htg-bunga').value) || 0,
-    tenor:            parseInt(document.getElementById('keu-htg-tenor').value) || null,
-    frekuensi:        document.getElementById('keu-htg-frekuensi').value || 'bulanan',
-    cicilan_per_bulan:(function() {
-      var nominal = idrVal('keu-htg-cicilan');
-      var frek = document.getElementById('keu-htg-frekuensi').value;
-      // Simpan nominal asli per periode — untuk tampilan di tabel
-      // cicilan_per_bulan dikonversi ke ekuivalen bulanan untuk summary total
-      return frek === 'tahunan' ? Math.round(nominal / 12) : nominal;
-    })(),
-    cicilan_nominal:  idrVal('keu-htg-cicilan'),
-    tgl_mulai:        tglMulai,
-    jatuh_tempo:      document.getElementById('keu-htg-jatuh-tempo').value || null,
-    keterangan:       document.getElementById('keu-htg-ket').value.trim() || null,
-    akun_kwj_id:      akunKwjId,
-    akun_aset_id:     akunAsetId,
-  };
-  if (!data.kreditur) { alert('Nama kreditur wajib diisi!'); return; }
-  if (!data.pokok)    { alert('Pokok pinjaman wajib diisi!'); return; }
-  try {
-    if (id) {
-      await dbUpdate('hutang', id, data);
-    } else {
-      // Hutang baru → generate jurnal otomatis jika akun dipilih
-      await dbInsert('hutang', data);
-      if (akunAsetId && akunKwjId && data.pokok > 0) {
-        await dbInsert('jurnal', {
-          tanggal:        tglMulai,
-          tipe:           'masuk',
-          nominal:        data.pokok,
-          debit:          data.pokok,
-          kredit:         data.pokok,
-          akun_debit_id:  akunAsetId,
-          akun_kredit_id: akunKwjId,
-          keterangan:     'Hutang ' + data.kreditur + (data.keterangan ? ' — ' + data.keterangan : ''),
-          referensi:      null,
-        });
-      }
-    }
-    keuCancelFormHutang(); keuLoadHutang();
-  } catch(e) { alert('Gagal simpan: ' + e.message); }
-}
-
-// ─── POPULATE DROPDOWN AKUN DI FORM HUTANG ─────────────────
-async function keuPopulateAkunHutang(selectedKwj, selectedAset) {
-  const akuns = await dbGet('kas_akun', '&order=kode.asc').catch(() => []);
-  const selKwj  = document.getElementById('keu-htg-akun-kwj');
-  const selAset = document.getElementById('keu-htg-akun-aset');
-  if (!selKwj || !selAset) return;
-  const kwjOpts  = akuns.filter(a => a.kelompok === 'kewajiban');
-  const asetOpts = akuns.filter(a => a.kelompok === 'aset');
-  selKwj.innerHTML  = '<option value="">— pilih akun kewajiban —</option>' +
-    kwjOpts.map(a => `<option value="${a.id}" ${String(a.id)===String(selectedKwj)?'selected':''}>${a.kode} · ${a.nama}</option>`).join('');
-  selAset.innerHTML = '<option value="">— pilih akun aset/kas —</option>' +
-    asetOpts.map(a => `<option value="${a.id}" ${String(a.id)===String(selectedAset)?'selected':''}>${a.kode} · ${a.nama}</option>`).join('');
-
-  // Render picker list kewajiban
-  var listKwj = document.getElementById('keu-picker-kwj-list');
-  if (listKwj) {
-    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— pilih akun kewajiban —</span></div>';
-    kwjOpts.forEach(function(a) {
-      html += '<div class="kas-akun-item' + (String(a.id)===String(selectedKwj)?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' + (a.kode ? a.kode + ' · ' : '') + a.nama + '</div>';
-    });
-    listKwj.innerHTML = html;
-  }
-  // Render picker list aset
-  var listAset = document.getElementById('keu-picker-aset-list');
-  if (listAset) {
-    var html2 = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— pilih akun aset/kas —</span></div>';
-    asetOpts.forEach(function(a) {
-      html2 += '<div class="kas-akun-item' + (String(a.id)===String(selectedAset)?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' + (a.kode ? a.kode + ' · ' : '') + a.nama + '</div>';
-    });
-    listAset.innerHTML = html2;
-  }
-  // Sync label picker sesuai nilai selected
-  keuSyncPickerLabel('keu-picker-kwj', 'keu-htg-akun-kwj', '— pilih akun kewajiban —');
-  keuSyncPickerLabel('keu-picker-aset', 'keu-htg-akun-aset', '— pilih akun aset/kas —');
-}
-
-async function keuEditHutang(id) {
-  const h = _keuHutangAll.find(x => String(x.id) === String(id)); if (!h) return;
-  keuShowFormHutang(h); // ShowForm reset keu-htg-id ke '' — set ID setelahnya
-  document.getElementById('keu-hutang-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Hutang';
-  document.getElementById('keu-htg-id').value = h.id; // ← SETELAH ShowForm, bukan sebelum
-}
-
-async function keuHapusHutang(id, nama) {
-  confirmDelete(`Hapus hutang "${nama}"?`, async () => {
-    try { await dbDelete('hutang', id); keuLoadHutang(); } catch(e) { alert('Gagal hapus: ' + e.message); }
-  });
-}
+// keuShowFormHutang, keuSimpanHutang, keuEditHutang, keuHapusHutang dihapus.
+// Input hutang sekarang via Kas & Jurnal → tipe Pinjaman (single source of truth).
 
 async function keuSimpanPembayaran() {
-  const hutangId  = document.getElementById('keu-bayar-hutang-id').value;
+  // hutangId sekarang = akun_kewajiban_id (picker diisi dari kwjAkun)
+  const akunKwjId = document.getElementById('keu-bayar-hutang-id').value;
   const tgl       = document.getElementById('keu-bayar-tgl').value;
   const ket       = document.getElementById('keu-bayar-ket').value.trim();
   const akunKasId = document.getElementById('keu-bayar-akun-id').value;
 
-  // Baca nominal — flexible: support format titik ribuan ATAU angka biasa
   var nominalEl = document.getElementById('keu-bayar-nominal');
   var nominal   = 0;
   if (nominalEl) {
@@ -1781,49 +1576,29 @@ async function keuSimpanPembayaran() {
   }
   if (!nominal) nominal = idrVal('keu-bayar-nominal');
 
-  if (!hutangId)  { alert('Pilih hutang dulu!');        return; }
-  if (!tgl)       { alert('Tanggal wajib diisi!');      return; }
-  if (!nominal)   { alert('Nominal wajib diisi!');      return; }
-  if (!akunKasId) { alert('Pilih akun bayar dulu!');   return; }
+  if (!akunKwjId) { alert('Pilih akun kewajiban dulu!'); return; }
+  if (!tgl)       { alert('Tanggal wajib diisi!');       return; }
+  if (!nominal)   { alert('Nominal wajib diisi!');       return; }
+  if (!akunKasId) { alert('Pilih akun bayar dulu!');    return; }
+
+  // Nama akun kewajiban untuk keterangan jurnal
+  const akunMap = window._keuAkunMap || {};
+  const kwjNama = akunMap[akunKwjId] ? akunMap[akunKwjId].nama : 'Kewajiban';
 
   try {
-    await dbInsert('hutang_bayar', { hutang_id: hutangId, tanggal: tgl, nominal, keterangan: ket || null });
+    // Insert jurnal bayar_pinjaman: debit kewajiban, kredit kas
+    await dbInsert('jurnal', {
+      tanggal:        tgl,
+      tipe:           'bayar_pinjaman',
+      nominal:        nominal,
+      debit:          nominal,
+      kredit:         nominal,
+      akun_debit_id:  akunKwjId,  // kewajiban berkurang
+      akun_kredit_id: akunKasId,  // kas keluar
+      keterangan:     'Bayar ' + kwjNama + (ket ? ' — ' + ket : ''),
+      referensi:      null,
+    });
 
-    // Generate jurnal double-entry
-    const htg = _keuHutangAll.find(h => String(h.id) === String(hutangId));
-    // akun kewajiban: dari data hutang jika ada, fallback cari by nama kreditur
-    const akunKwjId = htg && htg.akun_kwj_id ? htg.akun_kwj_id : null;
-
-    if (akunKwjId) {
-      // Debit kewajiban (hutang berkurang) | Kredit kas (kas berkurang)
-      await dbInsert('jurnal', {
-        tanggal:        tgl,
-        tipe:           'keluar',
-        nominal:        nominal,
-        debit:          nominal,
-        kredit:         nominal,
-        akun_debit_id:  akunKwjId,  // kewajiban berkurang
-        akun_kredit_id: akunKasId,  // kas keluar
-        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : ''),
-        referensi:      null,
-      });
-    } else {
-      // Hutang belum punya akun kewajiban — buat jurnal kas keluar saja
-      // agar saldo kas tetap bergerak
-      await dbInsert('jurnal', {
-        tanggal:        tgl,
-        tipe:           'keluar',
-        nominal:        nominal,
-        debit:          nominal,
-        kredit:         nominal,
-        akun_debit_id:  null,
-        akun_kredit_id: akunKasId,
-        keterangan:     'Bayar cicilan ' + (htg ? htg.kreditur : '') + (ket ? ' — ' + ket : '') + ' (akun kwj belum diset)',
-        referensi:      null,
-      });
-    }
-
-    // Simpan akun terakhir ke localStorage
     try { localStorage.setItem('keu_last_bayar_akun', akunKasId); } catch(e) {}
 
     idrSet('keu-bayar-nominal', 0);
@@ -1832,12 +1607,6 @@ async function keuSimpanPembayaran() {
     keuLoadHutang();
     if (typeof loadDashboard === 'function') loadDashboard();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
-}
-
-async function keuHapusBayar(id) {
-  confirmDelete('Hapus catatan pembayaran ini?', async () => {
-    try { await dbDelete('hutang_bayar', id); keuLoadHutang(); } catch(e) { alert('Gagal hapus: ' + e.message); }
-  });
 }
 
 // ─── LOAD DATA KAS & JURNAL ──────────────────────────────────
@@ -1901,14 +1670,10 @@ async function keuHitungNilaiPersediaan() {
 
 async function keuRenderNeraca() {
   await keuLoadKasData();
-  // Pastikan data hutang selalu fresh — tidak bergantung tab Hutang sudah dibuka duluan
-  const [hutangFresh, bayar, shopeeCacheArr] = await Promise.all([
-    dbGet('hutang', '&order=created_at.desc').catch(() => []),
-    dbGet('hutang_bayar').catch(() => []),
+  const [shopeeCacheArr] = await Promise.all([
     fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
       { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
   ]);
-  _keuHutangAll = hutangFresh || [];
   const akunMap = keuHitungSaldoAkun();
   const fmtRp = v => fmtRpFull(v||0);
 
@@ -1963,11 +1728,11 @@ async function keuRenderNeraca() {
   document.getElementById('keu-neraca-aset').innerHTML = asetHtml;
   document.getElementById('keu-neraca-total-aset').textContent = fmtRp(totalAset);
 
-  // KEWAJIBAN
-  // Sumber kewajiban HANYA dari tabel hutang — tidak campur akun jurnal. Tampil per kreditur + persentase.
-  const kwjList = _keuHutangAll.map(h => ({
-    nama: h.kreditur || 'Hutang',
-    sisa: Math.max(0, (h.pokok||0) - keuGetSudahBayar(h.id, bayar))
+  // KEWAJIBAN — sumber dari saldo akun jurnal (single source of truth)
+  const kwjAkunArr = Object.values(akunMap).filter(a => a.kelompok === 'kewajiban');
+  const kwjList = kwjAkunArr.map(a => ({
+    nama: a.nama || 'Kewajiban',
+    sisa: Math.max(0, a.saldoKredit - a.saldoDebit)
   })).filter(x => x.sisa > 0);
   const totalKwj = kwjList.reduce((s,x) => s + x.sisa, 0);
   const pctKwj = v => totalKwj > 0 ? ` <span style="color:var(--ink3);font-size:11px">(${(v/totalKwj*100).toFixed(1)}%)</span>` : '';
@@ -2014,7 +1779,7 @@ async function keuRenderNeraca() {
 
   // Update badge toggle: berapa item di masing-masing sisi
   const asetItemCount = kasAkun.length + 1 + lainAkun.length + (nilaiPersediaan > 0 ? 1 : 0); // +1 Escrow
-  const kwjItemCount  = kwjList.length + modalAkun.length + 1; // +1 Laba/Rugi
+  const kwjItemCount  = kwjAkunArr.length + modalAkun.length + 1; // +1 Laba/Rugi
   _keuNeracaView = _keuNeracaView || 'aset';
   keuNeracaApplyView(asetItemCount, kwjItemCount);
 
@@ -2024,7 +1789,6 @@ async function keuRenderNeraca() {
 // ─── RASIO & NET WORTH ────────────────────────────────────────
 async function keuRenderRasio() {
   await keuLoadKasData();
-  const bayar = await dbGet('hutang_bayar').catch(() => []) || [];
   const akunMap = keuHitungSaldoAkun();
   const fmtRp = v => fmtRpFull(Math.abs(v));
 
@@ -2034,8 +1798,10 @@ async function keuRenderRasio() {
   const persediaan      = await keuHitungNilaiPersediaan();
   const totalAset       = totalAsetJurnal + persediaan;
 
-  // Total Kewajiban = HANYA dari tabel hutang (satu sumber, tidak dobel)
-  const totalHutang = _keuHutangAll.reduce((s,h) => s+Math.max(0,(h.pokok||0)-keuGetSudahBayar(h.id,bayar)), 0);
+  // Total Kewajiban = dari saldo akun kewajiban di jurnal (single source of truth)
+  const totalHutang = Object.values(akunMap)
+    .filter(a => a.kelompok === 'kewajiban')
+    .reduce((s, a) => s + Math.max(0, a.saldoKredit - a.saldoDebit), 0);
 
   // Modal = akun modal + laba/rugi berjalan
   const totalPend  = keuGetTotalByKelompok(akunMap, 'pendapatan');
@@ -2045,10 +1811,6 @@ async function keuRenderRasio() {
 
   // Net Worth = Total Aset − Total Kewajiban (definisi standar akuntansi)
   const netWorth = totalAset - totalHutang;
-
-  const totalCicilan = _keuHutangAll.filter(h => {
-    const sisa=(h.pokok||0)-keuGetSudahBayar(h.id,bayar); return sisa>0;
-  }).reduce((s,h) => s+(h.cicilan_per_bulan||0), 0);
 
   // Net Worth card
   document.getElementById('keu-rasio-aset').textContent   = fmtRp(totalAset);
@@ -2064,31 +1826,27 @@ async function keuRenderRasio() {
   document.getElementById('keu-dta-card').className   = 'rasio-item ' + (dta<0.4?'r-ok':dta<0.6?'r-warn':'r-danger');
 
   // DTE = Total Kewajiban ÷ Ekuitas (Modal + Laba Berjalan)
-  // Equity = totalModal (bukan netWorth, agar tidak double-count aset)
   const dte = totalModal > 0 ? totalHutang / totalModal : (totalHutang > 0 ? Infinity : 0);
   document.getElementById('keu-dte-val').textContent  = isFinite(dte) ? dte.toFixed(2)+'x' : '∞';
   document.getElementById('keu-dte-desc').textContent = `${fmtRp(totalHutang)} ÷ ${fmtRp(totalModal)}`;
   document.getElementById('keu-dte-card').className   = 'rasio-item ' + (dte<1?'r-ok':dte<2?'r-warn':'r-danger');
 
-  // Coverage Ratio = Kas Likuid ÷ Cicilan per Bulan
-  // Kas likuid = hanya akun kas/bank (sub_kelompok 'kas' atau nama mengandung BANK/TUNAI/KAS)
-  // Bukan total aset — mesin & inventaris tidak bisa bayar cicilan bulan ini
+  // Coverage Ratio = Kas Likuid ÷ Total Kewajiban (proxy cicilan — cicilan tidak ada di jurnal)
   const kasLikuid = Object.values(akunMap).filter(a => {
     if (a.kelompok !== 'aset') return false;
     const nm = (a.nama||'').toUpperCase();
     const sk = (a.sub_kelompok||'').toLowerCase();
     return sk === 'kas' || sk === 'bank' || nm.includes('BANK') || nm.includes('TUNAI') || nm.includes('KAS');
   }).reduce((s,a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0);
-  const cr = totalCicilan ? kasLikuid / totalCicilan : 0;
-  document.getElementById('keu-cr-val').textContent  = totalCicilan ? cr.toFixed(1)+'x' : '∞';
-  document.getElementById('keu-cr-desc').textContent = totalCicilan ? `${fmtRp(kasLikuid)} ÷ ${fmtRp(totalCicilan)}/bln` : 'Tidak ada cicilan aktif';
-  document.getElementById('keu-cr-card').className   = 'rasio-item ' + (!totalCicilan?'r-ok':cr>=3?'r-ok':cr>=1?'r-warn':'r-danger');
+  const cr = totalHutang ? kasLikuid / totalHutang : 0;
+  document.getElementById('keu-cr-val').textContent  = totalHutang ? cr.toFixed(1)+'x' : '∞';
+  document.getElementById('keu-cr-desc').textContent = totalHutang ? `${fmtRp(kasLikuid)} ÷ ${fmtRp(totalHutang)} kewajiban` : 'Tidak ada kewajiban aktif';
+  document.getElementById('keu-cr-card').className   = 'rasio-item ' + (!totalHutang?'r-ok':cr>=3?'r-ok':cr>=1?'r-warn':'r-danger');
 }
 
 // ─── VALUASI ─────────────────────────────────────────────────
 async function keuRenderValuasi() {
   await keuLoadKasData();
-  const bayar = await dbGet('hutang_bayar').catch(() => []) || [];
   const akunMap    = keuHitungSaldoAkun();
   const fmtRp = v => fmtRpFull(Math.abs(v));
   const multLaba   = parseFloat(document.getElementById('keu-mult-laba').value) || 3;
@@ -2096,7 +1854,7 @@ async function keuRenderValuasi() {
   const periodeQ   = parseInt(document.getElementById('keu-periode-laba').value) || 12;
 
   const totalAset   = keuGetTotalByKelompok(akunMap, 'aset');
-  const totalHutang = _keuHutangAll.reduce((s,h)=>s+Math.max(0,(h.pokok||0)-keuGetSudahBayar(h.id,bayar)),0);
+  const totalHutang = Object.values(akunMap).filter(a => a.kelompok === 'kewajiban').reduce((s,a) => s+Math.max(0,a.saldoKredit-a.saldoDebit), 0);
   const asetBersih  = totalAset - totalHutang;
 
   const totalPend   = keuGetTotalByKelompok(akunMap, 'pendapatan');
@@ -2125,12 +1883,10 @@ async function keuRenderValuasi() {
 }
 
 // ─── EVENT DELEGATION ────────────────────────────────────────
+// Panel hutang sekarang read-only — tidak ada aksi edit/hapus dari tabel
 document.getElementById('page-keuangan').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
-  const id = btn.dataset.id, action = btn.dataset.action;
-  if (action === 'edit-hutang')  keuEditHutang(id);
-  if (action === 'hapus-hutang') keuHapusHutang(id, btn.dataset.nama);
-  if (action === 'hapus-bayar')  keuHapusBayar(id);
+  // Reserved untuk panel lain jika ada data-action di masa depan
 });
 
 // ─── INIT ─────────────────────────────────────────────────────
@@ -2528,33 +2284,7 @@ function keuPickerSelectBayarAkun(item) {
   }
 }
 
-// ─── UPDATE TENOR LABEL SAAT FREKUENSI BERUBAH ───────────────
-document.addEventListener('change', function(e) {
-  if (e.target && e.target.id === 'keu-htg-frekuensi') {
-    var lbl = document.getElementById('keu-htg-tenor-label');
-    if (lbl) lbl.textContent = e.target.value === 'tahunan' ? '(tahun)' : '(bulan)';
-    _keuAutoJatuhTempo();
-  }
-  if (e.target && (e.target.id === 'keu-htg-tenor' || e.target.id === 'keu-htg-tgl-mulai')) {
-    _keuAutoJatuhTempo();
-  }
-});
-
-function _keuAutoJatuhTempo() {
-  var tglMulai = document.getElementById('keu-htg-tgl-mulai').value;
-  var tenor    = parseInt(document.getElementById('keu-htg-tenor').value) || 0;
-  var frekuensi = document.getElementById('keu-htg-frekuensi').value || 'bulanan';
-  if (!tglMulai || !tenor) return;
-  var d = new Date(tglMulai);
-  if (frekuensi === 'tahunan') {
-    d.setFullYear(d.getFullYear() + tenor);
-  } else {
-    d.setMonth(d.getMonth() + tenor);
-  }
-  var hasil = d.toISOString().slice(0,10);
-  var jtEl = document.getElementById('keu-htg-jatuh-tempo');
-  if (jtEl) jtEl.value = hasil;
-}
+// _keuAutoJatuhTempo dan listener keu-htg-* dihapus — modal tambah hutang tidak ada lagi.
 
 // ─── MODAL CATAT CICILAN ─────────────────────────────────────
 function keuOpenCicilan() {
@@ -2562,31 +2292,14 @@ function keuOpenCicilan() {
   var tglEl = document.getElementById('keu-bayar-tgl');
   if (tglEl && !tglEl.value) tglEl.value = today;
   document.getElementById('keu-bayar-ket').value = '';
-  // Auto-fill nominal dari cicilan hutang yang dipilih
-  var selId = document.getElementById('keu-bayar-hutang-id').value;
-  var defaultNominal = 0;
-  if (selId) {
-    var htg = _keuHutangAll.find(function(x){ return String(x.id) === String(selId); });
-    if (htg) defaultNominal = htg.cicilan_nominal || htg.cicilan_per_bulan || 0;
-  }
-  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', defaultNominal);
+  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', 0);
   if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
   document.getElementById('modal-keu-cicilan').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 
-// Dipanggil saat user memilih hutang di picker — auto-fill nominal cicilan
-function keuBayarHutangChange() {
-  var sel = document.getElementById('keu-bayar-hutang-id');
-  if (!sel || !sel.value) return;
-  var htg = _keuHutangAll.find(function(x){ return String(x.id) === String(sel.value); });
-  if (!htg) return;
-  var nominal = htg.cicilan_nominal || htg.cicilan_per_bulan || 0;
-  if (nominal && typeof idrSet === 'function') {
-    idrSet('keu-bayar-nominal', nominal);
-    if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
-  }
-}
+// keuBayarHutangChange tidak relevan lagi (tidak ada cicilan_nominal di akun kewajiban)
+function keuBayarHutangChange() {}
 
 function keuCloseCicilan() {
   document.getElementById('modal-keu-cicilan').style.display = 'none';
