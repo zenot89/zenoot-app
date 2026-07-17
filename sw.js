@@ -45,7 +45,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260716-ec8b1fa441c6'; // tipe picker desktop + manifest icon fix
+var JS_CACHE = 'zenot-js-20260717-79ba9918b2ea'; // tipe picker desktop + manifest icon fix
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
