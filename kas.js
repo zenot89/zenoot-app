@@ -1740,17 +1740,35 @@ function kasRenderArusKas(data) {
     return isKasBank(aD) || isKasBank(aK);
   });
 
-  // Sort ascending (lama ke baru) dulu untuk hitung saldo kumulatif yang benar
+  // Kumpulkan id transaksi yang masuk ke filtered (untuk exclude dari saldo awal)
+  const filteredIds = new Set(filtered.map(r => r.id));
+
+  // Hitung saldo awal = semua transaksi KAS & BANK di _kasJurnalAll
+  // yang TIDAK masuk ke data yang ditampilkan (transaksi sebelum periode filter)
+  let saldoAwal = 0;
+  (_kasJurnalAll || []).forEach(r => {
+    if (filteredIds.has(r.id)) return; // skip transaksi yang tampil
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const aK = _kasAkunMap[r.akun_kredit_id];
+    const isKasD = isKasBank(aD);
+    const isKasK = isKasBank(aK);
+    if (!isKasD && !isKasK) return; // skip yang tidak menyentuh kas
+    const n = Number(r.nominal || r.debit || 0);
+    if (isKasD) saldoAwal += n;
+    if (isKasK) saldoAwal -= n;
+  });
+
+  // Sort ascending (lama ke baru) untuk hitung saldo kumulatif yang benar
   const ascending = filtered.slice().sort((a, b) => {
     const d = (a.tanggal || '').localeCompare(b.tanggal || '');
     return d !== 0 ? d : String(a.id).localeCompare(String(b.id));
   });
 
-  // Hitung saldo kumulatif per-id dari ascending
+  // Hitung saldo kumulatif per-id, mulai dari saldo awal (bukan 0)
   const saldoByIdMap = {};
-  let runSaldo = 0;
+  let runSaldo = saldoAwal;
   ascending.forEach(r => {
-    const n = r.nominal || r.debit || 0;
+    const n = Number(r.nominal || r.debit || 0);
     const aD = _kasAkunMap[r.akun_debit_id];
     const isMasuk = isKasBank(aD);
     if (isMasuk) runSaldo += n; else runSaldo -= n;
