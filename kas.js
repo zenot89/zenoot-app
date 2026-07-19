@@ -1754,6 +1754,7 @@ function kasRenderArusKas(data) {
     const isKasK = isKasBank(aK);
     if (!isKasD && !isKasK) return; // skip yang tidak menyentuh kas
     const n = Number(r.nominal || r.debit || 0);
+    // Hitung kedua sisi secara independen (handle transfer antar kas)
     if (isKasD) saldoAwal += n;
     if (isKasK) saldoAwal -= n;
   });
@@ -1765,13 +1766,17 @@ function kasRenderArusKas(data) {
   });
 
   // Hitung saldo kumulatif per-id, mulai dari saldo awal (bukan 0)
+  // Hitung kedua sisi independen — handle transfer antar kas (isKasD && isKasK)
   const saldoByIdMap = {};
   let runSaldo = saldoAwal;
   ascending.forEach(r => {
     const n = Number(r.nominal || r.debit || 0);
     const aD = _kasAkunMap[r.akun_debit_id];
-    const isMasuk = isKasBank(aD);
-    if (isMasuk) runSaldo += n; else runSaldo -= n;
+    const aK = _kasAkunMap[r.akun_kredit_id];
+    const isKasD = isKasBank(aD);
+    const isKasK = isKasBank(aK);
+    if (isKasD) runSaldo += n;
+    if (isKasK) runSaldo -= n;
     saldoByIdMap[r.id] = runSaldo;
   });
 
