@@ -22,13 +22,11 @@ try {
   }
 } catch(e) {}
 
-// FIX: Paksa tutup sidebar saat pertama load di touch device / layar kecil
-// Mencegah sidebar muncul otomatis saat buka app di HP
+// Paksa tutup sidebar saat pertama load hanya kalau layar kecil (<= 900px)
+// Touch device di laptop (touchscreen) tidak dianggap mobile
 try {
-  var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   var _isNarrow = window.innerWidth <= 900;
-  if (_isTouchDevice || _isNarrow) {
-    // Jalankan setelah DOM siap agar element sidebar sudah ada
+  if (_isNarrow) {
     document.addEventListener('DOMContentLoaded', function() {
       var sb = document.getElementById('sidebar');
       var ov = document.getElementById('sidebar-overlay');

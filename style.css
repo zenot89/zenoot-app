@@ -777,8 +777,9 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   .content{}
 }
 
-/* Touch device landscape (termasuk iPhone/Android lebar > 768px) */
-@media (hover:none) and (pointer:coarse) and (orientation:landscape){
+/* Touch device landscape NARROW (iPhone/Android lebar tapi < 1024px) */
+/* Tidak berlaku untuk laptop touchscreen yang lebar */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (max-width:1024px){
   .hamburger{
     display:-webkit-flex !important;
     display:flex !important;
