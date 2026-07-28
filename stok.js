@@ -40,7 +40,7 @@ document.getElementById('page-stok').innerHTML = `
         <i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
-      <div id="dd-filter-all" style="display:none;position:absolute;left:0;top:calc(100% + 2px);z-index:999;
+      <div id="dd-filter-all" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:180px;
         box-shadow:4px 4px 0 var(--ink4)">
 
@@ -1149,7 +1149,8 @@ let _filterKatalog        = null;
 let _filterStatus         = null;
 
 function stokToggleFilterAll() {
-  var dd = document.getElementById('dd-filter-all');
+  var dd  = document.getElementById('dd-filter-all');
+  var btn = document.getElementById('btn-filter-all');
   if (!dd) return;
   if (dd.style.display === 'block') {
     // Tutup semua submenu juga
@@ -1162,6 +1163,14 @@ function stokToggleFilterAll() {
     dd.style.display = 'none';
     return;
   }
+  // Posisi fixed menggunakan getBoundingClientRect — hindari clipping oleh parent overflow
+  if (btn) {
+    var r = btn.getBoundingClientRect();
+    dd.style.top  = (r.bottom + 2) + 'px';
+    dd.style.left = r.left + 'px';
+  }
+  // Pastikan dd di body agar tidak ter-clip oleh stacking context parent
+  if (dd.parentNode !== document.body) document.body.appendChild(dd);
   dd.style.display = 'block';
 }
 
