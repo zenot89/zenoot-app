@@ -673,20 +673,29 @@ function _jpGetSku(p)     { return p.sku || p.sku_variasi || p.kode || ''; }
 function _jpResolveSku(raw) {
   const all = _jpProdukList.map(p => _jpGetSku(p)).filter(Boolean);
 
+  // Helper: normalize spasi/underscore dan lowercase untuk compare
+  const _norm = s => s.replace(/[\s_]+/g, '_').replace(/__+/g, '_').toLowerCase();
+
   // 1. Exact match
-  if (all.includes(raw)) return { sku: raw, ok: true };
+  if (all.includes(raw)) return { sku: raw.toUpperCase(), ok: true };
 
   // 2. Normalize: uppercase sudah — coba spasi → underscore, strip double spaces
   const norm = raw.replace(/\s+/g, '_').replace(/__+/g, '_');
-  if (all.includes(norm)) return { sku: norm, ok: true };
+  if (all.includes(norm)) return { sku: norm.toUpperCase(), ok: true };
 
   // 3. Case-insensitive match
   const lower = norm.toLowerCase();
   const found = all.find(s => s.toLowerCase() === lower);
-  if (found) return { sku: found, ok: true };
+  if (found) return { sku: found.toUpperCase(), ok: true };
 
-  // 4. Tidak ketemu — kembalikan as-is, tandai warn
-  return { sku: raw, ok: false };
+  // 4. Normalize kedua sisi: anggap spasi dan underscore equivalen
+  //    Ini fix case "TURTLENECK_ABU TUA-M" vs "Turtleneck_Abu Tua-M"
+  const normRaw = _norm(raw);
+  const found2  = all.find(s => _norm(s) === normRaw);
+  if (found2) return { sku: found2.toUpperCase(), ok: true };
+
+  // 5. Tidak ketemu — kembalikan as-is uppercase, tandai warn
+  return { sku: raw.toUpperCase(), ok: false };
 }
 function _jpGetHpp(p)     { return p.hpp || p.harga_pokok || p.cost || 0; }
 
@@ -1879,7 +1888,7 @@ async function simpanJP() {
         var p = allItems[i];
         await dbInsert('jurnal_penjualan', {
           tanggal: p.tgl || tgl, waktu: p.waktu || waktu,
-          channel_id: p.channel_id, sku: p.sku,
+          channel_id: p.channel_id, sku: (p.sku || '').toUpperCase(),
           qty: p.qty, harga_satuan: p.harga, total: p.total
         });
       }
