@@ -256,9 +256,9 @@
       // Wallet Shopee sengaja tidak dihitung — data via API tidak reliable/lambat update.
       const netWorth = totalAset - totalHutang + escrow;
 
-      _set('nw-total', (netWorth < 0 ? '-' : '') + _rp(netWorth));
+      _set('nw-total', (netWorth < 0 ? '-' : '+') + _rp(netWorth));
       const totalEl = document.getElementById('nw-total');
-      if (totalEl) totalEl.style.color = '#111';
+      if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#2ecc7a)' : 'var(--danger,#c98f8f)';
 
       _set('nw-aset',   '+' + _rp(totalAset));
       _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
