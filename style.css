@@ -389,6 +389,18 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   opacity: 0;
   pointer-events: none;
 }
+/* FIX STICKY DASHBOARD: header (hamburger, "Dashboard", tanggal) WAJIB
+   diam di halaman Dashboard — laptop maupun HP. JS di app.js sudah
+   mencegah class topbar-hidden ditambahkan saat activePage==='dashboard',
+   tapi override CSS ini jadi pengaman mutlak (defense-in-depth) kalau
+   class itu somehow ke-apply (race condition/cache). Tidak berlaku untuk
+   halaman lain — behavior hide-on-scroll di halaman lain tetap sama.
+   Tidak menyentuh .nw-swipe-container / .db-swipe-pair (fitur geser). */
+body[data-page="dashboard"] .topbar.topbar-hidden {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
 .topbar::before{
   content:'';position:absolute;right:52px;top:0;bottom:0;
   width:1px;background:rgba(200,80,80,0.18);
@@ -4018,7 +4030,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Warna header per slide */
 .nw-slide-s1 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
-.nw-slide-s2 { background: #ee5030; }
+.nw-slide-s2 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
 .nw-slide-s3 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
 
 .nw-slide-header .nw-slide-label {
@@ -4042,6 +4054,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   margin: 2px 0 3px;
 }
 .nw-slide-s1 .nw-slide-value { color: #ece9e4; }
+.nw-slide-s2 .nw-slide-value { color: var(--danger, #e05c4b); }
 .nw-slide-s3 .nw-slide-value { color: var(--ok, #2ecc7a); }
 .nw-slide-header .nw-slide-sub {
   font-size: 11px;
@@ -4066,7 +4079,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Warna data box per slide */
 .nw-slide-s1 + .nw-slide-data { background: #2e2a2a; border: 1px solid rgba(255,255,255,0.09); border-top: none; scrollbar-color: rgba(255,255,255,0.2) transparent; }
-.nw-slide-s2 + .nw-slide-data { background: #f8d0c7; }
+.nw-slide-s2 + .nw-slide-data { background: #2e2a2a; border: 1px solid rgba(255,255,255,0.09); border-top: none; scrollbar-color: rgba(255,255,255,0.2) transparent; }
 .nw-slide-s3 + .nw-slide-data {
   background: #2e2a2a;
   border: 1px solid rgba(255,255,255,0.09);
@@ -4074,15 +4087,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 .nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+.nw-slide-s2 + .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 
-/* Teks di data box s1 & s2 - gelap karena bg terang */
+/* Teks di data box s1, s2, s3 - terang karena bg gelap */
 .nw-slide-s1 + .nw-slide-data .nw-row-label,
 .nw-slide-s1 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
 .nw-slide-s1 + .nw-slide-data .nw-row-val { color: #ece9e4; }
 .nw-slide-s1 + .nw-slide-data .nw-row { border-color: rgba(255,255,255,0.06); }
 .nw-slide-s2 + .nw-slide-data .nw-row-label,
-.nw-slide-s2 + .nw-slide-data .beban-row span:first-child { color: #5c1a0a; }
-.nw-slide-s2 + .nw-slide-data .nw-row { border-color: rgba(238,80,48,0.25); }
+.nw-slide-s2 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
+.nw-slide-s2 + .nw-slide-data .nw-row { border-color: rgba(255,255,255,0.06); }
 
 /* Badge dan refresh button di header berwarna */
 .nw-slide-s2 .nw-refresh-btn { color: rgba(255,255,255,0.75); }
