@@ -4017,7 +4017,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Warna header per slide */
-.nw-slide-s1 { background: #1a2a2a; border: 1px solid rgba(255,255,255,0.07); border-bottom: none; }
+.nw-slide-s1 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
 .nw-slide-s2 { background: #ee5030; }
 .nw-slide-s3 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
 
@@ -4065,7 +4065,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
 
 /* Warna data box per slide */
-.nw-slide-s1 + .nw-slide-data { background: #111e1e; }
+.nw-slide-s1 + .nw-slide-data { background: #2e2a2a; border: 1px solid rgba(255,255,255,0.09); border-top: none; scrollbar-color: rgba(255,255,255,0.2) transparent; }
 .nw-slide-s2 + .nw-slide-data { background: #f8d0c7; }
 .nw-slide-s3 + .nw-slide-data {
   background: #2e2a2a;
@@ -4085,9 +4085,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-s2 + .nw-slide-data .nw-row { border-color: rgba(238,80,48,0.25); }
 
 /* Badge dan refresh button di header berwarna */
-.nw-slide-s1 .nw-refresh-btn,
 .nw-slide-s2 .nw-refresh-btn { color: rgba(255,255,255,0.75); }
-.nw-slide-s1 .nw-refresh-btn:hover,
 .nw-slide-s2 .nw-refresh-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
 
 /* ======================================================

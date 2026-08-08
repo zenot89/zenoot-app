@@ -167,6 +167,7 @@ function gotoPage(page, btn) {
     if (titleEl) titleEl.textContent = info.title;
     if (subEl)   subEl.textContent   = info.sub;
   }
+  document.body.dataset.page = page;
   closeSidebar();
   // Fire event — semua file listen ke ini, tidak perlu override gotoPage
   // Polyfill-safe untuk iOS Safari lama yang tidak support CustomEvent constructor
@@ -462,6 +463,8 @@ function idrInputAll() {
 // Auto-run saat DOM siap dan setiap kali ada perubahan di DOM (modal buka)
 document.addEventListener('DOMContentLoaded', function() {
   idrInputAll();
+  // Set halaman default
+  if (!document.body.dataset.page) document.body.dataset.page = 'dashboard';
   // MutationObserver untuk handle input yang muncul dinamis (modal)
   var obs = new MutationObserver(function() { idrInputAll(); });
   obs.observe(document.body, { childList: true, subtree: true });
@@ -1169,6 +1172,13 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     requestAnimationFrame(function() {
       _ticking = false;
       if (!_topbar || !_content) return;
+      // Dashboard: topbar selalu diam, tidak ikut scroll
+      var activePage = document.body.dataset.page || '';
+      if (activePage === 'dashboard') {
+        if (_hidden) { _topbar.classList.remove('topbar-hidden'); _hidden = false; }
+        _lastY = _content.scrollTop;
+        return;
+      }
       var y   = _content.scrollTop;
       var dy  = y - _lastY;
 
