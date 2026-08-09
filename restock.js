@@ -753,36 +753,30 @@ function sumCardsToggle() {
   }
 }
 
-var _sumDualMode = 'segera'; // 'segera' | 'naik'
+var _sumDualMode = 'segera'; // 'segera' | 'naik' | 'supplier'
 
-function sumDualToggle(segeraLen, naikLen) {
-  _sumDualMode = _sumDualMode === 'segera' ? 'naik' : 'segera';
-  const list    = document.getElementById('sum-dual-list');
-  const label   = document.getElementById('sum-dual-label');
-  const title   = document.getElementById('sum-dual-title');
-  const btn     = document.getElementById('sum-dual-toggle');
-  if (!list || !label || !title || !btn) return;
+function sumTabSwitch(mode) {
+  _sumDualMode = mode;
+  const list = document.getElementById('sum-dual-list');
+  if (!list) return;
 
-  if (_sumDualMode === 'naik') {
-    label.textContent = 'Lagi Naik Daun — ' + naikLen + ' SKU';
-    title.style.color = 'var(--ok)';
-    title.querySelector('i').className = 'ti ti-trending-up';
-    btn.style.color = 'var(--danger)';
-    btn.style.borderColor = 'rgba(224,82,82,0.3)';
-    btn.style.background = 'rgba(224,82,82,0.07)';
-    btn.innerHTML = '<i class="ti ti-urgent" style="font-size:12px"></i> Order ' + segeraLen;
-    // Render naik list
-    list.innerHTML = window._sumNaikHtml || '<div style="color:var(--ink3);padding:10px 0">Belum ada tren naik</div>';
-  } else {
-    label.textContent = 'Order Sekarang — ' + segeraLen + ' SKU';
-    title.style.color = 'var(--danger)';
-    title.querySelector('i').className = 'ti ti-urgent';
-    btn.style.color = 'var(--ok)';
-    btn.style.borderColor = 'rgba(46,204,122,0.3)';
-    btn.style.background = 'rgba(46,204,122,0.07)';
-    btn.innerHTML = '<i class="ti ti-trending-up" style="font-size:12px"></i> Naik ' + naikLen;
-    list.innerHTML = window._sumSegeraHtml || '<div style="color:var(--ink3);padding:10px 0">Semua stok aman 👌</div>';
-  }
+  const cfg = {
+    segera:   { color: 'var(--danger)', bg: 'rgba(224,82,82,0.1)',  border: 'rgba(224,82,82,0.4)',  html: window._sumSegeraHtml   || '<div style="color:var(--ink3);padding:10px 0">Semua stok aman 👌</div>' },
+    naik:     { color: 'var(--ok)',     bg: 'rgba(46,204,122,0.1)', border: 'rgba(46,204,122,0.4)', html: window._sumNaikHtml     || '<div style="color:var(--ink3);padding:10px 0">Belum ada tren naik</div>' },
+    supplier: { color: '#5ba3e0',       bg: 'rgba(91,163,224,0.1)', border: 'rgba(91,163,224,0.4)', html: window._sumSupplierListHtml || '<div style="color:var(--ink3);padding:10px 0">Belum ada data supplier</div>' },
+  };
+
+  ['segera', 'naik', 'supplier'].forEach(function(m) {
+    const tab = document.getElementById('sum-tab-' + m);
+    if (!tab) return;
+    const active = m === mode;
+    tab.style.color      = active ? cfg[m].color  : 'var(--ink3)';
+    tab.style.background = active ? cfg[m].bg     : 'transparent';
+    tab.style.borderColor = active ? cfg[m].border : 'rgba(255,255,255,0.1)';
+    tab.style.fontWeight = active ? '700' : '600';
+  });
+
+  list.innerHTML = cfg[mode].html;
 }
 
 function prioritasBadge(p) {
@@ -1002,6 +996,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
         }).join('')}
       </div>
     </div>` : '';
+  window._sumSupplierListHtml = modalSupplierBlock;
 
   // ── Clearance ──
   const clearanceBlock = (clearanceList && clearanceList.length) ? `
@@ -1029,22 +1024,27 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     <!-- ZONA ATAS: fixed, tidak scroll -->
     <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
       ${cards}
-      ${(segera.length || skuNaik.length) ? `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
-        <!-- Portrait: toggle button -->
-        <div class="sum-header-portrait" style="display:flex;align-items:center;justify-content:space-between;width:100%">
-          <div id="sum-dual-title" style="font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
-            <i class="ti ti-urgent"></i> <span id="sum-dual-label">Order Sekarang — ${segera.length} SKU</span>
-          </div>
-          <button id="sum-dual-toggle" onclick="sumDualToggle(${segera.length}, ${skuNaik.length})"
-            style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
-                   border:1px solid rgba(46,204,122,0.3);background:rgba(46,204,122,0.07);
-                   color:var(--ok);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
-            <i class="ti ti-trending-up" style="font-size:12px"></i>
-            Naik ${skuNaik.length}
+      ${(segera.length || skuNaik.length || (modalPerSupplier && modalPerSupplier.length)) ? `
+      <div style="padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
+        <!-- Portrait: 3-tab switcher (Order Sekarang / Lagi Naik / Nilai Supplier) -->
+        <div class="sum-header-portrait" style="display:flex;gap:6px;width:100%;overflow-x:auto">
+          <button id="sum-tab-segera" onclick="sumTabSwitch('segera')"
+            style="flex:1;font-size:11px;font-weight:700;padding:6px 8px;border-radius:6px;white-space:nowrap;
+                   border:1px solid rgba(224,82,82,0.4);background:rgba(224,82,82,0.1);color:var(--danger);cursor:pointer">
+            🔥 Order ${segera.length}
+          </button>
+          <button id="sum-tab-naik" onclick="sumTabSwitch('naik')"
+            style="flex:1;font-size:11px;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;
+                   border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--ink3);cursor:pointer">
+            📈 Naik ${skuNaik.length}
+          </button>
+          <button id="sum-tab-supplier" onclick="sumTabSwitch('supplier')"
+            style="flex:1;font-size:11px;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;
+                   border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--ink3);cursor:pointer">
+            🏬 Supplier
           </button>
         </div>
-        <!-- Laptop: judul dua kolom -->
+        <!-- Laptop: judul tiga kolom -->
         <div class="sum-header-laptop" style="display:none;width:100%;align-items:center;gap:0">
           <div style="flex:1;font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
             <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
@@ -1052,25 +1052,30 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
           <div style="flex:1;font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.06)">
             <i class="ti ti-trending-up"></i> Lagi Naik — ${skuNaik.length} SKU
           </div>
+          <div style="flex:1;font-size:12px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.06)">
+            <i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier
+          </div>
         </div>
       </div>` : ''}
     </div>
-    <!-- Portrait: single list dengan toggle -->
+    <!-- Portrait: single list dengan 3-tab switcher -->
     <div id="sum-list-zone" class="sum-list-portrait" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
       <div id="sum-dual-list">${_segeraHtml}</div>
     </div>
-    <!-- Laptop: dua kolom side-by-side -->
+    <!-- Laptop: tiga kolom side-by-side (Order Sekarang · Lagi Naik · Nilai Stok per Supplier) -->
     <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
       <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid rgba(255,255,255,0.06)">
         ${_segeraHtml}
       </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid rgba(255,255,255,0.06)">
         ${_naikHtml}
+      </div>
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
+        ${modalSupplierBlock.replace('margin-top:16px;', '')}
       </div>
     </div>
     <!-- Clearance + Zombie monitor — di luar scroll zone, padding bawah -->
     <div style="padding:0 14px 16px;flex-shrink:0">
-      ${modalSupplierBlock}
       ${clearanceBlock}
       ${zombieBlock}
     </div>`;
