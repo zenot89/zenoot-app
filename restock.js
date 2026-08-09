@@ -1034,10 +1034,10 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
           <div style="cursor:pointer;padding-bottom:14px;${i < modalPerSupplier.slice(0, 8).length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.06)' : ''}" onclick="restockSwitchTab('${m.boss}')">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
-              <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
-              <div style="font-size:11px;color:var(--ink3);flex-shrink:0">${m.sku} SKU · ${m.pcs} pcs · ${pctOfGrand}% dari total</div>
-              <div style="font-size:13px;font-weight:700;color:#5ba3e0;min-width:100px;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
+              <div style="flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
+              <div style="font-size:13px;font-weight:700;color:#5ba3e0;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
             </div>
+            <div style="font-size:11px;color:var(--ink3);margin:2px 0 0 24px">${m.sku} SKU · ${m.pcs} pcs · ${pctOfGrand}% dari total</div>
             <div style="display:flex;height:5px;border-radius:2px;overflow:hidden;background:rgba(46,204,122,0.15);margin:8px 0 5px 24px">
               <div style="width:${100 - pctMandeg}%;background:var(--ok)"></div>
               <div style="width:${pctMandeg}%;background:var(--warn)"></div>
