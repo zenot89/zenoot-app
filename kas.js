@@ -186,12 +186,31 @@ document.getElementById('page-kas').innerHTML = `
     <!-- Mobile: cuma Refresh + dropdown gabungan 3 tab, filter bulan & 'Semua' disembunyikan -->
     <div class="kas-lap-header-mobile" style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:2px solid var(--ink)">
       <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
-      <select id="lap-tab-select-mobile" onchange="kasLapTab(this.value)"
-        style="font-family:var(--f);font-size:13px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px">
-        <option value="neraca">⚖️ Neraca Saldo</option>
-        <option value="labarugi">📈 Laba Rugi</option>
-        <option value="aruskas">🔁 Arus Kas</option>
-      </select>
+      <div class="kas-lap-tipe-picker" style="position:relative">
+        <button id="lap-tipe-picker-btn" onclick="kasLapTipeToggle()"
+          style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:13px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer">
+          <i class="ti ti-scale" id="lap-tipe-picker-icon"></i>
+          <span id="lap-tipe-picker-label">Neraca Saldo</span>
+          <i class="ti ti-chevron-down" style="font-size:12px;opacity:.6"></i>
+        </button>
+        <div id="lap-tipe-picker-list" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;min-width:180px;z-index:50;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.35)">
+          <div class="lap-tipe-item" data-tab="neraca" onclick="kasLapTab('neraca');kasLapTipeToggle()"
+            style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink)">
+            <i class="ti ti-scale"></i> Neraca Saldo
+            <i class="ti ti-check lap-tipe-check" style="margin-left:auto"></i>
+          </div>
+          <div class="lap-tipe-item" data-tab="labarugi" onclick="kasLapTab('labarugi');kasLapTipeToggle()"
+            style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);border-top:1px solid rgba(0,0,0,0.08)">
+            <i class="ti ti-chart-line"></i> Laba Rugi
+            <i class="ti ti-check lap-tipe-check" style="margin-left:auto;visibility:hidden"></i>
+          </div>
+          <div class="lap-tipe-item" data-tab="aruskas" onclick="kasLapTab('aruskas');kasLapTipeToggle()"
+            style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);border-top:1px solid rgba(0,0,0,0.08)">
+            <i class="ti ti-arrows-exchange"></i> Arus Kas
+            <i class="ti ti-check lap-tipe-check" style="margin-left:auto;visibility:hidden"></i>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1644,6 +1663,32 @@ function kasExportCSV() {
 }
 
 // ─── LAPORAN ─────────────────────────────────────────────────
+var _kasLapTipeCfg = {
+  neraca:   { icon: 'ti-scale',          label: 'Neraca Saldo' },
+  labarugi: { icon: 'ti-chart-line',     label: 'Laba Rugi' },
+  aruskas:  { icon: 'ti-arrows-exchange', label: 'Arus Kas' },
+};
+
+function kasLapTipeToggle() {
+  var list = document.getElementById('lap-tipe-picker-list');
+  if (!list) return;
+  var willOpen = list.style.display !== 'block';
+  list.style.display = willOpen ? 'block' : 'none';
+  if (willOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', _kasLapTipeOutside);
+    }, 0);
+  }
+}
+function _kasLapTipeOutside(e) {
+  var wrap = document.querySelector('.kas-lap-tipe-picker');
+  if (wrap && !wrap.contains(e.target)) {
+    var list = document.getElementById('lap-tipe-picker-list');
+    if (list) list.style.display = 'none';
+    document.removeEventListener('click', _kasLapTipeOutside);
+  }
+}
+
 function kasLapTab(tab) {
   ['neraca','labarugi','aruskas'].forEach(function(t) {
     var btn   = document.getElementById('lap-tab-' + t);
@@ -1652,8 +1697,18 @@ function kasLapTab(tab) {
     if (btn)   { btn.style.background = active ? 'var(--ink)' : 'var(--cream)'; btn.style.color = active ? 'var(--cream)' : 'var(--ink)'; }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  var sel = document.getElementById('lap-tab-select-mobile');
-  if (sel) sel.value = tab;
+  // Sinkron custom dropdown mobile (icon monochrome ti-*, bukan emoji)
+  var cfg = _kasLapTipeCfg[tab];
+  if (cfg) {
+    var icoEl = document.getElementById('lap-tipe-picker-icon');
+    var lblEl = document.getElementById('lap-tipe-picker-label');
+    if (icoEl) icoEl.className = 'ti ' + cfg.icon;
+    if (lblEl) lblEl.textContent = cfg.label;
+  }
+  document.querySelectorAll('.lap-tipe-item').forEach(function(item) {
+    var check = item.querySelector('.lap-tipe-check');
+    if (check) check.style.visibility = (item.dataset.tab === tab) ? 'visible' : 'hidden';
+  });
 }
 
 // ─── kasRenderLaporan — pola clearTimeout/setTimeout persis JP ──

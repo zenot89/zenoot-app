@@ -3051,6 +3051,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .kas-lap-header-mobile  { display: flex !important; }
   #lap-panel-neraca table.kas-lap-tbl th:nth-child(n+4),
   #lap-panel-neraca table.kas-lap-tbl td:nth-child(n+4) { display: none !important; }
+  /* table-layout:fixed + lebar eksplisit 3 kolom visible — supaya baris
+     section header (colspan="6" dari kode render, tidak berubah sesuai
+     kolom yg di-skip) tidak lagi menarik lebar tabel jadi 6-kolom
+     dan bikin bisa digeser ke samping. */
+  #lap-panel-neraca table.kas-lap-tbl {
+    table-layout: fixed;
+    width: 100% !important;
+  }
+  #lap-panel-neraca table.kas-lap-tbl th:nth-child(1) { width: 22%; }
+  #lap-panel-neraca table.kas-lap-tbl th:nth-child(2) { width: 43%; }
+  #lap-panel-neraca table.kas-lap-tbl th:nth-child(3) { width: 35%; }
+  #lap-panel-neraca table.kas-lap-tbl td { white-space: normal; word-break: break-word; }
 }
 @media (min-width: 768px) {
   .kas-lap-header-mobile { display: none !important; }
