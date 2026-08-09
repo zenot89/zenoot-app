@@ -1180,6 +1180,22 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   filterPickerList(pickerK, filterK);
 }
 
+// Accent warna Debit dinamis sesuai tipe transaksi:
+//   Uang Masuk  → hijau (uang nambah ke akun)
+//   Uang Keluar → merah (uang keluar/beban)
+//   Tipe lain (Jurnal/Pinjaman/Bayar Pinjaman) → netral, tanpa accent
+// Kredit sengaja TIDAK didinamiskan — tetap kuning statis di semua tipe (via CSS).
+function _kasSetDebitAccent(lblId, pickerId, tipe) {
+  var lbl = document.getElementById(lblId);
+  var pk  = document.getElementById(pickerId);
+  [lbl, pk].forEach(function(el) {
+    if (!el) return;
+    el.classList.remove('kas-debit-masuk', 'kas-debit-keluar');
+    if (tipe === 'masuk')       el.classList.add('kas-debit-masuk');
+    else if (tipe === 'keluar') el.classList.add('kas-debit-keluar');
+  });
+}
+
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
   var extraEl = document.getElementById('kas-pinjaman-extra');
@@ -1192,6 +1208,7 @@ function kasOnTipeChange() {
   else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
   else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
+  _kasSetDebitAccent('kas-lbl-debit', 'picker-debit', tipe);
   kasFilterAkunByTipe(tipe, 'kas-jrn-akun-debit', 'kas-jrn-akun-kredit');
   kasHitungJurnal();
 }
@@ -1293,6 +1310,7 @@ function kasOnEditTipeChange() {
   else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
   else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
+  _kasSetDebitAccent('kas-edit-lbl-debit', 'picker-edit-debit', tipe);
   kasFilterAkunByTipe(tipe, 'kas-edit-akun-debit', 'kas-edit-akun-kredit');
   kasHitungEditJurnal();
 }

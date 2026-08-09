@@ -2143,19 +2143,24 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ─── ACCENT WARNA DEBIT/KREDIT — form Tambah/Edit Transaksi Kas ───
-   Konvensi visual tetap: DEBIT selalu hijau, KREDIT selalu kuning,
-   berlaku sama di semua tipe transaksi (Uang Masuk/Keluar/Jurnal/dst)
-   supaya kolom Debit & Kredit gampang dibedain sekilas.
+   KREDIT: statis kuning di semua tipe transaksi.
+   DEBIT: dinamis via JS (lihat _kasSetDebitAccent di kas.js) —
+     - Uang Masuk  → hijau (uang nambah ke akun)
+     - Uang Keluar → merah (uang keluar/beban)
+     - Tipe lain (Jurnal/Pinjaman/Bayar Pinjaman) → netral, tanpa accent
    Scoped by ID — tidak mempengaruhi picker lain (channel, variasi, dst)
    yang juga pakai class .kas-akun-picker. */
-#kas-lbl-debit, #kas-edit-lbl-debit { color: var(--ok); }
 #kas-lbl-kredit, #kas-edit-lbl-kredit { color: var(--warn); }
-#picker-debit, #picker-edit-debit {
-  border-left: 3px solid var(--ok);
-}
 #picker-kredit, #picker-edit-kredit {
   border-left: 3px solid var(--warn);
 }
+#picker-debit, #picker-edit-debit {
+  border-left: 3px solid transparent;
+}
+#kas-lbl-debit.kas-debit-masuk,  #kas-edit-lbl-debit.kas-debit-masuk  { color: var(--ok); }
+#kas-lbl-debit.kas-debit-keluar, #kas-edit-lbl-debit.kas-debit-keluar { color: var(--danger); }
+#picker-debit.kas-debit-masuk,  #picker-edit-debit.kas-debit-masuk  { border-left-color: var(--ok); }
+#picker-debit.kas-debit-keluar, #picker-edit-debit.kas-debit-keluar { border-left-color: var(--danger); }
 .kas-akun-list {
   position: absolute;
   top: 100%;
