@@ -2196,6 +2196,14 @@ function jpTogglePicker(pickerId) {
   var emp = list.querySelector('.kas-akun-empty');
   if (emp) emp.style.display = 'none';
 
+  // Tandai baru dibuka — cegah unified outside handler (app.js) langsung
+  // nutup ulang saat browser auto-scroll modal untuk bring search input
+  // yang baru di-focus ke viewport (root cause: harus klik 2x sebelum
+  // field "Cari..." kepakai — klik pertama kebuka lalu langsung ke-close
+  // oleh scroll listener karena guard ini sebelumnya tidak dipanggil di sini,
+  // beda dengan kasTogglePicker/keuTogglePicker yang sudah pasang guard ini).
+  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
+
   // Float ke body agar tidak terpotong overflow modal
   var rect = picker.getBoundingClientRect();
   list.style.position  = 'fixed';
