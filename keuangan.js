@@ -1955,6 +1955,11 @@ function keuTogglePicker(pickerId) {
   var emp = list.querySelector('.kas-akun-empty');
   if (emp) emp.style.display = 'none';
 
+  // Tandai baru dibuka — cegah unified outside handler (app.js) langsung
+  // nutup ulang saat browser auto-scroll modal untuk bring search input
+  // yang baru di-focus ke viewport (fix sama seperti jpTogglePicker).
+  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
+
   // Float ke body agar tidak terpotong overflow modal
   var rect = picker.getBoundingClientRect();
   // Pakai visualViewport.height jika ada (iOS keyboard-aware)

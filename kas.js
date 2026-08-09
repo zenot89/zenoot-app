@@ -885,7 +885,7 @@ function kasShowForm() {
       var now = new Date();
       document.getElementById('kas-edit-tgl').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     })();
-    document.getElementById('kas-edit-tipe').value = 'masuk'; kasSyncTipePicker('masuk');
+    document.getElementById('kas-edit-tipe').value = 'keluar'; kasSyncTipePicker('keluar');
     idrSet('kas-edit-nominal', 0);
     document.getElementById('kas-edit-ket').value = '';
     document.getElementById('kas-edit-ref').value = '';
