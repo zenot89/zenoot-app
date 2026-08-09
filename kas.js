@@ -164,7 +164,7 @@ document.getElementById('page-kas').innerHTML = `
 
   <!-- FREEZE: Tab bar + filter — tidak ikut scroll -->
   <div id="kas-lap-sticky-header">
-    <div style="display:flex;gap:0;border-bottom:2px solid var(--ink);flex-wrap:wrap">
+    <div class="kas-lap-header-desktop" style="display:flex;gap:0;border-bottom:2px solid var(--ink);flex-wrap:wrap">
       <button id="lap-tab-neraca" onclick="kasLapTab('neraca')"
         style="padding:7px 18px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;background:var(--ink);color:var(--cream);cursor:pointer;margin-bottom:-2px">
         <i class="ti ti-scale"></i> Neraca Saldo
@@ -182,6 +182,16 @@ document.getElementById('page-kas').innerHTML = `
         <input type="month" id="kas-lap-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasRenderLaporan()">
         <button class="btn btn-sm" onclick="document.getElementById('kas-lap-bulan').value='';kasRenderLaporan()">Semua</button>
       </div>
+    </div>
+    <!-- Mobile: cuma Refresh + dropdown gabungan 3 tab, filter bulan & 'Semua' disembunyikan -->
+    <div class="kas-lap-header-mobile" style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:2px solid var(--ink)">
+      <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
+      <select id="lap-tab-select-mobile" onchange="kasLapTab(this.value)"
+        style="font-family:var(--f);font-size:13px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px">
+        <option value="neraca">⚖️ Neraca Saldo</option>
+        <option value="labarugi">📈 Laba Rugi</option>
+        <option value="aruskas">🔁 Arus Kas</option>
+      </select>
     </div>
   </div>
 
@@ -1642,6 +1652,8 @@ function kasLapTab(tab) {
     if (btn)   { btn.style.background = active ? 'var(--ink)' : 'var(--cream)'; btn.style.color = active ? 'var(--cream)' : 'var(--ink)'; }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
+  var sel = document.getElementById('lap-tab-select-mobile');
+  if (sel) sel.value = tab;
 }
 
 // ─── kasRenderLaporan — pola clearTimeout/setTimeout persis JP ──

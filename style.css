@@ -3041,7 +3041,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   pointer-events: none;
 }
 
-/* ── Summary split layout: portrait vs laptop ── */
+/* ── Kas & Jurnal — Laporan: mobile simplifikasi ── */
+/* Mobile (≤767px): header cuma Refresh + dropdown gabungan tab,
+   filter bulan & tombol 'Semua' disembunyikan. Tabel Neraca Saldo
+   cuma tampil Kode/Nama Akun/Saldo — kolom lain di-skip.
+   Desktop/laptop TIDAK berubah sama sekali. */
+@media (max-width: 767px) {
+  .kas-lap-header-desktop { display: none !important; }
+  .kas-lap-header-mobile  { display: flex !important; }
+  #lap-panel-neraca table.kas-lap-tbl th:nth-child(n+4),
+  #lap-panel-neraca table.kas-lap-tbl td:nth-child(n+4) { display: none !important; }
+}
+@media (min-width: 768px) {
+  .kas-lap-header-mobile { display: none !important; }
+}
 /* Dot indicator (bold point) untuk swipe slide Supplier/Order/Naik — portrait */
 .rs-dot {
   width: 6px; height: 6px;
@@ -3055,6 +3068,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .rs-dot.active { background: var(--ink); opacity: 1; transform: scale(1.25); }
 .rs-swipe-hint { font-size: 10px; color: var(--ink3); margin-left: 4px; }
 
+/* ── Summary split layout: portrait vs laptop ── */
 /* Portrait (≤767px): toggle mode — split hidden */
 @media (max-width: 767px) {
   .sum-list-portrait { display: -webkit-flex !important; display: flex !important; -webkit-flex-direction: column; flex-direction: column; }
