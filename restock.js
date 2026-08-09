@@ -576,6 +576,8 @@ function renderRestockTabs() {
     })();
     // Poin 1+2: scroll collapse + double-swipe expand
     initSumCardsScrollCollapse();
+    // Swipe horizontal ganti slide (Supplier/Order/Naik) — portrait only
+    if (window.innerWidth < 768) _initRestockSummarySwipe();
   } else {
     // Supplier tab: restock-tbl-scroll harus overflow:visible
     // supaya sup-tbl-wrap jadi scroll container sendiri
@@ -754,29 +756,78 @@ function sumCardsToggle() {
 }
 
 var _sumDualMode = 'segera'; // 'segera' | 'naik' | 'supplier'
+var _sumSwipeOrder = ['supplier', 'segera', 'naik']; // urutan slide: 1.Supplier 2.Order 3.Naik
+var _sumSwipeHints = [
+  'geser → Order',
+  '← Supplier &nbsp;&middot;&nbsp; geser → Naik',
+  '← Order'
+];
 
 function sumTabSwitch(mode) {
   _sumDualMode = mode;
+  const idx  = _sumSwipeOrder.indexOf(mode);
   const list = document.getElementById('sum-dual-list');
+  const zone = document.getElementById('sum-list-zone');
   if (!list) return;
 
   const cfg = {
-    segera:   { color: 'var(--danger)', bg: 'rgba(224,82,82,0.1)',  border: 'rgba(224,82,82,0.4)',  html: window._sumSegeraHtml   || '<div style="color:var(--ink3);padding:10px 0">Semua stok aman 👌</div>' },
-    naik:     { color: 'var(--ok)',     bg: 'rgba(46,204,122,0.1)', border: 'rgba(46,204,122,0.4)', html: window._sumNaikHtml     || '<div style="color:var(--ink3);padding:10px 0">Belum ada tren naik</div>' },
-    supplier: { color: '#5ba3e0',       bg: 'rgba(91,163,224,0.1)', border: 'rgba(91,163,224,0.4)', html: window._sumSupplierListHtml || '<div style="color:var(--ink3);padding:10px 0">Belum ada data supplier</div>' },
+    segera:   window._sumSegeraHtml       || '<div style="color:var(--ink3);padding:10px 0">Semua stok aman 👌</div>',
+    naik:     window._sumNaikHtml         || '<div style="color:var(--ink3);padding:10px 0">Belum ada tren naik</div>',
+    supplier: window._sumSupplierListHtml || '<div style="color:var(--ink3);padding:10px 0">Belum ada data supplier</div>',
   };
 
-  ['segera', 'naik', 'supplier'].forEach(function(m) {
-    const tab = document.getElementById('sum-tab-' + m);
-    if (!tab) return;
-    const active = m === mode;
-    tab.style.color      = active ? cfg[m].color  : 'var(--ink3)';
-    tab.style.background = active ? cfg[m].bg     : 'transparent';
-    tab.style.borderColor = active ? cfg[m].border : 'rgba(255,255,255,0.1)';
-    tab.style.fontWeight = active ? '700' : '600';
+  // Dot indikator (bold point) — aktifkan sesuai posisi slide
+  document.querySelectorAll('.rs-dot').forEach(function(d) {
+    d.classList.toggle('active', d.dataset.mode === mode);
   });
+  const hintEl = document.getElementById('rs-swipe-hint');
+  if (hintEl) hintEl.innerHTML = _sumSwipeHints[idx] || '';
 
-  list.innerHTML = cfg[mode].html;
+  list.innerHTML = cfg[mode];
+  if (zone) zone.scrollTop = 0; // reset scroll biar slide baru mulai dari atas
+}
+
+// Swipe horizontal di area list Summary (portrait) untuk ganti slide —
+// pakai gesture di elemen scroll YANG SAMA (#sum-list-zone), bukan translateX
+// track terpisah, supaya fitur scroll-to-collapse header (initSumCardsScrollCollapse,
+// listen scrollTop #sum-list-zone) tetap jalan normal & tidak kesenggol.
+function _initRestockSummarySwipe() {
+  var zone = document.getElementById('sum-list-zone');
+  if (!zone || zone._rsSwipeInited) return;
+  zone._rsSwipeInited = true;
+  var startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
+
+  zone.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+    isDragging = true;
+    isHoriz = null;
+  }, { passive: true });
+
+  zone.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    if (isHoriz) e.preventDefault(); // cuma cegah scroll vertikal saat geser horizontal
+  }, { passive: false });
+
+  zone.addEventListener('touchend', function(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    if (!isHoriz) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dt = Date.now() - startT;
+    var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+    var idx = _sumSwipeOrder.indexOf(_sumDualMode);
+    if ((dx < -40 || (isFlick && dx < 0)) && idx < _sumSwipeOrder.length - 1) sumTabSwitch(_sumSwipeOrder[idx + 1]);
+    else if ((dx > 40 || (isFlick && dx > 0)) && idx > 0) sumTabSwitch(_sumSwipeOrder[idx - 1]);
+  }, { passive: true });
+
+  zone.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
 }
 
 function prioritasBadge(p) {
@@ -975,19 +1026,19 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
         <i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier
         <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:auto">Total: ${fmtRp(grandNilaiSemuaSupplier)}</span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:18px">
         ${modalPerSupplier.slice(0, 8).map((m, i) => {
           const pctOfGrand = grandNilaiSemuaSupplier > 0 ? Math.round((m.nilai / grandNilaiSemuaSupplier) * 100) : 0;
           const pctMandeg  = m.nilai > 0 ? Math.round((m.nilaiMandeg / m.nilai) * 100) : 0;
           return `
-          <div style="cursor:pointer" onclick="restockSwitchTab('${m.boss}')">
+          <div style="cursor:pointer;padding-bottom:14px;${i < modalPerSupplier.slice(0, 8).length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.06)' : ''}" onclick="restockSwitchTab('${m.boss}')">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
               <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
               <div style="font-size:11px;color:var(--ink3);flex-shrink:0">${m.sku} SKU · ${m.pcs} pcs · ${pctOfGrand}% dari total</div>
               <div style="font-size:13px;font-weight:700;color:#5ba3e0;min-width:100px;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
             </div>
-            <div style="display:flex;height:5px;border-radius:2px;overflow:hidden;background:rgba(46,204,122,0.15);margin:4px 0 2px 24px">
+            <div style="display:flex;height:5px;border-radius:2px;overflow:hidden;background:rgba(46,204,122,0.15);margin:8px 0 5px 24px">
               <div style="width:${100 - pctMandeg}%;background:var(--ok)"></div>
               <div style="width:${pctMandeg}%;background:var(--warn)"></div>
             </div>
@@ -1026,23 +1077,12 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       ${cards}
       ${(segera.length || skuNaik.length || (modalPerSupplier && modalPerSupplier.length)) ? `
       <div style="padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
-        <!-- Portrait: 3-tab switcher (Order Sekarang / Lagi Naik / Nilai Supplier) -->
-        <div class="sum-header-portrait" style="display:flex;gap:6px;width:100%;overflow-x:auto">
-          <button id="sum-tab-segera" onclick="sumTabSwitch('segera')"
-            style="flex:1;font-size:11px;font-weight:700;padding:6px 8px;border-radius:6px;white-space:nowrap;
-                   border:1px solid rgba(224,82,82,0.4);background:rgba(224,82,82,0.1);color:var(--danger);cursor:pointer">
-            🔥 Order ${segera.length}
-          </button>
-          <button id="sum-tab-naik" onclick="sumTabSwitch('naik')"
-            style="flex:1;font-size:11px;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;
-                   border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--ink3);cursor:pointer">
-            📈 Naik ${skuNaik.length}
-          </button>
-          <button id="sum-tab-supplier" onclick="sumTabSwitch('supplier')"
-            style="flex:1;font-size:11px;font-weight:600;padding:6px 8px;border-radius:6px;white-space:nowrap;
-                   border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--ink3);cursor:pointer">
-            🏬 Supplier
-          </button>
+        <!-- Portrait: dot indicator + swipe hint (geser, bukan tombol) -->
+        <div class="sum-header-portrait" style="display:flex;align-items:center;gap:6px;padding:2px 2px 0">
+          <span class="rs-dot" data-mode="supplier" onclick="sumTabSwitch('supplier')"></span>
+          <span class="rs-dot active" data-mode="segera" onclick="sumTabSwitch('segera')"></span>
+          <span class="rs-dot" data-mode="naik" onclick="sumTabSwitch('naik')"></span>
+          <span class="rs-swipe-hint" id="rs-swipe-hint">← Supplier &nbsp;&middot;&nbsp; geser → Naik</span>
         </div>
         <!-- Laptop: judul tiga kolom -->
         <div class="sum-header-laptop" style="display:none;width:100%;align-items:center;gap:0">

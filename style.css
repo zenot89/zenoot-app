@@ -3042,6 +3042,19 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── Summary split layout: portrait vs laptop ── */
+/* Dot indicator (bold point) untuk swipe slide Supplier/Order/Naik — portrait */
+.rs-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ink3);
+  opacity: 0.35;
+  transition: opacity 0.2s, background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.rs-dot.active { background: var(--ink); opacity: 1; transform: scale(1.25); }
+.rs-swipe-hint { font-size: 10px; color: var(--ink3); margin-left: 4px; }
+
 /* Portrait (≤767px): toggle mode — split hidden */
 @media (max-width: 767px) {
   .sum-list-portrait { display: -webkit-flex !important; display: flex !important; -webkit-flex-direction: column; flex-direction: column; }
