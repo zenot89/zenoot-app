@@ -98,6 +98,7 @@ document.getElementById('page-stok').innerHTML = `
       <span id="stok-summary-cash-locked" style="color:var(--danger);font-size:12px"></span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px" id="stok-summary-cards"></div>
+    <div id="stok-summary-rekomendasi" style="margin-top:14px"></div>
   </div>
 
   <!-- MODAL PASTE MASSAL STOK -->
@@ -454,6 +455,90 @@ function stokRenderSummary() {
       ? '💰 Cash mandeg di Dead+Zombie: Rp' + cashLocked.toLocaleString('id-ID')
       : '';
   }
+
+  _stokRenderRekomendasi();
+}
+
+// ─── REKOMENDASI: Nilai Stok Mandeg per Katalog (Dead+Zombie) ──
+// Tujuan: kasih GAMBARAN modal yang nyangkut, bukan tombol aksi otomatis
+// (user yang eksekusi manual — clearance / diskon extra di toko).
+// Diurut dari katalog dengan nilai stok mandeg terbesar. Kalau katalog
+// punya >1 varian, ditampilkan sebagai dropdown SKU Variasi.
+function _stokRenderRekomendasi() {
+  var wrap = document.getElementById('stok-summary-rekomendasi');
+  if (!wrap || !_stokAllData) return;
+
+  // Kumpulkan varian dead/zombie per katalog
+  var byKatalog = {}; // katalog -> [{sku, sisa, nilai}]
+  _stokAllData.forEach(function(r) {
+    var sisa = r.sisa || 0;
+    if (sisa <= 0) return;
+    var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
+    if (vel !== 'dead' && vel !== 'zombie') return;
+    var kat = r.katalog || '—';
+    if (!byKatalog[kat]) byKatalog[kat] = [];
+    byKatalog[kat].push({ sku: r.sku_variasi, sisa: sisa, nilai: sisa * (r.hpp || 0) });
+  });
+
+  // Total nilai per katalog, ambil top 6
+  var groups = Object.keys(byKatalog).map(function(kat) {
+    var varian = byKatalog[kat].sort(function(a, b) { return b.nilai - a.nilai; });
+    var total  = varian.reduce(function(s, v) { return s + v.nilai; }, 0);
+    return { katalog: kat, varian: varian, total: total };
+  }).filter(function(g) { return g.total > 0; })
+    .sort(function(a, b) { return b.total - a.total; })
+    .slice(0, 6);
+
+  if (!groups.length) { wrap.innerHTML = ''; return; }
+
+  var fmtRp = function(v) { return 'Rp' + Math.round(v).toLocaleString('id-ID'); };
+
+  var rowsHtml = groups.map(function(g, i) {
+    var rid = 'stok-rek-' + i;
+    var top = g.varian[0]; // default: varian dengan nilai terbesar
+    var selectHtml = g.varian.length > 1
+      ? '<select id="' + rid + '-sel" onchange="_stokRekOnVarChange(\'' + rid + '\')" ' +
+        'style="width:100%;margin-top:4px;font-size:12px;padding:4px 6px;background:var(--cream3);color:var(--ink);border:1px solid rgba(255,255,255,0.1);border-radius:4px">'
+        + g.varian.map(function(v) {
+            return '<option value="' + v.sku + '" data-sisa="' + v.sisa + '" data-nilai="' + v.nilai + '">'
+              + v.sku + ' — ' + v.sisa + ' pcs</option>';
+          }).join('')
+        + '</select>'
+      : '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + top.sku + ' — ' + top.sisa + ' pcs</div>';
+
+    return '<div style="padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:6px;margin-bottom:6px;background:var(--cream3)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
+      +   '<div style="flex:1;min-width:0">'
+      +     '<div style="font-weight:700;font-size:13px">' + g.katalog + '</div>'
+      +     selectHtml
+      +   '</div>'
+      +   '<div style="text-align:right;flex-shrink:0">'
+      +     '<div id="' + rid + '-nilai" style="font-weight:700;color:var(--warn);font-size:15px">' + fmtRp(top.nilai) + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div id="' + rid + '-insight" style="font-size:11px;color:var(--ink3);margin-top:6px">💡 Modal ' + fmtRp(top.nilai) + ' nyangkut di produk ini — pertimbangkan clearance atau diskon extra</div>'
+      + '</div>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<div style="font-weight:700;font-size:12px;color:var(--ink2);margin-bottom:8px;display:flex;align-items:center;gap:6px">'
+    + '<i class="ti ti-bulb"></i> Nilai Stok Mandeg — Rekomendasi</div>'
+    + rowsHtml
+    + '<button class="btn btn-sm" onclick="gotoPage(\'clearance\',null)" style="width:100%;margin-top:2px">'
+    + '<i class="ti ti-tag"></i> Lihat Detail Lengkap di Clearance Monitor</button>';
+}
+
+// Update nilai + insight text saat user ganti pilihan varian di dropdown
+function _stokRekOnVarChange(rid) {
+  var sel = document.getElementById(rid + '-sel');
+  if (!sel) return;
+  var opt   = sel.options[sel.selectedIndex];
+  var nilai = Number(opt.dataset.nilai || 0);
+  var fmtRp = function(v) { return 'Rp' + Math.round(v).toLocaleString('id-ID'); };
+  var nilaiEl   = document.getElementById(rid + '-nilai');
+  var insightEl = document.getElementById(rid + '-insight');
+  if (nilaiEl)   nilaiEl.textContent   = fmtRp(nilai);
+  if (insightEl) insightEl.textContent = '💡 Modal ' + fmtRp(nilai) + ' nyangkut di produk ini — pertimbangkan clearance atau diskon extra';
 }
 
 // ─── STATUS TABS ──────────────────────────────────────────────

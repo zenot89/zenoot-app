@@ -415,7 +415,26 @@ async function loadRestock() {
     });
     clearanceList.sort((a, z) => z.nilai - a.nilai);
 
-    window._restockData = { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList };
+    // ── Modal per Supplier — nilai stok yang SUDAH ADA sekarang di gudang
+    //    (beda dari grandBudget yang itu estimasi belanja BARU/re-order).
+    //    Basisnya semua produk (bukan cuma yg lolos filter kritis/14hr),
+    //    biar Dead/Zombie yg gak nongol di bossList tetep kehitung.
+    const modalPerSupplierMap = {};
+    produkAll.forEach(p => {
+      const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+      if (!skuKey) return;
+      const sisa = sisaMap[skuKey];
+      if (!sisa || sisa <= 0) return;
+      const bossKey = (p.boss || '—').trim().toUpperCase();
+      const nilai = sisa * (p.hpp || 0);
+      if (!modalPerSupplierMap[bossKey]) modalPerSupplierMap[bossKey] = { boss: bossKey, nilai: 0, sku: 0, pcs: 0 };
+      modalPerSupplierMap[bossKey].nilai += nilai;
+      modalPerSupplierMap[bossKey].sku   += 1;
+      modalPerSupplierMap[bossKey].pcs   += sisa;
+    });
+    const modalPerSupplier = Object.values(modalPerSupplierMap).sort((a, z) => z.nilai - a.nilai);
+
+    window._restockData = { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList, modalPerSupplier };
 
     if (_restockActiveTab !== 'SUMMARY' && !bossSorted.includes(_restockActiveTab)) {
       _restockActiveTab = 'SUMMARY';
@@ -436,7 +455,7 @@ function renderRestockTabs() {
   const infoWrap = document.getElementById('restock-info-bar-wrap');
   if (!body || !window._restockData) return;
 
-  const { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList } = window._restockData;
+  const { bossList, bossSorted, fmtRp, d14, today, totalSKU, grandBudget, bannerKritis, clearanceList, zombieList, modalPerSupplier } = window._restockData;
 
   // ── Tab bar — dirender ke sticky header ──
   if (tabWrap) {
@@ -532,7 +551,7 @@ function renderRestockTabs() {
     }
     body.style.height   = '100%';
     body.style.overflow = 'hidden';
-    body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList);
+    body.innerHTML = renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList, modalPerSupplier);
     _sumDualMode = 'segera';
     // Init swipe-to-collapse minicard — identik dengan kas.js (3 zona swipe)
     (function() {
@@ -773,7 +792,7 @@ function dosBadge(dos, lead_time) {
 }
 
 // ── Tab Summary ──
-function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList) {
+function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList, modalPerSupplier) {
   const grandBudget = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
   const grandQty    = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
   const grandSKU    = bossSorted.reduce((s,b) => s + bossList[b].items.length, 0);
@@ -947,6 +966,23 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       <td colspan="2"></td>
     </tr>`;
 
+  // ── Modal per Supplier — nilai stok yg SUDAH ADA (bukan budget order baru) ──
+  const modalSupplierBlock = (modalPerSupplier && modalPerSupplier.length) ? `
+    <div style="margin-top:16px;padding:12px 16px;background:var(--cream2);border-radius:6px;border-left:3px solid #5ba3e0">
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-building-warehouse"></i> Modal Nyangkut per Supplier
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${modalPerSupplier.slice(0, 8).map((m, i) => `
+          <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0" onclick="restockSwitchTab('${m.boss}')">
+            <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
+            <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
+            <div style="font-size:11px;color:var(--ink3);flex-shrink:0">${m.sku} SKU · ${m.pcs} pcs</div>
+            <div style="font-size:13px;font-weight:700;color:#5ba3e0;min-width:100px;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
   // ── Clearance ──
   const clearanceBlock = (clearanceList && clearanceList.length) ? `
     <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--cream2);border-radius:6px;border-left:3px solid var(--ink3)">
@@ -1014,6 +1050,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     </div>
     <!-- Clearance + Zombie monitor — di luar scroll zone, padding bawah -->
     <div style="padding:0 14px 16px;flex-shrink:0">
+      ${modalSupplierBlock}
       ${clearanceBlock}
       ${zombieBlock}
     </div>`;

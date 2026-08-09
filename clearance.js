@@ -64,10 +64,11 @@ document.getElementById('page-clearance').innerHTML = `
             <th style="text-align:center">Terjual 14hr</th>
             <th style="text-align:right">HPP/pcs</th>
             <th onclick="clSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Nilai Stok <span id="cl-sort-nilai">↕</span></th>
+            <th>Insight</th>
           </tr>
         </thead>
         <tbody id="cl-tbody">
-          <tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+          <tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -93,14 +94,16 @@ let _clSort       = { col: 'nilai', dir: 'desc' };
 const _clKatLabel = {
   discontinued : '🚫 Discontinued',
   seasonal     : '🌙 Seasonal',
-  clearance    : '🏷️ Clearance'
+  clearance    : '🏷️ Clearance',
+  dead_aktif   : '🔴 Dead (Aktif)',
+  zombie_aktif : '⚫ Zombie (Aktif)'
 };
 
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadClearance() {
   const tbody = document.getElementById('cl-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
 
   try {
     const today = new Date();
@@ -108,11 +111,21 @@ async function loadClearance() {
     d14.setDate(d14.getDate() - 13);
     const dari14 = d14.toISOString().slice(0, 10);
 
-    const [produkAll, stokRaw, jpAllRaw, jp14Raw] = await Promise.all([
+    const tgl7  = new Date(); tgl7.setDate(tgl7.getDate() - 7);
+    const tgl30 = new Date(); tgl30.setDate(tgl30.getDate() - 30);
+    const tgl90 = new Date(); tgl90.setDate(tgl90.getDate() - 90);
+    const tgl7Str  = tgl7.toISOString().slice(0, 10);
+    const tgl30Str = tgl30.toISOString().slice(0, 10);
+    const tgl90Str = tgl90.toISOString().slice(0, 10);
+
+    const [produkAll, stokRaw, jpAllRaw, jp14Raw, jp7Raw, jp30Raw, jp90Raw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc'),
       dbGet('stok'),
       dbGet('jurnal_penjualan', '&select=sku,qty'),
-      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + dari14)
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + dari14),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl30Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl90Str)
     ]);
 
     // Hitung sisa stok per SKU
@@ -131,8 +144,20 @@ async function loadClearance() {
       const k = (r.sku || '').trim().toUpperCase();
       if (k) qty14Map[k] = (qty14Map[k] || 0) + (r.qty || 0);
     });
+    // Sales 7/30/90 hari — dipakai buat deteksi Dead/Zombie di SKU yang masih AKTIF
+    // (identik logic _stokVelocity di stok.js)
+    const sales7Map = {}, sales30Map = {}, sales90Map = {};
+    const _buildMap = (data, map) => {
+      (data || []).forEach(r => {
+        const k = (r.sku || '').trim().toUpperCase();
+        if (k) map[k] = (map[k] || 0) + (r.qty || 0);
+      });
+    };
+    _buildMap(jp7Raw,  sales7Map);
+    _buildMap(jp30Raw, sales30Map);
+    _buildMap(jp90Raw, sales90Map);
 
-    // Build clearance list — hanya non-aktif yang sisa > 0
+    // Build clearance list — non-aktif yang sisa > 0
     _clAllData = [];
     produkAll.forEach(p => {
       const kat = (p.kategori_produk || 'aktif').toLowerCase();
@@ -156,11 +181,39 @@ async function loadClearance() {
       });
     });
 
+    // Tambahan: SKU yang masih AKTIF tapi Dead/Zombie berdasar kecepatan jual
+    // (identik logic Summary Stok Produk) — ditandain kat khusus biar kebeda
+    // dari kategori non-aktif eksplisit, tapi tetap masuk daftar & bisa difilter.
+    produkAll.forEach(p => {
+      const katProduk = (p.kategori_produk || 'aktif').toLowerCase();
+      if (katProduk !== 'aktif') return;
+
+      const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+      if (!skuKey) return;
+
+      const sisa = (masukMap[skuKey] || 0) - (keluarMap[skuKey] || 0);
+      if (sisa <= 0) return;
+
+      const vel = _stokVelocity(sales7Map[skuKey], sales30Map[skuKey], sales90Map[skuKey]);
+      if (vel !== 'dead' && vel !== 'zombie') return;
+
+      _clAllData.push({
+        kat     : vel === 'dead' ? 'dead_aktif' : 'zombie_aktif',
+        katalog : p.katalog || '—',
+        sku     : skuKey,
+        boss    : p.boss || '—',
+        sisa,
+        qty14   : qty14Map[skuKey] || 0,
+        hpp     : p.hpp || 0,
+        nilai   : sisa * (p.hpp || 0)
+      });
+    });
+
     clRenderAll();
 
   } catch(err) {
     const tbody = document.getElementById('cl-tbody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
     console.error('[clearance]', err);
   }
 }
@@ -190,7 +243,7 @@ function clRenderAll() {
   const footer = document.getElementById('cl-footer');
 
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada SKU yang cocok dengan filter.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada SKU yang cocok dengan filter.</td></tr>';
     if (footer) footer.textContent = '';
     clUpdateMetrics(data);
     clUpdateSortIcons();
@@ -209,6 +262,7 @@ function clRenderAll() {
       <td style="text-align:center;color:${r.qty14 > 0 ? 'var(--ok)' : 'var(--ink3)'}">${r.qty14 || '—'}</td>
       <td style="text-align:right;color:var(--ink3);font-size:12px">${fmtRp(r.hpp)}</td>
       <td style="text-align:right;font-weight:700;color:var(--warn)">${fmtRp(r.nilai)}</td>
+      <td style="font-size:11px;color:var(--ink3);max-width:220px">💡 Modal ${fmtRp(r.nilai)} nyangkut — pertimbangkan clearance/diskon extra</td>
     </tr>`;
   }).join('');
 
@@ -220,6 +274,7 @@ function clRenderAll() {
       <td style="text-align:center;color:var(--ink2)">${totalPcs}</td>
       <td></td><td></td>
       <td style="text-align:right;color:var(--warn)">${fmtRp(totalNilai)}</td>
+      <td></td>
     </tr>`;
 
   if (footer) footer.textContent = `Menampilkan ${data.length} dari ${_clAllData.length} SKU`;
@@ -372,7 +427,9 @@ function clOpenSub(type, event) {
       { val: '', label: 'Semua Kategori' },
       { val: 'clearance',    label: '🏷️ Clearance'   },
       { val: 'discontinued', label: '🚫 Discontinued' },
-      { val: 'seasonal',     label: '🌙 Seasonal'     }
+      { val: 'seasonal',     label: '🌙 Seasonal'     },
+      { val: 'dead_aktif',   label: '🔴 Dead (Aktif)' },
+      { val: 'zombie_aktif', label: '⚫ Zombie (Aktif)' }
     ];
   } else if (type === 'sup') {
     const uniq = [...new Set(_clAllData.map(r => r.boss).filter(Boolean))].sort();
