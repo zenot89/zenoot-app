@@ -415,10 +415,12 @@ async function loadRestock() {
     });
     clearanceList.sort((a, z) => z.nilai - a.nilai);
 
-    // ── Modal per Supplier — nilai stok yang SUDAH ADA sekarang di gudang
-    //    (beda dari grandBudget yang itu estimasi belanja BARU/re-order).
+    // ── Modal per Supplier — nilai stok yang SUDAH ADA sekarang di gudang,
+    //    dipecah SEHAT (fast+slow) vs MANDEG (dead+zombie) per supplier.
     //    Basisnya semua produk (bukan cuma yg lolos filter kritis/14hr),
     //    biar Dead/Zombie yg gak nongol di bossList tetep kehitung.
+    //    Velocity pakai konvensi yg sama kayak logic reorder di atas
+    //    (qtyMap = window 14hr sbg proxi 'fast', bukan sales7 murni).
     const modalPerSupplierMap = {};
     produkAll.forEach(p => {
       const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
@@ -426,11 +428,16 @@ async function loadRestock() {
       const sisa = sisaMap[skuKey];
       if (!sisa || sisa <= 0) return;
       const bossKey = (p.boss || '—').trim().toUpperCase();
-      const nilai = sisa * (p.hpp || 0);
-      if (!modalPerSupplierMap[bossKey]) modalPerSupplierMap[bossKey] = { boss: bossKey, nilai: 0, sku: 0, pcs: 0 };
-      modalPerSupplierMap[bossKey].nilai += nilai;
-      modalPerSupplierMap[bossKey].sku   += 1;
-      modalPerSupplierMap[bossKey].pcs   += sisa;
+      const nilaiSku = sisa * (p.hpp || 0);
+      const velSku   = _velocity(qtyMap[skuKey], sales30Map[skuKey], sales90Map[skuKey]);
+      const isMandeg = (velSku === 'dead' || velSku === 'zombie');
+      if (!modalPerSupplierMap[bossKey]) {
+        modalPerSupplierMap[bossKey] = { boss: bossKey, nilai: 0, nilaiMandeg: 0, sku: 0, pcs: 0 };
+      }
+      modalPerSupplierMap[bossKey].nilai += nilaiSku;
+      if (isMandeg) modalPerSupplierMap[bossKey].nilaiMandeg += nilaiSku;
+      modalPerSupplierMap[bossKey].sku += 1;
+      modalPerSupplierMap[bossKey].pcs += sisa;
     });
     const modalPerSupplier = Object.values(modalPerSupplierMap).sort((a, z) => z.nilai - a.nilai);
 
@@ -966,20 +973,33 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       <td colspan="2"></td>
     </tr>`;
 
-  // ── Modal per Supplier — nilai stok yg SUDAH ADA (bukan budget order baru) ──
+  // ── Nilai Stok per Supplier — total + breakdown berapa % yang mandeg ──
+  const grandNilaiSemuaSupplier = (modalPerSupplier || []).reduce((s, m) => s + m.nilai, 0);
   const modalSupplierBlock = (modalPerSupplier && modalPerSupplier.length) ? `
     <div style="margin-top:16px;padding:12px 16px;background:var(--cream2);border-radius:6px;border-left:3px solid #5ba3e0">
       <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <i class="ti ti-building-warehouse"></i> Modal Nyangkut per Supplier
+        <i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier
+        <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:auto">Total: ${fmtRp(grandNilaiSemuaSupplier)}</span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${modalPerSupplier.slice(0, 8).map((m, i) => `
-          <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0" onclick="restockSwitchTab('${m.boss}')">
-            <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
-            <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
-            <div style="font-size:11px;color:var(--ink3);flex-shrink:0">${m.sku} SKU · ${m.pcs} pcs</div>
-            <div style="font-size:13px;font-weight:700;color:#5ba3e0;min-width:100px;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
-          </div>`).join('')}
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${modalPerSupplier.slice(0, 8).map((m, i) => {
+          const pctOfGrand = grandNilaiSemuaSupplier > 0 ? Math.round((m.nilai / grandNilaiSemuaSupplier) * 100) : 0;
+          const pctMandeg  = m.nilai > 0 ? Math.round((m.nilaiMandeg / m.nilai) * 100) : 0;
+          return `
+          <div style="cursor:pointer" onclick="restockSwitchTab('${m.boss}')">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
+              <div style="font-size:11px;color:var(--ink3);flex-shrink:0">${m.sku} SKU · ${m.pcs} pcs · ${pctOfGrand}% dari total</div>
+              <div style="font-size:13px;font-weight:700;color:#5ba3e0;min-width:100px;text-align:right;flex-shrink:0">${fmtRp(m.nilai)}</div>
+            </div>
+            <div style="display:flex;height:5px;border-radius:2px;overflow:hidden;background:rgba(46,204,122,0.15);margin:4px 0 2px 24px">
+              <div style="width:${100 - pctMandeg}%;background:var(--ok)"></div>
+              <div style="width:${pctMandeg}%;background:var(--warn)"></div>
+            </div>
+            ${pctMandeg > 0 ? `<div style="font-size:10px;color:var(--warn);margin-left:24px">⚠️ ${pctMandeg}% (${fmtRp(m.nilaiMandeg)}) mandeg — dead/zombie</div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
     </div>` : '';
 

@@ -97,7 +97,7 @@ document.getElementById('page-stok').innerHTML = `
       <span><i class="ti ti-chart-bar"></i> Summary Stok</span>
       <span id="stok-summary-cash-locked" style="color:var(--danger);font-size:12px"></span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px" id="stok-summary-cards"></div>
+    <div style="display:block" id="stok-summary-cards"></div>
     <div id="stok-summary-rekomendasi" style="margin-top:14px"></div>
   </div>
 
@@ -411,48 +411,89 @@ function stokToggleSummary() {
 function stokRenderSummary() {
   if (!_stokAllData || !_stokAllData.length) return;
   var counts = { fast:0, slow:0, dead:0, zombie:0, habis:0 };
-  var skus   = { fast:[], slow:[], dead:[], zombie:[], habis:[] };
-  var cashLocked = 0; // nilai IDR mandeg di dead+zombie
+  var nilai  = { fast:0, slow:0, dead:0, zombie:0 }; // habis selalu 0 (sisa=0)
 
   _stokAllData.forEach(function(r) {
     var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
     var sisa = Math.max(0, r.sisa || 0);
     if (r.sisa <= 0) {
       counts.habis++;
-      skus.habis.push({ sku: r.sku_variasi, vel: vel });
     } else {
       counts[vel]++;
-      skus[vel].push(r.sku_variasi);
-      if (vel === 'dead' || vel === 'zombie') cashLocked += sisa * (r.hpp || 0);
+      nilai[vel] += sisa * (r.hpp || 0);
     }
   });
 
   var cfg = [
-    { key:'fast',   label:'🟢 Fast Moving',  sub:'Laku 7hr terakhir',        color:'#00c896', action:'Restock' },
-    { key:'slow',   label:'🟡 Slow Moving',  sub:'Tidak laku 7–30hr',         color:'#c8a000', action:'Promo' },
-    { key:'dead',   label:'🔴 Dead Stock',   sub:'Tidak laku 30–90hr',        color:'#e05c00', action:'Clearance' },
-    { key:'zombie', label:'⚫ Zombie',        sub:'Tidak laku >90hr',          color:'var(--ink3)', action:'Discontinue' },
-    { key:'habis',  label:'💀 Habis',        sub:'Stok = 0',                  color:'var(--danger)', action:'Cek demand' },
+    { key:'fast',   label:'Fast Moving',  color:'#00c896' },
+    { key:'slow',   label:'Slow Moving',  color:'#c8a000' },
+    { key:'dead',   label:'Dead Stock',   color:'#e05c00' },
+    { key:'zombie', label:'Zombie',       color:'var(--ink3)' },
   ];
 
-  var html = '';
+  var totalNilai  = nilai.fast + nilai.slow + nilai.dead + nilai.zombie;
+  var nilaiSehat  = nilai.fast + nilai.slow;
+  var nilaiMandeg = nilai.dead + nilai.zombie;
+  var pctSehat    = totalNilai > 0 ? Math.round((nilaiSehat  / totalNilai) * 100) : 0;
+  var pctMandeg   = totalNilai > 0 ? 100 - pctSehat : 0;
+  var fmtRp = function(v) { return 'Rp' + Math.round(v).toLocaleString('id-ID'); };
+
+  // ── Headline: 3 angka utama (bukan 5 card jumlah SKU) ──
+  var headline =
+    '<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;margin-bottom:10px">' +
+      '<div style="padding:10px 12px;border:1.5px solid var(--ink3);background:var(--cream3)">' +
+        '<div style="font-size:10px;color:var(--ink3);font-weight:700;text-transform:uppercase">💼 Total Nilai Inventory</div>' +
+        '<div style="font-size:22px;font-weight:700;line-height:1.3">' + fmtRp(totalNilai) + '</div>' +
+      '</div>' +
+      '<div style="padding:10px 12px;border:1.5px solid #00c896;background:rgba(0,200,150,0.06);cursor:pointer" onclick="stokTabStatus(\'fast\')">' +
+        '<div style="font-size:10px;color:#00c896;font-weight:700;text-transform:uppercase">✅ Sehat</div>' +
+        '<div style="font-size:18px;font-weight:700;line-height:1.3;color:#00c896">' + pctSehat + '%</div>' +
+        '<div style="font-size:10px;color:var(--ink3)">' + fmtRp(nilaiSehat) + '</div>' +
+      '</div>' +
+      '<div style="padding:10px 12px;border:1.5px solid var(--warn);background:rgba(224,82,82,0.06);cursor:pointer" onclick="stokTabStatus(\'dead\')">' +
+        '<div style="font-size:10px;color:var(--warn);font-weight:700;text-transform:uppercase">⚠️ Mangkrak</div>' +
+        '<div style="font-size:18px;font-weight:700;line-height:1.3;color:var(--warn)">' + pctMandeg + '%</div>' +
+        '<div style="font-size:10px;color:var(--ink3)">' + fmtRp(nilaiMandeg) + '</div>' +
+      '</div>' +
+    '</div>';
+
+  // ── Stacked bar: proporsi NILAI (Rp) per status kesehatan, bukan jumlah SKU ──
+  var barSegments = '';
   cfg.forEach(function(s) {
-    var n = counts[s.key];
-    html += '<div style="border:1.5px solid ' + s.color + ';padding:10px 12px;cursor:pointer" onclick="stokTabStatus(\'' + s.key + '\')">'
-      + '<div style="font-size:11px;color:' + s.color + ';font-weight:700">' + s.label + '</div>'
-      + '<div style="font-size:24px;font-weight:700;line-height:1.2">' + n + ' <span style="font-size:11px;color:var(--ink3);font-weight:400">SKU</span></div>'
-      + '<div style="font-size:10px;color:var(--ink3);margin-top:2px">' + s.sub + '</div>'
-      + '<div style="font-size:10px;margin-top:4px;padding:2px 6px;display:inline-block;border:1px solid ' + s.color + ';color:' + s.color + '">' + s.action + '</div>'
-      + '</div>';
+    var pct = totalNilai > 0 ? (nilai[s.key] / totalNilai) * 100 : 0;
+    if (pct <= 0) return;
+    barSegments += '<div title="' + s.label + ': ' + fmtRp(nilai[s.key]) + ' (' + Math.round(pct) + '%)" ' +
+      'style="width:' + pct + '%;background:' + s.color + ';height:100%;cursor:pointer" ' +
+      'onclick="stokTabStatus(\'' + s.key + '\')"></div>';
   });
+  var bar = '<div style="display:flex;height:14px;border-radius:3px;overflow:hidden;background:var(--cream3);margin-bottom:8px">' + barSegments + '</div>';
+
+  // ── Chip legend ringkas — klik tetap filter tabel, tapi 1 baris padat (bukan card gede) ──
+  var chips = '<div style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:2px">';
+  cfg.forEach(function(s) {
+    chips += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer" onclick="stokTabStatus(\'' + s.key + '\')">' +
+      '<span style="width:8px;height:8px;border-radius:2px;background:' + s.color + ';flex-shrink:0"></span>' +
+      '<span style="color:var(--ink2);font-weight:600">' + s.label + '</span>' +
+      '<span style="color:var(--ink3)">' + counts[s.key] + ' SKU · ' + fmtRp(nilai[s.key]) + '</span>' +
+    '</div>';
+  });
+  if (counts.habis > 0) {
+    chips += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer" onclick="stokTabStatus(\'habis\')">' +
+      '<span style="width:8px;height:8px;border-radius:2px;background:var(--danger);flex-shrink:0"></span>' +
+      '<span style="color:var(--ink2);font-weight:600">💀 Habis</span>' +
+      '<span style="color:var(--ink3)">' + counts.habis + ' SKU</span>' +
+    '</div>';
+  }
+  chips += '</div>';
 
   var cards = document.getElementById('stok-summary-cards');
-  if (cards) cards.innerHTML = html;
+  if (cards) cards.innerHTML = headline + bar + chips;
 
+  // Header kanan panel: dipakein sebagai ringkasan cepat "mangkrak" (dead+zombie)
   var cashEl = document.getElementById('stok-summary-cash-locked');
   if (cashEl) {
-    cashEl.textContent = cashLocked > 0
-      ? '💰 Cash mandeg di Dead+Zombie: Rp' + cashLocked.toLocaleString('id-ID')
+    cashEl.textContent = nilaiMandeg > 0
+      ? '💰 Mangkrak (Dead+Zombie): ' + fmtRp(nilaiMandeg) + ' (' + pctMandeg + '% dari total)'
       : '';
   }
 
