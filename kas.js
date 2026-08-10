@@ -49,11 +49,29 @@ document.getElementById('page-kas').innerHTML = `
   #kas-bulan-dropdown {
     position:fixed;
     background:var(--cream2); border:1px solid var(--ink3);
-    border-radius:14px; min-width:200px; padding:6px;
+    border-radius:14px; min-width:220px; padding:6px;
     z-index:99999; display:none;
     box-shadow:0 8px 28px rgba(0,0,0,.3);
   }
   #kas-bulan-dropdown.open { display:block; }
+  #kas-bulan-dropdown .dd-section {
+    font-size:10px; font-weight:700; color:var(--ink3);
+    text-transform:uppercase; letter-spacing:.07em; padding:5px 10px 3px;
+  }
+  #kas-bulan-dropdown .dd-list {
+    max-height:132px; overflow-y:auto; /* ~3 item kelihatan, sisanya scroll */
+  }
+  #kas-bulan-dropdown .dd-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-weight:500; color:var(--ink2);
+    cursor:pointer; border:none; background:none;
+    width:100%; text-align:left; font-family:var(--f);
+    white-space:nowrap;
+  }
+  #kas-bulan-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #kas-bulan-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #kas-bulan-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
   .kas-btn-pill {
     display:flex; align-items:center; gap:6px;
     padding:7px 13px; border-radius:20px;
@@ -63,6 +81,11 @@ document.getElementById('page-kas').innerHTML = `
   }
   .kas-btn-pill:hover { background:var(--cream); color:var(--ink); }
   .kas-btn-pill.primary { background:var(--cream); color:var(--ink); }
+  .kas-btn-refresh-icon {
+    padding:0; width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; font-size:18px;
+  }
   .kas-panel { display:none; }
   .kas-panel.active { display:block; }
   .akun-badge { display:inline-block; padding:2px 7px; border-radius:2px; font-size:11px; font-weight:700; border:1.5px solid currentColor; }
@@ -98,7 +121,7 @@ document.getElementById('page-kas').innerHTML = `
 <div id="kas-top-bar">
   <!-- Baris 1: Refresh + Filter Bulan (kiri) | Tab Dropdown (kanan) -->
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <button class="kas-btn-pill primary" onclick="loadKasJurnal()"><i class="ti ti-refresh"></i> Refresh</button>
+    <button class="kas-btn-pill primary kas-btn-refresh-icon" onclick="loadKasJurnal()" title="Refresh"><i class="ti ti-refresh"></i></button>
     <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
       <button class="kas-btn-pill" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
         <i class="ti ti-calendar"></i>
@@ -673,7 +696,8 @@ function _kasEnsureBulanDD() {
   dd.id = 'kas-bulan-dropdown';
   // Generate 12 bulan terakhir
   var html = '<div class="dd-section">Filter Periode</div>';
-  html += '<button class="dd-item active" data-bulan="" onclick="kasSetBulan(&quot;&quot;)">Semua periode</button>';
+  html += '<div class="dd-list">';
+  html += '<button class="dd-item active" data-bulan="" onclick="kasSetBulan(&quot;&quot;)"><i class="ti ti-calendar-off"></i> Semua periode</button>';
   var now = new Date();
   for (var i = 0; i < 12; i++) {
     var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -681,6 +705,7 @@ function _kasEnsureBulanDD() {
     var lbl = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
     html += '<button class="dd-item" data-bulan="'+val+'" onclick="kasSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
   }
+  html += '</div>';
   dd.innerHTML = html;
   document.body.appendChild(dd);
 }
