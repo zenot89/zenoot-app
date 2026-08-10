@@ -179,14 +179,14 @@ document.getElementById('page-kas').innerHTML = `
       </button>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center;padding-bottom:4px">
         <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
-        <input type="month" id="kas-lap-bulan" style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)" onchange="kasRenderLaporan()">
-        <button class="btn btn-sm" onclick="document.getElementById('kas-lap-bulan').value='';kasRenderLaporan()">Semua</button>
+        <div id="kas-lap-bulan-picker-d"></div>
       </div>
     </div>
-    <!-- Mobile: cuma Refresh + dropdown gabungan 3 tab, filter bulan & 'Semua' disembunyikan -->
-    <div class="kas-lap-header-mobile" style="display:none;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:2px solid var(--ink)">
-      <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
-      <div class="kas-lap-tipe-picker" style="position:relative">
+    <!-- Mobile: cuma Refresh + dropdown gabungan 3 tab + picker bulan, filter bulan lama disembunyikan -->
+    <div class="kas-lap-header-mobile" style="display:none;flex-direction:column;gap:8px;padding:8px 0;border-bottom:2px solid var(--ink)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
+        <div class="kas-lap-tipe-picker" style="position:relative">
         <button id="lap-tipe-picker-btn" onclick="kasLapTipeToggle()"
           style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:13px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer">
           <i class="ti ti-scale" id="lap-tipe-picker-icon"></i>
@@ -210,7 +210,9 @@ document.getElementById('page-kas').innerHTML = `
             <i class="ti ti-check lap-tipe-check" style="margin-left:auto;visibility:hidden"></i>
           </div>
         </div>
+        </div>
       </div>
+      <div id="kas-lap-bulan-picker-m" style="width:100%"></div>
     </div>
   </div>
 
@@ -1689,6 +1691,105 @@ function _kasLapTipeOutside(e) {
   }
 }
 
+// ─── Picker Bulan (shortcut) — Laporan Kas & Jurnal ───
+// '' = Semua. Format lain 'YYYY-MM'. Dipakai baik desktop maupun mobile
+// (2 instance DOM: -d dan -m, disinkronkan bareng tiap kali berubah).
+var _kasLapBulan = '';
+var NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function _kasLapBulanOptions() {
+  var opts = [{ val: '', label: 'Semua' }];
+  var now = new Date();
+  for (var i = 0; i < 12; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var label = (i === 0 ? 'Bulan Ini — ' : '') + NAMA_BULAN_ID[d.getMonth()] + ' ' + d.getFullYear();
+    opts.push({ val: d.getFullYear() + '-' + mm, label: label });
+  }
+  return opts;
+}
+
+function _kasLapBulanLabel(val) {
+  if (!val) return 'Semua';
+  var parts = val.split('-');
+  return NAMA_BULAN_ID[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
+
+function _kasLapBulanRenderPicker() {
+  var opts = _kasLapBulanOptions();
+  var itemsHtml = opts.map(function(o) {
+    return '<div class="kas-lap-bulan-item" data-val="' + o.val + '" onclick="kasLapBulanPick(\'' + o.val + '\')" ' +
+      'style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);border-top:1px solid rgba(0,0,0,0.08);white-space:nowrap">' +
+      o.label +
+      '<i class="ti ti-check kas-lap-bulan-check" style="margin-left:auto;visibility:' + (o.val === _kasLapBulan ? 'visible' : 'hidden') + '"></i>' +
+    '</div>';
+  }).join('');
+
+  return function(suffix) {
+    return '<div class="kas-lap-bulan-picker" style="position:relative">' +
+      '<button id="kas-lap-bulan-btn-' + suffix + '" onclick="kasLapBulanToggle(\'' + suffix + '\')" ' +
+        'style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:12px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer;width:100%;justify-content:center">' +
+        '<i class="ti ti-calendar"></i> <span id="kas-lap-bulan-label-' + suffix + '">' + _kasLapBulanLabel(_kasLapBulan) + '</span>' +
+        '<i class="ti ti-chevron-down" style="font-size:12px;opacity:.6"></i>' +
+      '</button>' +
+      '<div id="kas-lap-bulan-list-' + suffix + '" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;min-width:200px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 6px 16px rgba(0,0,0,0.35)">' +
+        itemsHtml +
+      '</div>' +
+    '</div>';
+  };
+}
+
+function kasLapBulanInit() {
+  var build = _kasLapBulanRenderPicker();
+  var elD = document.getElementById('kas-lap-bulan-picker-d');
+  var elM = document.getElementById('kas-lap-bulan-picker-m');
+  if (elD) elD.innerHTML = build('d');
+  if (elM) elM.innerHTML = build('m');
+}
+
+function kasLapBulanToggle(suffix) {
+  var list = document.getElementById('kas-lap-bulan-list-' + suffix);
+  if (!list) return;
+  var willOpen = list.style.display !== 'block';
+  // Tutup instance lain (desktop/mobile) biar gak dobel kebuka
+  ['d','m'].forEach(function(s) {
+    var l = document.getElementById('kas-lap-bulan-list-' + s);
+    if (l && s !== suffix) l.style.display = 'none';
+  });
+  list.style.display = willOpen ? 'block' : 'none';
+  if (willOpen) {
+    setTimeout(function() { document.addEventListener('click', _kasLapBulanOutside); }, 0);
+  }
+}
+function _kasLapBulanOutside(e) {
+  var insideAny = !!e.target.closest('.kas-lap-bulan-picker');
+  if (!insideAny) {
+    ['d','m'].forEach(function(s) {
+      var l = document.getElementById('kas-lap-bulan-list-' + s);
+      if (l) l.style.display = 'none';
+    });
+    document.removeEventListener('click', _kasLapBulanOutside);
+  }
+}
+
+function kasLapBulanPick(val) {
+  _kasLapBulan = val;
+  var label = _kasLapBulanLabel(val);
+  ['d','m'].forEach(function(s) {
+    var lblEl = document.getElementById('kas-lap-bulan-label-' + s);
+    if (lblEl) lblEl.textContent = label;
+    var list = document.getElementById('kas-lap-bulan-list-' + s);
+    if (list) {
+      list.style.display = 'none';
+      list.querySelectorAll('.kas-lap-bulan-item').forEach(function(item) {
+        var chk = item.querySelector('.kas-lap-bulan-check');
+        if (chk) chk.style.visibility = (item.dataset.val === val) ? 'visible' : 'hidden';
+      });
+    }
+  });
+  kasRenderLaporan();
+}
+
 function kasLapTab(tab) {
   ['neraca','labarugi','aruskas'].forEach(function(t) {
     var btn   = document.getElementById('lap-tab-' + t);
@@ -1734,8 +1835,9 @@ async function _kasExecLaporan() {
     });
     return;
   }
-  const bulan = document.getElementById('kas-lap-bulan') ? document.getElementById('kas-lap-bulan').value : '';
+  const bulan = _kasLapBulan;
   const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
+  kasLapBulanInit();
   kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(data);
 }
 
