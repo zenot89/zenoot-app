@@ -328,6 +328,13 @@ function _kasInjectSheets() {
       <div class="kas-tipe-icon"><i class="ti ti-arrow-down-left"></i></div>
       <div class="kas-tipe-label">Uang Masuk</div>
     </button>
+    <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('penarikan')">
+      <div class="kas-tipe-icon"><i class="ti ti-cash-banknote"></i></div>
+      <div>
+        <div class="kas-tipe-label">Penarikan Tunai</div>
+        <div class="kas-tipe-desc">Dari Kas/Bank ke Tunai</div>
+      </div>
+    </button>
     <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('jurnal')">
       <div class="kas-tipe-icon"><i class="ti ti-pencil"></i></div>
       <div>
@@ -532,6 +539,7 @@ function _kasInjectSheets() {
           <option value="pinjaman">Pinjaman</option>
           <option value="keluar">Uang Keluar</option>
           <option value="masuk">Uang Masuk</option>
+          <option value="penarikan">Penarikan Tunai</option>
         </select>
         <div id="kas-edit-tipe-picker" class="kas-tipe-picker" onclick="kasToggleTipePicker(this)" style="position:relative">
           <div class="kas-tipe-picker-val">
@@ -1018,8 +1026,8 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     _brimoTipe = tipe;
     _brimoExpr = '';
     var badge = document.getElementById('kas-brimo-tipe-badge');
-    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500' };
+    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa' };
     if (badge) {
       badge.textContent = labels[tipe] || tipe;
       badge.style.color = colors[tipe] || 'var(--ink2)';
@@ -1046,8 +1054,8 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
       var now = new Date();
       tglEl.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     }
-    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500' };
+    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa' };
     var db = document.getElementById('kas-brimo-detail-badge');
     if (db) { db.textContent = labels[_brimoTipe]; db.style.color = colors[_brimoTipe]; db.style.fontWeight='700'; db.style.fontSize='12px'; }
     var dn = document.getElementById('kas-brimo-detail-nominal');
@@ -1182,6 +1190,7 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 // Bayar Pinjaman: debit=kewajiban, kredit=aset
 // Masuk        : debit=aset, kredit=pendapatan/modal
 // Keluar       : debit=beban, kredit=aset
+// Penarikan Tunai: debit=TUNAI (dikunci, auto-select), kredit=Kas&Bank selain Tunai
 // Jurnal Umum  : semua akun (tidak difilter)
 function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   var selD = document.getElementById(idDebit);
@@ -1192,6 +1201,55 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   allOpts.forEach(function(o) { o.style.display = ''; });
   Array.from(selK.options).forEach(function(o) { o.style.display = ''; });
   if (tipe === 'jurnal') return; // semua tampil
+
+  var pickerD = idDebit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
+  var pickerK = idKredit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
+
+  // ── Kasus khusus: Penarikan Tunai — bukan filter by kelompok biasa,
+  // tapi predikat khusus (sub_kelompok KAS & BANK, exclude Tunai di kredit,
+  // dan Debit dikunci/otomatis ke akun TUNAI). ──
+  if (tipe === 'penarikan') {
+    function isKasBank(akun) {
+      return akun && akun.kelompok === 'aset' && (akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    }
+    function isTunai(akun) {
+      return akun && (akun.nama || '').trim().toUpperCase() === 'TUNAI';
+    }
+    var tunaiId = '';
+    Array.from(selD.options).forEach(function(o) {
+      if (!o.value) { o.style.display = 'none'; return; } // placeholder disembunyikan — debit selalu Tunai
+      var akun = _kasAkunMap[o.value];
+      var show = isTunai(akun);
+      o.style.display = show ? '' : 'none';
+      if (show) tunaiId = o.value;
+    });
+    if (tunaiId) selD.value = tunaiId; // auto-select TUNAI, debit dikunci
+    Array.from(selK.options).forEach(function(o) {
+      if (!o.value) { o.style.display = ''; return; }
+      var akun = _kasAkunMap[o.value];
+      o.style.display = (isKasBank(akun) && !isTunai(akun)) ? '' : 'none';
+    });
+    if (selK.value) {
+      var curK = _kasAkunMap[selK.value];
+      if (!isKasBank(curK) || isTunai(curK)) selK.value = '';
+    }
+    function filterPickerPenarikan(listId, mode) {
+      var list = document.getElementById(listId);
+      if (!list) return;
+      Array.from(list.querySelectorAll('.kas-akun-item')).forEach(function(item) {
+        if (!item.dataset.val) { item.style.display = (mode === 'debit') ? 'none' : ''; return; }
+        var akun = _kasAkunMap[item.dataset.val];
+        var show = mode === 'debit' ? isTunai(akun) : (isKasBank(akun) && !isTunai(akun));
+        item.style.display = show ? '' : 'none';
+      });
+    }
+    filterPickerPenarikan(pickerD, 'debit');
+    filterPickerPenarikan(pickerK, 'kredit');
+    // Sinkron label picker (debit terkunci ke TUNAI, kredit ikut value ter-reset kalau invalid)
+    kasSyncPickerLabel(pickerD.replace('-list', ''), idDebit);
+    kasSyncPickerLabel(pickerK.replace('-list', ''), idKredit);
+    return;
+  }
 
   var filterD = null, filterK = null;
   if (tipe === 'pinjaman')       { filterD = ['aset'];       filterK = ['kewajiban']; }
@@ -1219,8 +1277,6 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   applyFilter(selK, filterK);
 
   // Update picker list juga kalau ada
-  var pickerD = idDebit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
-  var pickerK = idKredit.replace('kas-jrn-akun-','picker-').replace('kas-edit-akun-','picker-edit-') + '-list';
   function filterPickerList(listId, allowed) {
     var list = document.getElementById(listId);
     if (!list) return;
@@ -1261,6 +1317,7 @@ function kasOnTipeChange() {
   else if (tipe === 'keluar')     { lblD.textContent = 'Beban / Tujuan (Debit)';  lblK.textContent = 'Keluar dari Akun (Kredit)'; }
   else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
   else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
+  else if (tipe === 'penarikan')  { lblD.textContent = 'Ke Tunai (Debit)';        lblK.textContent = 'Sumber Penarikan (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
   _kasSetDebitAccent('kas-lbl-debit', 'picker-debit', tipe);
   kasFilterAkunByTipe(tipe, 'kas-jrn-akun-debit', 'kas-jrn-akun-kredit');
@@ -1363,6 +1420,7 @@ function kasOnEditTipeChange() {
   else if (tipe === 'keluar')     { lblD.textContent = 'Beban / Tujuan (Debit)';  lblK.textContent = 'Keluar dari Akun (Kredit)'; }
   else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
   else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
+  else if (tipe === 'penarikan')  { lblD.textContent = 'Ke Tunai (Debit)';        lblK.textContent = 'Sumber Penarikan (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
   _kasSetDebitAccent('kas-edit-lbl-debit', 'picker-edit-debit', tipe);
   kasFilterAkunByTipe(tipe, 'kas-edit-akun-debit', 'kas-edit-akun-kredit');
@@ -2489,11 +2547,12 @@ function kasPjmAutoJatuhTempo(prefix) {
 
 // ── Custom Tipe Picker (modal Edit desktop) ──────────────────────────────────
 var _KAS_TIPE_META = {
-  jurnal:         { label:'Jurnal Umum',    icon:'ti-pencil'          },
-  bayar_pinjaman: { label:'Bayar Pinjaman', icon:'ti-credit-card'     },
-  pinjaman:       { label:'Pinjaman',       icon:'ti-building-bank'   },
-  keluar:         { label:'Uang Keluar',    icon:'ti-arrow-up-right'  },
-  masuk:          { label:'Uang Masuk',     icon:'ti-arrow-down-left' }
+  jurnal:         { label:'Jurnal Umum',     icon:'ti-pencil'          },
+  bayar_pinjaman: { label:'Bayar Pinjaman',  icon:'ti-credit-card'     },
+  pinjaman:       { label:'Pinjaman',        icon:'ti-building-bank'   },
+  keluar:         { label:'Uang Keluar',     icon:'ti-arrow-up-right'  },
+  masuk:          { label:'Uang Masuk',      icon:'ti-arrow-down-left' },
+  penarikan:      { label:'Penarikan Tunai', icon:'ti-cash-banknote'   }
 };
 
 function kasSyncTipePicker(tipe) {
@@ -2519,7 +2578,7 @@ function kasToggleTipePicker(anchor) {
 
   // Posisi: muncul ke bawah, atau ke atas kalau dekat bawah layar
   var spaceBelow = window.innerHeight - rect.bottom;
-  var menuH = 5 * 40; // estimasi 5 item x 40px
+  var menuH = 6 * 40; // estimasi 6 item x 40px
   if (spaceBelow < menuH + 8) {
     portal.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
     portal.style.top = 'auto';
