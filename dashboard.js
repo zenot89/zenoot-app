@@ -75,7 +75,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="metrics" id="dash-metrics">
 
     <!-- BARIS 1 — Kas Hari Ini -->
-    <div class="metric">
+    <div class="metric" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
       <div class="m-label">Saldo Kas</div>
       <div class="m-value" id="d-saldo">—</div>
       <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
