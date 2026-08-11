@@ -328,18 +328,18 @@ function _kasInjectSheets() {
       <div class="kas-tipe-icon"><i class="ti ti-arrow-down-left"></i></div>
       <div class="kas-tipe-label">Uang Masuk</div>
     </button>
-    <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('penarikan')">
-      <div class="kas-tipe-icon"><i class="ti ti-cash-banknote"></i></div>
-      <div>
-        <div class="kas-tipe-label">Penarikan Tunai</div>
-        <div class="kas-tipe-desc">Dari Kas/Bank ke Tunai</div>
-      </div>
-    </button>
-    <button class="kas-tipe-cell kas-tipe-cell-full" onclick="kasBrimoSelectTipe('jurnal')">
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('jurnal')">
       <div class="kas-tipe-icon"><i class="ti ti-pencil"></i></div>
       <div>
         <div class="kas-tipe-label">Jurnal Umum</div>
         <div class="kas-tipe-desc">Koreksi & transfer akun</div>
+      </div>
+    </button>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('penarikan')">
+      <div class="kas-tipe-icon"><i class="ti ti-cash-banknote"></i></div>
+      <div>
+        <div class="kas-tipe-label">Penarikan Tunai</div>
+        <div class="kas-tipe-desc">Kas/Bank ke Tunai</div>
       </div>
     </button>
   </div>
