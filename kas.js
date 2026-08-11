@@ -205,18 +205,17 @@ document.getElementById('page-kas').innerHTML = `
         <div id="kas-lap-bulan-picker-d"></div>
       </div>
     </div>
-    <!-- Mobile: cuma Refresh + dropdown gabungan 3 tab + picker bulan, filter bulan lama disembunyikan -->
-    <div class="kas-lap-header-mobile" style="display:none;flex-direction:column;gap:8px;padding:8px 0;border-bottom:2px solid var(--ink)">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <button class="btn btn-sm btn-primary" onclick="kasRenderLaporan()"><i class="ti ti-refresh"></i> Refresh</button>
-        <div class="kas-lap-tipe-picker" style="position:relative">
+    <!-- Mobile: Refresh (icon) + tipe + bulan, SEJAJAR 1 baris -->
+    <div class="kas-lap-header-mobile" style="display:none;align-items:center;gap:6px;padding:8px 0;border-bottom:2px solid var(--ink)">
+      <button class="btn btn-sm btn-primary kas-btn-refresh-icon" onclick="kasRenderLaporan()" title="Refresh" style="flex-shrink:0"><i class="ti ti-refresh"></i></button>
+      <div class="kas-lap-tipe-picker" style="position:relative;flex:1;min-width:0">
         <button id="lap-tipe-picker-btn" onclick="kasLapTipeToggle()"
-          style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:13px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer">
-          <i class="ti ti-scale" id="lap-tipe-picker-icon"></i>
-          <span id="lap-tipe-picker-label">Neraca Saldo</span>
-          <i class="ti ti-chevron-down" style="font-size:12px;opacity:.6"></i>
+          style="display:flex;align-items:center;gap:5px;font-family:var(--f);font-size:12px;font-weight:700;padding:6px 8px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer;width:100%;justify-content:center;white-space:nowrap;overflow:hidden">
+          <i class="ti ti-scale" id="lap-tipe-picker-icon" style="flex-shrink:0"></i>
+          <span id="lap-tipe-picker-label" style="overflow:hidden;text-overflow:ellipsis">Neraca Saldo</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;opacity:.6;flex-shrink:0"></i>
         </button>
-        <div id="lap-tipe-picker-list" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;min-width:180px;z-index:50;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.35)">
+        <div id="lap-tipe-picker-list" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;min-width:180px;z-index:50;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.35)">
           <div class="lap-tipe-item" data-tab="neraca" onclick="kasLapTab('neraca');kasLapTipeToggle()"
             style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink)">
             <i class="ti ti-scale"></i> Neraca Saldo
@@ -233,9 +232,8 @@ document.getElementById('page-kas').innerHTML = `
             <i class="ti ti-check lap-tipe-check" style="margin-left:auto;visibility:hidden"></i>
           </div>
         </div>
-        </div>
       </div>
-      <div id="kas-lap-bulan-picker-m" style="width:100%"></div>
+      <div id="kas-lap-bulan-picker-m" style="flex:1;min-width:0"></div>
     </div>
   </div>
 
@@ -1721,6 +1719,7 @@ function _kasLapTipeOutside(e) {
 // (2 instance DOM: -d dan -m, disinkronkan bareng tiap kali berubah).
 var _kasLapBulan = '';
 var NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var NAMA_BULAN_SINGKAT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
 
 function _kasLapBulanOptions() {
   var opts = [{ val: '', label: 'Semua' }];
@@ -1737,7 +1736,8 @@ function _kasLapBulanOptions() {
 function _kasLapBulanLabel(val) {
   if (!val) return 'Semua';
   var parts = val.split('-');
-  return NAMA_BULAN_ID[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  var yy = parts[0].slice(-2);
+  return NAMA_BULAN_SINGKAT[parseInt(parts[1], 10) - 1] + ' ' + yy;
 }
 
 function _kasLapBulanRenderPicker() {
