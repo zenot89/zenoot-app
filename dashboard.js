@@ -849,7 +849,7 @@ function _renderChartHariIni(jpData, canvas, tooltip) {
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
   // Line
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=1.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
@@ -939,7 +939,7 @@ function _renderChartKemarin(jpData, canvas, tooltip) {
   ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=1.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
@@ -1056,7 +1056,7 @@ function _renderChartPenjualan(jpData) {
   ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
   ctx.closePath(); ctx.fillStyle=colFill; ctx.fill();
 
-  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.strokeStyle=colLine; ctx.lineWidth=1.5; ctx.lineJoin='round';
   totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
 
@@ -1066,9 +1066,8 @@ function _renderChartPenjualan(jpData) {
   totals.forEach((v,i) => {
     const x=padL+i*step, y=padT+cH-(v/maxVal)*cH;
     _dashChartPoints.push({ x, y, label: labels[i], date: dates[i], val: v });
-    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2);
     ctx.fillStyle=v>0?colLine:colGrid; ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke();
     if (i%skip===0 || i===labels.length-1) {
       ctx.fillStyle=colLabel; ctx.font='10px sans-serif'; ctx.textAlign='center';
       ctx.fillText(labels[i], x, H-padB+14);
