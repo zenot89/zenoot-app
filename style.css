@@ -3870,6 +3870,14 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transform: scale(0.94);
 }
 .kas-brimo-000 { font-size: 15px; font-weight: 700; }
+.kas-brimo-op {
+  height: 44px;
+  background: #202836;
+  color: #6ea8ff;
+  font-size: 20px;
+  font-weight: 700;
+}
+.kas-brimo-op:active { background: #2a3547; }
 .kas-brimo-del {
   background: #2a1f1f;
   color: var(--danger);

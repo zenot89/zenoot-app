@@ -371,6 +371,13 @@ function _kasInjectSheets() {
   <!-- History chips -->
   <div id="kas-brimo-history"></div>
 
+  <!-- Operator: tambah / kurang / bagi -->
+  <div id="kas-brimo-opsrow" class="kas-brimo-numrow" style="padding:0 10px;margin-top:6px">
+    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('+')" onclick="kasBrimoKey('+')">+</button>
+    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('-')" onclick="kasBrimoKey('-')">&minus;</button>
+    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('÷')" onclick="kasBrimoKey('÷')">&divide;</button>
+  </div>
+
   <!-- Numpad BRImo full width -->
   <div id="kas-brimo-numpad">
     <div class="kas-brimo-numrow">
@@ -1115,19 +1122,39 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     }
   };
 
-  // ── Key handler numpad BRImo ───────────────────────────
+  // Segmen angka terakhir dalam ekspresi (setelah operator terakhir, kalau ada)
+  var _brimoOps = '+-\u00F7';
+  function _brimoLastSegment() {
+    var m = _brimoExpr.match(/[0-9]+$/);
+    return m ? m[0] : '';
+  }
+
+  // ── Key handler numpad BRImo (dukung + − ÷) ────────────
   window.kasBrimoKey = function(k) {
     if (k === '\u232B') {
       _brimoExpr = _brimoExpr.slice(0, -1);
+    } else if (_brimoOps.indexOf(k) >= 0) {
+      // Tombol operator: gak boleh jadi karakter pertama,
+      // dan operator beruntun akan saling menggantikan (bukan menumpuk)
+      if (!_brimoExpr) return;
+      var lastCh = _brimoExpr.charAt(_brimoExpr.length - 1);
+      if (_brimoOps.indexOf(lastCh) >= 0) {
+        _brimoExpr = _brimoExpr.slice(0, -1) + k;
+      } else {
+        _brimoExpr += k;
+      }
     } else if (k === '000') {
-      if (!_brimoExpr || _brimoExpr === '0') return;
-      if (_brimoExpr.length >= 12) return;
+      var seg000 = _brimoLastSegment();
+      if (!seg000 || seg000 === '0') return;
+      if (seg000.length >= 12) return;
       _brimoExpr += k;
     } else {
+      // digit 0-9
+      var seg = _brimoLastSegment();
       if (!_brimoExpr && k === '0') { _brimoExpr = '0'; }
-      else if (_brimoExpr === '0' && k !== '0') { _brimoExpr = k; }
+      else if (seg === '0') { _brimoExpr = _brimoExpr.slice(0, -1) + k; }
       else {
-        if (_brimoExpr.length >= 13) return;
+        if (seg.length >= 13) return;
         _brimoExpr += k;
       }
     }
@@ -1135,24 +1162,37 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
   };
 
   function _brimoEval() {
-    if (!_brimoExpr || _brimoExpr === '0') return 0;
-    var n = parseInt(_brimoExpr.replace(/[^0-9]/g, ''), 10);
-    return isFinite(n) && n > 0 ? n : 0;
+    if (!_brimoExpr) return 0;
+    // buang operator nyantol di ujung (belum diisi angka berikutnya)
+    var expr = _brimoExpr.replace(/[+\-\u00F7]+$/, '');
+    if (!expr) return 0;
+    var tokens = expr.match(/[0-9]+|[+\-\u00F7]/g);
+    if (!tokens || !tokens.length) return 0;
+    var result = parseInt(tokens[0], 10) || 0;
+    for (var i = 1; i < tokens.length - 1; i += 2) {
+      var op = tokens[i], num = parseInt(tokens[i + 1], 10) || 0;
+      if (op === '+') result += num;
+      else if (op === '-') result -= num;
+      else if (op === '\u00F7') result = num !== 0 ? Math.round(result / num) : result;
+    }
+    return isFinite(result) && result > 0 ? result : 0;
   }
 
   function _brimoUpdateDisplay() {
     var el = document.getElementById('kas-brimo-expr');
     if (!el) return;
-    if (!_brimoExpr || _brimoExpr === '0') {
+    if (!_brimoExpr) {
       el.textContent = '0';
       el.style.fontSize = '';
       return;
     }
-    var n = parseInt(_brimoExpr, 10);
-    var formatted = isNaN(n) ? _brimoExpr : n.toLocaleString('id-ID');
+    var formatted = _brimoExpr.replace(/[0-9]+/g, function(seg) {
+      var n = parseInt(seg, 10);
+      return isNaN(n) ? seg : n.toLocaleString('id-ID');
+    });
     el.textContent = formatted;
     var len = formatted.length;
-    el.style.fontSize = len > 14 ? '28px' : len > 10 ? '36px' : '44px';
+    el.style.fontSize = len > 18 ? '24px' : len > 14 ? '28px' : len > 10 ? '36px' : '44px';
   }
 
   function _brimoLoadHistory() {
