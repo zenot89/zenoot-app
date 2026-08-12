@@ -45,7 +45,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260812-ad3ba233a3e5'; // tipe picker desktop + manifest icon fix
+var JS_CACHE = 'zenot-js-20260812-86e6224122ff'; // fix TOTAL Neraca Saldo, Penarikan Tunai, chart tipis ala Shopee, dropdown periode Kas & Jurnal
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
