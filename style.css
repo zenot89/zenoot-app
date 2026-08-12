@@ -3051,11 +3051,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .kas-lap-header-mobile  { display: flex !important; }
   #lap-panel-neraca table.kas-lap-tbl th:nth-child(n+4),
   #lap-panel-neraca table.kas-lap-tbl td:nth-child(n+4) { display: none !important; }
-  /* Baris TOTAL cuma punya 4 <td> (cell pertama colspan=3), jadi posisi
-     nth-child-nya beda dari baris data biasa (yang punya 6 <td>).
-     nth-child(n+4) di atas gak nutup nilai Debit/Kredit total ini —
-     perlu rule sendiri: sembunyikan SEMUA sel setelah cell pertama. */
-  #lap-panel-neraca table.kas-lap-tbl tr.lap-total td:nth-child(n+2) { display: none !important; }
+  /* Baris TOTAL cuma punya 2 <td>: cell pertama colspan=2 ("TOTAL")
+     dan cell kedua berisi nilai D/K totalnya. nth-child(n+4) di atas
+     gak ngefek ke baris ini karena posisi kolomnya beda dari baris
+     data biasa (yang punya 6 <td>). Cell kedua justru harus TETAP
+     tampil karena isinya angka total — jangan disembunyikan. */
+  #lap-panel-neraca table.kas-lap-tbl tr.lap-total td:nth-child(n+3) { display: none !important; }
   /* table-layout:fixed + lebar eksplisit 3 kolom visible — supaya baris
      section header (colspan="6" dari kode render, tidak berubah sesuai
      kolom yg di-skip) tidak lagi menarik lebar tabel jadi 6-kolom
