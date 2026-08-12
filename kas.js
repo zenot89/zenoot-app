@@ -1954,7 +1954,7 @@ function kasRenderNeraca(data) {
       </tr>`;
     });
   });
-  html += `<tr class="lap-total"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right;font-weight:700;color:var(--ok)">Rp${totalD.toLocaleString('id-ID')}</td><td style="text-align:right;font-weight:700;color:var(--danger)">Rp${totalK.toLocaleString('id-ID')}</td><td></td></tr>`;
+  html += `<tr class="lap-total"><td colspan="2"><b>TOTAL</b></td><td style="text-align:right;line-height:1.5"><b style="color:var(--ok)">D ${fmtRp(totalD)}</b><br><b style="color:var(--danger)">K ${fmtRp(totalK)}</b></td></tr>`;
 
   tbody.innerHTML = html || `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>`;
 }
