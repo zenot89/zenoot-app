@@ -22,14 +22,34 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-hero-value { font-size: 32px; font-weight: 800; color: var(--ok); margin-top: 4px; line-height: 1.1; }
   .gdg-hero-sub   { font-size: 12px; color: var(--ink3); margin-top: 3px; }
+  .gdg-minicards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .gdg-minicard.mc-pend { border: 2px solid var(--ok); }
+  .gdg-minicard.mc-cost { border: 2px solid var(--danger); }
   .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
   @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(2,1fr); } }
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
 
+  /* ── Dropdown menu Jurnal / Kelola Produk ── */
+  .gdg-menu-wrap { position: relative; }
+  .gdg-dropdown-menu {
+    display:none; position:absolute; right:0; top:calc(100% + 6px);
+    background:var(--cream); border:2px solid var(--ink); min-width:190px; z-index:50;
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+  }
+  .gdg-dropdown-menu.open { display:block; }
+  .gdg-dropdown-menu button {
+    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+    padding:9px 12px; background:none; border:none; border-bottom:1px solid var(--cream2);
+    font-family:var(--f); font-size:13px; font-weight:600; cursor:pointer; color:var(--ink);
+  }
+  .gdg-dropdown-menu button:last-child { border-bottom:none; }
+  .gdg-dropdown-menu button:hover { background:var(--cream2); }
+  .gdg-dropdown-menu button.active { color:var(--ok); }
+
   /* ── Penyesuaian khusus layar sempit (HP) ── */
   @media(max-width:480px) {
-    .gdg-hero-value { font-size: 26px; }
+    .gdg-hero-value { font-size: 22px; }
     .gdg-metrics .m-value { font-size: 16px; line-height: 1.3; }
     #gdg-filter-bulan { min-width: 108px; flex: 1 1 auto; }
     #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 4px; }
@@ -47,19 +67,33 @@ document.getElementById('page-gadag').innerHTML = `
   }
 </style>
 
-<!-- HEADER: judul + tombol switch view -->
+<!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
   <div style="font-size:20px;font-weight:800;letter-spacing:.5px">GADAG</div>
-  <button id="gdg-switch-btn" class="btn btn-sm btn-primary" onclick="gdgToggleView()">
-    <i class="ti ti-list-details"></i> Kelola Produk
-  </button>
+  <div class="gdg-menu-wrap">
+    <button id="gdg-menu-btn" class="btn btn-sm btn-primary" onclick="gdgToggleMenu(event)">
+      <i class="ti ti-menu-2"></i> <span id="gdg-menu-btn-label">Menu</span> <i class="ti ti-chevron-down"></i>
+    </button>
+    <div id="gdg-dropdown-menu" class="gdg-dropdown-menu">
+      <button id="gdg-menu-item-mingguan" onclick="gdgSelectView('mingguan')"><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</button>
+      <button id="gdg-menu-item-pendapatan" onclick="gdgSelectView('pendapatan')"><i class="ti ti-notes"></i> Catatan Pendapatan</button>
+      <button id="gdg-menu-item-sku" onclick="gdgSelectView('sku')"><i class="ti ti-list-details"></i> Kelola Produk</button>
+    </div>
+  </div>
 </div>
 
-<!-- HERO: TOTAL PENDAPATAN (utama) -->
-<div class="card gdg-hero">
-  <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
-  <div class="gdg-hero-value" id="gdg-total-pendapatan">Rp0</div>
-  <div class="gdg-hero-sub" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
+<!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) -->
+<div class="gdg-minicards">
+  <div class="card gdg-minicard mc-pend">
+    <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
+    <div class="gdg-hero-value" id="gdg-total-pendapatan" style="color:var(--ok)">Rp0</div>
+    <div class="gdg-hero-sub" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
+  </div>
+  <div class="card gdg-minicard mc-cost">
+    <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Pengeluaran Mingguan</div>
+    <div class="gdg-hero-value" id="gdg-cost-value" style="color:var(--danger)">Rp0</div>
+    <div class="gdg-hero-sub" id="gdg-cost-sub">— (cost minggu ini)</div>
+  </div>
 </div>
 
 <div class="gdg-metrics">
@@ -86,25 +120,9 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- PANEL: CATATAN PENDAPATAN -->
-<div id="gdg-panel-pendapatan" class="gdg-panel active">
+<!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
+<div id="gdg-panel-mingguan" class="gdg-panel active">
 <div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
-    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
-  </div>
-  <div class="tbl-wrap" style="overflow-x:auto">
-    <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
-      <tbody id="gdg-pend-tbody">
-        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- RINGKASAN MINGGUAN (lokal, cuma di Gadag) -->
-<div class="card" style="margin-top:14px">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</span>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -130,6 +148,24 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 </div>
 
+<!-- PANEL: CATATAN PENDAPATAN -->
+<div id="gdg-panel-pendapatan" class="gdg-panel">
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
+    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
+  </div>
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
+      <tbody id="gdg-pend-tbody">
+        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
 <!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
 <div id="gdg-panel-sku" class="gdg-panel">
 <div class="card">
@@ -143,6 +179,7 @@ document.getElementById('page-gadag').innerHTML = `
       <tbody id="gdg-sku-tbody">
         <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
+
     </table>
   </div>
 </div>
@@ -230,27 +267,51 @@ document.getElementById('page-gadag').innerHTML = `
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-gadag')); }, 80);
 
-// ─── VIEW SWITCH (satu tombol, teks berganti sesuai posisi) ────
-let _gdgView = 'pendapatan';
+// ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
+let _gdgView = 'mingguan';
 
-function gdgToggleView() {
-  _gdgView = _gdgView === 'pendapatan' ? 'sku' : 'pendapatan';
+const _GDG_VIEW_LABEL = {
+  mingguan:   { menu: 'Ringkasan Mingguan', label: 'Ringkasan' },
+  pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal' },
+  sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk' },
+};
+
+function gdgToggleMenu(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('gdg-dropdown-menu').classList.toggle('open');
+}
+function gdgCloseMenu() {
+  document.getElementById('gdg-dropdown-menu').classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('gdg-dropdown-menu');
+  const btn  = document.getElementById('gdg-menu-btn');
+  if (!menu || !btn) return;
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+function gdgSelectView(view) {
+  _gdgView = view;
   gdgApplyView();
+  gdgCloseMenu();
 }
 
 function gdgApplyView() {
-  const showPend = _gdgView === 'pendapatan';
-  document.getElementById('gdg-panel-pendapatan').classList.toggle('active', showPend);
-  document.getElementById('gdg-panel-sku').classList.toggle('active', !showPend);
-  const btn = document.getElementById('gdg-switch-btn');
-  btn.innerHTML = showPend
-    ? '<i class="ti ti-list-details"></i> Kelola Produk'
-    : '<i class="ti ti-notes"></i> Catatan Pendapatan';
+  document.getElementById('gdg-panel-mingguan').classList.toggle('active',   _gdgView === 'mingguan');
+  document.getElementById('gdg-panel-pendapatan').classList.toggle('active', _gdgView === 'pendapatan');
+  document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
+
+  document.getElementById('gdg-menu-btn-label').textContent = _GDG_VIEW_LABEL[_gdgView].label;
+  ['mingguan','pendapatan','sku'].forEach(v => {
+    document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
+  });
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
 function gdgInit() {
-  _gdgView = 'pendapatan';
+  _gdgView = 'mingguan';
   gdgApplyView();
   _gdgBulanAktif = '';
   const bulanEl = document.getElementById('gdg-filter-bulan');
@@ -381,6 +442,10 @@ async function gdgWRenderWeek() {
   const netEl = document.getElementById('gdgw-net-value');
   netEl.textContent = gdgWFmt(totalNet);
   netEl.style.color = totalNet >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+  // Update minicard "Pengeluaran Mingguan (Cost)" di paling atas
+  document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
+  document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(monday) + ' – ' + gdgWFmtTgl(sunday);
 }
 
 function gdgOnBulanChange() {
