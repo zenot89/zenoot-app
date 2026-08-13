@@ -102,6 +102,32 @@ document.getElementById('page-gadag').innerHTML = `
     </table>
   </div>
 </div>
+
+<!-- RINGKASAN MINGGUAN (lokal, cuma di Gadag) -->
+<div class="card" style="margin-top:14px">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
+      <span id="gdgw-week-label" style="font-size:12px;font-weight:700;white-space:nowrap">—</span>
+      <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
+      <button class="btn btn-sm btn-primary" onclick="gdgWThisWeek()">Minggu Ini</button>
+    </div>
+  </div>
+  <div style="padding:8px 0 12px">
+    <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net Mingguan (Pendapatan Gadag &minus; Beban Operasional)</div>
+    <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok)">Rp0</div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:2px">Beban dari jurnal akun kode 5-xxx, skip 5-001 Beban Gaji</div>
+  </div>
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Hari</th><th style="text-align:right">Pendapatan</th><th style="text-align:right">Beban</th><th style="text-align:right">Net</th></tr></thead>
+      <tbody id="gdgw-harian-tbody">
+        <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 </div>
 
 <!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
@@ -235,6 +261,126 @@ function gdgInit() {
     tglEl.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
   }
   gdgLoad();
+  gdgWInit();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RINGKASAN MINGGUAN (lokal di Gadag)
+// Pendapatan = dari gadag_pendapatan (bukan tabel global)
+// Beban      = dari jurnal + kas_akun, kode 5-xxx KECUALI 5-001 (Beban Gaji)
+// ═══════════════════════════════════════════════════════════════
+let _gdgWAkunAll   = [];
+let _gdgWJurnalAll = [];
+let _gdgWWeekStart = null; // Date, Senin 00:00
+let _gdgWAkunLoaded = false;
+
+const _GDGW_HARI = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+const _GDGW_BLN  = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+
+function gdgWGetMonday(d) {
+  const day  = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const mon  = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+function gdgWToISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function gdgWFmtTgl(d) { return d.getDate() + ' ' + _GDGW_BLN[d.getMonth()] + ' ' + d.getFullYear(); }
+function gdgWFmt(n) {
+  const v = Number(n)||0;
+  return (v < 0 ? '-Rp' : 'Rp') + Math.round(Math.abs(v)).toLocaleString('id-ID');
+}
+
+function gdgWPrevWeek() { _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() - 7); gdgWRenderWeek(); }
+function gdgWNextWeek() { _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() + 7); gdgWRenderWeek(); }
+function gdgWThisWeek() { _gdgWWeekStart = gdgWGetMonday(new Date()); gdgWRenderWeek(); }
+
+async function gdgWInit() {
+  _gdgWWeekStart = gdgWGetMonday(new Date());
+  if (!_gdgWAkunLoaded) {
+    try {
+      const [akun, jurnal] = await Promise.all([
+        dbGet('kas_akun', '&order=kode.asc'),
+        dbGet('jurnal', '&order=tanggal.asc'),
+      ]);
+      _gdgWAkunAll   = akun   || [];
+      _gdgWJurnalAll = jurnal || [];
+      _gdgWAkunLoaded = true;
+    } catch(e) {
+      document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error ambil data beban: ${e.message}</td></tr>`;
+      return;
+    }
+  }
+  gdgWRenderWeek();
+}
+
+// Hitung beban minggu ini dari jurnal (akun kode 5-xxx kecuali 5-001)
+function gdgWHitungBebanHari(isoDay, akunBebanMap) {
+  let beban = 0;
+  _gdgWJurnalAll.forEach(r => {
+    if (r.tanggal !== isoDay) return;
+    const n = r.nominal || r.debit || r.kredit || 0;
+    if (r.akun_debit_id  && akunBebanMap[r.akun_debit_id])  beban += n;
+    if (r.akun_kredit_id && akunBebanMap[r.akun_kredit_id]) beban -= n;
+  });
+  return beban;
+}
+
+async function gdgWRenderWeek() {
+  if (!_gdgWWeekStart) return;
+  const monday = new Date(_gdgWWeekStart);
+  const sunday = new Date(_gdgWWeekStart); sunday.setDate(monday.getDate() + 6);
+  document.getElementById('gdgw-week-label').textContent = gdgWFmtTgl(monday) + ' – ' + gdgWFmtTgl(sunday);
+
+  const isoMon = gdgWToISO(monday), isoSun = gdgWToISO(sunday);
+
+  // Akun beban yg dihitung: kode diawali "5-" TAPI BUKAN "5-001" (skip Beban Gaji)
+  const akunBebanMap = {};
+  _gdgWAkunAll.forEach(a => {
+    if (a.kelompok === 'beban' && (a.kode||'').indexOf('5-') === 0 && a.kode !== '5-001') akunBebanMap[a.id] = a;
+  });
+
+  document.getElementById('gdgw-harian-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+
+  let pendapatanMingguList = [];
+  try {
+    pendapatanMingguList = await dbGet('gadag_pendapatan', '&tanggal=gte.' + isoMon + '&tanggal=lte.' + isoSun) || [];
+  } catch(e) {
+    document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    return;
+  }
+
+  let html = '', totalPend = 0, totalBeban = 0;
+  for (let i = 0; i < 7; i++) {
+    const d      = new Date(monday); d.setDate(monday.getDate() + i);
+    const isoDay = gdgWToISO(d);
+    const pend   = pendapatanMingguList.filter(p => p.tanggal === isoDay).reduce((s,p) => s + (Number(p.total)||0), 0);
+    const beban  = gdgWHitungBebanHari(isoDay, akunBebanMap);
+    const net    = pend - beban;
+    totalPend  += pend;
+    totalBeban += beban;
+    html += `<tr>
+      <td><b>${_GDGW_HARI[i]}</b> <span style="font-size:11px;color:var(--ink3)">${d.getDate()}/${d.getMonth()+1}</span></td>
+      <td style="text-align:right;color:var(--ok)">${gdgWFmt(pend)}</td>
+      <td style="text-align:right;color:var(--danger)">${gdgWFmt(beban)}</td>
+      <td style="text-align:right"><b style="color:${net>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(net)}</b></td>
+    </tr>`;
+  }
+  const totalNet = totalPend - totalBeban;
+  html += `<tr class="lap-total">
+    <td><b>TOTAL</b></td>
+    <td style="text-align:right;color:var(--ok)"><b>${gdgWFmt(totalPend)}</b></td>
+    <td style="text-align:right;color:var(--danger)"><b>${gdgWFmt(totalBeban)}</b></td>
+    <td style="text-align:right"><b style="color:${totalNet>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(totalNet)}</b></td>
+  </tr>`;
+  document.getElementById('gdgw-harian-tbody').innerHTML = html;
+
+  const netEl = document.getElementById('gdgw-net-value');
+  netEl.textContent = gdgWFmt(totalNet);
+  netEl.style.color = totalNet >= 0 ? 'var(--ok)' : 'var(--danger)';
 }
 
 function gdgOnBulanChange() {

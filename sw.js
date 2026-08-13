@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v25'; // fix: gadag.js belum kedaftar → kena cache-first stale di HP
+var CACHE_VERSION = 'zenot-static-v27'; // revert: Ringkasan Mingguan dipindah jadi section lokal di Gadag, bukan halaman global
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -45,7 +45,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260813-f83ca8267e19'; // + gadag.js (tab Catatan Pendapatan / Master SKU)
+var JS_CACHE = 'zenot-js-20260813-0930'; // gadag.js: + section lokal Ringkasan Mingguan (bukan halaman terpisah)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
