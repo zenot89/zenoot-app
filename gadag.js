@@ -24,6 +24,11 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-hero-sub   { font-size: 12px; color: var(--ink3); margin-top: 3px; }
   .gdg-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
   @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(1,1fr); } }
+  .gdg-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .gdg-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
+  .gdg-tab.active { background:var(--ink); color:var(--cream); }
+  .gdg-panel { display:none; }
+  .gdg-panel.active { display:block; }
 </style>
 
 <!-- HERO: TOTAL PENDAPATAN (utama) -->
@@ -62,7 +67,36 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- MASTER SKU & ONGKOS -->
+<!-- TAB SWITCHER: halaman terpisah, gak ditumpuk -->
+<div class="gdg-tabs">
+  <button id="gdg-tab-pendapatan" class="gdg-tab active" onclick="gdgSwitchTab('pendapatan')">
+    <i class="ti ti-notes"></i> Catatan Pendapatan
+  </button>
+  <button id="gdg-tab-sku" class="gdg-tab" onclick="gdgSwitchTab('sku')">
+    <i class="ti ti-list-details"></i> Master SKU &amp; Ongkos
+  </button>
+</div>
+
+<!-- PANEL: CATATAN PENDAPATAN -->
+<div id="gdg-panel-pendapatan" class="gdg-panel active">
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
+    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
+  </div>
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Hari</th><th>SKU</th><th style="text-align:right">Qty</th><th style="text-align:right">Total (Rp)</th><th>Aksi</th></tr></thead>
+      <tbody id="gdg-pend-tbody">
+        <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- PANEL: MASTER SKU & ONGKOS -->
+<div id="gdg-panel-sku" class="gdg-panel">
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-list-details"></i> Master SKU &amp; Ongkos / Lusin</span>
@@ -77,21 +111,6 @@ document.getElementById('page-gadag').innerHTML = `
     </table>
   </div>
 </div>
-
-<!-- CATATAN PENDAPATAN -->
-<div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
-    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
-  </div>
-  <div class="tbl-wrap" style="overflow-x:auto">
-    <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th style="text-align:right">Qty</th><th style="text-align:right">Total (Rp)</th><th>Aksi</th></tr></thead>
-      <tbody id="gdg-pend-tbody">
-        <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-      </tbody>
-    </table>
-  </div>
 </div>
 
 <!-- MODAL: SKU -->
@@ -163,6 +182,14 @@ document.getElementById('page-gadag').innerHTML = `
 `;
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-gadag')); }, 80);
+
+// ─── TAB SWITCHER ───────────────────────────────────────────────
+function gdgSwitchTab(tab) {
+  document.getElementById('gdg-panel-pendapatan').classList.toggle('active', tab === 'pendapatan');
+  document.getElementById('gdg-panel-sku').classList.toggle('active', tab === 'sku');
+  document.getElementById('gdg-tab-pendapatan').classList.toggle('active', tab === 'pendapatan');
+  document.getElementById('gdg-tab-sku').classList.toggle('active', tab === 'sku');
+}
 
 // ─── INIT ─────────────────────────────────────────────────────
 function gdgInit() {
