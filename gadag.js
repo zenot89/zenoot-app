@@ -26,6 +26,22 @@ document.getElementById('page-gadag').innerHTML = `
   @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(2,1fr); } }
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
+
+  /* ── Penyesuaian khusus layar sempit (HP) ── */
+  @media(max-width:480px) {
+    .gdg-hero-value { font-size: 26px; }
+    .gdg-metrics .m-value { font-size: 16px; line-height: 1.3; }
+    #gdg-filter-bulan { min-width: 108px; flex: 1 1 auto; }
+    #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 6px; }
+    /* bayangan tipis di kanan tbl-wrap = penanda "masih bisa di-swipe" */
+    #page-gadag .tbl-wrap { position: relative; }
+    #page-gadag .tbl-wrap::after {
+      content: '';
+      position: absolute; top: 0; right: 0; bottom: 0; width: 14px;
+      background: linear-gradient(to right, transparent, rgba(0,0,0,.35));
+      pointer-events: none;
+    }
+  }
 </style>
 
 <!-- HEADER: judul + tombol switch view -->
@@ -317,7 +333,7 @@ function gdgUpdateMetrics() {
   document.getElementById('gdg-total-pendapatan').textContent = gdgFmt(totalPendapatan);
   document.getElementById('gdg-total-sub').textContent = totalQty.toLocaleString('id-ID') + ' pcs dikerjakan · ' + jmlCatatan + ' catatan';
   document.getElementById('gdg-metric-sku').textContent = _gdgSkuList.length;
-  document.getElementById('gdg-metric-qty').textContent = totalQty.toLocaleString('id-ID') + ' pc / ' + totalLsn + ' lsn';
+  document.getElementById('gdg-metric-qty').innerHTML = totalQty.toLocaleString('id-ID') + ' pc<br>' + totalLsn + ' lsn';
 }
 
 // ─── FORMAT ───────────────────────────────────────────────────
