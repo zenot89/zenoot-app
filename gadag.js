@@ -22,37 +22,37 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-hero-value { font-size: 32px; font-weight: 800; color: var(--ok); margin-top: 4px; line-height: 1.1; }
   .gdg-hero-sub   { font-size: 12px; color: var(--ink3); margin-top: 3px; }
-  .gdg-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
-  @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(1,1fr); } }
-  .gdg-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
-  .gdg-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
-  .gdg-tab.active { background:var(--ink); color:var(--cream); }
+  .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+  @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(2,1fr); } }
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
 </style>
 
+<!-- HEADER: judul + tombol switch view -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <div style="font-size:20px;font-weight:800;letter-spacing:.5px">GADAG</div>
+  <button id="gdg-switch-btn" class="btn btn-sm btn-primary" onclick="gdgToggleView()">
+    <i class="ti ti-list-details"></i> Kelola Produk
+  </button>
+</div>
+
 <!-- HERO: TOTAL PENDAPATAN (utama) -->
 <div class="card gdg-hero">
-  <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan Gadag</div>
+  <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
   <div class="gdg-hero-value" id="gdg-total-pendapatan">Rp0</div>
   <div class="gdg-hero-sub" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
 </div>
 
 <div class="gdg-metrics">
   <div class="metric">
-    <div class="m-label">Jumlah SKU</div>
-    <div class="m-value" id="gdg-metric-sku">—</div>
-    <div class="m-delta">master ongkos per lusin</div>
-  </div>
-  <div class="metric">
-    <div class="m-label">Total Qty</div>
+    <div class="m-label">Jumlah Qty / Lsn</div>
     <div class="m-value" id="gdg-metric-qty">—</div>
     <div class="m-delta">pcs, periode terpilih</div>
   </div>
   <div class="metric">
-    <div class="m-label">Rata² / Catatan</div>
-    <div class="m-value" id="gdg-metric-avg">—</div>
-    <div class="m-delta">pendapatan per catatan</div>
+    <div class="m-label">Jumlah SKU</div>
+    <div class="m-value" id="gdg-metric-sku">—</div>
+    <div class="m-delta">master ongkos per lusin</div>
   </div>
 </div>
 
@@ -65,16 +65,6 @@ document.getElementById('page-gadag').innerHTML = `
       onchange="gdgOnBulanChange()">
     <button class="btn btn-sm" onclick="gdgResetBulan()">Semua</button>
   </div>
-</div>
-
-<!-- TAB SWITCHER: halaman terpisah, gak ditumpuk -->
-<div class="gdg-tabs">
-  <button id="gdg-tab-pendapatan" class="gdg-tab active" onclick="gdgSwitchTab('pendapatan')">
-    <i class="ti ti-notes"></i> Catatan Pendapatan
-  </button>
-  <button id="gdg-tab-sku" class="gdg-tab" onclick="gdgSwitchTab('sku')">
-    <i class="ti ti-list-details"></i> Master SKU &amp; Ongkos
-  </button>
 </div>
 
 <!-- PANEL: CATATAN PENDAPATAN -->
@@ -95,11 +85,11 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 </div>
 
-<!-- PANEL: MASTER SKU & ONGKOS -->
+<!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
 <div id="gdg-panel-sku" class="gdg-panel">
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-list-details"></i> Master SKU &amp; Ongkos / Lusin</span>
+    <span><i class="ti ti-list-details"></i> Kelola Produk</span>
     <button class="btn btn-sm btn-primary" onclick="gdgShowSkuModal()"><i class="ti ti-plus"></i> Tambah SKU</button>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
@@ -183,16 +173,28 @@ document.getElementById('page-gadag').innerHTML = `
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-gadag')); }, 80);
 
-// ─── TAB SWITCHER ───────────────────────────────────────────────
-function gdgSwitchTab(tab) {
-  document.getElementById('gdg-panel-pendapatan').classList.toggle('active', tab === 'pendapatan');
-  document.getElementById('gdg-panel-sku').classList.toggle('active', tab === 'sku');
-  document.getElementById('gdg-tab-pendapatan').classList.toggle('active', tab === 'pendapatan');
-  document.getElementById('gdg-tab-sku').classList.toggle('active', tab === 'sku');
+// ─── VIEW SWITCH (satu tombol, teks berganti sesuai posisi) ────
+let _gdgView = 'pendapatan';
+
+function gdgToggleView() {
+  _gdgView = _gdgView === 'pendapatan' ? 'sku' : 'pendapatan';
+  gdgApplyView();
+}
+
+function gdgApplyView() {
+  const showPend = _gdgView === 'pendapatan';
+  document.getElementById('gdg-panel-pendapatan').classList.toggle('active', showPend);
+  document.getElementById('gdg-panel-sku').classList.toggle('active', !showPend);
+  const btn = document.getElementById('gdg-switch-btn');
+  btn.innerHTML = showPend
+    ? '<i class="ti ti-list-details"></i> Kelola Produk'
+    : '<i class="ti ti-notes"></i> Catatan Pendapatan';
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
 function gdgInit() {
+  _gdgView = 'pendapatan';
+  gdgApplyView();
   _gdgBulanAktif = '';
   const bulanEl = document.getElementById('gdg-filter-bulan');
   if (bulanEl) bulanEl.value = '';
@@ -296,13 +298,12 @@ function gdgUpdateMetrics() {
     totalQty        += Number(p.qty)||0;
   });
   const jmlCatatan = _gdgPendapatanList.length;
-  const avg = jmlCatatan > 0 ? Math.round(totalPendapatan / jmlCatatan) : 0;
+  const totalLsn = (totalQty / 12).toFixed(1);
 
   document.getElementById('gdg-total-pendapatan').textContent = gdgFmt(totalPendapatan);
   document.getElementById('gdg-total-sub').textContent = totalQty.toLocaleString('id-ID') + ' pcs dikerjakan · ' + jmlCatatan + ' catatan';
   document.getElementById('gdg-metric-sku').textContent = _gdgSkuList.length;
-  document.getElementById('gdg-metric-qty').textContent = totalQty.toLocaleString('id-ID');
-  document.getElementById('gdg-metric-avg').textContent = gdgFmt(avg);
+  document.getElementById('gdg-metric-qty').textContent = totalQty.toLocaleString('id-ID') + ' pc / ' + totalLsn + ' lsn';
 }
 
 // ─── FORMAT ───────────────────────────────────────────────────
