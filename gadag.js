@@ -76,9 +76,9 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th style="text-align:right">Qty</th><th style="text-align:right">Total (Rp)</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total (Rp)</th><th>Aksi</th></tr></thead>
       <tbody id="gdg-pend-tbody">
-        <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
   </div>
@@ -141,27 +141,39 @@ document.getElementById('page-gadag').innerHTML = `
       <button onclick="gdgClosePendapatanModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="gdg-pend-edit-id">
-    <div class="form-group" style="margin-bottom:8px">
-      <label>Hari / Tanggal</label>
-      <input type="date" id="gdg-pend-tanggal"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-    </div>
-    <div class="form-group" style="margin-bottom:8px">
-      <label>SKU</label>
-      <select id="gdg-pend-sku" onchange="gdgRecomputePreview()"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-        <option value="">— pilih SKU —</option>
-      </select>
-    </div>
-    <div class="form-group" style="margin-bottom:8px">
-      <label>Qty (pc)</label>
-      <input type="text" inputmode="numeric" id="gdg-pend-qty" placeholder="contoh: 9"
-        oninput="gdgRecomputePreview()"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-    </div>
-    <div class="form-group" style="margin-bottom:16px;padding:10px;background:var(--cream2);border:1px dashed var(--ink3)">
-      <label style="font-size:11px;color:var(--ink3)">Total (otomatis: qty ÷ 12 × ongkos/lusin)</label>
-      <div id="gdg-pend-preview" style="font-size:20px;font-weight:800;color:var(--ok)">Rp0</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Hari</label>
+        <input type="text" id="gdg-pend-hari" readonly
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream2);box-sizing:border-box;color:var(--ink2)">
+      </div>
+      <div class="form-group">
+        <label>Tanggal</label>
+        <input type="date" id="gdg-pend-tanggal" onchange="gdgUpdateHari()"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+      </div>
+      <div class="form-group">
+        <label>Warna</label>
+        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+      </div>
+      <div class="form-group">
+        <label>SKU</label>
+        <select id="gdg-pend-sku" onchange="gdgRecomputePreview()"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+          <option value="">— pilih —</option>
+        </select>
+      </div>
+      <div class="form-group" style="padding:10px;background:var(--cream2);border:1px dashed var(--ink3);margin:0">
+        <label style="font-size:11px;color:var(--ink3)">Total</label>
+        <div id="gdg-pend-preview" style="font-size:18px;font-weight:800;color:var(--ok)">Rp0</div>
+      </div>
+      <div class="form-group">
+        <label>Qty (pc)</label>
+        <input type="text" inputmode="numeric" id="gdg-pend-qty" placeholder="contoh: 9"
+          oninput="gdgRecomputePreview()"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+      </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="gdgClosePendapatanModal()">Batal</button>
@@ -222,7 +234,7 @@ async function gdgLoad() {
   const skuTbody  = document.getElementById('gdg-sku-tbody');
   const pendTbody = document.getElementById('gdg-pend-tbody');
   skuTbody.innerHTML  = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
-  pendTbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  pendTbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   try {
     const bulan = _gdgBulanAktif;
@@ -274,13 +286,15 @@ function gdgRenderSku() {
 function gdgRenderPendapatan() {
   const tbody = document.getElementById('gdg-pend-tbody');
   if (!_gdgPendapatanList.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada catatan pendapatan.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada catatan pendapatan.</td></tr>';
     return;
   }
   tbody.innerHTML = _gdgPendapatanList.map(p => {
+    const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
     return `<tr>
-      <td style="white-space:nowrap">${p.tanggal||'—'}</td>
+      <td style="white-space:nowrap"><b>${hariLabel}</b><br><span style="font-size:11px;color:var(--ink3)">${p.tanggal||'—'}</span></td>
       <td><b style="color:var(--accent)">${p.sku_nama||'—'}</b></td>
+      <td>${p.warna||'—'}</td>
       <td style="text-align:right">${p.qty||0}</td>
       <td style="text-align:right"><b>${gdgFmt(p.total)}</b></td>
       <td>
@@ -360,15 +374,30 @@ function gdgHapusSku(id) {
   });
 }
 
+// ─── HARI (nama hari otomatis dari tanggal) ───────────────────
+var _gdgHariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+function gdgHariName(tanggalStr) {
+  if (!tanggalStr) return '';
+  var parts = tanggalStr.split('-').map(Number); // yyyy-mm-dd, hindari timezone shift
+  var d = new Date(parts[0], parts[1]-1, parts[2]);
+  return _gdgHariNames[d.getDay()] || '';
+}
+function gdgUpdateHari() {
+  var tgl = document.getElementById('gdg-pend-tanggal').value;
+  document.getElementById('gdg-pend-hari').value = gdgHariName(tgl);
+}
+
 // ─── MODAL: CATATAN PENDAPATAN ─────────────────────────────────
 function gdgShowPendapatanModal() {
   document.getElementById('gdg-pend-edit-id').value = '';
   const now = new Date();
-  document.getElementById('gdg-pend-tanggal').value =
-    now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const tglDefault = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  document.getElementById('gdg-pend-tanggal').value = tglDefault;
+  document.getElementById('gdg-pend-hari').value = gdgHariName(tglDefault);
+  document.getElementById('gdg-pend-warna').value = '';
 
   const sel = document.getElementById('gdg-pend-sku');
-  sel.innerHTML = '<option value="">— pilih SKU —</option>' + _gdgSkuList.map(s =>
+  sel.innerHTML = '<option value="">— pilih —</option>' + _gdgSkuList.map(s =>
     `<option value="${s.id}" data-ongkos="${s.ongkos_lusin||0}" data-nama="${(s.nama||'').replace(/"/g,'&quot;')}">${s.nama} (${gdgFmt(s.ongkos_lusin)}/lusin)</option>`
   ).join('');
 
@@ -376,7 +405,7 @@ function gdgShowPendapatanModal() {
   document.getElementById('gdg-pend-preview').textContent = 'Rp0';
 
   if (!_gdgSkuList.length) {
-    alert('Belum ada SKU. Tambah SKU dulu di bagian "Master SKU & Ongkos".');
+    alert('Belum ada SKU. Tambah SKU dulu di bagian "Kelola Produk".');
     return;
   }
   document.getElementById('modal-gdg-pend').classList.add('open');
@@ -398,6 +427,7 @@ function gdgRecomputePreview() {
 
 async function gdgSimpanPendapatan() {
   const tanggal = document.getElementById('gdg-pend-tanggal').value;
+  const warna   = document.getElementById('gdg-pend-warna').value.trim();
   const sel     = document.getElementById('gdg-pend-sku');
   const opt     = sel.options[sel.selectedIndex];
   const skuId   = sel.value;
@@ -411,9 +441,12 @@ async function gdgSimpanPendapatan() {
   const ongkos  = Number(opt.getAttribute('data-ongkos'))||0;
   const skuNama = opt.getAttribute('data-nama')||'';
   const total   = Math.round(qty / 12 * ongkos);
+  const hari    = gdgHariName(tanggal);
 
   const payload = {
     tanggal,
+    hari,
+    warna,
     sku_id:       skuId,
     sku_nama:     skuNama,
     ongkos_lusin: ongkos,
