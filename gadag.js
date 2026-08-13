@@ -308,7 +308,7 @@ function gdgRenderPendapatan() {
   tbody.innerHTML = _gdgPendapatanList.map(p => {
     const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
     return `<tr>
-      <td style="white-space:nowrap"><b>${hariLabel}</b><br><span style="font-size:11px;color:var(--ink3)">${p.tanggal||'—'}</span></td>
+      <td style="white-space:nowrap"><b>${hariLabel}</b></td>
       <td><b style="color:var(--accent)">${p.sku_nama||'—'}</b></td>
       <td>${p.warna||'—'}</td>
       <td style="text-align:right">${p.qty||0}</td>
