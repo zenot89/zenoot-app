@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v24'; // tipe picker desktop + manifest icon fix
+var CACHE_VERSION = 'zenot-static-v25'; // fix: gadag.js belum kedaftar → kena cache-first stale di HP
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -27,7 +27,7 @@ var CDN_ASSETS = [
 // File JS — network-first: selalu ambil versi terbaru, fallback cache kalau offline
 var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
-  'stok.js', 'restock.js', 'kas.js', 'jurnal-penjualan.js',
+  'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
@@ -45,7 +45,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260813-d7eacd9a3086'; // fix TOTAL Neraca Saldo, Penarikan Tunai, chart tipis ala Shopee, dropdown periode Kas & Jurnal
+var JS_CACHE = 'zenot-js-20260813-0117'; // + gadag.js (tab Catatan Pendapatan / Master SKU)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
