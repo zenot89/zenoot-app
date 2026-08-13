@@ -398,7 +398,7 @@ function gdgShowPendapatanModal() {
 
   const sel = document.getElementById('gdg-pend-sku');
   sel.innerHTML = '<option value="">— pilih —</option>' + _gdgSkuList.map(s =>
-    `<option value="${s.id}" data-ongkos="${s.ongkos_lusin||0}" data-nama="${(s.nama||'').replace(/"/g,'&quot;')}">${s.nama} (${gdgFmt(s.ongkos_lusin)}/lusin)</option>`
+    `<option value="${s.id}" data-ongkos="${s.ongkos_lusin||0}" data-nama="${(s.nama||'').replace(/"/g,'&quot;')}">${s.nama}</option>`
   ).join('');
 
   document.getElementById('gdg-pend-qty').value = '';
