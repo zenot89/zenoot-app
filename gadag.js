@@ -32,7 +32,10 @@ document.getElementById('page-gadag').innerHTML = `
     .gdg-hero-value { font-size: 26px; }
     .gdg-metrics .m-value { font-size: 16px; line-height: 1.3; }
     #gdg-filter-bulan { min-width: 108px; flex: 1 1 auto; }
-    #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 6px; }
+    #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 4px; }
+    #page-gadag .tbl td:last-child, #page-gadag .tbl th:last-child { padding-right: 2px; }
+    #page-gadag .tbl .btn-sm { min-height: 28px; padding: 0 6px; font-size: 11px; }
+    #page-gadag .tbl .btn-sm i { font-size: 12px; }
     /* bayangan tipis di kanan tbl-wrap = penanda "masih bisa di-swipe" */
     #page-gadag .tbl-wrap { position: relative; }
     #page-gadag .tbl-wrap::after {
@@ -92,7 +95,7 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total (Rp)</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
       <tbody id="gdg-pend-tbody">
         <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
