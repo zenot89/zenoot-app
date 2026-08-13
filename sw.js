@@ -45,7 +45,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260813-5b69e5af6d28'; // + gadag.js (tab Catatan Pendapatan / Master SKU)
+var JS_CACHE = 'zenot-js-20260813-f83ca8267e19'; // + gadag.js (tab Catatan Pendapatan / Master SKU)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
