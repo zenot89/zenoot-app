@@ -706,10 +706,12 @@ function gdgOverlayClose(e, modalId, closeFn) {
   function _gdgInitSwipe() {
     if (!_mq.matches) return;
     var summary   = document.getElementById('gdg-top-summary');
+    var minicards = document.querySelector('#gdg-panel-mingguan .gdg-minicards');
     var sticky    = document.getElementById('gdg-sticky-header');
     if (!summary || typeof initSwipeCollapse !== 'function') return;
-    if (sticky)  initSwipeCollapse(sticky,  summary, 50, 'gdg-topbar-collapsed');
-    if (summary) initSwipeCollapse(summary, summary, 50, 'gdg-topbar-collapsed');
+    if (summary)   initSwipeCollapse(summary,   summary, 50, 'gdg-topbar-collapsed');
+    if (minicards) initSwipeCollapse(minicards, summary, 50, 'gdg-topbar-collapsed');
+    if (sticky)    initSwipeCollapse(sticky,    summary, 50, 'gdg-topbar-collapsed');
   }
   function _gdgInitScrollCollapse() {
     var content = document.querySelector('.content');
