@@ -41,8 +41,7 @@ document.getElementById('page-gadag').innerHTML = `
     opacity: 0;
     pointer-events: none;
   }
-  #gdg-toggle-icon { transition: transform 0.25s ease; }
-  #gdg-toggle-icon.gdg-rotated { transform: rotate(180deg); }
+  #gdg-sticky-header { cursor: grab; }
 
   /* ── Dropdown menu Jurnal / Kelola Produk ── */
   .gdg-menu-wrap { position: relative; }
@@ -98,12 +97,6 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
 <div id="gdg-panel-mingguan" class="gdg-panel active">
 
-<!-- Sticky header: area swipe buat collapse/expand ringkasan di atas -->
-<div id="gdg-sticky-header" style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 8px;cursor:grab">
-  <span style="font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:5px"><i class="ti ti-chevrons-up-down"></i> Geser untuk sembunyikan ringkasan</span>
-  <button class="btn btn-sm" onclick="gdgToggleTopSummary()"><i class="ti ti-chevron-up" id="gdg-toggle-icon"></i></button>
-</div>
-
 <!-- Wrapper collapsible: 2 minicard + metrics + refresh -->
 <div id="gdg-top-summary">
 
@@ -142,7 +135,8 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- /gdg-top-summary -->
 
 <div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <!-- Sticky header: persis pola #kas-sticky-header — area ini yg jadi swipe zone -->
+  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</span>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
@@ -707,14 +701,6 @@ function gdgOverlayClose(e, modalId, closeFn) {
 }
 
 // ─── COLLAPSE RINGKASAN (minicard+metrics) — swipe & scroll, pola sama dgn Kas & Jurnal ──
-function gdgToggleTopSummary() {
-  const el   = document.getElementById('gdg-top-summary');
-  const icon = document.getElementById('gdg-toggle-icon');
-  if (!el) return;
-  el.classList.toggle('gdg-topbar-collapsed');
-  if (icon) icon.classList.toggle('gdg-rotated');
-}
-
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse)');
   function _gdgInitSwipe() {
