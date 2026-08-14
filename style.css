@@ -889,6 +889,32 @@ body[data-page="dashboard"] .topbar.topbar-hidden {
   }
 }
 
+/* ─── MODAL GADAG (Tambah Catatan / Tambah SKU) — KEYBOARD-SAFE FIX ──
+   Sama persis dengan pola #modal-jp di atas, yang sudah terbukti gak
+   lompat/kepotong pas keyboard muncul. Fix global .modal-overlay
+   sebelumnya belum cukup karena JS iOS keyboard-push-up mengoverride
+   inline style; butuh perlakuan khusus per-modal seperti ini. */
+@media (max-width:900px){
+  #modal-gdg-pend, #modal-gdg-sku {
+    -webkit-align-items:flex-start;
+    align-items:flex-start;
+    padding:12px 12px 0 12px;
+    height:100vh;
+    height:100dvh;
+    overflow-y:auto;
+    box-sizing:border-box;
+  }
+  #modal-gdg-pend .modal, #modal-gdg-sku .modal {
+    width:100% !important;
+    max-width:100% !important;
+    padding:16px 14px 80px 14px !important;
+    max-height:none !important;
+    box-shadow:var(--card-shadow) !important;
+    margin-bottom:20px;
+    box-sizing:border-box;
+  }
+}
+
 /* ─── SAFARI-SPECIFIC FIXES ──────────────────────────────── */
 @supports (-webkit-touch-callout:none){
   .btn{-webkit-appearance:none}

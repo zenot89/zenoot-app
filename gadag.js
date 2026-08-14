@@ -5,8 +5,6 @@
 
 let _gdgSkuList        = [];
 let _gdgPendapatanList = [];
-let _gdgBulanAktif     = '';   // '' = Semua (tidak difilter minggu)
-let _gdgMingguStart    = null; // Date, Minggu (hari Minggu) jam 00:00 — siklus gajian Minggu-Sabtu
 
 // ─── HTML ─────────────────────────────────────────────────────
 document.getElementById('page-gadag').innerHTML = `
@@ -82,7 +80,10 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) -->
+<!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
+<div id="gdg-panel-mingguan" class="gdg-panel active">
+
+<!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) — cuma di sini -->
 <div class="gdg-minicards">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
@@ -100,7 +101,7 @@ document.getElementById('page-gadag').innerHTML = `
   <div class="metric">
     <div class="m-label">Jumlah Qty / Lsn</div>
     <div class="m-value" id="gdg-metric-qty">—</div>
-    <div class="m-delta">pcs, periode terpilih</div>
+    <div class="m-delta">pcs, minggu terpilih</div>
   </div>
   <div class="metric">
     <div class="m-label">Jumlah SKU</div>
@@ -111,17 +112,8 @@ document.getElementById('page-gadag').innerHTML = `
 
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
-  <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <button class="btn btn-sm" onclick="gdgPrevMinggu()"><i class="ti ti-chevron-left"></i></button>
-    <span id="gdg-filter-minggu-label" style="font-size:12px;font-weight:700;white-space:nowrap">—</span>
-    <button class="btn btn-sm" onclick="gdgNextMinggu()"><i class="ti ti-chevron-right"></i></button>
-    <button class="btn btn-sm btn-primary" onclick="gdgMingguIni()">Minggu Ini</button>
-    <button class="btn btn-sm" onclick="gdgResetBulan()">Semua</button>
-  </div>
 </div>
 
-<!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
-<div id="gdg-panel-mingguan" class="gdg-panel active">
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</span>
@@ -150,6 +142,9 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: CATATAN PENDAPATAN -->
 <div id="gdg-panel-pendapatan" class="gdg-panel">
+<div style="display:flex;gap:8px;margin-bottom:10px">
+  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
+</div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
@@ -168,6 +163,9 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
 <div id="gdg-panel-sku" class="gdg-panel">
+<div style="display:flex;gap:8px;margin-bottom:10px">
+  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
+</div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-list-details"></i> Kelola Produk</span>
@@ -313,9 +311,6 @@ function gdgApplyView() {
 function gdgInit() {
   _gdgView = 'mingguan';
   gdgApplyView();
-  _gdgMingguStart = gdgGetMingguStart(new Date());
-  _gdgBulanAktif  = 'minggu';
-  gdgUpdateMingguLabel();
   const tglEl = document.getElementById('gdg-pend-tanggal');
   if (tglEl) {
     const now = new Date();
@@ -444,60 +439,19 @@ async function gdgWRenderWeek() {
   netEl.textContent = gdgWFmt(totalNet);
   netEl.style.color = totalNet >= 0 ? 'var(--ok)' : 'var(--danger)';
 
+  // Update minicard "Total Pendapatan" & "Jumlah Qty/Lsn" — dari data mingguan yang sama
+  const totalQtyMinggu = pendapatanMingguList.reduce((s,p) => s + (Number(p.qty)||0), 0);
+  const totalLsnMinggu = (totalQtyMinggu / 12).toFixed(1);
+  document.getElementById('gdg-total-pendapatan').textContent = gdgWFmt(totalPend);
+  document.getElementById('gdg-total-sub').textContent = totalQtyMinggu.toLocaleString('id-ID') + ' pcs dikerjakan · ' + pendapatanMingguList.length + ' catatan';
+  document.getElementById('gdg-metric-qty').innerHTML = totalQtyMinggu.toLocaleString('id-ID') + ' pc<br>' + totalLsnMinggu + ' lsn';
+
   // Update minicard "Pengeluaran Mingguan (Cost)" di paling atas
   document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
   document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
 }
 
-// ─── MINGGU GAJIAN: Minggu (Ahad) s.d Sabtu ────────────────────
-// Kerja hari Minggu ikut kehitung di minggu berikutnya (awal minggu = hari Minggu)
-function gdgGetMingguStart(d) {
-  const day = d.getDay(); // 0=Minggu..6=Sabtu
-  const sun = new Date(d);
-  sun.setDate(d.getDate() - day); // mundur ke hari Minggu terdekat (atau hari ini kalau udah Minggu)
-  sun.setHours(0,0,0,0);
-  return sun;
-}
-function gdgMingguLabel(sunDate) {
-  const sat = new Date(sunDate); sat.setDate(sunDate.getDate() + 6);
-  return gdgWFmtTgl(sunDate) + ' – ' + gdgWFmtTgl(sat);
-}
-
-function gdgPrevMinggu() {
-  if (!_gdgMingguStart) _gdgMingguStart = gdgGetMingguStart(new Date());
-  _gdgMingguStart.setDate(_gdgMingguStart.getDate() - 7);
-  _gdgBulanAktif = 'minggu';
-  gdgUpdateMingguLabel();
-  gdgLoad();
-}
-function gdgNextMinggu() {
-  if (!_gdgMingguStart) _gdgMingguStart = gdgGetMingguStart(new Date());
-  _gdgMingguStart.setDate(_gdgMingguStart.getDate() + 7);
-  _gdgBulanAktif = 'minggu';
-  gdgUpdateMingguLabel();
-  gdgLoad();
-}
-function gdgMingguIni() {
-  _gdgMingguStart = gdgGetMingguStart(new Date());
-  _gdgBulanAktif = 'minggu';
-  gdgUpdateMingguLabel();
-  gdgLoad();
-}
-function gdgUpdateMingguLabel() {
-  const el = document.getElementById('gdg-filter-minggu-label');
-  if (el) el.textContent = _gdgMingguStart ? gdgMingguLabel(_gdgMingguStart) : '—';
-}
-
-function gdgResetBulan() {
-  _gdgBulanAktif  = '';
-  _gdgMingguStart = null;
-  gdgUpdateMingguLabel();
-  const el = document.getElementById('gdg-filter-minggu-label');
-  if (el) el.textContent = 'Semua';
-  gdgLoad();
-}
-
-// ─── LOAD ─────────────────────────────────────────────────────
+// ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
 async function gdgLoad() {
   const skuTbody  = document.getElementById('gdg-sku-tbody');
   const pendTbody = document.getElementById('gdg-pend-tbody');
@@ -505,16 +459,9 @@ async function gdgLoad() {
   pendTbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   try {
-    let pendFilter = '&order=tanggal.desc,id.desc';
-    if (_gdgBulanAktif === 'minggu' && _gdgMingguStart) {
-      const sun = _gdgMingguStart;
-      const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
-      pendFilter = '&tanggal=gte.' + gdgWToISO(sun) + '&tanggal=lte.' + gdgWToISO(sat) + '&order=tanggal.desc,id.desc';
-    }
-
     const [skuAll, pendAll] = await Promise.all([
       dbGet('gadag_sku', '&order=nama.asc'),
-      dbGet('gadag_pendapatan', pendFilter),
+      dbGet('gadag_pendapatan', '&order=tanggal.desc,id.desc'),
     ]);
 
     _gdgSkuList        = skuAll  || [];
@@ -522,7 +469,8 @@ async function gdgLoad() {
 
     gdgRenderSku();
     gdgRenderPendapatan();
-    gdgUpdateMetrics();
+    const skuMetricEl = document.getElementById('gdg-metric-sku');
+    if (skuMetricEl) skuMetricEl.textContent = _gdgSkuList.length;
   } catch(e) {
     skuTbody.innerHTML  = `<tr><td colspan="3" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     pendTbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
@@ -572,20 +520,8 @@ function gdgRenderPendapatan() {
 }
 
 // ─── METRICS (TOTAL PENDAPATAN = utama) ───────────────────────
-function gdgUpdateMetrics() {
-  let totalPendapatan = 0, totalQty = 0;
-  _gdgPendapatanList.forEach(p => {
-    totalPendapatan += Number(p.total)||0;
-    totalQty        += Number(p.qty)||0;
-  });
-  const jmlCatatan = _gdgPendapatanList.length;
-  const totalLsn = (totalQty / 12).toFixed(1);
-
-  document.getElementById('gdg-total-pendapatan').textContent = gdgFmt(totalPendapatan);
-  document.getElementById('gdg-total-sub').textContent = totalQty.toLocaleString('id-ID') + ' pcs dikerjakan · ' + jmlCatatan + ' catatan';
-  document.getElementById('gdg-metric-sku').textContent = _gdgSkuList.length;
-  document.getElementById('gdg-metric-qty').innerHTML = totalQty.toLocaleString('id-ID') + ' pc<br>' + totalLsn + ' lsn';
-}
+// (gdgUpdateMetrics lama dihapus — Total Pendapatan & Jumlah Qty/Lsn sekarang
+// dihitung di gdgWRenderWeek() dari data mingguan, biar 1 sumber kebenaran)
 
 // ─── FORMAT ───────────────────────────────────────────────────
 function gdgFmt(n) {
