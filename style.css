@@ -947,6 +947,20 @@ body[data-page="dashboard"] .topbar.topbar-hidden {
     
   }
 
+  /* Fix: modal "lompat"/kepotong ke atas pas keyboard muncul di HP.
+     Sebelumnya align-items:center → pas viewport menyempit karena
+     keyboard, modal ke-center ulang & jadi kepotong/loncat.
+     Top-align + overlay sendiri yang scroll = stabil, gak lompat. */
+  .modal-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding-top: max(24px, env(safe-area-inset-top, 0px));
+    padding-bottom: 24px;
+  }
+  .modal-overlay .modal {
+    margin: auto 0;
+  }
+
   /* ── FIX SCROLL FLAT iOS — scroll-behavior:auto agar jari langsung diikuti ──
      scroll-behavior:smooth di iOS Safari = scroll terasa delay/tidak flat.
      Override ke auto di sini agar native scroll engine iOS yang handle,

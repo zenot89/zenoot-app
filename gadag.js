@@ -5,7 +5,8 @@
 
 let _gdgSkuList        = [];
 let _gdgPendapatanList = [];
-let _gdgBulanAktif     = '';
+let _gdgBulanAktif     = '';   // '' = Semua (tidak difilter minggu)
+let _gdgMingguStart    = null; // Date, Minggu (hari Minggu) jam 00:00 — siklus gajian Minggu-Sabtu
 
 // ─── HTML ─────────────────────────────────────────────────────
 document.getElementById('page-gadag').innerHTML = `
@@ -51,7 +52,6 @@ document.getElementById('page-gadag').innerHTML = `
   @media(max-width:480px) {
     .gdg-hero-value { font-size: 22px; }
     .gdg-metrics .m-value { font-size: 16px; line-height: 1.3; }
-    #gdg-filter-bulan { min-width: 108px; flex: 1 1 auto; }
     #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 4px; }
     #page-gadag .tbl td:last-child, #page-gadag .tbl th:last-child { padding-right: 2px; }
     #page-gadag .tbl .btn-sm { min-height: 28px; padding: 0 6px; font-size: 11px; }
@@ -112,10 +112,10 @@ document.getElementById('page-gadag').innerHTML = `
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
   <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <label style="font-size:12px;color:var(--ink2)">Bulan:</label>
-    <input type="month" id="gdg-filter-bulan"
-      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)"
-      onchange="gdgOnBulanChange()">
+    <button class="btn btn-sm" onclick="gdgPrevMinggu()"><i class="ti ti-chevron-left"></i></button>
+    <span id="gdg-filter-minggu-label" style="font-size:12px;font-weight:700;white-space:nowrap">—</span>
+    <button class="btn btn-sm" onclick="gdgNextMinggu()"><i class="ti ti-chevron-right"></i></button>
+    <button class="btn btn-sm btn-primary" onclick="gdgMingguIni()">Minggu Ini</button>
     <button class="btn btn-sm" onclick="gdgResetBulan()">Semua</button>
   </div>
 </div>
@@ -313,9 +313,9 @@ function gdgApplyView() {
 function gdgInit() {
   _gdgView = 'mingguan';
   gdgApplyView();
-  _gdgBulanAktif = '';
-  const bulanEl = document.getElementById('gdg-filter-bulan');
-  if (bulanEl) bulanEl.value = '';
+  _gdgMingguStart = gdgGetMingguStart(new Date());
+  _gdgBulanAktif  = 'minggu';
+  gdgUpdateMingguLabel();
   const tglEl = document.getElementById('gdg-pend-tanggal');
   if (tglEl) {
     const now = new Date();
@@ -335,16 +335,17 @@ let _gdgWJurnalAll = [];
 let _gdgWWeekStart = null; // Date, Senin 00:00
 let _gdgWAkunLoaded = false;
 
-const _GDGW_HARI = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+const _GDGW_HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const _GDGW_BLN  = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
 
+// Minggu gajian: mulai hari Minggu, berakhir hari Sabtu.
+// Kerja hari Minggu ikut kehitung di minggu berikutnya (pembayaran minggu depan).
 function gdgWGetMonday(d) {
-  const day  = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  const mon  = new Date(d);
-  mon.setDate(d.getDate() + diff);
-  mon.setHours(0,0,0,0);
-  return mon;
+  const day = d.getDay(); // 0=Minggu..6=Sabtu
+  const sun = new Date(d);
+  sun.setDate(d.getDate() - day);
+  sun.setHours(0,0,0,0);
+  return sun;
 }
 function gdgWToISO(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -392,11 +393,11 @@ function gdgWHitungBebanHari(isoDay, akunBebanMap) {
 
 async function gdgWRenderWeek() {
   if (!_gdgWWeekStart) return;
-  const monday = new Date(_gdgWWeekStart);
-  const sunday = new Date(_gdgWWeekStart); sunday.setDate(monday.getDate() + 6);
-  document.getElementById('gdgw-week-label').textContent = gdgWFmtTgl(monday) + ' – ' + gdgWFmtTgl(sunday);
+  const mingguMulai  = new Date(_gdgWWeekStart); // hari Minggu
+  const mingguAkhir  = new Date(_gdgWWeekStart); mingguAkhir.setDate(mingguMulai.getDate() + 6); // hari Sabtu
+  document.getElementById('gdgw-week-label').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
 
-  const isoMon = gdgWToISO(monday), isoSun = gdgWToISO(sunday);
+  const isoMulai = gdgWToISO(mingguMulai), isoAkhir = gdgWToISO(mingguAkhir);
 
   // Akun beban yg dihitung: kode diawali "5-" TAPI BUKAN "5-001" (skip Beban Gaji)
   const akunBebanMap = {};
@@ -408,7 +409,7 @@ async function gdgWRenderWeek() {
 
   let pendapatanMingguList = [];
   try {
-    pendapatanMingguList = await dbGet('gadag_pendapatan', '&tanggal=gte.' + isoMon + '&tanggal=lte.' + isoSun) || [];
+    pendapatanMingguList = await dbGet('gadag_pendapatan', '&tanggal=gte.' + isoMulai + '&tanggal=lte.' + isoAkhir) || [];
   } catch(e) {
     document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     return;
@@ -416,7 +417,7 @@ async function gdgWRenderWeek() {
 
   let html = '', totalPend = 0, totalBeban = 0;
   for (let i = 0; i < 7; i++) {
-    const d      = new Date(monday); d.setDate(monday.getDate() + i);
+    const d      = new Date(mingguMulai); d.setDate(mingguMulai.getDate() + i);
     const isoDay = gdgWToISO(d);
     const pend   = pendapatanMingguList.filter(p => p.tanggal === isoDay).reduce((s,p) => s + (Number(p.total)||0), 0);
     const beban  = gdgWHitungBebanHari(isoDay, akunBebanMap);
@@ -445,17 +446,54 @@ async function gdgWRenderWeek() {
 
   // Update minicard "Pengeluaran Mingguan (Cost)" di paling atas
   document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
-  document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(monday) + ' – ' + gdgWFmtTgl(sunday);
+  document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
 }
 
-function gdgOnBulanChange() {
-  _gdgBulanAktif = document.getElementById('gdg-filter-bulan').value || '';
+// ─── MINGGU GAJIAN: Minggu (Ahad) s.d Sabtu ────────────────────
+// Kerja hari Minggu ikut kehitung di minggu berikutnya (awal minggu = hari Minggu)
+function gdgGetMingguStart(d) {
+  const day = d.getDay(); // 0=Minggu..6=Sabtu
+  const sun = new Date(d);
+  sun.setDate(d.getDate() - day); // mundur ke hari Minggu terdekat (atau hari ini kalau udah Minggu)
+  sun.setHours(0,0,0,0);
+  return sun;
+}
+function gdgMingguLabel(sunDate) {
+  const sat = new Date(sunDate); sat.setDate(sunDate.getDate() + 6);
+  return gdgWFmtTgl(sunDate) + ' – ' + gdgWFmtTgl(sat);
+}
+
+function gdgPrevMinggu() {
+  if (!_gdgMingguStart) _gdgMingguStart = gdgGetMingguStart(new Date());
+  _gdgMingguStart.setDate(_gdgMingguStart.getDate() - 7);
+  _gdgBulanAktif = 'minggu';
+  gdgUpdateMingguLabel();
   gdgLoad();
+}
+function gdgNextMinggu() {
+  if (!_gdgMingguStart) _gdgMingguStart = gdgGetMingguStart(new Date());
+  _gdgMingguStart.setDate(_gdgMingguStart.getDate() + 7);
+  _gdgBulanAktif = 'minggu';
+  gdgUpdateMingguLabel();
+  gdgLoad();
+}
+function gdgMingguIni() {
+  _gdgMingguStart = gdgGetMingguStart(new Date());
+  _gdgBulanAktif = 'minggu';
+  gdgUpdateMingguLabel();
+  gdgLoad();
+}
+function gdgUpdateMingguLabel() {
+  const el = document.getElementById('gdg-filter-minggu-label');
+  if (el) el.textContent = _gdgMingguStart ? gdgMingguLabel(_gdgMingguStart) : '—';
 }
 
 function gdgResetBulan() {
-  _gdgBulanAktif = '';
-  document.getElementById('gdg-filter-bulan').value = '';
+  _gdgBulanAktif  = '';
+  _gdgMingguStart = null;
+  gdgUpdateMingguLabel();
+  const el = document.getElementById('gdg-filter-minggu-label');
+  if (el) el.textContent = 'Semua';
   gdgLoad();
 }
 
@@ -467,12 +505,11 @@ async function gdgLoad() {
   pendTbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   try {
-    const bulan = _gdgBulanAktif;
     let pendFilter = '&order=tanggal.desc,id.desc';
-    if (bulan) {
-      const [y, m] = bulan.split('-').map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
-      pendFilter = '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-' + String(lastDay).padStart(2,'0') + '&order=tanggal.desc,id.desc';
+    if (_gdgBulanAktif === 'minggu' && _gdgMingguStart) {
+      const sun = _gdgMingguStart;
+      const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+      pendFilter = '&tanggal=gte.' + gdgWToISO(sun) + '&tanggal=lte.' + gdgWToISO(sat) + '&order=tanggal.desc,id.desc';
     }
 
     const [skuAll, pendAll] = await Promise.all([
