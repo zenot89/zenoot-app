@@ -29,6 +29,21 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
 
+  /* ── Collapse ringkasan (minicard+metrics), pola sama dgn kas-top-bar ── */
+  #gdg-top-summary {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 500px;
+    opacity: 1;
+  }
+  #gdg-top-summary.gdg-topbar-collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #gdg-toggle-icon { transition: transform 0.25s ease; }
+  #gdg-toggle-icon.gdg-rotated { transform: rotate(180deg); }
+
   /* ── Dropdown menu Jurnal / Kelola Produk ── */
   .gdg-menu-wrap { position: relative; }
   .gdg-dropdown-menu {
@@ -83,6 +98,15 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
 <div id="gdg-panel-mingguan" class="gdg-panel active">
 
+<!-- Sticky header: area swipe buat collapse/expand ringkasan di atas -->
+<div id="gdg-sticky-header" style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 8px;cursor:grab">
+  <span style="font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:5px"><i class="ti ti-chevrons-up-down"></i> Geser untuk sembunyikan ringkasan</span>
+  <button class="btn btn-sm" onclick="gdgToggleTopSummary()"><i class="ti ti-chevron-up" id="gdg-toggle-icon"></i></button>
+</div>
+
+<!-- Wrapper collapsible: 2 minicard + metrics + refresh -->
+<div id="gdg-top-summary">
+
 <!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) — cuma di sini -->
 <div class="gdg-minicards">
   <div class="card gdg-minicard mc-pend">
@@ -113,6 +137,9 @@ document.getElementById('page-gadag').innerHTML = `
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
+
+</div>
+<!-- /gdg-top-summary -->
 
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -659,6 +686,7 @@ async function gdgSimpanPendapatan() {
 
   try {
     await dbInsert('gadag_pendapatan', payload);
+    if (warna && typeof acRefresh === 'function') acRefresh('warna_gadag');
     gdgClosePendapatanModal();
     gdgLoad();
   } catch(e) {
@@ -677,6 +705,53 @@ function gdgHapusPendapatan(id) {
 function gdgOverlayClose(e, modalId, closeFn) {
   if (e.target.id === modalId) closeFn();
 }
+
+// ─── COLLAPSE RINGKASAN (minicard+metrics) — swipe & scroll, pola sama dgn Kas & Jurnal ──
+function gdgToggleTopSummary() {
+  const el   = document.getElementById('gdg-top-summary');
+  const icon = document.getElementById('gdg-toggle-icon');
+  if (!el) return;
+  el.classList.toggle('gdg-topbar-collapsed');
+  if (icon) icon.classList.toggle('gdg-rotated');
+}
+
+(function() {
+  var _mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+  function _gdgInitSwipe() {
+    if (!_mq.matches) return;
+    var summary   = document.getElementById('gdg-top-summary');
+    var sticky    = document.getElementById('gdg-sticky-header');
+    if (!summary || typeof initSwipeCollapse !== 'function') return;
+    if (sticky)  initSwipeCollapse(sticky,  summary, 50, 'gdg-topbar-collapsed');
+    if (summary) initSwipeCollapse(summary, summary, 50, 'gdg-topbar-collapsed');
+  }
+  function _gdgInitScrollCollapse() {
+    var content = document.querySelector('.content');
+    var summary = document.getElementById('gdg-top-summary');
+    if (!content || !summary || content._gdgCollapseInited) return;
+    content._gdgCollapseInited = true;
+    var _lastY = 0;
+    content.addEventListener('scroll', function() {
+      if (_gdgView !== 'mingguan') return; // cuma aktif pas lagi di panel Ringkasan
+      var y = content.scrollTop;
+      if (y > 40 && y > _lastY) {
+        summary.classList.add('gdg-topbar-collapsed');
+      } else if (y < _lastY || y <= 40) {
+        summary.classList.remove('gdg-topbar-collapsed');
+      }
+      _lastY = y;
+    }, { passive: true });
+  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'gadag') return;
+    setTimeout(function() {
+      var el = document.getElementById('gdg-top-summary');
+      if (el) el.classList.remove('gdg-topbar-collapsed');
+      _gdgInitSwipe();
+      _gdgInitScrollCollapse();
+    }, 100);
+  });
+})();
 
 // ─── AUTO-INIT ────────────────────────────────────────────────
 document.addEventListener('zenot:page', function(e) {

@@ -25,6 +25,7 @@
     'kreditur_hutang':     { table: 'hutang',       column: 'kreditur'    },
     'keterangan_hutang':   { table: 'hutang',       column: 'keterangan'  },
     'keterangan_bayar':    { table: 'hutang_bayar', column: 'keterangan'  },
+    'warna_gadag':         { table: 'gadag_pendapatan', column: 'warna'  },
   };
 
   // ─── FETCH CACHE ─────────────────────────────────────────────────────────────
@@ -233,6 +234,8 @@
     'keu-htg-ket':     'keterangan_hutang',
     // Penutupan Periode
     'pp-catatan':      'keterangan_jurnal',
+    // Gadag
+    'gdg-pend-warna':  'warna_gadag',
   };
 
   function _acScanPage() {
