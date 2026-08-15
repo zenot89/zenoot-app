@@ -81,7 +81,13 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-  <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px">Ringkasan Mingguan</div>
+  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+    <button id="gdg-summary-toggle" class="btn btn-sm" onclick="gdgToggleSummary()" style="display:none;flex:none" title="Tampilkan/sembunyikan ringkasan">
+      <i id="gdg-summary-toggle-icon" class="ti ti-chevron-up"></i>
+    </button>
+    <i id="gdg-view-heading-icon" class="ti ti-calendar-week" style="font-size:20px;flex:none"></i>
+    <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Overview</div>
+  </div>
   <div class="gdg-menu-wrap">
     <button id="gdg-menu-btn" class="btn btn-sm btn-primary" onclick="gdgToggleMenu(event)">
       <i class="ti ti-menu-2"></i> <span id="gdg-menu-btn-label">Menu</span> <i class="ti ti-chevron-down"></i>
@@ -136,10 +142,12 @@ document.getElementById('page-gadag').innerHTML = `
 
 <div class="card">
   <!-- Sticky header: persis pola #kas-sticky-header — area ini yg jadi swipe zone -->
-  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
-    <span id="gdgw-week-label" style="font-size:14px;font-weight:800;white-space:nowrap;flex:1;text-align:center">—</span>
-    <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
+  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
+      <span id="gdgw-week-label" style="font-size:13px;font-weight:800;white-space:nowrap">—</span>
+      <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
+    </div>
     <button class="btn btn-sm btn-primary" onclick="gdgWThisWeek()">Minggu Ini</button>
   </div>
   <div style="padding:8px 0 12px">
@@ -286,9 +294,9 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 let _gdgView = 'mingguan';
 
 const _GDG_VIEW_LABEL = {
-  mingguan:   { menu: 'Ringkasan Mingguan', label: 'Ringkasan' },
-  pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal' },
-  sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk' },
+  mingguan:   { menu: 'Ringkasan Mingguan', label: 'Ringkasan', heading: 'Overview',      icon: 'ti-calendar-week' },
+  pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal',    heading: 'Catatan',       icon: 'ti-notes' },
+  sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk', heading: 'Kelola Produk', icon: 'ti-list-details' },
 };
 
 function gdgToggleMenu(e) {
@@ -318,8 +326,11 @@ function gdgApplyView() {
   document.getElementById('gdg-panel-pendapatan').classList.toggle('active', _gdgView === 'pendapatan');
   document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
 
-  document.getElementById('gdg-menu-btn-label').textContent = _GDG_VIEW_LABEL[_gdgView].label;
-  document.getElementById('gdg-view-heading').textContent   = _GDG_VIEW_LABEL[_gdgView].menu;
+  document.getElementById('gdg-menu-btn-label').textContent  = _GDG_VIEW_LABEL[_gdgView].label;
+  document.getElementById('gdg-view-heading').textContent    = _GDG_VIEW_LABEL[_gdgView].heading;
+  document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
+  const toggleBtn = document.getElementById('gdg-summary-toggle');
+  if (toggleBtn) toggleBtn.style.display = (_gdgView === 'mingguan') ? '' : 'none';
   ['mingguan','pendapatan','sku'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
@@ -714,6 +725,13 @@ function gdgOverlayClose(e, modalId, closeFn) {
   if (e.target.id === modalId) closeFn();
 }
 
+// ─── TOGGLE RINGKASAN (minicard+metrics) — tombol eksplisit, alternatif dari swipe ──
+function gdgToggleSummary() {
+  var summary = document.getElementById('gdg-top-summary');
+  if (!summary) return;
+  summary.classList.toggle('gdg-topbar-collapsed'); // ikon disinkronin otomatis via MutationObserver
+}
+
 // ─── COLLAPSE RINGKASAN (minicard+metrics) — swipe & scroll, pola sama dgn Kas & Jurnal ──
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse)');
@@ -763,6 +781,21 @@ function gdgOverlayClose(e, modalId, closeFn) {
       }
     }, { passive: true });
   }
+  function _gdgSyncToggleIcon() {
+    var summary = document.getElementById('gdg-top-summary');
+    var icon    = document.getElementById('gdg-summary-toggle-icon');
+    if (!summary || !icon) return;
+    var collapsed = summary.classList.contains('gdg-topbar-collapsed');
+    icon.className = collapsed ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
+  }
+  function _gdgInitToggleSync() {
+    var summary = document.getElementById('gdg-top-summary');
+    if (!summary || summary._gdgObserverInited) return;
+    summary._gdgObserverInited = true;
+    // Observer biar ikon toggle tetep sinkron walau collapse-nya dipicu
+    // lewat swipe atau scroll, bukan cuma lewat tombol.
+    new MutationObserver(_gdgSyncToggleIcon).observe(summary, { attributes: true, attributeFilter: ['class'] });
+  }
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'gadag') return;
     setTimeout(function() {
@@ -770,6 +803,8 @@ function gdgOverlayClose(e, modalId, closeFn) {
       if (el) el.classList.remove('gdg-topbar-collapsed');
       _gdgInitSwipe();
       _gdgInitScrollCollapse();
+      _gdgInitToggleSync();
+      _gdgSyncToggleIcon();
     }, 100);
   });
 })();
