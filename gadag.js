@@ -137,13 +137,10 @@ document.getElementById('page-gadag').innerHTML = `
 <div class="card">
   <!-- Sticky header: persis pola #kas-sticky-header — area ini yg jadi swipe zone -->
   <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</span>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
-      <span id="gdgw-week-label" style="font-size:12px;font-weight:700;white-space:nowrap">—</span>
-      <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
-      <button class="btn btn-sm btn-primary" onclick="gdgWThisWeek()">Minggu Ini</button>
-    </div>
+    <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
+    <span id="gdgw-week-label" style="font-size:14px;font-weight:800;white-space:nowrap;flex:1;text-align:center">—</span>
+    <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
+    <button class="btn btn-sm btn-primary" onclick="gdgWThisWeek()">Minggu Ini</button>
   </div>
   <div style="padding:8px 0 12px">
     <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net</div>
@@ -167,7 +164,7 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-notes"></i> Catatan Pendapatan</span>
+    <span id="gdg-pend-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— catatan</span>
     <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
@@ -188,7 +185,7 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-list-details"></i> Kelola Produk</span>
+    <span id="gdg-sku-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— SKU</span>
     <button class="btn btn-sm btn-primary" onclick="gdgShowSkuModal()"><i class="ti ti-plus"></i> Tambah SKU</button>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
@@ -514,6 +511,8 @@ async function gdgLoad() {
 // ─── RENDER: SKU ──────────────────────────────────────────────
 function gdgRenderSku() {
   const tbody = document.getElementById('gdg-sku-tbody');
+  const countEl = document.getElementById('gdg-sku-count');
+  if (countEl) countEl.textContent = _gdgSkuList.length + ' SKU';
   if (!_gdgSkuList.length) {
     tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada SKU. Tambah dulu.</td></tr>';
     return;
@@ -534,6 +533,8 @@ function gdgRenderSku() {
 // ─── RENDER: CATATAN PENDAPATAN ───────────────────────────────
 function gdgRenderPendapatan() {
   const tbody = document.getElementById('gdg-pend-tbody');
+  const countEl = document.getElementById('gdg-pend-count');
+  if (countEl) countEl.textContent = _gdgPendapatanList.length + ' catatan';
   if (!_gdgPendapatanList.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada catatan pendapatan.</td></tr>';
     return;
