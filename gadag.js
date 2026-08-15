@@ -718,16 +718,35 @@ function gdgOverlayClose(e, modalId, closeFn) {
     var summary = document.getElementById('gdg-top-summary');
     if (!content || !summary || content._gdgCollapseInited) return;
     content._gdgCollapseInited = true;
-    var _lastY = 0;
+    var _lastY         = 0;
+    var _lastChangeAt  = 0;
+    // iOS Safari: scrollTop suka "getar" (naik-turun dikit) pas momentum-scroll
+    // atau pas address bar collapse/expand — beda sama Android yg monotonic.
+    // Tanpa filter ini, getaran kecil ke-baca sebagai "swipe down" dan bikin
+    // card balik ke-expand lagi padahal user masih scroll ke atas ("mental").
+    var NOISE_PX  = 6;    // delta di bawah ini dianggap noise, diabaikan
+    var COOLDOWN  = 220;  // ms — state ga boleh flip-flop lebih cepat dari ini
     content.addEventListener('scroll', function() {
       if (_gdgView !== 'mingguan') return; // cuma aktif pas lagi di panel Ringkasan
-      var y = content.scrollTop;
-      if (y > 40 && y > _lastY) {
-        summary.classList.add('gdg-topbar-collapsed');
-      } else if (y < _lastY || y <= 40) {
-        summary.classList.remove('gdg-topbar-collapsed');
-      }
+      var y  = content.scrollTop;
+      var dy = y - _lastY;
       _lastY = y;
+      if (Math.abs(dy) < NOISE_PX) return; // micro-jitter iOS, skip
+
+      var now = Date.now();
+      if (now - _lastChangeAt < COOLDOWN) return; // masih dalam cooldown, skip
+
+      if (y > 40 && dy > 0) {
+        if (!summary.classList.contains('gdg-topbar-collapsed')) {
+          summary.classList.add('gdg-topbar-collapsed');
+          _lastChangeAt = now;
+        }
+      } else if (dy < 0 || y <= 40) {
+        if (summary.classList.contains('gdg-topbar-collapsed')) {
+          summary.classList.remove('gdg-topbar-collapsed');
+          _lastChangeAt = now;
+        }
+      }
     }, { passive: true });
   }
   document.addEventListener('zenot:page', function(e) {
