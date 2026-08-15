@@ -81,7 +81,7 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-  <div style="font-size:20px;font-weight:800;letter-spacing:.5px">GADAG</div>
+  <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px">Ringkasan Mingguan</div>
   <div class="gdg-menu-wrap">
     <button id="gdg-menu-btn" class="btn btn-sm btn-primary" onclick="gdgToggleMenu(event)">
       <i class="ti ti-menu-2"></i> <span id="gdg-menu-btn-label">Menu</span> <i class="ti ti-chevron-down"></i>
@@ -146,9 +146,8 @@ document.getElementById('page-gadag').innerHTML = `
     </div>
   </div>
   <div style="padding:8px 0 12px">
-    <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net Mingguan (Pendapatan Gadag &minus; Beban Operasional)</div>
+    <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net</div>
     <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok)">Rp0</div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:2px">Beban dari jurnal akun kode 5-xxx, skip 5-001 Beban Gaji</div>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
@@ -323,6 +322,7 @@ function gdgApplyView() {
   document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
 
   document.getElementById('gdg-menu-btn-label').textContent = _GDG_VIEW_LABEL[_gdgView].label;
+  document.getElementById('gdg-view-heading').textContent   = _GDG_VIEW_LABEL[_gdgView].menu;
   ['mingguan','pendapatan','sku'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
@@ -367,6 +367,19 @@ function gdgWToISO(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function gdgWFmtTgl(d) { return d.getDate() + ' ' + _GDGW_BLN[d.getMonth()] + ' ' + d.getFullYear(); }
+// Format ringkas rentang minggu, biar ga makan tempat: "10-17 Ags 2026".
+// Otomatis nyesuain kalau minggunya nyebrang bulan/tahun.
+function gdgWFmtRange(start, end) {
+  const sameYear  = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  if (sameMonth) {
+    return start.getDate() + '-' + end.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' ' + start.getFullYear();
+  }
+  if (sameYear) {
+    return start.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' - ' + end.getDate() + ' ' + _GDGW_BLN[end.getMonth()] + ' ' + start.getFullYear();
+  }
+  return gdgWFmtTgl(start) + ' - ' + gdgWFmtTgl(end);
+}
 function gdgWFmt(n) {
   const v = Number(n)||0;
   return (v < 0 ? '-Rp' : 'Rp') + Math.round(Math.abs(v)).toLocaleString('id-ID');
@@ -411,7 +424,7 @@ async function gdgWRenderWeek() {
   if (!_gdgWWeekStart) return;
   const mingguMulai  = new Date(_gdgWWeekStart); // hari Minggu
   const mingguAkhir  = new Date(_gdgWWeekStart); mingguAkhir.setDate(mingguMulai.getDate() + 6); // hari Sabtu
-  document.getElementById('gdgw-week-label').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
+  document.getElementById('gdgw-week-label').textContent = gdgWFmtRange(mingguMulai, mingguAkhir);
 
   const isoMulai = gdgWToISO(mingguMulai), isoAkhir = gdgWToISO(mingguAkhir);
 
