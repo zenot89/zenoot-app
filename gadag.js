@@ -408,18 +408,16 @@ document.getElementById('page-gadag').innerHTML = `
 
 <div class="gdg-minicards">
   <div class="card gdg-minicard mc-pend">
-    <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
+    <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
     <div class="gdg-hero-value" id="gdg-total-pendapatan" style="color:var(--ok)">Rp0</div>
     <div class="gdg-hero-sub gdg-desktop-only" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
   </div>
   <div class="card gdg-minicard mc-cost">
     <div class="gdg-hero-label">
-      <i class="ti ti-receipt-2"></i>
-      <span class="gdg-desktop-only">Pengeluaran Mingguan</span>
-      <span class="gdg-mobile-only">Cost</span>
+      <i class="ti ti-receipt-2"></i> Cost
     </div>
     <div class="gdg-hero-value" id="gdg-cost-value" style="color:var(--danger)">Rp0</div>
-    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-cost-sub">— (cost minggu ini)</div>
+    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-cost-sub">— (cost periode ini)</div>
   </div>
 </div>
 
@@ -456,22 +454,51 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- /gdg-top-summary -->
 
 <div class="card">
-  <!-- Sticky header: persis pola #kas-sticky-header — area ini yg jadi swipe zone -->
-  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-    <div style="display:flex;align-items:center;gap:6px">
-      <button class="btn btn-sm" onclick="gdgWPrevWeek()"><i class="ti ti-chevron-left"></i></button>
-      <span id="gdgw-week-label" style="font-size:13px;font-weight:800;white-space:nowrap">—</span>
-      <button class="btn btn-sm" onclick="gdgWNextWeek()"><i class="ti ti-chevron-right"></i></button>
+  <!-- Sticky header: navigator label (read-only) + dropdown mode kanan -->
+  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+    <div style="display:flex;align-items:center;gap:4px;min-width:0">
+      <button class="btn btn-sm" onclick="gdgWPrev()" style="flex:none;padding:4px 7px"><i class="ti ti-chevron-left"></i></button>
+      <span id="gdgw-week-label" style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">—</span>
+      <button class="btn btn-sm" onclick="gdgWNext()" style="flex:none;padding:4px 7px"><i class="ti ti-chevron-right"></i></button>
     </div>
-    <button class="btn btn-sm btn-primary" onclick="gdgWThisWeek()">Minggu Ini</button>
+    <!-- Dropdown mode: Minggu Ini / Per Minggu / Bulan Ini / Per Bulan / Custom -->
+    <div class="gdg-menu-wrap" style="flex:none">
+      <button id="gdgw-mode-btn" class="btn btn-sm btn-primary" onclick="gdgWToggleModeMenu(event)" style="white-space:nowrap;padding:5px 9px;font-size:12px">
+        <span id="gdgw-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
+      </button>
+      <div id="gdgw-mode-menu" class="gdg-dropdown-menu" style="right:0;left:auto;min-width:140px">
+        <button id="gdgw-opt-minggu-ini"  onclick="gdgWSetMode('minggu-ini')"  class="active">Minggu Ini</button>
+        <button id="gdgw-opt-per-minggu"  onclick="gdgWSetMode('per-minggu')">Per Minggu</button>
+        <button id="gdgw-opt-bulan-ini"   onclick="gdgWSetMode('bulan-ini')">Bulan Ini</button>
+        <button id="gdgw-opt-per-bulan"   onclick="gdgWSetMode('per-bulan')">Per Bulan</button>
+        <button id="gdgw-opt-custom"      onclick="gdgWSetMode('custom')">Custom</button>
+      </div>
+    </div>
   </div>
-  <div style="padding:8px 0 12px">
-    <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net</div>
+
+  <!-- Custom date picker — hanya muncul saat mode=custom -->
+  <div id="gdgw-custom-range" style="display:none;padding:6px 0 4px;display:none;align-items:center;gap:6px;flex-wrap:wrap">
+    <label style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Dari</label>
+    <input type="date" id="gdgw-custom-dari" onchange="gdgWCustomApply()"
+      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
+    <label style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Sampai</label>
+    <input type="date" id="gdgw-custom-sampai" onchange="gdgWCustomApply()"
+      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
+  </div>
+
+  <div style="padding:8px 0 10px">
+    <div style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Net Income</div>
     <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok)">Rp0</div>
   </div>
+  <!-- Tabel harian — disembunyikan saat mode bulan-ini / per-bulan -->
   <div id="gdgw-data-area" class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>Hari</th><th style="text-align:right">Pendapatan</th><th style="text-align:right">Beban</th><th style="text-align:right">Net</th></tr></thead>
+      <thead><tr>
+        <th style="padding:6px 4px">Hari</th>
+        <th style="text-align:right;padding:6px 4px">Income</th>
+        <th style="text-align:right;padding:6px 4px">Cost</th>
+        <th style="text-align:right;padding:6px 4px">Net</th>
+      </tr></thead>
       <tbody id="gdgw-harian-tbody">
         <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
@@ -812,12 +839,194 @@ function gdgWFmt(n) {
   return (v < 0 ? '-Rp' : 'Rp') + Math.round(Math.abs(v)).toLocaleString('id-ID');
 }
 
-function gdgWPrevWeek() { _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() - 7); gdgWRenderWeek(); }
-function gdgWNextWeek() { _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() + 7); gdgWRenderWeek(); }
-function gdgWThisWeek() { _gdgWWeekStart = gdgWGetMonday(new Date()); gdgWRenderWeek(); }
+// ─── MODE SYSTEM: minggu-ini / per-minggu / bulan-ini / per-bulan / custom ──
+let _gdgWMode        = 'minggu-ini'; // mode aktif
+let _gdgWCustomDari  = null;         // Date, custom range start
+let _gdgWCustomSampai = null;        // Date, custom range end
+// _gdgWWeekStart sudah ada: dipakai per-minggu & minggu-ini
+// _gdgWBulanRef: Date objek referensi bulan (per-bulan)
+let _gdgWBulanRef    = null;
+
+const _GDGW_MODE_LABELS = {
+  'minggu-ini': 'Minggu Ini',
+  'per-minggu': 'Per Minggu',
+  'bulan-ini':  'Bulan Ini',
+  'per-bulan':  'Per Bulan',
+  'custom':     'Custom',
+};
+
+function gdgWToggleModeMenu(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('gdgw-mode-menu').classList.toggle('open');
+}
+function gdgWCloseModeMenu() {
+  const m = document.getElementById('gdgw-mode-menu');
+  if (m) m.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('gdgw-mode-menu');
+  const btn  = document.getElementById('gdgw-mode-btn');
+  if (!menu || !btn) return;
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+function gdgWSetMode(mode) {
+  _gdgWMode = mode;
+  gdgWCloseModeMenu();
+
+  // Update label tombol & active state menu item
+  document.getElementById('gdgw-mode-label').textContent = _GDGW_MODE_LABELS[mode] || mode;
+  ['minggu-ini','per-minggu','bulan-ini','per-bulan','custom'].forEach(m => {
+    const el = document.getElementById('gdgw-opt-' + m);
+    if (el) el.classList.toggle('active', m === mode);
+  });
+
+  // Tampil/sembunyikan custom range picker
+  const customEl = document.getElementById('gdgw-custom-range');
+  if (customEl) customEl.style.display = (mode === 'custom') ? 'flex' : 'none';
+
+  // Tampil/sembunyikan tabel harian
+  const dataArea = document.getElementById('gdgw-data-area');
+  const hideTable = (mode === 'bulan-ini' || mode === 'per-bulan');
+  if (dataArea) dataArea.style.display = hideTable ? 'none' : '';
+
+  // Reset referensi ke "sekarang" saat mode berganti
+  if (mode === 'minggu-ini' || mode === 'per-minggu') {
+    _gdgWWeekStart = gdgWGetMonday(new Date());
+    if (mode === 'minggu-ini') {
+      // Minggu ini: non-navigable (prev/next disabled)
+      _gdgWWeekStart = gdgWGetMonday(new Date());
+    }
+  } else if (mode === 'bulan-ini' || mode === 'per-bulan') {
+    _gdgWBulanRef = new Date();
+  } else if (mode === 'custom') {
+    // Init custom ke minggu ini kalau belum ada
+    if (!_gdgWCustomDari) {
+      const ws = gdgWGetMonday(new Date());
+      const we = new Date(ws); we.setDate(ws.getDate() + 6);
+      _gdgWCustomDari   = ws;
+      _gdgWCustomSampai = we;
+      const dariEl   = document.getElementById('gdgw-custom-dari');
+      const sampaiEl = document.getElementById('gdgw-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(ws);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(we);
+    }
+  }
+  gdgWRenderWeek();
+}
+
+// Prev/Next — perilaku tergantung mode
+function gdgWPrev() {
+  if (_gdgWMode === 'minggu-ini') return; // minggu ini = fixed, prev ga ngapa-ngapain
+  if (_gdgWMode === 'per-minggu') {
+    _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() - 7);
+  } else if (_gdgWMode === 'bulan-ini') {
+    return; // bulan ini = fixed ke bulan berjalan
+  } else if (_gdgWMode === 'per-bulan') {
+    _gdgWBulanRef.setMonth(_gdgWBulanRef.getMonth() - 1);
+  } else if (_gdgWMode === 'custom') {
+    // Geser range custom sebesar durasi range itu sendiri
+    if (_gdgWCustomDari && _gdgWCustomSampai) {
+      const dur = Math.round((_gdgWCustomSampai - _gdgWCustomDari) / 86400000) + 1;
+      _gdgWCustomDari.setDate(_gdgWCustomDari.getDate() - dur);
+      _gdgWCustomSampai.setDate(_gdgWCustomSampai.getDate() - dur);
+      const dariEl   = document.getElementById('gdgw-custom-dari');
+      const sampaiEl = document.getElementById('gdgw-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(_gdgWCustomDari);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgWCustomSampai);
+    }
+  }
+  gdgWRenderWeek();
+}
+function gdgWNext() {
+  if (_gdgWMode === 'minggu-ini') return;
+  if (_gdgWMode === 'per-minggu') {
+    _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() + 7);
+  } else if (_gdgWMode === 'bulan-ini') {
+    return;
+  } else if (_gdgWMode === 'per-bulan') {
+    _gdgWBulanRef.setMonth(_gdgWBulanRef.getMonth() + 1);
+  } else if (_gdgWMode === 'custom') {
+    if (_gdgWCustomDari && _gdgWCustomSampai) {
+      const dur = Math.round((_gdgWCustomSampai - _gdgWCustomDari) / 86400000) + 1;
+      _gdgWCustomDari.setDate(_gdgWCustomDari.getDate() + dur);
+      _gdgWCustomSampai.setDate(_gdgWCustomSampai.getDate() + dur);
+      const dariEl   = document.getElementById('gdgw-custom-dari');
+      const sampaiEl = document.getElementById('gdgw-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(_gdgWCustomDari);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgWCustomSampai);
+    }
+  }
+  gdgWRenderWeek();
+}
+
+// Dipanggil saat input tanggal custom berubah
+function gdgWCustomApply() {
+  const dariVal   = document.getElementById('gdgw-custom-dari').value;
+  const sampaiVal = document.getElementById('gdgw-custom-sampai').value;
+  if (!dariVal || !sampaiVal) return;
+  const d = dariVal.split('-').map(Number);
+  const s = sampaiVal.split('-').map(Number);
+  _gdgWCustomDari   = new Date(d[0], d[1]-1, d[2]);
+  _gdgWCustomSampai = new Date(s[0], s[1]-1, s[2]);
+  if (_gdgWCustomSampai < _gdgWCustomDari) {
+    _gdgWCustomSampai = new Date(_gdgWCustomDari);
+    document.getElementById('gdgw-custom-sampai').value = dariVal;
+  }
+  gdgWRenderWeek();
+}
+
+// Helper: hitung range ISO dari mode aktif
+function gdgWGetRange() {
+  const now = new Date();
+  if (_gdgWMode === 'minggu-ini' || _gdgWMode === 'per-minggu') {
+    if (!_gdgWWeekStart) _gdgWWeekStart = gdgWGetMonday(now);
+    const end = new Date(_gdgWWeekStart); end.setDate(_gdgWWeekStart.getDate() + 6);
+    return { start: _gdgWWeekStart, end, isoStart: gdgWToISO(_gdgWWeekStart), isoEnd: gdgWToISO(end), perHari: true };
+  } else if (_gdgWMode === 'bulan-ini') {
+    const ref   = _gdgWBulanRef || now;
+    const start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    const end   = new Date(ref.getFullYear(), ref.getMonth(), now.getDate());
+    return { start, end, isoStart: gdgWToISO(start), isoEnd: gdgWToISO(end), perHari: false };
+  } else if (_gdgWMode === 'per-bulan') {
+    const ref   = _gdgWBulanRef || now;
+    const start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    const end   = new Date(ref.getFullYear(), ref.getMonth() + 1, 0); // akhir bulan
+    return { start, end, isoStart: gdgWToISO(start), isoEnd: gdgWToISO(end), perHari: false };
+  } else if (_gdgWMode === 'custom') {
+    const s = _gdgWCustomDari   || gdgWGetMonday(now);
+    const e = _gdgWCustomSampai || (() => { const x = new Date(s); x.setDate(s.getDate()+6); return x; })();
+    return { start: s, end: e, isoStart: gdgWToISO(s), isoEnd: gdgWToISO(e), perHari: true };
+  }
+  // fallback
+  const ws = gdgWGetMonday(now);
+  const we = new Date(ws); we.setDate(ws.getDate() + 6);
+  return { start: ws, end: we, isoStart: gdgWToISO(ws), isoEnd: gdgWToISO(we), perHari: true };
+}
+
+// Compat: gdgWThisWeek masih dipakai gdgWInit
+function gdgWThisWeek() { gdgWSetMode('minggu-ini'); }
 
 async function gdgWInit() {
+  _gdgWMode      = 'minggu-ini';
   _gdgWWeekStart = gdgWGetMonday(new Date());
+  _gdgWBulanRef  = new Date();
+  _gdgWCustomDari = null;
+  _gdgWCustomSampai = null;
+  // Sync UI label & active state ke mode default
+  const modeLabel = document.getElementById('gdgw-mode-label');
+  if (modeLabel) modeLabel.textContent = 'Minggu Ini';
+  ['minggu-ini','per-minggu','bulan-ini','per-bulan','custom'].forEach(m => {
+    const el = document.getElementById('gdgw-opt-' + m);
+    if (el) el.classList.toggle('active', m === 'minggu-ini');
+  });
+  const customEl = document.getElementById('gdgw-custom-range');
+  if (customEl) customEl.style.display = 'none';
+  const dataArea = document.getElementById('gdgw-data-area');
+  if (dataArea) dataArea.style.display = '';
+
   if (!_gdgWAkunLoaded) {
     try {
       const [akun, jurnal] = await Promise.all([
@@ -848,75 +1057,128 @@ function gdgWHitungBebanHari(isoDay, akunBebanMap) {
 }
 
 async function gdgWRenderWeek() {
-  if (!_gdgWWeekStart) return;
-  const mingguMulai  = new Date(_gdgWWeekStart); // hari Minggu
-  const mingguAkhir  = new Date(_gdgWWeekStart); mingguAkhir.setDate(mingguMulai.getDate() + 6); // hari Sabtu
-  document.getElementById('gdgw-week-label').textContent = gdgWFmtRange(mingguMulai, mingguAkhir);
+  const range = gdgWGetRange();
+  const { start, end, isoStart, isoEnd, perHari } = range;
 
-  const isoMulai = gdgWToISO(mingguMulai), isoAkhir = gdgWToISO(mingguAkhir);
+  // Update label tanggal (read-only display)
+  document.getElementById('gdgw-week-label').textContent = gdgWFmtRange(start, end);
 
-  // Akun beban yg dihitung: kode diawali "5-" TAPI BUKAN "5-001" (skip Beban Gaji)
+  // Prev/next buttons: disable di mode yang fixed (minggu-ini, bulan-ini)
+  const isFixed = (_gdgWMode === 'minggu-ini' || _gdgWMode === 'bulan-ini');
+  document.querySelectorAll('#gdg-sticky-header .btn').forEach(b => {
+    if (b.id !== 'gdgw-mode-btn') b.style.opacity = isFixed ? '0.35' : '1';
+  });
+
+  // Tabel: tampil/sembunyikan sesuai mode
+  const dataArea = document.getElementById('gdgw-data-area');
+  if (dataArea) dataArea.style.display = perHari ? '' : 'none';
+
+  // Akun beban: kode 5-xxx kecuali 5-001
   const akunBebanMap = {};
   _gdgWAkunAll.forEach(a => {
     if (a.kelompok === 'beban' && (a.kode||'').indexOf('5-') === 0 && a.kode !== '5-001') akunBebanMap[a.id] = a;
   });
 
-  document.getElementById('gdgw-harian-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  if (perHari) {
+    document.getElementById('gdgw-harian-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  }
 
-  let pendapatanMingguList = [];
+  let pendList = [];
   try {
-    pendapatanMingguList = await dbGet('gadag_pendapatan', '&tanggal=gte.' + isoMulai + '&tanggal=lte.' + isoAkhir) || [];
+    pendList = await dbGet('gadag_pendapatan', '&tanggal=gte.' + isoStart + '&tanggal=lte.' + isoEnd) || [];
   } catch(e) {
-    document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    if (perHari) document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     return;
   }
 
-  let html = '', totalPend = 0, totalBeban = 0;
-  for (let i = 0; i < 7; i++) {
-    const d      = new Date(mingguMulai); d.setDate(mingguMulai.getDate() + i);
-    const isoDay = gdgWToISO(d);
-    const pend   = pendapatanMingguList.filter(p => p.tanggal === isoDay).reduce((s,p) => s + (Number(p.total)||0), 0);
-    const beban  = gdgWHitungBebanHari(isoDay, akunBebanMap);
-    const net    = pend - beban;
-    totalPend  += pend;
-    totalBeban += beban;
-    html += `<tr>
-      <td><b>${_GDGW_HARI[i]}</b> <span style="font-size:11px;color:var(--ink3)">${d.getDate()}/${d.getMonth()+1}</span></td>
-      <td style="text-align:right;color:var(--ok)">${gdgWFmt(pend)}</td>
-      <td style="text-align:right;color:var(--danger)">${gdgWFmt(beban)}</td>
-      <td style="text-align:right"><b style="color:${net>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(net)}</b></td>
-    </tr>`;
-  }
-  const totalNet = totalPend - totalBeban;
-  html += `<tr class="lap-total">
-    <td><b>TOTAL</b></td>
-    <td style="text-align:right;color:var(--ok)"><b>${gdgWFmt(totalPend)}</b></td>
-    <td style="text-align:right;color:var(--danger)"><b>${gdgWFmt(totalBeban)}</b></td>
-    <td style="text-align:right"><b style="color:${totalNet>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(totalNet)}</b></td>
-  </tr>`;
-  document.getElementById('gdgw-harian-tbody').innerHTML = html;
+  let totalPend = 0, totalBeban = 0;
 
+  if (perHari) {
+    // Hitung jumlah hari dalam range
+    const msPerDay = 86400000;
+    const days = Math.round((end - start) / msPerDay) + 1;
+    let html = '';
+    for (let i = 0; i < days; i++) {
+      const d      = new Date(start); d.setDate(start.getDate() + i);
+      const isoDay = gdgWToISO(d);
+      const pend   = pendList.filter(p => p.tanggal === isoDay).reduce((s,p) => s + (Number(p.total)||0), 0);
+      const beban  = gdgWHitungBebanHari(isoDay, akunBebanMap);
+      const net    = pend - beban;
+      totalPend  += pend;
+      totalBeban += beban;
+      const hariNama = _GDGW_HARI[d.getDay()];
+      html += `<tr>
+        <td style="padding:6px 4px;white-space:nowrap"><b>${hariNama}</b> <span style="font-size:11px;color:var(--ink3)">${d.getDate()}/${d.getMonth()+1}</span></td>
+        <td style="text-align:right;padding:6px 4px;color:var(--ok)">${gdgWFmt(pend)}</td>
+        <td style="text-align:right;padding:6px 4px;color:var(--danger)">${gdgWFmt(beban)}</td>
+        <td style="text-align:right;padding:6px 4px"><b style="color:${net>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(net)}</b></td>
+      </tr>`;
+    }
+    const totalNet = totalPend - totalBeban;
+    html += `<tr class="lap-total">
+      <td style="padding:6px 4px"><b>Total</b></td>
+      <td style="text-align:right;padding:6px 4px;color:var(--ok)"><b>${gdgWFmt(totalPend)}</b></td>
+      <td style="text-align:right;padding:6px 4px;color:var(--danger)"><b>${gdgWFmt(totalBeban)}</b></td>
+      <td style="text-align:right;padding:6px 4px"><b style="color:${totalNet>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(totalNet)}</b></td>
+    </tr>`;
+    document.getElementById('gdgw-harian-tbody').innerHTML = html;
+    totalBeban = _gdgWJurnalAll
+      .filter(r => r.tanggal >= isoStart && r.tanggal <= isoEnd)
+      .reduce((s, r) => {
+        const n = r.nominal || r.debit || r.kredit || 0;
+        if (r.akun_debit_id  && akunBebanMap[r.akun_debit_id])  return s + n;
+        if (r.akun_kredit_id && akunBebanMap[r.akun_kredit_id]) return s - n;
+        return s;
+      }, 0);
+    // Recalc totalBeban from jurnal for minicard (sama yg sudah dihitung per hari)
+    totalBeban = 0;
+    _gdgWJurnalAll.forEach(r => {
+      if (r.tanggal < isoStart || r.tanggal > isoEnd) return;
+      const n = r.nominal || r.debit || r.kredit || 0;
+      if (r.akun_debit_id  && akunBebanMap[r.akun_debit_id])  totalBeban += n;
+      if (r.akun_kredit_id && akunBebanMap[r.akun_kredit_id]) totalBeban -= n;
+    });
+    totalPend  = pendList.reduce((s,p) => s + (Number(p.total)||0), 0);
+  } else {
+    // Mode bulan: hanya minicard, tabel disembunyikan
+    totalPend  = pendList.reduce((s,p) => s + (Number(p.total)||0), 0);
+    totalBeban = 0;
+    _gdgWJurnalAll.forEach(r => {
+      if (r.tanggal < isoStart || r.tanggal > isoEnd) return;
+      const n = r.nominal || r.debit || r.kredit || 0;
+      if (r.akun_debit_id  && akunBebanMap[r.akun_debit_id])  totalBeban += n;
+      if (r.akun_kredit_id && akunBebanMap[r.akun_kredit_id]) totalBeban -= n;
+    });
+  }
+
+  const totalNet = totalPend - totalBeban;
+
+  // Update Net Income label
   const netEl = document.getElementById('gdgw-net-value');
   netEl.textContent = gdgWFmt(totalNet);
   netEl.style.color = totalNet >= 0 ? 'var(--ok)' : 'var(--danger)';
 
-  // Update minicard "Total Pendapatan" & "Jumlah Qty/Lsn" — dari data mingguan yang sama
-  const totalQtyMinggu = pendapatanMingguList.reduce((s,p) => s + (Number(p.qty)||0), 0);
-  const totalLsnMinggu = (totalQtyMinggu / 12).toFixed(1);
+  // Update minicard Income
+  const totalQty = pendList.reduce((s,p) => s + (Number(p.qty)||0), 0);
+  const totalLsn = (totalQty / 12).toFixed(1);
   document.getElementById('gdg-total-pendapatan').textContent = gdgWFmt(totalPend);
-  document.getElementById('gdg-total-sub').textContent = totalQtyMinggu.toLocaleString('id-ID') + ' pcs dikerjakan · ' + pendapatanMingguList.length + ' catatan';
-  document.getElementById('gdg-metric-qty').innerHTML = totalQtyMinggu.toLocaleString('id-ID') + ' pc<br>' + totalLsnMinggu + ' lsn';
-  // Versi mobile (card 2-kolom /QTY /LOSIN, poin 3 file4)
+  const subEl = document.getElementById('gdg-total-sub');
+  if (subEl) subEl.textContent = totalQty.toLocaleString('id-ID') + ' pcs · ' + pendList.length + ' catatan';
+
+  // Update Qty/Lsn metric
+  const qtyEl = document.getElementById('gdg-metric-qty');
+  if (qtyEl) qtyEl.innerHTML = totalQty.toLocaleString('id-ID') + ' pc<br>' + totalLsn + ' lsn';
   const qtyNumEl = document.getElementById('gdg-metric-qty-num');
   const lsnNumEl = document.getElementById('gdg-metric-lsn-num');
-  if (qtyNumEl) qtyNumEl.textContent = totalQtyMinggu.toLocaleString('id-ID');
-  if (lsnNumEl) lsnNumEl.textContent = totalLsnMinggu;
+  if (qtyNumEl) qtyNumEl.textContent = totalQty.toLocaleString('id-ID');
+  if (lsnNumEl) lsnNumEl.textContent = totalLsn;
 
-  // Update minicard "Pengeluaran Mingguan (Cost)" di paling atas
+  // Update minicard Cost
   document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
-  document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
+  const costSubEl = document.getElementById('gdg-cost-sub');
+  if (costSubEl) costSubEl.textContent = gdgWFmtRange(start, end);
 
-  gdgUpdateTargetCard(); // card 4 versi mobile (Target vs pendapatan minggu ini)
+  gdgUpdateTargetCard();
 }
 
 // ─── ANGGARAN — Variable Mingguan (multi-item, dijumlah = Net Anggaran) ──
