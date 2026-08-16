@@ -41,6 +41,19 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
 
+  /* ── Anggaran: list variable (tap & tahan → edit, ganti kolom Aksi) ── */
+  .gdg-ang2-row {
+    display:flex; align-items:center; gap:8px; padding:10px 4px;
+    border-bottom:1px dashed var(--gdg-rule, var(--ink3));
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+    touch-action:pan-y; cursor:pointer;
+  }
+  .gdg-ang2-row:last-child { border-bottom:none; }
+  .gdg-ang2-row.gdg-ang2-pressing { background:var(--cream2); }
+  .gdg-ang2-idx  { color:var(--ink3); font-weight:700; min-width:20px; }
+  .gdg-ang2-nama { flex:1; font-weight:700; }
+  .gdg-ang2-nom  { font-weight:700; }
+
   /* ── Collapse ringkasan (minicard+metrics), pola sama dgn kas-top-bar ── */
   #gdg-top-summary {
     overflow: hidden;
@@ -431,25 +444,25 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 </div>
 
-<!-- PANEL: ANGGARAN MINGGUAN (Target) -->
+<!-- PANEL: ANGGARAN (Variable Mingguan) -->
 <div id="gdg-panel-anggaran" class="gdg-panel">
+<div class="gdg-metrics" style="grid-template-columns:1fr;margin-bottom:14px">
+  <div class="metric">
+    <div class="m-label">Net Anggaran</div>
+    <div class="m-value" id="gdg-ang2-net">—</div>
+    <div class="m-delta" id="gdg-ang2-week-label">—</div>
+  </div>
+</div>
 <div class="card">
-  <div class="card-title"><i class="ti ti-wallet"></i> Anggaran Mingguan</div>
-  <div id="gdg-anggaran-week-label" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:14px">—</div>
-  <div class="form-group" style="margin-bottom:14px">
-    <label>Target Pendapatan Minggu Ini (Rp)</label>
-    <input type="text" inputmode="numeric" id="gdg-anggaran-target-input" placeholder="contoh: 500.000"
-      oninput="gdgFormatRibuan(this)"
-      style="width:100%;font-family:var(--f);font-size:16px;padding:10px 12px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-wallet"></i> Variable Anggaran</span>
+    <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
   </div>
-  <div class="form-group" style="margin-bottom:14px">
-    <label>Deskripsi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
-    <input type="text" id="gdg-anggaran-deskripsi-input" placeholder="contoh: buat bayar listrik + cicilan mesin"
-      style="width:100%;font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+  <div id="gdg-ang2-list">
+    <div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>
   </div>
-  <button class="btn btn-primary" onclick="gdgSimpanAnggaran()"><i class="ti ti-check"></i> Simpan Target</button>
-  <div style="font-size:11px;color:var(--ink3);margin-top:14px">
-    Target ini dipakai buat ngitung card "Target" di halaman Ringkasan (pendapatan minggu berjalan dikurangi target ini).
+  <div style="font-size:11px;color:var(--ink3);margin-top:10px">
+    Tekan &amp; tahan salah satu variable buat masuk mode edit / hapus.
   </div>
 </div>
 </div>
@@ -478,6 +491,39 @@ document.getElementById('page-gadag').innerHTML = `
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="gdgCloseSkuModal()">Batal</button>
       <button class="btn btn-primary" onclick="gdgSimpanSku()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VARIABLE ANGGARAN (tambah baru / edit via tekan-tahan / hapus) -->
+<div class="modal-overlay" id="modal-gdg-ang2" onclick="gdgOverlayClose(event,'modal-gdg-ang2', gdgAngCloseModal)">
+  <div class="modal" style="max-width:380px;width:100%;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-ang2-modal-title">
+        <i class="ti ti-plus"></i> Tambah Variable
+      </div>
+      <button onclick="gdgAngCloseModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <input type="hidden" id="gdg-ang2-edit-id">
+    <div class="form-group" style="margin-bottom:8px">
+      <label>Nama</label>
+      <input type="text" id="gdg-ang2-nama-input" placeholder="contoh: Udud" autocomplete="off"
+        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Nominal (Rp)</label>
+      <input type="text" inputmode="numeric" id="gdg-ang2-nominal-input" placeholder="contoh: 200.000"
+        oninput="gdgFormatRibuan(this)"
+        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button id="gdg-ang2-modal-hapus" class="btn btn-sm btn-danger" onclick="gdgAngHapusDariModal()" style="display:none">
+        <i class="ti ti-trash"></i> Hapus
+      </button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
+        <button class="btn" onclick="gdgAngCloseModal()">Batal</button>
+        <button class="btn btn-primary" onclick="gdgAngSimpan()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -769,62 +815,161 @@ async function gdgWRenderWeek() {
   gdgUpdateTargetCard(); // card 4 versi mobile (Target vs pendapatan minggu ini)
 }
 
-// ─── ANGGARAN MINGGUAN (Target) ────────────────────────────────
-// Tabel Supabase yg dibutuhin: gadag_anggaran (id, minggu_mulai date unique, target numeric, deskripsi text).
-// Kalau tabelnya belum ada, bikin dulu di Supabase — lihat catatan di chat.
-let _gdgAnggaranId     = null;
-let _gdgAnggaranTarget = 0;
+// ─── ANGGARAN — Variable Mingguan (multi-item, dijumlah = Net Anggaran) ──
+// Tabel Supabase: gadag_anggaran (id, minggu_mulai date [SEKARANG BOLEH DOBEL
+// per minggu, unique constraint lama di kolom ini WAJIB dicabut], nama text,
+// target numeric [dipakai sbg nominal per-item]). Migrasi SQL-nya: lihat chat.
+let _gdgAnggaranList = []; // semua item anggaran minggu berjalan
 
 async function gdgLoadAnggaran() {
   const wkStart = gdgWGetMonday(new Date());
   const iso     = gdgWToISO(wkStart);
-  let deskripsi = '';
+  const listEl  = document.getElementById('gdg-ang2-list');
+  if (listEl) listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>';
   try {
-    const rows = await dbGet('gadag_anggaran', '&minggu_mulai=eq.' + iso);
-    if (rows && rows.length) {
-      _gdgAnggaranId     = rows[0].id;
-      _gdgAnggaranTarget = Number(rows[0].target) || 0;
-      deskripsi          = rows[0].deskripsi || '';
-    } else {
-      _gdgAnggaranId     = null;
-      _gdgAnggaranTarget = 0;
-    }
+    const rows = await dbGet('gadag_anggaran', '&minggu_mulai=eq.' + iso + '&order=id.asc');
+    _gdgAnggaranList = rows || [];
   } catch(e) {
     console.error('Gagal load anggaran:', e.message);
-    _gdgAnggaranId = null; _gdgAnggaranTarget = 0;
+    _gdgAnggaranList = [];
+    if (listEl) listEl.innerHTML = `<div style="color:var(--danger)">Error: ${e.message}</div>`;
+    gdgUpdateTargetCard();
+    return;
   }
-  const input = document.getElementById('gdg-anggaran-target-input');
-  if (input) input.value = _gdgAnggaranTarget || '';
-  const deskEl = document.getElementById('gdg-anggaran-deskripsi-input');
-  if (deskEl) deskEl.value = deskripsi;
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
-  const wkLabelEl = document.getElementById('gdg-anggaran-week-label');
+  const wkLabelEl = document.getElementById('gdg-ang2-week-label');
   if (wkLabelEl) wkLabelEl.textContent = 'Minggu ' + gdgWFmtRange(wkStart, wkEnd);
+  gdgAngRenderList();
   gdgUpdateTargetCard();
 }
 
-async function gdgSimpanAnggaran() {
-  const raw       = (document.getElementById('gdg-anggaran-target-input').value || '').replace(/\D/g,'');
-  const target    = parseInt(raw, 10) || 0;
-  const deskripsi = (document.getElementById('gdg-anggaran-deskripsi-input').value || '').trim();
+function gdgAngNetTotal() {
+  return _gdgAnggaranList.reduce((s, r) => s + (Number(r.target) || 0), 0);
+}
+
+function gdgAngRenderList() {
+  const listEl = document.getElementById('gdg-ang2-list');
+  const netEl  = document.getElementById('gdg-ang2-net');
+  if (netEl) netEl.textContent = gdgFmt(gdgAngNetTotal());
+  if (!listEl) return;
+  if (!_gdgAnggaranList.length) {
+    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran minggu ini.</div>';
+    return;
+  }
+  listEl.innerHTML = _gdgAnggaranList.map((it, i) => {
+    const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const namaAttr = namaSafe.replace(/"/g,'&quot;');
+    const nom = Number(it.target) || 0;
+    return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}">
+      <span class="gdg-ang2-idx">${i+1}.</span>
+      <span class="gdg-ang2-nama">${namaSafe}</span>
+      <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── MODAL: tambah baru ─────────────────────────────────────────
+function gdgAngShowAdd() {
+  document.getElementById('gdg-ang2-edit-id').value = '';
+  document.getElementById('gdg-ang2-nama-input').value = '';
+  document.getElementById('gdg-ang2-nominal-input').value = '';
+  document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Variable';
+  document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
+  document.getElementById('modal-gdg-ang2').classList.add('open');
+}
+
+// Dipanggil dari tekan-tahan row (IIFE di bawah) — bukan dari kolom Aksi
+function gdgAngShowEdit(id, nama, nominal) {
+  document.getElementById('gdg-ang2-edit-id').value = id;
+  document.getElementById('gdg-ang2-nama-input').value = nama || '';
+  document.getElementById('gdg-ang2-nominal-input').value = nominal ? Number(nominal).toLocaleString('id-ID') : '';
+  document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Variable';
+  document.getElementById('gdg-ang2-modal-hapus').style.display = '';
+  document.getElementById('modal-gdg-ang2').classList.add('open');
+}
+
+function gdgAngCloseModal() {
+  document.getElementById('modal-gdg-ang2').classList.remove('open');
+}
+
+async function gdgAngSimpan() {
+  const id      = document.getElementById('gdg-ang2-edit-id').value.trim();
+  const nama    = document.getElementById('gdg-ang2-nama-input').value.trim();
+  const rawNom  = (document.getElementById('gdg-ang2-nominal-input').value || '').replace(/\D/g,'');
+  const nominal = parseInt(rawNom, 10) || 0;
+
+  if (!nama)                     { alert('Nama variable belum diisi.'); return; }
+  if (!nominal || nominal <= 0)  { alert('Nominal harus lebih dari 0.'); return; }
+
   const wkStart = gdgWGetMonday(new Date());
   const iso     = gdgWToISO(wkStart);
+
   try {
-    if (_gdgAnggaranId) {
-      await dbUpdate('gadag_anggaran', _gdgAnggaranId, { target, deskripsi });
+    if (id) {
+      await dbUpdate('gadag_anggaran', id, { nama, target: nominal });
     } else {
-      const res = await dbInsert('gadag_anggaran', { minggu_mulai: iso, target, deskripsi });
-      _gdgAnggaranId = res && res[0] && res[0].id;
+      await dbInsert('gadag_anggaran', { minggu_mulai: iso, nama, target: nominal });
     }
-    _gdgAnggaranTarget = target;
-    gdgUpdateTargetCard();
-    alert('Target minggu ini tersimpan.');
+    gdgAngCloseModal();
+    gdgLoadAnggaran();
   } catch(e) {
-    alert('Gagal simpan target: ' + e.message);
+    alert('Gagal simpan: ' + e.message);
   }
 }
 
-// Card 4 versi mobile: (pendapatan minggu ini) − (target minggu ini).
+function gdgAngHapusDariModal() {
+  const id = document.getElementById('gdg-ang2-edit-id').value.trim();
+  if (!id) return;
+  const nama = document.getElementById('gdg-ang2-nama-input').value || 'variable ini';
+  confirmDelete('Hapus "' + nama + '" dari anggaran minggu ini?', async () => {
+    try {
+      await dbDelete('gadag_anggaran', id);
+      gdgAngCloseModal();
+      gdgLoadAnggaran();
+    } catch(e) { alert('Gagal hapus: ' + e.message); }
+  });
+}
+
+// ─── Tekan & tahan row di list → masuk mode edit (bukan kolom Aksi) ──
+// Sengaja bukan onclick biasa: tap sekali TIDAK ngapa-ngapain (sesuai
+// spek), cuma tekan-tahan (~550ms) yang buka modal edit + tombol Hapus.
+(function() {
+  let _lpTimer = null, _lpRow = null;
+  function _start(row) {
+    _lpRow = row;
+    row.classList.add('gdg-ang2-pressing');
+    _lpTimer = setTimeout(function() {
+      if (!_lpRow) return;
+      const r = _lpRow;
+      _clear();
+      gdgAngShowEdit(r.dataset.id, r.dataset.nama, r.dataset.nominal);
+    }, 550);
+  }
+  function _clear() {
+    clearTimeout(_lpTimer); _lpTimer = null;
+    if (_lpRow) _lpRow.classList.remove('gdg-ang2-pressing');
+    _lpRow = null;
+  }
+  document.addEventListener('touchstart', function(e) {
+    const row = e.target.closest('#gdg-ang2-list .gdg-ang2-row');
+    if (!row) return;
+    _start(row);
+  }, { passive: true });
+  document.addEventListener('touchend',    _clear, { passive: true });
+  document.addEventListener('touchmove',   _clear, { passive: true });
+  document.addEventListener('touchcancel', _clear, { passive: true });
+
+  // Mouse (desktop) — biar bisa dites di laptop juga, bukan cuma HP
+  document.addEventListener('mousedown', function(e) {
+    const row = e.target.closest('#gdg-ang2-list .gdg-ang2-row');
+    if (!row) return;
+    _start(row);
+  });
+  document.addEventListener('mouseup',    _clear);
+  document.addEventListener('mouseleave', _clear);
+})();
+
+// Card 4 versi mobile: (pendapatan minggu ini) − (Net Anggaran minggu ini).
 // SELALU minggu berjalan (hari ini), independen dari minggu yg lagi
 // dibrowse di navigator Ringkasan — biar ga rancu sama konsep "target".
 function gdgUpdateTargetCard() {
@@ -836,11 +981,12 @@ function gdgUpdateTargetCard() {
   const pendMingguIni = _gdgPendapatanList
     .filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir)
     .reduce((s,p) => s + (Number(p.total)||0), 0);
-  const sisa = pendMingguIni - (_gdgAnggaranTarget || 0);
+  const netAnggaran = gdgAngNetTotal();
+  const sisa = pendMingguIni - netAnggaran;
   el.textContent   = gdgFmt(sisa);
   el.style.color   = sisa >= 0 ? 'var(--ok)' : 'var(--danger)';
   const subEl = document.getElementById('gdg-metric-target-sub');
-  if (subEl) subEl.textContent = 'Target: ' + gdgFmt(_gdgAnggaranTarget || 0);
+  if (subEl) subEl.textContent = 'Target: ' + gdgFmt(netAnggaran);
 }
 
 // ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
