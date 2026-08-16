@@ -117,7 +117,12 @@ document.getElementById('page-gadag').innerHTML = `
     --danger: #b5453d;   /* override: merah dark-theme kepucetan di atas kertas krem */
     --info:   #2f6fb0;
     --accent: #8a5a2b;   /* warna aksen tinta coklat, buat nama SKU dsb */
-    font-family: 'Comic Sans MS', 'Comic Neue', cursive, sans-serif;
+    /* Comic Neue didahulukan (bukan Comic Sans MS) SENGAJA — biar tampilan SAMA
+       persis di Android & iPhone. Comic Sans MS cuma bawaan iOS, Android ga punya,
+       jadi kalau dia yg didahulukan, Android bakal fallback ke font laen & hasilnya
+       beda sama iPhone. Comic Neue kita load sendiri via Google Fonts, jadi
+       konsisten di kedua platform. */
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
   }
   #page-gadag .content {
     background-color: var(--gdg-paper);
