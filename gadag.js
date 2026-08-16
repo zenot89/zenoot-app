@@ -238,8 +238,10 @@ document.getElementById('page-gadag').innerHTML = `
     }
   }
 
-  /* Poin 1: panel Catatan isi penuh layar, tabel scroll internal kalau data banyak */
-  #gdg-panel-pendapatan { display: flex; flex-direction: column; }
+  /* Poin 1: panel Catatan isi penuh layar, tabel scroll internal kalau data banyak.
+     WAJIB pakai .active di selector — kalau enggak, ID selector ini menang lawan
+     `.gdg-panel{display:none}` dan panelnya numpuk/keliatan terus di semua halaman. */
+  #gdg-panel-pendapatan.active { display: flex; flex-direction: column; }
   #gdg-panel-pendapatan .card {
     display: flex; flex-direction: column;
     min-height: calc(100dvh - 260px); /* kasar: header app + toolbar + card-title */
@@ -261,7 +263,7 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
   <div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap">
-    <button id="gdg-hdr-refresh" class="btn btn-sm" onclick="gdgLoad()" title="Refresh" style="display:none;flex:none"><i class="ti ti-refresh"></i></button>
+    <button id="gdg-hdr-refresh" class="btn btn-sm" onclick="gdgLoad()" title="Refresh" style="flex:none"><i class="ti ti-refresh"></i></button>
     <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
     <button id="gdg-summary-toggle" class="btn btn-sm" onclick="gdgToggleSummary()" style="display:none;flex:none" title="Tampilkan/sembunyikan ringkasan">
       <i id="gdg-summary-toggle-icon" class="ti ti-chevron-up"></i>
@@ -339,10 +341,6 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
-</div>
-
 </div>
 <!-- /gdg-top-summary -->
 
@@ -393,9 +391,6 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: RIWAYAT (semua catatan minggu-minggu lalu, biar data ga ilang) -->
 <div id="gdg-panel-riwayat" class="gdg-panel">
-<div style="display:flex;gap:8px;margin-bottom:10px">
-  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
-</div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:6px">
@@ -419,9 +414,6 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
 <div id="gdg-panel-sku" class="gdg-panel">
-<div style="display:flex;gap:8px;margin-bottom:10px">
-  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
-</div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span id="gdg-sku-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— SKU</span>
@@ -601,10 +593,9 @@ function gdgApplyView() {
   document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
   const toggleBtn = document.getElementById('gdg-summary-toggle');
   if (toggleBtn) toggleBtn.style.display = (_gdgView === 'mingguan') ? '' : 'none';
-  // Refresh & Export PDF tampil khusus di panel Catatan, gabung 1 baris sama judul+dropdown
-  const hdrRefresh = document.getElementById('gdg-hdr-refresh');
+  // Refresh sekarang selalu tampil di baris judul (semua panel, konsisten).
+  // Export PDF cuma relevan di panel Catatan.
   const hdrExport  = document.getElementById('gdg-hdr-export');
-  if (hdrRefresh) hdrRefresh.style.display = (_gdgView === 'pendapatan') ? '' : 'none';
   if (hdrExport)  hdrExport.style.display  = (_gdgView === 'pendapatan') ? '' : 'none';
   ['mingguan','pendapatan','riwayat','sku','anggaran'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
