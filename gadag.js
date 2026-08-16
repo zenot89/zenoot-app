@@ -6,6 +6,18 @@
 let _gdgSkuList        = [];
 let _gdgPendapatanList = [];
 
+// ─── FONT "Comic Neue" (tema notebook) — di-load via <link>, bukan @import ──
+// @import di tengah <style> block ke-skip diem-diem sama browser (harus baris
+// pertama di stylesheet). <link> ga punya batasan itu, dan cukup dipasang sekali.
+(function() {
+  if (document.getElementById('gdg-font-comic-neue')) return; // udah ada, ga usah dobel
+  const link = document.createElement('link');
+  link.id   = 'gdg-font-comic-neue';
+  link.rel  = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap';
+  document.head.appendChild(link);
+})();
+
 // ─── HTML ─────────────────────────────────────────────────────
 document.getElementById('page-gadag').innerHTML = `
 <style>
@@ -104,8 +116,10 @@ document.getElementById('page-gadag').innerHTML = `
      Font "More Sugar" ga tersedia buat di-embed (font eksklusif Canva),
      jadi dipakai fallback sesuai instruksi: Comic Sans MS (bawaan iOS)
      dengan Comic Neue (versi web-safe/lisensi terbuka dari Google Fonts,
-     visualnya mirip) buat platform yg ga punya Comic Sans MS bawaan. */
-  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+     visualnya mirip) buat platform yg ga punya Comic Sans MS bawaan.
+     NOTE: font di-load lewat <link> yg di-inject via JS (lihat bawah file),
+     BUKAN @import di sini — @import di tengah <style> block kayak gini
+     bakal di-skip diem-diem sama browser (harus jadi baris paling atas). */
 
   #page-gadag {
     --gdg-paper:   #f7f2e6;   /* kertas krem */
