@@ -251,15 +251,55 @@ document.getElementById('page-gadag').innerHTML = `
     }
   }
 
-  /* Poin 1: panel Catatan isi penuh layar, tabel scroll internal kalau data banyak.
+  /* Poin 1 (lama): panel Catatan isi penuh layar, tabel scroll internal kalau data banyak.
+     Poin 3 (baru): pola yg sama sekarang berlaku ke SEMUA panel Gadag yg isinya
+     1 tabel/list utama (Riwayat, Kelola Produk, Anggaran) — sebelumnya cuma
+     Catatan Pendapatan yg begini, sisanya nyisain gap gelap kosong gede di
+     bawah card (card-nya nyusut ngikutin isi, bukan ngisi layar).
      WAJIB pakai .active di selector — kalau enggak, ID selector ini menang lawan
      '.gdg-panel{display:none}' dan panelnya numpuk/keliatan terus di semua halaman. */
-  #gdg-panel-pendapatan.active { display: flex; flex-direction: column; }
-  #gdg-panel-pendapatan .card {
+  #gdg-panel-pendapatan.active,
+  #gdg-panel-riwayat.active,
+  #gdg-panel-sku.active,
+  #gdg-panel-anggaran.active {
+    display: flex; flex-direction: column;
+  }
+  #gdg-panel-pendapatan .card,
+  #gdg-panel-riwayat .card,
+  #gdg-panel-sku .card {
     display: flex; flex-direction: column;
     min-height: calc(100dvh - 260px); /* kasar: header app + toolbar + card-title */
   }
-  #gdg-panel-pendapatan .tbl-wrap { flex: 1; overflow-y: auto; }
+  #gdg-panel-pendapatan .tbl-wrap,
+  #gdg-panel-riwayat .tbl-wrap,
+  #gdg-panel-sku .tbl-wrap {
+    flex: 1; overflow-y: auto;
+  }
+  /* Anggaran beda struktur: ada card metric "Net Anggaran" duluan di atas
+     card list-nya, jadi budget tinggi card list dikurangin ekstra. */
+  #gdg-panel-anggaran .card {
+    display: flex; flex-direction: column;
+    min-height: calc(100dvh - 370px);
+  }
+  #gdg-panel-anggaran #gdg-ang2-list { flex: 1; overflow-y: auto; }
+
+  /* Poin 2: dropdown saran "Warna" bikinan sendiri — gantiin autofill bawaan
+     browser yg posisinya ga konsisten (kadang muncul di atas, kepotong status
+     bar). Nempel PERSIS di bawah input (position:absolute, top:100%), tinggi
+     dibatasin ~5 item lalu scroll kalau lebih. */
+  .gdg-warna-dropdown {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+    background: #fff !important; border: 2px solid var(--gdg-ink); border-radius: 10px;
+    max-height: 192px; overflow-y: auto; z-index: 60;
+    box-shadow: 2px 3px 0 rgba(38,34,32,0.15);
+  }
+  .gdg-warna-dropdown .gdg-warna-opt {
+    padding: 8px 12px; font-size: 14px; cursor: pointer;
+    border-bottom: 1px solid var(--gdg-rule); color: var(--gdg-ink) !important;
+  }
+  .gdg-warna-dropdown .gdg-warna-opt:last-child { border-bottom: none; }
+  .gdg-warna-dropdown .gdg-warna-opt:hover,
+  .gdg-warna-dropdown .gdg-warna-opt.active { background: var(--gdg-paper2); }
 
   /* Poin 3: minicard Ringkasan dipersingkat KHUSUS HP — laptop TETAP gaya lama.
      Breakpoint sama persis dgn bottom-sheet (max-width:900px) biar konsisten. */
@@ -271,6 +311,13 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-qtylsn-split { display: flex !important; padding: 0 !important; overflow: hidden; }
   .gdg-qtylsn-col { flex: 1; text-align: center; padding: 14px 8px; }
   .gdg-qtylsn-col:first-child { border-right: 2px dashed var(--ink3); }
+
+  /* Poin 1: judul section (Overview/Anggaran/Riwayat/dst) duduk di atas
+     BACKGROUND GELAP bawaan app (di luar area kertas krem), tapi ke-inherit
+     warna tinta gelap dari rule "#page-gadag{color:var(--gdg-ink)}" di atas
+     → nyaris ga keliatan. Kasih warna terang eksplisit khusus buat baris
+     judul ini aja (bukan warna umum #page-gadag, biar isi card tetep ink gelap). */
+  #gdg-view-heading, #gdg-view-heading-icon { color: var(--gdg-paper) !important; }
 </style>
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
@@ -551,10 +598,13 @@ document.getElementById('page-gadag').innerHTML = `
         <input type="date" id="gdg-pend-tanggal" onchange="gdgUpdateHari()"
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="position:relative">
         <label>Warna</label>
-        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah" autocomplete="off" autocorrect="off" spellcheck="false"
+        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah"
+          autocomplete="new-password" autocorrect="off" spellcheck="false"
+          oninput="gdgWarnaFilter()" onfocus="gdgWarnaFilter()"
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+        <div id="gdg-pend-warna-dropdown" class="gdg-warna-dropdown"></div>
       </div>
       <div class="form-group">
         <label>SKU</label>
@@ -1325,9 +1375,58 @@ function gdgShowPendapatanModal(editId) {
     hapusBtn.style.display = 'none';
   }
 
+  gdgWarnaCloseDropdown();
   document.getElementById('modal-gdg-pend').classList.add('open');
   gdgOpenPendSheet();
 }
+
+// ─── DROPDOWN SARAN "WARNA" (bikinan sendiri, ganti autofill browser) ──
+// Sumbernya sama kayak yg dipakai browser buat autofill: histori warna yg
+// pernah diketik, diambil dari _gdgPendapatanList yg udah ke-load. Bedanya
+// posisinya konsisten (selalu di bawah field-nya sendiri) dan filter-nya
+// nyala pas ngetik.
+function gdgWarnaList() {
+  const set = new Set();
+  (_gdgPendapatanList || []).forEach(p => {
+    const w = (p.warna || '').trim();
+    if (w) set.add(w);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'id'));
+}
+
+function gdgWarnaFilter() {
+  const inp = document.getElementById('gdg-pend-warna');
+  const dd  = document.getElementById('gdg-pend-warna-dropdown');
+  if (!inp || !dd) return;
+  const q   = inp.value.trim().toLowerCase();
+  const all = gdgWarnaList();
+  const matches = q ? all.filter(w => w.toLowerCase().includes(q)) : all;
+  if (!matches.length) { gdgWarnaCloseDropdown(); return; }
+  dd.innerHTML = matches.map(w => {
+    const esc = w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
+    return `<div class="gdg-warna-opt" onmousedown="event.preventDefault();gdgWarnaPilih('${esc.replace(/'/g,"\\'")}')">${esc}</div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+function gdgWarnaPilih(w) {
+  const inp = document.getElementById('gdg-pend-warna');
+  if (inp) inp.value = w;
+  gdgWarnaCloseDropdown();
+}
+
+function gdgWarnaCloseDropdown() {
+  const dd = document.getElementById('gdg-pend-warna-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+// Klik/tap di luar input & dropdown → tutup
+document.addEventListener('click', function(e) {
+  const inp = document.getElementById('gdg-pend-warna');
+  const dd  = document.getElementById('gdg-pend-warna-dropdown');
+  if (!inp || !dd) return;
+  if (e.target !== inp && !dd.contains(e.target)) gdgWarnaCloseDropdown();
+});
 
 // ─── BOTTOM-SHEET: animasi masuk/keluar + drag-to-close + keyboard-safe (iOS) ──
 function gdgOpenPendSheet() {
@@ -1418,6 +1517,7 @@ function _gdgInitSheetDragToClose() {
 
 
 function gdgClosePendapatanModal() {
+  gdgWarnaCloseDropdown();
   const overlay = document.getElementById('modal-gdg-pend');
   const sheet   = document.getElementById('gdg-pend-sheet');
   if (!overlay) return;
