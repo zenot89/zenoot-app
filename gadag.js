@@ -33,10 +33,10 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-hero-value { font-size: 32px; font-weight: 800; color: var(--ok); margin-top: 4px; line-height: 1.1; }
   .gdg-hero-sub   { font-size: 12px; color: var(--ink3); margin-top: 3px; }
-  .gdg-minicards { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
+  .gdg-minicards { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:5px; }
   .gdg-minicard.mc-pend { border: 2px solid var(--ok); }
   .gdg-minicard.mc-cost { border: 2px solid var(--danger); }
-  .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:6px; }
+  .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:5px; margin-bottom:5px; }
   @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(2,1fr); } }
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
@@ -298,7 +298,11 @@ document.getElementById('page-gadag').innerHTML = `
   /* Default: panel yg isinya beberapa card ditumpuk (Ringkasan Mingguan) —
      scroll biasa di panel-nya sendiri, card-card di dalemnya natural height. */
   .gdg-panel { display: none; min-height: 0; }
-  .gdg-panel.active { display: block; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
+  #gdg-panel-mingguan.active { display: flex; flex-direction: column; }
+  #gdg-panel-mingguan.active > .card:last-child { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 
   /* Panel isi 1 card utama (Catatan/Riwayat/Kelola Produk/Anggaran) — panelnya
      sendiri jadi flex column TANPA scroll (overflow:hidden), yg scroll internal
@@ -476,9 +480,9 @@ document.getElementById('page-gadag').innerHTML = `
       style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
   </div>
 
-  <div style="padding:8px 0 10px">
-    <div style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Net Income</div>
-    <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok)">Rp0</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 10px;gap:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase;white-space:nowrap">Net Income</div>
+    <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok);text-align:right">Rp0</div>
   </div>
   <!-- Tabel harian — disembunyikan saat mode bulan-ini / per-bulan -->
   <div id="gdgw-data-area" class="tbl-wrap" style="overflow-x:auto">
@@ -857,38 +861,160 @@ function _gdgWEnsureModeMenu() {
     'background:var(--gdg-paper,#f7f2e6)',
     'border:2.5px solid var(--gdg-ink,#262220)',
     'border-radius:14px',
-    'min-width:150px',
+    'min-width:160px',
     'box-shadow:2px 4px 12px rgba(0,0,0,.28)',
     'overflow:hidden',
     "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
   ].join(';');
   const opts = [
-    ['minggu-ini', 'Minggu Ini', true],
-    ['per-minggu', 'Per Minggu', false],
-    ['bulan-ini',  'Bulan Ini',  false],
-    ['per-bulan',  'Per Bulan',  false],
-    ['custom',     'Custom',     false],
+    ['minggu-ini', 'Minggu Ini',  true,  false],
+    ['per-minggu', 'Per Minggu',  false, true],   // punya sub
+    ['bulan-ini',  'Bulan Ini',   false, false],
+    ['per-bulan',  'Per Bulan',   false, true],   // punya sub
+    ['custom',     'Custom',      false, false],
   ];
-  opts.forEach(([mode, label, active]) => {
+  opts.forEach(([mode, label, active, hasSub]) => {
     const btn = document.createElement('button');
     btn.id = 'gdgw-opt-' + mode;
-    btn.textContent = label;
-    if (active) btn.classList.add('active');
     btn.style.cssText = [
-      'display:block','width:100%','text-align:left',
+      'display:flex','align-items:center','justify-content:space-between',
+      'width:100%','text-align:left',
       'padding:10px 14px','background:none','border:none',
       'border-bottom:1px solid rgba(38,34,32,.1)',
       'font-size:13px','font-weight:700','cursor:pointer',
       "color:var(--gdg-ink,#262220)",
       "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
     ].join(';');
-    btn.addEventListener('click', () => gdgWSetMode(mode));
+    if (active) btn.classList.add('active');
+
+    const span = document.createElement('span');
+    span.textContent = label;
+    btn.appendChild(span);
+
+    if (hasSub) {
+      // Arrow ▸ indikator punya submenu
+      const arrow = document.createElement('span');
+      arrow.textContent = '▸';
+      arrow.style.cssText = 'font-size:10px;opacity:.55;margin-left:6px;flex:none';
+      btn.appendChild(arrow);
+      btn.addEventListener('click', (ev) => { ev.stopPropagation(); _gdgWOpenSubMenu(mode, btn); });
+    } else {
+      btn.addEventListener('click', () => gdgWSetMode(mode));
+    }
     menu.appendChild(btn);
   });
   // Hapus border-bottom dari item terakhir
   const last = menu.querySelector('button:last-child');
   if (last) last.style.borderBottom = 'none';
   document.body.appendChild(menu);
+}
+
+// ─── SUB-MENU: pilihan minggu/bulan spesifik ──
+let _gdgWSubMenuOpen = null; // mode yang sub-menu-nya lagi terbuka
+
+function _gdgWOpenSubMenu(mode, triggerBtn) {
+  // Kalau sub-menu sama sudah terbuka → tutup
+  if (_gdgWSubMenuOpen === mode) { _gdgWCloseSubMenu(); return; }
+  _gdgWCloseSubMenu();
+  _gdgWSubMenuOpen = mode;
+
+  const sub = document.createElement('div');
+  sub.id = 'gdgw-sub-menu';
+  sub.style.cssText = [
+    'position:fixed',
+    'z-index:10000',
+    'background:var(--gdg-paper,#f7f2e6)',
+    'border:2.5px solid var(--gdg-ink,#262220)',
+    'border-radius:14px',
+    'min-width:160px',
+    'max-height:260px',
+    'overflow-y:auto',
+    'box-shadow:4px 6px 14px rgba(0,0,0,.32)',
+    "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+  ].join(';');
+
+  const items = [];
+  const now = new Date();
+
+  if (mode === 'per-minggu') {
+    // Tampilkan 8 minggu terakhir (termasuk minggu ini)
+    for (let i = 0; i < 8; i++) {
+      const ws = gdgWGetMonday(new Date());
+      ws.setDate(ws.getDate() - i * 7);
+      const we = new Date(ws); we.setDate(ws.getDate() + 6);
+      const label = (i === 0 ? '▸ ' : '') + gdgWFmtRange(ws, we);
+      items.push({ label, ws: new Date(ws), we });
+    }
+  } else if (mode === 'per-bulan') {
+    // Tampilkan 8 bulan terakhir (termasuk bulan ini)
+    for (let i = 0; i < 8; i++) {
+      const ref = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = (i === 0 ? '▸ ' : '') + _GDGW_BLN[ref.getMonth()] + ' ' + ref.getFullYear();
+      items.push({ label, ref: new Date(ref) });
+    }
+  }
+
+  items.forEach((item, idx) => {
+    const btn = document.createElement('button');
+    btn.style.cssText = [
+      'display:block','width:100%','text-align:left',
+      'padding:9px 16px','background:none','border:none',
+      'border-bottom:1px solid rgba(38,34,32,.1)',
+      'font-size:13px','font-weight:700','cursor:pointer',
+      "color:var(--gdg-ink,#262220)",
+      "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+    ].join(';');
+    btn.textContent = item.label;
+    if (idx === 0) btn.style.fontWeight = '900'; // minggu/bulan ini tebal
+
+    btn.addEventListener('click', () => {
+      if (mode === 'per-minggu') {
+        _gdgWMode = 'per-minggu';
+        _gdgWWeekStart = item.ws;
+      } else {
+        _gdgWMode = 'per-bulan';
+        _gdgWBulanRef  = item.ref;
+      }
+      // Update label tombol & active state
+      const modeLabel = document.getElementById('gdgw-mode-label');
+      if (modeLabel) modeLabel.textContent = item.label.replace('▸ ', '');
+      ['minggu-ini','per-minggu','bulan-ini','per-bulan','custom'].forEach(m => {
+        const el = document.getElementById('gdgw-opt-' + m);
+        if (el) el.classList.toggle('active', m === mode);
+      });
+      const dataArea = document.getElementById('gdgw-data-area');
+      if (dataArea) dataArea.style.display = (mode === 'per-bulan') ? 'none' : '';
+      const customEl = document.getElementById('gdgw-custom-range');
+      if (customEl) customEl.style.display = 'none';
+      _gdgWCloseSubMenu();
+      gdgWCloseModeMenu();
+      gdgWRenderWeek();
+    });
+    sub.appendChild(btn);
+  });
+  const lastBtn = sub.querySelector('button:last-child');
+  if (lastBtn) lastBtn.style.borderBottom = 'none';
+
+  document.body.appendChild(sub);
+
+  // Posisi: sejajar kanan menu utama, setinggi tombol yang di-klik
+  requestAnimationFrame(() => {
+    const mainMenu = document.getElementById('gdgw-mode-menu');
+    const tr = triggerBtn.getBoundingClientRect();
+    const mw = sub.offsetWidth;
+    const mainR = mainMenu ? mainMenu.getBoundingClientRect() : tr;
+    let left = mainR.right + 4;
+    if (left + mw > window.innerWidth - 8) left = mainR.left - mw - 4;
+    if (left < 8) left = 8;
+    sub.style.left = left + 'px';
+    sub.style.top  = tr.top + 'px';
+  });
+}
+
+function _gdgWCloseSubMenu() {
+  _gdgWSubMenuOpen = null;
+  const s = document.getElementById('gdgw-sub-menu');
+  if (s) s.remove();
 }
 
 function gdgWToggleModeMenu(e) {
@@ -898,14 +1024,15 @@ function gdgWToggleModeMenu(e) {
   const btn  = document.getElementById('gdgw-mode-btn');
   if (!menu || !btn) return;
   const isOpen = menu.style.display !== 'none';
-  if (isOpen) { menu.style.display = 'none'; return; }
-  // Posisikan menu di bawah tombol pakai getBoundingClientRect
+  if (isOpen) { menu.style.display = 'none'; _gdgWCloseSubMenu(); return; }
+  // Posisikan menu rata KIRI dengan tombol
   const r = btn.getBoundingClientRect();
   menu.style.display = 'block';
-  // Sesuaikan posisi setelah visible biar offsetWidth akurat
   requestAnimationFrame(() => {
+    let left = r.left;
     const mw = menu.offsetWidth;
-    let left = r.right - mw;
+    // Kalau keluar viewport kanan, geser ke kiri
+    if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
     if (left < 8) left = 8;
     menu.style.top  = (r.bottom + 4) + 'px';
     menu.style.left = left + 'px';
@@ -915,14 +1042,20 @@ function gdgWToggleModeMenu(e) {
 function gdgWCloseModeMenu() {
   const m = document.getElementById('gdgw-mode-menu');
   if (m) m.style.display = 'none';
+  _gdgWCloseSubMenu();
 }
 
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('gdgw-mode-menu');
+  const sub  = document.getElementById('gdgw-sub-menu');
   const btn  = document.getElementById('gdgw-mode-btn');
+  const clickedMenu = menu && menu.contains(e.target);
+  const clickedSub  = sub  && sub.contains(e.target);
+  const clickedBtn  = btn  && btn.contains(e.target);
   if (!menu || menu.style.display === 'none') return;
-  if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+  if (!clickedMenu && !clickedSub && !clickedBtn) {
     menu.style.display = 'none';
+    _gdgWCloseSubMenu();
   }
 });
 
