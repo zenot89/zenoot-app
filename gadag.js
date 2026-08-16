@@ -43,6 +43,46 @@ document.getElementById('page-gadag').innerHTML = `
   }
   #gdg-sticky-header { cursor: grab; }
 
+  /* ── Bottom-sheet: modal Tambah Catatan Pendapatan (pola IG comment sheet) ──
+     Kenapa: modal center/top-align lama harus "re-center ulang" tiap kali
+     keyboard iOS buka/tutup (visual viewport berubah) → itu penyebab modal
+     kelihatan "mental"/lompat. Bottom-sheet nempel bottom:0, jadi cuma
+     tingginya yg nyusut ngikutin ruang tersisa — ga perlu reposisi ulang.
+     Tinggi/posisi aktualnya di-drive JS via window.visualViewport. */
+  @media (max-width:900px){
+    .gdg-sheet-overlay {
+      align-items: flex-end !important;
+      padding: 0 !important;
+    }
+    .gdg-sheet-overlay .gdg-sheet {
+      width: 100% !important;
+      max-width: 100% !important;
+      max-height: 88dvh !important;
+      margin: 0 !important;
+      border-radius: 18px 18px 0 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform .28s cubic-bezier(.32,.72,0,1);
+    }
+    .gdg-sheet-overlay.gdg-sheet-in .gdg-sheet { transform: translateY(0); }
+    .gdg-sheet-handle {
+      flex: none;
+      display: flex; justify-content: center; align-items: center;
+      padding: 10px 0 6px; cursor: grab; touch-action: none;
+    }
+    .gdg-sheet-handle span {
+      width: 40px; height: 5px; border-radius: 3px; background: var(--ink3); opacity: .5;
+    }
+    .gdg-sheet-body {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: auto;
+      overscroll-behavior: contain;
+    }
+  }
+
   /* ── Dropdown menu Jurnal / Kelola Produk ── */
   .gdg-menu-wrap { position: relative; }
   .gdg-dropdown-menu {
@@ -154,7 +194,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase">Net</div>
     <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok)">Rp0</div>
   </div>
-  <div class="tbl-wrap" style="overflow-x:auto">
+  <div id="gdgw-data-area" class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
       <thead><tr><th>Hari</th><th style="text-align:right">Pendapatan</th><th style="text-align:right">Beban</th><th style="text-align:right">Net</th></tr></thead>
       <tbody id="gdgw-harian-tbody">
@@ -236,9 +276,11 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- MODAL: CATATAN PENDAPATAN -->
-<div class="modal-overlay" id="modal-gdg-pend" onclick="gdgOverlayClose(event,'modal-gdg-pend', gdgClosePendapatanModal)">
-  <div class="modal" style="max-width:420px;width:100%;padding:16px">
+<!-- MODAL: CATATAN PENDAPATAN (bottom-sheet, keyboard-safe via visualViewport) -->
+<div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-pend" onclick="gdgOverlayClose(event,'modal-gdg-pend', gdgClosePendapatanModal)">
+  <div class="modal gdg-sheet" id="gdg-pend-sheet" style="max-width:420px;width:100%;padding:0">
+    <div id="gdg-pend-sheet-handle" class="gdg-sheet-handle"><span></span></div>
+    <div class="gdg-sheet-body" style="padding:0 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-pend-modal-title">
         <i class="ti ti-plus"></i> Tambah Catatan Pendapatan
@@ -259,7 +301,7 @@ document.getElementById('page-gadag').innerHTML = `
       </div>
       <div class="form-group">
         <label>Warna</label>
-        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah"
+        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah" autocomplete="off" autocorrect="off" spellcheck="false"
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
       </div>
       <div class="form-group">
@@ -283,6 +325,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="gdgClosePendapatanModal()">Batal</button>
       <button class="btn btn-primary" onclick="gdgSimpanPendapatan()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
     </div>
   </div>
 </div>
@@ -658,10 +701,87 @@ function gdgShowPendapatanModal() {
     return;
   }
   document.getElementById('modal-gdg-pend').classList.add('open');
+  gdgOpenPendSheet();
 }
 
+// ─── BOTTOM-SHEET: animasi masuk/keluar + drag-to-close + keyboard-safe (iOS) ──
+function gdgOpenPendSheet() {
+  const overlay = document.getElementById('modal-gdg-pend');
+  const sheet   = document.getElementById('gdg-pend-sheet');
+  if (!overlay || !sheet) return;
+  sheet.style.transform = ''; // pastikan mulai dari posisi tertutup (translateY(100%) dari CSS)
+  // reflow paksa biar posisi awal ke-render dulu sebelum kita animasiin ke posisi final
+  void overlay.offsetHeight;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    overlay.classList.add('gdg-sheet-in');
+  }));
+  _gdgSheetSyncViewport();
+  if (window.visualViewport && !overlay._gdgVVInited) {
+    overlay._gdgVVInited = true;
+    window.visualViewport.addEventListener('resize', _gdgSheetSyncViewport);
+    window.visualViewport.addEventListener('scroll', _gdgSheetSyncViewport);
+  }
+  _gdgInitSheetDragToClose();
+}
+
+function _gdgSheetSyncViewport() {
+  const overlay = document.getElementById('modal-gdg-pend');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (!window.matchMedia('(max-width:900px)').matches) return; // cuma perlu di layout bottom-sheet (mobile)
+  const vv = window.visualViewport;
+  if (!vv) return;
+  // Fixed overlay dihitung dari layout viewport, bukan visual viewport, jadi
+  // pas keyboard buka, bagian bawahnya ketutup keyboard kalau ga di-sync manual.
+  overlay.style.height    = vv.height + 'px';
+  overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+}
+
+function _gdgInitSheetDragToClose() {
+  const handle = document.getElementById('gdg-pend-sheet-handle');
+  const sheet  = document.getElementById('gdg-pend-sheet');
+  if (!handle || !sheet || handle._gdgDragInited) return;
+  handle._gdgDragInited = true;
+  var _startY = 0, _dragging = false, _dy = 0;
+  handle.addEventListener('touchstart', function(e) {
+    _startY   = e.touches[0].clientY;
+    _dragging = true;
+    sheet.style.transition = 'none'; // ikutin jari langsung, tanpa delay transisi
+  }, { passive: true });
+  handle.addEventListener('touchmove', function(e) {
+    if (!_dragging) return;
+    _dy = Math.max(0, e.touches[0].clientY - _startY); // cuma boleh narik ke bawah
+    sheet.style.transform = 'translateY(' + _dy + 'px)';
+  }, { passive: true });
+  handle.addEventListener('touchend', function() {
+    if (!_dragging) return;
+    _dragging = false;
+    sheet.style.transition = ''; // balikin transisi buat animasi snap-back / close
+    if (_dy > 90) {
+      gdgClosePendapatanModal(); // ditarik cukup jauh → tutup
+    } else {
+      sheet.style.transform = ''; // kurang jauh → snap balik ke posisi kebuka
+    }
+    _dy = 0;
+  }, { passive: true });
+}
+
+
 function gdgClosePendapatanModal() {
-  document.getElementById('modal-gdg-pend').classList.remove('open');
+  const overlay = document.getElementById('modal-gdg-pend');
+  const sheet   = document.getElementById('gdg-pend-sheet');
+  if (!overlay) return;
+  if (sheet && window.matchMedia('(max-width:900px)').matches) {
+    // animasiin sheet turun dulu, baru overlay-nya di-hide
+    overlay.classList.remove('gdg-sheet-in');
+    sheet.style.transform = '';
+    setTimeout(function() {
+      overlay.classList.remove('open');
+      overlay.style.height    = '';
+      overlay.style.transform = '';
+    }, 280);
+  } else {
+    overlay.classList.remove('open');
+  }
 }
 
 function gdgRecomputePreview() {
@@ -745,6 +865,44 @@ function gdgToggleSummary() {
     if (minicards) initSwipeCollapse(minicards, summary, 50, 'gdg-topbar-collapsed');
     if (sticky)    initSwipeCollapse(sticky,    summary, 50, 'gdg-topbar-collapsed');
   }
+  function _gdgInitDoubleSwipeExpand() {
+    var area    = document.getElementById('gdgw-data-area');
+    var summary = document.getElementById('gdg-top-summary');
+    if (!area || !summary || area._gdgDblSwipeInited) return;
+    area._gdgDblSwipeInited = true;
+    var THRESHOLD = 35;   // px minimal per swipe biar keitung gesture, bukan jitter
+    var MIN_GAP   = 120;  // ms — dua swipe ga boleh instan/nyambung (dianggap 1 gesture panjang)
+    var MAX_GAP   = 800;  // ms — tapi juga ga boleh kelamaan jeda antar swipe 1 & 2
+    var _startY = 0, _startX = 0, _tracking = false, _lastSwipeDownAt = 0;
+
+    area.addEventListener('touchstart', function(e) {
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+      _startY   = e.touches[0].clientY;
+      _startX   = e.touches[0].clientX;
+      _tracking = true;
+    }, { passive: true });
+
+    area.addEventListener('touchend', function(e) {
+      if (!_tracking) return;
+      _tracking = false;
+      if (_gdgView !== 'mingguan') return;
+      if (!summary.classList.contains('gdg-topbar-collapsed')) return; // cuma perlu kalo lagi ke-collapse
+      var dy = e.changedTouches[0].clientY - _startY;
+      var dx = e.changedTouches[0].clientX - _startX;
+      if (Math.abs(dx) > Math.abs(dy)) return; // bukan gesture vertikal
+      if (dy < THRESHOLD) return;              // bukan swipe ke bawah yg cukup jauh
+
+      var now = Date.now();
+      var gap = now - _lastSwipeDownAt;
+      if (gap >= MIN_GAP && gap <= MAX_GAP) {
+        // 2x swipe-turun berdekatan (ga kecepetan, ga kelamaan) → turunin ringkasan
+        summary.classList.remove('gdg-topbar-collapsed');
+        _lastSwipeDownAt = 0;
+      } else {
+        _lastSwipeDownAt = now;
+      }
+    }, { passive: true });
+  }
   function _gdgInitScrollCollapse() {
     var content = document.querySelector('.content');
     var summary = document.getElementById('gdg-top-summary');
@@ -803,6 +961,7 @@ function gdgToggleSummary() {
       if (el) el.classList.remove('gdg-topbar-collapsed');
       _gdgInitSwipe();
       _gdgInitScrollCollapse();
+      _gdgInitDoubleSwipeExpand();
       _gdgInitToggleSync();
       _gdgSyncToggleIcon();
     }, 100);
