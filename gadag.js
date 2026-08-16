@@ -216,8 +216,9 @@ document.getElementById('page-gadag').innerHTML = `
   #page-gadag .btn {
     font-family: inherit; font-weight: 700;
     border: 2px solid var(--gdg-ink) !important;
-    border-radius: 999px !important;
+    border-radius: 10px !important;
     background: #fff; color: var(--gdg-ink);
+    text-transform: uppercase; letter-spacing: .02em;
   }
   #page-gadag .btn-primary { background: var(--gdg-ink); color: var(--gdg-paper) !important; }
   #page-gadag .btn-danger  { background: #fff; color: #b5453d; border-color: #b5453d !important; }
@@ -226,8 +227,13 @@ document.getElementById('page-gadag').innerHTML = `
     border-radius: 14px !important;
   }
   #page-gadag .gdg-dropdown-menu button { color: var(--gdg-ink) !important; font-family: inherit; }
-  #page-gadag .tbl thead th { color: var(--gdg-ink2) !important; border-bottom: 2px dashed var(--gdg-ink); }
+  #page-gadag .tbl thead th {
+    color: var(--gdg-ink2) !important;
+    background: transparent !important; box-shadow: none !important;
+    border-bottom: 3px solid var(--gdg-ink);
+  }
   #page-gadag .tbl tbody tr { border-bottom: 1px solid var(--gdg-rule); }
+  #gdgw-week-label { text-transform: uppercase; }
   #page-gadag .gdg-sheet-handle span { background: var(--gdg-ink) !important; opacity: .35; }
 
   /* ── Export PDF: cetak cuma area #gdg-print-area, sembunyiin sisanya ──
@@ -426,11 +432,9 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="metric gdg-mobile-only gdg-qtylsn-split">
     <div class="gdg-qtylsn-col">
-      <div class="m-label">/ QTY</div>
       <div class="m-value" id="gdg-metric-qty-num">—</div>
     </div>
     <div class="gdg-qtylsn-col">
-      <div class="m-label">/ LOSIN</div>
       <div class="m-value" id="gdg-metric-lsn-num">—</div>
     </div>
   </div>
@@ -787,16 +791,19 @@ function gdgWToISO(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function gdgWFmtTgl(d) { return d.getDate() + ' ' + _GDGW_BLN[d.getMonth()] + ' ' + d.getFullYear(); }
-// Format ringkas rentang minggu, biar ga makan tempat: "10-17 Ags 2026".
-// Otomatis nyesuain kalau minggunya nyebrang bulan/tahun.
+// Format ringkas rentang minggu, biar ga makan tempat: "16-22 Ags 26".
+// Tahun 2 digit + huruf besar (text-transform:uppercase di CSS) biar sesuai
+// konsep referensi ("16-22 AGS 06"). Otomatis nyesuain kalau minggunya
+// nyebrang bulan/tahun.
 function gdgWFmtRange(start, end) {
   const sameYear  = start.getFullYear() === end.getFullYear();
   const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  const y2 = n => String(n).slice(-2);
   if (sameMonth) {
-    return start.getDate() + '-' + end.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' ' + start.getFullYear();
+    return start.getDate() + '-' + end.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' ' + y2(start.getFullYear());
   }
   if (sameYear) {
-    return start.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' - ' + end.getDate() + ' ' + _GDGW_BLN[end.getMonth()] + ' ' + start.getFullYear();
+    return start.getDate() + ' ' + _GDGW_BLN[start.getMonth()] + ' - ' + end.getDate() + ' ' + _GDGW_BLN[end.getMonth()] + ' ' + y2(start.getFullYear());
   }
   return gdgWFmtTgl(start) + ' - ' + gdgWFmtTgl(end);
 }

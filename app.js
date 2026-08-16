@@ -134,7 +134,7 @@ var pageMap = {
   'stok':               { title:'Stok Produk',         sub:'monitoring stok semua SKU'      },
   'restock':            { title:'Re-Stock',            sub:'daftar reorder per boss'        },
   'kas':                { title:'Kas & Jurnal',        sub:'pencatatan arus kas harian'     },
-  'gadag':              { title:'Gadag',                sub:'ongkos jahit / makloon per lusin' },
+  'gadag':              { title:'Gadag',                sub:'Bismillah . Ab damel hela !' },
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
   'price-list':         { title:'Price List',          sub:'harga jual otomatis dari HPP'   },
   'dataorder':          { title:'Data Order',          sub:'upload & lihat order Shopee'    },
