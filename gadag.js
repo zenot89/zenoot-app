@@ -111,6 +111,10 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-dropdown-menu button:last-child { border-bottom:none; }
   .gdg-dropdown-menu button:hover { background:var(--cream2); }
   .gdg-dropdown-menu button.active { color:var(--ok); }
+  .gdg-menu-group-label {
+    padding: 8px 14px 4px; font-size: 10px; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink3); border-top: 1px solid var(--ink4);
+  }
 
   /* ══ TEMA "BUKU TULIS" — khusus block Gadag ══════════════════════
      Font "More Sugar" ga tersedia buat di-embed (font eksklusif Canva),
@@ -233,6 +237,25 @@ document.getElementById('page-gadag').innerHTML = `
       pointer-events: none;
     }
   }
+
+  /* Poin 1: panel Catatan isi penuh layar, tabel scroll internal kalau data banyak */
+  #gdg-panel-pendapatan { display: flex; flex-direction: column; }
+  #gdg-panel-pendapatan .card {
+    display: flex; flex-direction: column;
+    min-height: calc(100dvh - 260px); /* kasar: header app + toolbar + card-title */
+  }
+  #gdg-panel-pendapatan .tbl-wrap { flex: 1; overflow-y: auto; }
+
+  /* Poin 3: minicard Ringkasan dipersingkat KHUSUS HP — laptop TETAP gaya lama.
+     Breakpoint sama persis dgn bottom-sheet (max-width:900px) biar konsisten. */
+  .gdg-mobile-only { display: none; }
+  @media (max-width: 900px) {
+    .gdg-desktop-only { display: none !important; }
+    .gdg-mobile-only  { display: block; }
+  }
+  .gdg-qtylsn-split { display: flex !important; padding: 0 !important; overflow: hidden; }
+  .gdg-qtylsn-col { flex: 1; text-align: center; padding: 14px 8px; }
+  .gdg-qtylsn-col:first-child { border-right: 2px dashed var(--ink3); }
 </style>
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
@@ -255,6 +278,8 @@ document.getElementById('page-gadag').innerHTML = `
       <button id="gdg-menu-item-pendapatan" onclick="gdgSelectView('pendapatan')"><i class="ti ti-notes"></i> Catatan Pendapatan</button>
       <button id="gdg-menu-item-riwayat" onclick="gdgSelectView('riwayat')"><i class="ti ti-history"></i> Riwayat</button>
       <button id="gdg-menu-item-sku" onclick="gdgSelectView('sku')"><i class="ti ti-list-details"></i> Kelola Produk</button>
+      <div class="gdg-menu-group-label">Anggaran</div>
+      <button id="gdg-menu-item-anggaran" onclick="gdgSelectView('anggaran')"><i class="ti ti-wallet"></i> Anggaran Mingguan</button>
     </div>
   </div>
 </div>
@@ -270,25 +295,47 @@ document.getElementById('page-gadag').innerHTML = `
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
     <div class="gdg-hero-value" id="gdg-total-pendapatan" style="color:var(--ok)">Rp0</div>
-    <div class="gdg-hero-sub" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
+    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
   </div>
   <div class="card gdg-minicard mc-cost">
-    <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Pengeluaran Mingguan</div>
+    <div class="gdg-hero-label">
+      <i class="ti ti-receipt-2"></i>
+      <span class="gdg-desktop-only">Pengeluaran Mingguan</span>
+      <span class="gdg-mobile-only">Cost</span>
+    </div>
     <div class="gdg-hero-value" id="gdg-cost-value" style="color:var(--danger)">Rp0</div>
-    <div class="gdg-hero-sub" id="gdg-cost-sub">— (cost minggu ini)</div>
+    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-cost-sub">— (cost minggu ini)</div>
   </div>
 </div>
 
 <div class="gdg-metrics">
-  <div class="metric">
+  <!-- Card "Qty/Lsn" — DESKTOP: gaya lama (gabungan). MOBILE: 2 kolom /QTY /LOSIN (file4) -->
+  <div class="metric gdg-desktop-only">
     <div class="m-label">Jumlah Qty / Lsn</div>
     <div class="m-value" id="gdg-metric-qty">—</div>
     <div class="m-delta">pcs, minggu terpilih</div>
   </div>
-  <div class="metric">
+  <div class="metric gdg-mobile-only gdg-qtylsn-split">
+    <div class="gdg-qtylsn-col">
+      <div class="m-label">/ QTY</div>
+      <div class="m-value" id="gdg-metric-qty-num">—</div>
+    </div>
+    <div class="gdg-qtylsn-col">
+      <div class="m-label">/ LOSIN</div>
+      <div class="m-value" id="gdg-metric-lsn-num">—</div>
+    </div>
+  </div>
+
+  <!-- Card 4 — DESKTOP: Jumlah SKU (gaya lama). MOBILE: Target (pendapatan − target minggu ini) -->
+  <div class="metric gdg-desktop-only">
     <div class="m-label">Jumlah SKU</div>
     <div class="m-value" id="gdg-metric-sku">—</div>
     <div class="m-delta">master ongkos per lusin</div>
+  </div>
+  <div class="metric gdg-mobile-only" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
+    <div class="m-label">Target</div>
+    <div class="m-value" id="gdg-metric-target">—</div>
+    <div class="m-delta" id="gdg-metric-target-sub">Target: Rp0</div>
   </div>
 </div>
 
@@ -331,15 +378,17 @@ document.getElementById('page-gadag').innerHTML = `
     <span id="gdg-pend-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— catatan</span>
     <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
   </div>
+  <div style="font-size:11px;color:var(--ink3);margin:-4px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th></tr></thead>
       <tbody id="gdg-pend-tbody">
-        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
+
 </div>
 
 <!-- PANEL: RIWAYAT (semua catatan minggu-minggu lalu, biar data ga ilang) -->
@@ -386,6 +435,29 @@ document.getElementById('page-gadag').innerHTML = `
       </tbody>
 
     </table>
+  </div>
+</div>
+</div>
+
+<!-- PANEL: ANGGARAN MINGGUAN (Target) -->
+<div id="gdg-panel-anggaran" class="gdg-panel">
+<div class="card">
+  <div class="card-title"><i class="ti ti-wallet"></i> Anggaran Mingguan</div>
+  <div id="gdg-anggaran-week-label" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:14px">—</div>
+  <div class="form-group" style="margin-bottom:14px">
+    <label>Target Pendapatan Minggu Ini (Rp)</label>
+    <input type="text" inputmode="numeric" id="gdg-anggaran-target-input" placeholder="contoh: 500.000"
+      oninput="gdgFormatRibuan(this)"
+      style="width:100%;font-family:var(--f);font-size:16px;padding:10px 12px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+  </div>
+  <div class="form-group" style="margin-bottom:14px">
+    <label>Deskripsi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
+    <input type="text" id="gdg-anggaran-deskripsi-input" placeholder="contoh: buat bayar listrik + cicilan mesin"
+      style="width:100%;font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+  </div>
+  <button class="btn btn-primary" onclick="gdgSimpanAnggaran()"><i class="ti ti-check"></i> Simpan Target</button>
+  <div style="font-size:11px;color:var(--ink3);margin-top:14px">
+    Target ini dipakai buat ngitung card "Target" di halaman Ringkasan (pendapatan minggu berjalan dikurangi target ini).
   </div>
 </div>
 </div>
@@ -464,9 +536,14 @@ document.getElementById('page-gadag').innerHTML = `
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
       </div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="gdgClosePendapatanModal()">Batal</button>
-      <button class="btn btn-primary" onclick="gdgSimpanPendapatan()"><i class="ti ti-check"></i> Simpan</button>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button id="gdg-pend-modal-hapus" class="btn btn-sm btn-danger" onclick="gdgHapusPendapatanDariModal()" style="display:none">
+        <i class="ti ti-trash"></i> Hapus
+      </button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
+        <button class="btn" onclick="gdgClosePendapatanModal()">Batal</button>
+        <button class="btn btn-primary" onclick="gdgSimpanPendapatan()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
     </div>
     </div>
   </div>
@@ -487,6 +564,7 @@ const _GDG_VIEW_LABEL = {
   pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal',    heading: 'Catatan',       icon: 'ti-notes' },
   riwayat:    { menu: 'Riwayat',            label: 'Riwayat',   heading: 'Riwayat',       icon: 'ti-history' },
   sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk', heading: 'Kelola Produk', icon: 'ti-list-details' },
+  anggaran:   { menu: 'Anggaran Mingguan',  label: 'Anggaran',  heading: 'Anggaran',      icon: 'ti-wallet' },
 };
 
 function gdgToggleMenu(e) {
@@ -516,6 +594,7 @@ function gdgApplyView() {
   document.getElementById('gdg-panel-pendapatan').classList.toggle('active', _gdgView === 'pendapatan');
   document.getElementById('gdg-panel-riwayat').classList.toggle('active',   _gdgView === 'riwayat');
   document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
+  document.getElementById('gdg-panel-anggaran').classList.toggle('active',  _gdgView === 'anggaran');
 
   document.getElementById('gdg-menu-btn-label').textContent  = _GDG_VIEW_LABEL[_gdgView].label;
   document.getElementById('gdg-view-heading').textContent    = _GDG_VIEW_LABEL[_gdgView].heading;
@@ -527,10 +606,11 @@ function gdgApplyView() {
   const hdrExport  = document.getElementById('gdg-hdr-export');
   if (hdrRefresh) hdrRefresh.style.display = (_gdgView === 'pendapatan') ? '' : 'none';
   if (hdrExport)  hdrExport.style.display  = (_gdgView === 'pendapatan') ? '' : 'none';
-  ['mingguan','pendapatan','riwayat','sku'].forEach(v => {
+  ['mingguan','pendapatan','riwayat','sku','anggaran'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
   if (_gdgView === 'riwayat' && !_gdgHistWeekStart) gdgHistThisWeek();
+  if (_gdgView === 'anggaran') gdgLoadAnggaran();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
@@ -544,6 +624,7 @@ function gdgInit() {
   }
   gdgLoad();
   gdgWInit();
+  gdgLoadAnggaran(); // biar card "Target" di Ringkasan langsung keisi sejak awal
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -684,10 +765,91 @@ async function gdgWRenderWeek() {
   document.getElementById('gdg-total-pendapatan').textContent = gdgWFmt(totalPend);
   document.getElementById('gdg-total-sub').textContent = totalQtyMinggu.toLocaleString('id-ID') + ' pcs dikerjakan · ' + pendapatanMingguList.length + ' catatan';
   document.getElementById('gdg-metric-qty').innerHTML = totalQtyMinggu.toLocaleString('id-ID') + ' pc<br>' + totalLsnMinggu + ' lsn';
+  // Versi mobile (card 2-kolom /QTY /LOSIN, poin 3 file4)
+  const qtyNumEl = document.getElementById('gdg-metric-qty-num');
+  const lsnNumEl = document.getElementById('gdg-metric-lsn-num');
+  if (qtyNumEl) qtyNumEl.textContent = totalQtyMinggu.toLocaleString('id-ID');
+  if (lsnNumEl) lsnNumEl.textContent = totalLsnMinggu;
 
   // Update minicard "Pengeluaran Mingguan (Cost)" di paling atas
   document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
   document.getElementById('gdg-cost-sub').textContent = gdgWFmtTgl(mingguMulai) + ' – ' + gdgWFmtTgl(mingguAkhir);
+
+  gdgUpdateTargetCard(); // card 4 versi mobile (Target vs pendapatan minggu ini)
+}
+
+// ─── ANGGARAN MINGGUAN (Target) ────────────────────────────────
+// Tabel Supabase yg dibutuhin: gadag_anggaran (id, minggu_mulai date unique, target numeric, deskripsi text).
+// Kalau tabelnya belum ada, bikin dulu di Supabase — lihat catatan di chat.
+let _gdgAnggaranId     = null;
+let _gdgAnggaranTarget = 0;
+
+async function gdgLoadAnggaran() {
+  const wkStart = gdgWGetMonday(new Date());
+  const iso     = gdgWToISO(wkStart);
+  let deskripsi = '';
+  try {
+    const rows = await dbGet('gadag_anggaran', '&minggu_mulai=eq.' + iso);
+    if (rows && rows.length) {
+      _gdgAnggaranId     = rows[0].id;
+      _gdgAnggaranTarget = Number(rows[0].target) || 0;
+      deskripsi          = rows[0].deskripsi || '';
+    } else {
+      _gdgAnggaranId     = null;
+      _gdgAnggaranTarget = 0;
+    }
+  } catch(e) {
+    console.error('Gagal load anggaran:', e.message);
+    _gdgAnggaranId = null; _gdgAnggaranTarget = 0;
+  }
+  const input = document.getElementById('gdg-anggaran-target-input');
+  if (input) input.value = _gdgAnggaranTarget || '';
+  const deskEl = document.getElementById('gdg-anggaran-deskripsi-input');
+  if (deskEl) deskEl.value = deskripsi;
+  const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const wkLabelEl = document.getElementById('gdg-anggaran-week-label');
+  if (wkLabelEl) wkLabelEl.textContent = 'Minggu ' + gdgWFmtRange(wkStart, wkEnd);
+  gdgUpdateTargetCard();
+}
+
+async function gdgSimpanAnggaran() {
+  const raw       = (document.getElementById('gdg-anggaran-target-input').value || '').replace(/\D/g,'');
+  const target    = parseInt(raw, 10) || 0;
+  const deskripsi = (document.getElementById('gdg-anggaran-deskripsi-input').value || '').trim();
+  const wkStart = gdgWGetMonday(new Date());
+  const iso     = gdgWToISO(wkStart);
+  try {
+    if (_gdgAnggaranId) {
+      await dbUpdate('gadag_anggaran', _gdgAnggaranId, { target, deskripsi });
+    } else {
+      const res = await dbInsert('gadag_anggaran', { minggu_mulai: iso, target, deskripsi });
+      _gdgAnggaranId = res && res[0] && res[0].id;
+    }
+    _gdgAnggaranTarget = target;
+    gdgUpdateTargetCard();
+    alert('Target minggu ini tersimpan.');
+  } catch(e) {
+    alert('Gagal simpan target: ' + e.message);
+  }
+}
+
+// Card 4 versi mobile: (pendapatan minggu ini) − (target minggu ini).
+// SELALU minggu berjalan (hari ini), independen dari minggu yg lagi
+// dibrowse di navigator Ringkasan — biar ga rancu sama konsep "target".
+function gdgUpdateTargetCard() {
+  const el = document.getElementById('gdg-metric-target');
+  if (!el) return; // desktop, elemen mobile ga ada
+  const wkStart  = gdgWGetMonday(new Date());
+  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
+  const pendMingguIni = _gdgPendapatanList
+    .filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir)
+    .reduce((s,p) => s + (Number(p.total)||0), 0);
+  const sisa = pendMingguIni - (_gdgAnggaranTarget || 0);
+  el.textContent   = gdgFmt(sisa);
+  el.style.color   = sisa >= 0 ? 'var(--ok)' : 'var(--danger)';
+  const subEl = document.getElementById('gdg-metric-target-sub');
+  if (subEl) subEl.textContent = 'Target: ' + gdgFmt(_gdgAnggaranTarget || 0);
 }
 
 // ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
@@ -711,6 +873,7 @@ async function gdgLoad() {
     if (_gdgHistWeekStart) gdgHistRenderWeek(); // refresh Riwayat juga kalau lagi/udah pernah kebuka
     const skuMetricEl = document.getElementById('gdg-metric-sku');
     if (skuMetricEl) skuMetricEl.textContent = _gdgSkuList.length;
+    gdgUpdateTargetCard();
   } catch(e) {
     skuTbody.innerHTML  = `<tr><td colspan="3" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     pendTbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
@@ -741,6 +904,7 @@ function gdgRenderSku() {
 
 // ─── RENDER: CATATAN PENDAPATAN (cuma minggu berjalan, Minggu–Sabtu) ──
 // Data minggu lalu TETAP ADA di database, cuma pindah tampilannya ke panel Riwayat.
+// Ga ada kolom Aksi lagi — tekan lama baris buat edit/hapus (lihat _gdgInitLongPress).
 function gdgRenderPendapatan() {
   const tbody   = document.getElementById('gdg-pend-tbody');
   const countEl = document.getElementById('gdg-pend-count');
@@ -751,22 +915,70 @@ function gdgRenderPendapatan() {
 
   if (countEl) countEl.textContent = listMingguIni.length + ' catatan';
   if (!listMingguIni.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada catatan minggu ini. Data minggu lalu ada di menu Riwayat.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada catatan minggu ini. Data minggu lalu ada di menu Riwayat.</td></tr>';
     return;
   }
   tbody.innerHTML = listMingguIni.map(p => {
     const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
-    return `<tr>
+    return `<tr data-id="${p.id}" style="cursor:pointer">
       <td style="white-space:nowrap"><b>${hariLabel}</b></td>
       <td><b style="color:var(--accent)">${p.sku_nama||'—'}</b></td>
       <td>${p.warna||'—'}</td>
       <td style="text-align:right">${p.qty||0}</td>
       <td style="text-align:right"><b>${gdgFmt(p.total)}</b></td>
-      <td>
-        <button class="btn btn-sm btn-danger" onclick="gdgHapusPendapatan('${p.id}')" title="Hapus"><i class="ti ti-trash"></i></button>
-      </td>
     </tr>`;
   }).join('');
+  _gdgInitLongPress();
+}
+
+// ─── LONG-PRESS baris Catatan → buka modal dalam mode EDIT ─────
+function _gdgInitLongPress() {
+  const tbody = document.getElementById('gdg-pend-tbody');
+  if (!tbody || tbody._gdgLongPressInited) return;
+  tbody._gdgLongPressInited = true;
+  const HOLD_MS    = 500; // durasi tekan biar dianggap "tekan lama"
+  const MOVE_LIMIT = 10;  // px — kalau jari geser lebih dari ini, batal (dianggap scroll)
+  let _timer = null, _startX = 0, _startY = 0, _row = null;
+
+  function cancel() { if (_timer) { clearTimeout(_timer); _timer = null; } _row = null; }
+
+  tbody.addEventListener('touchstart', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row   = tr;
+    _startX = e.touches[0].clientX;
+    _startY = e.touches[0].clientY;
+    _timer  = setTimeout(function() {
+      if (navigator.vibrate) navigator.vibrate(15); // getar halus, konfirmasi tekan lama kena
+      const id = _row.getAttribute('data-id');
+      cancel();
+      gdgShowPendapatanModal(id);
+    }, HOLD_MS);
+  }, { passive: true });
+
+  tbody.addEventListener('touchmove', function(e) {
+    if (!_timer) return;
+    const dx = Math.abs(e.touches[0].clientX - _startX);
+    const dy = Math.abs(e.touches[0].clientY - _startY);
+    if (dx > MOVE_LIMIT || dy > MOVE_LIMIT) cancel(); // jari geser → batal, biarin scroll normal
+  }, { passive: true });
+
+  tbody.addEventListener('touchend', cancel, { passive: true });
+  tbody.addEventListener('touchcancel', cancel, { passive: true });
+
+  // Desktop/laptop: mouse click-and-hold juga didukung (mousedown/mouseup)
+  tbody.addEventListener('mousedown', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row = tr;
+    _timer = setTimeout(function() {
+      const id = _row.getAttribute('data-id');
+      cancel();
+      gdgShowPendapatanModal(id);
+    }, HOLD_MS);
+  });
+  tbody.addEventListener('mouseup', cancel);
+  tbody.addEventListener('mouseleave', cancel);
 }
 
 // ─── EXPORT PDF: Catatan Pendapatan minggu berjalan ────────────
@@ -931,26 +1143,51 @@ function gdgUpdateHari() {
 }
 
 // ─── MODAL: CATATAN PENDAPATAN ─────────────────────────────────
-function gdgShowPendapatanModal() {
-  document.getElementById('gdg-pend-edit-id').value = '';
-  const now = new Date();
-  const tglDefault = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  document.getElementById('gdg-pend-tanggal').value = tglDefault;
-  document.getElementById('gdg-pend-hari').value = gdgHariName(tglDefault);
-  document.getElementById('gdg-pend-warna').value = '';
+// editId opsional — kalau diisi, modal masuk mode EDIT (judul berubah, field
+// ke-prefill dari data existing, tombol Hapus muncul). Dipanggil dari
+// tekan-lama baris di tabel Catatan (_gdgInitLongPress).
+function gdgShowPendapatanModal(editId) {
+  const titleEl = document.getElementById('gdg-pend-modal-title');
+  const hapusBtn = document.getElementById('gdg-pend-modal-hapus');
+
+  if (!_gdgSkuList.length) {
+    alert('Belum ada SKU. Tambah SKU dulu di bagian "Kelola Produk".');
+    return;
+  }
 
   const sel = document.getElementById('gdg-pend-sku');
   sel.innerHTML = '<option value="">— pilih —</option>' + _gdgSkuList.map(s =>
     `<option value="${s.id}" data-ongkos="${s.ongkos_lusin||0}" data-nama="${(s.nama||'').replace(/"/g,'&quot;')}">${s.nama}</option>`
   ).join('');
 
-  document.getElementById('gdg-pend-qty').value = '';
-  document.getElementById('gdg-pend-preview').textContent = 'Rp0';
+  const record = editId ? _gdgPendapatanList.find(p => String(p.id) === String(editId)) : null;
 
-  if (!_gdgSkuList.length) {
-    alert('Belum ada SKU. Tambah SKU dulu di bagian "Kelola Produk".');
-    return;
+  if (record) {
+    // ── MODE EDIT ──
+    document.getElementById('gdg-pend-edit-id').value = record.id;
+    document.getElementById('gdg-pend-tanggal').value = record.tanggal;
+    document.getElementById('gdg-pend-hari').value    = record.hari || gdgHariName(record.tanggal);
+    document.getElementById('gdg-pend-warna').value   = record.warna || '';
+    sel.value = record.sku_id || '';
+    document.getElementById('gdg-pend-qty').value = record.qty || '';
+    titleEl.innerHTML = '<i class="ti ti-pencil"></i> Edit Catatan Pendapatan';
+    hapusBtn.style.display = '';
+    gdgRecomputePreview();
+  } else {
+    // ── MODE TAMBAH ──
+    document.getElementById('gdg-pend-edit-id').value = '';
+    const now = new Date();
+    const tglDefault = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    document.getElementById('gdg-pend-tanggal').value = tglDefault;
+    document.getElementById('gdg-pend-hari').value = gdgHariName(tglDefault);
+    document.getElementById('gdg-pend-warna').value = '';
+    sel.value = '';
+    document.getElementById('gdg-pend-qty').value = '';
+    document.getElementById('gdg-pend-preview').textContent = 'Rp0';
+    titleEl.innerHTML = '<i class="ti ti-plus"></i> Tambah Catatan Pendapatan';
+    hapusBtn.style.display = 'none';
   }
+
   document.getElementById('modal-gdg-pend').classList.add('open');
   gdgOpenPendSheet();
 }
@@ -1073,6 +1310,7 @@ function gdgRecomputePreview() {
 }
 
 async function gdgSimpanPendapatan() {
+  const editId  = document.getElementById('gdg-pend-edit-id').value;
   const tanggal = document.getElementById('gdg-pend-tanggal').value;
   const warna   = document.getElementById('gdg-pend-warna').value.trim();
   const sel     = document.getElementById('gdg-pend-sku');
@@ -1102,7 +1340,11 @@ async function gdgSimpanPendapatan() {
   };
 
   try {
-    await dbInsert('gadag_pendapatan', payload);
+    if (editId) {
+      await dbUpdate('gadag_pendapatan', editId, payload); // MODE EDIT
+    } else {
+      await dbInsert('gadag_pendapatan', payload);         // MODE TAMBAH
+    }
     if (warna && typeof acRefresh === 'function') acRefresh('warna_gadag');
     gdgClosePendapatanModal();
     gdgLoad();
@@ -1111,10 +1353,26 @@ async function gdgSimpanPendapatan() {
   }
 }
 
+// Dipakai tombol Hapus di panel Riwayat (tabel itu masih punya kolom Aksi,
+// ga kepengaruh sama perubahan poin 2 yg cuma nyasar ke panel Catatan).
 function gdgHapusPendapatan(id) {
   confirmDelete('Hapus catatan pendapatan ini?', async () => {
     try { await dbDelete('gadag_pendapatan', id); gdgLoad(); }
     catch(e) { alert('Gagal hapus: ' + e.message); }
+  });
+}
+
+// Dipanggil dari tombol "Hapus" di dalam modal edit (bukan dari tabel lagi,
+// karena kolom Aksi udah dihapus — akses hapus sekarang lewat tekan-lama).
+function gdgHapusPendapatanDariModal() {
+  const editId = document.getElementById('gdg-pend-edit-id').value;
+  if (!editId) return;
+  confirmDelete('Hapus catatan pendapatan ini?', async () => {
+    try {
+      await dbDelete('gadag_pendapatan', editId);
+      gdgClosePendapatanModal();
+      gdgLoad();
+    } catch(e) { alert('Gagal hapus: ' + e.message); }
   });
 }
 
