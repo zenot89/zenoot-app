@@ -33,10 +33,10 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-hero-value { font-size: 32px; font-weight: 800; color: var(--ok); margin-top: 4px; line-height: 1.1; }
   .gdg-hero-sub   { font-size: 12px; color: var(--ink3); margin-top: 3px; }
-  .gdg-minicards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .gdg-minicards { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px; }
   .gdg-minicard.mc-pend { border: 2px solid var(--ok); }
   .gdg-minicard.mc-cost { border: 2px solid var(--danger); }
-  .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+  .gdg-metrics { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:6px; }
   @media(max-width:600px){ .gdg-metrics { grid-template-columns:repeat(2,1fr); } }
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
@@ -194,7 +194,9 @@ document.getElementById('page-gadag').innerHTML = `
     box-shadow: 2px 3px 0 rgba(38,34,32,0.15) !important;
   }
   /* garis margin merah khas buku tulis, nempel di tepi kiri tiap card */
-  #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding-left: 18px; }
+  /* Padding compact: override global card padding biar minicard lebih rapat */
+  #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding: 8px 10px 8px 20px !important; }
+  #page-gadag .metric { padding: 8px 10px !important; }
   #page-gadag .card::before, #page-gadag .gdg-minicard::before {
     content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 2px;
     background: var(--gdg-margin); border-radius: 2px; opacity: .55;
@@ -359,8 +361,9 @@ document.getElementById('page-gadag').innerHTML = `
     .gdg-mobile-only  { display: block; }
   }
   .gdg-qtylsn-split { display: flex !important; padding: 0 !important; overflow: hidden; }
-  .gdg-qtylsn-col { flex: 1; text-align: center; padding: 14px 8px; }
+  .gdg-qtylsn-col { flex: 1; text-align: center; padding: 10px 6px; }
   .gdg-qtylsn-col:first-child { border-right: 2px dashed var(--ink3); }
+  .gdg-qtylsn-col .m-value { font-size: 26px !important; font-weight: 900 !important; line-height: 1.1; }
 
   /* Poin 1: judul section (Overview/Anggaran/Riwayat/dst) duduk di atas
      BACKGROUND GELAP bawaan app (di luar area kertas krem), tapi ke-inherit
@@ -456,24 +459,11 @@ document.getElementById('page-gadag').innerHTML = `
 <div class="card">
   <!-- Sticky header: navigator label (read-only) + dropdown mode kanan -->
   <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-    <div style="display:flex;align-items:center;gap:4px;min-width:0">
-      <button class="btn btn-sm" onclick="gdgWPrev()" style="flex:none;padding:4px 7px"><i class="ti ti-chevron-left"></i></button>
-      <span id="gdgw-week-label" style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">—</span>
-      <button class="btn btn-sm" onclick="gdgWNext()" style="flex:none;padding:4px 7px"><i class="ti ti-chevron-right"></i></button>
-    </div>
-    <!-- Dropdown mode: Minggu Ini / Per Minggu / Bulan Ini / Per Bulan / Custom -->
-    <div class="gdg-menu-wrap" style="flex:none">
-      <button id="gdgw-mode-btn" class="btn btn-sm btn-primary" onclick="gdgWToggleModeMenu(event)" style="white-space:nowrap;padding:5px 9px;font-size:12px">
-        <span id="gdgw-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
-      </button>
-      <div id="gdgw-mode-menu" class="gdg-dropdown-menu" style="right:0;left:auto;min-width:140px">
-        <button id="gdgw-opt-minggu-ini"  onclick="gdgWSetMode('minggu-ini')"  class="active">Minggu Ini</button>
-        <button id="gdgw-opt-per-minggu"  onclick="gdgWSetMode('per-minggu')">Per Minggu</button>
-        <button id="gdgw-opt-bulan-ini"   onclick="gdgWSetMode('bulan-ini')">Bulan Ini</button>
-        <button id="gdgw-opt-per-bulan"   onclick="gdgWSetMode('per-bulan')">Per Bulan</button>
-        <button id="gdgw-opt-custom"      onclick="gdgWSetMode('custom')">Custom</button>
-      </div>
-    </div>
+    <span id="gdgw-week-label" style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">—</span>
+    <!-- Tombol trigger dropdown mode — menu-nya dirender ke body (portal fixed) biar ga ke-clip overflow panel -->
+    <button id="gdgw-mode-btn" class="btn btn-sm btn-primary" onclick="gdgWToggleModeMenu(event)" style="flex:none;white-space:nowrap;padding:5px 9px;font-size:12px">
+      <span id="gdgw-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
+    </button>
   </div>
 
   <!-- Custom date picker — hanya muncul saat mode=custom -->
@@ -855,20 +845,84 @@ const _GDGW_MODE_LABELS = {
   'custom':     'Custom',
 };
 
+// ─── DROPDOWN MODE MENU — portal ke body (position:fixed) biar ga ke-clip overflow panel ──
+function _gdgWEnsureModeMenu() {
+  if (document.getElementById('gdgw-mode-menu')) return;
+  const menu = document.createElement('div');
+  menu.id = 'gdgw-mode-menu';
+  menu.style.cssText = [
+    'display:none',
+    'position:fixed',
+    'z-index:9999',
+    'background:var(--gdg-paper,#f7f2e6)',
+    'border:2.5px solid var(--gdg-ink,#262220)',
+    'border-radius:14px',
+    'min-width:150px',
+    'box-shadow:2px 4px 12px rgba(0,0,0,.28)',
+    'overflow:hidden',
+    "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+  ].join(';');
+  const opts = [
+    ['minggu-ini', 'Minggu Ini', true],
+    ['per-minggu', 'Per Minggu', false],
+    ['bulan-ini',  'Bulan Ini',  false],
+    ['per-bulan',  'Per Bulan',  false],
+    ['custom',     'Custom',     false],
+  ];
+  opts.forEach(([mode, label, active]) => {
+    const btn = document.createElement('button');
+    btn.id = 'gdgw-opt-' + mode;
+    btn.textContent = label;
+    if (active) btn.classList.add('active');
+    btn.style.cssText = [
+      'display:block','width:100%','text-align:left',
+      'padding:10px 14px','background:none','border:none',
+      'border-bottom:1px solid rgba(38,34,32,.1)',
+      'font-size:13px','font-weight:700','cursor:pointer',
+      "color:var(--gdg-ink,#262220)",
+      "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+    ].join(';');
+    btn.addEventListener('click', () => gdgWSetMode(mode));
+    menu.appendChild(btn);
+  });
+  // Hapus border-bottom dari item terakhir
+  const last = menu.querySelector('button:last-child');
+  if (last) last.style.borderBottom = 'none';
+  document.body.appendChild(menu);
+}
+
 function gdgWToggleModeMenu(e) {
   if (e) e.stopPropagation();
-  document.getElementById('gdgw-mode-menu').classList.toggle('open');
-}
-function gdgWCloseModeMenu() {
-  const m = document.getElementById('gdgw-mode-menu');
-  if (m) m.classList.remove('open');
-}
-document.addEventListener('click', function(e) {
+  _gdgWEnsureModeMenu();
   const menu = document.getElementById('gdgw-mode-menu');
   const btn  = document.getElementById('gdgw-mode-btn');
   if (!menu || !btn) return;
-  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
-    menu.classList.remove('open');
+  const isOpen = menu.style.display !== 'none';
+  if (isOpen) { menu.style.display = 'none'; return; }
+  // Posisikan menu di bawah tombol pakai getBoundingClientRect
+  const r = btn.getBoundingClientRect();
+  menu.style.display = 'block';
+  // Sesuaikan posisi setelah visible biar offsetWidth akurat
+  requestAnimationFrame(() => {
+    const mw = menu.offsetWidth;
+    let left = r.right - mw;
+    if (left < 8) left = 8;
+    menu.style.top  = (r.bottom + 4) + 'px';
+    menu.style.left = left + 'px';
+  });
+}
+
+function gdgWCloseModeMenu() {
+  const m = document.getElementById('gdgw-mode-menu');
+  if (m) m.style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('gdgw-mode-menu');
+  const btn  = document.getElementById('gdgw-mode-btn');
+  if (!menu || menu.style.display === 'none') return;
+  if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+    menu.style.display = 'none';
   }
 });
 
