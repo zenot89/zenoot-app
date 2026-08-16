@@ -104,11 +104,26 @@
         '">' + _acHighlight(val, input.value) + '</div>';
     }).join('');
 
-    // Posisi relatif ke input
+    // Posisi dropdown: default di bawah input. Kalau input._acPosition === 'right',
+    // muncul di SEBELAH KANAN input (boleh menimpa field lain di sebelahnya —
+    // ini overlay sementara, bukan bagian dari layout). Maks ~5 item keliatan,
+    // sisanya scroll (overflow-y:auto sudah di-set di _acGetDropdown).
     var rect = input.getBoundingClientRect();
-    dd.style.left    = rect.left + 'px';
-    dd.style.top     = (rect.bottom + 2) + 'px';
-    dd.style.width   = Math.max(rect.width, 200) + 'px';
+    if (input._acPosition === 'right') {
+      var ddWidth  = 170;
+      var left     = rect.right + 6;
+      var maxLeft  = window.innerWidth - ddWidth - 8;
+      if (left > maxLeft) left = Math.max(8, maxLeft);
+      dd.style.left      = left + 'px';
+      dd.style.top       = rect.top + 'px';
+      dd.style.width     = ddWidth + 'px';
+      dd.style.maxHeight = '192px'; // ~5 item (item ≈ 38px), lebih dari itu discroll
+    } else {
+      dd.style.left      = rect.left + 'px';
+      dd.style.top       = (rect.bottom + 2) + 'px';
+      dd.style.width     = Math.max(rect.width, 200) + 'px';
+      dd.style.maxHeight = '200px';
+    }
     dd.style.display = 'block';
     _acActiveInput   = input;
 
@@ -142,10 +157,11 @@
   // ─── ATTACH KE INPUT ─────────────────────────────────────────────────────────
   // sourceKey: salah satu key dari _acSources
   // input: HTMLInputElement
-  function acAttach(input, sourceKey) {
+  function acAttach(input, sourceKey, opts) {
     if (!input || input._acAttached) return;
     input._acAttached  = true;
     input._acSourceKey = sourceKey;
+    input._acPosition  = (opts && opts.position) || 'bottom';
 
     // Fetch cache saat fokus pertama kali
     input.addEventListener('focus', function() {
@@ -234,14 +250,20 @@
     'keu-htg-ket':     'keterangan_hutang',
     // Penutupan Periode
     'pp-catatan':      'keterangan_jurnal',
-    // Gadag
-    'gdg-pend-warna':  'warna_gadag',
+    // Gadag — dropdown muncul di sebelah kanan input (boleh menimpa SKU)
+    'gdg-pend-warna':  { source: 'warna_gadag', position: 'right' },
   };
 
   function _acScanPage() {
     Object.keys(_acInputMap).forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) acAttach(el, _acInputMap[id]);
+      var el  = document.getElementById(id);
+      if (!el) return;
+      var cfg = _acInputMap[id];
+      if (typeof cfg === 'string') {
+        acAttach(el, cfg);
+      } else {
+        acAttach(el, cfg.source, { position: cfg.position });
+      }
     });
   }
 

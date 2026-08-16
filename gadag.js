@@ -100,6 +100,78 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-dropdown-menu button:hover { background:var(--cream2); }
   .gdg-dropdown-menu button.active { color:var(--ok); }
 
+  /* ══ TEMA "BUKU TULIS" — khusus block Gadag ══════════════════════
+     Font "More Sugar" ga tersedia buat di-embed (font eksklusif Canva),
+     jadi dipakai fallback sesuai instruksi: Comic Sans MS (bawaan iOS)
+     dengan Comic Neue (versi web-safe/lisensi terbuka dari Google Fonts,
+     visualnya mirip) buat platform yg ga punya Comic Sans MS bawaan. */
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+  #page-gadag {
+    --gdg-paper:   #f7f2e6;   /* kertas krem */
+    --gdg-paper2:  #efe8d8;   /* kertas krem, sedikit lebih gelap (buat card ke-2/hover) */
+    --gdg-ink:     #262220;   /* tinta pena, hampir hitam */
+    --gdg-ink2:    #5c554d;   /* tinta pudar, buat teks sekunder */
+    --gdg-rule:    rgba(38,34,32,0.12); /* garis buku ("ruled lines") */
+    --gdg-margin:  #d9776f;  /* garis margin merah ala buku tulis */
+    --danger: #b5453d;   /* override: merah dark-theme kepucetan di atas kertas krem */
+    --info:   #2f6fb0;
+    --accent: #8a5a2b;   /* warna aksen tinta coklat, buat nama SKU dsb */
+    font-family: 'Comic Sans MS', 'Comic Neue', cursive, sans-serif;
+  }
+  #page-gadag .content {
+    background-color: var(--gdg-paper);
+    background-image: repeating-linear-gradient(
+      to bottom, transparent, transparent 27px, var(--gdg-rule) 28px
+    );
+  }
+  #page-gadag .card,
+  #page-gadag .gdg-minicard,
+  #page-gadag .metric,
+  #page-gadag .modal {
+    background: var(--gdg-paper) !important;
+    color: var(--gdg-ink);
+    border: 2.5px solid var(--gdg-ink) !important;
+    border-radius: 16px 22px 14px 24px / 22px 14px 24px 16px; /* wobble ala coretan tangan */
+    box-shadow: 2px 3px 0 rgba(38,34,32,0.15) !important;
+  }
+  /* garis margin merah khas buku tulis, nempel di tepi kiri tiap card */
+  #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding-left: 18px; }
+  #page-gadag .card::before, #page-gadag .gdg-minicard::before {
+    content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 2px;
+    background: var(--gdg-margin); border-radius: 2px; opacity: .55;
+  }
+  #page-gadag,
+  #page-gadag .card-title,
+  #page-gadag .m-label, #page-gadag .m-value, #page-gadag .m-delta,
+  #page-gadag th, #page-gadag td,
+  #page-gadag label, #page-gadag input, #page-gadag select {
+    color: var(--gdg-ink) !important;
+    font-family: inherit;
+  }
+  #page-gadag .m-delta, #page-gadag td[style*="ink3"], #page-gadag span[style*="ink3"] { color: var(--gdg-ink2) !important; }
+  #page-gadag input, #page-gadag select {
+    background: #fff !important;
+    border-color: var(--gdg-ink) !important;
+    border-radius: 10px !important;
+  }
+  #page-gadag .btn {
+    font-family: inherit; font-weight: 700;
+    border: 2px solid var(--gdg-ink) !important;
+    border-radius: 999px !important;
+    background: #fff; color: var(--gdg-ink);
+  }
+  #page-gadag .btn-primary { background: var(--gdg-ink); color: var(--gdg-paper) !important; }
+  #page-gadag .btn-danger  { background: #fff; color: #b5453d; border-color: #b5453d !important; }
+  #page-gadag .gdg-dropdown-menu {
+    background: var(--gdg-paper) !important; border: 2.5px solid var(--gdg-ink) !important;
+    border-radius: 14px !important;
+  }
+  #page-gadag .gdg-dropdown-menu button { color: var(--gdg-ink) !important; font-family: inherit; }
+  #page-gadag .tbl thead th { color: var(--gdg-ink2) !important; border-bottom: 2px dashed var(--gdg-ink); }
+  #page-gadag .tbl tbody tr { border-bottom: 1px solid var(--gdg-rule); }
+  #page-gadag .gdg-sheet-handle span { background: var(--gdg-ink) !important; opacity: .35; }
+
   /* ── Penyesuaian khusus layar sempit (HP) ── */
   @media(max-width:480px) {
     .gdg-hero-value { font-size: 22px; }
@@ -135,6 +207,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div id="gdg-dropdown-menu" class="gdg-dropdown-menu">
       <button id="gdg-menu-item-mingguan" onclick="gdgSelectView('mingguan')"><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</button>
       <button id="gdg-menu-item-pendapatan" onclick="gdgSelectView('pendapatan')"><i class="ti ti-notes"></i> Catatan Pendapatan</button>
+      <button id="gdg-menu-item-riwayat" onclick="gdgSelectView('riwayat')"><i class="ti ti-history"></i> Riwayat</button>
       <button id="gdg-menu-item-sku" onclick="gdgSelectView('sku')"><i class="ti ti-list-details"></i> Kelola Produk</button>
     </div>
   </div>
@@ -205,7 +278,7 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 </div>
 
-<!-- PANEL: CATATAN PENDAPATAN -->
+<!-- PANEL: CATATAN PENDAPATAN (cuma minggu berjalan — data lama pindah ke Riwayat) -->
 <div id="gdg-panel-pendapatan" class="gdg-panel">
 <div style="display:flex;gap:8px;margin-bottom:10px">
   <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
@@ -219,6 +292,32 @@ document.getElementById('page-gadag').innerHTML = `
     <table class="tbl">
       <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
       <tbody id="gdg-pend-tbody">
+        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- PANEL: RIWAYAT (semua catatan minggu-minggu lalu, biar data ga ilang) -->
+<div id="gdg-panel-riwayat" class="gdg-panel">
+<div style="display:flex;gap:8px;margin-bottom:10px">
+  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
+</div>
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-sm" onclick="gdgHistPrevWeek()"><i class="ti ti-chevron-left"></i></button>
+      <span id="gdg-hist-week-label" style="font-size:13px;font-weight:800;white-space:nowrap">—</span>
+      <button class="btn btn-sm" onclick="gdgHistNextWeek()"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <button class="btn btn-sm btn-primary" onclick="gdgHistThisWeek()">Minggu Ini</button>
+  </div>
+  <div id="gdg-hist-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">— catatan</div>
+  <div class="tbl-wrap" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
+      <tbody id="gdg-hist-tbody">
         <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
@@ -339,6 +438,7 @@ let _gdgView = 'mingguan';
 const _GDG_VIEW_LABEL = {
   mingguan:   { menu: 'Ringkasan Mingguan', label: 'Ringkasan', heading: 'Overview',      icon: 'ti-calendar-week' },
   pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal',    heading: 'Catatan',       icon: 'ti-notes' },
+  riwayat:    { menu: 'Riwayat',            label: 'Riwayat',   heading: 'Riwayat',       icon: 'ti-history' },
   sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk', heading: 'Kelola Produk', icon: 'ti-list-details' },
 };
 
@@ -367,6 +467,7 @@ function gdgSelectView(view) {
 function gdgApplyView() {
   document.getElementById('gdg-panel-mingguan').classList.toggle('active',   _gdgView === 'mingguan');
   document.getElementById('gdg-panel-pendapatan').classList.toggle('active', _gdgView === 'pendapatan');
+  document.getElementById('gdg-panel-riwayat').classList.toggle('active',   _gdgView === 'riwayat');
   document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
 
   document.getElementById('gdg-menu-btn-label').textContent  = _GDG_VIEW_LABEL[_gdgView].label;
@@ -374,9 +475,10 @@ function gdgApplyView() {
   document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
   const toggleBtn = document.getElementById('gdg-summary-toggle');
   if (toggleBtn) toggleBtn.style.display = (_gdgView === 'mingguan') ? '' : 'none';
-  ['mingguan','pendapatan','sku'].forEach(v => {
+  ['mingguan','pendapatan','riwayat','sku'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
+  if (_gdgView === 'riwayat' && !_gdgHistWeekStart) gdgHistThisWeek();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
@@ -554,6 +656,7 @@ async function gdgLoad() {
 
     gdgRenderSku();
     gdgRenderPendapatan();
+    if (_gdgHistWeekStart) gdgHistRenderWeek(); // refresh Riwayat juga kalau lagi/udah pernah kebuka
     const skuMetricEl = document.getElementById('gdg-metric-sku');
     if (skuMetricEl) skuMetricEl.textContent = _gdgSkuList.length;
   } catch(e) {
@@ -584,16 +687,62 @@ function gdgRenderSku() {
   }).join('');
 }
 
-// ─── RENDER: CATATAN PENDAPATAN ───────────────────────────────
+// ─── RENDER: CATATAN PENDAPATAN (cuma minggu berjalan, Minggu–Sabtu) ──
+// Data minggu lalu TETAP ADA di database, cuma pindah tampilannya ke panel Riwayat.
 function gdgRenderPendapatan() {
-  const tbody = document.getElementById('gdg-pend-tbody');
+  const tbody   = document.getElementById('gdg-pend-tbody');
   const countEl = document.getElementById('gdg-pend-count');
-  if (countEl) countEl.textContent = _gdgPendapatanList.length + ' catatan';
-  if (!_gdgPendapatanList.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada catatan pendapatan.</td></tr>';
+  const wkStart = gdgWGetMonday(new Date());
+  const wkEnd   = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
+  const listMingguIni = _gdgPendapatanList.filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir);
+
+  if (countEl) countEl.textContent = listMingguIni.length + ' catatan';
+  if (!listMingguIni.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada catatan minggu ini. Data minggu lalu ada di menu Riwayat.</td></tr>';
     return;
   }
-  tbody.innerHTML = _gdgPendapatanList.map(p => {
+  tbody.innerHTML = listMingguIni.map(p => {
+    const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
+    return `<tr>
+      <td style="white-space:nowrap"><b>${hariLabel}</b></td>
+      <td><b style="color:var(--accent)">${p.sku_nama||'—'}</b></td>
+      <td>${p.warna||'—'}</td>
+      <td style="text-align:right">${p.qty||0}</td>
+      <td style="text-align:right"><b>${gdgFmt(p.total)}</b></td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="gdgHapusPendapatan('${p.id}')" title="Hapus"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── RIWAYAT (History) — browse semua catatan per minggu, sort by minggu ──
+// Sumber data sama (_gdgPendapatanList, sudah di-load penuh oleh gdgLoad),
+// cuma di-filter per rentang minggu yang dipilih di sini secara independen
+// dari panel Catatan Pendapatan (yang selalu nampilin minggu berjalan).
+let _gdgHistWeekStart = null;
+
+function gdgHistPrevWeek() { _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() - 7); gdgHistRenderWeek(); }
+function gdgHistNextWeek() { _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() + 7); gdgHistRenderWeek(); }
+function gdgHistThisWeek() { _gdgHistWeekStart = gdgWGetMonday(new Date()); gdgHistRenderWeek(); }
+
+function gdgHistRenderWeek() {
+  if (!_gdgHistWeekStart) return;
+  const wkEnd = new Date(_gdgHistWeekStart); wkEnd.setDate(_gdgHistWeekStart.getDate() + 6);
+  document.getElementById('gdg-hist-week-label').textContent = gdgWFmtRange(_gdgHistWeekStart, wkEnd);
+
+  const isoMulai = gdgWToISO(_gdgHistWeekStart), isoAkhir = gdgWToISO(wkEnd);
+  const list  = _gdgPendapatanList.filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir);
+  const tbody = document.getElementById('gdg-hist-tbody');
+  const countEl = document.getElementById('gdg-hist-count');
+  if (countEl) countEl.textContent = list.length + ' catatan';
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Ga ada catatan di minggu ini.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(p => {
     const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
     return `<tr>
       <td style="white-space:nowrap"><b>${hariLabel}</b></td>
@@ -722,10 +871,12 @@ function gdgOpenPendSheet() {
     window.visualViewport.addEventListener('scroll', _gdgSheetSyncViewport);
   }
   _gdgInitSheetDragToClose();
+  _gdgInitSheetFocusScroll();
 }
 
 function _gdgSheetSyncViewport() {
   const overlay = document.getElementById('modal-gdg-pend');
+  const sheet   = document.getElementById('gdg-pend-sheet');
   if (!overlay || !overlay.classList.contains('open')) return;
   if (!window.matchMedia('(max-width:900px)').matches) return; // cuma perlu di layout bottom-sheet (mobile)
   const vv = window.visualViewport;
@@ -734,6 +885,30 @@ function _gdgSheetSyncViewport() {
   // pas keyboard buka, bagian bawahnya ketutup keyboard kalau ga di-sync manual.
   overlay.style.height    = vv.height + 'px';
   overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+  // KRITIS: max-height CSS (88dvh) HANYA ngitung UI browser (address bar), BUKAN
+  // keyboard iOS — jadi sheet-nya tetep "sepanjang" 88dvh walau keyboard udah makan
+  // banyak ruang, dan field-field di bawah (Warna/SKU/Qty/Simpan) ke-dorong keluar
+  // area yg keliatan / ketutup keyboard. Override max-height pake tinggi
+  // visualViewport yang sebenarnya, biar body sheet yg scroll, bukan field-nya ilang.
+  if (sheet) sheet.style.maxHeight = Math.max(240, vv.height - 12) + 'px';
+}
+
+// Field yg lagi difokus wajib keliatan di atas keyboard — kalau field itu ada
+// di bagian bawah form (misal Qty/SKU), scroll otomatis biar ga ketutup.
+function _gdgInitSheetFocusScroll() {
+  const overlay = document.getElementById('modal-gdg-pend');
+  if (!overlay || overlay._gdgFocusScrollInited) return;
+  overlay._gdgFocusScrollInited = true;
+  overlay.addEventListener('focusin', function(e) {
+    const t = e.target;
+    if (!(t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+    // Delay: tunggu keyboard kebuka & _gdgSheetSyncViewport sempat nyesuain tinggi dulu,
+    // baru scroll-into-view biar hitungannya pake ukuran final, bukan ukuran lama.
+    setTimeout(function() {
+      _gdgSheetSyncViewport();
+      t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 320);
+  });
 }
 
 function _gdgInitSheetDragToClose() {
@@ -778,6 +953,7 @@ function gdgClosePendapatanModal() {
       overlay.classList.remove('open');
       overlay.style.height    = '';
       overlay.style.transform = '';
+      if (sheet) sheet.style.maxHeight = '';
     }, 280);
   } else {
     overlay.classList.remove('open');
