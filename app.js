@@ -185,7 +185,7 @@ function gotoPage(page, btn) {
   var contentEl = document.querySelector('.content');
   var mainEl    = document.querySelector('.main');
   if (contentEl) {
-    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag'];
     if (fullHeightPages.indexOf(page) !== -1) {
       // Full-height pages: paksa height chain html→body→main→content eksplisit
       // iOS Safari tidak bisa resolve flex:1 jika ancestor tidak punya height eksplisit

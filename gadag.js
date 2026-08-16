@@ -251,37 +251,61 @@ document.getElementById('page-gadag').innerHTML = `
     }
   }
 
-  /* Poin 1 (lama): panel Catatan isi penuh layar, tabel scroll internal kalau data banyak.
-     Poin 3 (baru): pola yg sama sekarang berlaku ke SEMUA panel Gadag yg isinya
-     1 tabel/list utama (Riwayat, Kelola Produk, Anggaran) — sebelumnya cuma
-     Catatan Pendapatan yg begini, sisanya nyisain gap gelap kosong gede di
-     bawah card (card-nya nyusut ngikutin isi, bukan ngisi layar).
-     WAJIB pakai .active di selector — kalau enggak, ID selector ini menang lawan
-     '.gdg-panel{display:none}' dan panelnya numpuk/keliatan terus di semua halaman. */
+  /* ═══ FULL-HEIGHT CHAIN — direvisi total, bukan tebakan calc(100dvh-Npx) lagi ═══
+     Root cause versi lama: 'gadag' ga terdaftar di fullHeightPages (app.js), jadi
+     .content tetap scroll normal (padding 16px, overflow-y:scroll), dan card di
+     tiap panel dipaksa min-height pakai angka statis. Angka itu nebak tinggi header
+     app + toolbar, padahal beda-beda di Android vs iPhone (address bar, safe-area,
+     notch) → selalu nyisa gap hitam kosong di bawah, gedenya beda per device.
+     Fix beneran: 'gadag' didaftarin ke fullHeightPages (app.js) biar .content dapet
+     height-chain flex yang proper, JS-driven, PERSIS pola yang sudah kepake &
+     terbukti stabil di Kas & Jurnal / Stok — bukan pola baru lagi.
+     Chain: .content(flex,JS) → #page-gadag → #gdg-panels-wrap(flex:1)
+            → .gdg-panel.active → .card → .tbl-wrap / #gdg-ang2-list (scroll internal). */
+  #page-gadag.active { display: flex !important; flex-direction: column !important; }
+  #page-gadag {
+    flex: 1 1 0; min-height: 0; height: 100%;
+    padding: 10px; box-sizing: border-box; overflow: hidden;
+  }
+  #gdg-hdr-row { flex-shrink: 0; }
+  #gdg-panels-wrap { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+
+  /* Default: panel yg isinya beberapa card ditumpuk (Ringkasan Mingguan) —
+     scroll biasa di panel-nya sendiri, card-card di dalemnya natural height. */
+  .gdg-panel { display: none; min-height: 0; }
+  .gdg-panel.active { display: block; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+
+  /* Panel isi 1 card utama (Catatan/Riwayat/Kelola Produk/Anggaran) — panelnya
+     sendiri jadi flex column TANPA scroll (overflow:hidden), yg scroll internal
+     cuma tabel/list di dalem card-nya. Biar ga dobel scrollbar & card-nya beneran
+     ngisi penuh sisa layar, ga nyisa ruang kosong di bawah. */
   #gdg-panel-pendapatan.active,
   #gdg-panel-riwayat.active,
   #gdg-panel-sku.active,
   #gdg-panel-anggaran.active {
-    display: flex; flex-direction: column;
+    display: flex; flex-direction: column; overflow: hidden;
   }
   #gdg-panel-pendapatan .card,
   #gdg-panel-riwayat .card,
-  #gdg-panel-sku .card {
-    display: flex; flex-direction: column;
-    min-height: calc(100dvh - 260px); /* kasar: header app + toolbar + card-title */
+  #gdg-panel-sku .card,
+  #gdg-panel-anggaran .card {
+    flex: 1 1 0; min-height: 0; display: flex; flex-direction: column;
   }
   #gdg-panel-pendapatan .tbl-wrap,
   #gdg-panel-riwayat .tbl-wrap,
   #gdg-panel-sku .tbl-wrap {
-    flex: 1; overflow-y: auto;
+    flex: 1 1 0; min-height: 0; overflow-y: auto;
   }
-  /* Anggaran beda struktur: ada card metric "Net Anggaran" duluan di atas
-     card list-nya, jadi budget tinggi card list dikurangin ekstra. */
-  #gdg-panel-anggaran .card {
-    display: flex; flex-direction: column;
-    min-height: calc(100dvh - 370px);
+  #gdg-panel-anggaran #gdg-ang2-list { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+
+  /* Poin 1 (baru): kertas bergaris — garis horizontal nerus di seluruh isi card
+     list (termasuk area kosong di bawah item terakhir), bukan cuma per-baris
+     item doang. Ngasih feel "buku tulis" beneran kayak referensi gambar. */
+  #gdg-ang2-list {
+    background-image: repeating-linear-gradient(
+      to bottom, transparent, transparent 37px, var(--gdg-rule) 37px, var(--gdg-rule) 38px
+    );
   }
-  #gdg-panel-anggaran #gdg-ang2-list { flex: 1; overflow-y: auto; }
 
   /* Poin 2: dropdown saran "Warna" bikinan sendiri — gantiin autofill bawaan
      browser yg posisinya ga konsisten (kadang muncul di atas, kepotong status
@@ -321,13 +345,10 @@ document.getElementById('page-gadag').innerHTML = `
 </style>
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+<div id="gdg-hdr-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
   <div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap">
     <button id="gdg-hdr-refresh" class="btn btn-sm" onclick="gdgLoad()" title="Refresh" style="flex:none"><i class="ti ti-refresh"></i></button>
     <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
-    <button id="gdg-summary-toggle" class="btn btn-sm" onclick="gdgToggleSummary()" style="display:none;flex:none" title="Tampilkan/sembunyikan ringkasan">
-      <i id="gdg-summary-toggle-icon" class="ti ti-chevron-up"></i>
-    </button>
     <i id="gdg-view-heading-icon" class="ti ti-calendar-week" style="font-size:20px;flex:none"></i>
     <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Overview</div>
   </div>
@@ -346,6 +367,11 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
+<!-- Wrapper flex:1 buat semua panel — biar chain height-nya nyambung ke #page-gadag
+     (lihat blok CSS "FULL-HEIGHT CHAIN" di atas). Header di atas otomatis kebagian
+     ukuran secukupnya (flex-shrink:0), wrapper ini yg ngisi sisa layar. -->
+<div id="gdg-panels-wrap">
+
 <!-- PANEL: RINGKASAN MINGGUAN (halaman utama / default) -->
 <div id="gdg-panel-mingguan" class="gdg-panel active">
 
@@ -353,6 +379,7 @@ document.getElementById('page-gadag').innerHTML = `
 <div id="gdg-top-summary">
 
 <!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) — cuma di sini -->
+
 <div class="gdg-minicards">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Total Pendapatan</div>
@@ -513,6 +540,8 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 </div>
+
+</div><!-- /#gdg-panels-wrap -->
 
 <!-- MODAL: SKU -->
 <div class="modal-overlay" id="modal-gdg-sku" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
@@ -687,8 +716,6 @@ function gdgApplyView() {
   document.getElementById('gdg-menu-btn-label').textContent  = _GDG_VIEW_LABEL[_gdgView].label;
   document.getElementById('gdg-view-heading').textContent    = _GDG_VIEW_LABEL[_gdgView].heading;
   document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
-  const toggleBtn = document.getElementById('gdg-summary-toggle');
-  if (toggleBtn) toggleBtn.style.display = (_gdgView === 'mingguan') ? '' : 'none';
   // Refresh sekarang selalu tampil di baris judul (semua panel, konsisten).
   // Export PDF cuma relevan di panel Catatan.
   const hdrExport  = document.getElementById('gdg-hdr-export');
@@ -1618,35 +1645,30 @@ function gdgOverlayClose(e, modalId, closeFn) {
   if (e.target.id === modalId) closeFn();
 }
 
-// ─── TOGGLE RINGKASAN (minicard+metrics) — tombol eksplisit, alternatif dari swipe ──
-function gdgToggleSummary() {
-  var summary = document.getElementById('gdg-top-summary');
-  if (!summary) return;
-  summary.classList.toggle('gdg-topbar-collapsed'); // ikon disinkronin otomatis via MutationObserver
-}
-
-// ─── COLLAPSE RINGKASAN (minicard+metrics) — swipe & scroll, pola sama dgn Kas & Jurnal ──
+// ─── COLLAPSE RINGKASAN (minicard+metrics) — scroll (utama) + swipe di kolom data ──
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse)');
-  function _gdgInitSwipe() {
-    if (!_mq.matches) return;
-    var summary   = document.getElementById('gdg-top-summary');
-    var minicards = document.querySelector('#gdg-panel-mingguan .gdg-minicards');
-    var sticky    = document.getElementById('gdg-sticky-header');
-    if (!summary || typeof initSwipeCollapse !== 'function') return;
-    if (summary)   initSwipeCollapse(summary,   summary, 50, 'gdg-topbar-collapsed');
-    if (minicards) initSwipeCollapse(minicards, summary, 50, 'gdg-topbar-collapsed');
-    if (sticky)    initSwipeCollapse(sticky,    summary, 50, 'gdg-topbar-collapsed');
-  }
-  function _gdgInitDoubleSwipeExpand() {
+
+  // Poin 2: dulu ada 2 mekanisme jalan bareng — swipe langsung di minicard/summary
+  // (initSwipeCollapse) DAN scroll-listener di .content. Di Android dua-duanya
+  // kebetulan searah jadi mulus, tapi di iPhone touch & scroll event-nya ke-fire
+  // dengan timing beda (iOS motion-momentum decouple dari touch, Android nggak)
+  // → dua mekanisme itu rebutan toggle class yg SAMA dalam 1 gesture → "mental".
+  // Fix: swipe manual SEKARANG cuma di #gdgw-data-area (kolom data), 1 handler
+  // buat 2 arah (naik = minimize, turun = turunin lagi) — bukan lagi nempel di
+  // minicard. Scroll-listener (_gdgInitScrollCollapse) tetap jalan apa adanya
+  // buat hide-on-scroll otomatis; keduanya sekarang di elemen yg beda jadi ga
+  // rebutan gesture yg sama lagi.
+  function _gdgInitDataAreaSwipe() {
     var area    = document.getElementById('gdgw-data-area');
     var summary = document.getElementById('gdg-top-summary');
-    if (!area || !summary || area._gdgDblSwipeInited) return;
-    area._gdgDblSwipeInited = true;
+    if (!area || !summary || area._gdgDataSwipeInited) return;
+    area._gdgDataSwipeInited = true;
     var THRESHOLD = 35;   // px minimal per swipe biar keitung gesture, bukan jitter
     var MIN_GAP   = 120;  // ms — dua swipe ga boleh instan/nyambung (dianggap 1 gesture panjang)
     var MAX_GAP   = 800;  // ms — tapi juga ga boleh kelamaan jeda antar swipe 1 & 2
-    var _startY = 0, _startX = 0, _tracking = false, _lastSwipeDownAt = 0;
+    var _startY = 0, _startX = 0, _tracking = false;
+    var _lastSwipeAt = 0, _lastSwipeDir = 0; // dir: -1 = swipe naik, 1 = swipe turun
 
     area.addEventListener('touchstart', function(e) {
       if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
@@ -1659,20 +1681,29 @@ function gdgToggleSummary() {
       if (!_tracking) return;
       _tracking = false;
       if (_gdgView !== 'mingguan') return;
-      if (!summary.classList.contains('gdg-topbar-collapsed')) return; // cuma perlu kalo lagi ke-collapse
+
       var dy = e.changedTouches[0].clientY - _startY;
       var dx = e.changedTouches[0].clientX - _startX;
       if (Math.abs(dx) > Math.abs(dy)) return; // bukan gesture vertikal
-      if (dy < THRESHOLD) return;              // bukan swipe ke bawah yg cukup jauh
+
+      var dir = 0;
+      if (dy >  THRESHOLD) dir =  1; // swipe turun → mau nurunin minicard (expand)
+      if (dy < -THRESHOLD) dir = -1; // swipe naik  → mau minimize (collapse)
+      if (!dir) return;
+
+      var collapsed = summary.classList.contains('gdg-topbar-collapsed');
+      if (dir ===  1 && !collapsed) return; // udah kebuka, swipe turun ga ngapa-ngapain
+      if (dir === -1 &&  collapsed) return; // udah collapse, swipe naik ga ngapa-ngapain
 
       var now = Date.now();
-      var gap = now - _lastSwipeDownAt;
-      if (gap >= MIN_GAP && gap <= MAX_GAP) {
-        // 2x swipe-turun berdekatan (ga kecepetan, ga kelamaan) → turunin ringkasan
-        summary.classList.remove('gdg-topbar-collapsed');
-        _lastSwipeDownAt = 0;
+      var gap = now - _lastSwipeAt;
+      if (_lastSwipeDir === dir && gap >= MIN_GAP && gap <= MAX_GAP) {
+        // 2x swipe searah berdekatan (ga kecepetan, ga kelamaan) → eksekusi
+        if (dir === 1) summary.classList.remove('gdg-topbar-collapsed');
+        else           summary.classList.add('gdg-topbar-collapsed');
+        _lastSwipeAt = 0; _lastSwipeDir = 0;
       } else {
-        _lastSwipeDownAt = now;
+        _lastSwipeAt = now; _lastSwipeDir = dir;
       }
     }, { passive: true });
   }
@@ -1712,31 +1743,13 @@ function gdgToggleSummary() {
       }
     }, { passive: true });
   }
-  function _gdgSyncToggleIcon() {
-    var summary = document.getElementById('gdg-top-summary');
-    var icon    = document.getElementById('gdg-summary-toggle-icon');
-    if (!summary || !icon) return;
-    var collapsed = summary.classList.contains('gdg-topbar-collapsed');
-    icon.className = collapsed ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
-  }
-  function _gdgInitToggleSync() {
-    var summary = document.getElementById('gdg-top-summary');
-    if (!summary || summary._gdgObserverInited) return;
-    summary._gdgObserverInited = true;
-    // Observer biar ikon toggle tetep sinkron walau collapse-nya dipicu
-    // lewat swipe atau scroll, bukan cuma lewat tombol.
-    new MutationObserver(_gdgSyncToggleIcon).observe(summary, { attributes: true, attributeFilter: ['class'] });
-  }
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'gadag') return;
     setTimeout(function() {
       var el = document.getElementById('gdg-top-summary');
       if (el) el.classList.remove('gdg-topbar-collapsed');
-      _gdgInitSwipe();
+      _gdgInitDataAreaSwipe();
       _gdgInitScrollCollapse();
-      _gdgInitDoubleSwipeExpand();
-      _gdgInitToggleSync();
-      _gdgSyncToggleIcon();
     }, 100);
   });
 })();
