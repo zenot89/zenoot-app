@@ -240,7 +240,7 @@ document.getElementById('page-gadag').innerHTML = `
 
   /* Poin 1: panel Catatan isi penuh layar, tabel scroll internal kalau data banyak.
      WAJIB pakai .active di selector — kalau enggak, ID selector ini menang lawan
-     `.gdg-panel{display:none}` dan panelnya numpuk/keliatan terus di semua halaman. */
+     '.gdg-panel{display:none}' dan panelnya numpuk/keliatan terus di semua halaman. */
   #gdg-panel-pendapatan.active { display: flex; flex-direction: column; }
   #gdg-panel-pendapatan .card {
     display: flex; flex-direction: column;
@@ -1496,6 +1496,15 @@ function gdgToggleSummary() {
 })();
 
 // ─── AUTO-INIT ────────────────────────────────────────────────
+// Dua lapis init biar tidak blank:
+// 1. Event listener — untuk navigasi normal (user klik Gadag setelah script sudah load)
+// 2. Fallback langsung — kalau page-gadag SUDAH aktif saat script ini selesai load
+//    (race condition: user klik Gadag sebelum gadag.js selesai load dari network/cache,
+//     event zenot:page sudah fired tapi listener belum terdaftar → blank selamanya)
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page === 'gadag') setTimeout(gdgInit, 50);
 });
+// Fallback: cek apakah halaman sudah aktif saat script ini load
+if (document.body.dataset.page === 'gadag') {
+  setTimeout(gdgInit, 100);
+}
