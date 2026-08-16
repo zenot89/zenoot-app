@@ -166,10 +166,21 @@ document.getElementById('page-gadag').innerHTML = `
   #page-gadag *:not(i):not(.ti) {
     font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
-  #page-gadag .content {
-    background-color: var(--gdg-paper);
+  /* Poin 1 (revisi root cause): rule garis buku tulis DULU nempel di
+     '#page-gadag .content{...}' — itu SELECTOR MATI, karena .content itu
+     ANCESTOR dari #page-gadag (bukan descendant-nya), jadi rule ini ga
+     PERNAH ke-apply ke mana pun sejak awal (bukan cuma di 3 halaman yg
+     disebut — di SEMUA halaman Gadag, termasuk yg keliatan "ada garis"
+     sekalipun, itu garisnya dari border-bottom per-baris, bukan dari sini).
+     Card sendiri juga punya background solid opaque, jadi walau selector-nya
+     dibenerin & ditaro di .content, garisnya cuma nongol di celah gelap
+     ANTAR card — bukan di DALEM list/tabelnya. Fix beneran: taro background
+     bergaris LANGSUNG di tiap container list/tabel (lihat rule di bawah,
+     digabung sama rule flex-fill yg udah ada) — background-image nempel
+     independen dari isi <tbody>, jadi TETAP ada walau 0 baris/kosong. */
+  #gdgw-data-area {
     background-image: repeating-linear-gradient(
-      to bottom, transparent, transparent 27px, var(--gdg-rule) 28px
+      to bottom, transparent, transparent 30px, var(--gdg-rule) 30px, var(--gdg-rule) 31px
     );
   }
   #page-gadag .card,
@@ -233,12 +244,18 @@ document.getElementById('page-gadag').innerHTML = `
     }
   }
 
-  /* ── Penyesuaian khusus layar sempit (HP) ── */
+  /* ── Penyesuaian khusus layar sempit (HP) ──
+     Poin 2: font tabel data DULU malah dikecilin ke 12px di sini — kebalikan
+     dari yg diminta. Sekarang dinaikin ke 14px + tegas (font-weight 700), plus
+     angka minicard (m-value, hero-value) dinaikin dikit biar bobotnya senada
+     sama tabel — bukan kerasa 2 gaya tipografi yg terpisah. Kolom tetap
+     sama, cuma isinya lebih jelas; kalau kepanjangan tinggal geser (tbl-wrap
+     udah overflow-x:auto + ada shadow indicator di bawah). */
   @media(max-width:480px) {
-    .gdg-hero-value { font-size: 22px; }
-    .gdg-metrics .m-value { font-size: 16px; line-height: 1.3; }
-    #page-gadag .tbl th, #page-gadag .tbl td { font-size: 12px; padding: 6px 4px; }
-    #page-gadag .tbl td:last-child, #page-gadag .tbl th:last-child { padding-right: 2px; }
+    .gdg-hero-value { font-size: 24px; }
+    .gdg-metrics .m-value { font-size: 18px; line-height: 1.3; }
+    #page-gadag .tbl th, #page-gadag .tbl td { font-size: 14px; padding: 8px 6px; font-weight: 700; }
+    #page-gadag .tbl td:last-child, #page-gadag .tbl th:last-child { padding-right: 4px; }
     #page-gadag .tbl .btn-sm { min-height: 28px; padding: 0 6px; font-size: 11px; }
     #page-gadag .tbl .btn-sm i { font-size: 12px; }
     /* bayangan tipis di kanan tbl-wrap = penanda "masih bisa di-swipe" */
@@ -295,6 +312,9 @@ document.getElementById('page-gadag').innerHTML = `
   #gdg-panel-riwayat .tbl-wrap,
   #gdg-panel-sku .tbl-wrap {
     flex: 1 1 0; min-height: 0; overflow-y: auto;
+    background-image: repeating-linear-gradient(
+      to bottom, transparent, transparent 30px, var(--gdg-rule) 30px, var(--gdg-rule) 31px
+    );
   }
   #gdg-panel-anggaran #gdg-ang2-list { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 
