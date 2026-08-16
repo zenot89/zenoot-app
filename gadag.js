@@ -202,6 +202,20 @@ document.getElementById('page-gadag').innerHTML = `
   #page-gadag .tbl tbody tr { border-bottom: 1px solid var(--gdg-rule); }
   #page-gadag .gdg-sheet-handle span { background: var(--gdg-ink) !important; opacity: .35; }
 
+  /* ── Export PDF: cetak cuma area #gdg-print-area, sembunyiin sisanya ──
+     Pakai window.print() (browser punya "Save as PDF" bawaan di dialog print,
+     jalan konsisten di Android maupun iPhone — ga perlu library PDF tambahan). */
+  #gdg-print-area { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #gdg-print-area, #gdg-print-area * { visibility: visible; }
+    #gdg-print-area {
+      display: block !important;
+      position: absolute; top: 0; left: 0; width: 100%;
+      font-family: Arial, sans-serif; color: #000; background: #fff;
+    }
+  }
+
   /* ── Penyesuaian khusus layar sempit (HP) ── */
   @media(max-width:480px) {
     .gdg-hero-value { font-size: 22px; }
@@ -223,7 +237,9 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+  <div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap">
+    <button id="gdg-hdr-refresh" class="btn btn-sm" onclick="gdgLoad()" title="Refresh" style="display:none;flex:none"><i class="ti ti-refresh"></i></button>
+    <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
     <button id="gdg-summary-toggle" class="btn btn-sm" onclick="gdgToggleSummary()" style="display:none;flex:none" title="Tampilkan/sembunyikan ringkasan">
       <i id="gdg-summary-toggle-icon" class="ti ti-chevron-up"></i>
     </button>
@@ -310,9 +326,6 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: CATATAN PENDAPATAN (cuma minggu berjalan — data lama pindah ke Riwayat) -->
 <div id="gdg-panel-pendapatan" class="gdg-panel">
-<div style="display:flex;gap:8px;margin-bottom:10px">
-  <button class="btn btn-sm" onclick="gdgLoad()"><i class="ti ti-refresh"></i> Refresh</button>
-</div>
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span id="gdg-pend-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— catatan</span>
@@ -458,6 +471,10 @@ document.getElementById('page-gadag').innerHTML = `
     </div>
   </div>
 </div>
+
+<!-- Area cetak khusus buat Export PDF (Catatan Pendapatan) — normal display:none,
+     cuma dimunculin pas mode print lewat CSS @media print di atas -->
+<div id="gdg-print-area"></div>
 `;
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-gadag')); }, 80);
@@ -505,6 +522,11 @@ function gdgApplyView() {
   document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
   const toggleBtn = document.getElementById('gdg-summary-toggle');
   if (toggleBtn) toggleBtn.style.display = (_gdgView === 'mingguan') ? '' : 'none';
+  // Refresh & Export PDF tampil khusus di panel Catatan, gabung 1 baris sama judul+dropdown
+  const hdrRefresh = document.getElementById('gdg-hdr-refresh');
+  const hdrExport  = document.getElementById('gdg-hdr-export');
+  if (hdrRefresh) hdrRefresh.style.display = (_gdgView === 'pendapatan') ? '' : 'none';
+  if (hdrExport)  hdrExport.style.display  = (_gdgView === 'pendapatan') ? '' : 'none';
   ['mingguan','pendapatan','riwayat','sku'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
@@ -745,6 +767,56 @@ function gdgRenderPendapatan() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ─── EXPORT PDF: Catatan Pendapatan minggu berjalan ────────────
+// Render ke #gdg-print-area (tersembunyi normal), lalu window.print() —
+// dialog print browser punya opsi "Save as PDF" bawaan, konsisten di
+// Android & iPhone tanpa perlu library PDF eksternal.
+function gdgExportPendapatanPDF() {
+  const wkStart  = gdgWGetMonday(new Date());
+  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
+  const list     = _gdgPendapatanList.filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir);
+  const total    = list.reduce((s, p) => s + (p.total || 0), 0);
+
+  const rows = list.length
+    ? list.map(p => {
+        const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
+        return `<tr>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${hariLabel}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.sku_nama || '—'}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.warna || '—'}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${p.qty || 0}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${gdgFmt(p.total)}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="padding:10px 8px;color:#888;font-style:italic">Belum ada catatan minggu ini.</td></tr>';
+
+  const area = document.getElementById('gdg-print-area');
+  area.innerHTML = `
+    <h2 style="margin:0 0 2px">Catatan Pendapatan — Gadag</h2>
+    <div style="color:#555;margin-bottom:16px">${gdgWFmtRange(wkStart, wkEnd)} &middot; ${list.length} catatan</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="border-bottom:2px solid #000;text-align:left">
+          <th style="padding:6px 8px">Hari</th>
+          <th style="padding:6px 8px">SKU</th>
+          <th style="padding:6px 8px">Warna</th>
+          <th style="padding:6px 8px;text-align:right">Qty</th>
+          <th style="padding:6px 8px;text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="border-top:2px solid #000;font-weight:700">
+          <td colspan="4" style="padding:8px;text-align:right">TOTAL</td>
+          <td style="padding:8px;text-align:right">${gdgFmt(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  window.print();
 }
 
 // ─── RIWAYAT (History) — browse semua catatan per minggu, sort by minggu ──
