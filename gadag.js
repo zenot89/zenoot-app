@@ -138,6 +138,17 @@ document.getElementById('page-gadag').innerHTML = `
        konsisten di kedua platform. */
     font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
   }
+  /* KRITIS: banyak class di style.css (.m-value, .metric-value, dst) DAN banyak
+     inline style="font-family:var(--f)" di gadag.js sendiri set font-family
+     dengan spesifisitas/prioritas yang menang lawan rule di atas. Sapu rata
+     pakai universal selector + !important biar BENERAN ke-apply ke semua
+     turunan, apapun class/inline style-nya.
+     PENGECUALIAN: ikon (<i class="ti ti-...">) WAJIB di-exclude — mereka
+     pakai font khusus (tabler-icons) buat nge-render glyph ikon; kalau
+     ikut ke-force Comic Neue, ikon berubah jadi kotak/ilang. */
+  #page-gadag *:not(i):not(.ti) {
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+  }
   #page-gadag .content {
     background-color: var(--gdg-paper);
     background-image: repeating-linear-gradient(
