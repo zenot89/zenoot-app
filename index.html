@@ -143,10 +143,12 @@
     <button class="hamburger" id="btn-hamburger" onclick="toggleSidebar()" aria-label="Menu">
       <i class="ti ti-menu-2"></i>
     </button>
-    <img id="topbar-gadag-img" src="gadag-icon.png" alt="Gadag" style="display:none;width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0;opacity:.9">
-    <div>
-      <div class="page-title" id="topbar-title">Dashboard</div>
-      <div class="page-sub" id="topbar-sub">overview performa hari ini</div>
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <img id="topbar-gadag-img" src="gadag-icon.png" alt="Gadag" style="display:none;width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0;opacity:.9;mix-blend-mode:screen">
+      <div>
+        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-sub" id="topbar-sub">overview performa hari ini</div>
+      </div>
     </div>
     <div class="date-pill" id="topbar-date">—</div>
   </div>
@@ -217,7 +219,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260817-f43cb8f36c46';
+  window.APP_BUILD = '20260817-e9f09411500b';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
