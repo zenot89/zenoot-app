@@ -242,12 +242,33 @@ document.getElementById('page-gadag').innerHTML = `
     font-family: inherit; font-weight: 700;
     border: 2px solid var(--gdg-ink) !important;
     border-radius: 10px !important;
-    background: #fff; color: var(--gdg-ink);
+    background: var(--gdg-paper); color: var(--gdg-ink);
     text-transform: uppercase; letter-spacing: .02em;
+    /* Poin: user ga suka efek "timbul" (box-shadow + hover-lift dari .btn
+       global di style.css). Di-nolin di sini biar jadi garis kotak flat
+       doang, nyatu sama background card — bukan kotak melayang. */
+    box-shadow: none !important;
+    transform: none !important;
   }
+  #page-gadag .btn:hover  { background: var(--gdg-paper2) !important; transform: none !important; }
+  #page-gadag .btn:active { background: var(--gdg-ink) !important; color: var(--gdg-paper) !important; transform: scale(.97) !important; }
+  #page-gadag .btn:active i { color: var(--gdg-paper) !important; }
+  /* .btn-primary TETEP solid-fill sengaja (bukan ikut flat) — dipake sebagai
+     penanda "chip terpilih/aktif" (mis. tombol mode dropdown), bahasa visual
+     yg udah konsisten dipake di tempat lain di app (selected state = isi
+     gelap). Yang di-flat-in cuma tombol SEKUNDER (outline biasa). */
   #page-gadag .btn-primary { background: var(--gdg-ink); color: var(--gdg-paper) !important; }
-  #page-gadag .btn-danger  { background: #fff; color: #b5453d; border-color: #b5453d !important; }
-  #page-gadag .gdg-dropdown-menu {
+  #page-gadag .btn-primary:hover { background: var(--gdg-ink) !important; }
+  #page-gadag .btn-danger  { background: var(--gdg-paper); color: #b5453d; border-color: #b5453d !important; }
+  #page-gadag .btn-danger:hover { background: rgba(181,69,61,.08) !important; }
+  #page-gadag .gdghist-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 2px solid var(--gdg-ink); border-radius: 10px;
+    padding: 5px 10px; font-size: 12px; font-weight: 700;
+    background: var(--gdg-paper); color: var(--gdg-ink);
+    white-space: nowrap;
+  }
+  #page-gadag .gdghist-badge i { font-size: 14px; }
     background: var(--gdg-paper) !important; border: 2.5px solid var(--gdg-ink) !important;
     border-radius: 14px !important;
   }
@@ -571,18 +592,37 @@ document.getElementById('page-gadag').innerHTML = `
 
 </div>
 
-<!-- PANEL: RIWAYAT (semua catatan minggu-minggu lalu, biar data ga ilang) -->
+<!-- PANEL: RIWAYAT (semua catatan, sort per Minggu/Bulan — lihat gdgHist* di JS) -->
 <div id="gdg-panel-riwayat" class="gdg-panel">
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-    <div style="display:flex;align-items:center;gap:6px">
+    <div style="display:flex;align-items:center;gap:6px;min-width:0">
       <button class="btn btn-sm" onclick="gdgHistPrevWeek()"><i class="ti ti-chevron-left"></i></button>
-      <span id="gdg-hist-week-label" style="font-size:13px;font-weight:800;white-space:nowrap">—</span>
+      <span id="gdghist-range-label" style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</span>
       <button class="btn btn-sm" onclick="gdgHistNextWeek()"><i class="ti ti-chevron-right"></i></button>
     </div>
-    <button class="btn btn-sm btn-primary" onclick="gdgHistThisWeek()">Minggu Ini</button>
+    <!-- Tombol trigger dropdown mode — menu-nya dirender ke body (portal fixed), sama kayak gdgw-mode-btn -->
+    <button id="gdghist-mode-btn" class="btn btn-sm btn-primary" onclick="gdgHistToggleModeMenu(event)" style="flex:none;white-space:nowrap;padding:5px 9px;font-size:12px">
+      <span id="gdghist-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
+    </button>
   </div>
-  <div id="gdg-hist-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">— catatan</div>
+
+  <!-- Custom date picker — hanya muncul saat mode=custom -->
+  <div id="gdghist-custom-range" style="display:none;padding:6px 0 4px;align-items:center;gap:6px;flex-wrap:wrap">
+    <label style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Dari</label>
+    <input type="date" id="gdghist-custom-dari" onchange="gdgHistCustomApply()"
+      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
+    <label style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase">Sampai</label>
+    <input type="date" id="gdghist-custom-sampai" onchange="gdgHistCustomApply()"
+      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 6px">
+    <div class="gdghist-badge"><i class="ti ti-notes"></i><span id="gdg-hist-count">— catatan</span></div>
+    <div class="gdghist-badge"><i class="ti ti-wallet"></i><span id="gdghist-total-badge">Rp0</span></div>
+    <button class="btn btn-sm" onclick="gdgExportRiwayatPDF()" title="Export PDF (s/d hari ini)" style="margin-left:auto"><i class="ti ti-file-download"></i></button>
+  </div>
+
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
       <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
@@ -593,6 +633,7 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 </div>
+
 
 <!-- PANEL: KELOLA PRODUK (master SKU & ongkos) -->
 <div id="gdg-panel-sku" class="gdg-panel">
@@ -1940,29 +1981,385 @@ function gdgExportPendapatanPDF() {
   window.print();
 }
 
-// ─── RIWAYAT (History) — browse semua catatan per minggu, sort by minggu ──
-// Sumber data sama (_gdgPendapatanList, sudah di-load penuh oleh gdgLoad),
-// cuma di-filter per rentang minggu yang dipilih di sini secara independen
-// dari panel Catatan Pendapatan (yang selalu nampilin minggu berjalan).
-let _gdgHistWeekStart = null;
+function gdgExportRiwayatPDF() {
+  const range    = gdgHistGetRange();
+  const today    = new Date();
+  const list     = _gdgPendapatanList.filter(p => p.tanggal >= range.isoStart && p.tanggal <= range.isoEnd);
+  const total    = list.reduce((s, p) => s + (p.total || 0), 0);
 
-function gdgHistPrevWeek() { _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() - 7); gdgHistRenderWeek(); }
-function gdgHistNextWeek() { _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() + 7); gdgHistRenderWeek(); }
-function gdgHistThisWeek() { _gdgHistWeekStart = gdgWGetMonday(new Date()); gdgHistRenderWeek(); }
+  const hariExport   = _gdgHariNames[today.getDay()].toUpperCase();
+  const tglExportStr = String(today.getDate()).padStart(2, '0') + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        today.getFullYear();
+
+  const rows = list.length
+    ? list.map((p, i) => {
+        const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
+        return `<tr>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${i + 1}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${hariLabel}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.sku_nama || '—'}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.warna || '—'}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${gdgFmt(p.ongkos_lusin)}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${p.qty || 0}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${gdgFmt(p.total)}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="7" style="padding:10px 8px;color:#888;font-style:italic">Ga ada catatan di rentang ini.</td></tr>';
+
+  // Konsep sama persis kayak gdgExportPendapatanPDF() — header (logo+tanggal+judul)
+  // ditaro sebagai baris <thead>, biar otomatis keulang tiap halaman kalau
+  // datanya kepanjangan & kepecah jadi 2+ halaman pas print/save-as-PDF.
+  const area = document.getElementById('gdg-print-area');
+  area.innerHTML = `
+    <table class="gdg-print-table" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr>
+          <td colspan="7" style="padding:0 0 12px;border:none">
+            <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <img src="gadag-icon.png" alt="Gadag" style="width:40px;height:40px;object-fit:contain;flex-shrink:0">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.04em;color:#333">${hariExport}, ${tglExportStr}</div>
+              </div>
+              <div style="border-top:1px solid #ddd;margin:10px 0"></div>
+              <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;font-weight:700;font-size:20px;letter-spacing:.02em">RIWAYAT CATATAN &mdash; GADAG</div>
+              <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(range.start, range.end)} &middot; ${list.length} catatan</div>
+            </div>
+          </td>
+        </tr>
+        <tr style="border-bottom:2px solid #000;text-align:left">
+          <th style="padding:6px 8px">No</th>
+          <th style="padding:6px 8px">Hari</th>
+          <th style="padding:6px 8px">SKU / Nama Produk</th>
+          <th style="padding:6px 8px">Warna</th>
+          <th style="padding:6px 8px;text-align:right">Harga</th>
+          <th style="padding:6px 8px;text-align:right">Qty</th>
+          <th style="padding:6px 8px;text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="border-top:2px solid #000;font-weight:700">
+          <td colspan="6" style="padding:8px;text-align:right">SUM</td>
+          <td style="padding:8px;text-align:right">${gdgFmt(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  window.print();
+}
+
+
+// state & DOM id sendiri (_gdgHist*, gdghist-*), BUKAN reuse langsung,
+// biar kode Ringkasan Mingguan yang udah jalan sama sekali ga kesenggol.
+let _gdgHistWeekStart   = null; // Date, Minggu 00:00 (dipakai minggu-ini & per-minggu)
+let _gdgHistMode        = 'minggu-ini';
+let _gdgHistCustomDari  = null;
+let _gdgHistCustomSampai = null;
+let _gdgHistBulanRef    = null; // Date referensi bulan (dipakai bulan-ini & per-bulan)
+
+function _gdgHistEnsureModeMenu() {
+  if (document.getElementById('gdghist-mode-menu')) return;
+  const menu = document.createElement('div');
+  menu.id = 'gdghist-mode-menu';
+  menu.style.cssText = [
+    'display:none', 'position:fixed', 'z-index:9999',
+    'background:var(--gdg-paper,#f7f2e6)', 'border:2.5px solid var(--gdg-ink,#262220)',
+    'border-radius:14px', 'min-width:160px', 'box-shadow:2px 4px 12px rgba(0,0,0,.28)',
+    'overflow:hidden', "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+  ].join(';');
+  const opts = [
+    ['minggu-ini', 'Minggu Ini',  false],
+    ['per-minggu', 'Per Minggu',  true],   // punya sub
+    ['bulan-ini',  'Bulan Ini',   false],
+    ['per-bulan',  'Per Bulan',   true],   // punya sub
+    ['custom',     'Custom',      false],
+  ];
+  opts.forEach(([mode, label, hasSub]) => {
+    const btn = document.createElement('button');
+    btn.id = 'gdghist-opt-' + mode;
+    btn.style.cssText = [
+      'display:flex', 'align-items:center', 'justify-content:space-between',
+      'width:100%', 'text-align:left', 'padding:10px 14px', 'background:none', 'border:none',
+      'border-bottom:1px solid rgba(38,34,32,.1)', 'font-size:13px', 'font-weight:700', 'cursor:pointer',
+      'color:var(--gdg-ink,#262220)', "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+    ].join(';');
+    const span = document.createElement('span');
+    span.textContent = label;
+    btn.appendChild(span);
+    if (hasSub) {
+      const arrow = document.createElement('span');
+      arrow.textContent = '▸';
+      arrow.style.cssText = 'font-size:10px;opacity:.55;margin-left:6px;flex:none';
+      btn.appendChild(arrow);
+      btn.addEventListener('click', (ev) => { ev.stopPropagation(); _gdgHistOpenSubMenu(mode, btn); });
+    } else {
+      btn.addEventListener('click', () => gdgHistSetMode(mode));
+    }
+    menu.appendChild(btn);
+  });
+  const last = menu.querySelector('button:last-child');
+  if (last) last.style.borderBottom = 'none';
+  document.body.appendChild(menu);
+}
+
+let _gdgHistSubMenuOpen = null;
+
+function _gdgHistOpenSubMenu(mode, triggerBtn) {
+  if (_gdgHistSubMenuOpen === mode) { _gdgHistCloseSubMenu(); return; }
+  _gdgHistCloseSubMenu();
+  _gdgHistSubMenuOpen = mode;
+
+  const sub = document.createElement('div');
+  sub.id = 'gdghist-sub-menu';
+  sub.style.cssText = [
+    'position:fixed', 'z-index:10000', 'background:var(--gdg-paper,#f7f2e6)',
+    'border:2.5px solid var(--gdg-ink,#262220)', 'border-radius:14px', 'min-width:160px',
+    'max-height:260px', 'overflow-y:auto', 'box-shadow:4px 6px 14px rgba(0,0,0,.32)',
+    "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+  ].join(';');
+
+  const items = [];
+  const now = new Date();
+  if (mode === 'per-minggu') {
+    for (let i = 0; i < 8; i++) {
+      const ws = gdgWGetMonday(new Date());
+      ws.setDate(ws.getDate() - i * 7);
+      const we = new Date(ws); we.setDate(ws.getDate() + 6);
+      items.push({ label: (i === 0 ? '▸ ' : '') + gdgWFmtRange(ws, we), ws: new Date(ws), we });
+    }
+  } else if (mode === 'per-bulan') {
+    for (let i = 0; i < 8; i++) {
+      const ref = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      items.push({ label: (i === 0 ? '▸ ' : '') + _GDGW_BLN[ref.getMonth()] + ' ' + ref.getFullYear(), ref: new Date(ref) });
+    }
+  }
+
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.style.cssText = [
+      'display:block', 'width:100%', 'text-align:left', 'padding:9px 14px', 'background:none', 'border:none',
+      'border-bottom:1px solid rgba(38,34,32,.1)', 'font-size:12.5px', 'font-weight:700', 'cursor:pointer',
+      'color:var(--gdg-ink,#262220)', "font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif",
+    ].join(';');
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => {
+      if (mode === 'per-minggu') { _gdgHistMode = 'per-minggu'; _gdgHistWeekStart = item.ws; }
+      else                       { _gdgHistMode = 'per-bulan';  _gdgHistBulanRef  = item.ref; }
+      const modeLabel = document.getElementById('gdghist-mode-label');
+      if (modeLabel) modeLabel.textContent = item.label.replace('▸ ', '');
+      ['minggu-ini','per-minggu','bulan-ini','per-bulan','custom'].forEach(m => {
+        const el = document.getElementById('gdghist-opt-' + m);
+        if (el) el.classList.toggle('active', m === mode);
+      });
+      const customEl = document.getElementById('gdghist-custom-range');
+      if (customEl) customEl.style.display = 'none';
+      _gdgHistCloseSubMenu();
+      gdgHistCloseModeMenu();
+      gdgHistRenderWeek();
+    });
+    sub.appendChild(btn);
+  });
+  const lastBtn = sub.querySelector('button:last-child');
+  if (lastBtn) lastBtn.style.borderBottom = 'none';
+  document.body.appendChild(sub);
+
+  requestAnimationFrame(() => {
+    const mainMenu = document.getElementById('gdghist-mode-menu');
+    const tr = triggerBtn.getBoundingClientRect();
+    const mw = sub.offsetWidth;
+    const mainR = mainMenu ? mainMenu.getBoundingClientRect() : tr;
+    let left = mainR.right + 4;
+    if (left + mw > window.innerWidth - 8) left = mainR.left - mw - 4;
+    if (left < 8) left = 8;
+    sub.style.left = left + 'px';
+    sub.style.top  = tr.top + 'px';
+  });
+}
+
+function _gdgHistCloseSubMenu() {
+  _gdgHistSubMenuOpen = null;
+  const s = document.getElementById('gdghist-sub-menu');
+  if (s) s.remove();
+}
+
+function gdgHistToggleModeMenu(e) {
+  if (e) e.stopPropagation();
+  _gdgHistEnsureModeMenu();
+  const menu = document.getElementById('gdghist-mode-menu');
+  const btn  = document.getElementById('gdghist-mode-btn');
+  if (!menu || !btn) return;
+  const isOpen = menu.style.display !== 'none';
+  if (isOpen) { menu.style.display = 'none'; _gdgHistCloseSubMenu(); return; }
+  const r = btn.getBoundingClientRect();
+  menu.style.display = 'block';
+  requestAnimationFrame(() => {
+    let left = r.left;
+    const mw = menu.offsetWidth;
+    if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
+    if (left < 8) left = 8;
+    menu.style.top  = (r.bottom + 4) + 'px';
+    menu.style.left = left + 'px';
+  });
+}
+
+function gdgHistCloseModeMenu() {
+  const m = document.getElementById('gdghist-mode-menu');
+  if (m) m.style.display = 'none';
+  _gdgHistCloseSubMenu();
+}
+
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('gdghist-mode-menu');
+  const sub  = document.getElementById('gdghist-sub-menu');
+  const btn  = document.getElementById('gdghist-mode-btn');
+  const clickedMenu = menu && menu.contains(e.target);
+  const clickedSub  = sub  && sub.contains(e.target);
+  const clickedBtn  = btn  && btn.contains(e.target);
+  if (!menu || menu.style.display === 'none') return;
+  if (!clickedMenu && !clickedSub && !clickedBtn) {
+    menu.style.display = 'none';
+    _gdgHistCloseSubMenu();
+  }
+});
+
+function gdgHistSetMode(mode) {
+  _gdgHistMode = mode;
+  gdgHistCloseModeMenu();
+
+  const modeLabelEl = document.getElementById('gdghist-mode-label');
+  if (modeLabelEl) modeLabelEl.textContent = _GDGW_MODE_LABELS[mode] || mode;
+  ['minggu-ini','per-minggu','bulan-ini','per-bulan','custom'].forEach(m => {
+    const el = document.getElementById('gdghist-opt-' + m);
+    if (el) el.classList.toggle('active', m === mode);
+  });
+
+  const customEl = document.getElementById('gdghist-custom-range');
+  if (customEl) customEl.style.display = (mode === 'custom') ? 'flex' : 'none';
+
+  if (mode === 'minggu-ini' || mode === 'per-minggu') {
+    _gdgHistWeekStart = gdgWGetMonday(new Date());
+  } else if (mode === 'bulan-ini' || mode === 'per-bulan') {
+    _gdgHistBulanRef = new Date();
+  } else if (mode === 'custom') {
+    if (!_gdgHistCustomDari) {
+      const ws = gdgWGetMonday(new Date());
+      const we = new Date(ws); we.setDate(ws.getDate() + 6);
+      _gdgHistCustomDari   = ws;
+      _gdgHistCustomSampai = we;
+      const dariEl   = document.getElementById('gdghist-custom-dari');
+      const sampaiEl = document.getElementById('gdghist-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(ws);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(we);
+    }
+  }
+  gdgHistRenderWeek();
+}
+
+function gdgHistPrevWeek() {
+  if (_gdgHistMode === 'minggu-ini') return;
+  if (_gdgHistMode === 'per-minggu') {
+    _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() - 7);
+  } else if (_gdgHistMode === 'bulan-ini') {
+    return;
+  } else if (_gdgHistMode === 'per-bulan') {
+    _gdgHistBulanRef.setMonth(_gdgHistBulanRef.getMonth() - 1);
+  } else if (_gdgHistMode === 'custom') {
+    if (_gdgHistCustomDari && _gdgHistCustomSampai) {
+      const dur = Math.round((_gdgHistCustomSampai - _gdgHistCustomDari) / 86400000) + 1;
+      _gdgHistCustomDari.setDate(_gdgHistCustomDari.getDate() - dur);
+      _gdgHistCustomSampai.setDate(_gdgHistCustomSampai.getDate() - dur);
+      const dariEl   = document.getElementById('gdghist-custom-dari');
+      const sampaiEl = document.getElementById('gdghist-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(_gdgHistCustomDari);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgHistCustomSampai);
+    }
+  }
+  gdgHistRenderWeek();
+}
+function gdgHistNextWeek() {
+  if (_gdgHistMode === 'minggu-ini') return;
+  if (_gdgHistMode === 'per-minggu') {
+    _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() + 7);
+  } else if (_gdgHistMode === 'bulan-ini') {
+    return;
+  } else if (_gdgHistMode === 'per-bulan') {
+    _gdgHistBulanRef.setMonth(_gdgHistBulanRef.getMonth() + 1);
+  } else if (_gdgHistMode === 'custom') {
+    if (_gdgHistCustomDari && _gdgHistCustomSampai) {
+      const dur = Math.round((_gdgHistCustomSampai - _gdgHistCustomDari) / 86400000) + 1;
+      _gdgHistCustomDari.setDate(_gdgHistCustomDari.getDate() + dur);
+      _gdgHistCustomSampai.setDate(_gdgHistCustomSampai.getDate() + dur);
+      const dariEl   = document.getElementById('gdghist-custom-dari');
+      const sampaiEl = document.getElementById('gdghist-custom-sampai');
+      if (dariEl)   dariEl.value   = gdgWToISO(_gdgHistCustomDari);
+      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgHistCustomSampai);
+    }
+  }
+  gdgHistRenderWeek();
+}
+
+function gdgHistCustomApply() {
+  const dariVal   = document.getElementById('gdghist-custom-dari').value;
+  const sampaiVal = document.getElementById('gdghist-custom-sampai').value;
+  if (!dariVal || !sampaiVal) return;
+  const d = dariVal.split('-').map(Number);
+  const s = sampaiVal.split('-').map(Number);
+  _gdgHistCustomDari   = new Date(d[0], d[1]-1, d[2]);
+  _gdgHistCustomSampai = new Date(s[0], s[1]-1, s[2]);
+  if (_gdgHistCustomSampai < _gdgHistCustomDari) {
+    _gdgHistCustomSampai = new Date(_gdgHistCustomDari);
+    document.getElementById('gdghist-custom-sampai').value = dariVal;
+  }
+  gdgHistRenderWeek();
+}
+
+// Helper: hitung range ISO dari mode aktif (port dari gdgWGetRange)
+function gdgHistGetRange() {
+  const now = new Date();
+  if (_gdgHistMode === 'minggu-ini' || _gdgHistMode === 'per-minggu') {
+    if (!_gdgHistWeekStart) _gdgHistWeekStart = gdgWGetMonday(now);
+    const end = new Date(_gdgHistWeekStart); end.setDate(_gdgHistWeekStart.getDate() + 6);
+    return { start: _gdgHistWeekStart, end, isoStart: gdgWToISO(_gdgHistWeekStart), isoEnd: gdgWToISO(end) };
+  } else if (_gdgHistMode === 'bulan-ini') {
+    const ref   = _gdgHistBulanRef || now;
+    const start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    const end   = new Date(ref.getFullYear(), ref.getMonth(), now.getDate());
+    return { start, end, isoStart: gdgWToISO(start), isoEnd: gdgWToISO(end) };
+  } else if (_gdgHistMode === 'per-bulan') {
+    const ref   = _gdgHistBulanRef || now;
+    const start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    const end   = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+    return { start, end, isoStart: gdgWToISO(start), isoEnd: gdgWToISO(end) };
+  } else if (_gdgHistMode === 'custom') {
+    const s = _gdgHistCustomDari   || gdgWGetMonday(now);
+    const e = _gdgHistCustomSampai || (() => { const x = new Date(s); x.setDate(s.getDate()+6); return x; })();
+    return { start: s, end: e, isoStart: gdgWToISO(s), isoEnd: gdgWToISO(e) };
+  }
+  const ws = gdgWGetMonday(now);
+  const we = new Date(ws); we.setDate(ws.getDate() + 6);
+  return { start: ws, end: we, isoStart: gdgWToISO(ws), isoEnd: gdgWToISO(we) };
+}
+
+// Compat: dipanggil gdgApplyView() saat panel Riwayat pertama kali dibuka
+function gdgHistThisWeek() { gdgHistSetMode('minggu-ini'); }
 
 function gdgHistRenderWeek() {
-  if (!_gdgHistWeekStart) return;
-  const wkEnd = new Date(_gdgHistWeekStart); wkEnd.setDate(_gdgHistWeekStart.getDate() + 6);
-  document.getElementById('gdg-hist-week-label').textContent = gdgWFmtRange(_gdgHistWeekStart, wkEnd);
+  const range = gdgHistGetRange();
+  const labelEl = document.getElementById('gdghist-range-label');
+  if (labelEl) labelEl.textContent = gdgWFmtRange(range.start, range.end);
 
-  const isoMulai = gdgWToISO(_gdgHistWeekStart), isoAkhir = gdgWToISO(wkEnd);
-  const list  = _gdgPendapatanList.filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir);
-  const tbody = document.getElementById('gdg-hist-tbody');
+  const list  = _gdgPendapatanList.filter(p => p.tanggal >= range.isoStart && p.tanggal <= range.isoEnd);
+  const total = list.reduce((s, p) => s + (p.total || 0), 0);
+
+  const tbody   = document.getElementById('gdg-hist-tbody');
   const countEl = document.getElementById('gdg-hist-count');
+  const totalEl = document.getElementById('gdghist-total-badge');
   if (countEl) countEl.textContent = list.length + ' catatan';
+  if (totalEl) totalEl.textContent = gdgFmt(total);
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Ga ada catatan di minggu ini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Ga ada catatan di rentang ini.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(p => {
