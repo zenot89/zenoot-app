@@ -168,6 +168,12 @@ function gotoPage(page, btn) {
     if (titleEl) titleEl.textContent = info.title;
     if (subEl)   subEl.textContent   = info.sub;
   }
+  // Logo skull Gadag di topbar — img-nya udah ada di index.html (display:none
+  // default) tapi sebelum ini gapernah ada yang toggle jadi keliatan pas
+  // halaman Gadag dibuka. Itu root cause kenapa logo gapernah nongol walau
+  // gadag-icon.png-nya udah ke-deploy.
+  var gadagImgEl = $id('topbar-gadag-img');
+  if (gadagImgEl) gadagImgEl.style.display = (page === 'gadag') ? '' : 'none';
   document.body.dataset.page = page;
   closeSidebar();
   // Fire event — semua file listen ke ini, tidak perlu override gotoPage

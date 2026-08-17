@@ -210,6 +210,15 @@ document.getElementById('page-gadag').innerHTML = `
   /* garis margin merah khas buku tulis, nempel di tepi kiri tiap card */
   /* Padding compact: override global card padding biar minicard lebih rapat (ikut referensi mockup) */
   #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding: 6px 8px 6px 15px !important; }
+  /* Root cause jarak minicard renggang: .card global (style.css) bawa
+     margin-bottom:12px bawaan. Di dalam grid .gdg-minicards, margin itu NUMPUK
+     di atas grid-gap:5px yg udah diset (jadi total ~17px, bukan ~5px kayak
+     mockup). .gdg-minicard cuma kepake di dalam grid ini doang (dicek: gapernah
+     dipake berdiri sendiri), jadi aman di-nolin marginnya — .card polos lain
+     (card section biasa yg BUKAN di dalam grid) TETEP butuh margin-bottom
+     buat jarak antar section, makanya sengaja spesifik ke .gdg-minicard aja,
+     bukan overwrite .card secara umum. */
+  #page-gadag .gdg-minicard { margin: 0 !important; }
   #page-gadag .metric { padding: 6px 8px !important; }
   #page-gadag .card::before, #page-gadag .gdg-minicard::before {
     content: ''; position: absolute; left: 7px; top: 7px; bottom: 7px; width: 2px;
@@ -696,9 +705,7 @@ document.getElementById('page-gadag').innerHTML = `
         <label>Warna</label>
         <input type="text" id="gdg-pend-warna" name="gdg-warna-custom-nofill" placeholder="contoh: Merah"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"
-          oninput="gdgWarnaFilter()" onfocus="gdgWarnaFilter()"
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-        <div id="gdg-pend-warna-dropdown" class="gdg-warna-dropdown"></div>
       </div>
       <div class="form-group">
         <label>SKU</label>
@@ -2028,58 +2035,9 @@ function gdgShowPendapatanModal(editId) {
     hapusBtn.style.display = 'none';
   }
 
-  gdgWarnaCloseDropdown();
   document.getElementById('modal-gdg-pend').classList.add('open');
   gdgOpenPendSheet();
 }
-
-// ─── DROPDOWN SARAN "WARNA" (bikinan sendiri, ganti autofill browser) ──
-// Sumbernya sama kayak yg dipakai browser buat autofill: histori warna yg
-// pernah diketik, diambil dari _gdgPendapatanList yg udah ke-load. Bedanya
-// posisinya konsisten (selalu di bawah field-nya sendiri) dan filter-nya
-// nyala pas ngetik.
-function gdgWarnaList() {
-  const set = new Set();
-  (_gdgPendapatanList || []).forEach(p => {
-    const w = (p.warna || '').trim();
-    if (w) set.add(w);
-  });
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'id'));
-}
-
-function gdgWarnaFilter() {
-  const inp = document.getElementById('gdg-pend-warna');
-  const dd  = document.getElementById('gdg-pend-warna-dropdown');
-  if (!inp || !dd) return;
-  const q   = inp.value.trim().toLowerCase();
-  const all = gdgWarnaList();
-  const matches = q ? all.filter(w => w.toLowerCase().includes(q)) : all;
-  if (!matches.length) { gdgWarnaCloseDropdown(); return; }
-  dd.innerHTML = matches.map(w => {
-    const esc = w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
-    return `<div class="gdg-warna-opt" onmousedown="event.preventDefault();gdgWarnaPilih('${esc.replace(/'/g,"\\'")}')">${esc}</div>`;
-  }).join('');
-  dd.style.display = 'block';
-}
-
-function gdgWarnaPilih(w) {
-  const inp = document.getElementById('gdg-pend-warna');
-  if (inp) inp.value = w;
-  gdgWarnaCloseDropdown();
-}
-
-function gdgWarnaCloseDropdown() {
-  const dd = document.getElementById('gdg-pend-warna-dropdown');
-  if (dd) dd.style.display = 'none';
-}
-
-// Klik/tap di luar input & dropdown → tutup
-document.addEventListener('click', function(e) {
-  const inp = document.getElementById('gdg-pend-warna');
-  const dd  = document.getElementById('gdg-pend-warna-dropdown');
-  if (!inp || !dd) return;
-  if (e.target !== inp && !dd.contains(e.target)) gdgWarnaCloseDropdown();
-});
 
 // ─── BOTTOM-SHEET: animasi masuk/keluar + drag-to-close + keyboard-safe (iOS) ──
 function gdgOpenPendSheet() {
@@ -2100,23 +2058,6 @@ function gdgOpenPendSheet() {
   }
   _gdgInitSheetDragToClose();
   _gdgInitSheetFocusScroll();
-  _gdgInitWarnaAutoClose();
-}
-
-// Dropdown saran Warna (gdgWarnaFilter) sebelumnya cuma nutup pas klik di
-// LUAR sheet — kalau user abis buka saran Warna terus langsung pindah fokus
-// ke field lain DI DALAM sheet yg sama (misal SKU, native <select> yg
-// dropdown-nya kepisah dari DOM/klik biasa), dropdown Warna ga ke-trigger
-// nutup dan numpuk bareng dropdown SKU (2 block keliatan bareng). Fix: setiap
-// field lain di sheet ini difokus, paksa tutup dropdown Warna.
-function _gdgInitWarnaAutoClose() {
-  const overlay = document.getElementById('modal-gdg-pend');
-  if (!overlay || overlay._gdgWarnaAutoCloseInited) return;
-  overlay._gdgWarnaAutoCloseInited = true;
-  overlay.addEventListener('focusin', function(e) {
-    if (e.target && e.target.id === 'gdg-pend-warna') return; // field-nya sendiri, biarin
-    gdgWarnaCloseDropdown();
-  });
 }
 
 function _gdgSheetSyncViewport() {
@@ -2187,7 +2128,6 @@ function _gdgInitSheetDragToClose() {
 
 
 function gdgClosePendapatanModal() {
-  gdgWarnaCloseDropdown();
   const overlay = document.getElementById('modal-gdg-pend');
   const sheet   = document.getElementById('gdg-pend-sheet');
   if (!overlay) return;
