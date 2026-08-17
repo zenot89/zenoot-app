@@ -617,17 +617,20 @@ document.getElementById('page-gadag').innerHTML = `
       style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
   </div>
 
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 6px">
-    <div class="gdghist-badge"><i class="ti ti-notes"></i><span id="gdg-hist-count">— catatan</span></div>
-    <div class="gdghist-badge"><i class="ti ti-wallet"></i><span id="gdghist-total-badge">Rp0</span></div>
-    <button class="btn btn-sm" onclick="gdgExportRiwayatPDF()" title="Export PDF (s/d hari ini)" style="margin-left:auto"><i class="ti ti-file-download"></i></button>
+  <div style="display:flex;align-items:center;gap:8px;margin:8px 0 2px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0">
+      <div class="gdghist-badge"><i class="ti ti-notes"></i><span id="gdg-hist-count">— catatan</span></div>
+      <div class="gdghist-badge"><i class="ti ti-wallet"></i><span id="gdghist-total-badge">Rp0</span></div>
+    </div>
+    <button class="btn btn-sm" onclick="gdgExportRiwayatPDF()" title="Export PDF (s/d hari ini)" style="flex:none"><i class="ti ti-file-download"></i></button>
   </div>
+  <div style="font-size:11px;color:var(--ink3);margin:2px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
 
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th></tr></thead>
       <tbody id="gdg-hist-tbody">
-        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
   </div>
@@ -1853,12 +1856,14 @@ function gdgRenderPendapatan() {
       <td style="text-align:right"><b>${gdgFmt(p.total)}</b></td>
     </tr>`;
   }).join('');
-  _gdgInitLongPress();
+  _gdgInitLongPress('gdg-pend-tbody');
 }
 
-// ─── LONG-PRESS baris Catatan → buka modal dalam mode EDIT ─────
-function _gdgInitLongPress() {
-  const tbody = document.getElementById('gdg-pend-tbody');
+// ─── LONG-PRESS baris tabel → buka modal dalam mode EDIT ─────
+// Dipakai bareng buat #gdg-pend-tbody (Catatan Pendapatan) & #gdg-hist-tbody
+// (Riwayat) — parameter tbodyId biar ga perlu 2 fungsi kembar.
+function _gdgInitLongPress(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
   if (!tbody || tbody._gdgLongPressInited) return;
   tbody._gdgLongPressInited = true;
   const HOLD_MS    = 500; // durasi tekan biar dianggap "tekan lama"
@@ -2359,22 +2364,20 @@ function gdgHistRenderWeek() {
   if (totalEl) totalEl.textContent = gdgFmt(total);
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Ga ada catatan di rentang ini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Ga ada catatan di rentang ini.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(p => {
     const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
-    return `<tr>
+    return `<tr data-id="${p.id}" style="cursor:pointer">
       <td style="white-space:nowrap"><b>${hariLabel}</b></td>
       <td><b style="color:var(--accent)">${p.sku_nama||'—'}</b></td>
       <td>${p.warna||'—'}</td>
       <td style="text-align:right">${p.qty||0}</td>
       <td style="text-align:right"><b>${gdgFmt(p.total)}</b></td>
-      <td>
-        <button class="btn btn-sm btn-danger" onclick="gdgHapusPendapatan('${p.id}')" title="Hapus"><i class="ti ti-trash"></i></button>
-      </td>
     </tr>`;
   }).join('');
+  _gdgInitLongPress('gdg-hist-tbody');
 }
 
 // ─── METRICS (TOTAL PENDAPATAN = utama) ───────────────────────
