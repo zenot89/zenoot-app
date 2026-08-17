@@ -252,6 +252,22 @@ document.getElementById('page-gadag').innerHTML = `
     border-radius: 14px !important;
   }
   #page-gadag .gdg-dropdown-menu button { color: var(--gdg-ink) !important; font-family: inherit; }
+  /* Hover/active/tap khusus dropdown Jurnal di halaman Gadag — override base
+     .gdg-dropdown-menu button:hover (yang pake var(--cream2) tema dark
+     global #1e1e1e) soalnya nabrak var(--gdg-ink) teks yang juga gelap =
+     teks ilang pas di-hover (kayak kotak hitam kosong). */
+  #page-gadag .gdg-dropdown-menu button:hover { background: rgba(38,34,32,.08) !important; }
+  #page-gadag .gdg-dropdown-menu button.active {
+    background: var(--gdg-ink) !important;
+    color: var(--gdg-paper) !important;
+  }
+  #page-gadag .gdg-dropdown-menu button.active i { color: var(--gdg-paper) !important; }
+  /* Efek klik/tap (mobile gak punya hover) — flash warna kebalik sekejap */
+  #page-gadag .gdg-dropdown-menu button:active {
+    background: var(--gdg-ink) !important;
+    color: var(--gdg-paper) !important;
+  }
+  #page-gadag .gdg-dropdown-menu button:active i { color: var(--gdg-paper) !important; }
   #page-gadag .tbl thead th {
     color: var(--gdg-ink2) !important;
     background: transparent !important; box-shadow: none !important;
@@ -403,7 +419,7 @@ document.getElementById('page-gadag').innerHTML = `
      warna tinta gelap dari rule "#page-gadag{color:var(--gdg-ink)}" di atas
      → nyaris ga keliatan. Kasih warna terang eksplisit khusus buat baris
      judul ini aja (bukan warna umum #page-gadag, biar isi card tetep ink gelap). */
-  #gdg-view-heading, #gdg-view-heading-icon, #gdg-hdr-refresh { color: var(--gdg-paper) !important; }
+  #gdg-view-heading, #gdg-view-heading-icon, #gdg-hdr-refresh, #gdg-hdr-export { color: var(--gdg-paper) !important; }
 
   /* Animasi spin buat tombol refresh pas gdgLoad() lagi jalan (lihat
      gdgHandleRefresh()) — berhenti otomatis pas datanya udah selesai dimuat. */
@@ -415,7 +431,7 @@ document.getElementById('page-gadag').innerHTML = `
 <div id="gdg-hdr-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:nowrap;gap:8px">
   <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;flex-wrap:nowrap;overflow:hidden">
     <button id="gdg-hdr-refresh" onclick="gdgHandleRefresh()" title="Refresh" style="flex:none;background:none;border:none;padding:2px;cursor:pointer;font-size:20px;line-height:1;color:var(--gdg-paper,inherit)"><i class="ti ti-refresh"></i></button>
-    <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
+    <button id="gdg-hdr-export" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none;background:none;border:none;padding:2px;cursor:pointer;font-size:20px;line-height:1;color:var(--gdg-paper,inherit)"><i class="ti ti-file-download"></i></button>
     <i id="gdg-view-heading-icon" class="ti ti-calendar-week" style="font-size:20px;flex:none"></i>
     <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Overview</div>
   </div>
