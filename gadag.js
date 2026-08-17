@@ -643,12 +643,12 @@ document.getElementById('page-gadag').innerHTML = `
       <button onclick="gdgAngCloseModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="gdg-ang2-edit-id">
-    <div class="form-group" style="margin-bottom:8px">
+    <div class="form-group" style="margin-bottom:8px;position:relative">
       <label>Nama (dari Daftar Akun)</label>
-      <select id="gdg-ang2-nama-input"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-        <option value="">— pilih akun beban —</option>
-      </select>
+      <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun beban —"
+        onclick="gdgAngAkunToggle()"
+        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
+      <div id="gdg-ang2-akun-dropdown" class="gdg-warna-dropdown"></div>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal (Rp)</label>
@@ -1494,31 +1494,64 @@ function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   return total;
 }
 
-// Isi opsi <select> Nama dari akun beban (kas_akun: kelompok=beban, kode 5-xxx
-// KECUALI 5-001 — aturan sama persis dengan progress bar realisasi).
+// Siapin daftar Nama akun beban (kas_akun: kelompok=beban, kode 5-xxx KECUALI
+// 5-001 — aturan sama persis dengan progress bar realisasi). Dipakai buat
+// dropdown custom (gdgAngAkunToggle dkk) — HANYA nama yang ditampilin di
+// dropdown, kode 5-xxx tetep disimpen di cache buat referensi internal aja
+// (kode 5-001 Beban Gaji tetep di-skip, sama kayak sebelumnya).
 // selectedNama: kalau ada & ga ketemu di daftar akun (mis. akun udah dihapus/
-// diganti nama), tetep ditambahin sbg opsi terpisah biar data lama ga hilang.
+// diganti nama), tetep dianggep valid biar data lama ga ilang dari tampilan.
+let _gdgAngAkunCache = [];
 function gdgAngPopulateAkunSelect(selectedNama) {
-  const sel = document.getElementById('gdg-ang2-nama-input');
-  if (!sel) return;
-  const akunBeban = _gdgWAkunAll
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  if (!inp) return;
+  _gdgAngAkunCache = _gdgWAkunAll
     .filter(a => a.kelompok === 'beban' && (a.kode || '').indexOf('5-') === 0 && a.kode !== '5-001')
     .sort((a, b) => (a.kode || '').localeCompare(b.kode || ''));
-  let html = '<option value="">— pilih akun beban —</option>';
-  let found = false;
-  akunBeban.forEach(a => {
-    const nama = String(a.nama || '');
-    const namaAttr = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    if (selectedNama && nama.trim().toLowerCase() === selectedNama.trim().toLowerCase()) found = true;
-    const sel_ = (selectedNama && nama.trim().toLowerCase() === selectedNama.trim().toLowerCase()) ? ' selected' : '';
-    html += `<option value="${namaAttr}"${sel_}>${a.kode ? a.kode + ' · ' : ''}${namaAttr}</option>`;
-  });
-  if (selectedNama && !found) {
-    const namaAttr = String(selectedNama).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    html += `<option value="${namaAttr}" selected>${namaAttr} (akun tidak ditemukan)</option>`;
-  }
-  sel.innerHTML = html;
+  inp.value = selectedNama || '';
+  gdgAngAkunCloseDropdown();
 }
+
+// ─── DROPDOWN CUSTOM "Nama Akun" — pola identik dropdown Warna (§ gdgWarnaFilter),
+// gantiin native <select> yg gabisa dibatasin tinggi/isinya (kode ikut nongol,
+// scroll-nya kepanjangan). Cuma tampilin NAMA (kode tetep aturan filter di
+// belakang layar), max-height ~5 item lalu scroll (kelas gdg-warna-dropdown).
+function gdgAngAkunRenderList() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!dd) return;
+  if (!_gdgAngAkunCache.length) {
+    dd.innerHTML = '<div class="gdg-warna-opt" style="opacity:.6;cursor:default">Belum ada akun beban</div>';
+    dd.style.display = 'block';
+    return;
+  }
+  dd.innerHTML = _gdgAngAkunCache.map(a => {
+    const nama = String(a.nama || '');
+    const esc  = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
+    return `<div class="gdg-warna-opt" onmousedown="event.preventDefault();gdgAngAkunPilih('${esc.replace(/'/g,"\\'")}')">${esc}</div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+function gdgAngAkunToggle() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!dd) return;
+  if (dd.style.display === 'block') { gdgAngAkunCloseDropdown(); return; }
+  gdgAngAkunRenderList();
+}
+function gdgAngAkunPilih(nama) {
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  if (inp) inp.value = nama;
+  gdgAngAkunCloseDropdown();
+}
+function gdgAngAkunCloseDropdown() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+document.addEventListener('click', function(e) {
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  const dd  = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!inp || !dd) return;
+  if (e.target !== inp && !dd.contains(e.target)) gdgAngAkunCloseDropdown();
+});
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
 async function gdgAngShowAdd() {
@@ -1545,6 +1578,7 @@ async function gdgAngShowEdit(id, nama, nominal) {
 }
 
 function gdgAngCloseModal() {
+  gdgAngAkunCloseDropdown();
   const overlay = document.getElementById('modal-gdg-ang2');
   const sheet   = document.getElementById('gdg-ang2-sheet');
   if (!overlay) return;
@@ -2066,6 +2100,23 @@ function gdgOpenPendSheet() {
   }
   _gdgInitSheetDragToClose();
   _gdgInitSheetFocusScroll();
+  _gdgInitWarnaAutoClose();
+}
+
+// Dropdown saran Warna (gdgWarnaFilter) sebelumnya cuma nutup pas klik di
+// LUAR sheet — kalau user abis buka saran Warna terus langsung pindah fokus
+// ke field lain DI DALAM sheet yg sama (misal SKU, native <select> yg
+// dropdown-nya kepisah dari DOM/klik biasa), dropdown Warna ga ke-trigger
+// nutup dan numpuk bareng dropdown SKU (2 block keliatan bareng). Fix: setiap
+// field lain di sheet ini difokus, paksa tutup dropdown Warna.
+function _gdgInitWarnaAutoClose() {
+  const overlay = document.getElementById('modal-gdg-pend');
+  if (!overlay || overlay._gdgWarnaAutoCloseInited) return;
+  overlay._gdgWarnaAutoCloseInited = true;
+  overlay.addEventListener('focusin', function(e) {
+    if (e.target && e.target.id === 'gdg-pend-warna') return; // field-nya sendiri, biarin
+    gdgWarnaCloseDropdown();
+  });
 }
 
 function _gdgSheetSyncViewport() {
@@ -2175,6 +2226,26 @@ function gdgAngOpenSheet() {
     window.visualViewport.addEventListener('scroll', _gdgAngSyncViewport);
   }
   _gdgAngInitDragToClose();
+  _gdgAngInitFocusScroll();
+}
+
+// Field yg lagi difokus (misal Nominal) wajib keliatan di atas keyboard —
+// sheet ini sebelumnya CUMA nyusut tingginya (_gdgAngSyncViewport) tapi ga
+// nge-scroll field yg difokus ke area yg masih keliatan, jadi field yg posisinya
+// di bawah bisa ketutup keyboard / "mental" keluar layar. Pola identik
+// _gdgInitSheetFocusScroll di modal Pendapatan (yg udah proven-stable).
+function _gdgAngInitFocusScroll() {
+  const overlay = document.getElementById('modal-gdg-ang2');
+  if (!overlay || overlay._gdgFocusScrollInited) return;
+  overlay._gdgFocusScrollInited = true;
+  overlay.addEventListener('focusin', function(e) {
+    const t = e.target;
+    if (!(t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+    setTimeout(function() {
+      _gdgAngSyncViewport();
+      t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 320);
+  });
 }
 
 function _gdgAngSyncViewport() {
