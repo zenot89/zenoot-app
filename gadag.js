@@ -630,9 +630,12 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- MODAL: VARIABLE ANGGARAN (tambah baru / edit via tekan-tahan / hapus) -->
-<div class="modal-overlay" id="modal-gdg-ang2" onclick="gdgOverlayClose(event,'modal-gdg-ang2', gdgAngCloseModal)">
-  <div class="modal" style="max-width:380px;width:100%;padding:16px">
+<!-- MODAL: VARIABLE ANGGARAN (bottom-sheet, konsisten sama Catatan Pendapatan —
+     bukan modal "mengambang" di tengah lagi) -->
+<div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-ang2" onclick="gdgOverlayClose(event,'modal-gdg-ang2', gdgAngCloseModal)">
+  <div class="modal gdg-sheet" id="gdg-ang2-sheet" style="max-width:420px;width:100%;padding:0">
+    <div id="gdg-ang2-sheet-handle" class="gdg-sheet-handle"><span></span></div>
+    <div class="gdg-sheet-body" style="padding:0 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-ang2-modal-title">
         <i class="ti ti-plus"></i> Tambah Variable
@@ -641,9 +644,11 @@ document.getElementById('page-gadag').innerHTML = `
     </div>
     <input type="hidden" id="gdg-ang2-edit-id">
     <div class="form-group" style="margin-bottom:8px">
-      <label>Nama</label>
-      <input type="text" id="gdg-ang2-nama-input" placeholder="contoh: Udud" autocomplete="off"
+      <label>Nama (dari Daftar Akun)</label>
+      <select id="gdg-ang2-nama-input"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+        <option value="">— pilih akun beban —</option>
+      </select>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal (Rp)</label>
@@ -659,6 +664,7 @@ document.getElementById('page-gadag').innerHTML = `
         <button class="btn" onclick="gdgAngCloseModal()">Batal</button>
         <button class="btn btn-primary" onclick="gdgAngSimpan()"><i class="ti ti-check"></i> Simpan</button>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -688,8 +694,8 @@ document.getElementById('page-gadag').innerHTML = `
       </div>
       <div class="form-group" style="position:relative">
         <label>Warna</label>
-        <input type="text" id="gdg-pend-warna" placeholder="contoh: Merah"
-          autocomplete="new-password" autocorrect="off" spellcheck="false"
+        <input type="text" id="gdg-pend-warna" name="gdg-warna-custom-nofill" placeholder="contoh: Merah"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"
           oninput="gdgWarnaFilter()" onfocus="gdgWarnaFilter()"
           style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
         <div id="gdg-pend-warna-dropdown" class="gdg-warna-dropdown"></div>
@@ -1488,28 +1494,71 @@ function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   return total;
 }
 
+// Isi opsi <select> Nama dari akun beban (kas_akun: kelompok=beban, kode 5-xxx
+// KECUALI 5-001 — aturan sama persis dengan progress bar realisasi).
+// selectedNama: kalau ada & ga ketemu di daftar akun (mis. akun udah dihapus/
+// diganti nama), tetep ditambahin sbg opsi terpisah biar data lama ga hilang.
+function gdgAngPopulateAkunSelect(selectedNama) {
+  const sel = document.getElementById('gdg-ang2-nama-input');
+  if (!sel) return;
+  const akunBeban = _gdgWAkunAll
+    .filter(a => a.kelompok === 'beban' && (a.kode || '').indexOf('5-') === 0 && a.kode !== '5-001')
+    .sort((a, b) => (a.kode || '').localeCompare(b.kode || ''));
+  let html = '<option value="">— pilih akun beban —</option>';
+  let found = false;
+  akunBeban.forEach(a => {
+    const nama = String(a.nama || '');
+    const namaAttr = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    if (selectedNama && nama.trim().toLowerCase() === selectedNama.trim().toLowerCase()) found = true;
+    const sel_ = (selectedNama && nama.trim().toLowerCase() === selectedNama.trim().toLowerCase()) ? ' selected' : '';
+    html += `<option value="${namaAttr}"${sel_}>${a.kode ? a.kode + ' · ' : ''}${namaAttr}</option>`;
+  });
+  if (selectedNama && !found) {
+    const namaAttr = String(selectedNama).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    html += `<option value="${namaAttr}" selected>${namaAttr} (akun tidak ditemukan)</option>`;
+  }
+  sel.innerHTML = html;
+}
+
 // ─── MODAL: tambah baru ─────────────────────────────────────────
-function gdgAngShowAdd() {
+async function gdgAngShowAdd() {
   document.getElementById('gdg-ang2-edit-id').value = '';
-  document.getElementById('gdg-ang2-nama-input').value = '';
   document.getElementById('gdg-ang2-nominal-input').value = '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
+  await gdgWEnsureAkunJurnal();
+  gdgAngPopulateAkunSelect('');
   document.getElementById('modal-gdg-ang2').classList.add('open');
+  gdgAngOpenSheet();
 }
 
 // Dipanggil dari tekan-tahan row (IIFE di bawah) — bukan dari kolom Aksi
-function gdgAngShowEdit(id, nama, nominal) {
+async function gdgAngShowEdit(id, nama, nominal) {
   document.getElementById('gdg-ang2-edit-id').value = id;
-  document.getElementById('gdg-ang2-nama-input').value = nama || '';
   document.getElementById('gdg-ang2-nominal-input').value = nominal ? Number(nominal).toLocaleString('id-ID') : '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = '';
+  await gdgWEnsureAkunJurnal();
+  gdgAngPopulateAkunSelect(nama || '');
   document.getElementById('modal-gdg-ang2').classList.add('open');
+  gdgAngOpenSheet();
 }
 
 function gdgAngCloseModal() {
-  document.getElementById('modal-gdg-ang2').classList.remove('open');
+  const overlay = document.getElementById('modal-gdg-ang2');
+  const sheet   = document.getElementById('gdg-ang2-sheet');
+  if (!overlay) return;
+  if (sheet && window.matchMedia('(max-width:900px)').matches) {
+    overlay.classList.remove('gdg-sheet-in');
+    sheet.style.transform = '';
+    setTimeout(function() {
+      overlay.classList.remove('open');
+      overlay.style.height    = '';
+      overlay.style.transform = '';
+    }, 260);
+  } else {
+    overlay.classList.remove('open');
+  }
 }
 
 async function gdgAngSimpan() {
@@ -1518,7 +1567,7 @@ async function gdgAngSimpan() {
   const rawNom  = (document.getElementById('gdg-ang2-nominal-input').value || '').replace(/\D/g,'');
   const nominal = parseInt(rawNom, 10) || 0;
 
-  if (!nama)                     { alert('Nama variable belum diisi.'); return; }
+  if (!nama)                     { alert('Pilih akun dulu.'); return; }
   if (!nominal || nominal <= 0)  { alert('Nominal harus lebih dari 0.'); return; }
 
   const wkStart = gdgWGetMonday(new Date());
@@ -2104,6 +2153,69 @@ function gdgClosePendapatanModal() {
   } else {
     overlay.classList.remove('open');
   }
+}
+
+// ─── BOTTOM-SHEET: animasi masuk/keluar + drag-to-close + keyboard-safe (iOS) —
+// modal Anggaran (Tambah Variable). Pola identik dengan gdgOpenPendSheet di
+// atas, sengaja dipisah (bukan digeneralisir/parameterized) biar kode
+// Pendapatan yang udah proven-stable ga ikut kesenggol. ──
+function gdgAngOpenSheet() {
+  const overlay = document.getElementById('modal-gdg-ang2');
+  const sheet   = document.getElementById('gdg-ang2-sheet');
+  if (!overlay || !sheet) return;
+  sheet.style.transform = '';
+  void overlay.offsetHeight;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    overlay.classList.add('gdg-sheet-in');
+  }));
+  _gdgAngSyncViewport();
+  if (window.visualViewport && !overlay._gdgVVInited) {
+    overlay._gdgVVInited = true;
+    window.visualViewport.addEventListener('resize', _gdgAngSyncViewport);
+    window.visualViewport.addEventListener('scroll', _gdgAngSyncViewport);
+  }
+  _gdgAngInitDragToClose();
+}
+
+function _gdgAngSyncViewport() {
+  const overlay = document.getElementById('modal-gdg-ang2');
+  const sheet   = document.getElementById('gdg-ang2-sheet');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (!window.matchMedia('(max-width:900px)').matches) return;
+  const vv = window.visualViewport;
+  if (!vv) return;
+  overlay.style.height    = vv.height + 'px';
+  overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+  if (sheet) sheet.style.maxHeight = Math.max(240, vv.height - 12) + 'px';
+}
+
+function _gdgAngInitDragToClose() {
+  const handle = document.getElementById('gdg-ang2-sheet-handle');
+  const sheet  = document.getElementById('gdg-ang2-sheet');
+  if (!handle || !sheet || handle._gdgDragInited) return;
+  handle._gdgDragInited = true;
+  var _startY = 0, _dragging = false, _dy = 0;
+  handle.addEventListener('touchstart', function(e) {
+    _startY   = e.touches[0].clientY;
+    _dragging = true;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+  handle.addEventListener('touchmove', function(e) {
+    if (!_dragging) return;
+    _dy = Math.max(0, e.touches[0].clientY - _startY);
+    sheet.style.transform = 'translateY(' + _dy + 'px)';
+  }, { passive: true });
+  handle.addEventListener('touchend', function() {
+    if (!_dragging) return;
+    _dragging = false;
+    sheet.style.transition = '';
+    if (_dy > 90) {
+      gdgAngCloseModal();
+    } else {
+      sheet.style.transform = '';
+    }
+    _dy = 0;
+  }, { passive: true });
 }
 
 function gdgRecomputePreview() {

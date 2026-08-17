@@ -15,6 +15,7 @@ var STATIC_ASSETS = [
   './logo.png',
   './icon-192.png',
   './icon-512.png',
+  './gadag-icon.png',
   './manifest.json',
 ];
 
@@ -45,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260817-27be79412836'; // gadag.js: + section lokal Ringkasan Mingguan (bukan halaman terpisah)
+var JS_CACHE = 'zenot-js-20260816-a9d67c98be9e'; // gadag.js: + section lokal Ringkasan Mingguan (bukan halaman terpisah)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
