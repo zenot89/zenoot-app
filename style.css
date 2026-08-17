@@ -423,8 +423,12 @@ body[data-page="gadag"] .topbar {
   padding: 6px 16px;
   padding-top: calc(6px + env(safe-area-inset-top, 0px));
 }
-body[data-page="gadag"] .page-title { font-size: 18px; padding-left: 8px; }
-body[data-page="gadag"] .page-sub   { font-size: 11px; padding-left: 8px; }
+body[data-page="gadag"] .page-title { font-size: 18px; padding-left: 0; }
+body[data-page="gadag"] .page-sub   { font-size: 11px; padding-left: 0; }
+/* Icon skull + judul "Gadag" jadi satu paket (bukan dua elemen kepisah) —
+   rapetin gap wrapper-nya khusus di halaman Gadag (halaman lain tanpa icon
+   tetap pakai gap 8px bawaan). */
+body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .date-pill{
   font-size:12px;font-family:var(--f2);font-weight:700;
   padding:5px 13px;border:none;background:none;

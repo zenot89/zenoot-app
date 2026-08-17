@@ -397,13 +397,18 @@ document.getElementById('page-gadag').innerHTML = `
      warna tinta gelap dari rule "#page-gadag{color:var(--gdg-ink)}" di atas
      → nyaris ga keliatan. Kasih warna terang eksplisit khusus buat baris
      judul ini aja (bukan warna umum #page-gadag, biar isi card tetep ink gelap). */
-  #gdg-view-heading, #gdg-view-heading-icon { color: var(--gdg-paper) !important; }
+  #gdg-view-heading, #gdg-view-heading-icon, #gdg-hdr-refresh { color: var(--gdg-paper) !important; }
+
+  /* Animasi spin buat tombol refresh pas gdgLoad() lagi jalan (lihat
+     gdgHandleRefresh()) — berhenti otomatis pas datanya udah selesai dimuat. */
+  @keyframes gdg-spin-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  #gdg-hdr-refresh.gdg-spinning i { display: inline-block; animation: gdg-spin-kf .7s linear infinite; }
 </style>
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
 <div id="gdg-hdr-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:nowrap;gap:8px">
   <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;flex-wrap:nowrap;overflow:hidden">
-    <button id="gdg-hdr-refresh" onclick="gdgLoad()" title="Refresh" style="flex:none;background:none;border:none;padding:2px;cursor:pointer;font-size:20px;line-height:1;color:var(--gdg-ink,inherit)"><i class="ti ti-refresh"></i></button>
+    <button id="gdg-hdr-refresh" onclick="gdgHandleRefresh()" title="Refresh" style="flex:none;background:none;border:none;padding:2px;cursor:pointer;font-size:20px;line-height:1;color:var(--gdg-paper,inherit)"><i class="ti ti-refresh"></i></button>
     <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
     <i id="gdg-view-heading-icon" class="ti ti-calendar-week" style="font-size:20px;flex:none"></i>
     <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Overview</div>
@@ -1700,6 +1705,16 @@ function gdgUpdateTargetCard() {
 }
 
 // ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
+async function gdgHandleRefresh() {
+  const btn = document.getElementById('gdg-hdr-refresh');
+  if (btn) btn.classList.add('gdg-spinning');
+  try {
+    await gdgLoad();
+  } finally {
+    if (btn) btn.classList.remove('gdg-spinning');
+  }
+}
+
 async function gdgLoad() {
   const skuTbody  = document.getElementById('gdg-sku-tbody');
   const pendTbody = document.getElementById('gdg-pend-tbody');
