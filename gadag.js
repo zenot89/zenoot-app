@@ -41,18 +41,32 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-panel { display:none; }
   .gdg-panel.active { display:block; }
 
-  /* ── Anggaran: list variable (tap & tahan → edit, ganti kolom Aksi) ── */
+  /* ── Anggaran: list variable (tap & tahan → edit, ganti kolom Aksi) ──
+     Poin 3: "garis" divider dashed sebelumnya cuma dekorasi, sekarang
+     diganti jadi progress bar realisasi (dual purpose: pemisah antar
+     row SEKALIGUS indikator persentase realisasi vs target) — biar
+     nggak makan tempat tambahan. */
   .gdg-ang2-row {
-    display:flex; align-items:center; gap:8px; padding:10px 4px;
-    border-bottom:1px dashed var(--gdg-rule, var(--ink3));
+    display:flex; flex-direction:column; gap:4px; padding:8px 4px;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
     touch-action:pan-y; cursor:pointer;
   }
-  .gdg-ang2-row:last-child { border-bottom:none; }
+  .gdg-ang2-row:last-child { padding-bottom:4px; }
   .gdg-ang2-row.gdg-ang2-pressing { background:var(--cream2); }
+  .gdg-ang2-top  { display:flex; align-items:center; gap:8px; }
   .gdg-ang2-idx  { color:var(--ink3); font-weight:700; min-width:20px; }
   .gdg-ang2-nama { flex:1; font-weight:700; }
   .gdg-ang2-nom  { font-weight:700; }
+  .gdg-ang2-bar-wrap {
+    display:flex; align-items:center; gap:6px;
+    height:6px;
+  }
+  .gdg-ang2-bar-track {
+    flex:1; height:5px; border-radius:3px; overflow:hidden;
+    background:var(--gdg-rule, rgba(38,34,32,.15));
+  }
+  .gdg-ang2-bar-fill { height:100%; border-radius:3px; transition:width .25s ease; }
+  .gdg-ang2-bar-pct  { font-size:10px; font-weight:800; min-width:30px; text-align:right; flex:none; }
 
   /* ── Collapse ringkasan (minicard+metrics), pola sama dgn kas-top-bar ── */
   #gdg-top-summary {
@@ -378,14 +392,14 @@ document.getElementById('page-gadag').innerHTML = `
 </style>
 
 <!-- HEADER: judul + dropdown menu (Catatan Pendapatan / Kelola Produk) -->
-<div id="gdg-hdr-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-  <div style="display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:wrap">
+<div id="gdg-hdr-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:nowrap;gap:8px">
+  <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;flex-wrap:nowrap;overflow:hidden">
     <button id="gdg-hdr-refresh" class="btn btn-sm" onclick="gdgLoad()" title="Refresh" style="flex:none"><i class="ti ti-refresh"></i></button>
     <button id="gdg-hdr-export" class="btn btn-sm" onclick="gdgExportPendapatanPDF()" title="Export PDF" style="display:none;flex:none"><i class="ti ti-file-download"></i></button>
     <i id="gdg-view-heading-icon" class="ti ti-calendar-week" style="font-size:20px;flex:none"></i>
-    <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Overview</div>
+    <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Overview</div>
   </div>
-  <div class="gdg-menu-wrap">
+  <div class="gdg-menu-wrap" style="flex:none">
     <button id="gdg-menu-btn" class="btn btn-sm btn-primary" onclick="gdgToggleMenu(event)">
       <i class="ti ti-menu-2"></i> <span id="gdg-menu-btn-label">Menu</span> <i class="ti ti-chevron-down"></i>
     </button>
@@ -1214,21 +1228,30 @@ async function gdgWInit() {
   const dataArea = document.getElementById('gdgw-data-area');
   if (dataArea) dataArea.style.display = '';
 
-  if (!_gdgWAkunLoaded) {
-    try {
-      const [akun, jurnal] = await Promise.all([
-        dbGet('kas_akun', '&order=kode.asc'),
-        dbGet('jurnal', '&order=tanggal.asc'),
-      ]);
-      _gdgWAkunAll   = akun   || [];
-      _gdgWJurnalAll = jurnal || [];
-      _gdgWAkunLoaded = true;
-    } catch(e) {
-      document.getElementById('gdgw-harian-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error ambil data beban: ${e.message}</td></tr>`;
-      return;
-    }
-  }
+  const ok = await gdgWEnsureAkunJurnal();
+  if (!ok) return;
   gdgWRenderWeek();
+}
+
+// Load data akun (kas_akun) + jurnal SEKALI, dipakai bareng oleh Ringkasan
+// Mingguan (hitung beban harian) DAN Anggaran (hitung realisasi per variable).
+// Guard _gdgWAkunLoaded biar ga fetch berulang tiap ganti-ganti panel.
+async function gdgWEnsureAkunJurnal() {
+  if (_gdgWAkunLoaded) return true;
+  try {
+    const [akun, jurnal] = await Promise.all([
+      dbGet('kas_akun', '&order=kode.asc'),
+      dbGet('jurnal', '&order=tanggal.asc'),
+    ]);
+    _gdgWAkunAll   = akun   || [];
+    _gdgWJurnalAll = jurnal || [];
+    _gdgWAkunLoaded = true;
+    return true;
+  } catch(e) {
+    const tbody = document.getElementById('gdgw-harian-tbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger)">Error ambil data beban: ${e.message}</td></tr>`;
+    return false;
+  }
 }
 
 // Hitung beban minggu ini dari jurnal (akun kode 5-xxx kecuali 5-001)
@@ -1392,6 +1415,7 @@ async function gdgLoadAnggaran() {
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
   const wkLabelEl = document.getElementById('gdg-ang2-week-label');
   if (wkLabelEl) wkLabelEl.textContent = 'Minggu ' + gdgWFmtRange(wkStart, wkEnd);
+  await gdgWEnsureAkunJurnal(); // pastikan data akun+jurnal ada buat hitung realisasi progress bar
   gdgAngRenderList();
   gdgUpdateTargetCard();
 }
@@ -1409,16 +1433,59 @@ function gdgAngRenderList() {
     listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran minggu ini.</div>';
     return;
   }
+  // Range minggu berjalan (sama seperti query gadag_anggaran di gdgLoadAnggaran)
+  const wkStart = gdgWGetMonday(new Date());
+  const wkEnd   = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoStart = gdgWToISO(wkStart);
+  const isoEnd   = gdgWToISO(wkEnd);
+
   listEl.innerHTML = _gdgAnggaranList.map((it, i) => {
     const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const namaAttr = namaSafe.replace(/"/g,'&quot;');
     const nom = Number(it.target) || 0;
+    const realisasi = gdgAngHitungRealisasi(it.nama, isoStart, isoEnd);
+    const pct = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
+    const pctClamped = Math.max(0, Math.min(100, pct)); // lebar bar dibatasi 0-100
+    // Threshold warna: 0-35% hijau, 35-75% kuning, 75-100%+ merah
+    let barColor = 'var(--ok)';
+    if (pct >= 75) barColor = 'var(--danger)';
+    else if (pct >= 35) barColor = 'var(--warn)';
     return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}">
-      <span class="gdg-ang2-idx">${i+1}.</span>
-      <span class="gdg-ang2-nama">${namaSafe}</span>
-      <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
+      <div class="gdg-ang2-top">
+        <span class="gdg-ang2-idx">${i+1}.</span>
+        <span class="gdg-ang2-nama">${namaSafe}</span>
+        <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
+      </div>
+      <div class="gdg-ang2-bar-wrap">
+        <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${pctClamped}%;background:${barColor}"></div></div>
+        <span class="gdg-ang2-bar-pct" style="color:${barColor}">${pct}%</span>
+      </div>
     </div>`;
   }).join('');
+}
+
+// Realisasi = total nominal jurnal minggu berjalan pada akun beban yang nama-nya
+// cocok (case-insensitive) dengan nama variable anggaran. Akun dicari dari
+// _gdgWAkunAll (kelompok beban, kode 5-xxx KECUALI 5-001 — sama aturan dengan
+// gdgWHitungBebanHari), datanya sudah dimuat dari gdgWInit() saat startup.
+function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
+  const target = String(namaVariable || '').trim().toLowerCase();
+  if (!target) return 0;
+  const akun = _gdgWAkunAll.find(a =>
+    a.kelompok === 'beban' &&
+    (a.kode || '').indexOf('5-') === 0 &&
+    a.kode !== '5-001' &&
+    String(a.nama || '').trim().toLowerCase() === target
+  );
+  if (!akun) return 0;
+  let total = 0;
+  _gdgWJurnalAll.forEach(r => {
+    if (r.tanggal < isoStart || r.tanggal > isoEnd) return;
+    const n = r.nominal || r.debit || r.kredit || 0;
+    if (r.akun_debit_id  === akun.id) total += n;
+    if (r.akun_kredit_id === akun.id) total -= n;
+  });
+  return total;
 }
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
