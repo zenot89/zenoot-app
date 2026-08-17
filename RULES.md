@@ -252,9 +252,49 @@ gadag_anggaran   { id, minggu_mulai (date, unique), target (numeric), deskripsi 
 
 ---
 
-## 8. Pola UI yang Udah Establish (ikutin biar konsisten)
+## 7.5. Service Worker (`sw.js`) — Kapan WAJIB Bump Cache Version
 
-- **Minggu kerja** = Minggu s.d Sabtu (bukan Senin-Minggu). Helper:
+`sw.js` punya 3 bucket cache beda strategi:
+
+- **`CACHE_VERSION`** (`STATIC_ASSETS`: `logo.png`, `icon-192.png`, `icon-512.png`,
+  `gadag-icon.png`, `manifest.json`) → **cache-first**, gambar/aset statis.
+- **`JS_CACHE`** (semua file `.js` + `style.css`) → **network-first**, selalu
+  ambil versi terbaru. Auto di-bump tiap push ke `main` lewat
+  `.github/workflows/auto-version.yml` (hash `*.js style.css index.html`).
+- **`index.html`** → **selalu network**, tidak pernah dicache sama sekali.
+
+**Akibatnya:** ganti isi file JS/CSS/HTML → user langsung dapet versi baru,
+gak perlu ngapa-ngapain (auto-version.yml udah handle). TAPI kalau yang
+diganti isinya salah satu dari 5 `STATIC_ASSETS` di atas (paling sering:
+ganti `gadag-icon.png` atau icon lain) → CI **TIDAK** nyentuh `CACHE_VERSION`,
+jadi browser bakal keukeuh serve file lama selama-lamanya walau filenya udah
+diganti di server/hosting.
+
+**Rule:** setiap kali isi salah satu `STATIC_ASSETS` diganti (bukan cuma
+ditambah — replace konten file yang sudah ada), **WAJIB** manual bump versi
+di `sw.js`:
+
+```js
+var CACHE_VERSION = 'zenot-static-v28'; // naikin angka + komentar alasannya
+```
+
+Gak perlu bump kalau yang diubah cuma JS/CSS/HTML biasa (itu udah auto).
+Kejadian nyata: `gadag-icon.png` diganti (bg transparan) tapi `CACHE_VERSION`
+lupa di-bump → user masih liat versi lama (bg hitam) walau file udah bener
+di-deploy. Fix-nya bump `v27` → `v28`.
+
+---
+
+## 7.6. `present_files` — Kirim `sw.js` Juga Kalau Bump Cache Version
+
+Kalau sesi ini bump `CACHE_VERSION` di `sw.js` (lihat §7.5), **`sw.js` WAJIB**
+ikut di-`present_files`-kan ke user sebagai salah satu file yang berubah —
+jangan cuma bilang "udah dibenerin" tanpa ngirim file aktualnya (user perlu
+replace file itu di project dia, sama kayak semua file lain yang diedit).
+
+---
+
+## 8. Pola UI yang Udah Establish (ikutin biar konsisten)
   `gdgWGetMonday(date)` (namanya "Monday" tapi return hari Minggu — legacy
   naming, jangan bingung), `gdgWToISO(date)`, `gdgWFmtRange(start,end)` (format
   ringkas kayak "10-17 Ags 2026").
