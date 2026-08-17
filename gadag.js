@@ -1855,17 +1855,19 @@ function gdgExportPendapatanPDF() {
   const total    = list.reduce((s, p) => s + (p.total || 0), 0);
 
   const rows = list.length
-    ? list.map(p => {
+    ? list.map((p, i) => {
         const hariLabel = p.hari || gdgHariName(p.tanggal) || '—';
         return `<tr>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd">${i + 1}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #ddd">${hariLabel}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.sku_nama || '—'}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #ddd">${p.warna || '—'}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${gdgFmt(p.ongkos_lusin)}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${p.qty || 0}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">${gdgFmt(p.total)}</td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="5" style="padding:10px 8px;color:#888;font-style:italic">Belum ada catatan minggu ini.</td></tr>';
+    : '<tr><td colspan="7" style="padding:10px 8px;color:#888;font-style:italic">Belum ada catatan minggu ini.</td></tr>';
 
   const area = document.getElementById('gdg-print-area');
   area.innerHTML = `
@@ -1874,9 +1876,11 @@ function gdgExportPendapatanPDF() {
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="border-bottom:2px solid #000;text-align:left">
+          <th style="padding:6px 8px">No</th>
           <th style="padding:6px 8px">Hari</th>
-          <th style="padding:6px 8px">SKU</th>
+          <th style="padding:6px 8px">SKU / Nama Produk</th>
           <th style="padding:6px 8px">Warna</th>
+          <th style="padding:6px 8px;text-align:right">Harga</th>
           <th style="padding:6px 8px;text-align:right">Qty</th>
           <th style="padding:6px 8px;text-align:right">Total</th>
         </tr>
@@ -1884,7 +1888,7 @@ function gdgExportPendapatanPDF() {
       <tbody>${rows}</tbody>
       <tfoot>
         <tr style="border-top:2px solid #000;font-weight:700">
-          <td colspan="4" style="padding:8px;text-align:right">TOTAL</td>
+          <td colspan="6" style="padding:8px;text-align:right">SUM</td>
           <td style="padding:8px;text-align:right">${gdgFmt(total)}</td>
         </tr>
       </tfoot>
