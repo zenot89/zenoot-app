@@ -269,6 +269,15 @@ document.getElementById('page-gadag').innerHTML = `
     white-space: nowrap;
   }
   #page-gadag .gdghist-badge i { font-size: 14px; }
+  /* Kotak tanggal Riwayat — display-only, TIDAK bisa digulir/swipe. Ganti
+     periode cuma lewat dropdown gdghist-mode-btn (§ Per Minggu / Per Bulan). */
+  #page-gadag .gdghist-datebox {
+    flex: 1; min-width: 0;
+    border: 2px solid var(--gdg-ink); border-radius: 10px;
+    padding: 6px 12px; font-size: 13px; font-weight: 800;
+    background: var(--gdg-paper); color: var(--gdg-ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
     background: var(--gdg-paper) !important; border: 2.5px solid var(--gdg-ink) !important;
     border-radius: 14px !important;
   }
@@ -595,15 +604,22 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- PANEL: RIWAYAT (semua catatan, sort per Minggu/Bulan — lihat gdgHist* di JS) -->
 <div id="gdg-panel-riwayat" class="gdg-panel">
 <div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-    <div style="display:flex;align-items:center;gap:6px;min-width:0">
-      <button class="btn btn-sm" onclick="gdgHistPrevWeek()"><i class="ti ti-chevron-left"></i></button>
-      <span id="gdghist-range-label" style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</span>
-      <button class="btn btn-sm" onclick="gdgHistNextWeek()"><i class="ti ti-chevron-right"></i></button>
-    </div>
+  <!-- Row 1: sort waktu (KIRI, biar dropdown/submenu anchor konsisten & ga "lompat")
+       + nilai IDR (KANAN) -->
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
     <!-- Tombol trigger dropdown mode — menu-nya dirender ke body (portal fixed), sama kayak gdgw-mode-btn -->
     <button id="gdghist-mode-btn" class="btn btn-sm btn-primary" onclick="gdgHistToggleModeMenu(event)" style="flex:none;white-space:nowrap;padding:5px 9px;font-size:12px">
       <span id="gdghist-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
+    </button>
+    <div class="gdghist-badge"><i class="ti ti-wallet"></i><span id="gdghist-total-badge">Rp0</span></div>
+  </div>
+
+  <!-- Row 2: kotak tanggal (KIRI, display-only — ganti periode cuma lewat dropdown
+       di atas, BUKAN gulir/swipe) + tombol Export PDF (KANAN), seimbang sama row 1 -->
+  <div style="display:flex;align-items:center;gap:10px;margin:8px 0 2px">
+    <div id="gdghist-range-label" class="gdghist-datebox">—</div>
+    <button class="btn btn-sm" onclick="gdgExportRiwayatPDF()" title="Export PDF (s/d hari ini)" style="flex:none;white-space:nowrap">
+      <i class="ti ti-file-download"></i> Export PDF
     </button>
   </div>
 
@@ -617,14 +633,7 @@ document.getElementById('page-gadag').innerHTML = `
       style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
   </div>
 
-  <div style="display:flex;align-items:center;gap:8px;margin:8px 0 2px">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0">
-      <div class="gdghist-badge"><i class="ti ti-notes"></i><span id="gdg-hist-count">— catatan</span></div>
-      <div class="gdghist-badge"><i class="ti ti-wallet"></i><span id="gdghist-total-badge">Rp0</span></div>
-    </div>
-    <button class="btn btn-sm" onclick="gdgExportRiwayatPDF()" title="Export PDF (s/d hari ini)" style="flex:none"><i class="ti ti-file-download"></i></button>
-  </div>
-  <div style="font-size:11px;color:var(--ink3);margin:2px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
+  <div style="font-size:11px;color:var(--ink3);margin:8px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
 
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
