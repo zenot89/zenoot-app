@@ -416,6 +416,15 @@ body[data-page="dashboard"] .topbar.topbar-hidden {
 /* ── Ikon Gadag di topbar — hanya muncul saat halaman Gadag ── */
 #topbar-gadag-img { display: none; }
 body[data-page="gadag"] #topbar-gadag-img { display: block; }
+/* ── Topbar khusus halaman Gadag: rasio lebih compact (ikut referensi mockup) ──
+   Topbar elemen GLOBAL (dipakai semua halaman), jadi override di-scope pakai
+   body[data-page="gadag"] biar halaman lain (Dashboard, Kas, dst) TIDAK berubah. */
+body[data-page="gadag"] .topbar {
+  padding: 6px 16px;
+  padding-top: calc(6px + env(safe-area-inset-top, 0px));
+}
+body[data-page="gadag"] .page-title { font-size: 18px; padding-left: 8px; }
+body[data-page="gadag"] .page-sub   { font-size: 11px; padding-left: 8px; }
 .date-pill{
   font-size:12px;font-family:var(--f2);font-weight:700;
   padding:5px 13px;border:none;background:none;

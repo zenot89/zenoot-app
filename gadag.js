@@ -194,11 +194,11 @@ document.getElementById('page-gadag').innerHTML = `
     box-shadow: 2px 3px 0 rgba(38,34,32,0.15) !important;
   }
   /* garis margin merah khas buku tulis, nempel di tepi kiri tiap card */
-  /* Padding compact: override global card padding biar minicard lebih rapat */
-  #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding: 8px 10px 8px 20px !important; }
-  #page-gadag .metric { padding: 8px 10px !important; }
+  /* Padding compact: override global card padding biar minicard lebih rapat (ikut referensi mockup) */
+  #page-gadag .card, #page-gadag .gdg-minicard { position: relative; padding: 6px 8px 6px 15px !important; }
+  #page-gadag .metric { padding: 6px 8px !important; }
   #page-gadag .card::before, #page-gadag .gdg-minicard::before {
-    content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 2px;
+    content: ''; position: absolute; left: 7px; top: 7px; bottom: 7px; width: 2px;
     background: var(--gdg-margin); border-radius: 2px; opacity: .55;
   }
   #page-gadag,
@@ -480,9 +480,9 @@ document.getElementById('page-gadag').innerHTML = `
       style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
   </div>
 
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 10px;gap:8px">
+  <div id="gdgw-net-box" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin:6px 0 8px;gap:8px;border:2px solid var(--gdg-ink);border-radius:12px;background:rgba(0,0,0,.02)">
     <div style="font-size:11px;font-weight:700;color:var(--gdg-ink2);text-transform:uppercase;white-space:nowrap">Net Income</div>
-    <div id="gdgw-net-value" style="font-size:26px;font-weight:800;color:var(--ok);text-align:right">Rp0</div>
+    <div id="gdgw-net-value" style="font-size:22px;font-weight:800;color:var(--ok);text-align:right">Rp0</div>
   </div>
   <!-- Tabel harian — disembunyikan saat mode bulan-ini / per-bulan -->
   <div id="gdgw-data-area" class="tbl-wrap" style="overflow-x:auto">
