@@ -273,6 +273,12 @@ document.getElementById('page-gadag').innerHTML = `
       position: absolute; top: 0; left: 0; width: 100%;
       font-family: Arial, sans-serif; color: #000; background: #fff;
     }
+    /* Poin: "jumlah baris selalu ngikutin data, kalau banyak bisa 2+ halaman" —
+       thead (logo+tanggal+judul+kolom) otomatis keulang tiap halaman cetak,
+       tbody tr dijaga jangan kepotong di tengah pas ganti halaman. */
+    .gdg-print-table thead { display: table-header-group; }
+    .gdg-print-table tfoot { display: table-footer-group; }
+    .gdg-print-table tbody tr { page-break-inside: avoid; }
   }
 
   /* ── Penyesuaian khusus layar sempit (HP) ──
@@ -1848,11 +1854,16 @@ function _gdgInitLongPress() {
 // dialog print browser punya opsi "Save as PDF" bawaan, konsisten di
 // Android & iPhone tanpa perlu library PDF eksternal.
 function gdgExportPendapatanPDF() {
-  const wkStart  = gdgWGetMonday(new Date());
-  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
-  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
+  const today    = new Date();
+  const wkStart  = gdgWGetMonday(today); // Minggu (awal minggu kerja Gadag)
+  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(today);
   const list     = _gdgPendapatanList.filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir);
   const total    = list.reduce((s, p) => s + (p.total || 0), 0);
+
+  const hariExport   = _gdgHariNames[today.getDay()].toUpperCase();
+  const tglExportStr = String(today.getDate()).padStart(2, '0') + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        today.getFullYear();
 
   const rows = list.length
     ? list.map((p, i) => {
@@ -1869,12 +1880,28 @@ function gdgExportPendapatanPDF() {
       }).join('')
     : '<tr><td colspan="7" style="padding:10px 8px;color:#888;font-style:italic">Belum ada catatan minggu ini.</td></tr>';
 
+  // Header (logo + tanggal export + judul) ditaro SEBAGAI BARIS <thead> (colspan
+  // penuh), bukan elemen terpisah di luar tabel — biar browser otomatis
+  // ngulang header ini di tiap halaman kalau datanya kepanjangan & kepecah
+  // jadi 2+ halaman pas print/save-as-PDF (cuma <thead> yang punya behavior
+  // "repeat per page" bawaan, elemen biasa di luar <table> cuma muncul sekali).
   const area = document.getElementById('gdg-print-area');
   area.innerHTML = `
-    <h2 style="margin:0 0 2px">Catatan Pendapatan — Gadag</h2>
-    <div style="color:#555;margin-bottom:16px">${gdgWFmtRange(wkStart, wkEnd)} &middot; ${list.length} catatan</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <table class="gdg-print-table" style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
+        <tr>
+          <td colspan="7" style="padding:0 0 12px;border:none">
+            <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <img src="gadag-icon.png" alt="Gadag" style="width:40px;height:40px;object-fit:contain;flex-shrink:0">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.04em;color:#333">${hariExport}, ${tglExportStr}</div>
+              </div>
+              <div style="border-top:1px solid #ddd;margin:10px 0"></div>
+              <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;font-weight:700;font-size:20px;letter-spacing:.02em">CATATAN PENDAPATAN &mdash; GADAG</div>
+              <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(wkStart, today)} &middot; ${list.length} catatan</div>
+            </div>
+          </td>
+        </tr>
         <tr style="border-bottom:2px solid #000;text-align:left">
           <th style="padding:6px 8px">No</th>
           <th style="padding:6px 8px">Hari</th>
