@@ -2446,38 +2446,61 @@ function _kasSheetOpen(pickerId) {
   _kasEnsureSheet();
   _kasSheetTargetId = pickerId;
 
-  // Ambil data akun dari list asli
-  var sourceList = document.getElementById(pickerId + '-list');
-  var sheetList  = document.getElementById('kas-akun-sheet-list');
-  var search     = document.getElementById('kas-akun-sheet-search');
-  if (!sourceList || !sheetList) return;
+  var sheetList = document.getElementById('kas-akun-sheet-list');
+  var search    = document.getElementById('kas-akun-sheet-search');
+  if (!sheetList) return;
 
-  // Copy items ke sheet list
-  sheetList.innerHTML = '';
-  var currentVal = (function() {
-    var sel = document.getElementById(
-      (document.getElementById(pickerId) || {}).dataset
-        ? (document.getElementById(pickerId).dataset.target || '')
-        : ''
-    );
-    return sel ? sel.value : '';
-  })();
+  // Generate list FRESH dari _kasAkunMap + _kasGetSaldoMap() setiap kali sheet dibuka
+  // — bukan clone dari DOM lama yang bisa stale jika loadKasJurnal belum selesai.
+  // Ini memastikan saldo selalu mencerminkan transaksi terakhir yang sudah tersimpan.
+  var picker   = document.getElementById(pickerId);
+  var targetId = picker ? picker.dataset.target : null;
+  var sel      = targetId ? document.getElementById(targetId) : null;
+  var currentVal = sel ? sel.value : '';
 
-  sourceList.querySelectorAll('.kas-akun-item,.kas-akun-group').forEach(function(el) {
-    var clone = el.cloneNode(true);
-    clone.style.display = '';
-    if (clone.classList.contains('kas-akun-item')) {
-      var val = clone.dataset.val || '';
-      if (currentVal && val === currentVal) clone.classList.add('active');
-      clone.onclick = function() { _kasSheetSelect(pickerId, val); };
-    }
-    sheetList.appendChild(clone);
+  var order    = ['aset','kewajiban','modal','pendapatan','beban'];
+  var grouped  = {}; order.forEach(function(k){ grouped[k] = []; });
+  var akunList = Object.values(_kasAkunMap || {});
+  akunList.forEach(function(a){ if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
+  // Sort per kelompok by kode
+  order.forEach(function(k){ grouped[k].sort(function(a,b){ return (a.kode||'').localeCompare(b.kode||''); }); });
+
+  var saldoMap = _kasGetSaldoMap();
+  var html = '<div class="kas-akun-item" data-val="" style="color:rgba(255,255,255,.4)">— Pilih Akun —</div>';
+
+  order.forEach(function(k) {
+    if (!grouped[k].length) return;
+    html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
+    grouped[k].forEach(function(a) {
+      var label   = (a.kode ? a.kode + ' · ' : '') + a.nama;
+      var isActive = String(a.id) === String(currentVal);
+      var saldoHtml = '';
+      var isKasBank = (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      if (isKasBank) {
+        var s     = saldoMap[a.id] || {d:0,k:0};
+        var saldo = s.d - s.k;
+        var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'rgba(255,255,255,.4)';
+        var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
+        saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
+      }
+      html += '<div class="kas-akun-item' + (isActive ? ' active' : '') + '" data-val="' + a.id + '">' +
+              '<span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
+    });
+  });
+
+  sheetList.innerHTML = html;
+
+  // Attach click handlers
+  sheetList.querySelectorAll('.kas-akun-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+      _kasSheetSelect(pickerId, el.dataset.val || '');
+    });
   });
 
   // Reset search
   if (search) search.value = '';
 
-  // Tampilkan overlay
+  // Tampilkan overlay dengan animasi
   var overlay = document.getElementById('kas-akun-sheet-overlay');
   var sheet   = document.getElementById('kas-akun-sheet');
   overlay.style.display = 'flex';
