@@ -267,8 +267,10 @@ document.getElementById('page-gadag').innerHTML = `
     padding: 5px 9px; font-size: 13px; font-weight: 700;
     background: var(--gdg-paper); color: var(--gdg-ink);
     white-space: nowrap; flex: none;
+    /* fixed min-width biar kotak tidak resize saat nilai berubah Rp0 → Rp375.000 */
+    min-width: 130px; justify-content: flex-start;
   }
-  #page-gadag .gdghist-badge i { font-size: 14px; }
+  #page-gadag .gdghist-badge i { font-size: 14px; flex: none; }
   /* Kotak tanggal Riwayat — display-only, TIDAK bisa digulir/swipe. Ganti
      periode cuma lewat dropdown gdghist-mode-btn (§ Per Minggu / Per Bulan). */
   #page-gadag .gdghist-datebox {
@@ -773,10 +775,12 @@ document.getElementById('page-gadag').innerHTML = `
       </div>
       <div class="form-group">
         <label>SKU</label>
-        <select id="gdg-pend-sku" onchange="gdgRecomputePreview()"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-          <option value="">— pilih —</option>
-        </select>
+        <input type="text" id="gdg-pend-sku-label" readonly placeholder="— pilih —"
+          onclick="gdgSkuPickerOpen()"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
+        <input type="hidden" id="gdg-pend-sku-id">
+        <input type="hidden" id="gdg-pend-sku-ongkos">
+        <input type="hidden" id="gdg-pend-sku-nama">
       </div>
       <div class="form-group" style="padding:10px;background:var(--cream2);border:1px dashed var(--ink3);margin:0">
         <label style="font-size:11px;color:var(--ink3)">Total</label>
@@ -798,6 +802,43 @@ document.getElementById('page-gadag').innerHTML = `
         <button class="btn btn-primary" onclick="gdgSimpanPendapatan()"><i class="ti ti-check"></i> Simpan</button>
       </div>
     </div>
+    </div>
+  </div>
+</div>
+
+<!-- SKU PICKER SHEET — custom picker pengganti <select> native, bergaya buku tulis -->
+<div id="gdg-sku-picker-overlay" onclick="gdgSkuPickerClose(event)"
+  style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center">
+  <div id="gdg-sku-picker-sheet"
+    style="width:100%;max-width:480px;background:var(--gdg-paper,#f7f2e6);border-radius:18px 18px 0 0;
+           padding:0;box-shadow:0 -4px 24px rgba(0,0,0,.25);
+           font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
+           transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+           display:flex;flex-direction:column;max-height:72dvh">
+    <!-- Handle -->
+    <div style="display:flex;justify-content:center;padding:10px 0 6px;flex:none;cursor:grab">
+      <span style="width:40px;height:5px;border-radius:3px;background:var(--gdg-ink,#262220);opacity:.3;display:block"></span>
+    </div>
+    <!-- Header bergaya buku tulis -->
+    <div style="display:flex;align-items:center;gap:10px;padding:0 16px 12px;flex:none;border-bottom:2px solid var(--gdg-ink,#262220)">
+      <img src="gadag-icon.png" alt="" style="width:32px;height:32px;object-fit:contain;flex:none">
+      <span style="font-size:17px;font-weight:800;letter-spacing:.04em;color:var(--gdg-ink,#262220);text-transform:uppercase">Pilih Produk</span>
+      <button onclick="gdgSkuPickerClose(null,true)"
+        style="margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:var(--gdg-ink,#262220);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <!-- Search bar -->
+    <div style="padding:10px 16px 6px;flex:none">
+      <div style="display:flex;align-items:center;gap:8px;border:2px solid var(--gdg-ink,#262220);border-radius:10px;background:var(--gdg-paper2,#efe8d8);padding:6px 10px">
+        <i class="ti ti-search" style="color:var(--gdg-ink2,#5c554d);font-size:16px;flex:none"></i>
+        <input type="text" id="gdg-sku-picker-search" placeholder="Cari produk..."
+          oninput="gdgSkuPickerFilter(this.value)"
+          style="border:none;background:transparent;flex:1;font-family:inherit;font-size:14px;font-weight:700;color:var(--gdg-ink,#262220);outline:none;min-width:0">
+      </div>
+    </div>
+    <!-- List scroll -->
+    <div id="gdg-sku-picker-list"
+      style="overflow-y:auto;flex:1;padding:4px 0 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+      <!-- diisi JS -->
     </div>
   </div>
 </div>
@@ -2489,12 +2530,15 @@ function gdgShowPendapatanModal(editId) {
     return;
   }
 
-  const sel = document.getElementById('gdg-pend-sku');
-  sel.innerHTML = '<option value="">— pilih —</option>' + _gdgSkuList.map(s =>
-    `<option value="${s.id}" data-ongkos="${s.ongkos_lusin||0}" data-nama="${(s.nama||'').replace(/"/g,'&quot;')}">${s.nama}</option>`
-  ).join('');
-
   const record = editId ? _gdgPendapatanList.find(p => String(p.id) === String(editId)) : null;
+
+  // helper reset hidden SKU fields
+  function _resetSku() {
+    document.getElementById('gdg-pend-sku-id').value     = '';
+    document.getElementById('gdg-pend-sku-nama').value   = '';
+    document.getElementById('gdg-pend-sku-ongkos').value = '';
+    document.getElementById('gdg-pend-sku-label').value  = '';
+  }
 
   if (record) {
     // ── MODE EDIT ──
@@ -2502,8 +2546,13 @@ function gdgShowPendapatanModal(editId) {
     document.getElementById('gdg-pend-tanggal').value = record.tanggal;
     document.getElementById('gdg-pend-hari').value    = record.hari || gdgHariName(record.tanggal);
     document.getElementById('gdg-pend-warna').value   = record.warna || '';
-    sel.value = record.sku_id || '';
-    document.getElementById('gdg-pend-qty').value = record.qty || '';
+    document.getElementById('gdg-pend-qty').value     = record.qty || '';
+    // isi hidden SKU fields dari record
+    const skuRec = _gdgSkuList.find(s => String(s.id) === String(record.sku_id));
+    document.getElementById('gdg-pend-sku-id').value     = record.sku_id || '';
+    document.getElementById('gdg-pend-sku-nama').value   = record.sku_nama || '';
+    document.getElementById('gdg-pend-sku-ongkos').value = skuRec ? (skuRec.ongkos_lusin||0) : (record.ongkos_lusin||0);
+    document.getElementById('gdg-pend-sku-label').value  = record.sku_nama || '';
     titleEl.innerHTML = '<i class="ti ti-pencil"></i> Edit Catatan Pendapatan';
     hapusBtn.style.display = '';
     gdgRecomputePreview();
@@ -2515,7 +2564,7 @@ function gdgShowPendapatanModal(editId) {
     document.getElementById('gdg-pend-tanggal').value = tglDefault;
     document.getElementById('gdg-pend-hari').value = gdgHariName(tglDefault);
     document.getElementById('gdg-pend-warna').value = '';
-    sel.value = '';
+    _resetSku();
     document.getElementById('gdg-pend-qty').value = '';
     document.getElementById('gdg-pend-preview').textContent = 'Rp0';
     titleEl.innerHTML = '<i class="ti ti-plus"></i> Tambah Catatan Pendapatan';
@@ -2716,10 +2765,78 @@ function _gdgAngInitDragToClose() {
   }, { passive: true });
 }
 
+// ─── CUSTOM SKU PICKER ────────────────────────────────────────
+let _gdgSkuPickerQuery = '';
+
+function gdgSkuPickerOpen() {
+  const overlay = document.getElementById('gdg-sku-picker-overlay');
+  const sheet   = document.getElementById('gdg-sku-picker-sheet');
+  const search  = document.getElementById('gdg-sku-picker-search');
+  if (!overlay || !sheet) return;
+  _gdgSkuPickerQuery = '';
+  if (search) search.value = '';
+  gdgSkuPickerRenderList('');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    sheet.style.transform = 'translateY(0)';
+  }));
+  setTimeout(() => { if (search) search.focus(); }, 320);
+}
+
+function gdgSkuPickerClose(e, force) {
+  if (e && e.target !== document.getElementById('gdg-sku-picker-overlay') && !force) return;
+  const sheet   = document.getElementById('gdg-sku-picker-sheet');
+  const overlay = document.getElementById('gdg-sku-picker-overlay');
+  if (!sheet || !overlay) return;
+  sheet.style.transform = 'translateY(100%)';
+  setTimeout(() => { overlay.style.display = 'none'; }, 300);
+}
+
+function gdgSkuPickerFilter(q) {
+  _gdgSkuPickerQuery = q;
+  gdgSkuPickerRenderList(q);
+}
+
+function gdgSkuPickerRenderList(q) {
+  const list = document.getElementById('gdg-sku-picker-list');
+  if (!list) return;
+  const currentId = document.getElementById('gdg-pend-sku-id').value;
+  const filtered  = q
+    ? _gdgSkuList.filter(s => (s.nama||'').toLowerCase().includes(q.toLowerCase()))
+    : _gdgSkuList;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="padding:20px 16px;color:var(--gdg-ink2,#5c554d);font-style:italic;text-align:center">Produk tidak ditemukan</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(s => {
+    const selected = String(s.id) === String(currentId);
+    return `<div onclick="gdgSkuPickerSelect('${s.id}','${(s.nama||'').replace(/'/g,"\\'")}',${s.ongkos_lusin||0})"
+      style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
+             border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.12));
+             background:${selected ? 'rgba(38,34,32,.06)' : 'transparent'}">
+      <span style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--gdg-ink,#262220);
+                   display:flex;align-items:center;justify-content:center">
+        ${selected ? `<span style="width:10px;height:10px;border-radius:50%;background:var(--gdg-ink,#262220);display:block"></span>` : ''}
+      </span>
+      <span style="font-size:15px;font-weight:800;color:var(--gdg-ink,#262220)">${s.nama||'—'}</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--gdg-ink2,#5c554d);font-weight:700">${gdgFmt(s.ongkos_lusin)}/lsn</span>
+    </div>`;
+  }).join('');
+}
+
+function gdgSkuPickerSelect(id, nama, ongkos) {
+  document.getElementById('gdg-pend-sku-id').value     = id;
+  document.getElementById('gdg-pend-sku-nama').value   = nama;
+  document.getElementById('gdg-pend-sku-ongkos').value = ongkos;
+  document.getElementById('gdg-pend-sku-label').value  = nama;
+  gdgSkuPickerClose(null, true);
+  gdgRecomputePreview();
+}
+
+// ─────────────────────────────────────────────────────────────
 function gdgRecomputePreview() {
-  const sel = document.getElementById('gdg-pend-sku');
-  const opt = sel.options[sel.selectedIndex];
-  const ongkos = opt ? Number(opt.getAttribute('data-ongkos'))||0 : 0;
+  const ongkos = Number(document.getElementById('gdg-pend-sku-ongkos').value) || 0;
   const qty    = parseInt((document.getElementById('gdg-pend-qty').value||'').replace(/\D/g,''), 10) || 0;
   const total  = Math.round(qty / 12 * ongkos);
   document.getElementById('gdg-pend-preview').textContent = gdgFmt(total);
@@ -2730,9 +2847,7 @@ async function gdgSimpanPendapatan() {
   const editId  = document.getElementById('gdg-pend-edit-id').value;
   const tanggal = document.getElementById('gdg-pend-tanggal').value;
   const warna   = document.getElementById('gdg-pend-warna').value.trim();
-  const sel     = document.getElementById('gdg-pend-sku');
-  const opt     = sel.options[sel.selectedIndex];
-  const skuId   = sel.value;
+  const skuId   = document.getElementById('gdg-pend-sku-id').value;
   const qtyStr  = (document.getElementById('gdg-pend-qty').value||'').replace(/\D/g,'');
   const qty     = parseInt(qtyStr, 10);
 
@@ -2740,8 +2855,8 @@ async function gdgSimpanPendapatan() {
   if (!skuId)            { alert('Pilih SKU.'); return; }
   if (!qty || qty <= 0)  { alert('Qty harus lebih dari 0.'); return; }
 
-  const ongkos  = Number(opt.getAttribute('data-ongkos'))||0;
-  const skuNama = opt.getAttribute('data-nama')||'';
+  const ongkos  = Number(document.getElementById('gdg-pend-sku-ongkos').value) || 0;
+  const skuNama = document.getElementById('gdg-pend-sku-nama').value || '';
   const total   = Math.round(qty / 12 * ongkos);
   const hari    = gdgHariName(tanggal);
 
