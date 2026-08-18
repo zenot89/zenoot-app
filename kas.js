@@ -2506,8 +2506,17 @@ function _kasFloatOpen(pickerId) {
   _kasFloatReposition();
 
   // Fokus search — keyboard boleh nongol, dropdown TETAP di posisi (di atas
-  // trigger), jadi ga akan ketutup keyboard atau geser-geser.
+  // trigger / di atas keyboard), jadi ga akan ketutup keyboard atau geser-geser.
   if (search) search.focus({ preventScroll: true });
+
+  // Retry reposition beberapa kali selama animasi keyboard berjalan
+  // (~250-300ms). visualViewport 'resize' seharusnya cukup, tapi di
+  // beberapa browser/keyboard pihak-3 event-nya telat atau tidak akurat
+  // di frame pertama — retry ini jaring pengaman supaya dropdown tidak
+  // pernah "nyangkut" di posisi lama yang ketutup keyboard.
+  [50, 150, 300, 450].forEach(function(ms) {
+    setTimeout(_kasFloatReposition, ms);
+  });
 }
 
 // Filter live saat ngetik. Search kosong → grouped view (semua akun).
@@ -2541,9 +2550,20 @@ function _kasFloatFilter(q) {
   _kasFloatReposition();
 }
 
-// Hitung ulang posisi & tinggi panel — SELALU di atas trigger picker.
-// Dipanggil saat buka, tiap kali list berubah (filter), dan saat keyboard
-// muncul/hilang (visualViewport resize) supaya tidak pernah salah posisi.
+// Hitung ulang posisi & tinggi panel — SELALU di atas trigger picker, DAN
+// SELALU di dalam batas viewport yang benar-benar keliatan (di atas keyboard).
+//
+// Root cause "masih ketutup keyboard": versi sebelumnya cuma ngitung posisi
+// dari rect.top picker, tanpa pernah cek ulang terhadap batas bawah visual
+// viewport (window.visualViewport.offsetTop + height = tepi atas keyboard).
+// Di iOS, fix keyboard-push di app.js (_applyKeyboardOffset) CUMA jalan buat
+// .modal-overlay.open — kas-brimo-sheet (sheet mobile ini) TIDAK ikut
+// digeser. Jadi kalau keyboard makan banyak ruang, dropdown yang cuma
+// ngukur dari trigger bisa tetap nongol lebih rendah dari tepi keyboard.
+//
+// Fix: docking bottom-edge panel ke MIN(posisi di atas trigger, batas atas
+// keyboard) — jadi dropdown gak akan PERNAH melewati/ketutup keyboard, apa
+// pun posisi triggernya.
 function _kasFloatReposition() {
   var panel = document.getElementById('kas-akun-float');
   var pickerId = panel && panel.dataset.pickerId;
@@ -2551,19 +2571,33 @@ function _kasFloatReposition() {
   if (!panel || !picker || panel.style.display === 'none') return;
 
   var rect   = picker.getBoundingClientRect();
+  var vp     = window.visualViewport;
+  var vpTop  = vp ? vp.offsetTop : 0;
+  var vpH    = vp ? vp.height : window.innerHeight;
   var minTop = _kasGetSafeTop() + 6;
-  var listEl = document.getElementById('kas-akun-float-list');
+
+  // Buffer ekstra buat toolbar keyboard pihak ke-3 (Gboard dll) yang kadang
+  // nggak sepenuhnya kehitung di visualViewport.height.
+  var kbBuffer = 12;
+  var visibleBottom = vpTop + vpH - kbBuffer;
+
+  var listEl     = document.getElementById('kas-akun-float-list');
   var rowCount   = listEl ? listEl.querySelectorAll('.kas-akun-item, .kas-akun-empty').length : 1;
   var groupCount = listEl ? listEl.querySelectorAll('.kas-akun-group').length : 0;
   var rowH = 42, groupH = 30, searchH = 54, pad = 8;
-  var desiredH   = searchH + pad + Math.min(rowCount, 5) * rowH + groupCount * groupH;
-  var spaceAbove = rect.top - minTop - 8;
-  var h = Math.max(140, Math.min(desiredH, spaceAbove));
+  var desiredH = searchH + pad + Math.min(rowCount, 5) * rowH + groupCount * groupH;
+
+  // Bottom-edge panel = SELALU pilih yang lebih tinggi (angka lebih kecil)
+  // antara "tepat di atas trigger" vs "tepat di atas keyboard" — jadi tidak
+  // pernah nembus/ketutup keyboard walaupun trigger sendiri posisinya rendah.
+  var bottom = Math.min(rect.top - 8, visibleBottom);
+  var h      = Math.max(140, Math.min(desiredH, bottom - minTop));
+  var top    = bottom - h;
 
   panel.style.width     = rect.width + 'px';
   panel.style.left      = rect.left + 'px';
   panel.style.maxHeight = h + 'px';
-  panel.style.top       = Math.max(minTop, rect.top - h - 8) + 'px';
+  panel.style.top       = top + 'px';
   panel.style.bottom    = '';
 }
 
