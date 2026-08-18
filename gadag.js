@@ -264,9 +264,9 @@ document.getElementById('page-gadag').innerHTML = `
   #page-gadag .gdghist-badge {
     display: inline-flex; align-items: center; gap: 6px;
     border: 2px solid var(--gdg-ink); border-radius: 10px;
-    padding: 5px 10px; font-size: 12px; font-weight: 700;
+    padding: 5px 9px; font-size: 13px; font-weight: 700;
     background: var(--gdg-paper); color: var(--gdg-ink);
-    white-space: nowrap;
+    white-space: nowrap; flex: none;
   }
   #page-gadag .gdghist-badge i { font-size: 14px; }
   /* Kotak tanggal Riwayat — display-only, TIDAK bisa digulir/swipe. Ganti
@@ -274,7 +274,7 @@ document.getElementById('page-gadag').innerHTML = `
   #page-gadag .gdghist-datebox {
     flex: 1; min-width: 0;
     border: 2px solid var(--gdg-ink); border-radius: 10px;
-    padding: 6px 12px; font-size: 13px; font-weight: 800;
+    padding: 5px 12px; font-size: 13px; font-weight: 800;
     background: var(--gdg-paper); color: var(--gdg-ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -307,25 +307,12 @@ document.getElementById('page-gadag').innerHTML = `
   #gdgw-week-label { text-transform: uppercase; }
   #page-gadag .gdg-sheet-handle span { background: var(--gdg-ink) !important; opacity: .35; }
 
-  /* ── Export PDF: cetak cuma area #gdg-print-area, sembunyiin sisanya ──
-     Pakai window.print() (browser punya "Save as PDF" bawaan di dialog print,
-     jalan konsisten di Android maupun iPhone — ga perlu library PDF tambahan). */
+  /* ── Export PDF: #gdg-print-area tersembunyi — konten dikirim ke popup window ──
+     Pendekatan visibility:hidden/visible + window.print() di halaman yang sama
+     tidak reliable di iOS Safari (WebKit strip elemen invisible dari print layout,
+     hasilnya blank). Solusi: buka popup window baru berisi full HTML dokumen,
+     lalu print dari sana — konsisten di Android & iPhone. */
   #gdg-print-area { display: none; }
-  @media print {
-    body * { visibility: hidden; }
-    #gdg-print-area, #gdg-print-area * { visibility: visible; }
-    #gdg-print-area {
-      display: block !important;
-      position: absolute; top: 0; left: 0; width: 100%;
-      font-family: Arial, sans-serif; color: #000; background: #fff;
-    }
-    /* Poin: "jumlah baris selalu ngikutin data, kalau banyak bisa 2+ halaman" —
-       thead (logo+tanggal+judul+kolom) otomatis keulang tiap halaman cetak,
-       tbody tr dijaga jangan kepotong di tengah pas ganti halaman. */
-    .gdg-print-table thead { display: table-header-group; }
-    .gdg-print-table tfoot { display: table-footer-group; }
-    .gdg-print-table tbody tr { page-break-inside: avoid; }
-  }
 
   /* ── Penyesuaian khusus layar sempit (HP) ──
      Poin 2: font tabel data DULU malah dikecilin ke 12px di sini — kebalikan
@@ -588,7 +575,6 @@ document.getElementById('page-gadag').innerHTML = `
     <span id="gdg-pend-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— catatan</span>
     <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
   </div>
-  <div style="font-size:11px;color:var(--ink3);margin:-4px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
       <thead><tr><th>Hari</th><th>SKU</th><th>Warna</th><th style="text-align:right">Qty</th><th style="text-align:right">Total</th></tr></thead>
@@ -632,8 +618,6 @@ document.getElementById('page-gadag').innerHTML = `
     <input type="date" id="gdghist-custom-sampai" onchange="gdgHistCustomApply()"
       style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--gdg-ink);background:var(--gdg-paper);color:var(--gdg-ink);border-radius:8px;box-sizing:border-box">
   </div>
-
-  <div style="font-size:11px;color:var(--ink3);margin:8px 0 8px">Tekan lama salah satu baris buat edit / hapus</div>
 
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
@@ -1951,33 +1935,39 @@ function gdgExportPendapatanPDF() {
       }).join('')
     : '<tr><td colspan="7" style="padding:10px 8px;color:#888;font-style:italic">Belum ada catatan minggu ini.</td></tr>';
 
-  // Header (logo + tanggal export + judul) ditaro SEBAGAI BARIS <thead> (colspan
-  // penuh), bukan elemen terpisah di luar tabel — biar browser otomatis
-  // ngulang header ini di tiap halaman kalau datanya kepanjangan & kepecah
-  // jadi 2+ halaman pas print/save-as-PDF (cuma <thead> yang punya behavior
-  // "repeat per page" bawaan, elemen biasa di luar <table> cuma muncul sekali).
-  const area = document.getElementById('gdg-print-area');
-  area.innerHTML = `
-    <table class="gdg-print-table" style="width:100%;border-collapse:collapse;font-size:13px">
+  // Buka popup window baru berisi full HTML dokumen lalu print dari sana.
+  // Pendekatan ini reliable di iOS Safari — berbeda dari visibility:hidden/visible
+  // di halaman yang sama yang sering menghasilkan blank page di iPhone.
+  const iconUrl = new URL('gadag-icon.png', location.href).href;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Catatan Pendapatan Gadag</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 16px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tbody tr { page-break-inside: avoid; }
+      @media print { body { padding: 0; } }
+    </style>
+  </head><body>
+    <table>
       <thead>
-        <tr>
-          <td colspan="7" style="padding:0 0 12px;border:none">
-            <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px;box-sizing:border-box">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-                <img src="gadag-icon.png" alt="Gadag" style="width:40px;height:40px;object-fit:contain;flex-shrink:0">
-                <div style="font-size:12px;font-weight:700;letter-spacing:.04em;color:#333">${hariExport}, ${tglExportStr}</div>
-              </div>
-              <div style="border-top:1px solid #ddd;margin:10px 0"></div>
-              <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;font-weight:700;font-size:20px;letter-spacing:.02em">CATATAN PENDAPATAN &mdash; GADAG</div>
-              <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(wkStart, today)} &middot; ${list.length} catatan</div>
+        <tr><td colspan="7" style="padding:0 0 12px;border:none">
+          <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <img src="${iconUrl}" alt="Gadag" style="width:40px;height:40px;object-fit:contain">
+              <div style="font-size:12px;font-weight:700;color:#333">${hariExport}, ${tglExportStr}</div>
             </div>
-          </td>
-        </tr>
+            <div style="border-top:1px solid #ddd;margin:10px 0"></div>
+            <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive;font-weight:700;font-size:20px">CATATAN PENDAPATAN &mdash; GADAG</div>
+            <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(wkStart, today)} &middot; ${list.length} catatan</div>
+          </div>
+        </td></tr>
         <tr style="border-bottom:2px solid #000;text-align:left">
-          <th style="padding:6px 8px">No</th>
-          <th style="padding:6px 8px">Hari</th>
-          <th style="padding:6px 8px">SKU / Nama Produk</th>
-          <th style="padding:6px 8px">Warna</th>
+          <th style="padding:6px 8px">No</th><th style="padding:6px 8px">Hari</th>
+          <th style="padding:6px 8px">SKU / Nama Produk</th><th style="padding:6px 8px">Warna</th>
           <th style="padding:6px 8px;text-align:right">Harga</th>
           <th style="padding:6px 8px;text-align:right">Qty</th>
           <th style="padding:6px 8px;text-align:right">Total</th>
@@ -1991,8 +1981,17 @@ function gdgExportPendapatanPDF() {
         </tr>
       </tfoot>
     </table>
-  `;
-  window.print();
+    <script>window.onload = function() { window.print(); }<\/script>
+  </body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    // Popup diblokir (jarang di iOS) — fallback ke download file HTML
+    const a = document.createElement('a');
+    a.href = url; a.download = 'catatan-gadag.html'; a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 function gdgExportRiwayatPDF() {
@@ -2021,31 +2020,39 @@ function gdgExportRiwayatPDF() {
       }).join('')
     : '<tr><td colspan="7" style="padding:10px 8px;color:#888;font-style:italic">Ga ada catatan di rentang ini.</td></tr>';
 
-  // Konsep sama persis kayak gdgExportPendapatanPDF() — header (logo+tanggal+judul)
-  // ditaro sebagai baris <thead>, biar otomatis keulang tiap halaman kalau
-  // datanya kepanjangan & kepecah jadi 2+ halaman pas print/save-as-PDF.
-  const area = document.getElementById('gdg-print-area');
-  area.innerHTML = `
-    <table class="gdg-print-table" style="width:100%;border-collapse:collapse;font-size:13px">
+  // Buka popup window baru berisi full HTML dokumen lalu print dari sana.
+  // Pendekatan ini reliable di iOS Safari — visibility:hidden/visible di halaman
+  // yang sama sering menghasilkan blank page di iPhone.
+  const iconUrl = new URL('gadag-icon.png', location.href).href;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Riwayat Catatan Gadag</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 16px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tbody tr { page-break-inside: avoid; }
+      @media print { body { padding: 0; } }
+    </style>
+  </head><body>
+    <table>
       <thead>
-        <tr>
-          <td colspan="7" style="padding:0 0 12px;border:none">
-            <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px;box-sizing:border-box">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-                <img src="gadag-icon.png" alt="Gadag" style="width:40px;height:40px;object-fit:contain;flex-shrink:0">
-                <div style="font-size:12px;font-weight:700;letter-spacing:.04em;color:#333">${hariExport}, ${tglExportStr}</div>
-              </div>
-              <div style="border-top:1px solid #ddd;margin:10px 0"></div>
-              <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;font-weight:700;font-size:20px;letter-spacing:.02em">RIWAYAT CATATAN &mdash; GADAG</div>
-              <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(range.start, range.end)} &middot; ${list.length} catatan</div>
+        <tr><td colspan="7" style="padding:0 0 12px;border:none">
+          <div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <img src="${iconUrl}" alt="Gadag" style="width:40px;height:40px;object-fit:contain">
+              <div style="font-size:12px;font-weight:700;color:#333">${hariExport}, ${tglExportStr}</div>
             </div>
-          </td>
-        </tr>
+            <div style="border-top:1px solid #ddd;margin:10px 0"></div>
+            <div style="text-align:center;font-family:'Comic Neue','Comic Sans MS',cursive;font-weight:700;font-size:20px">RIWAYAT CATATAN &mdash; GADAG</div>
+            <div style="text-align:center;color:#777;font-size:11px;margin-top:2px">${gdgWFmtRange(range.start, range.end)} &middot; ${list.length} catatan</div>
+          </div>
+        </td></tr>
         <tr style="border-bottom:2px solid #000;text-align:left">
-          <th style="padding:6px 8px">No</th>
-          <th style="padding:6px 8px">Hari</th>
-          <th style="padding:6px 8px">SKU / Nama Produk</th>
-          <th style="padding:6px 8px">Warna</th>
+          <th style="padding:6px 8px">No</th><th style="padding:6px 8px">Hari</th>
+          <th style="padding:6px 8px">SKU / Nama Produk</th><th style="padding:6px 8px">Warna</th>
           <th style="padding:6px 8px;text-align:right">Harga</th>
           <th style="padding:6px 8px;text-align:right">Qty</th>
           <th style="padding:6px 8px;text-align:right">Total</th>
@@ -2059,8 +2066,17 @@ function gdgExportRiwayatPDF() {
         </tr>
       </tfoot>
     </table>
-  `;
-  window.print();
+    <script>window.onload = function() { window.print(); }<\/script>
+  </body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    // Popup diblokir — fallback ke download file HTML
+    const a = document.createElement('a');
+    a.href = url; a.download = 'riwayat-gadag.html'; a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 
