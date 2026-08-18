@@ -4317,16 +4317,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .metric{ background:#1e1e1e !important; }
 }
 
-/* ── KAS AKUN BOTTOM SHEET — picker global, konsisten Android & iPhone ── */
-#kas-akun-sheet {
-  transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.32,.72,0,1);
+/* ── KAS AKUN FLOATING DROPDOWN — nempel di atas trigger, konsisten
+   Android & iPhone. Menggantikan bottom sheet lama (#kas-akun-sheet). ── */
+#kas-akun-float {
+  animation: kasFloatIn .14s ease-out;
 }
-#kas-akun-sheet-list .kas-akun-item {
+@keyframes kasFloatIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#kas-akun-float-list .kas-akun-item {
   font-size: 14px;
   padding: 11px 14px;
 }
-#kas-akun-sheet-list .kas-akun-group {
+#kas-akun-float-list .kas-akun-group {
   font-size: 11px;
   padding: 10px 14px 4px;
   color: rgba(255,255,255,.4);
@@ -4334,11 +4338,14 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   letter-spacing: .07em;
   font-weight: 700;
 }
-#kas-akun-sheet-list .kas-akun-item:active {
+#kas-akun-float-list .kas-akun-item:active {
   background: rgba(255,255,255,.08);
 }
-#kas-akun-sheet-list .kas-akun-item.active {
+#kas-akun-float-list .kas-akun-item.active {
   background: rgba(255,255,255,.08);
   color: var(--ink);
   font-weight: 700;
 }
+#kas-akun-float-list::-webkit-scrollbar { width: 4px; }
+#kas-akun-float-list::-webkit-scrollbar-track { background: transparent; }
+#kas-akun-float-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }

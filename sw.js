@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260818-17307c730e56'; // gadag.js: + section lokal Ringkasan Mingguan (bukan halaman terpisah)
+var JS_CACHE = 'zenot-js-20260818-a1f6b9d3c7e2'; // kas.js+style.css: picker akun jadi floating dropdown di atas trigger (bukan bottom sheet), select pakai pointerdown
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
