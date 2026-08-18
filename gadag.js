@@ -745,10 +745,9 @@ document.getElementById('page-gadag').innerHTML = `
     <input type="hidden" id="gdg-ang2-edit-id">
     <div class="form-group" style="margin-bottom:8px;position:relative">
       <label>Nama (dari Daftar Akun)</label>
-      <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun beban —"
-        onclick="gdgAngAkunToggle()"
+      <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun —"
+        onclick="gdgAngAkunPickerOpen()"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
-      <div id="gdg-ang2-akun-dropdown" class="gdg-warna-dropdown"></div>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal (Rp)</label>
@@ -1642,17 +1641,15 @@ function gdgAngRenderList() {
   }).join('');
 }
 
-// Realisasi = total nominal jurnal minggu berjalan pada akun beban yang nama-nya
-// cocok (case-insensitive) dengan nama variable anggaran. Akun dicari dari
-// _gdgWAkunAll (kelompok beban, kode 5-xxx KECUALI 5-001 — sama aturan dengan
-// gdgWHitungBebanHari), datanya sudah dimuat dari gdgWInit() saat startup.
+// Realisasi = total nominal jurnal minggu berjalan pada akun (Beban ATAU
+// Kewajiban) yang nama-nya cocok (case-insensitive) dengan nama variable
+// anggaran. Gak ada filter kode prefix lagi — samain sama sumber picker di
+// gdgAngPopulateAkunSelect.
 function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   const target = String(namaVariable || '').trim().toLowerCase();
   if (!target) return 0;
   const akun = _gdgWAkunAll.find(a =>
-    a.kelompok === 'beban' &&
-    (a.kode || '').indexOf('5-') === 0 &&
-    a.kode !== '5-001' &&
+    (a.kelompok === 'beban' || a.kelompok === 'kewajiban') &&
     String(a.nama || '').trim().toLowerCase() === target
   );
   if (!akun) return 0;
@@ -1666,11 +1663,11 @@ function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   return total;
 }
 
-// Siapin daftar Nama akun beban (kas_akun: kelompok=beban, kode 5-xxx KECUALI
-// 5-001 — aturan sama persis dengan progress bar realisasi). Dipakai buat
-// dropdown custom (gdgAngAkunToggle dkk) — HANYA nama yang ditampilin di
-// dropdown, kode 5-xxx tetep disimpen di cache buat referensi internal aja
-// (kode 5-001 Beban Gaji tetep di-skip, sama kayak sebelumnya).
+// Siapin daftar Nama akun buat picker Tambah Variable. Sumbernya SEMUA akun
+// kelompok Beban + Kewajiban dari kas_akun — TIDAK ada filter kode prefix lagi
+// (dulu dibatasin ke 5-xxx kecuali 5-001, sekarang dibuang: Alley yang milih
+// sendiri akun mana yang relevan tiap kali bikin Variable, itu bentuk "kendali"-nya,
+// bukan whitelist/toggle di sistem).
 // selectedNama: kalau ada & ga ketemu di daftar akun (mis. akun udah dihapus/
 // diganti nama), tetep dianggep valid biar data lama ga ilang dari tampilan.
 let _gdgAngAkunCache = [];
@@ -1678,52 +1675,139 @@ function gdgAngPopulateAkunSelect(selectedNama) {
   const inp = document.getElementById('gdg-ang2-nama-input');
   if (!inp) return;
   _gdgAngAkunCache = _gdgWAkunAll
-    .filter(a => a.kelompok === 'beban' && (a.kode || '').indexOf('5-') === 0 && a.kode !== '5-001')
+    .filter(a => a.kelompok === 'beban' || a.kelompok === 'kewajiban')
     .sort((a, b) => (a.kode || '').localeCompare(b.kode || ''));
   inp.value = selectedNama || '';
-  gdgAngAkunCloseDropdown();
 }
 
-// ─── DROPDOWN CUSTOM "Nama Akun" — pola identik dropdown Warna (§ gdgWarnaFilter),
-// gantiin native <select> yg gabisa dibatasin tinggi/isinya (kode ikut nongol,
-// scroll-nya kepanjangan). Cuma tampilin NAMA (kode tetep aturan filter di
-// belakang layar), max-height ~5 item lalu scroll (kelas gdg-warna-dropdown).
-function gdgAngAkunRenderList() {
-  const dd = document.getElementById('gdg-ang2-akun-dropdown');
-  if (!dd) return;
-  if (!_gdgAngAkunCache.length) {
-    dd.innerHTML = '<div class="gdg-warna-opt" style="opacity:.6;cursor:default">Belum ada akun beban</div>';
-    dd.style.display = 'block';
-    return;
+// ─── PICKER AKUN — bottom-sheet full (pola sama kayak kasAkunPickerOpen di
+// kas.js): di-append ke document.body sendiri, overlay+sheet z-index di atas
+// modal Tambah Variable (z:300), search auto-fokus, list di-grouping per
+// kelompok (Kewajiban / Beban). Ganti dropdown absolute lama yang kehalang
+// field Nominal di bawahnya pas sheet Tambah Variable-nya sendiri kepotong.
+var _gdgAkunPickerVpHandler = null;
+
+function _gdgAkunPickerInject() {
+  if (document.getElementById('gdg-akunpicker-overlay')) return;
+  document.body.insertAdjacentHTML('beforeend', `
+<div id="gdg-akunpicker-overlay" class="gdg-akunpicker-overlay" onclick="if(event.target===this)gdgAngAkunPickerClose()"></div>
+<div id="gdg-akunpicker-sheet" class="gdg-akunpicker-sheet">
+  <div class="gdg-akunpicker-handle"><span></span></div>
+  <div class="gdg-akunpicker-title">Pilih Akun</div>
+  <div class="gdg-akunpicker-search-wrap">
+    <input type="text" id="gdg-akunpicker-search" class="gdg-akunpicker-search"
+      placeholder="Cari akun..." oninput="gdgAngAkunPickerRender(this.value)">
+  </div>
+  <div id="gdg-akunpicker-list" class="gdg-akunpicker-list"></div>
+</div>`);
+  if (!document.getElementById('gdg-akunpicker-style')) {
+    const st = document.createElement('style');
+    st.id = 'gdg-akunpicker-style';
+    st.textContent = `
+      .gdg-akunpicker-overlay{display:none;position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+      .gdg-akunpicker-overlay.open{display:block}
+      .gdg-akunpicker-sheet{position:fixed;left:0;right:0;bottom:0;z-index:851;background:var(--gdg-paper,#f2ede1);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1),bottom .15s ease;padding-bottom:env(safe-area-inset-bottom,16px);max-height:80vh;display:none;flex-direction:column;overflow:hidden}
+      .gdg-akunpicker-sheet.open{display:flex;transform:translateY(0)}
+      .gdg-akunpicker-handle{flex:none;display:flex;justify-content:center;padding:10px 0 6px}
+      .gdg-akunpicker-handle span{width:40px;height:5px;border-radius:3px;background:var(--gdg-ink,#262220);opacity:.35}
+      .gdg-akunpicker-title{flex:none;padding:0 16px 8px;font-weight:800;font-size:15px;color:var(--gdg-ink,#262220)}
+      .gdg-akunpicker-search-wrap{flex:none;padding:0 16px 10px}
+      .gdg-akunpicker-search{width:100%;box-sizing:border-box;border:2px solid var(--gdg-ink,#262220);border-radius:10px;padding:9px 12px;font-family:var(--f);font-size:14px;background:#fff;color:var(--gdg-ink,#262220);outline:none}
+      .gdg-akunpicker-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 10px 12px}
+      .gdg-akunpicker-group{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gdg-ink3,#7a746c);padding:10px 8px 4px}
+      .gdg-akunpicker-item{padding:11px 10px;font-size:14px;border-radius:8px;cursor:pointer;color:var(--gdg-ink,#262220)}
+      .gdg-akunpicker-item:active,.gdg-akunpicker-item.active{background:var(--gdg-paper2,#e9e2d3)}
+      .gdg-akunpicker-empty{padding:16px 10px;color:var(--gdg-ink3,#7a746c);font-style:italic;font-size:13px}
+      @media (min-width:900px){
+        .gdg-akunpicker-sheet{left:50%;right:auto;bottom:50%;transform:translate(-50%,50%) scale(.96);width:100%;max-width:380px;border-radius:16px;max-height:70vh;opacity:0;transition:transform .2s ease,opacity .2s ease}
+        .gdg-akunpicker-sheet.open{transform:translate(-50%,50%) scale(1);opacity:1}
+      }`;
+    document.head.appendChild(st);
   }
-  dd.innerHTML = _gdgAngAkunCache.map(a => {
-    const nama = String(a.nama || '');
-    const esc  = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
-    return `<div class="gdg-warna-opt" onmousedown="event.preventDefault();gdgAngAkunPilih('${esc.replace(/'/g,"\\'")}')">${esc}</div>`;
-  }).join('');
-  dd.style.display = 'block';
 }
-function gdgAngAkunToggle() {
-  const dd = document.getElementById('gdg-ang2-akun-dropdown');
-  if (!dd) return;
-  if (dd.style.display === 'block') { gdgAngAkunCloseDropdown(); return; }
-  gdgAngAkunRenderList();
+
+function gdgAngAkunPickerOpen() {
+  _gdgAkunPickerInject();
+  const searchEl = document.getElementById('gdg-akunpicker-search');
+  if (searchEl) searchEl.value = '';
+  gdgAngAkunPickerRender('');
+
+  const overlay = document.getElementById('gdg-akunpicker-overlay');
+  const sheet   = document.getElementById('gdg-akunpicker-sheet');
+  if (overlay) overlay.classList.add('open');
+  if (sheet)   sheet.classList.add('open');
+
+  if (window.visualViewport) {
+    _gdgAkunPickerVpHandler = _gdgAkunPickerReposition;
+    window.visualViewport.addEventListener('resize', _gdgAkunPickerVpHandler);
+  }
+  _gdgAkunPickerReposition();
+
+  setTimeout(function() {
+    if (searchEl) searchEl.focus({ preventScroll: true });
+    _gdgAkunPickerReposition();
+  }, 280);
 }
-function gdgAngAkunPilih(nama) {
+
+function gdgAngAkunPickerClose() {
+  const overlay = document.getElementById('gdg-akunpicker-overlay');
+  const sheet   = document.getElementById('gdg-akunpicker-sheet');
+  if (sheet)   sheet.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  const searchEl = document.getElementById('gdg-akunpicker-search');
+  if (searchEl) searchEl.blur();
+  if (sheet) sheet.style.bottom = '';
+  if (_gdgAkunPickerVpHandler && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', _gdgAkunPickerVpHandler);
+    _gdgAkunPickerVpHandler = null;
+  }
+}
+
+function _gdgAkunPickerReposition() {
+  const sheet = document.getElementById('gdg-akunpicker-sheet');
+  if (!sheet || !sheet.classList.contains('open') || !window.visualViewport) return;
+  if (window.matchMedia && window.matchMedia('(min-width: 900px)').matches) return;
+  const vp  = window.visualViewport;
+  const kbH = Math.max(0, window.innerHeight - vp.height - vp.offsetTop);
+  sheet.style.bottom    = kbH + 'px';
+  sheet.style.maxHeight = Math.max(240, vp.height - 24) + 'px';
+}
+
+function gdgAngAkunPickerRender(q) {
+  const listEl = document.getElementById('gdg-akunpicker-list');
+  if (!listEl) return;
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  const currentVal = inp ? inp.value.trim().toLowerCase() : '';
+
+  q = (q || '').toLowerCase().trim();
+  let akunList = _gdgAngAkunCache.slice();
+  if (q) akunList = akunList.filter(a => String(a.nama || '').toLowerCase().indexOf(q) !== -1);
+
+  const order = ['kewajiban', 'beban'];
+  const label = { kewajiban: 'Kewajiban', beban: 'Beban' };
+  const grouped = {}; order.forEach(k => grouped[k] = []);
+  akunList.forEach(a => { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
+
+  let html = '';
+  order.forEach(k => {
+    if (!grouped[k].length) return;
+    html += '<div class="gdg-akunpicker-group">' + label[k] + '</div>';
+    grouped[k].forEach(a => {
+      const nama    = String(a.nama || '');
+      const esc     = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+      const escAttr = esc.replace(/'/g,"\\'");
+      const isActive = nama.trim().toLowerCase() === currentVal;
+      html += `<div class="gdg-akunpicker-item${isActive ? ' active' : ''}" onclick="gdgAngAkunPickerSelect('${escAttr}')">${esc}</div>`;
+    });
+  });
+  listEl.innerHTML = html || '<div class="gdg-akunpicker-empty">Belum ada akun Beban/Kewajiban</div>';
+}
+
+function gdgAngAkunPickerSelect(nama) {
   const inp = document.getElementById('gdg-ang2-nama-input');
   if (inp) inp.value = nama;
-  gdgAngAkunCloseDropdown();
+  gdgAngAkunPickerClose();
 }
-function gdgAngAkunCloseDropdown() {
-  const dd = document.getElementById('gdg-ang2-akun-dropdown');
-  if (dd) dd.style.display = 'none';
-}
-document.addEventListener('click', function(e) {
-  const inp = document.getElementById('gdg-ang2-nama-input');
-  const dd  = document.getElementById('gdg-ang2-akun-dropdown');
-  if (!inp || !dd) return;
-  if (e.target !== inp && !dd.contains(e.target)) gdgAngAkunCloseDropdown();
-});
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
 async function gdgAngShowAdd() {
@@ -1750,7 +1834,7 @@ async function gdgAngShowEdit(id, nama, nominal) {
 }
 
 function gdgAngCloseModal() {
-  gdgAngAkunCloseDropdown();
+  gdgAngAkunPickerClose();
   const overlay = document.getElementById('modal-gdg-ang2');
   const sheet   = document.getElementById('gdg-ang2-sheet');
   if (!overlay) return;
