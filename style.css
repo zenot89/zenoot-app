@@ -4349,3 +4349,107 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-akun-float-list::-webkit-scrollbar { width: 4px; }
 #kas-akun-float-list::-webkit-scrollbar-track { background: transparent; }
 #kas-akun-float-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   AKUN PICKER SHEET — full bottom sheet (naik dari bawah), dipakai
+   SEMUA picker akun (Tambah & Edit). Gaya BRImo: sheet naik penuh,
+   search auto-fokus (keyboard langsung nongol), hasil di-grouping
+   per kelompok. Overlay/sheet SENDIRI (bukan #kas-brimo-overlay),
+   biar bisa dibuka dari dalam modal edit (.modal-overlay z-index
+   300) TANPA nutup modal itu — z-index sengaja di atas keduanya
+   (brimo sheet z:601, modal z:300).
+   ═══════════════════════════════════════════════════════════════ */
+#kas-akun-picker-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+#kas-akun-picker-overlay.open { display: block; }
+
+#kas-sheet-akun-picker {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 701;
+  background: #1a1a1a;
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1), bottom 0.15s ease;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  max-height: 88vh;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+#kas-sheet-akun-picker.open { display: flex; transform: translateY(0); }
+
+#kas-akun-picker-title {
+  flex: none;
+}
+#kas-akun-picker-search-wrap {
+  flex: none;
+  padding: 0 16px 10px;
+}
+#kas-akun-picker-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 15px;
+  font-family: var(--f);
+  color: var(--ink);
+  outline: none;
+  -webkit-appearance: none;
+}
+#kas-akun-picker-search::placeholder { color: var(--ink3); }
+#kas-akun-picker-search:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.09); }
+
+#kas-akun-picker-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 4px 10px 12px;
+}
+#kas-akun-picker-list .kas-akun-item {
+  font-size: 15px;
+  padding: 12px 10px;
+  border-radius: 8px;
+}
+#kas-akun-picker-list .kas-akun-group {
+  font-size: 11px;
+  padding: 12px 10px 4px;
+  color: rgba(255,255,255,.4);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-weight: 700;
+}
+#kas-akun-picker-list .kas-akun-item:active,
+#kas-akun-picker-list .kas-akun-item.active {
+  background: rgba(255,255,255,.08);
+  color: var(--ink);
+}
+#kas-akun-picker-list::-webkit-scrollbar { width: 4px; }
+#kas-akun-picker-list::-webkit-scrollbar-track { background: transparent; }
+#kas-akun-picker-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+@media (min-width: 768px) {
+  #kas-sheet-akun-picker {
+    left: 50%; right: auto; bottom: 50%;
+    transform: translate(-50%, 50%) scale(.96);
+    width: 100%; max-width: 420px;
+    border-radius: 16px;
+    max-height: 70vh;
+    opacity: 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  #kas-sheet-akun-picker.open {
+    transform: translate(-50%, 50%) scale(1);
+    opacity: 1;
+  }
+}

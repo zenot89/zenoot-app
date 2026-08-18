@@ -457,7 +457,7 @@ function _kasInjectSheets() {
       <label class="kas-brimo-label">Keterangan</label>
       <input type="text" id="kas-jrn-ket" class="kas-brimo-input" placeholder="mis: bayar iklan Shopee...">
     </div>
-    <div class="kas-brimo-field kas-ref-field">
+    <div class="kas-brimo-field kas-ref-field"
       <label class="kas-brimo-label">No. Referensi <span style="color:var(--ink3);font-weight:400">(opsional)</span></label>
       <input type="text" id="kas-jrn-ref" class="kas-brimo-input" placeholder="mis: INV-001">
     </div>
@@ -525,6 +525,22 @@ function _kasInjectSheets() {
     <button class="kas-brimo-btn-batal" onclick="kasBrimoClose()"><i class="ti ti-x"></i> Batal</button>
     <button class="kas-brimo-btn-simpan" onclick="kasSimpanJurnal()"><i class="ti ti-device-floppy"></i> Simpan</button>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- AKUN PICKER — sheet full, muncul dari bawah, dipakai   -->
+<!-- SEMUA picker akun (Tambah maupun Edit)                 -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="kas-akun-picker-overlay" onclick="kasAkunPickerClose()"></div>
+<div id="kas-sheet-akun-picker">
+  <div class="kas-brimo-handle"></div>
+  <div id="kas-akun-picker-title" class="kas-brimo-sheet-title">Pilih Akun</div>
+  <div id="kas-akun-picker-search-wrap">
+    <input type="text" id="kas-akun-picker-search" placeholder="Cari akun..."
+      autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+      oninput="kasAkunPickerFilter(this.value)">
+  </div>
+  <div id="kas-akun-picker-list"></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
@@ -994,7 +1010,7 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
       e.stopPropagation();
       // preventDefault hanya untuk touch agar tidak double-fire dengan click
       if (e.type === 'touchstart') e.preventDefault();
-      kasTogglePicker(picker.dataset.picker);
+      kasAkunPickerOpen(picker.dataset.picker);
     }, evName === 'touchstart' ? { passive: false } : true);
   };
   window._kasPickerDelegateInit();
@@ -1225,6 +1241,23 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 
 })();
 
+// ── Aturan kelompok akun per tipe transaksi — SUMBER TUNGGAL ──
+// Dipakai baik oleh kasFilterAkunByTipe (select lama) maupun sheet
+// picker akun baru (kasAkunPickerOpen dkk) DAN validasi sebelum
+// simpan (_kasValidasiKelompokAkun) — biar 3 tempat itu nggak
+// bisa saling nggak sinkron kayak yang terjadi sebelumnya.
+// Return null artinya semua kelompok boleh (tipe 'jurnal'/unknown).
+// Tipe 'penarikan' NGGAK lewat sini — aturannya bukan cuma soal
+// kelompok tapi predikat khusus (nama TUNAI + sub_kelompok), lihat
+// pemakainya masing-masing.
+function _kasAllowedKelompok(tipe) {
+  if (tipe === 'pinjaman')       return { debit: ['aset'],              kredit: ['kewajiban'] };
+  if (tipe === 'bayar_pinjaman') return { debit: ['kewajiban'],         kredit: ['aset'] };
+  if (tipe === 'masuk')          return { debit: ['aset'],              kredit: ['pendapatan','modal','kewajiban'] };
+  if (tipe === 'keluar')         return { debit: ['beban','kewajiban'], kredit: ['aset'] };
+  return null;
+}
+
 // ── Filter akun dropdown berdasarkan tipe transaksi ─────────
 // Pinjaman     : debit=aset, kredit=kewajiban
 // Bayar Pinjaman: debit=kewajiban, kredit=aset
@@ -1291,12 +1324,9 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
     return;
   }
 
-  var filterD = null, filterK = null;
-  if (tipe === 'pinjaman')       { filterD = ['aset'];       filterK = ['kewajiban']; }
-  if (tipe === 'bayar_pinjaman') { filterD = ['kewajiban'];  filterK = ['aset']; }
-  if (tipe === 'masuk')          { filterD = ['aset'];       filterK = ['pendapatan','modal','kewajiban']; }
-  if (tipe === 'keluar')         { filterD = ['beban','kewajiban']; filterK = ['aset']; }
-  if (!filterD) return;
+  var rule = _kasAllowedKelompok(tipe);
+  if (!rule) return;
+  var filterD = rule.debit, filterK = rule.kredit;
 
   function applyFilter(sel, allowed) {
     var currentVal = sel.value;
@@ -1382,6 +1412,28 @@ function kasHitungJurnal() {
   preview.style.display = 'block';
 }
 
+// ── Validasi kelompok akun sesuai tipe transaksi — jaring pengaman ──
+// Dipanggil pas SIMPAN (Tambah & Edit), bukan cuma ngandelin filter di
+// picker. Kalau ada state ganjil (misal tipe kepencet ulang tapi akun
+// lama masih ke-carry), ini yang nolak sebelum data salah masuk DB.
+function _kasValidasiKelompokAkun(tipe, akunD, akunK) {
+  if (!akunD || !akunK) return null; // biar validasi required-check yg mendahului
+  if (tipe === 'penarikan') {
+    var isTunaiD  = (akunD.nama || '').trim().toUpperCase() === 'TUNAI';
+    var isKasBankK = akunK.kelompok === 'aset'
+      && (akunK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'
+      && (akunK.nama || '').trim().toUpperCase() !== 'TUNAI';
+    if (!isTunaiD)   return 'Penarikan Tunai: akun Debit harus TUNAI.';
+    if (!isKasBankK) return 'Penarikan Tunai: akun Kredit harus Kas & Bank (selain Tunai).';
+    return null;
+  }
+  var rule = _kasAllowedKelompok(tipe);
+  if (!rule) return null; // Jurnal Umum — semua kombinasi boleh
+  if (rule.debit.indexOf(akunD.kelompok) === -1) return 'Kelompok akun Debit tidak sesuai untuk tipe transaksi ini.';
+  if (rule.kredit.indexOf(akunK.kelompok) === -1) return 'Kelompok akun Kredit tidak sesuai untuk tipe transaksi ini.';
+  return null;
+}
+
 async function kasSimpanJurnal() {
   // Baca dari sheet detail (BRImo) — nominal dari hidden input
   var nomEl = document.getElementById('kas-jrn-nominal');
@@ -1394,6 +1446,8 @@ async function kasSimpanJurnal() {
   if (!akunDId)         { alert('Akun Debit wajib dipilih!'); return; }
   if (!akunKId)         { alert('Akun Kredit wajib dipilih!'); return; }
   if (akunDId===akunKId){ alert('Akun Debit dan Kredit tidak boleh sama!'); return; }
+  const _vErr = _kasValidasiKelompokAkun(document.getElementById('kas-jrn-tipe').value, _kasAkunMap[akunDId], _kasAkunMap[akunKId]);
+  if (_vErr) { alert(_vErr); return; }
   const data = {
     tanggal:        tgl,
     keterangan:     (document.getElementById('kas-jrn-ket').value||'').trim(),
@@ -1494,6 +1548,8 @@ async function kasUpdateJurnal() {
   if (!akunDId)         { alert('Akun Debit wajib dipilih!'); return; }
   if (!akunKId)         { alert('Akun Kredit wajib dipilih!'); return; }
   if (akunDId===akunKId){ alert('Akun Debit dan Kredit tidak boleh sama!'); return; }
+  const _vErr = _kasValidasiKelompokAkun(document.getElementById('kas-edit-tipe').value, _kasAkunMap[akunDId], _kasAkunMap[akunKId]);
+  if (_vErr) { alert(_vErr); return; }
   const data = {
     tanggal:        tgl,
     keterangan:     document.getElementById('kas-edit-ket').value.trim(),
@@ -2351,7 +2407,179 @@ function kasClosePicker(list) {
   list.style.display = 'none';
 }
 
-// ─── KAS AKUN PICKER — INLINE FLOATING DROPDOWN ─────────────────────────────
+// ─── KAS AKUN PICKER — FULL BOTTOM SHEET (aktif dipakai) ────────────────────
+// Sheet naik dari bawah, search auto-fokus (keyboard langsung nongol tanpa
+// perlu tap dulu), hasil di-grouping per kelompok — pola sama kayak pilih
+// bank di BRImo. Dipakai SEMUA picker (Tambah & Edit) lewat 1 pintu masuk:
+// _kasPickerDelegateInit → kasAkunPickerOpen(pickerId).
+//
+// Kelompok yang boleh muncul difilter dobel:
+//  1. Sesuai tipe transaksi + posisi (debit/kredit) — _kasAllowedKelompok(),
+//     atau predikat khusus buat tipe 'penarikan' (debit dikunci ke TUNAI).
+//  2. Di dalam kelompok yang udah lolos filter #1, search box nyaring lagi
+//     live sesuai ketikan.
+var _kasAkunPickerCtx      = null; // {pickerId, targetId, isDebit, tipe}
+var _kasAkunPickerVpHandler = null;
+
+function kasAkunPickerOpen(pickerId) {
+  var picker = document.getElementById(pickerId);
+  if (!picker) return;
+  var targetId = picker.dataset.target;
+  var isDebit  = pickerId.indexOf('debit') !== -1;
+  var isEdit   = pickerId.indexOf('picker-edit-') === 0;
+  var tipeEl   = document.getElementById(isEdit ? 'kas-edit-tipe' : 'kas-jrn-tipe');
+  var tipe     = tipeEl ? tipeEl.value : '';
+  _kasAkunPickerCtx = { pickerId: pickerId, targetId: targetId, isDebit: isDebit, tipe: tipe };
+
+  _kasInjectSheets();
+
+  // Judul sheet pinjem teks label form yang udah ada ("Beban / Tujuan
+  // (Debit)" dst) biar konsisten sama konteks tipe transaksi aktif.
+  var labelSourceId = isEdit
+    ? (isDebit ? 'kas-edit-lbl-debit' : 'kas-edit-lbl-kredit')
+    : (isDebit ? 'kas-lbl-debit' : 'kas-lbl-kredit');
+  var labelSourceEl = document.getElementById(labelSourceId);
+  var titleEl = document.getElementById('kas-akun-picker-title');
+  if (titleEl) titleEl.textContent = (labelSourceEl && labelSourceEl.textContent.trim())
+    ? labelSourceEl.textContent
+    : (isDebit ? 'Pilih Akun Debit' : 'Pilih Akun Kredit');
+
+  var sel = document.getElementById(targetId);
+  var currentVal = sel ? sel.value : '';
+  var searchEl = document.getElementById('kas-akun-picker-search');
+  if (searchEl) searchEl.value = '';
+  _kasAkunPickerRender('', currentVal);
+
+  var overlay = document.getElementById('kas-akun-picker-overlay');
+  var sheet   = document.getElementById('kas-sheet-akun-picker');
+  if (overlay) overlay.classList.add('open');
+  if (sheet)   sheet.classList.add('open');
+
+  if (window.visualViewport) {
+    _kasAkunPickerVpHandler = _kasAkunPickerReposition;
+    window.visualViewport.addEventListener('resize', _kasAkunPickerVpHandler);
+  }
+  _kasAkunPickerReposition();
+
+  // Auto-fokus search SETELAH animasi naik selesai — keyboard langsung
+  // nongol, user bisa langsung ngetik tanpa nge-tap search dulu.
+  setTimeout(function() {
+    if (searchEl) searchEl.focus({ preventScroll: true });
+    _kasAkunPickerReposition();
+  }, 280);
+}
+
+function kasAkunPickerClose() {
+  var overlay = document.getElementById('kas-akun-picker-overlay');
+  var sheet   = document.getElementById('kas-sheet-akun-picker');
+  if (sheet)   sheet.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  var searchEl = document.getElementById('kas-akun-picker-search');
+  if (searchEl) searchEl.blur();
+  if (sheet) sheet.style.bottom = '';
+  if (_kasAkunPickerVpHandler && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', _kasAkunPickerVpHandler);
+    _kasAkunPickerVpHandler = null;
+  }
+  _kasAkunPickerCtx = null;
+}
+
+// Geser sheet naik biar nggak ketutup keyboard iOS — dvh CSS doang nggak
+// cukup buat position:fixed (lihat RULES §5.5), jadi WAJIB visualViewport.
+function _kasAkunPickerReposition() {
+  var sheet = document.getElementById('kas-sheet-akun-picker');
+  if (!sheet || !sheet.classList.contains('open') || !window.visualViewport) return;
+  if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) return; // desktop: dialog tengah, ga perlu geser
+  var vp   = window.visualViewport;
+  var kbH  = Math.max(0, window.innerHeight - vp.height - vp.offsetTop);
+  sheet.style.bottom    = kbH + 'px';
+  sheet.style.maxHeight = Math.max(240, vp.height - 24) + 'px';
+}
+
+function kasAkunPickerFilter(q) {
+  var sel = _kasAkunPickerCtx ? document.getElementById(_kasAkunPickerCtx.targetId) : null;
+  _kasAkunPickerRender(q, sel ? sel.value : '');
+}
+
+// Kelompok yang diizinkan buat konteks picker yang lagi aktif.
+// Return { special:'penarikan' } buat kasus predikat khusus, atau
+// { kelompok:[...] } buat kasus biasa, atau null = semua kelompok boleh.
+function _kasAkunPickerAllowed() {
+  if (!_kasAkunPickerCtx) return null;
+  if (_kasAkunPickerCtx.tipe === 'penarikan') return { special: 'penarikan' };
+  var rule = _kasAllowedKelompok(_kasAkunPickerCtx.tipe);
+  if (!rule) return null;
+  return { kelompok: _kasAkunPickerCtx.isDebit ? rule.debit : rule.kredit };
+}
+
+function _kasAkunPickerRender(q, currentVal) {
+  var listEl = document.getElementById('kas-akun-picker-list');
+  if (!listEl) return;
+  var allowed  = _kasAkunPickerAllowed();
+  var akunList = Object.values(_kasAkunMap || {});
+  if (allowed && allowed.special === 'penarikan') {
+    akunList = akunList.filter(function(a) {
+      var isTunai   = (a.nama || '').trim().toUpperCase() === 'TUNAI';
+      var isKasBank = a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      return _kasAkunPickerCtx.isDebit ? isTunai : (isKasBank && !isTunai);
+    });
+  } else if (allowed && allowed.kelompok) {
+    akunList = akunList.filter(function(a) { return allowed.kelompok.indexOf(a.kelompok) !== -1; });
+  }
+  q = (q || '').toLowerCase().trim();
+  if (q) {
+    akunList = akunList.filter(function(a) {
+      return ((a.kode ? a.kode + ' ' : '') + a.nama).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  var order = ['aset','kewajiban','modal','pendapatan','beban'];
+  var grouped = {}; order.forEach(function(k) { grouped[k] = []; });
+  akunList.forEach(function(a) { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
+  order.forEach(function(k) { grouped[k].sort(function(a,b) { return (a.kode||'').localeCompare(b.kode||''); }); });
+
+  var saldoMap = _kasGetSaldoMap();
+  var html = '';
+  order.forEach(function(k) {
+    if (!grouped[k].length) return;
+    html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
+    grouped[k].forEach(function(a) {
+      var label    = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
+      var isActive = String(a.id) === String(currentVal);
+      var saldoHtml = '';
+      var isKasBankAkun = (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      if (isKasBankAkun) {
+        var s = saldoMap[a.id] || { d: 0, k: 0 };
+        var saldo = s.d - s.k;
+        var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
+        var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
+        saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
+      }
+      html += '<div class="kas-akun-item' + (isActive ? ' active' : '') + '" data-val="' + a.id + '" onclick="kasAkunPickerSelectItem(this)">'
+        + '<span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
+    });
+  });
+  listEl.innerHTML = html || '<div class="kas-akun-empty">Tidak ditemukan</div>';
+}
+
+function kasAkunPickerSelectItem(item) {
+  if (!_kasAkunPickerCtx) return;
+  var val = item.dataset.val;
+  var sel = document.getElementById(_kasAkunPickerCtx.targetId);
+  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
+  var lbl = document.getElementById(_kasAkunPickerCtx.pickerId + '-label');
+  if (lbl) {
+    var namaEl = item.querySelector('.kas-akun-nama');
+    lbl.textContent = namaEl ? namaEl.textContent : item.textContent.trim();
+    lbl.style.color = 'var(--ink)';
+  }
+  kasAkunPickerClose();
+}
+
+// ─── KAS AKUN PICKER — INLINE FLOATING DROPDOWN (LEGACY, sudah tidak
+// dipanggil — lihat _kasPickerDelegateInit yang sekarang nembak
+// kasAkunPickerOpen di atas. Dibiarin dulu, bukan dihapus, biar
+// perubahan ini minim risiko; bisa dibersihin sesi berikutnya kalau
+// sheet baru di atas udah kebukti stabil.) ──────────────────────────
 // Ganti pendekatan bottom-sheet penuh (dark overlay, 60vh dari bawah layar)
 // ke dropdown kecil yang nempel LANGSUNG DI ATAS trigger picker.
 //
