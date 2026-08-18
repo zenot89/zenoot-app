@@ -1011,10 +1011,19 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     function _handlePickerEvent(e) {
       var picker = e.target.closest ? e.target.closest('[data-picker]') : null;
       if (!picker) return;
+      // KRITIS: preventDefault/stopPropagation WAJIB jalan di SETIAP event yang match
+      // (pointerdown MAUPUN touchstart), bukan cuma yang pertama nembak. Kalau di-skip
+      // gara-gara _pickerHandled udah true (dedupe), event yang di-skip itu (biasanya
+      // touchstart) nggak pernah ke-preventDefault — akibatnya Android tetep nyusun
+      // synthetic click dari touch sequence itu. Pas synthetic click itu nembak
+      // (abis sheet kebuka), dia nyasar ke backdrop overlay yang udah nutupin layar di
+      // koordinat yang sama → overlay itu langsung nutup sheet yang baru aja kebuka.
+      // Dedupe (_pickerHandled) cuma buat nyegah kasAkunPickerOpen() kepanggil 2x —
+      // BUKAN buat nyegah preventDefault.
+      e.stopPropagation();
+      e.preventDefault(); // KRITIS: cegah native <select> Android terbuka + cegah ghost-click
       if (_pickerHandled) return;
       _pickerHandled = true;
-      e.stopPropagation();
-      e.preventDefault(); // KRITIS: cegah native <select> Android terbuka
       kasAkunPickerOpen(picker.dataset.picker);
     }
 
