@@ -575,7 +575,7 @@ document.getElementById('page-gadag').innerHTML = `
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span id="gdg-pend-count" style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase">— catatan</span>
-    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Tambah Catatan</button>
+    <button class="btn btn-sm btn-primary" onclick="gdgShowPendapatanModal()"><i class="ti ti-plus"></i> Catatan Pendapatan</button>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
@@ -749,11 +749,14 @@ document.getElementById('page-gadag').innerHTML = `
   <div class="modal gdg-sheet" id="gdg-pend-sheet" style="max-width:420px;width:100%;padding:0">
     <div id="gdg-pend-sheet-handle" class="gdg-sheet-handle"><span></span></div>
     <div class="gdg-sheet-body" style="padding:0 16px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-pend-modal-title">
-        <i class="ti ti-plus"></i> Tambah Catatan Pendapatan
+    <div style="margin-bottom:14px;padding-bottom:10px;border-bottom:2px dashed var(--gdg-ink,#262220)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="gadag-icon.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:none">
+          <span class="modal-title" style="margin:0;border:none;padding:0;font-size:16px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gdg-ink,#262220)" id="gdg-pend-modal-title">Catatan Pendapatan</span>
+        </div>
+        <button onclick="gdgClosePendapatanModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
-      <button onclick="gdgClosePendapatanModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="gdg-pend-edit-id">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
@@ -806,49 +809,73 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- SKU PICKER SHEET — custom picker pengganti <select> native, bergaya buku tulis -->
-<div id="gdg-sku-picker-overlay" onclick="gdgSkuPickerClose(event)"
-  style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center">
-  <div id="gdg-sku-picker-sheet"
-    style="width:100%;max-width:480px;background:var(--gdg-paper,#f7f2e6);border-radius:18px 18px 0 0;
-           padding:0;box-shadow:0 -4px 24px rgba(0,0,0,.25);
-           font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
-           transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
-           display:flex;flex-direction:column;max-height:72dvh">
-    <!-- Handle -->
-    <div style="display:flex;justify-content:center;padding:10px 0 6px;flex:none;cursor:grab">
-      <span style="width:40px;height:5px;border-radius:3px;background:var(--gdg-ink,#262220);opacity:.3;display:block"></span>
-    </div>
-    <!-- Header bergaya buku tulis -->
-    <div style="display:flex;align-items:center;gap:10px;padding:0 16px 12px;flex:none;border-bottom:2px solid var(--gdg-ink,#262220)">
-      <img src="gadag-icon.png" alt="" style="width:32px;height:32px;object-fit:contain;flex:none">
-      <span style="font-size:17px;font-weight:800;letter-spacing:.04em;color:var(--gdg-ink,#262220);text-transform:uppercase">Pilih Produk</span>
-      <button onclick="gdgSkuPickerClose(null,true)"
-        style="margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:var(--gdg-ink,#262220);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <!-- Search bar -->
-    <div style="padding:10px 16px 6px;flex:none">
-      <div style="display:flex;align-items:center;gap:8px;border:2px solid var(--gdg-ink,#262220);border-radius:10px;background:var(--gdg-paper2,#efe8d8);padding:6px 10px">
-        <i class="ti ti-search" style="color:var(--gdg-ink2,#5c554d);font-size:16px;flex:none"></i>
-        <input type="text" id="gdg-sku-picker-search" placeholder="Cari produk..."
-          oninput="gdgSkuPickerFilter(this.value)"
-          style="border:none;background:transparent;flex:1;font-family:inherit;font-size:14px;font-weight:700;color:var(--gdg-ink,#262220);outline:none;min-width:0">
-      </div>
-    </div>
-    <!-- List scroll -->
-    <div id="gdg-sku-picker-list"
-      style="overflow-y:auto;flex:1;padding:4px 0 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
-      <!-- diisi JS -->
-    </div>
-  </div>
-</div>
-
 <!-- Area cetak khusus buat Export PDF (Catatan Pendapatan) — normal display:none,
      cuma dimunculin pas mode print lewat CSS @media print di atas -->
 <div id="gdg-print-area"></div>
 `;
 
 setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-gadag')); }, 80);
+
+// ─── SKU PICKER SHEET — inject ke document.body BUKAN ke dalam page-gadag ──
+// Alasan: position:fixed di dalam elemen ber-transform (bottom-sheet modal induk)
+// pada iOS Safari tidak anchored ke viewport — malah relatif ke transformed ancestor.
+// Solusinya: picker dirender langsung di body, di luar semua transform context.
+(function _gdgInjectSkuPicker() {
+  if (document.getElementById('gdg-sku-picker-overlay')) return;
+  const el = document.createElement('div');
+  el.id = 'gdg-sku-picker-overlay';
+  el.style.cssText = [
+    'display:none','position:fixed','inset:0','z-index:9999',
+    'background:rgba(0,0,0,.5)',
+    'align-items:flex-end','justify-content:center',
+  ].join(';');
+  el.innerHTML = `
+    <div id="gdg-sku-picker-sheet"
+      style="width:100%;max-width:480px;background:#f7f2e6;border-radius:18px 18px 0 0;
+             padding:0;box-shadow:0 -4px 24px rgba(0,0,0,.28);
+             font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
+             transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+             display:flex;flex-direction:column;max-height:72dvh;box-sizing:border-box">
+      <!-- Handle -->
+      <div style="display:flex;justify-content:center;padding:10px 0 6px;flex:none">
+        <span style="width:40px;height:5px;border-radius:3px;background:#262220;opacity:.3;display:block"></span>
+      </div>
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;padding:0 16px 12px;flex:none;border-bottom:2px solid #262220">
+        <img src="gadag-icon.png" alt="" style="width:32px;height:32px;object-fit:contain;flex:none">
+        <span style="font-size:17px;font-weight:800;letter-spacing:.04em;color:#262220;text-transform:uppercase">Pilih Produk</span>
+        <button id="gdg-sku-picker-close-btn"
+          style="margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:#262220;line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <!-- Search -->
+      <div style="padding:10px 16px 6px;flex:none">
+        <div style="display:flex;align-items:center;gap:8px;border:2px solid #262220;border-radius:10px;background:#efe8d8;padding:6px 10px">
+          <i class="ti ti-search" style="color:#5c554d;font-size:16px;flex:none"></i>
+          <input type="text" id="gdg-sku-picker-search" placeholder="Cari produk..."
+            style="border:none;background:transparent;flex:1;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
+                   font-size:14px;font-weight:700;color:#262220;outline:none;min-width:0">
+        </div>
+      </div>
+      <!-- List -->
+      <div id="gdg-sku-picker-list"
+        style="overflow-y:auto;flex:1;padding:4px 0 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  // Tutup saat tap backdrop (overlay) — pakai pointer event, bukan onclick bubbling
+  el.addEventListener('pointerdown', function(e) {
+    if (e.target === el) gdgSkuPickerClose(true);
+  });
+  // Tombol ✕
+  document.getElementById('gdg-sku-picker-close-btn').addEventListener('click', function() {
+    gdgSkuPickerClose(true);
+  });
+  // Input search
+  document.getElementById('gdg-sku-picker-search').addEventListener('input', function() {
+    gdgSkuPickerFilter(this.value);
+  });
+})();
 
 // ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
 let _gdgView = 'mingguan';
@@ -2553,7 +2580,7 @@ function gdgShowPendapatanModal(editId) {
     document.getElementById('gdg-pend-sku-nama').value   = record.sku_nama || '';
     document.getElementById('gdg-pend-sku-ongkos').value = skuRec ? (skuRec.ongkos_lusin||0) : (record.ongkos_lusin||0);
     document.getElementById('gdg-pend-sku-label').value  = record.sku_nama || '';
-    titleEl.innerHTML = '<i class="ti ti-pencil"></i> Edit Catatan Pendapatan';
+    titleEl.textContent = 'Edit Catatan Pendapatan';
     hapusBtn.style.display = '';
     gdgRecomputePreview();
   } else {
@@ -2567,7 +2594,7 @@ function gdgShowPendapatanModal(editId) {
     _resetSku();
     document.getElementById('gdg-pend-qty').value = '';
     document.getElementById('gdg-pend-preview').textContent = 'Rp0';
-    titleEl.innerHTML = '<i class="ti ti-plus"></i> Tambah Catatan Pendapatan';
+    titleEl.textContent = 'Catatan Pendapatan';
     hapusBtn.style.display = 'none';
   }
 
@@ -2777,14 +2804,16 @@ function gdgSkuPickerOpen() {
   if (search) search.value = '';
   gdgSkuPickerRenderList('');
   overlay.style.display = 'flex';
+  // dua rAF biar browser sempat paint display:flex sebelum animasi transform jalan
   requestAnimationFrame(() => requestAnimationFrame(() => {
     sheet.style.transform = 'translateY(0)';
   }));
-  setTimeout(() => { if (search) search.focus(); }, 320);
+  // jangan auto-focus search di iOS — keyboard pop-up di dalam bottom-sheet
+  // sering bikin layout loncat; biarkan user tap sendiri kalau mau search
 }
 
-function gdgSkuPickerClose(e, force) {
-  if (e && e.target !== document.getElementById('gdg-sku-picker-overlay') && !force) return;
+// force=true → tutup tanpa cek target (dipanggil dari tombol ✕ atau select item)
+function gdgSkuPickerClose(force) {
   const sheet   = document.getElementById('gdg-sku-picker-sheet');
   const overlay = document.getElementById('gdg-sku-picker-overlay');
   if (!sheet || !overlay) return;
@@ -2830,7 +2859,7 @@ function gdgSkuPickerSelect(id, nama, ongkos) {
   document.getElementById('gdg-pend-sku-nama').value   = nama;
   document.getElementById('gdg-pend-sku-ongkos').value = ongkos;
   document.getElementById('gdg-pend-sku-label').value  = nama;
-  gdgSkuPickerClose(null, true);
+  gdgSkuPickerClose(true);
   gdgRecomputePreview();
 }
 
