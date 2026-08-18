@@ -433,6 +433,23 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-qtylsn-col:first-child { border-right: 2px dashed var(--ink3); }
   .gdg-qtylsn-col .m-value { font-size: 26px !important; font-weight: 900 !important; line-height: 1.1; }
 
+  /* ── Desktop: tabel data font lebih besar dan proper ── */
+  @media (min-width: 901px) {
+    #page-gadag .tbl th {
+      font-size: 13px; padding: 10px 12px; letter-spacing: .03em; text-transform: uppercase;
+    }
+    #page-gadag .tbl td {
+      font-size: 15px; padding: 11px 12px; font-weight: 600;
+    }
+    #page-gadag .tbl tbody tr:hover { background: rgba(38,34,32,.04); }
+    #gdgw-net-value { font-size: 28px !important; }
+    #gdgw-net-box { padding: 10px 16px !important; margin: 8px 0 12px !important; }
+    /* 4 minicard: hero value lebih besar di desktop */
+    .gdg-desktop-only .gdg-hero-value { font-size: 28px; }
+    .gdg-desktop-only .gdg-hero-label { font-size: 12px; margin-bottom: 4px; }
+    .gdg-desktop-only .gdg-hero-sub   { font-size: 12px; margin-top: 4px; }
+  }
+
   /* Poin 1: judul section (Overview/Anggaran/Riwayat/dst) duduk di atas
      BACKGROUND GELAP bawaan app (di luar area kertas krem), tapi ke-inherit
      warna tinta gelap dari rule "#page-gadag{color:var(--gdg-ink)}" di atas
@@ -480,31 +497,47 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- Wrapper collapsible: 2 minicard + metrics + refresh -->
 <div id="gdg-top-summary">
 
-<!-- 2 MINICARD: TOTAL PENDAPATAN & PENGELUARAN MINGGUAN (COST) — cuma di sini -->
+<!-- 4 MINICARD SEJAJAR (DESKTOP) / 2+metrics (MOBILE) -->
 
-<div class="gdg-minicards">
+<!-- Desktop: 4 card 1 baris — Income, Cost, Qty/Lsn, Net Income -->
+<div class="gdg-minicards gdg-desktop-only" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
     <div class="gdg-hero-value" id="gdg-total-pendapatan" style="color:var(--ok)">Rp0</div>
-    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-total-sub">— pcs dikerjakan · — catatan</div>
+    <div class="gdg-hero-sub" id="gdg-total-sub">— pcs · — catatan</div>
   </div>
   <div class="card gdg-minicard mc-cost">
-    <div class="gdg-hero-label">
-      <i class="ti ti-receipt-2"></i> Cost
-    </div>
+    <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Cost</div>
     <div class="gdg-hero-value" id="gdg-cost-value" style="color:var(--danger)">Rp0</div>
-    <div class="gdg-hero-sub gdg-desktop-only" id="gdg-cost-sub">— (cost periode ini)</div>
+    <div class="gdg-hero-sub" id="gdg-cost-sub">— (periode ini)</div>
+  </div>
+  <div class="card gdg-minicard">
+    <div class="gdg-hero-label"><i class="ti ti-stack-2"></i> Qty / Lsn</div>
+    <div class="gdg-hero-value" id="gdg-metric-qty" style="font-size:26px">—</div>
+    <div class="gdg-hero-sub">pcs, minggu terpilih</div>
+  </div>
+  <div class="card gdg-minicard">
+    <div class="gdg-hero-label"><i class="ti ti-trending-up"></i> Jumlah SKU</div>
+    <div class="gdg-hero-value" id="gdg-metric-sku" style="font-size:26px">—</div>
+    <div class="gdg-hero-sub">master ongkos per lusin</div>
   </div>
 </div>
 
-<div class="gdg-metrics">
-  <!-- Card "Qty/Lsn" — DESKTOP: gaya lama (gabungan). MOBILE: 2 kolom /QTY /LOSIN (file4) -->
-  <div class="metric gdg-desktop-only">
-    <div class="m-label">Jumlah Qty / Lsn</div>
-    <div class="m-value" id="gdg-metric-qty">—</div>
-    <div class="m-delta">pcs, minggu terpilih</div>
+<!-- Mobile: 2 minicard Income+Cost, lalu metrics grid -->
+<div class="gdg-minicards gdg-mobile-only">
+  <div class="card gdg-minicard mc-pend">
+    <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
+    <div class="gdg-hero-value" id="gdg-total-pendapatan-m" style="color:var(--ok)">Rp0</div>
   </div>
-  <div class="metric gdg-mobile-only gdg-qtylsn-split">
+  <div class="card gdg-minicard mc-cost">
+    <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Cost</div>
+    <div class="gdg-hero-value" id="gdg-cost-value-m" style="color:var(--danger)">Rp0</div>
+    <div class="gdg-hero-sub" id="gdg-cost-sub-m">—</div>
+  </div>
+</div>
+
+<div class="gdg-metrics gdg-mobile-only">
+  <div class="metric gdg-qtylsn-split">
     <div class="gdg-qtylsn-col">
       <div class="m-value" id="gdg-metric-qty-num">—</div>
     </div>
@@ -512,14 +545,7 @@ document.getElementById('page-gadag').innerHTML = `
       <div class="m-value" id="gdg-metric-lsn-num">—</div>
     </div>
   </div>
-
-  <!-- Card 4 — DESKTOP: Jumlah SKU (gaya lama). MOBILE: Target (pendapatan − target minggu ini) -->
-  <div class="metric gdg-desktop-only">
-    <div class="m-label">Jumlah SKU</div>
-    <div class="m-value" id="gdg-metric-sku">—</div>
-    <div class="m-delta">master ongkos per lusin</div>
-  </div>
-  <div class="metric gdg-mobile-only" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
+  <div class="metric" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
     <div class="m-label">Target</div>
     <div class="m-value" id="gdg-metric-target">—</div>
     <div class="m-delta" id="gdg-metric-target-sub">Target: Rp0</div>
@@ -1519,6 +1545,9 @@ async function gdgWRenderWeek() {
   document.getElementById('gdg-total-pendapatan').textContent = gdgWFmt(totalPend);
   const subEl = document.getElementById('gdg-total-sub');
   if (subEl) subEl.textContent = totalQty.toLocaleString('id-ID') + ' pcs · ' + pendList.length + ' catatan';
+  // sync mobile
+  const pendM = document.getElementById('gdg-total-pendapatan-m');
+  if (pendM) pendM.textContent = gdgWFmt(totalPend);
 
   // Update Qty/Lsn metric
   const qtyEl = document.getElementById('gdg-metric-qty');
@@ -1532,6 +1561,11 @@ async function gdgWRenderWeek() {
   document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
   const costSubEl = document.getElementById('gdg-cost-sub');
   if (costSubEl) costSubEl.textContent = gdgWFmtRange(start, end);
+  // sync mobile
+  const costM    = document.getElementById('gdg-cost-value-m');
+  const costSubM = document.getElementById('gdg-cost-sub-m');
+  if (costM)    costM.textContent    = gdgWFmt(totalBeban);
+  if (costSubM) costSubM.textContent = gdgWFmtRange(start, end);
 
   gdgUpdateTargetCard();
 }
