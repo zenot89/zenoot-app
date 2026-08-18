@@ -111,6 +111,8 @@ document.getElementById('page-kas').innerHTML = `
   }
   /* Default: kolom portrait tersembunyi di laptop/landscape */
   .kas-col-portrait { display:none; }
+  /* Visual feedback saat row di-tekan-tahan */
+  #kas-jurnal-tbody tr.kas-row-pressing { background:var(--cream2) !important; opacity:0.7; transition:opacity 0.1s; }
   .lap-head td  { font-weight:700; background:var(--cream2); border-top:2px solid var(--ink); }
   .lap-sub  td  { padding-left:24px !important; color:var(--ink2); }
   .lap-total td { font-weight:700; border-top:2px dashed var(--ink3); }
@@ -638,7 +640,7 @@ function _kasInjectSheets() {
       <b>Preview Jurnal:</b><br><span id="kas-edit-preview-text"></span>
     </div>
     <div class="modal-actions" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-      <button class="btn btn-sm btn-danger" onclick="kasHapusDariModal()" id="kas-edit-btn-hapus" style="display:none"><i class="ti ti-trash"></i> Hapus</button>
+      <button class="btn btn-sm" onclick="kasHapusDariModal()" id="kas-edit-btn-hapus" style="display:none;background:var(--danger);color:#fff;border-color:var(--danger)"><i class="ti ti-trash"></i> Hapus</button>
       <button class="btn btn-sm" onclick="hideModal('modal-kas-transaksi')" style="flex:1"><i class="ti ti-x"></i> Batal</button>
       <button class="btn btn-primary btn-sm" onclick="kasUpdateJurnal()" style="flex:1"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>
@@ -1689,7 +1691,7 @@ function kasRenderJurnalTabel(data) {
       ? '<span style="color:var(--ok);font-weight:700">+'+fmtRp(r.debit)+'</span>'
       : '<span style="color:var(--danger);font-weight:700">-'+fmtRp(r.kredit)+'</span>';
 
-    return '<tr>' +
+    return '<tr data-id="'+r.id+'">' +
       '<td style="white-space:nowrap">'+tgl+'</td>' +
       '<td class="kas-col-ref" style="color:var(--ink3);font-size:11px">'+(r.referensi||'—')+'</td>' +
       '<td class="kas-col-ket">'+(r.keterangan||'—')+'</td>' +
@@ -1795,38 +1797,79 @@ async function kasHapusJurnal(id, ket) {
   });
 }
 
-// Hapus dari dalam modal edit
+// Hapus dari dalam modal edit — konfirmasi "YAKIN HAPUS TRANSAKSI INI?"
 async function kasHapusDariModal() {
   var id  = parseInt(document.getElementById('kas-edit-id').value);
-  var ket = document.getElementById('kas-edit-ket').value || 'transaksi ini';
   if (!id) return;
-  hideModal('modal-kas-transaksi');
-  kasHapusJurnal(id, ket);
+  confirmDelete('YAKIN HAPUS TRANSAKSI INI?', async () => {
+    try {
+      hideModal('modal-kas-transaksi');
+      await dbDelete('jurnal', id);
+      loadKasJurnal();
+    } catch(e) { alert('Gagal hapus: ' + e.message); }
+  });
 }
 
 // Long press pada row tabel jurnal → hapus
+// ─── Tekan & tahan row jurnal → buka modal Edit (bukan langsung hapus) ─────
+// Pola persis gadag: HOLD_MS=500, MOVE_LIMIT=10px, vibrate(15), cancel on move/scroll.
+// Tombol [HAPUS] merah muncul di dalam modal edit — ada konfirmasi sebelum eksekusi.
 (function() {
-  var _lpTimer = null;
-  var _lpId    = null;
-  var _lpKet   = null;
+  var HOLD_MS    = 500;
+  var MOVE_LIMIT = 10;
+  var _timer = null, _startX = 0, _startY = 0, _row = null;
 
+  function _cancel() {
+    if (_timer) { clearTimeout(_timer); _timer = null; }
+    if (_row) { _row.classList.remove('kas-row-pressing'); }
+    _row = null;
+  }
+
+  var tbody = document.getElementById('kas-jurnal-tbody');
+
+  // Delegasi ke document — tbody di-re-render tiap load, delegate ke document biar
+  // tidak perlu re-attach setiap render (sama pola kayak event delegation lainnya).
   document.addEventListener('touchstart', function(e) {
-    var row = e.target.closest('#kas-jurnal-tbody tr');
-    if (!row) return;
-    var editBtn = row.querySelector('[data-action="edit-kas"]');
-    if (!editBtn) return;
-    _lpId  = parseInt(editBtn.dataset.id);
-    var hapusBtn = row.querySelector('[data-action="hapus-kas"]');
-    _lpKet = hapusBtn ? hapusBtn.dataset.ket : '';
-    _lpTimer = setTimeout(function() {
-      if (_lpId) kasHapusJurnal(_lpId, _lpKet);
-      _lpId = null;
-    }, 600);
+    var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
+    if (!tr) return;
+    _row    = tr;
+    _startX = e.touches[0].clientX;
+    _startY = e.touches[0].clientY;
+    _row.classList.add('kas-row-pressing');
+    _timer  = setTimeout(function() {
+      if (!_row) return;
+      var id = _row.getAttribute('data-id');
+      _cancel();
+      if (navigator.vibrate) navigator.vibrate(15);
+      kasEditJurnal(id); // buka modal edit — tombol Hapus muncul di sana
+    }, HOLD_MS);
   }, { passive: true });
 
-  document.addEventListener('touchend',   function() { clearTimeout(_lpTimer); }, { passive: true });
-  document.addEventListener('touchmove',  function() { clearTimeout(_lpTimer); }, { passive: true });
-  document.addEventListener('touchcancel',function() { clearTimeout(_lpTimer); }, { passive: true });
+  document.addEventListener('touchmove', function(e) {
+    if (!_timer) return;
+    var dx = Math.abs(e.touches[0].clientX - _startX);
+    var dy = Math.abs(e.touches[0].clientY - _startY);
+    if (dx > MOVE_LIMIT || dy > MOVE_LIMIT) _cancel();
+  }, { passive: true });
+
+  document.addEventListener('touchend',    _cancel, { passive: true });
+  document.addEventListener('touchcancel', _cancel, { passive: true });
+
+  // Desktop: mousedown + hold juga bisa trigger (buat testing di laptop)
+  document.addEventListener('mousedown', function(e) {
+    var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
+    if (!tr) return;
+    _row = tr;
+    _row.classList.add('kas-row-pressing');
+    _timer = setTimeout(function() {
+      if (!_row) return;
+      var id = _row.getAttribute('data-id');
+      _cancel();
+      kasEditJurnal(id);
+    }, HOLD_MS);
+  });
+  document.addEventListener('mouseup',    _cancel);
+  document.addEventListener('mouseleave', _cancel);
 })();
 
 function kasExportCSV() {
