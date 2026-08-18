@@ -516,10 +516,10 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="gdg-hero-value" id="gdg-metric-qty" style="font-size:26px">—</div>
     <div class="gdg-hero-sub">pcs, minggu terpilih</div>
   </div>
-  <div class="card gdg-minicard">
-    <div class="gdg-hero-label"><i class="ti ti-trending-up"></i> Jumlah SKU</div>
-    <div class="gdg-hero-value" id="gdg-metric-sku" style="font-size:26px">—</div>
-    <div class="gdg-hero-sub">master ongkos per lusin</div>
+  <div class="card gdg-minicard" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
+    <div class="gdg-hero-label"><i class="ti ti-target"></i> Target</div>
+    <div class="gdg-hero-value" id="gdg-metric-target-d" style="font-size:26px">—</div>
+    <div class="gdg-hero-sub" id="gdg-metric-target-sub-d">Target: Rp0</div>
   </div>
 </div>
 
@@ -1849,8 +1849,6 @@ function gdgAngHapusDariModal() {
 // SELALU minggu berjalan (hari ini), independen dari minggu yg lagi
 // dibrowse di navigator Ringkasan — biar ga rancu sama konsep "target".
 function gdgUpdateTargetCard() {
-  const el = document.getElementById('gdg-metric-target');
-  if (!el) return; // desktop, elemen mobile ga ada
   const wkStart  = gdgWGetMonday(new Date());
   const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
   const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
@@ -1859,10 +1857,21 @@ function gdgUpdateTargetCard() {
     .reduce((s,p) => s + (Number(p.total)||0), 0);
   const netAnggaran = gdgAngNetTotal();
   const sisa = pendMingguIni - netAnggaran;
-  el.textContent   = gdgFmt(sisa);
-  el.style.color   = sisa >= 0 ? 'var(--ok)' : 'var(--danger)';
+  const sisaFmt = gdgFmt(sisa);
+  const siColor = sisa >= 0 ? 'var(--ok)' : 'var(--danger)';
+  const subTxt  = 'Target: ' + gdgFmt(netAnggaran);
+
+  // Mobile card
+  const el = document.getElementById('gdg-metric-target');
+  if (el) { el.textContent = sisaFmt; el.style.color = siColor; }
   const subEl = document.getElementById('gdg-metric-target-sub');
-  if (subEl) subEl.textContent = 'Target: ' + gdgFmt(netAnggaran);
+  if (subEl) subEl.textContent = subTxt;
+
+  // Desktop card ke-4
+  const elD = document.getElementById('gdg-metric-target-d');
+  if (elD) { elD.textContent = sisaFmt; elD.style.color = siColor; }
+  const subElD = document.getElementById('gdg-metric-target-sub-d');
+  if (subElD) subElD.textContent = subTxt;
 }
 
 // ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
