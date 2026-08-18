@@ -2490,11 +2490,24 @@ function _kasSheetOpen(pickerId) {
 
   sheetList.innerHTML = html;
 
-  // Attach click handlers
+  // Attach select handlers — PENTING: pakai pointerdown, BUKAN click.
+  // Root cause bug "harus tutup keyboard dulu baru bisa pilih": search input
+  // di atas list masih fokus (keyboard aktif) saat item di-tap. Di iOS Safari,
+  // tap yang menyebabkan input lain blur akan memproses blur (nutup keyboard)
+  // LEBIH DULU, dan itu membatalkan event 'click' di tap pertama — baru tap
+  // ke-2 (setelah keyboard beneran nutup) yang click-nya kepicu. pointerdown
+  // terjadi sebelum blur diproses, jadi selection langsung sukses di 1 tap.
+  // Pola ini sama persis dengan trigger picker (lihat _kasPickerDelegateInit).
+  var _evName = window.PointerEvent ? 'pointerdown' : 'touchstart';
   sheetList.querySelectorAll('.kas-akun-item').forEach(function(el) {
-    el.addEventListener('click', function() {
+    var _picked = false;
+    el.addEventListener(_evName, function(e) {
+      if (_picked) return; // cegah double-fire (pointerdown + fallback click)
+      _picked = true;
+      e.preventDefault();
+      e.stopPropagation();
       _kasSheetSelect(pickerId, el.dataset.val || '');
-    });
+    }, _evName === 'touchstart' ? { passive: false } : true);
   });
 
   // Reset search
