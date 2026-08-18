@@ -520,6 +520,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="gdg-hero-label"><i class="ti ti-target"></i> Target</div>
     <div class="gdg-hero-value" id="gdg-metric-target-d" style="font-size:26px">—</div>
     <div class="gdg-hero-sub" id="gdg-metric-target-sub-d">Target: Rp0</div>
+    <div class="gdg-hero-sub" id="gdg-metric-target-pct-d" style="margin-top:1px">—</div>
   </div>
 </div>
 
@@ -547,6 +548,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="m-label">Target</div>
     <div class="m-value" id="gdg-metric-target">—</div>
     <div class="m-delta" id="gdg-metric-target-sub">Target: Rp0</div>
+    <div class="m-delta" id="gdg-metric-target-pct" style="margin-top:1px">—</div>
   </div>
 </div>
 </div>
@@ -679,11 +681,16 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- PANEL: ANGGARAN (Variable Mingguan) -->
 <div id="gdg-panel-anggaran" class="gdg-panel">
-<div class="gdg-metrics" style="grid-template-columns:1fr;margin-bottom:14px">
+<div class="gdg-metrics" style="margin-bottom:14px">
   <div class="metric">
     <div class="m-label">Net Anggaran</div>
     <div class="m-value" id="gdg-ang2-net">—</div>
     <div class="m-delta" id="gdg-ang2-week-label">—</div>
+  </div>
+  <div class="metric">
+    <div class="m-label">Penyerapan</div>
+    <div class="m-value" id="gdg-ang2-diserap-nilai">—</div>
+    <div class="m-delta" id="gdg-ang2-diserap-pct">—</div>
   </div>
 </div>
 <div class="card">
@@ -1555,15 +1562,10 @@ async function gdgWRenderWeek() {
   if (qtyNumEl) qtyNumEl.textContent = totalQty.toLocaleString('id-ID');
   if (lsnNumEl) lsnNumEl.textContent = totalLsn;
 
-  // Update minicard Cost
-  document.getElementById('gdg-cost-value').textContent = gdgWFmt(totalBeban);
-  const costSubEl = document.getElementById('gdg-cost-sub');
-  if (costSubEl) costSubEl.textContent = gdgWFmtRange(start, end);
-  // sync mobile
-  const costM    = document.getElementById('gdg-cost-value-m');
-  const costSubM = document.getElementById('gdg-cost-sub-m');
-  if (costM)    costM.textContent    = gdgWFmt(totalBeban);
-  if (costSubM) costSubM.textContent = gdgWFmtRange(start, end);
+  // Update minicard Cost — "anggaran yang diserap" (Nilai + Percent), fixed
+  // minggu berjalan, independen dari periode yg lagi dibrowse di Overview
+  // (start/end/totalBeban di atas TIDAK dipakai lagi buat card ini).
+  gdgAngUpdateCostCard();
 
   gdgUpdateTargetCard();
 }
@@ -1601,10 +1603,48 @@ function gdgAngNetTotal() {
   return _gdgAnggaranList.reduce((s, r) => s + (Number(r.target) || 0), 0);
 }
 
+// Total realisasi (nilai anggaran yang sudah diserap) — SELALU minggu berjalan,
+// dijumlah dari semua item Variable Anggaran. Dipakai bareng buat card
+// "Penyerapan" (halaman Anggaran) DAN card "Cost" di Overview — keduanya
+// salinan persis satu sama lain, fixed minggu berjalan, independen dari
+// navigasi periode di Overview (sengaja dipisah dari perhitungan global).
+function gdgAngUpdateCostCard() {
+  const wkStart  = gdgWGetMonday(new Date());
+  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoStart = gdgWToISO(wkStart);
+  const isoEnd   = gdgWToISO(wkEnd);
+  const netAnggaran  = gdgAngNetTotal();
+  const totalDiserap = _gdgAnggaranList.reduce((s, it) => s + gdgAngHitungRealisasi(it.nama, isoStart, isoEnd), 0);
+  const pct    = netAnggaran > 0 ? Math.round((totalDiserap / netAnggaran) * 100) : 0;
+  const pctFmt = pct + '%';
+  let pctColor = 'var(--ok)';
+  if (pct >= 75) pctColor = 'var(--danger)';
+  else if (pct >= 35) pctColor = 'var(--warn)';
+
+  // Card Penyerapan — halaman Anggaran
+  const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
+  const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
+  if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
+  if (pctEl)   { pctEl.textContent = pctFmt; pctEl.style.color = pctColor; }
+
+  // Card Cost — Overview (desktop + mobile), salinan persis dari Penyerapan
+  const costEl  = document.getElementById('gdg-cost-value');
+  const costSub = document.getElementById('gdg-cost-sub');
+  if (costEl)  costEl.textContent  = gdgWFmt(totalDiserap);
+  if (costSub) { costSub.textContent = pctFmt + ' dari anggaran'; costSub.style.color = pctColor; }
+  const costM    = document.getElementById('gdg-cost-value-m');
+  const costSubM = document.getElementById('gdg-cost-sub-m');
+  if (costM)    costM.textContent    = gdgWFmt(totalDiserap);
+  if (costSubM) { costSubM.textContent = pctFmt + ' dari anggaran'; costSubM.style.color = pctColor; }
+
+  return { netAnggaran: netAnggaran, totalDiserap: totalDiserap, pct: pct };
+}
+
 function gdgAngRenderList() {
   const listEl = document.getElementById('gdg-ang2-list');
   const netEl  = document.getElementById('gdg-ang2-net');
   if (netEl) netEl.textContent = gdgFmt(gdgAngNetTotal());
+  gdgAngUpdateCostCard();
   if (!listEl) return;
   if (!_gdgAnggaranList.length) {
     listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran minggu ini.</div>';
@@ -1944,17 +1984,29 @@ function gdgUpdateTargetCard() {
   const siColor = sisa >= 0 ? 'var(--ok)' : 'var(--danger)';
   const subTxt  = 'Target: ' + gdgFmt(netAnggaran);
 
+  // Sisa % dari pendapatan real minggu berjalan, setelah dipotong Net Anggaran.
+  // pendMingguIni = 0 → gak bisa dihitung persen, tampilin "—".
+  let pctTxt = '—';
+  if (pendMingguIni > 0) {
+    const sisaPct = Math.round((sisa / pendMingguIni) * 100);
+    pctTxt = 'Sisa ' + sisaPct + '% dari pendapatan';
+  }
+
   // Mobile card
   const el = document.getElementById('gdg-metric-target');
   if (el) { el.textContent = sisaFmt; el.style.color = siColor; }
   const subEl = document.getElementById('gdg-metric-target-sub');
   if (subEl) subEl.textContent = subTxt;
+  const pctEl = document.getElementById('gdg-metric-target-pct');
+  if (pctEl) { pctEl.textContent = pctTxt; pctEl.style.color = siColor; }
 
   // Desktop card ke-4
   const elD = document.getElementById('gdg-metric-target-d');
   if (elD) { elD.textContent = sisaFmt; elD.style.color = siColor; }
   const subElD = document.getElementById('gdg-metric-target-sub-d');
   if (subElD) subElD.textContent = subTxt;
+  const pctElD = document.getElementById('gdg-metric-target-pct-d');
+  if (pctElD) { pctElD.textContent = pctTxt; pctElD.style.color = siColor; }
 }
 
 // ─── LOAD (semua data, tidak difilter minggu — Catatan Pendapatan & Kelola Produk) ──
