@@ -523,8 +523,9 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- Mobile: 2 minicard Income+Cost, lalu metrics grid -->
-<div class="gdg-minicards gdg-mobile-only">
+<!-- Mobile: 4 card 2x2 grid — Income, Cost, Qty/Lsn, Target -->
+<div class="gdg-mobile-only">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
     <div class="gdg-hero-value" id="gdg-total-pendapatan-m" style="color:var(--ok)">Rp0</div>
@@ -534,10 +535,7 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="gdg-hero-value" id="gdg-cost-value-m" style="color:var(--danger)">Rp0</div>
     <div class="gdg-hero-sub" id="gdg-cost-sub-m">—</div>
   </div>
-</div>
-
-<div class="gdg-metrics gdg-mobile-only">
-  <div class="metric gdg-qtylsn-split">
+  <div class="metric gdg-qtylsn-split" style="margin:0">
     <div class="gdg-qtylsn-col">
       <div class="m-value" id="gdg-metric-qty-num">—</div>
     </div>
@@ -545,11 +543,12 @@ document.getElementById('page-gadag').innerHTML = `
       <div class="m-value" id="gdg-metric-lsn-num">—</div>
     </div>
   </div>
-  <div class="metric" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
+  <div class="metric" onclick="gdgSelectView('anggaran')" style="cursor:pointer;margin:0">
     <div class="m-label">Target</div>
     <div class="m-value" id="gdg-metric-target">—</div>
     <div class="m-delta" id="gdg-metric-target-sub">Target: Rp0</div>
   </div>
+</div>
 </div>
 
 </div>
