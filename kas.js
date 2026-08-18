@@ -1002,18 +1002,26 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
   window._kasPickerDelegateInit = function() {
     if (_bound) return;
     _bound = true;
-    // Gunakan 'pointerdown' — works di semua browser modern (Chrome Android, iOS Safari 13+)
-    // Fallback touchstart untuk iOS Safari < 13
-    var evName = window.PointerEvent ? 'pointerdown' : 'touchstart';
-    document.addEventListener(evName, function(e) {
+
+    // Fix Android: listen touchstart + pointerdown keduanya, passive:false agar
+    // preventDefault bisa jalan dan native <select> Android tidak ikut terbuka.
+    // Flag _pickerHandled cegah double-fire dari kedua event di 1 tap yang sama.
+    var _pickerHandled = false;
+
+    function _handlePickerEvent(e) {
       var picker = e.target.closest ? e.target.closest('[data-picker]') : null;
       if (!picker) return;
-      // stopPropagation cegah outside handler
+      if (_pickerHandled) return;
+      _pickerHandled = true;
       e.stopPropagation();
-      // preventDefault hanya untuk touch agar tidak double-fire dengan click
-      if (e.type === 'touchstart') e.preventDefault();
+      e.preventDefault(); // KRITIS: cegah native <select> Android terbuka
       kasAkunPickerOpen(picker.dataset.picker);
-    }, evName === 'touchstart' ? { passive: false } : true);
+    }
+
+    document.addEventListener('touchend',    function() { _pickerHandled = false; }, { passive: true });
+    document.addEventListener('touchcancel', function() { _pickerHandled = false; }, { passive: true });
+    document.addEventListener('touchstart',  _handlePickerEvent, { passive: false });
+    document.addEventListener('pointerdown', _handlePickerEvent, { passive: false });
   };
   window._kasPickerDelegateInit();
 })();
