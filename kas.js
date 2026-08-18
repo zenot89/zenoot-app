@@ -435,7 +435,7 @@ function _kasInjectSheets() {
     </div>
     <div class="kas-brimo-field">
       <label class="kas-brimo-label" id="kas-lbl-debit">Masuk ke Akun (Debit)</label>
-      <select id="kas-jrn-akun-debit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+      <select id="kas-jrn-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
       <div class="kas-akun-wrap">
         <div class="kas-akun-picker kas-brimo-picker" id="picker-debit" data-target="kas-jrn-akun-debit" data-picker="picker-debit">
           <span id="picker-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
@@ -446,7 +446,7 @@ function _kasInjectSheets() {
     </div>
     <div class="kas-brimo-field">
       <label class="kas-brimo-label" id="kas-lbl-kredit">Sumber Dana (Kredit)</label>
-      <select id="kas-jrn-akun-kredit" style="display:none" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
+      <select id="kas-jrn-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungJurnal()"><option value="">— Pilih Akun —</option></select>
       <div class="kas-akun-wrap">
         <div class="kas-akun-picker kas-brimo-picker" id="picker-kredit" data-target="kas-jrn-akun-kredit" data-picker="picker-kredit">
           <span id="picker-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
@@ -579,7 +579,7 @@ function _kasInjectSheets() {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-edit-lbl-debit">Masuk ke Akun (Debit)</label>
-        <select id="kas-edit-akun-debit" style="display:none" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-edit-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
           <div class="kas-akun-picker" id="picker-edit-debit" data-target="kas-edit-akun-debit" data-picker="picker-edit-debit">
             <span id="picker-edit-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
@@ -590,7 +590,7 @@ function _kasInjectSheets() {
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-edit-lbl-kredit">Sumber Dana (Kredit)</label>
-        <select id="kas-edit-akun-kredit" style="display:none" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
+        <select id="kas-edit-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
         <div class="kas-akun-wrap">
           <div class="kas-akun-picker" id="picker-edit-kredit" data-target="kas-edit-akun-kredit" data-picker="picker-edit-kredit">
             <span id="picker-edit-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
@@ -1840,6 +1840,13 @@ async function kasHapusDariModal() {
   document.addEventListener('touchstart', function(e) {
     var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
     if (!tr) return;
+    // Jangan start timer kalau tap ada di dalam sheet/picker/overlay/modal —
+    // biar tidak bentrok dengan picker akun yang juga listen touchstart.
+    if (e.target.closest('[data-picker]')) return;
+    if (e.target.closest('#kas-sheet-detail')) return;
+    if (e.target.closest('#kas-sheet-akun-picker')) return;
+    if (e.target.closest('#kas-akun-picker-overlay')) return;
+    if (e.target.closest('.modal-overlay')) return;
     _row    = tr;
     _startX = e.touches[0].clientX;
     _startY = e.touches[0].clientY;
