@@ -2351,124 +2351,180 @@ function kasClosePicker(list) {
   list.style.display = 'none';
 }
 
+// ─── KAS AKUN PICKER — BOTTOM SHEET ─────────────────────────────────────────
+// Ganti pendekatan floating list (sumber loncat-loncat di Android) ke satu
+// bottom-sheet global yang di-inject ke body. Tidak ada getBoundingClientRect,
+// tidak ada keyboard-detection, konsisten di Android & iPhone.
+
+var _kasSheetTargetId = null; // ID picker yang sedang aktif
+
+function _kasEnsureSheet() {
+  if (document.getElementById('kas-akun-sheet-overlay')) return;
+
+  var overlay = document.createElement('div');
+  overlay.id = 'kas-akun-sheet-overlay';
+  overlay.style.cssText = [
+    'display:none','position:fixed','inset:0','z-index:99999',
+    'background:rgba(0,0,0,.55)',
+    'align-items:flex-end','justify-content:center',
+  ].join(';');
+
+  overlay.innerHTML = [
+    '<div id="kas-akun-sheet"',
+    '  style="width:100%;max-width:520px;background:#111113;',
+    '         border-radius:16px 16px 0 0;',
+    '         display:flex;flex-direction:column;',
+    '         max-height:60vh;',
+    '         box-shadow:0 -4px 24px rgba(0,0,0,.6);">',
+    '  <!-- Handle -->',
+    '  <div style="display:flex;justify-content:center;padding:10px 0 6px;flex:none">',
+    '    <span style="width:36px;height:4px;border-radius:2px;',
+    '                 background:rgba(255,255,255,.2);display:block"></span>',
+    '  </div>',
+    '  <!-- Search -->',
+    '  <div style="padding:0 12px 8px;flex:none;',
+    '              border-bottom:1px solid rgba(255,255,255,.08)">',
+    '    <div style="display:flex;align-items:center;gap:8px;',
+    '                background:rgba(255,255,255,.06);',
+    '                border:1px solid rgba(255,255,255,.12);',
+    '                border-radius:6px;padding:7px 10px;">',
+    '      <span style="font-size:13px;color:rgba(255,255,255,.4);flex:none">🔍</span>',
+    '      <input id="kas-akun-sheet-search" type="text" placeholder="Cari..."',
+    '             autocomplete="off" autocorrect="off"',
+    '             autocapitalize="none" spellcheck="false"',
+    '             style="border:none;background:transparent;flex:1;',
+    '                    font-family:var(--f);font-size:14px;',
+    '                    color:var(--ink);outline:none;min-width:0;',
+    '                    -webkit-appearance:none;">',
+    '    </div>',
+    '  </div>',
+    '  <!-- List -->',
+    '  <div id="kas-akun-sheet-list"',
+    '    style="overflow-y:auto;flex:1;',
+    '           -webkit-overflow-scrolling:touch;',
+    '           overscroll-behavior:contain;">',
+    '  </div>',
+    '</div>',
+  ].join('');
+
+  document.body.appendChild(overlay);
+
+  // Tutup saat tap backdrop
+  overlay.addEventListener('pointerdown', function(e) {
+    if (e.target === overlay) _kasSheetClose();
+  });
+
+  // Search input
+  var searchEl = overlay.querySelector('#kas-akun-sheet-search');
+  searchEl.addEventListener('input', function() {
+    _kasSheetFilter(this.value);
+  });
+  searchEl.addEventListener('touchend', function(e) {
+    e.stopPropagation();
+  }, { passive: true });
+}
+
+function _kasSheetFilter(q) {
+  var list   = document.getElementById('kas-akun-sheet-list');
+  if (!list) return;
+  q = q.toLowerCase().trim();
+  list.querySelectorAll('.kas-akun-item').forEach(function(el) {
+    el.style.display = (!q || el.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+  });
+  list.querySelectorAll('.kas-akun-group').forEach(function(group) {
+    var next = group.nextElementSibling;
+    var hasVisible = false;
+    while (next && !next.classList.contains('kas-akun-group')) {
+      if (next.classList.contains('kas-akun-item') && next.style.display !== 'none') hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    group.style.display = hasVisible ? '' : 'none';
+  });
+}
+
+function _kasSheetOpen(pickerId) {
+  _kasEnsureSheet();
+  _kasSheetTargetId = pickerId;
+
+  // Ambil data akun dari list asli
+  var sourceList = document.getElementById(pickerId + '-list');
+  var sheetList  = document.getElementById('kas-akun-sheet-list');
+  var search     = document.getElementById('kas-akun-sheet-search');
+  if (!sourceList || !sheetList) return;
+
+  // Copy items ke sheet list
+  sheetList.innerHTML = '';
+  var currentVal = (function() {
+    var sel = document.getElementById(
+      (document.getElementById(pickerId) || {}).dataset
+        ? (document.getElementById(pickerId).dataset.target || '')
+        : ''
+    );
+    return sel ? sel.value : '';
+  })();
+
+  sourceList.querySelectorAll('.kas-akun-item,.kas-akun-group').forEach(function(el) {
+    var clone = el.cloneNode(true);
+    clone.style.display = '';
+    if (clone.classList.contains('kas-akun-item')) {
+      var val = clone.dataset.val || '';
+      if (currentVal && val === currentVal) clone.classList.add('active');
+      clone.onclick = function() { _kasSheetSelect(pickerId, val); };
+    }
+    sheetList.appendChild(clone);
+  });
+
+  // Reset search
+  if (search) search.value = '';
+
+  // Tampilkan overlay
+  var overlay = document.getElementById('kas-akun-sheet-overlay');
+  var sheet   = document.getElementById('kas-akun-sheet');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(function() { requestAnimationFrame(function() {
+    if (sheet) sheet.style.transform = 'translateY(0)';
+  }); });
+}
+
+function _kasSheetSelect(pickerId, val) {
+  // Sync ke hidden select asli
+  var picker  = document.getElementById(pickerId);
+  var targetId = picker ? picker.dataset.target : null;
+  var sel     = targetId ? document.getElementById(targetId) : null;
+  if (sel) {
+    sel.value = val;
+    // Trigger onchange
+    var ev = new Event('change', { bubbles: true });
+    sel.dispatchEvent(ev);
+  }
+  // Update label di picker button
+  var labelEl = document.getElementById(pickerId + '-label');
+  if (labelEl) {
+    var item = document.querySelector('#' + pickerId + '-list .kas-akun-item[data-val="' + val + '"]');
+    if (item) {
+      var nama = item.querySelector('.kas-akun-nama');
+      labelEl.textContent = nama ? nama.textContent : item.textContent.trim().split(/\s{2,}/)[0];
+      labelEl.style.color = '';
+    } else {
+      labelEl.textContent = '— Pilih Akun —';
+      labelEl.style.color = 'var(--ink3)';
+    }
+  }
+  _kasSheetClose();
+}
+
+function _kasSheetClose() {
+  var overlay = document.getElementById('kas-akun-sheet-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _kasSheetTargetId = null;
+}
+
 function kasTogglePicker(pickerId) {
-  var picker = document.getElementById(pickerId);
-  var list   = document.getElementById(pickerId + '-list');
-  if (!picker || !list) return;
-
-  // Tutup semua picker lain dulu
-  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
-    if (el.id !== pickerId + '-list') kasClosePicker(el);
-  });
-
-  if (list.style.display === 'block') { kasClosePicker(list); return; }
-
-  // Inject search box jika belum ada
-  if (!list.querySelector('.kas-akun-search-wrap')) {
-    var wrap = document.createElement('div');
-    wrap.className = 'kas-akun-search-wrap';
-
-    var searchIcon = document.createElement('span');
-    searchIcon.className = 'kas-akun-search-icon';
-    searchIcon.textContent = '🔍';
-
-    var searchInp = document.createElement('input');
-    searchInp.className = 'kas-akun-search';
-    searchInp.type = 'text';
-    searchInp.placeholder = 'Cari...';
-    searchInp.autocomplete = 'off';
-    searchInp.setAttribute('autocorrect', 'off');
-    searchInp.setAttribute('autocapitalize', 'none');
-    searchInp.setAttribute('spellcheck', 'false');
-
-    // Proper DOM event — inline attributes tidak reliable di iOS Safari untuk pointer events
-    // Harus stop propagation di SEMUA event types yang bisa trigger outside handler
-    function _stopProp(ev) { ev.stopPropagation(); }
-    searchInp.addEventListener('mousedown',   _stopProp);
-    searchInp.addEventListener('touchstart',  _stopProp, { passive: true });
-    searchInp.addEventListener('pointerdown', _stopProp);
-    searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
-
-    // iOS Safari: gunakan touchend untuk trigger focus — lebih late dalam event cycle
-    searchInp.addEventListener('touchend', function(ev) {
-      ev.stopPropagation();
-      setTimeout(function() { searchInp.focus(); }, 50);
-    }, { passive: false });
-
-    wrap.appendChild(searchIcon);
-    wrap.appendChild(searchInp);
-    list.insertBefore(wrap, list.firstChild);
-  }
-
-  // Reset search & tampilkan semua item
-  var inp = list.querySelector('.kas-akun-search');
-  if (inp) inp.value = '';
-  list.querySelectorAll('.kas-akun-item,.kas-akun-group,.kas-akun-empty').forEach(function(el) {
-    el.style.display = '';
-  });
-  var emp = list.querySelector('.kas-akun-empty');
-  if (emp) emp.style.display = 'none';
-
-  // Tandai baru dibuka — cegah outside handler langsung nutup (iOS touchend bubble)
-  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
-
-  // Float ke body
-  var listH = 260; // maxHeight
-
-  list.dataset.floated = '1';
-
-  // Posisi awal — dihitung dari rect picker SAAT INI (keyboard belum tentu
-  // muncul). Ini cuma posisi sementara supaya list tidak invisible saat
-  // langsung di-display; akan dikoreksi ulang setelah keyboard settle (lihat
-  // _settle di bawah).
-  _kasPositionPickerList(list, picker, listH);
-
-  list.style.display = 'block';
-  if (list.parentNode !== document.body) document.body.appendChild(list);
-
-  // Reposisi list setelah keyboard benar2 muncul & modal (jika ikut shift)
-  // sudah settle. Posisi awal di atas dihitung dari viewport SEBELUM keyboard
-  // tampil, jadi BUKAN posisi final — harus dikoreksi ulang begitu
-  // visualViewport resize (keyboard) selesai, baru lalu fokus ke search box.
-  // Urutan ini (reposisi dulu, fokus belakangan) mencegah list "lompat" /
-  // muncul di tempat salah saat keyboard baru naik.
-  function _settle() {
-    if (list.style.display !== 'block') return;
-    _kasPositionPickerList(list, picker, listH);
-  }
-  function _settleDeferred() {
-    requestAnimationFrame(function() { requestAnimationFrame(_settle); });
-  }
-
-  if (window.visualViewport) {
-    list._vpHandler = _settleDeferred;
-    window.visualViewport.addEventListener('resize', _settleDeferred);
-  }
-
-  // Reposisi juga saat .modal (overflow-y:auto) scroll — bukan cuma saat
-  // visualViewport (keyboard) resize. Tap pada picker yang dekat tepi modal
-  // sering memicu browser auto-scroll .modal untuk bring element into view;
-  // ini MENGUBAH picker.getBoundingClientRect() tanpa memicu visualViewport
-  // resize sama sekali. Tanpa listener ini, list float tetap di posisi LAMA
-  // (relatif viewport) sementara picker sudah pindah — keduanya jadi tidak
-  // sinkron, salah satu penyebab "pindah-pindah".
-  var _modalEl = picker.closest('.modal');
-  if (_modalEl) {
-    list._modalScrollEl = _modalEl;
-    list._modalScrollHandler = _settleDeferred;
-    _modalEl.addEventListener('scroll', _settleDeferred, { passive: true });
-  }
-
-  // Auto-focus search input — picu keyboard, lalu visualViewport resize akan
-  // memanggil _settleDeferred di atas untuk koreksi posisi final.
-  // Fallback timeout (350ms, di luar resize) untuk browser yang tidak fire
-  // visualViewport resize secara konsisten saat keyboard animasi.
-  if (inp) {
-    setTimeout(function() {
-      inp.focus();
-      setTimeout(_settle, 350);
-    }, 80);
-  }
+  // Jika sheet sudah buka untuk picker ini, tutup
+  if (_kasSheetTargetId === pickerId) { _kasSheetClose(); return; }
+  // Tutup picker lain yang masih pakai list lama (jaga kompatibilitas)
+  document.querySelectorAll('.kas-akun-list').forEach(function(el) { kasClosePicker(el); });
+  _kasSheetOpen(pickerId);
 }
 
 function kasPickerFilter(inp) {

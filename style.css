@@ -4316,3 +4316,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .card  { background:#1e1e1e !important; }
   .metric{ background:#1e1e1e !important; }
 }
+
+/* ── KAS AKUN BOTTOM SHEET — picker global, konsisten Android & iPhone ── */
+#kas-akun-sheet {
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.32,.72,0,1);
+}
+#kas-akun-sheet-list .kas-akun-item {
+  font-size: 14px;
+  padding: 11px 14px;
+}
+#kas-akun-sheet-list .kas-akun-group {
+  font-size: 11px;
+  padding: 10px 14px 4px;
+  color: rgba(255,255,255,.4);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-weight: 700;
+}
+#kas-akun-sheet-list .kas-akun-item:active {
+  background: rgba(255,255,255,.08);
+}
+#kas-akun-sheet-list .kas-akun-item.active {
+  background: rgba(255,255,255,.08);
+  color: var(--ink);
+  font-weight: 700;
+}
