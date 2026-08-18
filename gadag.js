@@ -403,25 +403,23 @@ document.getElementById('page-gadag').innerHTML = `
     );
   }
 
-  /* Poin 2 (revisi): trigger "Pilih Akun" buat Variable Anggaran — GANTI
-     dropdown ngambang lama (dulu numpang class .gdg-warna-dropdown; nama itu
-     cuma daur ulang, BUKAN dipakai bareng input Warna beneran — Warna pakai
-     dropdown terpisah punya autocomplete.js/ac-dropdown, jadi aman dihapus).
-     Sekarang tap trigger ini BUKA BOTTOM-SHEET terpisah (di-inject ke
-     document.body, lihat _gdgInjectAngAkunPicker), konsepnya diadopsi dari
-     sheet "Pilih Akun" Kas & Jurnal (kasAkunPickerOpen di kas.js): list
-     digrouping per kelompok akun + search box. Bedanya cuma kelompok yang
-     boleh muncul dipersempit ke Kewajiban & Beban (lihat _gdgAngAllowedAkun
-     di bawah), soalnya dua kelompok itu yang jadi "akun anggaran" / target
-     pendapatan mingguan Gadag — bukan solusi generik semua kelompok kayak
-     picker Kas. */
-  .gdg-ang-akun-picker {
-    display: flex; align-items: center; gap: 6px;
-    width: 100%; box-sizing: border-box; min-height: 34px;
-    font-family: var(--f); font-size: 14px; padding: 6px 10px;
-    border: 2px solid var(--ink); background: var(--cream); cursor: pointer;
+  /* Poin 2: dropdown saran "Warna" bikinan sendiri — gantiin autofill bawaan
+     browser yg posisinya ga konsisten (kadang muncul di atas, kepotong status
+     bar). Nempel PERSIS di bawah input (position:absolute, top:100%), tinggi
+     dibatasin ~5 item lalu scroll kalau lebih. */
+  .gdg-warna-dropdown {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+    background: #fff !important; border: 2px solid var(--gdg-ink); border-radius: 10px;
+    max-height: 192px; overflow-y: auto; z-index: 60;
+    box-shadow: 2px 3px 0 rgba(38,34,32,0.15);
   }
-  .gdg-ang-akun-picker:active { background: var(--cream2); }
+  .gdg-warna-dropdown .gdg-warna-opt {
+    padding: 8px 12px; font-size: 14px; cursor: pointer;
+    border-bottom: 1px solid var(--gdg-rule); color: var(--gdg-ink) !important;
+  }
+  .gdg-warna-dropdown .gdg-warna-opt:last-child { border-bottom: none; }
+  .gdg-warna-dropdown .gdg-warna-opt:hover,
+  .gdg-warna-dropdown .gdg-warna-opt.active { background: var(--gdg-paper2); }
 
   /* Poin 3: minicard Ringkasan dipersingkat KHUSUS HP — laptop TETAP gaya lama.
      Breakpoint sama persis dgn bottom-sheet (max-width:900px) biar konsisten. */
@@ -745,13 +743,12 @@ document.getElementById('page-gadag').innerHTML = `
       <button onclick="gdgAngCloseModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="gdg-ang2-edit-id">
-    <div class="form-group" style="margin-bottom:8px">
+    <div class="form-group" style="margin-bottom:8px;position:relative">
       <label>Nama (dari Daftar Akun)</label>
-      <div class="gdg-ang-akun-picker" id="gdg-ang2-akun-picker" onclick="gdgAngAkunPickerOpen()">
-        <span id="gdg-ang2-akun-picker-label" style="color:var(--ink3)">— pilih akun —</span>
-        <i class="ti ti-chevron-down" style="font-size:12px;margin-left:auto;flex-shrink:0;color:var(--ink3)"></i>
-      </div>
-      <input type="hidden" id="gdg-ang2-nama-input">
+      <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun beban —"
+        onclick="gdgAngAkunToggle()"
+        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
+      <div id="gdg-ang2-akun-dropdown" class="gdg-warna-dropdown"></div>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Nominal (Rp)</label>
@@ -904,145 +901,6 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
     gdgSkuPickerFilter(this.value);
   });
 })();
-
-// ─── AKUN PICKER SHEET (Variable Anggaran) — inject ke document.body, pola
-// & alasan IDENTIK sama SKU picker di atas (position:fixed di dalam bottom-
-// sheet modal induk yang ber-transform = ga anchored bener di iOS Safari).
-// Konsep di-adopsi dari sheet "Pilih Akun" Kas & Jurnal (kasAkunPickerOpen,
-// lihat kas.js) — list digrouping per kelompok akun + search box — tapi
-// visualnya ngikut tema notebook Gadag (cream/Comic Neue), bukan dark BRImo,
-// biar konsisten sama sheet-sheet lain di modul ini. ──────────────────────
-(function _gdgInjectAngAkunPicker() {
-  if (document.getElementById('gdg-ang-akun-picker-overlay')) return;
-  const el = document.createElement('div');
-  el.id = 'gdg-ang-akun-picker-overlay';
-  el.style.cssText = [
-    'display:none','position:fixed','inset:0','z-index:9999',
-    'background:rgba(0,0,0,.5)',
-    'align-items:flex-end','justify-content:center',
-  ].join(';');
-  el.innerHTML = `
-    <div id="gdg-ang-akun-picker-sheet"
-      style="width:100%;max-width:480px;background:#f7f2e6;border-radius:18px 18px 0 0;
-             padding:0;box-shadow:0 -4px 24px rgba(0,0,0,.28);
-             font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
-             transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
-             display:flex;flex-direction:column;max-height:72dvh;box-sizing:border-box">
-      <!-- Handle -->
-      <div style="display:flex;justify-content:center;padding:10px 0 6px;flex:none">
-        <span style="width:40px;height:5px;border-radius:3px;background:#262220;opacity:.3;display:block"></span>
-      </div>
-      <!-- Header -->
-      <div style="display:flex;align-items:center;gap:10px;padding:0 16px 12px;flex:none;border-bottom:2px solid #262220">
-        <img src="gadag-icon.png" alt="" style="width:32px;height:32px;object-fit:contain;flex:none">
-        <span style="font-size:17px;font-weight:800;letter-spacing:.04em;color:#262220;text-transform:uppercase">Pilih Akun</span>
-        <button id="gdg-ang-akun-picker-close-btn"
-          style="margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:#262220;line-height:1;padding:4px 8px">&#10005;</button>
-      </div>
-      <!-- Search -->
-      <div style="padding:10px 16px 6px;flex:none">
-        <div style="display:flex;align-items:center;gap:8px;border:2px solid #262220;border-radius:10px;background:#efe8d8;padding:6px 10px">
-          <i class="ti ti-search" style="color:#5c554d;font-size:16px;flex:none"></i>
-          <input type="text" id="gdg-ang-akun-picker-search" placeholder="Cari akun..."
-            style="border:none;background:transparent;flex:1;font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
-                   font-size:14px;font-weight:700;color:#262220;outline:none;min-width:0">
-        </div>
-      </div>
-      <!-- List (digrouping per kelompok: Kewajiban / Beban) -->
-      <div id="gdg-ang-akun-picker-list"
-        style="overflow-y:auto;flex:1;padding:4px 0 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain">
-      </div>
-    </div>`;
-  document.body.appendChild(el);
-
-  // Tutup saat tap backdrop (overlay) — pointer event, bukan onclick bubbling
-  el.addEventListener('pointerdown', function(e) {
-    if (e.target === el) gdgAngAkunPickerClose();
-  });
-  // Tombol ✕
-  document.getElementById('gdg-ang-akun-picker-close-btn').addEventListener('click', function() {
-    gdgAngAkunPickerClose();
-  });
-  // Input search
-  document.getElementById('gdg-ang-akun-picker-search').addEventListener('input', function() {
-    gdgAngAkunPickerFilter(this.value);
-  });
-})();
-
-function gdgAngAkunPickerOpen() {
-  const overlay = document.getElementById('gdg-ang-akun-picker-overlay');
-  const sheet   = document.getElementById('gdg-ang-akun-picker-sheet');
-  const search  = document.getElementById('gdg-ang-akun-picker-search');
-  if (!overlay || !sheet) return;
-  if (search) search.value = '';
-  gdgAngAkunPickerRenderList('');
-  overlay.style.display = 'flex';
-  // dua rAF biar browser sempat paint display:flex sebelum animasi transform jalan
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    sheet.style.transform = 'translateY(0)';
-  }));
-}
-
-function gdgAngAkunPickerClose() {
-  const sheet   = document.getElementById('gdg-ang-akun-picker-sheet');
-  const overlay = document.getElementById('gdg-ang-akun-picker-overlay');
-  if (!sheet || !overlay) return;
-  sheet.style.transform = 'translateY(100%)';
-  setTimeout(() => { overlay.style.display = 'none'; }, 300);
-}
-
-function gdgAngAkunPickerFilter(q) {
-  gdgAngAkunPickerRenderList(q);
-}
-
-function gdgAngAkunPickerRenderList(q) {
-  const list = document.getElementById('gdg-ang-akun-picker-list');
-  if (!list) return;
-  const currentNama = (document.getElementById('gdg-ang2-nama-input') || {}).value || '';
-  q = (q || '').toLowerCase().trim();
-
-  let akunList = _gdgAngAllowedAkun();
-  if (q) {
-    akunList = akunList.filter(a => ((a.kode ? a.kode + ' ' : '') + a.nama).toLowerCase().indexOf(q) !== -1);
-  }
-  if (!akunList.length) {
-    list.innerHTML = `<div style="padding:20px 16px;color:var(--gdg-ink2,#5c554d);font-style:italic;text-align:center">Akun tidak ditemukan</div>`;
-    return;
-  }
-
-  const order   = ['kewajiban', 'beban'];
-  const grouped = { kewajiban: [], beban: [] };
-  akunList.forEach(a => { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
-
-  let html = '';
-  order.forEach(k => {
-    if (!grouped[k].length) return;
-    html += `<div style="padding:12px 16px 4px;font-size:11px;font-weight:800;letter-spacing:.06em;
-                         text-transform:uppercase;color:var(--gdg-ink2,#5c554d)">${_gdgAngKelompokLabel(k)}</div>`;
-    grouped[k].forEach(a => {
-      const nama     = String(a.nama || '');
-      const esc      = nama.replace(/'/g, "\\'");
-      const selected = nama === currentNama;
-      const label    = (a.kode ? a.kode + ' \u00b7 ' : '') + nama;
-      html += `<div onclick="gdgAngAkunPickerSelect('${esc}')"
-        style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
-               border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.12));
-               background:${selected ? 'rgba(38,34,32,.06)' : 'transparent'}">
-        <span style="flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--gdg-ink,#262220);
-                     display:flex;align-items:center;justify-content:center">
-          ${selected ? `<span style="width:10px;height:10px;border-radius:50%;background:var(--gdg-ink,#262220);display:block"></span>` : ''}
-        </span>
-        <span style="font-size:15px;font-weight:800;color:var(--gdg-ink,#262220)">${label}</span>
-      </div>`;
-    });
-  });
-  list.innerHTML = html;
-}
-
-function gdgAngAkunPickerSelect(nama) {
-  gdgAngPopulateAkunSelect(nama);
-  gdgAngAkunPickerClose();
-}
 
 // ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
 let _gdgView = 'mingguan';
@@ -1784,38 +1642,17 @@ function gdgAngRenderList() {
   }).join('');
 }
 
-// Akun yang boleh jadi "Variable Anggaran" Gadag: kelompok KEWAJIBAN + BEBAN
-// (kas_akun) — SUMBER TUNGGAL, dipakai bareng oleh sheet picker
-// (gdgAngAkunPickerRenderList) DAN realisasi (gdgAngHitungRealisasi), biar
-// dua-duanya konsisten. Dua kelompok ini yang jadi "target pendapatan"
-// mingguan Gadag (cicilan/setoran kewajiban + beban operasional).
-// CATATAN PERUBAHAN: sebelumnya cuma kelompok Beban kode 5-xxx KECUALI
-// 5-001 (Beban Gaji) — dipersempit sengaja biar ga numpuk gaji tiap
-// minggu. Sekarang scope diperluas jadi 2 kelompok penuh (Kewajiban +
-// Beban) TANPA exclude kode tertentu, sesuai permintaan — kalau nanti mau
-// exclude akun spesifik lagi (misal Beban Gaji), filter-nya tinggal
-// ditambah balik di sini.
-function _gdgAngAllowedAkun() {
-  return _gdgWAkunAll
-    .filter(a => a.kelompok === 'kewajiban' || a.kelompok === 'beban')
-    .sort((a, b) => {
-      const order = { kewajiban: 0, beban: 1 };
-      const ok = order[a.kelompok] - order[b.kelompok];
-      return ok !== 0 ? ok : (a.kode || '').localeCompare(b.kode || '');
-    });
-}
-function _gdgAngKelompokLabel(k) {
-  return { kewajiban: 'Kewajiban', beban: 'Beban' }[k] || k;
-}
-
-// Realisasi = total nominal jurnal minggu berjalan pada akun (Kewajiban/Beban)
-// yang nama-nya cocok (case-insensitive) dengan nama variable anggaran. Akun
-// dicari dari _gdgAngAllowedAkun(), datanya sudah dimuat dari gdgWInit() saat
-// startup (lihat gdgWEnsureAkunJurnal).
+// Realisasi = total nominal jurnal minggu berjalan pada akun beban yang nama-nya
+// cocok (case-insensitive) dengan nama variable anggaran. Akun dicari dari
+// _gdgWAkunAll (kelompok beban, kode 5-xxx KECUALI 5-001 — sama aturan dengan
+// gdgWHitungBebanHari), datanya sudah dimuat dari gdgWInit() saat startup.
 function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   const target = String(namaVariable || '').trim().toLowerCase();
   if (!target) return 0;
-  const akun = _gdgAngAllowedAkun().find(a =>
+  const akun = _gdgWAkunAll.find(a =>
+    a.kelompok === 'beban' &&
+    (a.kode || '').indexOf('5-') === 0 &&
+    a.kode !== '5-001' &&
     String(a.nama || '').trim().toLowerCase() === target
   );
   if (!akun) return 0;
@@ -1829,27 +1666,64 @@ function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   return total;
 }
 
-// Set nilai terpilih (dipanggil pas buka modal Tambah/Edit, atau pas user
-// milih item di sheet gdgAngAkunPickerSelect) — cuma nyimpen ke hidden input
-// + update label di trigger, TIDAK nge-render sheet (sheet-nya baru dirender
-// pas dibuka, lihat gdgAngAkunPickerOpen). selectedNama yang ga ketemu lagi
-// di daftar akun (mis. akun udah dihapus/ganti kelompok) tetep ditampilin
-// apa adanya biar data lama ga ilang dari tampilan.
+// Siapin daftar Nama akun beban (kas_akun: kelompok=beban, kode 5-xxx KECUALI
+// 5-001 — aturan sama persis dengan progress bar realisasi). Dipakai buat
+// dropdown custom (gdgAngAkunToggle dkk) — HANYA nama yang ditampilin di
+// dropdown, kode 5-xxx tetep disimpen di cache buat referensi internal aja
+// (kode 5-001 Beban Gaji tetep di-skip, sama kayak sebelumnya).
+// selectedNama: kalau ada & ga ketemu di daftar akun (mis. akun udah dihapus/
+// diganti nama), tetep dianggep valid biar data lama ga ilang dari tampilan.
+let _gdgAngAkunCache = [];
 function gdgAngPopulateAkunSelect(selectedNama) {
-  const hidden = document.getElementById('gdg-ang2-nama-input');
-  const label  = document.getElementById('gdg-ang2-akun-picker-label');
-  if (!hidden) return;
-  hidden.value = selectedNama || '';
-  if (label) {
-    if (selectedNama) {
-      label.textContent = selectedNama;
-      label.style.color = 'var(--ink)';
-    } else {
-      label.textContent = '— pilih akun —';
-      label.style.color = 'var(--ink3)';
-    }
-  }
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  if (!inp) return;
+  _gdgAngAkunCache = _gdgWAkunAll
+    .filter(a => a.kelompok === 'beban' && (a.kode || '').indexOf('5-') === 0 && a.kode !== '5-001')
+    .sort((a, b) => (a.kode || '').localeCompare(b.kode || ''));
+  inp.value = selectedNama || '';
+  gdgAngAkunCloseDropdown();
 }
+
+// ─── DROPDOWN CUSTOM "Nama Akun" — pola identik dropdown Warna (§ gdgWarnaFilter),
+// gantiin native <select> yg gabisa dibatasin tinggi/isinya (kode ikut nongol,
+// scroll-nya kepanjangan). Cuma tampilin NAMA (kode tetep aturan filter di
+// belakang layar), max-height ~5 item lalu scroll (kelas gdg-warna-dropdown).
+function gdgAngAkunRenderList() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!dd) return;
+  if (!_gdgAngAkunCache.length) {
+    dd.innerHTML = '<div class="gdg-warna-opt" style="opacity:.6;cursor:default">Belum ada akun beban</div>';
+    dd.style.display = 'block';
+    return;
+  }
+  dd.innerHTML = _gdgAngAkunCache.map(a => {
+    const nama = String(a.nama || '');
+    const esc  = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,'&#39;');
+    return `<div class="gdg-warna-opt" onmousedown="event.preventDefault();gdgAngAkunPilih('${esc.replace(/'/g,"\\'")}')">${esc}</div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+function gdgAngAkunToggle() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!dd) return;
+  if (dd.style.display === 'block') { gdgAngAkunCloseDropdown(); return; }
+  gdgAngAkunRenderList();
+}
+function gdgAngAkunPilih(nama) {
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  if (inp) inp.value = nama;
+  gdgAngAkunCloseDropdown();
+}
+function gdgAngAkunCloseDropdown() {
+  const dd = document.getElementById('gdg-ang2-akun-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+document.addEventListener('click', function(e) {
+  const inp = document.getElementById('gdg-ang2-nama-input');
+  const dd  = document.getElementById('gdg-ang2-akun-dropdown');
+  if (!inp || !dd) return;
+  if (e.target !== inp && !dd.contains(e.target)) gdgAngAkunCloseDropdown();
+});
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
 async function gdgAngShowAdd() {
@@ -1876,7 +1750,7 @@ async function gdgAngShowEdit(id, nama, nominal) {
 }
 
 function gdgAngCloseModal() {
-  gdgAngAkunPickerClose();
+  gdgAngAkunCloseDropdown();
   const overlay = document.getElementById('modal-gdg-ang2');
   const sheet   = document.getElementById('gdg-ang2-sheet');
   if (!overlay) return;
