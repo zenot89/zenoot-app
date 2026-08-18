@@ -1835,18 +1835,32 @@ async function kasHapusDariModal() {
 
   var tbody = document.getElementById('kas-jurnal-tbody');
 
+  // Cek STATE global (bukan closest() dari target) buat tau ada sheet/picker/modal
+  // yang lagi kebuka. Kenapa nggak pakai closest() ke elemen: sheet & picker naik
+  // pakai CSS transform (translateY) yang beranimasi 0.28s — pas lagi transisi,
+  // sebagian Android suka salah hit-test elemen yang lagi di-transform, jadi tap
+  // yang niatnya ke item picker bisa "nyasar" dan closest()-nya nggak ketangkep.
+  // Cek langsung ke class .open tiap overlay itu jauh lebih pasti: nggak peduli
+  // elemen apa yang ke-hit-test, kalau ada overlay yang KEBUKA, longpress WAJIB
+  // diem — titik.
+  function _kasAnyOverlayOpen() {
+    var ids = ['kas-brimo-overlay', 'kas-akun-picker-overlay'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && el.classList.contains('open')) return true;
+    }
+    if (document.querySelector('.modal-overlay.open')) return true;
+    return false;
+  }
+
   // Delegasi ke document — tbody di-re-render tiap load, delegate ke document biar
   // tidak perlu re-attach setiap render (sama pola kayak event delegation lainnya).
   document.addEventListener('touchstart', function(e) {
     var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
     if (!tr) return;
-    // Jangan start timer kalau tap ada di dalam sheet/picker/overlay/modal —
-    // biar tidak bentrok dengan picker akun yang juga listen touchstart.
-    if (e.target.closest('[data-picker]')) return;
-    if (e.target.closest('#kas-sheet-detail')) return;
-    if (e.target.closest('#kas-sheet-akun-picker')) return;
-    if (e.target.closest('#kas-akun-picker-overlay')) return;
-    if (e.target.closest('.modal-overlay')) return;
+    // Jangan start timer kalau ADA sheet/picker/modal yang lagi kebuka — state-based,
+    // bukan target-based, biar nggak ketipu miss-hit pas sheet lagi animasi.
+    if (_kasAnyOverlayOpen()) return;
     _row    = tr;
     _startX = e.touches[0].clientX;
     _startY = e.touches[0].clientY;
