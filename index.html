@@ -2,7 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- interactive-widget=resizes-visual: cegah Android Chrome resize LAYOUT viewport
+     saat keyboard buka/tutup (behavior lama/legacy Android). Tanpa ini, blur-before-click
+     mobile (search box picker akun kehilangan fokus pas item di-tap) bikin reflow di
+     TENGAH 1 gesture tap → koordinat klik nyasar ke elemen lain (keliatan kayak "balik
+     lagi"/nyasar ke tombol back). iOS Safari dari dulu udah cuma resize visual viewport
+     (makanya mulus tanpa ini) — flag ini nyamain behavior Android ke situ. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
 <title>zenOt</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
