@@ -2227,14 +2227,25 @@ function _kasPositionPickerList(list, picker, listH) {
   var spaceBelow = vpH - rect.bottom - 4;
   var spaceAbove = rect.top - minTop;
 
+  // Deteksi keyboard aktif di Android: selisih innerHeight vs visualViewport.height > 150px
+  // Saat keyboard aktif, vpH mengecil tapi rect.bottom (relatif viewport) bisa masih terlihat,
+  // padahal secara fisik area itu tepat di atas keyboard → list tertutup keyboard.
+  // Fix: saat keyboard aktif, SELALU render list di ATAS picker, bukan di bawah.
+  var kbHeight = window.visualViewport
+    ? Math.max(0, window.innerHeight - window.visualViewport.height)
+    : 0;
+  var keyboardActive = kbHeight > 150;
+
   list.style.position = 'fixed';
   list.style.left     = rect.left + 'px';
   list.style.width    = rect.width + 'px';
   list.style.maxWidth = '320px';
   list.style.zIndex   = '99999';
 
-  if (spaceBelow < listH && spaceAbove > spaceBelow) {
-    var actualH = Math.min(listH, spaceAbove);
+  var forceAbove = keyboardActive || (spaceBelow < listH && spaceAbove > spaceBelow);
+  if (forceAbove) {
+    // Render di ATAS picker — user bisa lihat list tanpa keyboard menghalangi
+    var actualH = Math.min(listH, Math.max(80, spaceAbove));
     list.style.maxHeight = actualH + 'px';
     list.style.bottom    = '';
     list.style.top       = Math.max(minTop, rect.top - actualH - 2) + 'px';
