@@ -2221,19 +2221,13 @@ function _kasGetSafeTop() {
 // minTop memastikan list tidak pernah render di bawah notch/status bar.
 window._kasPositionPickerList = _kasPositionPickerList;
 function _kasPositionPickerList(list, picker, listH) {
-  var rect    = picker.getBoundingClientRect();
-  var vpH     = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  var minTop  = _kasGetSafeTop() + 4;
-  var spaceBelow = vpH - rect.bottom - 4;
-  var spaceAbove = rect.top - minTop;
+  var rect   = picker.getBoundingClientRect();
+  var vp     = window.visualViewport;
+  var vpH    = vp ? vp.height : window.innerHeight;
+  var minTop = _kasGetSafeTop() + 4;
 
-  // Deteksi keyboard aktif di Android: selisih innerHeight vs visualViewport.height > 150px
-  // Saat keyboard aktif, vpH mengecil tapi rect.bottom (relatif viewport) bisa masih terlihat,
-  // padahal secara fisik area itu tepat di atas keyboard → list tertutup keyboard.
-  // Fix: saat keyboard aktif, SELALU render list di ATAS picker, bukan di bawah.
-  var kbHeight = window.visualViewport
-    ? Math.max(0, window.innerHeight - window.visualViewport.height)
-    : 0;
+  // Deteksi keyboard aktif: selisih window.innerHeight vs visualViewport.height > 150px
+  var kbHeight      = vp ? Math.max(0, window.innerHeight - vpH) : 0;
   var keyboardActive = kbHeight > 150;
 
   list.style.position = 'fixed';
@@ -2242,17 +2236,30 @@ function _kasPositionPickerList(list, picker, listH) {
   list.style.maxWidth = '320px';
   list.style.zIndex   = '99999';
 
-  var forceAbove = keyboardActive || (spaceBelow < listH && spaceAbove > spaceBelow);
-  if (forceAbove) {
-    // Render di ATAS picker — user bisa lihat list tanpa keyboard menghalangi
-    var actualH = Math.min(listH, Math.max(80, spaceAbove));
+  if (keyboardActive) {
+    // Saat keyboard aktif di Android: render list di ATAS picker dengan tinggi
+    // maksimal = jarak dari picker ke tepi atas viewport yang terlihat.
+    // rect.top sudah relatif terhadap visualViewport (setelah modal naik),
+    // jadi spaceAbove = rect.top - minTop adalah ruang yang benar-benar tersedia.
+    var spaceAbove = rect.top - minTop;
+    // Gunakan SEMUA ruang di atas, sampai 80px cadangan agar tidak menabrak status bar
+    var actualH = Math.max(80, spaceAbove - 8);
     list.style.maxHeight = actualH + 'px';
-    list.style.bottom    = '';
     list.style.top       = Math.max(minTop, rect.top - actualH - 2) + 'px';
-  } else {
-    list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
-    list.style.top       = (rect.bottom + 2) + 'px';
     list.style.bottom    = '';
+  } else {
+    var spaceBelow = vpH - rect.bottom - 4;
+    var spaceAbove2 = rect.top - minTop;
+    if (spaceBelow < listH && spaceAbove2 > spaceBelow) {
+      var actualH2 = Math.min(listH, Math.max(80, spaceAbove2));
+      list.style.maxHeight = actualH2 + 'px';
+      list.style.top       = Math.max(minTop, rect.top - actualH2 - 2) + 'px';
+      list.style.bottom    = '';
+    } else {
+      list.style.maxHeight = Math.min(listH, Math.max(80, spaceBelow)) + 'px';
+      list.style.top       = (rect.bottom + 2) + 'px';
+      list.style.bottom    = '';
+    }
   }
 }
 
