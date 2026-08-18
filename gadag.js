@@ -513,7 +513,7 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="card gdg-minicard">
     <div class="gdg-hero-label"><i class="ti ti-stack-2"></i> Qty / Lsn</div>
-    <div class="gdg-hero-value" id="gdg-metric-qty" style="font-size:26px">—</div>
+    <div class="gdg-hero-value" id="gdg-metric-qty" style="font-size:26px;display:flex;align-items:baseline;gap:10px;white-space:nowrap">—</div>
     <div class="gdg-hero-sub">pcs, minggu terpilih</div>
   </div>
   <div class="card gdg-minicard" onclick="gdgSelectView('anggaran')" style="cursor:pointer">
@@ -1554,9 +1554,9 @@ async function gdgWRenderWeek() {
   const pendM = document.getElementById('gdg-total-pendapatan-m');
   if (pendM) pendM.textContent = gdgWFmt(totalPend);
 
-  // Update Qty/Lsn metric
+  // Update Qty/Lsn metric — mendatar (flex row), bukan tumpuk <br> lagi
   const qtyEl = document.getElementById('gdg-metric-qty');
-  if (qtyEl) qtyEl.innerHTML = totalQty.toLocaleString('id-ID') + ' pc<br>' + totalLsn + ' lsn';
+  if (qtyEl) qtyEl.innerHTML = totalQty.toLocaleString('id-ID') + ' pc<span style="font-size:14px;opacity:.4">·</span>' + totalLsn + ' lsn';
   const qtyNumEl = document.getElementById('gdg-metric-qty-num');
   const lsnNumEl = document.getElementById('gdg-metric-lsn-num');
   if (qtyNumEl) qtyNumEl.textContent = totalQty.toLocaleString('id-ID');
