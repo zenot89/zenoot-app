@@ -65,6 +65,18 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-ang2-idx  { color:var(--ink3); font-weight:700; min-width:20px; }
   .gdg-ang2-nama { flex:1; font-weight:700; }
   .gdg-ang2-nom  { font-weight:700; }
+  .gdg-ang2-tempo { font-size:12px; color:var(--ink3); flex:none; }
+  /* Header kolom "Variable | Tempo | IDR" — CUMA dipakai panel Bulanan,
+     Mingguan gak pernah nge-render elemen ini sama sekali. */
+  .gdg-ang2-thead {
+    display:flex; align-items:center; gap:8px; padding:4px 4px 6px;
+    border-bottom:2px solid var(--gdg-ink,#262220); margin-bottom:4px;
+    font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--ink3);
+  }
+  .gdg-ang2-th-nama  { flex:1; padding-left:28px; } /* nyocokin lebar .gdg-ang2-idx di row */
+  .gdg-ang2-th-tempo { flex:none; width:60px; }
+  .gdg-ang2-th-idr   { flex:none; text-align:right; }
   .gdg-ang2-bar-wrap {
     display:flex; align-items:center; gap:6px;
     height:6px;
@@ -729,11 +741,8 @@ document.getElementById('page-gadag').innerHTML = `
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-wallet"></i> Variable Anggaran</span>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <div class="gdg-ang-periode-toggle">
-        <button type="button" id="gdg-ang-tab-mingguan" class="gdg-ang-periode-btn active" onclick="gdgAngSwitchPeriode('mingguan')">Mingguan</button>
-        <button type="button" id="gdg-ang-tab-bulanan" class="gdg-ang-periode-btn" onclick="gdgAngSwitchPeriode('bulanan')">Bulanan</button>
-      </div>
       <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+      <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
     </div>
   </div>
   <div id="gdg-ang2-list">
@@ -810,20 +819,13 @@ document.getElementById('page-gadag').innerHTML = `
     </div>
     <!-- Muncul CUMA kalau periode = Bulanan (recurring, gak diikat minggu_mulai) -->
     <div id="gdg-ang2-bulanan-fields" style="display:none">
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <div class="form-group" style="flex:1;margin-bottom:0">
-          <label>Tanggal Reset (tiap bulan)</label>
-          <input type="number" min="1" max="28" id="gdg-ang2-reset-input" placeholder="contoh: 1"
-            style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-        </div>
-        <div class="form-group" style="flex:1;margin-bottom:0">
-          <label>Jatuh Tempo (opsional)</label>
-          <input type="number" min="1" max="28" id="gdg-ang2-jatuhtempo-input" placeholder="contoh: 10"
-            style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-        </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Tempo (tanggal berapa tiap bulan)</label>
+        <input type="number" min="1" max="28" id="gdg-ang2-tempo-input" placeholder="contoh: 20"
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
       </div>
       <div style="font-size:11px;color:var(--ink3);margin-top:-8px;margin-bottom:16px">
-        Sekali diinput, otomatis berulang tiap bulan (gak perlu Tambah ulang). Siklus dihitung dari tgl Reset — bukan tanggal 1 kalender.
+        Sekali diinput, otomatis berulang tiap bulan (gak perlu Tambah ulang). Siklus dihitung dari tanggal Tempo ini (sehari setelah Tempo bulan lalu s/d Tempo bulan ini).
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1784,12 +1786,10 @@ function gdgAngUpdateCostCard() {
 let _gdgAngPeriodeAktif = 'mingguan';
 let _gdgAnggaranBulananList = []; // recurring — gak diikat minggu_mulai/bulan tertentu
 
-function gdgAngSwitchPeriode(p) {
-  _gdgAngPeriodeAktif = p;
-  const btnM = document.getElementById('gdg-ang-tab-mingguan');
-  const btnB = document.getElementById('gdg-ang-tab-bulanan');
-  if (btnM) btnM.classList.toggle('active', p === 'mingguan');
-  if (btnB) btnB.classList.toggle('active', p === 'bulanan');
+function gdgAngTogglePeriode() {
+  _gdgAngPeriodeAktif = _gdgAngPeriodeAktif === 'bulanan' ? 'mingguan' : 'bulanan';
+  const btn = document.getElementById('gdg-ang-mode-btn');
+  if (btn) btn.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Bulanan' : 'Mingguan';
   gdgAngRenderActiveList();
 }
 
@@ -1808,19 +1808,20 @@ async function gdgLoadAnggaranBulanan() {
   }
 }
 
-// Rentang siklus bulan berjalan buat 1 item bulanan, berdasarkan tgl_reset-nya
-// SENDIRI (bukan tanggal 1 kalender) — misal reset tgl 5, siklus "bulan ini"
-// = 5 bulan-ini s/d 4 bulan-depan.
+// Rentang siklus bulan berjalan buat 1 item bulanan, berdasarkan Tempo-nya
+// SENDIRI (kolom tgl_jatuh_tempo, gak ada tgl_reset lagi) — siklus = sehari
+// setelah Tempo bulan lalu s/d Tempo bulan ini. Misal Tempo tgl 20: siklus
+// jalan 21 bulan lalu → 20 bulan ini.
 function gdgAngBulananCycleRange(item, refDate) {
   refDate = refDate || new Date();
-  const resetDay = Math.min(28, Math.max(1, parseInt(item.tgl_reset, 10) || 1)); // dibatasi 28 biar aman di semua bulan
-  let cycleStart = new Date(refDate.getFullYear(), refDate.getMonth(), resetDay);
-  if (refDate.getDate() < resetDay) {
-    cycleStart = new Date(refDate.getFullYear(), refDate.getMonth() - 1, resetDay);
+  const tempoDay = Math.min(28, Math.max(1, parseInt(item.tgl_jatuh_tempo, 10) || 1));
+  let cycleEnd = new Date(refDate.getFullYear(), refDate.getMonth(), tempoDay);
+  if (refDate.getDate() > tempoDay) {
+    cycleEnd = new Date(refDate.getFullYear(), refDate.getMonth() + 1, tempoDay);
   }
-  const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, resetDay);
-  cycleEnd.setDate(cycleEnd.getDate() - 1);
-  return { start: gdgWToISO(cycleStart), end: gdgWToISO(cycleEnd), startDate: cycleStart, endDate: cycleEnd };
+  const cycleStart = new Date(cycleEnd.getFullYear(), cycleEnd.getMonth() - 1, tempoDay);
+  cycleStart.setDate(cycleStart.getDate() + 1); // sehari setelah Tempo bulan lalu
+  return { start: gdgWToISO(cycleStart), end: gdgWToISO(cycleEnd), startDate: cycleStart, endDate: cycleEnd, tempoDate: cycleEnd, tempoDay: tempoDay };
 }
 
 function gdgAngNetTotalBulanan() {
@@ -1839,59 +1840,74 @@ function gdgAngRenderBulananList() {
   const today = new Date();
   let totalDiserap = 0;
 
+  // Header kolom — CUMA di panel Bulanan, gak nyentuh struktur Mingguan sama sekali
+  let html = `<div class="gdg-ang2-thead">
+    <span class="gdg-ang2-th-nama">Variable</span>
+    <span class="gdg-ang2-th-tempo">Tempo</span>
+    <span class="gdg-ang2-th-idr">IDR</span>
+  </div>`;
+
   if (!_gdgAnggaranBulananList.length) {
-    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran bulanan.</div>';
+    html += '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran bulanan.</div>';
   } else {
-    listEl.innerHTML = _gdgAnggaranBulananList.map((it, i) => {
+    html += _gdgAnggaranBulananList.map((it, i) => {
       const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
       const namaAttr = namaSafe.replace(/"/g,'&quot;');
       const nom = Number(it.target) || 0;
       const cycle = gdgAngBulananCycleRange(it, today);
       const realisasi = gdgAngHitungRealisasi(it.nama, cycle.start, cycle.end);
       totalDiserap += realisasi;
-      const lunas = nom > 0 && realisasi >= nom;
 
-      const resetDay = parseInt(it.tgl_reset, 10) || 1;
-      const jtDay = it.tgl_jatuh_tempo ? parseInt(it.tgl_jatuh_tempo, 10) : null;
-      let overdue = false;
-      let dueTxt  = 'Reset tiap tgl ' + resetDay;
-      if (jtDay) {
-        let jtDate = new Date(cycle.startDate.getFullYear(), cycle.startDate.getMonth(), jtDay);
-        if (jtDate < cycle.startDate) jtDate.setMonth(jtDate.getMonth() + 1);
-        overdue = !lunas && today > jtDate;
-        dueTxt = 'Jatuh tempo tgl ' + jtDay;
+      const lunas = nom > 0 && realisasi >= nom;
+      const pct   = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
+      const pctClamped = Math.max(0, Math.min(100, pct));
+      const daysLeft = Math.ceil((cycle.tempoDate - today) / 86400000);
+
+      // "Cicilan" — kebalikan logic Mingguan: progress BAGUS = hijau (lagi
+      // nyisihin), bahaya cuma kalau udah deket/lewat tempo tapi progressnya
+      // masih kurang dari separuh. Lunas = done, hijau penuh.
+      let barColor, barLabel;
+      if (lunas) {
+        barColor = 'var(--ok)'; barLabel = 'Done';
+      } else if (daysLeft <= 7 && pct < 50) {
+        barColor = 'var(--danger)'; barLabel = pct + '%';
+      } else {
+        barColor = 'var(--ok)'; barLabel = pct + '%';
       }
-      const badge = lunas
-        ? '<span style="background:var(--ok);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">LUNAS</span>'
-        : overdue
-          ? '<span style="background:var(--danger);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">LEWAT JATUH TEMPO</span>'
-          : '<span style="background:var(--ink3);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">BELUM</span>';
+      const barWidth = lunas ? 100 : pctClamped;
+
+      const dueTxt = daysLeft < 0
+        ? ('Lewat tempo ' + Math.abs(daysLeft) + 'h (tgl ' + cycle.tempoDay + ')')
+        : ('Tempo tgl ' + cycle.tempoDay + (daysLeft <= 7 ? ' · ' + daysLeft + 'h lagi' : ''));
 
       return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}"
-        data-periode="bulanan" data-reset="${resetDay}" data-jatuhtempo="${jtDay||''}">
+        data-periode="bulanan" data-jatuhtempo="${cycle.tempoDay}">
         <div class="gdg-ang2-top">
           <span class="gdg-ang2-idx">${i+1}.</span>
           <span class="gdg-ang2-nama">${namaSafe}</span>
+          <span class="gdg-ang2-tempo">${'tgl ' + cycle.tempoDay}</span>
           <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px">
-          <span style="font-size:11px;color:var(--ink3)">${dueTxt}</span>
-          ${badge}
+        <div class="gdg-ang2-bar-wrap">
+          <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
+          <span class="gdg-ang2-bar-pct" style="color:${barColor}">${barLabel}</span>
         </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${dueTxt}</div>
       </div>`;
     }).join('');
   }
+  listEl.innerHTML = html;
 
   // Card Penyerapan halaman Anggaran, versi Bulanan (nimpa yang mingguan
   // pas toggle ini lagi aktif — Overview TETEP gak disentuh sama sekali)
-  const pct = netTotal > 0 ? Math.round((totalDiserap / netTotal) * 100) : 0;
+  const pctTotal = netTotal > 0 ? Math.round((totalDiserap / netTotal) * 100) : 0;
   let pctColor = 'var(--ok)';
-  if (pct >= 75) pctColor = 'var(--danger)';
-  else if (pct >= 35) pctColor = 'var(--warn)';
+  if (pctTotal >= 75) pctColor = 'var(--danger)';
+  else if (pctTotal >= 35) pctColor = 'var(--warn)';
   const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
   const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
   if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
-  if (pctEl)   { pctEl.textContent = pct + '%'; pctEl.style.color = pctColor; }
+  if (pctEl)   { pctEl.textContent = pctTotal + '%'; pctEl.style.color = pctColor; }
 }
 
 function gdgAngRenderList() {
@@ -2118,11 +2134,10 @@ function gdgAngModalSetPeriode(p) {
 async function gdgAngShowAdd() {
   document.getElementById('gdg-ang2-edit-id').value = '';
   document.getElementById('gdg-ang2-nominal-input').value = '';
-  document.getElementById('gdg-ang2-reset-input').value = '';
-  document.getElementById('gdg-ang2-jatuhtempo-input').value = '';
+  document.getElementById('gdg-ang2-tempo-input').value = '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
-  gdgAngModalSetPeriode(_gdgAngPeriodeAktif); // ikutin tab yang lagi aktif pas tombol Tambah dipencet
+  gdgAngModalSetPeriode(_gdgAngPeriodeAktif); // ikutin mode yang lagi aktif pas tombol Tambah dipencet
   await gdgWEnsureAkunJurnal();
   gdgAngPopulateAkunSelect('');
   document.getElementById('modal-gdg-ang2').classList.add('open');
@@ -2137,8 +2152,7 @@ async function gdgAngShowEdit(row) {
   const periode  = row.dataset.periode || 'mingguan';
   document.getElementById('gdg-ang2-edit-id').value = id;
   document.getElementById('gdg-ang2-nominal-input').value = nominal ? Number(nominal).toLocaleString('id-ID') : '';
-  document.getElementById('gdg-ang2-reset-input').value = row.dataset.reset || '';
-  document.getElementById('gdg-ang2-jatuhtempo-input').value = row.dataset.jatuhtempo || '';
+  document.getElementById('gdg-ang2-tempo-input').value = row.dataset.jatuhtempo || '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = '';
   gdgAngModalSetPeriode(periode);
@@ -2178,11 +2192,9 @@ async function gdgAngSimpan() {
 
   let payload;
   if (periode === 'bulanan') {
-    const resetDay = parseInt(document.getElementById('gdg-ang2-reset-input').value, 10);
-    if (!resetDay || resetDay < 1 || resetDay > 28) { alert('Tanggal Reset wajib diisi (1-28).'); return; }
-    const jtRaw = document.getElementById('gdg-ang2-jatuhtempo-input').value;
-    const jtDay = jtRaw ? (parseInt(jtRaw, 10) || null) : null;
-    payload = { periode: 'bulanan', nama, target: nominal, tgl_reset: resetDay, tgl_jatuh_tempo: jtDay, minggu_mulai: null };
+    const tempoDay = parseInt(document.getElementById('gdg-ang2-tempo-input').value, 10);
+    if (!tempoDay || tempoDay < 1 || tempoDay > 28) { alert('Tempo wajib diisi (tanggal 1-28).'); return; }
+    payload = { periode: 'bulanan', nama, target: nominal, tgl_jatuh_tempo: tempoDay, tgl_reset: null, minggu_mulai: null };
   } else {
     const wkStart = gdgWGetMonday(new Date());
     const iso     = gdgWToISO(wkStart);
