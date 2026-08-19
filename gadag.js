@@ -53,6 +53,14 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-ang2-row:last-child { padding-bottom:4px; }
   .gdg-ang2-row.gdg-ang2-pressing { background:var(--cream2); }
+  /* Toggle Mingguan/Bulanan — pill segmented, sejajar tombol Tambah */
+  .gdg-ang-periode-toggle { display:flex; border:2px solid var(--gdg-ink,#262220); border-radius:9px; overflow:hidden; }
+  .gdg-ang-periode-btn {
+    font-family:var(--f); font-size:12px; font-weight:800; letter-spacing:.02em;
+    padding:7px 12px; border:none; background:transparent; color:var(--gdg-ink,#262220);
+    cursor:pointer; white-space:nowrap;
+  }
+  .gdg-ang-periode-btn.active { background:var(--gdg-ink,#262220); color:var(--gdg-paper,#f7f2e6); }
   .gdg-ang2-top  { display:flex; align-items:center; gap:8px; }
   .gdg-ang2-idx  { color:var(--ink3); font-weight:700; min-width:20px; }
   .gdg-ang2-nama { flex:1; font-weight:700; }
@@ -720,7 +728,13 @@ document.getElementById('page-gadag').innerHTML = `
 <div class="card">
   <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-wallet"></i> Variable Anggaran</span>
-    <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="gdg-ang-periode-toggle">
+        <button type="button" id="gdg-ang-tab-mingguan" class="gdg-ang-periode-btn active" onclick="gdgAngSwitchPeriode('mingguan')">Mingguan</button>
+        <button type="button" id="gdg-ang-tab-bulanan" class="gdg-ang-periode-btn" onclick="gdgAngSwitchPeriode('bulanan')">Bulanan</button>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+    </div>
   </div>
   <div id="gdg-ang2-list">
     <div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>
@@ -774,6 +788,14 @@ document.getElementById('page-gadag').innerHTML = `
       <button onclick="gdgAngCloseModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="gdg-ang2-edit-id">
+    <div class="form-group" style="margin-bottom:8px">
+      <label>Periode</label>
+      <div class="gdg-ang-periode-toggle" style="width:fit-content">
+        <button type="button" id="gdg-ang2-periode-mingguan" class="gdg-ang-periode-btn active" onclick="gdgAngModalSetPeriode('mingguan')">Mingguan</button>
+        <button type="button" id="gdg-ang2-periode-bulanan" class="gdg-ang-periode-btn" onclick="gdgAngModalSetPeriode('bulanan')">Bulanan</button>
+      </div>
+    </div>
+    <input type="hidden" id="gdg-ang2-periode-input" value="mingguan">
     <div class="form-group" style="margin-bottom:8px;position:relative">
       <label>Nama (dari Daftar Akun)</label>
       <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun —"
@@ -785,6 +807,24 @@ document.getElementById('page-gadag').innerHTML = `
       <input type="text" inputmode="numeric" id="gdg-ang2-nominal-input" placeholder="contoh: 200.000"
         oninput="gdgFormatRibuan(this)"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+    </div>
+    <!-- Muncul CUMA kalau periode = Bulanan (recurring, gak diikat minggu_mulai) -->
+    <div id="gdg-ang2-bulanan-fields" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Tanggal Reset (tiap bulan)</label>
+          <input type="number" min="1" max="28" id="gdg-ang2-reset-input" placeholder="contoh: 1"
+            style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label>Jatuh Tempo (opsional)</label>
+          <input type="number" min="1" max="28" id="gdg-ang2-jatuhtempo-input" placeholder="contoh: 10"
+            style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:-8px;margin-bottom:16px">
+        Sekali diinput, otomatis berulang tiap bulan (gak perlu Tambah ulang). Siklus dihitung dari tgl Reset — bukan tanggal 1 kalender.
+      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <button id="gdg-ang2-modal-hapus" class="btn btn-sm btn-danger" onclick="gdgAngHapusDariModal()" style="display:none">
@@ -1679,7 +1719,7 @@ async function gdgLoadAnggaran() {
   const listEl  = document.getElementById('gdg-ang2-list');
   if (listEl) listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>';
   try {
-    const rows = await dbGet('gadag_anggaran', '&minggu_mulai=eq.' + iso + '&order=id.asc');
+    const rows = await dbGet('gadag_anggaran', '&periode=eq.mingguan&minggu_mulai=eq.' + iso + '&order=id.asc');
     _gdgAnggaranList = rows || [];
   } catch(e) {
     console.error('Gagal load anggaran:', e.message);
@@ -1688,11 +1728,10 @@ async function gdgLoadAnggaran() {
     gdgUpdateTargetCard();
     return;
   }
-  const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
-  const wkLabelEl = document.getElementById('gdg-ang2-week-label');
-  if (wkLabelEl) wkLabelEl.textContent = 'Minggu ' + gdgWFmtRange(wkStart, wkEnd);
+  await gdgLoadAnggaranBulanan();
   await gdgWEnsureAkunJurnal(); // pastikan data akun+jurnal ada buat hitung realisasi progress bar
-  gdgAngRenderList();
+  gdgAngUpdateCostCard();   // SELALU jalan — ini yang nyuplai Overview, gak peduli toggle lagi di mana
+  gdgAngRenderActiveList();
   gdgUpdateTargetCard();
 }
 
@@ -1701,10 +1740,12 @@ function gdgAngNetTotal() {
 }
 
 // Total realisasi (nilai anggaran yang sudah diserap) — SELALU minggu berjalan,
-// dijumlah dari semua item Variable Anggaran. Dipakai bareng buat card
-// "Penyerapan" (halaman Anggaran) DAN card "Cost" di Overview — keduanya
-// salinan persis satu sama lain, fixed minggu berjalan, independen dari
-// navigasi periode di Overview (sengaja dipisah dari perhitungan global).
+// dijumlah dari semua item Variable Anggaran Mingguan. Dipakai buat card Cost
+// di Overview — SELALU mingguan, gak peduli toggle Mingguan/Bulanan yang lagi
+// aktif di halaman Anggaran (sengaja dipisah, Overview gak disentuh sama sekali
+// oleh fitur Bulanan). Card "Penyerapan" di halaman Anggaran ikut nilai ini
+// CUMA kalau toggle lagi di Mingguan — kalau lagi di Bulanan, card itu ditimpa
+// gdgAngRenderBulananList() dengan angka bulanan (lihat fungsi itu).
 function gdgAngUpdateCostCard() {
   const wkStart  = gdgWGetMonday(new Date());
   const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
@@ -1718,13 +1759,15 @@ function gdgAngUpdateCostCard() {
   if (pct >= 75) pctColor = 'var(--danger)';
   else if (pct >= 35) pctColor = 'var(--warn)';
 
-  // Card Penyerapan — halaman Anggaran
-  const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
-  const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
-  if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
-  if (pctEl)   { pctEl.textContent = pctFmt; pctEl.style.color = pctColor; }
+  // Card Penyerapan — halaman Anggaran, CUMA kalau toggle lagi di Mingguan
+  if (_gdgAngPeriodeAktif !== 'bulanan') {
+    const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
+    const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
+    if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
+    if (pctEl)   { pctEl.textContent = pctFmt; pctEl.style.color = pctColor; }
+  }
 
-  // Card Cost — Overview (desktop + mobile), salinan persis dari Penyerapan
+  // Card Cost — Overview (desktop + mobile), SELALU mingguan
   const costEl  = document.getElementById('gdg-cost-value');
   const costSub = document.getElementById('gdg-cost-sub');
   if (costEl)  costEl.textContent  = gdgWFmt(totalDiserap);
@@ -1737,10 +1780,128 @@ function gdgAngUpdateCostCard() {
   return { netAnggaran: netAnggaran, totalDiserap: totalDiserap, pct: pct };
 }
 
+// ─── TOGGLE Mingguan / Bulanan ──────────────────────────────────────────
+let _gdgAngPeriodeAktif = 'mingguan';
+let _gdgAnggaranBulananList = []; // recurring — gak diikat minggu_mulai/bulan tertentu
+
+function gdgAngSwitchPeriode(p) {
+  _gdgAngPeriodeAktif = p;
+  const btnM = document.getElementById('gdg-ang-tab-mingguan');
+  const btnB = document.getElementById('gdg-ang-tab-bulanan');
+  if (btnM) btnM.classList.toggle('active', p === 'mingguan');
+  if (btnB) btnB.classList.toggle('active', p === 'bulanan');
+  gdgAngRenderActiveList();
+}
+
+function gdgAngRenderActiveList() {
+  if (_gdgAngPeriodeAktif === 'bulanan') gdgAngRenderBulananList();
+  else gdgAngRenderList();
+}
+
+async function gdgLoadAnggaranBulanan() {
+  try {
+    const rows = await dbGet('gadag_anggaran', '&periode=eq.bulanan&order=id.asc');
+    _gdgAnggaranBulananList = rows || [];
+  } catch(e) {
+    console.error('Gagal load anggaran bulanan:', e.message);
+    _gdgAnggaranBulananList = [];
+  }
+}
+
+// Rentang siklus bulan berjalan buat 1 item bulanan, berdasarkan tgl_reset-nya
+// SENDIRI (bukan tanggal 1 kalender) — misal reset tgl 5, siklus "bulan ini"
+// = 5 bulan-ini s/d 4 bulan-depan.
+function gdgAngBulananCycleRange(item, refDate) {
+  refDate = refDate || new Date();
+  const resetDay = Math.min(28, Math.max(1, parseInt(item.tgl_reset, 10) || 1)); // dibatasi 28 biar aman di semua bulan
+  let cycleStart = new Date(refDate.getFullYear(), refDate.getMonth(), resetDay);
+  if (refDate.getDate() < resetDay) {
+    cycleStart = new Date(refDate.getFullYear(), refDate.getMonth() - 1, resetDay);
+  }
+  const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, resetDay);
+  cycleEnd.setDate(cycleEnd.getDate() - 1);
+  return { start: gdgWToISO(cycleStart), end: gdgWToISO(cycleEnd), startDate: cycleStart, endDate: cycleEnd };
+}
+
+function gdgAngNetTotalBulanan() {
+  return _gdgAnggaranBulananList.reduce((s, r) => s + (Number(r.target) || 0), 0);
+}
+
+function gdgAngRenderBulananList() {
+  const listEl = document.getElementById('gdg-ang2-list');
+  const netEl  = document.getElementById('gdg-ang2-net');
+  const wkLabelEl = document.getElementById('gdg-ang2-week-label');
+  const netTotal = gdgAngNetTotalBulanan();
+  if (netEl) netEl.textContent = gdgFmt(netTotal);
+  if (wkLabelEl) wkLabelEl.textContent = 'Bulanan · recurring tiap bulan';
+  if (!listEl) return;
+
+  const today = new Date();
+  let totalDiserap = 0;
+
+  if (!_gdgAnggaranBulananList.length) {
+    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran bulanan.</div>';
+  } else {
+    listEl.innerHTML = _gdgAnggaranBulananList.map((it, i) => {
+      const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const namaAttr = namaSafe.replace(/"/g,'&quot;');
+      const nom = Number(it.target) || 0;
+      const cycle = gdgAngBulananCycleRange(it, today);
+      const realisasi = gdgAngHitungRealisasi(it.nama, cycle.start, cycle.end);
+      totalDiserap += realisasi;
+      const lunas = nom > 0 && realisasi >= nom;
+
+      const resetDay = parseInt(it.tgl_reset, 10) || 1;
+      const jtDay = it.tgl_jatuh_tempo ? parseInt(it.tgl_jatuh_tempo, 10) : null;
+      let overdue = false;
+      let dueTxt  = 'Reset tiap tgl ' + resetDay;
+      if (jtDay) {
+        let jtDate = new Date(cycle.startDate.getFullYear(), cycle.startDate.getMonth(), jtDay);
+        if (jtDate < cycle.startDate) jtDate.setMonth(jtDate.getMonth() + 1);
+        overdue = !lunas && today > jtDate;
+        dueTxt = 'Jatuh tempo tgl ' + jtDay;
+      }
+      const badge = lunas
+        ? '<span style="background:var(--ok);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">LUNAS</span>'
+        : overdue
+          ? '<span style="background:var(--danger);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">LEWAT JATUH TEMPO</span>'
+          : '<span style="background:var(--ink3);color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;flex:none">BELUM</span>';
+
+      return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}"
+        data-periode="bulanan" data-reset="${resetDay}" data-jatuhtempo="${jtDay||''}">
+        <div class="gdg-ang2-top">
+          <span class="gdg-ang2-idx">${i+1}.</span>
+          <span class="gdg-ang2-nama">${namaSafe}</span>
+          <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px">
+          <span style="font-size:11px;color:var(--ink3)">${dueTxt}</span>
+          ${badge}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Card Penyerapan halaman Anggaran, versi Bulanan (nimpa yang mingguan
+  // pas toggle ini lagi aktif — Overview TETEP gak disentuh sama sekali)
+  const pct = netTotal > 0 ? Math.round((totalDiserap / netTotal) * 100) : 0;
+  let pctColor = 'var(--ok)';
+  if (pct >= 75) pctColor = 'var(--danger)';
+  else if (pct >= 35) pctColor = 'var(--warn)';
+  const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
+  const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
+  if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
+  if (pctEl)   { pctEl.textContent = pct + '%'; pctEl.style.color = pctColor; }
+}
+
 function gdgAngRenderList() {
   const listEl = document.getElementById('gdg-ang2-list');
   const netEl  = document.getElementById('gdg-ang2-net');
+  const wkLabelEl = document.getElementById('gdg-ang2-week-label');
   if (netEl) netEl.textContent = gdgFmt(gdgAngNetTotal());
+  const wkStart0 = gdgWGetMonday(new Date());
+  const wkEnd0   = new Date(wkStart0); wkEnd0.setDate(wkStart0.getDate() + 6);
+  if (wkLabelEl) wkLabelEl.textContent = 'Minggu ' + gdgWFmtRange(wkStart0, wkEnd0);
   gdgAngUpdateCostCard();
   if (!listEl) return;
   if (!_gdgAnggaranList.length) {
@@ -1764,7 +1925,7 @@ function gdgAngRenderList() {
     let barColor = 'var(--ok)';
     if (pct >= 75) barColor = 'var(--danger)';
     else if (pct >= 35) barColor = 'var(--warn)';
-    return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}">
+    return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}" data-periode="mingguan">
       <div class="gdg-ang2-top">
         <span class="gdg-ang2-idx">${i+1}.</span>
         <span class="gdg-ang2-nama">${namaSafe}</span>
@@ -1947,11 +2108,21 @@ function gdgAngAkunPickerSelect(nama) {
 }
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
+function gdgAngModalSetPeriode(p) {
+  document.getElementById('gdg-ang2-periode-input').value = p;
+  document.getElementById('gdg-ang2-periode-mingguan').classList.toggle('active', p === 'mingguan');
+  document.getElementById('gdg-ang2-periode-bulanan').classList.toggle('active', p === 'bulanan');
+  document.getElementById('gdg-ang2-bulanan-fields').style.display = p === 'bulanan' ? 'block' : 'none';
+}
+
 async function gdgAngShowAdd() {
   document.getElementById('gdg-ang2-edit-id').value = '';
   document.getElementById('gdg-ang2-nominal-input').value = '';
+  document.getElementById('gdg-ang2-reset-input').value = '';
+  document.getElementById('gdg-ang2-jatuhtempo-input').value = '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
+  gdgAngModalSetPeriode(_gdgAngPeriodeAktif); // ikutin tab yang lagi aktif pas tombol Tambah dipencet
   await gdgWEnsureAkunJurnal();
   gdgAngPopulateAkunSelect('');
   document.getElementById('modal-gdg-ang2').classList.add('open');
@@ -1959,11 +2130,18 @@ async function gdgAngShowAdd() {
 }
 
 // Dipanggil dari tekan-tahan row (IIFE di bawah) — bukan dari kolom Aksi
-async function gdgAngShowEdit(id, nama, nominal) {
+async function gdgAngShowEdit(row) {
+  const id       = row.dataset.id;
+  const nama     = row.dataset.nama;
+  const nominal  = row.dataset.nominal;
+  const periode  = row.dataset.periode || 'mingguan';
   document.getElementById('gdg-ang2-edit-id').value = id;
   document.getElementById('gdg-ang2-nominal-input').value = nominal ? Number(nominal).toLocaleString('id-ID') : '';
+  document.getElementById('gdg-ang2-reset-input').value = row.dataset.reset || '';
+  document.getElementById('gdg-ang2-jatuhtempo-input').value = row.dataset.jatuhtempo || '';
   document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Variable';
   document.getElementById('gdg-ang2-modal-hapus').style.display = '';
+  gdgAngModalSetPeriode(periode);
   await gdgWEnsureAkunJurnal();
   gdgAngPopulateAkunSelect(nama || '');
   document.getElementById('modal-gdg-ang2').classList.add('open');
@@ -1993,18 +2171,29 @@ async function gdgAngSimpan() {
   const nama    = document.getElementById('gdg-ang2-nama-input').value.trim();
   const rawNom  = (document.getElementById('gdg-ang2-nominal-input').value || '').replace(/\D/g,'');
   const nominal = parseInt(rawNom, 10) || 0;
+  const periode = document.getElementById('gdg-ang2-periode-input').value || 'mingguan';
 
   if (!nama)                     { alert('Pilih akun dulu.'); return; }
   if (!nominal || nominal <= 0)  { alert('Nominal harus lebih dari 0.'); return; }
 
-  const wkStart = gdgWGetMonday(new Date());
-  const iso     = gdgWToISO(wkStart);
+  let payload;
+  if (periode === 'bulanan') {
+    const resetDay = parseInt(document.getElementById('gdg-ang2-reset-input').value, 10);
+    if (!resetDay || resetDay < 1 || resetDay > 28) { alert('Tanggal Reset wajib diisi (1-28).'); return; }
+    const jtRaw = document.getElementById('gdg-ang2-jatuhtempo-input').value;
+    const jtDay = jtRaw ? (parseInt(jtRaw, 10) || null) : null;
+    payload = { periode: 'bulanan', nama, target: nominal, tgl_reset: resetDay, tgl_jatuh_tempo: jtDay, minggu_mulai: null };
+  } else {
+    const wkStart = gdgWGetMonday(new Date());
+    const iso     = gdgWToISO(wkStart);
+    payload = { periode: 'mingguan', nama, target: nominal, minggu_mulai: iso, tgl_reset: null, tgl_jatuh_tempo: null };
+  }
 
   try {
     if (id) {
-      await dbUpdate('gadag_anggaran', id, { nama, target: nominal });
+      await dbUpdate('gadag_anggaran', id, payload);
     } else {
-      await dbInsert('gadag_anggaran', { minggu_mulai: iso, nama, target: nominal });
+      await dbInsert('gadag_anggaran', payload);
     }
     gdgAngCloseModal();
     gdgLoadAnggaran();
@@ -2017,7 +2206,9 @@ function gdgAngHapusDariModal() {
   const id = document.getElementById('gdg-ang2-edit-id').value.trim();
   if (!id) return;
   const nama = document.getElementById('gdg-ang2-nama-input').value || 'variable ini';
-  confirmDelete('Hapus "' + nama + '" dari anggaran minggu ini?', async () => {
+  const periode = document.getElementById('gdg-ang2-periode-input').value || 'mingguan';
+  const label = periode === 'bulanan' ? 'dari anggaran bulanan' : 'dari anggaran minggu ini';
+  confirmDelete('Hapus "' + nama + '" ' + label + '?', async () => {
     try {
       await dbDelete('gadag_anggaran', id);
       gdgAngCloseModal();
@@ -2038,7 +2229,7 @@ function gdgAngHapusDariModal() {
       if (!_lpRow) return;
       const r = _lpRow;
       _clear();
-      gdgAngShowEdit(r.dataset.id, r.dataset.nama, r.dataset.nominal);
+      gdgAngShowEdit(r);
     }, 550);
   }
   function _clear() {
