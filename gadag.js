@@ -364,10 +364,17 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-panel { display: none; min-height: 0; }
   .gdg-page-dots { display: none; }
   @media (max-width: 900px) {
-    .gdg-page-dots { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 0 0 10px; }
-    .gdg-page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gdg-ink3, #7a746c); opacity: .35; transition: all .18s ease; cursor: pointer; }
-    .gdg-page-dot.active { width: 16px; border-radius: 3px; opacity: 1; background: var(--gdg-ink, #262220); }
+    /* Floating pojok kiri-bawah layar, ~30% dari bawah — gak ikut alur dokumen
+       (gak ke-scroll bareng konten), biar area atas (dekat tabel) lega kayak
+       yang diminta. Vertikal (ke atas) biar gampang dijangkau jempol kiri. */
+    .gdg-page-dots { display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 8px;
+      position: fixed; left: 12px; bottom: max(30vh, 90px); z-index: 45; }
+    .gdg-page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gdg-ink3, #7a746c); opacity: .4; transition: all .18s ease; cursor: pointer; box-shadow: 0 0 0 4px rgba(0,0,0,.15); }
+    .gdg-page-dot.active { height: 16px; border-radius: 3px; opacity: 1; background: var(--gdg-accent, var(--gdg-ink, #262220)); }
+    /* Menu halaman digantiin swipe + dots di mobile */
+    .gdg-menu-wrap { display: none; }
   }
+  @media (min-width: 901px) { .gdg-page-dots { display: none !important; } }
   .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
   #gdg-panel-mingguan.active { display: flex; flex-direction: column; }
@@ -951,8 +958,7 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
   function goRelative(dir) {
     var idx = ORDER.indexOf(_gdgView);
     if (idx === -1) return;
-    var next = idx + dir;
-    if (next < 0 || next >= ORDER.length) return;
+    var next = (idx + dir + ORDER.length) % ORDER.length; // looping: abis panel terakhir balik ke awal, dan sebaliknya
     gdgSelectView(ORDER[next]);
   }
 
