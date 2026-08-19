@@ -372,11 +372,14 @@ document.getElementById('page-gadag').innerHTML = `
     .gdg-page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gdg-paper, #f7f2e6); opacity: .35; transition: all .18s ease; cursor: pointer; }
     .gdg-page-dot.active { width: 16px; border-radius: 3px; opacity: 1; background: var(--gdg-paper, #f7f2e6); }
     .gdg-menu-wrap { display: none; }
-    /* Area Swipe — strip fixed di bawah layar, TRANSPARAN (gak ada visual apa²,
-       cuma zona tap). Tinggi bebas, ~72px + safe-area biar kejangkau jempol. */
+    /* Area Swipe — diperkecil jadi setengah dari sebelumnya (36px, bukan 72px)
+       DAN dijauhin dari tepi paling bawah layar (bottom:20px, bukan bottom:0)
+       biar gak numpuk sama zona gesture OS (swipe-back Android / home-indicator
+       iPhone yang nempel persis di edge bawah). Transparan, cuma zona tap. */
     #gdg-swipe-zone {
-      display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
-      height: calc(72px + env(safe-area-inset-bottom, 0px));
+      display: block; position: fixed; left: 0; right: 0; z-index: 45;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      height: 36px;
       background: transparent; touch-action: pan-y;
     }
     /* CATATAN: dulu sempet dikasih padding-bottom di #gdg-panels-wrap biar
@@ -384,7 +387,8 @@ document.getElementById('page-gadag').innerHTML = `
        (card jadi berhenti di atas, nyisa hitam kosong di bawah). Card/panel
        HARUS tetep penuh sampe bawah layar. Padding yang bener ditaruh di
        elemen yang beneran scroll internal (.tbl-wrap, #gdg-ang2-list,
-       #gdgw-data-area) — lihat masing² di bawah. */
+       #gdgw-data-area) — lihat masing² di bawah. Nilainya nyocokin total
+       ruang Area Swipe (36px tinggi + 20px jarak dari tepi = 56px). */
   }
   .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
@@ -392,7 +396,7 @@ document.getElementById('page-gadag').innerHTML = `
   #gdg-panel-mingguan.active > .card:last-child { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { flex: 1 1 0; min-height: 0; overflow-y: auto; }
   @media (max-width: 900px) {
-    #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { padding-bottom: 72px; }
+    #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { padding-bottom: 56px; }
   }
 
   /* Panel isi 1 card utama (Catatan/Riwayat/Kelola Produk/Anggaran) — panelnya
@@ -424,7 +428,7 @@ document.getElementById('page-gadag').innerHTML = `
     #gdg-panel-pendapatan .tbl-wrap,
     #gdg-panel-riwayat .tbl-wrap,
     #gdg-panel-sku .tbl-wrap,
-    #gdg-panel-anggaran #gdg-ang2-list { padding-bottom: 72px; }
+    #gdg-panel-anggaran #gdg-ang2-list { padding-bottom: 56px; }
   }
 
   /* Poin 1 (baru): kertas bergaris — garis horizontal nerus di seluruh isi card
@@ -3077,8 +3081,11 @@ function gdgSkuPickerOpen() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     sheet.style.transform = 'translateY(0)';
   }));
-  // jangan auto-focus search di iOS — keyboard pop-up di dalam bottom-sheet
-  // sering bikin layout loncat; biarkan user tap sendiri kalau mau search
+  // Auto-focus search begitu sheet-nya kebuka, keyboard langsung nongol —
+  // user bisa langsung ngetik nama SKU tanpa tap search dulu. Ditunda 300ms
+  // (nyocokin transisi sheet .28s) biar iOS Safari gak nolak focus() gara²
+  // elemen masih di tengah animasi transform (kalau ke-skip, keyboard ga muncul).
+  if (search) setTimeout(() => search.focus({ preventScroll: true }), 300);
 }
 
 // force=true → tutup tanpa cek target (dipanggil dari tombol ✕ atau select item)
