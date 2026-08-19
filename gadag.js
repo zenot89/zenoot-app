@@ -363,7 +363,6 @@ document.getElementById('page-gadag').innerHTML = `
      scroll biasa di panel-nya sendiri, card-card di dalemnya natural height. */
   .gdg-panel { display: none; min-height: 0; }
   .gdg-page-dots { display: none; }
-  #gdg-swipe-zone { display: none; }
   @media (max-width: 900px) {
     /* Dots pindah ke slot .gdg-menu-wrap (kanan-atas header) yang di-hide di
        mobile — hdr-row masih justify-content:space-between jadi otomatis
@@ -372,32 +371,17 @@ document.getElementById('page-gadag').innerHTML = `
     .gdg-page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gdg-paper, #f7f2e6); opacity: .35; transition: all .18s ease; cursor: pointer; }
     .gdg-page-dot.active { width: 16px; border-radius: 3px; opacity: 1; background: var(--gdg-paper, #f7f2e6); }
     .gdg-menu-wrap { display: none; }
-    /* Area Swipe — diperkecil jadi setengah dari sebelumnya (36px, bukan 72px)
-       DAN dijauhin dari tepi paling bawah layar (bottom:20px, bukan bottom:0)
-       biar gak numpuk sama zona gesture OS (swipe-back Android / home-indicator
-       iPhone yang nempel persis di edge bawah). Transparan, cuma zona tap. */
-    #gdg-swipe-zone {
-      display: block; position: fixed; left: 0; right: 0; z-index: 45;
-      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-      height: 36px;
-      background: transparent; touch-action: pan-y;
-    }
-    /* CATATAN: dulu sempet dikasih padding-bottom di #gdg-panels-wrap biar
-       "nyisain ruang" buat Area Swipe — SALAH, itu ikut motong tinggi card
-       (card jadi berhenti di atas, nyisa hitam kosong di bawah). Card/panel
-       HARUS tetep penuh sampe bawah layar. Padding yang bener ditaruh di
-       elemen yang beneran scroll internal (.tbl-wrap, #gdg-ang2-list,
-       #gdgw-data-area) — lihat masing² di bawah. Nilainya nyocokin total
-       ruang Area Swipe (36px tinggi + 20px jarak dari tepi = 56px). */
+    /* CATATAN: strip #gdg-swipe-zone (dedicated bottom strip) DIBUANG — kegedean
+       resiko meleset (cuma 36px, mepet tepi bawah) & sering rebutan sama
+       edge-swipe-back bawaan OS. Swipe sekarang nempel LANGSUNG di area data
+       (.tbl-wrap, #gdg-ang2-list, #gdgw-data-area) — target jauh lebih gede,
+       udah kebukti aman coexist sama long-press (lihat blok JS SWIPE ANTAR PANEL). */
   }
   .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
   #gdg-panel-mingguan.active { display: flex; flex-direction: column; }
   #gdg-panel-mingguan.active > .card:last-child { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { flex: 1 1 0; min-height: 0; overflow-y: auto; }
-  @media (max-width: 900px) {
-    #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { padding-bottom: 56px; }
-  }
 
   /* Panel isi 1 card utama (Catatan/Riwayat/Kelola Produk/Anggaran) — panelnya
      sendiri jadi flex column TANPA scroll (overflow:hidden), yg scroll internal
@@ -424,12 +408,6 @@ document.getElementById('page-gadag').innerHTML = `
     );
   }
   #gdg-panel-anggaran #gdg-ang2-list { flex: 1 1 0; min-height: 0; overflow-y: auto; }
-  @media (max-width: 900px) {
-    #gdg-panel-pendapatan .tbl-wrap,
-    #gdg-panel-riwayat .tbl-wrap,
-    #gdg-panel-sku .tbl-wrap,
-    #gdg-panel-anggaran #gdg-ang2-list { padding-bottom: 56px; }
-  }
 
   /* Poin 1 (baru): kertas bergaris — garis horizontal nerus di seluruh isi card
      list (termasuk area kosong di bawah item terakhir), bukan cuma per-baris
@@ -531,11 +509,6 @@ document.getElementById('page-gadag').innerHTML = `
     <span class="gdg-page-dot" onclick="gdgSelectView('anggaran')"></span>
   </div>
 </div>
-
-<!-- Area Swipe — satu-satunya zona buat geser ganti panel di mobile. Transparan,
-     fixed di bawah layar (lihat CSS #gdg-swipe-zone). Konten (tabel dkk) di atas
-     TIDAK punya listener swipe sama sekali, jadi bebas discroll normal. -->
-<div id="gdg-swipe-zone"></div>
 
 <!-- Wrapper flex:1 buat semua panel — biar chain height-nya nyambung ke #page-gadag
      (lihat blok CSS "FULL-HEIGHT CHAIN" di atas). Header di atas otomatis kebagian
@@ -960,20 +933,29 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 })();
 
 // ═══════════════════════════════════════════════════════════
-// SWIPE ANTAR PANEL (mobile only) — listener CUMA nempel di #gdg-swipe-zone
-// (strip transparan fixed di bawah layar), BUKAN di seluruh #gdg-panels-wrap
-// lagi. Konsekuensinya: gak ada lagi konflik sama scroll horizontal tabel
-// (.tbl-wrap) atau drag di dalam sheet — karena elemen² itu emang gak pernah
-// kesenggol listener ini sama sekali. Kalau ada sheet/modal kebuka & keliatan
-// nutupin strip ini secara visual, z-index sheet (700+/850+) udah pasti di
-// atas #gdg-swipe-zone (z:45), jadi browser otomatis ngasih touch ke sheet,
-// bukan ke strip — gak perlu guard manual lagi.
+// SWIPE ANTAR PANEL (mobile only) — nempel LANGSUNG di #gdg-panels-wrap
+// (jadi kena juga di area data: .tbl-wrap, #gdg-ang2-list, #gdgw-data-area).
+// Dulu sempet diisolasi ke strip kecil #gdg-swipe-zone di bawah layar — dibuang
+// karena kegedean resiko meleset (cuma 36px) & rebutan sama edge-swipe-back
+// bawaan OS pas mepet tepi bawah, hasilnya kerasa "stuck" gak kena.
+//
+// Aman coexist sama long-press edit yang udah ada:
+//  - Anggaran (#gdg-ang2-list): timer di-cancel di GERAKAN SEKECIL APAPUN.
+//  - Catatan & Riwayat (_gdgInitLongPress): timer di-cancel kalau gerak >10px.
+//  - Kelola Produk: gak ada gesture, edit/hapus pake tombol tap biasa.
+// Threshold swipe kita 40px — jauh di atas 10px itu, jadi long-press SELALU
+// udah batal duluan sebelum swipe kepicu, gak akan numpuk dua-duanya.
+//
+// Guard edge-swipe-back: swipe yg MULAI dari 24px paling tepi kiri/kanan layar
+// diabaikan — biar gak berebut sama gesture back bawaan Android/iOS (yang emang
+// punya prioritas OS-level di zona itu, percuma dilawan dari JS).
 // ═══════════════════════════════════════════════════════════
 (function() {
-  var zone = document.getElementById('gdg-swipe-zone');
-  if (!zone) return;
+  var wrap = document.getElementById('gdg-panels-wrap');
+  if (!wrap) return;
   var ORDER = ['mingguan', 'pendapatan', 'riwayat', 'sku', 'anggaran'];
-  var startX = 0, startT = 0;
+  var EDGE = 24;
+  var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null;
 
   function goRelative(dir) {
     var idx = ORDER.indexOf(_gdgView);
@@ -982,18 +964,38 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
     gdgSelectView(ORDER[next]);
   }
 
-  zone.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].clientX;
+  wrap.addEventListener('touchstart', function(e) {
+    var x = e.touches[0].clientX;
+    if (x < EDGE || x > window.innerWidth - EDGE) { tracking = false; return; } // biarin OS handle edge-gesture
+    startX = x;
+    startY = e.touches[0].clientY;
     startT = Date.now();
+    tracking = true;
+    isHoriz = null;
   }, { passive: true });
 
-  zone.addEventListener('touchend', function(e) {
+  wrap.addEventListener('touchmove', function(e) {
+    if (!tracking) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (isHoriz === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    // Gak preventDefault — scroll vertical panel & long-press-cancel tetep jalan normal apa adanya.
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    if (!isHoriz) return;
     var dx = e.changedTouches[0].clientX - startX;
     var dt = Date.now() - startT;
     var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
-    if (dx < -40 || (isFlick && dx < -15)) goRelative(1);
-    else if (dx > 40 || (isFlick && dx > 15)) goRelative(-1);
+    if (dx < -40 || (isFlick && dx < -20)) goRelative(1);
+    else if (dx > 40 || (isFlick && dx > 20)) goRelative(-1);
   }, { passive: true });
+
+  wrap.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
 })();
 
 // ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
