@@ -362,6 +362,12 @@ document.getElementById('page-gadag').innerHTML = `
   /* Default: panel yg isinya beberapa card ditumpuk (Ringkasan Mingguan) —
      scroll biasa di panel-nya sendiri, card-card di dalemnya natural height. */
   .gdg-panel { display: none; min-height: 0; }
+  .gdg-page-dots { display: none; }
+  @media (max-width: 900px) {
+    .gdg-page-dots { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 0 0 10px; }
+    .gdg-page-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gdg-ink3, #7a746c); opacity: .35; transition: all .18s ease; cursor: pointer; }
+    .gdg-page-dot.active { width: 16px; border-radius: 3px; opacity: 1; background: var(--gdg-ink, #262220); }
+  }
   .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
   #gdg-panel-mingguan.active { display: flex; flex-direction: column; }
@@ -484,6 +490,15 @@ document.getElementById('page-gadag').innerHTML = `
       <button id="gdg-menu-item-anggaran" onclick="gdgSelectView('anggaran')"><i class="ti ti-wallet"></i> Anggaran Mingguan</button>
     </div>
   </div>
+</div>
+
+<!-- Dot indikator posisi panel — mobile only, nunjukin arah geser -->
+<div id="gdg-page-dots" class="gdg-page-dots">
+  <span class="gdg-page-dot" onclick="gdgSelectView('mingguan')"></span>
+  <span class="gdg-page-dot" onclick="gdgSelectView('pendapatan')"></span>
+  <span class="gdg-page-dot" onclick="gdgSelectView('riwayat')"></span>
+  <span class="gdg-page-dot" onclick="gdgSelectView('sku')"></span>
+  <span class="gdg-page-dot" onclick="gdgSelectView('anggaran')"></span>
 </div>
 
 <!-- Wrapper flex:1 buat semua panel — biar chain height-nya nyambung ke #page-gadag
@@ -908,6 +923,75 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
   });
 })();
 
+// ═══════════════════════════════════════════════════════════
+// SWIPE ANTAR PANEL (mobile only) — konsep sama kayak nw-swipe-container
+// Dashboard (deteksi arah dari gerakan awal, threshold jarak/flick), TAPI
+// implementasinya beda: panel Gadag berat & punya height-chain sendiri²
+// (lihat blok CSS "FULL-HEIGHT CHAIN"), jadi bukan 1 track 5-panel yang
+// digeser translateX bareng. Swipe di sini cuma TRIGGER gdgSelectView() ke
+// panel sebelah — arsitektur display:none/.active yang udah ada gak diubah
+// sama sekali, paling aman & lazy-load per panel tetep jalan normal.
+// Guard: kalau touchstart mulai di dalam .tbl-wrap (tabel yg overflow-x:auto)
+// atau ada modal/sheet lagi kebuka, swipe-ganti-panel di-skip total — biar
+// gak bentrok sama scroll horizontal tabel / drag di dalam sheet.
+// ═══════════════════════════════════════════════════════════
+(function() {
+  var ORDER = ['mingguan', 'pendapatan', 'riwayat', 'sku', 'anggaran'];
+  var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null, blocked = false;
+
+  function isBlockedStart(target) {
+    if (target.closest('.tbl-wrap')) return true;
+    if (document.querySelector('.modal-overlay.open')) return true;
+    if (document.querySelector('.gdg-sheet-overlay.gdg-sheet-in')) return true;
+    var akp = document.getElementById('gdg-akunpicker-overlay');
+    if (akp && akp.classList.contains('open')) return true;
+    return false;
+  }
+
+  function goRelative(dir) {
+    var idx = ORDER.indexOf(_gdgView);
+    if (idx === -1) return;
+    var next = idx + dir;
+    if (next < 0 || next >= ORDER.length) return;
+    gdgSelectView(ORDER[next]);
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    var wrap = e.target.closest('#gdg-panels-wrap');
+    if (!wrap) return;
+    blocked = isBlockedStart(e.target);
+    if (blocked) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startT = Date.now();
+    tracking = true;
+    isHoriz = null;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!tracking || blocked) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (isHoriz === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    // Gak preventDefault — scroll vertical panel tetep jalan normal apa adanya.
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!tracking || blocked) { tracking = false; return; }
+    tracking = false;
+    if (!isHoriz) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dt = Date.now() - startT;
+    var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+    if (dx < -50 || (isFlick && dx < -20)) goRelative(1);
+    else if (dx > 50 || (isFlick && dx > 20)) goRelative(-1);
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
+})();
+
 // ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
 let _gdgView = 'mingguan';
 
@@ -958,6 +1042,13 @@ function gdgApplyView() {
   ['mingguan','pendapatan','riwayat','sku','anggaran'].forEach(v => {
     document.getElementById('gdg-menu-item-' + v).classList.toggle('active', v === _gdgView);
   });
+  const dotOrder = ['mingguan','pendapatan','riwayat','sku','anggaran'];
+  const dotsEl = document.getElementById('gdg-page-dots');
+  if (dotsEl) {
+    Array.prototype.forEach.call(dotsEl.children, function(dot, i) {
+      dot.classList.toggle('active', dotOrder[i] === _gdgView);
+    });
+  }
   if (_gdgView === 'riwayat' && !_gdgHistWeekStart) gdgHistThisWeek();
   if (_gdgView === 'anggaran') gdgLoadAnggaran();
 }
