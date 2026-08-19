@@ -1408,6 +1408,7 @@ function _kasSetDebitAccent(lblId, pickerId, tipe) {
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
   _kasSplitRows = []; // ganti tipe → reset patungan, gak relevan lagi
+  kasSplitRenderRows();
   var extraEl = document.getElementById('kas-pinjaman-extra');
   if (extraEl) extraEl.style.display = (tipe === 'pinjaman') ? 'block' : 'none';
   if (tipe === 'pinjaman') kasPjmAutoJatuhTempo('kas-pjm');
@@ -2681,8 +2682,6 @@ function kasSplitEvaluate() {
     addBtn.style.display = 'none';
     warnEl.textContent = '';
   }
-
-  kasSplitRenderRows();
 }
 
 function kasSplitRenderRows() {
@@ -2709,11 +2708,13 @@ function kasSplitRenderRows() {
 function kasSplitAddRow() {
   _kasSplitRows.push({ uid: ++_kasSplitUid, akunId: '', nominal: 0 });
   kasSplitEvaluate();
+  kasSplitRenderRows();
 }
 
 function kasSplitRemoveRow(uid) {
   _kasSplitRows = _kasSplitRows.filter(function(r) { return r.uid !== uid; });
   kasSplitEvaluate();
+  kasSplitRenderRows();
 }
 
 // Sheet picker akun yang di-reuse dari Kas & Jurnal, TAPI list-nya di-override
@@ -2775,8 +2776,13 @@ function kasSplitAkunSelected(akunId) {
   _kasSplitPickCtx = null;
   kasAkunPickerClose();
   kasSplitEvaluate();
+  kasSplitRenderRows();
 }
 
+// Dipanggil tiap ketik 1 digit — SENGAJA gak manggil kasSplitRenderRows()
+// (yang nge-replace innerHTML seluruh baris, termasuk input yang lagi
+// difokus → keyboard ke-drop tiap 1 digit). kasSplitEvaluate() sekarang cuma
+// update teks warning/tombol, gak nyentuh DOM baris sama sekali — aman.
 function kasSplitNominalInput(uid, el) {
   var row = _kasSplitRows.find(function(r) { return r.uid === uid; });
   if (!row) return;
