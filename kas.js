@@ -455,6 +455,15 @@ function _kasInjectSheets() {
         <div class="kas-akun-list" id="picker-kredit-list" style="display:none"></div>
       </div>
     </div>
+    <!-- PATUNGAN — khusus tipe Uang Keluar, muncul kalau saldo akun Kredit
+         di atas kurang dari nominal transaksi. Lihat blok JS "PATUNGAN". -->
+    <div class="kas-brimo-field" id="kas-split-wrap" style="display:none">
+      <div id="kas-split-warn" style="font-size:12px;margin-bottom:4px"></div>
+      <div id="kas-split-rows"></div>
+      <button type="button" class="btn btn-sm" id="kas-split-add-btn" onclick="kasSplitAddRow()" style="display:none;margin-top:6px">
+        <i class="ti ti-plus"></i> Tambah Akun (Patungan)
+      </button>
+    </div>
     <div class="kas-brimo-field">
       <label class="kas-brimo-label">Keterangan</label>
       <input type="text" id="kas-jrn-ket" class="kas-brimo-input" placeholder="mis: bayar iklan Shopee...">
@@ -1148,6 +1157,7 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
     }, 260);
     _brimoStep = '';
     _brimoExpr = '';
+    _kasSplitRows = []; // batal/tutup transaksi → reset patungan juga
     // Reset pinjaman extra fields
     var ex = document.getElementById('kas-pinjaman-extra');
     if (ex) {
@@ -1397,6 +1407,7 @@ function _kasSetDebitAccent(lblId, pickerId, tipe) {
 
 function kasOnTipeChange() {
   const tipe = document.getElementById('kas-jrn-tipe').value;
+  _kasSplitRows = []; // ganti tipe → reset patungan, gak relevan lagi
   var extraEl = document.getElementById('kas-pinjaman-extra');
   if (extraEl) extraEl.style.display = (tipe === 'pinjaman') ? 'block' : 'none';
   if (tipe === 'pinjaman') kasPjmAutoJatuhTempo('kas-pjm');
@@ -1422,6 +1433,7 @@ function kasHitungJurnal() {
   const akunD   = _kasAkunMap[akunDId];
   const akunK   = _kasAkunMap[akunKId];
   const preview = document.getElementById('kas-preview-entry');
+  kasSplitEvaluate();
   if (!preview) return;
   if (!nominal || !akunD || !akunK) { preview.style.display = 'none'; return; }
   const fmtRp = v => fmtRpFull(v);
@@ -1460,29 +1472,58 @@ async function kasSimpanJurnal() {
   const akunDId = document.getElementById('kas-jrn-akun-debit').value;
   const akunKId = document.getElementById('kas-jrn-akun-kredit').value;
   const tgl     = document.getElementById('kas-jrn-tgl').value;
+  const tipe    = document.getElementById('kas-jrn-tipe').value;
   if (!tgl)             { alert('Tanggal wajib diisi!'); return; }
   if (!nominal)         { alert('Nominal wajib diisi!'); return; }
   if (!akunDId)         { alert('Akun Debit wajib dipilih!'); return; }
   if (!akunKId)         { alert('Akun Kredit wajib dipilih!'); return; }
   if (akunDId===akunKId){ alert('Akun Debit dan Kredit tidak boleh sama!'); return; }
-  const _vErr = _kasValidasiKelompokAkun(document.getElementById('kas-jrn-tipe').value, _kasAkunMap[akunDId], _kasAkunMap[akunKId]);
+  const _vErr = _kasValidasiKelompokAkun(tipe, _kasAkunMap[akunDId], _kasAkunMap[akunKId]);
   if (_vErr) { alert(_vErr); return; }
-  const data = {
-    tanggal:        tgl,
-    keterangan:     (document.getElementById('kas-jrn-ket').value||'').trim(),
-    referensi:      (document.getElementById('kas-jrn-ref').value||'').trim() || null,
-    tipe:           document.getElementById('kas-jrn-tipe').value,
-    akun_debit_id:  akunDId,
-    akun_kredit_id: akunKId,
-    nominal:        nominal,
-    debit:          nominal,
-    kredit:         nominal,
-  };
-  try {
-    await dbInsert('jurnal', data);
 
-    // Jika pinjaman → insert juga ke tabel hutang
-    const tipe = data.tipe;
+  // ── PATUNGAN: kalau ada split row aktif, pecah jadi beberapa baris kredit ──
+  const splitActive = tipe === 'keluar' && _kasSplitRows.length > 0;
+  let kreditRows = [{ akun_kredit_id: akunKId, nominal: nominal }];
+  if (splitActive) {
+    for (const r of _kasSplitRows) {
+      if (!r.akunId)        { alert('Pilih akun buat semua baris patungan!'); return; }
+      if (!r.nominal || r.nominal <= 0) { alert('Isi nominal buat semua baris patungan!'); return; }
+    }
+    const splitTotal    = _kasSplitRows.reduce((s,r) => s + r.nominal, 0);
+    const primaryPortion = nominal - splitTotal;
+    const primaryInfo   = _kasSplitPrimaryInfo();
+    if (primaryPortion <= 0) { alert('Total patungan sudah menutupi/melebihi nominal transaksi — cek lagi nominal per akun.'); return; }
+    if (primaryPortion > Math.max(0, primaryInfo.primarySaldo) + 1) {
+      alert('Alokasi akun utama (' + fmtRpFull(primaryPortion) + ') melebihi saldo akun tersebut (' + fmtRpFull(Math.max(0, primaryInfo.primarySaldo)) + ').');
+      return;
+    }
+    kreditRows = [{ akun_kredit_id: akunKId, nominal: primaryPortion }];
+    _kasSplitRows.forEach(r => kreditRows.push({ akun_kredit_id: r.akunId, nominal: r.nominal }));
+  }
+
+  const ket = (document.getElementById('kas-jrn-ket').value||'').trim();
+  const ref = (document.getElementById('kas-jrn-ref').value||'').trim() || null;
+
+  try {
+    // Tiap baris kredit disimpen jadi 1 row `jurnal` sendiri (double-entry
+    // balanced per baris) — akun Debit & keterangan/referensi sama persis
+    // di semua baris, cuma akun Kredit & nominal yang beda kalau patungan.
+    for (const kr of kreditRows) {
+      await dbInsert('jurnal', {
+        tanggal:        tgl,
+        keterangan:     ket,
+        referensi:      ref,
+        tipe:           tipe,
+        akun_debit_id:  akunDId,
+        akun_kredit_id: kr.akun_kredit_id,
+        nominal:        kr.nominal,
+        debit:          kr.nominal,
+        kredit:         kr.nominal,
+      });
+    }
+
+    // Jika pinjaman → insert juga ke tabel hutang (nominal penuh, patungan
+    // gak berlaku buat tipe ini)
     if (tipe === 'pinjaman') {
       const kreditur = (document.getElementById('kas-pjm-kreditur').value||'').trim();
       if (kreditur) {
@@ -1508,7 +1549,7 @@ async function kasSimpanJurnal() {
           jatuh_tempo:       jatuhTempo,
           tgl_cicilan:       parseInt(document.getElementById('kas-pjm-tgl-cicilan').value) || null,
           bln_cicilan:       parseInt(document.getElementById('kas-pjm-bln-cicilan').value) || null,
-          keterangan:        (document.getElementById('kas-jrn-ket').value||'').trim() || null,
+          keterangan:        ket || null,
           akun_kwj_id:       akunKId || null,
           akun_aset_id:      akunDId || null,
         };
@@ -1516,6 +1557,7 @@ async function kasSimpanJurnal() {
       }
     }
 
+    _kasSplitRows = [];
     kasBrimoClose();
     loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
@@ -2580,6 +2622,181 @@ function _kasAkunPickerReposition() {
 function kasAkunPickerFilter(q) {
   var sel = _kasAkunPickerCtx ? document.getElementById(_kasAkunPickerCtx.targetId) : null;
   _kasAkunPickerRender(q, sel ? sel.value : '');
+}
+
+// ─── PATUNGAN (SPLIT KREDIT) — khusus tipe "Uang Keluar" ───────────────
+// Kalau saldo akun Kredit utama kurang dari nominal transaksi, user bisa
+// nambah akun Kas/Bank lain buat nutup sisanya. Tiap split disimpen jadi
+// baris `jurnal` terpisah pas Simpan (akun Debit sama, akun Kredit beda²,
+// nominal beda² — total = nominal transaksi) — gak ada perubahan skema
+// tabel `jurnal` sama sekali, tetep double-entry balanced per baris.
+// Cakupan CUMA tipe 'keluar' — gak dipasang di Masuk/Jurnal Umum/dll
+// karena gak relevan (gak ada kasus "kurang saldo" buat transaksi masuk).
+let _kasSplitRows = []; // [{uid, akunId, nominal}]
+let _kasSplitUid  = 0;
+let _kasSplitPickCtx = null; // uid row yang lagi milih akun lewat sheet
+
+function _kasSplitPrimaryInfo() {
+  var nomEl   = document.getElementById('kas-jrn-nominal');
+  var nominal = nomEl ? parseInt(nomEl.value, 10) || 0 : 0;
+  var akunKId = document.getElementById('kas-jrn-akun-kredit').value;
+  var akunK   = _kasAkunMap[akunKId];
+  var primarySaldo = 0;
+  if (akunK) {
+    var s = _kasGetSaldoMap()[akunKId] || { d: 0, k: 0 };
+    primarySaldo = s.d - s.k;
+  }
+  return { nominal: nominal, primarySaldo: primarySaldo };
+}
+
+function kasSplitEvaluate() {
+  var wrap   = document.getElementById('kas-split-wrap');
+  var warnEl = document.getElementById('kas-split-warn');
+  var addBtn = document.getElementById('kas-split-add-btn');
+  if (!wrap || !warnEl || !addBtn) return;
+  var tipeEl = document.getElementById('kas-jrn-tipe');
+  var tipe   = tipeEl ? tipeEl.value : '';
+
+  if (tipe !== 'keluar') { wrap.style.display = 'none'; if (_kasSplitRows.length) _kasSplitRows = []; return; }
+
+  var info = _kasSplitPrimaryInfo();
+  if (!info.nominal || info.primarySaldo <= 0) {
+    if (!_kasSplitRows.length) { wrap.style.display = 'none'; return; }
+  }
+  wrap.style.display = 'block';
+
+  var splitTotal = _kasSplitRows.reduce(function(s, r) { return s + (r.nominal || 0); }, 0);
+  var terkumpul  = Math.max(0, info.primarySaldo) + splitTotal;
+  var sisa       = info.nominal - terkumpul;
+
+  if (sisa > 0) {
+    addBtn.style.display = 'inline-flex';
+    warnEl.style.color = 'var(--danger)';
+    warnEl.innerHTML = 'Saldo akun ini cuma <b>' + fmtRpFull(Math.max(0, info.primarySaldo)) + '</b>, kurang <b>' + fmtRpFull(sisa) + '</b>. Tambah akun lain buat nutup sisanya.';
+  } else if (_kasSplitRows.length) {
+    addBtn.style.display = 'none';
+    warnEl.style.color = 'var(--ok)';
+    warnEl.innerHTML = 'Semua nominal udah dialokasikan.';
+  } else {
+    addBtn.style.display = 'none';
+    warnEl.textContent = '';
+  }
+
+  kasSplitRenderRows();
+}
+
+function kasSplitRenderRows() {
+  var listEl = document.getElementById('kas-split-rows');
+  if (!listEl) return;
+  if (!_kasSplitRows.length) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = _kasSplitRows.map(function(r) {
+    var akun  = _kasAkunMap[r.akunId];
+    var label = akun ? ((akun.kode ? akun.kode + ' \u00b7 ' : '') + akun.nama) : '— Pilih Akun —';
+    return '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:10px">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="kas-akun-picker kas-brimo-picker" style="margin-bottom:6px" onclick="kasSplitPickAkun(' + r.uid + ')">'
+      + '<span style="' + (akun ? 'color:var(--ink)' : 'color:var(--ink3)') + '">' + label + '</span>'
+      + '<i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i></div>'
+      + '<input type="text" inputmode="numeric" class="kas-brimo-input" placeholder="Nominal"'
+      + ' value="' + (r.nominal ? r.nominal.toLocaleString('id-ID') : '') + '"'
+      + ' oninput="kasSplitNominalInput(' + r.uid + ', this)">'
+      + '</div>'
+      + '<button type="button" class="btn btn-sm" onclick="kasSplitRemoveRow(' + r.uid + ')" style="flex:none"><i class="ti ti-trash"></i></button>'
+      + '</div>';
+  }).join('');
+}
+
+function kasSplitAddRow() {
+  _kasSplitRows.push({ uid: ++_kasSplitUid, akunId: '', nominal: 0 });
+  kasSplitEvaluate();
+}
+
+function kasSplitRemoveRow(uid) {
+  _kasSplitRows = _kasSplitRows.filter(function(r) { return r.uid !== uid; });
+  kasSplitEvaluate();
+}
+
+// Sheet picker akun yang di-reuse dari Kas & Jurnal, TAPI list-nya di-override
+// manual jadi cuma nampilin akun Kas & Bank yang saldo-nya CUKUP buat nutup
+// sisa kekurangan saat itu — rekomendasi langsung, bukan nyuruh user nyari
+// sendiri dari semua akun Aset (termasuk Mesin/Inventaris/Bahan Baku dkk).
+function kasSplitPickAkun(uid) {
+  var row = _kasSplitRows.find(function(r) { return r.uid === uid; });
+  if (!row) return;
+  _kasInjectSheets();
+  _kasSplitPickCtx = uid;
+
+  var info = _kasSplitPrimaryInfo();
+  var lainTerpakai = _kasSplitRows.reduce(function(s, r) { return r.uid !== uid ? s + (r.nominal || 0) : s; }, 0);
+  var butuh = Math.max(0, info.nominal - Math.max(0, info.primarySaldo) - lainTerpakai);
+
+  var titleEl = document.getElementById('kas-akun-picker-title');
+  if (titleEl) titleEl.textContent = 'Akun Kas/Bank (min. ' + fmtRpFull(butuh) + ')';
+
+  var saldoMap  = _kasGetSaldoMap();
+  var primaryId = document.getElementById('kas-jrn-akun-kredit').value;
+  var kandidat  = Object.values(_kasAkunMap || {}).filter(function(a) {
+    if (a.kelompok !== 'aset') return false;
+    if ((a.sub_kelompok || '').trim().toUpperCase() !== 'KAS & BANK') return false;
+    if (String(a.id) === String(primaryId)) return false; // udah dipake akun Kredit utama
+    if (_kasSplitRows.some(function(r) { return r.uid !== uid && String(r.akunId) === String(a.id); })) return false; // udah dipake split lain
+    var s = saldoMap[a.id] || { d: 0, k: 0 };
+    return (s.d - s.k) >= butuh;
+  }).sort(function(a, b) {
+    var sa = saldoMap[a.id] || { d: 0, k: 0 }, sb = saldoMap[b.id] || { d: 0, k: 0 };
+    return (sb.d - sb.k) - (sa.d - sa.k); // saldo paling gede direkomendasiin duluan
+  });
+
+  var listEl = document.getElementById('kas-akun-picker-list');
+  listEl.innerHTML = kandidat.length
+    ? kandidat.map(function(a) {
+        var s = saldoMap[a.id] || { d: 0, k: 0 };
+        var label = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
+        return '<div class="kas-akun-item" data-val="' + a.id + '" onclick="kasSplitAkunSelected(\'' + a.id + '\')">'
+          + '<span class="kas-akun-nama">' + label + '</span>'
+          + '<span class="kas-akun-saldo" style="color:var(--ok)">' + fmtRpFull(s.d - s.k) + '</span></div>';
+      }).join('')
+    : '<div class="kas-akun-empty">Gak ada akun Kas/Bank lain yang saldo-nya cukup (min. ' + fmtRpFull(butuh) + ')</div>';
+
+  var overlay  = document.getElementById('kas-akun-picker-overlay');
+  var sheet    = document.getElementById('kas-sheet-akun-picker');
+  var searchEl = document.getElementById('kas-akun-picker-search');
+  if (searchEl) searchEl.style.display = 'none'; // list udah pre-filtered & pendek
+  if (overlay) overlay.classList.add('open');
+  if (sheet)   sheet.classList.add('open');
+  _kasAkunPickerReposition();
+}
+
+function kasSplitAkunSelected(akunId) {
+  var row = _kasSplitRows.find(function(r) { return r.uid === _kasSplitPickCtx; });
+  if (row) row.akunId = akunId;
+  var searchEl = document.getElementById('kas-akun-picker-search');
+  if (searchEl) searchEl.style.display = ''; // balikin normal buat picker Debit/Kredit biasa
+  _kasSplitPickCtx = null;
+  kasAkunPickerClose();
+  kasSplitEvaluate();
+}
+
+function kasSplitNominalInput(uid, el) {
+  var row = _kasSplitRows.find(function(r) { return r.uid === uid; });
+  if (!row) return;
+  var raw = el.value.replace(/[^0-9]/g, '');
+  var val = parseInt(raw, 10) || 0;
+
+  // Cap ke saldo akun yang dipilih DAN ke sisa kekurangan yang beneran perlu
+  // — gak mungkin ke-input lebih dari saldo (goal: gak ada akun jadi minus).
+  var info = _kasSplitPrimaryInfo();
+  var akun = _kasAkunMap[row.akunId];
+  var saldoAkun = Infinity;
+  if (akun) { var s = _kasGetSaldoMap()[row.akunId] || { d: 0, k: 0 }; saldoAkun = s.d - s.k; }
+  var lainTerpakai = _kasSplitRows.reduce(function(s, r) { return r.uid !== uid ? s + (r.nominal || 0) : s; }, 0);
+  var sisaButuh = Math.max(0, info.nominal - Math.max(0, info.primarySaldo) - lainTerpakai);
+  var cap = Math.min(saldoAkun, sisaButuh);
+  if (val > cap) val = Math.max(0, cap);
+
+  row.nominal = val;
+  el.value = val ? val.toLocaleString('id-ID') : '';
+  kasSplitEvaluate();
 }
 
 // Kelompok yang diizinkan buat konteks picker yang lagi aktif.
