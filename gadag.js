@@ -379,15 +379,21 @@ document.getElementById('page-gadag').innerHTML = `
       height: calc(72px + env(safe-area-inset-bottom, 0px));
       background: transparent; touch-action: pan-y;
     }
-    /* Kasih napas di bawah #gdg-panels-wrap biar konten paling bawah gak
-       ketutup zona swipe pas discroll abis. */
-    #gdg-panels-wrap { padding-bottom: 72px; }
+    /* CATATAN: dulu sempet dikasih padding-bottom di #gdg-panels-wrap biar
+       "nyisain ruang" buat Area Swipe — SALAH, itu ikut motong tinggi card
+       (card jadi berhenti di atas, nyisa hitam kosong di bawah). Card/panel
+       HARUS tetep penuh sampe bawah layar. Padding yang bener ditaruh di
+       elemen yang beneran scroll internal (.tbl-wrap, #gdg-ang2-list,
+       #gdgw-data-area) — lihat masing² di bawah. */
   }
   .gdg-panel.active { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; overflow-y: auto; }
   /* Card terakhir di panel mingguan (yang isi Net Income + tabel) ngisi sisa layar */
   #gdg-panel-mingguan.active { display: flex; flex-direction: column; }
   #gdg-panel-mingguan.active > .card:last-child { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  @media (max-width: 900px) {
+    #gdg-panel-mingguan.active > .card:last-child #gdgw-data-area { padding-bottom: 72px; }
+  }
 
   /* Panel isi 1 card utama (Catatan/Riwayat/Kelola Produk/Anggaran) — panelnya
      sendiri jadi flex column TANPA scroll (overflow:hidden), yg scroll internal
@@ -414,6 +420,12 @@ document.getElementById('page-gadag').innerHTML = `
     );
   }
   #gdg-panel-anggaran #gdg-ang2-list { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  @media (max-width: 900px) {
+    #gdg-panel-pendapatan .tbl-wrap,
+    #gdg-panel-riwayat .tbl-wrap,
+    #gdg-panel-sku .tbl-wrap,
+    #gdg-panel-anggaran #gdg-ang2-list { padding-bottom: 72px; }
+  }
 
   /* Poin 1 (baru): kertas bergaris — garis horizontal nerus di seluruh isi card
      list (termasuk area kosong di bawah item terakhir), bukan cuma per-baris
