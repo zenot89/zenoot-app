@@ -800,13 +800,14 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="tbl-wrap" style="overflow-x:auto">
     <table class="tbl">
-      <thead><tr><th>SKU</th><th style="text-align:right">Ongkos / Lusin (12 pc)</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>SKU</th><th style="text-align:right">Ongkos / Lusin (12 pc)</th></tr></thead>
       <tbody id="gdg-sku-tbody">
-        <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
 
     </table>
   </div>
+  <div style="font-size:11px;color:var(--ink3);margin-top:6px">Tekan &amp; tahan salah satu SKU buat edit / hapus.</div>
 </div>
 </div>
 
@@ -869,9 +870,14 @@ document.getElementById('page-gadag').innerHTML = `
         oninput="gdgFormatRibuan(this)"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="gdgCloseSkuModal()">Batal</button>
-      <button class="btn btn-primary" onclick="gdgSimpanSku()"><i class="ti ti-check"></i> Simpan</button>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button id="gdg-sku-modal-hapus" class="btn btn-sm btn-danger" onclick="gdgHapusSkuDariModal()" style="display:none">
+        <i class="ti ti-trash"></i> Hapus
+      </button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
+        <button class="btn" onclick="gdgCloseSkuModal()">Batal</button>
+        <button class="btn btn-primary" onclick="gdgSimpanSku()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2026,7 +2032,14 @@ function gdgAngRenderBulananList() {
   if (!_gdgAnggaranBulananList.length) {
     html += '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada variable anggaran bulanan.</div>';
   } else {
-    html += _gdgAnggaranBulananList.map((it, i) => {
+    // Item yang siklus berjalannya udah Lunas/Done DIKELUARIN dari list utama
+    // ini — pindah ke History (tombol jam sebelah Tambah), biar user tetep
+    // fokus kejar variable yang masih kewajiban/belum selesai. totalDiserap
+    // buat card Progres Cicilan TETEP ngitung semua item (termasuk yg udah
+    // lunas), cuma render row-nya doang yang di-skip.
+    let rowsHtml = '';
+    let pendingIdx = 0;
+    _gdgAnggaranBulananList.forEach((it) => {
       const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
       const namaAttr = namaSafe.replace(/"/g,'&quot;');
       const nom = Number(it.target) || 0;
@@ -2035,42 +2048,43 @@ function gdgAngRenderBulananList() {
       totalDiserap += realisasi;
 
       const lunas = nom > 0 && realisasi >= nom;
+      if (lunas) return; // udah Done — cek di History, gak nongol di sini lagi
+
       const pct   = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
       const pctClamped = Math.max(0, Math.min(100, pct));
       const daysLeft = Math.ceil((cycle.tempoDate - today) / 86400000);
 
       // "Cicilan" — kebalikan logic Mingguan: progress BAGUS = hijau (lagi
       // nyisihin), bahaya cuma kalau udah deket/lewat tempo tapi progressnya
-      // masih kurang dari separuh. Lunas = done, hijau penuh.
+      // masih kurang dari separuh.
       let barColor, barLabel;
-      if (lunas) {
-        barColor = 'var(--ok)'; barLabel = 'Done';
-      } else if (daysLeft <= 7 && pct < 50) {
+      if (daysLeft <= 7 && pct < 50) {
         barColor = 'var(--danger)'; barLabel = pct + '%';
       } else {
         barColor = 'var(--ok)'; barLabel = pct + '%';
       }
-      const barWidth = lunas ? 100 : pctClamped;
 
       const dueTxt = daysLeft < 0
         ? ('Lewat tempo ' + Math.abs(daysLeft) + 'h (tgl ' + cycle.tempoDay + ')')
         : ('Tempo tgl ' + cycle.tempoDay + (daysLeft <= 7 ? ' · ' + daysLeft + 'h lagi' : ''));
 
-      return `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}"
+      pendingIdx++;
+      rowsHtml += `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}"
         data-periode="bulanan" data-jatuhtempo="${cycle.tempoDay}">
         <div class="gdg-ang2-top">
-          <span class="gdg-ang2-idx">${i+1}.</span>
+          <span class="gdg-ang2-idx">${pendingIdx}.</span>
           <span class="gdg-ang2-nama">${namaSafe}</span>
           <span class="gdg-ang2-tempo">${'tgl ' + cycle.tempoDay}</span>
           <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
         </div>
         <div class="gdg-ang2-bar-wrap">
-          <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
+          <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${pctClamped}%;background:${barColor}"></div></div>
           <span class="gdg-ang2-bar-pct" style="color:${barColor}">${barLabel}</span>
         </div>
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">${dueTxt}</div>
       </div>`;
-    }).join('');
+    });
+    html += rowsHtml || '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Semua variable bulan ini udah Lunas 🎉 — cek History buat lihat catatannya.</div>';
   }
   listEl.innerHTML = html;
 
@@ -2288,7 +2302,10 @@ function _gdgAkunPickerInject() {
 <div id="gdg-akunpicker-overlay" class="gdg-akunpicker-overlay" onclick="if(event.target===this)gdgAngAkunPickerClose()"></div>
 <div id="gdg-akunpicker-sheet" class="gdg-akunpicker-sheet">
   <div class="gdg-akunpicker-handle"><span></span></div>
-  <div class="gdg-akunpicker-title">Pilih Akun</div>
+  <div class="gdg-akunpicker-titlebar">
+    <div class="gdg-akunpicker-title">Pilih Akun</div>
+    <button type="button" class="gdg-akunpicker-close" onclick="gdgAngAkunPickerClose()" title="Batal">&#10005;</button>
+  </div>
   <div class="gdg-akunpicker-search-wrap">
     <input type="text" id="gdg-akunpicker-search" class="gdg-akunpicker-search"
       placeholder="Cari akun..." oninput="gdgAngAkunPickerRender(this.value)">
@@ -2301,11 +2318,14 @@ function _gdgAkunPickerInject() {
     st.textContent = `
       .gdg-akunpicker-overlay{display:none;position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
       .gdg-akunpicker-overlay.open{display:block}
-      .gdg-akunpicker-sheet{position:fixed;left:0;right:0;bottom:0;z-index:851;background:var(--gdg-paper,#f2ede1);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1),bottom .15s ease;padding-bottom:env(safe-area-inset-bottom,16px);max-height:80vh;display:none;flex-direction:column;overflow:hidden}
+      .gdg-akunpicker-sheet{position:fixed;left:0;right:0;bottom:0;z-index:851;background:var(--gdg-paper,#f2ede1);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1),bottom .15s ease;padding-bottom:env(safe-area-inset-bottom,16px);max-height:75vh;display:none;flex-direction:column;overflow:hidden}
       .gdg-akunpicker-sheet.open{display:flex;transform:translateY(0)}
       .gdg-akunpicker-handle{flex:none;display:flex;justify-content:center;padding:10px 0 6px}
       .gdg-akunpicker-handle span{width:40px;height:5px;border-radius:3px;background:var(--gdg-ink,#262220);opacity:.35}
       .gdg-akunpicker-title{flex:none;padding:0 16px 8px;font-weight:800;font-size:15px;color:var(--gdg-ink,#262220)}
+      .gdg-akunpicker-titlebar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:8px}
+      .gdg-akunpicker-titlebar .gdg-akunpicker-title{padding-bottom:8px}
+      .gdg-akunpicker-close{flex:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--gdg-ink3,#7a746c);line-height:1;padding:4px 8px}
       .gdg-akunpicker-search-wrap{flex:none;padding:0 16px 10px}
       .gdg-akunpicker-search{width:100%;box-sizing:border-box;border:2px solid var(--gdg-ink,#262220);border-radius:10px;padding:9px 12px;font-family:var(--f);font-size:14px;background:#fff;color:var(--gdg-ink,#262220);outline:none}
       .gdg-akunpicker-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 10px 12px}
@@ -2364,8 +2384,9 @@ function _gdgAkunPickerReposition() {
   if (window.matchMedia && window.matchMedia('(min-width: 900px)').matches) return;
   const vp  = window.visualViewport;
   const kbH = Math.max(0, window.innerHeight - vp.height - vp.offsetTop);
+  const TOP_GAP = 90; // jarak aman dari status bar (jam/wifi/baterai/signal) — jangan nempel/ketutup
   sheet.style.bottom    = kbH + 'px';
-  sheet.style.maxHeight = Math.max(240, vp.height - 24) + 'px';
+  sheet.style.maxHeight = Math.max(240, vp.height - TOP_GAP) + 'px';
 }
 
 function gdgAngAkunPickerRender(q) {
@@ -2613,7 +2634,7 @@ async function gdgHandleRefresh() {
 async function gdgLoad() {
   const skuTbody  = document.getElementById('gdg-sku-tbody');
   const pendTbody = document.getElementById('gdg-pend-tbody');
-  skuTbody.innerHTML  = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  skuTbody.innerHTML  = '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   pendTbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   try {
@@ -2632,31 +2653,35 @@ async function gdgLoad() {
     if (skuMetricEl) skuMetricEl.textContent = _gdgSkuList.length;
     gdgUpdateTargetCard();
   } catch(e) {
-    skuTbody.innerHTML  = `<tr><td colspan="3" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    skuTbody.innerHTML  = `<tr><td colspan="2" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     pendTbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
 // ─── RENDER: SKU ──────────────────────────────────────────────
+// Ga ada kolom Aksi lagi — tekan lama baris buat edit/hapus (_gdgInitLongPress,
+// sama pola kayak Catatan Pendapatan/Riwayat, cuma callback-nya beda: buka
+// modal SKU, bukan modal Pendapatan).
 function gdgRenderSku() {
   const tbody = document.getElementById('gdg-sku-tbody');
   const countEl = document.getElementById('gdg-sku-count');
   if (countEl) countEl.textContent = _gdgSkuList.length + ' SKU';
   if (!_gdgSkuList.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada SKU. Tambah dulu.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada SKU. Tambah dulu.</td></tr>';
     return;
   }
   tbody.innerHTML = _gdgSkuList.map(s => {
-    const safeNama = (s.nama||'').replace(/'/g,"\\'");
-    return `<tr>
+    const safeNama = String(s.nama || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    return `<tr data-id="${s.id}" data-nama="${safeNama}" data-ongkos="${s.ongkos_lusin||0}" style="cursor:pointer">
       <td><b>${s.nama||'—'}</b></td>
       <td style="text-align:right">${gdgFmt(s.ongkos_lusin)}</td>
-      <td>
-        <button class="btn btn-sm" onclick="gdgShowSkuModal('${s.id}','${safeNama}',${s.ongkos_lusin||0})" title="Edit"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="gdgHapusSku('${s.id}')" style="margin-left:4px" title="Hapus"><i class="ti ti-trash"></i></button>
-      </td>
     </tr>`;
   }).join('');
+  _gdgInitLongPress('gdg-sku-tbody', function(id, rowEl) {
+    const nama   = rowEl.getAttribute('data-nama') || '';
+    const ongkos = Number(rowEl.getAttribute('data-ongkos')) || 0;
+    gdgShowSkuModal(id, nama, ongkos);
+  });
 }
 
 // ─── RENDER: CATATAN PENDAPATAN (cuma minggu berjalan, Minggu–Sabtu) ──
@@ -2689,12 +2714,15 @@ function gdgRenderPendapatan() {
 }
 
 // ─── LONG-PRESS baris tabel → buka modal dalam mode EDIT ─────
-// Dipakai bareng buat #gdg-pend-tbody (Catatan Pendapatan) & #gdg-hist-tbody
-// (Riwayat) — parameter tbodyId biar ga perlu 2 fungsi kembar.
-function _gdgInitLongPress(tbodyId) {
+// Dipakai bareng buat #gdg-pend-tbody (Catatan Pendapatan), #gdg-hist-tbody
+// (Riwayat), & #gdg-sku-tbody (Kelola Produk) — parameter tbodyId + onLongPress
+// (opsional, default buka modal Pendapatan) biar satu fungsi ini dipakai ulang,
+// gak perlu bikin versi kembar per tabel.
+function _gdgInitLongPress(tbodyId, onLongPress) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody || tbody._gdgLongPressInited) return;
   tbody._gdgLongPressInited = true;
+  const cb = onLongPress || function(id) { gdgShowPendapatanModal(id); };
   const HOLD_MS    = 500; // durasi tekan biar dianggap "tekan lama"
   const MOVE_LIMIT = 10;  // px — kalau jari geser lebih dari ini, batal (dianggap scroll)
   let _timer = null, _startX = 0, _startY = 0, _row = null;
@@ -2709,9 +2737,9 @@ function _gdgInitLongPress(tbodyId) {
     _startY = e.touches[0].clientY;
     _timer  = setTimeout(function() {
       if (navigator.vibrate) navigator.vibrate(15); // getar halus, konfirmasi tekan lama kena
-      const id = _row.getAttribute('data-id');
+      const r = _row;
       cancel();
-      gdgShowPendapatanModal(id);
+      cb(r.getAttribute('data-id'), r);
     }, HOLD_MS);
   }, { passive: true });
 
@@ -2731,9 +2759,9 @@ function _gdgInitLongPress(tbodyId) {
     if (!tr) return;
     _row = tr;
     _timer = setTimeout(function() {
-      const id = _row.getAttribute('data-id');
+      const r = _row;
       cancel();
-      gdgShowPendapatanModal(id);
+      cb(r.getAttribute('data-id'), r);
     }, HOLD_MS);
   });
   tbody.addEventListener('mouseup', cancel);
@@ -3264,11 +3292,19 @@ function gdgShowSkuModal(id, nama, ongkos) {
   document.getElementById('gdg-sku-modal-title').innerHTML = id
     ? '<i class="ti ti-edit"></i> Edit SKU'
     : '<i class="ti ti-plus"></i> Tambah SKU';
+  const hapusBtn = document.getElementById('gdg-sku-modal-hapus');
+  if (hapusBtn) hapusBtn.style.display = id ? '' : 'none';
   document.getElementById('modal-gdg-sku').classList.add('open');
 }
 
 function gdgCloseSkuModal() {
   document.getElementById('modal-gdg-sku').classList.remove('open');
+}
+
+function gdgHapusSkuDariModal() {
+  const id = document.getElementById('gdg-sku-edit-id').value.trim();
+  if (!id) return;
+  gdgHapusSku(id);
 }
 
 async function gdgSimpanSku() {
@@ -3294,7 +3330,7 @@ async function gdgSimpanSku() {
 
 function gdgHapusSku(id) {
   confirmDelete('Hapus SKU ini? Catatan pendapatan lama tidak akan berubah (data ongkos sudah tersimpan tersendiri).', async () => {
-    try { await dbDelete('gadag_sku', id); gdgLoad(); }
+    try { await dbDelete('gadag_sku', id); gdgCloseSkuModal(); gdgLoad(); }
     catch(e) { alert('Gagal hapus: ' + e.message); }
   });
 }
