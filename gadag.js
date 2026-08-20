@@ -88,21 +88,38 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-ang2-bar-fill { height:100%; border-radius:3px; transition:width .25s ease; }
   .gdg-ang2-bar-pct  { font-size:10px; font-weight:800; min-width:30px; text-align:right; flex:none; }
 
-  /* ── History Cicilan Bulanan — full-page overlay, dibuka dari tombol
-     ikon jam di sebelah Tambah (CUMA ada di mode Bulanan). Nampilin
+  /* ── History Cicilan Bulanan — bottom-sheet (BUKAN full-page lagi, biar
+     gak ketutup status bar/notch iPhone), dibuka dari tombol ikon jam di
+     sebelah Tambah (CUMA ada di mode Bulanan). Tinggi dipatok 75% layar,
+     isi list di-scroll sendiri di dalam kalau datanya banyak. Nampilin
      status Lunas/Belum Lunas semua variable bulanan, siklus BERJALAN +
      KE DEPAN aja — siklus yang udah lewat sengaja gak ditampilin lagi
      ("buka lembaran baru"), datanya tetep aman di jurnal, cuma gak
-     dimunculin di halaman ini. */
-  #gdg-cichist-page {
+     dimunculin di halaman ini. Filter Lunas/Belum Lunas pakai dropdown
+     custom (gdg-dropdown-menu, sama kayak menu Ringkasan) — BUKAN native
+     <select>, biar gak ada picker OS yang muncul terpisah/"loncat". */
+  #gdg-cichist-overlay {
     display:none; position:fixed; inset:0; z-index:310;
-    background:var(--gdg-paper,#f7f2e6);
-    flex-direction:column;
+    background:rgba(0,0,0,.55);
+    align-items:flex-end; justify-content:center;
   }
-  #gdg-cichist-page.open { display:flex; }
+  #gdg-cichist-overlay.open { display:flex; }
+  #gdg-cichist-page {
+    width:100%; max-width:480px;
+    height:75vh; max-height:75vh;
+    background:var(--gdg-paper,#f7f2e6);
+    border-radius:20px 20px 0 0;
+    display:flex; flex-direction:column;
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.32,.72,0,1);
+    box-shadow:0 -4px 20px rgba(0,0,0,.3);
+  }
+  #gdg-cichist-overlay.gdg-sheet-in #gdg-cichist-page { transform:translateY(0); }
+  .gdg-cichist-handle { display:flex; justify-content:center; padding:10px 0 2px; flex:none; }
+  .gdg-cichist-handle span { width:40px; height:5px; border-radius:3px; background:var(--gdg-ink,#262220); opacity:.3; }
   .gdg-cichist-header {
     display:flex; align-items:center; gap:10px; flex:none;
-    padding:14px 14px 12px; border-bottom:2.5px solid var(--gdg-ink,#262220);
+    padding:6px 14px 12px; border-bottom:2.5px solid var(--gdg-ink,#262220);
   }
   .gdg-cichist-back {
     display:flex; align-items:center; gap:6px; flex:none;
@@ -110,14 +127,13 @@ document.getElementById('page-gadag').innerHTML = `
     font-family:inherit; font-size:17px; font-weight:800; color:var(--gdg-ink,#262220);
   }
   .gdg-cichist-back i { font-size:20px; }
-  .gdg-cichist-select {
-    margin-left:auto; flex:none;
+  .gdg-cichist-filter-btn {
+    display:flex; align-items:center; gap:6px; margin-left:auto; flex:none;
     font-family:inherit; font-size:13px; font-weight:800;
-    padding:8px 30px 8px 14px; border:2px solid var(--gdg-ink,#262220); border-radius:10px;
-    background:var(--gdg-paper,#f7f2e6) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23262220'><path d='M5 7l5 6 5-6z'/></svg>") no-repeat right 8px center;
-    background-size:14px; -webkit-appearance:none; appearance:none;
-    color:var(--gdg-ink,#262220); cursor:pointer;
+    padding:8px 12px; border:2px solid var(--gdg-ink,#262220); border-radius:10px;
+    background:var(--gdg-paper,#f7f2e6); color:var(--gdg-ink,#262220); cursor:pointer;
   }
+  .gdg-cichist-filter-btn i { font-size:14px; }
   #gdg-cichist-body { flex:1 1 0; overflow-y:auto; padding:6px 14px 20px; }
   .gdg-cichist-item {
     padding:10px 2px; border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.15));
@@ -640,7 +656,10 @@ document.getElementById('page-gadag').innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
-    <div class="gdg-hero-value" id="gdg-total-pendapatan-m" style="color:var(--ok)">Rp0</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div class="gdg-hero-value" id="gdg-total-pendapatan-m" style="color:var(--ok)">Rp0</div>
+      <div class="gdg-donut" id="gdg-income-donut" style="--pct:0;flex-shrink:0"><span id="gdg-income-donut-txt">0%</span></div>
+    </div>
   </div>
   <div class="card gdg-minicard mc-cost">
     <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Cost</div>
@@ -657,9 +676,10 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="metric" onclick="gdgSelectView('anggaran')" style="cursor:pointer;margin:0">
     <div class="m-label">Target</div>
-    <div class="m-value" id="gdg-metric-target">—</div>
-    <div class="m-delta" id="gdg-metric-target-sub">Target: Rp0</div>
-    <div class="m-delta" id="gdg-metric-target-pct" style="margin-top:1px">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div class="m-value" id="gdg-metric-target" style="font-size:20px">—</div>
+      <div class="gdg-donut" id="gdg-metric-target-donut" style="--pct:0;flex-shrink:0"><span id="gdg-metric-target-donut-txt">0%</span></div>
+    </div>
   </div>
 </div>
 </div>
@@ -856,23 +876,33 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- HALAMAN: HISTORY CICILAN BULANAN — full-page overlay (bukan modal
-     mengambang), dibuka dari tombol ikon jam di sebelah Tambah (CUMA muncul
-     mode Bulanan). Isinya status Lunas/Belum Lunas SEMUA variable bulanan,
-     siklus BERJALAN + KE DEPAN aja (siklus lewat sengaja gak dimunculin lagi
-     — "buka lembaran baru", datanya tetep aman/gak ilang di jurnal).
-     Dihitung LIVE dari _gdgWJurnalAll, gak ada tabel/kolom baru di Supabase. -->
+<!-- HALAMAN: HISTORY CICILAN BULANAN — bottom-sheet (75% tinggi layar,
+     scroll di dalam), dibuka dari tombol ikon jam di sebelah Tambah (CUMA
+     muncul mode Bulanan). Isinya status Lunas/Belum Lunas SEMUA variable
+     bulanan, siklus BERJALAN + KE DEPAN aja (siklus lewat sengaja gak
+     dimunculin lagi — "buka lembaran baru", datanya tetep aman/gak ilang
+     di jurnal). Dihitung LIVE dari _gdgWJurnalAll, gak ada tabel/kolom baru
+     di Supabase. Filter Lunas/Belum Lunas pakai dropdown custom in-page
+     (bukan native <select>) biar gak ada picker OS terpisah yang "loncat". -->
+<div id="gdg-cichist-overlay" onclick="gdgCichistOverlayClick(event)">
 <div id="gdg-cichist-page">
+  <div class="gdg-cichist-handle"><span></span></div>
   <div class="gdg-cichist-header">
     <button type="button" class="gdg-cichist-back" onclick="gdgAngCloseHistoryPage()"><i class="ti ti-chevron-left"></i> History</button>
-    <select class="gdg-cichist-select" id="gdg-cichist-filter" onchange="gdgAngRenderHistoryPage()">
-      <option value="belum" selected>Belum Lunas</option>
-      <option value="lunas">Lunas</option>
-    </select>
+    <div class="gdg-menu-wrap" style="margin-left:auto">
+      <button type="button" class="gdg-cichist-filter-btn" id="gdg-cichist-filter-btn" onclick="gdgCichistToggleFilterMenu(event)">
+        <span id="gdg-cichist-filter-label">Belum Lunas</span> <i class="ti ti-chevron-down"></i>
+      </button>
+      <div id="gdg-cichist-filter-menu" class="gdg-dropdown-menu" style="min-width:160px">
+        <button type="button" class="active" data-val="belum" onclick="gdgCichistSetFilter('belum')">Belum Lunas</button>
+        <button type="button" data-val="lunas" onclick="gdgCichistSetFilter('lunas')">Lunas</button>
+      </div>
+    </div>
   </div>
   <div id="gdg-cichist-body">
     <div style="color:var(--ink3);font-style:italic;padding:10px 2px">Memuat...</div>
   </div>
+</div>
 </div>
 
 <!-- MODAL: VARIABLE ANGGARAN (bottom-sheet, konsisten sama Catatan Pendapatan —
@@ -1784,6 +1814,20 @@ async function gdgWRenderWeek() {
   const pendM = document.getElementById('gdg-total-pendapatan-m');
   if (pendM) pendM.textContent = gdgWFmt(totalPend);
 
+  // Donat Income — % Net Anggaran (target biaya minggu ini) yang udah
+  // ketutup pendapatan periode yang lagi dibrowse. Makin ijo makin aman
+  // (income >= target), makin merah berarti income masih jauh dari target.
+  const netAnggaranIncome = gdgAngNetTotal();
+  if (netAnggaranIncome > 0) {
+    const coverPct = Math.round((totalPend / netAnggaranIncome) * 100);
+    let coverColor = 'var(--danger)';
+    if (coverPct >= 100) coverColor = 'var(--ok)';
+    else if (coverPct >= 50) coverColor = 'var(--warn)';
+    gdgIncomeSetDonut(coverPct, coverColor, coverPct + '%');
+  } else {
+    gdgIncomeSetDonut(totalPend > 0 ? 100 : 0, totalPend > 0 ? 'var(--ok)' : 'var(--ink3)', totalPend > 0 ? '100%' : '—');
+  }
+
   // Update Qty/Lsn metric — mendatar (flex row), bukan tumpuk <br> lagi
   const qtyEl = document.getElementById('gdg-metric-qty');
   if (qtyEl) qtyEl.innerHTML = totalQty.toLocaleString('id-ID') + ' pc<span style="font-size:14px;opacity:.4">·</span>' + totalLsn + ' lsn';
@@ -1879,15 +1923,31 @@ let _gdgAnggaranBulananList = []; // recurring — gak diikat minggu_mulai/bulan
 // Donut chart minicard kanan — dipakai bareng sama mode Mingguan (Penyerapan)
 // maupun Bulanan (Cash Available), lihat gdgAngUpdateCostCard() &
 // gdgAngRenderBulananList() buat titik panggilnya.
-function gdgAngSetDonut(pct, color) {
-  const donutEl = document.getElementById('gdg-ang2-diserap-donut');
-  const txtEl   = document.getElementById('gdg-ang2-diserap-donut-txt');
+// Helper donut generik — dipakai bareng sama minicard Progres Cicilan (Anggaran),
+// Income, dan Target (Overview). Ring-nya di-clamp 0-100 (biar visualnya masuk
+// akal), tapi teks tengahnya bisa dioverride buat kasus ekstrem (misal Sisa
+// bisa negatif/lebih dari 100%, ring cuma nunjukin proporsi kasarnya).
+function gdgDonutApply(donutId, txtId, pct, color, textOverride) {
+  const donutEl = document.getElementById(donutId);
+  const txtEl   = document.getElementById(txtId);
   const pctClamped = Math.max(0, Math.min(100, pct));
   if (donutEl) {
     donutEl.style.setProperty('--pct', pctClamped);
     donutEl.style.setProperty('--donut-color', color);
   }
-  if (txtEl) txtEl.textContent = pct + '%';
+  if (txtEl) txtEl.textContent = textOverride !== undefined ? textOverride : (Math.round(pct) + '%');
+}
+
+function gdgAngSetDonut(pct, color) {
+  gdgDonutApply('gdg-ang2-diserap-donut', 'gdg-ang2-diserap-donut-txt', pct, color);
+}
+
+function gdgTargetSetDonut(pct, color, textOverride) {
+  gdgDonutApply('gdg-metric-target-donut', 'gdg-metric-target-donut-txt', pct, color, textOverride);
+}
+
+function gdgIncomeSetDonut(pct, color, textOverride) {
+  gdgDonutApply('gdg-income-donut', 'gdg-income-donut-txt', pct, color, textOverride);
 }
 
 function gdgAngTogglePeriode() {
@@ -2032,24 +2092,66 @@ function gdgAngRenderBulananList() {
 // kalau ada pembayaran di muka buat bulan depan, otomatis kedeteksi Lunas.
 // Siklus yang UDAH LEWAT sengaja gak dimunculin lagi ("buka lembaran baru").
 const GDG_CICHIST_FUTURE_CYCLES = 2; // siklus berjalan + N siklus ke depan
+let _gdgCichistFilter = 'belum';
 
 async function gdgAngShowHistoryPage() {
   await gdgWEnsureAkunJurnal();
-  const page = document.getElementById('gdg-cichist-page');
-  if (page) page.classList.add('open');
+  const overlay = document.getElementById('gdg-cichist-overlay');
+  if (overlay) {
+    overlay.classList.add('open');
+    void overlay.offsetHeight; // reflow, biar transition-nya kepicu
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      overlay.classList.add('gdg-sheet-in');
+    }));
+  }
   gdgAngRenderHistoryPage();
 }
 
 function gdgAngCloseHistoryPage() {
-  const page = document.getElementById('gdg-cichist-page');
-  if (page) page.classList.remove('open');
+  const overlay = document.getElementById('gdg-cichist-overlay');
+  if (!overlay) return;
+  gdgCichistCloseFilterMenu();
+  overlay.classList.remove('gdg-sheet-in');
+  setTimeout(() => { overlay.classList.remove('open'); }, 260);
+}
+
+function gdgCichistOverlayClick(e) {
+  if (e.target.id === 'gdg-cichist-overlay') gdgAngCloseHistoryPage();
+}
+
+// Dropdown filter custom (BUKAN native <select>) — sama pola sama menu
+// Ringkasan di header (gdgToggleMenu), biar gak ada picker OS terpisah.
+function gdgCichistToggleFilterMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('gdg-cichist-filter-menu');
+  if (menu) menu.classList.toggle('open');
+}
+function gdgCichistCloseFilterMenu() {
+  const menu = document.getElementById('gdg-cichist-filter-menu');
+  if (menu) menu.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('gdg-cichist-filter-menu');
+  const btn  = document.getElementById('gdg-cichist-filter-btn');
+  if (!menu || !btn) return;
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+function gdgCichistSetFilter(val) {
+  _gdgCichistFilter = val;
+  const labelEl = document.getElementById('gdg-cichist-filter-label');
+  if (labelEl) labelEl.textContent = val === 'lunas' ? 'Lunas' : 'Belum Lunas';
+  const menu = document.getElementById('gdg-cichist-filter-menu');
+  if (menu) menu.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+  gdgCichistCloseFilterMenu();
+  gdgAngRenderHistoryPage();
 }
 
 function gdgAngRenderHistoryPage() {
-  const bodyEl   = document.getElementById('gdg-cichist-body');
-  const filterEl = document.getElementById('gdg-cichist-filter');
+  const bodyEl = document.getElementById('gdg-cichist-body');
   if (!bodyEl) return;
-  const filter = filterEl ? filterEl.value : 'belum';
+  const filter = _gdgCichistFilter;
   const today = new Date();
 
   if (!_gdgAnggaranBulananList.length) {
@@ -2471,15 +2573,24 @@ function gdgUpdateTargetCard() {
     pctTxt = 'Sisa ' + sisaPct + '% dari pendapatan';
   }
 
-  // Mobile card
+  // Mobile card — donat gantiin 2 baris teks (Target: Rp.. / Sisa ..% dari
+  // pendapatan) yang bikin card ini paling tinggi & narik tinggi seisi grid.
+  // Donat nunjukin % anggaran yang udah ketutup pendapatan minggu ini
+  // (netAnggaran/pendMingguIni) — makin ijo makin aman, makin merah berarti
+  // anggaran udah/hampir ngelebihin pendapatan.
   const el = document.getElementById('gdg-metric-target');
   if (el) { el.textContent = sisaFmt; el.style.color = siColor; }
-  const subEl = document.getElementById('gdg-metric-target-sub');
-  if (subEl) subEl.textContent = subTxt;
-  const pctEl = document.getElementById('gdg-metric-target-pct');
-  if (pctEl) { pctEl.textContent = pctTxt; pctEl.style.color = siColor; }
+  if (pendMingguIni > 0) {
+    const usedPct = Math.round((netAnggaran / pendMingguIni) * 100);
+    let usedColor = 'var(--ok)';
+    if (usedPct >= 100) usedColor = 'var(--danger)';
+    else if (usedPct >= 60) usedColor = 'var(--warn)';
+    gdgTargetSetDonut(usedPct, usedColor, usedPct + '%');
+  } else {
+    gdgTargetSetDonut(0, 'var(--ink3)', '—');
+  }
 
-  // Desktop card ke-4
+  // Desktop card ke-4 — TETEP teks (space lega, gak masalah kayak di mobile)
   const elD = document.getElementById('gdg-metric-target-d');
   if (elD) { elD.textContent = sisaFmt; elD.style.color = siColor; }
   const subElD = document.getElementById('gdg-metric-target-sub-d');
