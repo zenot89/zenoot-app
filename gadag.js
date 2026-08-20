@@ -87,21 +87,46 @@ document.getElementById('page-gadag').innerHTML = `
   }
   .gdg-ang2-bar-fill { height:100%; border-radius:3px; transition:width .25s ease; }
   .gdg-ang2-bar-pct  { font-size:10px; font-weight:800; min-width:30px; text-align:right; flex:none; }
-  /* Tombol Riwayat — CUMA muncul di row panel Bulanan (lihat gdgAngRenderBulananList),
-     row Mingguan gak pernah nge-render elemen ini sama sekali. */
-  .gdg-ang2-hist-btn {
-    display:flex; align-items:center; gap:4px; flex:none; white-space:nowrap;
-    font-family:inherit; font-size:10.5px; font-weight:700;
-    padding:3px 9px; border:1.5px solid var(--gdg-ink,#262220); border-radius:20px;
-    background:transparent; color:var(--gdg-ink,#262220); cursor:pointer;
+
+  /* ── History Cicilan Bulanan — full-page overlay, dibuka dari tombol
+     ikon jam di sebelah Tambah (CUMA ada di mode Bulanan). Nampilin
+     status Lunas/Belum Lunas semua variable bulanan, siklus BERJALAN +
+     KE DEPAN aja — siklus yang udah lewat sengaja gak ditampilin lagi
+     ("buka lembaran baru"), datanya tetep aman di jurnal, cuma gak
+     dimunculin di halaman ini. */
+  #gdg-cichist-page {
+    display:none; position:fixed; inset:0; z-index:310;
+    background:var(--gdg-paper,#f7f2e6);
+    flex-direction:column;
   }
-  .gdg-ang2-hist-btn:active { background:var(--gdg-paper2,#efe8d8); }
-  .gdg-ang2-hist-btn i { font-size:12px; }
-  .gdg-cicilan-hist-row {
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:8px 0; border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.12));
+  #gdg-cichist-page.open { display:flex; }
+  .gdg-cichist-header {
+    display:flex; align-items:center; gap:10px; flex:none;
+    padding:14px 14px 12px; border-bottom:2.5px solid var(--gdg-ink,#262220);
   }
-  .gdg-cicilan-hist-row:last-child { border-bottom:none; }
+  .gdg-cichist-back {
+    display:flex; align-items:center; gap:6px; flex:none;
+    background:none; border:none; cursor:pointer; padding:4px;
+    font-family:inherit; font-size:17px; font-weight:800; color:var(--gdg-ink,#262220);
+  }
+  .gdg-cichist-back i { font-size:20px; }
+  .gdg-cichist-select {
+    margin-left:auto; flex:none;
+    font-family:inherit; font-size:13px; font-weight:800;
+    padding:8px 30px 8px 14px; border:2px solid var(--gdg-ink,#262220); border-radius:10px;
+    background:var(--gdg-paper,#f7f2e6) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23262220'><path d='M5 7l5 6 5-6z'/></svg>") no-repeat right 8px center;
+    background-size:14px; -webkit-appearance:none; appearance:none;
+    color:var(--gdg-ink,#262220); cursor:pointer;
+  }
+  #gdg-cichist-body { flex:1 1 0; overflow-y:auto; padding:6px 14px 20px; }
+  .gdg-cichist-item {
+    padding:10px 2px; border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.15));
+  }
+  .gdg-cichist-item:last-child { border-bottom:none; }
+  .gdg-cichist-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .gdg-cichist-nama { font-weight:800; font-size:14px; }
+  .gdg-cichist-status { font-weight:800; font-size:12px; white-space:nowrap; }
+  .gdg-cichist-sub { font-size:11.5px; color:var(--ink3); margin-top:2px; }
 
   /* Donut chart — minicard kanan (Penyerapan / Cash Available), sama di
      mode Mingguan maupun Bulanan (cuma label teksnya yg beda per mode,
@@ -558,7 +583,7 @@ document.getElementById('page-gadag').innerHTML = `
       <button id="gdg-menu-item-riwayat" onclick="gdgSelectView('riwayat')"><i class="ti ti-history"></i> Riwayat</button>
       <button id="gdg-menu-item-sku" onclick="gdgSelectView('sku')"><i class="ti ti-list-details"></i> Kelola Produk</button>
       <div class="gdg-menu-group-label">Anggaran</div>
-      <button id="gdg-menu-item-anggaran" onclick="gdgSelectView('anggaran')"><i class="ti ti-wallet"></i> Anggaran Mingguan</button>
+      <button id="gdg-menu-item-anggaran" onclick="gdgSelectView('anggaran')"><i class="ti ti-wallet"></i> Anggaran</button>
     </div>
   </div>
   <!-- Dot indikator posisi panel — mobile only, gantiin Menu (di-hide di mobile),
@@ -776,10 +801,7 @@ document.getElementById('page-gadag').innerHTML = `
   <div class="metric">
     <div class="m-label" id="gdg-ang2-diserap-label">Penyerapan</div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-      <div>
-        <div class="m-value" id="gdg-ang2-diserap-nilai">—</div>
-        <div class="m-delta" id="gdg-ang2-diserap-pct">—</div>
-      </div>
+      <div class="m-value" id="gdg-ang2-diserap-nilai" style="font-size:22px">—</div>
       <div class="gdg-donut" id="gdg-ang2-diserap-donut" style="--pct:0"><span id="gdg-ang2-diserap-donut-txt">0%</span></div>
     </div>
   </div>
@@ -789,7 +811,10 @@ document.getElementById('page-gadag').innerHTML = `
     <span><i class="ti ti-wallet"></i> Variable Anggaran</span>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
-    <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+      <button type="button" class="btn btn-sm" id="gdg-ang-hist-btn" onclick="gdgAngShowHistoryPage()" title="History cicilan bulanan" style="display:none;padding:7px 9px"><i class="ti ti-history"></i></button>
+    </div>
     <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
   </div>
   <div id="gdg-ang2-list">
@@ -831,22 +856,22 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- MODAL: RIWAYAT CICILAN — CUMA dipakai panel Anggaran Bulanan (tombol
-     "Riwayat" per row), Mingguan gak punya tombol ini sama sekali.
-     Isinya history status lunas/belum per siklus bulan, dihitung LIVE dari
-     _gdgWJurnalAll (gak ada tabel/kolom baru di Supabase) — jadi otomatis
-     ke-cover walau siklus lama udah lewat & ilang dari tampilan utama. -->
-<div class="modal-overlay" id="modal-gdg-cicilan-hist" onclick="gdgOverlayClose(event,'modal-gdg-cicilan-hist', gdgCloseCicilanHistModal)">
-  <div class="modal" style="max-width:400px;width:100%;padding:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:16px" id="gdg-cicilan-hist-title">
-        <i class="ti ti-history"></i> Riwayat Cicilan
-      </div>
-      <button onclick="gdgCloseCicilanHistModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <div id="gdg-cicilan-hist-body" style="max-height:60vh;overflow-y:auto">
-      <div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>
-    </div>
+<!-- HALAMAN: HISTORY CICILAN BULANAN — full-page overlay (bukan modal
+     mengambang), dibuka dari tombol ikon jam di sebelah Tambah (CUMA muncul
+     mode Bulanan). Isinya status Lunas/Belum Lunas SEMUA variable bulanan,
+     siklus BERJALAN + KE DEPAN aja (siklus lewat sengaja gak dimunculin lagi
+     — "buka lembaran baru", datanya tetep aman/gak ilang di jurnal).
+     Dihitung LIVE dari _gdgWJurnalAll, gak ada tabel/kolom baru di Supabase. -->
+<div id="gdg-cichist-page">
+  <div class="gdg-cichist-header">
+    <button type="button" class="gdg-cichist-back" onclick="gdgAngCloseHistoryPage()"><i class="ti ti-chevron-left"></i> History</button>
+    <select class="gdg-cichist-select" id="gdg-cichist-filter" onchange="gdgAngRenderHistoryPage()">
+      <option value="belum" selected>Belum Lunas</option>
+      <option value="lunas">Lunas</option>
+    </select>
+  </div>
+  <div id="gdg-cichist-body">
+    <div style="color:var(--ink3);font-style:italic;padding:10px 2px">Memuat...</div>
   </div>
 </div>
 
@@ -1114,7 +1139,7 @@ const _GDG_VIEW_LABEL = {
   pendapatan: { menu: 'Catatan Pendapatan', label: 'Jurnal',    heading: 'Catatan',       icon: 'ti-notes' },
   riwayat:    { menu: 'Riwayat',            label: 'Riwayat',   heading: 'Riwayat',       icon: 'ti-history' },
   sku:        { menu: 'Kelola Produk',      label: 'Kelola Produk', heading: 'Kelola Produk', icon: 'ti-list-details' },
-  anggaran:   { menu: 'Anggaran Mingguan',  label: 'Anggaran',  heading: 'Anggaran',      icon: 'ti-wallet' },
+  anggaran:   { menu: 'Anggaran',  label: 'Anggaran',  heading: 'Anggaran',      icon: 'ti-wallet' },
 };
 
 function gdgToggleMenu(e) {
@@ -1830,9 +1855,7 @@ function gdgAngUpdateCostCard() {
   // Card Penyerapan — halaman Anggaran, CUMA kalau toggle lagi di Mingguan
   if (_gdgAngPeriodeAktif !== 'bulanan') {
     const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
-    const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
     if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
-    if (pctEl)   { pctEl.textContent = pctFmt; pctEl.style.color = pctColor; }
     gdgAngSetDonut(pct, pctColor);
   }
 
@@ -1873,6 +1896,8 @@ function gdgAngTogglePeriode() {
   if (btn) btn.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Bulanan' : 'Mingguan';
   const labelEl = document.getElementById('gdg-ang2-diserap-label');
   if (labelEl) labelEl.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Progres Cicilan' : 'Penyerapan';
+  const histBtn = document.getElementById('gdg-ang-hist-btn');
+  if (histBtn) histBtn.style.display = _gdgAngPeriodeAktif === 'bulanan' ? '' : 'none';
   gdgAngRenderActiveList();
 }
 
@@ -1895,12 +1920,12 @@ async function gdgLoadAnggaranBulanan() {
 // SENDIRI (kolom tgl_jatuh_tempo, gak ada tgl_reset lagi) — siklus = sehari
 // setelah Tempo bulan lalu s/d Tempo bulan ini. Misal Tempo tgl 20: siklus
 // jalan 21 bulan lalu → 20 bulan ini.
-// monthsAgo (opsional, default 0): geser siklus mundur N bulan dari siklus
-// berjalan — dipakai buat Riwayat Cicilan (gdgAngShowHistoryCicilan). Sengaja
-// digeser dari cycleEnd (bukan dari refDate ulang tiap iterasi), soalnya
-// tempoDay max cuma 28 jadi aman dari overflow tanggal (beda kalau refDate-nya
-// yg direkonstruksi pakai getDate() hari ini — bisa nyerempet ke bulan
-// berikutnya kalau hari ini tanggal 29-31, contoh gagal kalau dipakein pola itu).
+// monthsAgo (opsional, default 0): geser siklus dari siklus berjalan — POSITIF
+// buat mundur (siklus lalu), NEGATIF buat maju (siklus depan). Dipakai buat
+// Halaman History (gdgAngRenderHistoryPage). Sengaja digeser dari cycleEnd
+// (bukan dari refDate ulang tiap iterasi), soalnya tempoDay max cuma 28 jadi
+// aman dari overflow tanggal (beda kalau refDate-nya direkonstruksi pakai
+// getDate() hari ini — bisa nyerempet bulan lain kalau hari ini tanggal 29-31).
 function gdgAngBulananCycleRange(item, refDate, monthsAgo) {
   refDate = refDate || new Date();
   monthsAgo = monthsAgo || 0;
@@ -1983,10 +2008,7 @@ function gdgAngRenderBulananList() {
           <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
           <span class="gdg-ang2-bar-pct" style="color:${barColor}">${barLabel}</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:2px">
-          <span style="font-size:11px;color:var(--ink3)">${dueTxt}</span>
-          <button type="button" class="gdg-ang2-hist-btn" onclick="event.stopPropagation();gdgAngShowHistoryCicilan('${it.id}')" title="Riwayat cicilan"><i class="ti ti-history"></i> Riwayat</button>
-        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${dueTxt}</div>
       </div>`;
     }).join('');
   }
@@ -1999,58 +2021,72 @@ function gdgAngRenderBulananList() {
   if (pctTotal >= 75) pctColor = 'var(--danger)';
   else if (pctTotal >= 35) pctColor = 'var(--warn)';
   const nilaiEl = document.getElementById('gdg-ang2-diserap-nilai');
-  const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
   if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
-  if (pctEl)   { pctEl.textContent = pctTotal + '%'; pctEl.style.color = pctColor; }
   gdgAngSetDonut(pctTotal, pctColor);
 }
 
-// ─── RIWAYAT CICILAN — CUMA panel Bulanan (tombol per row) ───────────────
+// ─── HALAMAN: HISTORY CICILAN BULANAN — CUMA panel Bulanan ───────────────
 // Gak ada tabel/kolom baru: history dihitung LIVE dari _gdgWJurnalAll pakai
-// siklus-siklus lama (gdgAngBulananCycleRange + monthsAgo), jadi status
-// lunas/belum bulan-bulan sebelumnya tetep bisa dicek walau row utama cuma
-// nampilin siklus yang lagi jalan sekarang.
-async function gdgAngShowHistoryCicilan(itemId) {
-  const item = _gdgAnggaranBulananList.find(r => String(r.id) === String(itemId));
-  if (!item) return;
+// gdgAngBulananCycleRange (monthsAgo negatif = siklus ke depan), jadi status
+// Lunas/Belum Lunas bulan berjalan & bulan-bulan depan tetep akurat — termasuk
+// kalau ada pembayaran di muka buat bulan depan, otomatis kedeteksi Lunas.
+// Siklus yang UDAH LEWAT sengaja gak dimunculin lagi ("buka lembaran baru").
+const GDG_CICHIST_FUTURE_CYCLES = 2; // siklus berjalan + N siklus ke depan
+
+async function gdgAngShowHistoryPage() {
   await gdgWEnsureAkunJurnal();
-
-  const namaSafe = String(item.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  const titleEl = document.getElementById('gdg-cicilan-hist-title');
-  if (titleEl) titleEl.innerHTML = '<i class="ti ti-history"></i> Riwayat: ' + namaSafe;
-
-  const nom = Number(item.target) || 0;
-  const today = new Date();
-  const N = 6; // siklus berjalan + 5 siklus sebelumnya
-  let html = '';
-  for (let m = 0; m < N; m++) {
-    const cycle = gdgAngBulananCycleRange(item, today, m);
-    const realisasi = gdgAngHitungRealisasi(item.nama, cycle.start, cycle.end);
-    const lunas = nom > 0 && realisasi >= nom;
-    const pct = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
-    const rangeLabel = cycle.startDate.toLocaleDateString('id-ID', { day:'numeric', month:'short' })
-      + ' – ' + cycle.endDate.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
-    const isCurrent = m === 0;
-    const statusColor = lunas ? 'var(--ok)' : (isCurrent ? 'var(--warn)' : 'var(--danger)');
-    const statusTxt = lunas ? 'Lunas' : (isCurrent ? 'Berjalan · ' + pct + '%' : 'Belum lunas · ' + pct + '%');
-    html += `<div class="gdg-cicilan-hist-row">
-      <div>
-        <div style="font-weight:700">${rangeLabel}</div>
-        <div style="font-size:11px;color:var(--ink3)">${gdgFmt(realisasi)} / ${gdgFmt(nom)}</div>
-      </div>
-      <div style="font-weight:800;color:${statusColor};text-align:right;white-space:nowrap">${statusTxt}</div>
-    </div>`;
-  }
-
-  const bodyEl = document.getElementById('gdg-cicilan-hist-body');
-  if (bodyEl) bodyEl.innerHTML = html;
-  const overlay = document.getElementById('modal-gdg-cicilan-hist');
-  if (overlay) overlay.classList.add('open');
+  const page = document.getElementById('gdg-cichist-page');
+  if (page) page.classList.add('open');
+  gdgAngRenderHistoryPage();
 }
 
-function gdgCloseCicilanHistModal() {
-  const overlay = document.getElementById('modal-gdg-cicilan-hist');
-  if (overlay) overlay.classList.remove('open');
+function gdgAngCloseHistoryPage() {
+  const page = document.getElementById('gdg-cichist-page');
+  if (page) page.classList.remove('open');
+}
+
+function gdgAngRenderHistoryPage() {
+  const bodyEl   = document.getElementById('gdg-cichist-body');
+  const filterEl = document.getElementById('gdg-cichist-filter');
+  if (!bodyEl) return;
+  const filter = filterEl ? filterEl.value : 'belum';
+  const today = new Date();
+
+  if (!_gdgAnggaranBulananList.length) {
+    bodyEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 2px">Belum ada variable anggaran bulanan.</div>';
+    return;
+  }
+
+  let html = '';
+  _gdgAnggaranBulananList.forEach(item => {
+    const namaSafe = String(item.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const nom = Number(item.target) || 0;
+    for (let m = 0; m >= -GDG_CICHIST_FUTURE_CYCLES; m--) {
+      const cycle = gdgAngBulananCycleRange(item, today, m);
+      const realisasi = gdgAngHitungRealisasi(item.nama, cycle.start, cycle.end);
+      const lunas = nom > 0 && realisasi >= nom;
+      const status = lunas ? 'lunas' : 'belum';
+      if (status !== filter) continue;
+      const pct = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
+      const rangeLabel = cycle.startDate.toLocaleDateString('id-ID', { day:'numeric', month:'short' })
+        + ' – ' + cycle.endDate.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+      const statusColor = lunas ? 'var(--ok)' : 'var(--danger)';
+      const statusTxt   = lunas ? 'Lunas' : (pct + '% terkumpul');
+      html += `<div class="gdg-cichist-item">
+        <div class="gdg-cichist-top">
+          <span class="gdg-cichist-nama">${namaSafe}</span>
+          <span class="gdg-cichist-status" style="color:${statusColor}">${statusTxt}</span>
+        </div>
+        <div class="gdg-cichist-sub">${rangeLabel} · ${gdgFmt(realisasi)} / ${gdgFmt(nom)}</div>
+      </div>`;
+    }
+  });
+
+  if (!html) {
+    html = '<div style="color:var(--ink3);font-style:italic;padding:10px 2px">' +
+      (filter === 'lunas' ? 'Belum ada yang lunas.' : 'Semua udah lunas.') + '</div>';
+  }
+  bodyEl.innerHTML = html;
 }
 
 function gdgAngRenderList() {
@@ -2393,7 +2429,6 @@ function gdgAngHapusDariModal() {
     _lpRow = null;
   }
   document.addEventListener('touchstart', function(e) {
-    if (e.target.closest('.gdg-ang2-hist-btn')) return; // tombol Riwayat gak boleh ke-tangkep long-press row
     const row = e.target.closest('#gdg-ang2-list .gdg-ang2-row');
     if (!row) return;
     _start(row);
@@ -2404,7 +2439,6 @@ function gdgAngHapusDariModal() {
 
   // Mouse (desktop) — biar bisa dites di laptop juga, bukan cuma HP
   document.addEventListener('mousedown', function(e) {
-    if (e.target.closest('.gdg-ang2-hist-btn')) return;
     const row = e.target.closest('#gdg-ang2-list .gdg-ang2-row');
     if (!row) return;
     _start(row);
