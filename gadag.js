@@ -88,6 +88,33 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-ang2-bar-fill { height:100%; border-radius:3px; transition:width .25s ease; }
   .gdg-ang2-bar-pct  { font-size:10px; font-weight:800; min-width:30px; text-align:right; flex:none; }
 
+  /* Donut chart — minicard kanan (Penyerapan / Cash Available), sama di
+     mode Mingguan maupun Bulanan (cuma label teksnya yg beda per mode,
+     lihat gdgAngTogglePeriode). Teknik: conic-gradient buat cincinnya,
+     ::before nutupin tengahnya jadi lubang donut (warna nyamain kertas
+     card biar nyatu), angka % nongol di atas lubang itu. */
+  .gdg-donut {
+    --pct: 0;
+    --donut-color: var(--ok);
+    width: 38px; height: 38px; flex: none;
+    border-radius: 50%;
+    background: conic-gradient(var(--donut-color) calc(var(--pct) * 1%), var(--gdg-rule, rgba(38,34,32,.15)) 0);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    transition: background .25s ease;
+  }
+  .gdg-donut::before {
+    content: '';
+    position: absolute; inset: 5px;
+    border-radius: 50%;
+    background: var(--gdg-paper, #f7f2e6);
+  }
+  .gdg-donut span {
+    position: relative; z-index: 1;
+    font-size: 9px; font-weight: 800;
+    color: var(--gdg-ink, #262220) !important;
+  }
+
   /* ── Collapse ringkasan (minicard+metrics), pola sama dgn kas-top-bar ── */
   #gdg-top-summary {
     overflow: hidden;
@@ -732,18 +759,23 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="m-delta" id="gdg-ang2-week-label">—</div>
   </div>
   <div class="metric">
-    <div class="m-label">Penyerapan</div>
-    <div class="m-value" id="gdg-ang2-diserap-nilai">—</div>
-    <div class="m-delta" id="gdg-ang2-diserap-pct">—</div>
+    <div class="m-label" id="gdg-ang2-diserap-label">Penyerapan</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div>
+        <div class="m-value" id="gdg-ang2-diserap-nilai">—</div>
+        <div class="m-delta" id="gdg-ang2-diserap-pct">—</div>
+      </div>
+      <div class="gdg-donut" id="gdg-ang2-diserap-donut" style="--pct:0"><span id="gdg-ang2-diserap-donut-txt">0%</span></div>
+    </div>
   </div>
 </div>
 <div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-wallet"></i> Variable Anggaran</span>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
-      <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
-    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+    <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+    <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
   </div>
   <div id="gdg-ang2-list">
     <div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>
@@ -1767,6 +1799,7 @@ function gdgAngUpdateCostCard() {
     const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
     if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
     if (pctEl)   { pctEl.textContent = pctFmt; pctEl.style.color = pctColor; }
+    gdgAngSetDonut(pct, pctColor);
   }
 
   // Card Cost — Overview (desktop + mobile), SELALU mingguan
@@ -1786,10 +1819,26 @@ function gdgAngUpdateCostCard() {
 let _gdgAngPeriodeAktif = 'mingguan';
 let _gdgAnggaranBulananList = []; // recurring — gak diikat minggu_mulai/bulan tertentu
 
+// Donut chart minicard kanan — dipakai bareng sama mode Mingguan (Penyerapan)
+// maupun Bulanan (Cash Available), lihat gdgAngUpdateCostCard() &
+// gdgAngRenderBulananList() buat titik panggilnya.
+function gdgAngSetDonut(pct, color) {
+  const donutEl = document.getElementById('gdg-ang2-diserap-donut');
+  const txtEl   = document.getElementById('gdg-ang2-diserap-donut-txt');
+  const pctClamped = Math.max(0, Math.min(100, pct));
+  if (donutEl) {
+    donutEl.style.setProperty('--pct', pctClamped);
+    donutEl.style.setProperty('--donut-color', color);
+  }
+  if (txtEl) txtEl.textContent = pct + '%';
+}
+
 function gdgAngTogglePeriode() {
   _gdgAngPeriodeAktif = _gdgAngPeriodeAktif === 'bulanan' ? 'mingguan' : 'bulanan';
   const btn = document.getElementById('gdg-ang-mode-btn');
   if (btn) btn.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Bulanan' : 'Mingguan';
+  const labelEl = document.getElementById('gdg-ang2-diserap-label');
+  if (labelEl) labelEl.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Cash Available' : 'Penyerapan';
   gdgAngRenderActiveList();
 }
 
@@ -1908,6 +1957,7 @@ function gdgAngRenderBulananList() {
   const pctEl   = document.getElementById('gdg-ang2-diserap-pct');
   if (nilaiEl) nilaiEl.textContent = gdgFmt(totalDiserap);
   if (pctEl)   { pctEl.textContent = pctTotal + '%'; pctEl.style.color = pctColor; }
+  gdgAngSetDonut(pctTotal, pctColor);
 }
 
 function gdgAngRenderList() {
