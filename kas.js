@@ -1036,8 +1036,16 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
       kasAkunPickerOpen(picker.dataset.picker);
     }
 
-    document.addEventListener('touchend',    function() { _pickerHandled = false; }, { passive: true });
-    document.addEventListener('touchcancel', function() { _pickerHandled = false; }, { passive: true });
+    // Reset dedupe flag WAJIB nyakup mouse juga, bukan cuma touch — touchend/
+    // touchcancel gak pernah fire di device mouse-only (laptop/desktop), jadi
+    // _pickerHandled stuck di `true` abis klik pertama & picker berikutnya
+    // freeze permanen (preventDefault jalan tapi kasAkunPickerOpen gak pernah
+    // kepanggil lagi). pointerup/pointercancel fire di touch MAUPUN mouse,
+    // jadi aman dipasang bareng tanpa ganggu jalur touch yang udah lancar.
+    document.addEventListener('touchend',     function() { _pickerHandled = false; }, { passive: true });
+    document.addEventListener('touchcancel',  function() { _pickerHandled = false; }, { passive: true });
+    document.addEventListener('pointerup',    function() { _pickerHandled = false; }, { passive: true });
+    document.addEventListener('pointercancel',function() { _pickerHandled = false; }, { passive: true });
     document.addEventListener('touchstart',  _handlePickerEvent, { passive: false });
     document.addEventListener('pointerdown', _handlePickerEvent, { passive: false });
   };
