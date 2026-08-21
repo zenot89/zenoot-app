@@ -64,8 +64,8 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-ang2-top  { display:flex; align-items:center; gap:8px; }
   .gdg-ang2-idx  { color:var(--ink3); font-weight:700; min-width:20px; }
   .gdg-ang2-nama { flex:1; font-weight:700; }
-  .gdg-ang2-nom  { font-weight:700; }
-  .gdg-ang2-tempo { font-size:12px; color:var(--ink3); flex:none; }
+  .gdg-ang2-nom  { font-weight:700; min-width:78px; text-align:right; }
+  .gdg-ang2-tempo { font-size:12px; color:var(--ink3); flex:none; width:56px; text-align:right; padding-right:10px; box-sizing:border-box; }
   /* Header kolom "Variable | Tempo | IDR" — CUMA dipakai panel Bulanan,
      Mingguan gak pernah nge-render elemen ini sama sekali. */
   .gdg-ang2-thead {
@@ -75,8 +75,8 @@ document.getElementById('page-gadag').innerHTML = `
     color:var(--ink3);
   }
   .gdg-ang2-th-nama  { flex:1; padding-left:28px; } /* nyocokin lebar .gdg-ang2-idx di row */
-  .gdg-ang2-th-tempo { flex:none; width:60px; }
-  .gdg-ang2-th-idr   { flex:none; text-align:right; }
+  .gdg-ang2-th-tempo { flex:none; width:56px; text-align:right; padding-right:10px; box-sizing:border-box; } /* nyocokin .gdg-ang2-tempo di row, jarak ke IDR jangan mepet */
+  .gdg-ang2-th-idr   { flex:none; min-width:78px; text-align:right; }
   .gdg-ang2-bar-wrap {
     display:flex; align-items:center; gap:6px;
     height:6px;
