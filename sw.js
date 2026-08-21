@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v28'; // bump: gadag-icon.png diganti (bg transparan) — cache lama harus di-invalidate
+var CACHE_VERSION = 'zenot-static-v29'; // bump: fix root/PWA navigate request ke-cache-first jadi stale HTML (isNoCache cuma cek 'index.html', gak match start_url "./")
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -149,7 +149,13 @@ self.addEventListener('fetch', function(e) {
   }
 
   // index.html → selalu network
-  var isNoCache = NO_CACHE_PATTERNS.some(function(p) { return url.indexOf(p) !== -1; });
+  // e.request.mode === 'navigate' menangkap SEMUA top-level page load (root "/", "./",
+  // "/index.html", buka dari PWA icon, dll) — bukan cuma URL yang literal mengandung
+  // string 'index.html'. Root cause bug lama: start_url di manifest.json = "./", jadi
+  // request root gak match NO_CACHE_PATTERNS dan jatuh ke cache-first di bawah → app
+  // shell ke-cache dan reload otomatis jadi percuma (nyajiin HTML lama terus).
+  var isNoCache = e.request.mode === 'navigate' ||
+    NO_CACHE_PATTERNS.some(function(p) { return url.indexOf(p) !== -1; });
   if (isNoCache) {
     e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(function() { return caches.match(e.request); }));
     return;
