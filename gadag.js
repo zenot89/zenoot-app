@@ -2037,11 +2037,8 @@ function gdgAngRenderBulananList() {
     // fokus kejar variable yang masih kewajiban/belum selesai. totalDiserap
     // buat card Progres Cicilan TETEP ngitung semua item (termasuk yg udah
     // lunas), cuma render row-nya doang yang di-skip.
-    let rowsHtml = '';
-    let pendingIdx = 0;
+    const pending = [];
     _gdgAnggaranBulananList.forEach((it) => {
-      const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const namaAttr = namaSafe.replace(/"/g,'&quot;');
       const nom = Number(it.target) || 0;
       const cycle = gdgAngBulananCycleRange(it, today);
       const realisasi = gdgAngHitungRealisasi(it.nama, cycle.start, cycle.end);
@@ -2050,9 +2047,21 @@ function gdgAngRenderBulananList() {
       const lunas = nom > 0 && realisasi >= nom;
       if (lunas) return; // udah Done — cek di History, gak nongol di sini lagi
 
+      const daysLeft = Math.ceil((cycle.tempoDate - today) / 86400000);
+      pending.push({ it, nom, cycle, realisasi, daysLeft });
+    });
+
+    // Urutan: yang tempo-nya PALING DEKET di paling atas (bulan ini duluan,
+    // bulan depan di bawah) — biar fokus ke kewajiban yg paling mendesak dulu.
+    pending.sort((a, b) => a.daysLeft - b.daysLeft);
+
+    let rowsHtml = '';
+    pending.forEach((row, idx) => {
+      const { it, nom, cycle, realisasi, daysLeft } = row;
+      const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      const namaAttr = namaSafe.replace(/"/g,'&quot;');
       const pct   = nom > 0 ? Math.round((realisasi / nom) * 100) : 0;
       const pctClamped = Math.max(0, Math.min(100, pct));
-      const daysLeft = Math.ceil((cycle.tempoDate - today) / 86400000);
 
       // "Cicilan" — kebalikan logic Mingguan: progress BAGUS = hijau (lagi
       // nyisihin), bahaya cuma kalau udah deket/lewat tempo tapi progressnya
@@ -2064,15 +2073,23 @@ function gdgAngRenderBulananList() {
         barColor = 'var(--ok)'; barLabel = pct + '%';
       }
 
-      const dueTxt = daysLeft < 0
-        ? ('Lewat tempo ' + Math.abs(daysLeft) + 'h (tgl ' + cycle.tempoDay + ')')
-        : ('Tempo tgl ' + cycle.tempoDay + (daysLeft <= 7 ? ' · ' + daysLeft + 'h lagi' : ''));
+      // Countdown tempo — bukan "Tempo tgl X" lagi (udah ada di kolom TEMPO
+      // header, duplikat & bikin bingung). Sekarang cuma "Xh lagi", dikasih
+      // warna per-10-hari: 30-20h ijo (santai), 20-10h kuning (mulai siapin),
+      // 10-0h / lewat merah (mendesak/telat).
+      let dueTxt, dueColor;
+      if (daysLeft < 0) {
+        dueTxt = 'Lewat tempo ' + Math.abs(daysLeft) + 'h';
+        dueColor = 'var(--danger)';
+      } else {
+        dueTxt = daysLeft + 'h lagi';
+        dueColor = daysLeft >= 20 ? 'var(--ok)' : (daysLeft >= 10 ? 'var(--warn)' : 'var(--danger)');
+      }
 
-      pendingIdx++;
       rowsHtml += `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="${nom}"
         data-periode="bulanan" data-jatuhtempo="${cycle.tempoDay}">
         <div class="gdg-ang2-top">
-          <span class="gdg-ang2-idx">${pendingIdx}.</span>
+          <span class="gdg-ang2-idx">${idx+1}.</span>
           <span class="gdg-ang2-nama">${namaSafe}</span>
           <span class="gdg-ang2-tempo">${'tgl ' + cycle.tempoDay}</span>
           <span class="gdg-ang2-nom">${gdgFmt(nom)}</span>
@@ -2081,7 +2098,7 @@ function gdgAngRenderBulananList() {
           <div class="gdg-ang2-bar-track"><div class="gdg-ang2-bar-fill" style="width:${pctClamped}%;background:${barColor}"></div></div>
           <span class="gdg-ang2-bar-pct" style="color:${barColor}">${barLabel}</span>
         </div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${dueTxt}</div>
+        <div style="font-size:11px;font-weight:700;color:${dueColor};margin-top:2px">${dueTxt}</div>
       </div>`;
     });
     html += rowsHtml || '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Semua variable bulan ini udah Lunas 🎉 — cek History buat lihat catatannya.</div>';
