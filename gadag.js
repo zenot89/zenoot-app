@@ -2511,6 +2511,14 @@ async function gdgAngSimpan() {
   if (!nama)                     { alert('Pilih akun dulu.'); return; }
   if (!nominal || nominal <= 0)  { alert('Nominal harus lebih dari 0.'); return; }
 
+  // Cegah 2 Variable dengan nama akun yang SAMA nyangkut bareng di periode yang
+  // sama — kalau kejadian, realisasi (dihitung by NAMA akun, bukan by id) bakal
+  // ke-double-count buat kedua row itu, dan totalnya (Net Anggaran/Progres
+  // Cicilan) jadi salah. id yang lagi diedit dikecualiin dari pengecekan ini.
+  const listCek = periode === 'bulanan' ? _gdgAnggaranBulananList : _gdgAnggaranList;
+  const dup = listCek.some(r => String(r.id) !== String(id) && String(r.nama||'').trim().toLowerCase() === nama.trim().toLowerCase());
+  if (dup) { alert('"' + nama + '" udah ada di daftar Variable Anggaran ' + (periode === 'bulanan' ? 'Bulanan' : 'Mingguan') + '. Tekan & tahan row yang udah ada buat edit nominalnya.'); return; }
+
   let payload;
   if (periode === 'bulanan') {
     const tempoDay = parseInt(document.getElementById('gdg-ang2-tempo-input').value, 10);
@@ -2644,7 +2652,16 @@ async function gdgHandleRefresh() {
   const btn = document.getElementById('gdg-hdr-refresh');
   if (btn) btn.classList.add('gdg-spinning');
   try {
-    await gdgLoad();
+    // BUG PENTING: _gdgWJurnalAll/_gdgWAkunAll (dipakai buat ngitung realisasi/
+    // progress SEMUA Variable Anggaran, Mingguan maupun Bulanan) di-cache SEKALI
+    // doang seumur sesi lewat gdgWEnsureAkunJurnal() (guard _gdgWAkunLoaded).
+    // Kalau user abis nyatet pembayaran di Kas & Jurnal terus balik ke Gadag
+    // TANPA reload penuh, progress-nya bisa nyangkut/gak keupdate walau
+    // pembayarannya udah beneran kecatet. Makanya refresh manual WAJIB reset
+    // cache ini juga, bukan cuma reload SKU/Catatan Pendapatan doang.
+    _gdgWAkunLoaded = false;
+    await gdgLoad();          // SKU + Catatan Pendapatan
+    await gdgLoadAnggaran();  // Anggaran Mingguan+Bulanan + jurnal (realisasi) + Overview cards, full refresh
   } finally {
     if (btn) btn.classList.remove('gdg-spinning');
   }
