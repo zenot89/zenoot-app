@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260821-45714a920297'; // tambah modul Hutang Supplier + Master Barang, daftarin ke JS_APP_FILES
+var JS_CACHE = 'zenot-js-20260821-33e756cb3cee'; // tambah modul Hutang Supplier + Master Barang, daftarin ke JS_APP_FILES
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
