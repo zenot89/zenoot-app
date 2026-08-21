@@ -20,25 +20,105 @@
 // Tabel: hutang_supplier, hutang_barang, hutang_bon, hutang_bon_item,
 // hutang_pembayaran (lihat migration SQL terpisah).
 
+// ─── FONT "Comic Neue" (tema notebook, sama kayak Gadag) — di-load via <link>,
+// bukan @import (@import di tengah <style> block ke-skip diem-diem sama browser).
+// ID guard SENGAJA sama persis kayak punya gadag.js — biar dedupe: siapapun
+// yang lebih dulu ke-load, modul yang satunya nemu link ini udah ada & skip.
+(function() {
+  if (document.getElementById('gdg-font-comic-neue')) return;
+  var link = document.createElement('link');
+  link.id   = 'gdg-font-comic-neue';
+  link.rel  = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap';
+  document.head.appendChild(link);
+})();
+
 document.getElementById('page-hutang-supplier').innerHTML = `
   <div id="ops-switcher-hs" class="ch-switcher"></div>
 
   <style>
-    #page-hutang-supplier { padding-bottom: 24px; }
+    /* ═══ TEMA NOTEBOOK (samain kayak Gadag) ═══════════════════════════
+       Modul ini beda pendekatan dari gadag.js: SEMUA class .hs-* di sini
+       udah pakai var(--ink)/var(--cream)/var(--f) dkk (variabel GLOBAL),
+       bukan warna hex hardcoded. Jadi override-nya CUKUP redefine variabel
+       itu di scope #page-hutang-supplier — otomatis nge-cascade ke SEMUA
+       elemen turunannya (card, tombol, sheet, form) TANPA perlu override
+       tiap class satu-satu kayak di gadag.js (yang emang perlu vars custom
+       --gdg-* sendiri karena banyak makein class GLOBAL style.css yang
+       udah hardcode var(--ink)/var(--cream) versi dark-theme).
+       Sheet/modal di modul ini juga literally nempel di dalem innerHTML
+       #page-hutang-supplier (bukan di-append ke document.body kayak di
+       modul lain), jadi warisan CSS var ini otomatis ikut sampe ke sana. */
+    #page-hutang-supplier {
+      --ink:    #262220;   /* tinta pena, hampir hitam */
+      --ink2:   #5c554d;   /* tinta pudar, teks sekunder */
+      --ink3:   #8a8277;   /* tinta lebih pudar lagi, label/meta */
+      --ink4:   rgba(38,34,32,.16); /* border tipis ala garis buku */
+      --cream:  #f7f2e6;   /* kertas krem */
+      --cream2: #efe8d8;   /* kertas krem, dikit lebih gelap (card) */
+      --cream3: #e5dcc8;   /* satu tingkat lagi (dipake tabel preview) */
+      --cream4: #fffdf8;   /* paling terang (hover) */
+      --danger: #b5453d;   /* merah dark-theme kepucetan di atas krem */
+      --info:   #2f6fb0;
+      --f:  'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+      --f2: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+      background: var(--cream); color: var(--ink);
+    }
+    #page-hutang-supplier *:not(i):not(.ti) { font-family: var(--f) !important; }
+
+    /* Full-height chain, pola sama persis kayak #page-gadag — biar panel
+       (Bon/Master Barang) scroll internal sendiri2, bukan ngedorong tinggi
+       seluruh layar. 'hutang-supplier' udah terdaftar di fullHeightPages
+       (app.js) jadi .content udah flex-column duluan; tinggal sambungin. */
+    #page-hutang-supplier.active { display:flex !important; flex-direction:column !important; }
+    #page-hutang-supplier { flex:1 1 0; min-height:0; height:100%; padding:10px; box-sizing:border-box; overflow:hidden; }
+    #hs-hdr-row, #hs-supplier-row, .hs-toolbar { flex-shrink:0; }
+    #hs-panels-wrap { flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+    .hs-panel { display:none; min-height:0; }
+    .hs-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow-y:auto; }
+
+    /* Kertas bergaris — feel "buku tulis" di belakang list Bon & Master Barang */
+    #hs-bon-list, #hs-master-list {
+      background-image: repeating-linear-gradient(
+        to bottom, transparent, transparent 37px, var(--ink4) 37px, var(--ink4) 38px
+      );
+    }
+
+    /* ── Header: judul panel + dropdown menu (desktop) / dot notch (mobile) ── */
+    #hs-hdr-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:nowrap; gap:8px; }
+    #hs-hdr-left { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 auto; overflow:hidden; }
+    #hs-hdr-refresh { flex:none; background:none; border:none; padding:2px; cursor:pointer; font-size:20px; line-height:1; color:var(--ink); }
+    #hs-hdr-icon { font-size:20px; flex:none; }
+    #hs-hdr-heading { font-size:20px; font-weight:800; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .hs-menu-wrap { position:relative; flex:none; }
+    #hs-menu-btn { display:flex; align-items:center; gap:6px; }
+    .hs-dropdown-menu {
+      display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:190px;
+      background:var(--cream); border:2px solid var(--ink); border-radius:12px;
+      box-shadow:2px 3px 0 rgba(38,34,32,0.15); overflow:hidden; z-index:60;
+    }
+    .hs-dropdown-menu.open { display:block; }
+    .hs-dropdown-menu button {
+      display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+      padding:10px 14px; background:none; border:none; border-bottom:1px solid var(--ink4);
+      font-family:var(--f); font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer;
+    }
+    .hs-dropdown-menu button:last-child { border-bottom:none; }
+    .hs-dropdown-menu button:hover { background:rgba(38,34,32,.06); }
+    .hs-dropdown-menu button.active { background:var(--ink); color:var(--cream) !important; }
+    .hs-page-dots { display:none; }
+    @media (max-width:900px) {
+      .hs-page-dots { display:flex; align-items:center; gap:6px; flex:none; }
+      .hs-page-dot { width:6px; height:6px; border-radius:50%; background:var(--ink); opacity:.35; transition:all .18s ease; cursor:pointer; }
+      .hs-page-dot.active { width:16px; border-radius:3px; opacity:1; }
+      .hs-menu-wrap { display:none; }
+    }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
     .hs-btn-pill    { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; font-family:var(--f); font-size:13px; font-weight:600; cursor:pointer; border:none; }
     .hs-btn-primary { background:var(--ink); color:var(--cream); }
     .hs-btn-ghost   { background:none; color:var(--ink2); border:1px solid var(--ink3); }
     .hs-btn-danger  { background:none; color:var(--danger); border:1px solid var(--danger); }
-
-    /* ── Tab switcher: Bon / Master Barang ── */
-    .hs-tabs { display:flex; gap:6px; margin-bottom:12px; background:var(--cream2); border-radius:12px; padding:4px; }
-    .hs-tab-btn {
-      flex:1; text-align:center; padding:8px 10px; border-radius:9px; border:none; background:none;
-      color:var(--ink3); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer;
-    }
-    .hs-tab-btn.active { background:var(--ink); color:var(--cream); }
 
     /* ── Kartu ringkasan per supplier — scroll horizontal, tap buat filter ── */
     #hs-supplier-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; -webkit-overflow-scrolling:touch; }
@@ -153,25 +233,45 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     }
   </style>
 
-  <div class="hs-toolbar">
-    <button class="hs-btn-pill hs-btn-primary" id="hs-btn-tambah-utama" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
-    <button class="hs-btn-pill hs-btn-ghost" id="hs-btn-paste-barang" style="display:none" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
-    <button class="hs-btn-pill hs-btn-ghost" onclick="loadHutangSupplier()"><i class="ti ti-refresh"></i></button>
-  </div>
-
-  <div class="hs-tabs">
-    <button class="hs-tab-btn active" id="hs-tab-bon" onclick="hsSwitchView('bon')">Bon</button>
-    <button class="hs-tab-btn" id="hs-tab-master" onclick="hsSwitchView('master')">Master Barang</button>
+  <!-- HEADER: judul panel aktif + dropdown menu (desktop) / dot notch (mobile) -->
+  <div id="hs-hdr-row">
+    <div id="hs-hdr-left">
+      <button id="hs-hdr-refresh" onclick="loadHutangSupplier()" title="Refresh"><i class="ti ti-refresh"></i></button>
+      <i id="hs-hdr-icon" class="ti ti-receipt"></i>
+      <div id="hs-hdr-heading">Bon</div>
+    </div>
+    <div class="hs-menu-wrap">
+      <button id="hs-menu-btn" class="hs-btn-pill hs-btn-primary" onclick="hsToggleMenu(event)">
+        <i class="ti ti-menu-2"></i> <span id="hs-menu-btn-label">Bon</span> <i class="ti ti-chevron-down"></i>
+      </button>
+      <div id="hs-dropdown-menu" class="hs-dropdown-menu">
+        <button id="hs-menu-item-bon" class="active" onclick="hsSwitchView('bon')"><i class="ti ti-receipt"></i> Bon</button>
+        <button id="hs-menu-item-master" onclick="hsSwitchView('master')"><i class="ti ti-list-details"></i> Master Barang</button>
+      </div>
+    </div>
+    <div id="hs-page-dots" class="hs-page-dots">
+      <span class="hs-page-dot active" onclick="hsSwitchView('bon')"></span>
+      <span class="hs-page-dot" onclick="hsSwitchView('master')"></span>
+    </div>
   </div>
 
   <div id="hs-supplier-row"></div>
 
-  <div id="hs-panel-bon">
-    <div id="hs-bon-list"></div>
-  </div>
+  <div id="hs-panels-wrap">
+    <div id="hs-panel-bon" class="hs-panel active">
+      <div class="hs-toolbar">
+        <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
+      </div>
+      <div id="hs-bon-list"></div>
+    </div>
 
-  <div id="hs-panel-master" style="display:none">
-    <div id="hs-master-list"></div>
+    <div id="hs-panel-master" class="hs-panel">
+      <div class="hs-toolbar">
+        <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBarang()"><i class="ti ti-plus"></i> Tambah Barang</button>
+        <button class="hs-btn-pill hs-btn-ghost" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
+      </div>
+      <div id="hs-master-list"></div>
+    </div>
   </div>
 
   <!-- ── SHEET: TAMBAH / EDIT BON ── -->
@@ -402,23 +502,94 @@ function _hsSisaBon(bon) {
 }
 
 // ─── TAB SWITCHER ─────────────────────────────────────────────
+var _HS_VIEW_LABEL = {
+  bon:    { label: 'Bon',           icon: 'ti-receipt' },
+  master: { label: 'Master Barang', icon: 'ti-list-details' },
+};
+var _HS_VIEW_ORDER = ['bon', 'master'];
+
 function hsSwitchView(view) {
   _hsView = view;
-  document.getElementById('hs-tab-bon').classList.toggle('active', view==='bon');
-  document.getElementById('hs-tab-master').classList.toggle('active', view==='master');
-  document.getElementById('hs-panel-bon').style.display    = view==='bon' ? 'block' : 'none';
-  document.getElementById('hs-panel-master').style.display = view==='master' ? 'block' : 'none';
-  var btn = document.getElementById('hs-btn-tambah-utama');
-  if (view === 'bon') {
-    btn.innerHTML = '<i class="ti ti-plus"></i> Tambah Bon';
-    btn.setAttribute('onclick', 'hsOpenTambahBon()');
-  } else {
-    btn.innerHTML = '<i class="ti ti-plus"></i> Tambah Barang';
-    btn.setAttribute('onclick', 'hsOpenTambahBarang()');
-  }
-  document.getElementById('hs-btn-paste-barang').style.display = view === 'master' ? 'flex' : 'none';
+  document.getElementById('hs-panel-bon').classList.toggle('active', view==='bon');
+  document.getElementById('hs-panel-master').classList.toggle('active', view==='master');
+
+  document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
+  document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
+  document.getElementById('hs-menu-btn-label').textContent = _HS_VIEW_LABEL[view].label;
+  _HS_VIEW_ORDER.forEach(function(v) {
+    document.getElementById('hs-menu-item-' + v).classList.toggle('active', v === view);
+  });
+  var dotsEl = document.getElementById('hs-page-dots');
+  Array.prototype.forEach.call(dotsEl.children, function(dot, i) {
+    dot.classList.toggle('active', _HS_VIEW_ORDER[i] === view);
+  });
+  hsCloseMenu();
   hsRenderSupplierCards();
 }
+
+// ─── Dropdown menu (desktop) ────────────────────────────────
+function hsToggleMenu(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('hs-dropdown-menu').classList.toggle('open');
+}
+function hsCloseMenu() {
+  var m = document.getElementById('hs-dropdown-menu');
+  if (m) m.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('hs-dropdown-menu');
+  var btn  = document.getElementById('hs-menu-btn');
+  if (!menu || !btn) return;
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+// ─── Swipe antar panel (mobile only) — pola sama persis kayak Gadag ──
+// (edge-guard 24px biar gak rebutan sama swipe-back OS, threshold 40px/flick
+// biar aman coexist sama long-press-edit yang ada di list Bon & Master Barang)
+(function() {
+  var wrap = document.getElementById('hs-panels-wrap');
+  if (!wrap) return;
+  var EDGE = 24;
+  var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null;
+
+  function goRelative(dir) {
+    var idx = _HS_VIEW_ORDER.indexOf(_hsView);
+    if (idx === -1) return;
+    var next = (idx + dir + _HS_VIEW_ORDER.length) % _HS_VIEW_ORDER.length;
+    hsSwitchView(_HS_VIEW_ORDER[next]);
+  }
+
+  wrap.addEventListener('touchstart', function(e) {
+    var x = e.touches[0].clientX;
+    if (x < EDGE || x > window.innerWidth - EDGE) { tracking = false; return; }
+    startX = x; startY = e.touches[0].clientY; startT = Date.now();
+    tracking = true; isHoriz = null;
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', function(e) {
+    if (!tracking) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (isHoriz === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    if (!isHoriz) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dt = Date.now() - startT;
+    var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+    if (dx < -40 || (isFlick && dx < -20)) goRelative(1);
+    else if (dx > 40 || (isFlick && dx > 20)) goRelative(-1);
+  }, { passive: true });
+
+  wrap.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
+})();
 
 // ─── SUPPLIER CARDS (dipakai bareng tab Bon & Master) ─────────
 function hsRenderSupplierCards() {

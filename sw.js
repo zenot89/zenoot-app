@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260821-3e206e26a10d'; // tambah modul Hutang Supplier + Master Barang, daftarin ke JS_APP_FILES
+var JS_CACHE = 'zenot-js-20260822-a1c7f92de4b0'; // Hutang Supplier: tema notebook (Comic Neue) + nav dropdown/swipe-notch ala Gadag
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
