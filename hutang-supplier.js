@@ -1,16 +1,24 @@
 
 
-// ─── HUTANG-SUPPLIER.JS — Bon barang ke supplier, dibayar mingguan/bulanan/kapan aja ───
+// ─── HUTANG-SUPPLIER.JS — Bon barang ke supplier + Master Barang ───
 // Modul BERDIRI SENDIRI (tidak share fungsi/CSS dengan kas.js atau gadag.js —
 // pelajaran dari insiden kas/gadag: modul terpisah = fix satu modul gak bisa
-// ngerusak modul lain). Satu-satunya titik singgung ke luar: pas user bayar,
-// insert 1 baris ke tabel `jurnal` (tipe 'keluar') pakai kolom yang PERSIS
-// sama seperti yang dipakai kas.js, supaya kelihatan konsisten di Kas & Jurnal
-// — tapi logic/validasinya ditulis ulang sendiri di sini, bukan manggil fungsi
-// internal kas.js.
+// ngerusak modul lain). Satu-satunya titik singgung ke luar:
+//   1. Pas user bayar → insert 1 baris ke tabel `jurnal` (tipe 'keluar'),
+//      kolom PERSIS sama kayak yang dipakai kas.js, tapi logic/validasi
+//      ditulis ulang sendiri (bukan manggil fungsi internal kas.js).
+//   2. Master Barang → katalog_produk diambil dari tabel `produk` (dropdown,
+//      read-only, gak nulis balik ke situ).
 //
-// Tabel: hutang_supplier, hutang_bon, hutang_bon_item, hutang_pembayaran
-// (lihat migration SQL terpisah).
+// Konsep 2 tab:
+//   - "Bon"           : transaksi ambil barang (utang), item-nya WAJIB pilih
+//                       dari Master Barang milik supplier yang sama.
+//   - "Master Barang" : katalog SKU Induk (gua) × Varian Warna × Nama versi
+//                       Supplier × Harga per Lusin — harga beda per supplier,
+//                       jadi 1 baris master = 1 kombinasi supplier+barang.
+//
+// Tabel: hutang_supplier, hutang_barang, hutang_bon, hutang_bon_item,
+// hutang_pembayaran (lihat migration SQL terpisah).
 
 document.getElementById('page-hutang-supplier').innerHTML = `
   <div id="ops-switcher-hs" class="ch-switcher"></div>
@@ -24,6 +32,14 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-btn-ghost   { background:none; color:var(--ink2); border:1px solid var(--ink3); }
     .hs-btn-danger  { background:none; color:var(--danger); border:1px solid var(--danger); }
 
+    /* ── Tab switcher: Bon / Master Barang ── */
+    .hs-tabs { display:flex; gap:6px; margin-bottom:12px; background:var(--cream2); border-radius:12px; padding:4px; }
+    .hs-tab-btn {
+      flex:1; text-align:center; padding:8px 10px; border-radius:9px; border:none; background:none;
+      color:var(--ink3); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer;
+    }
+    .hs-tab-btn.active { background:var(--ink); color:var(--cream); }
+
     /* ── Kartu ringkasan per supplier — scroll horizontal, tap buat filter ── */
     #hs-supplier-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; -webkit-overflow-scrolling:touch; }
     .hs-sup-card {
@@ -35,7 +51,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-sup-card-total { font-size:15px; font-weight:800; color:var(--danger); }
     .hs-sup-card-sub  { font-size:10.5px; color:var(--ink3); margin-top:2px; }
 
-    /* ── Donut chart, sama teknik kayak Gadag (conic-gradient) tapi warna dark theme ── */
+    /* ── Donut chart (conic-gradient), dark theme ── */
     .hs-donut {
       --pct: 0; --donut-color: var(--ok);
       width: 40px; height: 40px; flex:none; border-radius:50%;
@@ -60,7 +76,17 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-bon-sisa { font-size:13px; font-weight:700; color:var(--danger); margin-top:2px; }
     .hs-empty { text-align:center; padding:40px 12px; color:var(--ink3); font-size:13px; }
 
-    /* ── Bottom sheet (form Tambah Bon & Detail Bon) — pola sama Gadag ── */
+    /* ── List Master Barang ── */
+    #hs-master-list { display:flex; flex-direction:column; gap:8px; }
+    .hs-brg-card { display:flex; align-items:center; gap:10px; background:var(--cream2); border:1px solid var(--ink4); border-radius:12px; padding:12px 14px; cursor:pointer; }
+    .hs-brg-main { flex:1; min-width:0; }
+    .hs-brg-kat  { font-weight:700; font-size:14px; color:var(--ink); }
+    .hs-brg-varian { font-size:11.5px; color:var(--ink3); margin-top:2px; }
+    .hs-brg-sup-nama { font-size:11px; color:var(--ink3); margin-top:1px; font-style:italic; }
+    .hs-brg-harga { font-weight:800; font-size:14px; color:var(--ink); white-space:nowrap; flex:none; text-align:right; }
+    .hs-brg-harga-sub { font-size:10px; color:var(--ink3); font-weight:600; text-align:right; }
+
+    /* ── Bottom sheet (form) — pola sama Gadag ── */
     .hs-sheet-overlay { display:none; position:fixed; inset:0; z-index:820; background:rgba(0,0,0,.55); align-items:flex-end; justify-content:center; }
     .hs-sheet-overlay.open { display:flex; }
     .hs-sheet-page {
@@ -91,13 +117,19 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     /* ── Baris item bon (dinamis) ── */
     #hs-item-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
     .hs-item-row { background:var(--cream2); border:1px solid var(--ink4); border-radius:10px; padding:10px; position:relative; }
-    .hs-item-row-top { display:flex; gap:8px; margin-bottom:6px; }
-    .hs-item-row-top input { flex:1; min-width:0; }
-    .hs-item-row-bottom { display:flex; gap:8px; align-items:center; }
-    .hs-item-row-bottom input { flex:1; min-width:0; }
-    .hs-item-subtotal { font-size:12px; font-weight:700; color:var(--ink2); white-space:nowrap; }
+    .hs-item-row-picker { display:flex; gap:8px; margin-bottom:8px; }
+    .hs-item-row-picker select { flex:1; min-width:0; }
     .hs-item-remove { background:none; border:none; color:var(--danger); font-size:16px; cursor:pointer; padding:4px; flex:none; }
-    .hs-item-hint { font-size:10px; color:var(--ink3); margin-top:3px; }
+    .hs-item-manual-fields { display:flex; gap:8px; margin-bottom:8px; }
+    .hs-item-manual-fields input { flex:1; min-width:0; }
+    .hs-item-row-bottom { display:flex; gap:8px; align-items:center; }
+    .hs-satuan-toggle { display:flex; border:1px solid var(--ink4); border-radius:7px; overflow:hidden; flex:none; }
+    .hs-satuan-btn { padding:8px 10px; font-size:12px; font-weight:700; background:var(--cream); color:var(--ink3); border:none; cursor:pointer; }
+    .hs-satuan-btn.active { background:var(--ink); color:var(--cream); }
+    .hs-item-row-bottom input[type=number] { max-width:64px; }
+    .hs-item-row-bottom .hs-harga-input { max-width:120px; }
+    .hs-item-subtotal { font-size:12px; font-weight:700; color:var(--ink2); white-space:nowrap; margin-left:auto; }
+    .hs-item-hint { font-size:10.5px; color:var(--ink3); margin-top:6px; }
     .hs-total-line { display:flex; justify-content:space-between; align-items:center; padding:10px 2px; font-size:15px; font-weight:800; color:var(--ink); border-top:2px solid var(--ink4); margin-top:4px; }
 
     /* ── Detail bon: item table + riwayat bayar ── */
@@ -122,13 +154,24 @@ document.getElementById('page-hutang-supplier').innerHTML = `
   </style>
 
   <div class="hs-toolbar">
-    <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
+    <button class="hs-btn-pill hs-btn-primary" id="hs-btn-tambah-utama" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
     <button class="hs-btn-pill hs-btn-ghost" onclick="loadHutangSupplier()"><i class="ti ti-refresh"></i></button>
+  </div>
+
+  <div class="hs-tabs">
+    <button class="hs-tab-btn active" id="hs-tab-bon" onclick="hsSwitchView('bon')">Bon</button>
+    <button class="hs-tab-btn" id="hs-tab-master" onclick="hsSwitchView('master')">Master Barang</button>
   </div>
 
   <div id="hs-supplier-row"></div>
 
-  <div id="hs-bon-list"></div>
+  <div id="hs-panel-bon">
+    <div id="hs-bon-list"></div>
+  </div>
+
+  <div id="hs-panel-master" style="display:none">
+    <div id="hs-master-list"></div>
+  </div>
 
   <!-- ── SHEET: TAMBAH / EDIT BON ── -->
   <div class="hs-sheet-overlay" id="hs-sheet-bon" onclick="if(event.target===this) hsCloseSheet('hs-sheet-bon')">
@@ -142,10 +185,8 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <input type="hidden" id="hs-bon-id">
         <div class="hs-form-group">
           <label>Supplier</label>
-          <div class="hs-row-2">
-            <select id="hs-bon-supplier-select" onchange="hsOnSupplierSelectChange()"></select>
-          </div>
-          <input type="text" id="hs-bon-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
+          <select id="hs-bon-supplier-select" onchange="hsOnBonSupplierChange()"></select>
+          <input type="text" id="hs-bon-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px" oninput="hsOnBonSupplierBaruInput()">
         </div>
         <div class="hs-row-2">
           <div class="hs-form-group">
@@ -160,7 +201,8 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
         <label style="display:block;font-size:11.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px">Barang</label>
         <div id="hs-item-rows"></div>
-        <button class="hs-btn-pill hs-btn-ghost" onclick="hsAddItemRow()" style="margin-bottom:10px"><i class="ti ti-plus"></i> Tambah Barang</button>
+        <div id="hs-item-empty-hint" class="hs-item-hint" style="display:none">Belum ada Master Barang buat supplier ini — pilih "✏️ Manual" di baris, atau bikin dulu di tab Master Barang.</div>
+        <button class="hs-btn-pill hs-btn-ghost" onclick="hsAddItemRow()" style="margin:10px 0"><i class="ti ti-plus"></i> Tambah Barang</button>
 
         <div class="hs-total-line"><span>Total Bon</span><span id="hs-bon-total-display">Rp0</span></div>
 
@@ -228,32 +270,86 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- ── SHEET: TAMBAH / EDIT MASTER BARANG ── -->
+  <div class="hs-sheet-overlay" id="hs-sheet-barang" onclick="if(event.target===this) hsCloseSheet('hs-sheet-barang')">
+    <div class="hs-sheet-page" style="height:auto;max-height:85vh">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title" id="hs-barang-form-title">Tambah Barang</div>
+        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-barang')"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="hs-sheet-body">
+        <input type="hidden" id="hs-brg-id">
+        <div class="hs-form-group">
+          <label>Supplier</label>
+          <select id="hs-brg-supplier-select"></select>
+          <input type="text" id="hs-brg-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
+        </div>
+        <div class="hs-form-group">
+          <label>SKU Induk (Katalog Produk)</label>
+          <select id="hs-brg-katalog"></select>
+        </div>
+        <div class="hs-row-2">
+          <div class="hs-form-group">
+            <label>Nama versi Supplier</label>
+            <input type="text" id="hs-brg-nama-supplier" placeholder="mis: H Solah">
+          </div>
+          <div class="hs-form-group">
+            <label>Varian Warna</label>
+            <input type="text" id="hs-brg-varian" placeholder="mis: Hitam">
+          </div>
+        </div>
+        <div class="hs-form-group">
+          <label>Harga per Lusin</label>
+          <input type="text" id="hs-brg-harga" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+      <div class="hs-sheet-footer" style="display:flex;gap:8px">
+        <button class="hs-btn-pill hs-btn-danger" id="hs-brg-btn-hapus" style="display:none" onclick="hsHapusBarang()"><i class="ti ti-trash"></i> Hapus</button>
+        <button class="hs-btn-pill hs-btn-primary" style="flex:1;justify-content:center" onclick="hsSimpanBarang()">Simpan</button>
+      </div>
+    </div>
+  </div>
 `;
 
 // ─── STATE ──────────────────────────────────────────────────────
-var _hsSupplierList = [];   // [{id, nama, kontak}]
-var _hsBonList       = [];  // [{id, supplier_id, tanggal, no_nota, total, status, catatan, ...}]
-var _hsPembayaranAll = [];  // semua hutang_pembayaran, dikelompokkan per bon_id di client
-var _hsAkunKas        = []; // kas_akun, buat select debit/kredit pembayaran
-var _hsFilterSupplier = null; // null = semua
-var _hsItemRows       = []; // baris item form Tambah/Edit Bon: [{nama_internal,nama_supplier,qty,satuan,harga_satuan}]
-var _hsCurrentBonId   = null; // bon yg lagi dibuka di sheet detail
+var _hsView            = 'bon';   // 'bon' | 'master'
+var _hsSupplierList     = [];     // [{id, nama, kontak}]
+var _hsBonList          = [];     // [{id, supplier_id, tanggal, no_nota, total, status, catatan, ...}]
+var _hsPembayaranAll    = [];     // semua hutang_pembayaran
+var _hsBarangMaster     = [];     // semua hutang_barang (master katalog per supplier)
+var _hsKatalogList      = [];     // distinct produk.katalog, buat dropdown SKU Induk
+var _hsAkunKas          = [];     // kas_akun, buat select debit/kredit pembayaran
+var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & Master)
+var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
+var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
+var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
 
 // ─── LOAD ───────────────────────────────────────────────────────
 async function loadHutangSupplier() {
   try {
-    const [supplier, bon, pembayaran, akun] = await Promise.all([
+    const [supplier, bon, pembayaran, barang, akun, produk] = await Promise.all([
       dbGet('hutang_supplier', '&order=nama.asc'),
       dbGet('hutang_bon',      '&order=tanggal.desc,created_at.desc'),
       dbGet('hutang_pembayaran', '&order=tanggal.desc'),
+      dbGet('hutang_barang',   '&order=katalog_produk.asc'),
       dbGet('kas_akun',        '&order=kode.asc'),
+      dbGet('produk',          '&select=katalog'),
     ]);
     _hsSupplierList  = supplier || [];
     _hsBonList       = bon || [];
     _hsPembayaranAll = pembayaran || [];
+    _hsBarangMaster  = barang || [];
     _hsAkunKas       = akun || [];
+
+    var katSet = {};
+    (produk || []).forEach(function(p) { if (p.katalog) katSet[p.katalog] = true; });
+    _hsKatalogList = Object.keys(katSet).sort(function(a,b){ return a.localeCompare(b,'id'); });
+
     hsRenderSupplierCards();
     hsRenderBonList();
+    hsRenderMasterList();
   } catch(e) {
     console.error('loadHutangSupplier error', e);
     var list = document.getElementById('hs-bon-list');
@@ -268,34 +364,62 @@ function _hsSisaBon(bon) {
   return { bayar: bayar, sisa: Math.max(0, (bon.total||0) - bayar) };
 }
 
-// ─── SUPPLIER CARDS ───────────────────────────────────────────
+// ─── TAB SWITCHER ─────────────────────────────────────────────
+function hsSwitchView(view) {
+  _hsView = view;
+  document.getElementById('hs-tab-bon').classList.toggle('active', view==='bon');
+  document.getElementById('hs-tab-master').classList.toggle('active', view==='master');
+  document.getElementById('hs-panel-bon').style.display    = view==='bon' ? 'block' : 'none';
+  document.getElementById('hs-panel-master').style.display = view==='master' ? 'block' : 'none';
+  var btn = document.getElementById('hs-btn-tambah-utama');
+  if (view === 'bon') {
+    btn.innerHTML = '<i class="ti ti-plus"></i> Tambah Bon';
+    btn.setAttribute('onclick', 'hsOpenTambahBon()');
+  } else {
+    btn.innerHTML = '<i class="ti ti-plus"></i> Tambah Barang';
+    btn.setAttribute('onclick', 'hsOpenTambahBarang()');
+  }
+  hsRenderSupplierCards();
+}
+
+// ─── SUPPLIER CARDS (dipakai bareng tab Bon & Master) ─────────
 function hsRenderSupplierCards() {
   var el = document.getElementById('hs-supplier-row');
   if (!el) return;
 
-  // Total hutang belum lunas per supplier
   var totals = {};
   _hsBonList.forEach(function(b) {
     if (b.status === 'lunas') return;
     var s = _hsSisaBon(b).sisa;
     totals[b.supplier_id] = (totals[b.supplier_id] || 0) + s;
   });
-
   var totalSemua = Object.values(totals).reduce(function(s,v){ return s+v; }, 0);
 
   var html = '<div class="hs-sup-card' + (_hsFilterSupplier===null?' active':'') + '" onclick="hsSelectSupplierFilter(null)">' +
-    '<div class="hs-sup-card-nama">Semua Supplier</div>' +
-    '<div class="hs-sup-card-total">' + fmtRpFull(totalSemua) + '</div>' +
-    '<div class="hs-sup-card-sub">' + _hsBonList.filter(function(b){return b.status!=='lunas';}).length + ' bon belum lunas</div>' +
-  '</div>';
+    '<div class="hs-sup-card-nama">Semua Supplier</div>';
+  if (_hsView === 'bon') {
+    html += '<div class="hs-sup-card-total">' + fmtRpFull(totalSemua) + '</div>' +
+      '<div class="hs-sup-card-sub">' + _hsBonList.filter(function(b){return b.status!=='lunas';}).length + ' bon belum lunas</div>';
+  } else {
+    html += '<div class="hs-sup-card-total" style="color:var(--ink)">' + _hsBarangMaster.length + '</div>' +
+      '<div class="hs-sup-card-sub">total barang</div>';
+  }
+  html += '</div>';
 
   html += _hsSupplierList.map(function(s) {
-    var jml = _hsBonList.filter(function(b){ return b.supplier_id===s.id && b.status!=='lunas'; }).length;
-    return '<div class="hs-sup-card' + (_hsFilterSupplier===s.id?' active':'') + '" onclick="hsSelectSupplierFilter(' + s.id + ')">' +
-      '<div class="hs-sup-card-nama">' + _hsEsc(s.nama) + '</div>' +
-      '<div class="hs-sup-card-total">' + fmtRpFull(totals[s.id]||0) + '</div>' +
-      '<div class="hs-sup-card-sub">' + jml + ' bon belum lunas</div>' +
-    '</div>';
+    var card = '<div class="hs-sup-card' + (_hsFilterSupplier===s.id?' active':'') + '" onclick="hsSelectSupplierFilter(' + s.id + ')">' +
+      '<div class="hs-sup-card-nama">' + _hsEsc(s.nama) + '</div>';
+    if (_hsView === 'bon') {
+      var jml = _hsBonList.filter(function(b){ return b.supplier_id===s.id && b.status!=='lunas'; }).length;
+      card += '<div class="hs-sup-card-total">' + fmtRpFull(totals[s.id]||0) + '</div>' +
+        '<div class="hs-sup-card-sub">' + jml + ' bon belum lunas</div>';
+    } else {
+      var jmlBrg = _hsBarangMaster.filter(function(b){ return b.supplier_id===s.id; }).length;
+      card += '<div class="hs-sup-card-total" style="color:var(--ink)">' + jmlBrg + '</div>' +
+        '<div class="hs-sup-card-sub">barang terdaftar</div>';
+    }
+    card += '</div>';
+    return card;
   }).join('');
 
   el.innerHTML = html;
@@ -305,6 +429,7 @@ function hsSelectSupplierFilter(id) {
   _hsFilterSupplier = id;
   hsRenderSupplierCards();
   hsRenderBonList();
+  hsRenderMasterList();
 }
 
 // ─── BON LIST ─────────────────────────────────────────────────
@@ -347,6 +472,38 @@ function hsRenderBonList() {
   _hsInitLongPress('hs-bon-list', function(id) { hsOpenEditBon(parseInt(id,10)); });
 }
 
+// ─── MASTER BARANG LIST ───────────────────────────────────────
+function hsRenderMasterList() {
+  var el = document.getElementById('hs-master-list');
+  if (!el) return;
+
+  var list = _hsBarangMaster.filter(function(b) {
+    return _hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier;
+  });
+
+  if (!list.length) {
+    el.innerHTML = '<div class="hs-empty">Belum ada Master Barang' + (_hsFilterSupplier?' buat supplier ini':'') + '. Tap "+ Tambah Barang" buat mulai.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(function(b) {
+    var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
+    return '<div class="hs-brg-card" data-id="' + b.id + '" onclick="hsOpenEditBarang(' + b.id + ')">' +
+      '<div class="hs-brg-main">' +
+        '<div class="hs-brg-kat">' + _hsEsc(b.katalog_produk) + (b.varian_warna ? ' — ' + _hsEsc(b.varian_warna) : '') + '</div>' +
+        '<div class="hs-brg-varian">Supplier: ' + _hsEsc(supplier ? supplier.nama : '—') + '</div>' +
+        (b.nama_supplier ? '<div class="hs-brg-sup-nama">"' + _hsEsc(b.nama_supplier) + '"</div>' : '') +
+      '</div>' +
+      '<div>' +
+        '<div class="hs-brg-harga">' + fmtRpFull(b.harga_per_lusin) + '</div>' +
+        '<div class="hs-brg-harga-sub">/ lusin</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  _hsInitLongPress('hs-master-list', function(id) { hsOpenEditBarang(parseInt(id,10)); });
+}
+
 // ─── LONG PRESS (copy independen, bukan reuse dari gadag.js) ──
 function _hsInitLongPress(containerId, onLongPress) {
   var container = document.getElementById(containerId);
@@ -380,8 +537,6 @@ function _hsInitLongPress(containerId, onLongPress) {
   container.addEventListener('touchend', cancel, { passive: true });
   container.addEventListener('touchcancel', cancel, { passive: true });
 
-  // Desktop: klik-kanan (oncontextmenu di card) sudah handle mouse, jadi
-  // mousedown-hold gak wajib — tapi ditambah biar konsisten UX tekan-lama.
   container.addEventListener('mousedown', function(e) {
     var card = e.target.closest('[data-id]');
     if (!card) return;
@@ -409,9 +564,9 @@ function hsCloseSheet(id) {
   setTimeout(function() { ov.classList.remove('open'); }, 280);
 }
 
-// ─── TAMBAH / EDIT BON ────────────────────────────────────────
-function _hsPopulateSupplierSelect() {
-  var sel = document.getElementById('hs-bon-supplier-select');
+// ─── HELPER: populate select supplier (dipakai form Bon & form Barang) ──
+function _hsPopulateSupplierSelect(selectId) {
+  var sel = document.getElementById(selectId);
   if (!sel) return;
   var html = _hsSupplierList.map(function(s) {
     return '<option value="' + s.id + '">' + _hsEsc(s.nama) + '</option>';
@@ -420,25 +575,66 @@ function _hsPopulateSupplierSelect() {
   sel.innerHTML = html;
 }
 
-function hsOnSupplierSelectChange() {
+// Resolve supplier_id dari pasangan select+input "baru" — insert supplier
+// baru ke DB kalau perlu. Dipakai bareng form Bon & form Barang.
+async function _hsResolveSupplierId(selectId, baruInputId) {
+  var sel     = document.getElementById(selectId).value;
+  var namaBaru = document.getElementById(baruInputId).value.trim();
+  if (sel !== '__baru__') return sel;
+  if (!namaBaru) throw new Error('Isi nama supplier baru!');
+  var newSup = await dbInsert('hutang_supplier', { nama: namaBaru.toUpperCase() });
+  var id = newSup[0].id;
+  _hsSupplierList.push({ id: id, nama: namaBaru.toUpperCase() });
+  return id;
+}
+
+// ─── TAMBAH / EDIT BON ────────────────────────────────────────
+function hsOnBonSupplierChange() {
   var sel = document.getElementById('hs-bon-supplier-select');
   var baruEl = document.getElementById('hs-bon-supplier-baru');
-  if (!sel || !baruEl) return;
   baruEl.style.display = sel.value === '__baru__' ? 'block' : 'none';
+
+  var newSupplierId = sel.value === '__baru__' ? null : parseInt(sel.value, 10);
+  if (newSupplierId !== _hsCurrentBonSupplierId) {
+    var hasFilledRows = _hsItemRows.some(function(r){ return r.barang_id || r.nama_internal || r.nama_supplier; });
+    if (hasFilledRows && !confirm('Ganti supplier bakal reset baris barang yang udah diisi (master barang beda per supplier). Lanjut?')) {
+      // Batal — balikin pilihan select ke supplier sebelumnya
+      sel.value = _hsCurrentBonSupplierId || '__baru__';
+      baruEl.style.display = sel.value === '__baru__' ? 'block' : 'none';
+      return;
+    }
+    _hsCurrentBonSupplierId = newSupplierId;
+    _hsItemRows = [_hsBlankItemRow()];
+    _hsRenderItemRows();
+  }
+}
+function hsOnBonSupplierBaruInput() {
+  // Supplier baru → belum ada id, treat sebagai null (semua baris jadi manual)
+  if (_hsCurrentBonSupplierId !== null) {
+    _hsCurrentBonSupplierId = null;
+    _hsItemRows = [_hsBlankItemRow()];
+    _hsRenderItemRows();
+  }
+}
+
+function _hsBlankItemRow() {
+  return { barang_id: null, katalog_produk: '', varian_warna: '', nama_supplier: '', nama_internal: '', satuan: 'lusin', qty: 1, harga_per_lusin: 0, manual: false };
 }
 
 function hsOpenTambahBon() {
   document.getElementById('hs-bon-form-title').textContent = 'Tambah Bon';
   document.getElementById('hs-bon-id').value = '';
   document.getElementById('hs-bon-btn-hapus').style.display = 'none';
-  _hsPopulateSupplierSelect();
-  document.getElementById('hs-bon-supplier-select').value = _hsSupplierList[0] ? _hsSupplierList[0].id : '__baru__';
-  hsOnSupplierSelectChange();
+  _hsPopulateSupplierSelect('hs-bon-supplier-select');
+  var firstSup = _hsSupplierList[0];
+  document.getElementById('hs-bon-supplier-select').value = firstSup ? firstSup.id : '__baru__';
   document.getElementById('hs-bon-supplier-baru').value = '';
+  document.getElementById('hs-bon-supplier-baru').style.display = firstSup ? 'none' : 'block';
+  _hsCurrentBonSupplierId = firstSup ? firstSup.id : null;
   document.getElementById('hs-bon-tanggal').value = new Date().toISOString().slice(0,10);
   document.getElementById('hs-bon-no-nota').value = '';
   document.getElementById('hs-bon-catatan').value = '';
-  _hsItemRows = [{ nama_internal:'', nama_supplier:'', qty:1, satuan:'', harga_satuan:0 }];
+  _hsItemRows = [_hsBlankItemRow()];
   _hsRenderItemRows();
   hsOpenSheet('hs-sheet-bon');
 }
@@ -449,10 +645,11 @@ async function hsOpenEditBon(bonId) {
   document.getElementById('hs-bon-form-title').textContent = 'Edit Bon';
   document.getElementById('hs-bon-id').value = b.id;
   document.getElementById('hs-bon-btn-hapus').style.display = 'inline-flex';
-  _hsPopulateSupplierSelect();
+  _hsPopulateSupplierSelect('hs-bon-supplier-select');
   document.getElementById('hs-bon-supplier-select').value = b.supplier_id;
-  hsOnSupplierSelectChange();
+  document.getElementById('hs-bon-supplier-baru').style.display = 'none';
   document.getElementById('hs-bon-supplier-baru').value = '';
+  _hsCurrentBonSupplierId = b.supplier_id;
   document.getElementById('hs-bon-tanggal').value = b.tanggal;
   document.getElementById('hs-bon-no-nota').value = b.no_nota || '';
   document.getElementById('hs-bon-catatan').value = b.catatan || '';
@@ -460,76 +657,145 @@ async function hsOpenEditBon(bonId) {
   try {
     var items = await dbGet('hutang_bon_item', '&bon_id=eq.' + b.id + '&order=id.asc');
     _hsItemRows = (items && items.length) ? items.map(function(it) {
-      return { nama_internal: it.nama_internal||'', nama_supplier: it.nama_supplier||'', qty: it.qty||1, satuan: it.satuan||'', harga_satuan: it.harga_satuan||0 };
-    }) : [{ nama_internal:'', nama_supplier:'', qty:1, satuan:'', harga_satuan:0 }];
+      var master = it.barang_id ? _hsBarangMaster.find(function(m){ return m.id===it.barang_id; }) : null;
+      return {
+        barang_id: master ? it.barang_id : null,
+        katalog_produk: it.nama_internal || '',
+        varian_warna: it.varian_warna || '',
+        nama_supplier: it.nama_supplier || '',
+        nama_internal: it.nama_internal || '',
+        satuan: it.satuan === 'pcs' ? 'pcs' : 'lusin',
+        qty: it.qty || 1,
+        harga_per_lusin: it.harga_satuan || 0,
+        manual: !master, // kalau barang master-nya udah gak ada/kehapus, fallback manual
+      };
+    }) : [_hsBlankItemRow()];
   } catch(e) {
-    _hsItemRows = [{ nama_internal:'', nama_supplier:'', qty:1, satuan:'', harga_satuan:0 }];
+    _hsItemRows = [_hsBlankItemRow()];
   }
   _hsRenderItemRows();
   hsOpenSheet('hs-sheet-bon');
 }
 
 function hsAddItemRow() {
-  _hsItemRows.push({ nama_internal:'', nama_supplier:'', qty:1, satuan:'', harga_satuan:0 });
+  _hsItemRows.push(_hsBlankItemRow());
   _hsRenderItemRows();
 }
 
 function hsRemoveItemRow(idx) {
-  if (_hsItemRows.length <= 1) return; // minimal 1 baris
+  if (_hsItemRows.length <= 1) return;
   _hsItemRows.splice(idx, 1);
   _hsRenderItemRows();
 }
 
+// Konversi qty ke ekuivalen lusin, buat hitung subtotal terhadap harga_per_lusin
+function _hsQtyToLusin(qty, satuan) { return satuan === 'pcs' ? (qty || 0) / 12 : (qty || 0); }
+function _hsRowSubtotal(row) { return _hsQtyToLusin(row.qty, row.satuan) * (row.harga_per_lusin || 0); }
+
 function _hsRenderItemRows() {
   var wrap = document.getElementById('hs-item-rows');
   if (!wrap) return;
+
+  var masterOptions = _hsBarangMaster.filter(function(m) { return m.supplier_id === _hsCurrentBonSupplierId; });
+  var emptyHint = document.getElementById('hs-item-empty-hint');
+  if (emptyHint) emptyHint.style.display = (_hsCurrentBonSupplierId && !masterOptions.length) ? 'block' : 'none';
+
   wrap.innerHTML = _hsItemRows.map(function(row, idx) {
-    var subtotal = (row.qty||0) * (row.harga_satuan||0);
+    var pickerOptions = '<option value="">— pilih barang —</option>' +
+      masterOptions.map(function(m) {
+        var label = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '') + (m.nama_supplier ? ' (' + m.nama_supplier + ')' : '');
+        var sel = (!row.manual && row.barang_id === m.id) ? ' selected' : '';
+        return '<option value="' + m.id + '"' + sel + '>' + _hsEsc(label) + '</option>';
+      }).join('') +
+      '<option value="__manual__"' + (row.manual ? ' selected' : '') + '>✏️ Manual (barang gak ada di master)</option>';
+
+    var manualFieldsHtml = row.manual ? (
+      '<div class="hs-item-manual-fields">' +
+        '<input type="text" placeholder="Nama barang" value="' + _hsEscAttr(row.katalog_produk || row.nama_internal) + '" id="hs-item-int-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
+        '<input type="text" placeholder="Nama versi supplier" value="' + _hsEscAttr(row.nama_supplier) + '" id="hs-item-sup-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
+      '</div>'
+    ) : '';
+
+    var subtotal = _hsRowSubtotal(row);
+    var hargaDisabled = row.manual ? '' : 'disabled';
+
     return '<div class="hs-item-row">' +
-      '<div class="hs-item-row-top">' +
-        '<input type="text" placeholder="Nama versi lo (mis: Tali Atas)" value="' + _hsEscAttr(row.nama_internal) + '" id="hs-item-int-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
-        '<input type="text" placeholder="Nama versi supplier (mis: H Solah)" value="' + _hsEscAttr(row.nama_supplier) + '" id="hs-item-sup-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
+      '<div class="hs-item-row-picker">' +
+        '<select id="hs-item-pick-' + idx + '" onchange="_hsItemRowPickChange(' + idx + ')">' + pickerOptions + '</select>' +
         '<button class="hs-item-remove" onclick="hsRemoveItemRow(' + idx + ')"><i class="ti ti-trash"></i></button>' +
       '</div>' +
+      manualFieldsHtml +
       '<div class="hs-item-row-bottom">' +
-        '<input type="number" min="0" step="any" placeholder="Qty" value="' + (row.qty||'') + '" id="hs-item-qty-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')" style="max-width:70px">' +
-        '<input type="text" placeholder="Satuan (pcs/kg/m)" value="' + _hsEscAttr(row.satuan) + '" id="hs-item-sat-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')" style="max-width:90px">' +
-        '<input type="text" inputmode="numeric" placeholder="Harga satuan" value="' + (row.harga_satuan ? row.harga_satuan.toLocaleString('id-ID') : '') + '" id="hs-item-hrg-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
+        '<div class="hs-satuan-toggle">' +
+          '<button type="button" class="hs-satuan-btn' + (row.satuan==='lusin'?' active':'') + '" onclick="_hsItemRowSetSatuan(' + idx + ',\'lusin\')">Lusin</button>' +
+          '<button type="button" class="hs-satuan-btn' + (row.satuan==='pcs'?' active':'') + '" onclick="_hsItemRowSetSatuan(' + idx + ',\'pcs\')">Pcs</button>' +
+        '</div>' +
+        '<input type="number" min="0" step="any" value="' + (row.qty||'') + '" id="hs-item-qty-' + idx + '" oninput="_hsItemRowUpdate(' + idx + ')">' +
+        '<input type="text" class="hs-harga-input" inputmode="numeric" placeholder="Harga/lusin" value="' + (row.harga_per_lusin ? row.harga_per_lusin.toLocaleString('id-ID') : '') + '" id="hs-item-hrg-' + idx + '" ' + hargaDisabled + ' oninput="_hsItemRowUpdate(' + idx + ')">' +
         '<span class="hs-item-subtotal">' + fmtRpFull(subtotal) + '</span>' +
       '</div>' +
     '</div>';
   }).join('');
 
-  // Attach autocomplete ke input nama internal & nama supplier (baru dipasang di DOM)
   _hsItemRows.forEach(function(_, idx) {
-    var elInt = document.getElementById('hs-item-int-' + idx);
-    var elSup = document.getElementById('hs-item-sup-' + idx);
-    if (elInt && window.acAttach) acAttach(elInt, 'hs_nama_internal');
-    if (elSup && window.acAttach) acAttach(elSup, 'hs_nama_supplier');
-    // Formatter rupiah utk kolom harga
-    var elHrg = document.getElementById('hs-item-hrg-' + idx);
-    if (elHrg) idrInput('hs-item-hrg-' + idx);
+    idrInput('hs-item-hrg-' + idx);
   });
 
   _hsUpdateTotalDisplay();
 }
 
+function _hsItemRowPickChange(idx) {
+  var row = _hsItemRows[idx];
+  if (!row) return;
+  var val = document.getElementById('hs-item-pick-' + idx).value;
+  if (val === '__manual__') {
+    row.manual = true;
+    row.barang_id = null;
+  } else if (val) {
+    var m = _hsBarangMaster.find(function(x){ return x.id === parseInt(val,10); });
+    if (m) {
+      row.manual = false;
+      row.barang_id = m.id;
+      row.katalog_produk = m.katalog_produk;
+      row.varian_warna   = m.varian_warna || '';
+      row.nama_supplier  = m.nama_supplier || '';
+      row.nama_internal  = m.katalog_produk;
+      row.harga_per_lusin = m.harga_per_lusin || 0;
+    }
+  } else {
+    row.manual = false;
+    row.barang_id = null;
+    row.katalog_produk = ''; row.varian_warna = ''; row.nama_supplier = ''; row.nama_internal = ''; row.harga_per_lusin = 0;
+  }
+  _hsRenderItemRows();
+}
+
+function _hsItemRowSetSatuan(idx, satuan) {
+  var row = _hsItemRows[idx];
+  if (!row) return;
+  row.satuan = satuan;
+  _hsRenderItemRows();
+}
+
 function _hsItemRowUpdate(idx) {
   var row = _hsItemRows[idx];
   if (!row) return;
-  row.nama_internal  = (document.getElementById('hs-item-int-' + idx) || {}).value || '';
-  row.nama_supplier  = (document.getElementById('hs-item-sup-' + idx) || {}).value || '';
-  row.qty            = parseFloat((document.getElementById('hs-item-qty-' + idx) || {}).value) || 0;
-  row.satuan         = (document.getElementById('hs-item-sat-' + idx) || {}).value || '';
-  row.harga_satuan   = idrVal('hs-item-hrg-' + idx);
+  if (row.manual) {
+    var elInt = document.getElementById('hs-item-int-' + idx);
+    var elSup = document.getElementById('hs-item-sup-' + idx);
+    if (elInt) { row.katalog_produk = elInt.value; row.nama_internal = elInt.value; }
+    if (elSup) row.nama_supplier = elSup.value;
+    row.harga_per_lusin = idrVal('hs-item-hrg-' + idx);
+  }
+  row.qty = parseFloat((document.getElementById('hs-item-qty-' + idx) || {}).value) || 0;
 
-  var sub = document.querySelectorAll('.hs-item-subtotal')[idx];
-  if (sub) sub.textContent = fmtRpFull(row.qty * row.harga_satuan);
+  var subEl = document.querySelectorAll('.hs-item-subtotal')[idx];
+  if (subEl) subEl.textContent = fmtRpFull(_hsRowSubtotal(row));
   _hsUpdateTotalDisplay();
 }
 
 function _hsUpdateTotalDisplay() {
-  var total = _hsItemRows.reduce(function(s,r){ return s + (r.qty||0) * (r.harga_satuan||0); }, 0);
+  var total = _hsItemRows.reduce(function(s,r){ return s + _hsRowSubtotal(r); }, 0);
   var el = document.getElementById('hs-bon-total-display');
   if (el) el.textContent = fmtRpFull(total);
   return total;
@@ -537,33 +803,25 @@ function _hsUpdateTotalDisplay() {
 
 async function hsSimpanBon() {
   var id       = document.getElementById('hs-bon-id').value;
-  var selVal   = document.getElementById('hs-bon-supplier-select').value;
-  var namaBaru = document.getElementById('hs-bon-supplier-baru').value.trim();
   var tanggal  = document.getElementById('hs-bon-tanggal').value;
   var noNota   = document.getElementById('hs-bon-no-nota').value.trim() || null;
   var catatan  = document.getElementById('hs-bon-catatan').value.trim() || null;
 
   if (!tanggal) { alert('Tanggal bon wajib diisi!'); return; }
-  if (selVal === '__baru__' && !namaBaru) { alert('Isi nama supplier baru!'); return; }
 
-  var validItems = _hsItemRows.filter(function(r){ return (r.nama_internal||r.nama_supplier) && r.qty > 0; });
-  if (!validItems.length) { alert('Isi minimal 1 barang (nama & qty)!'); return; }
+  var validItems = _hsItemRows.filter(function(r){ return (r.katalog_produk || r.nama_internal) && r.qty > 0 && r.harga_per_lusin > 0; });
+  if (!validItems.length) { alert('Isi minimal 1 barang (nama, qty, & harga)!'); return; }
 
-  var total = validItems.reduce(function(s,r){ return s + r.qty * r.harga_satuan; }, 0);
-  if (!total) { alert('Total bon masih Rp0 — cek harga satuan barang!'); return; }
+  var total = validItems.reduce(function(s,r){ return s + _hsRowSubtotal(r); }, 0);
 
   try {
-    var supplierId = selVal;
-    if (selVal === '__baru__') {
-      var newSup = await dbInsert('hutang_supplier', { nama: namaBaru.toUpperCase() });
-      supplierId = newSup[0].id;
-    }
+    var supplierId = await _hsResolveSupplierId('hs-bon-supplier-select', 'hs-bon-supplier-baru');
 
     var bonData = {
       supplier_id: supplierId,
       tanggal:     tanggal,
       no_nota:     noNota,
-      total:       total,
+      total:       Math.round(total),
       catatan:     catatan,
     };
 
@@ -571,7 +829,6 @@ async function hsSimpanBon() {
     if (id) {
       await dbUpdate('hutang_bon', id, bonData);
       bonId = id;
-      // Hapus item lama, insert ulang (lebih simpel & aman drpd diff baris)
       var oldItems = await dbGet('hutang_bon_item', '&bon_id=eq.' + id);
       for (var i=0;i<oldItems.length;i++) { await dbDelete('hutang_bon_item', oldItems[i].id); }
     } else {
@@ -584,16 +841,17 @@ async function hsSimpanBon() {
       var r = validItems[j];
       await dbInsert('hutang_bon_item', {
         bon_id: bonId,
-        nama_internal: r.nama_internal || null,
+        barang_id: r.barang_id || null,
+        nama_internal: r.katalog_produk || r.nama_internal || null,
         nama_supplier: r.nama_supplier || null,
+        varian_warna: r.varian_warna || null,
         qty: r.qty,
-        satuan: r.satuan || null,
-        harga_satuan: r.harga_satuan,
-        subtotal: r.qty * r.harga_satuan,
+        satuan: r.satuan,
+        harga_satuan: r.harga_per_lusin,
+        subtotal: Math.round(_hsRowSubtotal(r)),
       });
     }
 
-    if (window.acRefresh) { acRefresh('hs_nama_internal'); acRefresh('hs_nama_supplier'); }
     hsCloseSheet('hs-sheet-bon');
     await loadHutangSupplier();
   } catch(e) {
@@ -641,16 +899,19 @@ async function hsOpenDetailBon(bonId) {
   donut.style.setProperty('--donut-color', st.sisa<=0 ? 'var(--ok)' : (st.bayar>0 ? 'var(--warn)' : 'var(--danger)'));
   document.getElementById('hs-detail-donut-txt').textContent = pct + '%';
 
-  // Item barang
   var itemsWrap = document.getElementById('hs-detail-items');
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
   try {
     var items = await dbGet('hutang_bon_item', '&bon_id=eq.' + bonId + '&order=id.asc');
     itemsWrap.innerHTML = (items && items.length) ? items.map(function(it) {
+      var namaTampil = it.nama_internal || '—';
+      var subNama = [];
+      if (it.varian_warna) subNama.push('varian: ' + it.varian_warna);
+      if (it.nama_supplier) subNama.push('supplier: ' + it.nama_supplier);
       return '<div class="hs-detail-item-row">' +
-        '<div><div class="hs-detail-item-nama">' + _hsEsc(it.nama_internal || it.nama_supplier || '—') + '</div>' +
-        (it.nama_internal && it.nama_supplier ? '<div class="hs-detail-item-nama-sup">supplier: ' + _hsEsc(it.nama_supplier) + '</div>' : '') + '</div>' +
-        '<div class="hs-detail-item-qty">' + it.qty + (it.satuan?' '+_hsEsc(it.satuan):'') + '</div>' +
+        '<div><div class="hs-detail-item-nama">' + _hsEsc(namaTampil) + '</div>' +
+        (subNama.length ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(subNama.join(' · ')) + '</div>' : '') + '</div>' +
+        '<div class="hs-detail-item-qty">' + it.qty + ' ' + (it.satuan||'') + '</div>' +
         '<div class="hs-detail-item-sub">' + fmtRpFull(it.subtotal) + '</div>' +
       '</div>';
     }).join('') : '<div class="hs-empty" style="padding:10px 0">Tidak ada data barang.</div>';
@@ -658,7 +919,6 @@ async function hsOpenDetailBon(bonId) {
     itemsWrap.innerHTML = '<div class="hs-empty">Gagal memuat barang.</div>';
   }
 
-  // Form bayar — default akun kredit ke akun Kas & Bank, debit ke Beban/Kewajiban
   _hsPopulateAkunSelect('hs-pay-akun-debit', function(a) {
     return a.kelompok === 'beban' || a.kelompok === 'kewajiban';
   });
@@ -718,7 +978,6 @@ async function hsSimpanBayar() {
       catatan: catatan,
     });
 
-    // Entry ke Kas & Jurnal (tipe 'keluar') — kolom sama persis dgn yg dipakai kas.js
     await dbInsert('jurnal', {
       tanggal: tanggal,
       keterangan: 'Bayar hutang supplier' + (catatan ? ' — ' + catatan : ''),
@@ -731,7 +990,6 @@ async function hsSimpanBayar() {
       kredit: nominal,
     });
 
-    // Update status bon kalau udah lunas
     var newSisa = Math.max(0, st.sisa - nominal);
     if (newSisa <= 0 && b.status !== 'lunas') {
       await dbUpdate('hutang_bon', bonId, { status: 'lunas' });
@@ -741,6 +999,109 @@ async function hsSimpanBayar() {
     await loadHutangSupplier();
   } catch(e) {
     alert('Gagal simpan pembayaran: ' + e.message);
+  }
+}
+
+// ─── MASTER BARANG: TAMBAH / EDIT ─────────────────────────────
+function _hsPopulateKatalogSelect() {
+  var sel = document.getElementById('hs-brg-katalog');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Pilih SKU Induk...</option>' + _hsKatalogList.map(function(k) {
+    return '<option value="' + _hsEscAttr(k) + '">' + _hsEsc(k) + '</option>';
+  }).join('');
+}
+
+function hsOpenTambahBarang() {
+  document.getElementById('hs-barang-form-title').textContent = 'Tambah Barang';
+  document.getElementById('hs-brg-id').value = '';
+  document.getElementById('hs-brg-btn-hapus').style.display = 'none';
+  _hsPopulateSupplierSelect('hs-brg-supplier-select');
+  var defaultSup = _hsFilterSupplier || (_hsSupplierList[0] ? _hsSupplierList[0].id : '__baru__');
+  document.getElementById('hs-brg-supplier-select').value = defaultSup;
+  document.getElementById('hs-brg-supplier-baru').style.display = defaultSup === '__baru__' ? 'block' : 'none';
+  document.getElementById('hs-brg-supplier-baru').value = '';
+  document.getElementById('hs-brg-supplier-select').onchange = function() {
+    document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
+  };
+  if (!_hsKatalogList.length) {
+    _hsPopulateKatalogSelect();
+    document.getElementById('hs-brg-katalog').insertAdjacentHTML('afterend',
+      '<div class="hs-item-hint" id="hs-brg-katalog-empty-hint">Belum ada data di Kelola Produk — isi dulu SKU di sana biar muncul di sini.</div>');
+  } else {
+    var hint = document.getElementById('hs-brg-katalog-empty-hint');
+    if (hint) hint.remove();
+    _hsPopulateKatalogSelect();
+  }
+  document.getElementById('hs-brg-nama-supplier').value = '';
+  document.getElementById('hs-brg-varian').value = '';
+  document.getElementById('hs-brg-harga').value = '';
+  idrInput('hs-brg-harga');
+  hsOpenSheet('hs-sheet-barang');
+}
+
+function hsOpenEditBarang(id) {
+  var b = _hsBarangMaster.find(function(x){ return x.id===id; });
+  if (!b) return;
+  document.getElementById('hs-barang-form-title').textContent = 'Edit Barang';
+  document.getElementById('hs-brg-id').value = b.id;
+  document.getElementById('hs-brg-btn-hapus').style.display = 'inline-flex';
+  _hsPopulateSupplierSelect('hs-brg-supplier-select');
+  document.getElementById('hs-brg-supplier-select').value = b.supplier_id;
+  document.getElementById('hs-brg-supplier-baru').style.display = 'none';
+  document.getElementById('hs-brg-supplier-baru').value = '';
+  document.getElementById('hs-brg-supplier-select').onchange = function() {
+    document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
+  };
+  _hsPopulateKatalogSelect();
+  document.getElementById('hs-brg-katalog').value = b.katalog_produk;
+  document.getElementById('hs-brg-nama-supplier').value = b.nama_supplier || '';
+  document.getElementById('hs-brg-varian').value = b.varian_warna || '';
+  document.getElementById('hs-brg-harga').value = b.harga_per_lusin ? b.harga_per_lusin.toLocaleString('id-ID') : '';
+  idrInput('hs-brg-harga');
+  hsOpenSheet('hs-sheet-barang');
+}
+
+async function hsSimpanBarang() {
+  var id       = document.getElementById('hs-brg-id').value;
+  var katalog  = document.getElementById('hs-brg-katalog').value;
+  var namaSup  = document.getElementById('hs-brg-nama-supplier').value.trim() || null;
+  var varian   = document.getElementById('hs-brg-varian').value.trim() || null;
+  var harga    = idrVal('hs-brg-harga');
+
+  if (!katalog) { alert('Pilih SKU Induk!'); return; }
+  if (!harga)   { alert('Isi harga per lusin!'); return; }
+
+  try {
+    var supplierId = await _hsResolveSupplierId('hs-brg-supplier-select', 'hs-brg-supplier-baru');
+
+    var data = {
+      supplier_id: supplierId,
+      katalog_produk: katalog,
+      nama_supplier: namaSup,
+      varian_warna: varian,
+      harga_per_lusin: harga,
+    };
+
+    if (id) { await dbUpdate('hutang_barang', id, data); }
+    else    { await dbInsert('hutang_barang', data); }
+
+    hsCloseSheet('hs-sheet-barang');
+    await loadHutangSupplier();
+  } catch(e) {
+    alert('Gagal simpan: ' + e.message);
+  }
+}
+
+async function hsHapusBarang() {
+  var id = document.getElementById('hs-brg-id').value;
+  if (!id) return;
+  if (!confirm('Hapus barang ini dari Master? Bon yang udah pernah pakai barang ini tetap aman (datanya udah ke-snapshot).')) return;
+  try {
+    await dbDelete('hutang_barang', id);
+    hsCloseSheet('hs-sheet-barang');
+    await loadHutangSupplier();
+  } catch(e) {
+    alert('Gagal hapus: ' + e.message);
   }
 }
 
