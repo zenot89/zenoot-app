@@ -155,6 +155,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
   <div class="hs-toolbar">
     <button class="hs-btn-pill hs-btn-primary" id="hs-btn-tambah-utama" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
+    <button class="hs-btn-pill hs-btn-ghost" id="hs-btn-paste-barang" style="display:none" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
     <button class="hs-btn-pill hs-btn-ghost" onclick="loadHutangSupplier()"><i class="ti ti-refresh"></i></button>
   </div>
 
@@ -311,6 +312,42 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- ── SHEET: PASTE MASSAL MASTER BARANG ── -->
+  <div class="hs-sheet-overlay" id="hs-sheet-paste-barang" onclick="if(event.target===this) hsCloseSheet('hs-sheet-paste-barang')">
+    <div class="hs-sheet-page" style="height:auto;max-height:88vh">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title"><i class="ti ti-clipboard"></i> Paste Massal Barang</div>
+        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-paste-barang')"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="hs-sheet-body">
+        <div class="hs-form-group">
+          <label>Supplier</label>
+          <select id="hs-paste-supplier-select"></select>
+          <input type="text" id="hs-paste-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
+          Copy dari Excel lalu paste di bawah. Semua baris masuk ke supplier yang dipilih di atas.<br>
+          Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Harga per Lusin</b>
+        </div>
+        <textarea id="hs-paste-area"
+          style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px"
+          placeholder="Paste di sini..."></textarea>
+        <div id="hs-paste-preview" style="margin-top:10px;display:none">
+          <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
+          <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+            <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
+            <tbody id="hs-paste-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="hs-sheet-footer" style="display:flex;gap:8px">
+        <button class="hs-btn-pill hs-btn-ghost" onclick="hsParsePasteBarang()"><i class="ti ti-eye"></i> Preview</button>
+        <button class="hs-btn-pill hs-btn-primary" id="hs-btn-simpan-paste-barang" style="display:none;flex:1;justify-content:center" onclick="hsSimpanPasteBarang()"><i class="ti ti-check"></i> Simpan Semua</button>
+      </div>
+    </div>
+  </div>
 `;
 
 // ─── STATE ──────────────────────────────────────────────────────
@@ -379,6 +416,7 @@ function hsSwitchView(view) {
     btn.innerHTML = '<i class="ti ti-plus"></i> Tambah Barang';
     btn.setAttribute('onclick', 'hsOpenTambahBarang()');
   }
+  document.getElementById('hs-btn-paste-barang').style.display = view === 'master' ? 'flex' : 'none';
   hsRenderSupplierCards();
 }
 
@@ -1037,6 +1075,110 @@ function hsOpenTambahBarang() {
   document.getElementById('hs-brg-harga').value = '';
   idrInput('hs-brg-harga');
   hsOpenSheet('hs-sheet-barang');
+}
+
+// ─── MASTER BARANG: PASTE MASSAL ───────────────────────────────
+var _hsParsedBarang = [];
+
+function hsShowPasteBarang() {
+  _hsParsedBarang = [];
+  document.getElementById('hs-paste-area').value = '';
+  document.getElementById('hs-paste-preview').style.display = 'none';
+  document.getElementById('hs-btn-simpan-paste-barang').style.display = 'none';
+
+  _hsPopulateSupplierSelect('hs-paste-supplier-select');
+  var defaultSup = _hsFilterSupplier || (_hsSupplierList[0] ? _hsSupplierList[0].id : '__baru__');
+  document.getElementById('hs-paste-supplier-select').value = defaultSup;
+  document.getElementById('hs-paste-supplier-baru').style.display = defaultSup === '__baru__' ? 'block' : 'none';
+  document.getElementById('hs-paste-supplier-baru').value = '';
+  document.getElementById('hs-paste-supplier-select').onchange = function() {
+    document.getElementById('hs-paste-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
+  };
+
+  hsOpenSheet('hs-sheet-paste-barang');
+  setTimeout(function() { document.getElementById('hs-paste-area').focus(); }, 100);
+}
+
+function hsParsePasteBarang() {
+  var raw = document.getElementById('hs-paste-area').value.trim();
+  if (!raw) { alert('Paste data dulu!'); return; }
+
+  _hsParsedBarang = [];
+  var lines = raw.split('\n');
+
+  lines.forEach(function(line) {
+    if (!line.trim()) return;
+    // Split by tab (dari Excel)
+    var cols = line.split('\t').map(function(c) { return c.trim(); });
+    if (cols.length < 1) return;
+
+    var katalog = (cols[0] || '').toUpperCase();
+    var varian  = (cols[1] || '').trim();
+    var namaSup = (cols[2] || '').trim();
+    var harga   = parseInt((cols[3]||'').replace(/[^0-9]/g,''), 10) || 0;
+
+    if (!katalog) return;
+    _hsParsedBarang.push({
+      katalog_produk: katalog,
+      varian_warna: varian || null,
+      nama_supplier: namaSup || null,
+      harga_per_lusin: harga,
+      dikenal: _hsKatalogList.indexOf(katalog) !== -1
+    });
+  });
+
+  if (_hsParsedBarang.length === 0) {
+    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Harga per Lusin');
+    return;
+  }
+
+  var jumlahAsing = _hsParsedBarang.filter(function(r){ return !r.dikenal; }).length;
+  document.getElementById('hs-paste-count').textContent =
+    '✓ ' + _hsParsedBarang.length + ' baris siap diimport' +
+    (jumlahAsing ? ' — ⚠ ' + jumlahAsing + ' SKU Induk belum ada di Kelola Produk' : '');
+  document.getElementById('hs-paste-tbody').innerHTML = _hsParsedBarang.map(function(r) {
+    return '<tr' + (r.dikenal ? '' : ' style="color:var(--warn)"') + '>' +
+      '<td>' + _hsEsc(r.katalog_produk) + (r.dikenal ? '' : ' ⚠') + '</td>' +
+      '<td>' + _hsEsc(r.varian_warna||'—') + '</td>' +
+      '<td>' + _hsEsc(r.nama_supplier||'—') + '</td>' +
+      '<td>Rp' + r.harga_per_lusin.toLocaleString('id-ID') + '</td>' +
+      '<td>Rp' + Math.round(r.harga_per_lusin/12).toLocaleString('id-ID') + '</td>' +
+      '</tr>';
+  }).join('');
+  document.getElementById('hs-paste-preview').style.display = 'block';
+  document.getElementById('hs-btn-simpan-paste-barang').style.display = 'inline-flex';
+}
+
+async function hsSimpanPasteBarang() {
+  if (_hsParsedBarang.length === 0) return;
+  var btn = document.getElementById('hs-btn-simpan-paste-barang');
+
+  try {
+    var supplierId = await _hsResolveSupplierId('hs-paste-supplier-select', 'hs-paste-supplier-baru');
+
+    btn.disabled = true;
+    var ok = 0;
+    for (var i = 0; i < _hsParsedBarang.length; i++) {
+      var r = _hsParsedBarang[i];
+      await dbInsert('hutang_barang', {
+        supplier_id: supplierId,
+        katalog_produk: r.katalog_produk,
+        varian_warna: r.varian_warna,
+        nama_supplier: r.nama_supplier,
+        harga_per_lusin: r.harga_per_lusin
+      });
+      ok++;
+      btn.textContent = 'Menyimpan ' + ok + '/' + _hsParsedBarang.length + '...';
+    }
+    hsCloseSheet('hs-sheet-paste-barang');
+    await loadHutangSupplier();
+    alert('✓ ' + ok + ' barang berhasil disimpan!');
+  } catch(e) {
+    alert('Gagal simpan: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-check"></i> Simpan Semua';
+  }
 }
 
 function hsOpenEditBarang(id) {
