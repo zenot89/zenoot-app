@@ -663,8 +663,10 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div class="card gdg-minicard mc-cost">
     <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Cost</div>
-    <div class="gdg-hero-value" id="gdg-cost-value-m" style="color:var(--danger)">Rp0</div>
-    <div class="gdg-hero-sub" id="gdg-cost-sub-m">—</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div class="gdg-hero-value" id="gdg-cost-value-m" style="color:var(--danger)">Rp0</div>
+      <div class="gdg-donut" id="gdg-cost-donut" style="--pct:0;flex-shrink:0"><span id="gdg-cost-donut-txt">0%</span></div>
+    </div>
   </div>
   <div class="metric gdg-qtylsn-split" style="margin:0">
     <div class="gdg-qtylsn-col">
@@ -1909,15 +1911,15 @@ function gdgAngUpdateCostCard() {
     gdgAngSetDonut(pct, pctColor);
   }
 
-  // Card Cost — Overview (desktop + mobile), SELALU mingguan
+  // Card Cost — Overview (desktop TETEP teks, mobile ganti donat — sama pola
+  // kayak Target/Income mobile, biar minicard-nya gak numpuk teks)
   const costEl  = document.getElementById('gdg-cost-value');
   const costSub = document.getElementById('gdg-cost-sub');
   if (costEl)  costEl.textContent  = gdgWFmt(totalDiserap);
   if (costSub) { costSub.textContent = pctFmt + ' dari anggaran'; costSub.style.color = pctColor; }
-  const costM    = document.getElementById('gdg-cost-value-m');
-  const costSubM = document.getElementById('gdg-cost-sub-m');
-  if (costM)    costM.textContent    = gdgWFmt(totalDiserap);
-  if (costSubM) { costSubM.textContent = pctFmt + ' dari anggaran'; costSubM.style.color = pctColor; }
+  const costM = document.getElementById('gdg-cost-value-m');
+  if (costM) costM.textContent = gdgWFmt(totalDiserap);
+  gdgDonutApply('gdg-cost-donut', 'gdg-cost-donut-txt', pct, pctColor, pctFmt);
 
   return { netAnggaran: netAnggaran, totalDiserap: totalDiserap, pct: pct };
 }
