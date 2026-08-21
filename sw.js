@@ -31,7 +31,7 @@ var JS_APP_FILES = [
   'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
   'produk-terjual.js', 'price-list.js', 'dataorder.js',
   'rekap.js', 'channel-master.js', 'beban-operasional.js',
-  'anggaran.js', 'keuangan.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
+  'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
   'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'autocomplete.js',
 ];
@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260821-8a37433aa9ce'; // kas.js+style.css: picker akun jadi floating dropdown di atas trigger (bukan bottom sheet), select pakai pointerdown
+var JS_CACHE = 'zenot-js-20260821-hutangsupplier1'; // tambah modul Hutang Supplier + Master Barang, daftarin ke JS_APP_FILES
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
