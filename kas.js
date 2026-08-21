@@ -141,9 +141,9 @@ document.getElementById('page-kas').innerHTML = `
   </div>
   <!-- Baris 2: 4 minicard summary -->
   <div class="kas-summary" style="grid-template-columns:repeat(4,1fr)">
-    <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta">total debit kas</div></div>
-    <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta">total kredit kas</div></div>
-    <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir</div></div>
+    <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta" id="kas-total-masuk-label">total debit kas</div></div>
+    <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta" id="kas-total-keluar-label">total kredit kas</div></div>
+    <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir (semua periode)</div></div>
     <div class="metric"><div class="m-label">Cash Flow</div><div class="m-value" id="kas-cashflow">—</div><div class="m-delta" id="kas-cashflow-label">periode ini</div></div>
   </div>
   <!-- input bulan hidden — tetap dipakai fungsi filter -->
@@ -734,16 +734,20 @@ function _kasEnsureBulanDD() {
   if (document.getElementById('kas-bulan-dropdown')) return;
   var dd = document.createElement('div');
   dd.id = 'kas-bulan-dropdown';
+  // Sinkron item aktif ke filter yang lagi kepasang SEKARANG (termasuk default
+  // bulan berjalan yang di-set otomatis) — dulu "Semua periode" di-hardcode
+  // active padahal defaultnya udah bulan ini, jadi dropdown-nya nyasar.
+  var curVal = (document.getElementById('kas-filter-bulan') || {}).value || '';
   // Generate 12 bulan terakhir
   var html = '<div class="dd-section">Filter Periode</div>';
   html += '<div class="dd-list">';
-  html += '<button class="dd-item active" data-bulan="" onclick="kasSetBulan(&quot;&quot;)"><i class="ti ti-calendar-off"></i> Semua periode</button>';
+  html += '<button class="dd-item' + (curVal === '' ? ' active' : '') + '" data-bulan="" onclick="kasSetBulan(&quot;&quot;)"><i class="ti ti-calendar-off"></i> Semua periode</button>';
   var now = new Date();
   for (var i = 0; i < 12; i++) {
     var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     var lbl = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
-    html += '<button class="dd-item" data-bulan="'+val+'" onclick="kasSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
+    html += '<button class="dd-item' + (curVal === val ? ' active' : '') + '" data-bulan="'+val+'" onclick="kasSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
   }
   html += '</div>';
   dd.innerHTML = html;
@@ -1698,20 +1702,29 @@ function kasApplyFilter() {
   _kasCurrentPage = 1;
   _kasFilteredData = filtered;
   kasRenderJurnalTabel(filtered);
-  // Summary (Kas Masuk, Keluar, Saldo) pakai SEMUA data — tidak ikut filter
-  kasUpdateSummary(_kasJurnalAll);
+  // Kas Masuk/Keluar IKUT filter (ini yang bikin totalnya "ngeri" kalau selalu
+  // all-time) — Saldo Kas TETEP dari SEMUA data (_kasJurnalAll), soalnya itu
+  // saldo kas beneran sekarang (kumulatif), bukan angka yang masuk akal
+  // difilter per-bulan.
+  kasUpdateSummary(filtered, _kasJurnalAll, bulan);
   // Cashflow pakai data filtered — menunjukkan arus kas periode yang dipilih
   kasUpdateCashflow(filtered, bulan);
 }
 
 function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
 
-// Set default filter ke bulan ini
+// Default filter ke bulan berjalan — biar Kas Masuk/Keluar gak nunjukin
+// akumulasi total dari awal ("ngeri" puluhan juta). Dulu cuma nge-set
+// `.value` doang tanpa sinkron ke label dropdown ("Semua" nyangkut di teks,
+// padahal datanya kefilter) — sekarang label ikut ke-update juga.
 (function() {
   var el = document.getElementById('kas-filter-bulan');
   if (el && !el.value) {
     var now = new Date();
-    el.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    var val = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    el.value = val;
+    var lbl = document.getElementById('kas-bulan-label');
+    if (lbl) lbl.textContent = new Date(val + '-01').toLocaleDateString('id-ID', {month:'short', year:'numeric'});
   }
 })();
 
@@ -1814,9 +1827,10 @@ function kasUpdateCashflow(data, bulan) {
   if (lb) lb.textContent = bulan ? bulan.replace('-','/') : 'semua periode';
 }
 
-function kasUpdateSummary(data) {
+function kasUpdateSummary(filteredData, allData, bulan) {
+  // Kas Masuk / Kas Keluar — IKUT filter periode (default bulan berjalan)
   let masuk = 0, keluar = 0;
-  data.forEach(r => {
+  filteredData.forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
     // Hanya hitung akun KAS & BANK — bukan semua aset
@@ -1825,12 +1839,32 @@ function kasUpdateSummary(data) {
     if (isKasD) masuk  += (r.nominal || r.debit  || 0);
     if (isKasK) keluar += (r.nominal || r.kredit || 0);
   });
-  const saldo = masuk - keluar;
+
+  // Saldo Kas — SELALU dari SEMUA data (allData), soalnya ini saldo kas
+  // beneran yang ada sekarang (kumulatif dari awal), BUKAN net satu bulan aja.
+  let saldoMasuk = 0, saldoKeluar = 0;
+  (allData || filteredData).forEach(r => {
+    const aD = _kasAkunMap[r.akun_debit_id];
+    const aK = _kasAkunMap[r.akun_kredit_id];
+    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasD) saldoMasuk  += (r.nominal || r.debit  || 0);
+    if (isKasK) saldoKeluar += (r.nominal || r.kredit || 0);
+  });
+  const saldo = saldoMasuk - saldoKeluar;
+
   const fmtRp = v => fmtRpFull(Math.abs(v));
   document.getElementById('kas-total-masuk').textContent = fmtRp(masuk);
   document.getElementById('kas-total-keluar').textContent = fmtRp(keluar);
   document.getElementById('kas-saldo').textContent = (saldo < 0 ? '-' : '') + fmtRp(saldo);
   document.getElementById('kas-saldo').style.color = saldo >= 0 ? 'var(--ok)' : 'var(--danger)';
+
+  // Sub-label ikut nunjukin periode yang lagi difilter, biar jelas ini angka
+  // "bulan ini" bukan "dari awal jualan"
+  const lblMasuk  = document.getElementById('kas-total-masuk-label');
+  const lblKeluar = document.getElementById('kas-total-keluar-label');
+  if (lblMasuk)  lblMasuk.textContent  = bulan ? ('total debit kas · ' + bulan.replace('-','/')) : 'total debit kas · semua periode';
+  if (lblKeluar) lblKeluar.textContent = bulan ? ('total kredit kas · ' + bulan.replace('-','/')) : 'total kredit kas · semua periode';
 }
 
 async function kasEditJurnal(id) {
