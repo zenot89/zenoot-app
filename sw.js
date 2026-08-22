@@ -23,6 +23,8 @@ var CDN_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css',
   'https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js',
 ];
 
 // File JS — network-first: selalu ambil versi terbaru, fallback cache kalau offline
@@ -46,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260822-2a07dc198350'; // hutang-supplier.js: Overview flat (radius 8px, bar kotak, grid selalu 2x2), Tambah Bon picker simplified, Bon->Jurnal Re-Stock + halaman per-supplier + Export PDF
+var JS_CACHE = 'zenot-js-20260822-aea1698ab0a3'; // hutang-supplier.js: Overview flat (radius 8px, bar kotak, grid selalu 2x2), Tambah Bon picker simplified, Bon->Jurnal Re-Stock + halaman per-supplier + Export PDF
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

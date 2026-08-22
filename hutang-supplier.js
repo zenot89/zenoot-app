@@ -169,16 +169,36 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-table-num { text-align:right; font-weight:700; }
     .hs-table td.hs-empty { white-space:normal; }
 
-    /* ── Halaman detail per-supplier (Jurnal Re-Stock) ── */
-    #hs-bon-detail-header { margin-bottom:14px; }
-    .hs-detail-sup-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-    .hs-detail-sup-back, .hs-detail-sup-export {
-      display:flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer;
-      font-family:var(--f); font-size:12.5px; font-weight:700; color:var(--ink2); padding:4px 2px;
+    /* ── Switcher supplier (Jurnal Re-Stock) — ganti mini-card row: total +
+       kotak nama supplier yg bisa di-swipe/tap buat pindah "halaman" supplier ── */
+    .hs-bon-switcher { display:flex; gap:10px; margin-bottom:12px; position:relative; flex-shrink:0; }
+    .hs-bon-switcher-total, .hs-bon-switcher-sup {
+      flex:1; min-width:0; background:var(--cream2); border:1.5px solid var(--ink4);
+      border-radius:12px; padding:11px 14px; font-family:var(--f); box-sizing:border-box;
     }
-    .hs-detail-sup-export { color:var(--info); }
-    .hs-detail-sup-title { font-size:20px; font-weight:800; color:var(--ink); }
-    .hs-detail-sup-sub { font-size:12px; color:var(--ink3); margin-top:2px; }
+    .hs-bon-switcher-total { font-size:15px; font-weight:800; color:var(--danger); display:flex; align-items:center; }
+    .hs-bon-switcher-sup {
+      display:flex; align-items:center; justify-content:space-between; gap:6px; cursor:pointer;
+      font-size:14px; font-weight:700; color:var(--ink);
+      -webkit-user-select:none; user-select:none;
+    }
+    .hs-bon-switcher-sup span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hs-bon-switcher-sup i { flex:none; color:var(--ink3); font-size:13px; transition:transform .15s ease; }
+    .hs-bon-switcher-sup.open i { transform:rotate(180deg); }
+    .hs-bon-switcher-dropdown {
+      display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:170px;
+      background:var(--cream); border:2px solid var(--ink); border-radius:12px;
+      box-shadow:2px 3px 0 rgba(38,34,32,0.15); overflow:hidden; overflow-y:auto; max-height:260px; z-index:60;
+    }
+    .hs-bon-switcher-dropdown.open { display:block; }
+    .hs-bon-switcher-dropdown button {
+      display:block; width:100%; text-align:left; padding:10px 14px; background:none; border:none;
+      border-bottom:1px solid var(--ink4); font-family:var(--f); font-size:13.5px; font-weight:700;
+      color:var(--ink); cursor:pointer;
+    }
+    .hs-bon-switcher-dropdown button:last-child { border-bottom:none; }
+    .hs-bon-switcher-dropdown button:hover { background:rgba(38,34,32,.06); }
+    .hs-bon-switcher-dropdown button.active { background:var(--ink); color:var(--cream) !important; }
 
     /* ── OVERVIEW: grid minicard + ranking supplier + aging list ── */
     .hs-ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
@@ -349,8 +369,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
 
     <div id="hs-panel-bon" class="hs-panel">
-      <div id="hs-bon-detail-header" style="display:none"></div>
+      <div id="hs-bon-switcher" class="hs-bon-switcher"></div>
       <div class="hs-toolbar" id="hs-bon-toolbar">
+        <button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost" style="display:none" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)"><i class="ti ti-file-download"></i> Export PDF</button>
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
       <div id="hs-bon-list"></div>
@@ -582,7 +603,6 @@ var _hsBarangMaster     = [];     // semua hutang_barang (master katalog per sup
 var _hsKatalogList      = [];     // distinct produk.katalog, buat dropdown SKU Induk
 var _hsAkunKas          = [];     // kas_akun, buat select debit/kredit pembayaran
 var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & Master)
-var _hsSupplierDetailId = null;   // kalo keisi (id supplier), tab Jurnal Re-Stock lagi di mode "halaman sendiri" 1 supplier
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
 var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
 var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
@@ -638,13 +658,13 @@ var _HS_VIEW_ORDER = ['overview', 'bon', 'pembayaran', 'master'];
 
 function hsSwitchView(view) {
   _hsView = view;
-  _hsSupplierDetailId = null; // selalu landing di daftar supplier dulu tiap ganti tab
+  _hsFilterSupplier = null; // selalu landing di "Semua Supplier" dulu tiap ganti tab
   _HS_VIEW_ORDER.forEach(function(v) {
     var panel = document.getElementById('hs-panel-' + v);
     if (panel) panel.classList.toggle('active', v === view);
   });
   var supRow = document.getElementById('hs-supplier-row');
-  if (supRow) supRow.style.display = (view === 'overview') ? 'none' : '';
+  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon') ? 'none' : '';
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
@@ -732,8 +752,9 @@ function hsRenderSupplierCards() {
 
   // Overview = ringkasan lintas-supplier, gak butuh filter per-supplier di sini
   if (_hsView === 'overview') { el.innerHTML = ''; return; }
-  // Lagi di halaman detail 1 supplier (Jurnal Re-Stock) — row daftar supplier disembunyiin
-  if (_hsView === 'bon' && _hsSupplierDetailId !== null) { el.innerHTML = ''; return; }
+  // Tab Bon (Jurnal Re-Stock) pake hs-bon-switcher (total + kotak nama supplier
+  // swipeable), bukan row mini-card ini lagi — biar lebih simple & gak dobel filter.
+  if (_hsView === 'bon') { el.innerHTML = ''; return; }
 
   var totals = {};
   _hsBonList.forEach(function(b) {
@@ -791,99 +812,194 @@ function hsRenderSupplierCards() {
   el.innerHTML = html;
 }
 
+// ─── SWITCHER SUPPLIER (tab Bon / Jurnal Re-Stock) ─────────────
+// Ganti hs-supplier-row (mini-card) khusus buat tab ini: 1 kotak total +
+// 1 kotak nama supplier yg bisa di-swipe (kiri/kanan) atau di-tap (buka
+// dropdown list semua supplier). Urutan cycle: [Semua Supplier, ...supplier].
+function hsRenderBonSwitcher() {
+  var el = document.getElementById('hs-bon-switcher');
+  if (!el) return;
+
+  var sup = _hsFilterSupplier === null ? null : _hsSupplierList.find(function(s){ return s.id === _hsFilterSupplier; });
+  var label = sup ? sup.nama : 'Semua Supplier';
+
+  var relevantBons = sup
+    ? _hsBonList.filter(function(b){ return b.supplier_id === sup.id; })
+    : _hsBonList;
+  var totalAktif = relevantBons
+    .filter(function(b){ return b.status !== 'lunas'; })
+    .reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
+
+  el.innerHTML =
+    '<div class="hs-bon-switcher-total">' + fmtRpFull(totalAktif) + '</div>' +
+    '<div class="hs-bon-switcher-sup" id="hs-bon-switcher-sup" onclick="hsToggleSupplierDropdown(event)">' +
+      '<span>' + _hsEsc(label) + '</span><i class="ti ti-chevron-down"></i>' +
+      '<div class="hs-bon-switcher-dropdown" id="hs-bon-switcher-dropdown">' +
+        '<button class="' + (_hsFilterSupplier===null?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(null);hsCloseSupplierDropdown()">Semua Supplier</button>' +
+        _hsSupplierList.map(function(s) {
+          return '<button class="' + (_hsFilterSupplier===s.id?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(' + s.id + ');hsCloseSupplierDropdown()">' + _hsEsc(s.nama) + '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  var exportBtn = document.getElementById('hs-bon-export-btn');
+  if (exportBtn) exportBtn.style.display = sup ? '' : 'none';
+}
+
+function hsToggleSupplierDropdown(e) {
+  if (e) e.stopPropagation();
+  var box = document.getElementById('hs-bon-switcher-sup');
+  var dd  = document.getElementById('hs-bon-switcher-dropdown');
+  if (!box || !dd) return;
+  var open = dd.classList.toggle('open');
+  box.classList.toggle('open', open);
+}
+function hsCloseSupplierDropdown() {
+  var box = document.getElementById('hs-bon-switcher-sup');
+  var dd  = document.getElementById('hs-bon-switcher-dropdown');
+  if (dd) dd.classList.remove('open');
+  if (box) box.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  var dd  = document.getElementById('hs-bon-switcher-dropdown');
+  var box = document.getElementById('hs-bon-switcher-sup');
+  if (!dd || !box) return;
+  if (dd.classList.contains('open') && !box.contains(e.target)) hsCloseSupplierDropdown();
+});
+
+// Cycle order: [null (Semua Supplier), ...supplier sesuai _hsSupplierList].
+// Otomatis nyesuain kalau supplier nambah/berkurang, gak perlu ubah logic ini.
+function hsCycleSupplierFilter(dir) {
+  var order = [null].concat(_hsSupplierList.map(function(s){ return s.id; }));
+  var idx = order.indexOf(_hsFilterSupplier);
+  if (idx === -1) idx = 0;
+  var next = (idx + dir + order.length) % order.length;
+  hsSelectSupplierFilter(order[next]);
+}
+
+// Swipe di kotak nama supplier — event delegation di parent statis (#hs-bon-switcher)
+// karena innerHTML kotak ini di-render ulang tiap ganti filter. stopPropagation() di
+// touchstart WAJIB biar gak bentrok/dobel-kepencet sama swipe global antar-panel
+// (#hs-panels-wrap di bawah, yg pindah Overview/Bon/Riwayat Bayar/Master Barang) —
+// begitu propagation diputus di titik ini, listener swipe global gak akan pernah
+// tau ada sentuhan sama sekali (dia baru mulai "tracking" dari touchstart-nya sendiri).
+(function() {
+  var parent = document.getElementById('hs-bon-switcher');
+  if (!parent) return;
+  var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null, swiped = false;
+
+  parent.addEventListener('touchstart', function(e) {
+    var box = e.target.closest('#hs-bon-switcher-sup');
+    if (!box) return;
+    e.stopPropagation();
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; startT = Date.now();
+    tracking = true; isHoriz = null; swiped = false;
+  }, { passive: true });
+
+  parent.addEventListener('touchmove', function(e) {
+    if (!tracking) return;
+    e.stopPropagation();
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (isHoriz === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+  }, { passive: true });
+
+  parent.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    e.stopPropagation();
+    if (!isHoriz) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dt = Date.now() - startT;
+    var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+    if (dx < -30 || (isFlick && dx < -15)) { swiped = true; hsCycleSupplierFilter(1); }
+    else if (dx > 30 || (isFlick && dx > 15)) { swiped = true; hsCycleSupplierFilter(-1); }
+  }, { passive: true });
+
+  parent.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
+
+  // Tap buat buka dropdown — di-skip kalau sentuhan barusan adalah swipe (nge-geser
+  // beneran), biar swipe gak ke-double sebagai "tap" juga.
+  parent.addEventListener('click', function(e) {
+    var box = e.target.closest('#hs-bon-switcher-sup');
+    if (!box) return;
+    if (swiped) { swiped = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+})();
+
 function hsSelectSupplierFilter(id) {
   _hsFilterSupplier = id;
-  if (_hsView === 'bon') _hsSupplierDetailId = id; // masuk "halaman sendiri" supplier itu (null = balik ke daftar)
   hsRenderSupplierCards();
   hsRenderBonList();
   hsRenderMasterList();
   hsRenderPembayaranList();
 }
 
-function hsBackToSupplierList() {
-  _hsSupplierDetailId = null;
-  _hsFilterSupplier = null;
-  hsRenderSupplierCards();
-  hsRenderBonList();
-}
-
 // ─── EXPORT PDF: Jurnal Re-Stock per supplier ──────────────────
-// Pola sama persis kayak gdgExportPendapatanPDF (gadag.js) — render ke
-// popup window lalu window.print(), browser native "Save as PDF", konsisten
-// di Android & iPhone tanpa perlu library PDF eksternal.
+// GANTI TOTAL dari pola window.open(blob)+window.print() ke generate PDF
+// asli pake jsPDF + autoTable. Root cause versi lama: window.open() dengan
+// URL blob: + target _blank, di dalam PWA "display":"standalone" (lihat
+// manifest.json), adalah known crash trigger di Android WebView — blob:
+// URL cuma valid di proses yang bikin dia, sementara window.open coba
+// lempar ke browsing context/proses lain → force close. Versi baru ini
+// gak pernah buka context baru sama sekali: doc.save() cuma trigger
+// download Blob di halaman yang sama, aman di semua Android/iOS.
 function hsExportSupplierBonPDF(supplierId) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
+    return;
+  }
   var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
   var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId; })
     .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
 
   var totalSemua = 0, sisaSemua = 0;
-  var rows = list.length ? list.map(function(b, i) {
+  var body = list.map(function(b, i) {
     var st = _hsSisaBon(b);
     var statusLabel = (b.status === 'lunas' || st.sisa <= 0) ? 'Lunas' : (st.bayar > 0 ? 'Dicicil' : 'Belum Lunas');
     totalSemua += b.total || 0;
     sisaSemua  += st.sisa || 0;
-    return '<tr>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd">' + (i+1) + '</td>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd">' + _hsFmtTgl(b.tanggal) + '</td>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd">' + (b.no_nota || '—') + '</td>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(b.total) + '</td>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd">' + statusLabel + '</td>' +
-      '<td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(st.sisa) + '</td>' +
-    '</tr>';
-  }).join('') : '<tr><td colspan="6" style="padding:10px 8px;color:#888;font-style:italic">Belum ada bon.</td></tr>';
+    return [String(i+1), _hsFmtTgl(b.tanggal), b.no_nota || '\u2014', fmtRpFull(b.total), statusLabel, fmtRpFull(st.sisa)];
+  });
+  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
 
   var today = new Date();
   var hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-  var hariExport = hariNames[today.getDay()].toUpperCase();
+  var hariExport = hariNames[today.getDay()];
   var tglExportStr = String(today.getDate()).padStart(2,'0') + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + today.getFullYear();
+  var namaSup = sup ? sup.nama : '\u2014';
 
-  var iconUrl = new URL('icon-192.png', location.href).href;
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<title>Jurnal Re-Stock - ' + (sup ? sup.nama : '') + '</title>' +
-    '<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">' +
-    '<style>' +
-      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
-      'body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 16px; }' +
-      'table { width: 100%; border-collapse: collapse; font-size: 13px; }' +
-      'thead { display: table-header-group; } tfoot { display: table-footer-group; }' +
-      'tbody tr { page-break-inside: avoid; } @media print { body { padding: 0; } }' +
-    '</style></head><body>' +
-    '<table><thead>' +
-      '<tr><td colspan="6" style="padding:0 0 12px;border:none">' +
-        '<div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
-            '<img src="' + iconUrl + '" alt="zenOt" style="width:40px;height:40px;object-fit:contain">' +
-            '<div style="font-size:12px;font-weight:700;color:#333">' + hariExport + ', ' + tglExportStr + '</div>' +
-          '</div>' +
-          '<div style="border-top:1px solid #ddd;margin:10px 0"></div>' +
-          '<div style="text-align:center;font-family:\'Comic Neue\',\'Comic Sans MS\',cursive;font-weight:700;font-size:20px">JURNAL RE-STOCK &mdash; ' + _hsEsc(sup ? sup.nama.toUpperCase() : '—') + '</div>' +
-          '<div style="text-align:center;color:#777;font-size:11px;margin-top:2px">' + list.length + ' bon</div>' +
-        '</div>' +
-      '</td></tr>' +
-      '<tr style="border-bottom:2px solid #000;text-align:left">' +
-        '<th style="padding:6px 8px">No</th><th style="padding:6px 8px">Tanggal</th>' +
-        '<th style="padding:6px 8px">No. Nota</th><th style="padding:6px 8px;text-align:right">Total</th>' +
-        '<th style="padding:6px 8px">Status</th><th style="padding:6px 8px;text-align:right">Sisa</th>' +
-      '</tr>' +
-    '</thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '<tfoot><tr style="border-top:2px solid #000;font-weight:700">' +
-      '<td colspan="3" style="padding:8px;text-align:right">SUM</td>' +
-      '<td style="padding:8px;text-align:right">' + fmtRpFull(totalSemua) + '</td>' +
-      '<td></td>' +
-      '<td style="padding:8px;text-align:right">' + fmtRpFull(sisaSemua) + '</td>' +
-    '</tr></tfoot></table>' +
-    '<script>window.onload = function() { window.print(); }<\/script>' +
-    '</body></html>';
+  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
 
-  var blob = new Blob([html], { type: 'text/html' });
-  var url  = URL.createObjectURL(blob);
-  var win  = window.open(url, '_blank');
-  if (!win) {
-    var a = document.createElement('a');
-    a.href = url; a.download = 'jurnal-restock-' + (sup ? sup.nama : 'supplier') + '.html'; a.click();
-  }
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('JURNAL RE-STOCK \u2014 ' + namaSup.toUpperCase(), 40, 44);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(110, 110, 110);
+  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon', 40, 60);
+  doc.setTextColor(0, 0, 0);
+
+  doc.autoTable({
+    startY: 76,
+    head: [['No', 'Tanggal', 'No. Nota', 'Total', 'Status', 'Sisa']],
+    body: body,
+    styles: { font: 'helvetica', fontSize: 9, cellPadding: 6, textColor: [20,20,20] },
+    headStyles: { fillColor: [26,24,22], textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      3: { halign: 'right' },
+      5: { halign: 'right' }
+    },
+    foot: [['', '', 'SUM', fmtRpFull(totalSemua), '', fmtRpFull(sisaSemua)]],
+    footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold' },
+  });
+
+  var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  doc.save('jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf');
 }
 
 // ─── BON LIST ─────────────────────────────────────────────────
@@ -891,27 +1007,7 @@ function hsRenderBonList() {
   var el = document.getElementById('hs-bon-list');
   if (!el) return;
 
-  var headerEl  = document.getElementById('hs-bon-detail-header');
-  var toolbarEl = document.getElementById('hs-bon-toolbar');
-  if (headerEl) {
-    if (_hsSupplierDetailId !== null) {
-      var sup = _hsSupplierList.find(function(s){ return s.id === _hsSupplierDetailId; });
-      var supBons = _hsBonList.filter(function(b){ return b.supplier_id === _hsSupplierDetailId; });
-      var aktif = supBons.filter(function(b){ return b.status !== 'lunas'; }).reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
-      headerEl.style.display = 'block';
-      headerEl.innerHTML =
-        '<div class="hs-detail-sup-header">' +
-          '<button class="hs-detail-sup-back" onclick="hsBackToSupplierList()"><i class="ti ti-arrow-left"></i> Semua Supplier</button>' +
-          '<button class="hs-detail-sup-export" onclick="hsExportSupplierBonPDF(' + _hsSupplierDetailId + ')"><i class="ti ti-file-download"></i> Export PDF</button>' +
-        '</div>' +
-        '<div class="hs-detail-sup-title">' + _hsEsc(sup ? sup.nama : '—') + '</div>' +
-        '<div class="hs-detail-sup-sub">Utang aktif ' + fmtRpFull(aktif) + ' · ' + supBons.length + ' bon</div>';
-      if (toolbarEl) toolbarEl.style.display = '';
-    } else {
-      headerEl.style.display = 'none';
-      headerEl.innerHTML = '';
-    }
-  }
+  hsRenderBonSwitcher();
 
   var list = _hsBonList.filter(function(b) {
     return _hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier;
@@ -1293,8 +1389,8 @@ function hsOpenTambahBon() {
   document.getElementById('hs-bon-id').value = '';
   document.getElementById('hs-bon-btn-hapus').style.display = 'none';
   _hsPopulateSupplierSelect('hs-bon-supplier-select');
-  var presetSup = (_hsSupplierDetailId !== null)
-    ? _hsSupplierList.find(function(s){ return s.id === _hsSupplierDetailId; })
+  var presetSup = (_hsFilterSupplier !== null)
+    ? _hsSupplierList.find(function(s){ return s.id === _hsFilterSupplier; })
     : _hsSupplierList[0];
   document.getElementById('hs-bon-supplier-select').value = presetSup ? presetSup.id : '__baru__';
   document.getElementById('hs-bon-supplier-baru').value = '';

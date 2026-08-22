@@ -210,6 +210,8 @@
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
   // BUILD VERSION — di-set saat deploy, TIDAK berubah setiap page load.
   // Date.now() sebagai versi menyebabkan SW cache miss setiap saat karena
@@ -219,7 +221,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260822-2a07dc198350';
+  window.APP_BUILD = '20260822-aea1698ab0a3';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
