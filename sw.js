@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260822-0059'; // hutang-supplier.js: tambah tab Overview (ringkasan+ranking+aging) & Riwayat Bayar (jurnal pembayaran lintas bon)
+var JS_CACHE = 'zenot-js-20260822-e4d987dc12fe'; // hutang-supplier.js: tambah tab Overview (ringkasan+ranking+aging) & Riwayat Bayar (jurnal pembayaran lintas bon)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
