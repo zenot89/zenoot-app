@@ -267,26 +267,6 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       background:var(--cream2); color:var(--ink); font-family:var(--f); font-size:14px; box-sizing:border-box;
     }
     .hs-picker-trigger i { color:var(--ink3); flex:none; }
-
-    /* ── Paste Massal Barang: dialog TERPUSAT, bukan bottom sheet ──
-       Beda dari sheet lain di modul ini (Tambah Bon dkk yang emang pas
-       jadi bottom sheet di HP) — form paste ini isinya textarea + tabel
-       preview yang perlu ruang, jadi mesti keliatan utuh & di tengah di
-       semua ukuran layar, ga nempel/kepotong di bawah. */
-    #hs-sheet-paste-barang { align-items:center; padding:16px; box-sizing:border-box; }
-    #hs-sheet-paste-barang .hs-sheet-handle { display:none; }
-    #hs-sheet-paste-barang .hs-sheet-page {
-      height:auto !important; max-height:min(680px,86vh) !important;
-      width:100%; max-width:560px; margin:0 auto;
-      border-radius:18px !important; box-shadow:0 12px 40px rgba(38,34,32,.4);
-      transform:scale(.94) !important; opacity:0;
-      transition:transform .2s cubic-bezier(.32,.72,0,1), opacity .2s ease;
-    }
-    #hs-sheet-paste-barang.hs-sheet-in .hs-sheet-page { transform:scale(1) !important; opacity:1; }
-    #hs-sheet-paste-barang .hs-sheet-header { padding-top:16px; }
-    @media(max-width:600px){
-      #hs-sheet-paste-barang .hs-sheet-page { max-width:100%; max-height:88vh !important; }
-    }
   </style>
 
   <!-- HEADER: judul panel aktif + dropdown menu (desktop) / dot notch (mobile) -->
@@ -428,91 +408,88 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
   </div>
 
-  <!-- ── SHEET: TAMBAH / EDIT MASTER BARANG ── -->
-  <div class="hs-sheet-overlay" id="hs-sheet-barang" onclick="if(event.target===this) hsCloseSheet('hs-sheet-barang')">
-    <div class="hs-sheet-page" style="height:auto;max-height:85vh">
-      <div class="hs-sheet-handle"><span></span></div>
-      <div class="hs-sheet-header">
-        <div class="hs-sheet-title" id="hs-barang-form-title">Tambah Barang</div>
-        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-barang')"><i class="ti ti-x"></i></button>
+  <!-- ── MODAL: TAMBAH / EDIT MASTER BARANG ──
+       Pakai .modal-overlay/.modal GLOBAL (sama kayak modal Paste Massal SKU
+       di Kelola Produk) — proper, selalu di tengah, ga kepotong kayak
+       bottom sheet. Kolom/field TETAP sama, cuma bungkusnya yang diganti. -->
+  <div class="modal-overlay" id="hs-sheet-barang">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-title" id="hs-barang-form-title"><i class="ti ti-package"></i> Tambah Barang</div>
+      <input type="hidden" id="hs-brg-id">
+      <div class="hs-form-group">
+        <label>Supplier</label>
+        <select id="hs-brg-supplier-select"></select>
+        <input type="text" id="hs-brg-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
       </div>
-      <div class="hs-sheet-body">
-        <input type="hidden" id="hs-brg-id">
+      <div class="hs-form-group">
+        <label>SKU Induk (Katalog Produk)</label>
+        <select id="hs-brg-katalog"></select>
+      </div>
+      <div class="hs-row-2">
         <div class="hs-form-group">
-          <label>Supplier</label>
-          <select id="hs-brg-supplier-select"></select>
-          <input type="text" id="hs-brg-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
+          <label>Nama versi Supplier</label>
+          <input type="text" id="hs-brg-nama-supplier" placeholder="mis: H Solah">
         </div>
         <div class="hs-form-group">
-          <label>SKU Induk (Katalog Produk)</label>
-          <select id="hs-brg-katalog"></select>
-        </div>
-        <div class="hs-row-2">
-          <div class="hs-form-group">
-            <label>Nama versi Supplier</label>
-            <input type="text" id="hs-brg-nama-supplier" placeholder="mis: H Solah">
-          </div>
-          <div class="hs-form-group">
-            <label>Varian Warna</label>
-            <input type="text" id="hs-brg-varian" placeholder="mis: Hitam">
-          </div>
-        </div>
-        <div class="hs-form-group">
-          <label>Harga per Lusin</label>
-          <input type="text" id="hs-brg-harga" inputmode="numeric" placeholder="0">
+          <label>Varian Warna</label>
+          <input type="text" id="hs-brg-varian" placeholder="mis: Hitam">
         </div>
       </div>
-      <div class="hs-sheet-footer" style="display:flex;gap:8px">
-        <button class="hs-btn-pill hs-btn-danger" id="hs-brg-btn-hapus" style="display:none" onclick="hsHapusBarang()"><i class="ti ti-trash"></i> Hapus</button>
-        <button class="hs-btn-pill hs-btn-primary" style="flex:1;justify-content:center" onclick="hsSimpanBarang()">Simpan</button>
+      <div class="hs-form-group">
+        <label>Harga per Lusin</label>
+        <input type="text" id="hs-brg-harga" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="hsSimpanBarang()"><i class="ti ti-check"></i> Simpan</button>
+        <button class="btn btn-danger btn-sm" id="hs-brg-btn-hapus" style="display:none" onclick="hsHapusBarang()"><i class="ti ti-trash"></i> Hapus</button>
+        <button class="btn btn-sm" onclick="closeModal('hs-sheet-barang')">Batal</button>
       </div>
     </div>
   </div>
 
-  <!-- ── SHEET: PASTE MASSAL MASTER BARANG ── -->
-  <div class="hs-sheet-overlay" id="hs-sheet-paste-barang" onclick="if(event.target===this) hsCloseSheet('hs-sheet-paste-barang')">
-    <div class="hs-sheet-page" style="height:auto;max-height:88vh">
-      <div class="hs-sheet-handle"><span></span></div>
-      <div class="hs-sheet-header">
-        <div class="hs-sheet-title"><i class="ti ti-clipboard"></i> Paste Massal Barang</div>
-        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-paste-barang')"><i class="ti ti-x"></i></button>
+  <!-- ── MODAL: PASTE MASSAL MASTER BARANG ──
+       Sama kayak di atas: .modal-overlay/.modal GLOBAL, biar tampilannya
+       konsisten & proper kayak Paste Massal SKU di Kelola Produk. Kolom
+       data & instruksinya TETAP beda (khusus Hutang Supplier), cuma
+       bungkus/tampilannya yang disamain. -->
+  <div class="modal-overlay" id="hs-sheet-paste-barang">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-title"><i class="ti ti-clipboard"></i> Paste Massal Barang</div>
+      <div class="hs-form-group">
+        <label>Supplier default (dipakai kalau baris data ga punya kolom Suplier)</label>
+        <div class="hs-picker-trigger" id="hs-paste-supplier-trigger" onclick="hsSupPickerOpen('hs-paste-supplier-select','hs-paste-supplier-trigger-label')">
+          <span id="hs-paste-supplier-trigger-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <select id="hs-paste-supplier-select" style="display:none" onchange="hsOnPasteSupplierSelectChange()"></select>
+        <input type="text" id="hs-paste-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
       </div>
-      <div class="hs-sheet-body">
-        <div class="hs-form-group">
-          <label>Supplier default (dipakai kalau baris data ga punya kolom Suplier)</label>
-          <div class="hs-picker-trigger" id="hs-paste-supplier-trigger" onclick="hsSupPickerOpen('hs-paste-supplier-select','hs-paste-supplier-trigger-label')">
-            <span id="hs-paste-supplier-trigger-label" style="color:var(--ink3)">— Pilih Supplier —</span>
-            <i class="ti ti-chevron-down"></i>
-          </div>
-          <select id="hs-paste-supplier-select" style="display:none" onchange="hsOnPasteSupplierSelectChange()"></select>
-          <input type="text" id="hs-paste-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
-        </div>
-        <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
-          Copy dari Excel lalu paste di bawah.<br>
-          Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin</b><br>
-          Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.
-        </div>
-        <textarea id="hs-paste-area"
-          style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px"
-          placeholder="Paste di sini..."></textarea>
-        <div id="hs-paste-preview" style="margin-top:10px;display:none">
-          <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
-          <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
-            <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
-            <tbody id="hs-paste-tbody"></tbody></table>
-          </div>
+      <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
+        Copy dari Excel lalu paste di bawah.<br>
+        Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin</b><br>
+        Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.
+      </div>
+      <textarea id="hs-paste-area"
+        style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px;box-sizing:border-box"
+        placeholder="Paste di sini..."></textarea>
+      <div id="hs-paste-preview" style="margin-top:10px;display:none">
+        <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
+        <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+          <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
+          <tbody id="hs-paste-tbody"></tbody></table>
         </div>
       </div>
-      <div class="hs-sheet-footer" style="display:flex;gap:8px">
-        <button class="hs-btn-pill hs-btn-ghost" onclick="hsParsePasteBarang()"><i class="ti ti-eye"></i> Preview</button>
-        <button class="hs-btn-pill hs-btn-primary" id="hs-btn-simpan-paste-barang" style="display:none;flex:1;justify-content:center" onclick="hsSimpanPasteBarang()"><i class="ti ti-check"></i> Simpan Semua</button>
+      <div class="modal-actions">
+        <button class="btn btn-sm" onclick="hsParsePasteBarang()"><i class="ti ti-eye"></i> Preview</button>
+        <button class="btn btn-primary btn-sm" id="hs-btn-simpan-paste-barang" style="display:none" onclick="hsSimpanPasteBarang()"><i class="ti ti-check"></i> Simpan Semua</button>
+        <button class="btn btn-sm" onclick="closeModal('hs-sheet-paste-barang')">Batal</button>
       </div>
     </div>
   </div>
 
   <!-- ── PICKER TERPUSAT: PILIH SUPPLIER (dipakai di Paste Massal Barang) ──
        Selalu muncul di TENGAH layar (bukan bottom sheet, ga kepotong),
-       terlepas dari sheet Paste Massal di baliknya. ── -->
+       terlepas dari modal Paste Massal di baliknya. ── -->
   <div class="hs-picker-overlay" id="hs-sup-picker-overlay" onclick="if(event.target===this) hsSupPickerClose()">
     <div class="hs-picker-box">
       <div class="hs-picker-title">Pilih Supplier</div>
@@ -1389,7 +1366,7 @@ function hsOpenTambahBarang() {
   document.getElementById('hs-brg-varian').value = '';
   document.getElementById('hs-brg-harga').value = '';
   idrInput('hs-brg-harga');
-  hsOpenSheet('hs-sheet-barang');
+  document.getElementById('hs-sheet-barang').classList.add('open');
 }
 
 // ─── MASTER BARANG: PASTE MASSAL ───────────────────────────────
@@ -1408,7 +1385,7 @@ function hsShowPasteBarang() {
   document.getElementById('hs-paste-supplier-baru').value = '';
   _hsSyncPasteSupplierTrigger();
 
-  hsOpenSheet('hs-sheet-paste-barang');
+  document.getElementById('hs-sheet-paste-barang').classList.add('open');
   setTimeout(function() { document.getElementById('hs-paste-area').focus(); }, 100);
 }
 
@@ -1574,7 +1551,7 @@ async function hsSimpanPasteBarang() {
       ok++;
       btn.textContent = 'Menyimpan ' + ok + '/' + _hsParsedBarang.length + '...';
     }
-    hsCloseSheet('hs-sheet-paste-barang');
+    closeModal('hs-sheet-paste-barang');
     await loadHutangSupplier();
     alert('✓ ' + ok + ' barang berhasil disimpan!');
   } catch(e) {
@@ -1604,7 +1581,7 @@ function hsOpenEditBarang(id) {
   document.getElementById('hs-brg-varian').value = b.varian_warna || '';
   document.getElementById('hs-brg-harga').value = b.harga_per_lusin ? b.harga_per_lusin.toLocaleString('id-ID') : '';
   idrInput('hs-brg-harga');
-  hsOpenSheet('hs-sheet-barang');
+  document.getElementById('hs-sheet-barang').classList.add('open');
 }
 
 async function hsSimpanBarang() {
@@ -1631,7 +1608,7 @@ async function hsSimpanBarang() {
     if (id) { await dbUpdate('hutang_barang', id, data); }
     else    { await dbInsert('hutang_barang', data); }
 
-    hsCloseSheet('hs-sheet-barang');
+    closeModal('hs-sheet-barang');
     await loadHutangSupplier();
   } catch(e) {
     alert('Gagal simpan: ' + e.message);
@@ -1644,7 +1621,7 @@ async function hsHapusBarang() {
   if (!confirm('Hapus barang ini dari Master? Bon yang udah pernah pakai barang ini tetap aman (datanya udah ke-snapshot).')) return;
   try {
     await dbDelete('hutang_barang', id);
-    hsCloseSheet('hs-sheet-barang');
+    closeModal('hs-sheet-barang');
     await loadHutangSupplier();
   } catch(e) {
     alert('Gagal hapus: ' + e.message);
