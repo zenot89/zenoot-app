@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260822-67e03e9ac055'; // Hutang Supplier: tema notebook (Comic Neue) + nav dropdown/swipe-notch ala Gadag
+var JS_CACHE = 'zenot-js-20260822-0052'; // FIX KRITIS: hapus fallback '[]' palsu di fetch handler Supabase (root cause "data ilang" pas reload — network gagal disamarin jadi sukses-kosong)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
@@ -120,13 +120,17 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
   var url = e.request.url;
 
-  // Supabase → selalu network, tidak cache
+  // Supabase → selalu network, tidak cache, TIDAK ADA fallback palsu.
+  // (Dulu: fetch gagal → di-catch → balikin Response('[]') seolah sukses
+  // kosong. Akibatnya dbGet() di supabase.js gak pernah throw krn res.ok
+  // tetep true, jadi modul render "0 data"/"Rp0" MULUS tanpa pesan error —
+  // keliatan kayak data hilang padahal cuma gagal fetch sesaat, biasanya
+  // numpuk pas reload bareng SW nge-refresh ~30 file JS_APP_FILES sekaligus.
+  // Sekarang: biarin promise fetch aslinya reject kalau network gagal,
+  // supaya error nyampe asli ke dbGet() → caller nampilin "Gagal memuat
+  // data" + retry, bukan silently kosong.)
   if (url.indexOf('supabase.co') !== -1) {
-    e.respondWith(
-      fetch(e.request).catch(function() {
-        return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
-      })
-    );
+    e.respondWith(fetch(e.request));
     return;
   }
 
