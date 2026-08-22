@@ -1621,7 +1621,7 @@ function _hsRenderItemRows() {
   var wrap = document.getElementById('hs-item-rows');
   if (!wrap) return;
 
-  var masterOptions = _hsBarangMaster.filter(function(m) { return m.supplier_id === _hsCurrentBonSupplierId; });
+  var masterOptions = _hsBarangMaster.filter(function(m) { return String(m.supplier_id) === String(_hsCurrentBonSupplierId); });
   var emptyHint = document.getElementById('hs-item-empty-hint');
   if (emptyHint) emptyHint.style.display = (_hsCurrentBonSupplierId && !masterOptions.length) ? 'block' : 'none';
 
@@ -1671,7 +1671,7 @@ function _hsBrgPickerRender(q) {
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
   var row = _hsBrgPickerCtx ? _hsItemRows[_hsBrgPickerCtx.idx] : null;
-  var masterOptions = _hsBarangMaster.filter(function(m) { return m.supplier_id === _hsCurrentBonSupplierId; });
+  var masterOptions = _hsBarangMaster.filter(function(m) { return String(m.supplier_id) === String(_hsCurrentBonSupplierId); });
   var items = masterOptions.filter(function(m) {
     var label = (m.katalog_produk + ' ' + (m.varian_warna||'') + ' ' + (m.nama_supplier||'')).toLowerCase();
     return !q || label.indexOf(q) !== -1;
@@ -1686,7 +1686,7 @@ function _hsBrgPickerRender(q) {
   }
   items.forEach(function(m) {
     var it = document.createElement('div');
-    it.className = 'hs-picker-item' + (row && row.barang_id === m.id ? ' active' : '');
+    it.className = 'hs-picker-item' + (row && String(row.barang_id) === String(m.id) ? ' active' : '');
     it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '') + (m.nama_supplier ? ' (' + m.nama_supplier + ')' : '');
     it.onclick = function() { hsBrgPickerSelect(m.id); };
     listEl.appendChild(it);

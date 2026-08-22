@@ -3644,6 +3644,15 @@ function gdgSkuPickerOpen() {
   if (search) search.value = '';
   gdgSkuPickerRenderList('');
   overlay.style.display = 'flex';
+  // Picker ini di-inject ke document.body (lihat _gdgInjectSkuPicker), jadi TERPISAH
+  // dari overlay Catatan Pendapatan — sync visualViewport-nya harus sendiri, gak
+  // otomatis kebagian punya modal induk (beda elemen fixed).
+  _gdgSkuPickerSyncViewport();
+  if (window.visualViewport && !overlay._gdgVVInited) {
+    overlay._gdgVVInited = true;
+    window.visualViewport.addEventListener('resize', _gdgSkuPickerSyncViewport);
+    window.visualViewport.addEventListener('scroll', _gdgSkuPickerSyncViewport);
+  }
   // dua rAF biar browser sempat paint display:flex sebelum animasi transform jalan
   requestAnimationFrame(() => requestAnimationFrame(() => {
     sheet.style.transform = 'translateY(0)';
@@ -3653,6 +3662,25 @@ function gdgSkuPickerOpen() {
   // (nyocokin transisi sheet .28s) biar iOS Safari gak nolak focus() gara²
   // elemen masih di tengah animasi transform (kalau ke-skip, keyboard ga muncul).
   if (search) setTimeout(() => search.focus({ preventScroll: true }), 300);
+}
+
+// Root cause bug "picker Pilih Produk ketutup keyboard di iPhone, aman di Android":
+// sheet ini cuma pakai max-height:72dvh (CSS statis) yg cuma ngitung UI browser
+// (address bar), BUKAN keyboard iOS — iOS Safari gak resize layout viewport pas
+// keyboard buka (beda dari Android yg umumnya resize), jadi tanpa sync manual ke
+// window.visualViewport, sheet ini tetep "sepanjang" 72dvh dan bagian bawahnya
+// (list produk) ketutup keyboard. Sama root cause & fix-nya kayak yg udah dipasang
+// di overlay Catatan Pendapatan (_gdgSheetSyncViewport) — picker ini butuh versi
+// sendiri karena posisinya di document.body, terpisah dari overlay induk.
+function _gdgSkuPickerSyncViewport() {
+  const overlay = document.getElementById('gdg-sku-picker-overlay');
+  const sheet   = document.getElementById('gdg-sku-picker-sheet');
+  if (!overlay || overlay.style.display !== 'flex') return;
+  const vv = window.visualViewport;
+  if (!vv) return;
+  overlay.style.height    = vv.height + 'px';
+  overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+  if (sheet) sheet.style.maxHeight = Math.max(200, vv.height - 24) + 'px';
 }
 
 // force=true → tutup tanpa cek target (dipanggil dari tombol ✕ atau select item)
