@@ -267,6 +267,26 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       background:var(--cream2); color:var(--ink); font-family:var(--f); font-size:14px; box-sizing:border-box;
     }
     .hs-picker-trigger i { color:var(--ink3); flex:none; }
+
+    /* ── Paste Massal Barang: dialog TERPUSAT, bukan bottom sheet ──
+       Beda dari sheet lain di modul ini (Tambah Bon dkk yang emang pas
+       jadi bottom sheet di HP) — form paste ini isinya textarea + tabel
+       preview yang perlu ruang, jadi mesti keliatan utuh & di tengah di
+       semua ukuran layar, ga nempel/kepotong di bawah. */
+    #hs-sheet-paste-barang { align-items:center; padding:16px; box-sizing:border-box; }
+    #hs-sheet-paste-barang .hs-sheet-handle { display:none; }
+    #hs-sheet-paste-barang .hs-sheet-page {
+      height:auto !important; max-height:min(680px,86vh) !important;
+      width:100%; max-width:560px; margin:0 auto;
+      border-radius:18px !important; box-shadow:0 12px 40px rgba(38,34,32,.4);
+      transform:scale(.94) !important; opacity:0;
+      transition:transform .2s cubic-bezier(.32,.72,0,1), opacity .2s ease;
+    }
+    #hs-sheet-paste-barang.hs-sheet-in .hs-sheet-page { transform:scale(1) !important; opacity:1; }
+    #hs-sheet-paste-barang .hs-sheet-header { padding-top:16px; }
+    @media(max-width:600px){
+      #hs-sheet-paste-barang .hs-sheet-page { max-width:100%; max-height:88vh !important; }
+    }
   </style>
 
   <!-- HEADER: judul panel aktif + dropdown menu (desktop) / dot notch (mobile) -->
