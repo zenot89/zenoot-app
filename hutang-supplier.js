@@ -979,8 +979,14 @@ function hsExportSupplierBonPDF(supplierId) {
   }
   // Tunggu logo (dataURL) siap dulu — kalau fetch-nya udah kelar duluan
   // (biasanya gitu), .then() ini langsung jalan tanpa delay kerasa.
+  // hsBuildAndDeliverBonPDF sekarang async (fetch rincian barang per bon
+  // dulu ke Supabase), jadi .catch() dipasang biar error kepantau di
+  // console alih-alih ilang diem-diem sebagai unhandled rejection.
   _hsLogoReady.then(function(logoDataUrl) {
-    hsBuildAndDeliverBonPDF(supplierId, logoDataUrl);
+    return hsBuildAndDeliverBonPDF(supplierId, logoDataUrl);
+  }).catch(function(err) {
+    console.error('Export PDF gagal:', err);
+    alert('Gagal export PDF: ' + (err && err.message ? err.message : 'coba lagi.'));
   });
 }
 
@@ -988,20 +994,58 @@ function hsExportSupplierBonPDF(supplierId) {
 // notebook, tapi tetep kebaca kontras di atas putih.
 var HS_PDF_ABU_TUA = [92, 88, 82];
 
-function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
+async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
   var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId; })
     .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
 
-  var totalSemua = 0, sisaSemua = 0;
-  var body = list.map(function(b, i) {
+  // ── Ambil rincian barang (hutang_bon_item) tiap bon ──
+  // Laporan sekarang per-BARANG (biar supplier ngerti persis apa yg
+  // dikirim), bukan cuma per-transaksi kayak sebelumnya. Dikelompokin
+  // per bon: 1 baris header abu-abu muda (tanggal · status · sisa),
+  // di bawahnya baris tiap barang (No jalan terus/global, SKU Supplier,
+  // Varian warna, Qty pcs, Harga/Lsn, Total per barang).
+  var itemsByBon = {};
+  for (var bi = 0; bi < list.length; bi++) {
+    try {
+      itemsByBon[list[bi].id] = await dbGet('hutang_bon_item', '&bon_id=eq.' + list[bi].id + '&order=id.asc');
+    } catch (e) {
+      itemsByBon[list[bi].id] = [];
+    }
+  }
+
+  var totalSemua = 0, sisaAktifSemua = 0, rowNo = 1;
+  var body = [];
+  list.forEach(function(b) {
     var st = _hsSisaBon(b);
     var statusLabel = (b.status === 'lunas' || st.sisa <= 0) ? 'Lunas' : (st.bayar > 0 ? 'Dicicil' : 'Belum Lunas');
     totalSemua += b.total || 0;
-    sisaSemua  += st.sisa || 0;
-    return [String(i+1), _hsFmtTgl(b.tanggal), fmtRpFull(b.total), statusLabel, fmtRpFull(st.sisa)];
+    sisaAktifSemua += st.sisa || 0;
+
+    var headerTxt = _hsFmtTgl(b.tanggal) + '   \u00b7   ' + statusLabel + (st.sisa > 0 ? '   \u00b7   Sisa ' + fmtRpFull(st.sisa) : '');
+    body.push([{
+      content: headerTxt, colSpan: 6,
+      styles: { fillColor: [237, 231, 219], textColor: [70, 66, 60], fontStyle: 'bold', halign: 'left', fontSize: 10 }
+    }]);
+
+    var items = itemsByBon[b.id] || [];
+    if (!items.length) {
+      body.push([{
+        content: '\u2014 belum ada rincian barang \u2014', colSpan: 6,
+        styles: { textColor: [150, 146, 140], fontStyle: 'italic', fontSize: 10 }
+      }]);
+    } else {
+      items.forEach(function(it) {
+        var qtyPcs = it.qty || 0;
+        var hargaLsn = it.harga_satuan || 0;
+        var subtotal = (it.subtotal != null) ? it.subtotal : Math.round(qtyPcs * (hargaLsn / 12));
+        var skuSup = it.nama_supplier || it.nama_internal || '\u2014';
+        var varian = it.varian_warna || '\u2014';
+        body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(hargaLsn), fmtRpFull(subtotal)]);
+      });
+    }
   });
-  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '']];
+  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
 
   var today = new Date();
   var hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1037,18 +1081,30 @@ function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
 
   doc.setTextColor(0, 0, 0);
 
+  var footRows = [[
+    { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } },
+    fmtRpFull(totalSemua)
+  ]];
+  if (sisaAktifSemua > 0) {
+    footRows.push([
+      { content: 'SISA HUTANG AKTIF', colSpan: 5, styles: { halign: 'right' } },
+      fmtRpFull(sisaAktifSemua)
+    ]);
+  }
+
   doc.autoTable({
     startY: 76,
-    head: [['No', 'Tanggal', 'Total', 'Status', 'Sisa']],
+    head: [['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
     body: body,
     styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20,20,20] },
     headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
     columnStyles: {
-      0: { cellWidth: 32 },
-      2: { halign: 'right' },
-      4: { halign: 'right' }
+      0: { cellWidth: 28 },
+      3: { halign: 'right', cellWidth: 44 },
+      4: { halign: 'right' },
+      5: { halign: 'right' }
     },
-    foot: [['', 'SUM', fmtRpFull(totalSemua), '', fmtRpFull(sisaSemua)]],
+    foot: footRows,
     footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold', fontSize: 11 },
   });
 
