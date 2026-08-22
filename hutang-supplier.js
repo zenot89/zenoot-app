@@ -1845,3 +1845,22 @@ function _hsFmtTgl(iso) {
   var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   return String(d.getDate()).padStart(2,'0') + ' ' + bln[d.getMonth()] + ' ' + d.getFullYear();
 }
+
+// ─── AUTO-INIT ────────────────────────────────────────────────
+// Dua lapis, pola sama persis kayak gadag.js — biar gak blank:
+// 1. Event listener — navigasi normal (user klik menu "Hutang Supplier" di
+//    sidebar setelah script ini udah ke-load).
+// 2. Fallback langsung — kalau #page-hutang-supplier UDAH aktif saat script
+//    ini selesai load (race condition: user klik menu duluan sebelum file
+//    ini selesai di-fetch dari network/SW cache → event zenot:page udah
+//    fired duluan, listener di bawah belum sempet ke-daftar → tanpa fallback
+//    ini, datanya blank selamanya sampe user refresh manual).
+// SEBELUM FIX INI: modul gak punya hook sama sekali → loadHutangSupplier()
+// cuma kepanggil dari tombol refresh manual atau abis simpan data — itu
+// kenapa "Master Barang ngga ada, refresh baru muncul".
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page === 'hutang-supplier') setTimeout(loadHutangSupplier, 50);
+});
+if (document.body.dataset.page === 'hutang-supplier') {
+  setTimeout(loadHutangSupplier, 100);
+}
