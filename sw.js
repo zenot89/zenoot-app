@@ -46,7 +46,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260822-227836b51a16'; // FIX KRITIS: hutang-supplier.js sekarang auto-load data pas halaman dibuka (dulu gak ada hook zenot:page sama sekali — data cuma muncul abis refresh manual)
+var JS_CACHE = 'zenot-js-20260822-0552'; // hutang-supplier.js: Overview pake kertas bergaris (bukan divider garis), Master Barang jadi tabel spreadsheet, Tambah Bon picker barang full redesign (no Manual, no toggle Lusin/Pcs, qty pcs langsung, hapus Catatan)
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
