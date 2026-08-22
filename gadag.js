@@ -1727,10 +1727,26 @@ async function gdgWRenderWeek() {
   const dataArea = document.getElementById('gdgw-data-area');
   if (dataArea) dataArea.style.display = perHari ? '' : 'none';
 
-  // Akun beban: kode 5-xxx kecuali 5-001
+  // Akun beban: HARUS sama persis kayak sumber Card Cost/Penyerapan (Variable
+  // Anggaran Mingguan) — BUKAN lagi filter kode prefix 5-xxx. Dulu filternya
+  // "5-xxx kecuali 5-001", tapi itu udah dibuang dari gdgAngHitungRealisasi/
+  // gdgAngPopulateAkunSelect pas fitur Variable Anggaran per-nama-akun masuk;
+  // tabel breakdown harian ini kelewat, jadi masih nyapu SEMUA akun beban
+  // (termasuk punya usaha lain kayak alat-alat) — bikin Total di sini beda jauh
+  // sama Card Cost di atas yang udah bener (apple-to-apple ke Anggaran
+  // Mingguan doang). Matchingnya: nama akun (case-insensitive) ada di daftar
+  // _gdgAnggaranList minggu berjalan, sama persis kayak gdgAngHitungRealisasi.
+  const anggaranNamaSet = {};
+  _gdgAnggaranList.forEach(it => {
+    const nama = String(it.nama || '').trim().toLowerCase();
+    if (nama) anggaranNamaSet[nama] = true;
+  });
   const akunBebanMap = {};
   _gdgWAkunAll.forEach(a => {
-    if (a.kelompok === 'beban' && (a.kode||'').indexOf('5-') === 0 && a.kode !== '5-001') akunBebanMap[a.id] = a;
+    if ((a.kelompok === 'beban' || a.kelompok === 'kewajiban') &&
+        anggaranNamaSet[String(a.nama || '').trim().toLowerCase()]) {
+      akunBebanMap[a.id] = a;
+    }
   });
 
   if (perHari) {
@@ -1878,6 +1894,11 @@ async function gdgLoadAnggaran() {
   gdgAngUpdateCostCard();   // SELALU jalan — ini yang nyuplai Overview, gak peduli toggle lagi di mana
   gdgAngRenderActiveList();
   gdgUpdateTargetCard();
+  // Refresh tabel breakdown harian Overview juga — akunBebanMap-nya bergantung
+  // ke _gdgAnggaranList (baru kesedia di titik ini). Tanpa ini, pas awal buka
+  // halaman tabelnya sempat/bisa kepancet Rp0 duluan karena gdgWInit() jalan
+  // paralel dan bisa render duluan sebelum data Anggaran ini nyampe.
+  gdgWRenderWeek();
 }
 
 function gdgAngNetTotal() {

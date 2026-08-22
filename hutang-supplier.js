@@ -1687,7 +1687,7 @@ function _hsBrgPickerRender(q) {
   items.forEach(function(m) {
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (row && String(row.barang_id) === String(m.id) ? ' active' : '');
-    it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '') + (m.nama_supplier ? ' (' + m.nama_supplier + ')' : '');
+    it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '');
     it.onclick = function() { hsBrgPickerSelect(m.id); };
     listEl.appendChild(it);
   });
