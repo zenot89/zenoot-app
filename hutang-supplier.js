@@ -231,6 +231,42 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     @media(max-width:600px){
       .hs-sheet-page { max-width:100%; }
     }
+
+    /* ── Picker terpusat (dipakai buat pilih Supplier di Paste Massal) ──
+       Beda dari .hs-sheet-overlay (bottom sheet): ini SELALU nongol di
+       tengah layar, di semua ukuran, jadi ga ada dropdown native yang
+       kepotong/ketutup sheet lain. z-index di atas .hs-sheet-overlay
+       (820) biar bisa dibuka numpuk di atas sheet Paste Massal. */
+    .hs-picker-overlay {
+      display:none; position:fixed; inset:0; z-index:830;
+      background:rgba(38,34,32,.55); align-items:center; justify-content:center;
+      padding:16px; box-sizing:border-box;
+    }
+    .hs-picker-overlay.open { display:flex; }
+    .hs-picker-box {
+      width:100%; max-width:340px; max-height:70vh; background:var(--cream);
+      border-radius:16px; box-shadow:0 8px 28px rgba(38,34,32,.35);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .hs-picker-title { font-size:15px; font-weight:800; color:var(--ink); padding:14px 16px 8px; flex:none; }
+    .hs-picker-search {
+      margin:0 16px 10px; padding:9px 11px; border-radius:8px; border:1px solid var(--ink4);
+      background:var(--cream2); color:var(--ink); font-family:var(--f); font-size:14px; outline:none; flex:none;
+    }
+    .hs-picker-search:focus { border-color:var(--ink); }
+    .hs-picker-list { flex:1 1 0; min-height:0; overflow-y:auto; padding:2px 8px 10px; }
+    .hs-picker-item {
+      padding:11px 10px; border-radius:8px; font-size:14px; color:var(--ink); cursor:pointer;
+    }
+    .hs-picker-item:active, .hs-picker-item.active { background:var(--cream3); font-weight:700; }
+    .hs-picker-item-new { color:var(--info); font-weight:700; display:flex; align-items:center; gap:6px; border-top:1px solid var(--ink4); margin-top:4px; padding-top:12px; }
+    .hs-picker-empty { padding:16px 10px; color:var(--ink3); font-size:12.5px; text-align:center; }
+    .hs-picker-trigger {
+      display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer;
+      width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--ink4);
+      background:var(--cream2); color:var(--ink); font-family:var(--f); font-size:14px; box-sizing:border-box;
+    }
+    .hs-picker-trigger i { color:var(--ink3); flex:none; }
   </style>
 
   <!-- HEADER: judul panel aktif + dropdown menu (desktop) / dot notch (mobile) -->
@@ -423,13 +459,18 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div class="hs-sheet-body">
         <div class="hs-form-group">
-          <label>Supplier</label>
-          <select id="hs-paste-supplier-select"></select>
+          <label>Supplier default (dipakai kalau baris data ga punya kolom Suplier)</label>
+          <div class="hs-picker-trigger" id="hs-paste-supplier-trigger" onclick="hsSupPickerOpen('hs-paste-supplier-select','hs-paste-supplier-trigger-label')">
+            <span id="hs-paste-supplier-trigger-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <select id="hs-paste-supplier-select" style="display:none" onchange="hsOnPasteSupplierSelectChange()"></select>
           <input type="text" id="hs-paste-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
         </div>
         <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
-          Copy dari Excel lalu paste di bawah. Semua baris masuk ke supplier yang dipilih di atas.<br>
-          Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Harga per Lusin</b>
+          Copy dari Excel lalu paste di bawah.<br>
+          Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin</b><br>
+          Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.
         </div>
         <textarea id="hs-paste-area"
           style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px"
@@ -437,7 +478,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div id="hs-paste-preview" style="margin-top:10px;display:none">
           <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
           <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
-            <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
+            <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
             <tbody id="hs-paste-tbody"></tbody></table>
           </div>
         </div>
@@ -446,6 +487,17 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <button class="hs-btn-pill hs-btn-ghost" onclick="hsParsePasteBarang()"><i class="ti ti-eye"></i> Preview</button>
         <button class="hs-btn-pill hs-btn-primary" id="hs-btn-simpan-paste-barang" style="display:none;flex:1;justify-content:center" onclick="hsSimpanPasteBarang()"><i class="ti ti-check"></i> Simpan Semua</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── PICKER TERPUSAT: PILIH SUPPLIER (dipakai di Paste Massal Barang) ──
+       Selalu muncul di TENGAH layar (bukan bottom sheet, ga kepotong),
+       terlepas dari sheet Paste Massal di baliknya. ── -->
+  <div class="hs-picker-overlay" id="hs-sup-picker-overlay" onclick="if(event.target===this) hsSupPickerClose()">
+    <div class="hs-picker-box">
+      <div class="hs-picker-title">Pilih Supplier</div>
+      <input type="text" id="hs-sup-picker-search" class="hs-picker-search" placeholder="Cari supplier..." oninput="hsSupPickerFilter(this.value)">
+      <div class="hs-picker-list" id="hs-sup-picker-list"></div>
     </div>
   </div>
 `;
@@ -782,6 +834,78 @@ function _hsPopulateSupplierSelect(selectId) {
   }).join('');
   html += '<option value="__baru__">+ Supplier baru...</option>';
   sel.innerHTML = html;
+}
+
+// ─── PICKER TERPUSAT: PILIH SUPPLIER ───────────────────────────
+// Nge-drive select asli (hidden) yang tetep dipakai sama _hsResolveSupplierId
+// dkk — picker ini cuma UI pengganti native <select> biar posisinya SELALU
+// di tengah layar & ga kepotong, dipanggil dari trigger div (.hs-picker-trigger).
+var _hsSupPickerCtx = null; // { selectId, triggerLabelId }
+
+function hsSupPickerOpen(selectId, triggerLabelId) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  _hsSupPickerCtx = { selectId: selectId, triggerLabelId: triggerLabelId };
+  var searchEl = document.getElementById('hs-sup-picker-search');
+  if (searchEl) searchEl.value = '';
+  _hsSupPickerRender('', sel.value);
+  var overlay = document.getElementById('hs-sup-picker-overlay');
+  if (overlay) overlay.classList.add('open');
+  setTimeout(function() { if (searchEl) searchEl.focus({ preventScroll: true }); }, 60);
+}
+
+function hsSupPickerClose() {
+  var overlay = document.getElementById('hs-sup-picker-overlay');
+  if (overlay) overlay.classList.remove('open');
+  _hsSupPickerCtx = null;
+}
+
+function hsSupPickerFilter(q) {
+  var sel = _hsSupPickerCtx ? document.getElementById(_hsSupPickerCtx.selectId) : null;
+  _hsSupPickerRender(q, sel ? sel.value : '');
+}
+
+function _hsSupPickerRender(q, currentVal) {
+  var listEl = document.getElementById('hs-sup-picker-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var items = _hsSupplierList.filter(function(s) {
+    return !q || s.nama.toLowerCase().indexOf(q) !== -1;
+  });
+  listEl.innerHTML = '';
+  if (q && items.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'hs-picker-empty';
+    empty.textContent = 'Tidak ada supplier yang cocok';
+    listEl.appendChild(empty);
+  }
+  items.forEach(function(s) {
+    var it = document.createElement('div');
+    it.className = 'hs-picker-item' + (String(s.id) === String(currentVal) ? ' active' : '');
+    it.textContent = s.nama;
+    it.onclick = function() { hsSupPickerSelect(String(s.id), s.nama); };
+    listEl.appendChild(it);
+  });
+  var itBaru = document.createElement('div');
+  itBaru.className = 'hs-picker-item hs-picker-item-new';
+  itBaru.innerHTML = '<i class="ti ti-plus"></i> Supplier baru...';
+  itBaru.onclick = function() { hsSupPickerSelect('__baru__', '+ Supplier baru...'); };
+  listEl.appendChild(itBaru);
+}
+
+function hsSupPickerSelect(val, label) {
+  if (!_hsSupPickerCtx) return;
+  var sel = document.getElementById(_hsSupPickerCtx.selectId);
+  if (sel) {
+    sel.value = val;
+    if (typeof sel.onchange === 'function') sel.onchange();
+  }
+  var lblEl = document.getElementById(_hsSupPickerCtx.triggerLabelId);
+  if (lblEl) {
+    lblEl.textContent = label;
+    lblEl.style.color = val ? 'var(--ink)' : 'var(--ink3)';
+  }
+  hsSupPickerClose();
 }
 
 // Resolve supplier_id dari pasangan select+input "baru" — insert supplier
@@ -1262,12 +1386,32 @@ function hsShowPasteBarang() {
   document.getElementById('hs-paste-supplier-select').value = defaultSup;
   document.getElementById('hs-paste-supplier-baru').style.display = defaultSup === '__baru__' ? 'block' : 'none';
   document.getElementById('hs-paste-supplier-baru').value = '';
-  document.getElementById('hs-paste-supplier-select').onchange = function() {
-    document.getElementById('hs-paste-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
-  };
+  _hsSyncPasteSupplierTrigger();
 
   hsOpenSheet('hs-sheet-paste-barang');
   setTimeout(function() { document.getElementById('hs-paste-area').focus(); }, 100);
+}
+
+// Sinkronin label trigger picker sesuai <select> hidden yang lagi aktif
+// (dipanggil pas buka sheet & tiap kali pilihan berubah lewat picker).
+function _hsSyncPasteSupplierTrigger() {
+  var sel = document.getElementById('hs-paste-supplier-select');
+  var lblEl = document.getElementById('hs-paste-supplier-trigger-label');
+  if (!sel || !lblEl) return;
+  if (sel.value === '__baru__') {
+    lblEl.textContent = '+ Supplier baru...';
+    lblEl.style.color = 'var(--ink)';
+  } else {
+    var s = _hsSupplierList.find(function(x) { return String(x.id) === String(sel.value); });
+    lblEl.textContent = s ? s.nama : '— Pilih Supplier —';
+    lblEl.style.color = s ? 'var(--ink)' : 'var(--ink3)';
+  }
+}
+
+function hsOnPasteSupplierSelectChange() {
+  var sel = document.getElementById('hs-paste-supplier-select');
+  document.getElementById('hs-paste-supplier-baru').style.display = sel.value === '__baru__' ? 'block' : 'none';
+  _hsSyncPasteSupplierTrigger();
 }
 
 function hsParsePasteBarang() {
@@ -1283,23 +1427,57 @@ function hsParsePasteBarang() {
     var cols = line.split('\t').map(function(c) { return c.trim(); });
     if (cols.length < 1) return;
 
-    var katalog = (cols[0] || '').toUpperCase();
-    var varian  = (cols[1] || '').trim();
-    var namaSup = (cols[2] || '').trim();
-    var harga   = parseInt((cols[3]||'').replace(/[^0-9]/g,''), 10) || 0;
+    var katalog, varian, skuSup, supNamaRaw, harga;
+    if (cols.length >= 5) {
+      // 5 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn
+      katalog    = (cols[0] || '').toUpperCase();
+      varian     = (cols[1] || '').trim();
+      skuSup     = (cols[2] || '').trim();
+      supNamaRaw = (cols[3] || '').trim();
+      harga      = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
+    } else {
+      // Fallback 4 kolom lama: SKU Induk → Varian → SKU Suplier → HPP/Lsn
+      // (ga ada kolom Suplier per baris → pakai Supplier default di atas)
+      katalog    = (cols[0] || '').toUpperCase();
+      varian     = (cols[1] || '').trim();
+      skuSup     = (cols[2] || '').trim();
+      supNamaRaw = '';
+      harga      = parseInt((cols[3] || '').replace(/[^0-9]/g,''), 10) || 0;
+    }
 
     if (!katalog) return;
-    _hsParsedBarang.push({
+
+    var row = {
       katalog_produk: katalog,
       varian_warna: varian || null,
-      nama_supplier: namaSup || null,
+      nama_supplier: skuSup || null, // "nama versi supplier" a.k.a SKU Suplier
       harga_per_lusin: harga,
-      dikenal: _hsKatalogList.indexOf(katalog) !== -1
-    });
+      dikenal: _hsKatalogList.indexOf(katalog) !== -1,
+      supplier_id: null,
+      supplier_nama: null,
+      supplier_new: false,
+      use_default_supplier: true
+    };
+
+    if (supNamaRaw) {
+      var match = _hsSupplierList.find(function(s) {
+        return s.nama.toLowerCase() === supNamaRaw.toLowerCase();
+      });
+      row.use_default_supplier = false;
+      if (match) {
+        row.supplier_id = match.id;
+        row.supplier_nama = match.nama;
+      } else {
+        row.supplier_nama = supNamaRaw.toUpperCase();
+        row.supplier_new = true;
+      }
+    }
+
+    _hsParsedBarang.push(row);
   });
 
   if (_hsParsedBarang.length === 0) {
-    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Harga per Lusin');
+    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin');
     return;
   }
 
@@ -1308,10 +1486,15 @@ function hsParsePasteBarang() {
     '✓ ' + _hsParsedBarang.length + ' baris siap diimport' +
     (jumlahAsing ? ' — ⚠ ' + jumlahAsing + ' SKU Induk belum ada di Kelola Produk' : '');
   document.getElementById('hs-paste-tbody').innerHTML = _hsParsedBarang.map(function(r) {
+    var supCell;
+    if (r.use_default_supplier) supCell = '<span style="color:var(--ink3)">(default)</span>';
+    else if (r.supplier_new)    supCell = '<span style="color:var(--info)">' + _hsEsc(r.supplier_nama) + ' (baru)</span>';
+    else                        supCell = _hsEsc(r.supplier_nama);
     return '<tr' + (r.dikenal ? '' : ' style="color:var(--warn)"') + '>' +
       '<td>' + _hsEsc(r.katalog_produk) + (r.dikenal ? '' : ' ⚠') + '</td>' +
       '<td>' + _hsEsc(r.varian_warna||'—') + '</td>' +
       '<td>' + _hsEsc(r.nama_supplier||'—') + '</td>' +
+      '<td>' + supCell + '</td>' +
       '<td>Rp' + r.harga_per_lusin.toLocaleString('id-ID') + '</td>' +
       '<td>Rp' + Math.round(r.harga_per_lusin/12).toLocaleString('id-ID') + '</td>' +
       '</tr>';
@@ -1324,13 +1507,43 @@ async function hsSimpanPasteBarang() {
   if (_hsParsedBarang.length === 0) return;
   var btn = document.getElementById('hs-btn-simpan-paste-barang');
 
-  try {
-    var supplierId = await _hsResolveSupplierId('hs-paste-supplier-select', 'hs-paste-supplier-baru');
+  // Supplier default (dari picker atas) cuma di-resolve KALAU beneran ada
+  // baris yang butuh — jadi baris dengan Suplier per-baris sendiri ga
+  // ketahan gara-gara input "supplier baru" default kosong (bug lama).
+  var defaultSupplierId = null;
+  var defaultResolved = false;
+  async function resolveDefault() {
+    if (!defaultResolved) {
+      defaultSupplierId = await _hsResolveSupplierId('hs-paste-supplier-select', 'hs-paste-supplier-baru');
+      defaultResolved = true;
+    }
+    return defaultSupplierId;
+  }
 
+  // Cache supplier baru yang dibikin dalam batch ini (biar nama sama ga
+  // ke-insert dobel kalau muncul di beberapa baris).
+  var newSupplierCache = {};
+  async function resolveRowSupplier(r) {
+    if (r.use_default_supplier) return await resolveDefault();
+    if (r.supplier_id) return r.supplier_id;
+    if (r.supplier_new) {
+      var key = r.supplier_nama.toUpperCase();
+      if (newSupplierCache[key]) return newSupplierCache[key];
+      var newSup = await dbInsert('hutang_supplier', { nama: key });
+      var id = newSup[0].id;
+      newSupplierCache[key] = id;
+      _hsSupplierList.push({ id: id, nama: key });
+      return id;
+    }
+    return await resolveDefault();
+  }
+
+  try {
     btn.disabled = true;
     var ok = 0;
     for (var i = 0; i < _hsParsedBarang.length; i++) {
       var r = _hsParsedBarang[i];
+      var supplierId = await resolveRowSupplier(r);
       await dbInsert('hutang_barang', {
         supplier_id: supplierId,
         katalog_produk: r.katalog_produk,
