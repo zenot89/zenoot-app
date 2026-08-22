@@ -77,22 +77,6 @@ body{
   -webkit-tap-highlight-color:transparent;
 }
 
-/* ─── SPIRAL ─────────────────────────────────────────────── */
-.spiral{
-  position:fixed;left:190px;top:0;height:100vh;
-  display:-webkit-flex;display:flex;
-  -webkit-flex-direction:column;flex-direction:column;
-  -webkit-justify-content:space-evenly;justify-content:space-evenly;
-  -webkit-align-items:center;align-items:center;
-  z-index:100;pointer-events:none;width:16px;
-  -webkit-transition:left .25s ease;transition:left .25s ease;
-}
-.hole{
-  width:15px;height:15px;border-radius:50%;
-  background:#0d0d0d;background:var(--cream);border:1px solid rgba(255,255,255,0.05);flex-shrink:0;
-  -webkit-flex-shrink:0;
-}
-
 /* ─── SIDEBAR ────────────────────────────────────────────── */
 .sidebar{
   width:var(--sidebar-w);min-width:var(--sidebar-w);
@@ -202,9 +186,6 @@ body.sidebar-mini .sidebar .nav-item{
 }
 body.sidebar-mini .sidebar .nav-item .ni-icon{
   width:100%;
-}
-body.sidebar-mini .spiral{
-  left:44px;
 }
 body.sidebar-mini .sidebar-minimize-btn i{
   -webkit-transform:rotate(180deg);transform:rotate(180deg);
@@ -755,7 +736,6 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 }
 @media (max-width:900px){
   .hamburger{display:-webkit-flex;display:flex}
-  .spiral{display:none}
   .sidebar{
     position:fixed;top:0;right:0;height:100vh;height:100dvh;
     -webkit-transform:translateX(100%);transform:translateX(100%);
@@ -812,7 +792,6 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
     display:-webkit-flex !important;
     display:flex !important;
   }
-  .spiral{display:none}
   /* Sidebar harus tetap fixed overlay di landscape touch */
   .sidebar{
     position:fixed;top:0;right:0;

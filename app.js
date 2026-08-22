@@ -144,6 +144,7 @@ var pageMap = {
   'beban-operasional':  { title:'Beban Operasional',   sub:'acuan % beban & target NPM'     },
   'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
   'keuangan':           { title:'Keuangan Operasional', sub:'hutang, neraca, rasio & valuasi' },
+  'hutang-supplier':    { title:'Hutang Supplier',      sub:'utang aktif & pembayaran per supplier' },
   'penutupan-periode':  { title:'Penutupan Periode',    sub:'month-end close & lock jurnal'   },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
   'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
