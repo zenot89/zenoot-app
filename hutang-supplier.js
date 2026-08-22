@@ -166,6 +166,44 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-brg-harga { font-weight:800; font-size:14px; color:var(--ink); white-space:nowrap; flex:none; text-align:right; }
     .hs-brg-harga-sub { font-size:10px; color:var(--ink3); font-weight:600; text-align:right; }
 
+    /* ── OVERVIEW: grid minicard + ranking supplier + aging list ── */
+    .hs-ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+    @media(max-width:420px){ .hs-ov-grid { grid-template-columns:1fr; } }
+    .hs-ov-card { display:flex; align-items:center; gap:12px; background:var(--cream2); border:1px solid var(--ink4); border-radius:12px; padding:14px; }
+    .hs-ov-donut { --pct:0; --donut-color:var(--danger); width:52px; height:52px; flex:none; border-radius:50%;
+      background:conic-gradient(var(--donut-color) calc(var(--pct)*1%), var(--ink4) 0);
+      display:flex; align-items:center; justify-content:center; position:relative; }
+    .hs-ov-donut::before { content:''; position:absolute; inset:6px; border-radius:50%; background:var(--cream2); }
+    .hs-ov-donut span { position:relative; z-index:1; font-size:10.5px; font-weight:800; color:var(--ink); }
+    .hs-ov-card-txt { min-width:0; flex:1; }
+    .hs-ov-card-label { font-size:10.5px; color:var(--ink3); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+    .hs-ov-card-value { font-size:16px; font-weight:800; color:var(--ink); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hs-ov-card-value.hs-ov-danger { color:var(--danger); }
+    .hs-ov-card-value.hs-ov-ok { color:var(--ok); }
+    .hs-ov-section-title { font-size:12px; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:.04em; margin:4px 0 8px; }
+    .hs-ov-rank-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--ink4); }
+    .hs-ov-rank-row:last-child { border-bottom:none; }
+    .hs-ov-rank-nama { flex:1; min-width:0; font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hs-ov-rank-bar-wrap { flex:none; width:70px; height:5px; border-radius:3px; background:var(--ink4); overflow:hidden; }
+    .hs-ov-rank-bar { height:100%; background:var(--danger); border-radius:3px; }
+    .hs-ov-rank-val { flex:none; font-size:12.5px; font-weight:800; color:var(--danger); white-space:nowrap; min-width:78px; text-align:right; }
+    .hs-ov-aging-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; padding:8px 0; border-bottom:1px solid var(--ink4); font-size:12.5px; }
+    .hs-ov-aging-row:last-child { border-bottom:none; }
+    .hs-ov-aging-left { color:var(--ink2); min-width:0; }
+    .hs-ov-aging-nama { font-weight:700; color:var(--ink); }
+    .hs-ov-aging-hari { font-weight:800; white-space:nowrap; }
+    .hs-ov-aging-merah { color:var(--danger); }
+    .hs-ov-aging-kuning { color:var(--warn); }
+
+    /* ── RIWAYAT BAYAR (jurnal pembayaran) ── */
+    #hs-pembayaran-list { display:flex; flex-direction:column; gap:8px; }
+    .hs-pay-row-card { display:flex; align-items:center; gap:12px; background:var(--cream2); border:1px solid var(--ink4); border-radius:12px; padding:12px 14px; }
+    .hs-pay-row-icon { flex:none; width:36px; height:36px; border-radius:50%; background:rgba(62,207,106,.15); color:var(--ok); display:flex; align-items:center; justify-content:center; font-size:16px; }
+    .hs-pay-row-main { flex:1; min-width:0; }
+    .hs-pay-row-sup { font-weight:700; font-size:13.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hs-pay-row-sub { font-size:11px; color:var(--ink3); margin-top:2px; }
+    .hs-pay-row-nom { flex:none; font-size:14px; font-weight:800; color:var(--ok); white-space:nowrap; text-align:right; }
+
     /* ── Bottom sheet (form) — pola sama Gadag ── */
     .hs-sheet-overlay { display:none; position:fixed; inset:0; z-index:820; background:rgba(0,0,0,.55); align-items:flex-end; justify-content:center; }
     .hs-sheet-overlay.open { display:flex; }
@@ -273,32 +311,44 @@ document.getElementById('page-hutang-supplier').innerHTML = `
   <div id="hs-hdr-row">
     <div id="hs-hdr-left">
       <button id="hs-hdr-refresh" onclick="loadHutangSupplier()" title="Refresh"><i class="ti ti-refresh"></i></button>
-      <i id="hs-hdr-icon" class="ti ti-receipt"></i>
-      <div id="hs-hdr-heading">Bon</div>
+      <i id="hs-hdr-icon" class="ti ti-chart-donut"></i>
+      <div id="hs-hdr-heading">Overview</div>
     </div>
     <div class="hs-menu-wrap">
       <button id="hs-menu-btn" class="hs-btn-pill hs-btn-primary" onclick="hsToggleMenu(event)">
-        <i class="ti ti-menu-2"></i> <span id="hs-menu-btn-label">Bon</span> <i class="ti ti-chevron-down"></i>
+        <i class="ti ti-menu-2"></i> <span id="hs-menu-btn-label">Overview</span> <i class="ti ti-chevron-down"></i>
       </button>
       <div id="hs-dropdown-menu" class="hs-dropdown-menu">
-        <button id="hs-menu-item-bon" class="active" onclick="hsSwitchView('bon')"><i class="ti ti-receipt"></i> Bon</button>
+        <button id="hs-menu-item-overview" class="active" onclick="hsSwitchView('overview')"><i class="ti ti-chart-donut"></i> Overview</button>
+        <button id="hs-menu-item-bon" onclick="hsSwitchView('bon')"><i class="ti ti-receipt"></i> Bon</button>
+        <button id="hs-menu-item-pembayaran" onclick="hsSwitchView('pembayaran')"><i class="ti ti-cash"></i> Riwayat Bayar</button>
         <button id="hs-menu-item-master" onclick="hsSwitchView('master')"><i class="ti ti-list-details"></i> Master Barang</button>
       </div>
     </div>
     <div id="hs-page-dots" class="hs-page-dots">
-      <span class="hs-page-dot active" onclick="hsSwitchView('bon')"></span>
+      <span class="hs-page-dot active" onclick="hsSwitchView('overview')"></span>
+      <span class="hs-page-dot" onclick="hsSwitchView('bon')"></span>
+      <span class="hs-page-dot" onclick="hsSwitchView('pembayaran')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('master')"></span>
     </div>
   </div>
 
-  <div id="hs-supplier-row"></div>
+  <div id="hs-supplier-row" style="display:none"></div>
 
   <div id="hs-panels-wrap">
-    <div id="hs-panel-bon" class="hs-panel active">
+    <div id="hs-panel-overview" class="hs-panel active">
+      <div id="hs-overview-content"></div>
+    </div>
+
+    <div id="hs-panel-bon" class="hs-panel">
       <div class="hs-toolbar">
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
       <div id="hs-bon-list"></div>
+    </div>
+
+    <div id="hs-panel-pembayaran" class="hs-panel">
+      <div id="hs-pembayaran-list"></div>
     </div>
 
     <div id="hs-panel-master" class="hs-panel">
@@ -500,7 +550,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 `;
 
 // ─── STATE ──────────────────────────────────────────────────────
-var _hsView            = 'bon';   // 'bon' | 'master'
+var _hsView            = 'overview';   // 'overview' | 'bon' | 'pembayaran' | 'master'
 var _hsSupplierList     = [];     // [{id, nama, kontak}]
 var _hsBonList          = [];     // [{id, supplier_id, tanggal, no_nota, total, status, catatan, ...}]
 var _hsPembayaranAll    = [];     // semua hutang_pembayaran
@@ -534,7 +584,9 @@ async function loadHutangSupplier() {
     _hsKatalogList = Object.keys(katSet).sort(function(a,b){ return a.localeCompare(b,'id'); });
 
     hsRenderSupplierCards();
+    hsRenderOverview();
     hsRenderBonList();
+    hsRenderPembayaranList();
     hsRenderMasterList();
   } catch(e) {
     console.error('loadHutangSupplier error', e);
@@ -552,15 +604,21 @@ function _hsSisaBon(bon) {
 
 // ─── TAB SWITCHER ─────────────────────────────────────────────
 var _HS_VIEW_LABEL = {
-  bon:    { label: 'Bon',           icon: 'ti-receipt' },
-  master: { label: 'Master Barang', icon: 'ti-list-details' },
+  overview:   { label: 'Overview',      icon: 'ti-chart-donut' },
+  bon:        { label: 'Bon',           icon: 'ti-receipt' },
+  pembayaran: { label: 'Riwayat Bayar', icon: 'ti-cash' },
+  master:     { label: 'Master Barang', icon: 'ti-list-details' },
 };
-var _HS_VIEW_ORDER = ['bon', 'master'];
+var _HS_VIEW_ORDER = ['overview', 'bon', 'pembayaran', 'master'];
 
 function hsSwitchView(view) {
   _hsView = view;
-  document.getElementById('hs-panel-bon').classList.toggle('active', view==='bon');
-  document.getElementById('hs-panel-master').classList.toggle('active', view==='master');
+  _HS_VIEW_ORDER.forEach(function(v) {
+    var panel = document.getElementById('hs-panel-' + v);
+    if (panel) panel.classList.toggle('active', v === view);
+  });
+  var supRow = document.getElementById('hs-supplier-row');
+  if (supRow) supRow.style.display = (view === 'overview') ? 'none' : '';
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
@@ -645,6 +703,9 @@ function hsRenderSupplierCards() {
   var el = document.getElementById('hs-supplier-row');
   if (!el) return;
 
+  // Overview = ringkasan lintas-supplier, gak butuh filter per-supplier di sini
+  if (_hsView === 'overview') { el.innerHTML = ''; return; }
+
   var totals = {};
   _hsBonList.forEach(function(b) {
     if (b.status === 'lunas') return;
@@ -653,11 +714,22 @@ function hsRenderSupplierCards() {
   });
   var totalSemua = Object.values(totals).reduce(function(s,v){ return s+v; }, 0);
 
+  var payTotals = {};
+  _hsPembayaranAll.forEach(function(p) {
+    var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
+    if (!bon) return;
+    payTotals[bon.supplier_id] = (payTotals[bon.supplier_id] || 0) + (p.nominal||0);
+  });
+  var payTotalSemua = Object.values(payTotals).reduce(function(s,v){ return s+v; }, 0);
+
   var html = '<div class="hs-sup-card' + (_hsFilterSupplier===null?' active':'') + '" onclick="hsSelectSupplierFilter(null)">' +
     '<div class="hs-sup-card-nama">Semua Supplier</div>';
   if (_hsView === 'bon') {
     html += '<div class="hs-sup-card-total">' + fmtRpFull(totalSemua) + '</div>' +
       '<div class="hs-sup-card-sub">' + _hsBonList.filter(function(b){return b.status!=='lunas';}).length + ' bon belum lunas</div>';
+  } else if (_hsView === 'pembayaran') {
+    html += '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotalSemua) + '</div>' +
+      '<div class="hs-sup-card-sub">' + _hsPembayaranAll.length + ' total dibayar</div>';
   } else {
     html += '<div class="hs-sup-card-total" style="color:var(--ink)">' + _hsBarangMaster.length + '</div>' +
       '<div class="hs-sup-card-sub">total barang</div>';
@@ -671,6 +743,13 @@ function hsRenderSupplierCards() {
       var jml = _hsBonList.filter(function(b){ return b.supplier_id===s.id && b.status!=='lunas'; }).length;
       card += '<div class="hs-sup-card-total">' + fmtRpFull(totals[s.id]||0) + '</div>' +
         '<div class="hs-sup-card-sub">' + jml + ' bon belum lunas</div>';
+    } else if (_hsView === 'pembayaran') {
+      var jmlBayar = _hsPembayaranAll.filter(function(p){
+        var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
+        return bon && bon.supplier_id===s.id;
+      }).length;
+      card += '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotals[s.id]||0) + '</div>' +
+        '<div class="hs-sup-card-sub">' + jmlBayar + ' kali bayar</div>';
     } else {
       var jmlBrg = _hsBarangMaster.filter(function(b){ return b.supplier_id===s.id; }).length;
       card += '<div class="hs-sup-card-total" style="color:var(--ink)">' + jmlBrg + '</div>' +
@@ -688,6 +767,7 @@ function hsSelectSupplierFilter(id) {
   hsRenderSupplierCards();
   hsRenderBonList();
   hsRenderMasterList();
+  hsRenderPembayaranList();
 }
 
 // ─── BON LIST ─────────────────────────────────────────────────
@@ -760,6 +840,128 @@ function hsRenderMasterList() {
   }).join('');
 
   _hsInitLongPress('hs-master-list', function(id) { hsOpenEditBarang(parseInt(id,10)); });
+}
+
+// ─── OVERVIEW ───────────────────────────────────────────────
+function hsRenderOverview() {
+  var el = document.getElementById('hs-overview-content');
+  if (!el) return;
+
+  var belumLunas = _hsBonList.filter(function(b){ return b.status !== 'lunas'; });
+  var totalUtangAktif = belumLunas.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
+
+  var now = new Date();
+  var ymBulanIni = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var dibayarBulanIni = _hsPembayaranAll
+    .filter(function(p){ return p.tanggal && p.tanggal.slice(0,7) === ymBulanIni; })
+    .reduce(function(s,p){ return s + (p.nominal||0); }, 0);
+
+  var totalDibayarAllTime = _hsPembayaranAll.reduce(function(s,p){ return s + (p.nominal||0); }, 0);
+  var totalNilaiSemuaBon  = _hsBonList.reduce(function(s,b){ return s + (b.total||0); }, 0);
+  var pctLunasKeseluruhan = totalNilaiSemuaBon > 0 ? Math.round((totalDibayarAllTime/totalNilaiSemuaBon)*100) : 0;
+  pctLunasKeseluruhan = Math.max(0, Math.min(100, pctLunasKeseluruhan));
+
+  if (!_hsBonList.length) {
+    el.innerHTML = '<div class="hs-empty">Belum ada data bon. Overview bakal keisi otomatis begitu ada Bon pertama.</div>';
+    return;
+  }
+
+  // ── Minicards ──
+  var html = '<div class="hs-ov-grid">' +
+    '<div class="hs-ov-card">' +
+      '<div class="hs-ov-donut" style="--pct:' + pctLunasKeseluruhan + ';--donut-color:var(--danger)"><span>' + pctLunasKeseluruhan + '%</span></div>' +
+      '<div class="hs-ov-card-txt"><div class="hs-ov-card-label">Total Utang Aktif</div>' +
+        '<div class="hs-ov-card-value hs-ov-danger">' + fmtRpFull(totalUtangAktif) + '</div></div>' +
+    '</div>' +
+    '<div class="hs-ov-card">' +
+      '<div class="hs-ov-donut" style="--pct:100;--donut-color:var(--warn)"><span>' + belumLunas.length + '</span></div>' +
+      '<div class="hs-ov-card-txt"><div class="hs-ov-card-label">Bon Belum Lunas</div>' +
+        '<div class="hs-ov-card-value">' + belumLunas.length + ' bon</div></div>' +
+    '</div>' +
+    '<div class="hs-ov-card">' +
+      '<div class="hs-ov-donut" style="--pct:100;--donut-color:var(--ok)"><span><i class="ti ti-cash" style="font-size:16px"></i></span></div>' +
+      '<div class="hs-ov-card-txt"><div class="hs-ov-card-label">Dibayar Bulan Ini</div>' +
+        '<div class="hs-ov-card-value hs-ov-ok">' + fmtRpFull(dibayarBulanIni) + '</div></div>' +
+    '</div>' +
+    '<div class="hs-ov-card">' +
+      '<div class="hs-ov-donut" style="--pct:100;--donut-color:var(--info)"><span>' + _hsSupplierList.length + '</span></div>' +
+      '<div class="hs-ov-card-txt"><div class="hs-ov-card-label">Supplier Aktif</div>' +
+        '<div class="hs-ov-card-value">' + _hsSupplierList.length + ' supplier</div></div>' +
+    '</div>' +
+  '</div>';
+
+  // ── Ranking utang terbesar per supplier ──
+  var totalsSup = {};
+  belumLunas.forEach(function(b) {
+    totalsSup[b.supplier_id] = (totalsSup[b.supplier_id] || 0) + _hsSisaBon(b).sisa;
+  });
+  var ranked = Object.keys(totalsSup).map(function(sid) {
+    var supplier = _hsSupplierList.find(function(s){ return String(s.id)===String(sid); });
+    return { nama: supplier ? supplier.nama : '—', sisa: totalsSup[sid] };
+  }).sort(function(a,b){ return b.sisa - a.sisa; }).slice(0, 5);
+  var maxSisa = ranked.length ? ranked[0].sisa : 0;
+
+  if (ranked.length) {
+    html += '<div class="hs-ov-section-title">Utang Terbesar per Supplier</div>' +
+      '<div style="background:var(--cream2);border:1px solid var(--ink4);border-radius:12px;padding:6px 14px;margin-bottom:18px">' +
+      ranked.map(function(r) {
+        var pct = maxSisa > 0 ? Math.round((r.sisa/maxSisa)*100) : 0;
+        return '<div class="hs-ov-rank-row">' +
+          '<div class="hs-ov-rank-nama">' + _hsEsc(r.nama) + '</div>' +
+          '<div class="hs-ov-rank-bar-wrap"><div class="hs-ov-rank-bar" style="width:' + pct + '%"></div></div>' +
+          '<div class="hs-ov-rank-val">' + fmtRpFull(r.sisa) + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  // ── Bon paling lama belum lunas (aging) ──
+  var aging = belumLunas.slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); }).slice(0, 5);
+  if (aging.length) {
+    html += '<div class="hs-ov-section-title">Bon Paling Lama Belum Lunas</div>' +
+      '<div style="background:var(--cream2);border:1px solid var(--ink4);border-radius:12px;padding:6px 14px">' +
+      aging.map(function(b) {
+        var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
+        var hari = Math.floor((now - new Date(b.tanggal + 'T00:00:00')) / 86400000);
+        var hariCls = hari >= 30 ? 'hs-ov-aging-merah' : (hari >= 14 ? 'hs-ov-aging-kuning' : '');
+        return '<div class="hs-ov-aging-row" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')" style="cursor:pointer">' +
+          '<div class="hs-ov-aging-left"><span class="hs-ov-aging-nama">' + _hsEsc(supplier?supplier.nama:'—') + '</span> · ' + _hsFmtTgl(b.tanggal) + '</div>' +
+          '<div class="hs-ov-aging-hari ' + hariCls + '">' + hari + ' hari</div>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ─── RIWAYAT BAYAR (jurnal pembayaran, lintas semua bon) ──────
+function hsRenderPembayaranList() {
+  var el = document.getElementById('hs-pembayaran-list');
+  if (!el) return;
+
+  var list = _hsPembayaranAll.filter(function(p) {
+    if (_hsFilterSupplier === null) return true;
+    var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
+    return bon && bon.supplier_id === _hsFilterSupplier;
+  }).slice().sort(function(a,b){ return new Date(b.tanggal) - new Date(a.tanggal); });
+
+  if (!list.length) {
+    el.innerHTML = '<div class="hs-empty">Belum ada riwayat pembayaran' + (_hsFilterSupplier?' dari supplier ini':'') + '.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(function(p) {
+    var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
+    var supplier = bon ? _hsSupplierList.find(function(s){ return s.id===bon.supplier_id; }) : null;
+    var akun = _hsAkunKas.find(function(a){ return a.id===p.kas_akun_id; });
+    return '<div class="hs-pay-row-card" onclick="' + (bon ? 'hsOpenDetailBon(' + bon.id + ')' : '') + '" style="' + (bon?'cursor:pointer':'') + '">' +
+      '<div class="hs-pay-row-icon"><i class="ti ti-cash"></i></div>' +
+      '<div class="hs-pay-row-main">' +
+        '<div class="hs-pay-row-sup">' + _hsEsc(supplier ? supplier.nama : '—') + (bon && bon.no_nota ? ' · ' + _hsEsc(bon.no_nota) : '') + '</div>' +
+        '<div class="hs-pay-row-sub">' + _hsFmtTgl(p.tanggal) + (akun ? ' · ' + _hsEsc(akun.nama) : '') + (p.catatan ? ' · ' + _hsEsc(p.catatan) : '') + '</div>' +
+      '</div>' +
+      '<div class="hs-pay-row-nom">' + fmtRpFull(p.nominal) + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // ─── LONG PRESS (copy independen, bukan reuse dari gadag.js) ──
