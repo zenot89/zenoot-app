@@ -1014,10 +1014,36 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     }
   }
 
+  // ── Helper format tanggal untuk header grup di PDF ──
+  // Contoh output: "Sabtu, 17 Agu 2026  ·  INV-0021"
+  var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var hariNm = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  function _fmtTglHeader(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d.getTime())) return iso;
+    return hariNm[d.getDay()] + ', ' +
+      String(d.getDate()).padStart(2,'0') + ' ' + bln[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
   var totalSemua = 0, rowNo = 1;
   var body = [];
+  // ── Tag setiap baris sebagai 'header_tgl' atau 'data' untuk willDrawCell ──
+  // jsPDF autoTable tidak punya built-in "group header" row,
+  // jadi kita tandai via meta array paralel: _bodyMeta[i] = tipe baris.
+  var _bodyMeta = [];
+
   list.forEach(function(b) {
     totalSemua += b.total || 0;
+
+    // ── Baris header tanggal per bon ──
+    // Format: "Senin, 22 Agu 2026  ·  INV-0021" (no_nota opsional)
+    var tglLabel = _fmtTglHeader(b.tanggal);
+    if (b.no_nota) tglLabel += '  \u00b7  ' + b.no_nota;
+    body.push([{ content: tglLabel, colSpan: 6,
+      styles: { fontStyle: 'bold', fontSize: 10, textColor: [60, 56, 50] }
+    }]);
+    _bodyMeta.push('header_tgl');
 
     var items = itemsByBon[b.id] || [];
     if (!items.length) {
@@ -1025,6 +1051,7 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
         content: '\u2014 belum ada rincian barang \u2014', colSpan: 6,
         styles: { textColor: [150, 146, 140], fontStyle: 'italic', fontSize: 10 }
       }]);
+      _bodyMeta.push('data');
     } else {
       items.forEach(function(it) {
         var qtyPcs = it.qty || 0;
@@ -1033,10 +1060,14 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
         var skuSup = it.nama_supplier || it.nama_internal || '\u2014';
         var varian = it.varian_warna || '\u2014';
         body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(hargaLsn), fmtRpFull(subtotal)]);
+        _bodyMeta.push('data');
       });
     }
   });
-  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
+  if (!body.length) {
+    body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
+    _bodyMeta.push('data');
+  }
 
   var today = new Date();
   var hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1090,15 +1121,44 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     },
     foot: footRows,
     footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold', fontSize: 11 },
+    // ── Beri background abu muda pada baris header tanggal ──
+    // _bodyMeta[row.index] = 'header_tgl' → fillColor abu sangat muda
+    // agar setiap kelompok tanggal terlihat jelas sebagai divider.
+    willDrawCell: function(data) {
+      if (data.section === 'body' && _bodyMeta[data.row.index] === 'header_tgl') {
+        data.doc.setFillColor(232, 228, 220); // krem abu muda, selaras tema notebook
+      }
+    },
   });
 
   var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   var fileName = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf';
 
-  // doc.save() — paling reliable di semua platform (Android PWA, iOS Safari standalone).
-  // navigator.share({files}) di-drop: canShare() sering return true tapi share()
-  // tetap gagal/crash di Android WebView PWA, dan di iOS yang di-share adalah
-  // blob: URL string bukan file PDF-nya.
+  // ── Delivery PDF: iOS Safari vs Android PWA ──
+  // Di iOS Safari standalone (PWA), doc.save() produce blob URL yang terbawa
+  // saat user share PDF dari preview sheet — blob URL-nya ikut sebagai teks.
+  // Solusi: pakai navigator.share({ files }) di iOS → share sheet native
+  // langsung share file PDF-nya, tanpa blob URL sama sekali.
+  // Di Android WebView PWA, navigator.share({ files }) sering crash (known issue
+  // canShare() return true tapi share() gagal) → tetap doc.save() di sana.
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS && navigator.canShare) {
+    // Ambil PDF sebagai ArrayBuffer, bungkus jadi File, lalu share.
+    try {
+      var pdfOutput = doc.output('arraybuffer');
+      var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [pdfFile] })) {
+        navigator.share({ files: [pdfFile], title: fileName }).catch(function(err) {
+          // User cancel atau share gagal → fallback ke doc.save()
+          if (err && err.name !== 'AbortError') doc.save(fileName);
+        });
+        return; // share berhasil dimulai, tidak perlu doc.save()
+      }
+    } catch(e) {
+      // Fallback jika File/canShare tidak tersedia
+    }
+  }
+  // Android PWA & desktop: doc.save() trigger download Blob di halaman yang sama.
   doc.save(fileName);
 }
 
