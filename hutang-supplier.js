@@ -964,22 +964,47 @@ function hsSelectSupplierFilter(id) {
 }
 
 // ─── EXPORT PDF: Jurnal Re-Stock per supplier ──────────────────
-// Pattern: build HTML string → window.print() — sama persis kayak gadag.js.
-// Ini approach yang proven bekerja di Android PWA standalone:
-//   - Tidak butuh jsPDF (CDN bisa gagal/timeout di jaringan lemah)
-//   - Tidak pakai blob: URL + window.open(_blank) → Android WebView crash
-//   - Tidak pakai navigator.share(files) → butuh gesture langsung, sering
-//     gagal di PWA context & canShare() bisa return true tapi share tetap error
-//   - window.print() di popup HTML: dialog print browser natively ada
-//     opsi "Save as PDF", reliable di semua Android/iOS
-async function hsExportSupplierBonPDF(supplierId) {
-  var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
-  var namaSup = sup ? sup.nama : '\u2014';
+// GANTI TOTAL dari pola window.open(blob)+window.print() ke generate PDF
+// asli pake jsPDF + autoTable. Root cause versi lama: window.open() dengan
+// URL blob: + target _blank, di dalam PWA "display":"standalone" (lihat
+// manifest.json), adalah known crash trigger di Android WebView — blob:
+// URL cuma valid di proses yang bikin dia, sementara window.open coba
+// lempar ke browsing context/proses lain → force close. Versi baru ini
+// gak pernah buka context baru sama sekali: doc.save() cuma trigger
+// download Blob di halaman yang sama, aman di semua Android/iOS.
+function hsExportSupplierBonPDF(supplierId) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
+    return;
+  }
+  // Tunggu logo (dataURL) siap dulu — kalau fetch-nya udah kelar duluan
+  // (biasanya gitu), .then() ini langsung jalan tanpa delay kerasa.
+  // hsBuildAndDeliverBonPDF sekarang async (fetch rincian barang per bon
+  // dulu ke Supabase), jadi .catch() dipasang biar error kepantau di
+  // console alih-alih ilang diem-diem sebagai unhandled rejection.
+  _hsLogoReady.then(function(logoDataUrl) {
+    return hsBuildAndDeliverBonPDF(supplierId, logoDataUrl);
+  }).catch(function(err) {
+    console.error('Export PDF gagal:', err);
+    alert('Gagal export PDF: ' + (err && err.message ? err.message : 'coba lagi.'));
+  });
+}
 
+// Abu tua (bukan hitam pekat) buat header tabel — sesuai tema cream/ink
+// notebook, tapi tetep kebaca kontras di atas putih.
+var HS_PDF_ABU_TUA = [92, 88, 82];
+
+async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
+  var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
   var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId; })
     .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
 
-  // Ambil rincian barang (hutang_bon_item) tiap bon dari Supabase
+  // ── Ambil rincian barang (hutang_bon_item) tiap bon ──
+  // Laporan sekarang per-BARANG (biar supplier ngerti persis apa yg
+  // dikirim), bukan cuma per-transaksi kayak sebelumnya. Dikelompokin
+  // per bon: 1 baris header abu-abu muda (tanggal · status · sisa),
+  // di bawahnya baris tiap barang (No jalan terus/global, SKU Supplier,
+  // Varian warna, Qty pcs, Harga/Lsn, Total per barang).
   var itemsByBon = {};
   for (var bi = 0; bi < list.length; bi++) {
     try {
@@ -989,111 +1014,92 @@ async function hsExportSupplierBonPDF(supplierId) {
     }
   }
 
+  var totalSemua = 0, rowNo = 1;
+  var body = [];
+  list.forEach(function(b) {
+    totalSemua += b.total || 0;
+
+    var items = itemsByBon[b.id] || [];
+    if (!items.length) {
+      body.push([{
+        content: '\u2014 belum ada rincian barang \u2014', colSpan: 6,
+        styles: { textColor: [150, 146, 140], fontStyle: 'italic', fontSize: 10 }
+      }]);
+    } else {
+      items.forEach(function(it) {
+        var qtyPcs = it.qty || 0;
+        var hargaLsn = it.harga_satuan || 0;
+        var subtotal = (it.subtotal != null) ? it.subtotal : Math.round(qtyPcs * (hargaLsn / 12));
+        var skuSup = it.nama_supplier || it.nama_internal || '\u2014';
+        var varian = it.varian_warna || '\u2014';
+        body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(hargaLsn), fmtRpFull(subtotal)]);
+      });
+    }
+  });
+  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
+
   var today = new Date();
   var hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   var hariExport = hariNames[today.getDay()];
   var tglExportStr = String(today.getDate()).padStart(2,'0') + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + today.getFullYear();
+  var namaSup = sup ? sup.nama : '\u2014';
 
-  var totalSemua = 0;
-  var rowNo = 1;
-  var rowsHtml = '';
+  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+  var pageW = doc.internal.pageSize.getWidth();
+  var marginL = 40, marginR = 40;
 
-  if (!list.length) {
-    rowsHtml = '<tr><td colspan="6" style="padding:10px 8px;color:#888;font-style:italic">Belum ada bon.</td></tr>';
-  } else {
-    list.forEach(function(b) {
-      var st = _hsSisaBon(b);
-      totalSemua += b.total || 0;
-
-      var items = itemsByBon[b.id] || [];
-      if (!items.length) {
-        // Bon tanpa rincian barang: tampilkan 1 baris placeholder
-        rowsHtml += '<tr>' +
-          '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + rowNo++ + '</td>' +
-          '<td style="padding:7px 8px;border-bottom:1px solid #ddd;color:#aaa;font-style:italic" colspan="4">\u2014 belum ada rincian barang \u2014</td>' +
-          '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + _hsEsc(fmtRpFull(b.total||0)) + '</td>' +
-        '</tr>';
-      } else {
-        items.forEach(function(it) {
-          var qtyPcs   = it.qty || 0;
-          var hargaLsn = it.harga_satuan || 0;
-          var subtotal = (it.subtotal != null) ? it.subtotal : Math.round(qtyPcs * (hargaLsn / 12));
-          var skuSup   = it.nama_supplier || it.nama_internal || '\u2014';
-          var varian   = it.varian_warna || '\u2014';
-          rowsHtml += '<tr>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + rowNo++ + '</td>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + _hsEsc(skuSup) + '</td>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + _hsEsc(varian) + '</td>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + qtyPcs + '</td>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + _hsEsc(fmtRpFull(hargaLsn)) + '</td>' +
-            '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + _hsEsc(fmtRpFull(subtotal)) + '</td>' +
-          '</tr>';
-        });
-      }
-    });
+  // ── Header: logo bulat ZENOOT di kiri, judul+tanggal di sebelahnya,
+  // nama supplier gede di ujung kanan ──
+  if (logoDataUrl) {
+    try { doc.addImage(logoDataUrl, 'PNG', marginL, 24, 32, 32); } catch(e) {}
   }
+  var textX = logoDataUrl ? (marginL + 42) : marginL;
 
-  var logoUrl = new URL('logo.png', location.href).href;
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<title>Jurnal Re-Stock ' + _hsEsc(namaSup) + '</title>' +
-    '<style>' +
-      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
-      'body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 16px; }' +
-      'table { width: 100%; border-collapse: collapse; font-size: 13px; }' +
-      'thead { display: table-header-group; }' +
-      'tfoot { display: table-footer-group; }' +
-      'tbody tr { page-break-inside: avoid; }' +
-      '@media print { body { padding: 0; } }' +
-    '</style>' +
-  '</head><body>' +
-  '<table>' +
-    '<thead>' +
-      '<tr><td colspan="6" style="padding:0 0 12px;border:none">' +
-        '<div style="border:1.5px solid #ddd;border-radius:10px;padding:12px 16px">' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
-            '<div style="display:flex;align-items:center;gap:10px">' +
-              '<img src="' + logoUrl + '" alt="Zenoot" style="width:36px;height:36px;object-fit:contain;border-radius:50%">' +
-              '<div>' +
-                '<div style="font-size:11px;font-weight:700;color:#5c5750;letter-spacing:.03em">JURNAL RE-STOCK</div>' +
-                '<div style="font-size:10px;color:#999;margin-top:2px">' + hariExport + ', ' + tglExportStr + ' &middot; ' + list.length + ' bon</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="font-size:18px;font-weight:800;color:#1e1c1a;letter-spacing:.5px">' + _hsEsc(namaSup.toUpperCase()) + '</div>' +
-          '</div>' +
-        '</div>' +
-      '</td></tr>' +
-      '<tr style="background:#5c5852;color:#fff;text-align:left">' +
-        '<th style="padding:8px">No</th>' +
-        '<th style="padding:8px">SKU</th>' +
-        '<th style="padding:8px">Varian</th>' +
-        '<th style="padding:8px;text-align:right">Qty</th>' +
-        '<th style="padding:8px;text-align:right">Harga/Lsn</th>' +
-        '<th style="padding:8px;text-align:right">Total</th>' +
-      '</tr>' +
-    '</thead>' +
-    '<tbody>' + rowsHtml + '</tbody>' +
-    '<tfoot>' +
-      '<tr style="background:#f4eee3;font-weight:700">' +
-        '<td colspan="5" style="padding:8px;text-align:right">TOTAL</td>' +
-        '<td style="padding:8px;text-align:right">' + _hsEsc(fmtRpFull(totalSemua)) + '</td>' +
-      '</tr>' +
-    '</tfoot>' +
-  '</table>' +
-  '<script>window.onload = function() { window.print(); }<\/script>' +
-  '</body></html>';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(HS_PDF_ABU_TUA[0], HS_PDF_ABU_TUA[1], HS_PDF_ABU_TUA[2]);
+  doc.text('JURNAL RE-STOCK', textX, 38);
 
-  var blob = new Blob([html], { type: 'text/html' });
-  var url  = URL.createObjectURL(blob);
-  var win  = window.open(url, '_blank');
-  if (!win) {
-    // Popup diblokir — fallback download file HTML
-    var a = document.createElement('a');
-    var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    a.href = url;
-    a.download = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.html';
-    a.click();
-  }
-  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(130, 126, 120);
+  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon', textX, 51);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(17);
+  doc.setTextColor(30, 28, 26);
+  doc.text(namaSup.toUpperCase(), pageW - marginR, 42, { align: 'right' });
+
+  doc.setTextColor(0, 0, 0);
+
+  var footRows = [[
+    { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } },
+    fmtRpFull(totalSemua)
+  ]];
+  doc.autoTable({
+    startY: 76,
+    head: [['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
+    body: body,
+    styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20,20,20] },
+    headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      3: { halign: 'right', cellWidth: 44 },
+      4: { halign: 'right' },
+      5: { halign: 'right' }
+    },
+    foot: footRows,
+    footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold', fontSize: 11 },
+  });
+
+  var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  var fileName = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf';
+
+  // doc.save() — paling reliable di semua platform (Android PWA, iOS Safari standalone).
+  // navigator.share({files}) di-drop: canShare() sering return true tapi share()
+  // tetap gagal/crash di Android WebView PWA, dan di iOS yang di-share adalah
+  // blob: URL string bukan file PDF-nya.
+  doc.save(fileName);
 }
 
 // ─── BON LIST ─────────────────────────────────────────────────
