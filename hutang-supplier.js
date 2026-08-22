@@ -33,6 +33,20 @@
   document.head.appendChild(link);
 })();
 
+// ─── LOGO ZENOOT (bulat) buat header PDF — di-preload sekali jadi dataURL
+// pas modul ke-load, biar pas tombol "Export PDF" dipencet gak nunggu
+// fetch dulu (biasanya udah keburu selesai). File sama persis kayak yang
+// dipakai di sidebar (logo.png, transparan, bentuk bulat).
+var _hsLogoDataUrl = null;
+var _hsLogoReady = fetch('logo.png').then(function(r){ return r.blob(); }).then(function(blob){
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onload = function(){ _hsLogoDataUrl = reader.result; resolve(_hsLogoDataUrl); };
+    reader.onerror = function(){ resolve(null); };
+    reader.readAsDataURL(blob);
+  });
+}).catch(function(){ return null; });
+
 document.getElementById('page-hutang-supplier').innerHTML = `
   <div id="ops-switcher-hs" class="ch-switcher"></div>
 
@@ -199,6 +213,18 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-bon-switcher-dropdown button:last-child { border-bottom:none; }
     .hs-bon-switcher-dropdown button:hover { background:rgba(38,34,32,.06); }
     .hs-bon-switcher-dropdown button.active { background:var(--ink); color:var(--cream) !important; }
+
+    /* ── Toolbar tab Bon: "Export PDF" (ujung kiri) & "Tambah Bon" (ujung
+       kanan) — ukuran & proporsi disamain kayak box Nominal/Supplier di
+       switcher atasnya (flex:1, padding & radius sama), biar proper & gak
+       nempel/dempet kayak tombol pill kecil di panel lain ── */
+    #hs-bon-toolbar { display:flex; gap:10px; flex-wrap:nowrap; }
+    #hs-bon-toolbar .hs-btn-pill {
+      flex:1; min-width:0; justify-content:center; box-sizing:border-box;
+      padding:11px 14px; border-radius:12px; font-size:14px; font-weight:700;
+    }
+    #hs-bon-toolbar .hs-btn-ghost   { background:var(--cream2); border:1.5px solid var(--ink4); color:var(--ink); }
+    #hs-bon-toolbar .hs-btn-primary { background:var(--ink); border:1.5px solid var(--ink); color:var(--cream); }
 
     /* ── OVERVIEW: grid minicard + ranking supplier + aging list ── */
     .hs-ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
@@ -951,6 +977,18 @@ function hsExportSupplierBonPDF(supplierId) {
     alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
     return;
   }
+  // Tunggu logo (dataURL) siap dulu — kalau fetch-nya udah kelar duluan
+  // (biasanya gitu), .then() ini langsung jalan tanpa delay kerasa.
+  _hsLogoReady.then(function(logoDataUrl) {
+    hsBuildAndDeliverBonPDF(supplierId, logoDataUrl);
+  });
+}
+
+// Abu tua (bukan hitam pekat) buat header tabel — sesuai tema cream/ink
+// notebook, tapi tetep kebaca kontras di atas putih.
+var HS_PDF_ABU_TUA = [92, 88, 82];
+
+function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
   var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId; })
     .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
@@ -961,9 +999,9 @@ function hsExportSupplierBonPDF(supplierId) {
     var statusLabel = (b.status === 'lunas' || st.sisa <= 0) ? 'Lunas' : (st.bayar > 0 ? 'Dicicil' : 'Belum Lunas');
     totalSemua += b.total || 0;
     sisaSemua  += st.sisa || 0;
-    return [String(i+1), _hsFmtTgl(b.tanggal), b.no_nota || '\u2014', fmtRpFull(b.total), statusLabel, fmtRpFull(st.sisa)];
+    return [String(i+1), _hsFmtTgl(b.tanggal), fmtRpFull(b.total), statusLabel, fmtRpFull(st.sisa)];
   });
-  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
+  if (!body.length) body = [['\u2014', 'Belum ada bon.', '', '', '']];
 
   var today = new Date();
   var hariNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -972,34 +1010,68 @@ function hsExportSupplierBonPDF(supplierId) {
   var namaSup = sup ? sup.nama : '\u2014';
 
   var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+  var pageW = doc.internal.pageSize.getWidth();
+  var marginL = 40, marginR = 40;
+
+  // ── Header: logo bulat ZENOOT di kiri, judul+tanggal di sebelahnya,
+  // nama supplier gede di ujung kanan ──
+  if (logoDataUrl) {
+    try { doc.addImage(logoDataUrl, 'PNG', marginL, 24, 32, 32); } catch(e) {}
+  }
+  var textX = logoDataUrl ? (marginL + 42) : marginL;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('JURNAL RE-STOCK \u2014 ' + namaSup.toUpperCase(), 40, 44);
+  doc.setFontSize(11);
+  doc.setTextColor(HS_PDF_ABU_TUA[0], HS_PDF_ABU_TUA[1], HS_PDF_ABU_TUA[2]);
+  doc.text('JURNAL RE-STOCK', textX, 38);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(110, 110, 110);
-  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon', 40, 60);
+  doc.setFontSize(9);
+  doc.setTextColor(130, 126, 120);
+  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon', textX, 51);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(17);
+  doc.setTextColor(30, 28, 26);
+  doc.text(namaSup.toUpperCase(), pageW - marginR, 42, { align: 'right' });
+
   doc.setTextColor(0, 0, 0);
 
   doc.autoTable({
     startY: 76,
-    head: [['No', 'Tanggal', 'No. Nota', 'Total', 'Status', 'Sisa']],
+    head: [['No', 'Tanggal', 'Total', 'Status', 'Sisa']],
     body: body,
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 6, textColor: [20,20,20] },
-    headStyles: { fillColor: [26,24,22], textColor: 255, fontStyle: 'bold' },
+    styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20,20,20] },
+    headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
     columnStyles: {
-      0: { cellWidth: 28 },
-      3: { halign: 'right' },
-      5: { halign: 'right' }
+      0: { cellWidth: 32 },
+      2: { halign: 'right' },
+      4: { halign: 'right' }
     },
-    foot: [['', '', 'SUM', fmtRpFull(totalSemua), '', fmtRpFull(sisaSemua)]],
-    footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold' },
+    foot: [['', 'SUM', fmtRpFull(totalSemua), '', fmtRpFull(sisaSemua)]],
+    footStyles: { fillColor: [244, 238, 227], textColor: [20,20,20], fontStyle: 'bold', fontSize: 11 },
   });
 
   var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-  doc.save('jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf');
+  var fileName = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf';
+
+  // ── Serahin file, BUKAN link ──
+  // Sebelumnya doc.save() di HP (Android WebView / iOS Safari standalone)
+  // sering ujung-ujungnya PDF dibuka inline pake blob: URL, terus pas user
+  // pencet "Share" dari situ yang ke-share cuma teks link blob:-nya, bukan
+  // file PDF-nya. Fix: share file PDF ASLI lewat Web Share API (kalau
+  // didukung) — gak ada URL/link ikut ke-share sama sekali, cuma filenya.
+  // Kalau device gak dukung, baru fallback ke download biasa (doc.save()).
+  try {
+    var blob = doc.output('blob');
+    var file = new File([blob], fileName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: fileName }).catch(function(){});
+      return;
+    }
+  } catch (e) { /* fallback di bawah */ }
+
+  doc.save(fileName);
 }
 
 // ─── BON LIST ─────────────────────────────────────────────────
