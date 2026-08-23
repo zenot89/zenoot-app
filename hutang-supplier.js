@@ -124,6 +124,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       .hs-page-dot { width:6px; height:6px; border-radius:50%; background:var(--ink); opacity:.35; transition:all .18s ease; cursor:pointer; }
       .hs-page-dot.active { width:16px; border-radius:3px; opacity:1; }
       .hs-menu-wrap { display:none; }
+      /* Paste Massal cuma proper dikerjain di laptop (paste dari Excel) —
+         di HP disembunyikan aja, versi desktop TETAP full (di atas 900px). */
+      #hs-paste-massal-btn { display:none !important; }
     }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
@@ -131,6 +134,12 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-btn-primary { background:var(--ink); color:var(--cream); }
     .hs-btn-ghost   { background:none; color:var(--ink2); border:1px solid var(--ink3); }
     .hs-btn-danger  { background:none; color:var(--danger); border:1px solid var(--danger); }
+
+    /* ── Pemisah tebal antara minicard/toolbar & data table/list di bawahnya
+       — konsep sama kayak Gadag, biar ada jeda visual yang jelas sebelum
+       data mulai. Dipakai di semua panel Hutang Barang yang punya toolbar/
+       minicard di atas tabelnya (Bon, Master Barang, Overview). ── */
+    .hs-divider { height:3px; background:var(--ink); border-radius:2px; margin:2px 0 14px; flex:none; opacity:.9; }
 
     /* ── Kartu ringkasan per supplier — scroll horizontal, tap buat filter ── */
     #hs-supplier-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; -webkit-overflow-scrolling:touch; }
@@ -223,6 +232,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     }
     #hs-bon-toolbar .hs-btn-ghost   { background:var(--cream2); border:1.5px solid var(--ink4); color:var(--ink); }
     #hs-bon-toolbar .hs-btn-primary { background:var(--ink); border:1.5px solid var(--ink); color:var(--cream); }
+    /* Export PDF diciutin jadi kotak ikon doang (bukan flex:1 kayak 2 tombol
+       teks di sebelahnya) — biar muat 3 tombol sejajar pas lagi difilter 1
+       supplier, sesuai mockup: [Bayar Utang] [ikon PDF] [+ Bon]. */
+    #hs-bon-toolbar .hs-btn-icon-only { flex:none; width:44px; padding:11px 0; }
 
     /* ── OVERVIEW: grid minicard + ranking supplier + aging list ── */
     .hs-ov-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
@@ -395,9 +408,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     <div id="hs-panel-bon" class="hs-panel">
       <div id="hs-bon-switcher" class="hs-bon-switcher"></div>
       <div class="hs-toolbar" id="hs-bon-toolbar">
-        <button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost" style="display:none" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)"><i class="ti ti-file-download"></i> Export PDF</button>
+        <button class="hs-btn-pill hs-btn-ghost" onclick="hsOpenBayarUtang()"><i class="ti ti-cash"></i> Bayar Utang</button>
+        <button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
+      <div class="hs-divider"></div>
       <div id="hs-bon-list"></div>
     </div>
 
@@ -408,8 +423,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     <div id="hs-panel-master" class="hs-panel">
       <div class="hs-toolbar">
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBarang()"><i class="ti ti-plus"></i> Tambah Barang</button>
-        <button class="hs-btn-pill hs-btn-ghost" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
+        <button id="hs-paste-massal-btn" class="hs-btn-pill hs-btn-ghost" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
       </div>
+      <div class="hs-divider"></div>
       <div class="hs-table-wrap">
         <table class="hs-table">
           <thead>
@@ -513,6 +529,69 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div class="hs-detail-section-title">Riwayat Pembayaran</div>
         <div id="hs-detail-riwayat"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── SHEET: BAYAR UTANG GABUNGAN (dibuka dari toolbar Bon, khusus pas
+       lagi difilter 1 supplier) — bayar 1 nominal, dialokasiin otomatis ke
+       bon-bon supplier itu dari yang PALING LAMA dulu (FIFO) sampe abis. ── -->
+  <div class="hs-sheet-overlay" id="hs-sheet-bayar-gab" onclick="if(event.target===this) hsCloseSheet('hs-sheet-bayar-gab')">
+    <div class="hs-sheet-page">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title" id="hs-bayar-gab-title">Bayar Utang</div>
+        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-bayar-gab')"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="hs-sheet-body">
+        <div class="hs-detail-summary">
+          <div class="hs-detail-summary-txt">
+            <div class="hs-detail-summary-total" id="hs-bayar-gab-total">Sisa Rp0</div>
+            <div class="hs-detail-summary-sisa" id="hs-bayar-gab-sub">0 bon belum lunas</div>
+          </div>
+        </div>
+
+        <div class="hs-detail-section-title">Bon Belum Lunas (dari paling lama)</div>
+        <div id="hs-bayar-gab-list"></div>
+
+        <div class="hs-detail-section-title">Bayar</div>
+        <div class="hs-row-2">
+          <div class="hs-form-group">
+            <label>Nominal</label>
+            <input type="text" id="hs-bayar-gab-nominal" inputmode="numeric" placeholder="0">
+          </div>
+          <div class="hs-form-group">
+            <label>Tanggal</label>
+            <input type="date" id="hs-bayar-gab-tanggal">
+          </div>
+        </div>
+        <div class="hs-row-2">
+          <div class="hs-form-group">
+            <label>Debit (Hutang/Beban)</label>
+            <select id="hs-bayar-gab-akun-debit"></select>
+          </div>
+          <div class="hs-form-group">
+            <label>Bayar dari (Kas/Bank)</label>
+            <select id="hs-bayar-gab-akun-kredit"></select>
+          </div>
+        </div>
+        <div class="hs-form-group">
+          <label>Catatan (opsional)</label>
+          <input type="text" id="hs-bayar-gab-catatan">
+        </div>
+        <div class="hs-item-hint" style="margin-bottom:10px">Nominal dialokasikan otomatis ke bon paling lama dulu — kalau lebih dari 1 bon, sisanya lanjut ke bon berikutnya sampai nominal habis.</div>
+        <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsSimpanBayarGabungan()"><i class="ti ti-cash"></i> Catat Pembayaran</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PICKER TERPUSAT: PILIH BON (dipakai dari tombol "Bayar Utang" pas
+       lagi "Semua Supplier" — pilih 1 bon dulu, baru lanjut ke sheet Detail
+       Bon yang udah ada buat catat pembayarannya). ── -->
+  <div class="hs-picker-overlay" id="hs-bon-bayar-picker-overlay" onclick="if(event.target===this) hsBonBayarPickerClose()">
+    <div class="hs-picker-box">
+      <div class="hs-picker-title">Pilih Bon yang Mau Dibayar</div>
+      <input type="text" id="hs-bon-bayar-picker-search" class="hs-picker-search" placeholder="Cari supplier / no nota..." oninput="hsBonBayarPickerFilter(this.value)">
+      <div class="hs-picker-list" id="hs-bon-bayar-picker-list"></div>
     </div>
   </div>
 
@@ -630,6 +709,7 @@ var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & M
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
 var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
 var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
+var _hsBayarGabSupplierId = null; // supplier_id yg lagi aktif di sheet Bayar Utang (gabungan)
 
 // ─── LOAD ───────────────────────────────────────────────────────
 async function loadHutangSupplier() {
@@ -726,11 +806,22 @@ document.addEventListener('click', function(e) {
 // ─── Swipe antar panel (mobile only) — pola sama persis kayak Gadag ──
 // (edge-guard 24px biar gak rebutan sama swipe-back OS, threshold 40px/flick
 // biar aman coexist sama long-press-edit yang ada di list Bon & Master Barang)
+//
+// Edge-aware handoff (fix "goyang" pas swipe di tabel Master Barang, 23 Agu
+// 2026): kalau sentuhan MULAI di dalam container yang scroll-horizontal
+// sendiri (.hs-table-wrap), scroll native tabelnya WAJIB menang duluan —
+// JS ini cuma "nyambung" jadi swipe-pindah-tab begitu tabel udah kedorong
+// sampe mentok salah satu ujung DAN user masih terus narik ke arah yang
+// sama (persis pola carousel/App native: geser di dalam list dulu, baru
+// nge-bubble ke gesture level atas pas abis mentok). Kalau nggak pernah
+// mentok, touchend nggak pernah nge-trigger pindah tab sama sekali —
+// jadi tabel jadi murni area scroll, nggak ada lagi "rem blong".
 (function() {
   var wrap = document.getElementById('hs-panels-wrap');
   if (!wrap) return;
   var EDGE = 24;
   var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null;
+  var innerEl = null, handoff = false, handoffStartX = 0, handoffStartT = 0;
 
   function goRelative(dir) {
     var idx = _HS_VIEW_ORDER.indexOf(_hsView);
@@ -744,14 +835,27 @@ document.addEventListener('click', function(e) {
     if (x < EDGE || x > window.innerWidth - EDGE) { tracking = false; return; }
     startX = x; startY = e.touches[0].clientY; startT = Date.now();
     tracking = true; isHoriz = null;
+    handoff = false; handoffStartX = 0; handoffStartT = 0;
+    var t = e.target.closest ? e.target.closest('.hs-table-wrap') : null;
+    innerEl = (t && t.scrollWidth > t.clientWidth) ? t : null;
   }, { passive: true });
 
   wrap.addEventListener('touchmove', function(e) {
     if (!tracking) return;
-    var dx = e.touches[0].clientX - startX;
+    var x = e.touches[0].clientX;
+    var dx = x - startX;
     var dy = e.touches[0].clientY - startY;
     if (isHoriz === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
       isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    if (!isHoriz || !innerEl || handoff) return;
+    var atLeft  = innerEl.scrollLeft <= 0;
+    var atRight = innerEl.scrollLeft >= innerEl.scrollWidth - innerEl.clientWidth - 1;
+    if ((dx < 0 && atRight) || (dx > 0 && atLeft)) {
+      // Tabel udah mentok ke arah yang sama kayak dorongan jari — mulai
+      // "nyambung" jadi swipe-pindah-tab, threshold diukur ULANG dari titik
+      // mentok ini (bukan dari touchstart awal), biar gak kepicu instan.
+      handoff = true; handoffStartX = x; handoffStartT = Date.now();
     }
   }, { passive: true });
 
@@ -759,14 +863,17 @@ document.addEventListener('click', function(e) {
     if (!tracking) return;
     tracking = false;
     if (!isHoriz) return;
-    var dx = e.changedTouches[0].clientX - startX;
-    var dt = Date.now() - startT;
+    if (innerEl && !handoff) return; // murni scroll tabel, gak pernah mentok — jangan pindah tab
+    var refX = handoff ? handoffStartX : startX;
+    var refT = handoff ? handoffStartT : startT;
+    var dx = e.changedTouches[0].clientX - refX;
+    var dt = Date.now() - refT;
     var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
     if (dx < -40 || (isFlick && dx < -20)) goRelative(1);
     else if (dx > 40 || (isFlick && dx > 20)) goRelative(-1);
   }, { passive: true });
 
-  wrap.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
+  wrap.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; innerEl = null; handoff = false; }, { passive: true });
 })();
 
 // ─── SUPPLIER CARDS (dipakai bareng tab Bon & Master) ─────────
@@ -1290,6 +1397,17 @@ function hsRenderOverview() {
   }).sort(function(a,b){ return b.sisa - a.sisa; }).slice(0, 5);
   var maxSisa = ranked.length ? ranked[0].sisa : 0;
 
+  // ── Bon paling lama belum lunas (aging) — dihitung duluan (bukan di
+  // tempat lama di bawah) biar length-nya kepake buat nentuin garis tebal ──
+  var aging = belumLunas.slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); }).slice(0, 5);
+
+  // Garis tebal cuma nongol kalau ADA section data di bawahnya (ranking dan/
+  // atau aging) — kalau semua bon udah lunas (dua-duanya kosong), skip biar
+  // gak ada garis nganggur tanpa isi di bawahnya.
+  if (ranked.length || aging.length) {
+    html += '<div class="hs-divider"></div>';
+  }
+
   if (ranked.length) {
     html += '<div class="hs-ov-section-title">Utang Terbesar per Supplier</div>' +
       '<div class="hs-ov-list-wrap" style="background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:6px 14px;margin-bottom:18px">' +
@@ -1303,8 +1421,6 @@ function hsRenderOverview() {
       }).join('') + '</div>';
   }
 
-  // ── Bon paling lama belum lunas (aging) ──
-  var aging = belumLunas.slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); }).slice(0, 5);
   if (aging.length) {
     html += '<div class="hs-ov-section-title">Bon Paling Lama Belum Lunas</div>' +
       '<div class="hs-ov-list-wrap" style="background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:6px 14px">' +
@@ -1915,6 +2031,161 @@ async function hsSimpanBayar() {
     }
 
     hsCloseSheet('hs-sheet-detail');
+    await loadHutangSupplier();
+  } catch(e) {
+    alert('Gagal simpan pembayaran: ' + e.message);
+  }
+}
+
+// ─── BAYAR UTANG (tombol toolbar Bon) ──────────────────────────
+// Alur (dikonfirmasi user 23 Agu 2026): kalau lagi "Semua Supplier" → buka
+// picker pilih 1 bon dulu, lanjut ke sheet Detail Bon yang udah ada (bayar
+// per-bon). Kalau udah difilter ke 1 supplier → langsung buka sheet Bayar
+// Gabungan (1 nominal, dialokasikan otomatis ke bon-bon supplier itu FIFO).
+function hsOpenBayarUtang() {
+  if (_hsFilterSupplier === null) {
+    hsBonBayarPickerOpen();
+  } else {
+    hsOpenBayarGabungan(_hsFilterSupplier);
+  }
+}
+
+// ─── PICKER: PILIH BON (Bayar Utang, mode Semua Supplier) ─────
+function hsBonBayarPickerOpen() {
+  document.getElementById('hs-bon-bayar-picker-search').value = '';
+  document.getElementById('hs-bon-bayar-picker-overlay').classList.add('open');
+  _hsBonBayarPickerRender('');
+}
+function hsBonBayarPickerClose() {
+  document.getElementById('hs-bon-bayar-picker-overlay').classList.remove('open');
+}
+function hsBonBayarPickerFilter(q) {
+  _hsBonBayarPickerRender(q);
+}
+function _hsBonBayarPickerRender(q) {
+  var listEl = document.getElementById('hs-bon-bayar-picker-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var belumLunas = _hsBonList.filter(function(b){ return b.status !== 'lunas'; })
+    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+  var items = belumLunas.filter(function(b) {
+    if (!q) return true;
+    var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
+    var label = ((supplier?supplier.nama:'') + ' ' + (b.no_nota||'')).toLowerCase();
+    return label.indexOf(q) !== -1;
+  });
+  listEl.innerHTML = '';
+  if (!items.length) {
+    var empty = document.createElement('div');
+    empty.className = 'hs-picker-empty';
+    empty.textContent = q ? 'Tidak ada bon yang cocok' : 'Semua bon udah lunas 🎉';
+    listEl.appendChild(empty);
+    return;
+  }
+  items.forEach(function(b) {
+    var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
+    var st = _hsSisaBon(b);
+    var it = document.createElement('div');
+    it.className = 'hs-picker-item';
+    it.innerHTML = '<div style="font-weight:700">' + _hsEsc(supplier?supplier.nama:'—') + '</div>' +
+      '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">' + _hsFmtTgl(b.tanggal) + (b.no_nota?' · '+_hsEsc(b.no_nota):'') + ' · Sisa ' + fmtRpFull(st.sisa) + '</div>';
+    it.onclick = function() { hsBonBayarPickerClose(); hsOpenDetailBon(b.id); };
+    listEl.appendChild(it);
+  });
+}
+
+// ─── SHEET: BAYAR UTANG GABUNGAN (1 supplier, multi-bon FIFO) ──
+function hsOpenBayarGabungan(supplierId) {
+  _hsBayarGabSupplierId = supplierId;
+  var supplier = _hsSupplierList.find(function(s){ return s.id===supplierId; });
+  var bons = _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
+    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+  var totalSisa = bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
+
+  document.getElementById('hs-bayar-gab-title').textContent = 'Bayar Utang — ' + (supplier?supplier.nama:'');
+  document.getElementById('hs-bayar-gab-total').textContent = 'Sisa ' + fmtRpFull(totalSisa);
+  document.getElementById('hs-bayar-gab-sub').textContent = bons.length + ' bon belum lunas';
+
+  var listEl = document.getElementById('hs-bayar-gab-list');
+  listEl.innerHTML = bons.length ? bons.map(function(b) {
+    var st = _hsSisaBon(b);
+    return '<div class="hs-detail-item-row">' +
+      '<div><div class="hs-detail-item-nama">' + _hsFmtTgl(b.tanggal) + '</div>' +
+      (b.no_nota ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(b.no_nota) + '</div>' : '') + '</div>' +
+      '<div class="hs-detail-item-sub">' + fmtRpFull(st.sisa) + '</div>' +
+    '</div>';
+  }).join('') : '<div class="hs-empty" style="padding:10px 0">Supplier ini nggak ada bon belum lunas.</div>';
+
+  _hsPopulateAkunSelect('hs-bayar-gab-akun-debit', function(a) {
+    return a.kelompok === 'beban' || a.kelompok === 'kewajiban';
+  });
+  _hsPopulateAkunSelect('hs-bayar-gab-akun-kredit', function(a) {
+    return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+  });
+  document.getElementById('hs-bayar-gab-nominal').value = totalSisa > 0 ? totalSisa.toLocaleString('id-ID') : '';
+  idrInput('hs-bayar-gab-nominal');
+  document.getElementById('hs-bayar-gab-tanggal').value = new Date().toISOString().slice(0,10);
+  document.getElementById('hs-bayar-gab-catatan').value = '';
+
+  hsOpenSheet('hs-sheet-bayar-gab');
+}
+
+async function hsSimpanBayarGabungan() {
+  var supplierId = _hsBayarGabSupplierId;
+  if (!supplierId) return;
+  var bons = _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
+    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+
+  var nominal = idrVal('hs-bayar-gab-nominal');
+  var tanggal = document.getElementById('hs-bayar-gab-tanggal').value;
+  var akunD   = document.getElementById('hs-bayar-gab-akun-debit').value;
+  var akunK   = document.getElementById('hs-bayar-gab-akun-kredit').value;
+  var catatan = document.getElementById('hs-bayar-gab-catatan').value.trim() || null;
+
+  if (!tanggal)  { alert('Tanggal wajib diisi!'); return; }
+  if (!nominal)  { alert('Nominal wajib diisi!'); return; }
+  if (!akunD)    { alert('Pilih akun Debit (Hutang/Beban)!'); return; }
+  if (!akunK)    { alert('Pilih akun Kas/Bank sumber bayar!'); return; }
+  if (!bons.length) { alert('Supplier ini nggak ada bon belum lunas.'); return; }
+
+  var totalSisa = bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
+  if (nominal > totalSisa + 1) {
+    if (!confirm('Nominal (' + fmtRpFull(nominal) + ') lebih besar dari total sisa hutang supplier ini (' + fmtRpFull(totalSisa) + '). Lanjut tetap? (Kelebihannya nggak dialokasikan ke mana-mana)')) return;
+  }
+
+  try {
+    var sisaNominal = nominal;
+    for (var i = 0; i < bons.length && sisaNominal > 0; i++) {
+      var b = bons[i];
+      var st = _hsSisaBon(b);
+      if (st.sisa <= 0) continue;
+      var bagian = Math.min(sisaNominal, st.sisa);
+
+      await dbInsert('hutang_pembayaran', {
+        bon_id: b.id,
+        tanggal: tanggal,
+        nominal: bagian,
+        kas_akun_id: akunK,
+        catatan: catatan,
+      });
+      await dbInsert('jurnal', {
+        tanggal: tanggal,
+        keterangan: 'Bayar hutang barang (gabungan)' + (catatan ? ' — ' + catatan : ''),
+        referensi: b.no_nota || null,
+        tipe: 'keluar',
+        akun_debit_id: akunD,
+        akun_kredit_id: akunK,
+        nominal: bagian,
+        debit: bagian,
+        kredit: bagian,
+      });
+      if (bagian >= st.sisa) {
+        await dbUpdate('hutang_bon', b.id, { status: 'lunas' });
+      }
+      sisaNominal -= bagian;
+    }
+
+    hsCloseSheet('hs-sheet-bayar-gab');
     await loadHutangSupplier();
   } catch(e) {
     alert('Gagal simpan pembayaran: ' + e.message);
