@@ -241,26 +241,18 @@ document.getElementById('page-gadag').innerHTML = `
     }
   }
 
-  /* ── Dropdown menu Jurnal / Kelola Produk ── */
-  .gdg-menu-wrap { position: relative; }
-  .gdg-dropdown-menu {
-    display:none; position:absolute; right:0; top:calc(100% + 6px);
-    background:var(--cream); border:2px solid var(--ink); min-width:190px; z-index:50;
-    box-shadow:0 4px 10px rgba(0,0,0,.35);
+  /* ── Menu navigasi desktop: tab bar mendatar (ganti dropdown lama) ──
+     Cuma dipake di layar lebar; mobile tetep pake gdg-page-dots (lihat
+     media query max-width:900px di bawah, .gdg-menu-wrap di-hide di sana). */
+  .gdg-menu-wrap { display: flex; align-items: center; gap: 20px; }
+  .gdg-tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 4px 1px 8px; font-family: var(--f); font-size: 13px; font-weight: 700;
+    color: var(--gdg-paper, inherit); opacity: .6; cursor: pointer;
+    white-space: nowrap; transition: opacity .15s ease, border-color .15s ease;
   }
-  .gdg-dropdown-menu.open { display:block; }
-  .gdg-dropdown-menu button {
-    display:flex; align-items:center; gap:8px; width:100%; text-align:left;
-    padding:9px 12px; background:none; border:none; border-bottom:1px solid var(--cream2);
-    font-family:var(--f); font-size:13px; font-weight:600; cursor:pointer; color:var(--ink);
-  }
-  .gdg-dropdown-menu button:last-child { border-bottom:none; }
-  .gdg-dropdown-menu button:hover { background:var(--cream2); }
-  .gdg-dropdown-menu button.active { color:var(--ok); }
-  .gdg-menu-group-label {
-    padding: 8px 14px 4px; font-size: 10px; font-weight: 800; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--ink3); border-top: 1px solid var(--ink4);
-  }
+  .gdg-tab-btn:hover { opacity: .9; }
+  .gdg-tab-btn.active { opacity: 1; color: var(--ok); border-bottom-color: var(--ok); }
 
   /* ══ TEMA "BUKU TULIS" — khusus block Gadag ══════════════════════
      Font "More Sugar" ga tersedia buat di-embed (font eksklusif Canva),
@@ -402,23 +394,6 @@ document.getElementById('page-gadag').innerHTML = `
     background: var(--gdg-paper) !important; border: 2.5px solid var(--gdg-ink) !important;
     border-radius: 14px !important;
   }
-  #page-gadag .gdg-dropdown-menu button { color: var(--gdg-ink) !important; font-family: inherit; }
-  /* Hover/active/tap khusus dropdown Jurnal di halaman Gadag — override base
-     .gdg-dropdown-menu button:hover (yang pake var(--cream2) tema dark
-     global #1e1e1e) soalnya nabrak var(--gdg-ink) teks yang juga gelap =
-     teks ilang pas di-hover (kayak kotak hitam kosong). */
-  #page-gadag .gdg-dropdown-menu button:hover { background: rgba(38,34,32,.08) !important; }
-  #page-gadag .gdg-dropdown-menu button.active {
-    background: var(--gdg-ink) !important;
-    color: var(--gdg-paper) !important;
-  }
-  #page-gadag .gdg-dropdown-menu button.active i { color: var(--gdg-paper) !important; }
-  /* Efek klik/tap (mobile gak punya hover) — flash warna kebalik sekejap */
-  #page-gadag .gdg-dropdown-menu button:active {
-    background: var(--gdg-ink) !important;
-    color: var(--gdg-paper) !important;
-  }
-  #page-gadag .gdg-dropdown-menu button:active i { color: var(--gdg-paper) !important; }
   #page-gadag .tbl thead th {
     color: var(--gdg-ink2) !important;
     background: transparent !important; box-shadow: none !important;
@@ -606,17 +581,11 @@ document.getElementById('page-gadag').innerHTML = `
     <div id="gdg-view-heading" style="font-size:20px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Overview</div>
   </div>
   <div class="gdg-menu-wrap" style="flex:none">
-    <button id="gdg-menu-btn" class="btn btn-sm btn-primary" onclick="gdgToggleMenu(event)">
-      <i class="ti ti-menu-2"></i> <span id="gdg-menu-btn-label">Menu</span> <i class="ti ti-chevron-down"></i>
-    </button>
-    <div id="gdg-dropdown-menu" class="gdg-dropdown-menu">
-      <button id="gdg-menu-item-mingguan" onclick="gdgSelectView('mingguan')"><i class="ti ti-calendar-week"></i> Ringkasan Mingguan</button>
-      <button id="gdg-menu-item-pendapatan" onclick="gdgSelectView('pendapatan')"><i class="ti ti-notes"></i> Catatan Pendapatan</button>
-      <button id="gdg-menu-item-riwayat" onclick="gdgSelectView('riwayat')"><i class="ti ti-history"></i> Riwayat</button>
-      <button id="gdg-menu-item-sku" onclick="gdgSelectView('sku')"><i class="ti ti-list-details"></i> Kelola Produk</button>
-      <div class="gdg-menu-group-label">Anggaran</div>
-      <button id="gdg-menu-item-anggaran" onclick="gdgSelectView('anggaran')"><i class="ti ti-wallet"></i> Anggaran</button>
-    </div>
+    <button id="gdg-menu-item-mingguan" class="gdg-tab-btn" onclick="gdgSelectView('mingguan')">Ringkasan Mingguan</button>
+    <button id="gdg-menu-item-pendapatan" class="gdg-tab-btn" onclick="gdgSelectView('pendapatan')">Catatan Pendapatan</button>
+    <button id="gdg-menu-item-riwayat" class="gdg-tab-btn" onclick="gdgSelectView('riwayat')">Riwayat</button>
+    <button id="gdg-menu-item-sku" class="gdg-tab-btn" onclick="gdgSelectView('sku')">Kelola Produk</button>
+    <button id="gdg-menu-item-anggaran" class="gdg-tab-btn" onclick="gdgSelectView('anggaran')">Anggaran</button>
   </div>
   <!-- Dot indikator posisi panel — mobile only, gantiin Menu (di-hide di mobile),
        otomatis kedorong ke kanan lewat justify-content:space-between hdr-row -->
@@ -851,7 +820,7 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:6px">
-      <button class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()"><i class="ti ti-plus"></i> Tambah</button>
+      <button id="gdg-ang-tambah-btn" class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()" style="display:none"><i class="ti ti-plus"></i> Tambah</button>
       <button type="button" class="btn btn-sm" id="gdg-ang-hist-btn" onclick="gdgAngHistOpen(_gdgAngPeriodeAktif)" title="History"><i class="ti ti-history"></i></button>
     </div>
     <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
@@ -1207,26 +1176,9 @@ const _GDG_VIEW_LABEL = {
   anggaran:   { menu: 'Anggaran',  label: 'Anggaran',  heading: 'Anggaran',      icon: 'ti-wallet' },
 };
 
-function gdgToggleMenu(e) {
-  if (e) e.stopPropagation();
-  document.getElementById('gdg-dropdown-menu').classList.toggle('open');
-}
-function gdgCloseMenu() {
-  document.getElementById('gdg-dropdown-menu').classList.remove('open');
-}
-document.addEventListener('click', function(e) {
-  const menu = document.getElementById('gdg-dropdown-menu');
-  const btn  = document.getElementById('gdg-menu-btn');
-  if (!menu || !btn) return;
-  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
-    menu.classList.remove('open');
-  }
-});
-
 function gdgSelectView(view) {
   _gdgView = view;
   gdgApplyView();
-  gdgCloseMenu();
 }
 
 function gdgApplyView() {
@@ -1236,7 +1188,6 @@ function gdgApplyView() {
   document.getElementById('gdg-panel-sku').classList.toggle('active',       _gdgView === 'sku');
   document.getElementById('gdg-panel-anggaran').classList.toggle('active',  _gdgView === 'anggaran');
 
-  document.getElementById('gdg-menu-btn-label').textContent  = _GDG_VIEW_LABEL[_gdgView].label;
   document.getElementById('gdg-view-heading').textContent    = _GDG_VIEW_LABEL[_gdgView].heading;
   document.getElementById('gdg-view-heading-icon').className = 'ti ' + _GDG_VIEW_LABEL[_gdgView].icon;
   // Refresh sekarang selalu tampil di baris judul (semua panel, konsisten).
@@ -2048,6 +1999,10 @@ function gdgAngTogglePeriode() {
   _gdgAngPeriodeAktif = _gdgAngPeriodeAktif === 'bulanan' ? 'mingguan' : 'bulanan';
   const btn = document.getElementById('gdg-ang-mode-btn');
   if (btn) btn.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Bulanan' : 'Mingguan';
+  // Atur Variable Anggaran cuma boleh di mode Bulanan — tombol Tambah
+  // disembunyikan pas Mingguan biar panel Mingguan bersih (read-only).
+  const tambahBtn = document.getElementById('gdg-ang-tambah-btn');
+  if (tambahBtn) tambahBtn.style.display = _gdgAngPeriodeAktif === 'bulanan' ? '' : 'none';
   gdgAngRenderActiveList();
 }
 
