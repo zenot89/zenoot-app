@@ -98,12 +98,14 @@ document.getElementById('page-gadag').innerHTML = `
   #gdg-histpage-overlay {
     display:none; position:fixed; inset:0; z-index:250;
     background:var(--gdg-paper,#f7f2e6);
+    justify-content:center;
   }
   #gdg-histpage-overlay.open { display:flex; }
   #gdg-histpage-page {
-    width:100%; height:100%; height:100dvh;
+    width:100%; max-width:100%; height:100%; height:100dvh;
     background:var(--gdg-paper,#f7f2e6);
     display:flex; flex-direction:column;
+    box-sizing:border-box; overflow-x:hidden;
     transform:translateY(100%);
     transition:transform .28s cubic-bezier(.32,.72,0,1);
   }
@@ -125,17 +127,27 @@ document.getElementById('page-gadag').innerHTML = `
     padding:8px 12px; border:2px solid var(--gdg-ink,#262220); border-radius:10px;
     background:var(--gdg-ink,#262220); color:var(--gdg-paper,#f7f2e6); cursor:pointer;
   }
-  #gdg-histpage-body { flex:1 1 0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 14px 24px; }
+  #gdg-histpage-body { flex:1 1 0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding:12px 14px 24px; box-sizing:border-box; }
   .gdg-histpage-toggle {
     display:flex; gap:6px; margin-bottom:12px;
   }
   .gdg-histpage-toggle button {
-    flex:1; font-family:inherit; font-size:13px; font-weight:800;
+    flex:1; min-width:0; font-family:inherit; font-size:13px; font-weight:800;
     padding:9px 10px; border:2px solid var(--gdg-ink,#262220); border-radius:10px;
     background:var(--gdg-paper,#f7f2e6); color:var(--gdg-ink,#262220); cursor:pointer;
   }
   .gdg-histpage-toggle button.active { background:var(--gdg-ink,#262220); color:var(--gdg-paper,#f7f2e6); }
-  .gdg-histpage-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  /* wkt-picker: dropdown "minggu-minggu sebelumnya" — cuma dipakai kalau
+     History dibuka dari Mingguan & lagi di tab "Minggu Lalu". Native <select>
+     biar simpel (opsinya cuma tanggal, gak butuh search/picker custom). */
+  #gdg-histpage-wkpicker { width:100%; margin-bottom:12px; box-sizing:border-box;
+    font-family:inherit; font-size:13px; font-weight:700; padding:9px 10px;
+    border:2px solid var(--gdg-ink,#262220); border-radius:10px;
+    background:var(--gdg-paper,#f7f2e6); color:var(--gdg-ink,#262220); }
+  .gdg-histpage-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; min-width:0; }
+  .gdg-histpage-cards > .card { min-width:0; }
+  .gdg-histpage-cards .gdg-hero-value { font-size:17px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .gdg-histpage-cards > .card > div { min-width:0; }
   .gdg-histpage-item {
     padding:12px 2px; border-bottom:1px solid var(--gdg-rule,rgba(38,34,32,.15));
   }
@@ -144,6 +156,9 @@ document.getElementById('page-gadag').innerHTML = `
   .gdg-histpage-nama { font-weight:800; font-size:14px; }
   .gdg-histpage-nom { font-weight:800; font-size:14px; }
   .gdg-histpage-sub { font-size:11.5px; color:var(--ink3); margin-top:2px; }
+  @media (min-width:900px) {
+    #gdg-histpage-page { max-width:480px; }
+  }
 
   /* Donut chart — minicard kanan (Penyerapan / Cash Available), sama di
      mode Mingguan maupun Bulanan (cuma label teksnya yg beda per mode,
@@ -902,6 +917,7 @@ document.getElementById('page-gadag').innerHTML = `
       <button type="button" id="gdg-histpage-toggle-ini" class="active" onclick="gdgAngHistSetMode(0)">Bulan Ini</button>
       <button type="button" id="gdg-histpage-toggle-lalu" onclick="gdgAngHistSetMode(1)">Bulan Lalu</button>
     </div>
+    <select id="gdg-histpage-wkpicker" style="display:none" onchange="gdgAngHistWkPickerChange(this.value)"></select>
     <div class="gdg-histpage-cards">
       <div class="card gdg-minicard mc-cost">
         <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Total Cost</div>
@@ -2159,15 +2175,42 @@ function gdgAngRenderBulananList() {
 // "Bulan Ini"/"Bulan Lalu" = kalender bulan murni (tgl 1 - akhir bulan),
 // BUKAN siklus minggu — dipilih biar konsisten dipakai dari 2 pintu masuk
 // (Mingguan & Bulanan) sekaligus.
-let _gdgAngHistMode = 0;              // 0 = bulan ini, 1 = bulan lalu
+// "Bulan Ini"/"Bulan Lalu" = kalender bulan murni (tgl 1 - akhir bulan) —
+// dipakai kalau History dibuka dari panel BULANAN. Kalau dibuka dari panel
+// MINGGUAN, toggle-nya jadi "Minggu Ini"/"Minggu Lalu" (Minggu-Sabtu, sama
+// kayak konvensi minggu di seluruh Gadag — lihat gdgWGetMonday), biar
+// apple-to-apple sama cadence budget-nya (mingguan dibandingin per minggu,
+// bulanan dibandingin per bulan) — BUKAN dua-duanya dipaksa ke bulan kalender.
+let _gdgAngHistMode = 0;              // 0 = periode ini, 1 = periode lalu
 let _gdgAngHistOpenFrom = 'mingguan'; // target periode pas "Pilih akun" — ngikutin dari mana History ini dibuka
 let _gdgAngHistPilihActive = false;   // flag: picker akun berikutnya lagi dipicu dari tombol [Pilih] History (bukan dari + Tambah biasa)
+let _gdgAngHistWeeksBack = 0;         // dipakai CUMA pas openFrom==='mingguan': 0=minggu ini, 1=minggu lalu (default), 2+ = dipilih dari dropdown "minggu sebelumnya"
 
 function gdgAngHistMonthRange(monthsAgo) {
   const now   = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
   const end   = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 0);
   return { start: gdgWToISO(start), end: gdgWToISO(end), label: start.toLocaleDateString('id-ID', { month:'long', year:'numeric' }) };
+}
+
+// Rentang Minggu-Sabtu, weeksBack minggu ke belakang dari minggu berjalan.
+// gdgWGetMonday() namanya nyesatin — hasil aslinya hari Minggu (Sunday, day
+// 0), lihat komentar di definisinya — dipertahanin apa adanya (dipakai luas
+// di modul ini), cuma di-reuse di sini.
+function gdgAngHistWeekRange(weeksBack) {
+  const sun = gdgWGetMonday(new Date());
+  sun.setDate(sun.getDate() - weeksBack * 7);
+  const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+  const label = sun.toLocaleDateString('id-ID', { day:'numeric', month:'short' })
+    + ' – ' + sat.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+  return { start: gdgWToISO(sun), end: gdgWToISO(sat), label: label };
+}
+
+function gdgAngHistCurrentRange() {
+  if (_gdgAngHistOpenFrom === 'mingguan') {
+    return gdgAngHistWeekRange(_gdgAngHistMode === 1 ? _gdgAngHistWeeksBack : 0);
+  }
+  return gdgAngHistMonthRange(_gdgAngHistMode);
 }
 
 // Realisasi per akun langsung by ID (bukan by nama kayak gdgAngHitungRealisasi)
@@ -2186,10 +2229,19 @@ function gdgAngHistTotalByAkunId(akunId, isoStart, isoEnd) {
 async function gdgAngHistOpen(fromPeriode) {
   _gdgAngHistOpenFrom = fromPeriode === 'bulanan' ? 'bulanan' : 'mingguan';
   _gdgAngHistMode = 0;
+  _gdgAngHistWeeksBack = 0;
   const tglIni  = document.getElementById('gdg-histpage-toggle-ini');
   const tglLalu = document.getElementById('gdg-histpage-toggle-lalu');
+  if (_gdgAngHistOpenFrom === 'mingguan') {
+    if (tglIni)  tglIni.textContent  = 'Minggu Ini';
+    if (tglLalu) tglLalu.textContent = 'Minggu Lalu';
+  } else {
+    if (tglIni)  tglIni.textContent  = 'Bulan Ini';
+    if (tglLalu) tglLalu.textContent = 'Bulan Lalu';
+  }
   if (tglIni)  tglIni.classList.add('active');
   if (tglLalu) tglLalu.classList.remove('active');
+  gdgAngHistUpdateWkPicker();
   await gdgWEnsureAkunJurnal();
   await gdgLoadAnggaranBulanan(); // pastiin _gdgAnggaranBulananList ke-load walau History dibuka dari Mingguan (belum pernah buka tab Bulanan)
   const overlay = document.getElementById('gdg-histpage-overlay');
@@ -2216,17 +2268,42 @@ function gdgAngHistOverlayClick(e) {
 
 function gdgAngHistSetMode(mode) {
   _gdgAngHistMode = mode;
+  _gdgAngHistWeeksBack = mode === 1 ? 1 : 0; // tiap kali baru pindah ke tab "lalu", default 1 minggu ke belakang
   const tglIni  = document.getElementById('gdg-histpage-toggle-ini');
   const tglLalu = document.getElementById('gdg-histpage-toggle-lalu');
   if (tglIni)  tglIni.classList.toggle('active', mode === 0);
   if (tglLalu) tglLalu.classList.toggle('active', mode === 1);
+  gdgAngHistUpdateWkPicker();
+  gdgAngHistRender();
+}
+
+// Dropdown "minggu-minggu sebelumnya" — CUMA muncul kalau History dibuka
+// dari panel Mingguan & lagi di tab "Minggu Lalu". Opsinya dilabelin
+// TANGGAL doang (bukan "2 minggu lalu" dst, sesuai diminta), isi 12 minggu
+// ke belakang, rentang tiap opsi tetep Minggu-Sabtu.
+function gdgAngHistUpdateWkPicker() {
+  const wkPicker = document.getElementById('gdg-histpage-wkpicker');
+  if (!wkPicker) return;
+  const show = _gdgAngHistOpenFrom === 'mingguan' && _gdgAngHistMode === 1;
+  wkPicker.style.display = show ? '' : 'none';
+  if (!show) return;
+  let html = '';
+  for (let w = 1; w <= 12; w++) {
+    const r = gdgAngHistWeekRange(w);
+    html += `<option value="${w}"${w === _gdgAngHistWeeksBack ? ' selected' : ''}>${r.label}</option>`;
+  }
+  wkPicker.innerHTML = html;
+}
+
+function gdgAngHistWkPickerChange(val) {
+  _gdgAngHistWeeksBack = parseInt(val, 10) || 1;
   gdgAngHistRender();
 }
 
 async function gdgAngHistRender() {
   const listEl = document.getElementById('gdg-histpage-list');
   if (!listEl) return;
-  const range = gdgAngHistMonthRange(_gdgAngHistMode);
+  const range = gdgAngHistCurrentRange();
 
   // Gabung nama akun dari Variable Anggaran Mingguan + Bulanan, dedupe
   // (case-insensitive) — biar 1 akun gak nongol 2x kalau kebetulan ada di
