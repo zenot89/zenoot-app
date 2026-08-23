@@ -390,7 +390,6 @@ document.getElementById('page-gadag').innerHTML = `
     padding: 5px 12px; font-size: 13px; font-weight: 800;
     background: var(--gdg-paper); color: var(--gdg-ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
     background: var(--gdg-paper) !important; border: 2.5px solid var(--gdg-ink) !important;
     border-radius: 14px !important;
   }

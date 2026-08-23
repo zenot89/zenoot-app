@@ -48,8 +48,6 @@ var _hsLogoReady = fetch('logo.png').then(function(r){ return r.blob(); }).then(
 }).catch(function(){ return null; });
 
 document.getElementById('page-hutang-supplier').innerHTML = `
-  <div id="ops-switcher-hs" class="ch-switcher"></div>
-
   <style>
     /* ═══ TEMA NOTEBOOK (samain kayak Gadag) ═══════════════════════════
        Modul ini beda pendekatan dari gadag.js: SEMUA class .hs-* di sini
@@ -560,7 +558,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
   <!-- ── MODAL: PASTE MASSAL MASTER BARANG ──
        Sama kayak di atas: .modal-overlay/.modal GLOBAL, biar tampilannya
        konsisten & proper kayak Paste Massal SKU di Kelola Produk. Kolom
-       data & instruksinya TETAP beda (khusus Hutang Supplier), cuma
+       data & instruksinya TETAP beda (khusus Hutang Barang), cuma
        bungkus/tampilannya yang disamain. -->
   <div class="modal-overlay" id="hs-sheet-paste-barang">
     <div class="modal" style="max-width:560px">
@@ -1901,7 +1899,7 @@ async function hsSimpanBayar() {
 
     await dbInsert('jurnal', {
       tanggal: tanggal,
-      keterangan: 'Bayar hutang supplier' + (catatan ? ' — ' + catatan : ''),
+      keterangan: 'Bayar hutang barang' + (catatan ? ' — ' + catatan : ''),
       referensi: b.no_nota || null,
       tipe: 'keluar',
       akun_debit_id: akunD,
@@ -2237,7 +2235,7 @@ function _hsFmtTgl(iso) {
 
 // ─── AUTO-INIT ────────────────────────────────────────────────
 // Dua lapis, pola sama persis kayak gadag.js — biar gak blank:
-// 1. Event listener — navigasi normal (user klik menu "Hutang Supplier" di
+// 1. Event listener — navigasi normal (user klik menu "Hutang Barang" di
 //    sidebar setelah script ini udah ke-load).
 // 2. Fallback langsung — kalau #page-hutang-supplier UDAH aktif saat script
 //    ini selesai load (race condition: user klik menu duluan sebelum file
