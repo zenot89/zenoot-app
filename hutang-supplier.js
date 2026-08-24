@@ -102,22 +102,19 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     #hs-hdr-refresh { flex:none; background:none; border:none; padding:2px; cursor:pointer; font-size:20px; line-height:1; color:var(--ink); }
     #hs-hdr-icon { font-size:20px; flex:none; }
     #hs-hdr-heading { font-size:20px; font-weight:800; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    .hs-menu-wrap { position:relative; flex:none; }
-    #hs-menu-btn { display:flex; align-items:center; gap:6px; }
-    .hs-dropdown-menu {
-      display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:190px;
-      background:var(--cream); border:2px solid var(--ink); border-radius:12px;
-      box-shadow:2px 3px 0 rgba(38,34,32,0.15); overflow:hidden; z-index:60;
+    /* ── Menu navigasi desktop: tab bar mendatar (ganti dropdown lama, pola
+       sama persis kayak Gadag Overview) — cuma dipake di layar lebar; mobile
+       tetep pake hs-page-dots (lihat media query max-width:900px di bawah,
+       .hs-menu-wrap di-hide di sana). ── */
+    .hs-menu-wrap { display:flex; align-items:center; gap:18px; flex:none; }
+    .hs-tab-btn {
+      background:none; border:none; border-bottom:2px solid transparent;
+      padding:4px 1px 8px; font-family:var(--f); font-size:13px; font-weight:800;
+      color:var(--ink2); opacity:.65; cursor:pointer; white-space:nowrap;
+      transition:opacity .15s ease, border-color .15s ease, color .15s ease;
     }
-    .hs-dropdown-menu.open { display:block; }
-    .hs-dropdown-menu button {
-      display:flex; align-items:center; gap:8px; width:100%; text-align:left;
-      padding:10px 14px; background:none; border:none; border-bottom:1px solid var(--ink4);
-      font-family:var(--f); font-size:13.5px; font-weight:700; color:var(--ink); cursor:pointer;
-    }
-    .hs-dropdown-menu button:last-child { border-bottom:none; }
-    .hs-dropdown-menu button:hover { background:rgba(38,34,32,.06); }
-    .hs-dropdown-menu button.active { background:var(--ink); color:var(--cream) !important; }
+    .hs-tab-btn:hover { opacity:.9; }
+    .hs-tab-btn.active { opacity:1; color:var(--ink); border-bottom-color:var(--ink); }
     .hs-page-dots { display:none; }
     @media (max-width:900px) {
       .hs-page-dots { display:flex; align-items:center; gap:6px; flex:none; }
@@ -127,6 +124,18 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       /* Paste Massal cuma proper dikerjain di laptop (paste dari Excel) —
          di HP disembunyikan aja, versi desktop TETAP full (di atas 900px). */
       #hs-paste-massal-btn { display:none !important; }
+      /* Master Barang di HP: cuma buat LIAT, semua CRUD (tambah/hapus/edit)
+         dihandle di versi laptop. Toolbar disembunyikan, tabel dipotong jadi
+         4 kolom (No & SKU Supplier disembunyikan) biar gak perlu geser kanan-
+         kiri, dan interaksi tap/long-press-edit dimatiin di JS (lihat
+         hsRenderMasterList). */
+      .hs-master-toolbar-desktop { display:none !important; }
+      .hs-table-wrap { overflow-x:visible; }
+      .hs-table { min-width:0; width:100%; table-layout:fixed; }
+      .hs-table th:nth-child(1), .hs-table td:nth-child(1),
+      .hs-table th:nth-child(4), .hs-table td:nth-child(4) { display:none; }
+      .hs-table th, .hs-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
+      .hs-table tbody tr { cursor:default; }
     }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
@@ -380,15 +389,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div id="hs-hdr-heading">Overview</div>
     </div>
     <div class="hs-menu-wrap">
-      <button id="hs-menu-btn" class="hs-btn-pill hs-btn-primary" onclick="hsToggleMenu(event)">
-        <i class="ti ti-menu-2"></i> <span id="hs-menu-btn-label">Overview</span> <i class="ti ti-chevron-down"></i>
-      </button>
-      <div id="hs-dropdown-menu" class="hs-dropdown-menu">
-        <button id="hs-menu-item-overview" class="active" onclick="hsSwitchView('overview')"><i class="ti ti-chart-donut"></i> Overview</button>
-        <button id="hs-menu-item-bon" onclick="hsSwitchView('bon')"><i class="ti ti-receipt"></i> Bon</button>
-        <button id="hs-menu-item-pembayaran" onclick="hsSwitchView('pembayaran')"><i class="ti ti-cash"></i> Riwayat Bayar</button>
-        <button id="hs-menu-item-master" onclick="hsSwitchView('master')"><i class="ti ti-list-details"></i> Master Barang</button>
-      </div>
+      <button id="hs-menu-item-overview" class="hs-tab-btn active" onclick="hsSwitchView('overview')">Overview</button>
+      <button id="hs-menu-item-bon" class="hs-tab-btn" onclick="hsSwitchView('bon')">Bon</button>
+      <button id="hs-menu-item-pembayaran" class="hs-tab-btn" onclick="hsSwitchView('pembayaran')">Riwayat Bayar</button>
+      <button id="hs-menu-item-master" class="hs-tab-btn" onclick="hsSwitchView('master')">Master Barang</button>
     </div>
     <div id="hs-page-dots" class="hs-page-dots">
       <span class="hs-page-dot active" onclick="hsSwitchView('overview')"></span>
@@ -422,7 +426,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
     <div id="hs-panel-master" class="hs-panel">
       <div id="hs-master-switcher" class="hs-bon-switcher"></div>
-      <div class="hs-toolbar">
+      <div class="hs-toolbar hs-master-toolbar-desktop">
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBarang()"><i class="ti ti-plus"></i> Tambah Barang</button>
         <button id="hs-paste-massal-btn" class="hs-btn-pill hs-btn-ghost" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
       </div>
@@ -773,7 +777,6 @@ function hsSwitchView(view) {
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
-  document.getElementById('hs-menu-btn-label').textContent = _HS_VIEW_LABEL[view].label;
   _HS_VIEW_ORDER.forEach(function(v) {
     document.getElementById('hs-menu-item-' + v).classList.toggle('active', v === view);
   });
@@ -781,29 +784,10 @@ function hsSwitchView(view) {
   Array.prototype.forEach.call(dotsEl.children, function(dot, i) {
     dot.classList.toggle('active', _HS_VIEW_ORDER[i] === view);
   });
-  hsCloseMenu();
   hsRenderSupplierCards();
   hsRenderBonList();
   hsRenderMasterList();
 }
-
-// ─── Dropdown menu (desktop) ────────────────────────────────
-function hsToggleMenu(e) {
-  if (e) e.stopPropagation();
-  document.getElementById('hs-dropdown-menu').classList.toggle('open');
-}
-function hsCloseMenu() {
-  var m = document.getElementById('hs-dropdown-menu');
-  if (m) m.classList.remove('open');
-}
-document.addEventListener('click', function(e) {
-  var menu = document.getElementById('hs-dropdown-menu');
-  var btn  = document.getElementById('hs-menu-btn');
-  if (!menu || !btn) return;
-  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) {
-    menu.classList.remove('open');
-  }
-});
 
 // ─── Swipe antar panel (mobile only) — pola sama persis kayak Gadag ──
 // (edge-guard 24px biar gak rebutan sama swipe-back OS, threshold 40px/flick
@@ -1345,9 +1329,14 @@ function hsRenderMasterList() {
     return;
   }
 
+  // Master Barang di HP cuma buat LIAT — semua tambah/edit/hapus dihandle
+  // di versi laptop, jadi tap-to-edit & long-press-edit dimatiin di sini.
+  var isMobile = window.innerWidth <= 900;
+
   el.innerHTML = list.map(function(b, i) {
     var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
-    return '<tr data-id="' + b.id + '" onclick="hsOpenEditBarang(' + b.id + ')">' +
+    var rowAttr = isMobile ? '' : ' onclick="hsOpenEditBarang(' + b.id + ')"';
+    return '<tr data-id="' + b.id + '"' + rowAttr + '>' +
       '<td>' + (i+1) + '</td>' +
       '<td>' + _hsEsc(b.katalog_produk) + '</td>' +
       '<td>' + _hsEsc(b.varian_warna || '—') + '</td>' +
@@ -1357,7 +1346,9 @@ function hsRenderMasterList() {
     '</tr>';
   }).join('');
 
-  _hsInitLongPress('hs-master-list', function(id) { hsOpenEditBarang(parseInt(id,10)); });
+  if (!isMobile) {
+    _hsInitLongPress('hs-master-list', function(id) { hsOpenEditBarang(parseInt(id,10)); });
+  }
 }
 
 // ─── OVERVIEW ───────────────────────────────────────────────
