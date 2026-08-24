@@ -421,6 +421,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
 
     <div id="hs-panel-master" class="hs-panel">
+      <div id="hs-master-switcher" class="hs-bon-switcher"></div>
       <div class="hs-toolbar">
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBarang()"><i class="ti ti-plus"></i> Tambah Barang</button>
         <button id="hs-paste-massal-btn" class="hs-btn-pill hs-btn-ghost" onclick="hsShowPasteBarang()"><i class="ti ti-clipboard"></i> Paste Massal</button>
@@ -768,7 +769,7 @@ function hsSwitchView(view) {
     if (panel) panel.classList.toggle('active', v === view);
   });
   var supRow = document.getElementById('hs-supplier-row');
-  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon') ? 'none' : '';
+  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon' || view === 'master') ? 'none' : '';
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
@@ -783,6 +784,7 @@ function hsSwitchView(view) {
   hsCloseMenu();
   hsRenderSupplierCards();
   hsRenderBonList();
+  hsRenderMasterList();
 }
 
 // ─── Dropdown menu (desktop) ────────────────────────────────
@@ -883,18 +885,13 @@ function hsRenderSupplierCards() {
 
   // Overview = ringkasan lintas-supplier, gak butuh filter per-supplier di sini
   if (_hsView === 'overview') { el.innerHTML = ''; return; }
-  // Tab Bon (Jurnal Re-Stock) pake hs-bon-switcher (total + kotak nama supplier
-  // swipeable), bukan row mini-card ini lagi — biar lebih simple & gak dobel filter.
-  if (_hsView === 'bon') { el.innerHTML = ''; return; }
+  // Tab Bon (Jurnal Re-Stock) & Master Barang pake hs-bon-switcher/hs-master-switcher
+  // (total + kotak nama supplier swipeable), bukan row mini-card ini lagi — biar
+  // gak numpuk 1 kartu per supplier tiap supplier baru ditambah.
+  if (_hsView === 'bon' || _hsView === 'master') { el.innerHTML = ''; return; }
 
-  var totals = {};
-  _hsBonList.forEach(function(b) {
-    if (b.status === 'lunas') return;
-    var s = _hsSisaBon(b).sisa;
-    totals[b.supplier_id] = (totals[b.supplier_id] || 0) + s;
-  });
-  var totalSemua = Object.values(totals).reduce(function(s,v){ return s+v; }, 0);
-
+  // Titik ini cuma kesisa tab Riwayat Bayar (overview/bon/master udah return
+  // duluan di atas) — biarpun gitu tetep pake nama var payTotals dkk biar jelas.
   var payTotals = {};
   _hsPembayaranAll.forEach(function(p) {
     var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
@@ -904,40 +901,21 @@ function hsRenderSupplierCards() {
   var payTotalSemua = Object.values(payTotals).reduce(function(s,v){ return s+v; }, 0);
 
   var html = '<div class="hs-sup-card' + (_hsFilterSupplier===null?' active':'') + '" onclick="hsSelectSupplierFilter(null)">' +
-    '<div class="hs-sup-card-nama">Semua Supplier</div>';
-  if (_hsView === 'bon') {
-    html += '<div class="hs-sup-card-total">' + fmtRpFull(totalSemua) + '</div>' +
-      '<div class="hs-sup-card-sub">' + _hsBonList.filter(function(b){return b.status!=='lunas';}).length + ' bon belum lunas</div>';
-  } else if (_hsView === 'pembayaran') {
-    html += '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotalSemua) + '</div>' +
-      '<div class="hs-sup-card-sub">' + _hsPembayaranAll.length + ' total dibayar</div>';
-  } else {
-    html += '<div class="hs-sup-card-total" style="color:var(--ink)">' + _hsBarangMaster.length + '</div>' +
-      '<div class="hs-sup-card-sub">total barang</div>';
-  }
-  html += '</div>';
+    '<div class="hs-sup-card-nama">Semua Supplier</div>' +
+    '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotalSemua) + '</div>' +
+    '<div class="hs-sup-card-sub">' + _hsPembayaranAll.length + ' total dibayar</div>' +
+  '</div>';
 
   html += _hsSupplierList.map(function(s) {
-    var card = '<div class="hs-sup-card' + (_hsFilterSupplier===s.id?' active':'') + '" onclick="hsSelectSupplierFilter(' + s.id + ')">' +
-      '<div class="hs-sup-card-nama">' + _hsEsc(s.nama) + '</div>';
-    if (_hsView === 'bon') {
-      var jml = _hsBonList.filter(function(b){ return b.supplier_id===s.id && b.status!=='lunas'; }).length;
-      card += '<div class="hs-sup-card-total">' + fmtRpFull(totals[s.id]||0) + '</div>' +
-        '<div class="hs-sup-card-sub">' + jml + ' bon belum lunas</div>';
-    } else if (_hsView === 'pembayaran') {
-      var jmlBayar = _hsPembayaranAll.filter(function(p){
-        var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
-        return bon && bon.supplier_id===s.id;
-      }).length;
-      card += '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotals[s.id]||0) + '</div>' +
-        '<div class="hs-sup-card-sub">' + jmlBayar + ' kali bayar</div>';
-    } else {
-      var jmlBrg = _hsBarangMaster.filter(function(b){ return b.supplier_id===s.id; }).length;
-      card += '<div class="hs-sup-card-total" style="color:var(--ink)">' + jmlBrg + '</div>' +
-        '<div class="hs-sup-card-sub">barang terdaftar</div>';
-    }
-    card += '</div>';
-    return card;
+    var jmlBayar = _hsPembayaranAll.filter(function(p){
+      var bon = _hsBonList.find(function(b){ return b.id===p.bon_id; });
+      return bon && bon.supplier_id===s.id;
+    }).length;
+    return '<div class="hs-sup-card' + (_hsFilterSupplier===s.id?' active':'') + '" onclick="hsSelectSupplierFilter(' + s.id + ')">' +
+      '<div class="hs-sup-card-nama">' + _hsEsc(s.nama) + '</div>' +
+      '<div class="hs-sup-card-total" style="color:var(--ok)">' + fmtRpFull(payTotals[s.id]||0) + '</div>' +
+      '<div class="hs-sup-card-sub">' + jmlBayar + ' kali bayar</div>' +
+    '</div>';
   }).join('');
 
   el.innerHTML = html;
@@ -977,25 +955,60 @@ function hsRenderBonSwitcher() {
   if (exportBtn) exportBtn.style.display = sup ? '' : 'none';
 }
 
-function hsToggleSupplierDropdown(e) {
+// ─── SWITCHER SUPPLIER (tab Master Barang) ─────────────────────
+// Sama persis konsepnya kayak hsRenderBonSwitcher di atas (2 kotak tetap:
+// [kotak Supplier switcher] + [kotak Total Barang]), GANTI dari hs-supplier-row
+// (1 kartu per supplier) — kalau supplier terus nambah, row lama itu bakal
+// numpuk kartu terus, gak scalable. 23 Agu 2026, poin 2.
+function hsRenderMasterSwitcher() {
+  var el = document.getElementById('hs-master-switcher');
+  if (!el) return;
+
+  var sup = _hsFilterSupplier === null ? null : _hsSupplierList.find(function(s){ return s.id === _hsFilterSupplier; });
+  var label = sup ? sup.nama : 'Semua Supplier';
+  var jmlBarang = sup
+    ? _hsBarangMaster.filter(function(b){ return b.supplier_id === sup.id; }).length
+    : _hsBarangMaster.length;
+
+  el.innerHTML =
+    '<div class="hs-bon-switcher-sup" id="hs-master-switcher-sup" onclick="hsToggleSupplierDropdown(event,\'master\')">' +
+      '<span>' + _hsEsc(label) + '</span><i class="ti ti-chevron-down"></i>' +
+      '<div class="hs-bon-switcher-dropdown" id="hs-master-switcher-dropdown">' +
+        '<button class="' + (_hsFilterSupplier===null?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(null);hsCloseSupplierDropdown(\'master\')">Semua Supplier</button>' +
+        _hsSupplierList.map(function(s) {
+          return '<button class="' + (_hsFilterSupplier===s.id?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(' + s.id + ');hsCloseSupplierDropdown(\'master\')">' + _hsEsc(s.nama) + '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+    '<div class="hs-bon-switcher-total" style="color:var(--ink)">' + jmlBarang + ' <span style="font-size:12px;font-weight:600;opacity:.7">barang</span></div>';
+}
+
+// prefix: 'bon' (default, switcher Jurnal Re-Stock) atau 'master' (switcher
+// Master Barang) — dua-duanya reuse CSS/markup .hs-bon-switcher* yang sama,
+// cuma beda id container aja.
+function hsToggleSupplierDropdown(e, prefix) {
+  prefix = prefix || 'bon';
   if (e) e.stopPropagation();
-  var box = document.getElementById('hs-bon-switcher-sup');
-  var dd  = document.getElementById('hs-bon-switcher-dropdown');
+  var box = document.getElementById('hs-' + prefix + '-switcher-sup');
+  var dd  = document.getElementById('hs-' + prefix + '-switcher-dropdown');
   if (!box || !dd) return;
   var open = dd.classList.toggle('open');
   box.classList.toggle('open', open);
 }
-function hsCloseSupplierDropdown() {
-  var box = document.getElementById('hs-bon-switcher-sup');
-  var dd  = document.getElementById('hs-bon-switcher-dropdown');
+function hsCloseSupplierDropdown(prefix) {
+  prefix = prefix || 'bon';
+  var box = document.getElementById('hs-' + prefix + '-switcher-sup');
+  var dd  = document.getElementById('hs-' + prefix + '-switcher-dropdown');
   if (dd) dd.classList.remove('open');
   if (box) box.classList.remove('open');
 }
 document.addEventListener('click', function(e) {
-  var dd  = document.getElementById('hs-bon-switcher-dropdown');
-  var box = document.getElementById('hs-bon-switcher-sup');
-  if (!dd || !box) return;
-  if (dd.classList.contains('open') && !box.contains(e.target)) hsCloseSupplierDropdown();
+  ['bon', 'master'].forEach(function(prefix) {
+    var dd  = document.getElementById('hs-' + prefix + '-switcher-dropdown');
+    var box = document.getElementById('hs-' + prefix + '-switcher-sup');
+    if (!dd || !box) return;
+    if (dd.classList.contains('open') && !box.contains(e.target)) hsCloseSupplierDropdown(prefix);
+  });
 });
 
 // Cycle order: [null (Semua Supplier), ...supplier sesuai _hsSupplierList].
@@ -1008,19 +1021,21 @@ function hsCycleSupplierFilter(dir) {
   hsSelectSupplierFilter(order[next]);
 }
 
-// Swipe di kotak nama supplier — event delegation di parent statis (#hs-bon-switcher)
+// Swipe di kotak nama supplier — event delegation di parent statis
+// (#hs-bon-switcher / #hs-master-switcher, dua-duanya pake fungsi generik ini)
 // karena innerHTML kotak ini di-render ulang tiap ganti filter. stopPropagation() di
 // touchstart WAJIB biar gak bentrok/dobel-kepencet sama swipe global antar-panel
 // (#hs-panels-wrap di bawah, yg pindah Overview/Bon/Riwayat Bayar/Master Barang) —
 // begitu propagation diputus di titik ini, listener swipe global gak akan pernah
 // tau ada sentuhan sama sekali (dia baru mulai "tracking" dari touchstart-nya sendiri).
-(function() {
-  var parent = document.getElementById('hs-bon-switcher');
+function _hsInitSwitcherSwipe(prefix) {
+  var parent = document.getElementById('hs-' + prefix + '-switcher');
   if (!parent) return;
+  var boxSel = '#hs-' + prefix + '-switcher-sup';
   var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null, swiped = false;
 
   parent.addEventListener('touchstart', function(e) {
-    var box = e.target.closest('#hs-bon-switcher-sup');
+    var box = e.target.closest(boxSel);
     if (!box) return;
     e.stopPropagation();
     startX = e.touches[0].clientX; startY = e.touches[0].clientY; startT = Date.now();
@@ -1054,11 +1069,13 @@ function hsCycleSupplierFilter(dir) {
   // Tap buat buka dropdown — di-skip kalau sentuhan barusan adalah swipe (nge-geser
   // beneran), biar swipe gak ke-double sebagai "tap" juga.
   parent.addEventListener('click', function(e) {
-    var box = e.target.closest('#hs-bon-switcher-sup');
+    var box = e.target.closest(boxSel);
     if (!box) return;
     if (swiped) { swiped = false; e.stopPropagation(); e.preventDefault(); }
   }, true);
-})();
+}
+_hsInitSwitcherSwipe('bon');
+_hsInitSwitcherSwipe('master');
 
 function hsSelectSupplierFilter(id) {
   _hsFilterSupplier = id;
@@ -1274,12 +1291,15 @@ function hsRenderBonList() {
 
   hsRenderBonSwitcher();
 
+  // Poin 4 (23 Agu 2026): Jurnal Re-Stock cuma nampilin bon yang BELUM lunas —
+  // bon yang udah lunas tetep kesimpen di DB & keitung di Riwayat Bayar,
+  // cuma gak numpuk di list ini lagi.
   var list = _hsBonList.filter(function(b) {
-    return _hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier;
+    return (_hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier) && b.status !== 'lunas';
   });
 
   if (!list.length) {
-    el.innerHTML = '<div class="hs-empty">Belum ada bon' + (_hsFilterSupplier?' dari supplier ini':'') + '.</div>';
+    el.innerHTML = '<div class="hs-empty">' + (_hsFilterSupplier ? 'Semua bon dari supplier ini udah lunas.' : 'Semua bon udah lunas.') + '</div>';
     return;
   }
 
@@ -1313,6 +1333,8 @@ function hsRenderBonList() {
 function hsRenderMasterList() {
   var el = document.getElementById('hs-master-list');
   if (!el) return;
+
+  hsRenderMasterSwitcher();
 
   var list = _hsBarangMaster.filter(function(b) {
     return _hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier;
@@ -2522,3 +2544,25 @@ document.addEventListener('zenot:page', function(e) {
 if (document.body.dataset.page === 'hutang-supplier') {
   setTimeout(loadHutangSupplier, 100);
 }
+
+// ── LAPIS KE-3 (poin 3, 24 Agu 2026): resume dari background ──
+// 2 lapis di atas cuma nge-cover "navigasi/load script" — gak ada satupun
+// yang nge-trigger pas app di-CLOSE (background) lalu DIBUKA LAGI tanpa
+// full reload (kejadian umum di PWA standalone: OS nge-suspend WebView-nya,
+// bukan matiin proses). Kalau user lagi mantengin tab Riwayat Bayar terus
+// nutup app, state JS (termasuk _hsPembayaranAll) diem aja di kondisi
+// terakhir — gak ada yang refetch, jadi keliatan "kosong"/nggak update
+// sampe di-refresh manual. Fix: dengerin 'visibilitychange' (Android) dan
+// 'pageshow' persisted/bfcache (iOS Safari) — begitu app balik ke depan
+// DAN halaman aktifnya emang hutang-supplier, refetch otomatis. Pola ini
+// udah dipake di networth.js buat kasus yang sama persis.
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && document.body.dataset.page === 'hutang-supplier') {
+    loadHutangSupplier();
+  }
+});
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted && document.body.dataset.page === 'hutang-supplier') {
+    loadHutangSupplier();
+  }
+});
