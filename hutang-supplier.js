@@ -152,14 +152,19 @@ document.getElementById('page-hutang-supplier').innerHTML = `
          25 Agu 2026. */
       .hs-table-wrap:has(.hs-master-table),
       .hs-table-wrap:has(.hs-supplier-table) { overflow-x:auto; }
-      .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
+      /* #page-hutang-supplier di depan WAJIB (2 selector, bukan 1) — .hs-table
+         base rule (min-width:540px) posisinya lebih belakang di file dan
+         sama-sama 1-class specificity, jadi tanpa penguat ini dia yang
+         menang meski kalah spesifik secara media query. Naikin specificity
+         di sini biar menang PASTI, gak gantung urutan source. 25 Agu 2026. */
+      #page-hutang-supplier .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
       .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:6px 4px; font-size:10.5px; }
       .hs-master-table th:nth-child(1), .hs-master-table td:nth-child(1) { width:8%; text-align:center; }
       .hs-master-table th:nth-child(2), .hs-master-table td:nth-child(2) { width:26%; }
       .hs-master-table th:nth-child(3), .hs-master-table td:nth-child(3) { width:40%; }
       .hs-master-table th:nth-child(4), .hs-master-table td:nth-child(4) { width:26%; }
       .hs-master-table tbody tr { cursor:default; }
-      .hs-supplier-table { min-width:0; width:100%; table-layout:fixed; }
+      #page-hutang-supplier .hs-supplier-table { min-width:0; width:100%; table-layout:fixed; }
       .hs-supplier-table th, .hs-supplier-table td { white-space:normal; word-break:break-word; padding:7px 5px; font-size:11px; }
       .hs-supplier-table th:nth-child(1), .hs-supplier-table td:nth-child(1) { width:38%; text-align:left; }
       .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:32%; }
@@ -513,7 +518,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <table class="hs-table hs-supplier-table">
           <thead>
             <tr>
-              <th>Nama Supplier</th><th>Sistem</th><th>Lead Time</th>
+              <th>Nama Supplier</th><th>Lead Time</th><th>Sistem</th>
             </tr>
           </thead>
           <tbody id="hs-supplier-master-list"></tbody>
@@ -1516,8 +1521,8 @@ function hsRenderSupplierMasterList() {
     var jl = _HS_JENIS_LABEL[jenis];
     return '<tr data-id="' + s.id + '" onclick="hsOpenEditSupplierMaster(' + s.id + ')">' +
       '<td>' + _hsEsc(s.nama) + '</td>' +
-      '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span></td>' +
       '<td>' + _hsLeadTimeLabel(s) + '</td>' +
+      '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span></td>' +
     '</tr>';
   }).join('');
 }
