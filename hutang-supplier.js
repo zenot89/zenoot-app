@@ -126,14 +126,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       #hs-paste-massal-btn { display:none !important; }
       /* Master Barang di HP: cuma buat LIAT, semua CRUD (tambah/hapus/edit)
          dihandle di versi laptop. Toolbar disembunyikan, tabel dipotong jadi
-         4 kolom (No & SKU Supplier disembunyikan) biar gak perlu geser kanan-
-         kiri, dan interaksi tap/long-press-edit dimatiin di JS (lihat
-         hsRenderMasterList). */
+         3 kolom — SKU Induk, Variant, HPP/Lusin (No, SKU Supplier, Supplier
+         disembunyikan) biar gak perlu geser kanan-kiri, dan interaksi
+         tap/long-press-edit dimatiin di JS (lihat hsRenderMasterList). */
       .hs-master-toolbar-desktop { display:none !important; }
       .hs-table-wrap { overflow-x:visible; }
       .hs-table { min-width:0; width:100%; table-layout:fixed; }
       .hs-table th:nth-child(1), .hs-table td:nth-child(1),
-      .hs-table th:nth-child(4), .hs-table td:nth-child(4) { display:none; }
+      .hs-table th:nth-child(4), .hs-table td:nth-child(4),
+      .hs-table th:nth-child(5), .hs-table td:nth-child(5) { display:none; }
       .hs-table th, .hs-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
       .hs-table tbody tr { cursor:default; }
     }
@@ -182,6 +183,22 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-badge-belum { background:rgba(230,168,23,.15); color:var(--warn); }
     .hs-badge-cicil { background:rgba(62,207,106,.12); color:var(--ok); }
     .hs-badge-lunas { background:rgba(62,207,106,.22); color:var(--ok); }
+    .hs-badge-po    { background:rgba(47,111,176,.15); color:var(--info); }
+
+    /* ── Kelola Supplier: badge jenis + radio pilih jenis ── */
+    .hs-jenis-badge {
+      display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800;
+      padding:3px 9px; border-radius:10px; white-space:nowrap;
+    }
+    .hs-jenis-dropship { background:rgba(47,111,176,.15); color:var(--info); }
+    .hs-jenis-reseller { background:rgba(181,69,61,.12); color:var(--danger); }
+    .hs-jenis-radio {
+      flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+      padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
+      font-size:13px; font-weight:700; color:var(--ink2); transition:border-color .15s ease, color .15s ease;
+    }
+    .hs-jenis-radio input { accent-color:var(--ink); }
+    .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--ink); background:var(--cream2); }
     .hs-bon-sub  { font-size:11.5px; color:var(--ink3); margin-top:3px; }
     .hs-bon-sisa { font-size:13px; font-weight:700; color:var(--danger); margin-top:2px; }
     .hs-empty { text-align:center; padding:40px 12px; color:var(--ink3); font-size:13px; }
@@ -393,12 +410,14 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <button id="hs-menu-item-bon" class="hs-tab-btn" onclick="hsSwitchView('bon')">Bon</button>
       <button id="hs-menu-item-pembayaran" class="hs-tab-btn" onclick="hsSwitchView('pembayaran')">Riwayat Bayar</button>
       <button id="hs-menu-item-master" class="hs-tab-btn" onclick="hsSwitchView('master')">Master Barang</button>
+      <button id="hs-menu-item-supplier" class="hs-tab-btn" onclick="hsSwitchView('supplier')">Kelola Supplier</button>
     </div>
     <div id="hs-page-dots" class="hs-page-dots">
       <span class="hs-page-dot active" onclick="hsSwitchView('overview')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('bon')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('pembayaran')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('master')"></span>
+      <span class="hs-page-dot" onclick="hsSwitchView('supplier')"></span>
     </div>
   </div>
 
@@ -442,6 +461,60 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         </table>
       </div>
     </div>
+
+    <div id="hs-panel-supplier" class="hs-panel">
+      <div class="hs-toolbar hs-master-toolbar-desktop">
+        <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahSupplierMaster()"><i class="ti ti-plus"></i> Tambah Supplier</button>
+      </div>
+      <div class="hs-item-hint hs-master-toolbar-desktop" style="margin-bottom:12px">
+        <b>Dropship</b>: suplier ngirim langsung hari itu juga, gak perlu PO — dipilih di Tambah Bon langsung jadi hutang aktif.<br>
+        <b>Reseller</b>: harus PO dulu (bisa uang muka), baru jalan pas barang jadi — otomatis muncul badge "PO" di tab Bon sampai ditandai diterima.
+      </div>
+      <div class="hs-divider"></div>
+      <div class="hs-table-wrap">
+        <table class="hs-table">
+          <thead>
+            <tr>
+              <th>Nama Supplier</th><th>Sistem</th>
+            </tr>
+          </thead>
+          <tbody id="hs-supplier-master-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: TAMBAH / EDIT SUPPLIER ── -->
+  <div class="modal-overlay" id="hs-sheet-supplier-master">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-title" id="hs-sup-form-title"><i class="ti ti-truck"></i> Tambah Supplier</div>
+      <input type="hidden" id="hs-supm-id">
+      <div class="hs-form-group">
+        <label>Nama Supplier</label>
+        <input type="text" id="hs-supm-nama" placeholder="mis: RH">
+      </div>
+      <div class="hs-form-group">
+        <label>Sistem</label>
+        <div style="display:flex;gap:8px">
+          <label class="hs-jenis-radio" id="hs-supm-jenis-dropship-wrap">
+            <input type="radio" name="hs-supm-jenis" value="dropship" checked>
+            <i class="ti ti-truck-delivery"></i> Dropship
+          </label>
+          <label class="hs-jenis-radio" id="hs-supm-jenis-reseller-wrap">
+            <input type="radio" name="hs-supm-jenis" value="reseller">
+            <i class="ti ti-file-invoice"></i> Reseller
+          </label>
+        </div>
+        <div class="hs-item-hint" style="margin-top:8px">
+          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka), lead time bisa berminggu-minggu.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="hsSimpanSupplierMaster()"><i class="ti ti-check"></i> Simpan</button>
+        <button class="btn btn-danger btn-sm" id="hs-supm-btn-hapus" style="display:none" onclick="hsHapusSupplierMaster()"><i class="ti ti-trash"></i> Hapus</button>
+        <button class="btn btn-sm" onclick="closeModal('hs-sheet-supplier-master')">Batal</button>
+      </div>
+    </div>
   </div>
 
   <!-- ── SHEET: TAMBAH / EDIT BON ── -->
@@ -458,6 +531,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
           <label>Supplier</label>
           <select id="hs-bon-supplier-select" onchange="hsOnBonSupplierChange()"></select>
           <input type="text" id="hs-bon-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px" oninput="hsOnBonSupplierBaruInput()">
+          <div id="hs-bon-jenis-hint" class="hs-item-hint" style="margin-top:8px"></div>
         </div>
         <div class="hs-row-2">
           <div class="hs-form-group">
@@ -479,7 +553,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div class="hs-sheet-footer" style="display:flex;gap:8px">
         <button class="hs-btn-pill hs-btn-danger" id="hs-bon-btn-hapus" style="display:none" onclick="hsHapusBon()"><i class="ti ti-trash"></i> Hapus</button>
-        <button class="hs-btn-pill hs-btn-primary" style="flex:1;justify-content:center" onclick="hsSimpanBon()">Simpan</button>
+        <button class="hs-btn-pill hs-btn-primary" id="hs-bon-btn-simpan" style="flex:1;justify-content:center" onclick="hsSimpanBon()">Simpan</button>
       </div>
     </div>
   </div>
@@ -499,6 +573,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
             <div class="hs-detail-summary-sisa" id="hs-detail-sisa">Sisa Rp0</div>
           </div>
           <div class="hs-donut" id="hs-detail-donut" style="--pct:0"><span id="hs-detail-donut-txt">0%</span></div>
+        </div>
+
+        <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08)">
+          <div style="font-size:12px;color:var(--ink2);margin-bottom:8px"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
+          <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsTandaiBarangDiterima()"><i class="ti ti-truck-delivery"></i> Tandai Barang Diterima</button>
         </div>
 
         <div class="hs-detail-section-title">Barang</div>
@@ -704,7 +783,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
 // ─── STATE ──────────────────────────────────────────────────────
 var _hsView            = 'overview';   // 'overview' | 'bon' | 'pembayaran' | 'master'
-var _hsSupplierList     = [];     // [{id, nama, kontak}]
+var _hsSupplierList     = [];     // [{id, nama, kontak, jenis: 'dropship'|'reseller'}]
 var _hsBonList          = [];     // [{id, supplier_id, tanggal, no_nota, total, status, catatan, ...}]
 var _hsPembayaranAll    = [];     // semua hutang_pembayaran
 var _hsBarangMaster     = [];     // semua hutang_barang (master katalog per supplier)
@@ -762,8 +841,17 @@ var _HS_VIEW_LABEL = {
   bon:        { label: 'Jurnal Re-Stock', icon: 'ti-receipt' },
   pembayaran: { label: 'Riwayat Bayar',   icon: 'ti-cash' },
   master:     { label: 'Master Barang',   icon: 'ti-list-details' },
+  supplier:   { label: 'Kelola Supplier', icon: 'ti-truck' },
 };
-var _HS_VIEW_ORDER = ['overview', 'bon', 'pembayaran', 'master'];
+var _HS_VIEW_ORDER = ['overview', 'bon', 'pembayaran', 'master', 'supplier'];
+
+// Jenis supplier: 'dropship' = suplier yang kirim langsung hari itu juga
+// (gak perlu PO). 'reseller' = harus PO dulu + (opsional) uang muka, baru
+// jalan setelah barang jadi (lead time bisa berminggu-minggu).
+var _HS_JENIS_LABEL = {
+  dropship: { label: 'Dropship', icon: 'ti-truck-delivery' },
+  reseller: { label: 'Reseller', icon: 'ti-file-invoice'   },
+};
 
 function hsSwitchView(view) {
   _hsView = view;
@@ -773,7 +861,7 @@ function hsSwitchView(view) {
     if (panel) panel.classList.toggle('active', v === view);
   });
   var supRow = document.getElementById('hs-supplier-row');
-  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon' || view === 'master') ? 'none' : '';
+  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon' || view === 'master' || view === 'supplier') ? 'none' : '';
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
@@ -787,6 +875,7 @@ function hsSwitchView(view) {
   hsRenderSupplierCards();
   hsRenderBonList();
   hsRenderMasterList();
+  hsRenderSupplierMasterList();
 }
 
 // ─── Swipe antar panel (mobile only) — pola sama persis kayak Gadag ──
@@ -871,8 +960,9 @@ function hsRenderSupplierCards() {
   if (_hsView === 'overview') { el.innerHTML = ''; return; }
   // Tab Bon (Jurnal Re-Stock) & Master Barang pake hs-bon-switcher/hs-master-switcher
   // (total + kotak nama supplier swipeable), bukan row mini-card ini lagi — biar
-  // gak numpuk 1 kartu per supplier tiap supplier baru ditambah.
-  if (_hsView === 'bon' || _hsView === 'master') { el.innerHTML = ''; return; }
+  // gak numpuk 1 kartu per supplier tiap supplier baru ditambah. Kelola Supplier
+  // punya list sendiri (hs-supplier-master-list), gak butuh filter row ini juga.
+  if (_hsView === 'bon' || _hsView === 'master' || _hsView === 'supplier') { el.innerHTML = ''; return; }
 
   // Titik ini cuma kesisa tab Riwayat Bayar (overview/bon/master udah return
   // duluan di atas) — biarpun gitu tetep pake nama var payTotals dkk biar jelas.
@@ -1296,9 +1386,10 @@ function hsRenderBonList() {
 
     var badgeCls = 'hs-badge-belum', badgeTxt = 'Belum Lunas';
     if (b.status === 'lunas' || st.sisa <= 0) { badgeCls = 'hs-badge-lunas'; badgeTxt = 'Lunas'; }
+    else if (b.is_po) { badgeCls = 'hs-badge-po'; badgeTxt = st.bayar > 0 ? 'PO · DP' : 'PO'; }
     else if (st.bayar > 0) { badgeCls = 'hs-badge-cicil'; badgeTxt = 'Dicicil'; }
 
-    var donutColor = (badgeCls === 'hs-badge-lunas') ? 'var(--ok)' : (badgeCls === 'hs-badge-cicil' ? 'var(--warn)' : 'var(--danger)');
+    var donutColor = (badgeCls === 'hs-badge-lunas') ? 'var(--ok)' : (badgeCls === 'hs-badge-cicil' ? 'var(--warn)' : (badgeCls === 'hs-badge-po' ? 'var(--info)' : 'var(--danger)'));
 
     return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')" oncontextmenu="event.preventDefault();hsOpenEditBon(' + b.id + ')">' +
       '<div class="hs-donut" style="--pct:' + pct + ';--donut-color:' + donutColor + '"><span>' + pct + '%</span></div>' +
@@ -1348,6 +1439,89 @@ function hsRenderMasterList() {
 
   if (!isMobile) {
     _hsInitLongPress('hs-master-list', function(id) { hsOpenEditBarang(parseInt(id,10)); });
+  }
+}
+
+// ─── KELOLA SUPPLIER (nama + jenis Dropship/Reseller) ──────────
+// Sumber picker supplier di seluruh modul Hutang Barang. Jenis dipake buat
+// nentuin flow "Tambah Bon" (Dropship langsung, Reseller jadi PO dulu —
+// lihat hsOnBonSupplierChange & hsSimpanBon).
+function hsRenderSupplierMasterList() {
+  var el = document.getElementById('hs-supplier-master-list');
+  if (!el) return;
+
+  if (!_hsSupplierList.length) {
+    el.innerHTML = '<tr><td colspan="2" class="hs-empty">Belum ada Supplier. Tap "+ Tambah Supplier" buat mulai.</td></tr>';
+    return;
+  }
+
+  // Sama kayak Master Barang: di HP cuma buat liat, CRUD-nya di laptop.
+  var isMobile = window.innerWidth <= 900;
+
+  el.innerHTML = _hsSupplierList.map(function(s) {
+    var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
+    var jl = _HS_JENIS_LABEL[jenis];
+    var rowAttr = isMobile ? '' : ' onclick="hsOpenEditSupplierMaster(' + s.id + ')"';
+    return '<tr data-id="' + s.id + '"' + rowAttr + '>' +
+      '<td>' + _hsEsc(s.nama) + '</td>' +
+      '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function hsOpenTambahSupplierMaster() {
+  document.getElementById('hs-sup-form-title').textContent = 'Tambah Supplier';
+  document.getElementById('hs-supm-id').value = '';
+  document.getElementById('hs-supm-btn-hapus').style.display = 'none';
+  document.getElementById('hs-supm-nama').value = '';
+  document.querySelector('input[name="hs-supm-jenis"][value="dropship"]').checked = true;
+  document.getElementById('hs-sheet-supplier-master').classList.add('open');
+}
+
+function hsOpenEditSupplierMaster(id) {
+  var s = _hsSupplierList.find(function(x){ return x.id===id; });
+  if (!s) return;
+  document.getElementById('hs-sup-form-title').textContent = 'Edit Supplier';
+  document.getElementById('hs-supm-id').value = s.id;
+  document.getElementById('hs-supm-btn-hapus').style.display = 'inline-flex';
+  document.getElementById('hs-supm-nama').value = s.nama;
+  var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
+  document.querySelector('input[name="hs-supm-jenis"][value="' + jenis + '"]').checked = true;
+  document.getElementById('hs-sheet-supplier-master').classList.add('open');
+}
+
+async function hsSimpanSupplierMaster() {
+  var id    = document.getElementById('hs-supm-id').value;
+  var nama  = document.getElementById('hs-supm-nama').value.trim();
+  var jenisEl = document.querySelector('input[name="hs-supm-jenis"]:checked');
+  var jenis = jenisEl ? jenisEl.value : 'dropship';
+
+  if (!nama) { alert('Isi nama supplier!'); return; }
+
+  try {
+    var data = { nama: nama.toUpperCase(), jenis: jenis };
+    if (id) {
+      await dbUpdate('hutang_supplier', id, data);
+    } else {
+      await dbInsert('hutang_supplier', data);
+    }
+    closeModal('hs-sheet-supplier-master');
+    await loadHutangSupplier();
+  } catch(e) {
+    alert('Gagal simpan: ' + e.message);
+  }
+}
+
+async function hsHapusSupplierMaster() {
+  var id = document.getElementById('hs-supm-id').value;
+  if (!id) return;
+  if (!confirm('Hapus supplier ini? Bon/Master Barang yang udah pernah pakai supplier ini TIDAK ikut kehapus, tapi bakal nampilin "—" di kolom Supplier.')) return;
+  try {
+    await dbDelete('hutang_supplier', id);
+    closeModal('hs-sheet-supplier-master');
+    await loadHutangSupplier();
+  } catch(e) {
+    alert('Gagal hapus: ' + e.message);
   }
 }
 
@@ -1657,13 +1831,40 @@ function hsOnBonSupplierChange() {
     _hsItemRows = [_hsBlankItemRow()];
     _hsRenderItemRows();
   }
+  _hsUpdateBonFormBySupplier();
 }
 function hsOnBonSupplierBaruInput() {
-  // Supplier baru → belum ada id, treat sebagai null (semua baris jadi manual)
+  // Supplier baru → belum ada id, treat sebagai null (semua baris jadi manual,
+  // dan dianggap Dropship dulu — bisa diubah jenisnya belakangan di Kelola Supplier)
   if (_hsCurrentBonSupplierId !== null) {
     _hsCurrentBonSupplierId = null;
     _hsItemRows = [_hsBlankItemRow()];
     _hsRenderItemRows();
+  }
+  _hsUpdateBonFormBySupplier();
+}
+
+// Sesuain judul sheet + label tombol + hint, tergantung jenis supplier yang
+// lagi dipilih (Dropship = Bon biasa, Reseller = PO). Dipanggil tiap supplier
+// berubah DAN pas sheet baru dibuka (hsOpenTambahBon/hsOpenEditBon).
+function _hsUpdateBonFormBySupplier() {
+  var supplier = _hsCurrentBonSupplierId
+    ? _hsSupplierList.find(function(s){ return s.id === _hsCurrentBonSupplierId; })
+    : null;
+  var isReseller = !!(supplier && supplier.jenis === 'reseller');
+  var isEdit = !!document.getElementById('hs-bon-id').value;
+  var titleEl = document.getElementById('hs-bon-form-title');
+  var btnEl   = document.getElementById('hs-bon-btn-simpan');
+  var hintEl  = document.getElementById('hs-bon-jenis-hint');
+
+  if (isReseller) {
+    titleEl.textContent = isEdit ? 'Edit PO' : 'Tambah PO';
+    if (btnEl) btnEl.textContent = 'Simpan PO';
+    if (hintEl) hintEl.innerHTML = '<i class="ti ti-file-invoice"></i> Supplier <b>Reseller</b> — otomatis jadi PO (badge "PO" di tab Bon). Tetap kehitung di Total Utang Aktif dari sekarang, uang muka tinggal dicatet lewat "Bayar Utang" kayak cicilan biasa. Begitu barang beneran sampai, tandai "Barang Diterima" di detail PO-nya.';
+  } else {
+    titleEl.textContent = isEdit ? 'Edit Bon' : 'Tambah Bon';
+    if (btnEl) btnEl.textContent = 'Simpan';
+    if (hintEl) hintEl.innerHTML = '';
   }
 }
 
@@ -1687,6 +1888,7 @@ function hsOpenTambahBon() {
   document.getElementById('hs-bon-no-nota').value = '';
   _hsItemRows = [_hsBlankItemRow()];
   _hsRenderItemRows();
+  _hsUpdateBonFormBySupplier();
   hsOpenSheet('hs-sheet-bon');
 }
 
@@ -1725,6 +1927,7 @@ async function hsOpenEditBon(bonId) {
     _hsItemRows = [_hsBlankItemRow()];
   }
   _hsRenderItemRows();
+  _hsUpdateBonFormBySupplier();
   hsOpenSheet('hs-sheet-bon');
 }
 
@@ -1864,7 +2067,9 @@ async function hsSimpanBon() {
   var total = validItems.reduce(function(s,r){ return s + _hsRowSubtotal(r); }, 0);
 
   try {
-    var supplierId = await _hsResolveSupplierId('hs-bon-supplier-select', 'hs-bon-supplier-baru');
+    var supplierId  = await _hsResolveSupplierId('hs-bon-supplier-select', 'hs-bon-supplier-baru');
+    var supplierObj = _hsSupplierList.find(function(s){ return s.id === supplierId; });
+    var isReseller  = !!(supplierObj && supplierObj.jenis === 'reseller');
 
     var bonData = {
       supplier_id: supplierId,
@@ -1875,12 +2080,16 @@ async function hsSimpanBon() {
 
     var bonId;
     if (id) {
+      // Edit: is_po SENGAJA nggak diikutin di sini — status PO/diterima cuma
+      // diubah lewat tombol "Tandai Barang Diterima" (hsTandaiBarangDiterima),
+      // bukan keubah otomatis pas edit qty/harga/dsb.
       await dbUpdate('hutang_bon', id, bonData);
       bonId = id;
       var oldItems = await dbGet('hutang_bon_item', '&bon_id=eq.' + id);
       for (var i=0;i<oldItems.length;i++) { await dbDelete('hutang_bon_item', oldItems[i].id); }
     } else {
       bonData.status = 'belum_lunas';
+      bonData.is_po  = isReseller;
       var newBon = await dbInsert('hutang_bon', bonData);
       bonId = newBon[0].id;
     }
@@ -1947,6 +2156,9 @@ async function hsOpenDetailBon(bonId) {
   donut.style.setProperty('--donut-color', st.sisa<=0 ? 'var(--ok)' : (st.bayar>0 ? 'var(--warn)' : 'var(--danger)'));
   document.getElementById('hs-detail-donut-txt').textContent = pct + '%';
 
+  var poBanner = document.getElementById('hs-detail-po-banner');
+  if (poBanner) poBanner.style.display = b.is_po ? 'block' : 'none';
+
   var itemsWrap = document.getElementById('hs-detail-items');
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
   try {
@@ -1993,6 +2205,23 @@ async function _hsRenderRiwayatBayar(bonId) {
       '<div class="hs-pay-item-nom">' + fmtRpFull(p.nominal) + '</div>' +
     '</div>';
   }).join('');
+}
+
+// Reseller PO → begitu barang beneran sampai, tandai di sini. Bon-nya TETAP
+// jalan seperti biasa (udah kehitung di Total Utang Aktif sejak PO dibuat),
+// cuma badge-nya balik normal (Belum Lunas/Dicicil/Lunas) — bukan "PO" lagi.
+async function hsTandaiBarangDiterima() {
+  var bonId = _hsCurrentBonId;
+  if (!bonId) return;
+  try {
+    await dbUpdate('hutang_bon', bonId, { is_po: false });
+    var b = _hsBonList.find(function(x){ return x.id===bonId; });
+    if (b) b.is_po = false;
+    document.getElementById('hs-detail-po-banner').style.display = 'none';
+    hsRenderBonList();
+  } catch(e) {
+    alert('Gagal update: ' + e.message);
+  }
 }
 
 async function hsSimpanBayar() {
