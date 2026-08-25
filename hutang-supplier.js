@@ -130,13 +130,13 @@ document.getElementById('page-hutang-supplier').innerHTML = `
          disembunyikan) biar gak perlu geser kanan-kiri, dan interaksi
          tap/long-press-edit dimatiin di JS (lihat hsRenderMasterList). */
       .hs-master-toolbar-desktop { display:none !important; }
-      .hs-table-wrap { overflow-x:visible; }
-      .hs-table { min-width:0; width:100%; table-layout:fixed; }
-      .hs-table th:nth-child(1), .hs-table td:nth-child(1),
-      .hs-table th:nth-child(4), .hs-table td:nth-child(4),
-      .hs-table th:nth-child(5), .hs-table td:nth-child(5) { display:none; }
-      .hs-table th, .hs-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
-      .hs-table tbody tr { cursor:default; }
+      .hs-table-wrap:has(.hs-master-table) { overflow-x:visible; }
+      .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
+      .hs-master-table th:nth-child(1), .hs-master-table td:nth-child(1),
+      .hs-master-table th:nth-child(4), .hs-master-table td:nth-child(4),
+      .hs-master-table th:nth-child(5), .hs-master-table td:nth-child(5) { display:none; }
+      .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
+      .hs-master-table tbody tr { cursor:default; }
     }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
@@ -451,7 +451,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div class="hs-divider"></div>
       <div class="hs-table-wrap">
-        <table class="hs-table">
+        <table class="hs-table hs-master-table">
           <thead>
             <tr>
               <th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th>
@@ -463,10 +463,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
 
     <div id="hs-panel-supplier" class="hs-panel">
-      <div class="hs-toolbar hs-master-toolbar-desktop">
+      <div class="hs-toolbar">
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahSupplierMaster()"><i class="ti ti-plus"></i> Tambah Supplier</button>
       </div>
-      <div class="hs-item-hint hs-master-toolbar-desktop" style="margin-bottom:12px">
+      <div class="hs-item-hint" style="margin-bottom:12px">
         <b>Dropship</b>: suplier ngirim langsung hari itu juga, gak perlu PO — dipilih di Tambah Bon langsung jadi hutang aktif.<br>
         <b>Reseller</b>: harus PO dulu (bisa uang muka), baru jalan pas barang jadi — otomatis muncul badge "PO" di tab Bon sampai ditandai diterima.
       </div>
@@ -1455,14 +1455,10 @@ function hsRenderSupplierMasterList() {
     return;
   }
 
-  // Sama kayak Master Barang: di HP cuma buat liat, CRUD-nya di laptop.
-  var isMobile = window.innerWidth <= 900;
-
   el.innerHTML = _hsSupplierList.map(function(s) {
     var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
     var jl = _HS_JENIS_LABEL[jenis];
-    var rowAttr = isMobile ? '' : ' onclick="hsOpenEditSupplierMaster(' + s.id + ')"';
-    return '<tr data-id="' + s.id + '"' + rowAttr + '>' +
+    return '<tr data-id="' + s.id + '" onclick="hsOpenEditSupplierMaster(' + s.id + ')">' +
       '<td>' + _hsEsc(s.nama) + '</td>' +
       '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span></td>' +
     '</tr>';
