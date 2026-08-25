@@ -131,12 +131,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
          tap/long-press-edit dimatiin di JS (lihat hsRenderMasterList). */
       .hs-master-toolbar-desktop { display:none !important; }
       .hs-table-wrap:has(.hs-master-table) { overflow-x:visible; }
-      .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
-      .hs-master-table th:nth-child(1), .hs-master-table td:nth-child(1),
-      .hs-master-table th:nth-child(4), .hs-master-table td:nth-child(4),
-      .hs-master-table th:nth-child(5), .hs-master-table td:nth-child(5) { display:none; }
+      .hs-table-wrap:has(.hs-supplier-table) { overflow-x:visible; }
+      /* Kolom HP Master Barang dikontrol LANGSUNG dari JS (hsRenderMasterList
+         nge-render thead+tbody beda buat mobile — cuma 3 <td> yg dibikin sama
+         sekali, bukan disembunyiin CSS), jadi lebar kebagi natural pas cuma
+         3 kolom, gak ada sisa kolom kosong yg makan tempat. */
+      .hs-master-table { min-width:0; width:100%; }
       .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
       .hs-master-table tbody tr { cursor:default; }
+      .hs-supplier-table { min-width:0; width:100%; }
     }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
@@ -192,6 +195,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     }
     .hs-jenis-dropship { background:rgba(47,111,176,.15); color:var(--info); }
     .hs-jenis-reseller { background:rgba(181,69,61,.12); color:var(--danger); }
+    .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:120px; text-align:center; }
     .hs-jenis-radio {
       flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
       padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
@@ -453,7 +457,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div class="hs-table-wrap">
         <table class="hs-table hs-master-table">
           <thead>
-            <tr>
+            <tr id="hs-master-thead-row">
               <th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th>
             </tr>
           </thead>
@@ -472,7 +476,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div class="hs-divider"></div>
       <div class="hs-table-wrap">
-        <table class="hs-table">
+        <table class="hs-table hs-supplier-table">
           <thead>
             <tr>
               <th>Nama Supplier</th><th>Sistem</th>
@@ -1415,18 +1419,35 @@ function hsRenderMasterList() {
     return _hsFilterSupplier === null || b.supplier_id === _hsFilterSupplier;
   });
 
-  if (!list.length) {
-    el.innerHTML = '<tr><td colspan="6" class="hs-empty">Belum ada Master Barang' + (_hsFilterSupplier?' buat supplier ini':'') + '. Tap "+ Tambah Barang" buat mulai.</td></tr>';
-    return;
-  }
-
   // Master Barang di HP cuma buat LIAT — semua tambah/edit/hapus dihandle
   // di versi laptop, jadi tap-to-edit & long-press-edit dimatiin di sini.
+  // Kolom yg dirender juga BEDA (bukan disembunyiin CSS): di HP thead+tbody
+  // emang cuma dibikin 3 <td> (SKU Induk, Variant, HPP/Lusin) biar lebar
+  // kebagi natural tanpa geser — di laptop tetep full 6 kolom.
   var isMobile = window.innerWidth <= 900;
+  var theadRow = document.getElementById('hs-master-thead-row');
+  if (theadRow) {
+    theadRow.innerHTML = isMobile
+      ? '<th>SKU Induk</th><th>Variant</th><th class="hs-table-num">HPP/Lusin</th>'
+      : '<th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th>';
+  }
+
+  if (!list.length) {
+    var colspan = isMobile ? 3 : 6;
+    el.innerHTML = '<tr><td colspan="' + colspan + '" class="hs-empty">Belum ada Master Barang' + (_hsFilterSupplier?' buat supplier ini':'') + '. Tap "+ Tambah Barang" buat mulai.</td></tr>';
+    return;
+  }
 
   el.innerHTML = list.map(function(b, i) {
     var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
     var rowAttr = isMobile ? '' : ' onclick="hsOpenEditBarang(' + b.id + ')"';
+    if (isMobile) {
+      return '<tr data-id="' + b.id + '">' +
+        '<td>' + _hsEsc(b.katalog_produk) + '</td>' +
+        '<td>' + _hsEsc(b.varian_warna || '—') + '</td>' +
+        '<td class="hs-table-num">' + fmtRpFull(b.harga_per_lusin) + '</td>' +
+      '</tr>';
+    }
     return '<tr data-id="' + b.id + '"' + rowAttr + '>' +
       '<td>' + (i+1) + '</td>' +
       '<td>' + _hsEsc(b.katalog_produk) + '</td>' +
