@@ -142,8 +142,16 @@ document.getElementById('page-hutang-supplier').innerHTML = `
          Fixed layout maksa kolom nurut lebar % yg didefinisiin, sisanya
          kata yang wrap ke bawah — tabel dijamin gak pernah lebih lebar dari
          layar, "flat" beneran, bukan cuma keliatan flat. 25 Agu 2026. */
+      /* overflow-x TETEP auto (bukan hidden) di sini — swipe-handoff antar-tab
+         (lihat _hsInitSwitcherSwipe / listener di bawah dekat hsSwitchView)
+         ngukur t.scrollLeft buat tau tabel udah "mentok" apa belum sebelum
+         estafet ke pindah-tab. Kalau overflow-x:hidden, scrollLeft kekunci 0
+         selamanya → syarat "mentok" gak pernah kepenuhi → swipe maju gak
+         pernah jalan. Table udah gak overflow lagi (width kolom dikunci %),
+         jadi auto di sini praktis gak pernah kepake, cuma jaring pengaman.
+         25 Agu 2026. */
       .hs-table-wrap:has(.hs-master-table),
-      .hs-table-wrap:has(.hs-supplier-table) { overflow-x:hidden; }
+      .hs-table-wrap:has(.hs-supplier-table) { overflow-x:auto; }
       .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
       .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:6px 4px; font-size:10.5px; }
       .hs-master-table th:nth-child(1), .hs-master-table td:nth-child(1) { width:8%; text-align:center; }
@@ -212,8 +220,14 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     }
     .hs-jenis-dropship { background:rgba(47,111,176,.15); color:var(--info); }
     .hs-jenis-reseller { background:rgba(181,69,61,.12); color:var(--danger); }
-    .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:120px; text-align:center; }
-    .hs-supplier-table th:nth-child(3), .hs-supplier-table td:nth-child(3) { width:110px; text-align:center; }
+    /* width kolom Sistem/Lead Time DIKUNCI ke desktop (min-width:901px) —
+       sebelumnya gak ada media guard, jadi px width ini nabrak & menang atas
+       aturan persen mobile (sama-sama nth-child, yg belakangan di source
+       menang), bikin tabel Kelola Supplier meleber di HP. 25 Agu 2026. */
+    @media (min-width:901px) {
+      .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:120px; text-align:center; }
+      .hs-supplier-table th:nth-child(3), .hs-supplier-table td:nth-child(3) { width:110px; text-align:center; }
+    }
     .hs-leadtime { font-weight:700; }
     .hs-leadtime-empty { color:var(--ink3); font-weight:400; font-size:11.5px; }
     .hs-jenis-radio {
