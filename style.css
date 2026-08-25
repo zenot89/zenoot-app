@@ -4276,7 +4276,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-shrink: 0;
     box-sizing: border-box;
   }
-  .nw-slide-data { flex: 1; height: auto; min-height: 160px; }
+  /* Dibatasi ±6 baris (row tinggi ±33px + padding box 20px = ±218px),
+     sisanya discroll di dalam box (overflow-y:auto udah ada di base
+     .nw-slide-data) — biar box gak makin manjang ngikutin banyaknya
+     data Beban Operasional / Income. Cuma desktop, mobile gak disentuh. */
+  .nw-slide-data { flex: 1; height: auto; max-height: 218px; min-height: 160px; }
   .nw-swipe-dot-label { display: none !important; }
 }
 
