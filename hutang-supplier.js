@@ -87,7 +87,13 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     #hs-hdr-row, #hs-supplier-row, .hs-toolbar { flex-shrink:0; }
     #hs-panels-wrap { flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
     .hs-panel { display:none; min-height:0; }
-    .hs-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow-y:auto; }
+    /* overflow-x:hidden WAJIB eksplisit di sini — kalau cuma overflow-y:auto
+       yang di-set, browser otomatis ngitung overflow-x jadi 'auto' juga
+       (CSS spec), jadi begitu ada child (tabel) sedikit aja lebih lebar dari
+       panel, SELURUH panel (termasuk switcher supplier di atas tabel) ikut
+       jadi scrollable ke samping — itu penyebab "geser-geser" yang dikeluhin
+       di Master Barang HP, 25 Agu 2026. */
+    .hs-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; }
 
     /* Kertas bergaris — feel "buku tulis" di belakang list Bon */
     #hs-bon-list {
@@ -126,20 +132,31 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       #hs-paste-massal-btn { display:none !important; }
       /* Master Barang di HP: cuma buat LIAT, semua CRUD (tambah/hapus/edit)
          dihandle di versi laptop. Toolbar disembunyikan, tabel dipotong jadi
-         3 kolom — SKU Induk, Variant, HPP/Lusin (No, SKU Supplier, Supplier
+         4 kolom — No, SKU Induk, Variant, HPP/Lusin (SKU Supplier & Supplier
          disembunyikan) biar gak perlu geser kanan-kiri, dan interaksi
          tap/long-press-edit dimatiin di JS (lihat hsRenderMasterList). */
       .hs-master-toolbar-desktop { display:none !important; }
-      .hs-table-wrap:has(.hs-master-table) { overflow-x:visible; }
-      .hs-table-wrap:has(.hs-supplier-table) { overflow-x:visible; }
-      /* Kolom HP Master Barang dikontrol LANGSUNG dari JS (hsRenderMasterList
-         nge-render thead+tbody beda buat mobile — cuma 3 <td> yg dibikin sama
-         sekali, bukan disembunyiin CSS), jadi lebar kebagi natural pas cuma
-         3 kolom, gak ada sisa kolom kosong yg makan tempat. */
-      .hs-master-table { min-width:0; width:100%; }
-      .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:8px 6px; font-size:11.5px; }
+      /* table-layout:fixed WAJIB di sini (bukan cuma width:100%) — auto-layout
+         bisa tetep bikin tabel lebih lebar dari container kalau ada kata yang
+         susah dipenggal (mis. "TURTLENECK"), meskipun white-space:normal.
+         Fixed layout maksa kolom nurut lebar % yg didefinisiin, sisanya
+         kata yang wrap ke bawah — tabel dijamin gak pernah lebih lebar dari
+         layar, "flat" beneran, bukan cuma keliatan flat. 25 Agu 2026. */
+      .hs-table-wrap:has(.hs-master-table),
+      .hs-table-wrap:has(.hs-supplier-table) { overflow-x:hidden; }
+      .hs-master-table { min-width:0; width:100%; table-layout:fixed; }
+      .hs-master-table th, .hs-master-table td { white-space:normal; word-break:break-word; padding:6px 4px; font-size:10.5px; }
+      .hs-master-table th:nth-child(1), .hs-master-table td:nth-child(1) { width:8%; text-align:center; }
+      .hs-master-table th:nth-child(2), .hs-master-table td:nth-child(2) { width:26%; }
+      .hs-master-table th:nth-child(3), .hs-master-table td:nth-child(3) { width:40%; }
+      .hs-master-table th:nth-child(4), .hs-master-table td:nth-child(4) { width:26%; }
       .hs-master-table tbody tr { cursor:default; }
-      .hs-supplier-table { min-width:0; width:100%; }
+      .hs-supplier-table { min-width:0; width:100%; table-layout:fixed; }
+      .hs-supplier-table th, .hs-supplier-table td { white-space:normal; word-break:break-word; padding:7px 5px; font-size:11px; }
+      .hs-supplier-table th:nth-child(1), .hs-supplier-table td:nth-child(1) { width:38%; text-align:left; }
+      .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:32%; }
+      .hs-supplier-table th:nth-child(3), .hs-supplier-table td:nth-child(3) { width:30%; }
+      .hs-jenis-badge { font-size:10px; padding:2px 6px; gap:3px; }
     }
 
     .hs-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
@@ -196,6 +213,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-jenis-dropship { background:rgba(47,111,176,.15); color:var(--info); }
     .hs-jenis-reseller { background:rgba(181,69,61,.12); color:var(--danger); }
     .hs-supplier-table th:nth-child(2), .hs-supplier-table td:nth-child(2) { width:120px; text-align:center; }
+    .hs-supplier-table th:nth-child(3), .hs-supplier-table td:nth-child(3) { width:110px; text-align:center; }
+    .hs-leadtime { font-weight:700; }
+    .hs-leadtime-empty { color:var(--ink3); font-weight:400; font-size:11.5px; }
     .hs-jenis-radio {
       flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
       padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
@@ -479,7 +499,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <table class="hs-table hs-supplier-table">
           <thead>
             <tr>
-              <th>Nama Supplier</th><th>Sistem</th>
+              <th>Nama Supplier</th><th>Sistem</th><th>Lead Time</th>
             </tr>
           </thead>
           <tbody id="hs-supplier-master-list"></tbody>
@@ -1428,12 +1448,12 @@ function hsRenderMasterList() {
   var theadRow = document.getElementById('hs-master-thead-row');
   if (theadRow) {
     theadRow.innerHTML = isMobile
-      ? '<th>SKU Induk</th><th>Variant</th><th class="hs-table-num">HPP/Lusin</th>'
+      ? '<th>No</th><th>SKU Induk</th><th>Variant</th><th class="hs-table-num">HPP/Lusin</th>'
       : '<th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th>';
   }
 
   if (!list.length) {
-    var colspan = isMobile ? 3 : 6;
+    var colspan = isMobile ? 4 : 6;
     el.innerHTML = '<tr><td colspan="' + colspan + '" class="hs-empty">Belum ada Master Barang' + (_hsFilterSupplier?' buat supplier ini':'') + '. Tap "+ Tambah Barang" buat mulai.</td></tr>';
     return;
   }
@@ -1443,6 +1463,7 @@ function hsRenderMasterList() {
     var rowAttr = isMobile ? '' : ' onclick="hsOpenEditBarang(' + b.id + ')"';
     if (isMobile) {
       return '<tr data-id="' + b.id + '">' +
+        '<td style="text-align:center">' + (i+1) + '</td>' +
         '<td>' + _hsEsc(b.katalog_produk) + '</td>' +
         '<td>' + _hsEsc(b.varian_warna || '—') + '</td>' +
         '<td class="hs-table-num">' + fmtRpFull(b.harga_per_lusin) + '</td>' +
@@ -1472,7 +1493,7 @@ function hsRenderSupplierMasterList() {
   if (!el) return;
 
   if (!_hsSupplierList.length) {
-    el.innerHTML = '<tr><td colspan="2" class="hs-empty">Belum ada Supplier. Tap "+ Tambah Supplier" buat mulai.</td></tr>';
+    el.innerHTML = '<tr><td colspan="3" class="hs-empty">Belum ada Supplier. Tap "+ Tambah Supplier" buat mulai.</td></tr>';
     return;
   }
 
@@ -1482,8 +1503,39 @@ function hsRenderSupplierMasterList() {
     return '<tr data-id="' + s.id + '" onclick="hsOpenEditSupplierMaster(' + s.id + ')">' +
       '<td>' + _hsEsc(s.nama) + '</td>' +
       '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span></td>' +
+      '<td>' + _hsLeadTimeLabel(s) + '</td>' +
     '</tr>';
   }).join('');
+}
+
+// ─── LEAD TIME per supplier ─────────────────────────────────────
+// Cuma relevan buat supplier Reseller (alur PO → ditandai diterima).
+// Dropship gak lewat PO, barang dateng hari itu juga jadi leadtime gak
+// pernah dihitung (selalu "Sama hari"). Dihitung dari SEMUA histori bon
+// reseller yang udah pernah ditandai diterima (kolom tgl_diterima keisi),
+// rata-rata (tgl_diterima - tanggal) dalam hari. Bon yang masih PO
+// (belum ditandai diterima, tgl_diterima null) gak ikut dihitung.
+// 25 Agu 2026, poin 2.
+function _hsLeadTimeForSupplier(supplierId) {
+  var bons = _hsBonList.filter(function(b) {
+    return b.supplier_id === supplierId && b.tgl_diterima && b.tanggal;
+  });
+  if (!bons.length) return null;
+  var totalHari = bons.reduce(function(sum, b) {
+    var mulai  = new Date(b.tanggal + 'T00:00:00');
+    var selesai = new Date(b.tgl_diterima + 'T00:00:00');
+    var hari = Math.round((selesai - mulai) / 86400000);
+    return sum + Math.max(0, hari);
+  }, 0);
+  return { rataRata: Math.round(totalHari / bons.length), jumlahBon: bons.length };
+}
+
+function _hsLeadTimeLabel(s) {
+  var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
+  if (jenis === 'dropship') return '<span class="hs-leadtime-empty">Sama hari</span>';
+  var lt = _hsLeadTimeForSupplier(s.id);
+  if (!lt) return '<span class="hs-leadtime-empty">Belum ada data</span>';
+  return '<span class="hs-leadtime">' + lt.rataRata + ' hari</span>';
 }
 
 function hsOpenTambahSupplierMaster() {
@@ -2231,11 +2283,18 @@ async function hsTandaiBarangDiterima() {
   var bonId = _hsCurrentBonId;
   if (!bonId) return;
   try {
-    await dbUpdate('hutang_bon', bonId, { is_po: false });
+    // tgl_diterima dicatet SEKALI di sini — satu-satunya sumber data buat
+    // hitung Lead Time supplier (lihat _hsLeadTimeForSupplier). Kalau
+    // ditandai diterima lebih dari sekali (harusnya gak mungkin, tombolnya
+    // ilang begitu is_po jadi false), tanggal PERTAMA yang kepakai gak akan
+    // ketiban timpa krn kolom cuma diisi kalau masih null — aman.
+    var tglDiterima = new Date().toISOString().slice(0,10);
+    await dbUpdate('hutang_bon', bonId, { is_po: false, tgl_diterima: tglDiterima });
     var b = _hsBonList.find(function(x){ return x.id===bonId; });
-    if (b) b.is_po = false;
+    if (b) { b.is_po = false; b.tgl_diterima = tglDiterima; }
     document.getElementById('hs-detail-po-banner').style.display = 'none';
     hsRenderBonList();
+    hsRenderSupplierMasterList();
   } catch(e) {
     alert('Gagal update: ' + e.message);
   }
