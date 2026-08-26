@@ -310,9 +310,11 @@ document.getElementById('page-keuangan').innerHTML = `
       min-height:0;
     }
 
-    /* ── Slide 1: Kewajiban (5 kolom) — portrait sembunyikan % ── */
+    /* ── Slide 1: Kewajiban (5 kolom) — portrait sembunyikan % dan Dibayar ── */
     #keu-slide-0 .tbl th:nth-child(5),
     #keu-slide-0 .tbl td:nth-child(5) { display:none; } /* % */
+    #keu-slide-0 .tbl th:nth-child(3),
+    #keu-slide-0 .tbl td:nth-child(3) { display:none; } /* Dibayar — sisa udah cukup ngerepresentasiin */
 
     /* ── Slide 2: Riwayat Bayar (4 kolom) — portrait sembunyikan KETERANGAN ── */
     #keu-slide-1 .tbl th:nth-child(3),
@@ -1302,54 +1304,35 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
       if (isHoriz) e.preventDefault();
     }, { passive: false });
 
-    // state untuk 2x swipe DOWN expand
-    var _downCount = 0, _downTime = 0;
-
     zone.addEventListener('touchend', function(e) {
       if (!isDragging) return;
       isDragging = false;
+      if (!isHoriz) return; // vertikal ditangani initSwipeCollapse terpisah
 
+      // ── Horizontal: ganti slide ──
       var dx = e.changedTouches[0].clientX - startX;
-      var dy = e.changedTouches[0].clientY - startY;
       var dt = Date.now() - startT;
-
-      if (isHoriz) {
-        // ── Horizontal: ganti slide ──
-        var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
-        if ((dx < -40 || (isFlick && dx < 0)) && _rwCurrent < TOTAL - 1) goTo(_rwCurrent + 1);
-        else if ((dx > 40 || (isFlick && dx > 0)) && _rwCurrent > 0) goTo(_rwCurrent - 1);
-      } else {
-        // ── Vertikal: collapse / expand minicard ──
-        if (Math.abs(dy) < 40) return;
-        var collapseEl = document.getElementById('keu-hutang-collapsible');
-        if (!collapseEl) return;
-
-        // Cari scroll container aktif di slide yang tampil
-        var activeSlide = zone.querySelector('.keu-hutang-slide:not([style*="display: none"]):not([style*="display:none"])');
-        var activeScroll = activeSlide
-          ? (activeSlide.querySelector('.tbl-wrap') || activeSlide.querySelector('#keu-riwayat-summary-body'))
-          : null;
-        var atTop = !activeScroll || activeScroll.scrollTop <= 2;
-
-        if (dy < 0 && atTop) {
-          // Swipe UP saat di atas → collapse
-          collapseEl.classList.add('keu-hutang-collapsed');
-          _downCount = 0;
-        } else if (dy > 0 && collapseEl.classList.contains('keu-hutang-collapsed')) {
-          // Swipe DOWN saat collapsed → butuh 2x dalam 500ms
-          var now = Date.now();
-          if (_downCount === 0 || now - _downTime > 500) {
-            _downCount = 1;
-            _downTime  = now;
-          } else if (now - _downTime <= 500) {
-            collapseEl.classList.remove('keu-hutang-collapsed');
-            _downCount = 0;
-          }
-        }
-      }
+      var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
+      if ((dx < -40 || (isFlick && dx < 0)) && _rwCurrent < TOTAL - 1) goTo(_rwCurrent + 1);
+      else if ((dx > 40 || (isFlick && dx > 0)) && _rwCurrent > 0) goTo(_rwCurrent - 1);
     }, { passive: true });
 
     zone.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
+  }
+
+  // ── Collapse/expand minicard — pattern sama persis dgn Kas & Jurnal Harian
+  //    (initSwipeCollapse shared utility, app.js): swipe UP = collapse,
+  //    swipe DOWN = expand, tanpa syarat atTop / tanpa double-swipe timing.
+  var _hutangSwipeCollapseInited = false;
+  function _initHutangSwipeCollapse() {
+    if (_hutangSwipeCollapseInited) return;
+    if (typeof initSwipeCollapse !== 'function') return;
+    var zone       = document.getElementById('keu-hutang-scroll-zone');
+    var collapseEl = document.getElementById('keu-hutang-collapsible');
+    if (!zone || !collapseEl) return;
+    _hutangSwipeCollapseInited = true;
+    initSwipeCollapse(zone,       collapseEl, 50, 'keu-hutang-collapsed');
+    initSwipeCollapse(collapseEl, collapseEl, 50, 'keu-hutang-collapsed');
   }
 
   // Render ringkasan per akun kewajiban dari window._keuKwjSaldo (derive dari jurnal)
@@ -1393,6 +1376,7 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
   function _initAll() {
     _initHutangScroll();
     _initRiwayatSwipe();
+    _initHutangSwipeCollapse();
     // Flex chain di-handle oleh _keuApplyNeracaFlexChain (sudah dipanggil via _keuSetPanelHeight)
     _keuSetPanelHeight();
   }
