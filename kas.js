@@ -373,11 +373,12 @@ function _kasInjectSheets() {
   <!-- History chips -->
   <div id="kas-brimo-history"></div>
 
-  <!-- Operator: tambah / kurang / bagi -->
+  <!-- Operator: clear / bagi / kurang / tambah -->
   <div id="kas-brimo-opsrow" class="kas-brimo-numrow" style="padding:0 10px;margin-top:6px">
-    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('+')" onclick="kasBrimoKey('+')">+</button>
-    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('-')" onclick="kasBrimoKey('-')">&minus;</button>
+    <button class="kas-brimo-key kas-brimo-clear" ontouchend="event.preventDefault();kasBrimoKey('C')" onclick="kasBrimoKey('C')">C</button>
     <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('÷')" onclick="kasBrimoKey('÷')">&divide;</button>
+    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('-')" onclick="kasBrimoKey('-')">&minus;</button>
+    <button class="kas-brimo-key kas-brimo-op" ontouchend="event.preventDefault();kasBrimoKey('+')" onclick="kasBrimoKey('+')">+</button>
   </div>
 
   <!-- Numpad BRImo full width -->
@@ -398,11 +399,11 @@ function _kasInjectSheets() {
       <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('9')" onclick="kasBrimoKey('9')">9</button>
     </div>
     <div class="kas-brimo-numrow">
-      <button class="kas-brimo-key kas-brimo-num kas-brimo-000" ontouchend="event.preventDefault();kasBrimoKey('000')" onclick="kasBrimoKey('000')">000</button>
-      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('0')" onclick="kasBrimoKey('0')">0</button>
       <button class="kas-brimo-key kas-brimo-del" ontouchend="event.preventDefault();kasBrimoKey('⌫')" onclick="kasBrimoKey('⌫')">
         <i class="ti ti-backspace" style="font-size:22px"></i>
       </button>
+      <button class="kas-brimo-key kas-brimo-num kas-brimo-000" ontouchend="event.preventDefault();kasBrimoKey('000')" onclick="kasBrimoKey('000')">000</button>
+      <button class="kas-brimo-key kas-brimo-num" ontouchend="event.preventDefault();kasBrimoKey('0')" onclick="kasBrimoKey('0')">0</button>
     </div>
     <div class="kas-brimo-numrow kas-brimo-action-row">
       <button class="kas-brimo-key kas-brimo-lanjut" ontouchend="event.preventDefault();kasBrimoLanjut()" onclick="kasBrimoLanjut()">Lanjut</button>
@@ -1188,7 +1189,9 @@ function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 
   // ── Key handler numpad BRImo (dukung + − ÷) ────────────
   window.kasBrimoKey = function(k) {
-    if (k === '\u232B') {
+    if (k === 'C') {
+      _brimoExpr = '';
+    } else if (k === '\u232B') {
       _brimoExpr = _brimoExpr.slice(0, -1);
     } else if (_brimoOps.indexOf(k) >= 0) {
       // Tombol operator: gak boleh jadi karakter pertama,

@@ -315,6 +315,22 @@ document.getElementById('page-keuangan').innerHTML = `
     #keu-slide-0 .tbl td:nth-child(5) { display:none; } /* % */
     #keu-slide-0 .tbl th:nth-child(3),
     #keu-slide-0 .tbl td:nth-child(3) { display:none; } /* Dibayar — sisa udah cukup ngerepresentasiin */
+    /* table-layout:fixed + lebar % eksplisit — pola sama persis kayak Master
+       Barang (hutang-supplier.js): tanpa fixed layout, browser ngitung lebar
+       kolom dari konten nowrap-nya (mis. "Rp47.825.265") yang bisa lebih lebar
+       dari layar → makanya kepotong walau kolom udah dikit. Fixed layout
+       maksa 3 kolom sisa (Akun/Total Masuk/Sisa) nurut % di bawah, dijamin
+       muat tanpa geser kanan. 26 Agu 2026. */
+    #keu-slide-0 .tbl { table-layout:fixed; }
+    #keu-slide-0 .tbl th:nth-child(1), #keu-slide-0 .tbl td:nth-child(1) {
+      width:36%; white-space:normal; word-break:break-word; font-size:12.5px; padding:6px 6px 6px 8px;
+    }
+    #keu-slide-0 .tbl th:nth-child(2), #keu-slide-0 .tbl td:nth-child(2) {
+      width:32%; font-size:12px; padding:6px 4px;
+    }
+    #keu-slide-0 .tbl th:nth-child(4), #keu-slide-0 .tbl td:nth-child(4) {
+      width:32%; font-size:12px; padding:6px 8px 6px 4px;
+    }
 
     /* ── Slide 2: Riwayat Bayar (4 kolom) — portrait sembunyikan KETERANGAN ── */
     #keu-slide-1 .tbl th:nth-child(3),
