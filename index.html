@@ -83,8 +83,9 @@
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('kas',this)"><span class="ni-icon"><i class="ti ti-cash"></i></span><span class="ni-label">Kas &amp; Jurnal</span></button>
       <button class="nav-item" onclick="gotoPage('gadag',this)"><span class="ni-icon"><i class="ti ti-scissors"></i></span><span class="ni-label">Gadag</span></button>
-      <button class="nav-item" onclick="gotoPage('keuangan',this)"><span class="ni-icon"><i class="ti ti-building-bank"></i></span><span class="ni-label">Keuangan Ops</span></button>
+      <button class="nav-item" onclick="gotoPage('cost-produksi',this)"><span class="ni-icon"><i class="ti ti-chart-donut"></i></span><span class="ni-label">Cost Produksi</span></button>
       <button class="nav-item" onclick="gotoPage('hutang-supplier',this)"><span class="ni-icon"><i class="ti ti-truck-delivery"></i></span><span class="ni-label">Hutang Barang</span></button>
+      <button class="nav-item" onclick="gotoPage('keuangan',this)"><span class="ni-icon"><i class="ti ti-building-bank"></i></span><span class="ni-label">Keuangan Ops</span></button>
       <button class="nav-item" onclick="gotoPage('penutupan-periode',this)"><span class="ni-icon"><i class="ti ti-calendar-check"></i></span><span class="ni-label">Penutupan Periode</span></button>
     </div>
   </div>
@@ -168,6 +169,7 @@
     <div id="page-anggaran" class="page"></div>
     <div id="page-keuangan" class="page"></div>
     <div id="page-hutang-supplier" class="page"></div>
+    <div id="page-cost-produksi" class="page"></div>
     <div id="page-penutupan-periode" class="page"></div>
     <div id="page-clearance" class="page"></div>
     <div id="page-hpp" class="page"></div>
@@ -221,7 +223,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260826-e6566e11d62c';
+  window.APP_BUILD = '20260825-8c632d2795cd';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -234,7 +236,7 @@
       'jurnal-penjualan.js','produk-terjual.js','price-list.js',
       'dataorder.js','rekap.js','channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',
-      'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','penutupan-periode.js','clearance.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','autocomplete.js'
+      'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','autocomplete.js'
     ];
     var i = 0;
     var _timer = null;

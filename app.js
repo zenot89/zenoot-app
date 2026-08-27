@@ -145,6 +145,7 @@ var pageMap = {
   'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
   'keuangan':           { title:'Keuangan Operasional', sub:'hutang, neraca, rasio & valuasi' },
   'hutang-supplier':    { title:'Hutang Barang',        sub:'utang aktif & pembayaran per supplier' },
+  'cost-produksi':      { title:'Cost Produksi',        sub:'ongkos operator per SKU & divisi' },
   'penutupan-periode':  { title:'Penutupan Periode',    sub:'month-end close & lock jurnal'   },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
   'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
@@ -192,7 +193,7 @@ function gotoPage(page, btn) {
   var contentEl = document.querySelector('.content');
   var mainEl    = document.querySelector('.main');
   if (contentEl) {
-    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier', 'cost-produksi'];
     if (fullHeightPages.indexOf(page) !== -1) {
       // Full-height pages: paksa height chain html→body→main→content eksplisit
       // iOS Safari tidak bisa resolve flex:1 jika ancestor tidak punya height eksplisit
