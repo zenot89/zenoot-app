@@ -524,7 +524,11 @@ function cpRenderJurnal() {
   }).join('');
 }
 
-// ─── RENDER: Master Ongkos (pivot — 1 baris per SKU+Variasi, kolom = tiap divisi) ──
+// ─── RENDER: Master Ongkos (pivot — 1 baris per SKU+Variasi, kolom = tiap divisi).
+// Baris dasarnya SEMUA kombinasi SKU+Variasi dari Kelola Produk (Boss:
+// DIMI) — bukan cuma yang udah punya rate — biar tabel ini jadi checklist
+// langsung: tap baris apapun (udah keisi atau masih "—") langsung ke form,
+// SKU+Variasi udah otomatis kekunci, ga perlu nyari/pilih lagi. ──
 function cpRenderRate() {
   var cols = cpDivisiColumns();
   var theadRow = document.getElementById('cp-rate-thead-row');
@@ -533,6 +537,11 @@ function cpRenderRate() {
   }).join('');
 
   var groupMap = {};
+  _cpProdukDimi.forEach(function(p) {
+    if (!p.katalog || !p.sku_variasi) return;
+    var key = p.katalog + '||' + p.sku_variasi;
+    if (!groupMap[key]) groupMap[key] = { sku: p.katalog, variasi: p.sku_variasi, cells: {} };
+  });
   _cpRate.forEach(function(r) {
     var key = r.sku + '||' + (r.sku_variasi || '');
     if (!groupMap[key]) groupMap[key] = { sku: r.sku, variasi: r.sku_variasi || '', cells: {} };
@@ -544,7 +553,7 @@ function cpRenderRate() {
   });
   var tbody = document.getElementById('cp-rate-tbody');
   if (!keys.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 1) + '" style="color:var(--ink3);font-style:italic">Belum ada rate. Tap "+ Tambah Rate" buat mulai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 1) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk. Tap "+ Tambah Rate" buat isi manual.</td></tr>';
     return;
   }
   tbody.innerHTML = keys.map(function(key) {
