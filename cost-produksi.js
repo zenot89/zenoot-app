@@ -221,33 +221,50 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
       <input type="hidden" id="cp-jrn-edit-id">
       <div class="form-group"><label>Tanggal</label><input type="date" id="cp-jrn-tanggal"></div>
-      <div class="form-group">
-        <label>Tukang</label>
-        <div class="cp-picker-trigger" onclick="cpOpenTukangSheet()">
-          <span id="cp-jrn-tukang-label" class="cp-placeholder">— Pilih Tukang —</span>
-          <i class="ti ti-chevron-down"></i>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="form-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0">
+          <label>Tukang</label>
+          <div class="cp-picker-trigger" onclick="cpOpenTukangSheet()">
+            <span id="cp-jrn-tukang-label" class="cp-placeholder">— Pilih Tukang —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+        </div>
+        <div class="form-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0">
+          <label>Divisi (otomatis)</label>
+          <div id="cp-jrn-divisi-display" style="padding:9px 10px;border-radius:8px;border:1.5px solid var(--ink4);background:var(--cream3);color:var(--ink3);font-size:13px">auto ikut tukang</div>
         </div>
       </div>
-      <div class="form-group">
-        <label>Divisi</label>
-        <div id="cp-jrn-divisi-display" style="padding:9px 10px;border-radius:8px;border:1.5px solid var(--ink4);background:var(--cream3);color:var(--ink3);font-size:13px">auto ikut tukang</div>
-      </div>
-      <div class="form-group">
-        <label>Ngerjain Apa (SKU)</label>
-        <div class="cp-picker-trigger" onclick="cpOpenSkuSheetForJurnal()">
-          <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih Tukang dulu —</span>
-          <i class="ti ti-chevron-down"></i>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="form-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0">
+          <label>Ngerjain Apa (SKU)</label>
+          <div class="cp-picker-trigger" onclick="cpOpenSkuSheetForJurnal()">
+            <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih Tukang dulu —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+        </div>
+        <div class="form-group" id="cp-jrn-varian-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0;display:none">
+          <label>SKU Variasi</label>
+          <div class="cp-picker-trigger" onclick="cpOpenVarianSheetForJurnal()">
+            <span id="cp-jrn-varian-label" class="cp-placeholder">— Pilih Varian —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
         </div>
       </div>
-      <div class="form-group" id="cp-jrn-varian-group" style="display:none">
-        <label>Varian</label>
-        <div class="cp-picker-trigger" onclick="cpOpenVarianSheetForJurnal()">
-          <span id="cp-jrn-varian-label" class="cp-placeholder">— Pilih Varian —</span>
-          <i class="ti ti-chevron-down"></i>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+        <div class="form-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0">
+          <label>Total</label>
+          <div id="cp-jrn-total-display" style="padding:9px 10px;border-radius:8px;border:1.5px solid var(--ink4);background:var(--cream3);color:var(--ink);font-size:15px;font-weight:700">Rp0</div>
+        </div>
+        <div class="form-group" style="flex:1 1 140px;min-width:130px;margin-bottom:0">
+          <label>Qty (pcs)</label>
+          <input type="text" inputmode="numeric" id="cp-jrn-qty" placeholder="0" oninput="cpUpdateJurnalPreview()">
         </div>
       </div>
-      <div class="form-group"><label>Qty (pcs)</label><input type="text" inputmode="numeric" id="cp-jrn-qty" placeholder="0" oninput="cpUpdateJurnalPreview()"></div>
-      <div class="cp-preview" id="cp-jrn-preview">Rate: — · Total: <b>Rp0</b></div>
+      <div class="cp-preview" id="cp-jrn-preview">Rate: —</div>
+
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn btn-danger" id="cp-jrn-del-btn" style="display:none" onclick="cpDeleteJurnal()"><i class="ti ti-trash"></i> Hapus</button>
         <button class="btn" onclick="hideModal('modal-cp-jurnal')">Batal</button>
@@ -726,8 +743,9 @@ function cpOpenVarianSheetForJurnal() {
 function cpUpdateJurnalPreview() {
   var qty = parseInt((document.getElementById('cp-jrn-qty').value || '0').replace(/[^0-9]/g, ''), 10) || 0;
   var total = _cpJrnRate ? Math.round((qty / 12) * _cpJrnRate) : 0;
-  document.getElementById('cp-jrn-preview').innerHTML =
-    'Rate: ' + (_cpJrnRate ? fmtRpFull(_cpJrnRate) + '/lusin' : '—') + ' · Total: <b>' + fmtRpFull(total) + '</b>';
+  document.getElementById('cp-jrn-total-display').textContent = fmtRpFull(total);
+  document.getElementById('cp-jrn-preview').textContent =
+    'Rate: ' + (_cpJrnRate ? fmtRpFull(_cpJrnRate) + '/lusin' : '—');
 }
 
 async function cpSaveJurnal() {
