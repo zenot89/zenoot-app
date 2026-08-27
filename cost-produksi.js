@@ -668,7 +668,8 @@ function cpSetJrnLabel(field, val) {
 // biar gak nge-ganggu user pas cuma ada 1 opsi doang.
 function cpJrnVarianOptions() {
   if (!_cpJrnSelSku) return [];
-  return _cpProdukDimi.filter(function(p) { return p.katalog === _cpJrnSelSku && p.sku_variasi; });
+  var target = _cpJrnSelSku.trim().toLowerCase();
+  return _cpProdukDimi.filter(function(p) { return p.katalog && p.katalog.trim().toLowerCase() === target && p.sku_variasi; });
 }
 
 function cpRefreshVarianField() {
