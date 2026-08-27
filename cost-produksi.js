@@ -71,6 +71,11 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi .tbl { table-layout:fixed; }
       #page-cost-produksi .tbl-wrap { overflow-x:hidden; }
       #page-cost-produksi .tbl th, #page-cost-produksi .tbl td { white-space:normal; word-break:break-word; font-size:11.5px; padding:6px 5px; }
+      /* Master Ongkos kolomnya banyak (SKU + tiap divisi) — biar tetep kebaca,
+         tabel ini scroll horizontal aja, gak dipaksa fixed-layout sempit. */
+      #page-cost-produksi #cp-panel-rate .tbl { table-layout:auto; }
+      #page-cost-produksi #cp-panel-rate .tbl th, #page-cost-produksi #cp-panel-rate .tbl td { white-space:nowrap; }
+      #page-cost-produksi #cp-panel-rate .tbl-wrap { overflow-x:auto; }
     }
 
     /* ── Custom picker (bukan native <select> — aturan existing) ── */
@@ -155,8 +160,8 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="ti ti-list-details"></i> Master Ongkos (per SKU x Divisi)</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>SKU</th><th>Divisi</th><th style="text-align:right">Ongkos/Lusin</th></tr></thead>
-          <tbody id="cp-rate-tbody"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr id="cp-rate-thead-row"><th>SKU</th></tr></thead>
+          <tbody id="cp-rate-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -169,7 +174,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="ti ti-users"></i> Master Tukang</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Nama</th><th style="text-align:center">Status</th></tr></thead>
+          <thead><tr><th>Nama</th><th>Divisi</th></tr></thead>
           <tbody id="cp-tukang-tbody"><tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
@@ -187,26 +192,6 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <input type="hidden" id="cp-jrn-edit-id">
       <div class="form-group"><label>Tanggal</label><input type="date" id="cp-jrn-tanggal"></div>
       <div class="form-group">
-        <label>SKU</label>
-        <div class="cp-picker" id="cp-jrn-sku-picker">
-          <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-sku-picker')">
-            <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih SKU —</span>
-            <i class="ti ti-chevron-down"></i>
-          </div>
-          <div class="cp-picker-list" id="cp-jrn-sku-list"></div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Divisi</label>
-        <div class="cp-picker" id="cp-jrn-divisi-picker">
-          <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-divisi-picker')">
-            <span id="cp-jrn-divisi-label" class="cp-placeholder">— Pilih SKU dulu —</span>
-            <i class="ti ti-chevron-down"></i>
-          </div>
-          <div class="cp-picker-list" id="cp-jrn-divisi-list"></div>
-        </div>
-      </div>
-      <div class="form-group">
         <label>Tukang</label>
         <div class="cp-picker" id="cp-jrn-tukang-picker">
           <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-tukang-picker')">
@@ -214,6 +199,20 @@ document.getElementById('page-cost-produksi').innerHTML = `
             <i class="ti ti-chevron-down"></i>
           </div>
           <div class="cp-picker-list" id="cp-jrn-tukang-list"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Divisi</label>
+        <div id="cp-jrn-divisi-display" style="padding:9px 10px;border-radius:8px;border:1.5px solid var(--ink4);background:var(--cream3);color:var(--ink3);font-size:13px">auto ikut tukang</div>
+      </div>
+      <div class="form-group">
+        <label>Ngerjain Apa (SKU)</label>
+        <div class="cp-picker" id="cp-jrn-sku-picker">
+          <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-sku-picker')">
+            <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih Tukang dulu —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <div class="cp-picker-list" id="cp-jrn-sku-list"></div>
         </div>
       </div>
       <div class="form-group"><label>Qty (pcs)</label><input type="text" inputmode="numeric" id="cp-jrn-qty" placeholder="0" oninput="cpUpdateJurnalPreview()"></div>
@@ -226,19 +225,25 @@ document.getElementById('page-cost-produksi').innerHTML = `
     </div>
   </div>
 
-  <!-- ═══ MODAL: Tambah/Edit Rate ═══ -->
+  <!-- ═══ MODAL: Tambah/Edit Rate — 1 SKU, semua divisi jadi kolom input ═══ -->
   <div class="modal-overlay" id="modal-cp-rate" onclick="if(event.target===this)hideModal('modal-cp-rate')">
-    <div class="modal" style="max-width:420px;width:100%">
+    <div class="modal" style="max-width:460px;width:100%">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
         <div class="modal-title" id="cp-rate-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-list-details"></i> Tambah Rate</div>
         <button onclick="hideModal('modal-cp-rate')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
-      <input type="hidden" id="cp-rate-edit-id">
-      <div class="form-group"><label>SKU</label><input type="text" id="cp-rate-sku" placeholder="mis. turtleneck"></div>
-      <div class="form-group"><label>Divisi</label><input type="text" id="cp-rate-divisi" placeholder="mis. obras"></div>
-      <div class="form-group"><label>Ongkos per Lusin (Rp)</label><input type="text" inputmode="numeric" id="cp-rate-ongkos" placeholder="0"></div>
+      <input type="hidden" id="cp-rate-edit-sku">
+      <div class="form-group"><label>SKU</label><input type="text" id="cp-rate-sku" placeholder="mis. Turtleneck"></div>
+      <div id="cp-rate-fields"></div>
+      <div class="form-group">
+        <label>Divisi Lain (opsional, kalau ada divisi baru di luar 6 di atas)</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="cp-rate-extra-divisi" placeholder="nama divisi baru" style="flex:1">
+          <input type="text" inputmode="numeric" id="cp-rate-extra-ongkos" placeholder="Rp/lusin" style="flex:1">
+        </div>
+      </div>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn btn-danger" id="cp-rate-del-btn" style="display:none" onclick="cpDeleteRate()"><i class="ti ti-trash"></i> Hapus</button>
+        <button class="btn btn-danger" id="cp-rate-del-btn" style="display:none" onclick="cpDeleteRate()"><i class="ti ti-trash"></i> Hapus SKU Ini</button>
         <button class="btn" onclick="hideModal('modal-cp-rate')">Batal</button>
         <button class="btn btn-primary" onclick="cpSaveRate()"><i class="ti ti-check"></i> Simpan</button>
       </div>
@@ -254,10 +259,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
       <input type="hidden" id="cp-tukang-edit-id">
       <div class="form-group"><label>Nama</label><input type="text" id="cp-tukang-nama" placeholder="mis. Budi"></div>
-      <div class="form-group" style="display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="cp-tukang-aktif" checked style="width:auto">
-        <label for="cp-tukang-aktif" style="margin:0">Aktif</label>
-      </div>
+      <div class="form-group"><label>Divisi</label><input type="text" id="cp-tukang-divisi" placeholder="mis. Rajut"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn btn-danger" id="cp-tukang-del-btn" style="display:none" onclick="cpDeleteTukang()"><i class="ti ti-trash"></i> Hapus</button>
         <button class="btn" onclick="hideModal('modal-cp-tukang')">Batal</button>
@@ -279,6 +281,22 @@ var _CP_VIEW_LABEL = {
   rate:     { label: 'Master Ongkos', icon: 'ti-list-details'  },
   tukang:   { label: 'Master Tukang', icon: 'ti-users'         },
 };
+
+// Urutan divisi baku (sesuai alur produksi Turtleneck di spreadsheet lo).
+// Divisi lain di luar list ini (via "Divisi Lain" pas Tambah Rate) otomatis
+// nempel di kolom paling kanan, disortir abjad.
+var CP_CANON_DIVISI = ['Rajut', 'Lingking', 'Obras', 'Som', 'Steam', 'Tilep'];
+
+function cpDivisiColumns() {
+  var extra = [];
+  _cpRate.forEach(function(r) {
+    if (!r.divisi) return;
+    var inCanon = CP_CANON_DIVISI.some(function(c) { return c.toLowerCase() === r.divisi.toLowerCase(); });
+    if (!inCanon && extra.indexOf(r.divisi) === -1) extra.push(r.divisi);
+  });
+  extra.sort();
+  return CP_CANON_DIVISI.concat(extra);
+}
 
 function cpEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
@@ -422,19 +440,31 @@ function cpRenderJurnal() {
   }).join('');
 }
 
-// ─── RENDER: Master Ongkos ─────────────────────────────────────
+// ─── RENDER: Master Ongkos (pivot — 1 baris per SKU, kolom = tiap divisi) ──
 function cpRenderRate() {
+  var cols = cpDivisiColumns();
+  var theadRow = document.getElementById('cp-rate-thead-row');
+  theadRow.innerHTML = '<th>SKU</th>' + cols.map(function(c) {
+    return '<th style="text-align:right">' + cpEsc(c) + '</th>';
+  }).join('');
+
+  var skuMap = {};
+  _cpRate.forEach(function(r) {
+    if (!skuMap[r.sku]) skuMap[r.sku] = {};
+    skuMap[r.sku][r.divisi.toLowerCase()] = r;
+  });
+  var skus = Object.keys(skuMap).sort();
   var tbody = document.getElementById('cp-rate-tbody');
-  if (!_cpRate.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada rate. Tap "+ Tambah Rate" buat mulai.</td></tr>';
+  if (!skus.length) {
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 1) + '" style="color:var(--ink3);font-style:italic">Belum ada rate. Tap "+ Tambah Rate" buat mulai.</td></tr>';
     return;
   }
-  tbody.innerHTML = _cpRate.map(function(r) {
-    return '<tr onclick="cpOpenRateForm(' + r.id + ')" style="cursor:pointer">' +
-      '<td>' + cpEsc(r.sku) + '</td>' +
-      '<td>' + cpEsc(r.divisi) + '</td>' +
-      '<td style="text-align:right">' + fmtRpFull(r.ongkos_per_lusin) + '</td>' +
-    '</tr>';
+  tbody.innerHTML = skus.map(function(sku) {
+    var cells = cols.map(function(c) {
+      var row = skuMap[sku][c.toLowerCase()];
+      return '<td style="text-align:right">' + (row ? fmtRpFull(row.ongkos_per_lusin) : '<span style="color:var(--ink3)">—</span>') + '</td>';
+    }).join('');
+    return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(sku) + '\')" style="cursor:pointer"><td>' + cpEsc(sku) + '</td>' + cells + '</tr>';
   }).join('');
 }
 
@@ -448,9 +478,7 @@ function cpRenderTukang() {
   tbody.innerHTML = _cpTukang.map(function(t) {
     return '<tr onclick="cpOpenTukangForm(' + t.id + ')" style="cursor:pointer">' +
       '<td>' + cpEsc(t.nama) + '</td>' +
-      '<td style="text-align:center">' + (t.aktif
-        ? '<span style="color:var(--ok);font-weight:700">Aktif</span>'
-        : '<span style="color:var(--ink3)">Nonaktif</span>') + '</td>' +
+      '<td>' + (t.divisi ? cpEsc(t.divisi) : '<span style="color:var(--ink3);font-style:italic">belum diisi</span>') + '</td>' +
     '</tr>';
   }).join('');
 }
@@ -469,7 +497,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ─── FORM: Jurnal Harian ────────────────────────────────────────
+// ─── FORM: Jurnal Harian (flow: Tukang → Divisi otomatis → SKU → Qty) ──
 var _cpJrnSelSku = '', _cpJrnSelDivisi = '', _cpJrnSelTukang = '', _cpJrnRate = 0;
 
 function cpOpenJurnalForm(id) {
@@ -488,19 +516,18 @@ function cpOpenJurnalForm(id) {
   _cpJrnSelTukang = row ? row.tukang : '';
   _cpJrnRate      = 0;
 
-  cpRenderSkuPickerList();
   cpRenderTukangPickerList();
-  cpSetJrnLabel('sku', _cpJrnSelSku);
   cpSetJrnLabel('tukang', _cpJrnSelTukang);
+  document.getElementById('cp-jrn-divisi-display').textContent = _cpJrnSelDivisi || 'auto ikut tukang';
 
-  if (_cpJrnSelSku) {
-    cpRenderDivisiPickerList(_cpJrnSelSku);
-    cpSetJrnLabel('divisi', _cpJrnSelDivisi);
-    var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi === _cpJrnSelDivisi; });
+  if (_cpJrnSelDivisi) {
+    cpRenderSkuPickerList(_cpJrnSelDivisi);
+    cpSetJrnLabel('sku', _cpJrnSelSku);
+    var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
     _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
   } else {
-    document.getElementById('cp-jrn-divisi-list').innerHTML = '';
-    cpSetJrnLabel('divisi', '');
+    document.getElementById('cp-jrn-sku-list').innerHTML = '';
+    cpSetJrnLabel('sku', '');
   }
 
   cpUpdateJurnalPreview();
@@ -514,63 +541,51 @@ function cpSetJrnLabel(field, val) {
     el.textContent = val;
     el.classList.remove('cp-placeholder');
   } else {
-    el.textContent = field === 'sku'    ? '— Pilih SKU —'
-                    : field === 'divisi' ? (_cpJrnSelSku ? '— Pilih Divisi —' : '— Pilih SKU dulu —')
-                    : '— Pilih Tukang —';
+    el.textContent = field === 'tukang' ? '— Pilih Tukang —' : (_cpJrnSelTukang ? '— Pilih SKU —' : '— Pilih Tukang dulu —');
     el.classList.add('cp-placeholder');
   }
 }
 
-function cpRenderSkuPickerList() {
-  var skus = [];
-  _cpRate.forEach(function(r) { if (skus.indexOf(r.sku) === -1) skus.push(r.sku); });
-  skus.sort();
+function cpRenderTukangPickerList() {
+  // Cuma tukang yang udah punya divisi yang bisa dipilih — kalau ada yang
+  // belum diisi divisinya, lengkapi dulu di Master Tukang.
+  var rows = _cpTukang.filter(function(t) { return t.divisi; });
+  var list = document.getElementById('cp-jrn-tukang-list');
+  list.innerHTML = rows.length
+    ? rows.map(function(t) {
+        return '<div class="cp-picker-opt" onclick="cpPickJrnTukang(\'' + cpEscJs(t.nama) + '\',\'' + cpEscJs(t.divisi) + '\')">' + cpEsc(t.nama) + ' — ' + cpEsc(t.divisi) + '</div>';
+      }).join('')
+    : '<div class="cp-picker-empty">Belum ada tukang dengan divisi. Lengkapi dulu di Master Tukang</div>';
+}
+
+function cpPickJrnTukang(nama, divisi) {
+  _cpJrnSelTukang = nama;
+  _cpJrnSelDivisi = divisi;
+  _cpJrnSelSku = '';
+  _cpJrnRate = 0;
+  cpSetJrnLabel('tukang', nama);
+  document.getElementById('cp-jrn-divisi-display').textContent = divisi;
+  cpRenderSkuPickerList(divisi);
+  cpSetJrnLabel('sku', '');
+  cpTogglePicker('cp-jrn-tukang-picker');
+  cpUpdateJurnalPreview();
+}
+
+function cpRenderSkuPickerList(divisi) {
+  var rows = _cpRate.filter(function(r) { return r.divisi.toLowerCase() === divisi.toLowerCase(); });
   var list = document.getElementById('cp-jrn-sku-list');
-  list.innerHTML = skus.length
-    ? skus.map(function(s) { return '<div class="cp-picker-opt" onclick="cpPickJrnSku(\'' + cpEscJs(s) + '\')">' + cpEsc(s) + '</div>'; }).join('')
-    : '<div class="cp-picker-empty">Belum ada SKU di Master Ongkos</div>';
+  list.innerHTML = rows.length
+    ? rows.map(function(r) { return '<div class="cp-picker-opt" onclick="cpPickJrnSku(\'' + cpEscJs(r.sku) + '\')">' + cpEsc(r.sku) + '</div>'; }).join('')
+    : '<div class="cp-picker-empty">Divisi ini belum punya rate SKU apapun — isi dulu di Master Ongkos</div>';
 }
 
 function cpPickJrnSku(sku) {
   _cpJrnSelSku = sku;
-  _cpJrnSelDivisi = '';
-  _cpJrnRate = 0;
   cpSetJrnLabel('sku', sku);
-  cpSetJrnLabel('divisi', '');
-  cpRenderDivisiPickerList(sku);
+  var rr = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
+  _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
   cpTogglePicker('cp-jrn-sku-picker');
   cpUpdateJurnalPreview();
-}
-
-function cpRenderDivisiPickerList(sku) {
-  var divisis = _cpRate.filter(function(r) { return r.sku === sku; }).map(function(r) { return r.divisi; });
-  var list = document.getElementById('cp-jrn-divisi-list');
-  list.innerHTML = divisis.length
-    ? divisis.map(function(d) { return '<div class="cp-picker-opt" onclick="cpPickJrnDivisi(\'' + cpEscJs(d) + '\')">' + cpEsc(d) + '</div>'; }).join('')
-    : '<div class="cp-picker-empty">SKU ini belum punya rate divisi</div>';
-}
-
-function cpPickJrnDivisi(divisi) {
-  _cpJrnSelDivisi = divisi;
-  cpSetJrnLabel('divisi', divisi);
-  var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi === divisi; });
-  _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
-  cpTogglePicker('cp-jrn-divisi-picker');
-  cpUpdateJurnalPreview();
-}
-
-function cpRenderTukangPickerList() {
-  var aktif = _cpTukang.filter(function(t) { return t.aktif; });
-  var list = document.getElementById('cp-jrn-tukang-list');
-  list.innerHTML = aktif.length
-    ? aktif.map(function(t) { return '<div class="cp-picker-opt" onclick="cpPickJrnTukang(\'' + cpEscJs(t.nama) + '\')">' + cpEsc(t.nama) + '</div>'; }).join('')
-    : '<div class="cp-picker-empty">Belum ada tukang aktif</div>';
-}
-
-function cpPickJrnTukang(nama) {
-  _cpJrnSelTukang = nama;
-  cpSetJrnLabel('tukang', nama);
-  cpTogglePicker('cp-jrn-tukang-picker');
 }
 
 function cpUpdateJurnalPreview() {
@@ -585,12 +600,12 @@ async function cpSaveJurnal() {
   var tanggal = document.getElementById('cp-jrn-tanggal').value;
   var qty = parseInt((document.getElementById('cp-jrn-qty').value || '0').replace(/[^0-9]/g, ''), 10) || 0;
   if (!tanggal) return alert('Tanggal wajib diisi.');
-  if (!_cpJrnSelSku) return alert('Pilih SKU dulu.');
-  if (!_cpJrnSelDivisi) return alert('Pilih Divisi dulu.');
   if (!_cpJrnSelTukang) return alert('Pilih Tukang dulu.');
+  if (!_cpJrnSelDivisi) return alert('Divisi belum ke-set — pilih ulang tukangnya.');
+  if (!_cpJrnSelSku) return alert('Pilih SKU (ngerjain apa) dulu.');
   if (qty <= 0) return alert('Qty (pcs) harus lebih dari 0.');
 
-  var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi === _cpJrnSelDivisi; });
+  var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
   if (!rr) return alert('Rate buat kombinasi SKU + Divisi ini belum ada — tambahin dulu di Master Ongkos.');
 
   var payload = {
@@ -614,48 +629,89 @@ async function cpDeleteJurnal() {
   cpLoadAll();
 }
 
-// ─── FORM: Master Ongkos ────────────────────────────────────────
-function cpOpenRateForm(id) {
-  document.getElementById('cp-rate-edit-id').value = id || '';
-  document.getElementById('cp-rate-form-title').innerHTML = id
-    ? '<i class="ti ti-edit"></i> Edit Rate'
+// ─── FORM: Master Ongkos (1 SKU, semua divisi jadi kolom input) ──
+function cpOpenRateForm(sku) {
+  document.getElementById('cp-rate-edit-sku').value = sku || '';
+  document.getElementById('cp-rate-form-title').innerHTML = sku
+    ? '<i class="ti ti-edit"></i> Edit Rate — ' + cpEsc(sku)
     : '<i class="ti ti-list-details"></i> Tambah Rate';
-  document.getElementById('cp-rate-del-btn').style.display = id ? '' : 'none';
+  document.getElementById('cp-rate-del-btn').style.display = sku ? '' : 'none';
 
-  var row = id ? _cpRate.find(function(r) { return r.id == id; }) : null;
-  document.getElementById('cp-rate-sku').value = row ? row.sku : '';
-  document.getElementById('cp-rate-divisi').value = row ? row.divisi : '';
-  idrInput('cp-rate-ongkos');
-  idrSet('cp-rate-ongkos', row ? row.ongkos_per_lusin : 0);
+  var skuInput = document.getElementById('cp-rate-sku');
+  skuInput.value = sku || '';
+  skuInput.disabled = !!sku; // hindari rename SKU pas edit (biar gak numpuk baris nyasar)
+
+  var cols = cpDivisiColumns();
+  var byDivisiLower = {};
+  if (sku) {
+    _cpRate.filter(function(r) { return r.sku === sku; }).forEach(function(r) {
+      byDivisiLower[r.divisi.toLowerCase()] = r;
+    });
+  }
+
+  document.getElementById('cp-rate-fields').innerHTML = cols.map(function(c) {
+    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
+    return '<div class="form-group"><label>' + cpEsc(c) + ' (Rp/lusin)</label>' +
+      '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0"></div>';
+  }).join('');
+  cols.forEach(function(c) {
+    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
+    idrInput(fid);
+    var row = byDivisiLower[c.toLowerCase()];
+    idrSet(fid, row ? row.ongkos_per_lusin : 0);
+  });
+
+  document.getElementById('cp-rate-extra-divisi').value = '';
+  document.getElementById('cp-rate-extra-ongkos').value = '';
+  idrInput('cp-rate-extra-ongkos');
+
   showModal('modal-cp-rate');
 }
 
 async function cpSaveRate() {
-  var id = document.getElementById('cp-rate-edit-id').value;
   var sku = document.getElementById('cp-rate-sku').value.trim();
-  var divisi = document.getElementById('cp-rate-divisi').value.trim();
-  var ongkos = idrVal('cp-rate-ongkos');
   if (!sku) return alert('SKU wajib diisi.');
-  if (!divisi) return alert('Divisi wajib diisi.');
-  if (ongkos <= 0) return alert('Ongkos per Lusin harus lebih dari 0.');
 
-  var payload = { sku: sku, divisi: divisi, ongkos_per_lusin: ongkos };
-  try {
-    if (id) await dbUpdate('cost_rate', id, payload);
-    else    await dbInsert('cost_rate', payload);
-  } catch (e) {
-    var msg = /duplicate|unique/i.test(e.message) ? 'Kombinasi SKU + Divisi ini udah ada.' : e.message;
-    return alert('Gagal simpan: ' + msg);
+  var cols = cpDivisiColumns();
+  var jobs = [];
+
+  cols.forEach(function(c) {
+    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
+    var val = idrVal(fid);
+    var existing = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === c.toLowerCase(); });
+    if (val > 0) {
+      jobs.push(existing
+        ? dbUpdate('cost_rate', existing.id, { ongkos_per_lusin: val })
+        : dbInsert('cost_rate', { sku: sku, divisi: c, ongkos_per_lusin: val }));
+    } else if (existing) {
+      jobs.push(dbDelete('cost_rate', existing.id));
+    }
+  });
+
+  var extraDivisi = document.getElementById('cp-rate-extra-divisi').value.trim();
+  var extraVal = idrVal('cp-rate-extra-ongkos');
+  if (extraDivisi && extraVal > 0) {
+    var existingExtra = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === extraDivisi.toLowerCase(); });
+    jobs.push(existingExtra
+      ? dbUpdate('cost_rate', existingExtra.id, { ongkos_per_lusin: extraVal })
+      : dbInsert('cost_rate', { sku: sku, divisi: extraDivisi, ongkos_per_lusin: extraVal }));
   }
+
+  try {
+    await Promise.all(jobs);
+  } catch (e) { return alert('Gagal simpan: ' + e.message); }
   hideModal('modal-cp-rate');
   cpLoadAll();
 }
 
 async function cpDeleteRate() {
-  var id = document.getElementById('cp-rate-edit-id').value;
-  if (!id) return;
-  if (!confirm('Hapus rate ini? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri di baris jurnalnya).')) return;
-  try { await dbDelete('cost_rate', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
+  var sku = document.getElementById('cp-rate-edit-sku').value;
+  if (!sku) return;
+  if (!confirm('Hapus semua rate buat SKU "' + sku + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).')) return;
+  var rows = _cpRate.filter(function(r) { return r.sku === sku; });
+  try {
+    await Promise.all(rows.map(function(r) { return dbDelete('cost_rate', r.id); }));
+  } catch (e) { return alert('Gagal hapus: ' + e.message); }
   hideModal('modal-cp-rate');
   cpLoadAll();
 }
@@ -670,17 +726,18 @@ function cpOpenTukangForm(id) {
 
   var row = id ? _cpTukang.find(function(t) { return t.id == id; }) : null;
   document.getElementById('cp-tukang-nama').value = row ? row.nama : '';
-  document.getElementById('cp-tukang-aktif').checked = row ? !!row.aktif : true;
+  document.getElementById('cp-tukang-divisi').value = row ? (row.divisi || '') : '';
   showModal('modal-cp-tukang');
 }
 
 async function cpSaveTukang() {
   var id = document.getElementById('cp-tukang-edit-id').value;
   var nama = document.getElementById('cp-tukang-nama').value.trim();
-  var aktif = document.getElementById('cp-tukang-aktif').checked;
+  var divisi = document.getElementById('cp-tukang-divisi').value.trim();
   if (!nama) return alert('Nama wajib diisi.');
+  if (!divisi) return alert('Divisi wajib diisi.');
 
-  var payload = { nama: nama, aktif: aktif };
+  var payload = { nama: nama, divisi: divisi, aktif: true };
   try {
     if (id) await dbUpdate('cost_tukang', id, payload);
     else    await dbInsert('cost_tukang', payload);
