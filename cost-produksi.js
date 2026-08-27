@@ -78,32 +78,55 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi #cp-panel-rate .tbl-wrap { overflow-x:auto; }
     }
 
-    /* ── Custom picker (bukan native <select> — aturan existing).
-       List dibikin INLINE (dorong konten di bawahnya turun), BUKAN
-       position:absolute ngambang — karena ada 3 picker berurutan
-       (Tukang→SKU) di modal yang sama, versi ngambang bikin list
-       numpuk/nutupin field lain di bawahnya pas kebuka. Modal induk
-       udah overflow-y:auto (lihat .modal di style.css), jadi aman
-       discroll. 27 Agu 2026. ── */
-    #page-cost-produksi .cp-picker { position:relative; }
+    /* ── Custom picker trigger (bukan native <select>) — tap buka
+       bottom-sheet #cp-picker-sheet di bawah, bukan dropdown ngambang. ── */
     #page-cost-produksi .cp-picker-trigger {
       display:flex; align-items:center; justify-content:space-between; gap:6px;
       padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4);
       cursor:pointer; font-size:13px; background:var(--cream2); color:var(--ink);
     }
     #page-cost-produksi .cp-picker-trigger .cp-placeholder { color:var(--ink3); }
-    #page-cost-produksi .cp-picker-list {
-      display:none; margin-top:6px;
-      max-height:220px; overflow-y:auto; background:var(--cream3); border:1px solid var(--ink3);
-      border-radius:8px;
-    }
-    #page-cost-produksi .cp-picker.open .cp-picker-list { display:block; }
-    #page-cost-produksi .cp-picker-opt { padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--ink4); }
-    #page-cost-produksi .cp-picker-opt:last-child { border-bottom:none; }
-    #page-cost-produksi .cp-picker-opt:hover { background:var(--cream2); }
-    #page-cost-produksi .cp-picker-empty { padding:9px 12px; font-size:12px; color:var(--ink3); font-style:italic; }
     #page-cost-produksi .cp-preview { margin-top:4px; font-size:13px; color:var(--ink2); }
     #page-cost-produksi .cp-preview b { color:var(--ink); font-size:15px; }
+
+    /* ── Bottom-sheet picker (konsep BRIMO + list ala komen Instagram) ──
+       Fixed full-screen, jadi CSS-nya gak di-scope ke #page-cost-produksi
+       (biar gak ketiban overflow:hidden punya panel/modal). ── */
+    #cp-picker-overlay {
+      display:none; position:fixed; inset:0; z-index:700;
+      background:rgba(0,0,0,.55); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+    }
+    #cp-picker-overlay.open { display:block; }
+    #cp-picker-sheet {
+      position:fixed; left:0; right:0; bottom:0; z-index:701;
+      background:#1a1a1a; border-radius:20px 20px 0 0;
+      transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
+      padding-bottom:env(safe-area-inset-bottom,16px);
+      max-height:80vh; display:none; flex-direction:column; overflow:hidden;
+    }
+    #cp-picker-sheet.open { display:flex; transform:translateY(0); }
+    .cp-picker-handle { width:40px; height:4px; background:rgba(255,255,255,.18); border-radius:2px; margin:12px auto 4px; flex:none; }
+    .cp-picker-sheet-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 16px 12px; letter-spacing:-.2px; flex:none; }
+    .cp-picker-sheet-search-wrap { flex:none; padding:0 16px 10px; }
+    #cp-picker-sheet-search {
+      width:100%; box-sizing:border-box; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      border-radius:10px; padding:11px 14px; font-size:15px; color:var(--ink); outline:none; -webkit-appearance:none;
+    }
+    #cp-picker-sheet-search::placeholder { color:var(--ink3); }
+    #cp-picker-sheet-search:focus { border-color:rgba(255,255,255,.25); background:rgba(255,255,255,.09); }
+    #cp-picker-sheet-list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:4px 10px 12px; }
+    #cp-picker-sheet-list .cp-sheet-item { font-size:15px; padding:12px 10px; border-radius:8px; cursor:pointer; }
+    #cp-picker-sheet-list .cp-sheet-item:active,
+    #cp-picker-sheet-list .cp-sheet-item.active { background:rgba(255,255,255,.08); color:var(--ink); }
+    #cp-picker-sheet-list .cp-sheet-empty { padding:20px 10px; text-align:center; color:var(--ink3); font-style:italic; font-size:13px; }
+    @media (min-width:768px) {
+      #cp-picker-sheet {
+        left:50%; right:auto; bottom:50%; transform:translate(-50%,50%) scale(.96);
+        width:100%; max-width:400px; border-radius:16px; max-height:70vh; opacity:0;
+        transition:transform .2s ease, opacity .2s ease;
+      }
+      #cp-picker-sheet.open { transform:translate(-50%,50%) scale(1); opacity:1; }
+    }
   </style>
 
   <!-- HEADER: judul panel aktif + tab bar mendatar (desktop) / dot notch (mobile) -->
@@ -153,7 +176,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="ti ti-notebook"></i> Jurnal Harian</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU / Varian</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th></tr></thead>
           <tbody id="cp-jurnal-tbody"><tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
@@ -200,12 +223,9 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="form-group"><label>Tanggal</label><input type="date" id="cp-jrn-tanggal"></div>
       <div class="form-group">
         <label>Tukang</label>
-        <div class="cp-picker" id="cp-jrn-tukang-picker">
-          <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-tukang-picker')">
-            <span id="cp-jrn-tukang-label" class="cp-placeholder">— Pilih Tukang —</span>
-            <i class="ti ti-chevron-down"></i>
-          </div>
-          <div class="cp-picker-list" id="cp-jrn-tukang-list"></div>
+        <div class="cp-picker-trigger" onclick="cpOpenTukangSheet()">
+          <span id="cp-jrn-tukang-label" class="cp-placeholder">— Pilih Tukang —</span>
+          <i class="ti ti-chevron-down"></i>
         </div>
       </div>
       <div class="form-group">
@@ -214,12 +234,16 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
       <div class="form-group">
         <label>Ngerjain Apa (SKU)</label>
-        <div class="cp-picker" id="cp-jrn-sku-picker">
-          <div class="cp-picker-trigger" onclick="cpTogglePicker('cp-jrn-sku-picker')">
-            <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih Tukang dulu —</span>
-            <i class="ti ti-chevron-down"></i>
-          </div>
-          <div class="cp-picker-list" id="cp-jrn-sku-list"></div>
+        <div class="cp-picker-trigger" onclick="cpOpenSkuSheetForJurnal()">
+          <span id="cp-jrn-sku-label" class="cp-placeholder">— Pilih Tukang dulu —</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+      </div>
+      <div class="form-group" id="cp-jrn-varian-group" style="display:none">
+        <label>Varian</label>
+        <div class="cp-picker-trigger" onclick="cpOpenVarianSheetForJurnal()">
+          <span id="cp-jrn-varian-label" class="cp-placeholder">— Pilih Varian —</span>
+          <i class="ti ti-chevron-down"></i>
         </div>
       </div>
       <div class="form-group"><label>Qty (pcs)</label><input type="text" inputmode="numeric" id="cp-jrn-qty" placeholder="0" oninput="cpUpdateJurnalPreview()"></div>
@@ -240,7 +264,14 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <button onclick="hideModal('modal-cp-rate')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
       <input type="hidden" id="cp-rate-edit-sku">
-      <div class="form-group"><label>SKU</label><input type="text" id="cp-rate-sku" placeholder="mis. Turtleneck"></div>
+      <div class="form-group">
+        <label>SKU</label>
+        <div class="cp-picker-trigger" id="cp-rate-sku-trigger" onclick="cpOpenSkuSheetForRate()">
+          <span id="cp-rate-sku-label" class="cp-placeholder">— Pilih SKU (Boss: DIMI) —</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <input type="hidden" id="cp-rate-sku">
+      </div>
       <div id="cp-rate-fields"></div>
       <div class="form-group">
         <label>Divisi Lain (opsional, kalau ada divisi baru di luar 6 di atas)</label>
@@ -274,12 +305,30 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- ═══ PICKER SHEET generik — konsep sama kayak sheet Uang Keluar
+       (kas.js) & sheet Pilih Akun: slide dari bawah, search di atas,
+       list scroll di bawahnya, tap = pilih & sheet nutup sendiri.
+       Dipakai buat SEMUA picker input di Cost Produksi (Tukang, SKU). ═══ -->
+  <div id="cp-picker-overlay" onclick="cpPickerSheetClose()"></div>
+  <div id="cp-picker-sheet">
+    <div class="cp-picker-handle"></div>
+    <div id="cp-picker-sheet-title" class="cp-picker-sheet-title">Pilih</div>
+    <div class="cp-picker-sheet-search-wrap">
+      <input type="text" id="cp-picker-sheet-search" placeholder="Cari..."
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+        oninput="cpPickerSheetFilter(this.value)">
+    </div>
+    <div id="cp-picker-sheet-list"></div>
+  </div>
 `;
+
 
 // ─── STATE ──────────────────────────────────────────────────
 var _cpJurnal = [];
 var _cpRate   = [];
 var _cpTukang = [];
+var _cpProdukDimi = []; // katalog/varian dari Kelola Produk, boss=DIMI doang
 var _cpView   = 'overview';
 var _CP_VIEW_ORDER = ['overview', 'jurnal', 'rate', 'tukang'];
 var _CP_VIEW_LABEL = {
@@ -325,8 +374,9 @@ async function cpLoadAll() {
       dbGet('cost_jurnal', '&order=tanggal.desc,id.desc'),
       dbGet('cost_rate',   '&order=sku.asc'),
       dbGet('cost_tukang', '&order=nama.asc'),
+      dbGet('produk',      '&boss=eq.DIMI&order=katalog.asc').catch(function() { return []; }),
     ]);
-    _cpJurnal = res[0]; _cpRate = res[1]; _cpTukang = res[2];
+    _cpJurnal = res[0]; _cpRate = res[1]; _cpTukang = res[2]; _cpProdukDimi = res[3] || [];
   } catch (e) {
     alert('Gagal load Cost Produksi: ' + e.message);
     return;
@@ -436,11 +486,12 @@ function cpRenderJurnal() {
     return;
   }
   tbody.innerHTML = _cpJurnal.map(function(j) {
+    var skuCell = cpEsc(j.sku) + (j.sku_variasi ? ' <span style="color:var(--ink3);font-size:11px">— ' + cpEsc(j.sku_variasi) + '</span>' : '');
     return '<tr onclick="cpOpenJurnalForm(' + j.id + ')" style="cursor:pointer">' +
       '<td>' + cpEsc(cpFmtTgl(j.tanggal)) + '</td>' +
       '<td>' + cpEsc(j.divisi) + '</td>' +
       '<td>' + cpEsc(j.tukang) + '</td>' +
-      '<td>' + cpEsc(j.sku) + '</td>' +
+      '<td>' + skuCell + '</td>' +
       '<td style="text-align:right">' + (j.qty_pcs || 0) + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(j.total_cost) + '</td>' +
     '</tr>';
@@ -490,27 +541,62 @@ function cpRenderTukang() {
   }).join('');
 }
 
-// ─── PICKER generik (bukan native <select>) ────────────────────
-function cpTogglePicker(wrapId) {
-  var wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  var willOpen = !wrap.classList.contains('open');
-  document.querySelectorAll('#page-cost-produksi .cp-picker.open').forEach(function(w) { w.classList.remove('open'); });
-  if (willOpen) {
-    wrap.classList.add('open');
-    // List sekarang inline (dorong konten turun) — scroll dikit biar
-    // listnya keliatan penuh, gak ketutup batas bawah modal.
-    setTimeout(function() { wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
-  }
-}
-document.addEventListener('click', function(e) {
-  if (!e.target.closest || !e.target.closest('#page-cost-produksi .cp-picker')) {
-    document.querySelectorAll('#page-cost-produksi .cp-picker.open').forEach(function(w) { w.classList.remove('open'); });
-  }
-});
+// ─── PICKER SHEET generik (konsep BRIMO + list ala komen Instagram) ──
+// Dipakai buat semua picker di Cost Produksi: Tukang & SKU (Jurnal Harian),
+// SKU (Master Ongkos). Satu sheet dipakai bareng, konteksnya di _cpPickerCtx.
+var _cpPickerCtx = null;      // { options, onSelect, selectedKey }
+var _cpPickerFiltered = [];
 
-// ─── FORM: Jurnal Harian (flow: Tukang → Divisi otomatis → SKU → Qty) ──
-var _cpJrnSelSku = '', _cpJrnSelDivisi = '', _cpJrnSelTukang = '', _cpJrnRate = 0;
+function cpPickerSheetOpen(title, options, selectedKey, onSelect) {
+  _cpPickerCtx = { options: options, onSelect: onSelect, selectedKey: selectedKey };
+  document.getElementById('cp-picker-sheet-title').textContent = title;
+  var searchEl = document.getElementById('cp-picker-sheet-search');
+  if (searchEl) searchEl.value = '';
+  cpPickerSheetRender('');
+  document.getElementById('cp-picker-overlay').classList.add('open');
+  document.getElementById('cp-picker-sheet').classList.add('open');
+  setTimeout(function() { if (searchEl) searchEl.focus({ preventScroll: true }); }, 280);
+}
+
+function cpPickerSheetClose() {
+  var overlay = document.getElementById('cp-picker-overlay');
+  var sheet   = document.getElementById('cp-picker-sheet');
+  if (overlay) overlay.classList.remove('open');
+  if (sheet)   sheet.classList.remove('open');
+  var searchEl = document.getElementById('cp-picker-sheet-search');
+  if (searchEl) searchEl.blur();
+  _cpPickerCtx = null;
+}
+
+function cpPickerSheetFilter(q) { cpPickerSheetRender(q); }
+
+function cpPickerSheetRender(q) {
+  if (!_cpPickerCtx) return;
+  var ql = (q || '').toLowerCase().trim();
+  _cpPickerFiltered = _cpPickerCtx.options.filter(function(o) {
+    return !ql || (o.label + ' ' + (o.sub || '')).toLowerCase().indexOf(ql) !== -1;
+  });
+  var list = document.getElementById('cp-picker-sheet-list');
+  list.innerHTML = _cpPickerFiltered.length
+    ? _cpPickerFiltered.map(function(o, i) {
+        var active = (o.key === _cpPickerCtx.selectedKey) ? ' active' : '';
+        return '<div class="cp-sheet-item' + active + '" onclick="cpPickerSheetChoose(' + i + ')">' +
+          cpEsc(o.label) + (o.sub ? ' <span style="color:var(--ink3);font-size:12px">— ' + cpEsc(o.sub) + '</span>' : '') +
+        '</div>';
+      }).join('')
+    : '<div class="cp-sheet-empty">Gak ketemu</div>';
+}
+
+function cpPickerSheetChoose(i) {
+  var opt = _cpPickerFiltered[i];
+  if (!opt || !_cpPickerCtx) return;
+  var cb = _cpPickerCtx.onSelect;
+  cpPickerSheetClose();
+  cb(opt.raw, opt.key);
+}
+
+// ─── FORM: Jurnal Harian (flow: Tukang → Divisi otomatis → SKU → Varian → Qty) ──
+var _cpJrnSelSku = '', _cpJrnSelDivisi = '', _cpJrnSelTukang = '', _cpJrnSelVarian = '', _cpJrnRate = 0;
 
 function cpOpenJurnalForm(id) {
   document.getElementById('cp-jrn-edit-id').value = id || '';
@@ -523,24 +609,23 @@ function cpOpenJurnalForm(id) {
   document.getElementById('cp-jrn-tanggal').value = row ? row.tanggal : new Date().toISOString().slice(0, 10);
   document.getElementById('cp-jrn-qty').value = row ? row.qty_pcs : '';
 
-  _cpJrnSelSku    = row ? row.sku    : '';
-  _cpJrnSelDivisi = row ? row.divisi : '';
-  _cpJrnSelTukang = row ? row.tukang : '';
+  _cpJrnSelSku    = row ? row.sku            : '';
+  _cpJrnSelDivisi = row ? row.divisi         : '';
+  _cpJrnSelTukang = row ? row.tukang         : '';
+  _cpJrnSelVarian = row ? (row.sku_variasi || '') : '';
   _cpJrnRate      = 0;
 
-  cpRenderTukangPickerList();
   cpSetJrnLabel('tukang', _cpJrnSelTukang);
   document.getElementById('cp-jrn-divisi-display').textContent = _cpJrnSelDivisi || 'auto ikut tukang';
 
   if (_cpJrnSelDivisi) {
-    cpRenderSkuPickerList(_cpJrnSelDivisi);
     cpSetJrnLabel('sku', _cpJrnSelSku);
     var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
     _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
   } else {
-    document.getElementById('cp-jrn-sku-list').innerHTML = '';
     cpSetJrnLabel('sku', '');
   }
+  cpRefreshVarianField();
 
   cpUpdateJurnalPreview();
   showModal('modal-cp-jurnal');
@@ -553,51 +638,89 @@ function cpSetJrnLabel(field, val) {
     el.textContent = val;
     el.classList.remove('cp-placeholder');
   } else {
-    el.textContent = field === 'tukang' ? '— Pilih Tukang —' : (_cpJrnSelTukang ? '— Pilih SKU —' : '— Pilih Tukang dulu —');
+    el.textContent = field === 'tukang' ? '— Pilih Tukang —'
+                    : field === 'sku'    ? (_cpJrnSelTukang ? '— Pilih SKU —' : '— Pilih Tukang dulu —')
+                    : '— Pilih Varian —';
     el.classList.add('cp-placeholder');
   }
 }
 
-function cpRenderTukangPickerList() {
-  // Cuma tukang yang udah punya divisi yang bisa dipilih — kalau ada yang
-  // belum diisi divisinya, lengkapi dulu di Master Tukang.
+// Varian (sku_variasi) buat SKU yang lagi dipilih — ditarik dari produk
+// Dimi yang udah di-load (_cpProdukDimi). Field Varian cuma muncul kalau
+// katalog itu beneran punya data varian; kalau cuma 1 varian, auto-pilih
+// biar gak nge-ganggu user pas cuma ada 1 opsi doang.
+function cpJrnVarianOptions() {
+  if (!_cpJrnSelSku) return [];
+  return _cpProdukDimi.filter(function(p) { return p.katalog === _cpJrnSelSku && p.sku_variasi; });
+}
+
+function cpRefreshVarianField() {
+  var group = document.getElementById('cp-jrn-varian-group');
+  var opts = cpJrnVarianOptions();
+  if (!opts.length) {
+    group.style.display = 'none';
+    _cpJrnSelVarian = '';
+    return;
+  }
+  group.style.display = '';
+  if (opts.length === 1 && !_cpJrnSelVarian) {
+    _cpJrnSelVarian = opts[0].sku_variasi;
+  }
+  // Kalau varian yang lagi kesimpen (mis. dari edit) udah gak ada lagi
+  // di daftar opsi (katalog beda), reset.
+  if (_cpJrnSelVarian && !opts.some(function(p) { return p.sku_variasi === _cpJrnSelVarian; })) {
+    _cpJrnSelVarian = '';
+  }
+  cpSetJrnLabel('varian', _cpJrnSelVarian);
+}
+
+// Sheet: Pilih Tukang — cuma yang udah punya divisi yang bisa dipilih.
+function cpOpenTukangSheet() {
   var rows = _cpTukang.filter(function(t) { return t.divisi; });
-  var list = document.getElementById('cp-jrn-tukang-list');
-  list.innerHTML = rows.length
-    ? rows.map(function(t) {
-        return '<div class="cp-picker-opt" onclick="cpPickJrnTukang(\'' + cpEscJs(t.nama) + '\',\'' + cpEscJs(t.divisi) + '\')">' + cpEsc(t.nama) + ' — ' + cpEsc(t.divisi) + '</div>';
-      }).join('')
-    : '<div class="cp-picker-empty">Belum ada tukang dengan divisi. Lengkapi dulu di Master Tukang</div>';
+  if (!rows.length) { alert('Belum ada tukang dengan divisi. Lengkapi dulu di Master Tukang.'); return; }
+  var opts = rows.map(function(t) { return { label: t.nama, sub: t.divisi, key: t.nama + '|' + t.divisi, raw: t }; });
+  var selKey = _cpJrnSelTukang ? (_cpJrnSelTukang + '|' + _cpJrnSelDivisi) : null;
+  cpPickerSheetOpen('Pilih Tukang', opts, selKey, function(t) {
+    _cpJrnSelTukang = t.nama;
+    _cpJrnSelDivisi = t.divisi;
+    _cpJrnSelSku = '';
+    _cpJrnSelVarian = '';
+    _cpJrnRate = 0;
+    cpSetJrnLabel('tukang', t.nama);
+    document.getElementById('cp-jrn-divisi-display').textContent = t.divisi;
+    cpSetJrnLabel('sku', '');
+    cpRefreshVarianField();
+    cpUpdateJurnalPreview();
+  });
 }
 
-function cpPickJrnTukang(nama, divisi) {
-  _cpJrnSelTukang = nama;
-  _cpJrnSelDivisi = divisi;
-  _cpJrnSelSku = '';
-  _cpJrnRate = 0;
-  cpSetJrnLabel('tukang', nama);
-  document.getElementById('cp-jrn-divisi-display').textContent = divisi;
-  cpRenderSkuPickerList(divisi);
-  cpSetJrnLabel('sku', '');
-  cpTogglePicker('cp-jrn-tukang-picker');
-  cpUpdateJurnalPreview();
+// Sheet: Ngerjain Apa (SKU) — difilter cuma SKU yang punya rate di divisi
+// tukang yang lagi dipilih.
+function cpOpenSkuSheetForJurnal() {
+  if (!_cpJrnSelDivisi) { alert('Pilih Tukang dulu.'); return; }
+  var rows = _cpRate.filter(function(r) { return r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
+  if (!rows.length) { alert('Divisi "' + _cpJrnSelDivisi + '" belum punya rate SKU apapun — isi dulu di Master Ongkos.'); return; }
+  var opts = rows.map(function(r) { return { label: r.sku, sub: null, key: r.sku, raw: r.sku }; });
+  cpPickerSheetOpen('Ngerjain Apa (SKU)', opts, _cpJrnSelSku, function(sku) {
+    _cpJrnSelSku = sku;
+    _cpJrnSelVarian = '';
+    cpSetJrnLabel('sku', sku);
+    var rr = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
+    _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
+    cpRefreshVarianField();
+    cpUpdateJurnalPreview();
+  });
 }
 
-function cpRenderSkuPickerList(divisi) {
-  var rows = _cpRate.filter(function(r) { return r.divisi.toLowerCase() === divisi.toLowerCase(); });
-  var list = document.getElementById('cp-jrn-sku-list');
-  list.innerHTML = rows.length
-    ? rows.map(function(r) { return '<div class="cp-picker-opt" onclick="cpPickJrnSku(\'' + cpEscJs(r.sku) + '\')">' + cpEsc(r.sku) + '</div>'; }).join('')
-    : '<div class="cp-picker-empty">Divisi ini belum punya rate SKU apapun — isi dulu di Master Ongkos</div>';
-}
-
-function cpPickJrnSku(sku) {
-  _cpJrnSelSku = sku;
-  cpSetJrnLabel('sku', sku);
-  var rr = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
-  _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
-  cpTogglePicker('cp-jrn-sku-picker');
-  cpUpdateJurnalPreview();
+// Sheet: Varian — daftar sku_variasi dari katalog yang lagi dipilih.
+function cpOpenVarianSheetForJurnal() {
+  var opts = cpJrnVarianOptions();
+  if (!opts.length) return;
+  var sheetOpts = opts.map(function(p) { return { label: p.sku_variasi, sub: null, key: p.sku_variasi, raw: p.sku_variasi }; });
+  cpPickerSheetOpen('Pilih Varian', sheetOpts, _cpJrnSelVarian, function(varian) {
+    _cpJrnSelVarian = varian;
+    cpSetJrnLabel('varian', varian);
+  });
 }
 
 function cpUpdateJurnalPreview() {
@@ -615,6 +738,7 @@ async function cpSaveJurnal() {
   if (!_cpJrnSelTukang) return alert('Pilih Tukang dulu.');
   if (!_cpJrnSelDivisi) return alert('Divisi belum ke-set — pilih ulang tukangnya.');
   if (!_cpJrnSelSku) return alert('Pilih SKU (ngerjain apa) dulu.');
+  if (cpJrnVarianOptions().length && !_cpJrnSelVarian) return alert('Pilih Varian dulu — biar jelas warna/model apa yang dikerjain.');
   if (qty <= 0) return alert('Qty (pcs) harus lebih dari 0.');
 
   var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
@@ -622,6 +746,7 @@ async function cpSaveJurnal() {
 
   var payload = {
     tanggal: tanggal, divisi: _cpJrnSelDivisi, tukang: _cpJrnSelTukang, sku: _cpJrnSelSku,
+    sku_variasi: _cpJrnSelVarian || null,
     qty_pcs: qty, rate_snapshot: Number(rr.ongkos_per_lusin)
   };
   try {
@@ -649,9 +774,20 @@ function cpOpenRateForm(sku) {
     : '<i class="ti ti-list-details"></i> Tambah Rate';
   document.getElementById('cp-rate-del-btn').style.display = sku ? '' : 'none';
 
-  var skuInput = document.getElementById('cp-rate-sku');
-  skuInput.value = sku || '';
-  skuInput.disabled = !!sku; // hindari rename SKU pas edit (biar gak numpuk baris nyasar)
+  document.getElementById('cp-rate-sku').value = sku || '';
+  var trigger = document.getElementById('cp-rate-sku-trigger');
+  var label = document.getElementById('cp-rate-sku-label');
+  if (sku) {
+    label.textContent = sku;
+    label.classList.remove('cp-placeholder');
+    trigger.style.opacity = '.6';
+    trigger.style.pointerEvents = 'none'; // hindari rename SKU pas edit (biar gak numpuk baris nyasar)
+  } else {
+    label.textContent = '— Pilih SKU (Boss: DIMI) —';
+    label.classList.add('cp-placeholder');
+    trigger.style.opacity = '';
+    trigger.style.pointerEvents = '';
+  }
 
   var cols = cpDivisiColumns();
   var byDivisiLower = {};
@@ -678,6 +814,33 @@ function cpOpenRateForm(sku) {
   idrInput('cp-rate-extra-ongkos');
 
   showModal('modal-cp-rate');
+}
+
+// SKU picker khusus Master Ongkos — ditarik dari Kelola Produk (tabel
+// `produk`), CUMA katalog yang Boss/Supplier-nya DIMI (per keputusan 27
+// Agu 2026). 1 opsi = 1 katalog (bukan per-varian), karena rate ongkos
+// emang berlaku buat semua varian dalam katalog itu (samain kayak
+// spreadsheet asli — "Turtleneck" 1 baris ongkos buat semua warnanya).
+function cpOpenSkuSheetForRate() {
+  if (!_cpProdukDimi.length) {
+    alert('Belum ada produk dengan Boss = DIMI di Kelola Produk.');
+    return;
+  }
+  var byKatalog = {};
+  _cpProdukDimi.forEach(function(p) {
+    if (!p.katalog) return;
+    byKatalog[p.katalog] = (byKatalog[p.katalog] || 0) + 1;
+  });
+  var opts = Object.keys(byKatalog).sort().map(function(k) {
+    return { label: k, sub: byKatalog[k] + ' varian', key: k, raw: k };
+  });
+  var currentSku = document.getElementById('cp-rate-sku').value;
+  cpPickerSheetOpen('Pilih SKU (Boss: DIMI)', opts, currentSku, function(katalog) {
+    document.getElementById('cp-rate-sku').value = katalog;
+    var label = document.getElementById('cp-rate-sku-label');
+    label.textContent = katalog;
+    label.classList.remove('cp-placeholder');
+  });
 }
 
 async function cpSaveRate() {
