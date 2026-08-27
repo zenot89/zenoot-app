@@ -78,7 +78,13 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi #cp-panel-rate .tbl-wrap { overflow-x:auto; }
     }
 
-    /* ── Custom picker (bukan native <select> — aturan existing) ── */
+    /* ── Custom picker (bukan native <select> — aturan existing).
+       List dibikin INLINE (dorong konten di bawahnya turun), BUKAN
+       position:absolute ngambang — karena ada 3 picker berurutan
+       (Tukang→SKU) di modal yang sama, versi ngambang bikin list
+       numpuk/nutupin field lain di bawahnya pas kebuka. Modal induk
+       udah overflow-y:auto (lihat .modal di style.css), jadi aman
+       discroll. 27 Agu 2026. ── */
     #page-cost-produksi .cp-picker { position:relative; }
     #page-cost-produksi .cp-picker-trigger {
       display:flex; align-items:center; justify-content:space-between; gap:6px;
@@ -87,13 +93,14 @@ document.getElementById('page-cost-produksi').innerHTML = `
     }
     #page-cost-produksi .cp-picker-trigger .cp-placeholder { color:var(--ink3); }
     #page-cost-produksi .cp-picker-list {
-      display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
-      max-height:220px; overflow-y:auto; background:var(--cream2); border:1px solid var(--ink3);
-      border-radius:8px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.25);
+      display:none; margin-top:6px;
+      max-height:220px; overflow-y:auto; background:var(--cream3); border:1px solid var(--ink3);
+      border-radius:8px;
     }
     #page-cost-produksi .cp-picker.open .cp-picker-list { display:block; }
-    #page-cost-produksi .cp-picker-opt { padding:9px 12px; font-size:13px; cursor:pointer; }
-    #page-cost-produksi .cp-picker-opt:hover { background:var(--cream3); }
+    #page-cost-produksi .cp-picker-opt { padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--ink4); }
+    #page-cost-produksi .cp-picker-opt:last-child { border-bottom:none; }
+    #page-cost-produksi .cp-picker-opt:hover { background:var(--cream2); }
     #page-cost-produksi .cp-picker-empty { padding:9px 12px; font-size:12px; color:var(--ink3); font-style:italic; }
     #page-cost-produksi .cp-preview { margin-top:4px; font-size:13px; color:var(--ink2); }
     #page-cost-produksi .cp-preview b { color:var(--ink); font-size:15px; }
@@ -489,7 +496,12 @@ function cpTogglePicker(wrapId) {
   if (!wrap) return;
   var willOpen = !wrap.classList.contains('open');
   document.querySelectorAll('#page-cost-produksi .cp-picker.open').forEach(function(w) { w.classList.remove('open'); });
-  if (willOpen) wrap.classList.add('open');
+  if (willOpen) {
+    wrap.classList.add('open');
+    // List sekarang inline (dorong konten turun) — scroll dikit biar
+    // listnya keliatan penuh, gak ketutup batas bawah modal.
+    setTimeout(function() { wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
+  }
 }
 document.addEventListener('click', function(e) {
   if (!e.target.closest || !e.target.closest('#page-cost-produksi .cp-picker')) {
