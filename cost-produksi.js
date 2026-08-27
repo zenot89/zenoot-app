@@ -188,9 +188,9 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <button class="btn btn-primary btn-sm" onclick="cpOpenRateForm()"><i class="ti ti-plus"></i> Tambah Rate</button>
       </div>
       <div class="card">
-        <div class="card-title"><i class="ti ti-list-details"></i> Master Ongkos (per SKU x Divisi)</div>
+        <div class="card-title"><i class="ti ti-list-details"></i> Master Ongkos (per SKU x Variasi x Divisi)</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr id="cp-rate-thead-row"><th>SKU</th></tr></thead>
+          <thead><tr id="cp-rate-thead-row"><th>SKU / Variasi</th></tr></thead>
           <tbody id="cp-rate-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
@@ -281,13 +281,22 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <button onclick="hideModal('modal-cp-rate')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
       <input type="hidden" id="cp-rate-edit-sku">
+      <input type="hidden" id="cp-rate-edit-variasi">
       <div class="form-group">
-        <label>SKU</label>
+        <label>SKU Induk</label>
         <div class="cp-picker-trigger" id="cp-rate-sku-trigger" onclick="cpOpenSkuSheetForRate()">
           <span id="cp-rate-sku-label" class="cp-placeholder">— Pilih SKU (Boss: DIMI) —</span>
           <i class="ti ti-chevron-down"></i>
         </div>
         <input type="hidden" id="cp-rate-sku">
+      </div>
+      <div class="form-group">
+        <label>SKU Variasi</label>
+        <div class="cp-picker-trigger" id="cp-rate-variasi-trigger" onclick="cpOpenVarianSheetForRate()">
+          <span id="cp-rate-variasi-label" class="cp-placeholder">— Pilih SKU Induk dulu —</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <input type="hidden" id="cp-rate-variasi">
       </div>
       <div id="cp-rate-fields"></div>
       <div class="form-group">
@@ -298,7 +307,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
         </div>
       </div>
       <div class="modal-actions" style="margin-top:16px">
-        <button class="btn btn-danger" id="cp-rate-del-btn" style="display:none" onclick="cpDeleteRate()"><i class="ti ti-trash"></i> Hapus SKU Ini</button>
+        <button class="btn btn-danger" id="cp-rate-del-btn" style="display:none" onclick="cpDeleteRate()"><i class="ti ti-trash"></i> Hapus Varian Ini</button>
         <button class="btn" onclick="hideModal('modal-cp-rate')">Batal</button>
         <button class="btn btn-primary" onclick="cpSaveRate()"><i class="ti ti-check"></i> Simpan</button>
       </div>
@@ -515,31 +524,37 @@ function cpRenderJurnal() {
   }).join('');
 }
 
-// ─── RENDER: Master Ongkos (pivot — 1 baris per SKU, kolom = tiap divisi) ──
+// ─── RENDER: Master Ongkos (pivot — 1 baris per SKU+Variasi, kolom = tiap divisi) ──
 function cpRenderRate() {
   var cols = cpDivisiColumns();
   var theadRow = document.getElementById('cp-rate-thead-row');
-  theadRow.innerHTML = '<th>SKU</th>' + cols.map(function(c) {
+  theadRow.innerHTML = '<th>SKU / Variasi</th>' + cols.map(function(c) {
     return '<th style="text-align:right">' + cpEsc(c) + '</th>';
   }).join('');
 
-  var skuMap = {};
+  var groupMap = {};
   _cpRate.forEach(function(r) {
-    if (!skuMap[r.sku]) skuMap[r.sku] = {};
-    skuMap[r.sku][r.divisi.toLowerCase()] = r;
+    var key = r.sku + '||' + (r.sku_variasi || '');
+    if (!groupMap[key]) groupMap[key] = { sku: r.sku, variasi: r.sku_variasi || '', cells: {} };
+    groupMap[key].cells[r.divisi.toLowerCase()] = r;
   });
-  var skus = Object.keys(skuMap).sort();
+  var keys = Object.keys(groupMap).sort(function(a, b) {
+    var ga = groupMap[a], gb = groupMap[b];
+    return ga.sku !== gb.sku ? ga.sku.localeCompare(gb.sku) : ga.variasi.localeCompare(gb.variasi);
+  });
   var tbody = document.getElementById('cp-rate-tbody');
-  if (!skus.length) {
+  if (!keys.length) {
     tbody.innerHTML = '<tr><td colspan="' + (cols.length + 1) + '" style="color:var(--ink3);font-style:italic">Belum ada rate. Tap "+ Tambah Rate" buat mulai.</td></tr>';
     return;
   }
-  tbody.innerHTML = skus.map(function(sku) {
+  tbody.innerHTML = keys.map(function(key) {
+    var g = groupMap[key];
     var cells = cols.map(function(c) {
-      var row = skuMap[sku][c.toLowerCase()];
+      var row = g.cells[c.toLowerCase()];
       return '<td style="text-align:right">' + (row ? fmtRpFull(row.ongkos_per_lusin) : '<span style="color:var(--ink3)">—</span>') + '</td>';
     }).join('');
-    return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(sku) + '\')" style="cursor:pointer"><td>' + cpEsc(sku) + '</td>' + cells + '</tr>';
+    var label = cpEsc(g.sku) + (g.variasi ? ' <span style="color:var(--ink3);font-size:11px">— ' + cpEsc(g.variasi) + '</span>' : '');
+    return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(g.sku) + '\',\'' + cpEscJs(g.variasi) + '\')" style="cursor:pointer"><td>' + label + '</td>' + cells + '</tr>';
   }).join('');
 }
 
@@ -634,15 +649,8 @@ function cpOpenJurnalForm(id) {
 
   cpSetJrnLabel('tukang', _cpJrnSelTukang);
   document.getElementById('cp-jrn-divisi-display').textContent = _cpJrnSelDivisi || 'auto ikut tukang';
-
-  if (_cpJrnSelDivisi) {
-    cpSetJrnLabel('sku', _cpJrnSelSku);
-    var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
-    _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
-  } else {
-    cpSetJrnLabel('sku', '');
-  }
-  cpRefreshVarianField();
+  cpSetJrnLabel('sku', _cpJrnSelSku);
+  cpRefreshVarianField(); // ini juga yang nentuin _cpJrnRate, karena rate sekarang baru ketauan setelah Varian jelas
 
   cpUpdateJurnalPreview();
   showModal('modal-cp-jurnal');
@@ -662,14 +670,20 @@ function cpSetJrnLabel(field, val) {
   }
 }
 
-// Varian (sku_variasi) buat SKU yang lagi dipilih — ditarik dari produk
-// Dimi yang udah di-load (_cpProdukDimi). Field Varian cuma muncul kalau
-// katalog itu beneran punya data varian; kalau cuma 1 varian, auto-pilih
-// biar gak nge-ganggu user pas cuma ada 1 opsi doang.
+// Opsi Varian buat SKU+Divisi yang lagi dipilih — ditarik dari cost_rate
+// (BUKAN dari produk langsung), karena rate ongkos sekarang emang beda per
+// varian (M vs LX dst.) jadi variannya harus yang beneran udah punya rate
+// buat divisi ini di Master Ongkos. 1 hasil = 1 baris cost_rate.
 function cpJrnVarianOptions() {
-  if (!_cpJrnSelSku) return [];
-  var target = _cpJrnSelSku.trim().toLowerCase();
-  return _cpProdukDimi.filter(function(p) { return p.katalog && p.katalog.trim().toLowerCase() === target && p.sku_variasi; });
+  if (!_cpJrnSelSku || !_cpJrnSelDivisi) return [];
+  var seen = {};
+  return _cpRate.filter(function(r) {
+    return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase() && r.sku_variasi;
+  }).filter(function(r) {
+    if (seen[r.sku_variasi]) return false;
+    seen[r.sku_variasi] = true;
+    return true;
+  });
 }
 
 function cpRefreshVarianField() {
@@ -678,18 +692,23 @@ function cpRefreshVarianField() {
   if (!opts.length) {
     group.style.display = 'none';
     _cpJrnSelVarian = '';
+    _cpJrnRate = 0;
+    cpUpdateJurnalPreview();
     return;
   }
   group.style.display = '';
   if (opts.length === 1 && !_cpJrnSelVarian) {
     _cpJrnSelVarian = opts[0].sku_variasi;
   }
-  // Kalau varian yang lagi kesimpen (mis. dari edit) udah gak ada lagi
-  // di daftar opsi (katalog beda), reset.
-  if (_cpJrnSelVarian && !opts.some(function(p) { return p.sku_variasi === _cpJrnSelVarian; })) {
+  var match = opts.find(function(r) { return r.sku_variasi === _cpJrnSelVarian; });
+  if (match) {
+    _cpJrnRate = Number(match.ongkos_per_lusin);
+  } else {
     _cpJrnSelVarian = '';
+    _cpJrnRate = 0;
   }
   cpSetJrnLabel('varian', _cpJrnSelVarian);
+  cpUpdateJurnalPreview();
 }
 
 // Sheet: Pilih Tukang — cuma yang udah punya divisi yang bisa dipilih.
@@ -713,31 +732,38 @@ function cpOpenTukangSheet() {
 }
 
 // Sheet: Ngerjain Apa (SKU) — difilter cuma SKU yang punya rate di divisi
-// tukang yang lagi dipilih.
+// tukang yang lagi dipilih (dedupe, karena 1 SKU sekarang bisa punya
+// banyak baris cost_rate — 1 per varian).
 function cpOpenSkuSheetForJurnal() {
   if (!_cpJrnSelDivisi) { alert('Pilih Tukang dulu.'); return; }
   var rows = _cpRate.filter(function(r) { return r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
   if (!rows.length) { alert('Divisi "' + _cpJrnSelDivisi + '" belum punya rate SKU apapun — isi dulu di Master Ongkos.'); return; }
-  var opts = rows.map(function(r) { return { label: r.sku, sub: null, key: r.sku, raw: r.sku }; });
+  var seen = {}, opts = [];
+  rows.forEach(function(r) {
+    if (seen[r.sku]) return;
+    seen[r.sku] = true;
+    opts.push({ label: r.sku, sub: null, key: r.sku, raw: r.sku });
+  });
   cpPickerSheetOpen('Ngerjain Apa (SKU)', opts, _cpJrnSelSku, function(sku) {
     _cpJrnSelSku = sku;
     _cpJrnSelVarian = '';
+    _cpJrnRate = 0;
     cpSetJrnLabel('sku', sku);
-    var rr = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
-    _cpJrnRate = rr ? Number(rr.ongkos_per_lusin) : 0;
     cpRefreshVarianField();
     cpUpdateJurnalPreview();
   });
 }
 
-// Sheet: Varian — daftar sku_variasi dari katalog yang lagi dipilih.
+// Sheet: Varian — daftar sku_variasi yang punya rate buat SKU+Divisi ini.
 function cpOpenVarianSheetForJurnal() {
   var opts = cpJrnVarianOptions();
   if (!opts.length) return;
-  var sheetOpts = opts.map(function(p) { return { label: p.sku_variasi, sub: null, key: p.sku_variasi, raw: p.sku_variasi }; });
-  cpPickerSheetOpen('Pilih Varian', sheetOpts, _cpJrnSelVarian, function(varian) {
-    _cpJrnSelVarian = varian;
-    cpSetJrnLabel('varian', varian);
+  var sheetOpts = opts.map(function(r) { return { label: r.sku_variasi, sub: fmtRpFull(r.ongkos_per_lusin) + '/lusin', key: r.sku_variasi, raw: r }; });
+  cpPickerSheetOpen('Pilih Variasi', sheetOpts, _cpJrnSelVarian, function(r) {
+    _cpJrnSelVarian = r.sku_variasi;
+    _cpJrnRate = Number(r.ongkos_per_lusin);
+    cpSetJrnLabel('varian', r.sku_variasi);
+    cpUpdateJurnalPreview();
   });
 }
 
@@ -760,8 +786,8 @@ async function cpSaveJurnal() {
   if (cpJrnVarianOptions().length && !_cpJrnSelVarian) return alert('Pilih Varian dulu — biar jelas warna/model apa yang dikerjain.');
   if (qty <= 0) return alert('Qty (pcs) harus lebih dari 0.');
 
-  var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
-  if (!rr) return alert('Rate buat kombinasi SKU + Divisi ini belum ada — tambahin dulu di Master Ongkos.');
+  var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.sku_variasi === _cpJrnSelVarian && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
+  if (!rr) return alert('Rate buat kombinasi SKU + Varian + Divisi ini belum ada — tambahin dulu di Master Ongkos.');
 
   var payload = {
     tanggal: tanggal, divisi: _cpJrnSelDivisi, tukang: _cpJrnSelTukang, sku: _cpJrnSelSku,
@@ -785,33 +811,46 @@ async function cpDeleteJurnal() {
   cpLoadAll();
 }
 
-// ─── FORM: Master Ongkos (1 SKU, semua divisi jadi kolom input) ──
-function cpOpenRateForm(sku) {
+// ─── FORM: Master Ongkos (1 SKU + 1 Variasi, semua divisi jadi kolom input) ──
+function cpOpenRateForm(sku, variasi) {
   document.getElementById('cp-rate-edit-sku').value = sku || '';
+  document.getElementById('cp-rate-edit-variasi').value = variasi || '';
   document.getElementById('cp-rate-form-title').innerHTML = sku
-    ? '<i class="ti ti-edit"></i> Edit Rate — ' + cpEsc(sku)
+    ? '<i class="ti ti-edit"></i> Edit Rate — ' + cpEsc(sku) + (variasi ? ' — ' + cpEsc(variasi) : '')
     : '<i class="ti ti-list-details"></i> Tambah Rate';
   document.getElementById('cp-rate-del-btn').style.display = sku ? '' : 'none';
 
   document.getElementById('cp-rate-sku').value = sku || '';
-  var trigger = document.getElementById('cp-rate-sku-trigger');
-  var label = document.getElementById('cp-rate-sku-label');
+  var skuTrigger = document.getElementById('cp-rate-sku-trigger');
+  var skuLabel = document.getElementById('cp-rate-sku-label');
+  document.getElementById('cp-rate-variasi').value = variasi || '';
+  var varTrigger = document.getElementById('cp-rate-variasi-trigger');
+  var varLabel = document.getElementById('cp-rate-variasi-label');
+
   if (sku) {
-    label.textContent = sku;
-    label.classList.remove('cp-placeholder');
-    trigger.style.opacity = '.6';
-    trigger.style.pointerEvents = 'none'; // hindari rename SKU pas edit (biar gak numpuk baris nyasar)
+    skuLabel.textContent = sku;
+    skuLabel.classList.remove('cp-placeholder');
+    skuTrigger.style.opacity = '.6';
+    skuTrigger.style.pointerEvents = 'none'; // hindari rename SKU/Variasi pas edit (biar gak numpuk baris nyasar)
+    varLabel.textContent = variasi || '—';
+    varLabel.classList.remove('cp-placeholder');
+    varTrigger.style.opacity = '.6';
+    varTrigger.style.pointerEvents = 'none';
   } else {
-    label.textContent = '— Pilih SKU (Boss: DIMI) —';
-    label.classList.add('cp-placeholder');
-    trigger.style.opacity = '';
-    trigger.style.pointerEvents = '';
+    skuLabel.textContent = '— Pilih SKU (Boss: DIMI) —';
+    skuLabel.classList.add('cp-placeholder');
+    skuTrigger.style.opacity = '';
+    skuTrigger.style.pointerEvents = '';
+    varLabel.textContent = '— Pilih SKU Induk dulu —';
+    varLabel.classList.add('cp-placeholder');
+    varTrigger.style.opacity = '';
+    varTrigger.style.pointerEvents = '';
   }
 
   var cols = cpDivisiColumns();
   var byDivisiLower = {};
-  if (sku) {
-    _cpRate.filter(function(r) { return r.sku === sku; }).forEach(function(r) {
+  if (sku && variasi) {
+    _cpRate.filter(function(r) { return r.sku === sku && r.sku_variasi === variasi; }).forEach(function(r) {
       byDivisiLower[r.divisi.toLowerCase()] = r;
     });
   }
@@ -835,11 +874,8 @@ function cpOpenRateForm(sku) {
   showModal('modal-cp-rate');
 }
 
-// SKU picker khusus Master Ongkos — ditarik dari Kelola Produk (tabel
-// `produk`), CUMA katalog yang Boss/Supplier-nya DIMI (per keputusan 27
-// Agu 2026). 1 opsi = 1 katalog (bukan per-varian), karena rate ongkos
-// emang berlaku buat semua varian dalam katalog itu (samain kayak
-// spreadsheet asli — "Turtleneck" 1 baris ongkos buat semua warnanya).
+// SKU induk picker — ditarik dari Kelola Produk (tabel `produk`), CUMA
+// katalog yang Boss/Supplier-nya DIMI.
 function cpOpenSkuSheetForRate() {
   if (!_cpProdukDimi.length) {
     alert('Belum ada produk dengan Boss = DIMI di Kelola Produk.');
@@ -854,17 +890,42 @@ function cpOpenSkuSheetForRate() {
     return { label: k, sub: byKatalog[k] + ' varian', key: k, raw: k };
   });
   var currentSku = document.getElementById('cp-rate-sku').value;
-  cpPickerSheetOpen('Pilih SKU (Boss: DIMI)', opts, currentSku, function(katalog) {
+  cpPickerSheetOpen('Pilih SKU Induk (Boss: DIMI)', opts, currentSku, function(katalog) {
     document.getElementById('cp-rate-sku').value = katalog;
-    var label = document.getElementById('cp-rate-sku-label');
-    label.textContent = katalog;
-    label.classList.remove('cp-placeholder');
+    var skuLabel = document.getElementById('cp-rate-sku-label');
+    skuLabel.textContent = katalog;
+    skuLabel.classList.remove('cp-placeholder');
+    // ganti SKU induk → reset Variasi yang mungkin udah kepilih sebelumnya
+    document.getElementById('cp-rate-variasi').value = '';
+    var varLabel = document.getElementById('cp-rate-variasi-label');
+    varLabel.textContent = '— Pilih Variasi —';
+    varLabel.classList.add('cp-placeholder');
+  });
+}
+
+// Variasi picker — daftar sku_variasi dari SKU induk yang lagi dipilih,
+// tetap dari Kelola Produk (boss DIMI). Karena ongkos bisa beda per
+// ukuran (M vs LX dst.), tiap kombinasi SKU+Variasi punya rate sendiri.
+function cpOpenVarianSheetForRate() {
+  var sku = document.getElementById('cp-rate-sku').value;
+  if (!sku) { alert('Pilih SKU Induk dulu.'); return; }
+  var rows = _cpProdukDimi.filter(function(p) { return p.katalog === sku && p.sku_variasi; });
+  if (!rows.length) { alert('SKU ini belum punya data varian di Kelola Produk.'); return; }
+  var opts = rows.map(function(p) { return { label: p.sku_variasi, sub: null, key: p.sku_variasi, raw: p.sku_variasi }; });
+  var currentVar = document.getElementById('cp-rate-variasi').value;
+  cpPickerSheetOpen('Pilih Variasi', opts, currentVar, function(variasi) {
+    document.getElementById('cp-rate-variasi').value = variasi;
+    var varLabel = document.getElementById('cp-rate-variasi-label');
+    varLabel.textContent = variasi;
+    varLabel.classList.remove('cp-placeholder');
   });
 }
 
 async function cpSaveRate() {
   var sku = document.getElementById('cp-rate-sku').value.trim();
-  if (!sku) return alert('SKU wajib diisi.');
+  var variasi = document.getElementById('cp-rate-variasi').value.trim();
+  if (!sku) return alert('SKU Induk wajib diisi.');
+  if (!variasi) return alert('SKU Variasi wajib diisi.');
 
   var cols = cpDivisiColumns();
   var jobs = [];
@@ -872,11 +933,11 @@ async function cpSaveRate() {
   cols.forEach(function(c) {
     var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
     var val = idrVal(fid);
-    var existing = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === c.toLowerCase(); });
+    var existing = _cpRate.find(function(r) { return r.sku === sku && r.sku_variasi === variasi && r.divisi.toLowerCase() === c.toLowerCase(); });
     if (val > 0) {
       jobs.push(existing
         ? dbUpdate('cost_rate', existing.id, { ongkos_per_lusin: val })
-        : dbInsert('cost_rate', { sku: sku, divisi: c, ongkos_per_lusin: val }));
+        : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: c, ongkos_per_lusin: val }));
     } else if (existing) {
       jobs.push(dbDelete('cost_rate', existing.id));
     }
@@ -885,24 +946,28 @@ async function cpSaveRate() {
   var extraDivisi = document.getElementById('cp-rate-extra-divisi').value.trim();
   var extraVal = idrVal('cp-rate-extra-ongkos');
   if (extraDivisi && extraVal > 0) {
-    var existingExtra = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === extraDivisi.toLowerCase(); });
+    var existingExtra = _cpRate.find(function(r) { return r.sku === sku && r.sku_variasi === variasi && r.divisi.toLowerCase() === extraDivisi.toLowerCase(); });
     jobs.push(existingExtra
       ? dbUpdate('cost_rate', existingExtra.id, { ongkos_per_lusin: extraVal })
-      : dbInsert('cost_rate', { sku: sku, divisi: extraDivisi, ongkos_per_lusin: extraVal }));
+      : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: extraDivisi, ongkos_per_lusin: extraVal }));
   }
 
   try {
     await Promise.all(jobs);
-  } catch (e) { return alert('Gagal simpan: ' + e.message); }
+  } catch (e) {
+    var msg = /duplicate|unique/i.test(e.message) ? 'Kombinasi SKU + Variasi + Divisi ini udah ada.' : e.message;
+    return alert('Gagal simpan: ' + msg);
+  }
   hideModal('modal-cp-rate');
   cpLoadAll();
 }
 
 async function cpDeleteRate() {
   var sku = document.getElementById('cp-rate-edit-sku').value;
+  var variasi = document.getElementById('cp-rate-edit-variasi').value;
   if (!sku) return;
-  if (!confirm('Hapus semua rate buat SKU "' + sku + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).')) return;
-  var rows = _cpRate.filter(function(r) { return r.sku === sku; });
+  if (!confirm('Hapus semua rate buat "' + sku + ' — ' + variasi + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).')) return;
+  var rows = _cpRate.filter(function(r) { return r.sku === sku && r.sku_variasi === variasi; });
   try {
     await Promise.all(rows.map(function(r) { return dbDelete('cost_rate', r.id); }));
   } catch (e) { return alert('Gagal hapus: ' + e.message); }
