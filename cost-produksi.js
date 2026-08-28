@@ -178,16 +178,21 @@ document.getElementById('page-cost-produksi').innerHTML = `
 
     <!-- ═══ OVERVIEW ═══ -->
     <div id="cp-panel-overview" class="cp-panel active">
+      <div class="cp-toolbar">
+        <div class="cp-picker-trigger" style="max-width:220px" onclick="cpOpenOvPeriodSheet()">
+          <span id="cp-ov-period-label">Minggu Ini</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+      </div>
       <div class="rasio-card">
-        <div class="rasio-item"><div class="r-label">Total Cost Bulan Ini</div><div class="r-value" id="cp-ov-total">Rp0</div><div class="r-desc">akumulasi seluruh jurnal bulan berjalan</div></div>
-        <div class="rasio-item"><div class="r-label">Jumlah Transaksi</div><div class="r-value" id="cp-ov-count">0</div><div class="r-desc">baris jurnal bulan berjalan</div></div>
-        <div class="rasio-item"><div class="r-label">Rata-rata / Transaksi</div><div class="r-value" id="cp-ov-avg">Rp0</div><div class="r-desc">total cost dibagi jumlah transaksi</div></div>
+        <div class="rasio-item"><div class="r-label" id="cp-ov-total-label">Total Cost Minggu Ini</div><div class="r-value" id="cp-ov-total">Rp0</div><div class="r-desc" id="cp-ov-total-desc">akumulasi seluruh jurnal periode ini</div></div>
+        <div class="rasio-item"><div class="r-label">Hasil Rajut</div><div class="r-value" id="cp-ov-rajut">0 pcs</div><div class="r-desc">total qty produksi Rajut periode ini</div></div>
       </div>
       <div class="card">
-        <div class="card-title"><i class="ti ti-chart-bar"></i> Cost per Divisi (Bulan Ini)</div>
+        <div class="card-title" id="cp-ov-tbl-title"><i class="ti ti-chart-bar"></i> Cost per Tukang (Minggu Ini)</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Divisi</th><th style="text-align:right">Total Cost</th></tr></thead>
-          <tbody id="cp-ov-divisi-tbody"><tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th>Tukang</th><th>Divisi</th><th style="text-align:right">Total Cost</th></tr></thead>
+          <tbody id="cp-ov-divisi-tbody"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -560,32 +565,94 @@ function cpSwitchView(view) {
   wrap.addEventListener('touchcancel', function() { tracking = false; isHoriz = null; }, { passive: true });
 })();
 
-// ─── RENDER: Overview ─────────────────────────────────────────
-function cpRenderOverview() {
+// ─── RENDER: Overview — default periode MINGGU (Minggu s/d Sabtu), bisa
+// diganti ke Bulan lewat dropdown. ──
+var _cpOvPeriod = 'minggu'; // 'minggu' | 'bulan'
+
+function cpOvDateRange() {
   var now = new Date();
-  var ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  var thisMonth = _cpJurnal.filter(function(j) { return String(j.tanggal || '').slice(0, 7) === ym; });
-  var total = thisMonth.reduce(function(s, j) { return s + (Number(j.total_cost) || 0); }, 0);
-  var count = thisMonth.length;
-  var avg = count ? Math.round(total / count) : 0;
-
-  document.getElementById('cp-ov-total').textContent = fmtRpFull(total);
-  document.getElementById('cp-ov-count').textContent = count;
-  document.getElementById('cp-ov-avg').textContent   = fmtRpFull(avg);
-
-  var byDivisi = {};
-  thisMonth.forEach(function(j) {
-    var d = j.divisi || '—';
-    byDivisi[d] = (byDivisi[d] || 0) + (Number(j.total_cost) || 0);
-  });
-  var divisiList = Object.keys(byDivisi).sort(function(a, b) { return byDivisi[b] - byDivisi[a]; });
-  var tbody = document.getElementById('cp-ov-divisi-tbody');
-  tbody.innerHTML = divisiList.length
-    ? divisiList.map(function(d) {
-        return '<tr><td>' + cpEsc(d) + '</td><td style="text-align:right">' + fmtRpFull(byDivisi[d]) + '</td></tr>';
-      }).join('')
-    : '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada jurnal bulan ini</td></tr>';
+  if (_cpOvPeriod === 'bulan') {
+    var start = new Date(now.getFullYear(), now.getMonth(), 1);
+    var end   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: start, end: end };
+  }
+  // minggu: Minggu (hari ke-0) s/d Sabtu (hari ke-6) di minggu berjalan
+  var day = now.getDay();
+  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+  var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 6);
+  return { start: start, end: end };
 }
+
+function cpDateToYMD(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function cpOpenOvPeriodSheet() {
+  var opts = [
+    { label: 'Minggu Ini', sub: 'Minggu s/d Sabtu', key: 'minggu', raw: 'minggu' },
+    { label: 'Bulan Ini',  sub: null,                key: 'bulan',  raw: 'bulan' },
+  ];
+  cpPickerSheetOpen('Pilih Periode', opts, _cpOvPeriod, function(p) {
+    _cpOvPeriod = p;
+    document.getElementById('cp-ov-period-label').textContent = p === 'bulan' ? 'Bulan Ini' : 'Minggu Ini';
+    cpRenderOverview();
+  });
+}
+
+function cpRenderOverview() {
+  var range = cpOvDateRange();
+  var startYmd = cpDateToYMD(range.start);
+  var endYmd   = cpDateToYMD(range.end);
+  var periodeLabel = _cpOvPeriod === 'bulan' ? 'Bulan Ini' : 'Minggu Ini';
+
+  var inPeriod = _cpJurnal.filter(function(j) {
+    var t = String(j.tanggal || '');
+    return t >= startYmd && t <= endYmd;
+  });
+
+  var total = inPeriod.reduce(function(s, j) { return s + (Number(j.total_cost) || 0); }, 0);
+  var rajutQty = inPeriod
+    .filter(function(j) { return (j.divisi || '').toLowerCase() === 'rajut'; })
+    .reduce(function(s, j) { return s + (Number(j.qty_pcs) || 0); }, 0);
+
+  document.getElementById('cp-ov-total-label').textContent = 'Total Cost ' + periodeLabel;
+  document.getElementById('cp-ov-total-desc').textContent = 'akumulasi seluruh jurnal ' + (_cpOvPeriod === 'bulan' ? 'bulan berjalan' : 'minggu berjalan (Minggu–Sabtu)');
+  document.getElementById('cp-ov-total').textContent = fmtRpFull(total);
+  document.getElementById('cp-ov-rajut').textContent = rajutQty.toLocaleString('id-ID') + ' pcs';
+  document.getElementById('cp-ov-tbl-title').innerHTML = '<i class="ti ti-chart-bar"></i> Cost per Tukang (' + periodeLabel + ')';
+
+  // Kriteria utama: Tukang. Group by (tukang, divisi) dulu, terus kalau 1
+  // tukang punya >1 baris divisi, tambahin 1 baris TOTAL per tukang itu.
+  var byTukang = {}; // nama -> { order, byDivisi: {divisi: cost}, total }
+  var order = [];
+  inPeriod.forEach(function(j) {
+    var nama = j.tukang || '—';
+    var divisi = j.divisi || '—';
+    if (!byTukang[nama]) { byTukang[nama] = { byDivisi: {}, total: 0 }; order.push(nama); }
+    byTukang[nama].byDivisi[divisi] = (byTukang[nama].byDivisi[divisi] || 0) + (Number(j.total_cost) || 0);
+    byTukang[nama].total += (Number(j.total_cost) || 0);
+  });
+  order.sort(function(a, b) { return byTukang[b].total - byTukang[a].total; });
+
+  var tbody = document.getElementById('cp-ov-divisi-tbody');
+  if (!order.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada jurnal periode ini</td></tr>';
+    return;
+  }
+  var rowsHtml = [];
+  order.forEach(function(nama) {
+    var g = byTukang[nama];
+    var divisiList = Object.keys(g.byDivisi).sort();
+    divisiList.forEach(function(d) {
+      rowsHtml.push('<tr><td>' + cpEsc(nama) + '</td><td>' + cpEsc(d) + '</td><td style="text-align:right">' + fmtRpFull(g.byDivisi[d]) + '</td></tr>');
+    });
+    if (divisiList.length > 1) {
+      rowsHtml.push('<tr style="font-weight:700"><td colspan="2">Total ' + cpEsc(nama) + '</td><td style="text-align:right">' + fmtRpFull(g.total) + '</td></tr>');
+    }
+  });
+  tbody.innerHTML = rowsHtml.join('');
+}
+
 
 // ─── RENDER: Jurnal Harian ─────────────────────────────────────
 function cpRenderJurnal() {
