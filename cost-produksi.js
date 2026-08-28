@@ -86,6 +86,17 @@ document.getElementById('page-cost-produksi').innerHTML = `
       cursor:pointer; font-size:13px; background:var(--cream2); color:var(--ink);
     }
     #page-cost-produksi .cp-picker-trigger .cp-placeholder { color:var(--ink3); }
+
+    /* ── Checkbox checklist varian (Edit per Variant) — override CSS
+       global .form-group input yang bikin checkbox keilangan tampilan
+       (appearance:none, dikira input teks biasa). ── */
+    #page-cost-produksi #cp-bulk-variant-list input[type="checkbox"] {
+      -webkit-appearance:auto; appearance:auto;
+      width:18px; height:18px; min-height:0; min-width:0; flex:none;
+      padding:0; margin:0; border-radius:4px; background:var(--cream3);
+      border:1.5px solid var(--ink4); accent-color:var(--ink);
+      cursor:pointer;
+    }
     #page-cost-produksi .cp-preview { margin-top:4px; font-size:13px; color:var(--ink2); }
     #page-cost-produksi .cp-preview b { color:var(--ink); font-size:15px; }
 
