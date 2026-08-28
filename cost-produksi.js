@@ -64,6 +64,11 @@ document.getElementById('page-cost-produksi').innerHTML = `
     #page-cost-produksi .r-desc  { font-size:11px; color:var(--ink3); margin-top:2px; }
 
     #page-cost-produksi .cp-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; flex-shrink:0; }
+    #page-cost-produksi .cp-rate-toolbar-mobile { display:none; }
+    @media (max-width:600px) {
+      #page-cost-produksi .cp-rate-toolbar-desktop { display:none !important; }
+      #page-cost-produksi .cp-rate-toolbar-mobile { display:inline-flex !important; }
+    }
 
     /* ── Tabel fit-to-screen di mobile — pola yang udah kebukti kerja di
        Master Barang (hutang-supplier.js) & Daftar Hutang (keuangan.js) ── */
@@ -196,8 +201,14 @@ document.getElementById('page-cost-produksi').innerHTML = `
     <!-- ═══ MASTER ONGKOS ═══ -->
     <div id="cp-panel-rate" class="cp-panel">
       <div class="cp-toolbar">
-        <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('sku')"><i class="ti ti-edit"></i> Edit per SKU</button>
-        <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('variant')"><i class="ti ti-list-check"></i> Edit per Variant</button>
+        <div class="cp-rate-toolbar-desktop" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('sku')"><i class="ti ti-edit"></i> Edit per SKU</button>
+          <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('variant')"><i class="ti ti-list-check"></i> Edit per Variant</button>
+          <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('divisi')"><i class="ti ti-category"></i> Edit per Divisi</button>
+        </div>
+        <button class="btn btn-primary btn-sm cp-rate-toolbar-mobile" onclick="cpOpenRateModeSheet()">
+          <i class="ti ti-edit"></i> Edit Rate <i class="ti ti-chevron-down" style="margin-left:2px"></i>
+        </button>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-list-details"></i> Master Ongkos (per SKU x Variasi x Divisi)</div>
@@ -335,6 +346,14 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <button onclick="hideModal('modal-cp-rate-bulk')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
       <input type="hidden" id="cp-bulk-mode">
+      <div class="form-group" id="cp-bulk-divisi-group" style="display:none">
+        <label>Divisi</label>
+        <div class="cp-picker-trigger" onclick="cpOpenDivisiSheetForBulk()">
+          <span id="cp-bulk-divisi-label" class="cp-placeholder">— Pilih Divisi —</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
+        <input type="hidden" id="cp-bulk-divisi">
+      </div>
       <div class="form-group">
         <label>SKU Induk</label>
         <div class="cp-picker-trigger" onclick="cpOpenSkuSheetForBulk()">
@@ -351,7 +370,11 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <div id="cp-bulk-variant-list" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--ink4);border-radius:8px;padding:4px 8px;background:var(--cream2)"></div>
       </div>
       <div id="cp-bulk-fields"></div>
-      <div class="form-group">
+      <div class="form-group" id="cp-bulk-single-rate-group" style="display:none">
+        <label>Ongkos Baru (Rp/lusin)</label>
+        <input type="text" inputmode="numeric" id="cp-bulk-single-rate" placeholder="0">
+      </div>
+      <div class="form-group" id="cp-bulk-extra-divisi-group">
         <label>Divisi Lain (opsional, kalau ada divisi baru di luar 6 di atas)</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="cp-bulk-extra-divisi" placeholder="nama divisi baru" style="flex:1">
@@ -1053,16 +1076,32 @@ function cpOpenRateBulk(mode) {
   _cpBulkMode = mode;
   _cpBulkSelected = {};
   document.getElementById('cp-bulk-mode').value = mode;
-  document.getElementById('cp-bulk-title').innerHTML = mode === 'sku'
-    ? '<i class="ti ti-edit"></i> Edit per SKU (semua varian)'
-    : '<i class="ti ti-list-check"></i> Edit per Variant (pilih sendiri)';
+  document.getElementById('cp-bulk-title').innerHTML =
+    mode === 'sku'    ? '<i class="ti ti-edit"></i> Edit per SKU (semua varian)'
+  : mode === 'variant' ? '<i class="ti ti-list-check"></i> Edit per Variant (pilih sendiri)'
+  :                       '<i class="ti ti-category"></i> Edit per Divisi';
+
   document.getElementById('cp-bulk-sku').value = '';
   var skuLabel = document.getElementById('cp-bulk-sku-label');
   skuLabel.textContent = '— Pilih SKU (Boss: DIMI) —';
   skuLabel.classList.add('cp-placeholder');
-  document.getElementById('cp-bulk-variant-group').style.display = mode === 'variant' ? '' : 'none';
+
+  document.getElementById('cp-bulk-divisi').value = '';
+  var divisiLabel = document.getElementById('cp-bulk-divisi-label');
+  divisiLabel.textContent = '— Pilih Divisi —';
+  divisiLabel.classList.add('cp-placeholder');
+
+  // Checklist varian dipakai buat mode 'variant' DAN 'divisi' (dua-duanya
+  // butuh milih target varian spesifik); mode 'sku' otomatis ke semua.
+  document.getElementById('cp-bulk-divisi-group').style.display = mode === 'divisi' ? '' : 'none';
+  document.getElementById('cp-bulk-variant-group').style.display = (mode === 'variant' || mode === 'divisi') ? '' : 'none';
   document.getElementById('cp-bulk-variant-list').innerHTML = '';
-  document.getElementById('cp-bulk-target-hint').textContent = 'Pilih SKU dulu.';
+  document.getElementById('cp-bulk-target-hint').textContent = mode === 'divisi' ? 'Pilih Divisi dulu.' : 'Pilih SKU dulu.';
+
+  // Mode sku/variant: 6 field per-divisi. Mode divisi: 1 field rate doang.
+  document.getElementById('cp-bulk-fields').style.display = mode === 'divisi' ? 'none' : '';
+  document.getElementById('cp-bulk-single-rate-group').style.display = mode === 'divisi' ? '' : 'none';
+  document.getElementById('cp-bulk-extra-divisi-group').style.display = mode === 'divisi' ? 'none' : '';
 
   var cols = cpDivisiColumns();
   document.getElementById('cp-bulk-fields').innerHTML = cols.map(function(c) {
@@ -1078,8 +1117,34 @@ function cpOpenRateBulk(mode) {
   document.getElementById('cp-bulk-extra-divisi').value = '';
   document.getElementById('cp-bulk-extra-ongkos').value = '';
   idrInput('cp-bulk-extra-ongkos');
+  idrInput('cp-bulk-single-rate');
+  idrSet('cp-bulk-single-rate', 0);
 
   showModal('modal-cp-rate-bulk');
+}
+
+// Trigger dropdown mobile — sheet 3 opsi, milih salah satu langsung
+// nembak cpOpenRateBulk(mode) yang sama kayak tombol desktop.
+function cpOpenRateModeSheet() {
+  var opts = [
+    { label: 'Edit per SKU',     sub: 'semua varian sekaligus', key: 'sku',     raw: 'sku' },
+    { label: 'Edit per Variant', sub: 'pilih sendiri',          key: 'variant', raw: 'variant' },
+    { label: 'Edit per Divisi',  sub: 'mis. Rajut doang',       key: 'divisi',  raw: 'divisi' },
+  ];
+  cpPickerSheetOpen('Mau edit rate gimana?', opts, null, function(mode) { cpOpenRateBulk(mode); });
+}
+
+function cpOpenDivisiSheetForBulk() {
+  var cols = cpDivisiColumns();
+  var opts = cols.map(function(c) { return { label: c, sub: null, key: c, raw: c }; });
+  var current = document.getElementById('cp-bulk-divisi').value;
+  cpPickerSheetOpen('Pilih Divisi', opts, current, function(divisi) {
+    document.getElementById('cp-bulk-divisi').value = divisi;
+    var label = document.getElementById('cp-bulk-divisi-label');
+    label.textContent = divisi;
+    label.classList.remove('cp-placeholder');
+    cpBulkUpdateHint();
+  });
 }
 
 function cpOpenSkuSheetForBulk() {
@@ -1096,7 +1161,7 @@ function cpOpenSkuSheetForBulk() {
     skuLabel.textContent = katalog;
     skuLabel.classList.remove('cp-placeholder');
     _cpBulkSelected = {};
-    if (_cpBulkMode === 'variant') {
+    if (_cpBulkMode === 'variant' || _cpBulkMode === 'divisi') {
       cpBulkRenderVariantChecklist(katalog);
     } else {
       var count = _cpProdukDimi.filter(function(p) { return p.katalog === katalog; }).length;
@@ -1140,6 +1205,13 @@ function cpBulkToggleSelectAll() {
 
 function cpBulkUpdateHint() {
   var n = Object.keys(_cpBulkSelected).length;
+  var divisi = document.getElementById('cp-bulk-divisi').value;
+  if (_cpBulkMode === 'divisi') {
+    document.getElementById('cp-bulk-target-hint').textContent = n
+      ? 'Rate ' + (divisi || 'divisi ini') + ' bakal kepasang ke ' + n + ' varian yang dicentang.'
+      : 'Belum ada varian yang dicentang.';
+    return;
+  }
   document.getElementById('cp-bulk-target-hint').textContent = n
     ? 'Rate ini bakal kepasang ke ' + n + ' varian yang dicentang.'
     : 'Belum ada varian yang dicentang.';
@@ -1155,8 +1227,33 @@ async function cpSaveRateBulk() {
   } else {
     targetVariants = Object.keys(_cpBulkSelected);
   }
-  if (!targetVariants.length) return alert(_cpBulkMode === 'variant' ? 'Centang minimal 1 varian dulu.' : 'SKU ini belum punya data varian.');
+  if (!targetVariants.length) return alert(_cpBulkMode === 'sku' ? 'SKU ini belum punya data varian.' : 'Centang minimal 1 varian dulu.');
 
+  // ── Mode Divisi: 1 divisi tetap, 1 rate, ditembak ke varian yang dicentang ──
+  if (_cpBulkMode === 'divisi') {
+    var divisi = document.getElementById('cp-bulk-divisi').value.trim();
+    if (!divisi) return alert('Pilih Divisi dulu.');
+    var rate = idrVal('cp-bulk-single-rate');
+    if (rate <= 0) return alert('Isi ongkos baru dulu.');
+
+    var jobsD = targetVariants.map(function(variasi) {
+      var existing = _cpRate.find(function(r) {
+        return r.sku === sku && r.sku_variasi === variasi && r.divisi.toLowerCase() === divisi.toLowerCase();
+      });
+      return existing
+        ? dbUpdate('cost_rate', existing.id, { ongkos_per_lusin: rate })
+        : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: divisi, ongkos_per_lusin: rate });
+    });
+    try {
+      await Promise.all(jobsD);
+    } catch (e) { return alert('Gagal simpan: ' + e.message); }
+    hideModal('modal-cp-rate-bulk');
+    cpLoadAll();
+    return;
+  }
+
+  // ── Mode SKU / Variant: sampe 6 field divisi + 1 divisi custom, field
+  // yang dibiarin 0 di-skip (BUKAN dianggap hapus rate) ──
   var cols = cpDivisiColumns();
   var divisiVals = {}; // divisi -> rate value (>0 aja yang dipasang)
   cols.forEach(function(c) {
