@@ -76,11 +76,19 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi .tbl { table-layout:fixed; }
       #page-cost-produksi .tbl-wrap { overflow-x:hidden; }
       #page-cost-produksi .tbl th, #page-cost-produksi .tbl td { white-space:normal; word-break:break-word; font-size:11.5px; padding:6px 5px; }
-      /* Master Ongkos kolomnya banyak (SKU + tiap divisi) — biar tetep kebaca,
-         tabel ini scroll horizontal aja, gak dipaksa fixed-layout sempit. */
-      #page-cost-produksi #cp-panel-rate .tbl { table-layout:auto; }
-      #page-cost-produksi #cp-panel-rate .tbl th, #page-cost-produksi #cp-panel-rate .tbl td { white-space:nowrap; }
-      #page-cost-produksi #cp-panel-rate .tbl-wrap { overflow-x:auto; }
+      /* Master Ongkos: kolom per-divisi (Rajut/Lingking/dst — jumlahnya
+         dinamis, nth-child(n+4) nangkep semuanya) disembunyiin di mobile,
+         sisain 3 kolom fix (SKU Induk / SKU Variasi / Total Cost) — biar
+         GAK perlu geser horizontal (itu udah kepake buat swipe ganti tab).
+         Breakdown per-divisi lengkap tetep bisa diliat: tap barisnya. */
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(n+4),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(n+4) { display:none; }
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(1),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(1) { width:32%; font-size:11px; padding:6px 4px 6px 8px; }
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(2),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(2) { width:38%; font-size:11px; padding:6px 4px; }
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(3),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(3) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
     }
 
     /* ── Custom picker trigger (bukan native <select>) — tap buka
