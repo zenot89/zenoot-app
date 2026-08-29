@@ -1148,6 +1148,7 @@ function cpDoExportJurnalPDF(nama) {
       'body { font-family:Arial, sans-serif; color:#000; background:#fff; padding:22px; }' +
       'table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }' +
       'thead { display:table-header-group; } tbody tr { page-break-inside:avoid; }' +
+      '@page { margin:16mm 14mm; }' +
       '@media print { body { padding:0; } }' +
     '</style></head><body>' +
     '<div style="text-align:center;font-weight:800;font-size:19px;letter-spacing:.5px">SLIP BAYARAN KARYAWAN</div>' +
