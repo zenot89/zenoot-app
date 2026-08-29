@@ -1193,11 +1193,13 @@ function cpDoExportJurnalPDF(nama) {
   var safeNama = nama.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   var fileName = 'dimi-' + safeNama + '.pdf';
 
-  // ── Delivery PDF: iOS Safari vs Android PWA (pola sama kayak Hutang
-  // Supplier) — iOS pake native share sheet (hindari blob URL nempel pas
-  // share), Android/desktop pake doc.save() biasa. ──
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS && navigator.canShare) {
+  // ── Delivery PDF: coba native share sheet dulu (file card + tombol
+  // Bagikan langsung nongol — persis kayak yang keliatan di iPhone) di
+  // SEMUA platform, bukan cuma iOS. Kalau device/WebView-nya gak dukung
+  // atau share() gagal (termasuk known-crash sebagian WebView Android),
+  // fallback otomatis ke doc.save() biasa (ke folder Downloads + notifikasi
+  // "Bagikan" bawaan sistem) — jadi gak ada skenario macet. 29 Agu 2026. ──
+  if (navigator.canShare) {
     try {
       var pdfOutput = doc.output('arraybuffer');
       var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
