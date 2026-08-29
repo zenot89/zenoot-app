@@ -90,21 +90,27 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(3),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(3) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
 
-      /* Jurnal Harian: sembunyiin Divisi(kolom-2) & Total(kolom-6) di
-         mobile, sisain Tanggal(Hari) / Tukang / SKU-Varian / Qty — muat
-         tanpa geser. Tap baris buat liat divisi & total lengkapnya. */
+      /* Jurnal Harian: sembunyiin Divisi(kolom-2), SKU Variasi(kolom-5,
+         sekarang kolom terpisah dari SKU Induk buat versi desktop) &
+         Total(kolom-7) di mobile, sisain Tanggal(Hari) / Tukang / SKU
+         Induk / Qty — muat tanpa geser. Variasi tetep keliatan nempel
+         jadi baris ke-2 di sel SKU Induk (.cp-jrn-variasi-mobile).
+         Tap baris buat liat divisi & total lengkapnya. */
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(2),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(2),
-      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(6),
-      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(6) { display:none; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(5),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(5),
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(7),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(7) { display:none; }
+      #page-cost-produksi #cp-panel-jurnal .cp-jrn-variasi-mobile { display:inline !important; }
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(1),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(1) { width:24%; font-size:10.5px; padding:6px 4px 6px 8px; }
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(3),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(3) { width:22%; font-size:11px; padding:6px 4px; }
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(4),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(4) { width:36%; font-size:11px; padding:6px 4px; }
-      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(5),
-      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(5) { width:18%; font-size:11px; padding:6px 8px 6px 4px; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(6),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(6) { width:18%; font-size:11px; padding:6px 8px 6px 4px; }
     }
 
     /* ── Master Tukang: desktop pivot (divisi jadi kolom mendatar) vs
@@ -228,12 +234,13 @@ document.getElementById('page-cost-produksi').innerHTML = `
     <div id="cp-panel-jurnal" class="cp-panel">
       <div class="cp-toolbar">
         <button class="btn btn-primary btn-sm" onclick="cpOpenJurnalForm()"><i class="ti ti-plus"></i> Tambah Jurnal</button>
+        <button class="btn btn-sm" onclick="cpExportJurnalPDF()"><i class="ti ti-file-export"></i> Export PDF (by Tukang)</button>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-notebook"></i> Jurnal Harian</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU / Varian</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th></tr></thead>
-          <tbody id="cp-jurnal-tbody"><tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody id="cp-jurnal-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -697,20 +704,26 @@ function cpRenderOverview() {
 }
 
 
-// ─── RENDER: Jurnal Harian ─────────────────────────────────────
+// ─── RENDER: Jurnal Harian — desktop: SKU Induk & SKU Variasi kolom
+// terpisah. Mobile: kolom SKU Variasi disembunyiin (nth-child CSS), tapi
+// variasinya tetep keliatan nempel jadi baris ke-2 di sel SKU Induk (span
+// .cp-jrn-variasi-mobile, cuma nongol di ≤600px). ──
 function cpRenderJurnal() {
   var tbody = document.getElementById('cp-jurnal-tbody');
   if (!_cpJurnal.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada jurnal. Tap "+ Tambah Jurnal" buat mulai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada jurnal. Tap "+ Tambah Jurnal" buat mulai.</td></tr>';
     return;
   }
   tbody.innerHTML = _cpJurnal.map(function(j) {
-    var skuCell = cpEsc(j.sku) + (j.sku_variasi ? ' <span style="color:var(--ink3);font-size:11px">— ' + cpEsc(j.sku_variasi) + '</span>' : '');
+    var variasiMobile = j.sku_variasi
+      ? ' <span class="cp-jrn-variasi-mobile" style="display:none;color:var(--ink3);font-size:11px">— ' + cpEsc(j.sku_variasi) + '</span>'
+      : '';
     return '<tr onclick="cpOpenJurnalForm(' + j.id + ')" style="cursor:pointer">' +
       '<td>' + cpEsc(cpFmtHari(j.tanggal)) + '</td>' +
       '<td>' + cpEsc(j.divisi) + '</td>' +
       '<td>' + cpEsc(j.tukang) + '</td>' +
-      '<td>' + skuCell + '</td>' +
+      '<td>' + cpEsc(j.sku) + variasiMobile + '</td>' +
+      '<td>' + (j.sku_variasi ? cpEsc(j.sku_variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right">' + (j.qty_pcs || 0) + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(j.total_cost) + '</td>' +
     '</tr>';
@@ -1074,6 +1087,106 @@ async function cpDeleteJurnal() {
   try { await dbDelete('cost_jurnal', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
   hideModal('modal-cp-jurnal');
   cpLoadAll();
+}
+
+// ─── EXPORT PDF (by Tukang) — pola sama persis kayak Export PDF di
+// Gadag: bikin dokumen HTML lengkap, buka di tab/window baru via Blob
+// URL, window.print() otomatis pas load (dialog print browser punya
+// "Save as PDF" bawaan, jalan konsisten di Android & iPhone). Header
+// slip-nya ngikutin format "SLIP BAYARAN KARYAWAN — Dimi.id" yang dikasih
+// contoh 28 Agu 2026; isi tabelnya SKU Induk / SKU Variasi / Total Qty /
+// Harga per Lusin / Total, di-sum per kombinasi SKU+Variasi (bukan
+// per-baris-jurnal mentah). ──
+function cpExportJurnalPDF() {
+  var names = [];
+  _cpJurnal.forEach(function(j) { if (j.tukang && names.indexOf(j.tukang) === -1) names.push(j.tukang); });
+  if (!names.length) { alert('Belum ada jurnal buat di-export.'); return; }
+  var opts = names.sort().map(function(n) { return { label: n, sub: null, key: n, raw: n }; });
+  cpPickerSheetOpen('Export PDF — Pilih Tukang', opts, null, function(nama) {
+    cpDoExportJurnalPDF(nama);
+  });
+}
+
+function cpDoExportJurnalPDF(nama) {
+  var rows = _cpJurnal.filter(function(j) { return j.tukang === nama; });
+  if (!rows.length) { alert('Gak ada jurnal buat ' + nama + '.'); return; }
+
+  var divisiSet = [];
+  rows.forEach(function(j) { if (j.divisi && divisiSet.indexOf(j.divisi) === -1) divisiSet.push(j.divisi); });
+
+  // Group by kombinasi SKU + Variasi, sum qty & total_cost.
+  var group = {}, order = [];
+  rows.forEach(function(j) {
+    var key = j.sku + '||' + (j.sku_variasi || '');
+    if (!group[key]) { group[key] = { sku: j.sku, variasi: j.sku_variasi || '', qty: 0, total: 0, rate: Number(j.rate_snapshot) || 0 }; order.push(key); }
+    group[key].qty += Number(j.qty_pcs) || 0;
+    group[key].total += Number(j.total_cost) || 0;
+  });
+  var grandQty   = rows.reduce(function(s, j) { return s + (Number(j.qty_pcs) || 0); }, 0);
+  var grandTotal = rows.reduce(function(s, j) { return s + (Number(j.total_cost) || 0); }, 0);
+
+  var hariNames = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  var today = new Date();
+  var hariExport = hariNames[today.getDay()];
+  var tglExport  = String(today.getDate()).padStart(2, '0') + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getFullYear()).slice(2);
+
+  var rowsHtml = order.map(function(key) {
+    var g = group[key];
+    return '<tr>' +
+      '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + cpEsc(g.sku) + '</td>' +
+      '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + (g.variasi ? cpEsc(g.variasi) : '&mdash;') + '</td>' +
+      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + g.qty + '</td>' +
+      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(g.rate) + '</td>' +
+      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(g.total) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    '<title>Slip Bayaran — ' + cpEsc(nama) + '</title>' +
+    '<style>' +
+      '* { box-sizing:border-box; margin:0; padding:0; }' +
+      'body { font-family:Arial, sans-serif; color:#000; background:#fff; padding:22px; }' +
+      'table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }' +
+      'thead { display:table-header-group; } tbody tr { page-break-inside:avoid; }' +
+      '@media print { body { padding:0; } }' +
+    '</style></head><body>' +
+    '<div style="text-align:center;font-weight:800;font-size:19px;letter-spacing:.5px">SLIP BAYARAN KARYAWAN</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px">' +
+      '<div style="font-weight:800;font-size:17px">Dimi.id</div>' +
+      '<div style="font-size:12px;font-weight:700">' + hariExport + ', ' + tglExport + '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px">' +
+      '<div style="font-size:15px"><b>TUKANG :</b> ' + cpEsc(nama).toUpperCase() + '</div>' +
+      '<div style="font-size:15px;font-weight:800">' + cpEsc(divisiSet.join(', ')).toUpperCase() + '</div>' +
+    '</div>' +
+    '<div style="border-top:2px solid #000;margin-top:10px"></div>' +
+    '<table>' +
+      '<thead><tr style="border-bottom:2px solid #000;text-align:left">' +
+        '<th style="padding:7px 8px">SKU Induk</th>' +
+        '<th style="padding:7px 8px">SKU Variasi</th>' +
+        '<th style="padding:7px 8px;text-align:right">Total Qty</th>' +
+        '<th style="padding:7px 8px;text-align:right">Harga / Lsn</th>' +
+        '<th style="padding:7px 8px;text-align:right">Total</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody>' +
+      '<tfoot><tr style="border-top:2px solid #000;font-weight:800">' +
+        '<td colspan="2" style="padding:9px 8px">TOTAL</td>' +
+        '<td style="padding:9px 8px;text-align:right">' + grandQty + '</td>' +
+        '<td></td>' +
+        '<td style="padding:9px 8px;text-align:right">' + fmtRpFull(grandTotal) + '</td>' +
+      '</tr></tfoot>' +
+    '</table>' +
+    '<script>window.onload = function() { window.print(); };<\/script>' +
+    '</body></html>';
+
+  var blob = new Blob([html], { type: 'text/html' });
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url, '_blank');
+  if (!win) {
+    var a = document.createElement('a');
+    a.href = url; a.download = 'slip-' + nama.replace(/\s+/g, '_') + '.html'; a.click();
+  }
+  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
 }
 
 // ─── FORM: Master Ongkos (1 SKU + 1 Variasi, semua divisi jadi kolom input) ──
