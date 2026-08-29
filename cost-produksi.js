@@ -807,8 +807,6 @@ function cpTukangDivisiColumns() {
 // per keputusan 28 Agu 2026 (belum diputusin mau digimanain di HP). ──
 function cpRenderTukangPivot() {
   var cols = cpTukangDivisiColumns();
-  var thead = document.getElementById('cp-tukang-pivot-thead');
-  thead.innerHTML = '<th style="width:40px">No</th>' + cols.map(function(c) { return '<th>' + cpEsc(c) + '</th>'; }).join('');
 
   var byDivisi = {};
   cols.forEach(function(c) { byDivisi[c] = []; });
@@ -817,6 +815,11 @@ function cpRenderTukangPivot() {
     var col = cols.find(function(c) { return c.toLowerCase() === t.divisi.toLowerCase(); });
     if (col) byDivisi[col].push(t);
   });
+
+  var thead = document.getElementById('cp-tukang-pivot-thead');
+  thead.innerHTML = '<th style="width:40px">No</th>' + cols.map(function(c) {
+    return '<th>' + cpEsc(c) + ' <span style="color:var(--ink3);font-weight:400">(' + byDivisi[c].length + ')</span></th>';
+  }).join('');
 
   var maxLen = cols.reduce(function(m, c) { return Math.max(m, byDivisi[c].length); }, 0);
   var tbody = document.getElementById('cp-tukang-pivot-tbody');
