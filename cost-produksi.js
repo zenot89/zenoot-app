@@ -262,14 +262,15 @@ document.getElementById('page-cost-produksi').innerHTML = `
     <!-- ═══ MASTER TUKANG ═══ -->
     <div id="cp-panel-tukang" class="cp-panel">
       <div class="cp-toolbar">
-        <button class="btn btn-primary btn-sm" onclick="cpOpenTukangForm()"><i class="ti ti-plus"></i> Tambah Tukang</button>
+        <span id="cp-tukang-total-label" style="color:var(--ink2);font-size:13px;font-weight:700">Total Tukang: 0</span>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="cpOpenTukangForm()"><i class="ti ti-plus"></i> Tambah Tukang</button>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-users"></i> Master Tukang</div>
-        <!-- Mobile (≤600px): list Nama|Divisi — JANGAN diubah dulu, per keputusan 28 Agu 2026 -->
+        <!-- Mobile (≤600px): list No|Nama|Divisi — JANGAN diubah dulu, per keputusan 28 Agu 2026 -->
         <div class="tbl-wrap" id="cp-tukang-list-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Nama</th><th>Divisi</th></tr></thead>
-          <tbody id="cp-tukang-tbody"><tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th style="width:40px">No</th><th>Nama</th><th>Divisi</th></tr></thead>
+          <tbody id="cp-tukang-tbody"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
         <!-- Desktop (>600px): pivot — divisi jadi kolom mendatar, nama tukang ditumpuk vertikal per kolom -->
         <div class="tbl-wrap" id="cp-tukang-pivot-wrap" style="overflow-x:auto;display:none"><table class="tbl">
@@ -767,12 +768,17 @@ function cpRenderRate() {
 
 // ─── RENDER: Master Tukang ─────────────────────────────────────
 function cpRenderTukang() {
+  var uniqueNames = {};
+  _cpTukang.forEach(function(t) { if (t.nama) uniqueNames[t.nama.trim().toLowerCase()] = true; });
+  document.getElementById('cp-tukang-total-label').textContent = 'Total Tukang: ' + Object.keys(uniqueNames).length;
+
   var tbody = document.getElementById('cp-tukang-tbody');
   if (!_cpTukang.length) {
-    tbody.innerHTML = '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
   } else {
-    tbody.innerHTML = _cpTukang.map(function(t) {
+    tbody.innerHTML = _cpTukang.map(function(t, i) {
       return '<tr onclick="cpOpenTukangForm(' + t.id + ')" style="cursor:pointer">' +
+        '<td>' + (i + 1) + '</td>' +
         '<td>' + cpEsc(t.nama) + '</td>' +
         '<td>' + (t.divisi ? cpEsc(t.divisi) : '<span style="color:var(--ink3);font-style:italic">belum diisi</span>') + '</td>' +
       '</tr>';
@@ -802,7 +808,7 @@ function cpTukangDivisiColumns() {
 function cpRenderTukangPivot() {
   var cols = cpTukangDivisiColumns();
   var thead = document.getElementById('cp-tukang-pivot-thead');
-  thead.innerHTML = cols.map(function(c) { return '<th>' + cpEsc(c) + '</th>'; }).join('');
+  thead.innerHTML = '<th style="width:40px">No</th>' + cols.map(function(c) { return '<th>' + cpEsc(c) + '</th>'; }).join('');
 
   var byDivisi = {};
   cols.forEach(function(c) { byDivisi[c] = []; });
@@ -815,7 +821,7 @@ function cpRenderTukangPivot() {
   var maxLen = cols.reduce(function(m, c) { return Math.max(m, byDivisi[c].length); }, 0);
   var tbody = document.getElementById('cp-tukang-pivot-tbody');
   if (!maxLen) {
-    tbody.innerHTML = '<tr><td colspan="' + cols.length + '" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 1) + '" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
     return;
   }
   var rows = [];
@@ -824,7 +830,7 @@ function cpRenderTukangPivot() {
       var t = byDivisi[c][i];
       return t ? '<td onclick="cpOpenTukangForm(' + t.id + ')">' + cpEsc(t.nama) + '</td>' : '<td></td>';
     }).join('');
-    rows.push('<tr>' + cells + '</tr>');
+    rows.push('<tr><td>' + (i + 1) + '</td>' + cells + '</tr>');
   }
   tbody.innerHTML = rows.join('');
 }
