@@ -89,6 +89,33 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(2) { width:38%; font-size:11px; padding:6px 4px; }
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(3),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(3) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
+
+      /* Jurnal Harian: sembunyiin Divisi(kolom-2) & Total(kolom-6) di
+         mobile, sisain Tanggal(Hari) / Tukang / SKU-Varian / Qty — muat
+         tanpa geser. Tap baris buat liat divisi & total lengkapnya. */
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(2),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(2),
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(6),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(6) { display:none; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(1),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(1) { width:24%; font-size:10.5px; padding:6px 4px 6px 8px; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(3),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(3) { width:22%; font-size:11px; padding:6px 4px; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(4),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(4) { width:36%; font-size:11px; padding:6px 4px; }
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(5),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(5) { width:18%; font-size:11px; padding:6px 8px 6px 4px; }
+    }
+
+    /* ── Master Tukang: desktop pivot (divisi jadi kolom mendatar) vs
+       mobile list (Nama|Divisi, JANGAN diubah — per keputusan 28 Agu 2026,
+       mobile masih dipikirin nanti) ── */
+    #cp-tukang-pivot-wrap { display:none; }
+    @media (min-width:601px) {
+      #cp-tukang-list-wrap  { display:none !important; }
+      #cp-tukang-pivot-wrap { display:block !important; }
+      #cp-tukang-pivot-tbody td { cursor:pointer; }
+      #cp-tukang-pivot-tbody td:empty { cursor:default; }
     }
 
     /* ── Custom picker trigger (bukan native <select>) — tap buka
@@ -239,9 +266,15 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-users"></i> Master Tukang</div>
-        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+        <!-- Mobile (≤600px): list Nama|Divisi — JANGAN diubah dulu, per keputusan 28 Agu 2026 -->
+        <div class="tbl-wrap" id="cp-tukang-list-wrap" style="overflow-x:auto"><table class="tbl">
           <thead><tr><th>Nama</th><th>Divisi</th></tr></thead>
           <tbody id="cp-tukang-tbody"><tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        </table></div>
+        <!-- Desktop (>600px): pivot — divisi jadi kolom mendatar, nama tukang ditumpuk vertikal per kolom -->
+        <div class="tbl-wrap" id="cp-tukang-pivot-wrap" style="overflow-x:auto;display:none"><table class="tbl">
+          <thead><tr id="cp-tukang-pivot-thead"></tr></thead>
+          <tbody id="cp-tukang-pivot-tbody"></tbody>
         </table></div>
       </div>
     </div>
@@ -481,6 +514,15 @@ function cpFmtTgl(s) {
   return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0].slice(2)) : s;
 }
 
+var CP_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+function cpFmtHari(s) {
+  if (!s) return '—';
+  var p = String(s).split('-');
+  if (p.length !== 3) return s;
+  var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  return CP_HARI[d.getDay()] + ', ' + p[2] + '/' + p[1];
+}
+
 // ─── LOAD ───────────────────────────────────────────────────
 async function cpLoadAll() {
   try {
@@ -664,7 +706,7 @@ function cpRenderJurnal() {
   tbody.innerHTML = _cpJurnal.map(function(j) {
     var skuCell = cpEsc(j.sku) + (j.sku_variasi ? ' <span style="color:var(--ink3);font-size:11px">— ' + cpEsc(j.sku_variasi) + '</span>' : '');
     return '<tr onclick="cpOpenJurnalForm(' + j.id + ')" style="cursor:pointer">' +
-      '<td>' + cpEsc(cpFmtTgl(j.tanggal)) + '</td>' +
+      '<td>' + cpEsc(cpFmtHari(j.tanggal)) + '</td>' +
       '<td>' + cpEsc(j.divisi) + '</td>' +
       '<td>' + cpEsc(j.tukang) + '</td>' +
       '<td>' + skuCell + '</td>' +
@@ -728,14 +770,63 @@ function cpRenderTukang() {
   var tbody = document.getElementById('cp-tukang-tbody');
   if (!_cpTukang.length) {
     tbody.innerHTML = '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
+  } else {
+    tbody.innerHTML = _cpTukang.map(function(t) {
+      return '<tr onclick="cpOpenTukangForm(' + t.id + ')" style="cursor:pointer">' +
+        '<td>' + cpEsc(t.nama) + '</td>' +
+        '<td>' + (t.divisi ? cpEsc(t.divisi) : '<span style="color:var(--ink3);font-style:italic">belum diisi</span>') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+  cpRenderTukangPivot();
+}
+
+// Kolom divisi buat pivot Master Tukang — pola sama kayak cpDivisiColumns()
+// (urutan baku Rajut→Tilep, sisa divisi custom nempel di ujung), tapi
+// sumbernya dari _cpTukang (bukan _cpRate).
+function cpTukangDivisiColumns() {
+  var extra = [];
+  _cpTukang.forEach(function(t) {
+    if (!t.divisi) return;
+    var inCanon = CP_CANON_DIVISI.some(function(c) { return c.toLowerCase() === t.divisi.toLowerCase(); });
+    if (!inCanon && extra.indexOf(t.divisi) === -1) extra.push(t.divisi);
+  });
+  extra.sort();
+  return CP_CANON_DIVISI.concat(extra);
+}
+
+// ─── RENDER: Master Tukang — versi PIVOT khusus desktop (>600px). Divisi
+// jadi kolom mendatar, nama tukang ditumpuk vertikal per kolom (persis
+// pola spreadsheet aslinya). Mobile TIDAK make ini — masih list biasa,
+// per keputusan 28 Agu 2026 (belum diputusin mau digimanain di HP). ──
+function cpRenderTukangPivot() {
+  var cols = cpTukangDivisiColumns();
+  var thead = document.getElementById('cp-tukang-pivot-thead');
+  thead.innerHTML = cols.map(function(c) { return '<th>' + cpEsc(c) + '</th>'; }).join('');
+
+  var byDivisi = {};
+  cols.forEach(function(c) { byDivisi[c] = []; });
+  _cpTukang.forEach(function(t) {
+    if (!t.divisi) return;
+    var col = cols.find(function(c) { return c.toLowerCase() === t.divisi.toLowerCase(); });
+    if (col) byDivisi[col].push(t);
+  });
+
+  var maxLen = cols.reduce(function(m, c) { return Math.max(m, byDivisi[c].length); }, 0);
+  var tbody = document.getElementById('cp-tukang-pivot-tbody');
+  if (!maxLen) {
+    tbody.innerHTML = '<tr><td colspan="' + cols.length + '" style="color:var(--ink3);font-style:italic">Belum ada tukang. Tap "+ Tambah Tukang" buat mulai.</td></tr>';
     return;
   }
-  tbody.innerHTML = _cpTukang.map(function(t) {
-    return '<tr onclick="cpOpenTukangForm(' + t.id + ')" style="cursor:pointer">' +
-      '<td>' + cpEsc(t.nama) + '</td>' +
-      '<td>' + (t.divisi ? cpEsc(t.divisi) : '<span style="color:var(--ink3);font-style:italic">belum diisi</span>') + '</td>' +
-    '</tr>';
-  }).join('');
+  var rows = [];
+  for (var i = 0; i < maxLen; i++) {
+    var cells = cols.map(function(c) {
+      var t = byDivisi[c][i];
+      return t ? '<td onclick="cpOpenTukangForm(' + t.id + ')">' + cpEsc(t.nama) + '</td>' : '<td></td>';
+    }).join('');
+    rows.push('<tr>' + cells + '</tr>');
+  }
+  tbody.innerHTML = rows.join('');
 }
 
 // ─── PICKER SHEET generik (konsep BRIMO + list ala komen Instagram) ──
