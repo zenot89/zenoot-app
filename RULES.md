@@ -194,6 +194,72 @@ Font eksklusif Canva (misal "More Sugar") TIDAK BISA di-embed ke web. Kalau
 user minta font semacam itu, cari font Google Fonts yang paling mirip sebagai
 pengganti, dan bilang terus terang kenapa nggak bisa pakai yang asli.
 
+### 5.9. Export PDF force-close di Android (PWA standalone) — histori & fix
+
+**Gejala:** tombol Export PDF bikin app **force-close total** (bukan error
+JS biasa yang bisa di-`alert()`) — kejadian di Android, khusus pas app
+dibuka lewat **PWA yang di-"Add to Home Screen"** (`display:standalone`),
+bukan pas dibuka lewat tab Chrome biasa.
+
+**Histori percobaan yang GAGAL** (dari kasus nyata di Cost Produksi, 29 Agu
+2026 — semua modul yang masih pakai pola pertama di bawah ini KEMUNGKINAN
+BESAR juga kena, termasuk Gadag & Hutang Barang per saat ditulis):
+
+1. **`window.open(blobURL, '_blank')` + `window.print()`** (pola lama Gadag,
+   `gdgExportRiwayatPDF` dkk) — CRASH. Teori awal: `blob:` URL cuma valid di
+   proses yang bikin dia, `window.open` coba lempar ke browsing context lain
+   (tab/window baru) → force close.
+2. **jsPDF + autoTable, `doc.save()` buat Android/desktop, `navigator.share()`
+   buat iOS** (pola yang dipakai `hutang-supplier.js`, awalnya dikira udah
+   fix) — user lapor **masih crash juga** di Android, padahal jalur Android
+   di sini SAMA SEKALI nggak manggil `window.open` ataupun `navigator.share`.
+   Ini yang bikin teori #1 di atas jadi diragukan — kemungkinan bukan cuma
+   soal blob-lintas-context, tapi jsPDF+autoTable sendiri (library berat)
+   yang bikin memory pressure di WebView standalone PWA (yang resource-nya
+   lebih terbatas dibanding tab Chrome biasa).
+3. **jsPDF + autoTable, `navigator.share()` dicoba juga di Android** — masih
+   crash (belum ke-konfirmasi beda dari #2).
+
+**Pola yang lagi dicoba sekarang (Cost Produksi, `cpExportJurnalPDF` dkk) —
+BELUM 100% ke-konfirmasi user, tapi secara desain paling minim resiko:**
+
+Iframe **tersembunyi** yang nempel PERMANEN di halaman yang sama (bukan
+tab/window baru), diisi ulang kontennya tiap export lewat
+`contentDocument.write()`, print lewat `iframe.contentWindow.print()`. Nggak
+ada `window.open`, nggak butuh jsPDF/autoTable sama sekali (jadi ringan).
+
+```js
+var iframe = document.getElementById('xxx-print-frame');
+if (!iframe) {
+  iframe = document.createElement('iframe');
+  iframe.id = 'xxx-print-frame';
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(iframe);
+}
+var frameDoc = iframe.contentWindow.document;
+frameDoc.open();
+frameDoc.write(htmlString); // dokumen HTML lengkap termasuk <style>
+frameDoc.close();
+setTimeout(function() {
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
+}, 250);
+```
+
+**KALAU sesi ini dapet konfirmasi dari user bahwa pola iframe di atas
+BENERAN aman di Android** (nggak force-close lagi) — WAJIB terapin pola yang
+sama ke Gadag (`gdgExportRiwayatPDF`, ganti `window.open(blob)`) dan Hutang
+Supplier (`hsBuildAndDeliverBonPDF`, ganti jsPDF+autoTable) juga, plus update
+paragraf ini biar nggak "belum ke-konfirmasi" lagi. Kalau ternyata iframe ini
+JUGA masih crash, catat itu juga di sini sebagai percobaan #4 yang gagal —
+jangan diulang lagi di sesi berikutnya tanpa disadari udah pernah dicoba.
+
+**Cara diagnosis kalau masih crash:** minta user sambungin HP Android ke
+laptop via USB, buka `chrome://inspect` di Chrome laptop, reproduce bug-nya,
+liat console log SEBELUM app force-close. Itu satu-satunya cara dapet
+signal asli — jangan nebak-nebak berkali-kali tanpa data kayak yang kejadian
+di histori percobaan #1-3 di atas.
+
 ---
 
 ## 6. Cara Validasi Sebelum Present File ke User
@@ -313,10 +379,10 @@ replace file itu di project dia, sama kayak semua file lain yang diedit).
   ngulang nama panel yang udah ada di judul besar di atasnya (contoh: card
   "Catatan" nggak perlu judul "Catatan" lagi di dalamnya, ganti jadi counter
   "7 catatan").
-- **Export PDF** = pakai `window.print()` + area cetak tersembunyi
-  (`#gdg-print-area`, CSS `@media print`), BUKAN library PDF eksternal — lebih
-  ringan, nggak nambah dependency/caching, dan hasilnya konsisten di Android
-  & iPhone (keduanya punya "Save as PDF" bawaan di dialog print).
+- **Export PDF** = pakai `window.print()`, TAPI target print-nya WAJIB iframe
+  tersembunyi di HALAMAN YANG SAMA (`iframe.contentWindow.print()`), BUKAN
+  `window.open()` ke tab/window baru. Detail lengkap kenapa + histori
+  percobaan yang GAGAL: lihat §5.9.
 
 ---
 
