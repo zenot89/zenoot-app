@@ -1112,6 +1112,32 @@ function cpExportJurnalPDF() {
 var CP_PDF_ABU_TUA = [92, 88, 82];
 
 function cpDoExportJurnalPDF(nama) {
+  try {
+    _cpDoExportJurnalPDFInner(nama);
+  } catch (e) {
+    alert('Export PDF gagal: ' + (e && e.message ? e.message : e) + '\n\nKalau HP-nya langsung force-close (bukan muncul pesan ini), berarti bukan error JS biasa — kabarin ke gua, jangan-jangan devicenya kehabisan memori.');
+  }
+}
+
+// Download manual: bikin <a>, NEMPELIN ke DOM dulu sebelum diklik, baru
+// dilepas — beberapa WebView (termasuk sebagian PWA standalone Android)
+// gak reliable trigger download kalau elemennya gak pernah masuk DOM.
+// Ini best-practice yang lebih aman ketimbang jsPDF punya doc.save()
+// bawaan (yang klik elemen lepas, gak nempel ke DOM). 29 Agu 2026.
+function cpSafeSavePdf(doc, fileName) {
+  var blob = doc.output('blob');
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+}
+
+function _cpDoExportJurnalPDFInner(nama) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
     return;
@@ -1205,13 +1231,13 @@ function cpDoExportJurnalPDF(nama) {
       var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
       if (navigator.canShare({ files: [pdfFile] })) {
         navigator.share({ files: [pdfFile], title: fileName }).catch(function(err) {
-          if (err && err.name !== 'AbortError') doc.save(fileName);
+          if (err && err.name !== 'AbortError') cpSafeSavePdf(doc, fileName);
         });
         return;
       }
     } catch (e) { /* fallback ke doc.save() di bawah */ }
   }
-  doc.save(fileName);
+  cpSafeSavePdf(doc, fileName);
 }
 
 // ─── FORM: Master Ongkos (1 SKU + 1 Variasi, semua divisi jadi kolom input) ──
