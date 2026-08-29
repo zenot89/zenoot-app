@@ -1089,14 +1089,16 @@ async function cpDeleteJurnal() {
   cpLoadAll();
 }
 
-// ─── EXPORT PDF (by Tukang) — pola sama persis kayak Export PDF di
-// Gadag: bikin dokumen HTML lengkap, buka di tab/window baru via Blob
-// URL, window.print() otomatis pas load (dialog print browser punya
-// "Save as PDF" bawaan, jalan konsisten di Android & iPhone). Header
-// slip-nya ngikutin format "SLIP BAYARAN KARYAWAN — Dimi.id" yang dikasih
-// contoh 28 Agu 2026; isi tabelnya SKU Induk / SKU Variasi / Total Qty /
-// Harga per Lusin / Total, di-sum per kombinasi SKU+Variasi (bukan
-// per-baris-jurnal mentah). ──
+// ─── EXPORT PDF (by Tukang) — jsPDF + autoTable ASLI (BUKAN
+// window.open(blob)+window.print()). Root cause versi lama: window.open()
+// dengan URL blob: + target _blank, di dalam PWA "display":"standalone",
+// adalah known crash trigger di Android WebView — blob: URL cuma valid
+// di proses yang bikin dia, sementara window.open coba lempar ke
+// browsing context lain → force close. Ini exact bug yang sama yang udah
+// pernah diperbaiki di hutang-supplier.js (Export PDF Jurnal Re-Stock),
+// jadi Cost Produksi disamain ke pola yang sama: doc.save() cuma trigger
+// download Blob di halaman yang sama, aman di semua Android/iOS.
+// 29 Agu 2026. ──
 function cpExportJurnalPDF() {
   var names = [];
   _cpJurnal.forEach(function(j) { if (j.tukang && names.indexOf(j.tukang) === -1) names.push(j.tukang); });
@@ -1107,7 +1109,13 @@ function cpExportJurnalPDF() {
   });
 }
 
+var CP_PDF_ABU_TUA = [92, 88, 82];
+
 function cpDoExportJurnalPDF(nama) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
+    return;
+  }
   var rows = _cpJurnal.filter(function(j) { return j.tukang === nama; });
   if (!rows.length) { alert('Gak ada jurnal buat ' + nama + '.'); return; }
 
@@ -1125,69 +1133,83 @@ function cpDoExportJurnalPDF(nama) {
   var grandQty   = rows.reduce(function(s, j) { return s + (Number(j.qty_pcs) || 0); }, 0);
   var grandTotal = rows.reduce(function(s, j) { return s + (Number(j.total_cost) || 0); }, 0);
 
-  var hariNames = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  var body = order.map(function(key) {
+    var g = group[key];
+    return [g.sku, g.variasi || '\u2014', String(g.qty), fmtRpFull(g.rate), fmtRpFull(g.total)];
+  });
+
+  var hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   var today = new Date();
   var hariExport = hariNames[today.getDay()];
-  var tglExport  = String(today.getDate()).padStart(2, '0') + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + String(today.getFullYear()).slice(2);
+  var tglExportStr = String(today.getDate()).padStart(2, '0') + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + today.getFullYear();
 
-  var rowsHtml = order.map(function(key) {
-    var g = group[key];
-    return '<tr>' +
-      '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + cpEsc(g.sku) + '</td>' +
-      '<td style="padding:7px 8px;border-bottom:1px solid #ddd">' + (g.variasi ? cpEsc(g.variasi) : '&mdash;') + '</td>' +
-      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + g.qty + '</td>' +
-      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(g.rate) + '</td>' +
-      '<td style="padding:7px 8px;border-bottom:1px solid #ddd;text-align:right">' + fmtRpFull(g.total) + '</td>' +
-    '</tr>';
-  }).join('');
+  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+  var pageW = doc.internal.pageSize.getWidth();
+  var marginL = 40, marginR = 40;
 
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<title>Slip Bayaran — ' + cpEsc(nama) + '</title>' +
-    '<style>' +
-      '* { box-sizing:border-box; margin:0; padding:0; }' +
-      'body { font-family:Arial, sans-serif; color:#000; background:#fff; padding:22px; }' +
-      'table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }' +
-      'thead { display:table-header-group; } tbody tr { page-break-inside:avoid; }' +
-      '@page { margin:16mm 14mm; }' +
-      '@media print { body { padding:0; } }' +
-    '</style></head><body>' +
-    '<div style="text-align:center;font-weight:800;font-size:19px;letter-spacing:.5px">SLIP BAYARAN KARYAWAN</div>' +
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px">' +
-      '<div style="font-weight:800;font-size:17px">Dimi.id</div>' +
-      '<div style="font-size:12px;font-weight:700">' + hariExport + ', ' + tglExport + '</div>' +
-    '</div>' +
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px">' +
-      '<div style="font-size:15px"><b>TUKANG :</b> ' + cpEsc(nama).toUpperCase() + '</div>' +
-      '<div style="font-size:15px;font-weight:800">' + cpEsc(divisiSet.join(', ')).toUpperCase() + '</div>' +
-    '</div>' +
-    '<div style="border-top:2px solid #000;margin-top:10px"></div>' +
-    '<table>' +
-      '<thead><tr style="border-bottom:2px solid #000;text-align:left">' +
-        '<th style="padding:7px 8px">SKU Induk</th>' +
-        '<th style="padding:7px 8px">SKU Variasi</th>' +
-        '<th style="padding:7px 8px;text-align:right">Total Qty</th>' +
-        '<th style="padding:7px 8px;text-align:right">Harga / Lsn</th>' +
-        '<th style="padding:7px 8px;text-align:right">Total</th>' +
-      '</tr></thead>' +
-      '<tbody>' + rowsHtml + '</tbody>' +
-      '<tfoot><tr style="border-top:2px solid #000;font-weight:800">' +
-        '<td colspan="2" style="padding:9px 8px">TOTAL</td>' +
-        '<td style="padding:9px 8px;text-align:right">' + grandQty + '</td>' +
-        '<td></td>' +
-        '<td style="padding:9px 8px;text-align:right">' + fmtRpFull(grandTotal) + '</td>' +
-      '</tr></tfoot>' +
-    '</table>' +
-    '<script>window.onload = function() { window.print(); };<\/script>' +
-    '</body></html>';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(CP_PDF_ABU_TUA[0], CP_PDF_ABU_TUA[1], CP_PDF_ABU_TUA[2]);
+  doc.text('SLIP BAYARAN KARYAWAN', marginL, 36);
 
-  var blob = new Blob([html], { type: 'text/html' });
-  var url  = URL.createObjectURL(blob);
-  var win  = window.open(url, '_blank');
-  if (!win) {
-    var a = document.createElement('a');
-    a.href = url; a.download = 'slip-' + nama.replace(/\s+/g, '_') + '.html'; a.click();
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(130, 126, 120);
+  doc.text('Dimi.id  \u00b7  ' + hariExport + ', ' + tglExportStr, marginL, 50);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(30, 28, 26);
+  doc.text(nama.toUpperCase(), pageW - marginR, 36, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90, 86, 80);
+  doc.text(divisiSet.join(', ').toUpperCase(), pageW - marginR, 50, { align: 'right' });
+
+  doc.setTextColor(0, 0, 0);
+
+  var footRows = [[
+    { content: 'TOTAL', colSpan: 2, styles: { halign: 'right' } },
+    String(grandQty), '',
+    fmtRpFull(grandTotal)
+  ]];
+
+  doc.autoTable({
+    startY: 66,
+    head: [['SKU Induk', 'SKU Variasi', 'Total Qty', 'Harga/Lsn', 'Total']],
+    body: body,
+    styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20, 20, 20] },
+    headStyles: { fillColor: CP_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
+    columnStyles: {
+      2: { halign: 'right', cellWidth: 60 },
+      3: { halign: 'right' },
+      4: { halign: 'right' }
+    },
+    foot: footRows,
+    footStyles: { fillColor: [244, 238, 227], textColor: [20, 20, 20], fontStyle: 'bold', fontSize: 11 },
+  });
+
+  var safeNama = nama.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  var fileName = 'dimi-' + safeNama + '.pdf';
+
+  // ── Delivery PDF: iOS Safari vs Android PWA (pola sama kayak Hutang
+  // Supplier) — iOS pake native share sheet (hindari blob URL nempel pas
+  // share), Android/desktop pake doc.save() biasa. ──
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS && navigator.canShare) {
+    try {
+      var pdfOutput = doc.output('arraybuffer');
+      var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [pdfFile] })) {
+        navigator.share({ files: [pdfFile], title: fileName }).catch(function(err) {
+          if (err && err.name !== 'AbortError') doc.save(fileName);
+        });
+        return;
+      }
+    } catch (e) { /* fallback ke doc.save() di bawah */ }
   }
-  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+  doc.save(fileName);
 }
 
 // ─── FORM: Master Ongkos (1 SKU + 1 Variasi, semua divisi jadi kolom input) ──
