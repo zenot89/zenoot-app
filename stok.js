@@ -13,6 +13,18 @@ function _stokVelocity(sales7, sales30, sales90) {
   return 'zombie';
 }
 
+// Ranking buat sort kolom Status: Fast(4) → Slow(3) → Dead(2) → Zombie(1) → Habis(0)
+// (angka gede duluan pas dir='desc', sesuai urutan tab status yg udah ada).
+// Habis (sisa<=0) nge-override velocity, sama kayak logika tab filter.
+function _stokStatusRank(r) {
+  if ((r.sisa || 0) <= 0) return 0;
+  var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
+  if (vel === 'fast')   return 4;
+  if (vel === 'slow')   return 3;
+  if (vel === 'dead')   return 2;
+  return 1; // zombie
+}
+
 // statusBadge: parameter ke-2 adalah velocity string (bukan kat)
 // dipanggil dengan: statusBadge(sisa, vel, sales7, sales30, sales90)
 function statusBadge(sisa, vel, sales7, sales30, sales90) {
@@ -237,7 +249,7 @@ document.getElementById('page-stok').innerHTML = `
       <thead><tr>
         <th>Katalog</th><th>SKU Variasi</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
-        <th>Status</th>
+        <th onclick="stokToggleSort('status')" style="cursor:pointer;user-select:none;white-space:nowrap">Status <span id="sort-icon-status">⇅</span></th>
         <th>Aksi</th>
         <th onclick="stokToggleSort('sales')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales 7hr <span id="sort-icon-sales">⇅</span></th>
         <th onclick="stokToggleSort('sales_total')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales Total <span id="sort-icon-sales_total">⇅</span></th>
@@ -619,14 +631,20 @@ function filterStok() {
   // Apply sort
   if (_stokSort.col) {
     filtered.sort(function(a, b) {
-      var va = _stokSort.col === 'sisa'        ? (a.sisa || 0)
-             : _stokSort.col === 'sales'       ? (a.sales7 || 0)
-             : _stokSort.col === 'sales_total' ? (a.stok_keluar || 0)
-             : (a.nilai_stok || 0);
-      var vb = _stokSort.col === 'sisa'        ? (b.sisa || 0)
-             : _stokSort.col === 'sales'       ? (b.sales7 || 0)
-             : _stokSort.col === 'sales_total' ? (b.stok_keluar || 0)
-             : (b.nilai_stok || 0);
+      var va, vb;
+      if (_stokSort.col === 'status') {
+        va = _stokStatusRank(a);
+        vb = _stokStatusRank(b);
+      } else {
+        va = _stokSort.col === 'sisa'        ? (a.sisa || 0)
+           : _stokSort.col === 'sales'       ? (a.sales7 || 0)
+           : _stokSort.col === 'sales_total' ? (a.stok_keluar || 0)
+           : (a.nilai_stok || 0);
+        vb = _stokSort.col === 'sisa'        ? (b.sisa || 0)
+           : _stokSort.col === 'sales'       ? (b.sales7 || 0)
+           : _stokSort.col === 'sales_total' ? (b.stok_keluar || 0)
+           : (b.nilai_stok || 0);
+      }
       return _stokSort.dir === 'desc' ? vb - va : va - vb;
     });
   }
@@ -1256,7 +1274,7 @@ function stokToggleSort(col) {
     _stokSort.dir = 'desc';
   }
   // Update icons semua kolom
-  ['sisa','sales','sales_total','nilai'].forEach(function(c) {
+  ['sisa','sales','sales_total','nilai','status'].forEach(function(c) {
     var el = document.getElementById('sort-icon-' + c);
     if (!el) return;
     if (c === _stokSort.col) {
