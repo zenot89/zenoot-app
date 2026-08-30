@@ -929,10 +929,13 @@ function _hsSisaBon(bon) {
 // sendiri, gak manggil fungsi restock.js/kas.js), formula ROP identik
 // restock.js: Avg Harian = qty14/14, Safety = AvgHarian×buffer_hari,
 // ROP = (AvgHarian×lead_time)+Safety, QtyOrder = ROP dibulatkan ke atas
-// ke kelipatan terdekat. Filter fast-move: SKU wajib ada penjualan
-// dalam 7 hari terakhir buat direkomendasikan — biar minimum-order
-// floor supplier gak "maksa" restock barang yg udah gak gerak.
-// 30 Agu 2026. ──────────────────────────────────────────────────
+// ke kelipatan terdekat (BUKAN dikurangin sisa stok — skema ROP klasik:
+// begitu sisa stok nembus/di bawah titik ROP → trigger reorder qty baku).
+// Trigger reorder: sisa_stok <= rop_raw (kalau sisa gak diketahui, tetap
+// dimasukin biar keliatan/gak silently hilang). Filter fast-move: SKU
+// wajib ada penjualan dalam 7 hari terakhir buat direkomendasikan — biar
+// minimum-order floor supplier gak "maksa" restock barang yg udah gak
+// gerak. 30 Agu 2026. ──────────────────────────────────────────────
 var _hsRestockItems     = [];
 var _hsRestockChecked   = {};
 var _hsRestockCashTotal = 0;
@@ -1044,9 +1047,17 @@ async function hsLoadRestockPO() {
       var avg_harian  = qty14 / 14;
       var safety      = avg_harian * sup.buffer_hari;
       var rop_raw     = (avg_harian * sup.lead_time) + safety;
+      var sisa        = sisaMap[sku] !== undefined ? sisaMap[sku] : null;
+
+      // ── Trigger reorder klasik: cuma muncul kalau sisa stok SEKARANG
+      // udah nyampe/nembus titik ROP. Kalau sisa masih di atas ROP,
+      // belum waktunya reorder — walau SKU-nya fast-move & rop_raw kecil
+      // kebulet ke floor kelipatan, jangan dimasukin dulu. Qty Order tetap
+      // dihitung penuh dari ROP (BUKAN dikurangin sisa) begitu trigger nyala. ──
+      if (sisa !== null && sisa > rop_raw) return;
+
       var qty_order   = _hsBulatkanKelipatan(rop_raw, sup.kelipatan, sup.min_order);
       var nilai       = (p.hpp || 0) * qty_order;
-      var sisa        = sisaMap[sku] !== undefined ? sisaMap[sku] : null;
       var dos         = (sisa !== null && avg_harian > 0) ? Math.round(sisa / avg_harian) : null;
 
       if (qty_order <= 0) return;
