@@ -929,7 +929,10 @@ function _hsSisaBon(bon) {
 // sendiri, gak manggil fungsi restock.js/kas.js), formula ROP identik
 // restock.js: Avg Harian = qty14/14, Safety = AvgHarian×buffer_hari,
 // ROP = (AvgHarian×lead_time)+Safety, QtyOrder = ROP dibulatkan ke atas
-// ke kelipatan terdekat. 30 Agu 2026. ──────────────────────────────
+// ke kelipatan terdekat. Filter fast-move: SKU wajib ada penjualan
+// dalam 7 hari terakhir buat direkomendasikan — biar minimum-order
+// floor supplier gak "maksa" restock barang yg udah gak gerak.
+// 30 Agu 2026. ──────────────────────────────────────────────────
 var _hsRestockItems     = [];
 var _hsRestockChecked   = {};
 var _hsRestockCashTotal = 0;
@@ -948,6 +951,8 @@ async function hsLoadRestockPO() {
     var today  = new Date();
     var d14    = new Date(today); d14.setDate(d14.getDate() - 13);
     var dari14 = d14.toISOString().slice(0, 10);
+    var d7     = new Date(today); d7.setDate(d7.getDate() - 6);
+    var dari7  = d7.toISOString().slice(0, 10);
 
     var [penjualan14, produkAll, restockSup, stokData, jurnalAll, kasAkun, jurnalKas] = await Promise.all([
       dbGet('jurnal_penjualan', '&select=sku,qty,tanggal&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari14),
@@ -1001,9 +1006,12 @@ async function hsLoadRestockPO() {
     });
 
     var qtyMap = {};
+    var sales7Map = {};
     (penjualan14 || []).forEach(function(row) {
       var sku = (row.sku || '').trim().toUpperCase();
-      if (sku) qtyMap[sku] = (qtyMap[sku] || 0) + (row.qty || 0);
+      if (!sku) return;
+      qtyMap[sku] = (qtyMap[sku] || 0) + (row.qty || 0);
+      if (row.tanggal >= dari7) sales7Map[sku] = (sales7Map[sku] || 0) + (row.qty || 0);
     });
 
     var supplierMap = {};
@@ -1024,6 +1032,12 @@ async function hsLoadRestockPO() {
       if (!p) return;
       var bossKey = (p.boss || '').trim().toUpperCase();
       if (!poSupplierSet[bossKey]) return; // cuma supplier Reseller/PO yang masuk
+
+      // ── Filter fast-move: harus ada penjualan dalam 7 hari terakhir.
+      // SKU yg cuma kejual di hari ke-8..14 (gak gerak minggu ini) TIDAK
+      // direkomendasikan restock di sini walau ROP-nya kebulet ke floor
+      // kelipatan supplier — biar modal gak numpuk di barang yg gak laku. ──
+      if (!sales7Map[sku] || sales7Map[sku] <= 0) return;
 
       var qty14       = qtyMap[sku];
       var sup         = supplierMap[bossKey] || DEFAULT_SUP;
