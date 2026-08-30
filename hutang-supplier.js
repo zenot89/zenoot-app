@@ -121,6 +121,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     }
     .hs-tab-btn:hover { opacity:.9; }
     .hs-tab-btn.active { opacity:1; color:var(--ink); border-bottom-color:var(--ink); }
+
+    /* ── Re Stock (PO) ── */
+    .hs-restock-cash-bar { display:flex; gap:10px; flex-wrap:wrap; padding:12px 2px; position:sticky; top:0; background:var(--cream); z-index:5; }
+    .hs-restock-cash-item { flex:1 1 140px; background:var(--cream3); border:1px solid var(--ink4); border-radius:12px; padding:10px 14px; }
+    .hs-restock-cash-lbl { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:var(--ink3); margin-bottom:4px; }
+    .hs-restock-cash-val { font-size:16px; font-weight:800; color:var(--ink); }
+    .hs-restock-table tbody tr.hs-restock-checked-row td { background:rgba(62,207,106,.08); }
+    .hs-restock-table td.hs-restock-chk { padding:9px 6px; cursor:default; }
+    .hs-restock-table input[type="checkbox"] { width:18px; height:18px; cursor:pointer; }
     .hs-page-dots { display:none; }
     @media (max-width:900px) {
       .hs-page-dots { display:flex; align-items:center; gap:6px; flex:none; }
@@ -450,6 +459,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
     <div class="hs-menu-wrap">
       <button id="hs-menu-item-overview" class="hs-tab-btn active" onclick="hsSwitchView('overview')">Overview</button>
+      <button id="hs-menu-item-restock" class="hs-tab-btn" onclick="hsSwitchView('restock')">Re Stock</button>
       <button id="hs-menu-item-bon" class="hs-tab-btn" onclick="hsSwitchView('bon')">Bon</button>
       <button id="hs-menu-item-pembayaran" class="hs-tab-btn" onclick="hsSwitchView('pembayaran')">Riwayat Bayar</button>
       <button id="hs-menu-item-master" class="hs-tab-btn" onclick="hsSwitchView('master')">Master Barang</button>
@@ -457,6 +467,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
     <div id="hs-page-dots" class="hs-page-dots">
       <span class="hs-page-dot active" onclick="hsSwitchView('overview')"></span>
+      <span class="hs-page-dot" onclick="hsSwitchView('restock')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('bon')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('pembayaran')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('master')"></span>
@@ -469,6 +480,41 @@ document.getElementById('page-hutang-supplier').innerHTML = `
   <div id="hs-panels-wrap">
     <div id="hs-panel-overview" class="hs-panel active">
       <div id="hs-overview-content"></div>
+    </div>
+
+    <!-- ── RE STOCK: rekomendasi order khusus supplier Reseller (PO) ──
+         dibanding sama saldo Kas & Bank gabungan, biar keputusan order
+         gak lepas dari kondisi duit beneran. Modul ini standalone (gak
+         manggil fungsi restock.js/kas.js), ngulang query+hitung sendiri
+         sesuai konvensi §1 RULES.md. ── -->
+    <div id="hs-panel-restock" class="hs-panel">
+      <div id="hs-restock-cash-bar" class="hs-restock-cash-bar">
+        <div class="hs-restock-cash-item">
+          <div class="hs-restock-cash-lbl">Kas &amp; Bank (semua akun)</div>
+          <div class="hs-restock-cash-val" id="hs-restock-cash-total">—</div>
+        </div>
+        <div class="hs-restock-cash-item">
+          <div class="hs-restock-cash-lbl">Dicentang</div>
+          <div class="hs-restock-cash-val" id="hs-restock-checked-total" style="color:var(--warn)">Rp 0</div>
+        </div>
+        <div class="hs-restock-cash-item">
+          <div class="hs-restock-cash-lbl">Sisa Setelah Order</div>
+          <div class="hs-restock-cash-val" id="hs-restock-remaining-total">—</div>
+        </div>
+      </div>
+      <div class="hs-divider"></div>
+      <div class="hs-table-wrap">
+        <table class="hs-table hs-restock-table">
+          <thead>
+            <tr>
+              <th style="width:32px"></th><th>No</th><th>Supplier</th><th>SKU Induk</th><th>SKU Variasi</th><th class="hs-table-num">Qty</th><th class="hs-table-num">Nilai</th>
+            </tr>
+          </thead>
+          <tbody id="hs-restock-list">
+            <tr><td colspan="7" class="hs-empty">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div id="hs-panel-bon" class="hs-panel">
@@ -878,15 +924,205 @@ function _hsSisaBon(bon) {
   return { bayar: bayar, sisa: Math.max(0, (bon.total||0) - bayar) };
 }
 
+// ─── RE STOCK (PO) — rekomendasi order khusus supplier Reseller,
+// dibanding sama saldo Kas & Bank gabungan. Standalone (query+hitung
+// sendiri, gak manggil fungsi restock.js/kas.js), formula ROP identik
+// restock.js: Avg Harian = qty14/14, Safety = AvgHarian×buffer_hari,
+// ROP = (AvgHarian×lead_time)+Safety, QtyOrder = ROP dibulatkan ke atas
+// ke kelipatan terdekat. 30 Agu 2026. ──────────────────────────────
+var _hsRestockItems     = [];
+var _hsRestockChecked   = {};
+var _hsRestockCashTotal = 0;
+
+function _hsBulatkanKelipatan(nilai, kelipatan, min_order) {
+  if (nilai <= 0) nilai = 0.01;
+  var k   = kelipatan || 1;
+  var raw = Math.ceil(nilai / k) * k;
+  return Math.max(raw, min_order || k);
+}
+
+async function hsLoadRestockPO() {
+  var listEl = document.getElementById('hs-restock-list');
+  if (listEl) listEl.innerHTML = '<tr><td colspan="7" class="hs-empty">Memuat...</td></tr>';
+  try {
+    var today  = new Date();
+    var d14    = new Date(today); d14.setDate(d14.getDate() - 13);
+    var dari14 = d14.toISOString().slice(0, 10);
+
+    var [penjualan14, produkAll, restockSup, stokData, jurnalAll, kasAkun, jurnalKas] = await Promise.all([
+      dbGet('jurnal_penjualan', '&select=sku,qty,tanggal&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari14),
+      dbGet('produk',           '&order=katalog.asc'),
+      dbGet('restock_supplier').catch(function() { return []; }),
+      dbGet('stok'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
+      dbGet('kas_akun'),
+      dbGet('jurnal', '&select=akun_debit_id,akun_kredit_id,nominal'),
+    ]);
+
+    // ── Cash Kas & Bank, semua akun digabung ──
+    var kasBankIds = {};
+    (kasAkun || []).forEach(function(a) {
+      if ((a.kelompok || '').trim().toLowerCase() === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK') {
+        kasBankIds[a.id] = true;
+      }
+    });
+    var cashTotal = 0;
+    (jurnalKas || []).forEach(function(r) {
+      var n = r.nominal || 0;
+      if (kasBankIds[r.akun_debit_id])  cashTotal += n;
+      if (kasBankIds[r.akun_kredit_id]) cashTotal -= n;
+    });
+    _hsRestockCashTotal = cashTotal;
+
+    // ── Supplier PO = hutang_supplier.jenis === 'reseller' ──
+    var poSupplierSet = {};
+    (_hsSupplierList || []).forEach(function(s) {
+      if (s.jenis === 'reseller') poSupplierSet[(s.nama || '').trim().toUpperCase()] = true;
+    });
+
+    // ── Sisa stok per SKU — identik stok.js/restock.js ──
+    var masukMap = {};
+    (stokData || []).forEach(function(s) {
+      var key = (s.sku_variasi || '').trim().toUpperCase();
+      if (key) masukMap[key] = s.stok_masuk || 0;
+    });
+    var keluarMap = {};
+    (jurnalAll || []).forEach(function(r) {
+      var key = (r.sku || '').trim().toUpperCase();
+      if (key) keluarMap[key] = (keluarMap[key] || 0) + (r.qty || 0);
+    });
+    var sisaMap = {};
+    Object.keys(masukMap).forEach(function(k) { sisaMap[k] = masukMap[k] - (keluarMap[k] || 0); });
+
+    var produkMap = {};
+    (produkAll || []).forEach(function(p) {
+      var key = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+      if (key) produkMap[key] = p;
+    });
+
+    var qtyMap = {};
+    (penjualan14 || []).forEach(function(row) {
+      var sku = (row.sku || '').trim().toUpperCase();
+      if (sku) qtyMap[sku] = (qtyMap[sku] || 0) + (row.qty || 0);
+    });
+
+    var supplierMap = {};
+    (restockSup || []).forEach(function(s) {
+      var key = (s.boss || '').trim().toUpperCase();
+      supplierMap[key] = {
+        lead_time:   s.lead_time   || 7,
+        min_order:   s.min_order   || 6,
+        kelipatan:   s.kelipatan   || s.min_order || 6,
+        buffer_hari: s.buffer_hari || 3,
+      };
+    });
+    var DEFAULT_SUP = { lead_time: 7, min_order: 6, kelipatan: 6, buffer_hari: 3 };
+
+    var items = [];
+    Object.keys(qtyMap).forEach(function(sku) {
+      var p = produkMap[sku];
+      if (!p) return;
+      var bossKey = (p.boss || '').trim().toUpperCase();
+      if (!poSupplierSet[bossKey]) return; // cuma supplier Reseller/PO yang masuk
+
+      var qty14       = qtyMap[sku];
+      var sup         = supplierMap[bossKey] || DEFAULT_SUP;
+      var avg_harian  = qty14 / 14;
+      var safety      = avg_harian * sup.buffer_hari;
+      var rop_raw     = (avg_harian * sup.lead_time) + safety;
+      var qty_order   = _hsBulatkanKelipatan(rop_raw, sup.kelipatan, sup.min_order);
+      var nilai       = (p.hpp || 0) * qty_order;
+      var sisa        = sisaMap[sku] !== undefined ? sisaMap[sku] : null;
+      var dos         = (sisa !== null && avg_harian > 0) ? Math.round(sisa / avg_harian) : null;
+
+      if (qty_order <= 0) return;
+
+      var prioritas = 'PERLU';
+      if (dos !== null && dos <= sup.lead_time) prioritas = 'SEGERA';
+      else if (sisa !== null && sisa <= 3)       prioritas = 'SEGERA';
+      else if (dos !== null && dos <= 14)        prioritas = 'PERLU';
+      else                                        prioritas = 'TUNDA';
+
+      items.push({ sku: sku, katalog: p.katalog || '—', boss: bossKey, qty_order: qty_order, nilai: nilai, prioritas: prioritas, dos: dos });
+    });
+
+    var prioRank = { SEGERA: 0, PERLU: 1, TUNDA: 2 };
+    items.sort(function(a, b) {
+      var pa = prioRank[a.prioritas], pb = prioRank[b.prioritas];
+      if (pa !== pb) return pa - pb;
+      return (a.dos === null ? 999 : a.dos) - (b.dos === null ? 999 : b.dos);
+    });
+
+    _hsRestockItems   = items;
+    _hsRestockChecked = {};
+    hsRenderRestockList();
+  } catch(e) {
+    console.error('hsLoadRestockPO error', e);
+    var el = document.getElementById('hs-restock-list');
+    if (el) el.innerHTML = '<tr><td colspan="7" class="hs-empty">Gagal memuat: ' + (e.message || e) + '</td></tr>';
+  }
+}
+
+function hsRenderRestockList() {
+  var cashEl = document.getElementById('hs-restock-cash-total');
+  if (cashEl) cashEl.textContent = fmtRpFull(_hsRestockCashTotal);
+
+  var listEl = document.getElementById('hs-restock-list');
+  if (!listEl) return;
+
+  if (!_hsRestockItems.length) {
+    listEl.innerHTML = '<tr><td colspan="7" class="hs-empty">Gak ada rekomendasi restock buat supplier PO saat ini.</td></tr>';
+    hsRestockUpdateRunningTotal();
+    return;
+  }
+
+  listEl.innerHTML = _hsRestockItems.map(function(it, i) {
+    var checked = _hsRestockChecked[it.sku] ? 'checked' : '';
+    var skuAttr = it.sku.replace(/'/g, "\\'");
+    return '<tr data-sku="' + _hsEsc(it.sku) + '"' + (_hsRestockChecked[it.sku] ? ' class="hs-restock-checked-row"' : '') + '>' +
+      '<td class="hs-restock-chk"><input type="checkbox" ' + checked + ' onchange="hsRestockToggle(\'' + skuAttr + '\', this.checked)"></td>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + _hsEsc(it.boss) + '</td>' +
+      '<td>' + _hsEsc(it.katalog) + '</td>' +
+      '<td>' + _hsEsc(it.sku) + '</td>' +
+      '<td class="hs-table-num">' + it.qty_order + '</td>' +
+      '<td class="hs-table-num">' + fmtRpFull(it.nilai) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  hsRestockUpdateRunningTotal();
+}
+
+function hsRestockToggle(sku, checked) {
+  if (checked) _hsRestockChecked[sku] = true; else delete _hsRestockChecked[sku];
+  hsRestockUpdateRunningTotal();
+}
+
+function hsRestockUpdateRunningTotal() {
+  var checkedTotal = 0;
+  _hsRestockItems.forEach(function(it) {
+    if (_hsRestockChecked[it.sku]) checkedTotal += it.nilai;
+  });
+  var remaining  = _hsRestockCashTotal - checkedTotal;
+  var checkedEl  = document.getElementById('hs-restock-checked-total');
+  var remainEl   = document.getElementById('hs-restock-remaining-total');
+  if (checkedEl) checkedEl.textContent = fmtRpFull(checkedTotal);
+  if (remainEl) {
+    remainEl.textContent  = fmtRpFull(remaining);
+    remainEl.style.color  = remaining < 0 ? 'var(--danger)' : 'var(--ok)';
+  }
+}
+
 // ─── TAB SWITCHER ─────────────────────────────────────────────
 var _HS_VIEW_LABEL = {
   overview:   { label: 'Overview',        icon: 'ti-chart-donut' },
+  restock:    { label: 'Re Stock',        icon: 'ti-shopping-cart-plus' },
   bon:        { label: 'Jurnal Re-Stock', icon: 'ti-receipt' },
   pembayaran: { label: 'Riwayat Bayar',   icon: 'ti-cash' },
   master:     { label: 'Master Barang',   icon: 'ti-list-details' },
   supplier:   { label: 'Kelola Supplier', icon: 'ti-truck' },
 };
-var _HS_VIEW_ORDER = ['overview', 'bon', 'pembayaran', 'master', 'supplier'];
+var _HS_VIEW_ORDER = ['overview', 'restock', 'bon', 'pembayaran', 'master', 'supplier'];
 
 // Jenis supplier: 'dropship' = suplier yang kirim langsung hari itu juga
 // (gak perlu PO). 'reseller' = harus PO dulu + (opsional) uang muka, baru
@@ -904,7 +1140,7 @@ function hsSwitchView(view) {
     if (panel) panel.classList.toggle('active', v === view);
   });
   var supRow = document.getElementById('hs-supplier-row');
-  if (supRow) supRow.style.display = (view === 'overview' || view === 'bon' || view === 'master' || view === 'supplier') ? 'none' : '';
+  if (supRow) supRow.style.display = (view === 'overview' || view === 'restock' || view === 'bon' || view === 'master' || view === 'supplier') ? 'none' : '';
 
   document.getElementById('hs-hdr-heading').textContent  = _HS_VIEW_LABEL[view].label;
   document.getElementById('hs-hdr-icon').className       = 'ti ' + _HS_VIEW_LABEL[view].icon;
@@ -919,6 +1155,7 @@ function hsSwitchView(view) {
   hsRenderBonList();
   hsRenderMasterList();
   hsRenderSupplierMasterList();
+  if (view === 'restock') hsLoadRestockPO(); // lazy-load, query lumayan berat, gak usah jalan tiap ganti tab lain
 }
 
 // ─── Swipe antar panel (mobile only) — pola sama persis kayak Gadag ──
