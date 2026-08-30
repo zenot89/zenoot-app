@@ -194,6 +194,20 @@ Font eksklusif Canva (misal "More Sugar") TIDAK BISA di-embed ke web. Kalau
 user minta font semacam itu, cari font Google Fonts yang paling mirip sebagai
 pengganti, dan bilang terus terang kenapa nggak bisa pakai yang asli.
 
+### 5.8.5. Input teks yang harusnya "nyambung" ke tabel lain → pakai `acAttach`, bukan free-text polos
+
+Ada modul (`autocomplete.js`) yang nempelin dropdown saran ke sebuah
+`<input>`, isinya dari kolom tabel Supabase lain (bukan histori
+session — beneran query). Dipakai pas ada 2 field di modul BEDA yang
+konsepnya harusnya sama tapi disimpan sebagai teks bebas masing-masing
+(rawan typo bikin mismatch senyap, gak ada error, cuma logic di modul lain
+diam-diam salah — contoh nyata: `restock_supplier.boss` (teks bebas) vs
+`produk.boss` (sumber asli), lihat §7 kalau nambah source baru — key baru
+di `_acSources`, terus `acAttach(input, 'key_baru')` pas modal render/buka.
+JANGAN bikin field itu jadi `<select>` native (lihat §5.5 soal native
+control) — autocomplete ini yang jadi standarnya, tetap ngizinin ketik bebas
+buat kasus valid yang belum ada di tabel sumbernya.
+
 ### 5.9. Export PDF force-close di Android (PWA standalone) — histori & fix
 
 **Gejala:** tombol Export PDF bikin app **force-close total** (bukan error
@@ -220,45 +234,49 @@ BESAR juga kena, termasuk Gadag & Hutang Barang per saat ditulis):
 3. **jsPDF + autoTable, `navigator.share()` dicoba juga di Android** — masih
    crash (belum ke-konfirmasi beda dari #2).
 
-**Pola yang lagi dicoba sekarang (Cost Produksi, `cpExportJurnalPDF` dkk) —
-BELUM 100% ke-konfirmasi user, tapi secara desain paling minim resiko:**
+**Pola yang KEBUKTI JALAN (dikonfirmasi user via screenshot Android, 30 Agu
+2026) — status FINAL, jangan diutak-atik lagi tanpa laporan crash baru:**
 
-Iframe **tersembunyi** yang nempel PERMANEN di halaman yang sama (bukan
-tab/window baru), diisi ulang kontennya tiap export lewat
-`contentDocument.write()`, print lewat `iframe.contentWindow.print()`. Nggak
-ada `window.open`, nggak butuh jsPDF/autoTable sama sekali (jadi ringan).
+jsPDF + autoTable seperti biasa, tapi delivery-nya `navigator.share({ files:
+[pdfFile] })` **TANPA field `title`**, dicoba di SEMUA platform (bukan cuma
+iOS), fallback ke `doc.save()` kalau `canShare` gak ada / share gagal /
+user cancel. Konfirmasi: PDF "SLIP BAYARAN KARYAWAN" dari Cost Produksi
+berhasil terkirim ke WhatsApp di Android PWA standalone, gak force-close.
 
 ```js
-var iframe = document.getElementById('xxx-print-frame');
-if (!iframe) {
-  iframe = document.createElement('iframe');
-  iframe.id = 'xxx-print-frame';
-  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-  document.body.appendChild(iframe);
+if (navigator.canShare) {
+  try {
+    var pdfFile = new File([doc.output('arraybuffer')], fileName, { type: 'application/pdf' });
+    if (navigator.canShare({ files: [pdfFile] })) {
+      navigator.share({ files: [pdfFile] }).catch(function(err) {
+        if (err && err.name !== 'AbortError') doc.save(fileName);
+      });
+      return;
+    }
+  } catch (e) { /* fallback ke doc.save() di bawah */ }
 }
-var frameDoc = iframe.contentWindow.document;
-frameDoc.open();
-frameDoc.write(htmlString); // dokumen HTML lengkap termasuk <style>
-frameDoc.close();
-setTimeout(function() {
-  iframe.contentWindow.focus();
-  iframe.contentWindow.print();
-}, 250);
+doc.save(fileName);
 ```
 
-**KALAU sesi ini dapet konfirmasi dari user bahwa pola iframe di atas
-BENERAN aman di Android** (nggak force-close lagi) — WAJIB terapin pola yang
-sama ke Gadag (`gdgExportRiwayatPDF`, ganti `window.open(blob)`) dan Hutang
-Supplier (`hsBuildAndDeliverBonPDF`, ganti jsPDF+autoTable) juga, plus update
-paragraf ini biar nggak "belum ke-konfirmasi" lagi. Kalau ternyata iframe ini
-JUGA masih crash, catat itu juga di sini sebagai percobaan #4 yang gagal —
-jangan diulang lagi di sesi berikutnya tanpa disadari udah pernah dicoba.
+Kenapa `title` dibuang: percobaan awal (yang masih dianggap "aman" waktu itu)
+nyertain `title: fileName`, dan itu bikin sebagian target app share (Samsung
+Notes dkk) munculin dialog perantara ("Pilih format PDF") sebelum file
+beneran terkirim — nambah klik yang gak perlu. Files-only = share sheet
+langsung muncul, minim langkah.
 
-**Cara diagnosis kalau masih crash:** minta user sambungin HP Android ke
-laptop via USB, buka `chrome://inspect` di Chrome laptop, reproduce bug-nya,
-liat console log SEBELUM app force-close. Itu satu-satunya cara dapet
-signal asli — jangan nebak-nebak berkali-kali tanpa data kayak yang kejadian
-di histori percobaan #1-3 di atas.
+Sudah diterapin di `cpDoExportJurnalPDFInner` (cost-produksi.js) dan
+`hsBuildAndDeliverBonPDF` (hutang-supplier.js) per 30 Agu 2026. Kalau nambah
+export PDF baru di modul lain (Gadag dkk), pakai pola inilah, BUKAN
+`window.open(blob)` (percobaan #1, gagal) atau iframe hidden print
+(sempat jadi rencana cadangan, tapi gak jadi dipakai — kepentok lebih ribet
++ browser print dialog default nempelin header/footer URL halaman kecuali
+user manual matiin, jadi bukan pilihan yang direkomendasiin).
+
+**Cara diagnosis kalau ternyata masih ada laporan crash di device lain:**
+minta user sambungin HP Android ke laptop via USB, buka `chrome://inspect`
+di Chrome laptop, reproduce bug-nya, liat console log SEBELUM app
+force-close. Itu satu-satunya cara dapet signal asli — jangan nebak-nebak
+berkali-kali tanpa data kayak yang kejadian di histori percobaan #1-3 di atas.
 
 ---
 
@@ -379,10 +397,10 @@ replace file itu di project dia, sama kayak semua file lain yang diedit).
   ngulang nama panel yang udah ada di judul besar di atasnya (contoh: card
   "Catatan" nggak perlu judul "Catatan" lagi di dalamnya, ganti jadi counter
   "7 catatan").
-- **Export PDF** = pakai `window.print()`, TAPI target print-nya WAJIB iframe
-  tersembunyi di HALAMAN YANG SAMA (`iframe.contentWindow.print()`), BUKAN
-  `window.open()` ke tab/window baru. Detail lengkap kenapa + histori
-  percobaan yang GAGAL: lihat §5.9.
+- **Export PDF** = jsPDF+autoTable → `navigator.share({ files:[pdfFile] })`
+  (TANPA `title`) di semua platform, fallback `doc.save()`. BUKAN
+  `window.open(blob)`, BUKAN `window.print()`/iframe print. Detail lengkap +
+  histori percobaan yang GAGAL sebelum ketemu pola ini: lihat §5.9.
 
 ---
 

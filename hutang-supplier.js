@@ -1373,21 +1373,23 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   var fileName = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf';
 
-  // ── Delivery PDF: iOS Safari vs Android PWA ──
-  // Di iOS Safari standalone (PWA), doc.save() produce blob URL yang terbawa
-  // saat user share PDF dari preview sheet — blob URL-nya ikut sebagai teks.
-  // Solusi: pakai navigator.share({ files }) di iOS → share sheet native
-  // langsung share file PDF-nya, tanpa blob URL sama sekali.
-  // Di Android WebView PWA, navigator.share({ files }) sering crash (known issue
-  // canShare() return true tapi share() gagal) → tetap doc.save() di sana.
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS && navigator.canShare) {
-    // Ambil PDF sebagai ArrayBuffer, bungkus jadi File, lalu share.
+  // ── Delivery PDF: navigator.share() di SEMUA platform (bukan cuma iOS lagi) ──
+  // Root cause update 30 Agu 2026: dulu Android di-skip dari navigator.share()
+  // dengan asumsi "sering crash di WebView PWA". Ternyata itu ketinggalan zaman
+  // — Cost Produksi udah pakai pola files-only (tanpa title) di SEMUA platform
+  // dan kebukti JALAN di Android PWA standalone user (lihat histori chat, PDF
+  // "SLIP BAYARAN KARYAWAN" berhasil terkirim ke WhatsApp, gak force-close).
+  // Disamain ke sini biar hutang-supplier gak mesti download-manual+share-manual
+  // (2 langkah) di Android, cukup 1 tap kayak iOS.
+  if (navigator.canShare) {
     try {
       var pdfOutput = doc.output('arraybuffer');
       var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
       if (navigator.canShare({ files: [pdfFile] })) {
-        navigator.share({ files: [pdfFile], title: fileName }).catch(function(err) {
+        // title SENGAJA dibuang — lihat catatan sama di cost-produksi.js
+        // (cpDoExportJurnalPDFInner): title bikin sebagian target app
+        // (Samsung Notes dkk) munculin dialog format tambahan, nambah klik.
+        navigator.share({ files: [pdfFile] }).catch(function(err) {
           // User cancel atau share gagal → fallback ke doc.save()
           if (err && err.name !== 'AbortError') doc.save(fileName);
         });
@@ -1397,7 +1399,8 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
       // Fallback jika File/canShare tidak tersedia
     }
   }
-  // Android PWA & desktop: doc.save() trigger download Blob di halaman yang sama.
+  // Fallback (device/browser tanpa Web Share API): doc.save() trigger
+  // download Blob di halaman yang sama.
   doc.save(fileName);
 }
 

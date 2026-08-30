@@ -637,6 +637,19 @@ function renderSupplierROP() {
   if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-channel'));
 }
 
+// "Nama Boss / Supplier" di-attach ke autocomplete sumber `produk.boss` —
+// biar nama yang diketik di sini konsisten sama nama boss yang beneran
+// dipakai di Kelola Produk. Root cause yang diperbaiki: field ini teks bebas,
+// jadi kalau ketik "H. SOLAH" padahal di produk "H SOLAH", restock.js gagal
+// match (fallback ke DEFAULT_SUPPLIER, lead time/kelipatan salah tanpa
+// ketahuan). Autocomplete gak ngunci ke pilihan doang (masih bisa ketik
+// bebas kalau boss-nya belum ada produk aktif), tapi nyaranin nilai yang
+// udah pasti valid duluan.
+function _chAttachBossAutocomplete() {
+  var input = document.getElementById('supplier-nama');
+  if (input && typeof acAttach === 'function') acAttach(input, 'boss_produk');
+}
+
 function showModalSupplier() {
   document.getElementById('supplier-modal-title').textContent = 'Tambah Supplier';
   document.getElementById('supplier-id').value       = '';
@@ -647,6 +660,7 @@ function showModalSupplier() {
   idrSet('supplier-budget', 0);
   document.getElementById('supplier-catatan').value  = '';
   showModal('modal-supplier-rop');
+  _chAttachBossAutocomplete();
 }
 
 function editSupplier(id) {
@@ -661,6 +675,7 @@ function editSupplier(id) {
   idrSet('supplier-budget', s.budget || 0);
   document.getElementById('supplier-catatan').value   = s.catatan || '';
   showModal('modal-supplier-rop');
+  _chAttachBossAutocomplete();
 }
 
 async function simpanSupplier() {

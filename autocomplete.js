@@ -26,6 +26,7 @@
     'keterangan_hutang':   { table: 'hutang',       column: 'keterangan'  },
     'keterangan_bayar':    { table: 'hutang_bayar', column: 'keterangan'  },
     'warna_gadag':         { table: 'gadag_pendapatan', column: 'warna'  },
+    'boss_produk':         { table: 'produk',       column: 'boss'       },
   };
 
   // ─── FETCH CACHE ─────────────────────────────────────────────────────────────

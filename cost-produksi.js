@@ -1230,7 +1230,11 @@ function _cpDoExportJurnalPDFInner(nama) {
       var pdfOutput = doc.output('arraybuffer');
       var pdfFile   = new File([pdfOutput], fileName, { type: 'application/pdf' });
       if (navigator.canShare({ files: [pdfFile] })) {
-        navigator.share({ files: [pdfFile], title: fileName }).catch(function(err) {
+        // title SENGAJA dibuang — beberapa target app (Samsung Notes dkk)
+        // treat title sebagai trigger buat nawarin dialog format tambahan
+        // ("Pilih format PDF"), nambah klik. files-only = share sheet
+        // langsung muncul, gak ada perhentian ekstra.
+        navigator.share({ files: [pdfFile] }).catch(function(err) {
           if (err && err.name !== 'AbortError') cpSafeSavePdf(doc, fileName);
         });
         return;
