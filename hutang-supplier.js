@@ -507,11 +507,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <table class="hs-table hs-restock-table">
           <thead>
             <tr>
-              <th style="width:32px"></th><th>No</th><th>Supplier</th><th>SKU Induk</th><th>SKU Variasi</th><th class="hs-table-num">Qty</th><th class="hs-table-num">Nilai</th>
+              <th style="width:32px"></th><th>No</th><th>Supplier</th><th>SKU Induk</th><th>Varian</th><th class="hs-table-num">Sisa</th><th class="hs-table-num">Qty</th><th class="hs-table-num">Nilai</th>
             </tr>
           </thead>
           <tbody id="hs-restock-list">
-            <tr><td colspan="7" class="hs-empty">Memuat...</td></tr>
+            <tr><td colspan="8" class="hs-empty">Memuat...</td></tr>
           </tbody>
         </table>
       </div>
@@ -949,7 +949,7 @@ function _hsBulatkanKelipatan(nilai, kelipatan, min_order) {
 
 async function hsLoadRestockPO() {
   var listEl = document.getElementById('hs-restock-list');
-  if (listEl) listEl.innerHTML = '<tr><td colspan="7" class="hs-empty">Memuat...</td></tr>';
+  if (listEl) listEl.innerHTML = '<tr><td colspan="8" class="hs-empty">Memuat...</td></tr>';
   try {
     var today  = new Date();
     var d14    = new Date(today); d14.setDate(d14.getDate() - 13);
@@ -1068,7 +1068,13 @@ async function hsLoadRestockPO() {
       else if (dos !== null && dos <= 14)        prioritas = 'PERLU';
       else                                        prioritas = 'TUNDA';
 
-      items.push({ sku: sku, katalog: p.katalog || '—', boss: bossKey, qty_order: qty_order, nilai: nilai, prioritas: prioritas, dos: dos });
+      // ── Varian: bagian setelah underscore terakhir di SKU Variasi
+      // (mis. "CALYRA_HITAM" → "HITAM"). Fallback ke SKU penuh kalau
+      // gak ada underscore. ──
+      var uIdx  = sku.lastIndexOf('_');
+      var varian = uIdx >= 0 ? sku.slice(uIdx + 1) : sku;
+
+      items.push({ sku: sku, katalog: p.katalog || '—', varian: varian, boss: bossKey, sisa: sisa, qty_order: qty_order, nilai: nilai, prioritas: prioritas, dos: dos });
     });
 
     var prioRank = { SEGERA: 0, PERLU: 1, TUNDA: 2 };
@@ -1084,7 +1090,7 @@ async function hsLoadRestockPO() {
   } catch(e) {
     console.error('hsLoadRestockPO error', e);
     var el = document.getElementById('hs-restock-list');
-    if (el) el.innerHTML = '<tr><td colspan="7" class="hs-empty">Gagal memuat: ' + (e.message || e) + '</td></tr>';
+    if (el) el.innerHTML = '<tr><td colspan="8" class="hs-empty">Gagal memuat: ' + (e.message || e) + '</td></tr>';
   }
 }
 
@@ -1096,7 +1102,7 @@ function hsRenderRestockList() {
   if (!listEl) return;
 
   if (!_hsRestockItems.length) {
-    listEl.innerHTML = '<tr><td colspan="7" class="hs-empty">Gak ada rekomendasi restock buat supplier PO saat ini.</td></tr>';
+    listEl.innerHTML = '<tr><td colspan="8" class="hs-empty">Gak ada rekomendasi restock buat supplier PO saat ini.</td></tr>';
     hsRestockUpdateRunningTotal();
     return;
   }
@@ -1104,12 +1110,14 @@ function hsRenderRestockList() {
   listEl.innerHTML = _hsRestockItems.map(function(it, i) {
     var checked = _hsRestockChecked[it.sku] ? 'checked' : '';
     var skuAttr = it.sku.replace(/'/g, "\\'");
+    var sisaTxt = it.sisa !== null ? it.sisa : '—';
     return '<tr data-sku="' + _hsEsc(it.sku) + '"' + (_hsRestockChecked[it.sku] ? ' class="hs-restock-checked-row"' : '') + '>' +
       '<td class="hs-restock-chk"><input type="checkbox" ' + checked + ' onchange="hsRestockToggle(\'' + skuAttr + '\', this.checked)"></td>' +
       '<td>' + (i + 1) + '</td>' +
       '<td>' + _hsEsc(it.boss) + '</td>' +
       '<td>' + _hsEsc(it.katalog) + '</td>' +
-      '<td>' + _hsEsc(it.sku) + '</td>' +
+      '<td>' + _hsEsc(it.varian) + '</td>' +
+      '<td class="hs-table-num">' + sisaTxt + '</td>' +
       '<td class="hs-table-num">' + it.qty_order + '</td>' +
       '<td class="hs-table-num">' + fmtRpFull(it.nilai) + '</td>' +
     '</tr>';
