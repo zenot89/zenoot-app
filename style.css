@@ -1232,35 +1232,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .stok-mobile-only {
     display: flex;
   }
-  /* Filter (gabungan Supplier+SKU+Status) & Summary — sama rata ngisi lebar;
-     Reset dapat kotak kecil sendiri di ujung kanan.
-     Urutan visual: Summary → Filter → Reset (DOM tetap Filter→Summary→Reset
-     biar desktop, yang gak pakai 'order', gak berubah sama sekali). */
+  /* Filter (gabungan Supplier+SKU Induk+Status) & Summary — 2 tombol sama
+     rata ngisi lebar, jangan nyisain ruang kosong */
+  #stok-filter-wrap,
   #btn-stok-summary {
-    order: 1;
     flex: 1 1 0;
     min-width: 0;
-  }
-  #stok-filter-wrap {
-    order: 2;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  #btn-stok-reset-mobile {
-    order: 3;
   }
   #stok-filter-wrap #btn-filter-all {
     width: 100%;
-  }
-  /* Mobile: label "Filter" + ikon adjustments (versi desktop) disembunyikan,
-     diganti label status + keterangan supplier/sku tipis (lihat markup) */
-  #btn-filter-all-desktop-label {
-    display: none;
-  }
-  /* Badge reset kecil versi desktop juga disembunyikan — mobile pakai
-     tombol reset dedicated (#btn-stok-reset-mobile) biar gak dobel */
-  #btn-stok-reset {
-    display: none !important;
   }
   /* Summary teks desktop (baris "125 SKU · Sisa..." di card-title) gak perlu
      dobel sama 3-kotak mobile */
