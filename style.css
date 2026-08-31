@@ -1211,17 +1211,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    dimunculkan lewat @media di bawah) ─────────────────────────── */
 .stok-mobile-only { display: none; }
 
-.stok-summary-mobile-box {
-  flex: 1 1 0;
-  border: 1.5px solid var(--ink4);
-  border-radius: 6px;
-  padding: 6px 8px;
-  text-align: center;
-  background: var(--cream2);
-}
-.stok-summary-mobile-val { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.2; }
-.stok-summary-mobile-lbl { font-size: 10px; color: var(--ink3); text-transform: lowercase; margin-top: 1px; }
-
 .stok-status-pill-btn { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .stok-status-pill-opt {
   padding: 8px 14px; cursor: pointer; font-size: 13px;
@@ -1251,6 +1240,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   /* Munculkan elemen khusus mobile */
   .stok-mobile-only {
     display: flex;
+  }
+  /* Filter / Summary / Status pill — 3 tombol sama rata ngisi lebar,
+     jangan nyisain ruang kosong */
+  #stok-filter-wrap,
+  #btn-stok-reset,
+  #btn-stok-summary,
+  #stok-status-pill-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  #stok-filter-wrap #btn-filter-all {
+    width: 100%;
   }
   /* Summary teks desktop (baris "125 SKU · Sisa..." di card-title) gak perlu
      dobel sama 3-kotak mobile */

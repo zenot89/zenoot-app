@@ -47,8 +47,8 @@ function statusBadge(sisa, vel, sales7, sales30, sales90) {
 document.getElementById('page-stok').innerHTML = `
   <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <!-- KIRI: Filter — nested submenu -->
-    <div style="position:relative">
-      <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;text-align:left;padding-right:24px">
+    <div id="stok-filter-wrap" style="position:relative">
+      <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;width:100%;text-align:left;padding-right:24px">
         <i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
@@ -92,13 +92,13 @@ document.getElementById('page-stok').innerHTML = `
     </button>
 
     <!-- Tombol Summary -->
-    <button class="btn btn-sm" onclick="stokToggleSummary()" style="border-color:var(--ink3);color:var(--ink)">
+    <button class="btn btn-sm" id="btn-stok-summary" onclick="stokToggleSummary()" style="border-color:var(--ink3);color:var(--ink);justify-content:center">
       <i class="ti ti-chart-bar"></i> Summary
     </button>
 
     <!-- TAB STATUS — mobile: 1 tombol dropdown, sejajar Filter & Summary -->
     <div id="stok-status-pill-wrap" class="stok-mobile-only" style="position:relative">
-      <button class="btn btn-sm stok-status-pill-btn" onclick="stokToggleStatusPill()">
+      <button class="btn btn-sm stok-status-pill-btn" onclick="stokToggleStatusPill()" style="width:100%;justify-content:center">
         <span id="stok-status-pill-dot">⬜</span> <span id="stok-status-pill-label">Semua</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
       </button>
       <div id="stok-status-pill-dd" style="display:none;position:absolute;top:calc(100% + 4px);right:0;left:auto;z-index:9999;
@@ -252,19 +252,19 @@ document.getElementById('page-stok').innerHTML = `
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
 
-    <!-- SUMMARY BAR — mobile only, 3 kotak stat -->
+    <!-- SUMMARY BAR — mobile only, 3 minicard (pattern .metric baku app-wide) -->
     <div id="stok-summary-mobile-bar" class="stok-mobile-only" style="gap:8px;margin-bottom:10px">
-      <div class="stok-summary-mobile-box">
-        <div class="stok-summary-mobile-val" id="stok-summary-mobile-sku">—</div>
-        <div class="stok-summary-mobile-lbl">sku</div>
+      <div class="metric" style="flex:1 1 0;padding:8px 10px">
+        <div class="m-label">SKU</div>
+        <div class="m-value" id="stok-summary-mobile-sku" style="font-size:20px">—</div>
       </div>
-      <div class="stok-summary-mobile-box">
-        <div class="stok-summary-mobile-val" id="stok-summary-mobile-pc">—</div>
-        <div class="stok-summary-mobile-lbl">pc</div>
+      <div class="metric" style="flex:1 1 0;padding:8px 10px">
+        <div class="m-label">PC</div>
+        <div class="m-value" id="stok-summary-mobile-pc" style="font-size:20px">—</div>
       </div>
-      <div class="stok-summary-mobile-box">
-        <div class="stok-summary-mobile-val" id="stok-summary-mobile-nilai">—</div>
-        <div class="stok-summary-mobile-lbl">nilai stock</div>
+      <div class="metric" style="flex:1 1 0;padding:8px 10px">
+        <div class="m-label">Nilai Stock</div>
+        <div class="m-value" id="stok-summary-mobile-nilai" style="font-size:16px">—</div>
       </div>
     </div>
 
