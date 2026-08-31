@@ -1211,6 +1211,32 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    dimunculkan lewat @media di bawah) ─────────────────────────── */
 .stok-mobile-only { display: none; }
 
+/* Tab Supplier (mobile) — chip scroll horizontal, gaya tab status Shopee */
+#stok-supplier-tabs-wrap {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#stok-supplier-tabs-wrap::-webkit-scrollbar { display: none; }
+.stok-supplier-tab {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink4);
+  background: transparent;
+  color: var(--ink2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.stok-supplier-tab.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+}
+.stok-supplier-tab:active { opacity: .8; }
+
 /* Fix: th dengan onclick tidak terhalang canvas rough */
 .tbl th[onclick] {
   position: relative;

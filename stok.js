@@ -45,6 +45,30 @@ function statusBadge(sisa, vel, sales7, sales30, sales90) {
 
 // page-stok flex column sudah diatur via CSS #page-stok
 document.getElementById('page-stok').innerHTML = `
+  <!-- MINI CARD (SKU/PC/Nilai Stock) — mobile only, dipindah ke atas (sebelumnya nempel
+       di dalam .card bareng tabel). Elemen ini mobile-only jadi aman di posisi manapun
+       buat desktop (selalu disembunyikan lewat CSS, gak ganggu layout desktop). -->
+  <div id="stok-summary-mobile-bar" class="stok-mobile-only" style="gap:8px;padding:12px 16px 0">
+    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+      <div class="m-label">SKU</div>
+      <div class="m-value" id="stok-summary-mobile-sku" style="font-size:20px">—</div>
+    </div>
+    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+      <div class="m-label">PC</div>
+      <div class="m-value" id="stok-summary-mobile-pc" style="font-size:20px">—</div>
+    </div>
+    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+      <div class="m-label">Nilai Stock</div>
+      <div class="m-value" id="stok-summary-mobile-nilai" style="font-size:16px">—</div>
+    </div>
+  </div>
+
+  <!-- TAB SUPPLIER — mobile only, scroll horizontal (gaya tab status Shopee).
+       "Semua" jadi chip pertama, berfungsi sekalian sebagai reset Supplier. -->
+  <div id="stok-supplier-tabs-wrap" class="stok-mobile-only" style="padding:10px 0 4px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div id="stok-supplier-tabs" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:16px"></div>
+  </div>
+
   <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk+Status | mobile: bottom sheet) -->
     <div id="stok-filter-wrap" style="position:relative">
@@ -135,11 +159,6 @@ document.getElementById('page-stok').innerHTML = `
     <div id="stok-filter-sheet-root">
       <div class="kas-brimo-sheet-title">Filter</div>
       <div class="stok-filter-sheet-list">
-        <div class="stok-filter-sheet-row" onclick="stokFilterSheetOpenCat('boss')">
-          <span><i class="ti ti-user"></i> Supplier</span>
-          <span class="stok-filter-sheet-row-val" id="sfs-val-boss">Semua</span>
-          <i class="ti ti-chevron-right"></i>
-        </div>
         <div class="stok-filter-sheet-row" onclick="stokFilterSheetOpenCat('katalog')">
           <span><i class="ti ti-tag"></i> SKU Induk</span>
           <span class="stok-filter-sheet-row-val" id="sfs-val-katalog">Semua</span>
@@ -300,22 +319,6 @@ document.getElementById('page-stok').innerHTML = `
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
 
-    <!-- SUMMARY BAR — mobile only, 3 minicard (pattern .metric baku app-wide) -->
-    <div id="stok-summary-mobile-bar" class="stok-mobile-only" style="gap:8px;margin-bottom:10px">
-      <div class="metric" style="flex:1 1 0;padding:8px 10px">
-        <div class="m-label">SKU</div>
-        <div class="m-value" id="stok-summary-mobile-sku" style="font-size:20px">—</div>
-      </div>
-      <div class="metric" style="flex:1 1 0;padding:8px 10px">
-        <div class="m-label">PC</div>
-        <div class="m-value" id="stok-summary-mobile-pc" style="font-size:20px">—</div>
-      </div>
-      <div class="metric" style="flex:1 1 0;padding:8px 10px">
-        <div class="m-label">Nilai Stock</div>
-        <div class="m-value" id="stok-summary-mobile-nilai" style="font-size:16px">—</div>
-      </div>
-    </div>
-
     <!-- TAB STATUS — desktop: baris tombol -->
     <div id="stok-status-tabs" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
       <button class="stok-tab-btn stok-tab-active" data-tab="all"    onclick="stokTabStatus('all')">Semua</button>
@@ -446,6 +449,7 @@ async function loadStok() {
     });
 
     filterStok(); // jaga filter aktif setelah reload
+    _stokRenderSupplierTabs();
   } catch(err) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
   }
@@ -1466,10 +1470,8 @@ function _stokFilterSheetShowRoot() {
 }
 
 function _stokFilterSheetUpdateRootLabels() {
-  var b = document.getElementById('sfs-val-boss');
   var k = document.getElementById('sfs-val-katalog');
   var s = document.getElementById('sfs-val-status');
-  if (b) b.textContent = _filterBoss || 'Semua';
   if (k) k.textContent = _filterKatalog || 'Semua';
   if (s) s.textContent = _filterStatusTab
     ? ((_stokStatusPillMeta[_filterStatusTab] || {}).label || _filterStatusTab)
@@ -1535,6 +1537,30 @@ function stokFilterSheetOpenCat(type) {
 
 function _miId(type) {
   return 'mi-' + type;
+}
+
+// ─── TAB SUPPLIER (mobile) — scroll horizontal, gaya tab status Shopee ──
+function _stokRenderSupplierTabs() {
+  var wrap = document.getElementById('stok-supplier-tabs');
+  if (!wrap || !_stokAllData) return;
+
+  // Cascading: kalau SKU Induk udah dipilih, opsi Supplier ikut menyempit
+  var rows = _filterKatalog ? _stokAllData.filter(function(r){ return (r.katalog||'') === _filterKatalog; }) : _stokAllData;
+  var suppliers = [...new Set(rows.map(function(r){ return r.boss||''; }).filter(Boolean))].sort();
+
+  var html = '<button type="button" class="stok-supplier-tab' + (!_filterBoss ? ' active' : '') + '" data-val="">Semua</button>';
+  suppliers.forEach(function(s) {
+    var active = _filterBoss === s;
+    html += '<button type="button" class="stok-supplier-tab' + (active ? ' active' : '') + '" data-val="' + s.replace(/"/g, '&quot;') + '">' + s + '</button>';
+  });
+  wrap.innerHTML = html;
+
+  Array.from(wrap.querySelectorAll('.stok-supplier-tab')).forEach(function(el) {
+    el.addEventListener('click', function() {
+      var val = el.getAttribute('data-val') || null;
+      stokSetFilter('boss', val);
+    });
+  });
 }
 
 function stokOpenSub(type, e) {
@@ -1690,15 +1716,18 @@ function _stokUpdateFilterLabel() {
   if (dotEl) dotEl.textContent = meta.dot;
   if (txtEl) txtEl.textContent = meta.label;
 
-  // Mobile: keterangan tipis Supplier/SKU Induk aktif, di bawah baris status
+  // Mobile: keterangan tipis SKU Induk aktif, di bawah baris status
+  // (Supplier gak perlu ditulis di sini lagi — udah kelihatan di tab row sendiri)
   var subParts = [];
-  if (_filterBoss)    subParts.push(_filterBoss);
   if (_filterKatalog) subParts.push(_filterKatalog);
   var subEl = document.getElementById('lbl-filter-sub');
   if (subEl) {
     if (subParts.length) { subEl.textContent = subParts.join(', '); subEl.style.display = 'block'; }
     else                 { subEl.textContent = ''; subEl.style.display = 'none'; }
   }
+
+  // Mobile: sinkronkan tab Supplier (active state + cascading berdasarkan SKU Induk)
+  _stokRenderSupplierTabs();
 
   // Mobile: tombol reset dedicated — aktif (bisa di-tap) kalau ada filter apapun
   var anyActive   = !!(_filterBoss || _filterKatalog || _filterStatusTab);
