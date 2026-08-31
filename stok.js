@@ -46,10 +46,14 @@ function statusBadge(sisa, vel, sales7, sales30, sales90) {
 // page-stok flex column sudah diatur via CSS #page-stok
 document.getElementById('page-stok').innerHTML = `
   <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <!-- KIRI: Filter — nested submenu -->
+    <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk | mobile: +Status, tombol dipindah ke kanan via CSS) -->
     <div id="stok-filter-wrap" style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;width:100%;text-align:left;padding-right:24px">
-        <i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span>
+        <span id="btn-filter-all-desktop-label"><i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span></span>
+        <span id="btn-filter-all-mobile-label" class="stok-mobile-only" style="flex-direction:column;align-items:flex-start;line-height:1.3;gap:1px">
+          <span id="lbl-filter-status"><span id="lbl-filter-status-dot">⬜</span> <span id="lbl-filter-status-text">Semua</span></span>
+          <span id="lbl-filter-sub" style="font-weight:400;font-size:10px;color:var(--ink3);display:none"></span>
+        </span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
 
@@ -80,7 +84,12 @@ document.getElementById('page-stok').innerHTML = `
           <i class="ti ti-chevron-right" style="font-size:11px"></i>
         </div>
 
-
+        <!-- Menu: Status (mobile only — desktop udah punya tab status sendiri di bawah) -->
+        <div id="mi-status" class="stok-mobile-only" onclick="stokOpenSub('status',event)"
+          style="padding:8px 12px;cursor:pointer;font-size:13px;justify-content:space-between;align-items:center">
+          <span><i class="ti ti-list-check" style="font-size:12px;margin-right:6px"></i>Status</span>
+          <i class="ti ti-chevron-right" style="font-size:11px"></i>
+        </div>
 
         <!-- Reset dipindah ke luar dropdown -->
       </div>
@@ -92,6 +101,9 @@ document.getElementById('page-stok').innerHTML = `
       <div id="dd-filter-katalog" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:190px;max-height:260px;overflow-y:auto;
         box-shadow:4px 4px 0 var(--ink4)"></div>
+      <div id="dd-filter-status" style="display:none;position:fixed;z-index:9999;
+        background:var(--cream);border:2px solid var(--ink);min-width:220px;max-height:280px;overflow-y:auto;
+        box-shadow:4px 4px 0 var(--ink4)"></div>
 
     </div>
 
@@ -100,22 +112,11 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-chart-bar"></i> Summary
     </button>
 
-    <!-- TAB STATUS — mobile: 1 tombol dropdown, sejajar Filter & Summary -->
-    <div id="stok-status-pill-wrap" class="stok-mobile-only" style="position:relative">
-      <button class="btn btn-sm stok-status-pill-btn" onclick="stokToggleStatusPill()" style="width:100%;justify-content:center">
-        <span id="stok-status-pill-dot">⬜</span> <span id="stok-status-pill-label">Semua</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
-      </button>
-      <div id="stok-status-pill-dd" style="display:none;position:absolute;top:calc(100% + 4px);right:0;left:auto;z-index:9999;
-        min-width:170px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;
-        box-shadow:4px 4px 0 var(--ink4);color:var(--ink)">
-        <div data-tab="all"    class="stok-status-pill-opt" onclick="stokTabStatus('all')">⬜ Semua</div>
-        <div data-tab="fast"   class="stok-status-pill-opt" onclick="stokTabStatus('fast')">🟢 Fast</div>
-        <div data-tab="slow"   class="stok-status-pill-opt" onclick="stokTabStatus('slow')">🟡 Slow</div>
-        <div data-tab="dead"   class="stok-status-pill-opt" onclick="stokTabStatus('dead')">🔴 Dead</div>
-        <div data-tab="zombie" class="stok-status-pill-opt" onclick="stokTabStatus('zombie')">⚫ Zombie</div>
-        <div data-tab="habis"  class="stok-status-pill-opt" onclick="stokTabStatus('habis')">💀 Habis</div>
-      </div>
-    </div>
+    <!-- RESET (mobile) — kotak sendiri biar gampang di-tap, bukan badge kecil -->
+    <button id="btn-stok-reset-mobile" class="btn btn-sm stok-mobile-only" onclick="stokResetAllFilter()" title="Reset semua filter"
+      style="flex:0 0 44px;justify-content:center;padding:7px 0;opacity:.35;pointer-events:none">
+      <i class="ti ti-x"></i>
+    </button>
 
     <!-- KANAN: Paste Massal + Tambah (desktop only — mobile pakai laptop buat ini) -->
     <div id="stok-actions-desktop" style="margin-left:auto;display:flex;gap:8px;align-items:center">
@@ -659,25 +660,15 @@ function stokTabStatus(tab) {
       btn.classList.remove('stok-tab-active');
     }
   });
-  // Update label pill (mobile) + tutup dropdown
+  // Update label status di tombol Filter gabungan (mobile)
   var meta = _stokStatusPillMeta[tab] || _stokStatusPillMeta.all;
-  var dotEl = document.getElementById('stok-status-pill-dot');
-  var lblEl = document.getElementById('stok-status-pill-label');
+  var dotEl = document.getElementById('lbl-filter-status-dot');
+  var txtEl = document.getElementById('lbl-filter-status-text');
   if (dotEl) dotEl.textContent = meta.dot;
-  if (lblEl) lblEl.textContent = meta.label;
-  var dd = document.getElementById('stok-status-pill-dd');
-  if (dd) dd.style.display = 'none';
+  if (txtEl) txtEl.textContent = meta.label;
 
+  _stokUpdateFilterLabel();
   filterStok();
-}
-
-// Dropdown pill status (mobile) — position:absolute nempel di wrap-nya
-// sendiri (right:0), jadi selalu ngebuka ke arah KIRI dari tombol
-// (menu meluas ke kiri karena anchor-nya di sisi kanan).
-function stokToggleStatusPill() {
-  var dd = document.getElementById('stok-status-pill-dd');
-  if (!dd) return;
-  dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
 }
 
 // ─── FILTER ───────────────────────────────────────────────────
@@ -1377,14 +1368,23 @@ function stokToggleFilterAll() {
     dd.style.display = 'none';
     return;
   }
-  // Posisi fixed menggunakan getBoundingClientRect — hindari clipping oleh parent overflow
-  if (btn) {
-    var r = btn.getBoundingClientRect();
-    dd.style.top  = (r.bottom + 2) + 'px';
-    dd.style.left = r.left + 'px';
-  }
   // Pastikan dd di body agar tidak ter-clip oleh stacking context parent
   if (dd.parentNode !== document.body) document.body.appendChild(dd);
+  // Posisi fixed menggunakan getBoundingClientRect — hindari clipping oleh parent overflow.
+  // Default nempel kiri tombol (kayak semula); kalau lebar dd bikin dia nembus tepi
+  // kanan layar (mis. tombol combined filter yang sekarang di kanan), balik nempel kanan.
+  if (btn) {
+    var r = btn.getBoundingClientRect();
+    dd.style.top = (r.bottom + 2) + 'px';
+    dd.style.left = r.left + 'px';
+    dd.style.visibility = 'hidden';
+    dd.style.display = 'block';
+    var ddW = dd.offsetWidth;
+    if (r.left + ddW > window.innerWidth - 4) {
+      dd.style.left = Math.max(4, r.right - ddW) + 'px';
+    }
+    dd.style.visibility = '';
+  }
   dd.style.display = 'block';
 }
 
@@ -1398,7 +1398,7 @@ function stokOpenSub(type, e) {
   if (!el) return;
 
   // Tutup semua submenu lain, reset highlight
-  ['boss','katalog'].forEach(function(t) {
+  ['boss','katalog','status'].forEach(function(t) {
     if (t !== type) {
       var s = document.getElementById('dd-filter-' + t);
       if (s) s.style.display = 'none';
@@ -1429,15 +1429,16 @@ function stokOpenSub(type, e) {
     );
   } else if (type === 'status') {
     opsi = [
-      { val: null,    label: 'Semua Status' },
-      { val: 'fast',  label: '🟢 Fast Moving — laku 7hr terakhir' },
-      { val: 'slow',  label: '🟡 Slow Moving — pernah laku, >7hr lalu' },
-      { val: 'dead',  label: '⚫ Dead Stock — belum pernah laku' },
-      { val: 'habis', label: '🔴 Habis' },
+      { val: null,     label: '⬜ Semua Status' },
+      { val: 'fast',   label: '🟢 Fast — laku 7 hari terakhir' },
+      { val: 'slow',   label: '🟡 Slow — laku 30 hari terakhir' },
+      { val: 'dead',   label: '🔴 Dead — laku 90 hari terakhir' },
+      { val: 'zombie', label: '⚫ Zombie — gak laku 90+ hari' },
+      { val: 'habis',  label: '💀 Habis — sisa stok 0' },
     ];
   }
 
-  var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : _filterStatus;
+  var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : _filterStatusTab;
   sub.innerHTML = opsi.map(function(o) {
     var active = o.val === currVal;
     var valAttr = o.val === null ? '' : o.val;
@@ -1469,7 +1470,17 @@ function stokOpenSub(type, e) {
       ev.stopPropagation();
       var t   = el.getAttribute('data-filter-type');
       var val = el.getAttribute('data-filter-isnull') === '1' ? null : el.getAttribute('data-filter-val');
-      stokSetFilter(t, val);
+      if (t === 'status') {
+        stokTabStatus(val || 'all');
+        var subEl = document.getElementById('dd-filter-status');
+        if (subEl) subEl.style.display = 'none';
+        var ddAll = document.getElementById('dd-filter-all');
+        if (ddAll) ddAll.style.display = 'none';
+        var mEl = document.getElementById('mi-status');
+        if (mEl) { mEl.style.background = ''; mEl.style.color = ''; }
+      } else {
+        stokSetFilter(t, val);
+      }
     });
   });
 }
@@ -1478,7 +1489,7 @@ function stokResetAllFilter() {
   _filterBoss           = null;
   _filterKatalog        = null;
   _filterStatus         = null;
-  ['boss','katalog'].forEach(function(t) {
+  ['boss','katalog','status'].forEach(function(t) {
     var b = document.getElementById('badge-' + t);
     if (b) b.textContent = '';
     var s = document.getElementById('dd-filter-' + t);
@@ -1491,6 +1502,10 @@ function stokResetAllFilter() {
   document.querySelectorAll('.stok-tab-btn').forEach(function(btn){
     btn.classList.toggle('stok-tab-active', btn.dataset.tab === 'all');
   });
+  var dotEl = document.getElementById('lbl-filter-status-dot');
+  var txtEl = document.getElementById('lbl-filter-status-text');
+  if (dotEl) dotEl.textContent = '⬜';
+  if (txtEl) txtEl.textContent = 'Semua';
   _stokUpdateFilterLabel();
   document.getElementById('dd-filter-all').style.display = 'none';
   filterStok();
@@ -1508,9 +1523,27 @@ function _stokUpdateFilterLabel() {
     btn.style.background = parts.length ? 'var(--ink)' : '';
     btn.style.color      = parts.length ? 'var(--cream)' : '';
   }
-  // Tampilkan/sembunyikan tombol Reset luar
+  // Tampilkan/sembunyikan tombol Reset luar (desktop, badge kecil)
   var resetBtn = document.getElementById('btn-stok-reset');
   if (resetBtn) resetBtn.style.display = parts.length ? 'inline-flex' : 'none';
+
+  // Mobile: keterangan tipis Supplier/SKU Induk aktif, di bawah baris status
+  var subParts = [];
+  if (_filterBoss)    subParts.push(_filterBoss);
+  if (_filterKatalog) subParts.push(_filterKatalog);
+  var subEl = document.getElementById('lbl-filter-sub');
+  if (subEl) {
+    if (subParts.length) { subEl.textContent = subParts.join(', '); subEl.style.display = 'block'; }
+    else                 { subEl.textContent = ''; subEl.style.display = 'none'; }
+  }
+
+  // Mobile: tombol reset dedicated — aktif (bisa di-tap) kalau ada filter apapun
+  var anyActive   = !!(_filterBoss || _filterKatalog || _filterStatusTab);
+  var resetMobile = document.getElementById('btn-stok-reset-mobile');
+  if (resetMobile) {
+    resetMobile.style.opacity       = anyActive ? '1' : '.35';
+    resetMobile.style.pointerEvents = anyActive ? 'auto' : 'none';
+  }
 }
 
 function stokSetFilter(type, val) {
@@ -1546,7 +1579,7 @@ function stokSetFilter(type, val) {
 document.addEventListener('click', function(e) {
   var dd  = document.getElementById('dd-filter-all');
   var btn = document.getElementById('btn-filter-all');
-  var subs = ['dd-filter-boss','dd-filter-katalog'];
+  var subs = ['dd-filter-boss','dd-filter-katalog','dd-filter-status'];
   // Cek apakah klik di dalam salah satu submenu
   var inSub = subs.some(function(id) {
     var s = document.getElementById(id);
@@ -1554,7 +1587,7 @@ document.addEventListener('click', function(e) {
   });
   if (inSub) return; // jangan tutup kalau klik di submenu
   // Cek apakah klik di dalam main menu items (mi-boss, mi-katalog, mi-status)
-  var inMenuItem = ['mi-boss','mi-katalog'].some(function(id) {
+  var inMenuItem = ['mi-boss','mi-katalog','mi-status'].some(function(id) {
     var m = document.getElementById(id);
     return m && m.contains(e.target);
   });
@@ -1614,13 +1647,3 @@ setTimeout(loadStok, 0);
   });
 })();
 
-// ─── OUTSIDE CLICK — tutup dropdown pill status (mobile) ─────
-document.addEventListener('click', function(e) {
-  var dd   = document.getElementById('stok-status-pill-dd');
-  var wrap = document.getElementById('stok-status-pill-wrap');
-  if (dd && dd.style.display === 'block') {
-    if (!dd.contains(e.target) && wrap && !wrap.contains(e.target)) {
-      dd.style.display = 'none';
-    }
-  }
-});
