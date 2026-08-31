@@ -1244,7 +1244,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   /* Filter / Summary / Status pill — 3 tombol sama rata ngisi lebar,
      jangan nyisain ruang kosong */
   #stok-filter-wrap,
-  #btn-stok-reset,
   #btn-stok-summary,
   #stok-status-pill-wrap {
     flex: 1 1 0;

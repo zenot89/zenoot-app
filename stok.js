@@ -52,6 +52,16 @@ document.getElementById('page-stok').innerHTML = `
         <i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
+
+      <!-- RESET FILTER — badge mengambang di pojok tombol Filter, cuma nongol saat ada filter aktif -->
+      <button id="btn-stok-reset" onclick="stokResetAllFilter()" title="Reset Filter"
+        style="display:none;position:absolute;top:-6px;right:-6px;z-index:2;
+        width:20px;height:20px;border-radius:50%;padding:0;min-height:0;
+        background:var(--danger);color:#fff;border:2px solid var(--cream);
+        align-items:center;justify-content:center;font-size:11px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.3)">
+        <i class="ti ti-x" style="font-size:11px"></i>
+      </button>
+
       <div id="dd-filter-all" style="display:none;position:fixed;z-index:9999;
         background:var(--cream);border:2px solid var(--ink);min-width:180px;
         box-shadow:4px 4px 0 var(--ink4)">
@@ -84,12 +94,6 @@ document.getElementById('page-stok').innerHTML = `
         box-shadow:4px 4px 0 var(--ink4)"></div>
 
     </div>
-
-    <!-- RESET FILTER — sejajar tombol Filter -->
-    <button class="btn btn-sm" id="btn-stok-reset" onclick="stokResetAllFilter()"
-      style="display:none;font-size:12px;border-color:var(--danger);color:var(--danger)">
-      <i class="ti ti-x"></i> Reset Filter
-    </button>
 
     <!-- Tombol Summary -->
     <button class="btn btn-sm" id="btn-stok-summary" onclick="stokToggleSummary()" style="border-color:var(--ink3);color:var(--ink);justify-content:center">
