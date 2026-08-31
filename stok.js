@@ -96,6 +96,23 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-chart-bar"></i> Summary
     </button>
 
+    <!-- TAB STATUS — mobile: 1 tombol dropdown, sejajar Filter & Summary -->
+    <div id="stok-status-pill-wrap" class="stok-mobile-only" style="position:relative">
+      <button class="btn btn-sm stok-status-pill-btn" onclick="stokToggleStatusPill()">
+        <span id="stok-status-pill-dot">⬜</span> <span id="stok-status-pill-label">Semua</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+      </button>
+      <div id="stok-status-pill-dd" style="display:none;position:absolute;top:calc(100% + 4px);right:0;left:auto;z-index:9999;
+        min-width:170px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;
+        box-shadow:4px 4px 0 var(--ink4);color:var(--ink)">
+        <div data-tab="all"    class="stok-status-pill-opt" onclick="stokTabStatus('all')">⬜ Semua</div>
+        <div data-tab="fast"   class="stok-status-pill-opt" onclick="stokTabStatus('fast')">🟢 Fast</div>
+        <div data-tab="slow"   class="stok-status-pill-opt" onclick="stokTabStatus('slow')">🟡 Slow</div>
+        <div data-tab="dead"   class="stok-status-pill-opt" onclick="stokTabStatus('dead')">🔴 Dead</div>
+        <div data-tab="zombie" class="stok-status-pill-opt" onclick="stokTabStatus('zombie')">⚫ Zombie</div>
+        <div data-tab="habis"  class="stok-status-pill-opt" onclick="stokTabStatus('habis')">💀 Habis</div>
+      </div>
+    </div>
+
     <!-- KANAN: Paste Massal + Tambah (desktop only — mobile pakai laptop buat ini) -->
     <div id="stok-actions-desktop" style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" onclick="showPasteStok()"><i class="ti ti-clipboard"></i> Paste Massal</button>
@@ -230,7 +247,7 @@ document.getElementById('page-stok').innerHTML = `
   </div>
 
   <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <div class="card-title" id="stok-card-title" style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <i class="ti ti-package"></i> Semua SKU
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
@@ -259,23 +276,6 @@ document.getElementById('page-stok').innerHTML = `
       <button class="stok-tab-btn" data-tab="dead"   onclick="stokTabStatus('dead')">🔴 Dead</button>
       <button class="stok-tab-btn" data-tab="zombie" onclick="stokTabStatus('zombie')">⚫ Zombie</button>
       <button class="stok-tab-btn" data-tab="habis"  onclick="stokTabStatus('habis')">💀 Habis</button>
-    </div>
-
-    <!-- TAB STATUS — mobile: 1 tombol dropdown, buka ke kiri -->
-    <div id="stok-status-pill-wrap" class="stok-mobile-only" style="position:relative;margin-bottom:10px">
-      <button class="stok-tab-btn stok-status-pill-btn" onclick="stokToggleStatusPill()">
-        <span id="stok-status-pill-dot">⬜</span> <span id="stok-status-pill-label">Semua</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
-      </button>
-      <div id="stok-status-pill-dd" style="display:none;position:fixed;z-index:9999;
-        background:var(--cream);border:2px solid var(--ink);min-width:200px;
-        box-shadow:4px 4px 0 var(--ink4)">
-        <div data-tab="all"    class="stok-status-pill-opt" onclick="stokTabStatus('all')">⬜ Semua</div>
-        <div data-tab="fast"   class="stok-status-pill-opt" onclick="stokTabStatus('fast')">🟢 Fast</div>
-        <div data-tab="slow"   class="stok-status-pill-opt" onclick="stokTabStatus('slow')">🟡 Slow</div>
-        <div data-tab="dead"   class="stok-status-pill-opt" onclick="stokTabStatus('dead')">🔴 Dead</div>
-        <div data-tab="zombie" class="stok-status-pill-opt" onclick="stokTabStatus('zombie')">⚫ Zombie</div>
-        <div data-tab="habis"  class="stok-status-pill-opt" onclick="stokTabStatus('habis')">💀 Habis</div>
-      </div>
     </div>
 
     <div id="stok-tbl-wrap"><table class="tbl">
@@ -667,22 +667,13 @@ function stokTabStatus(tab) {
   filterStok();
 }
 
-// Dropdown pill status (mobile) — selalu dibuka ke KIRI (right edge dropdown
-// nempel ke right edge tombol) biar gak kepotong layar HP.
+// Dropdown pill status (mobile) — position:absolute nempel di wrap-nya
+// sendiri (right:0), jadi selalu ngebuka ke arah KIRI dari tombol
+// (menu meluas ke kiri karena anchor-nya di sisi kanan).
 function stokToggleStatusPill() {
-  var dd  = document.getElementById('stok-status-pill-dd');
-  var btn = document.querySelector('.stok-status-pill-btn');
-  if (!dd || !btn) return;
-  if (dd.style.display === 'block') {
-    dd.style.display = 'none';
-    return;
-  }
-  if (dd.parentNode !== document.body) document.body.appendChild(dd);
-  var r = btn.getBoundingClientRect();
-  dd.style.top   = (r.bottom + 4) + 'px';
-  dd.style.left  = '';
-  dd.style.right = (window.innerWidth - r.right) + 'px';
-  dd.style.display = 'block';
+  var dd = document.getElementById('stok-status-pill-dd');
+  if (!dd) return;
+  dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
 }
 
 // ─── FILTER ───────────────────────────────────────────────────

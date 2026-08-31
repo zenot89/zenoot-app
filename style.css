@@ -1222,9 +1222,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .stok-summary-mobile-val { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.2; }
 .stok-summary-mobile-lbl { font-size: 10px; color: var(--ink3); text-transform: lowercase; margin-top: 1px; }
 
-.stok-status-pill-btn { display: inline-flex; align-items: center; gap: 4px; }
+.stok-status-pill-btn { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .stok-status-pill-opt {
   padding: 8px 14px; cursor: pointer; font-size: 13px;
+  color: var(--ink); white-space: nowrap;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .stok-status-pill-opt:hover { background: var(--cream3); }
@@ -1243,7 +1244,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 600px) {
   /* Sembunyikan elemen khusus desktop */
   #stok-actions-desktop,
-  #stok-status-tabs {
+  #stok-status-tabs,
+  #stok-card-title {
     display: none !important;
   }
   /* Munculkan elemen khusus mobile */
