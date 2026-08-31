@@ -96,8 +96,8 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-chart-bar"></i> Summary
     </button>
 
-    <!-- KANAN: Paste Massal + Tambah -->
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <!-- KANAN: Paste Massal + Tambah (desktop only — mobile pakai laptop buat ini) -->
+    <div id="stok-actions-desktop" style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" onclick="showPasteStok()"><i class="ti ti-clipboard"></i> Paste Massal</button>
       <button class="btn btn-sm btn-primary" onclick="showTambahStok()"><i class="ti ti-plus"></i> Tambah</button>
     </div>
@@ -235,7 +235,23 @@ document.getElementById('page-stok').innerHTML = `
       <span id="stok-summary" style="font-size:12px;color:var(--ink3);font-weight:400;margin-left:auto"></span>
     </div>
 
-    <!-- TAB STATUS -->
+    <!-- SUMMARY BAR — mobile only, 3 kotak stat -->
+    <div id="stok-summary-mobile-bar" class="stok-mobile-only" style="gap:8px;margin-bottom:10px">
+      <div class="stok-summary-mobile-box">
+        <div class="stok-summary-mobile-val" id="stok-summary-mobile-sku">—</div>
+        <div class="stok-summary-mobile-lbl">sku</div>
+      </div>
+      <div class="stok-summary-mobile-box">
+        <div class="stok-summary-mobile-val" id="stok-summary-mobile-pc">—</div>
+        <div class="stok-summary-mobile-lbl">pc</div>
+      </div>
+      <div class="stok-summary-mobile-box">
+        <div class="stok-summary-mobile-val" id="stok-summary-mobile-nilai">—</div>
+        <div class="stok-summary-mobile-lbl">nilai stock</div>
+      </div>
+    </div>
+
+    <!-- TAB STATUS — desktop: baris tombol -->
     <div id="stok-status-tabs" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
       <button class="stok-tab-btn stok-tab-active" data-tab="all"    onclick="stokTabStatus('all')">Semua</button>
       <button class="stok-tab-btn" data-tab="fast"   onclick="stokTabStatus('fast')">🟢 Fast</button>
@@ -243,6 +259,23 @@ document.getElementById('page-stok').innerHTML = `
       <button class="stok-tab-btn" data-tab="dead"   onclick="stokTabStatus('dead')">🔴 Dead</button>
       <button class="stok-tab-btn" data-tab="zombie" onclick="stokTabStatus('zombie')">⚫ Zombie</button>
       <button class="stok-tab-btn" data-tab="habis"  onclick="stokTabStatus('habis')">💀 Habis</button>
+    </div>
+
+    <!-- TAB STATUS — mobile: 1 tombol dropdown, buka ke kiri -->
+    <div id="stok-status-pill-wrap" class="stok-mobile-only" style="position:relative;margin-bottom:10px">
+      <button class="stok-tab-btn stok-status-pill-btn" onclick="stokToggleStatusPill()">
+        <span id="stok-status-pill-dot">⬜</span> <span id="stok-status-pill-label">Semua</span> <i class="ti ti-chevron-down" style="font-size:11px"></i>
+      </button>
+      <div id="stok-status-pill-dd" style="display:none;position:fixed;z-index:9999;
+        background:var(--cream);border:2px solid var(--ink);min-width:200px;
+        box-shadow:4px 4px 0 var(--ink4)">
+        <div data-tab="all"    class="stok-status-pill-opt" onclick="stokTabStatus('all')">⬜ Semua</div>
+        <div data-tab="fast"   class="stok-status-pill-opt" onclick="stokTabStatus('fast')">🟢 Fast</div>
+        <div data-tab="slow"   class="stok-status-pill-opt" onclick="stokTabStatus('slow')">🟡 Slow</div>
+        <div data-tab="dead"   class="stok-status-pill-opt" onclick="stokTabStatus('dead')">🔴 Dead</div>
+        <div data-tab="zombie" class="stok-status-pill-opt" onclick="stokTabStatus('zombie')">⚫ Zombie</div>
+        <div data-tab="habis"  class="stok-status-pill-opt" onclick="stokTabStatus('habis')">💀 Habis</div>
+      </div>
     </div>
 
     <div id="stok-tbl-wrap"><table class="tbl">
@@ -384,6 +417,12 @@ function renderStok(data) {
   const elSum = document.getElementById('stok-summary');
   if (elSum) elSum.textContent =
     `${data.length} SKU · Sisa: ${totalSisa} pcs · Nilai: Rp${totalNilai.toLocaleString('id-ID')}`;
+  const elSkuM   = document.getElementById('stok-summary-mobile-sku');
+  const elPcM    = document.getElementById('stok-summary-mobile-pc');
+  const elNilaiM = document.getElementById('stok-summary-mobile-nilai');
+  if (elSkuM)   elSkuM.textContent   = data.length;
+  if (elPcM)    elPcM.textContent    = totalSisa;
+  if (elNilaiM) elNilaiM.textContent = `Rp${totalNilai.toLocaleString('id-ID')}`;
 
   tbody.innerHTML = data.map(row => {
     const hpp   = row.hpp   ? `Rp${row.hpp.toLocaleString('id-ID')}` : 'Rp—';
@@ -597,17 +636,53 @@ function _stokRekOnVarChange(rid) {
 // ─── STATUS TABS ──────────────────────────────────────────────
 var _filterStatusTab = null; // null = semua
 
+var _stokStatusPillMeta = {
+  all:    { dot: '⬜', label: 'Semua'  },
+  fast:   { dot: '🟢', label: 'Fast'   },
+  slow:   { dot: '🟡', label: 'Slow'   },
+  dead:   { dot: '🔴', label: 'Dead'   },
+  zombie: { dot: '⚫', label: 'Zombie' },
+  habis:  { dot: '💀', label: 'Habis'  },
+};
+
 function stokTabStatus(tab) {
   _filterStatusTab = tab === 'all' ? null : tab;
-  // Update active state tombol
-  document.querySelectorAll('.stok-tab-btn').forEach(function(btn) {
+  // Update active state tombol (desktop)
+  document.querySelectorAll('.stok-tab-btn[data-tab]').forEach(function(btn) {
     if (btn.dataset.tab === tab) {
       btn.classList.add('stok-tab-active');
     } else {
       btn.classList.remove('stok-tab-active');
     }
   });
+  // Update label pill (mobile) + tutup dropdown
+  var meta = _stokStatusPillMeta[tab] || _stokStatusPillMeta.all;
+  var dotEl = document.getElementById('stok-status-pill-dot');
+  var lblEl = document.getElementById('stok-status-pill-label');
+  if (dotEl) dotEl.textContent = meta.dot;
+  if (lblEl) lblEl.textContent = meta.label;
+  var dd = document.getElementById('stok-status-pill-dd');
+  if (dd) dd.style.display = 'none';
+
   filterStok();
+}
+
+// Dropdown pill status (mobile) — selalu dibuka ke KIRI (right edge dropdown
+// nempel ke right edge tombol) biar gak kepotong layar HP.
+function stokToggleStatusPill() {
+  var dd  = document.getElementById('stok-status-pill-dd');
+  var btn = document.querySelector('.stok-status-pill-btn');
+  if (!dd || !btn) return;
+  if (dd.style.display === 'block') {
+    dd.style.display = 'none';
+    return;
+  }
+  if (dd.parentNode !== document.body) document.body.appendChild(dd);
+  var r = btn.getBoundingClientRect();
+  dd.style.top   = (r.bottom + 4) + 'px';
+  dd.style.left  = '';
+  dd.style.right = (window.innerWidth - r.right) + 'px';
+  dd.style.display = 'block';
 }
 
 // ─── FILTER ───────────────────────────────────────────────────
@@ -1543,3 +1618,14 @@ setTimeout(loadStok, 0);
     _t = setTimeout(loadStok, 250);
   });
 })();
+
+// ─── OUTSIDE CLICK — tutup dropdown pill status (mobile) ─────
+document.addEventListener('click', function(e) {
+  var dd   = document.getElementById('stok-status-pill-dd');
+  var wrap = document.getElementById('stok-status-pill-wrap');
+  if (dd && dd.style.display === 'block') {
+    if (!dd.contains(e.target) && wrap && !wrap.contains(e.target)) {
+      dd.style.display = 'none';
+    }
+  }
+});
