@@ -49,17 +49,17 @@ document.getElementById('page-stok').innerHTML = `
        di dalam .card bareng tabel). Elemen ini mobile-only jadi aman di posisi manapun
        buat desktop (selalu disembunyikan lewat CSS, gak ganggu layout desktop). -->
   <div id="stok-summary-mobile-bar" class="stok-mobile-only" style="gap:8px;padding:12px 16px 0">
-    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+    <div class="metric" style="flex:1 1 0;min-width:0;padding:8px 10px">
       <div class="m-label">SKU</div>
       <div class="m-value" id="stok-summary-mobile-sku" style="font-size:20px">—</div>
     </div>
-    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+    <div class="metric" style="flex:1 1 0;min-width:0;padding:8px 10px">
       <div class="m-label">PC</div>
       <div class="m-value" id="stok-summary-mobile-pc" style="font-size:20px">—</div>
     </div>
-    <div class="metric" style="flex:1 1 0;padding:8px 10px">
+    <div class="metric" style="flex:2 1 0;min-width:0;padding:8px 10px">
       <div class="m-label">Nilai Stock</div>
-      <div class="m-value" id="stok-summary-mobile-nilai" style="font-size:16px">—</div>
+      <div class="m-value" id="stok-summary-mobile-nilai" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
     </div>
   </div>
 
