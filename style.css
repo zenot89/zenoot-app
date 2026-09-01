@@ -8,34 +8,90 @@ html{
   width: 100%; height: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  color-scheme: dark;
+  color-scheme: light;
   overscroll-behavior: none;
   touch-action: none;
-  background-color: #0d0d0d;
+  background-color: #F0EFEB;
 }
 body {
-  background-color: #0d0d0d;
-  color: #ece9e4;
+  background-color: #F0EFEB;
+  color: #2B2B2B;
 }
 :root{
-  --ink:#ece9e4;--ink2:#9b968d;--ink3:#635f58;--ink4:#2c2c2c;
-  --cream:#0d0d0d;--cream2:#1e1e1e;--cream3:#272727;--cream4:#060606;
-  --paper-line:rgba(255,255,255,0.015);
-  --card-shadow:inset 0 2px 8px rgba(0,0,0,0.6),inset 0 1px 2px rgba(0,0,0,0.7),0 1px 0 rgba(255,255,255,0.04);
+  --ink:#2B2B2B;--ink2:#8A8580;--ink3:#B5B1AA;--ink4:#A39E97;
+  --cream:#F0EFEB;--cream2:#FFFFFF;--cream3:#E8E6E0;--cream4:#E3E1DA;
+  --paper-line:var(--ovl-0_015);
+  --card-shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06);
   --f:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
   --f2:'Source Serif 4','Inter','Segoe UI',system-ui,-apple-system,sans-serif;
   --mono:'IBM Plex Mono',monospace;
   --warn:#c9a84c;--danger:#c98f8f;--ok:#2ecc7a;--info:#3b9eff;
-  --active-nav:#252525;
+  --active-nav:#EDEBE5;
   --sidebar-w:200px;
+  --ovl-0_015:rgba(0,0,0,0.015);
+  --ovl-0_03:rgba(0,0,0,0.03);
+  --ovl-0_04:rgba(0,0,0,0.04);
+  --ovl-0_05:rgba(0,0,0,0.05);
+  --ovl-0_06:rgba(0,0,0,0.06);
+  --ovl-0_07:rgba(0,0,0,0.07);
+  --ovl-0_08:rgba(0,0,0,0.08);
+  --ovl-0_09:rgba(0,0,0,0.09);
+  --ovl-0_1:rgba(0,0,0,0.1);
+  --ovl-0_12:rgba(0,0,0,0.12);
+  --ovl-0_14:rgba(0,0,0,0.14);
+  --ovl-0_15:rgba(0,0,0,0.15);
+  --ovl-0_18:rgba(0,0,0,0.18);
+  --ovl-0_2:rgba(0,0,0,0.2);
+  --ovl-0_22:rgba(0,0,0,0.22);
+  --ovl-0_25:rgba(0,0,0,0.25);
+  --ovl-0_4:rgba(0,0,0,0.4);
+  --ovl-0_6:rgba(0,0,0,0.6);
+  --ovl-0_65:rgba(0,0,0,0.65);
+  --ovl-0_75:rgba(0,0,0,0.75);
+}
+
+/* ── Gadag & Hutang Barang (Hutang Supplier) TETEP DARK THEME — dikecualikan
+   dari perubahan warna brand. Redeklarasi seluruh custom property yang dipakai
+   .card/.btn/.tbl/.metric dkk di dalam 2 halaman ini balik ke nilai gelap lama,
+   jadi children yang pakai var(--ink)/var(--cream)/var(--ovl-*) tetep gelap
+   tanpa perlu ubah CSS/markup di dalam gadag.js & hutang-supplier.js sendiri. ── */
+#page-gadag, #page-hutang-supplier {
+  color-scheme: dark;
+  background: #0d0d0d;
+  color: #ece9e4;
+  --ink:#ece9e4;--ink2:#9b968d;--ink3:#635f58;--ink4:#2c2c2c;
+  --cream:#0d0d0d;--cream2:#1e1e1e;--cream3:#272727;--cream4:#060606;
+  --paper-line:rgba(255,255,255,0.015);
+  --card-shadow:inset 0 2px 8px rgba(0,0,0,0.6),inset 0 1px 2px rgba(0,0,0,0.7),0 1px 0 rgba(255,255,255,0.04);
+  --active-nav:#252525;
+    --ovl-0_015:rgba(255,255,255,0.015);
+    --ovl-0_03:rgba(255,255,255,0.03);
+    --ovl-0_04:rgba(255,255,255,0.04);
+    --ovl-0_05:rgba(255,255,255,0.05);
+    --ovl-0_06:rgba(255,255,255,0.06);
+    --ovl-0_07:rgba(255,255,255,0.07);
+    --ovl-0_08:rgba(255,255,255,0.08);
+    --ovl-0_09:rgba(255,255,255,0.09);
+    --ovl-0_1:rgba(255,255,255,0.1);
+    --ovl-0_12:rgba(255,255,255,0.12);
+    --ovl-0_14:rgba(255,255,255,0.14);
+    --ovl-0_15:rgba(255,255,255,0.15);
+    --ovl-0_18:rgba(255,255,255,0.18);
+    --ovl-0_2:rgba(255,255,255,0.2);
+    --ovl-0_22:rgba(255,255,255,0.22);
+    --ovl-0_25:rgba(255,255,255,0.25);
+    --ovl-0_4:rgba(255,255,255,0.4);
+    --ovl-0_6:rgba(255,255,255,0.6);
+    --ovl-0_65:rgba(255,255,255,0.65);
+    --ovl-0_75:rgba(255,255,255,0.75);
 }
 
 body{
   display:-webkit-flex;display:flex;
   height:100vh;height:100dvh;
-  background:#0d0d0d;background:var(--cream);
+  background:#F0EFEB;background:var(--cream);
   font-family:var(--f);
-  color:#ece9e4;color:var(--ink);
+  color:#2B2B2B;color:var(--ink);
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
@@ -67,7 +123,7 @@ body{
   z-index:300;
 }
 .hamburger i{color:var(--ink);font-size:24px}
-.hamburger:active{opacity:.6;transform:scale(.95);background:rgba(255,255,255,0.06)}
+.hamburger:active{opacity:.6;transform:scale(.95);background:var(--ovl-0_06)}
 /* Sembunyikan saat sidebar terbuka (di-toggle via JS, class sebagai fallback) */
 .hamburger.hb-hidden{display:none !important}
 
@@ -81,7 +137,7 @@ body{
 .sidebar{
   width:var(--sidebar-w);min-width:var(--sidebar-w);
   background:#0e0e0e;
-  border-right:1px solid rgba(255,255,255,0.05);
+  border-right:1px solid var(--ovl-0_05);
   display:-webkit-flex;display:flex;
   -webkit-flex-direction:column;flex-direction:column;
   position:relative;overflow:hidden;
@@ -103,7 +159,7 @@ body{
 /* ─── LOGO ───────────────────────────────────────────────── */
 .logo-block{
   padding:12px 14px 10px;
-  border-bottom:1px solid rgba(255,255,255,0.05);
+  border-bottom:1px solid var(--ovl-0_05);
   -webkit-flex-shrink:0;flex-shrink:0;
   display:-webkit-flex;display:flex;
   -webkit-flex-direction:row;flex-direction:row;
@@ -143,7 +199,7 @@ body{
   display:none;
   position:absolute;top:12px;right:-14px;
   width:26px;height:26px;
-  background:#1C1C1E;border:1px solid rgba(255,255,255,0.08);
+  background:#1C1C1E;border:1px solid var(--ovl-0_08);
   cursor:pointer;z-index:300;
   -webkit-align-items:center;align-items:center;
   -webkit-justify-content:center;justify-content:center;
@@ -194,7 +250,7 @@ body.sidebar-mini .sidebar-minimize-btn i{
 /* ─── FOOTER ─────────────────────────────────────────────── */
 .sidebar-footer{
   padding:10px 10px 14px;
-  border-top:1px solid rgba(255,255,255,0.04);
+  border-top:1px solid var(--ovl-0_04);
   text-align:center;
   -webkit-flex-shrink:0;flex-shrink:0;
   background:#0e0e0e;
@@ -231,11 +287,11 @@ body.sidebar-mini .sidebar-footer::before{
   -webkit-justify-content:space-between;justify-content:space-between;
   padding:10px 12px 6px;cursor:pointer;
   -webkit-user-select:none;user-select:none;
-  border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:2px;
+  border-bottom:1px solid var(--ovl-0_04);margin-bottom:2px;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
-.nav-group-header:hover{background:rgba(255,255,255,0.03)}
+.nav-group-header:hover{background:var(--ovl-0_03)}
 .nav-group-label{
   font-size:10px;font-weight:700;color:var(--ink3);
   text-transform:uppercase;letter-spacing:.1em;font-family:var(--f2);
@@ -287,7 +343,7 @@ body.sidebar-mini .sidebar-footer::before{
   transition:background .15s ease;
   overflow:hidden;
 }
-.nav-item:hover{background:rgba(255,255,255,0.04);}
+.nav-item:hover{background:var(--ovl-0_04);}
 .nav-item.active{
   background:var(--active-nav);
   border-radius:4px;
@@ -309,7 +365,7 @@ body.sidebar-mini .sidebar-footer::before{
   width:100%;cursor:pointer;font-family:var(--f);
   transition:background .12s,color .12s;
 }
-.ni-sub:hover{background:rgba(255,255,255,0.04);color:var(--ink);}
+.ni-sub:hover{background:var(--ovl-0_04);color:var(--ink);}
 .ni-sub.ni-sub-active-item{background:var(--active-nav);color:#fff;}
 .ni-sub i{font-size:13px;opacity:.7;flex-shrink:0;}
 body.sidebar-mini .ni-sub-list{padding-left:4px;}
@@ -326,15 +382,15 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
   border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink2);
   touch-action:manipulation;
 }
-.ch-sidebar-item:hover{background:var(--cream3);border-color:rgba(255,255,255,0.06)}
-.ch-sidebar-item.active-ch{background:var(--cream3);border-color:rgba(255,255,255,0.06);font-weight:700;color:var(--ink)}
+.ch-sidebar-item:hover{background:var(--cream3);border-color:var(--ovl-0_06)}
+.ch-sidebar-item.active-ch{background:var(--cream3);border-color:var(--ovl-0_06);font-weight:700;color:var(--ink)}
 .ch-sidebar-item .ch-dot{width:7px;height:7px;border-radius:50%;background:var(--ink4);-webkit-flex-shrink:0;flex-shrink:0}
 .ch-sidebar-item .ch-dot.active{background:var(--ok)}
 .ch-sidebar-actions{display:-webkit-flex;display:flex;gap:4px;padding:0 6px 8px}
 .ch-mini-btn{
   -webkit-flex:1;flex:1;padding:4px;text-align:center;
   font-size:11px;font-weight:600;font-family:var(--f);
-  border:1px solid rgba(255,255,255,0.06);background:none;color:var(--ink3);
+  border:1px solid var(--ovl-0_06);background:none;color:var(--ink3);
   cursor:pointer;border-radius:2px;touch-action:manipulation;
 }
 .ch-mini-btn:hover{border-color:var(--ink3);color:var(--ink2)}
@@ -350,7 +406,7 @@ body.sidebar-mini .ni-sub{justify-content:center;padding:7px 4px;}
 
 /* ─── TOPBAR ─────────────────────────────────────────────── */
 .topbar{
-  background:var(--cream2);border-bottom:1px solid rgba(255,255,255,0.05);
+  background:var(--cream2);border-bottom:1px solid var(--ovl-0_05);
   padding:10px 20px;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
   display:-webkit-flex;display:flex;
@@ -471,7 +527,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 
 /* ─── ALERT ──────────────────────────────────────────────── */
 .alert{
-  background:var(--cream2);border:1px solid rgba(255,255,255,0.06);padding:8px 14px;
+  background:var(--cream2);border:1px solid var(--ovl-0_06);padding:8px 14px;
   font-size:13px;font-weight:600;margin-bottom:12px;
   display:-webkit-flex;display:flex;
   -webkit-align-items:center;align-items:center;
@@ -490,7 +546,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
   min-width:140px;
 }
 .metric{
-  background:#1e1e1e;background:var(--cream2);border:none;
+  background:#FFFFFF;background:var(--cream2);border:none;
   padding:10px 12px;position:relative;
   border-radius:8px;
   box-shadow:var(--card-shadow);
@@ -519,7 +575,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 
 /* ─── CARD ───────────────────────────────────────────────── */
 .card{
-  background:#1e1e1e;background:var(--cream2);border:none;
+  background:#FFFFFF;background:var(--cream2);border:none;
   padding:12px 14px;margin-bottom:12px;position:relative;
   border-radius:8px;
   box-shadow:var(--card-shadow);
@@ -528,7 +584,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .card-title,.tbl-wrap,.tbl,.tbl td,.form-row,.form-group{position:relative;z-index:1}
 .card-title{
   font-size:17px;font-weight:700;margin-bottom:10px;padding-bottom:7px;
-  border-bottom:1px solid rgba(255,255,255,0.05);
+  border-bottom:1px solid var(--ovl-0_05);
   display:-webkit-flex;display:flex;
   -webkit-align-items:center;align-items:center;
   gap:7px;letter-spacing:-.2px;position:relative;z-index:200;
@@ -581,7 +637,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .bar-fill{height:100%;background:var(--ink);position:relative}
 .bar-fill::after{
   content:'';position:absolute;inset:0;
-  background-image:repeating-linear-gradient(-50deg,transparent,transparent 3px,rgba(255,255,255,0.2) 3px,rgba(255,255,255,0.2) 5px);
+  background-image:repeating-linear-gradient(-50deg,transparent,transparent 3px,var(--ovl-0_2) 3px,var(--ovl-0_2) 5px);
 }
 .bar-pct{width:30px;text-align:right;font-weight:700;font-size:12px}
 
@@ -603,14 +659,14 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
 .tbl th{
   text-align:left;padding:8px 10px;font-size:13px;font-weight:700;color:var(--ink2);
-  border-bottom:1px solid rgba(255,255,255,0.05);text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--ovl-0_05);text-transform:uppercase;letter-spacing:.06em;
   white-space:nowrap;font-family:var(--f2);
   background:var(--cream3);z-index:2;
-  box-shadow:0 1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.3);
+  box-shadow:0 1px 0 var(--ovl-0_05), 0 2px 4px rgba(0,0,0,0.3);
 }
 .tbl td{padding:7px 8px;border-bottom:1px solid var(--cream3);white-space:nowrap;font-size:14px;font-weight:500}
 .tbl tr:last-child td{border:none}
-.tbl tr:hover td{background:rgba(255,255,255,0.03)}
+.tbl tr:hover td{background:var(--ovl-0_03)}
 
 /* Semua container scroll: smooth tanpa momentum iOS (momentum = rubber band) */
 .content,
@@ -625,7 +681,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 /* ─── BADGE ──────────────────────────────────────────────── */
 .badge{
   display:inline-block;font-size:10px;font-weight:700;
-  padding:2px 8px;border:1px solid rgba(255,255,255,0.06);
+  padding:2px 8px;border:1px solid var(--ovl-0_06);
   background:var(--cream3);font-family:var(--f2);letter-spacing:.03em;
 }
 .badge-ok{background:var(--cream2)}
@@ -634,7 +690,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 
 /* ─── UPLOAD ZONE ────────────────────────────────────────── */
 .upload-zone{
-  border:1px dashed rgba(255,255,255,0.08);padding:24px;text-align:center;
+  border:1px dashed var(--ovl-0_08);padding:24px;text-align:center;
   font-size:15px;font-weight:600;color:var(--ink3);cursor:pointer;
   background:var(--cream2);margin-bottom:12px;
   -webkit-transition:background .15s;transition:background .15s;
@@ -659,7 +715,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 }
 .form-group input,.form-group select,.form-group textarea{
   font-family:var(--f);font-size:15px;font-weight:600;
-  padding:8px 10px;border:1px solid rgba(255,255,255,0.08);
+  padding:8px 10px;border:1px solid var(--ovl-0_08);
   background:var(--cream3);color:var(--ink);outline:none;
   border-radius:6px;-webkit-appearance:none;appearance:none;
   min-height:44px;
@@ -691,7 +747,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 }
 .modal-title{
   font-size:20px;font-weight:700;margin-bottom:14px;
-  padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05);letter-spacing:-.2px;
+  padding-bottom:8px;border-bottom:1px solid var(--ovl-0_05);letter-spacing:-.2px;
 }
 .modal-actions{
   display:-webkit-flex;display:flex;
@@ -717,7 +773,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .rekap-row-sub{padding-left:14px!important;color:var(--ink3);font-size:12px}
 .rasio-pill{
   display:inline-block;font-size:11px;font-weight:600;
-  padding:1px 6px;border:1px solid rgba(255,255,255,0.06);background:var(--cream3);
+  padding:1px 6px;border:1px solid var(--ovl-0_06);background:var(--cream3);
 }
 
 /* ─── BADGE METODE BAYAR ─────────────────────────────────── */
@@ -1497,7 +1553,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -1523,7 +1579,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* ── JURNAL PENJUALAN ── */
@@ -1608,7 +1664,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
   padding: 8px 14px 6px;
   background: var(--cream2);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
 }
 /* Wrapper tabel: flex-grow + overflow scroll sendiri = efek beku */
 #jp-tbl-wrap {
@@ -1630,7 +1686,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
@@ -1669,7 +1725,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-clearance .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -1677,7 +1733,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
   padding: 8px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
 }
 #cl-tbl-wrap {
   -webkit-flex: 1 1 0;
@@ -1695,7 +1751,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 #cl-footer-wrap {
   -webkit-flex-shrink: 0;
@@ -1741,7 +1797,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk-terjual .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -1761,7 +1817,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 #pt-footer-wrap {
   -webkit-flex-shrink: 0;
@@ -1865,7 +1921,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-jurnal-card {
   padding: 0;
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   overflow: hidden;
   margin-bottom: 0;
   -webkit-flex: 1 1 0;
@@ -1884,7 +1940,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   padding: 8px 14px 6px;
   background: var(--cream2);
   border-radius: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
 }
 #kas-sticky-header .card-title {
   padding: 0;
@@ -1919,7 +1975,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* Mobile: padding bawah untuk hamburger */
@@ -1992,7 +2048,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3, #1f1f1f);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* Akun panel: flex column agar card title freeze + tabel scroll */
@@ -2037,7 +2093,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3, #1f1f1f);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 @media (max-width: 900px),
@@ -2058,7 +2114,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk .card,
 #pl-card {
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   overflow: hidden;
 }
 
@@ -2256,7 +2312,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-height: 38px;
   padding: 6px 10px;
   background: var(--cream3);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--ovl-0_08);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -2267,7 +2323,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-sizing: border-box;
 }
 .kas-akun-picker:hover {
-  border-color: rgba(255,255,255,0.18);
+  border-color: var(--ovl-0_18);
   background: var(--cream2);
 }
 
@@ -2301,7 +2357,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   max-height: 280px;
   overflow-y: auto;
   background: #111113;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--ovl-0_1);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   margin-top: 2px;
@@ -2343,18 +2399,18 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-variant-numeric: tabular-nums;
 }
 .kas-akun-item:hover {
-  background: rgba(255,255,255,0.06);
+  background: var(--ovl-0_06);
   color: var(--ink);
 }
 .kas-akun-item.active {
-  background: rgba(255,255,255,0.08);
+  background: var(--ovl-0_08);
   color: var(--ink);
   font-weight: 600;
 }
 /* Scrollbar tipis di dalam list */
 .kas-akun-list::-webkit-scrollbar { width: 4px; }
 .kas-akun-list::-webkit-scrollbar-track { background: transparent; }
-.kas-akun-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+.kas-akun-list::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
 /* Search box di dalam picker list */
 .kas-akun-search-wrap {
   position: sticky;
@@ -2362,13 +2418,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   z-index: 2;
   background: #111113;
   padding: 6px 8px 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid var(--ovl-0_07);
 }
 .kas-akun-search {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--ovl-0_06);
+  border: 1px solid var(--ovl-0_12);
   border-radius: 4px;
   padding: 5px 8px 5px 28px;
   font-size: 12px;
@@ -2378,7 +2434,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 .kas-akun-search::placeholder { color: var(--ink3); }
-.kas-akun-search:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.09); }
+.kas-akun-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
 .kas-akun-search-icon {
   position: absolute;
   left: 16px;
@@ -2483,7 +2539,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #restock-wrap {
   padding: 0;
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   margin-bottom: 0;
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
@@ -2500,7 +2556,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
   background: var(--cream2);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
 }
 
 /* Tab bar — dropdown mode */
@@ -2511,7 +2567,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   justify-content: flex-end;
   -webkit-justify-content: flex-end;
   padding: 8px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--ovl-0_08);
   gap: 8px;
 }
 
@@ -2531,8 +2587,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  background: rgba(255,255,255,0.06);
-  border: 1.5px solid rgba(255,255,255,0.15);
+  background: var(--ovl-0_06);
+  border: 1.5px solid var(--ovl-0_15);
   border-radius: 8px;
   color: var(--ink);
   cursor: pointer;
@@ -2541,7 +2597,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-width: 160px;
 }
 #restock-tab-dropdown-btn:active {
-  background: rgba(255,255,255,0.1);
+  background: var(--ovl-0_1);
 }
 #restock-tab-dropdown-chevron {
   margin-left: auto;
@@ -2556,7 +2612,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   /* top/right di-set via JS saat open */
   min-width: 210px;
   background: var(--cream3);
-  border: 1.5px solid rgba(255,255,255,0.12);
+  border: 1.5px solid var(--ovl-0_12);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 9999;
@@ -2579,16 +2635,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--ink2);
   cursor: pointer;
   transition: background .12s;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--ovl-0_04);
 }
 .restock-dropdown-item:last-child {
   border-bottom: none;
 }
 .restock-dropdown-item:active {
-  background: rgba(255,255,255,0.07);
+  background: var(--ovl-0_07);
 }
 .restock-dropdown-item.restock-dropdown-active {
-  background: rgba(255,255,255,0.06);
+  background: var(--ovl-0_06);
   color: var(--ink);
 }
 .restock-dropdown-item-label {
@@ -2617,7 +2673,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-wrap: wrap;
   gap: 8px;
   padding: 5px 14px 6px;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid var(--ovl-0_04);
 }
 
 /* Scroll zone: flex:1, hanya ini yang scroll — VERTIKAL DAN HORIZONTAL */
@@ -2661,7 +2717,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* ── sup-tbl-wrap: scroll container sendiri untuk tab supplier ──
@@ -2692,7 +2748,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* Tabel di dalam sup-tbl-wrap: lebar penuh konten */
@@ -2742,7 +2798,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk .card {
   padding: 0;
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   margin-bottom: 0;
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
@@ -2756,7 +2812,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-produk .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -2778,7 +2834,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 @media (max-width: 900px),
        (hover: none) and (pointer: coarse) {
@@ -2815,7 +2871,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #pl-card {
   padding: 0;
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   margin-bottom: 0;
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
@@ -2829,7 +2885,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #pl-card .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -2849,7 +2905,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   z-index: 3;
   background: var(--cream3);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
 }
 #pl-card #pl-footer {
   -webkit-flex-shrink: 0;
@@ -2946,7 +3002,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-jurnal-card {
   padding: 0;
   border-radius: 6px;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   margin-bottom: 0;
   -webkit-flex: 1 1 0;
   flex: 1 1 0;
@@ -2960,7 +3016,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-jurnal-card .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
 }
@@ -3278,7 +3334,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid var(--ovl-0_07);
 }
 #kas-numpad-display .numpad-currency {
   font-size: 12px;
@@ -3315,7 +3371,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .numpad-chip {
   flex-shrink: 0;
   background: #2a2a2a;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--ovl-0_1);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
@@ -3333,7 +3389,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
-  background: rgba(255,255,255,0.05);
+  background: var(--ovl-0_05);
   margin: 8px 10px 4px;
   border-radius: 10px;
   overflow: hidden;
@@ -3478,7 +3534,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--ink3,#888); padding: 4px; border-radius: 6px;
   line-height: 1; transition: color .2s, background .2s;
 }
-.nw-refresh-btn:hover { color: var(--ink,#eee); background: rgba(255,255,255,0.06); }
+.nw-refresh-btn:hover { color: var(--ink,#eee); background: var(--ovl-0_06); }
 .nw-refresh-spin { animation: nw-spin 1s linear infinite; }
 @keyframes nw-spin { to { transform: rotate(360deg); } }
 .nw-total-wrap { margin-bottom: 12px; }
@@ -3528,7 +3584,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     border-radius: 12px;
     padding: 12px 14px 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--ovl-0_06);
     background: linear-gradient(135deg, var(--cream2) 0%, var(--cream4,#1e1e1e) 100%);
   }
   .m-label {
@@ -3715,7 +3771,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Handle bar */
 .kas-brimo-handle {
   width: 40px; height: 4px;
-  background: rgba(255,255,255,0.18);
+  background: var(--ovl-0_18);
   border-radius: 2px;
   margin: 12px auto 4px;
 }
@@ -3737,7 +3793,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   gap: 14px;
   width: 100%;
   background: #242424;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   border-radius: 14px;
   padding: 14px 16px;
   cursor: pointer;
@@ -3745,7 +3801,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-tipe-card:active { background: #2e2e2e; border-color: rgba(255,255,255,0.18); }
+.kas-tipe-card:active { background: #2e2e2e; border-color: var(--ovl-0_18); }
 
 /* ── Grid 2 kolom untuk sheet tipe (mobile) ── */
 .kas-tipe-grid {
@@ -3760,7 +3816,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 12px;
   background: #242424;
-  border: 1.5px solid rgba(255,255,255,0.07);
+  border: 1.5px solid var(--ovl-0_07);
   border-radius: 14px;
   padding: 14px 16px;
   cursor: pointer;
@@ -3768,7 +3824,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-tipe-cell:active { background: #2e2e2e; border-color: rgba(255,255,255,0.22); }
+.kas-tipe-cell:active { background: #2e2e2e; border-color: var(--ovl-0_22); }
 .kas-tipe-cell-full {
   grid-column: 1 / -1;
   flex-direction: row;
@@ -3787,7 +3843,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   justify-content: space-between;
   gap: 8px;
   background: var(--cream2, #1e1e1e);
-  border: 1.5px solid rgba(255,255,255,0.1);
+  border: 1.5px solid var(--ovl-0_1);
   border-radius: 8px;
   padding: 7px 12px;
   cursor: pointer;
@@ -3795,7 +3851,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   user-select: none;
   transition: border-color 0.15s;
 }
-.kas-tipe-picker:hover { border-color: rgba(255,255,255,0.25); }
+.kas-tipe-picker:hover { border-color: var(--ovl-0_25); }
 .kas-tipe-picker-val {
   display: flex;
   align-items: center;
@@ -3818,8 +3874,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.12s;
 }
 .kas-tipe-portal-item i { font-size: 17px; color: var(--ink2); width: 20px; text-align: center; }
-.kas-tipe-portal-item:hover { background: rgba(255,255,255,0.07); }
-.kas-tipe-portal-item:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+.kas-tipe-portal-item:hover { background: var(--ovl-0_07); }
+.kas-tipe-portal-item:not(:last-child) { border-bottom: 1px solid var(--ovl-0_05); }
 
 .kas-tipe-icon {
   width: 40px; height: 40px;
@@ -3827,7 +3883,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex; align-items: center; justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.08);
+  background: var(--ovl-0_08);
   color: var(--ink2);
 }
 .kas-tipe-label {
@@ -3867,11 +3923,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 8px;
   padding: 14px 16px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   flex-shrink: 0;
 }
 .kas-brimo-back {
-  background: rgba(255,255,255,0.07);
+  background: var(--ovl-0_07);
   border: none;
   border-radius: 50%;
   width: 34px; height: 34px;
@@ -3882,7 +3938,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-brimo-back:active { background: rgba(255,255,255,0.14); }
+.kas-brimo-back:active { background: var(--ovl-0_14); }
 #kas-brimo-nominal-info { flex: 1; }
 .kas-brimo-nominal-title {
   font-size: 15px;
@@ -3903,7 +3959,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 8px;
   padding: 14px 16px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3930,7 +3986,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   border-radius: 8px; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.stok-filter-sheet-opt:active { background: rgba(255,255,255,0.06); }
+.stok-filter-sheet-opt:active { background: var(--ovl-0_06); }
 .stok-filter-sheet-opt.active { background: var(--ink); color: var(--cream); font-weight: 700; }
 
 /* Jaga-jaga: sheet ini murni untuk mobile, jangan pernah nongol di desktop
@@ -3943,7 +3999,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Display nominal */
 #kas-brimo-display-wrap {
   padding: 14px 20px 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ovl-0_06);
   flex-shrink: 0;
 }
 #kas-brimo-display {
@@ -3993,7 +4049,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-brimo-hist-chip {
   flex-shrink: 0;
   background: #2a2a2a;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--ovl-0_1);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
@@ -4083,7 +4139,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   padding: 16px 16px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid var(--ovl-0_07);
 }
 .kas-brimo-detail-form {
   padding: 14px 16px 4px;
@@ -4103,7 +4159,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   width: 100%;
   box-sizing: border-box;
   background: #242424;
-  border: 1.5px solid rgba(255,255,255,0.08);
+  border: 1.5px solid var(--ovl-0_08);
   border-radius: 10px;
   padding: 11px 14px;
   font-size: 14px;
@@ -4115,7 +4171,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-brimo-input:focus { border-color: #1a6ee0; }
 .kas-brimo-picker {
   background: #242424 !important;
-  border: 1.5px solid rgba(255,255,255,0.08) !important;
+  border: 1.5px solid var(--ovl-0_08) !important;
   border-radius: 10px !important;
   padding: 11px 14px !important;
   min-height: 44px !important;
@@ -4128,7 +4184,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 10px;
   padding: 12px 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--ovl-0_06);
   position: sticky;
   bottom: 0;
   background: #1a1a1a;
@@ -4282,16 +4338,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Warna header per slide */
-.nw-slide-s1 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
-.nw-slide-s2 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
-.nw-slide-s3 { background: #221f1f; border: 1px solid rgba(255,255,255,0.09); border-bottom: none; }
+.nw-slide-s1 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s2 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s3 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
 
 .nw-slide-header .nw-slide-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.65);
+  color: var(--ovl-0_65);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -4311,7 +4367,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-s3 .nw-slide-value { color: var(--ok, #2ecc7a); }
 .nw-slide-header .nw-slide-sub {
   font-size: 11px;
-  color: rgba(255,255,255,0.6);
+  color: var(--ovl-0_6);
   margin-top: 2px;
 }
 
@@ -4331,29 +4387,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
 
 /* Warna data box per slide */
-.nw-slide-s1 + .nw-slide-data { background: #2e2a2a; border: 1px solid rgba(255,255,255,0.09); border-top: none; scrollbar-color: rgba(255,255,255,0.2) transparent; }
-.nw-slide-s2 + .nw-slide-data { background: #2e2a2a; border: 1px solid rgba(255,255,255,0.09); border-top: none; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+.nw-slide-s1 + .nw-slide-data { background: #2e2a2a; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
+.nw-slide-s2 + .nw-slide-data { background: #2e2a2a; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
 .nw-slide-s3 + .nw-slide-data {
   background: #2e2a2a;
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1px solid var(--ovl-0_09);
   border-top: none;
-  scrollbar-color: rgba(255,255,255,0.2) transparent;
+  scrollbar-color: var(--ovl-0_2) transparent;
 }
-.nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
-.nw-slide-s2 + .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+.nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
+.nw-slide-s2 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
 
 /* Teks di data box s1, s2, s3 - terang karena bg gelap */
 .nw-slide-s1 + .nw-slide-data .nw-row-label,
 .nw-slide-s1 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
 .nw-slide-s1 + .nw-slide-data .nw-row-val { color: #ece9e4; }
-.nw-slide-s1 + .nw-slide-data .nw-row { border-color: rgba(255,255,255,0.06); }
+.nw-slide-s1 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
 .nw-slide-s2 + .nw-slide-data .nw-row-label,
 .nw-slide-s2 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
-.nw-slide-s2 + .nw-slide-data .nw-row { border-color: rgba(255,255,255,0.06); }
+.nw-slide-s2 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
 
 /* Badge dan refresh button di header berwarna */
-.nw-slide-s2 .nw-refresh-btn { color: rgba(255,255,255,0.75); }
-.nw-slide-s2 .nw-refresh-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
+.nw-slide-s2 .nw-refresh-btn { color: var(--ovl-0_75); }
+.nw-slide-s2 .nw-refresh-btn:hover { color: #fff; background: var(--ovl-0_12); }
 
 /* ======================================================
    PORTRAIT MOBILE - layout swipe
@@ -4429,9 +4485,26 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .nw-swipe-dot-label { display: none !important; }
 }
 
-/* ── Force override Android dark mode system color injection ── */
+/* ── Force override Android/iOS system dark-mode color injection ──
+   App brand sekarang TERANG secara default, apapun setting dark/light OS-nya.
+   Gadag & Hutang Supplier dikecualikan (tetep gelap apapun setting OS-nya) —
+   custom property mereka udah di-scope terpisah di blok #page-gadag/#page-hutang-supplier
+   di atas; di sini cuma perlu jaga html/body dasar + .card/.metric gak ke-inject
+   warna dark bawaan sistem pas OS lagi dark mode. ── */
 @media (prefers-color-scheme: dark) {
   :root {
+    --cream:#F0EFEB !important;
+    --cream2:#FFFFFF !important;
+    --cream3:#E8E6E0 !important;
+    --cream4:#E3E1DA !important;
+    --ink:#2B2B2B !important;
+    --ink2:#8A8580 !important;
+    --ink3:#B5B1AA !important;
+  }
+  html, body { background-color:#F0EFEB !important; color:#2B2B2B !important; }
+  .card  { background:#FFFFFF !important; }
+  .metric{ background:#FFFFFF !important; }
+  #page-gadag, #page-hutang-supplier {
     --cream:#0d0d0d !important;
     --cream2:#1e1e1e !important;
     --cream3:#272727 !important;
@@ -4439,10 +4512,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     --ink:#ece9e4 !important;
     --ink2:#9b968d !important;
     --ink3:#635f58 !important;
+    background-color:#0d0d0d !important;
+    color:#ece9e4 !important;
   }
-  html, body { background-color:#0d0d0d !important; color:#ece9e4 !important; }
-  .card  { background:#1e1e1e !important; }
-  .metric{ background:#1e1e1e !important; }
+  #page-gadag .card, #page-hutang-supplier .card { background:#1e1e1e !important; }
+  #page-gadag .metric, #page-hutang-supplier .metric { background:#1e1e1e !important; }
 }
 
 /* ── KAS AKUN FLOATING DROPDOWN — nempel di atas trigger, konsisten
@@ -4461,22 +4535,22 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-akun-float-list .kas-akun-group {
   font-size: 11px;
   padding: 10px 14px 4px;
-  color: rgba(255,255,255,.4);
+  color: var(--ovl-0_4);
   text-transform: uppercase;
   letter-spacing: .07em;
   font-weight: 700;
 }
 #kas-akun-float-list .kas-akun-item:active {
-  background: rgba(255,255,255,.08);
+  background: var(--ovl-0_08);
 }
 #kas-akun-float-list .kas-akun-item.active {
-  background: rgba(255,255,255,.08);
+  background: var(--ovl-0_08);
   color: var(--ink);
   font-weight: 700;
 }
 #kas-akun-float-list::-webkit-scrollbar { width: 4px; }
 #kas-akun-float-list::-webkit-scrollbar-track { background: transparent; }
-#kas-akun-float-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+#kas-akun-float-list::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
 
 /* ═══════════════════════════════════════════════════════════════
    AKUN PICKER SHEET — full bottom sheet (naik dari bawah), dipakai
@@ -4524,8 +4598,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-akun-picker-search {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--ovl-0_06);
+  border: 1px solid var(--ovl-0_12);
   border-radius: 10px;
   padding: 11px 14px;
   font-size: 15px;
@@ -4535,7 +4609,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 #kas-akun-picker-search::placeholder { color: var(--ink3); }
-#kas-akun-picker-search:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.09); }
+#kas-akun-picker-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
 
 #kas-akun-picker-list {
   flex: 1;
@@ -4552,19 +4626,19 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #kas-akun-picker-list .kas-akun-group {
   font-size: 11px;
   padding: 12px 10px 4px;
-  color: rgba(255,255,255,.4);
+  color: var(--ovl-0_4);
   text-transform: uppercase;
   letter-spacing: .07em;
   font-weight: 700;
 }
 #kas-akun-picker-list .kas-akun-item:active,
 #kas-akun-picker-list .kas-akun-item.active {
-  background: rgba(255,255,255,.08);
+  background: var(--ovl-0_08);
   color: var(--ink);
 }
 #kas-akun-picker-list::-webkit-scrollbar { width: 4px; }
 #kas-akun-picker-list::-webkit-scrollbar-track { background: transparent; }
-#kas-akun-picker-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+#kas-akun-picker-list::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
 
 @media (min-width: 768px) {
   #kas-sheet-akun-picker {
