@@ -63,20 +63,24 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
+  <!-- TAB STATUS — mobile only, scroll horizontal (gaya tab status Shopee) -->
+  <div id="stok-status-tabs-wrap" class="stok-mobile-only" style="padding:10px 0 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div id="stok-status-tabs-mobile" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:16px"></div>
+  </div>
+
   <!-- TAB SUPPLIER — mobile only, scroll horizontal (gaya tab status Shopee).
        "Semua" jadi chip pertama, berfungsi sekalian sebagai reset Supplier. -->
-  <div id="stok-supplier-tabs-wrap" class="stok-mobile-only" style="padding:10px 0 4px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <div id="stok-supplier-tabs-wrap" class="stok-mobile-only" style="padding:8px 0 4px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
     <div id="stok-supplier-tabs" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:16px"></div>
   </div>
 
   <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk+Status | mobile: bottom sheet) -->
+    <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk+Status | mobile: langsung picker SKU Induk) -->
     <div id="stok-filter-wrap" style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;width:100%;text-align:left;padding-right:24px">
         <span id="btn-filter-all-desktop-label"><i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span></span>
-        <span id="btn-filter-all-mobile-label" class="stok-mobile-only" style="flex-direction:column;align-items:flex-start;line-height:1.3;gap:1px">
-          <span id="lbl-filter-status"><span id="lbl-filter-status-dot">⬜</span> <span id="lbl-filter-status-text">Semua</span></span>
-          <span id="lbl-filter-sub" style="font-weight:400;font-size:10px;color:var(--ink3);display:none"></span>
+        <span id="btn-filter-all-mobile-label" class="stok-mobile-only" style="align-items:center;gap:6px">
+          <i class="ti ti-filter"></i> <span id="lbl-filter-mobile-katalog">Filter</span>
         </span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
@@ -88,6 +92,7 @@ document.getElementById('page-stok').innerHTML = `
         background:var(--danger);color:#fff;border:2px solid var(--cream);
         align-items:center;justify-content:center;font-size:11px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.3)">
         <i class="ti ti-x" style="font-size:11px"></i>
+
       </button>
 
       <div id="dd-filter-all" style="display:none;position:fixed;z-index:9999;
@@ -149,42 +154,17 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
-  <!-- FILTER BOTTOM SHEET (mobile) — root: Supplier/SKU Induk/Status, drill-in ke daftar opsi.
-       Reuse gaya visual kas-brimo-sheet (udah ada, dipakai form transaksi Kas) biar konsisten. -->
+  <!-- FILTER BOTTOM SHEET (mobile) — langsung daftar SKU Induk, tanpa root/drill-in lagi
+       (Status & Supplier sekarang chip scroll sendiri di atas). Tap opsi = langsung
+       terapkan & tutup. Reuse gaya visual kas-brimo-sheet biar konsisten. -->
   <div id="stok-filter-sheet-overlay" class="stok-filter-sheet-overlay" onclick="stokFilterSheetClose()"></div>
   <div id="stok-filter-sheet" class="kas-brimo-sheet">
     <div class="kas-brimo-handle"></div>
-
-    <!-- ROOT -->
-    <div id="stok-filter-sheet-root">
-      <div class="kas-brimo-sheet-title">Filter</div>
-      <div class="stok-filter-sheet-list">
-        <div class="stok-filter-sheet-row" onclick="stokFilterSheetOpenCat('katalog')">
-          <span><i class="ti ti-tag"></i> SKU Induk</span>
-          <span class="stok-filter-sheet-row-val" id="sfs-val-katalog">Semua</span>
-          <i class="ti ti-chevron-right"></i>
-        </div>
-        <div class="stok-filter-sheet-row" onclick="stokFilterSheetOpenCat('status')">
-          <span><i class="ti ti-list-check"></i> Status</span>
-          <span class="stok-filter-sheet-row-val" id="sfs-val-status">Semua</span>
-          <i class="ti ti-chevron-right"></i>
-        </div>
-      </div>
-      <div class="stok-filter-sheet-actions">
-        <button class="btn btn-sm" onclick="stokResetAllFilter()">Reset</button>
-        <button class="btn btn-sm btn-primary" onclick="stokFilterSheetClose()">Terapkan</button>
-      </div>
+    <div class="kas-brimo-back-row">
+      <div class="stok-filter-sheet-cat-title">SKU Induk</div>
+      <button class="kas-brimo-close-x" onclick="stokFilterSheetClose()">&#10005;</button>
     </div>
-
-    <!-- CATEGORY: daftar opsi (drill-in) -->
-    <div id="stok-filter-sheet-cat" style="display:none">
-      <div class="kas-brimo-back-row">
-        <button class="kas-brimo-back" onclick="stokFilterSheetBack()"><i class="ti ti-arrow-left"></i></button>
-        <div class="stok-filter-sheet-cat-title" id="stok-filter-sheet-cat-title"></div>
-        <button class="kas-brimo-close-x" onclick="stokFilterSheetClose()">&#10005;</button>
-      </div>
-      <div class="stok-filter-sheet-cat-list" id="stok-filter-sheet-cat-list"></div>
-    </div>
+    <div class="stok-filter-sheet-cat-list" id="stok-filter-sheet-cat-list"></div>
   </div>
 
   <!-- PANEL SUMMARY STOK -->
@@ -449,6 +429,7 @@ async function loadStok() {
     });
 
     filterStok(); // jaga filter aktif setelah reload
+    _stokRenderStatusTabs();
     _stokRenderSupplierTabs();
   } catch(err) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
@@ -1439,14 +1420,16 @@ function stokToggleFilterAll() {
   dd.style.display = 'block';
 }
 
-// ─── FILTER BOTTOM SHEET (mobile) ─────────────────────────────
+// ─── FILTER BOTTOM SHEET (mobile) — langsung picker SKU Induk ────
+// Status & Supplier sekarang chip scroll sendiri (lihat _stokRenderStatusTabs
+// & _stokRenderSupplierTabs), jadi sheet ini gak perlu root/drill-in lagi.
 function stokFilterSheetOpen() {
   var ov = document.getElementById('stok-filter-sheet-overlay');
   var sh = document.getElementById('stok-filter-sheet');
   if (!ov || !sh) return;
   ov.classList.add('open');
   sh.classList.add('open');
-  _stokFilterSheetShowRoot();
+  _stokFilterSheetRenderList();
 }
 
 function stokFilterSheetClose() {
@@ -1454,89 +1437,53 @@ function stokFilterSheetClose() {
   var sh = document.getElementById('stok-filter-sheet');
   if (ov) ov.classList.remove('open');
   if (sh) sh.classList.remove('open');
-  _stokFilterSheetShowRoot(); // reset ke root buat sesi buka berikutnya
 }
 
-function stokFilterSheetBack() {
-  _stokFilterSheetShowRoot();
-}
+function _stokFilterSheetRenderList() {
+  // Menyempit ke SKU Induk yang punya baris dengan Supplier terpilih (kalau ada chip Supplier aktif)
+  var rows = _filterBoss ? _stokAllData.filter(function(r){ return (r.boss||'') === _filterBoss; }) : _stokAllData;
+  var opsi = [{ val: null, label: 'Semua SKU Induk' }].concat(
+    [...new Set(rows.map(function(r){ return r.katalog||''; }).filter(Boolean))].sort()
+    .map(function(v){ return { val: v, label: v }; })
+  );
 
-function _stokFilterSheetShowRoot() {
-  var root = document.getElementById('stok-filter-sheet-root');
-  var cat  = document.getElementById('stok-filter-sheet-cat');
-  if (root) root.style.display = 'block';
-  if (cat)  cat.style.display  = 'none';
-  _stokFilterSheetUpdateRootLabels();
-}
-
-function _stokFilterSheetUpdateRootLabels() {
-  var k = document.getElementById('sfs-val-katalog');
-  var s = document.getElementById('sfs-val-status');
-  if (k) k.textContent = _filterKatalog || 'Semua';
-  if (s) s.textContent = _filterStatusTab
-    ? ((_stokStatusPillMeta[_filterStatusTab] || {}).label || _filterStatusTab)
-    : 'Semua';
-}
-
-function stokFilterSheetOpenCat(type) {
-  var root = document.getElementById('stok-filter-sheet-root');
-  var cat  = document.getElementById('stok-filter-sheet-cat');
-  if (root) root.style.display = 'none';
-  if (cat)  cat.style.display  = 'block';
-
-  var titleMap = { boss: 'Supplier', katalog: 'SKU Induk', status: 'Status' };
-  var titleEl = document.getElementById('stok-filter-sheet-cat-title');
-  if (titleEl) titleEl.textContent = titleMap[type] || '';
-
-  var opsi = [];
-  if (type === 'boss') {
-    // Menyempit ke supplier yang punya baris dengan SKU Induk terpilih (kalau ada)
-    var rowsBoss = _filterKatalog ? _stokAllData.filter(function(r){ return (r.katalog||'') === _filterKatalog; }) : _stokAllData;
-    opsi = [{ val: null, label: 'Semua Supplier' }].concat(
-      [...new Set(rowsBoss.map(function(r){ return r.boss||''; }).filter(Boolean))].sort()
-      .map(function(v){ return { val: v, label: v }; })
-    );
-  } else if (type === 'katalog') {
-    // Menyempit ke SKU Induk yang punya baris dengan Supplier terpilih (kalau ada)
-    var rowsKatalog = _filterBoss ? _stokAllData.filter(function(r){ return (r.boss||'') === _filterBoss; }) : _stokAllData;
-    opsi = [{ val: null, label: 'Semua SKU Induk' }].concat(
-      [...new Set(rowsKatalog.map(function(r){ return r.katalog||''; }).filter(Boolean))].sort()
-      .map(function(v){ return { val: v, label: v }; })
-    );
-  } else if (type === 'status') {
-    opsi = [
-      { val: null,     label: '⬜ Semua Status' },
-      { val: 'fast',   label: '🟢 Fast — laku 7 hari terakhir' },
-      { val: 'slow',   label: '🟡 Slow — laku 30 hari terakhir' },
-      { val: 'dead',   label: '🔴 Dead — laku 90 hari terakhir' },
-      { val: 'zombie', label: '⚫ Zombie — gak laku 90+ hari' },
-      { val: 'habis',  label: '💀 Habis — sisa stok 0' },
-    ];
-  }
-
-  var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : _filterStatusTab;
   var listEl = document.getElementById('stok-filter-sheet-cat-list');
   if (!listEl) return;
   listEl.innerHTML = opsi.map(function(o) {
-    var active = o.val === currVal;
+    var active = o.val === _filterKatalog;
     return '<div class="stok-filter-sheet-opt' + (active ? ' active' : '') + '" data-val="' + (o.val || '') + '" data-isnull="' + (o.val === null ? '1' : '0') + '">' + o.label + '</div>';
   }).join('');
   Array.from(listEl.querySelectorAll('.stok-filter-sheet-opt')).forEach(function(el) {
     el.addEventListener('click', function() {
       var val = el.getAttribute('data-isnull') === '1' ? null : el.getAttribute('data-val');
-      if (type === 'status') {
-        stokTabStatus(val || 'all');
-        _stokUpdateFilterLabel();
-      } else {
-        stokSetFilter(type, val);
-      }
-      _stokFilterSheetShowRoot(); // balik ke root, biar bisa lanjut pilih kategori lain
+      stokSetFilter('katalog', val);
+      stokFilterSheetClose();
     });
   });
 }
 
 function _miId(type) {
   return 'mi-' + type;
+}
+
+// ─── TAB STATUS (mobile) — scroll horizontal, gaya tab status Shopee ────
+function _stokRenderStatusTabs() {
+  var wrap = document.getElementById('stok-status-tabs-mobile');
+  if (!wrap) return;
+
+  var order = ['all', 'fast', 'slow', 'dead', 'zombie', 'habis'];
+  var html = order.map(function(key) {
+    var meta   = _stokStatusPillMeta[key];
+    var active = key === 'all' ? !_filterStatusTab : _filterStatusTab === key;
+    return '<button type="button" class="stok-chip-tab' + (active ? ' active' : '') + '" data-val="' + key + '">' + meta.dot + ' ' + meta.label + '</button>';
+  }).join('');
+  wrap.innerHTML = html;
+
+  Array.from(wrap.querySelectorAll('.stok-chip-tab')).forEach(function(el) {
+    el.addEventListener('click', function() {
+      stokTabStatus(el.getAttribute('data-val'));
+    });
+  });
 }
 
 // ─── TAB SUPPLIER (mobile) — scroll horizontal, gaya tab status Shopee ──
@@ -1548,14 +1495,14 @@ function _stokRenderSupplierTabs() {
   var rows = _filterKatalog ? _stokAllData.filter(function(r){ return (r.katalog||'') === _filterKatalog; }) : _stokAllData;
   var suppliers = [...new Set(rows.map(function(r){ return r.boss||''; }).filter(Boolean))].sort();
 
-  var html = '<button type="button" class="stok-supplier-tab' + (!_filterBoss ? ' active' : '') + '" data-val="">Semua</button>';
+  var html = '<button type="button" class="stok-chip-tab' + (!_filterBoss ? ' active' : '') + '" data-val="">Semua</button>';
   suppliers.forEach(function(s) {
     var active = _filterBoss === s;
-    html += '<button type="button" class="stok-supplier-tab' + (active ? ' active' : '') + '" data-val="' + s.replace(/"/g, '&quot;') + '">' + s + '</button>';
+    html += '<button type="button" class="stok-chip-tab' + (active ? ' active' : '') + '" data-val="' + s.replace(/"/g, '&quot;') + '">' + s + '</button>';
   });
   wrap.innerHTML = html;
 
-  Array.from(wrap.querySelectorAll('.stok-supplier-tab')).forEach(function(el) {
+  Array.from(wrap.querySelectorAll('.stok-chip-tab')).forEach(function(el) {
     el.addEventListener('click', function() {
       var val = el.getAttribute('data-val') || null;
       stokSetFilter('boss', val);
@@ -1709,24 +1656,13 @@ function _stokUpdateFilterLabel() {
   var resetBtn = document.getElementById('btn-stok-reset');
   if (resetBtn) resetBtn.style.display = parts.length ? 'inline-flex' : 'none';
 
-  // Mobile: label utama status (dot + teks) di tombol Filter
-  var meta  = _stokStatusPillMeta[_filterStatusTab] || _stokStatusPillMeta.all;
-  var dotEl = document.getElementById('lbl-filter-status-dot');
-  var txtEl = document.getElementById('lbl-filter-status-text');
-  if (dotEl) dotEl.textContent = meta.dot;
-  if (txtEl) txtEl.textContent = meta.label;
+  // Mobile: label tombol Filter sekarang cuma soal SKU Induk (Status & Supplier
+  // udah jadi chip scroll sendiri, gak perlu ditampilin di tombol ini lagi)
+  var mobileLbl = document.getElementById('lbl-filter-mobile-katalog');
+  if (mobileLbl) mobileLbl.textContent = _filterKatalog || 'Filter';
 
-  // Mobile: keterangan tipis SKU Induk aktif, di bawah baris status
-  // (Supplier gak perlu ditulis di sini lagi — udah kelihatan di tab row sendiri)
-  var subParts = [];
-  if (_filterKatalog) subParts.push(_filterKatalog);
-  var subEl = document.getElementById('lbl-filter-sub');
-  if (subEl) {
-    if (subParts.length) { subEl.textContent = subParts.join(', '); subEl.style.display = 'block'; }
-    else                 { subEl.textContent = ''; subEl.style.display = 'none'; }
-  }
-
-  // Mobile: sinkronkan tab Supplier (active state + cascading berdasarkan SKU Induk)
+  // Mobile: sinkronkan chip Status & Supplier (active state + cascading)
+  _stokRenderStatusTabs();
   _stokRenderSupplierTabs();
 
   // Mobile: tombol reset dedicated — aktif (bisa di-tap) kalau ada filter apapun
@@ -1736,9 +1672,6 @@ function _stokUpdateFilterLabel() {
     resetMobile.style.opacity       = anyActive ? '1' : '.35';
     resetMobile.style.pointerEvents = anyActive ? 'auto' : 'none';
   }
-
-  // Mobile: sinkronkan label 3-baris di root bottom sheet
-  _stokFilterSheetUpdateRootLabels();
 }
 
 function stokSetFilter(type, val) {
