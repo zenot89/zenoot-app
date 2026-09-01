@@ -564,12 +564,18 @@ function chBadge(input) {
   document.addEventListener('touchstart', function(e) {
     // Simpan elemen scroll terdekat saat touch mulai
     // Dipakai modul lain (swipe gesture) yang butuh tahu scroll context
+    // Cek DUA arah (Y & X) — sebelumnya cuma cek overflowY, jadi chip row
+    // horizontal (overflow-x:auto, mis. tab Status/Supplier di stok.js) gak
+    // pernah kedetect sebagai scroll container kalau gak ada ancestor yang
+    // scrollable vertikal → touchmove di bawah nge-preventDefault() semua
+    // gesture geser di chip itu, chip jadi keliatan "gak bisa di-scroll".
     var node = e.target;
     _scrollEl = null;
     while (node && node !== document.body && node !== document.documentElement) {
       var cs = window.getComputedStyle(node);
-      var oy = cs.overflowY;
-      if ((oy === 'scroll' || oy === 'auto') && node.scrollHeight > node.clientHeight) {
+      var scrollableY = (cs.overflowY === 'scroll' || cs.overflowY === 'auto') && node.scrollHeight > node.clientHeight;
+      var scrollableX = (cs.overflowX === 'scroll' || cs.overflowX === 'auto') && node.scrollWidth  > node.clientWidth;
+      if (scrollableY || scrollableX) {
         _scrollEl = node;
         break;
       }
