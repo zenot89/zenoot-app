@@ -1301,6 +1301,22 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     display: none;
   }
 
+  /* KUNCI lebar kolom biar strict ngikutin angka yang di-set, bukan ngikutin
+     panjang konten (nama SKU panjang / badge Zombie dkk) — tanpa ini, width
+     di bawah cuma "saran" dan kolom tetep bisa ngedorong tabel lebih lebar
+     dari layar → muncul scroll horizontal yang gak diinginkan. */
+  #page-stok .tbl {
+    table-layout: fixed;
+  }
+  #page-stok .tbl th,
+  #page-stok .tbl td {
+    box-sizing: border-box;
+  }
+  /* Vertikal doang di mobile — horizontal scroll cuma buat desktop */
+  #stok-tbl-wrap {
+    overflow-x: hidden;
+  }
+
   /* Sembunyikan: Katalog(1), Aksi(5), Sales Total(7), HPP(8), Nilai Stok(9), Boss(10) */
   #stok-tbody td:nth-child(1),
   #stok-tbody td:nth-child(5),
@@ -1317,12 +1333,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     display: none;
   }
 
-  /* SKU VARIASI — lebar supaya nama kebaca penuh */
+  /* SKU VARIASI — lebar tetap; nama kepanjangan di-ellipsis, bukan ndorong tabel */
   #stok-tbody td:nth-child(2),
   #page-stok .tbl thead tr th:nth-child(2) {
     font-size: 12px;
-    min-width: 140px;
     width: 140px;
+  }
+  #stok-tbody td:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* SISA — compact */
