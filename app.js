@@ -625,7 +625,7 @@ if ('serviceWorker' in navigator) {
         'background:#1a1a2e', 'color:#fff', 'font-size:13px',
         'display:flex', 'align-items:center', 'justify-content:space-between',
         'padding:8px 14px', 'gap:10px',
-        'border-bottom:1px solid rgba(255,255,255,0.1)',
+        'border-bottom:1px solid var(--ovl-0_1)',
         'font-family:inherit'
       ].join(';');
       banner.innerHTML =

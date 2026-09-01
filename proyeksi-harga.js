@@ -47,7 +47,7 @@
      CSS
   ═══════════════════════════════════════════════════════════════ */
   var PH_CSS = [
-    '#page-proyeksi-harga{--ph-bg:#121212;--ph-panel:#181818;--ph-panel2:#1f1f1f;--ph-border:#2c2c2c;--ph-border-s:#232323;--ph-text:#ece9e4;--ph-dim:#9b968d;--ph-faint:#635f58;--ph-accent:#ece9e4;--ph-accent-dim:rgba(236,233,228,0.07);--ph-ink:#121212;--ph-danger:#c98f8f;--ph-ok:#0b8a0b;--ph-r:6px;--ph-mono:"IBM Plex Mono",monospace;--ph-display:"Source Serif 4",Georgia,serif;}',
+    '#page-proyeksi-harga{--ph-bg:#F0EFEB;--ph-panel:#FFFFFF;--ph-panel2:#F5F4F0;--ph-border:#DEDBD3;--ph-border-s:#E5E2DA;--ph-text:#2B2B2B;--ph-dim:#8A8580;--ph-faint:#B5B1AA;--ph-accent:#2B2B2B;--ph-accent-dim:rgba(0,0,0,0.05);--ph-ink:#FFFFFF;--ph-danger:#b56a6a;--ph-ok:#0b8a0b;--ph-r:6px;--ph-mono:\"IBM Plex Mono\",monospace;--ph-display:\"Source Serif 4\",Georgia,serif;}',
     '#page-proyeksi-harga.active{display:flex;flex-direction:column;background:var(--ph-bg);color:var(--ph-text);font-family:var(--body,Inter,sans-serif);overflow:hidden;}',
     '#ph-shell{display:flex;flex:1;min-height:0;overflow:hidden;}',
     '#ph-tabs-bar{display:none;}',
@@ -69,7 +69,7 @@
     '#page-proyeksi-harga .ph-loading{color:var(--ph-faint);font-size:13px;padding:20px 0;text-align:center;}',
     '#page-proyeksi-harga .ph-empty{color:var(--ph-faint);font-size:12.5px;padding:8px 2px;line-height:1.5;}',
     '#page-proyeksi-harga .ph-error-box{background:rgba(201,143,143,.1);border:1px solid rgba(201,143,143,.3);color:#d9b3b3;border-radius:6px;padding:12px 14px;font-size:13px;margin-top:12px;}',
-    '#page-proyeksi-harga .ph-info-box{background:rgba(255,255,255,.03);border:1px solid var(--ph-border-s);color:var(--ph-faint);border-radius:6px;padding:10px 13px;font-size:12px;margin-bottom:14px;line-height:1.6;}',
+    '#page-proyeksi-harga .ph-info-box{background:var(--ovl-0_03);border:1px solid var(--ph-border-s);color:var(--ph-faint);border-radius:6px;padding:10px 13px;font-size:12px;margin-bottom:14px;line-height:1.6;}',
     /* Grid */
     '#page-proyeksi-harga .ph-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}',
     '#page-proyeksi-harga .ph-grid2 .ph-panel{margin-bottom:0;}',
@@ -121,7 +121,7 @@
     '#page-proyeksi-harga .ph-mval-sub{font-family:var(--ph-mono);font-size:11px;color:var(--ph-faint);margin-top:3px;}',
     /* Bar */
     '#page-proyeksi-harga .ph-bar-wrap{margin-top:14px;}',
-    '#page-proyeksi-harga .ph-bar{height:10px;border-radius:4px;overflow:hidden;display:flex;background:#232323;}',
+    '#page-proyeksi-harga .ph-bar{height:10px;border-radius:4px;overflow:hidden;display:flex;background:#E5E2DA;}',
     '#page-proyeksi-harga .ph-seg{height:100%;}',
     '#page-proyeksi-harga .ph-leg-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}',
     /* Tables */
@@ -143,7 +143,7 @@
     '#page-proyeksi-harga .ph-parse-hint{font-size:11.5px;color:var(--ph-faint);margin:10px 0 7px;line-height:1.5;}',
     '#page-proyeksi-harga .ph-parse-actions{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}',
     '#page-proyeksi-harga .ph-parse-status{font-size:12px;margin-top:9px;padding:8px 10px;border-radius:6px;line-height:1.5;}',
-    '#page-proyeksi-harga .ph-parse-status.ok{background:rgba(255,255,255,.04);border:1px solid var(--ph-border);color:var(--ph-dim);}',
+    '#page-proyeksi-harga .ph-parse-status.ok{background:var(--ovl-0_04);border:1px solid var(--ph-border);color:var(--ph-dim);}',
     '#page-proyeksi-harga .ph-parse-status.fail{background:rgba(201,143,143,.08);border:1px solid rgba(201,143,143,.3);color:#d9b3b3;}',
     '#page-proyeksi-harga .ph-parse-preview{margin-top:10px;padding:9px 11px;background:var(--ph-bg);border:1px solid var(--ph-border-s);border-radius:6px;font-family:var(--ph-mono);font-size:12px;color:var(--ph-dim);}',
     '#page-proyeksi-harga .ph-parse-preview b{color:var(--ph-text);}',
@@ -1602,12 +1602,12 @@
         (hpp > 0
           ? '<tr><td>HPP <span style="color:var(--ph-faint);font-size:11px">('+esc(hppKatalog)+(hppMatchInfo==='size-remap'?' · size remap':hppMatchInfo==='sku-induk'?' · dari SKU induk':'')+')</span></td><td class="num">'+rupiah(hpp)+'</td><td class="num">'+rowPct(-hpp)+'</td></tr>'
           : '<tr><td style="color:var(--ph-danger)">HPP <span style="font-size:11px">(SKU tidak ditemukan di master produk — tambah di halaman Produk)</span></td><td class="num">—</td><td class="num">—</td></tr>') +
-        '<tr style="background:rgba(255,255,255,.04)"><td style="font-weight:700">Rasio Admin & Layanan</td><td class="num" style="font-weight:700">'+rupiah(adminSum)+'</td><td class="num" style="font-weight:700">'+(adminPct!==null?pct(adminPct):'–')+'</td></tr>' +
+        '<tr style="background:var(--ovl-0_04)"><td style="font-weight:700">Rasio Admin & Layanan</td><td class="num" style="font-weight:700">'+rupiah(adminSum)+'</td><td class="num" style="font-weight:700">'+(adminPct!==null?pct(adminPct):'–')+'</td></tr>' +
         adminRows.map(function(r){ return '<tr><td style="color:var(--ph-faint);padding-left:18px">'+r[0]+'</td><td class="num" style="color:var(--ph-faint)">'+rupiah(r[1])+'</td><td class="num" style="color:var(--ph-faint)">'+rowPct(r[1])+'</td></tr>'; }).join('') +
         (acos > 0 ? '<tr><td>Biaya Iklan (ACOS '+pct(acos)+')</td><td class="num">'+rupiah(-adsBiaya)+'</td><td class="num">'+rowPct(-adsBiaya)+'</td></tr>' : '') +
         (aff  > 0 ? '<tr><td>Biaya Affiliate ('+pct(aff)+'%)</td><td class="num">'+rupiah(-affBiaya)+'</td><td class="num">'+rowPct(-affBiaya)+'</td></tr>' : '') +
         (v.voucherToko !== null ? '<tr><td>Voucher Toko</td><td class="num">'+rupiah(v.voucherToko)+'</td><td class="num">'+rowPct(v.voucherToko)+'</td></tr>' : '') +
-        '<tr style="background:rgba(255,255,255,.04)"><td style="font-weight:700">Cost Ratio (Total Cost)</td><td class="num" style="font-weight:700;color:var(--ph-danger)">'+rupiah(-costTotal)+'</td><td class="num" style="font-weight:700;color:var(--ph-danger)">'+rowPct(-costTotal)+'</td></tr>' +
+        '<tr style="background:var(--ovl-0_04)"><td style="font-weight:700">Cost Ratio (Total Cost)</td><td class="num" style="font-weight:700;color:var(--ph-danger)">'+rupiah(-costTotal)+'</td><td class="num" style="font-weight:700;color:var(--ph-danger)">'+rowPct(-costTotal)+'</td></tr>' +
         '<tr class="ph-total"><td>Estimasi Total Penghasilan</td><td class="num">'+rupiah(totalPenh)+'</td><td class="num">'+rowPct(totalPenh)+'</td></tr>' +
         (hpp > 0 ? '<tr class="ph-total"><td>Net Profit Margin</td><td class="num">'+rupiah(npm)+'</td><td class="num">'+(npmPct!==null?pct(npmPct):'–')+'</td></tr>' : '') +
         (v.biayaIsiSaldo !== null ? '<tr><td style="color:var(--ph-faint)">Biaya Isi Saldo Otomatis (dari Penghasilan)</td><td class="num" style="color:var(--ph-faint)">'+rupiah(v.biayaIsiSaldo)+'</td><td class="num" style="color:var(--ph-faint)">'+rowPct(v.biayaIsiSaldo)+'</td></tr>' : '') +

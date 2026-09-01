@@ -32,7 +32,7 @@ document.getElementById('page-dashboard').innerHTML = `
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-          <div class="nw-row" style="border-top:1px dashed rgba(255,255,255,0.1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
+          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -75,7 +75,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="metrics" id="dash-metrics">
 
     <!-- BARIS 1 — Kas Hari Ini -->
-    <div class="metric" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
+    <div class="metric" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
       <div class="m-label">Saldo Kas</div>
       <div class="m-value" id="d-saldo">—</div>
       <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
@@ -830,7 +830,7 @@ function _renderChartHariIni(jpData, canvas, tooltip) {
   const cW=W-padL-padR, cH=H-padT-padB;
   const maxVal = Math.max(...totals, 1);
   const step   = cW / (totals.length - 1 || 1);
-  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='var(--ovl-0_06)', colLabel='#909090';
 
   // Grid
   ctx.clearRect(0, 0, W, H);
@@ -923,7 +923,7 @@ function _renderChartKemarin(jpData, canvas, tooltip) {
   const cW=W-padL-padR, cH=H-padT-padB;
   const maxVal = Math.max(...totals, 1);
   const step   = cW / (totals.length - 1 || 1);
-  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='var(--ovl-0_06)', colLabel='#909090';
 
   ctx.clearRect(0, 0, W, H);
   for (let i = 0; i <= 4; i++) {
@@ -1035,7 +1035,7 @@ function _renderChartPenjualan(jpData) {
 
   const padL=44, padR=36, padT=14, padB=34;
   const cW=W-padL-padR, cH=H-padT-padB;
-  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.07)', colGrid='var(--ovl-0_06)', colLabel='#909090';
 
   for (let i=0; i<=4; i++) {
     const y = padT + cH - cH*i/4;
@@ -1244,7 +1244,7 @@ function _renderBoss(jpData, stokData) {
     legendEl.innerHTML = sorted.map(([boss,d],i) => {
       const pct = totalOmset>0?(d.omset/totalOmset*100).toFixed(0):0;
       return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;white-space:nowrap">' +
-        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,0.6)"></span>' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px var(--ovl-0_6)"></span>' +
         '<span style="font-size:11px;font-weight:700;color:var(--ink);text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+boss+'</span>' +
         '<span style="font-size:11px;font-weight:700;color:'+colors[i%colors.length]+';text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+pct+'%</span>' +
       '</div>';
@@ -1338,7 +1338,7 @@ function _renderChannel(jpData) {
     legendEl.innerHTML = sorted.map(([ch,d],i) => {
       const pct = totalOmset>0?(d.omset/totalOmset*100).toFixed(0):0;
       return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;white-space:nowrap">' +
-        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,0.6)"></span>' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px var(--ovl-0_6)"></span>' +
         '<span style="font-size:11px;font-weight:700;color:var(--ink);text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+ch+'</span>' +
         '<span style="font-size:11px;font-weight:700;color:'+colors[i%colors.length]+';text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+pct+'%</span>' +
       '</div>';
@@ -1552,7 +1552,7 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
 
   // Data box: hanya rows detail, tanpa total row
   el.innerHTML = rows.map(([nama, val]) =>
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,0.07);font-size:15px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ovl-0_07);font-size:15px">' +
       '<span style="color:var(--ink2)">' + nama + '</span>' +
       '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
     '</div>'

@@ -159,7 +159,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   .pp-snap-badge {
     font-size: 10px;
     font-weight: 700;
-    background: rgba(255,255,255,0.07);
+    background: var(--ovl-0_07);
     color: var(--ink3);
     padding: 2px 7px;
     border-radius: 99px;

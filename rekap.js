@@ -207,7 +207,7 @@ async function loadRekap() {
           <div class="card-title"><i class="ti ti-trending-up"></i> Tren 3 Bulan</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
             ${data.map(d => `
-              <div style="text-align:center;padding:10px;background:var(--card-bg2,rgba(255,255,255,0.04));border-radius:8px">
+              <div style="text-align:center;padding:10px;background:var(--card-bg2,var(--ovl-0_04));border-radius:8px">
                 <div style="font-size:11px;color:var(--ink3);margin-bottom:6px">${d.label}</div>
                 <div style="font-size:15px;font-weight:700;color:${d.laba >= 0 ? 'var(--success)' : 'var(--danger)'}">
                   ${d.laba < 0 ? '-' : '+'}${_rp(d.laba)}

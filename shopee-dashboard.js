@@ -90,7 +90,7 @@ _css.textContent = `
 .sd2-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .sd2-tbl th{color:var(--ink3);font-weight:500;text-align:left;padding:4px 6px 6px;border-bottom:.5px solid var(--ink3);font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .sd2-tbl th.r,.sd2-tbl td.r{text-align:right}
-.sd2-tbl td{padding:7px 6px;border-bottom:.5px solid rgba(255,255,255,0.04);color:var(--ink);vertical-align:middle}
+.sd2-tbl td{padding:7px 6px;border-bottom:.5px solid var(--ovl-0_04);color:var(--ink);vertical-align:middle}
 .sd2-tbl tr:last-child td{border-bottom:none}
 .sd2-tbl .tn{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
 /* BADGES */

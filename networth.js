@@ -41,7 +41,7 @@
       .nw-badge-loading { background:rgba(255,193,7,0.15);  color:#f0b429; }
       .nw-badge-offline { background:rgba(224,82,82,0.15);  color:var(--danger,#e05252); }
       .nw-refresh-btn { background:none; border:none; cursor:pointer; color:var(--ink3,#888); padding:4px; border-radius:6px; line-height:1; transition:color .2s,background .2s; }
-      .nw-refresh-btn:hover { color:var(--ink,#eee); background:rgba(255,255,255,0.06); }
+      .nw-refresh-btn:hover { color:var(--ink,#eee); background:var(--ovl-0_06); }
       .nw-refresh-spin { animation:nw-spin 1s linear infinite; }
       @keyframes nw-spin { to { transform:rotate(360deg); } }
       .nw-total-wrap { margin-bottom:12px; }

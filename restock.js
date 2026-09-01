@@ -888,7 +888,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
 
   // ── Minicard — bannerKritis + deadlineBar ikut collapse bersama cards ──
   const cards = `
-    <div id="sum-cards-wrap" style="margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)">
+    <div id="sum-cards-wrap" style="margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--ovl-0_06)">
       <div id="sum-cards-inner" style="overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:600px;opacity:1">
         ${bannerKritis ? '<div style="margin-bottom:8px">' + bannerKritis + '</div>' : ''}
         ${deadlineBar}
@@ -1031,7 +1031,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
           const pctOfGrand = grandNilaiSemuaSupplier > 0 ? Math.round((m.nilai / grandNilaiSemuaSupplier) * 100) : 0;
           const pctMandeg  = m.nilai > 0 ? Math.round((m.nilaiMandeg / m.nilai) * 100) : 0;
           return `
-          <div style="cursor:pointer;padding-bottom:14px;${i < modalPerSupplier.slice(0, 8).length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.06)' : ''}" onclick="restockSwitchTab('${m.boss}')">
+          <div style="cursor:pointer;padding-bottom:14px;${i < modalPerSupplier.slice(0, 8).length - 1 ? 'border-bottom:1px solid var(--ovl-0_06)' : ''}" onclick="restockSwitchTab('${m.boss}')">
             <div style="display:flex;align-items:center;gap:8px">
               <div style="font-size:12px;font-weight:700;color:var(--ink3);width:16px;flex-shrink:0">${i + 1}</div>
               <div style="flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.boss}</div>
@@ -1076,7 +1076,7 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     <div id="sum-top-zone" style="-webkit-flex-shrink:0;flex-shrink:0;padding:10px 14px 0;background:var(--cream2)">
       ${cards}
       ${(segera.length || skuNaik.length || (modalPerSupplier && modalPerSupplier.length)) ? `
-      <div style="padding:8px 0 8px;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="padding:8px 0 8px;border-top:1px solid var(--ovl-0_06)">
         <!-- Portrait: dot indicator + swipe hint (geser, bukan tombol) -->
         <div class="sum-header-portrait" style="display:flex;align-items:center;gap:6px;padding:2px 2px 0">
           <span class="rs-dot" data-mode="supplier" onclick="sumTabSwitch('supplier')"></span>
@@ -1089,10 +1089,10 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
           <div style="flex:1;font-size:12px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px">
             <i class="ti ti-urgent"></i> Order Sekarang — ${segera.length} SKU
           </div>
-          <div style="flex:1;font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.06)">
+          <div style="flex:1;font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid var(--ovl-0_06)">
             <i class="ti ti-trending-up"></i> Lagi Naik — ${skuNaik.length} SKU
           </div>
-          <div style="flex:1;font-size:12px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.06)">
+          <div style="flex:1;font-size:12px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid var(--ovl-0_06)">
             <i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier
           </div>
         </div>
@@ -1104,10 +1104,10 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     </div>
     <!-- Laptop: tiga kolom side-by-side (Order Sekarang · Lagi Naik · Nilai Stok per Supplier) -->
     <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid rgba(255,255,255,0.06)">
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06)">
         ${_segeraHtml}
       </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid rgba(255,255,255,0.06)">
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06)">
         ${_naikHtml}
       </div>
       <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
@@ -1144,7 +1144,7 @@ function renderSupplierFull(boss, { items, sup }, fmtRp) {
     <div id="sup-info-box" class="sup-info-box">
       <div class="sup-info-inner">
         <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;
-                    background:var(--cream2);border:1px dashed rgba(255,255,255,0.15);border-radius:6px;margin:10px 14px 0">
+                    background:var(--cream2);border:1px dashed var(--ovl-0_15);border-radius:6px;margin:10px 14px 0">
           <div style="font-size:13px"><span style="color:var(--ink3)">Lead Time:</span> <b>${sup.lead_time} hari</b></div>
           <div style="font-size:13px"><span style="color:var(--ink3)">Safety Stock:</span> <b style="color:var(--ink2)">${sup.buffer_hari} hari buffer</b></div>
           <div style="font-size:13px"><span style="color:var(--ink3)">Min Order:</span> <b>${sup.min_order} pcs</b></div>

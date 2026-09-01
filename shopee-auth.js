@@ -72,7 +72,7 @@ async function renderShopeeAuthPage() {
         </div>
 
         ${tok ? `
-          <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border-radius:8px;padding:12px;font-size:12px;margin-bottom:14px">
+          <div style="background:var(--card-bg2,var(--ovl-0_04));border-radius:8px;padding:12px;font-size:12px;margin-bottom:14px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;color:var(--ink2)">
               <div><span style="color:var(--ink3)">Shop ID</span><br><b style="color:var(--ink)">${tok.shop_id}</b></div>
               <div><span style="color:var(--ink3)">Status</span><br><b style="color:${isExpired ? 'var(--danger)' : 'var(--success)'}">${isExpired ? 'Expired' : 'Aktif'}</b></div>

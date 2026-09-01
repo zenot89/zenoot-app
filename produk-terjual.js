@@ -22,74 +22,74 @@ document.getElementById('page-produk-terjual').innerHTML = `
         </button>
 
         <!-- MODAL FILTER — BERGAYA STOK PRODUK -->
-        <div id="pt-filter-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#1c1a14;color:#f0ece0;min-width:200px;box-shadow:3px 4px 0 rgba(0,0,0,0.25);border-radius:2px">
+        <div id="pt-filter-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--cream2);color:var(--ink);min-width:200px;box-shadow:3px 4px 0 rgba(0,0,0,0.25);border-radius:2px">
 
           <!-- Bulan -->
           <div id="pt-mi-bulan" onclick="ptOpenSub('bulan',event)"
-            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">
-            <span><i class="ti ti-calendar" style="font-size:12px;margin-right:6px"></i>Bulan <span id="badge-pt-bulan" style="font-size:10px;color:rgba(255,255,255,0.5)"></span></span>
+            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_08)'" onmouseleave="this.style.background=''">
+            <span><i class="ti ti-calendar" style="font-size:12px;margin-right:6px"></i>Bulan <span id="badge-pt-bulan" style="font-size:10px;color:var(--ovl-0_5)"></span></span>
             <i class="ti ti-chevron-right" style="font-size:11px;opacity:0.5"></i>
           </div>
 
           <!-- Tanggal Range -->
           <div id="pt-mi-tgl" onclick="ptOpenSub('tgl',event)"
-            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">
-            <span><i class="ti ti-calendar-stats" style="font-size:12px;margin-right:6px"></i>Tanggal <span id="badge-pt-tgl" style="font-size:10px;color:rgba(255,255,255,0.5)"></span></span>
+            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_08)'" onmouseleave="this.style.background=''">
+            <span><i class="ti ti-calendar-stats" style="font-size:12px;margin-right:6px"></i>Tanggal <span id="badge-pt-tgl" style="font-size:10px;color:var(--ovl-0_5)"></span></span>
             <i class="ti ti-chevron-right" style="font-size:11px;opacity:0.5"></i>
           </div>
 
           <!-- SKU Induk -->
           <div id="pt-mi-katalog" onclick="ptOpenSub('katalog',event)"
-            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">
-            <span><i class="ti ti-tag" style="font-size:12px;margin-right:6px"></i>SKU Induk <span id="badge-pt-katalog" style="font-size:10px;color:rgba(255,255,255,0.5)"></span></span>
+            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_08)'" onmouseleave="this.style.background=''">
+            <span><i class="ti ti-tag" style="font-size:12px;margin-right:6px"></i>SKU Induk <span id="badge-pt-katalog" style="font-size:10px;color:var(--ovl-0_5)"></span></span>
             <i class="ti ti-chevron-right" style="font-size:11px;opacity:0.5"></i>
           </div>
 
           <!-- Supplier -->
           <div id="pt-mi-supplier" onclick="ptOpenSub('supplier',event)"
-            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">
-            <span><i class="ti ti-user" style="font-size:12px;margin-right:6px"></i>Supplier <span id="badge-pt-supplier" style="font-size:10px;color:rgba(255,255,255,0.5)"></span></span>
+            style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_08)'" onmouseleave="this.style.background=''">
+            <span><i class="ti ti-user" style="font-size:12px;margin-right:6px"></i>Supplier <span id="badge-pt-supplier" style="font-size:10px;color:var(--ovl-0_5)"></span></span>
             <i class="ti ti-chevron-right" style="font-size:11px;opacity:0.5"></i>
           </div>
 
           <!-- Reset -->
           <div onclick="ptResetFilter()"
             style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;color:rgba(255,100,100,0.9)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.08)'" onmouseleave="this.style.background=''">
+            onmouseenter="this.style.background='var(--ovl-0_08)'" onmouseleave="this.style.background=''">
             <i class="ti ti-x" style="font-size:12px"></i> Reset Filter
           </div>
         </div>
 
         <!-- SUBMENU: Bulan -->
-        <div id="dd-pt-bulan" style="display:none;position:fixed;z-index:9999;background:#1c1a14;color:#f0ece0;min-width:180px;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
-          <div onclick="ptSetBulan('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background=''">Semua Bulan</div>
+        <div id="dd-pt-bulan" style="display:none;position:fixed;z-index:9999;background:var(--cream2);color:var(--ink);min-width:180px;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
+          <div onclick="ptSetBulan('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_1)'" onmouseleave="this.style.background=''">Semua Bulan</div>
           <div id="pt-bulan-options"></div>
         </div>
 
         <!-- SUBMENU: Tanggal -->
-        <div id="dd-pt-tgl" style="display:none;position:fixed;z-index:9999;background:#1c1a14;color:#f0ece0;min-width:240px;padding:12px;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;text-transform:uppercase">Dari</div>
-          <input type="date" id="pt-tgl-dari" style="width:100%;font-family:var(--f);font-size:13px;padding:5px 8px;background:#2a2820;color:#f0ece0;border:1px solid rgba(255,255,255,0.2);margin-bottom:10px;box-sizing:border-box;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer" onchange="ptApplyTgl()">
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;text-transform:uppercase">Sampai</div>
-          <input type="date" id="pt-tgl-sampai" style="width:100%;font-family:var(--f);font-size:13px;padding:5px 8px;background:#2a2820;color:#f0ece0;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer" onchange="ptApplyTgl()">
+        <div id="dd-pt-tgl" style="display:none;position:fixed;z-index:9999;background:var(--cream2);color:var(--ink);min-width:240px;padding:12px;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
+          <div style="font-size:11px;color:var(--ovl-0_5);margin-bottom:8px;text-transform:uppercase">Dari</div>
+          <input type="date" id="pt-tgl-dari" style="width:100%;font-family:var(--f);font-size:13px;padding:5px 8px;background:var(--cream3);color:var(--ink);border:1px solid var(--ovl-0_2);margin-bottom:10px;box-sizing:border-box;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer" onchange="ptApplyTgl()">
+          <div style="font-size:11px;color:var(--ovl-0_5);margin-bottom:8px;text-transform:uppercase">Sampai</div>
+          <input type="date" id="pt-tgl-sampai" style="width:100%;font-family:var(--f);font-size:13px;padding:5px 8px;background:var(--cream3);color:var(--ink);border:1px solid var(--ovl-0_2);box-sizing:border-box;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer" onchange="ptApplyTgl()">
         </div>
 
         <!-- SUBMENU: SKU Induk -->
-        <div id="dd-pt-katalog" style="display:none;position:fixed;z-index:9999;background:#1c1a14;color:#f0ece0;min-width:180px;max-height:240px;overflow-y:auto;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
-          <div onclick="ptSetKatalog('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background=''">Semua SKU Induk</div>
+        <div id="dd-pt-katalog" style="display:none;position:fixed;z-index:9999;background:var(--cream2);color:var(--ink);min-width:180px;max-height:240px;overflow-y:auto;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
+          <div onclick="ptSetKatalog('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_1)'" onmouseleave="this.style.background=''">Semua SKU Induk</div>
           <div id="pt-katalog-options"></div>
         </div>
 
         <!-- SUBMENU: Supplier -->
-        <div id="dd-pt-supplier" style="display:none;position:fixed;z-index:9999;background:#1c1a14;color:#f0ece0;min-width:180px;max-height:240px;overflow-y:auto;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
-          <div onclick="ptSetSupplier('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)"
-            onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background=''">Semua Supplier</div>
+        <div id="dd-pt-supplier" style="display:none;position:fixed;z-index:9999;background:var(--cream2);color:var(--ink);min-width:180px;max-height:240px;overflow-y:auto;box-shadow:3px 4px 0 rgba(0,0,0,0.25)">
+          <div onclick="ptSetSupplier('')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)"
+            onmouseenter="this.style.background='var(--ovl-0_1)'" onmouseleave="this.style.background=''">Semua Supplier</div>
           <div id="pt-supplier-options"></div>
         </div>
       </div>
@@ -199,8 +199,8 @@ function ptBuildFilterOptions() {
     bulanOpts.innerHTML = bulanList.map(function(ym) {
       var [y,m] = ym.split('-');
       var label = new Date(y, parseInt(m)-1).toLocaleDateString('id-ID', {month:'long', year:'numeric'});
-      return '<div onclick="ptSetBulan(\''+ym+'\')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)" '+
-        'onmouseenter="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseleave="this.style.background=\'\'">' + label + '</div>';
+      return '<div onclick="ptSetBulan(\''+ym+'\')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)" '+
+        'onmouseenter="this.style.background=\'var(--ovl-0_1)\'" onmouseleave="this.style.background=\'\'">' + label + '</div>';
     }).join('');
   }
 
@@ -215,8 +215,8 @@ function ptBuildFilterOptions() {
   var katOpts = document.getElementById('pt-katalog-options');
   if (katOpts) {
     katOpts.innerHTML = Object.keys(katSet).sort().map(function(k) {
-      return '<div onclick="ptSetKatalog(\''+k.replace(/'/g,"\\'")+'\''+')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)" '+
-        'onmouseenter="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseleave="this.style.background=\'\'">' + k + '</div>';
+      return '<div onclick="ptSetKatalog(\''+k.replace(/'/g,"\\'")+'\''+')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)" '+
+        'onmouseenter="this.style.background=\'var(--ovl-0_1)\'" onmouseleave="this.style.background=\'\'">' + k + '</div>';
     }).join('');
   }
 
@@ -231,8 +231,8 @@ function ptBuildFilterOptions() {
   var supOpts = document.getElementById('pt-supplier-options');
   if (supOpts) {
     supOpts.innerHTML = Object.keys(supSet).sort().map(function(s) {
-      return '<div onclick="ptSetSupplier(\''+s.replace(/'/g,"\\'")+'\''+')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.08)" '+
-        'onmouseenter="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseleave="this.style.background=\'\'">' + s + '</div>';
+      return '<div onclick="ptSetSupplier(\''+s.replace(/'/g,"\\'")+'\''+')" style="padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--ovl-0_08)" '+
+        'onmouseenter="this.style.background=\'var(--ovl-0_1)\'" onmouseleave="this.style.background=\'\'">' + s + '</div>';
     }).join('');
   }
 }

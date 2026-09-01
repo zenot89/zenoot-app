@@ -156,25 +156,25 @@ document.getElementById('page-cost-produksi').innerHTML = `
     #cp-picker-overlay.open { display:block; }
     #cp-picker-sheet {
       position:fixed; left:0; right:0; bottom:0; z-index:701;
-      background:#1a1a1a; border-radius:20px 20px 0 0;
+      background:var(--cream2); border-radius:20px 20px 0 0;
       transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
       padding-bottom:env(safe-area-inset-bottom,16px);
       max-height:80vh; display:none; flex-direction:column; overflow:hidden;
     }
     #cp-picker-sheet.open { display:flex; transform:translateY(0); }
-    .cp-picker-handle { width:40px; height:4px; background:rgba(255,255,255,.18); border-radius:2px; margin:12px auto 4px; flex:none; }
+    .cp-picker-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:12px auto 4px; flex:none; }
     .cp-picker-sheet-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 16px 12px; letter-spacing:-.2px; flex:none; }
     .cp-picker-sheet-search-wrap { flex:none; padding:0 16px 10px; }
     #cp-picker-sheet-search {
-      width:100%; box-sizing:border-box; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      width:100%; box-sizing:border-box; background:var(--ovl-0_06); border:1px solid var(--ovl-0_12);
       border-radius:10px; padding:11px 14px; font-size:15px; color:var(--ink); outline:none; -webkit-appearance:none;
     }
     #cp-picker-sheet-search::placeholder { color:var(--ink3); }
-    #cp-picker-sheet-search:focus { border-color:rgba(255,255,255,.25); background:rgba(255,255,255,.09); }
+    #cp-picker-sheet-search:focus { border-color:var(--ovl-0_25); background:var(--ovl-0_09); }
     #cp-picker-sheet-list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:4px 10px 12px; }
     #cp-picker-sheet-list .cp-sheet-item { font-size:15px; padding:12px 10px; border-radius:8px; cursor:pointer; }
     #cp-picker-sheet-list .cp-sheet-item:active,
-    #cp-picker-sheet-list .cp-sheet-item.active { background:rgba(255,255,255,.08); color:var(--ink); }
+    #cp-picker-sheet-list .cp-sheet-item.active { background:var(--ovl-0_08); color:var(--ink); }
     #cp-picker-sheet-list .cp-sheet-empty { padding:20px 10px; text-align:center; color:var(--ink3); font-style:italic; font-size:13px; }
     @media (min-width:768px) {
       #cp-picker-sheet {

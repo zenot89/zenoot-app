@@ -630,7 +630,7 @@ function _stokRenderRekomendasi() {
     var top = g.varian[0]; // default: varian dengan nilai terbesar
     var selectHtml = g.varian.length > 1
       ? '<select id="' + rid + '-sel" onchange="_stokRekOnVarChange(\'' + rid + '\')" ' +
-        'style="width:100%;margin-top:4px;font-size:12px;padding:4px 6px;background:var(--cream3);color:var(--ink);border:1px solid rgba(255,255,255,0.1);border-radius:4px">'
+        'style="width:100%;margin-top:4px;font-size:12px;padding:4px 6px;background:var(--cream3);color:var(--ink);border:1px solid var(--ovl-0_1);border-radius:4px">'
         + g.varian.map(function(v) {
             return '<option value="' + v.sku + '" data-sisa="' + v.sisa + '" data-nilai="' + v.nilai + '">'
               + v.sku + ' — ' + v.sisa + ' pcs</option>';
@@ -638,7 +638,7 @@ function _stokRenderRekomendasi() {
         + '</select>'
       : '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + top.sku + ' — ' + top.sisa + ' pcs</div>';
 
-    return '<div style="padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:6px;margin-bottom:6px;background:var(--cream3)">'
+    return '<div style="padding:10px 12px;border:1px solid var(--ovl-0_08);border-radius:6px;margin-bottom:6px;background:var(--cream3)">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
       +   '<div style="flex:1;min-width:0">'
       +     '<div style="font-weight:700;font-size:13px">' + g.katalog + '</div>'
@@ -1582,7 +1582,7 @@ function stokOpenSub(type, e) {
       ' style="padding:8px 14px;cursor:pointer;font-size:13px;' +
       'background:' + (active ? 'var(--ink)' : 'transparent') + ';' +
       'color:' + (active ? 'var(--cream)' : 'inherit') + ';' +
-      'border-bottom:1px solid rgba(255,255,255,0.04);border-radius:4px;margin:1px 4px;transition:background .12s"' +
+      'border-bottom:1px solid var(--ovl-0_04);border-radius:4px;margin:1px 4px;transition:background .12s"' +
       ' onmouseover="this.style.background=\'var(--cream3)\'" onmouseout="this.style.background=\'' + (active ? 'var(--ink)' : 'transparent') + '\'">' + o.label + '</div>';
   }).join('');
   // Posisi: hitung setelah innerHTML diisi agar bisa ukur lebar

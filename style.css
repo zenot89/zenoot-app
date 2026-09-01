@@ -45,6 +45,7 @@ body {
   --ovl-0_22:rgba(0,0,0,0.22);
   --ovl-0_25:rgba(0,0,0,0.25);
   --ovl-0_4:rgba(0,0,0,0.4);
+  --ovl-0_5:rgba(0,0,0,0.5);
   --ovl-0_6:rgba(0,0,0,0.6);
   --ovl-0_65:rgba(0,0,0,0.65);
   --ovl-0_75:rgba(0,0,0,0.75);
@@ -81,6 +82,7 @@ body {
     --ovl-0_22:rgba(255,255,255,0.22);
     --ovl-0_25:rgba(255,255,255,0.25);
     --ovl-0_4:rgba(255,255,255,0.4);
+    --ovl-0_5:rgba(255,255,255,0.5);
     --ovl-0_6:rgba(255,255,255,0.6);
     --ovl-0_65:rgba(255,255,255,0.65);
     --ovl-0_75:rgba(255,255,255,0.75);
@@ -3815,7 +3817,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   flex-direction: row;
   align-items: center;
   gap: 12px;
-  background: #242424;
+  background: var(--cream3);
   border: 1.5px solid var(--ovl-0_07);
   border-radius: 14px;
   padding: 14px 16px;
@@ -3824,7 +3826,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-tipe-cell:active { background: #2e2e2e; border-color: var(--ovl-0_22); }
+.kas-tipe-cell:active { background: var(--cream4); border-color: var(--ovl-0_22); }
 .kas-tipe-cell-full {
   grid-column: 1 / -1;
   flex-direction: row;

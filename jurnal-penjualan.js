@@ -1310,7 +1310,7 @@ function _jpRenderChartTren(data, _retry, _token) {
   const cW=W-padL-padR, cH=H-padT-padB;
   const maxVal = Math.max(...totals, 1);
   const step   = cW / Math.max(totals.length-1, 1);
-  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.08)', colGrid='rgba(255,255,255,0.06)', colLabel='#909090';
+  const colLine='#3ddb6b', colFill='rgba(61,219,107,0.08)', colGrid='var(--ovl-0_06)', colLabel='#909090';
 
   ctx.clearRect(0, 0, W, H);
 
