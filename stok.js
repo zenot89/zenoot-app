@@ -1474,26 +1474,32 @@ function _miId(type) {
 }
 
 // ─── TAB STATUS (mobile) — scroll horizontal, gaya tab status Shopee ────
+// "Semua" chip dihapus — kondisi default (gak ada filter) sekarang direpresentasikan
+// dengan TIDAK ADA chip yang aktif, bukan chip "Semua" terpisah. Tap ulang chip yang
+// lagi aktif = deselect balik ke Semua.
 function _stokRenderStatusTabs() {
   var wrap = document.getElementById('stok-status-tabs-mobile');
   if (!wrap) return;
 
-  var order = ['all', 'fast', 'slow', 'dead', 'zombie', 'habis'];
+  var order = ['fast', 'slow', 'dead', 'zombie', 'habis'];
   var html = order.map(function(key) {
     var meta   = _stokStatusPillMeta[key];
-    var active = key === 'all' ? !_filterStatusTab : _filterStatusTab === key;
+    var active = _filterStatusTab === key;
     return '<button type="button" class="stok-chip-tab' + (active ? ' active' : '') + '" data-val="' + key + '">' + meta.dot + ' ' + meta.label + '</button>';
   }).join('');
   wrap.innerHTML = html;
 
   Array.from(wrap.querySelectorAll('.stok-chip-tab')).forEach(function(el) {
     el.addEventListener('click', function() {
-      stokTabStatus(el.getAttribute('data-val'));
+      var val = el.getAttribute('data-val');
+      stokTabStatus(val === _filterStatusTab ? 'all' : val);
     });
   });
 }
 
 // ─── TAB SUPPLIER (mobile) — scroll horizontal, gaya tab status Shopee ──
+// "Semua" chip dihapus — sama kayak Status, gak ada chip aktif = Semua supplier.
+// Tap ulang chip yang lagi aktif = deselect balik ke Semua.
 function _stokRenderSupplierTabs() {
   var wrap = document.getElementById('stok-supplier-tabs');
   if (!wrap || !_stokAllData) return;
@@ -1502,17 +1508,16 @@ function _stokRenderSupplierTabs() {
   var rows = _filterKatalog ? _stokAllData.filter(function(r){ return (r.katalog||'') === _filterKatalog; }) : _stokAllData;
   var suppliers = [...new Set(rows.map(function(r){ return r.boss||''; }).filter(Boolean))].sort();
 
-  var html = '<button type="button" class="stok-chip-tab' + (!_filterBoss ? ' active' : '') + '" data-val="">Semua</button>';
-  suppliers.forEach(function(s) {
+  var html = suppliers.map(function(s) {
     var active = _filterBoss === s;
-    html += '<button type="button" class="stok-chip-tab' + (active ? ' active' : '') + '" data-val="' + s.replace(/"/g, '&quot;') + '">' + s + '</button>';
-  });
+    return '<button type="button" class="stok-chip-tab' + (active ? ' active' : '') + '" data-val="' + s.replace(/"/g, '&quot;') + '">' + s + '</button>';
+  }).join('');
   wrap.innerHTML = html;
 
   Array.from(wrap.querySelectorAll('.stok-chip-tab')).forEach(function(el) {
     el.addEventListener('click', function() {
       var val = el.getAttribute('data-val') || null;
-      stokSetFilter('boss', val);
+      stokSetFilter('boss', val === _filterBoss ? null : val);
     });
   });
 }
