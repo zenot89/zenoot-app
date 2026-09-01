@@ -139,6 +139,7 @@ body{
 .sidebar{
   width:var(--sidebar-w);min-width:var(--sidebar-w);
   background:#0e0e0e;
+  --active-nav:#2c2c2c;
   border-right:1px solid var(--ovl-0_05);
   display:-webkit-flex;display:flex;
   -webkit-flex-direction:column;flex-direction:column;
