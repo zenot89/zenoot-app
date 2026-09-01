@@ -516,7 +516,7 @@ function _kasInjectSheets() {
           </select>
         </div>
       </div>
-      <div style="border-top:1px solid rgba(255,255,255,0.07);margin:8px 0 4px;padding-top:8px;display:flex;gap:10px">
+      <div style="border-top:1px solid var(--ovl-0_07);margin:8px 0 4px;padding-top:8px;display:flex;gap:10px">
         <div class="kas-brimo-field" style="flex:1">
           <label class="kas-brimo-label" style="color:var(--ink3)">Tenor (bulan) <span style="font-size:10px">↓ auto</span></label>
           <input type="number" id="kas-pjm-tenor" class="kas-brimo-input" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-pjm')">
@@ -640,7 +640,7 @@ function _kasInjectSheets() {
           <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
         </select>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.07);margin-top:8px;padding-top:8px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--ovl-0_07);margin-top:8px;padding-top:8px">
         <div class="form-group" style="flex:1 1 80px"><label style="color:var(--ink3)">Tenor (bulan) <span style="font-size:10px">↓ auto</span></label><input type="number" id="kas-edit-pjm-tenor" placeholder="mis: 12" min="1" oninput="kasPjmAutoJatuhTempo('kas-edit-pjm')"></div>
         <div class="form-group" style="flex:1 1 140px"><label style="color:var(--ink3)">Jatuh Tempo <span style="font-size:10px">↓ auto</span></label><input type="date" id="kas-edit-pjm-jatuh-tempo"></div>
       </div>
@@ -2964,18 +2964,18 @@ function _kasEnsureFloat() {
   panel.id = 'kas-akun-float';
   panel.style.cssText = [
     'display:none','position:fixed','z-index:99999',
-    'background:#111113','border:1px solid rgba(255,255,255,.12)',
+    'background:var(--cream2)','border:1px solid var(--ovl-0_12)',
     'border-radius:10px','box-shadow:0 10px 28px rgba(0,0,0,.55)',
     'flex-direction:column','overflow:hidden',
   ].join(';');
 
   panel.innerHTML = [
-    '<div style="padding:8px;flex:none;border-bottom:1px solid rgba(255,255,255,.08)">',
+    '<div style="padding:8px;flex:none;border-bottom:1px solid var(--ovl-0_08)">',
     '  <div style="display:flex;align-items:center;gap:8px;',
-    '              background:rgba(255,255,255,.06);',
-    '              border:1px solid rgba(255,255,255,.12);',
+    '              background:var(--ovl-0_06);',
+    '              border:1px solid var(--ovl-0_12);',
     '              border-radius:6px;padding:7px 10px;">',
-    '    <span style="font-size:13px;color:rgba(255,255,255,.4);flex:none">&#128269;</span>',
+    '    <span style="font-size:13px;color:var(--ink3);flex:none">&#128269;</span>',
     '    <input id="kas-akun-float-search" type="text" placeholder="Cari..."',
     '           autocomplete="off" autocorrect="off"',
     '           autocapitalize="none" spellcheck="false"',
@@ -3015,7 +3015,7 @@ function _kasFloatGroupedHtml(akunList, currentVal) {
   order.forEach(function(k){ grouped[k].sort(function(a,b){ return (a.kode||'').localeCompare(b.kode||''); }); });
 
   var saldoMap = _kasGetSaldoMap();
-  var html = '<div class="kas-akun-item" data-val="" style="color:rgba(255,255,255,.4)">— Pilih Akun —</div>';
+  var html = '<div class="kas-akun-item" data-val="" style="color:var(--ink3)">— Pilih Akun —</div>';
   order.forEach(function(k) {
     if (!grouped[k].length) return;
     html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
@@ -3032,7 +3032,7 @@ function _kasFloatItemHtml(a, saldoMap, currentVal) {
   if (isKasBank) {
     var s     = saldoMap[a.id] || {d:0,k:0};
     var saldo = s.d - s.k;
-    var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'rgba(255,255,255,.4)';
+    var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
     var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
     saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
   }
@@ -3382,7 +3382,7 @@ function kasToggleTipePicker(anchor) {
   var rect = anchor.getBoundingClientRect();
   var portal = document.createElement('div');
   portal.id = '_kas-tipe-portal';
-  portal.style.cssText = 'position:fixed;z-index:9999;background:#1e1e1e;border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:' + Math.max(rect.width, 190) + 'px;overflow:hidden;';
+  portal.style.cssText = 'position:fixed;z-index:9999;background:var(--cream2);border:1.5px solid var(--ovl-0_1);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:' + Math.max(rect.width, 190) + 'px;overflow:hidden;';
 
   // Posisi: muncul ke bawah, atau ke atas kalau dekat bawah layar
   var spaceBelow = window.innerHeight - rect.bottom;
