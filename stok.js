@@ -63,25 +63,37 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
-  <!-- TAB STATUS — mobile only, scroll horizontal (gaya tab status Shopee) -->
-  <div id="stok-status-tabs-wrap" class="stok-mobile-only" style="padding:10px 0 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <div id="stok-status-tabs-mobile" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:16px"></div>
+  <!-- TAB STATUS — mobile only. Chip scroll + [X reset] nempel di ujung kanan
+       (gak ikut ke-scroll), gaya Shopee. -->
+  <div id="stok-status-tabs-wrap" class="stok-mobile-only" style="align-items:center;gap:6px;padding:10px 16px 0">
+    <div id="stok-status-tabs-scroll" style="display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;min-width:0">
+      <div id="stok-status-tabs-mobile" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:4px"></div>
+    </div>
+    <button id="btn-stok-reset-mobile" class="stok-chip-icon-btn" onclick="stokResetAllFilter()" title="Reset semua filter"
+      style="opacity:.35;pointer-events:none">
+      <i class="ti ti-x"></i>
+    </button>
   </div>
 
-  <!-- TAB SUPPLIER — mobile only, scroll horizontal (gaya tab status Shopee).
-       "Semua" jadi chip pertama, berfungsi sekalian sebagai reset Supplier. -->
-  <div id="stok-supplier-tabs-wrap" class="stok-mobile-only" style="padding:8px 0 4px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <div id="stok-supplier-tabs" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:16px"></div>
+  <!-- TAB SUPPLIER — mobile only. Chip scroll + [Summary][Filter] nempel di ujung
+       kanan (gak ikut ke-scroll). "Semua" jadi chip pertama, sekalian reset Supplier. -->
+  <div id="stok-supplier-tabs-wrap" class="stok-mobile-only" style="align-items:center;gap:6px;padding:8px 16px 4px">
+    <div id="stok-supplier-tabs-scroll" style="display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;min-width:0">
+      <div id="stok-supplier-tabs" style="display:flex;gap:6px;flex-wrap:nowrap;padding-right:4px"></div>
+    </div>
+    <button id="btn-stok-summary-mobile" class="stok-chip-icon-btn" onclick="stokToggleSummary()" title="Summary">
+      <i class="ti ti-chart-bar"></i>
+    </button>
+    <button id="btn-filter-all-mobile" class="stok-chip-icon-btn" onclick="stokToggleFilterAll()" title="Filter SKU Induk">
+      <i class="ti ti-filter"></i>
+    </button>
   </div>
 
-  <div id="stok-filter-bar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk+Status | mobile: langsung picker SKU Induk) -->
+  <div id="stok-filter-bar" class="stok-desktop-only" style="align-items:center;gap:8px;flex-wrap:wrap">
+    <!-- KIRI: Filter — nested submenu (desktop: Supplier+SKU Induk+Status) -->
     <div id="stok-filter-wrap" style="position:relative">
       <button class="btn btn-sm" id="btn-filter-all" onclick="stokToggleFilterAll()" style="min-width:90px;width:100%;text-align:left;padding-right:24px">
         <span id="btn-filter-all-desktop-label"><i class="ti ti-adjustments-horizontal"></i> <span id="lbl-filter-all">Filter</span></span>
-        <span id="btn-filter-all-mobile-label" class="stok-mobile-only" style="align-items:center;gap:6px">
-          <i class="ti ti-filter"></i> <span id="lbl-filter-mobile-katalog">Filter</span>
-        </span>
         <i class="ti ti-chevron-down" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px"></i>
       </button>
 
@@ -141,15 +153,10 @@ document.getElementById('page-stok').innerHTML = `
       <i class="ti ti-chart-bar"></i> Summary
     </button>
 
-    <!-- RESET (mobile) — kotak sendiri biar gampang di-tap, bukan badge kecil -->
-    <button id="btn-stok-reset-mobile" class="btn btn-sm stok-mobile-only" onclick="stokResetAllFilter()" title="Reset semua filter"
-      style="flex:0 0 44px;justify-content:center;padding:7px 0;opacity:.35;pointer-events:none">
-      <i class="ti ti-x"></i>
-    </button>
-
-    <!-- KANAN: Paste Massal + Tambah (desktop only — mobile pakai laptop buat ini) -->
+    <!-- KANAN: Paste Massal + Tambah -->
     <div id="stok-actions-desktop" style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm" onclick="showPasteStok()"><i class="ti ti-clipboard"></i> Paste Massal</button>
+
       <button class="btn btn-sm btn-primary" onclick="showTambahStok()"><i class="ti ti-plus"></i> Tambah</button>
     </div>
   </div>
@@ -1656,10 +1663,10 @@ function _stokUpdateFilterLabel() {
   var resetBtn = document.getElementById('btn-stok-reset');
   if (resetBtn) resetBtn.style.display = parts.length ? 'inline-flex' : 'none';
 
-  // Mobile: label tombol Filter sekarang cuma soal SKU Induk (Status & Supplier
-  // udah jadi chip scroll sendiri, gak perlu ditampilin di tombol ini lagi)
-  var mobileLbl = document.getElementById('lbl-filter-mobile-katalog');
-  if (mobileLbl) mobileLbl.textContent = _filterKatalog || 'Filter';
+  // Mobile: ikon Filter (SKU Induk) di-highlight kalau lagi aktif — gak ada
+  // teks lagi (Status & Supplier udah jadi chip scroll sendiri)
+  var filterMobileBtn = document.getElementById('btn-filter-all-mobile');
+  if (filterMobileBtn) filterMobileBtn.classList.toggle('active', !!_filterKatalog);
 
   // Mobile: sinkronkan chip Status & Supplier (active state + cascading)
   _stokRenderStatusTabs();

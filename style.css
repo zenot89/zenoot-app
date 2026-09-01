@@ -1210,15 +1210,19 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* ─── STOK — elemen khusus mobile (default disembunyikan di desktop,
    dimunculkan lewat @media di bawah) ─────────────────────────── */
 .stok-mobile-only { display: none; }
+/* Row Filter/Summary/Reset versi desktop — default tampil, disembunyikan
+   total di mobile (lihat @media di bawah) */
+.stok-desktop-only { display: flex; }
 
-/* Tab Status & Supplier (mobile) — chip scroll horizontal, gaya tab status Shopee */
-#stok-status-tabs-wrap,
-#stok-supplier-tabs-wrap {
+/* Tab Status & Supplier (mobile) — chip scroll horizontal, gaya tab status
+   Shopee. Ikon (Reset/Summary/Filter) nempel di ujung, di LUAR area scroll. */
+#stok-status-tabs-scroll,
+#stok-supplier-tabs-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-#stok-status-tabs-wrap::-webkit-scrollbar,
-#stok-supplier-tabs-wrap::-webkit-scrollbar { display: none; }
+#stok-status-tabs-scroll::-webkit-scrollbar,
+#stok-supplier-tabs-scroll::-webkit-scrollbar { display: none; }
 .stok-chip-tab {
   flex-shrink: 0;
   white-space: nowrap;
@@ -1238,6 +1242,31 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--cream);
 }
 .stok-chip-tab:active { opacity: .8; }
+
+/* Ikon nempel di ujung row chip (Reset/Summary/Filter) — persegi kecil,
+   gak ikut ke-scroll, konsisten sama tinggi chip di sebelahnya */
+.stok-chip-icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink4);
+  background: transparent;
+  color: var(--ink2);
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.stok-chip-icon-btn i { font-size: 15px; }
+.stok-chip-icon-btn:active { opacity: .8; }
+.stok-chip-icon-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+}
 
 /* Fix: th dengan onclick tidak terhalang canvas rough */
 .tbl th[onclick] {
@@ -1260,34 +1289,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .stok-mobile-only {
     display: flex;
   }
-  /* Filter (gabungan Supplier+SKU Induk+Status) & Summary — sama rata ngisi
-     lebar; Reset dapat kotak kecil sendiri di ujung kanan.
-     Urutan visual: Summary → Filter → Reset (DOM tetap Filter→Summary→Reset
-     biar desktop, yang gak pakai 'order', gak berubah sama sekali). */
-  #btn-stok-summary {
-    order: 1;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  #stok-filter-wrap {
-    order: 2;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  #btn-stok-reset-mobile {
-    order: 3;
-  }
-  #stok-filter-wrap #btn-filter-all {
-    width: 100%;
-  }
-  /* Mobile: label "Filter" + ikon adjustments (versi desktop) disembunyikan,
-     diganti label status + keterangan supplier/sku tipis (lihat markup) */
-  #btn-filter-all-desktop-label {
-    display: none;
-  }
-  /* Badge reset kecil versi desktop juga disembunyikan — mobile pakai
-     tombol reset dedicated (#btn-stok-reset-mobile) biar gak dobel */
-  #btn-stok-reset {
+  /* Row Filter/Summary/Reset versi desktop disembunyikan total di mobile —
+     Summary, Filter (SKU Induk), dan Reset sekarang jadi ikon nempel di
+     ujung row chip Status & Supplier (lihat markup + .stok-chip-icon-btn) */
+  .stok-desktop-only {
     display: none !important;
   }
   /* Summary teks desktop (baris "125 SKU · Sisa..." di card-title) gak perlu
