@@ -23,6 +23,18 @@ buat modul lain juga (Kas, Jurnal, dll) karena mereka satu arsitektur.
 - PWA: ada `sw.js` (service worker) buat caching offline
 - Font & ikon: Tabler Icons (`class="ti ti-*"`) via CDN, Google Fonts via `<link>`
 
+**Palet brand (4 warna netral, dikonfirmasi user 2 Sep 2026):**
+| Nama | Hex | CSS var (`:root`) | Pemakaian |
+|---|---|---|---|
+| Abu tua | `#2B2B2B` | `--ink` | teks, tombol utama, badge |
+| Putih | `#FFFFFF` | `--cream2` | background kartu/menu |
+| Abu muda | `#F0EFEB` | `--cream` | background halaman |
+| Abu netral | `#8A8580` | `--ink2` | subteks/keterangan |
+
+Ini murni netral (gak ada warna aksen kayak merah/ijo/biru) — status color
+(`--danger`, `--ok`, `--info`, `--warn`) itu sistem TERPISAH, jangan disamain
+sebagai "warna brand" pas user nyebut itu.
+
 ---
 
 ## 2. Struktur File & Cara Kerja 1 Halaman
@@ -208,7 +220,59 @@ JANGAN bikin field itu jadi `<select>` native (lihat §5.5 soal native
 control) — autocomplete ini yang jadi standarnya, tetap ngizinin ketik bebas
 buat kasus valid yang belum ada di tabel sumbernya.
 
-### 5.9. Export PDF force-close di Android (PWA standalone) — histori & fix
+### 5.8.6. Container yang "harus selalu beda tema" dari `:root` — WAJIB re-scope CSS var, gak otomatis ngikut
+
+Beberapa container di-hardcode background-nya beda dari tema default halaman
+(`.sidebar` selalu gelap `#0e0e0e` walau app-nya tema terang; card
+Net Worth/Beban/FCF di Dashboard — `#nw-swipe-container` — sengaja beda tema
+juga). Kalau container kayak gini CUMA hardcode `background`-nya doang tanpa
+ikut redeclare custom property (`--ink`, `--ink3`, `--danger`, `--ok`, dst),
+elemen di dalamnya yang baca `var(--ink)` dkk bakal ambil nilai dari `:root`
+— yang didesain buat tema SEBALIKNYA. Hasilnya teks nyaris invisible (teks
+terang di atas bg terang, atau teks gelap di atas bg gelap), TAPI CSS-nya
+keliatan "benar" kalau cuma dibaca sekilas (gak ada typo, gak ada error).
+
+**Kejadian nyata:** teks "zenOt" di logo sidebar & label nav-item aktif
+nyaris gak keliatan (root `--ink`/`--active-nav` itu buat tema terang, dibaca
+sidebar yang selalu gelap). Juga di Dashboard: label & badge di card Net
+Worth pakai warna yang sama persis kayak background barunya.
+
+**Pola fix yang established:** scope ulang custom property yang relevan di
+level container (`#page-gadag`, `.sidebar`, `#nw-swipe-container` — lihat
+kode buat contoh), BUKAN hardcode warna satu-satu di tiap child selector.
+Keuntungan: otomatis ke-apply ke elemen yang warnanya di-inject inline dari
+JS pakai `style="color:var(--danger)"` juga (lihat §5.11 kenapa ini penting).
+
+**WAJIB dicek sebelum nganggep beres:** trace SEMUA child yang baca custom
+property itu di dalam container-nya (bukan cuma yang keliatan di screenshot
+user) — termasuk badge, hover state, placeholder text, dan style inline yang
+di-generate JS (`element.style.color = 'var(--xxx)'` atau template string
+`style="color:var(--xxx)"`). Grep `var(--nama-property)` di file `.js` yang
+relevan, jangan cuma di `style.css`.
+
+### 5.8.7. File JS bisa punya duplikat inline `<style>` — cek semua file, jangan cuma `style.css`
+
+Beberapa modul (`networth.js`) nyimpen COPY dari sebagian rule CSS yang juga
+ada di `style.css` (inject `<style>` sendiri saat widget-nya di-render).
+Kalau cuma edit `style.css` dan lupa cek duplikatnya, hasil fix bisa ke-override
+lagi tergantung urutan cascade (siapa yang nge-load terakhir menang kalau
+spesifisitasnya sama). **Sebelum nganggep 1 file css cukup buat fix warna/style
+sebuah komponen, `grep` nama class-nya di SEMUA file `.js`** — kalau ketemu
+duplikat, edit semuanya sekaligus biar konsisten.
+
+### 5.8.8. Live site (`zenot89.github.io`) bisa beda versi dari zip yang di-upload user
+
+Pernah kejadian: nilai `--danger` di `:root` (`style.css` dalam zip) beda
+dari warna yang benar-benar ke-render di screenshot live site user (root
+bilang satu hex, tapi yang muncul di layar persis nilai fallback lama —
+indikasi live site jalanin versi `style.css` yang beda/lebih lama dari yang
+ada di zip). **Kalau nemu kejanggalan gini, jangan maksa nyocokin analisis
+ke pixel screenshot** — cukup flag ke user sebagai catatan ("live site
+mungkin belum sinkron sama zip ini"), dan tetap kerjain fix berdasarkan
+KODE YANG ADA DI ZIP (itu yang bakal di-replace user), bukan berdasarkan
+nebak-nebak dari pixel yang mungkin representasi versi lama.
+
+
 
 **Gejala:** tombol Export PDF bikin app **force-close total** (bukan error
 JS biasa yang bisa di-`alert()`) — kejadian di Android, khusus pas app
@@ -310,6 +374,33 @@ file itu — cari `</div>` yang ilang/nyasar dulu.
 Untuk cek panel-panel sejajar (bukan numpuk nested), pakai variasi script yang
 nge-track depth tiap `id="gdg-panel-xxx"` ketemu — semua panel harus punya
 depth yang SAMA (lihat riwayat percakapan buat contoh scriptnya).
+
+### 6.1. Validasi kontras warna (WCAG) sebelum ngasih rekomendasi/fix warna teks
+
+Kalau kerjaannya ganti warna background/teks (bukan cuma layout/logic),
+JANGAN nebak "kayaknya kontras" dari mata doang — hitung rasio WCAG-nya:
+
+```python
+def lin(c):
+    c/=255
+    return c/12.92 if c<=0.03928 else ((c+0.055)/1.055)**2.4
+def lum(hex):
+    hex=hex.lstrip('#')
+    r,g,b=int(hex[0:2],16),int(hex[2:4],16),int(hex[4:6],16)
+    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b)
+def contrast(a,b):
+    la,lb=lum(a),lum(b)
+    L1,L2=max(la,lb),min(la,lb)
+    return (L1+0.05)/(L2+0.05)
+```
+
+Target minimum: **4.5:1** buat teks normal (AA), **3:1** buat teks besar/bold
+(≥18.66px bold atau ≥24px), **7:1** kalau user minta "lebih kontras lagi" (AAA).
+Kalau background-nya semi-transparan (badge `rgba(...)`), hitung dulu warna
+hasil composite-nya di atas base background sebelum ngukur kontras teksnya
+(jangan ukur langsung ke warna rgba mentahnya). Sample pixel asli dari
+screenshot user (`PIL.Image.getpixel`) kalau ada keraguan warna yang
+BENERAN ke-render vs yang tertulis di CSS (lihat §5.8.8).
 
 ---
 

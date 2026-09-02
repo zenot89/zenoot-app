@@ -3796,7 +3796,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 14px;
   width: 100%;
-  background: #242424;
+  background: #2B2B2B;
   border: 1.5px solid var(--ovl-0_07);
   border-radius: 14px;
   padding: 14px 16px;
@@ -3805,7 +3805,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-tipe-card:active { background: #2e2e2e; border-color: var(--ovl-0_18); }
+.kas-tipe-card:active { background: #363636; border-color: var(--ovl-0_18); }
 
 /* ── Grid 2 kolom untuk sheet tipe (mobile) ── */
 .kas-tipe-grid {
@@ -3893,7 +3893,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-tipe-label {
   font-size: 14px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--cream);
   margin-bottom: 2px;
   line-height: 1.3;
 }
@@ -4052,19 +4052,19 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 .kas-brimo-hist-chip {
   flex-shrink: 0;
-  background: #2a2a2a;
+  background: #2B2B2B;
   border: 1px solid var(--ovl-0_1);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink2);
+  color: var(--cream);
   cursor: pointer;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   transition: background 0.1s;
 }
-.kas-brimo-hist-chip:active { background: #3a3a3a; }
+.kas-brimo-hist-chip:active { background: #363636; }
 
 /* Numpad BRImo — tinggi key fixed seperti BRImo asli */
 #kas-brimo-numpad {
@@ -4081,13 +4081,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 .kas-brimo-key {
   flex: 1;
-  background: #242424;
+  background: #2B2B2B;
   border: none;
   border-radius: 12px;
   height: 56px;
   font-size: 22px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--cream);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -4098,7 +4098,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.08s, transform 0.06s;
 }
 .kas-brimo-key:active {
-  background: #333;
+  background: #363636;
   transform: scale(0.94);
 }
 .kas-brimo-000 { font-size: 15px; font-weight: 700; }
@@ -4162,19 +4162,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-brimo-input {
   width: 100%;
   box-sizing: border-box;
-  background: #242424;
+  background: #2B2B2B;
   border: 1.5px solid var(--ovl-0_08);
   border-radius: 10px;
   padding: 11px 14px;
   font-size: 14px;
   font-family: var(--f);
-  color: var(--ink);
+  color: var(--cream);
   outline: none;
   transition: border-color 0.15s;
 }
 .kas-brimo-input:focus { border-color: #1a6ee0; }
 .kas-brimo-picker {
-  background: #242424 !important;
+  background: #2B2B2B !important;
+  color: var(--cream);
   border: 1.5px solid var(--ovl-0_08) !important;
   border-radius: 10px !important;
   padding: 11px 14px !important;
