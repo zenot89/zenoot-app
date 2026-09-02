@@ -38,7 +38,7 @@
       .nw-actions { display:flex; align-items:center; gap:8px; }
       .nw-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; letter-spacing:0.04em; }
       .nw-badge-live    { background:rgba(76,175,80,0.15);  color:var(--ok,#4caf50); }
-      .nw-badge-loading { background:rgba(255,193,7,0.15);  color:#452e00; }
+      .nw-badge-loading { background:rgba(255,193,7,0.15);  color:#241800; }
       .nw-badge-offline { background:rgba(224,82,82,0.15);  color:var(--danger,#e05252); }
       .nw-refresh-btn { background:none; border:none; cursor:pointer; color:var(--ink3,#888); padding:4px; border-radius:6px; line-height:1; transition:color .2s,background .2s; }
       .nw-refresh-btn:hover { color:var(--ink,#eee); background:var(--ovl-0_06); }
@@ -56,7 +56,7 @@
       .nw-neg { color:var(--danger,#e05252); }
       .nw-shopee-badge { font-size:9px; padding:1px 5px; border-radius:10px; font-weight:600; }
       .nw-shopee-badge.live    { background:rgba(76,175,80,0.15);  color:var(--ok,#4caf50); }
-      .nw-shopee-badge.offline { background:rgba(255,193,7,0.12);  color:#452e00; }
+      .nw-shopee-badge.offline { background:rgba(255,193,7,0.12);  color:#241800; }
     `;
     document.head.appendChild(s);
   }

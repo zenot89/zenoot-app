@@ -58,7 +58,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-slide-header nw-slide-s3">
           <div class="nw-slide-label"><i class="ti ti-trending-up"></i> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
           <div class="nw-slide-value" id="dash-fcf-val">Rp —</div>
-          <div class="nw-slide-sub">Total Income: <span id="dash-income-total" style="color:#012c30;font-weight:700">—</span></div>
+          <div class="nw-slide-sub">Total Income: <span id="dash-income-total" style="color:#001012;font-weight:700">—</span></div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data" id="dash-income-wrap">

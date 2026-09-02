@@ -3531,7 +3531,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.04em;
 }
 .nw-badge-live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
-.nw-badge-loading { background: rgba(255,193,7,0.15); color: #452e00; }
+.nw-badge-loading { background: rgba(255,193,7,0.15); color: #241800; }
 .nw-badge-offline { background: rgba(224,82,82,0.15); color: var(--danger,#e05252); }
 .nw-refresh-btn {
   background: none; border: none; cursor: pointer;
@@ -3580,7 +3580,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 .nw-shopee-badge.live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
-.nw-shopee-badge.offline { background: rgba(255,193,7,0.12); color: #452e00; }
+.nw-shopee-badge.offline { background: rgba(255,193,7,0.12); color: #241800; }
 
 /* ── MOBILE METRIC CARD MODERN ENHANCEMENT ────────────────────── */
 @media (max-width: 767px) {
@@ -4342,14 +4342,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Palet brand (abu netral #9b968d) di-scope ke container ini biar semua turunan
-   yang baca var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk yang
-   di-inject langsung dari dashboard.js (beban-row, badge, placeholder) — otomatis
-   ikut kontras, tanpa perlu override manual di tiap child. */
+   yang baca var(--ink)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk
+   yang di-inject langsung dari dashboard.js (beban-row, badge, placeholder) —
+   otomatis ikut kontras, tanpa perlu override manual di tiap child.
+   Level AAA (~6-6.6:1) terhadap bg #9b968d, dinaikkan dari AA (~4.6-4.85:1). */
 #nw-swipe-container{
-  --ink3:#2e2a26;
+  --ink:#0d0d0d;
+  --ink3:#1a1714;
   --ink4:#625d55;
-  --danger:#4d1a12;
-  --ok:#063521;
+  --danger:#2e0f0a;
+  --ok:#032015;
 }
 
 /* Warna header per slide */
