@@ -3796,7 +3796,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 14px;
   width: 100%;
-  background: #2B2B2B;
+  background: #242424;
   border: 1.5px solid var(--ovl-0_07);
   border-radius: 14px;
   padding: 14px 16px;
@@ -3805,7 +3805,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.kas-tipe-card:active { background: #363636; border-color: var(--ovl-0_18); }
+.kas-tipe-card:active { background: #2e2e2e; border-color: var(--ovl-0_18); }
 
 /* ── Grid 2 kolom untuk sheet tipe (mobile) ── */
 .kas-tipe-grid {
@@ -3893,7 +3893,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .kas-tipe-label {
   font-size: 14px;
   font-weight: 700;
-  color: var(--cream);
+  color: var(--ink);
   margin-bottom: 2px;
   line-height: 1.3;
 }

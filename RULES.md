@@ -260,7 +260,30 @@ spesifisitasnya sama). **Sebelum nganggep 1 file css cukup buat fix warna/style
 sebuah komponen, `grep` nama class-nya di SEMUA file `.js`** — kalau ketemu
 duplikat, edit semuanya sekaligus biar konsisten.
 
-### 5.8.8. Live site (`zenot89.github.io`) bisa beda versi dari zip yang di-upload user
+### 5.8.8. SEBELUM edit warna/style sebuah class, `grep` DULU apakah class itu beneran dipakai di JS — dan cek class TURUNANNYA gak di-share ke component lain
+
+**Kejadian nyata:** ada 2 class mirip nama, `.kas-tipe-card` (list 1 kolom,
+background gelap) dan `.kas-tipe-cell` (grid 2 kolom, background TERANG
+`var(--cream3)`). Pas benerin kontras di modul Kas, kena edit `.kas-tipe-card`
+— padahal class itu **dead code, 0 pemakaian** di JS manapun (`grep` baru
+ketauan belakangan). Yang lebih parah: `.kas-tipe-label` (teks label) itu
+**di-share** kedua class itu. Karena dikira cuma dipake di card gelap, warnanya
+diganti terang (`var(--ink)` → `var(--cream)`) — hasilnya beneran fix di card
+yang gak kepake, tapi JUSTRU MERUSAK `.kas-tipe-cell` yang asli dipakai user
+(teks terang di atas bg terang, kontras dari harusnya bagus jadi 1.08).
+
+**Wajib sebelum ubah warna/background sebuah class:**
+1. `grep -rn "nama-class" *.js` DULU — pastiin class itu beneran ke-render,
+   bukan cuma nebak dari nama yang "kedengeran cocok" sama bug di screenshot.
+2. Kalau mau ubah property yang ke-share banyak selector (`color`, dst),
+   cek SEMUA selector yang pakai class itu (`grep -n "\.nama-class" style.css`)
+   dan pastiin background di TIAP konteks pemakaiannya sama-sama cocok sama
+   warna baru — jangan asumsi 1 konteks mewakili semua.
+3. Kalau ternyata ada 2+ class mirip nama/fungsi tapi cuma 1 yang kepake,
+   PERTIMBANGIN buat kasih tau user ada dead code (biar bisa dihapus atau
+   di-rename biar gak nyasar lagi ke depannya).
+
+
 
 Pernah kejadian: nilai `--danger` di `:root` (`style.css` dalam zip) beda
 dari warna yang benar-benar ke-render di screenshot live site user (root
@@ -400,7 +423,7 @@ Kalau background-nya semi-transparan (badge `rgba(...)`), hitung dulu warna
 hasil composite-nya di atas base background sebelum ngukur kontras teksnya
 (jangan ukur langsung ke warna rgba mentahnya). Sample pixel asli dari
 screenshot user (`PIL.Image.getpixel`) kalau ada keraguan warna yang
-BENERAN ke-render vs yang tertulis di CSS (lihat §5.8.8).
+BENERAN ke-render vs yang tertulis di CSS (lihat §5.8.9).
 
 ---
 
