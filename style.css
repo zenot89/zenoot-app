@@ -2404,11 +2404,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 .kas-akun-item:hover {
   background: var(--ovl-0_06);
-  color: var(--ink);
+  color: var(--cream);
 }
 .kas-akun-item.active {
   background: var(--ovl-0_08);
-  color: var(--ink);
+  color: var(--cream);
   font-weight: 600;
 }
 /* Scrollbar tipis di dalam list */
@@ -2433,7 +2433,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   padding: 5px 8px 5px 28px;
   font-size: 12px;
   font-family: var(--f);
-  color: var(--ink);
+  color: var(--cream);
   outline: none;
   -webkit-appearance: none;
 }

@@ -879,7 +879,7 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
         '</div>',
         '<div id="dp-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px"></div>',
         '<div style="display:flex;gap:8px;justify-content:flex-end">',
-          '<button id="dp-reset" style="background:var(--cream4,#333);border:none;cursor:pointer;color:var(--ink3,#888);border-radius:10px;padding:8px 18px;font-size:13px;font-weight:600">Atur Ulang</button>',
+          '<button id="dp-reset" style="background:var(--cream4,#333);border:none;cursor:pointer;color:var(--ink,#eee);border-radius:10px;padding:8px 18px;font-size:13px;font-weight:600">Atur Ulang</button>',
           '<button id="dp-ok" style="background:#2979ff;border:none;cursor:pointer;color:#fff;border-radius:50%;width:42px;height:42px;font-size:20px;font-weight:700">✓</button>',
         '</div>',
       '</div>'
