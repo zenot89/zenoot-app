@@ -2919,7 +2919,7 @@ function kasAkunPickerSelectItem(item) {
   if (lbl) {
     var namaEl = item.querySelector('.kas-akun-nama');
     lbl.textContent = namaEl ? namaEl.textContent : item.textContent.trim();
-    lbl.style.color = 'var(--ink)';
+    lbl.style.color = ''; // biar ikut var(--cream)/var(--ink) dari parent (.kas-brimo-picker vs .kas-akun-picker), bukan dihardcode di sini
   }
   kasAkunPickerClose();
 }
@@ -3293,7 +3293,7 @@ function kasSyncPickerLabel(pickerId, selectId) {
     var match = list.querySelector('.kas-akun-item[data-val="' + val + '"]');
     if (match) {
       match.classList.add('active');
-      if (lbl) { lbl.textContent = match.textContent.trim(); lbl.style.color = 'var(--ink)'; }
+      if (lbl) { lbl.textContent = match.textContent.trim(); lbl.style.color = ''; }
     } else {
       if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
     }
