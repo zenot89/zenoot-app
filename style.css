@@ -3531,7 +3531,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.04em;
 }
 .nw-badge-live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
-.nw-badge-loading { background: rgba(255,193,7,0.15); color: #f0b429; }
+.nw-badge-loading { background: rgba(255,193,7,0.15); color: #452e00; }
 .nw-badge-offline { background: rgba(224,82,82,0.15); color: var(--danger,#e05252); }
 .nw-refresh-btn {
   background: none; border: none; cursor: pointer;
@@ -3580,7 +3580,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 .nw-shopee-badge.live    { background: rgba(76,175,80,0.15); color: var(--ok,#4caf50); }
-.nw-shopee-badge.offline { background: rgba(255,193,7,0.12); color: #f0b429; }
+.nw-shopee-badge.offline { background: rgba(255,193,7,0.12); color: #452e00; }
 
 /* ── MOBILE METRIC CARD MODERN ENHANCEMENT ────────────────────── */
 @media (max-width: 767px) {
@@ -4341,10 +4341,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   margin-bottom: 6px;
 }
 
+/* Palet brand (abu netral #9b968d) di-scope ke container ini biar semua turunan
+   yang baca var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk yang
+   di-inject langsung dari dashboard.js (beban-row, badge, placeholder) — otomatis
+   ikut kontras, tanpa perlu override manual di tiap child. */
+#nw-swipe-container{
+  --ink3:#2e2a26;
+  --ink4:#625d55;
+  --danger:#4d1a12;
+  --ok:#063521;
+}
+
 /* Warna header per slide */
-.nw-slide-s1 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s2 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s3 { background: #221f1f; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s1 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s2 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s3 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
 
 .nw-slide-header .nw-slide-label {
   font-size: 10px;
@@ -4366,7 +4377,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: #111;
   margin: 2px 0 3px;
 }
-.nw-slide-s1 .nw-slide-value { color: #ece9e4; }
+.nw-slide-s1 .nw-slide-value { color: var(--ink); }
 .nw-slide-s2 .nw-slide-value { color: var(--danger, #e05c4b); }
 .nw-slide-s3 .nw-slide-value { color: var(--ok, #2ecc7a); }
 .nw-slide-header .nw-slide-sub {
@@ -4391,10 +4402,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
 
 /* Warna data box per slide */
-.nw-slide-s1 + .nw-slide-data { background: #2e2a2a; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
-.nw-slide-s2 + .nw-slide-data { background: #2e2a2a; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
+.nw-slide-s1 + .nw-slide-data { background: #9b968d; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
+.nw-slide-s2 + .nw-slide-data { background: #9b968d; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
 .nw-slide-s3 + .nw-slide-data {
-  background: #2e2a2a;
+  background: #9b968d;
   border: 1px solid var(--ovl-0_09);
   border-top: none;
   scrollbar-color: var(--ovl-0_2) transparent;
@@ -4402,18 +4413,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
 .nw-slide-s2 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
 
-/* Teks di data box s1, s2, s3 - terang karena bg gelap */
-.nw-slide-s1 + .nw-slide-data .nw-row-label,
-.nw-slide-s1 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
-.nw-slide-s1 + .nw-slide-data .nw-row-val { color: #ece9e4; }
+/* Teks label/value di data box s1, s2, s3 sekarang ikut var(--ink3)/var(--ink)/
+   var(--ok)/var(--danger) yang udah di-scope kontras di #nw-swipe-container
+   (lihat blok di atas) — gak perlu override warna manual lagi di sini. */
 .nw-slide-s1 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
-.nw-slide-s2 + .nw-slide-data .nw-row-label,
-.nw-slide-s2 + .nw-slide-data .beban-row span:first-child { color: #9b968d; }
 .nw-slide-s2 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
+.nw-slide-s3 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
 
 /* Badge dan refresh button di header berwarna */
 .nw-slide-s2 .nw-refresh-btn { color: var(--ovl-0_75); }
-.nw-slide-s2 .nw-refresh-btn:hover { color: #fff; background: var(--ovl-0_12); }
+.nw-slide-s2 .nw-refresh-btn:hover { color: var(--ink); background: var(--ovl-0_12); }
 
 /* ======================================================
    PORTRAIT MOBILE - layout swipe
