@@ -20,19 +20,6 @@
 // Tabel: hutang_supplier, hutang_barang, hutang_bon, hutang_bon_item,
 // hutang_pembayaran (lihat migration SQL terpisah).
 
-// ─── FONT "Comic Neue" (tema notebook, sama kayak Gadag) — di-load via <link>,
-// bukan @import (@import di tengah <style> block ke-skip diem-diem sama browser).
-// ID guard SENGAJA sama persis kayak punya gadag.js — biar dedupe: siapapun
-// yang lebih dulu ke-load, modul yang satunya nemu link ini udah ada & skip.
-(function() {
-  if (document.getElementById('gdg-font-comic-neue')) return;
-  var link = document.createElement('link');
-  link.id   = 'gdg-font-comic-neue';
-  link.rel  = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap';
-  document.head.appendChild(link);
-})();
-
 // ─── LOGO ZENOOT (bulat) buat header PDF — di-preload sekali jadi dataURL
 // pas modul ke-load, biar pas tombol "Export PDF" dipencet gak nunggu
 // fetch dulu (biasanya udah keburu selesai). File sama persis kayak yang
@@ -49,34 +36,13 @@ var _hsLogoReady = fetch('logo.png').then(function(r){ return r.blob(); }).then(
 
 document.getElementById('page-hutang-supplier').innerHTML = `
   <style>
-    /* ═══ TEMA NOTEBOOK (samain kayak Gadag) ═══════════════════════════
-       Modul ini beda pendekatan dari gadag.js: SEMUA class .hs-* di sini
-       udah pakai var(--ink)/var(--cream)/var(--f) dkk (variabel GLOBAL),
-       bukan warna hex hardcoded. Jadi override-nya CUKUP redefine variabel
-       itu di scope #page-hutang-supplier — otomatis nge-cascade ke SEMUA
-       elemen turunannya (card, tombol, sheet, form) TANPA perlu override
-       tiap class satu-satu kayak di gadag.js (yang emang perlu vars custom
-       --gdg-* sendiri karena banyak makein class GLOBAL style.css yang
-       udah hardcode var(--ink)/var(--cream) versi dark-theme).
-       Sheet/modal di modul ini juga literally nempel di dalem innerHTML
-       #page-hutang-supplier (bukan di-append ke document.body kayak di
-       modul lain), jadi warisan CSS var ini otomatis ikut sampe ke sana. */
+    /* Modul ini dulu punya tema "notebook" sendiri (cream/Comic Neue, samain
+       kayak Gadag) — udah dicabut 3 Sep 2026, sekarang murni ikut variabel
+       GLOBAL (--ink/--cream/--f dkk dari style.css / tema default app),
+       gak di-override lagi di scope ini. */
     #page-hutang-supplier {
-      --ink:    #262220;   /* tinta pena, hampir hitam */
-      --ink2:   #5c554d;   /* tinta pudar, teks sekunder */
-      --ink3:   #8a8277;   /* tinta lebih pudar lagi, label/meta */
-      --ink4:   rgba(38,34,32,.16); /* border tipis ala garis buku */
-      --cream:  #f7f2e6;   /* kertas krem */
-      --cream2: #efe8d8;   /* kertas krem, dikit lebih gelap (card) */
-      --cream3: #e5dcc8;   /* satu tingkat lagi (dipake tabel preview) */
-      --cream4: #fffdf8;   /* paling terang (hover) */
-      --danger: #b5453d;   /* merah dark-theme kepucetan di atas krem */
-      --info:   #2f6fb0;
-      --f:  'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-      --f2: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
       background: var(--cream); color: var(--ink);
     }
-    #page-hutang-supplier *:not(i):not(.ti) { font-family: var(--f) !important; }
 
     /* Full-height chain, pola sama persis kayak #page-gadag — biar panel
        (Bon/Master Barang) scroll internal sendiri2, bukan ngedorong tinggi
@@ -94,13 +60,6 @@ document.getElementById('page-hutang-supplier').innerHTML = `
        jadi scrollable ke samping — itu penyebab "geser-geser" yang dikeluhin
        di Master Barang HP, 25 Agu 2026. */
     .hs-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; }
-
-    /* Kertas bergaris — feel "buku tulis" di belakang list Bon */
-    #hs-bon-list {
-      background-image: repeating-linear-gradient(
-        to bottom, transparent, transparent 37px, var(--ink4) 37px, var(--ink4) 38px
-      );
-    }
 
     /* ── Header: judul panel + dropdown menu (desktop) / dot notch (mobile) ── */
     #hs-hdr-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:nowrap; gap:8px; }
@@ -329,11 +288,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-ov-card-value.hs-ov-danger { color:var(--danger); }
     .hs-ov-card-value.hs-ov-ok { color:var(--ok); }
     .hs-ov-section-title { font-size:12px; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:.04em; margin:4px 0 8px; }
-    .hs-ov-list-wrap {
-      background-image: repeating-linear-gradient(
-        to bottom, transparent, transparent 37px, var(--ink4) 37px, var(--ink4) 38px
-      );
-    }
+    .hs-ov-list-wrap {}
     .hs-ov-rank-row { display:flex; align-items:center; gap:10px; padding:9px 0; }
     .hs-ov-aging-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; padding:8px 0; font-size:12.5px; }
     .hs-ov-rank-nama { flex:1; min-width:0; font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
