@@ -599,13 +599,13 @@ function trenchRenderChannelList() {
         'font-weight:'+(isActive?'700':'400')+';' +
         'user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation';
       row.textContent = (isActive?'✓ ':'')+ch.nama;
-      // Pakai addEventListener — lebih reliable daripada onclick di innerHTML
+      // Pakai addEventListener — lebih reliable daripada onclick di innerHTML.
+      // CATATAN 4 Sep 2026: dulu ada listener 'touchend' terpisah di sini juga,
+      // dicabut karena double-fire bareng 'click' sintetis dari browser
+      // (touchend jalan duluan pilih channel, lalu click nyusul toggle balik
+      // deselect — user liatnya kayak "lompat-lompat"/pilihan gak nempel).
+      // 'click' aja sudah cukup responsif karena row punya touch-action:manipulation.
       row.addEventListener('click', function(e) {
-        e.stopPropagation();
-        trenchToggleCh(row);
-      });
-      row.addEventListener('touchend', function(e) {
-        e.preventDefault();
         e.stopPropagation();
         trenchToggleCh(row);
       });
@@ -1046,9 +1046,6 @@ function _renderChartPenjualan(jpData) {
   }
 
   const step = cW / Math.max(labels.length-1, 1);
-
-  ctx.fillStyle='rgba(200,160,0,0.12)';
-  ctx.fillRect(padL+cW-step*0.6, padT, step*0.6+padR, cH);
 
   ctx.beginPath();
   ctx.moveTo(padL, padT+cH);
