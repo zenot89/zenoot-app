@@ -264,7 +264,7 @@ document.getElementById('page-gadag').innerHTML = `
      bakal di-skip diem-diem sama browser (harus jadi baris paling atas). */
 
   #page-gadag {
-    --gdg-paper:   var(--bl-70, #f7f2e6);   /* kertas krem → Base-light 70% (3 dari kiri atas) */
+    --gdg-paper:   #ECEBE6;   /* kertas krem → off-white hangat (Alabaster/Bone) */
     --gdg-paper2:  #efe8d8;   /* kertas krem, sedikit lebih gelap (buat card ke-2/hover) */
     --gdg-ink:     #262220;   /* tinta pena, hampir hitam */
     --gdg-ink2:    #5c554d;   /* tinta pudar, buat teks sekunder */
