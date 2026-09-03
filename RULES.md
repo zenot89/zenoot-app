@@ -285,6 +285,8 @@ yang gak kepake, tapi JUSTRU MERUSAK `.kas-tipe-cell` yang asli dipakai user
 
 
 
+### 5.8.9. Live site (`zenot89.github.io`) bisa beda versi dari zip yang di-upload user
+
 Pernah kejadian: nilai `--danger` di `:root` (`style.css` dalam zip) beda
 dari warna yang benar-benar ke-render di screenshot live site user (root
 bilang satu hex, tapi yang muncul di layar persis nilai fallback lama —
@@ -294,6 +296,38 @@ ke pixel screenshot** — cukup flag ke user sebagai catatan ("live site
 mungkin belum sinkron sama zip ini"), dan tetap kerjain fix berdasarkan
 KODE YANG ADA DI ZIP (itu yang bakal di-replace user), bukan berdasarkan
 nebak-nebak dari pixel yang mungkin representasi versi lama.
+
+### 5.8.10. Ubah nilai variable di `:root` bisa ngerusak area gelap yang DIAM-DIAM numpang nilai lama itu
+
+Beda kasus sama §5.8.6 (container gelap yang gak redeclare var). Di sini
+containernya UDAH benar redeclare beberapa var (`--ink`, `--cream`, dst),
+tapi ada var LAIN yang kebetulan gak pernah di-redeclare karena nilai
+`:root`-nya SAAT ITU kebetulan udah cocok buat kedua konteks (terang & gelap).
+Begitu nilai `:root` itu diubah (misal `--ink3`/`--warn`/`--ok`/`--danger`
+digelapin biar kontras di halaman terang), SEMUA tempat yang diam-diam
+numpang nilai lama itu di halaman/komponen gelap ikut kena — walau
+komponennya sendiri gak disentuh sama sekali.
+
+**Checklist WAJIB tiap kali ubah nilai di `:root` (bukan cuma nambah var
+baru, tapi ubah value yang UDAH ADA):**
+1. `grep -n "var(--nama-property)"` ke SELURUH `style.css` DAN semua `.js`
+   (inline style), cari SEMUA pemakaian, bukan cuma yang lagi jadi fokus.
+2. Buat tiap hasil grep, cek background AKTUAL di konteks itu — apakah
+   gelap (butuh versi terang) atau terang (butuh versi gelap/baru)?
+3. Cek juga blok `@media (prefers-color-scheme: dark)` — kalau ada
+   `:root { --xxx: ... !important }` di situ, itu WAJIB di-update juga,
+   kalau kelewat bakal nge-reset balik ke nilai lama pas OS user dark mode.
+4. Buat tiap konteks gelap yang ketemu di langkah 2, kalau container-nya
+   belum redeclare var itu, tambahin scope preservasi (isi ULANG nilai
+   LAMA di situ) — JANGAN samain user harus terima efek samping di area
+   yang gak mereka minta diubah.
+
+Contoh nyata: gelapin `--ink3`/`--warn`/`--ok`/`--danger` buat benerin
+kontras di halaman terang (root), ternyata numpang dipakai juga di
+`.sidebar`, `.kas-akun-list`, dan `#page-gadag`/`#page-hutang-supplier`
+— 3 tempat gelap yang sebelumnya "kebetulan benar" karena nilai lama
+`:root` pas kebetulan terang. Semua itu perlu scope preservasi terpisah.
+
 
 
 
