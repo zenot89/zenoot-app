@@ -49,14 +49,46 @@ body {
   --ovl-0_6:rgba(0,0,0,0.6);
   --ovl-0_65:rgba(0,0,0,0.65);
   --ovl-0_75:rgba(0,0,0,0.75);
+
+  /* ── Base-light / Base-dark opacity scale — token baru, trial dipakai
+     pertama kali di Hutang Barang (#page-hutang-supplier) mulai 3 Sep 2026.
+     Base-light = putih (FFFFFF) di berbagai opacity, buat layering
+     surface/background di atas bg terang. Base-dark = 1A1A1A di berbagai
+     opacity, buat teks/border/overlay di atas surface terang.
+     Kalau hasil di Hutang Barang oke, rencana rollout ke modul lain
+     (kecuali Gadag, yang tetap dark theme). ── */
+  --bl-100:#FFFFFF;
+  --bl-80:rgba(255,255,255,.8);
+  --bl-70:rgba(255,255,255,.7);
+  --bl-60:rgba(255,255,255,.6);
+  --bl-50:rgba(255,255,255,.5);
+  --bl-40:rgba(255,255,255,.4);
+  --bl-30:rgba(255,255,255,.3);
+  --bl-20:rgba(255,255,255,.2);
+  --bl-10:rgba(255,255,255,.1);
+  --bl-5:rgba(255,255,255,.05);
+
+  --bd-100:#1A1A1A;
+  --bd-80:rgba(26,26,26,.8);
+  --bd-70:rgba(26,26,26,.7);
+  --bd-60:rgba(26,26,26,.6);
+  --bd-50:rgba(26,26,26,.5);
+  --bd-40:rgba(26,26,26,.4);
+  --bd-30:rgba(26,26,26,.3);
+  --bd-20:rgba(26,26,26,.2);
+  --bd-10:rgba(26,26,26,.1);
+  --bd-5:rgba(26,26,26,.05);
 }
 
-/* ── Gadag & Hutang Barang (Hutang Supplier) TETEP DARK THEME — dikecualikan
-   dari perubahan warna brand. Redeklarasi seluruh custom property yang dipakai
-   .card/.btn/.tbl/.metric dkk di dalam 2 halaman ini balik ke nilai gelap lama,
-   jadi children yang pakai var(--ink)/var(--cream)/var(--ovl-*) tetep gelap
-   tanpa perlu ubah CSS/markup di dalam gadag.js & hutang-supplier.js sendiri. ── */
-#page-gadag, #page-hutang-supplier {
+/* ── Gadag TETEP DARK THEME — dikecualikan dari perubahan warna brand.
+   Redeklarasi seluruh custom property yang dipakai .card/.btn/.tbl/.metric dkk
+   di halaman ini balik ke nilai gelap lama, jadi children yang pakai
+   var(--ink)/var(--cream)/var(--ovl-*) tetep gelap tanpa perlu ubah CSS/markup
+   di dalam gadag.js sendiri.
+   Hutang Barang (Hutang Supplier) DIKELUARKAN dari exemption ini 3 Sep 2026 —
+   sekarang ikut light theme brand utama, pakai token Base-light/Base-dark
+   di bawah (lihat blok --bl-*/--bd-*). ── */
+#page-gadag {
   color-scheme: dark;
   background: #0d0d0d;
   color: #ece9e4;
@@ -4506,10 +4538,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* ── Force override Android/iOS system dark-mode color injection ──
    App brand sekarang TERANG secara default, apapun setting dark/light OS-nya.
-   Gadag & Hutang Supplier dikecualikan (tetep gelap apapun setting OS-nya) —
-   custom property mereka udah di-scope terpisah di blok #page-gadag/#page-hutang-supplier
-   di atas; di sini cuma perlu jaga html/body dasar + .card/.metric gak ke-inject
-   warna dark bawaan sistem pas OS lagi dark mode. ── */
+   Gadag dikecualikan (tetep gelap apapun setting OS-nya) — custom property-nya
+   udah di-scope terpisah di blok #page-gadag di atas; di sini cuma perlu jaga
+   html/body dasar + .card/.metric gak ke-inject warna dark bawaan sistem pas
+   OS lagi dark mode. Hutang Supplier DIKELUARKAN dari exemption 3 Sep 2026 —
+   sekarang ikut light theme brand utama juga saat OS dark mode. ── */
 @media (prefers-color-scheme: dark) {
   :root {
     --cream:#F0EFEB !important;
@@ -4523,7 +4556,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   html, body { background-color:#F0EFEB !important; color:#2B2B2B !important; }
   .card  { background:#FFFFFF !important; }
   .metric{ background:#FFFFFF !important; }
-  #page-gadag, #page-hutang-supplier {
+  #page-gadag {
     --cream:#0d0d0d !important;
     --cream2:#1e1e1e !important;
     --cream3:#272727 !important;
@@ -4534,8 +4567,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     background-color:#0d0d0d !important;
     color:#ece9e4 !important;
   }
-  #page-gadag .card, #page-hutang-supplier .card { background:#1e1e1e !important; }
-  #page-gadag .metric, #page-hutang-supplier .metric { background:#1e1e1e !important; }
+  #page-gadag .card { background:#1e1e1e !important; }
+  #page-gadag .metric { background:#1e1e1e !important; }
 }
 
 /* ── KAS AKUN FLOATING DROPDOWN — nempel di atas trigger, konsisten
