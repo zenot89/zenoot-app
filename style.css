@@ -90,7 +90,7 @@ body {
    di bawah (lihat blok --bl-*/--bd-*). ── */
 #page-gadag {
   color-scheme: dark;
-  background: #0d0d0d;
+  background: var(--bl-5);
   color: #ece9e4;
   --ink:#ece9e4;--ink2:#9b968d;--ink3:#635f58;--ink4:#2c2c2c;
   --cream:#0d0d0d;--cream2:#1e1e1e;--cream3:#272727;--cream4:#060606;

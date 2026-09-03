@@ -264,7 +264,7 @@ document.getElementById('page-gadag').innerHTML = `
      bakal di-skip diem-diem sama browser (harus jadi baris paling atas). */
 
   #page-gadag {
-    --gdg-paper:   #f7f2e6;   /* kertas krem */
+    --gdg-paper:   var(--bl-70, #f7f2e6);   /* kertas krem → Base-light 70% (3 dari kiri atas) */
     --gdg-paper2:  #efe8d8;   /* kertas krem, sedikit lebih gelap (buat card ke-2/hover) */
     --gdg-ink:     #262220;   /* tinta pena, hampir hitam */
     --gdg-ink2:    #5c554d;   /* tinta pudar, buat teks sekunder */
@@ -1052,7 +1052,7 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
   ].join(';');
   el.innerHTML = `
     <div id="gdg-sku-picker-sheet"
-      style="width:100%;max-width:480px;background:#f7f2e6;border-radius:18px 18px 0 0;
+      style="width:100%;max-width:480px;background:var(--gdg-paper,#f7f2e6);border-radius:18px 18px 0 0;
              padding:0;box-shadow:0 -4px 24px rgba(0,0,0,.28);
              font-family:'Comic Neue','Comic Sans MS',cursive,sans-serif;
              transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
