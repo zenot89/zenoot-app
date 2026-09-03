@@ -2590,6 +2590,27 @@ function kasClosePicker(list) {
 var _kasAkunPickerCtx      = null; // {pickerId, targetId, isDebit, tipe}
 var _kasAkunPickerVpHandler = null;
 
+// ─── Terakhir digunakan — MRU akun per konteks (tipe transaksi + posisi
+// debit/kredit), disimpan di localStorage, max 4, terbaru duluan.
+// Discoped per konteks karena kelompok yg boleh dipilih beda-beda per tipe
+// (misal akun kredit buat "keluar" != akun kredit buat "masuk"). ──────────
+function _kasRecentAkunKey(ctx) {
+  return 'kas_recent_akun_' + (ctx.tipe || '') + '_' + (ctx.isDebit ? 'd' : 'k');
+}
+function _kasRecentAkunGet(ctx) {
+  try { return JSON.parse(localStorage.getItem(_kasRecentAkunKey(ctx)) || '[]'); }
+  catch(e) { return []; }
+}
+function _kasRecentAkunPush(ctx, id) {
+  if (!ctx || !id) return;
+  try {
+    var key = _kasRecentAkunKey(ctx);
+    var arr = _kasRecentAkunGet(ctx).filter(function(x) { return String(x) !== String(id); });
+    arr.unshift(String(id));
+    localStorage.setItem(key, JSON.stringify(arr.slice(0, 4)));
+  } catch(e) {}
+}
+
 function kasAkunPickerOpen(pickerId) {
   var picker = document.getElementById(pickerId);
   if (!picker) return;
@@ -2887,25 +2908,43 @@ function _kasAkunPickerRender(q, currentVal) {
   order.forEach(function(k) { grouped[k].sort(function(a,b) { return (a.kode||'').localeCompare(b.kode||''); }); });
 
   var saldoMap = _kasGetSaldoMap();
+
+  // Item builder dipakai bareng buat section "Terakhir Digunakan" & grup biasa,
+  // biar tampilan (saldo, active-state) konsisten di kedua tempat.
+  function _itemHtml(a) {
+    var label    = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
+    var isActive = String(a.id) === String(currentVal);
+    var saldoHtml = '';
+    var isKasBankAkun = (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    if (isKasBankAkun) {
+      var s = saldoMap[a.id] || { d: 0, k: 0 };
+      var saldo = s.d - s.k;
+      var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
+      var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
+      saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
+    }
+    return '<div class="kas-akun-item' + (isActive ? ' active' : '') + '" data-val="' + a.id + '" onclick="kasAkunPickerSelectItem(this)">'
+      + '<span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
+  }
+
   var html = '';
+
+  // "Terakhir Digunakan" — cuma pas search kosong, ambil dari MRU localStorage,
+  // disaring lagi biar cuma akun yg masih valid/boleh muncul di konteks ini.
+  if (!q && _kasAkunPickerCtx) {
+    var recentIds = _kasRecentAkunGet(_kasAkunPickerCtx);
+    var akunById = {}; akunList.forEach(function(a) { akunById[String(a.id)] = a; });
+    var recentAkun = recentIds.map(function(id) { return akunById[String(id)]; }).filter(Boolean);
+    if (recentAkun.length) {
+      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      recentAkun.forEach(function(a) { html += _itemHtml(a); });
+    }
+  }
+
   order.forEach(function(k) {
     if (!grouped[k].length) return;
     html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
-    grouped[k].forEach(function(a) {
-      var label    = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
-      var isActive = String(a.id) === String(currentVal);
-      var saldoHtml = '';
-      var isKasBankAkun = (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
-      if (isKasBankAkun) {
-        var s = saldoMap[a.id] || { d: 0, k: 0 };
-        var saldo = s.d - s.k;
-        var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
-        var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
-        saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
-      }
-      html += '<div class="kas-akun-item' + (isActive ? ' active' : '') + '" data-val="' + a.id + '" onclick="kasAkunPickerSelectItem(this)">'
-        + '<span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
-    });
+    grouped[k].forEach(function(a) { html += _itemHtml(a); });
   });
   listEl.innerHTML = html || '<div class="kas-akun-empty">Tidak ditemukan</div>';
 }
@@ -2913,6 +2952,7 @@ function _kasAkunPickerRender(q, currentVal) {
 function kasAkunPickerSelectItem(item) {
   if (!_kasAkunPickerCtx) return;
   var val = item.dataset.val;
+  _kasRecentAkunPush(_kasAkunPickerCtx, val);
   var sel = document.getElementById(_kasAkunPickerCtx.targetId);
   if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
   var lbl = document.getElementById(_kasAkunPickerCtx.pickerId + '-label');
