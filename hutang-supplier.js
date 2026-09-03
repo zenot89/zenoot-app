@@ -586,23 +586,17 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <label>Sistem</label>
         <div style="display:flex;gap:8px">
           <label class="hs-jenis-radio" id="hs-supm-jenis-dropship-wrap">
-            <input type="radio" name="hs-supm-jenis" value="dropship" checked onchange="_hsSupmOnJenisChange()">
+            <input type="checkbox" id="hs-supm-dropship" checked>
             <i class="ti ti-truck-delivery"></i> Dropship
           </label>
           <label class="hs-jenis-radio" id="hs-supm-jenis-reseller-wrap">
-            <input type="radio" name="hs-supm-jenis" value="reseller" onchange="_hsSupmOnJenisChange()">
+            <input type="checkbox" id="hs-supm-reseller">
             <i class="ti ti-file-invoice"></i> Reseller
           </label>
         </div>
         <div class="hs-item-hint" style="margin-top:8px">
-          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka), lead time bisa berminggu-minggu.
+          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka), lead time bisa berminggu-minggu. Bisa dicentang dua-duanya kalau supplier ini bisa dua cara (mis. dropship harga normal, tapi bisa juga di-PO dengan harga lebih murah).
         </div>
-      </div>
-      <div class="hs-form-group" id="hs-supm-po-wrap" style="display:none">
-        <label class="hs-jenis-radio" style="width:100%;justify-content:flex-start;gap:8px">
-          <input type="checkbox" id="hs-supm-po-tersedia">
-          <span>Supplier ini juga bisa di-P.O (harga lebih murah, beli stok duluan)</span>
-        </label>
       </div>
       <div class="modal-actions">
         <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="hsSimpanSupplierMaster()"><i class="ti ti-check"></i> Simpan</button>
@@ -815,8 +809,8 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         </div>
       </div>
       <div class="hs-row-2">
-        <div class="hs-form-group">
-          <label id="hs-brg-harga-label">Harga per Lusin</label>
+        <div class="hs-form-group" id="hs-brg-harga-dropship-wrap">
+          <label>Harga Dropship /Lusin</label>
           <input type="text" id="hs-brg-harga" inputmode="numeric" placeholder="0">
         </div>
         <div class="hs-form-group" id="hs-brg-harga-po-wrap" style="display:none">
@@ -907,7 +901,7 @@ var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & M
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
 var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
 var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
-var _hsCurrentBonMode = 'dropship'; // 'dropship'|'po' — mode harga aktif di form Tambah/Edit Bon (cuma relevan buat supplier dropship+po_tersedia; reseller selalu 'po')
+var _hsCurrentBonMode = 'dropship'; // 'dropship'|'po' — mode harga aktif di form Tambah/Edit Bon (cuma relevan buat supplier dual-mode: is_dropship & is_reseller dua-duanya true; reseller-murni selalu 'po')
 var _hsBayarGabSupplierId = null; // supplier_id yg lagi aktif di sheet Bayar Utang (gabungan)
 
 // ─── LOAD ───────────────────────────────────────────────────────
@@ -1008,10 +1002,10 @@ async function hsLoadRestockPO() {
     });
     _hsRestockCashTotal = cashTotal;
 
-    // ── Supplier PO = hutang_supplier.jenis === 'reseller' ──
+    // ── Supplier PO = hutang_supplier.is_reseller ──
     var poSupplierSet = {};
     (_hsSupplierList || []).forEach(function(s) {
-      if (s.jenis === 'reseller') poSupplierSet[(s.nama || '').trim().toUpperCase()] = true;
+      if (s.is_reseller) poSupplierSet[(s.nama || '').trim().toUpperCase()] = true;
     });
 
     // ── Sisa stok per SKU — identik stok.js/restock.js ──
@@ -1817,26 +1811,25 @@ function hsRenderSupplierMasterList() {
   }
 
   el.innerHTML = _hsSupplierList.map(function(s) {
-    var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
-    var jl = _HS_JENIS_LABEL[jenis];
-    var poBadge = (jenis === 'dropship' && s.po_tersedia)
-      ? ' <span class="hs-jenis-badge hs-jenis-reseller"><i class="ti ti-file-invoice"></i> +PO</span>'
-      : '';
+    var badges = '';
+    if (s.is_dropship) badges += '<span class="hs-jenis-badge hs-jenis-dropship"><i class="ti ' + _HS_JENIS_LABEL.dropship.icon + '"></i> ' + _HS_JENIS_LABEL.dropship.label + '</span>';
+    if (s.is_reseller) badges += ' <span class="hs-jenis-badge hs-jenis-reseller"><i class="ti ' + _HS_JENIS_LABEL.reseller.icon + '"></i> ' + _HS_JENIS_LABEL.reseller.label + '</span>';
+    if (!badges) badges = '<span class="hs-leadtime-empty">—</span>';
     return '<tr data-id="' + s.id + '" onclick="hsOpenEditSupplierMaster(' + s.id + ')">' +
       '<td>' + _hsEsc(s.nama) + '</td>' +
       '<td>' + _hsLeadTimeLabel(s) + '</td>' +
-      '<td><span class="hs-jenis-badge hs-jenis-' + jenis + '"><i class="ti ' + jl.icon + '"></i> ' + jl.label + '</span>' + poBadge + '</td>' +
+      '<td>' + badges + '</td>' +
     '</tr>';
   }).join('');
 }
 
 // ─── LEAD TIME per supplier ─────────────────────────────────────
-// Cuma relevan buat supplier Reseller (alur PO → ditandai diterima).
-// Dropship gak lewat PO, barang dateng hari itu juga jadi leadtime gak
-// pernah dihitung (selalu "Sama hari"). Dihitung dari SEMUA histori bon
-// reseller yang udah pernah ditandai diterima (kolom tgl_diterima keisi),
-// rata-rata (tgl_diterima - tanggal) dalam hari. Bon yang masih PO
-// (belum ditandai diterima, tgl_diterima null) gak ikut dihitung.
+// Cuma relevan buat supplier yang punya jalur Reseller/PO (is_reseller,
+// walau dropship-nya juga dicentang). Dropship-murni gak lewat PO, barang
+// dateng hari itu juga jadi leadtime gak pernah dihitung (selalu "Sama
+// hari"). Dihitung dari SEMUA histori bon yang udah pernah ditandai
+// diterima (kolom tgl_diterima keisi), rata-rata (tgl_diterima - tanggal)
+// dalam hari. Bon yang masih PO (belum ditandai diterima) gak ikut dihitung.
 // 25 Agu 2026, poin 2.
 function _hsLeadTimeForSupplier(supplierId) {
   var bons = _hsBonList.filter(function(b) {
@@ -1853,21 +1846,10 @@ function _hsLeadTimeForSupplier(supplierId) {
 }
 
 function _hsLeadTimeLabel(s) {
-  var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
-  if (jenis === 'dropship') return '<span class="hs-leadtime-empty">Sama hari</span>';
+  if (!s.is_reseller) return '<span class="hs-leadtime-empty">Sama hari</span>';
   var lt = _hsLeadTimeForSupplier(s.id);
   if (!lt) return '<span class="hs-leadtime-empty">Belum ada data</span>';
   return '<span class="hs-leadtime">' + lt.rataRata + ' hari</span>';
-}
-
-// Checkbox "bisa PO" cuma relevan/nongol buat jenis Dropship — Reseller udah
-// otomatis full-PO, jadi flag ini gak berlaku (dipaksa false pas disimpan).
-function _hsSupmOnJenisChange() {
-  var jenisEl = document.querySelector('input[name="hs-supm-jenis"]:checked');
-  var jenis = jenisEl ? jenisEl.value : 'dropship';
-  var wrap = document.getElementById('hs-supm-po-wrap');
-  if (wrap) wrap.style.display = jenis === 'dropship' ? 'block' : 'none';
-  if (jenis !== 'dropship') document.getElementById('hs-supm-po-tersedia').checked = false;
 }
 
 function hsOpenTambahSupplierMaster() {
@@ -1875,9 +1857,8 @@ function hsOpenTambahSupplierMaster() {
   document.getElementById('hs-supm-id').value = '';
   document.getElementById('hs-supm-btn-hapus').style.display = 'none';
   document.getElementById('hs-supm-nama').value = '';
-  document.querySelector('input[name="hs-supm-jenis"][value="dropship"]').checked = true;
-  document.getElementById('hs-supm-po-tersedia').checked = false;
-  _hsSupmOnJenisChange();
+  document.getElementById('hs-supm-dropship').checked = true;
+  document.getElementById('hs-supm-reseller').checked = false;
   document.getElementById('hs-sheet-supplier-master').classList.add('open');
 }
 
@@ -1888,24 +1869,22 @@ function hsOpenEditSupplierMaster(id) {
   document.getElementById('hs-supm-id').value = s.id;
   document.getElementById('hs-supm-btn-hapus').style.display = 'inline-flex';
   document.getElementById('hs-supm-nama').value = s.nama;
-  var jenis = s.jenis === 'reseller' ? 'reseller' : 'dropship';
-  document.querySelector('input[name="hs-supm-jenis"][value="' + jenis + '"]').checked = true;
-  document.getElementById('hs-supm-po-tersedia').checked = !!s.po_tersedia;
-  _hsSupmOnJenisChange();
+  document.getElementById('hs-supm-dropship').checked = !!s.is_dropship;
+  document.getElementById('hs-supm-reseller').checked = !!s.is_reseller;
   document.getElementById('hs-sheet-supplier-master').classList.add('open');
 }
 
 async function hsSimpanSupplierMaster() {
   var id    = document.getElementById('hs-supm-id').value;
   var nama  = document.getElementById('hs-supm-nama').value.trim();
-  var jenisEl = document.querySelector('input[name="hs-supm-jenis"]:checked');
-  var jenis = jenisEl ? jenisEl.value : 'dropship';
-  var poTersedia = jenis === 'dropship' && !!document.getElementById('hs-supm-po-tersedia').checked;
+  var isDropship = document.getElementById('hs-supm-dropship').checked;
+  var isReseller = document.getElementById('hs-supm-reseller').checked;
 
   if (!nama) { alert('Isi nama supplier!'); return; }
+  if (!isDropship && !isReseller) { alert('Pilih minimal 1 sistem: Dropship dan/atau Reseller!'); return; }
 
   try {
-    var data = { nama: nama.toUpperCase(), jenis: jenis, po_tersedia: poTersedia };
+    var data = { nama: nama.toUpperCase(), is_dropship: isDropship, is_reseller: isReseller };
     if (id) {
       await dbUpdate('hutang_supplier', id, data);
     } else {
@@ -2257,23 +2236,23 @@ function _hsUpdateBonFormBySupplier() {
   var supplier = _hsCurrentBonSupplierId
     ? _hsSupplierList.find(function(s){ return s.id === _hsCurrentBonSupplierId; })
     : null;
-  var isReseller  = !!(supplier && supplier.jenis === 'reseller');
-  var poTersedia  = !!(supplier && !isReseller && supplier.po_tersedia);
+  var isPureReseller = !!(supplier && supplier.is_reseller && !supplier.is_dropship);
+  var isDualMode     = !!(supplier && supplier.is_reseller && supplier.is_dropship);
   var isEdit = !!document.getElementById('hs-bon-id').value;
   var titleEl  = document.getElementById('hs-bon-form-title');
   var btnEl    = document.getElementById('hs-bon-btn-simpan');
   var hintEl   = document.getElementById('hs-bon-jenis-hint');
   var modeWrap = document.getElementById('hs-bon-mode-wrap');
 
-  if (isReseller) {
-    // Reseller murni (H SOLAH-case) — gak berubah, otomatis full-PO, toggle disembunyiin.
+  if (isPureReseller) {
+    // Reseller murni, gak ada dropship (H SOLAH-case) — otomatis full-PO, toggle disembunyiin.
     _hsCurrentBonMode = 'po';
     if (modeWrap) modeWrap.style.display = 'none';
     titleEl.textContent = isEdit ? 'Edit PO' : 'Tambah PO';
     if (btnEl) btnEl.textContent = 'Simpan PO';
     if (hintEl) hintEl.innerHTML = '<i class="ti ti-file-invoice"></i> Supplier <b>Reseller</b> — otomatis jadi PO (badge "PO" di tab Bon). Tetap kehitung di Total Utang Aktif dari sekarang, uang muka tinggal dicatet lewat "Bayar Utang" kayak cicilan biasa. Begitu barang beneran sampai, tandai "Barang Diterima" di detail PO-nya.';
-  } else if (poTersedia) {
-    // Dropship yang juga bisa PO (RH-case) — toggle nongol, harga & hint ikut mode aktif.
+  } else if (isDualMode) {
+    // Dropship + Reseller dua-duanya dicentang (RH-case) — toggle nongol, harga & hint ikut mode aktif.
     if (modeWrap) modeWrap.style.display = 'block';
     titleEl.textContent = isEdit ? 'Edit Bon' : 'Tambah Bon';
     if (btnEl) btnEl.textContent = _hsCurrentBonMode === 'po' ? 'Simpan PO' : 'Simpan';
@@ -2281,7 +2260,7 @@ function _hsUpdateBonFormBySupplier() {
       ? '<i class="ti ti-file-invoice"></i> Mode <b>P.O</b> — harga lebih murah, tapi barang belum di tangan. Tandai "Barang Diterima" nanti pas barang dateng.'
       : '<i class="ti ti-truck-delivery"></i> Mode <b>Dropship</b> — harga normal, barang langsung dianggap diterima.';
   } else {
-    // Dropship biasa — gak berubah dari sebelumnya.
+    // Dropship biasa (atau supplier baru/belum keisi) — gak berubah dari sebelumnya.
     _hsCurrentBonMode = 'dropship';
     if (modeWrap) modeWrap.style.display = 'none';
     titleEl.textContent = isEdit ? 'Edit Bon' : 'Tambah Bon';
@@ -2290,7 +2269,7 @@ function _hsUpdateBonFormBySupplier() {
   }
 }
 
-// Toggle Dropship/PO di form Bon (cuma nongol buat supplier po_tersedia).
+// Toggle Dropship/PO di form Bon (cuma nongol buat supplier dual-mode).
 // Sama kayak ganti supplier: kalau udah ada baris keisi, konfirmasi dulu
 // sebelum reset — soalnya harga per mode beda (dropship vs PO).
 function hsOnBonModeChange() {
@@ -2524,11 +2503,11 @@ async function hsSimpanBon() {
   try {
     var supplierId  = await _hsResolveSupplierId('hs-bon-supplier-select', 'hs-bon-supplier-baru');
     var supplierObj = _hsSupplierList.find(function(s){ return s.id === supplierId; });
-    var isReseller  = !!(supplierObj && supplierObj.jenis === 'reseller');
-    var poTersedia  = !!(supplierObj && !isReseller && supplierObj.po_tersedia);
-    // mode_beli: reseller selalu 'po'; supplier po_tersedia ikut toggle aktif;
+    var isPureReseller = !!(supplierObj && supplierObj.is_reseller && !supplierObj.is_dropship);
+    var isDualMode     = !!(supplierObj && supplierObj.is_reseller && supplierObj.is_dropship);
+    // mode_beli: reseller murni selalu 'po'; supplier dual-mode ikut toggle aktif;
     // dropship biasa selalu 'dropship'.
-    var modeBeli = isReseller ? 'po' : (poTersedia ? _hsCurrentBonMode : 'dropship');
+    var modeBeli = isPureReseller ? 'po' : (isDualMode ? _hsCurrentBonMode : 'dropship');
 
     var bonData = {
       supplier_id: supplierId,
@@ -2910,18 +2889,22 @@ function _hsPopulateKatalogSelect() {
   }).join('');
 }
 
-// Field Harga P.O cuma relevan buat barang di bawah supplier dropship yang
-// po_tersedia=true (RH-case). Supplier reseller (H SOLAH-case) gak butuh —
-// harga_per_lusin mereka udah otomatis berfungsi sebagai harga PO.
-function _hsBrgUpdatePoFieldVisibility() {
+// Harga Dropship cuma relevan/wajib buat barang di bawah supplier yang
+// is_dropship=true. Harga P.O cuma relevan/wajib buat supplier yang
+// is_reseller=true. Supplier bisa dua-duanya (RH-case, dua field wajib),
+// atau cuma salah satu (dropship biasa / H SOLAH-case).
+function _hsBrgUpdateHargaFieldVisibility() {
   var sel = document.getElementById('hs-brg-supplier-select');
   var supplier = sel ? _hsSupplierList.find(function(s){ return String(s.id) === String(sel.value); }) : null;
-  var show = !!(supplier && supplier.jenis !== 'reseller' && supplier.po_tersedia);
-  var wrap = document.getElementById('hs-brg-harga-po-wrap');
-  if (wrap) wrap.style.display = show ? 'block' : 'none';
-  var lbl = document.getElementById('hs-brg-harga-label');
-  if (lbl) lbl.textContent = show ? 'Harga Dropship /Lusin' : 'Harga per Lusin';
-  return show;
+  // Supplier baru (belum ada di list, lagi diketik namanya) dianggap dropship
+  // default — konsisten sama default kolom is_dropship di database.
+  var showDropship = !supplier || !!supplier.is_dropship;
+  var showPo       = !!(supplier && supplier.is_reseller);
+  var dsWrap = document.getElementById('hs-brg-harga-dropship-wrap');
+  var poWrap = document.getElementById('hs-brg-harga-po-wrap');
+  if (dsWrap) dsWrap.style.display = showDropship ? 'block' : 'none';
+  if (poWrap) poWrap.style.display = showPo ? 'block' : 'none';
+  return { showDropship: showDropship, showPo: showPo };
 }
 
 function hsOpenTambahBarang() {
@@ -2935,7 +2918,7 @@ function hsOpenTambahBarang() {
   document.getElementById('hs-brg-supplier-baru').value = '';
   document.getElementById('hs-brg-supplier-select').onchange = function() {
     document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
-    _hsBrgUpdatePoFieldVisibility();
+    _hsBrgUpdateHargaFieldVisibility();
   };
   if (!_hsKatalogList.length) {
     _hsPopulateKatalogSelect();
@@ -2952,7 +2935,7 @@ function hsOpenTambahBarang() {
   idrInput('hs-brg-harga');
   document.getElementById('hs-brg-harga-po').value = '';
   idrInput('hs-brg-harga-po');
-  _hsBrgUpdatePoFieldVisibility();
+  _hsBrgUpdateHargaFieldVisibility();
   document.getElementById('hs-sheet-barang').classList.add('open');
 }
 
@@ -3161,7 +3144,7 @@ function hsOpenEditBarang(id) {
   document.getElementById('hs-brg-supplier-baru').value = '';
   document.getElementById('hs-brg-supplier-select').onchange = function() {
     document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
-    _hsBrgUpdatePoFieldVisibility();
+    _hsBrgUpdateHargaFieldVisibility();
   };
   _hsPopulateKatalogSelect();
   document.getElementById('hs-brg-katalog').value = b.katalog_produk;
@@ -3171,7 +3154,7 @@ function hsOpenEditBarang(id) {
   idrInput('hs-brg-harga');
   document.getElementById('hs-brg-harga-po').value = b.harga_po_per_lusin ? b.harga_po_per_lusin.toLocaleString('id-ID') : '';
   idrInput('hs-brg-harga-po');
-  _hsBrgUpdatePoFieldVisibility();
+  _hsBrgUpdateHargaFieldVisibility();
   document.getElementById('hs-sheet-barang').classList.add('open');
 }
 
@@ -3180,13 +3163,13 @@ async function hsSimpanBarang() {
   var katalog  = document.getElementById('hs-brg-katalog').value;
   var namaSup  = document.getElementById('hs-brg-nama-supplier').value.trim() || null;
   var varian   = document.getElementById('hs-brg-varian').value.trim() || null;
-  var harga    = idrVal('hs-brg-harga');
-  var needsPo  = _hsBrgUpdatePoFieldVisibility();
-  var hargaPo  = needsPo ? idrVal('hs-brg-harga-po') : null;
+  var vis      = _hsBrgUpdateHargaFieldVisibility();
+  var harga    = vis.showDropship ? idrVal('hs-brg-harga') : null;
+  var hargaPo  = vis.showPo ? idrVal('hs-brg-harga-po') : null;
 
   if (!katalog) { alert('Pilih SKU Induk!'); return; }
-  if (!harga)   { alert('Isi harga per lusin!'); return; }
-  if (needsPo && !hargaPo) { alert('Supplier ini punya sistem P.O — isi juga Harga P.O per Lusin!'); return; }
+  if (vis.showDropship && !harga) { alert('Isi Harga Dropship per Lusin!'); return; }
+  if (vis.showPo && !hargaPo) { alert('Supplier ini punya sistem P.O — isi Harga P.O per Lusin!'); return; }
 
   try {
     var supplierId = await _hsResolveSupplierId('hs-brg-supplier-select', 'hs-brg-supplier-baru');
