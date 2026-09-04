@@ -728,22 +728,17 @@ function _trenchRenderChart() {
 // Update badge & active chips di header
 function trenchUpdateBadge() {
   var waktuMap = { 1:'Hari Ini', kemarin:'Kemarin', 7:'7 Hari', 14:'14 Hari', 30:'30 Hari', bulan:'Bulan Ini' };
-  var chipsEl = document.getElementById('trench-active-chips');
 
   var parts = [];
   if (_trenchPeriod !== 30) parts.push(waktuMap[_trenchPeriod] || String(_trenchPeriod)+' Hari');
   if (_trenchChannels.length > 0) parts.push(_trenchChannels.length + ' channel');
 
-  // Update active chips di header
-  var html = '';
-  if (_trenchPeriod !== 30) {
-    html += '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#EE4D2D;color:#fff;font-weight:700">' + (waktuMap[_trenchPeriod]||_trenchPeriod) + '</span>';
-  }
-  _trenchChannels.forEach(function(id) {
-    var ch = _dashChannelMap[id];
-    if (ch) html += '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--cream2);border:1px solid var(--ink3);color:var(--ink);font-weight:600">' + ch.nama + '</span>';
-  });
-  if (chipsEl) chipsEl.innerHTML = html;
+  // Chip badge di header (mis. pill merah "Kemarin") DICABUT 4 Sep 2026 —
+  // infonya udah keliatan di label tombol Periode/Channel sendiri, chip ini
+  // cuma duplikat yang bikin tombol-tombol di sebelahnya geser posisi tiap
+  // filter berubah. #trench-active-chips dibiarin kosong terus.
+  var chipsEl = document.getElementById('trench-active-chips');
+  if (chipsEl) chipsEl.innerHTML = '';
 
   // Update badge channel di menu
   var bdgCh = document.getElementById('trench-badge-channel');
