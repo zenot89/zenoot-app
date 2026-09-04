@@ -226,6 +226,67 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     #jp-aksi-laptop { display: none !important; }
     #jp-aksi-mobile { display: flex !important; }
   }
+
+    /* ── PICKER BOTTOM SHEET (ala BRImo) — SKU Induk & SKU Variasi ──
+       Konsisten sama pola picker akun di Kas & Jurnal / supplier di Hutang
+       Barang: sheet naik dari bawah, search nempel di atas, list item
+       terang (bukan dropdown melayang gelap kayak sebelumnya). ── */
+    #jp-sku-sheet-overlay {
+      display: none; position: fixed; inset: 0; z-index: 598;
+      background: rgba(0,0,0,.55);
+    }
+    #jp-sku-sheet-overlay.open { display: block; }
+    #jp-sku-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 599;
+      background: var(--cream2); border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+      max-height: 85vh; display: none; flex-direction: column; overflow: hidden;
+    }
+    #jp-sku-sheet.open { display: flex; transform: translateY(0); }
+    #jp-sku-sheet-handle {
+      width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
+      margin: 12px auto 4px; flex: none;
+    }
+    #jp-sku-sheet-title {
+      text-align: center; font-size: 16px; font-weight: 700; color: var(--ink);
+      padding: 8px 16px 12px; letter-spacing: -0.2px; flex: none;
+    }
+    #jp-sku-sheet-search-wrap { flex: none; padding: 0 16px 10px; }
+    #jp-sku-sheet-search {
+      width: 100%; box-sizing: border-box; background: var(--ovl-0_06);
+      border: 1px solid var(--ovl-0_12); border-radius: 10px; padding: 11px 14px;
+      font-size: 15px; font-family: var(--f); color: var(--ink); outline: none;
+      -webkit-appearance: none;
+    }
+    #jp-sku-sheet-search::placeholder { color: var(--ink3); }
+    #jp-sku-sheet-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
+    #jp-sku-sheet-list {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain; padding: 4px 10px 12px;
+    }
+    #jp-sku-sheet-list .jp-sheet-item {
+      font-size: 15px; padding: 12px 10px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      color: var(--ink2);
+    }
+    #jp-sku-sheet-list .jp-sheet-item:active { background: var(--ovl-0_08); color: var(--ink); }
+    #jp-sku-sheet-list .jp-sheet-empty {
+      padding: 28px 12px; text-align: center; color: var(--ink3);
+      font-size: 13px; font-style: italic;
+    }
+    #jp-sku-sheet-list::-webkit-scrollbar { width: 4px; }
+    #jp-sku-sheet-list::-webkit-scrollbar-track { background: transparent; }
+    #jp-sku-sheet-list::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
+    @media (min-width: 768px) {
+      #jp-sku-sheet {
+        left: 50%; right: auto; bottom: 50%; transform: translate(-50%, 50%) scale(.96);
+        width: 100%; max-width: 420px; border-radius: 16px; max-height: 70vh; opacity: 0;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+      #jp-sku-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
+    }
   </style>
 
   <!-- MODAL -->
@@ -283,41 +344,50 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
             onchange="jpOnPilihVariasi()">
             <option value="">— Pilih Variasi —</option>
           </select>
-          <div class="kas-akun-wrap">
-            <div class="kas-akun-picker" id="jp-picker-variasi" data-target="jp-sku-variasi"
-              onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-variasi')"
-              ontouchend="event.preventDefault();event.stopPropagation();jpTogglePicker('jp-picker-variasi')">
-              <span id="jp-picker-variasi-label" style="color:var(--ink3)">— Pilih Variasi —</span>
-              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-            </div>
-            <div class="kas-akun-list" id="jp-picker-variasi-list" style="display:none"></div>
+          <div class="kas-akun-picker" id="jp-picker-variasi" onclick="jpSkuSheetOpen('variasi')">
+            <span id="jp-picker-variasi-label" style="color:var(--ink3)">— Pilih Variasi —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
         </div>
         <div class="form-group fg-induk" style="position:relative">
           <label>SKU Induk</label>
-          <div class="jp-induk-wrap">
-            <input type="text" id="jp-sku-induk"
-              placeholder="Ketik nama katalog..."
-              autocomplete="off"
-              style="font-family:var(--f);font-size:14px;
-                     padding:6px 10px;border:2px solid var(--ink);background:var(--cream)"
-              oninput="jpSugestKatalog()"
-              onkeydown="jpKatalogKeyNav(event)"
-              onfocus="jpSugestKatalog()">
-            <button id="jp-sku-dd-btn"
-              onclick="jpToggleKatalogFull()"
-              title="Lihat semua katalog"
-              style="background:var(--cream2);border:2px solid var(--ink);border-left:none;
-                     padding:0 10px;cursor:pointer;font-size:14px;color:var(--ink);
-                     min-height:44px;flex-shrink:0">&#9660;</button>
-            <button id="jp-btn-tambah-sku"
-              onclick="jpSimpanDanTambah()"
-              title="Simpan & tambah SKU lain"
-              style="display:none;background:var(--ok);border:2px solid var(--ok);border-left:none;
-                     padding:0 12px;cursor:pointer;font-size:16px;color:#fff;font-weight:700;
-                     min-height:44px;flex-shrink:0;border-radius:0 4px 4px 0">+</button>
+          <input type="hidden" id="jp-sku-induk">
+          <div class="kas-akun-picker" id="jp-picker-induk" onclick="jpSkuSheetOpen('induk')">
+            <span id="jp-picker-induk-label" style="color:var(--ink3)">— Pilih SKU Induk —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
+          <!-- Fallback: SKU belum ada di master produk, ketik manual (mis. lagi edit
+               transaksi lama yang SKU-nya udah gak ada, atau item nyeleneh sekali jual).
+               Disembunyikan default, cuma muncul lewat "Ketik SKU manual..." di sheet
+               atau otomatis pas Edit transaksi yang SKU-nya gak ketemu di master. -->
+          <div id="jp-sku-induk-manual-wrap" style="display:none;margin-top:6px">
+            <input type="text" id="jp-sku-induk-manual" placeholder="Ketik SKU manual..."
+              autocomplete="off" oninput="jpOnManualIndukInput()"
+              style="font-family:var(--f);font-size:14px;width:100%;box-sizing:border-box;
+                     padding:6px 10px;border:2px solid var(--ink);background:var(--cream)">
+          </div>
+          <button id="jp-btn-tambah-sku"
+            onclick="jpSimpanDanTambah()"
+            title="Simpan & tambah SKU lain"
+            style="display:none;margin-top:6px;background:var(--ok);border:2px solid var(--ok);
+                   padding:8px 12px;cursor:pointer;font-size:14px;color:#fff;font-weight:700;
+                   min-height:38px;border-radius:6px;width:100%">+ Simpan &amp; Tambah SKU Lain</button>
         </div>
+      </div>
+
+      <!-- ── PICKER BOTTOM SHEET (ala BRImo): dipakai gantian buat SKU Induk
+           & SKU Variasi (mode via _jpSkuSheetMode) — konsisten sama picker
+           akun di Kas & Jurnal / supplier di Hutang Barang. ── -->
+      <div id="jp-sku-sheet-overlay" onclick="if(event.target===this) jpSkuSheetClose()"></div>
+      <div id="jp-sku-sheet">
+        <div id="jp-sku-sheet-handle"></div>
+        <div id="jp-sku-sheet-title">Pilih SKU</div>
+        <div id="jp-sku-sheet-search-wrap">
+          <input type="text" id="jp-sku-sheet-search" placeholder="Cari..." autocomplete="off"
+            autocorrect="off" autocapitalize="none" spellcheck="false"
+            oninput="jpSkuSheetFilter(this.value)">
+        </div>
+        <div id="jp-sku-sheet-list"></div>
       </div>
 
       <!-- BARIS 3: Total (full) | Harga Satuan + Qty -->
@@ -799,26 +869,12 @@ function jpKatalogKeyNav(e) {
   }
 }
 
-function _jpRenderPickerVariasiList(varList, sisakMap) {
-  var list = document.getElementById('jp-picker-variasi-list');
-  if (!list) return;
-  var html = '<div class="kas-akun-item" data-val="" data-hpp="" onclick="jpPickerVariasiSelect(this)"><span style="color:var(--ink3)">— Pilih Variasi —</span></div>';
-  varList.forEach(function(p) {
-    var sku = _jpGetSku(p);
-    var sisa = sisakMap[sku.toUpperCase()];
-    var sisakHtml = '';
-    if (sisa !== undefined) {
-      var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
-      sisakHtml = ' <span style="font-size:11px;font-weight:700;color:' + col + ';margin-left:6px">stok: ' + sisa + '</span>';
-    }
-    html += '<div class="kas-akun-item" data-val="' + sku + '" data-hpp="' + _jpGetHpp(p) + '" onclick="jpPickerVariasiSelect(this)" style="display:flex;align-items:center;justify-content:space-between">'
-      + '<span>' + sku + '</span>' + sisakHtml + '</div>';
-  });
-  list.innerHTML = html;
-}
+// (Renderer list variasi lama dicabut 4 Sep 2026 — diganti _jpSkuSheetRenderVariasi
+// yang render ke sheet BRImo baru, bukan floating dropdown .kas-akun-list.)
 
 async function jpPilihKatalog(katalog) {
   document.getElementById('jp-sku-induk').value = katalog;
+  _jpSetIndukLabel(katalog);
   jpTutupDropdownSKU();
   const varList = _jpProdukList.filter(p => _jpGetKatalog(p) === katalog);
   const sel = document.getElementById('jp-sku-variasi');
@@ -831,12 +887,8 @@ async function jpPilihKatalog(katalog) {
     opt.dataset.sku   = _jpGetSku(p);
     sel.appendChild(opt);
   });
-  // Render picker list dulu pakai _jpSisakMap yang ada (cepat, mungkin stale)
-  _jpRenderPickerVariasiList(varList, _jpSisakMap);
-  // Fetch fresh dari DB, lalu update picker list dengan nilai aktual
-  _jpRefreshSisakMap().then(function() {
-    _jpRenderPickerVariasiList(varList, _jpSisakMap);
-  });
+  // Refresh sisa stok di background — sheet variasi baca dari _jpSisakMap pas dibuka/render
+  _jpRefreshSisakMap();
   // Reset label picker variasi
   var lbl = document.getElementById('jp-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
@@ -844,22 +896,11 @@ async function jpPilihKatalog(katalog) {
   if (varList.length === 1) {
     sel.selectedIndex = 1;
     jpOnPilihVariasi();
-    // Sync picker label juga
-    var listEl = document.getElementById('jp-picker-variasi-list');
-    if (listEl) {
-      var items = listEl.querySelectorAll('.kas-akun-item[data-val]');
-      items.forEach(function(el) { el.classList.remove('active'); });
-      var first = listEl.querySelector('.kas-akun-item[data-val="' + _jpGetSku(varList[0]) + '"]');
-      if (first) {
-        first.classList.add('active');
-        if (lbl) { lbl.textContent = first.textContent.trim(); lbl.style.color = 'var(--ink)'; }
-      }
-    }
-  } else {
-    setTimeout(function() {
-      var pickerBtn = document.getElementById('jp-picker-variasi');
-      if (pickerBtn) jpTogglePicker('jp-picker-variasi');
-    }, 60);
+    if (lbl) { lbl.textContent = _jpGetSku(varList[0]); lbl.style.color = 'var(--ink)'; }
+    var btnTambah = document.getElementById('jp-btn-tambah-sku');
+    if (btnTambah) btnTambah.style.display = 'block';
+  } else if (varList.length > 1) {
+    setTimeout(function() { jpSkuSheetOpen('variasi'); }, 250);
   }
 }
 
@@ -1761,7 +1802,12 @@ function showTambahJP() {
   document.getElementById('jp-tgl').value        = _jpNowDate();
   document.getElementById('jp-waktu').value      = _jpNowTime();
   document.getElementById('jp-sku-induk').value  = '';
+  _jpSetIndukLabel(null);
+  var mw0 = document.getElementById('jp-sku-induk-manual-wrap');
+  if (mw0) mw0.style.display = 'none';
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  var lblV0 = document.getElementById('jp-picker-variasi-label');
+  if (lblV0) { lblV0.textContent = '— Pilih Variasi —'; lblV0.style.color = 'var(--ink3)'; }
   document.getElementById('jp-qty').value        = '';
   var _btnT = document.getElementById('jp-btn-tambah-sku');
   if (_btnT) _btnT.style.display = 'none';
@@ -1810,10 +1856,22 @@ async function editJP(id) {
     if (found) {
       const kat = _jpGetKatalog(found);
       document.getElementById('jp-sku-induk').value = kat;
+      _jpSetIndukLabel(kat);
       jpPilihKatalog(kat);
-setTimeout(() => { document.getElementById('jp-sku-variasi').value = skuVal; }, 80);
+setTimeout(() => {
+  document.getElementById('jp-sku-variasi').value = skuVal;
+  var lblV = document.getElementById('jp-picker-variasi-label');
+  if (lblV) { lblV.textContent = skuVal; lblV.style.color = 'var(--ink)'; }
+  var btnT = document.getElementById('jp-btn-tambah-sku');
+  if (btnT) btnT.style.display = 'block';
+}, 80);
     } else {
       document.getElementById('jp-sku-induk').value = skuVal;
+      _jpSetIndukLabel(skuVal);
+      var mw1 = document.getElementById('jp-sku-induk-manual-wrap');
+      var mi1 = document.getElementById('jp-sku-induk-manual');
+      if (mw1) mw1.style.display = 'block';
+      if (mi1) mi1.value = skuVal;
       const sel = document.getElementById('jp-sku-variasi');
       sel.innerHTML = skuVal
         ? '<option value="' + skuVal + '">' + skuVal + '</option>'
@@ -1966,6 +2024,9 @@ function jpSimpanDanTambah() {
 
   // Reset SKU — pertahankan tanggal, waktu, channel
   document.getElementById('jp-sku-induk').value = '';
+  _jpSetIndukLabel(null);
+  var mw2 = document.getElementById('jp-sku-induk-manual-wrap');
+  if (mw2) mw2.style.display = 'none';
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
   document.getElementById('jp-qty').value = '';
   idrSet('jp-harga', 0);
@@ -1977,11 +2038,8 @@ function jpSimpanDanTambah() {
   var btn = document.getElementById('jp-btn-tambah-sku');
   if (btn) btn.style.display = 'none';
 
-  // Focus ke SKU induk untuk input berikutnya
-  setTimeout(function() {
-    var inp = document.getElementById('jp-sku-induk');
-    if (inp) inp.focus();
-  }, 80);
+  // Buka lagi picker SKU Induk buat lanjut input SKU berikutnya
+  setTimeout(function() { jpSkuSheetOpen('induk'); }, 150);
 }
 
 // ─── HAPUS ───────────────────────────────────────────────────
@@ -2259,49 +2317,151 @@ function jpPickerChannelSelect(item) {
   jpClosePicker(list);
 }
 
-function jpPickerVariasiSelect(item) {
-  if (event) { event.stopPropagation(); event.preventDefault(); }
-  var list = item.closest('.kas-akun-list');
-  if (!list) return;
-  var val = item.dataset.val || '';
-  var hpp = item.dataset.hpp || '';
-  var label = item.textContent.trim();
-  // Update hidden select
-  var sel = document.getElementById('jp-sku-variasi');
-  if (sel) {
-    sel.value = val;
-    // Tandai dataset di option yang cocok agar jpOnPilihVariasi bisa baca
-    var opts = sel.options;
-    for (var i = 0; i < opts.length; i++) {
-      if (opts[i].value === val) { opts[i].selected = true; break; }
-    }
-    sel.dispatchEvent(new Event('change'));
+// ─── PICKER BOTTOM SHEET (BRImo-style): SKU Induk & SKU Variasi ──
+// 1 sheet dipakai gantian buat 2 field lewat _jpSkuSheetMode ('induk'/'variasi').
+var _jpSkuSheetMode = null;
+
+function jpSkuSheetOpen(mode) {
+  _jpSkuSheetMode = mode;
+  var searchEl = document.getElementById('jp-sku-sheet-search');
+  var titleEl  = document.getElementById('jp-sku-sheet-title');
+  if (searchEl) {
+    searchEl.value = '';
+    searchEl.placeholder = mode === 'induk' ? 'Cari SKU Induk...' : 'Cari variasi...';
   }
-  // Update label
-  var lbl = document.getElementById('jp-picker-variasi-label');
-  if (lbl) {
-    if (val) {
-      var sisa = _jpSisakMap[val.toUpperCase()];
-      var sisakTxt = '';
+  if (titleEl) titleEl.textContent = mode === 'induk' ? 'Pilih SKU Induk' : 'Pilih Variasi';
+  var ov = document.getElementById('jp-sku-sheet-overlay');
+  var sh = document.getElementById('jp-sku-sheet');
+  if (ov) ov.classList.add('open');
+  if (sh) sh.classList.add('open');
+  jpSkuSheetRender('');
+  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (searchEl && !_isIOS) setTimeout(function() { searchEl.focus(); }, 260);
+}
+function jpSkuSheetClose() {
+  var ov = document.getElementById('jp-sku-sheet-overlay');
+  var sh = document.getElementById('jp-sku-sheet');
+  if (ov) ov.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+function jpSkuSheetFilter(q) { jpSkuSheetRender(q); }
+function jpSkuSheetRender(q) {
+  if (_jpSkuSheetMode === 'induk') _jpSkuSheetRenderInduk(q);
+  else if (_jpSkuSheetMode === 'variasi') _jpSkuSheetRenderVariasi(q);
+}
+
+function _jpSkuSheetRenderInduk(q) {
+  var listEl = document.getElementById('jp-sku-sheet-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var katalogMap = {};
+  _jpProdukList.forEach(function(p) {
+    var kat = _jpGetKatalog(p);
+    if (!kat) return;
+    if (q && kat.toLowerCase().indexOf(q) === -1) return;
+    katalogMap[kat] = (katalogMap[kat] || 0) + 1;
+  });
+  var katalogs = Object.keys(katalogMap).sort();
+  var html = '';
+  if (!katalogs.length) {
+    html += '<div class="jp-sheet-empty">' + (_jpProdukList.length === 0 ? 'Produk belum ada — tambah di Kelola Produk' : 'Tidak ada SKU yang cocok') + '</div>';
+  } else {
+    katalogs.forEach(function(kat) {
+      html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectInduk(\'' + kat.replace(/'/g,"\\'") + '\')">' +
+        '<span>' + kat + '</span>' +
+        '<span style="font-size:11px;color:var(--ink3)">' + katalogMap[kat] + ' var</span></div>';
+    });
+  }
+  html += '<div class="jp-sheet-item" style="color:var(--info);font-weight:700;border-top:1px solid var(--ink4);margin-top:4px;padding-top:12px" onclick="jpSkuSheetManualInduk()">' +
+    '<span><i class="ti ti-pencil"></i> Ketik SKU manual...</span></div>';
+  listEl.innerHTML = html;
+}
+
+function _jpSkuSheetRenderVariasi(q) {
+  var listEl = document.getElementById('jp-sku-sheet-list');
+  if (!listEl) return;
+  var katalog = document.getElementById('jp-sku-induk').value;
+  var varList = _jpProdukList.filter(function(p) { return _jpGetKatalog(p) === katalog; });
+  q = (q || '').toLowerCase().trim();
+  var items = varList.filter(function(p) { return !q || _jpGetSku(p).toLowerCase().indexOf(q) !== -1; });
+  var html = '';
+  if (!katalog) {
+    html = '<div class="jp-sheet-empty">Pilih SKU Induk dulu</div>';
+  } else if (!items.length) {
+    html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada variasi yang cocok' : 'Belum ada variasi untuk SKU ini') + '</div>';
+  } else {
+    items.forEach(function(p) {
+      var sku = _jpGetSku(p);
+      var hpp = _jpGetHpp(p);
+      var sisa = _jpSisakMap[sku.toUpperCase()];
+      var sisakHtml = '';
       if (sisa !== undefined) {
         var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
-        sisakTxt = ' <span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
+        sisakHtml = '<span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
       }
-      lbl.innerHTML = '<span style="color:var(--ink)">' + label + '</span>' + sisakTxt;
-    } else {
-      lbl.textContent = '— Pilih Variasi —';
-      lbl.style.color = 'var(--ink3)';
-    }
+      html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\',' + (hpp||0) + ')">' +
+        '<span>' + sku + '</span>' + sisakHtml + '</div>';
+    });
   }
-  // Tandai aktif
-  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
-  item.classList.add('active');
-  jpClosePicker(list);
-  // Tampilkan tombol + saat variasi sudah dipilih
+  listEl.innerHTML = html;
+}
+
+function _jpSetIndukLabel(text) {
+  var lbl = document.getElementById('jp-picker-induk-label');
+  if (lbl) {
+    lbl.textContent = text || '— Pilih SKU Induk —';
+    lbl.style.color = text ? 'var(--ink)' : 'var(--ink3)';
+  }
+}
+
+function jpSkuSheetSelectInduk(katalog) {
+  jpSkuSheetClose();
+  var manualWrap = document.getElementById('jp-sku-induk-manual-wrap');
+  if (manualWrap) manualWrap.style.display = 'none';
+  jpPilihKatalog(katalog);
+}
+
+function jpSkuSheetManualInduk() {
+  jpSkuSheetClose();
+  var manualWrap = document.getElementById('jp-sku-induk-manual-wrap');
+  var manualInp  = document.getElementById('jp-sku-induk-manual');
+  if (manualWrap) manualWrap.style.display = 'block';
+  if (manualInp) { manualInp.value = ''; setTimeout(function(){ manualInp.focus(); }, 260); }
+}
+
+function jpOnManualIndukInput() {
+  var manualInp = document.getElementById('jp-sku-induk-manual');
+  var val = manualInp ? manualInp.value : '';
+  document.getElementById('jp-sku-induk').value = val;
+  _jpSetIndukLabel(val || null);
+  // Mode manual: kosongin variasi — SKU final diambil langsung dari field ini
+  document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  var lblV = document.getElementById('jp-picker-variasi-label');
+  if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
   var btnTambah = document.getElementById('jp-btn-tambah-sku');
   if (btnTambah) btnTambah.style.display = val ? 'block' : 'none';
-  // Trigger hitung harga
-  if (val) jpOnPilihVariasi();
+}
+
+function jpSkuSheetSelectVariasi(sku, hpp) {
+  var sel = document.getElementById('jp-sku-variasi');
+  if (sel) {
+    sel.value = sku;
+    sel.dispatchEvent(new Event('change'));
+  }
+  var lbl = document.getElementById('jp-picker-variasi-label');
+  if (lbl) {
+    var sisa = _jpSisakMap[sku.toUpperCase()];
+    var sisakTxt = '';
+    if (sisa !== undefined) {
+      var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
+      sisakTxt = ' <span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
+    }
+    lbl.innerHTML = '<span style="color:var(--ink)">' + sku + '</span>' + sisakTxt;
+  }
+  var btnTambah = document.getElementById('jp-btn-tambah-sku');
+  if (btnTambah) btnTambah.style.display = sku ? 'block' : 'none';
+  jpOnPilihVariasi();
+  jpSkuSheetClose();
 }
 
 // Reset label picker variasi saat katalog/modal reset
@@ -2314,6 +2474,10 @@ if (typeof closeModalJP === 'function') {
     if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
     var lblC = document.getElementById('jp-picker-channel-label');
     if (lblC) { lblC.textContent = '— Pilih Channel —'; lblC.style.color = 'var(--ink3)'; }
+    _jpSetIndukLabel(null);
+    var mwC = document.getElementById('jp-sku-induk-manual-wrap');
+    if (mwC) mwC.style.display = 'none';
+    jpSkuSheetClose();
   };
 }
 
