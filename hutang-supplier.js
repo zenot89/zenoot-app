@@ -314,6 +314,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     /* ── Bottom sheet (form) — pola sama Gadag ── */
     .hs-sheet-overlay { display:none; position:fixed; inset:0; z-index:820; background:rgba(0,0,0,.55); align-items:flex-end; justify-content:center; }
     .hs-sheet-overlay.open { display:flex; }
+    /* Modifier buat sheet yg bisa numpuk DI ATAS sheet lain (mis. picker
+       supplier yg dibuka dari dalam sheet Tambah/Edit Bon) — z-index lebih
+       tinggi dari .hs-sheet-overlay biasa (820) tapi tetep bottom-sheet. */
+    .hs-sheet-overlay-top { z-index:825; }
     .hs-sheet-page {
       width:100%; max-width:480px; height:85vh; max-height:85vh;
       background:var(--cream); border-radius:20px 20px 0 0;
@@ -573,7 +577,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <input type="hidden" id="hs-bon-id">
         <div class="hs-form-group">
           <label>Supplier</label>
-          <select id="hs-bon-supplier-select" onchange="hsOnBonSupplierChange()"></select>
+          <div class="hs-picker-trigger" id="hs-bon-supplier-trigger" onclick="hsBonSupPickerOpen()">
+            <span id="hs-bon-supplier-trigger-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <select id="hs-bon-supplier-select" onchange="hsOnBonSupplierChange()" style="display:none"></select>
           <input type="text" id="hs-bon-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px" oninput="hsOnBonSupplierBaruInput()">
           <div id="hs-bon-jenis-hint" class="hs-item-hint" style="margin-top:8px"></div>
         </div>
@@ -727,12 +735,23 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
   <!-- ── PICKER TERPUSAT: PILIH BON (dipakai dari tombol "Bayar Utang" pas
        lagi "Semua Supplier" — pilih 1 bon dulu, baru lanjut ke sheet Detail
-       Bon yang udah ada buat catat pembayarannya). ── -->
+       Bon yang udah ada buat catat pembayarannya). ──
+       2 level: (1) grup per supplier + sistem (P.O/Dropship, cuma dipisah
+       kalau supplier itu dual-mode & emang punya bon belum lunas di
+       dua-duanya — H SOLAH-case cuma 1 baris karena selalu P.O),
+       (2) drill-in ke grup → list bon dengan kotak centang, pilih mana
+       aja yang mau dibayar bareng. ── -->
   <div class="hs-picker-overlay" id="hs-bon-bayar-picker-overlay" onclick="if(event.target===this) hsBonBayarPickerClose()">
     <div class="hs-picker-box">
-      <div class="hs-picker-title">Pilih Bon yang Mau Dibayar</div>
+      <div class="hs-picker-title" style="display:flex;align-items:center;gap:8px">
+        <button id="hs-bon-bayar-picker-back" onclick="hsBonBayarPickerBack()" style="display:none;background:none;border:none;padding:0;color:var(--ink);font-size:17px;cursor:pointer;flex:none"><i class="ti ti-arrow-left"></i></button>
+        <span id="hs-bon-bayar-picker-title-text">Pilih Bon yang Mau Dibayar</span>
+      </div>
       <input type="text" id="hs-bon-bayar-picker-search" class="hs-picker-search" placeholder="Cari supplier / no nota..." oninput="hsBonBayarPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-bon-bayar-picker-list"></div>
+      <div id="hs-bon-bayar-picker-footer" style="display:none;flex:none;padding:10px 16px;border-top:1px solid var(--ink4)">
+        <button id="hs-bon-bayar-picker-confirm-btn" class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsBonBayarPickerConfirm()">Bayar</button>
+      </div>
     </div>
   </div>
 
@@ -832,6 +851,22 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
   </div>
 
+  <!-- ── PICKER BOTTOM SHEET: PILIH SUPPLIER buat Tambah/Edit Bon ──
+       Beda dari .hs-sup-picker-overlay di atas (yg tengah layar): ini
+       naik dari bawah kayak picker akun di Kas & Jurnal (pola BRImo).
+       Numpuk di atas sheet Tambah/Edit Bon (hs-sheet-overlay-top). ── -->
+  <div class="hs-sheet-overlay hs-sheet-overlay-top" id="hs-bon-sup-picker-overlay" onclick="if(event.target===this) hsBonSupPickerClose()">
+    <div class="hs-sheet-page" style="max-height:80vh">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title">Pilih Supplier</div>
+        <button class="hs-sheet-close" onclick="hsBonSupPickerClose()"><i class="ti ti-x"></i></button>
+      </div>
+      <input type="text" id="hs-bon-sup-picker-search" class="hs-picker-search" style="margin:0 16px 10px" placeholder="Cari supplier..." oninput="hsBonSupPickerFilter(this.value)">
+      <div class="hs-picker-list" id="hs-bon-sup-picker-list" style="padding:2px 16px 16px"></div>
+    </div>
+  </div>
+
   <!-- ── PICKER TERPUSAT: PILIH BARANG (dipakai di baris item Tambah Bon) ──
        Ganti native <select> yg dropdown-nya item hitam kontras & masih ada
        opsi "Manual" — sekarang HARUS dari Master Barang, gak ada jalan lain. ── -->
@@ -858,6 +893,7 @@ var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
 var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
 var _hsCurrentBonMode = 'dropship'; // 'dropship'|'po' — mode harga aktif di form Tambah/Edit Bon (cuma relevan buat supplier dual-mode: is_dropship & is_reseller dua-duanya true; reseller-murni selalu 'po')
 var _hsBayarGabSupplierId = null; // supplier_id yg lagi aktif di sheet Bayar Utang (gabungan)
+var _hsBayarGabBonIds = null; // array bon id spesifik (dari drill-in checkbox picker) — null = semua bon belum lunas milik supplier (perilaku lama)
 
 // ─── LOAD ───────────────────────────────────────────────────────
 async function loadHutangSupplier() {
@@ -2139,6 +2175,71 @@ function hsSupPickerSelect(val, label) {
   hsSupPickerClose();
 }
 
+// ─── PICKER BOTTOM SHEET: PILIH SUPPLIER (khusus Tambah/Edit Bon) ──
+// Nge-drive select asli #hs-bon-supplier-select yg sekarang disembunyiin
+// (display:none) — trigger button di form manggil hsBonSupPickerOpen(),
+// picker ini naik dari bawah (pola BRImo) numpuk di atas sheet hs-sheet-bon.
+function hsBonSupPickerOpen() {
+  var sel = document.getElementById('hs-bon-supplier-select');
+  if (!sel) return;
+  var searchEl = document.getElementById('hs-bon-sup-picker-search');
+  if (searchEl) searchEl.value = '';
+  _hsBonSupPickerRender('', sel.value);
+  hsOpenSheet('hs-bon-sup-picker-overlay');
+  setTimeout(function() { if (searchEl) searchEl.focus({ preventScroll: true }); }, 260);
+}
+
+function hsBonSupPickerClose() {
+  hsCloseSheet('hs-bon-sup-picker-overlay');
+}
+
+function hsBonSupPickerFilter(q) {
+  var sel = document.getElementById('hs-bon-supplier-select');
+  _hsBonSupPickerRender(q, sel ? sel.value : '');
+}
+
+function _hsBonSupPickerRender(q, currentVal) {
+  var listEl = document.getElementById('hs-bon-sup-picker-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var items = _hsSupplierList.filter(function(s) {
+    return !q || s.nama.toLowerCase().indexOf(q) !== -1;
+  });
+  listEl.innerHTML = '';
+  if (q && items.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'hs-picker-empty';
+    empty.textContent = 'Tidak ada supplier yang cocok';
+    listEl.appendChild(empty);
+  }
+  items.forEach(function(s) {
+    var it = document.createElement('div');
+    it.className = 'hs-picker-item' + (String(s.id) === String(currentVal) ? ' active' : '');
+    it.textContent = s.nama;
+    it.onclick = function() { hsBonSupPickerSelect(String(s.id), s.nama); };
+    listEl.appendChild(it);
+  });
+  var itBaru = document.createElement('div');
+  itBaru.className = 'hs-picker-item hs-picker-item-new';
+  itBaru.innerHTML = '<i class="ti ti-plus"></i> Supplier baru...';
+  itBaru.onclick = function() { hsBonSupPickerSelect('__baru__', '+ Supplier baru...'); };
+  listEl.appendChild(itBaru);
+}
+
+function hsBonSupPickerSelect(val, label) {
+  var sel = document.getElementById('hs-bon-supplier-select');
+  if (sel) {
+    sel.value = val;
+    if (typeof sel.onchange === 'function') sel.onchange();
+  }
+  var lblEl = document.getElementById('hs-bon-supplier-trigger-label');
+  if (lblEl) {
+    lblEl.textContent = label;
+    lblEl.style.color = val ? 'var(--ink)' : 'var(--ink3)';
+  }
+  hsBonSupPickerClose();
+}
+
 // Resolve supplier_id dari pasangan select+input "baru" — insert supplier
 // baru ke DB kalau perlu. Dipakai bareng form Bon & form Barang.
 async function _hsResolveSupplierId(selectId, baruInputId) {
@@ -2188,6 +2289,22 @@ function hsOnBonSupplierBaruInput() {
 // lagi dipilih (Dropship = Bon biasa, Reseller = PO). Dipanggil tiap supplier
 // berubah DAN pas sheet baru dibuka (hsOpenTambahBon/hsOpenEditBon).
 function _hsUpdateBonFormBySupplier() {
+  // Sync label tombol trigger picker (dulu ini otomatis dari native <select>,
+  // sekarang select-nya disembunyiin jadi label harus di-set manual tiap kali
+  // state supplier berubah — termasuk pas sheet baru dibuka).
+  var sel = document.getElementById('hs-bon-supplier-select');
+  var trigLbl = document.getElementById('hs-bon-supplier-trigger-label');
+  if (sel && trigLbl) {
+    if (sel.value === '__baru__') {
+      trigLbl.textContent = '+ Supplier baru...';
+      trigLbl.style.color = 'var(--info)';
+    } else {
+      var selSup = _hsSupplierList.find(function(s){ return String(s.id) === String(sel.value); });
+      trigLbl.textContent = selSup ? selSup.nama : '— Pilih Supplier —';
+      trigLbl.style.color = selSup ? 'var(--ink)' : 'var(--ink3)';
+    }
+  }
+
   var supplier = _hsCurrentBonSupplierId
     ? _hsSupplierList.find(function(s){ return s.id === _hsCurrentBonSupplierId; })
     : null;
@@ -2694,60 +2811,208 @@ function hsOpenBayarUtang() {
 }
 
 // ─── PICKER: PILIH BON (Bayar Utang, mode Semua Supplier) ─────
+// Level 1 = grup per supplier (+ per sistem P.O/Dropship kalau dual-mode &
+// emang ada bon belum lunas di dua-duanya). Level 2 (drill-in) = list bon
+// mentah di grup itu dengan kotak centang, user pilih mana yang mau dibayar
+// bareng, lalu lanjut ke sheet Bayar Gabungan (FIFO cuma di antara yg dicentang).
+var _hsBonBayarPickerGroup   = null; // {supplierId, mode} kalau lagi di level 2, null = level 1
+var _hsBonBayarPickerChecked = {};   // {bonId: true} state centang di level 2
+
 function hsBonBayarPickerOpen() {
+  _hsBonBayarPickerGroup = null;
+  _hsBonBayarPickerChecked = {};
   document.getElementById('hs-bon-bayar-picker-search').value = '';
   document.getElementById('hs-bon-bayar-picker-overlay').classList.add('open');
-  _hsBonBayarPickerRender('');
+  _hsBonBayarPickerRenderGroups('');
 }
 function hsBonBayarPickerClose() {
   document.getElementById('hs-bon-bayar-picker-overlay').classList.remove('open');
 }
 function hsBonBayarPickerFilter(q) {
-  _hsBonBayarPickerRender(q);
+  if (_hsBonBayarPickerGroup) _hsBonBayarPickerRenderDetail(q);
+  else _hsBonBayarPickerRenderGroups(q);
 }
-function _hsBonBayarPickerRender(q) {
+function hsBonBayarPickerBack() {
+  _hsBonBayarPickerGroup = null;
+  _hsBonBayarPickerChecked = {};
+  document.getElementById('hs-bon-bayar-picker-search').value = '';
+  _hsBonBayarPickerRenderGroups('');
+}
+
+function _hsBonBayarMode(b) { return b.mode_beli === 'po' ? 'po' : 'dropship'; }
+
+function _hsBonBayarPickerRenderGroups(q) {
+  document.getElementById('hs-bon-bayar-picker-back').style.display = 'none';
+  document.getElementById('hs-bon-bayar-picker-title-text').textContent = 'Pilih Bon yang Mau Dibayar';
+  document.getElementById('hs-bon-bayar-picker-footer').style.display = 'none';
+  document.getElementById('hs-bon-bayar-picker-search').placeholder = 'Cari supplier / no nota...';
+
   var listEl = document.getElementById('hs-bon-bayar-picker-list');
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
-  var belumLunas = _hsBonList.filter(function(b){ return b.status !== 'lunas'; })
-    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
-  var items = belumLunas.filter(function(b) {
-    if (!q) return true;
-    var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
-    var label = ((supplier?supplier.nama:'') + ' ' + (b.no_nota||'')).toLowerCase();
-    return label.indexOf(q) !== -1;
+  var belumLunas = _hsBonList.filter(function(b){ return b.status !== 'lunas'; });
+
+  // Kelompokin per supplier + sistem (mode_beli).
+  var groupsMap = {};
+  belumLunas.forEach(function(b) {
+    var mode = _hsBonBayarMode(b);
+    var key = b.supplier_id + '|' + mode;
+    if (!groupsMap[key]) groupsMap[key] = { supplierId: b.supplier_id, mode: mode, bons: [] };
+    groupsMap[key].bons.push(b);
   });
+  var groups = Object.keys(groupsMap).map(function(k){ return groupsMap[k]; });
+
+  // Supplier yang cuma punya bon di 1 sistem → gak usah dilabelin nama sistem.
+  var modeCountBySupplier = {};
+  groups.forEach(function(g) {
+    modeCountBySupplier[g.supplierId] = (modeCountBySupplier[g.supplierId] || 0) + 1;
+  });
+
+  groups.sort(function(a, b) {
+    var da = Math.min.apply(null, a.bons.map(function(x){ return new Date(x.tanggal).getTime(); }));
+    var db = Math.min.apply(null, b.bons.map(function(x){ return new Date(x.tanggal).getTime(); }));
+    return da - db;
+  });
+
+  var items = groups.filter(function(g) {
+    if (!q) return true;
+    var supplier = _hsSupplierList.find(function(s){ return s.id===g.supplierId; });
+    var supNama = (supplier ? supplier.nama : '').toLowerCase();
+    if (supNama.indexOf(q) !== -1) return true;
+    return g.bons.some(function(b){ return (b.no_nota||'').toLowerCase().indexOf(q) !== -1; });
+  });
+
   listEl.innerHTML = '';
   if (!items.length) {
     var empty = document.createElement('div');
     empty.className = 'hs-picker-empty';
-    empty.textContent = q ? 'Tidak ada bon yang cocok' : 'Semua bon udah lunas 🎉';
+    empty.textContent = q ? 'Tidak ada bon yang cocok' : 'Semua bon udah lunas \ud83c\udf89';
     listEl.appendChild(empty);
     return;
   }
-  items.forEach(function(b) {
-    var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
-    var st = _hsSisaBon(b);
+  items.forEach(function(g) {
+    var supplier = _hsSupplierList.find(function(s){ return s.id===g.supplierId; });
+    var totalSisa = g.bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
+    var showModeLabel = modeCountBySupplier[g.supplierId] > 1;
+    var label = (supplier ? supplier.nama : '\u2014') + (showModeLabel ? ' \u00b7 Sistem ' + (g.mode === 'po' ? 'P.O' : 'Dropship') : '');
     var it = document.createElement('div');
     it.className = 'hs-picker-item';
-    it.innerHTML = '<div style="font-weight:700">' + _hsEsc(supplier?supplier.nama:'—') + '</div>' +
-      '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">' + _hsFmtTgl(b.tanggal) + (b.no_nota?' · '+_hsEsc(b.no_nota):'') + ' · Sisa ' + fmtRpFull(st.sisa) + '</div>';
-    it.onclick = function() { hsBonBayarPickerClose(); hsOpenDetailBon(b.id); };
+    it.innerHTML = '<div style="font-weight:700">' + _hsEsc(label) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">' + g.bons.length + ' bon \u00b7 Sisa ' + fmtRpFull(totalSisa) + '</div>';
+    it.onclick = function() { hsBonBayarPickerOpenGroup(g.supplierId, g.mode); };
     listEl.appendChild(it);
   });
 }
 
+function hsBonBayarPickerOpenGroup(supplierId, mode) {
+  _hsBonBayarPickerGroup = { supplierId: supplierId, mode: mode };
+  _hsBonBayarPickerChecked = {};
+  var bons = _hsBonList.filter(function(b) {
+    return b.supplier_id === supplierId && b.status !== 'lunas' && _hsBonBayarMode(b) === mode;
+  });
+  bons.forEach(function(b) { _hsBonBayarPickerChecked[b.id] = true; }); // default semua dicentang
+  document.getElementById('hs-bon-bayar-picker-search').value = '';
+  _hsBonBayarPickerRenderDetail('');
+}
+
+function _hsBonBayarPickerRenderDetail(q) {
+  var g = _hsBonBayarPickerGroup;
+  if (!g) return;
+  var supplier  = _hsSupplierList.find(function(s){ return s.id===g.supplierId; });
+  var modeCount = _hsBonList.filter(function(b){ return b.supplier_id===g.supplierId && b.status!=='lunas'; })
+    .reduce(function(set,b){ set[_hsBonBayarMode(b)] = true; return set; }, {});
+  var showModeLabel = Object.keys(modeCount).length > 1;
+  var modeLabel = g.mode === 'po' ? 'Sistem P.O' : 'Sistem Dropship';
+
+  document.getElementById('hs-bon-bayar-picker-back').style.display = 'inline-flex';
+  document.getElementById('hs-bon-bayar-picker-title-text').textContent = (supplier ? supplier.nama : '\u2014') + (showModeLabel ? ' \u00b7 ' + modeLabel : '');
+  document.getElementById('hs-bon-bayar-picker-search').placeholder = 'Cari no nota...';
+
+  var bons = _hsBonList.filter(function(b) {
+    return b.supplier_id === g.supplierId && b.status !== 'lunas' && _hsBonBayarMode(b) === g.mode;
+  }).slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+
+  q = (q || '').toLowerCase().trim();
+  var items = bons.filter(function(b) {
+    return !q || (b.no_nota||'').toLowerCase().indexOf(q) !== -1;
+  });
+
+  var listEl = document.getElementById('hs-bon-bayar-picker-list');
+  listEl.innerHTML = '';
+  if (!items.length) {
+    var empty = document.createElement('div');
+    empty.className = 'hs-picker-empty';
+    empty.textContent = 'Tidak ada bon yang cocok';
+    listEl.appendChild(empty);
+  }
+  items.forEach(function(b) {
+    var st = _hsSisaBon(b);
+    var checked = !!_hsBonBayarPickerChecked[b.id];
+    var it = document.createElement('label');
+    it.className = 'hs-picker-item';
+    it.style.display = 'flex';
+    it.style.alignItems = 'center';
+    it.style.gap = '10px';
+    it.innerHTML =
+      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBonBayarPickerToggle(' + b.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink)">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:700">' + _hsFmtTgl(b.tanggal) + (b.no_nota ? ' \u00b7 ' + _hsEsc(b.no_nota) : '') + '</div>' +
+        '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">Sisa ' + fmtRpFull(st.sisa) + '</div>' +
+      '</div>';
+    listEl.appendChild(it);
+  });
+
+  _hsBonBayarPickerUpdateFooter();
+}
+
+function hsBonBayarPickerToggle(bonId, checked) {
+  if (checked) _hsBonBayarPickerChecked[bonId] = true;
+  else delete _hsBonBayarPickerChecked[bonId];
+  _hsBonBayarPickerUpdateFooter();
+}
+
+function _hsBonBayarPickerUpdateFooter() {
+  var footer = document.getElementById('hs-bon-bayar-picker-footer');
+  var btn    = document.getElementById('hs-bon-bayar-picker-confirm-btn');
+  if (!footer || !btn) return;
+  footer.style.display = _hsBonBayarPickerGroup ? 'block' : 'none';
+  var ids = Object.keys(_hsBonBayarPickerChecked);
+  var total = ids.reduce(function(sum, id) {
+    var b = _hsBonList.find(function(x){ return String(x.id) === String(id); });
+    return sum + (b ? _hsSisaBon(b).sisa : 0);
+  }, 0);
+  btn.disabled = ids.length === 0;
+  btn.textContent = ids.length ? ('Bayar ' + ids.length + ' Bon \u00b7 ' + fmtRpFull(total)) : 'Pilih minimal 1 bon';
+}
+
+function hsBonBayarPickerConfirm() {
+  var g = _hsBonBayarPickerGroup;
+  if (!g) return;
+  var ids = Object.keys(_hsBonBayarPickerChecked).map(function(x){ return parseInt(x, 10); });
+  if (!ids.length) return;
+  hsBonBayarPickerClose();
+  hsOpenBayarGabungan(g.supplierId, ids);
+}
+
 // ─── SHEET: BAYAR UTANG GABUNGAN (1 supplier, multi-bon FIFO) ──
-function hsOpenBayarGabungan(supplierId) {
+// bonIds (opsional): kalau diisi (dari drill-in checkbox di picker "Pilih
+// Bon"), FIFO cuma jalan di antara bon-bon yg dicentang itu — bukan semua
+// bon belum lunas milik supplier. Kalau kosong/gak dikasih, balik ke
+// perilaku lama: semua bon belum lunas milik supplier (dipanggil dari
+// tombol "Bayar Utang" pas view udah difilter ke 1 supplier).
+function hsOpenBayarGabungan(supplierId, bonIds) {
   _hsBayarGabSupplierId = supplierId;
+  _hsBayarGabBonIds = (bonIds && bonIds.length) ? bonIds : null;
   var supplier = _hsSupplierList.find(function(s){ return s.id===supplierId; });
-  var bons = _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
-    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+  var bons = (_hsBayarGabBonIds
+      ? _hsBonList.filter(function(b){ return _hsBayarGabBonIds.indexOf(b.id) !== -1 && b.status!=='lunas'; })
+      : _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
+    ).slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
   var totalSisa = bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
 
   document.getElementById('hs-bayar-gab-title').textContent = 'Bayar Utang — ' + (supplier?supplier.nama:'');
   document.getElementById('hs-bayar-gab-total').textContent = 'Sisa ' + fmtRpFull(totalSisa);
-  document.getElementById('hs-bayar-gab-sub').textContent = bons.length + ' bon belum lunas';
+  document.getElementById('hs-bayar-gab-sub').textContent = _hsBayarGabBonIds ? (bons.length + ' bon dipilih') : (bons.length + ' bon belum lunas');
 
   var listEl = document.getElementById('hs-bayar-gab-list');
   listEl.innerHTML = bons.length ? bons.map(function(b) {
@@ -2776,8 +3041,10 @@ function hsOpenBayarGabungan(supplierId) {
 async function hsSimpanBayarGabungan() {
   var supplierId = _hsBayarGabSupplierId;
   if (!supplierId) return;
-  var bons = _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
-    .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
+  var bons = (_hsBayarGabBonIds
+      ? _hsBonList.filter(function(b){ return _hsBayarGabBonIds.indexOf(b.id) !== -1 && b.status!=='lunas'; })
+      : _hsBonList.filter(function(b){ return b.supplier_id===supplierId && b.status!=='lunas'; })
+    ).slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
 
   var nominal = idrVal('hs-bayar-gab-nominal');
   var tanggal = document.getElementById('hs-bayar-gab-tanggal').value;
