@@ -677,6 +677,9 @@ document.getElementById('page-gadag').innerHTML = `
   <!-- Sticky header: navigator label (read-only) + dropdown mode kanan -->
   <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
     <span id="gdgw-week-label" style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">—</span>
+    <button id="gdgw-chart-toggle-btn" class="btn btn-sm" onclick="gdgWToggleChartView()" title="Lihat sebagai grafik batang" style="flex:none;padding:5px 8px;font-size:12px">
+      <i class="ti ti-chart-bar" id="gdgw-chart-toggle-icon"></i>
+    </button>
     <!-- Tombol trigger dropdown mode — menu-nya dirender ke body (portal fixed) biar ga ke-clip overflow panel -->
     <button id="gdgw-mode-btn" class="btn btn-sm btn-primary" onclick="gdgWToggleModeMenu(event)" style="flex:none;white-space:nowrap;padding:5px 9px;font-size:12px">
       <span id="gdgw-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
@@ -711,7 +714,17 @@ document.getElementById('page-gadag').innerHTML = `
       </tbody>
     </table>
   </div>
-</div>
+  <!-- Grafik batang Income vs Cost per hari — alternatif tampilan tabel di
+       atas, toggle lewat tombol gdgw-chart-toggle-btn. Sama-sama ngikutin
+       kondisi perHari (gak dipakai di mode Bulan Ini/Per Bulan). -->
+  <div id="gdgw-chart-area" style="display:none">
+    <div style="display:flex;gap:14px;align-items:center;justify-content:center;padding:4px 0 8px;font-size:11px;font-weight:700;color:var(--gdg-ink2)">
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--ok);display:inline-block"></span> Income</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block"></span> Cost</span>
+    </div>
+    <canvas id="gdgw-daily-chart" style="width:100%;height:220px;display:block"></canvas>
+  </div>
+  </div>
 </div>
 
 <!-- PANEL: CATATAN PENDAPATAN (cuma minggu berjalan — data lama pindah ke Riwayat) -->
@@ -1166,6 +1179,8 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 
 // ─── VIEW SWITCH: dropdown menu (Ringkasan Mingguan / Catatan Pendapatan / Kelola Produk) ──
 let _gdgView = 'mingguan';
+let _gdgWChartMode = false; // false = tabel, true = grafik batang
+let _gdgWDailyData = [];    // [{hariNama, tglLabel, pend, beban}, ...] — diisi tiap gdgWRenderWeek, dipakai chart
 
 const _GDG_VIEW_LABEL = {
   mingguan:   { menu: 'Ringkasan Mingguan', label: 'Ringkasan', heading: 'Overview',      icon: 'ti-calendar-week' },
@@ -1700,9 +1715,15 @@ async function gdgWRenderWeek() {
     if (b.id !== 'gdgw-mode-btn') b.style.opacity = isFixed ? '0.35' : '1';
   });
 
-  // Tabel: tampil/sembunyikan sesuai mode
-  const dataArea = document.getElementById('gdgw-data-area');
-  if (dataArea) dataArea.style.display = perHari ? '' : 'none';
+  // Tabel/chart: tampil/sembunyikan sesuai mode (Bulan Ini/Per Bulan gak
+  // punya breakdown harian sama sekali, jadi dua-duanya + tombol toggle ikut
+  // disembunyikan, bukan cuma tabelnya).
+  const dataArea  = document.getElementById('gdgw-data-area');
+  const chartArea = document.getElementById('gdgw-chart-area');
+  const chartBtn  = document.getElementById('gdgw-chart-toggle-btn');
+  if (dataArea)  dataArea.style.display  = (perHari && !_gdgWChartMode) ? '' : 'none';
+  if (chartArea) chartArea.style.display = (perHari && _gdgWChartMode) ? 'block' : 'none';
+  if (chartBtn)  chartBtn.style.display  = perHari ? '' : 'none';
 
   // Akun beban: HARUS sama persis kayak sumber Card Cost/Penyerapan (Variable
   // Anggaran Mingguan) — BUKAN lagi filter kode prefix 5-xxx. Dulu filternya
@@ -1745,6 +1766,7 @@ async function gdgWRenderWeek() {
     const msPerDay = 86400000;
     const days = Math.round((end - start) / msPerDay) + 1;
     let html = '';
+    _gdgWDailyData = [];
     for (let i = 0; i < days; i++) {
       const d      = new Date(start); d.setDate(start.getDate() + i);
       const isoDay = gdgWToISO(d);
@@ -1754,6 +1776,7 @@ async function gdgWRenderWeek() {
       totalPend  += pend;
       totalBeban += beban;
       const hariNama = _GDGW_HARI[d.getDay()];
+      _gdgWDailyData.push({ hariNama: hariNama, tglLabel: d.getDate() + '/' + (d.getMonth()+1), pend: pend, beban: beban });
       html += `<tr>
         <td style="padding:6px 4px;white-space:nowrap"><b>${hariNama}</b> <span style="font-size:11px;color:var(--ink3)">${d.getDate()}/${d.getMonth()+1}</span></td>
         <td style="text-align:right;padding:6px 4px;color:var(--ok)">${gdgWFmt(pend)}</td>
@@ -1769,6 +1792,7 @@ async function gdgWRenderWeek() {
       <td style="text-align:right;padding:6px 4px"><b style="color:${totalNet>=0?'var(--ok)':'var(--danger)'}">${gdgWFmt(totalNet)}</b></td>
     </tr>`;
     document.getElementById('gdgw-harian-tbody').innerHTML = html;
+    if (_gdgWChartMode) _gdgWDrawDailyChart();
     totalBeban = _gdgWJurnalAll
       .filter(r => r.tanggal >= isoStart && r.tanggal <= isoEnd)
       .reduce((s, r) => {
@@ -1843,6 +1867,93 @@ async function gdgWRenderWeek() {
   gdgAngUpdateCostCard();
 
   gdgUpdateTargetCard();
+}
+
+// ─── TOGGLE TABEL <-> GRAFIK BATANG (breakdown harian Overview) ──
+// Data sumbernya sama persis kayak tabel (_gdgWDailyData, diisi tiap
+// gdgWRenderWeek) — cuma beda cara nampilinnya. Cuma relevan pas perHari
+// true (mode Minggu Ini/Per Minggu/Custom) — di mode Bulan Ini/Per Bulan
+// dua-duanya (tabel & chart) disembunyiin sama gdgWRenderWeek sendiri.
+function gdgWToggleChartView() {
+  _gdgWChartMode = !_gdgWChartMode;
+  const tableEl = document.getElementById('gdgw-data-area');
+  const chartEl = document.getElementById('gdgw-chart-area');
+  const icon    = document.getElementById('gdgw-chart-toggle-icon');
+  if (tableEl) tableEl.style.display = _gdgWChartMode ? 'none' : '';
+  if (chartEl) chartEl.style.display = _gdgWChartMode ? 'block' : 'none';
+  if (icon) icon.className = _gdgWChartMode ? 'ti ti-table' : 'ti ti-chart-bar';
+  if (_gdgWChartMode) _gdgWDrawDailyChart();
+}
+
+function _gdgWDrawDailyChart() {
+  const canvas = document.getElementById('gdgw-daily-chart');
+  if (!canvas || !_gdgWDailyData.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 320;
+  const cssH = 220;
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const data   = _gdgWDailyData;
+  const padL = 44, padR = 10, padT = 10, padB = 28;
+  const cW = cssW - padL - padR, cH = cssH - padT - padB;
+  const maxVal = Math.max(1, ...data.map(d => Math.max(d.pend, d.beban)));
+  const step  = cW / data.length;
+  const barW  = Math.min(16, step * 0.32);
+  // Hardcode langsung (bukan getComputedStyle) — --gdg-ink dkk di-scope ke
+  // #page-gadag, bukan :root, jadi baca dari document.documentElement bakal
+  // selalu kosong. Nilainya sama persis kayak deklarasi --gdg-ink/--gdg-ink2
+  // di style block atas.
+  const inkColor    = '#262220';
+  const inkColor2   = '#5c554d';
+  const okColor     = '#1f9254';
+  const dangerColor = '#c0392b';
+  const fontFam     = "'Comic Neue', cursive, sans-serif";
+
+  // Grid horizontal (4 garis) + label nominal
+  ctx.strokeStyle = 'rgba(0,0,0,.08)';
+  ctx.fillStyle   = inkColor2;
+  ctx.font        = '10px ' + fontFam;
+  ctx.textAlign   = 'right';
+  ctx.textBaseline = 'middle';
+  for (let g = 0; g <= 3; g++) {
+    const y = padT + cH - (cH * g / 3);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + cW, y);
+    ctx.stroke();
+    const val = Math.round(maxVal * g / 3);
+    ctx.fillText(val >= 1000 ? Math.round(val/1000) + 'rb' : String(val), padL - 6, y);
+  }
+
+  // Bar per hari (income + cost berdampingan)
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  data.forEach((d, i) => {
+    const cx = padL + step * i + step / 2;
+    const hPend  = maxVal > 0 ? (d.pend  / maxVal) * cH : 0;
+    const hBeban = maxVal > 0 ? (d.beban / maxVal) * cH : 0;
+    ctx.fillStyle = okColor;
+    ctx.fillRect(cx - barW - 2, padT + cH - hPend, barW, hPend);
+    ctx.fillStyle = dangerColor;
+    ctx.fillRect(cx + 2, padT + cH - hBeban, barW, hBeban);
+    // Label hari di bawah
+    ctx.fillStyle = inkColor2;
+    ctx.font = '10px ' + fontFam;
+    ctx.fillText(d.hariNama.slice(0,3), cx, padT + cH + 16);
+  });
+
+  // Garis dasar
+  ctx.strokeStyle = inkColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + cH);
+  ctx.lineTo(padL + cW, padT + cH);
+  ctx.stroke();
 }
 
 // ─── ANGGARAN — SATU list per akun, nominal = BULANAN (multi-item, dijumlah

@@ -349,7 +349,12 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     #hs-item-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
     .hs-item-row { display:flex; align-items:center; gap:8px; background:var(--cream2); border:1px solid var(--ink4); border-radius:10px; padding:8px 10px; }
     .hs-item-row .hs-picker-trigger { flex:1; min-width:0; }
-    .hs-item-row .hs-item-qty { width:56px; flex:none; text-align:center; }
+    .hs-item-row .hs-item-qty {
+      width:56px; flex:none; text-align:center; color-scheme:light;
+      border:2px solid var(--ink); border-radius:8px; background:var(--cream);
+      color:var(--ink); font-family:var(--f); font-size:14px; font-weight:700;
+      padding:8px 4px; box-sizing:border-box;
+    }
     .hs-item-remove { background:none; border:none; color:var(--danger); font-size:16px; cursor:pointer; padding:4px; flex:none; }
     .hs-item-hint { font-size:10.5px; color:var(--ink3); margin-top:6px; }
     .hs-total-line { display:flex; justify-content:space-between; align-items:center; padding:10px 2px; font-size:15px; font-weight:800; color:var(--ink); border-top:2px solid var(--ink4); margin-top:4px; }
@@ -2506,13 +2511,15 @@ function _hsBrgPickerRender(q) {
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
   var row = _hsBrgPickerCtx ? _hsItemRows[_hsBrgPickerCtx.idx] : null;
-  // CATATAN 4 Sep 2026: dulu item PO-mode yang belum ada Harga PO-nya
-  // disembunyikan total dari list ini (bikin picker keliatan kosong padahal
-  // barangnya ada, cuma harga PO-nya belum diisi). Sekarang tetap ditampilkan
-  // + ditandai, dan Harga PO-nya bisa diisi langsung pas dipilih (lihat
-  // hsBrgPickerSelect) — gak perlu bolak-balik ke Master Barang dulu.
+  // CATATAN 5 Sep 2026: sempat dicoba tetep nampilin item PO-mode yang
+  // Harga PO-nya belum diisi (ditandai warning), tapi kebanyakan tag warning
+  // numpuk bikin list berantakan/jelek kalau banyak varian belum keisi
+  // sekaligus. Balik ke filter ketat: item PO-mode tanpa Harga PO gak
+  // muncul di sini. Isi Harga PO-nya lewat Master Barang.
   var masterOptions = _hsBarangMaster.filter(function(m) {
-    return String(m.supplier_id) === String(_hsCurrentBonSupplierId);
+    if (String(m.supplier_id) !== String(_hsCurrentBonSupplierId)) return false;
+    if (_hsCurrentBonMode === 'po' && !m.harga_po_per_lusin) return false;
+    return true;
   });
   var items = masterOptions.filter(function(m) {
     var label = (m.katalog_produk + ' ' + (m.varian_warna||'') + ' ' + (m.nama_supplier||'')).toLowerCase();
@@ -2522,51 +2529,32 @@ function _hsBrgPickerRender(q) {
   if (!items.length) {
     var empty = document.createElement('div');
     empty.className = 'hs-picker-empty';
-    empty.textContent = q ? 'Tidak ada barang yang cocok' : 'Belum ada Master Barang untuk supplier ini';
+    empty.textContent = q ? 'Tidak ada barang yang cocok' : (_hsCurrentBonMode === 'po' ? 'Belum ada barang dengan Harga PO untuk supplier ini' : 'Belum ada Master Barang untuk supplier ini');
     listEl.appendChild(empty);
     return;
   }
   items.forEach(function(m) {
-    var needsPoHarga = _hsCurrentBonMode === 'po' && !m.harga_po_per_lusin;
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (row && String(row.barang_id) === String(m.id) ? ' active' : '');
-    it.innerHTML = _hsEsc(m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : ''))
-      + (needsPoHarga ? ' <span style="color:var(--warn);font-size:11px;font-weight:700">\u26a0 Harga PO belum diisi</span>' : '');
+    it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '');
     it.onclick = function() { hsBrgPickerSelect(m.id); };
     listEl.appendChild(it);
   });
 }
 
-async function hsBrgPickerSelect(id) {
+function hsBrgPickerSelect(id) {
   if (!_hsBrgPickerCtx) return;
   var row = _hsItemRows[_hsBrgPickerCtx.idx];
   var m = _hsBarangMaster.find(function(x){ return x.id === id; });
-  if (!row || !m) { hsBrgPickerClose(); return; }
-
-  // Mode P.O tapi Harga PO barang ini belum pernah diisi — minta sekalian di
-  // sini, biar gak dead-end balik ke Master Barang dulu. Disimpan permanen
-  // ke Master Barang juga (bukan cuma dipakai sekali di bon ini).
-  if (_hsCurrentBonMode === 'po' && !m.harga_po_per_lusin) {
-    var input = prompt('Harga PO per Lusin untuk "' + m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '') + '" belum diisi.\n\nMasukkan Harga PO per Lusin (Rp):');
-    if (input === null) return; // batal — gak jadi pilih barang ini
-    var hargaPo = parseInt(String(input).replace(/[^0-9]/g, ''), 10);
-    if (!hargaPo || hargaPo <= 0) { alert('Harga PO harus diisi angka lebih dari 0.'); return; }
-    try {
-      await dbUpdate('hutang_barang', m.id, { harga_po_per_lusin: hargaPo });
-      m.harga_po_per_lusin = hargaPo; // sync cache lokal biar picker & row langsung ke-update
-    } catch (e) {
-      alert('Gagal simpan Harga PO: ' + e.message);
-      return;
-    }
+  if (row && m) {
+    row.barang_id = m.id;
+    row.katalog_produk = m.katalog_produk;
+    row.varian_warna   = m.varian_warna || '';
+    row.nama_supplier  = m.nama_supplier || '';
+    row.nama_internal  = m.katalog_produk;
+    row.harga_per_lusin = (_hsCurrentBonMode === 'po' ? m.harga_po_per_lusin : m.harga_per_lusin) || 0;
+    if (!row.qty) row.qty = 12; // default 1 lusin ekuivalen pcs, biar gak 0
   }
-
-  row.barang_id = m.id;
-  row.katalog_produk = m.katalog_produk;
-  row.varian_warna   = m.varian_warna || '';
-  row.nama_supplier  = m.nama_supplier || '';
-  row.nama_internal  = m.katalog_produk;
-  row.harga_per_lusin = (_hsCurrentBonMode === 'po' ? m.harga_po_per_lusin : m.harga_per_lusin) || 0;
-  if (!row.qty) row.qty = 12; // default 1 lusin ekuivalen pcs, biar gak 0
   hsBrgPickerClose();
   _hsRenderItemRows();
 }
@@ -2842,6 +2830,7 @@ function hsOpenBayarUtang() {
 // bareng, lalu lanjut ke sheet Bayar Gabungan (FIFO cuma di antara yg dicentang).
 var _hsBonBayarPickerGroup   = null; // {supplierId, mode} kalau lagi di level 2, null = level 1
 var _hsBonBayarPickerChecked = {};   // {bonId: true} state centang di level 2
+var _hsBonBayarPickerItems   = {};   // {bonId: [hutang_bon_item, ...]} — rincian SKU per bon, di-fetch pas drill-in ke grup
 
 function hsBonBayarPickerOpen() {
   _hsBonBayarPickerGroup = null;
@@ -2929,7 +2918,7 @@ function _hsBonBayarPickerRenderGroups(q) {
   });
 }
 
-function hsBonBayarPickerOpenGroup(supplierId, mode) {
+async function hsBonBayarPickerOpenGroup(supplierId, mode) {
   _hsBonBayarPickerGroup = { supplierId: supplierId, mode: mode };
   _hsBonBayarPickerChecked = {};
   var bons = _hsBonList.filter(function(b) {
@@ -2937,6 +2926,22 @@ function hsBonBayarPickerOpenGroup(supplierId, mode) {
   });
   bons.forEach(function(b) { _hsBonBayarPickerChecked[b.id] = true; }); // default semua dicentang
   document.getElementById('hs-bon-bayar-picker-search').value = '';
+
+  // Rincian SKU per bon (buat ditampilin di list) — fetch batch 1x query,
+  // bukan per-bon, biar gak lambat kalau bonnya banyak.
+  var listEl = document.getElementById('hs-bon-bayar-picker-list');
+  if (listEl) listEl.innerHTML = '<div class="hs-picker-empty">Memuat rincian barang...</div>';
+  try {
+    var ids = bons.map(function(b){ return b.id; });
+    var itemRows = ids.length ? await dbGet('hutang_bon_item', '&bon_id=in.(' + ids.join(',') + ')&order=id.asc') : [];
+    _hsBonBayarPickerItems = {};
+    itemRows.forEach(function(it) {
+      if (!_hsBonBayarPickerItems[it.bon_id]) _hsBonBayarPickerItems[it.bon_id] = [];
+      _hsBonBayarPickerItems[it.bon_id].push(it);
+    });
+  } catch (e) {
+    _hsBonBayarPickerItems = {};
+  }
   _hsBonBayarPickerRenderDetail('');
 }
 
@@ -2973,15 +2978,24 @@ function _hsBonBayarPickerRenderDetail(q) {
   items.forEach(function(b) {
     var st = _hsSisaBon(b);
     var checked = !!_hsBonBayarPickerChecked[b.id];
+    var barangItems = _hsBonBayarPickerItems[b.id] || [];
+    var rincianHtml = '';
+    if (barangItems.length) {
+      var rincianText = barangItems.map(function(it) {
+        return (it.nama_internal || '?') + (it.varian_warna ? ' (' + it.varian_warna + ')' : '') + ' \u00d7' + it.qty;
+      }).join(', ');
+      rincianHtml = '<div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.4">' + _hsEsc(rincianText) + '</div>';
+    }
     var it = document.createElement('label');
     it.className = 'hs-picker-item';
     it.style.display = 'flex';
-    it.style.alignItems = 'center';
     it.style.gap = '10px';
+    it.style.alignItems = 'flex-start';
     it.innerHTML =
-      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBonBayarPickerToggle(' + b.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink)">' +
+      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBonBayarPickerToggle(' + b.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink);margin-top:2px">' +
       '<div style="flex:1;min-width:0">' +
         '<div style="font-weight:700">' + _hsFmtTgl(b.tanggal) + (b.no_nota ? ' \u00b7 ' + _hsEsc(b.no_nota) : '') + '</div>' +
+        rincianHtml +
         '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">Sisa ' + fmtRpFull(st.sisa) + '</div>' +
       '</div>';
     listEl.appendChild(it);
