@@ -206,10 +206,12 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-jenis-radio {
       flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
       padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
-      font-size:13px; font-weight:700; color:var(--ink2); transition:border-color .15s ease, color .15s ease;
+      font-size:13px; font-weight:700; color:var(--ink2); background:var(--cream2);
+      transition:background .15s ease, color .15s ease, border-color .15s ease;
     }
     .hs-jenis-radio input { accent-color:var(--ink); }
-    .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--ink); background:var(--cream2); }
+    .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
+    .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
     .hs-bon-sub  { font-size:11.5px; color:var(--ink3); margin-top:3px; }
     .hs-bon-sisa { font-size:13px; font-weight:700; color:var(--danger); margin-top:2px; }
     .hs-empty { text-align:center; padding:40px 12px; color:var(--ink3); font-size:13px; }

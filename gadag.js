@@ -836,7 +836,7 @@ document.getElementById('page-gadag').innerHTML = `
 </div><!-- /#gdg-panels-wrap -->
 
 <!-- MODAL: SKU -->
-<div class="modal-overlay" id="modal-gdg-sku" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
+<div class="modal-overlay" id="modal-gdg-sku" style="z-index:320" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
   <div class="modal" style="max-width:400px;width:100%;padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-sku-modal-title">
