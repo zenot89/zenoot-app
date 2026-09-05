@@ -17,6 +17,23 @@ body {
   background-color: #F0EFEB;
   color: #2B2B2B;
 }
+/* Matiin popup native "Salin/Cari Tahu/Terjemahkan" pas long-press teks di
+   seluruh app (6 Sep 2026, permintaan user — ganggu, apalagi bentrok visual
+   sama long-press custom di beberapa modul kayak Gadag/Hutang Barang).
+   user-select:none aja TIDAK CUKUP di iOS Safari — popup itu dipicu oleh
+   -webkit-touch-callout, bukan cuma text-selection, jadi keduanya wajib
+   dimatiin bareng. Dikecualiin buat input/textarea/contenteditable biar
+   copy-paste form (misal isi Catatan) tetap jalan normal. */
+body, body * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"], [contenteditable=""] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
 :root{
   --ink:#2B2B2B;--ink2:#8A8580;--ink3:#6b675f;--ink4:#A39E97;
   --cream:#F0EFEB;--cream2:#FFFFFF;--cream3:#E8E6E0;--cream4:#E3E1DA;

@@ -650,7 +650,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         </div>
 
         <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08)">
-          <div id="hs-detail-po-banner-text" style="font-size:12px;color:var(--ink2);margin-bottom:8px"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
+            <div id="hs-detail-po-banner-text" style="font-size:12px;color:var(--ink2);flex:1"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
+            <button id="hs-detail-po-banner-edit-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none;flex-shrink:0" title="Edit PO" onclick="hsOpenEditBon(_hsCurrentBonId)"><i class="ti ti-pencil"></i></button>
+          </div>
           <div class="hs-form-group" style="margin-bottom:8px">
             <label>Tanggal Diterima</label>
             <input type="date" id="hs-detail-tgl-diterima">
@@ -662,40 +665,43 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div class="hs-detail-section-title">Barang</div>
         <div id="hs-detail-items"></div>
 
-        <div class="hs-detail-section-title">Bayar</div>
-        <div class="hs-row-2">
-          <div class="hs-form-group">
-            <label>Nominal</label>
-            <input type="text" id="hs-pay-nominal" inputmode="numeric" placeholder="0">
+        <div id="hs-detail-bayar-section">
+          <div class="hs-detail-section-title">Bayar</div>
+          <div class="hs-row-2">
+            <div class="hs-form-group">
+              <label>Nominal</label>
+              <input type="text" id="hs-pay-nominal" inputmode="numeric" placeholder="0">
+            </div>
+            <div class="hs-form-group">
+              <label>Tanggal</label>
+              <input type="date" id="hs-pay-tanggal">
+            </div>
           </div>
-          <div class="hs-form-group">
-            <label>Tanggal</label>
-            <input type="date" id="hs-pay-tanggal">
-          </div>
-        </div>
-        <div class="hs-row-2">
-          <div class="hs-form-group">
-            <label>Debit (Hutang/Beban)</label>
-            <select id="hs-pay-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
-            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-debit','hs-pay-akun-debit-label','debit')">
-              <span id="hs-pay-akun-debit-label" style="color:var(--ink3)">Pilih akun...</span>
-              <i class="ti ti-chevron-down"></i>
+          <div class="hs-row-2">
+            <div class="hs-form-group">
+              <label>Debit (Hutang/Beban)</label>
+              <select id="hs-pay-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+              <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-debit','hs-pay-akun-debit-label','debit')">
+                <span id="hs-pay-akun-debit-label" style="color:var(--ink3)">Pilih akun...</span>
+                <i class="ti ti-chevron-down"></i>
+              </div>
+            </div>
+            <div class="hs-form-group">
+              <label>Bayar dari (Kas/Bank)</label>
+              <select id="hs-pay-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+              <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-kredit','hs-pay-akun-kredit-label','kredit')">
+                <span id="hs-pay-akun-kredit-label" style="color:var(--ink3)">Pilih akun...</span>
+                <i class="ti ti-chevron-down"></i>
+              </div>
             </div>
           </div>
           <div class="hs-form-group">
-            <label>Bayar dari (Kas/Bank)</label>
-            <select id="hs-pay-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
-            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-kredit','hs-pay-akun-kredit-label','kredit')">
-              <span id="hs-pay-akun-kredit-label" style="color:var(--ink3)">Pilih akun...</span>
-              <i class="ti ti-chevron-down"></i>
-            </div>
+            <label>Catatan (opsional)</label>
+            <input type="text" id="hs-pay-catatan">
           </div>
+          <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="hsSimpanBayar()"><i class="ti ti-cash"></i> Catat Pembayaran</button>
         </div>
-        <div class="hs-form-group">
-          <label>Catatan (opsional)</label>
-          <input type="text" id="hs-pay-catatan">
-        </div>
-        <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="hsSimpanBayar()"><i class="ti ti-cash"></i> Catat Pembayaran</button>
+        <div id="hs-detail-po-payinfo" style="display:none;font-size:12px;color:var(--ink2);background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:10px 12px;margin-bottom:14px"><i class="ti ti-info-circle"></i> Bon ini masih PO — catat uang muka/cicilan lewat <b>Bayar Utang</b> (di toolbar Bon), bukan di sini. Form Bayar baru muncul lagi setelah barang ditandai diterima.</div>
 
         <div class="hs-detail-section-title">Riwayat Pembayaran</div>
         <div id="hs-detail-riwayat"></div>
@@ -1769,7 +1775,7 @@ function hsRenderBonList() {
 
     var donutColor = (badgeCls === 'hs-badge-lunas') ? 'var(--ok)' : (badgeCls === 'hs-badge-cicil' ? 'var(--warn)' : (badgeCls === 'hs-badge-po' ? 'var(--info)' : 'var(--danger)'));
 
-    return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')" oncontextmenu="event.preventDefault();hsOpenEditBon(' + b.id + ')">' +
+    return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')">' +
       '<div class="hs-donut" style="--pct:' + pct + ';--donut-color:' + donutColor + '"><span>' + pct + '%</span></div>' +
       '<div class="hs-bon-main">' +
         '<div class="hs-bon-top"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
@@ -1779,7 +1785,12 @@ function hsRenderBonList() {
     '</div>';
   }).join('');
 
-  _hsInitLongPress('hs-bon-list', function(id) { hsOpenEditBon(parseInt(id,10)); });
+  // Long-press/right-click edit sengaja DIMATIIN (2 Sep 2026, permintaan
+  // user) — dulu klik singkat = rincian, long-press/klik-kanan = Edit Bon,
+  // dianggap bikin bingung ada 2 dialog beda buat 1 card. Sekarang SEMUA
+  // interaksi klik ke card = langsung ke rincian (hsOpenDetailBon). Akses
+  // Edit buat bon yang masih PO dipindah ke tombol Edit di banner PO
+  // (lihat hsOpenDetailBon & hs-detail-po-banner-edit-btn di HTML sheet).
 }
 
 // ─── MASTER BARANG LIST (tabel spreadsheet) ────────────────────
@@ -2841,6 +2852,23 @@ async function hsOpenDetailBon(bonId) {
       ? '<i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.'
       : '<i class="ti ti-file-invoice"></i> Bon reseller ini belum ada catatan tanggal diterima (data lama, sebelum fitur ini ada). Isi tanggal aslinya biar Lead Time supplier kehitung akurat.';
   }
+  // Tombol Edit di banner PO — cuma nongol buat bon yg BENERAN masih PO
+  // (b.is_po true). Ini pengganti akses long-press/klik-kanan yang dimatiin
+  // (2 Sep 2026, lihat hsRenderBonList) — sekarang klik card SELALU ke
+  // rincian ini, Edit PO diakses dari tombol pensil di banner ini aja.
+  var poEditBtn = document.getElementById('hs-detail-po-banner-edit-btn');
+  if (poEditBtn) poEditBtn.style.display = b.is_po ? 'flex' : 'none';
+
+  // Section "Bayar" (catat pembayaran langsung) disembunyiin selama bon
+  // masih PO — cicilan/uang muka buat PO WAJIB lewat "Bayar Utang" (lihat
+  // tooltip Edit PO di form supplier reseller), form Bayar di sini bikin
+  // 2 jalur beda buat hal yang sama & rawan bikin bingung akun mana yg
+  // kepakai. Riwayat Pembayaran tetep keliatan (data dari Bayar Utang tetep
+  // muncul di situ, cuma jalur INPUT-nya yang ditutup di sini).
+  var bayarSection = document.getElementById('hs-detail-bayar-section');
+  var poPayInfo = document.getElementById('hs-detail-po-payinfo');
+  if (bayarSection) bayarSection.style.display = b.is_po ? 'none' : 'block';
+  if (poPayInfo) poPayInfo.style.display = b.is_po ? 'block' : 'none';
 
   var itemsWrap = document.getElementById('hs-detail-items');
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
