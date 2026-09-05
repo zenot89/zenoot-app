@@ -650,7 +650,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         </div>
 
         <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08)">
-          <div style="font-size:12px;color:var(--ink2);margin-bottom:8px"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
+          <div id="hs-detail-po-banner-text" style="font-size:12px;color:var(--ink2);margin-bottom:8px"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
           <div class="hs-form-group" style="margin-bottom:8px">
             <label>Tanggal Diterima</label>
             <input type="date" id="hs-detail-tgl-diterima">
@@ -2821,10 +2821,25 @@ async function hsOpenDetailBon(bonId) {
   document.getElementById('hs-detail-donut-txt').textContent = pct + '%';
 
   var poBanner = document.getElementById('hs-detail-po-banner');
-  if (poBanner) poBanner.style.display = b.is_po ? 'block' : 'none';
-  if (b.is_po) {
+  // Banner (+ input Tanggal Diterima) nongol di 2 kondisi:
+  //  1. b.is_po true (bon baru, jalur normal — PO reseller yang belum ditandai)
+  //  2. Bon LAMA (dari sebelum kolom is_po ada, 25 Agu 2026) — is_po-nya udah
+  //     kebaca false secara default padahal belum pernah beneran ditandai
+  //     diterima (tgl_diterima masih kosong). Dibatasin ke supplier reseller
+  //     MURNI (is_reseller && !is_dropship) — buat supplier dual-mode, is_po
+  //     false BISA JADI emang bon dropship yang sah (barang datang hari itu
+  //     juga), jadi jangan dipaksa minta tanggal diterima kalau gak pasti
+  //     mode aslinya (data lama gak nyimpen mode per-bon).
+  var isPureReseller = !!(supplier && supplier.is_reseller && !supplier.is_dropship);
+  var needsTglDiterima = !!b.is_po || (isPureReseller && !b.tgl_diterima);
+  if (poBanner) poBanner.style.display = needsTglDiterima ? 'block' : 'none';
+  if (needsTglDiterima) {
     var tglDiterimaInput = document.getElementById('hs-detail-tgl-diterima');
     if (tglDiterimaInput) tglDiterimaInput.value = new Date().toISOString().slice(0,10);
+    var bannerTextEl = document.getElementById('hs-detail-po-banner-text');
+    if (bannerTextEl) bannerTextEl.innerHTML = b.is_po
+      ? '<i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.'
+      : '<i class="ti ti-file-invoice"></i> Bon reseller ini belum ada catatan tanggal diterima (data lama, sebelum fitur ini ada). Isi tanggal aslinya biar Lead Time supplier kehitung akurat.';
   }
 
   var itemsWrap = document.getElementById('hs-detail-items');
