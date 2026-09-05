@@ -819,8 +819,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
         Copy dari Excel lalu paste di bawah.<br>
-        Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin</b><br>
-        Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.
+        Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin → Harga PO per Lusin</b><br>
+        Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.<br>
+        Kolom <b>Harga PO per Lusin</b> (ke-6) juga opsional — cuma perlu diisi kalau suplier-nya P.O/dual-mode (RH-case) dan mau langsung bisa dipakai di Mode P.O. Kosongin aja kalau supplier-nya dropship murni.
       </div>
       <textarea id="hs-paste-area"
         style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px;box-sizing:border-box"
@@ -828,7 +829,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div id="hs-paste-preview" style="margin-top:10px;display:none">
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
         <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
-          <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP Pc</th></tr></thead>
+          <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP PO/Lsn</th></tr></thead>
           <tbody id="hs-paste-tbody"></tbody></table>
         </div>
       </div>
@@ -2503,10 +2504,13 @@ function _hsBrgPickerRender(q) {
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
   var row = _hsBrgPickerCtx ? _hsItemRows[_hsBrgPickerCtx.idx] : null;
+  // CATATAN 4 Sep 2026: dulu item PO-mode yang belum ada Harga PO-nya
+  // disembunyikan total dari list ini (bikin picker keliatan kosong padahal
+  // barangnya ada, cuma harga PO-nya belum diisi). Sekarang tetap ditampilkan
+  // + ditandai, dan Harga PO-nya bisa diisi langsung pas dipilih (lihat
+  // hsBrgPickerSelect) — gak perlu bolak-balik ke Master Barang dulu.
   var masterOptions = _hsBarangMaster.filter(function(m) {
-    if (String(m.supplier_id) !== String(_hsCurrentBonSupplierId)) return false;
-    if (_hsCurrentBonMode === 'po' && !m.harga_po_per_lusin) return false;
-    return true;
+    return String(m.supplier_id) === String(_hsCurrentBonSupplierId);
   });
   var items = masterOptions.filter(function(m) {
     var label = (m.katalog_produk + ' ' + (m.varian_warna||'') + ' ' + (m.nama_supplier||'')).toLowerCase();
@@ -2521,27 +2525,46 @@ function _hsBrgPickerRender(q) {
     return;
   }
   items.forEach(function(m) {
+    var needsPoHarga = _hsCurrentBonMode === 'po' && !m.harga_po_per_lusin;
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (row && String(row.barang_id) === String(m.id) ? ' active' : '');
-    it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '');
+    it.innerHTML = _hsEsc(m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : ''))
+      + (needsPoHarga ? ' <span style="color:var(--warn);font-size:11px;font-weight:700">\u26a0 Harga PO belum diisi</span>' : '');
     it.onclick = function() { hsBrgPickerSelect(m.id); };
     listEl.appendChild(it);
   });
 }
 
-function hsBrgPickerSelect(id) {
+async function hsBrgPickerSelect(id) {
   if (!_hsBrgPickerCtx) return;
   var row = _hsItemRows[_hsBrgPickerCtx.idx];
   var m = _hsBarangMaster.find(function(x){ return x.id === id; });
-  if (row && m) {
-    row.barang_id = m.id;
-    row.katalog_produk = m.katalog_produk;
-    row.varian_warna   = m.varian_warna || '';
-    row.nama_supplier  = m.nama_supplier || '';
-    row.nama_internal  = m.katalog_produk;
-    row.harga_per_lusin = (_hsCurrentBonMode === 'po' ? m.harga_po_per_lusin : m.harga_per_lusin) || 0;
-    if (!row.qty) row.qty = 12; // default 1 lusin ekuivalen pcs, biar gak 0
+  if (!row || !m) { hsBrgPickerClose(); return; }
+
+  // Mode P.O tapi Harga PO barang ini belum pernah diisi — minta sekalian di
+  // sini, biar gak dead-end balik ke Master Barang dulu. Disimpan permanen
+  // ke Master Barang juga (bukan cuma dipakai sekali di bon ini).
+  if (_hsCurrentBonMode === 'po' && !m.harga_po_per_lusin) {
+    var input = prompt('Harga PO per Lusin untuk "' + m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '') + '" belum diisi.\n\nMasukkan Harga PO per Lusin (Rp):');
+    if (input === null) return; // batal — gak jadi pilih barang ini
+    var hargaPo = parseInt(String(input).replace(/[^0-9]/g, ''), 10);
+    if (!hargaPo || hargaPo <= 0) { alert('Harga PO harus diisi angka lebih dari 0.'); return; }
+    try {
+      await dbUpdate('hutang_barang', m.id, { harga_po_per_lusin: hargaPo });
+      m.harga_po_per_lusin = hargaPo; // sync cache lokal biar picker & row langsung ke-update
+    } catch (e) {
+      alert('Gagal simpan Harga PO: ' + e.message);
+      return;
+    }
   }
+
+  row.barang_id = m.id;
+  row.katalog_produk = m.katalog_produk;
+  row.varian_warna   = m.varian_warna || '';
+  row.nama_supplier  = m.nama_supplier || '';
+  row.nama_internal  = m.katalog_produk;
+  row.harga_per_lusin = (_hsCurrentBonMode === 'po' ? m.harga_po_per_lusin : m.harga_per_lusin) || 0;
+  if (!row.qty) row.qty = 12; // default 1 lusin ekuivalen pcs, biar gak 0
   hsBrgPickerClose();
   _hsRenderItemRows();
 }
@@ -3216,14 +3239,23 @@ function hsParsePasteBarang() {
     var cols = line.split('\t').map(function(c) { return c.trim(); });
     if (cols.length < 1) return;
 
-    var katalog, varian, skuSup, supNamaRaw, harga;
-    if (cols.length >= 5) {
-      // 5 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn
+    var katalog, varian, skuSup, supNamaRaw, harga, hargaPo;
+    if (cols.length >= 6) {
+      // 6 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn → HPP PO/Lsn
       katalog    = (cols[0] || '').toUpperCase();
       varian     = (cols[1] || '').trim();
       skuSup     = (cols[2] || '').trim();
       supNamaRaw = (cols[3] || '').trim();
       harga      = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo    = parseInt((cols[5] || '').replace(/[^0-9]/g,''), 10) || null;
+    } else if (cols.length >= 5) {
+      // 5 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn (tanpa HPP PO)
+      katalog    = (cols[0] || '').toUpperCase();
+      varian     = (cols[1] || '').trim();
+      skuSup     = (cols[2] || '').trim();
+      supNamaRaw = (cols[3] || '').trim();
+      harga      = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo    = null;
     } else {
       // Fallback 4 kolom lama: SKU Induk → Varian → SKU Suplier → HPP/Lsn
       // (ga ada kolom Suplier per baris → pakai Supplier default di atas)
@@ -3232,6 +3264,7 @@ function hsParsePasteBarang() {
       skuSup     = (cols[2] || '').trim();
       supNamaRaw = '';
       harga      = parseInt((cols[3] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo    = null;
     }
 
     if (!katalog) return;
@@ -3241,6 +3274,7 @@ function hsParsePasteBarang() {
       varian_warna: varian || null,
       nama_supplier: skuSup || null, // "nama versi supplier" a.k.a SKU Suplier
       harga_per_lusin: harga,
+      harga_po_per_lusin: hargaPo,
       dikenal: _hsKatalogList.indexOf(katalog) !== -1,
       supplier_id: null,
       supplier_nama: null,
@@ -3266,7 +3300,7 @@ function hsParsePasteBarang() {
   });
 
   if (_hsParsedBarang.length === 0) {
-    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin');
+    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin → Harga PO per Lusin (opsional)');
     return;
   }
 
@@ -3285,7 +3319,7 @@ function hsParsePasteBarang() {
       '<td>' + _hsEsc(r.nama_supplier||'—') + '</td>' +
       '<td>' + supCell + '</td>' +
       '<td>Rp' + r.harga_per_lusin.toLocaleString('id-ID') + '</td>' +
-      '<td>Rp' + Math.round(r.harga_per_lusin/12).toLocaleString('id-ID') + '</td>' +
+      '<td>' + (r.harga_po_per_lusin ? 'Rp' + r.harga_po_per_lusin.toLocaleString('id-ID') : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '</tr>';
   }).join('');
   document.getElementById('hs-paste-preview').style.display = 'block';
@@ -3338,7 +3372,8 @@ async function hsSimpanPasteBarang() {
         katalog_produk: r.katalog_produk,
         varian_warna: r.varian_warna,
         nama_supplier: r.nama_supplier,
-        harga_per_lusin: r.harga_per_lusin
+        harga_per_lusin: r.harga_per_lusin,
+        harga_po_per_lusin: r.harga_po_per_lusin
       });
       ok++;
       btn.textContent = 'Menyimpan ' + ok + '/' + _hsParsedBarang.length + '...';

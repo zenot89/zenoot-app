@@ -3576,7 +3576,7 @@ function _gdgInitSheetFocusScroll() {
     // baru scroll-into-view biar hitungannya pake ukuran final, bukan ukuran lama.
     setTimeout(function() {
       _gdgSheetSyncViewport();
-      t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }, 320);
   });
 }
@@ -3667,7 +3667,7 @@ function _gdgAngInitFocusScroll() {
     if (!(t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
     setTimeout(function() {
       _gdgAngSyncViewport();
-      t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }, 320);
   });
 }

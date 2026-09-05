@@ -4683,6 +4683,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   letter-spacing: .07em;
   font-weight: 700;
 }
+#kas-akun-picker-list .kas-akun-item:hover,
 #kas-akun-picker-list .kas-akun-item:active,
 #kas-akun-picker-list .kas-akun-item.active {
   background: var(--ovl-0_08);
