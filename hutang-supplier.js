@@ -649,62 +649,39 @@ document.getElementById('page-hutang-supplier').innerHTML = `
           <div class="hs-donut" id="hs-detail-donut" style="--pct:0"><span id="hs-detail-donut-txt">0%</span></div>
         </div>
 
-        <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08)">
-          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
-            <div id="hs-detail-po-banner-text" style="font-size:12px;color:var(--ink2);flex:1"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
-            <button id="hs-detail-po-banner-edit-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none;flex-shrink:0" title="Edit PO" onclick="hsOpenEditBon(_hsCurrentBonId)"><i class="ti ti-pencil"></i></button>
+        <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08);position:relative">
+          <button id="hs-detail-po-banner-edit-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none;position:absolute;top:8px;right:8px" title="Edit PO" onclick="hsOpenEditBon(_hsCurrentBonId)"><i class="ti ti-pencil"></i></button>
+          <div class="hs-row-2" style="gap:8px;align-items:end">
+            <div class="hs-form-group" style="margin-bottom:0">
+              <input type="date" id="hs-detail-tgl-diterima">
+            </div>
+            <button class="hs-btn-pill hs-btn-primary" style="justify-content:center" onclick="hsOpenTerimaBarang()"><i class="ti ti-truck-delivery"></i> Barang Diterima</button>
           </div>
-          <div class="hs-form-group" style="margin-bottom:8px">
-            <label>Tanggal Diterima</label>
-            <input type="date" id="hs-detail-tgl-diterima">
-          </div>
-          <div style="font-size:10.5px;color:var(--ink3);margin:-4px 0 8px">Kalau barangnya udah lama diterima (sebelum hari ini), ganti tanggalnya biar Lead Time supplier kehitung akurat.</div>
-          <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsTandaiBarangDiterima()"><i class="ti ti-truck-delivery"></i> Tandai Barang Diterima</button>
         </div>
 
         <div class="hs-detail-section-title">Barang</div>
         <div id="hs-detail-items"></div>
 
-        <div id="hs-detail-bayar-section">
-          <div class="hs-detail-section-title">Bayar</div>
-          <div class="hs-row-2">
-            <div class="hs-form-group">
-              <label>Nominal</label>
-              <input type="text" id="hs-pay-nominal" inputmode="numeric" placeholder="0">
-            </div>
-            <div class="hs-form-group">
-              <label>Tanggal</label>
-              <input type="date" id="hs-pay-tanggal">
-            </div>
-          </div>
-          <div class="hs-row-2">
-            <div class="hs-form-group">
-              <label>Debit (Hutang/Beban)</label>
-              <select id="hs-pay-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
-              <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-debit','hs-pay-akun-debit-label','debit')">
-                <span id="hs-pay-akun-debit-label" style="color:var(--ink3)">Pilih akun...</span>
-                <i class="ti ti-chevron-down"></i>
-              </div>
-            </div>
-            <div class="hs-form-group">
-              <label>Bayar dari (Kas/Bank)</label>
-              <select id="hs-pay-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
-              <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-kredit','hs-pay-akun-kredit-label','kredit')">
-                <span id="hs-pay-akun-kredit-label" style="color:var(--ink3)">Pilih akun...</span>
-                <i class="ti ti-chevron-down"></i>
-              </div>
-            </div>
-          </div>
-          <div class="hs-form-group">
-            <label>Catatan (opsional)</label>
-            <input type="text" id="hs-pay-catatan">
-          </div>
-          <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center;margin-bottom:6px" onclick="hsSimpanBayar()"><i class="ti ti-cash"></i> Catat Pembayaran</button>
-        </div>
-        <div id="hs-detail-po-payinfo" style="display:none;font-size:12px;color:var(--ink2);background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:10px 12px;margin-bottom:14px"><i class="ti ti-info-circle"></i> Bon ini masih PO — catat uang muka/cicilan lewat <b>Bayar Utang</b> (di toolbar Bon), bukan di sini. Form Bayar baru muncul lagi setelah barang ditandai diterima.</div>
+        <div id="hs-detail-po-payinfo" style="font-size:12px;color:var(--ink2);background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:10px 12px;margin:14px 0"><i class="ti ti-info-circle"></i> Buat catat pembayaran/cicilan bon ini, pakai tombol <b>Bayar Utang</b> di toolbar Bon.</div>
 
         <div class="hs-detail-section-title">Riwayat Pembayaran</div>
         <div id="hs-detail-riwayat"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SHEET: PICKER BARANG DITERIMA (rincian per-item, dukung kirim sebagian) ── -->
+  <div class="hs-sheet-overlay" id="hs-sheet-terima" onclick="if(event.target===this) hsCloseSheet('hs-sheet-terima')">
+    <div class="hs-sheet-page">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title">Barang Diterima</div>
+        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-terima')"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="hs-sheet-body">
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">Cocokin qty yang BENERAN diterima per SKU. Kalau supplier cuma kirim sebagian, ganti angkanya di sini.</div>
+        <div id="hs-terima-list"></div>
+        <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center;margin-top:12px" onclick="hsSimpanTerimaBarang()"><i class="ti ti-check"></i> Konfirmasi Diterima</button>
       </div>
     </div>
   </div>
@@ -947,6 +924,7 @@ var _hsAkunKas          = [];     // kas_akun, buat select debit/kredit pembayar
 var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & Master)
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
 var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
+var _hsCurrentBonItems  = [];     // item hutang_bon_item milik bon yg lagi dibuka di sheet detail — dipakai ulang buat render picker Terima Barang (hindari fetch 2x)
 var _hsCurrentBonSupplierId = null; // supplier_id yg lagi aktif di form Tambah/Edit Bon
 var _hsCurrentBonMode = 'dropship'; // 'dropship'|'po' — mode harga aktif di form Tambah/Edit Bon (cuma relevan buat supplier dual-mode: is_dropship & is_reseller dua-duanya true; reseller-murni selalu 'po')
 var _hsBayarGabSupplierId = null; // supplier_id yg lagi aktif di sheet Bayar Utang (gabungan)
@@ -2053,7 +2031,7 @@ function hsRenderOverview() {
         var supplier = _hsSupplierList.find(function(s){ return s.id===b.supplier_id; });
         var hari = Math.floor((now - new Date(b.tanggal + 'T00:00:00')) / 86400000);
         var hariCls = hari >= 30 ? 'hs-ov-aging-merah' : (hari >= 14 ? 'hs-ov-aging-kuning' : '');
-        return '<div class="hs-ov-aging-row" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')" style="cursor:pointer">' +
+        return '<div class="hs-ov-aging-row" data-id="' + b.id + '">' +
           '<div class="hs-ov-aging-left"><span class="hs-ov-aging-nama">' + _hsEsc(supplier?supplier.nama:'—') + '</span> · ' + _hsFmtTgl(b.tanggal) + '</div>' +
           '<div class="hs-ov-aging-hari ' + hariCls + '">' + hari + ' hari</div>' +
         '</div>';
@@ -2756,8 +2734,8 @@ async function hsSimpanBon() {
     var bonId;
     if (id) {
       // Edit: is_po SENGAJA nggak diikutin di sini — status PO/diterima cuma
-      // diubah lewat tombol "Tandai Barang Diterima" (hsTandaiBarangDiterima),
-      // bukan keubah otomatis pas edit qty/harga/dsb.
+      // diubah lewat tombol "Barang Diterima" (hsOpenTerimaBarang →
+      // hsSimpanTerimaBarang), bukan keubah otomatis pas edit qty/harga/dsb.
       await dbUpdate('hutang_bon', id, bonData);
       bonId = id;
       var oldItems = await dbGet('hutang_bon_item', '&bon_id=eq.' + id);
@@ -2847,10 +2825,6 @@ async function hsOpenDetailBon(bonId) {
   if (needsTglDiterima) {
     var tglDiterimaInput = document.getElementById('hs-detail-tgl-diterima');
     if (tglDiterimaInput) tglDiterimaInput.value = new Date().toISOString().slice(0,10);
-    var bannerTextEl = document.getElementById('hs-detail-po-banner-text');
-    if (bannerTextEl) bannerTextEl.innerHTML = b.is_po
-      ? '<i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.'
-      : '<i class="ti ti-file-invoice"></i> Bon reseller ini belum ada catatan tanggal diterima (data lama, sebelum fitur ini ada). Isi tanggal aslinya biar Lead Time supplier kehitung akurat.';
   }
   // Tombol Edit di banner PO — cuma nongol buat bon yg BENERAN masih PO
   // (b.is_po true). Ini pengganti akses long-press/klik-kanan yang dimatiin
@@ -2859,49 +2833,44 @@ async function hsOpenDetailBon(bonId) {
   var poEditBtn = document.getElementById('hs-detail-po-banner-edit-btn');
   if (poEditBtn) poEditBtn.style.display = b.is_po ? 'flex' : 'none';
 
-  // Section "Bayar" (catat pembayaran langsung) disembunyiin selama bon
-  // masih PO — cicilan/uang muka buat PO WAJIB lewat "Bayar Utang" (lihat
-  // tooltip Edit PO di form supplier reseller), form Bayar di sini bikin
-  // 2 jalur beda buat hal yang sama & rawan bikin bingung akun mana yg
-  // kepakai. Riwayat Pembayaran tetep keliatan (data dari Bayar Utang tetep
-  // muncul di situ, cuma jalur INPUT-nya yang ditutup di sini).
-  var bayarSection = document.getElementById('hs-detail-bayar-section');
-  var poPayInfo = document.getElementById('hs-detail-po-payinfo');
-  if (bayarSection) bayarSection.style.display = b.is_po ? 'none' : 'block';
-  if (poPayInfo) poPayInfo.style.display = b.is_po ? 'block' : 'none';
+  // Section "Bayar" (catat pembayaran langsung dari sheet ini) DIHAPUS
+  // total (6 Sep 2026, permintaan user) — dulu ada form Bayar terpisah di
+  // sini SELAIN tombol toolbar "Bayar Utang", bikin 2 jalur beda buat hal
+  // yang sama & rawan bikin bingung akun mana yg kepakai. Sekarang SATU
+  // jalur aja: semua pembayaran (PO maupun bon biasa) lewat "Bayar Utang"
+  // di toolbar Bon (hsOpenBayarUtang → hs-sheet-bayar-gab, akun debit/kredit
+  // sendiri di situ). Sheet ini (hs-sheet-detail) sekarang murni rincian +
+  // riwayat, gak ada input pembayaran sama sekali.
 
   var itemsWrap = document.getElementById('hs-detail-items');
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
   try {
     var items = await dbGet('hutang_bon_item', '&bon_id=eq.' + bonId + '&order=id.asc');
+    _hsCurrentBonItems = items || [];
     itemsWrap.innerHTML = (items && items.length) ? items.map(function(it) {
       var namaTampil = it.nama_internal || '—';
       var subNama = [];
       if (it.varian_warna) subNama.push('varian: ' + it.varian_warna);
       if (it.nama_supplier) subNama.push('supplier: ' + it.nama_supplier);
+      // Kalau item ini pernah dicatet qty_diterima (lewat picker Barang
+      // Diterima) dan angkanya BEDA dari qty dipesan, tampilin dua-duanya —
+      // biar keliatan kalau ada kekurangan kirim dari supplier, bukan cuma
+      // qty dipesan doang (lihat hsOpenTerimaBarang/hsSimpanTerimaBarang).
+      var qtyTxt = it.qty + ' ' + (it.satuan||'');
+      if (it.qty_diterima != null && Number(it.qty_diterima) !== Number(it.qty)) {
+        qtyTxt = '<span style="color:var(--danger)">' + it.qty_diterima + '</span>/' + it.qty + ' ' + (it.satuan||'');
+      }
       return '<div class="hs-detail-item-row">' +
         '<div><div class="hs-detail-item-nama">' + _hsEsc(namaTampil) + '</div>' +
         (subNama.length ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(subNama.join(' · ')) + '</div>' : '') + '</div>' +
-        '<div class="hs-detail-item-qty">' + it.qty + ' ' + (it.satuan||'') + '</div>' +
+        '<div class="hs-detail-item-qty">' + qtyTxt + '</div>' +
         '<div class="hs-detail-item-sub">' + fmtRpFull(it.subtotal) + '</div>' +
       '</div>';
     }).join('') : '<div class="hs-empty" style="padding:10px 0">Tidak ada data barang.</div>';
   } catch(e) {
+    _hsCurrentBonItems = [];
     itemsWrap.innerHTML = '<div class="hs-empty">Gagal memuat barang.</div>';
   }
-
-  _hsPopulateAkunSelect('hs-pay-akun-debit', function(a) {
-    return a.kelompok === 'beban' || a.kelompok === 'kewajiban';
-  });
-  _hsPopulateAkunSelect('hs-pay-akun-kredit', function(a) {
-    return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-  });
-  _hsResetAkunTrigger('hs-pay-akun-debit-label');
-  _hsResetAkunTrigger('hs-pay-akun-kredit-label');
-  document.getElementById('hs-pay-nominal').value = st.sisa > 0 ? st.sisa.toLocaleString('id-ID') : '';
-  idrInput('hs-pay-nominal');
-  document.getElementById('hs-pay-tanggal').value = new Date().toISOString().slice(0,10);
-  document.getElementById('hs-pay-catatan').value = '';
 
   await _hsRenderRiwayatBayar(bonId);
   hsOpenSheet('hs-sheet-detail');
@@ -2920,17 +2889,41 @@ async function _hsRenderRiwayatBayar(bonId) {
   }).join('');
 }
 
-// Reseller PO → begitu barang beneran sampai, tandai di sini. Bon-nya TETAP
-// jalan seperti biasa (udah kehitung di Total Utang Aktif sejak PO dibuat),
-// cuma badge-nya balik normal (Belum Lunas/Dicicil/Lunas) — bukan "PO" lagi.
-async function hsTandaiBarangDiterima() {
+// ─── PICKER: BARANG DITERIMA (rincian per-item, dukung kirim sebagian) ──
+// Dulu tombol "Tandai Barang Diterima" langsung nutup PO tanpa liat rincian
+// — kalau supplier cuma bisa penuhin sebagian (misal MAYRA_HITAM dipesan 24
+// pcs, yg dikirim cuma 12), gak ada tempat buat nyatet itu. Sekarang tombol
+// ini buka picker rincian per-item dulu (qty dipesan vs qty BENERAN
+// diterima, default sama), baru pas dikonfirmasi PO ditutup (6 Sep 2026,
+// permintaan user).
+function hsOpenTerimaBarang() {
+  if (!_hsCurrentBonId) return;
+  var listEl = document.getElementById('hs-terima-list');
+  if (!listEl) return;
+  listEl.innerHTML = (_hsCurrentBonItems && _hsCurrentBonItems.length) ? _hsCurrentBonItems.map(function(it) {
+    var namaTampil = it.nama_internal || '—';
+    var subNama = [];
+    if (it.varian_warna) subNama.push('varian: ' + it.varian_warna);
+    if (it.nama_supplier) subNama.push('supplier: ' + it.nama_supplier);
+    var defaultQty = (it.qty_diterima != null) ? it.qty_diterima : it.qty;
+    return '<div class="hs-detail-item-row" data-item-id="' + it.id + '" data-qty-pesan="' + it.qty + '">' +
+      '<div><div class="hs-detail-item-nama">' + _hsEsc(namaTampil) + '</div>' +
+      (subNama.length ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(subNama.join(' · ')) + '</div>' : '') +
+      '<div class="hs-detail-item-nama-sup">Dipesan ' + it.qty + ' ' + (it.satuan||'') + '</div></div>' +
+      '<input type="text" inputmode="numeric" class="hs-terima-qty-input hs-item-qty" value="' + defaultQty + '">' +
+    '</div>';
+  }).join('') : '<div class="hs-empty" style="padding:10px 0">Tidak ada data barang.</div>';
+  hsOpenSheet('hs-sheet-terima');
+}
+
+async function hsSimpanTerimaBarang() {
   var bonId = _hsCurrentBonId;
   if (!bonId) return;
   var b0 = _hsBonList.find(function(x){ return x.id===bonId; });
-  // Tanggal Diterima BISA di-backdate — default keisi hari ini (lihat
-  // hsOpenDetailBon), tapi user WAJIB bisa ganti ke tanggal lampau kalau
-  // barangnya udah lama diterima di dunia nyata sebelum sempet ditandai di
-  // app (kasus nyata: H SOLAH, 6 Sep 2026). Kalau selalu dipaksa "hari ini",
+  // Tanggal Diterima BISA di-backdate — dibaca dari input di banner (bukan
+  // di sheet ini), user WAJIB bisa ganti ke tanggal lampau kalau barangnya
+  // udah lama diterima di dunia nyata sebelum sempet ditandai di app
+  // (kasus nyata: H SOLAH, 6 Sep 2026). Kalau selalu dipaksa "hari ini",
   // Lead Time supplier (_hsLeadTimeForSupplier, itungannya tgl_diterima -
   // tanggal bon) jadi keliatan lebih lama dari yang sebenarnya.
   var tglInput = document.getElementById('hs-detail-tgl-diterima');
@@ -2938,7 +2931,31 @@ async function hsTandaiBarangDiterima() {
   if (b0 && b0.tanggal && tglDiterima < b0.tanggal) {
     if (!confirm('Tanggal diterima (' + tglDiterima + ') lebih awal dari tanggal bon (' + b0.tanggal + '). Yakin lanjut?')) return;
   }
+
+  var rows = document.querySelectorAll('#hs-terima-list [data-item-id]');
+  var updates = []; // {id, qty_diterima}
+  var adaKurang = false;
+  rows.forEach(function(row) {
+    var id = parseInt(row.getAttribute('data-item-id'), 10);
+    var qtyPesan = Number(row.getAttribute('data-qty-pesan'));
+    var input = row.querySelector('.hs-terima-qty-input');
+    var qtyDiterima = input ? Number(String(input.value).replace(/[^0-9.-]/g, '')) : qtyPesan;
+    if (isNaN(qtyDiterima)) qtyDiterima = qtyPesan;
+    if (qtyDiterima < qtyPesan) adaKurang = true;
+    updates.push({ id: id, qty_diterima: qtyDiterima });
+  });
+
+  if (adaKurang && !confirm('Ada barang yang diterima kurang dari yang dipesan. Tandai barang diterima dengan catatan kekurangan ini?')) return;
+
   try {
+    // Update qty_diterima per item DULU (butuh kolom qty_diterima di tabel
+    // hutang_bon_item — kalau belum ada, jalanin migrasi SQL yang dikasih
+    // di chat sebelum pakai fitur ini).
+    for (var i = 0; i < updates.length; i++) {
+      await dbUpdate('hutang_bon_item', updates[i].id, { qty_diterima: updates[i].qty_diterima });
+      var localItem = _hsCurrentBonItems.find(function(x){ return x.id === updates[i].id; });
+      if (localItem) localItem.qty_diterima = updates[i].qty_diterima;
+    }
     // tgl_diterima dicatet SEKALI di sini — satu-satunya sumber data buat
     // hitung Lead Time supplier (lihat _hsLeadTimeForSupplier). Kalau
     // ditandai diterima lebih dari sekali (harusnya gak mungkin, tombolnya
@@ -2948,67 +2965,19 @@ async function hsTandaiBarangDiterima() {
     var b = _hsBonList.find(function(x){ return x.id===bonId; });
     if (b) { b.is_po = false; b.tgl_diterima = tglDiterima; }
     document.getElementById('hs-detail-po-banner').style.display = 'none';
+    hsCloseSheet('hs-sheet-terima');
     hsRenderBonList();
     hsRenderSupplierMasterList();
+    await hsOpenDetailBon(bonId); // refresh rincian biar qty diterima ke-update di layar
   } catch(e) {
     alert('Gagal update: ' + e.message);
   }
 }
 
-async function hsSimpanBayar() {
-  var bonId = _hsCurrentBonId;
-  if (!bonId) return;
-  var b = _hsBonList.find(function(x){ return x.id===bonId; });
-  if (!b) return;
-
-  var nominal   = idrVal('hs-pay-nominal');
-  var tanggal   = document.getElementById('hs-pay-tanggal').value;
-  var akunD     = document.getElementById('hs-pay-akun-debit').value;
-  var akunK     = document.getElementById('hs-pay-akun-kredit').value;
-  var catatan   = document.getElementById('hs-pay-catatan').value.trim() || null;
-
-  if (!tanggal)  { alert('Tanggal wajib diisi!'); return; }
-  if (!nominal)  { alert('Nominal wajib diisi!'); return; }
-  if (!akunD)    { alert('Pilih akun Debit (Hutang/Beban)!'); return; }
-  if (!akunK)    { alert('Pilih akun Kas/Bank sumber bayar!'); return; }
-
-  var st = _hsSisaBon(b);
-  if (nominal > st.sisa + 1) {
-    if (!confirm('Nominal (' + fmtRpFull(nominal) + ') lebih besar dari sisa hutang (' + fmtRpFull(st.sisa) + '). Lanjut tetap?')) return;
-  }
-
-  try {
-    await dbInsert('hutang_pembayaran', {
-      bon_id: bonId,
-      tanggal: tanggal,
-      nominal: nominal,
-      kas_akun_id: akunK,
-      catatan: catatan,
-    });
-
-    await dbInsert('jurnal', {
-      tanggal: tanggal,
-      keterangan: 'Bayar hutang barang' + (catatan ? ' — ' + catatan : ''),
-      referensi: b.no_nota || null,
-      tipe: 'keluar',
-      akun_debit_id: akunD,
-      akun_kredit_id: akunK,
-      nominal: nominal,
-      debit: nominal,
-      kredit: nominal,
-    });
-
-    var newSisa = Math.max(0, st.sisa - nominal);
-    if (newSisa <= 0 && b.status !== 'lunas') {
-      await dbUpdate('hutang_bon', bonId, { status: 'lunas' });
-    }
-
-    hsCloseSheet('hs-sheet-detail');
-    await loadHutangSupplier();
-  } catch(e) {
-    alert('Gagal simpan pembayaran: ' + e.message);
-  }
-}
+// hsSimpanBayar() DIHAPUS (6 Sep 2026) — dulu handler tombol "Catat
+// Pembayaran" di sheet Detail Bon, sekarang sheet itu udah gak punya form
+// Bayar lagi (lihat hsOpenDetailBon). Pembayaran SEMUA lewat hsOpenBayarUtang
+// → hsOpenBayarGabungan → hsSimpanBayarGabungan (toolbar "Bayar Utang").
 
 // ─── BAYAR UTANG (tombol toolbar Bon) ──────────────────────────
 // Alur (dikonfirmasi user 23 Agu 2026): kalau lagi "Semua Supplier" → buka
