@@ -324,14 +324,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <select id="jp-channel" style="display:none">
             <option value="">— Pilih Channel —</option>
           </select>
-          <div class="kas-akun-wrap">
-            <div class="kas-akun-picker" id="jp-picker-channel" data-target="jp-channel"
-              onmousedown="event.stopPropagation();jpTogglePicker('jp-picker-channel')"
-              ontouchend="event.preventDefault();event.stopPropagation();jpTogglePicker('jp-picker-channel')">
-              <span id="jp-picker-channel-label" style="color:var(--ink3)">— Pilih Channel —</span>
-              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-            </div>
-            <div class="kas-akun-list" id="jp-picker-channel-list" style="display:none"></div>
+          <div class="kas-akun-picker" id="jp-picker-channel" onclick="jpSkuSheetOpen('channel')">
+            <span id="jp-picker-channel-label" style="color:var(--ink3)">— Pilih Channel —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
         </div>
       </div>
@@ -1846,6 +1841,12 @@ async function editJP(id) {
     document.getElementById('jp-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
     document.getElementById('jp-waktu').value   = r.waktu ? String(r.waktu).slice(0,5) : _jpNowTime();
     document.getElementById('jp-channel').value = r.channel_id || '';
+    var lblCEdit = document.getElementById('jp-picker-channel-label');
+    if (lblCEdit) {
+      var chEdit = r.channel_id ? _jpChannelMap[r.channel_id] : null;
+      lblCEdit.textContent = chEdit ? chEdit.nama : '— Pilih Channel —';
+      lblCEdit.style.color = chEdit ? 'var(--ink)' : 'var(--ink3)';
+    }
     document.getElementById('jp-qty').value     = r.qty          || '';
     idrSet('jp-harga', r.harga_satuan || 0);
     idrSet('jp-total', r.total || 0);
@@ -2297,25 +2298,9 @@ function jpClosePicker(list) {
   list.style.display = 'none';
 }
 
-function jpPickerChannelSelect(item) {
-  if (event) { event.stopPropagation(); event.preventDefault(); }
-  var list = item.closest('.kas-akun-list');
-  if (!list) return;
-  var val   = item.dataset.val || '';
-  var label = item.textContent.trim();
-  // Update hidden select
-  var sel = document.getElementById('jp-channel');
-  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
-  // Update label
-  var lbl = document.getElementById('jp-picker-channel-label');
-  if (lbl) { lbl.textContent = val ? label : '— Pilih Channel —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
-  // Simpan sebagai last channel hari ini
-  if (val) _jpSaveLastChannel(val, label);
-  // Tandai aktif
-  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
-  item.classList.add('active');
-  jpClosePicker(list);
-}
+// (jpPickerChannelSelect lama dicabut 4 Sep 2026 — diganti jpSkuSheetSelectChannel
+// yang pakai sheet BRImo baru, sama pola kayak SKU Induk/Variasi.)
+
 
 // ─── PICKER BOTTOM SHEET (BRImo-style): SKU Induk & SKU Variasi ──
 // 1 sheet dipakai gantian buat 2 field lewat _jpSkuSheetMode ('induk'/'variasi').
@@ -2327,9 +2312,9 @@ function jpSkuSheetOpen(mode) {
   var titleEl  = document.getElementById('jp-sku-sheet-title');
   if (searchEl) {
     searchEl.value = '';
-    searchEl.placeholder = mode === 'induk' ? 'Cari SKU Induk...' : 'Cari variasi...';
+    searchEl.placeholder = mode === 'induk' ? 'Cari SKU Induk...' : mode === 'variasi' ? 'Cari variasi...' : 'Cari channel...';
   }
-  if (titleEl) titleEl.textContent = mode === 'induk' ? 'Pilih SKU Induk' : 'Pilih Variasi';
+  if (titleEl) titleEl.textContent = mode === 'induk' ? 'Pilih SKU Induk' : mode === 'variasi' ? 'Pilih Variasi' : 'Pilih Channel';
   var ov = document.getElementById('jp-sku-sheet-overlay');
   var sh = document.getElementById('jp-sku-sheet');
   if (ov) ov.classList.add('open');
@@ -2348,6 +2333,7 @@ function jpSkuSheetFilter(q) { jpSkuSheetRender(q); }
 function jpSkuSheetRender(q) {
   if (_jpSkuSheetMode === 'induk') _jpSkuSheetRenderInduk(q);
   else if (_jpSkuSheetMode === 'variasi') _jpSkuSheetRenderVariasi(q);
+  else if (_jpSkuSheetMode === 'channel') _jpSkuSheetRenderChannel(q);
 }
 
 function _jpSkuSheetRenderInduk(q) {
@@ -2461,6 +2447,53 @@ function jpSkuSheetSelectVariasi(sku, hpp) {
   var btnTambah = document.getElementById('jp-btn-tambah-sku');
   if (btnTambah) btnTambah.style.display = sku ? 'block' : 'none';
   jpOnPilihVariasi();
+  jpSkuSheetClose();
+}
+
+// ─── Channel — sama seperti SKU Induk/Variasi, dikelompokin per kategori
+// (Toko Utama/Reseller/Lazada/TikTok/Offline), sumber data _jpChannelMap
+// yang udah dipopulate loadChannelDropdownJP(). ──
+var _jpChKatConfig = {
+  toko_utama: 'Toko Utama', reseller: 'Reseller', lazada: 'Lazada',
+  tiktok: 'TikTok', offline: 'Offline'
+};
+function _jpSkuSheetRenderChannel(q) {
+  var listEl = document.getElementById('jp-sku-sheet-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var ids = Object.keys(_jpChannelMap || {});
+  var grouped = {};
+  ids.forEach(function(id) {
+    var ch = _jpChannelMap[id];
+    if (q && ch.nama.toLowerCase().indexOf(q) === -1) return;
+    var kat = ch.kategori || 'lainnya';
+    if (!grouped[kat]) grouped[kat] = [];
+    grouped[kat].push(ch);
+  });
+  var kats = Object.keys(grouped);
+  var html = '';
+  if (!kats.length) {
+    html = '<div class="jp-sheet-empty">' + (ids.length === 0 ? 'Channel belum ada' : 'Tidak ada channel yang cocok') + '</div>';
+  } else {
+    kats.forEach(function(kat) {
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── ' + (_jpChKatConfig[kat] || kat) + ' ──</div>';
+      grouped[kat].forEach(function(ch) {
+        html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectChannel(\'' + ch.id + '\')"><span>' + ch.nama + '</span></div>';
+      });
+    });
+  }
+  listEl.innerHTML = html;
+}
+function jpSkuSheetSelectChannel(id) {
+  var sel = document.getElementById('jp-channel');
+  var ch  = _jpChannelMap[id];
+  if (sel) { sel.value = id; sel.dispatchEvent(new Event('change')); }
+  var lbl = document.getElementById('jp-picker-channel-label');
+  if (lbl) {
+    lbl.textContent = ch ? ch.nama : '— Pilih Channel —';
+    lbl.style.color = ch ? 'var(--ink)' : 'var(--ink3)';
+  }
+  if (id && ch) _jpSaveLastChannel(id, ch.nama); // buat prefill "channel terakhir" pas buka Tambah baru
   jpSkuSheetClose();
 }
 

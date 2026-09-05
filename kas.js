@@ -590,23 +590,17 @@ function _kasInjectSheets() {
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-edit-lbl-debit">Masuk ke Akun (Debit)</label>
         <select id="kas-edit-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-edit-debit" data-target="kas-edit-akun-debit" data-picker="picker-edit-debit">
-            <span id="picker-edit-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
-          </div>
-          <div class="kas-akun-list" id="picker-edit-debit-list" style="display:none"></div>
+        <div class="kas-akun-picker kas-brimo-picker" id="picker-edit-debit" data-target="kas-edit-akun-debit" data-picker="picker-edit-debit">
+          <span id="picker-edit-debit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
         </div>
       </div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px">
         <label id="kas-edit-lbl-kredit">Sumber Dana (Kredit)</label>
         <select id="kas-edit-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true" onchange="kasHitungEditJurnal()"><option value="">— Pilih Akun —</option></select>
-        <div class="kas-akun-wrap">
-          <div class="kas-akun-picker" id="picker-edit-kredit" data-target="kas-edit-akun-kredit" data-picker="picker-edit-kredit">
-            <span id="picker-edit-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
-            <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
-          </div>
-          <div class="kas-akun-list" id="picker-edit-kredit-list" style="display:none"></div>
+        <div class="kas-akun-picker kas-brimo-picker" id="picker-edit-kredit" data-target="kas-edit-akun-kredit" data-picker="picker-edit-kredit">
+          <span id="picker-edit-kredit-label" style="color:var(--ink3)">— Pilih Akun —</span>
+          <i class="ti ti-chevron-down" style="font-size:11px;margin-left:auto;flex-shrink:0"></i>
         </div>
       </div>
     </div>

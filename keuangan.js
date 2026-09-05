@@ -3,6 +3,9 @@
 let _keuHutangAll = [];
 let _keuKasAkun   = [];
 let _keuKasJurnal = [];
+var _keuCicSheetMode  = null; // 'hutang' | 'akun'
+var _keuCicHutangList = [];
+var _keuCicAkunList   = [];
 
 document.getElementById('page-keuangan').innerHTML = `
 <style>
@@ -11,6 +14,63 @@ document.getElementById('page-keuangan').innerHTML = `
   #page-keuangan .keu-tab  { padding:6px 14px; border:2px solid var(--ink); background:var(--cream); font-family:var(--f); font-size:13px; font-weight:700; cursor:pointer; border-radius:2px; color:var(--ink); }
   #page-keuangan .keu-tab.active { background:var(--ink); color:var(--cream); }
   #page-keuangan .keu-panel { display:none; }
+
+  /* ── PICKER BOTTOM SHEET (ala BRImo) — Catat Cicilan (Hutang & Akun) ──
+     Konsisten sama pola picker akun di Kas & Jurnal / SKU di Tambah
+     Penjualan & Stok: sheet naik dari bawah, search nempel di atas. ── */
+  #keu-cic-sheet-overlay {
+    display: none; position: fixed; inset: 0; z-index: 598;
+    background: rgba(0,0,0,.55);
+  }
+  #keu-cic-sheet-overlay.open { display: block; }
+  #keu-cic-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 599;
+    background: var(--cream2); border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    max-height: 85vh; display: none; flex-direction: column; overflow: hidden;
+  }
+  #keu-cic-sheet.open { display: flex; transform: translateY(0); }
+  #keu-cic-sheet-handle {
+    width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
+    margin: 12px auto 4px; flex: none;
+  }
+  #keu-cic-sheet-title {
+    text-align: center; font-size: 16px; font-weight: 700; color: var(--ink);
+    padding: 8px 16px 12px; letter-spacing: -0.2px; flex: none;
+  }
+  #keu-cic-sheet-search-wrap { flex: none; padding: 0 16px 10px; }
+  #keu-cic-sheet-search {
+    width: 100%; box-sizing: border-box; background: var(--ovl-0_06);
+    border: 1px solid var(--ovl-0_12); border-radius: 10px; padding: 11px 14px;
+    font-size: 15px; font-family: var(--f); color: var(--ink); outline: none;
+    -webkit-appearance: none;
+  }
+  #keu-cic-sheet-search::placeholder { color: var(--ink3); }
+  #keu-cic-sheet-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
+  #keu-cic-sheet-list {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; padding: 4px 10px 12px;
+  }
+  #keu-cic-sheet-list .jp-sheet-item {
+    font-size: 15px; padding: 12px 10px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    color: var(--ink2);
+  }
+  #keu-cic-sheet-list .jp-sheet-item:active { background: var(--ovl-0_08); color: var(--ink); }
+  #keu-cic-sheet-list .jp-sheet-empty {
+    padding: 28px 12px; text-align: center; color: var(--ink3);
+    font-size: 13px; font-style: italic;
+  }
+  @media (min-width: 768px) {
+    #keu-cic-sheet {
+      left: 50%; right: auto; bottom: 50%; transform: translate(-50%, 50%) scale(.96);
+      width: 100%; max-width: 420px; border-radius: 16px; max-height: 70vh; opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #keu-cic-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
+  }
 
   /* ── Dropdown tab modern ── */
   #keu-tab-dropdown-wrap { position:relative; display:inline-block; }
@@ -446,15 +506,10 @@ document.getElementById('page-keuangan').innerHTML = `
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="form-group"><label>Pilih Hutang</label>
-          <div class="kas-akun-wrap">
-            <select id="keu-bayar-hutang-id" style="display:none" onchange="keuBayarHutangChange()"><option value="">— Pilih —</option></select>
-            <div class="kas-akun-picker" id="keu-picker-bayar" data-target="keu-bayar-hutang-id"
-              onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar')"
-              ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar')">
-              <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
-              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-            </div>
-            <div class="kas-akun-list" id="keu-picker-bayar-list" style="display:none"></div>
+          <select id="keu-bayar-hutang-id" style="display:none" onchange="keuBayarHutangChange()"><option value="">— Pilih —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-bayar" onclick="keuCicSheetOpen('hutang')">
+            <span id="keu-picker-bayar-label" style="color:var(--ink3)">— Pilih Hutang —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -462,15 +517,10 @@ document.getElementById('page-keuangan').innerHTML = `
           <div class="form-group" style="flex:1 1 130px"><label>Nominal (Rp)</label><input type="text" inputmode="numeric" id="keu-bayar-nominal" placeholder="0" onfocus="this.select()"></div>
         </div>
         <div class="form-group"><label>Bayar dari Akun</label>
-          <div class="kas-akun-wrap">
-            <select id="keu-bayar-akun-id" style="display:none"><option value="">— Pilih Akun —</option></select>
-            <div class="kas-akun-picker" id="keu-picker-bayar-akun" data-target="keu-bayar-akun-id"
-              onmousedown="event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')"
-              ontouchend="event.preventDefault();event.stopPropagation();keuTogglePicker('keu-picker-bayar-akun')">
-              <span id="keu-picker-bayar-akun-label" style="color:var(--ink3)">— Pilih Akun —</span>
-              <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
-            </div>
-            <div class="kas-akun-list" id="keu-picker-bayar-akun-list" style="display:none"></div>
+          <select id="keu-bayar-akun-id" style="display:none"><option value="">— Pilih Akun —</option></select>
+          <div class="kas-akun-picker" id="keu-picker-bayar-akun" onclick="keuCicSheetOpen('akun')">
+            <span id="keu-picker-bayar-akun-label" style="color:var(--ink3)">— Pilih Akun —</span>
+            <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
           </div>
         </div>
         <div class="form-group"><label>Keterangan</label><input type="text" id="keu-bayar-ket" placeholder="mis: cicilan bulan Juni"></div>
@@ -480,6 +530,20 @@ document.getElementById('page-keuangan').innerHTML = `
         <button class="btn btn-primary btn-sm" onclick="keuSimpanPembayaran()" style="font-weight:700;font-size:14px;padding:8px 16px"><i class="ti ti-check"></i> Catat</button>
       </div>
     </div>
+  </div>
+
+  <!-- ── PICKER BOTTOM SHEET (ala BRImo): dipakai gantian buat Hutang &
+       Akun Bayar di Catat Cicilan, mode via _keuCicSheetMode ── -->
+  <div id="keu-cic-sheet-overlay" onclick="if(event.target===this) keuCicSheetClose()"></div>
+  <div id="keu-cic-sheet">
+    <div id="keu-cic-sheet-handle"></div>
+    <div id="keu-cic-sheet-title">Pilih</div>
+    <div id="keu-cic-sheet-search-wrap">
+      <input type="text" id="keu-cic-sheet-search" placeholder="Cari..." autocomplete="off"
+        autocorrect="off" autocapitalize="none" spellcheck="false"
+        oninput="keuCicSheetFilter(this.value)">
+    </div>
+    <div id="keu-cic-sheet-list"></div>
   </div>
 
 </div>
@@ -1535,27 +1599,17 @@ function keuUpdateHutangSummary(saldoMap) {
 }
 
 function keuPopulateBayarDropdown(kwjAkun, saldoMap) {
-  const sel  = document.getElementById('keu-bayar-hutang-id');
-  const list = document.getElementById('keu-picker-bayar-list');
+  const sel = document.getElementById('keu-bayar-hutang-id');
   if (!sel) return;
+  _keuCicHutangList = kwjAkun.map(a => {
+    const s = saldoMap[a.id] || {};
+    const sisa = Math.max(0, (s.kredit||0) - (s.debit||0));
+    return { id: a.id, nama: a.nama, sisa: sisa };
+  });
   sel.innerHTML = '<option value="">— Pilih Akun Kewajiban —</option>' +
-    kwjAkun.map(a => {
-      const s = saldoMap[a.id] || {};
-      const sisa = Math.max(0, (s.kredit||0) - (s.debit||0));
-      return `<option value="${a.id}">${a.nama} (sisa ${fmtRpFull(sisa)})</option>`;
-    }).join('');
-  if (list) {
-    var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelect(this)"><span style="color:var(--ink3)">— Pilih Akun Kewajiban —</span></div>';
-    kwjAkun.forEach(function(a) {
-      const s = saldoMap[a.id] || {};
-      const sisa = Math.max(0, (s.kredit||0) - (s.debit||0));
-      html += '<div class="kas-akun-item" data-val="' + a.id + '" onclick="keuPickerSelect(this)">' +
-        a.nama + ' <span style="color:var(--ink3);font-size:11px">(sisa ' + fmtRpFull(sisa) + ')</span></div>';
-    });
-    list.innerHTML = html;
-  }
+    _keuCicHutangList.map(a => `<option value="${a.id}">${a.nama} (sisa ${fmtRpFull(a.sisa)})</option>`).join('');
   var lbl = document.getElementById('keu-picker-bayar-label');
-  if (lbl) { lbl.textContent = '— Pilih Akun Kewajiban —'; lbl.style.color = 'var(--ink3)'; }
+  if (lbl) { lbl.textContent = '— Pilih Hutang —'; lbl.style.color = 'var(--ink3)'; }
 }
 
 // keuShowFormHutang, keuSimpanHutang, keuEditHutang, keuHapusHutang dihapus.
@@ -1904,135 +1958,92 @@ document.addEventListener('zenot:page', function(e) {
 
 // ─── KEU CUSTOM PICKER ENGINE ────────────────────────────────
 
-function keuTogglePicker(pickerId) {
-  var picker = document.getElementById(pickerId);
-  var list   = document.getElementById(pickerId + '-list');
-  if (!picker || !list) return;
-  // Tutup semua picker keu lain
-  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
-    if (el.id !== pickerId + '-list') keuClosePicker(el);
-  });
-  if (list.style.display === 'block') { keuClosePicker(list); return; }
-
-  // Inject search box jika belum ada
-  if (!list.querySelector('.kas-akun-search-wrap')) {
-    var wrap = document.createElement('div');
-    wrap.className = 'kas-akun-search-wrap';
-
-    var searchIcon = document.createElement('span');
-    searchIcon.className = 'kas-akun-search-icon';
-    searchIcon.textContent = '🔍';
-
-    var searchInp = document.createElement('input');
-    searchInp.className = 'kas-akun-search';
-    searchInp.type = 'text';
-    searchInp.placeholder = 'Cari...';
-    searchInp.autocomplete = 'off';
-    searchInp.setAttribute('autocorrect', 'off');
-    searchInp.setAttribute('autocapitalize', 'none');
-    searchInp.setAttribute('spellcheck', 'false');
-
-    function _stopProp(ev) { ev.stopPropagation(); }
-    searchInp.addEventListener('mousedown',   _stopProp);
-    searchInp.addEventListener('touchstart',  _stopProp, { passive: true });
-    searchInp.addEventListener('pointerdown', _stopProp);
-    searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
-
-    searchInp.addEventListener('touchend', function(ev) {
-      ev.stopPropagation();
-      setTimeout(function() { searchInp.focus(); }, 50);
-    }, { passive: false });
-
-    wrap.appendChild(searchIcon);
-    wrap.appendChild(searchInp);
-    list.insertBefore(wrap, list.firstChild);
+// ─── PICKER BOTTOM SHEET (BRImo-style): Catat Cicilan — Hutang & Akun ──
+// 1 sheet dipakai gantian buat 2 field lewat _keuCicSheetMode ('hutang'/'akun').
+function keuCicSheetOpen(mode) {
+  _keuCicSheetMode = mode;
+  var searchEl = document.getElementById('keu-cic-sheet-search');
+  var titleEl  = document.getElementById('keu-cic-sheet-title');
+  if (searchEl) {
+    searchEl.value = '';
+    searchEl.placeholder = mode === 'hutang' ? 'Cari hutang...' : 'Cari akun...';
   }
-
-  // Reset search & tampilkan semua item
-  var inp = list.querySelector('.kas-akun-search');
-  if (inp) inp.value = '';
-  list.querySelectorAll('.kas-akun-item,.kas-akun-group,.kas-akun-empty').forEach(function(el) { el.style.display = ''; });
-  var emp = list.querySelector('.kas-akun-empty');
-  if (emp) emp.style.display = 'none';
-
-  // Tandai baru dibuka — cegah unified outside handler (app.js) langsung
-  // nutup ulang saat browser auto-scroll modal untuk bring search input
-  // yang baru di-focus ke viewport (fix sama seperti jpTogglePicker).
-  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
-
-  // Float ke body agar tidak terpotong overflow modal
-  var rect = picker.getBoundingClientRect();
-  // Pakai visualViewport.height jika ada (iOS keyboard-aware)
-  var vph = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  var spaceBelow = vph - rect.bottom - 8;
-  var spaceAbove = rect.top - 8;
-  var maxH = Math.min(220, Math.max(spaceBelow, spaceAbove) - 8);
-
-  list.style.position  = 'fixed';
-  list.style.left      = rect.left + 'px';
-  list.style.width     = rect.width + 'px';
-  list.style.maxWidth  = '340px';
-  list.style.maxHeight = maxH + 'px';
-  list.style.overflowY = 'auto';
-  list.style.zIndex    = '99999';
-  list.dataset.floated = '1';
-
-  if (spaceBelow >= 180 || spaceBelow >= spaceAbove) {
-    // Cukup ruang di bawah — posisi normal ke bawah
-    list.style.top    = (rect.bottom + 2) + 'px';
-    list.style.bottom = '';
-  } else {
-    // Sempit di bawah (keyboard naik) — posisi ke atas picker
-    list.style.bottom = (vph - rect.top + 2) + 'px';
-    list.style.top    = '';
-  }
-
-  list.style.display   = 'block';
-  if (list.parentNode !== document.body) document.body.appendChild(list);
-
-  // Auto-focus search — skip iOS Safari (focus pada fixed element bisa dismiss modal)
+  if (titleEl) titleEl.textContent = mode === 'hutang' ? 'Pilih Hutang' : 'Pilih Akun';
+  var ov = document.getElementById('keu-cic-sheet-overlay');
+  var sh = document.getElementById('keu-cic-sheet');
+  if (ov) ov.classList.add('open');
+  if (sh) sh.classList.add('open');
+  keuCicSheetRender('');
   var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (inp && !_isIOS) setTimeout(function() { inp.focus(); }, 80);
+  if (searchEl && !_isIOS) setTimeout(function() { searchEl.focus(); }, 260);
 }
-
-function keuClosePicker(list) {
-  if (!list) return;
-  // Reset search
-  var inp = list.querySelector('.kas-akun-search');
-  if (inp) inp.value = '';
-  list.querySelectorAll('.kas-akun-item,.kas-akun-group').forEach(function(el) { el.style.display = ''; });
-  var emp = list.querySelector('.kas-akun-empty');
-  if (emp) emp.style.display = 'none';
-
-  if (list.dataset.floated && list.parentNode === document.body) {
-    var pickerId = list.id.replace('-list', '');
-    var picker   = document.getElementById(pickerId);
-    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
-    delete list.dataset.floated;
+function keuCicSheetClose() {
+  var ov = document.getElementById('keu-cic-sheet-overlay');
+  var sh = document.getElementById('keu-cic-sheet');
+  if (ov) ov.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+function keuCicSheetFilter(q) { keuCicSheetRender(q); }
+function keuCicSheetRender(q) {
+  if (_keuCicSheetMode === 'hutang') _keuCicSheetRenderHutang(q);
+  else if (_keuCicSheetMode === 'akun') _keuCicSheetRenderAkun(q);
+}
+function _keuCicSheetRenderHutang(q) {
+  var listEl = document.getElementById('keu-cic-sheet-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var items = _keuCicHutangList.filter(function(a) { return !q || a.nama.toLowerCase().indexOf(q) !== -1; });
+  var html = '';
+  if (!items.length) {
+    html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada hutang aktif') + '</div>';
+  } else {
+    items.forEach(function(a) {
+      html += '<div class="jp-sheet-item" onclick="keuCicSheetSelectHutang(\'' + a.id + '\')"><span>' + a.nama + '</span>' +
+        '<span style="font-size:11px;color:var(--ink3)">sisa ' + fmtRpFull(a.sisa) + '</span></div>';
+    });
   }
-  list.style.display = 'none';
+  listEl.innerHTML = html;
 }
-
-function keuPickerSelect(item) {
-  if (event) { event.stopPropagation(); event.preventDefault(); }
-  var list     = item.closest('.kas-akun-list');
-  if (!list) return;
-  var pickerId = list.id.replace('-list', '');
-  var picker   = document.getElementById(pickerId);
-  if (!picker) return;
-  var targetId = picker.dataset.target;
-  var val      = item.dataset.val;
-  var label    = item.textContent.trim();
-  // Update hidden select
-  var sel = document.getElementById(targetId);
-  if (sel) { sel.value = val; sel.dispatchEvent(new Event('change')); }
-  // Update label picker
-  var lbl = document.getElementById(pickerId + '-label');
-  if (lbl) { lbl.textContent = label; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
-  // Tandai aktif
-  list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
-  item.classList.add('active');
-  keuClosePicker(list);
+function _keuCicSheetRenderAkun(q) {
+  var listEl = document.getElementById('keu-cic-sheet-list');
+  if (!listEl) return;
+  q = (q || '').toLowerCase().trim();
+  var items = _keuCicAkunList.filter(function(a) {
+    return !q || a.nama.toLowerCase().indexOf(q) !== -1 || (a.kode||'').toLowerCase().indexOf(q) !== -1;
+  });
+  var html = '';
+  if (!items.length) {
+    html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada akun aset') + '</div>';
+  } else {
+    items.forEach(function(a) {
+      var label = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
+      html += '<div class="jp-sheet-item" onclick="keuCicSheetSelectAkun(\'' + a.id + '\')"><span>' + label + '</span></div>';
+    });
+  }
+  listEl.innerHTML = html;
+}
+function keuCicSheetSelectHutang(id) {
+  var item = _keuCicHutangList.find(function(a) { return String(a.id) === String(id); });
+  var sel = document.getElementById('keu-bayar-hutang-id');
+  if (sel) { sel.value = id; sel.dispatchEvent(new Event('change')); }
+  var lbl = document.getElementById('keu-picker-bayar-label');
+  if (lbl) {
+    lbl.textContent = item ? (item.nama + ' (sisa ' + fmtRpFull(item.sisa) + ')') : '— Pilih Hutang —';
+    lbl.style.color = item ? 'var(--ink)' : 'var(--ink3)';
+  }
+  keuCicSheetClose();
+}
+function keuCicSheetSelectAkun(id) {
+  var item = _keuCicAkunList.find(function(a) { return String(a.id) === String(id); });
+  var sel = document.getElementById('keu-bayar-akun-id');
+  if (sel) sel.value = id;
+  var lbl = document.getElementById('keu-picker-bayar-akun-label');
+  if (lbl) {
+    lbl.textContent = item ? ((item.kode ? item.kode+' \u00b7 ' : '') + item.nama) : '— Pilih Akun —';
+    lbl.style.color = item ? 'var(--ink)' : 'var(--ink3)';
+  }
+  try { localStorage.setItem('keu_last_bayar_akun', String(id)); } catch(e) {}
+  keuCicSheetClose();
 }
 
 function keuSyncPickerLabel(pickerId, selectId, placeholder) {
@@ -2242,11 +2253,11 @@ async function _keuRenderArusKasImpl() {
 
 // ─── AKUN BAYAR CICILAN ──────────────────────────────────────
 async function keuPopulateAkunBayar() {
-  var selEl  = document.getElementById('keu-bayar-akun-id');
-  var listEl = document.getElementById('keu-picker-bayar-akun-list');
-  if (!selEl || !listEl) return;
+  var selEl = document.getElementById('keu-bayar-akun-id');
+  if (!selEl) return;
   var akuns = await dbGet('kas_akun', '&order=kode.asc').catch(function() { return []; });
   var asetOpts = akuns.filter(function(a) { return a.kelompok === 'aset'; });
+  _keuCicAkunList = asetOpts;
   var lastId = '';
   try { lastId = localStorage.getItem('keu_last_bayar_akun') || ''; } catch(e) {}
 
@@ -2256,13 +2267,6 @@ async function keuPopulateAkunBayar() {
         (a.kode ? a.kode+' · ' : '') + a.nama + '</option>';
     }).join('');
 
-  var html = '<div class="kas-akun-item" data-val="" onclick="keuPickerSelectBayarAkun(this)"><span style="color:var(--ink3)">— Pilih Akun —</span></div>';
-  asetOpts.forEach(function(a) {
-    html += '<div class="kas-akun-item' + (String(a.id)===lastId?' active':'') + '" data-val="' + a.id + '" onclick="keuPickerSelectBayarAkun(this)">' +
-      (a.kode ? a.kode+' · ' : '') + a.nama + '</div>';
-  });
-  listEl.innerHTML = html;
-
   if (lastId) {
     var found = asetOpts.find(function(a) { return String(a.id) === lastId; });
     var lbl = document.getElementById('keu-picker-bayar-akun-label');
@@ -2271,21 +2275,6 @@ async function keuPopulateAkunBayar() {
       lbl.style.color = 'var(--ink)';
     }
     if (selEl) selEl.value = lastId;
-  }
-}
-
-function keuPickerSelectBayarAkun(item) {
-  var val   = item.dataset.val;
-  var label = item.textContent.trim();
-  var sel   = document.getElementById('keu-bayar-akun-id');
-  var lbl   = document.getElementById('keu-picker-bayar-akun-label');
-  var list  = document.getElementById('keu-picker-bayar-akun-list');
-  if (sel) sel.value = val;
-  if (lbl) { lbl.textContent = val ? label : '— Pilih Akun —'; lbl.style.color = val ? 'var(--ink)' : 'var(--ink3)'; }
-  if (list) {
-    list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
-    if (val) item.classList.add('active');
-    list.style.display = 'none';
   }
 }
 
@@ -2309,6 +2298,9 @@ function keuBayarHutangChange() {}
 function keuCloseCicilan() {
   document.getElementById('modal-keu-cicilan').style.display = 'none';
   document.body.style.overflow = '';
+  keuCicSheetClose();
+  var lbl = document.getElementById('keu-picker-bayar-label');
+  if (lbl) { lbl.textContent = '— Pilih Hutang —'; lbl.style.color = 'var(--ink3)'; }
 }
 
 
