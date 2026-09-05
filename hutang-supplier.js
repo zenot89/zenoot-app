@@ -408,6 +408,8 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-picker-item:active, .hs-picker-item.active { background:var(--cream3); font-weight:700; }
     .hs-picker-item-new { color:var(--info); font-weight:700; display:flex; align-items:center; gap:6px; border-top:1px solid var(--ink4); margin-top:4px; padding-top:12px; }
     .hs-picker-empty { padding:16px 10px; color:var(--ink3); font-size:12.5px; text-align:center; }
+    /* Header grup kelompok akun (Kewajiban/Beban/Aset dst) — dipakai picker Akun Debit/Kredit (pola BRImo, lihat hsAkunPickerOpen). */
+    .hs-picker-group { font-size:10.5px; font-weight:800; color:var(--ink3); text-transform:uppercase; letter-spacing:.04em; padding:10px 10px 4px; }
     .hs-picker-trigger {
       display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer;
       width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--ink4);
@@ -649,6 +651,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
         <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08)">
           <div style="font-size:12px;color:var(--ink2);margin-bottom:8px"><i class="ti ti-file-invoice"></i> Masih status <b>PO</b> — belum ditandai barang diterima dari supplier.</div>
+          <div class="hs-form-group" style="margin-bottom:8px">
+            <label>Tanggal Diterima</label>
+            <input type="date" id="hs-detail-tgl-diterima">
+          </div>
+          <div style="font-size:10.5px;color:var(--ink3);margin:-4px 0 8px">Kalau barangnya udah lama diterima (sebelum hari ini), ganti tanggalnya biar Lead Time supplier kehitung akurat.</div>
           <button class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsTandaiBarangDiterima()"><i class="ti ti-truck-delivery"></i> Tandai Barang Diterima</button>
         </div>
 
@@ -669,11 +676,19 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div class="hs-row-2">
           <div class="hs-form-group">
             <label>Debit (Hutang/Beban)</label>
-            <select id="hs-pay-akun-debit"></select>
+            <select id="hs-pay-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-debit','hs-pay-akun-debit-label','debit')">
+              <span id="hs-pay-akun-debit-label" style="color:var(--ink3)">Pilih akun...</span>
+              <i class="ti ti-chevron-down"></i>
+            </div>
           </div>
           <div class="hs-form-group">
             <label>Bayar dari (Kas/Bank)</label>
-            <select id="hs-pay-akun-kredit"></select>
+            <select id="hs-pay-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-pay-akun-kredit','hs-pay-akun-kredit-label','kredit')">
+              <span id="hs-pay-akun-kredit-label" style="color:var(--ink3)">Pilih akun...</span>
+              <i class="ti ti-chevron-down"></i>
+            </div>
           </div>
         </div>
         <div class="hs-form-group">
@@ -723,11 +738,19 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div class="hs-row-2">
           <div class="hs-form-group">
             <label>Debit (Hutang/Beban)</label>
-            <select id="hs-bayar-gab-akun-debit"></select>
+            <select id="hs-bayar-gab-akun-debit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-bayar-gab-akun-debit','hs-bayar-gab-akun-debit-label','debit')">
+              <span id="hs-bayar-gab-akun-debit-label" style="color:var(--ink3)">Pilih akun...</span>
+              <i class="ti ti-chevron-down"></i>
+            </div>
           </div>
           <div class="hs-form-group">
             <label>Bayar dari (Kas/Bank)</label>
-            <select id="hs-bayar-gab-akun-kredit"></select>
+            <select id="hs-bayar-gab-akun-kredit" style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0" tabindex="-1" aria-hidden="true"></select>
+            <div class="hs-picker-trigger" onclick="hsAkunPickerOpen('hs-bayar-gab-akun-kredit','hs-bayar-gab-akun-kredit-label','kredit')">
+              <span id="hs-bayar-gab-akun-kredit-label" style="color:var(--ink3)">Pilih akun...</span>
+              <i class="ti ti-chevron-down"></i>
+            </div>
           </div>
         </div>
         <div class="hs-form-group">
@@ -872,6 +895,26 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <input type="text" id="hs-bon-sup-picker-search" class="hs-picker-search" style="margin:0 16px 10px" placeholder="Cari supplier..." oninput="hsBonSupPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-bon-sup-picker-list" style="padding:2px 16px 16px"></div>
+    </div>
+  </div>
+
+  <!-- ── PICKER BOTTOM SHEET: PILIH AKUN (dipakai form Bayar & Bayar Gabungan) ──
+       Pola BRImo sama kayak hs-bon-sup-picker-overlay & picker akun Kas &
+       Jurnal — naik dari bawah, numpuk di atas sheet Detail Bon / Bayar
+       Gabungan (hs-sheet-overlay-top). Grouped per kelompok akun, filter
+       debit/kredit ditentuin dari argumen 'posisi' pas dibuka (lihat
+       hsAkunPickerOpen). Ganti native <select> yg dulu dipakai di sini —
+       25 Sep 2026, biar konsisten sama picker lain di modul ini &
+       stabil di Android (gak pakai native select menu). ── -->
+  <div class="hs-sheet-overlay hs-sheet-overlay-top" id="hs-akun-picker-overlay" onclick="if(event.target===this) hsAkunPickerClose()">
+    <div class="hs-sheet-page" style="max-height:80vh">
+      <div class="hs-sheet-handle"><span></span></div>
+      <div class="hs-sheet-header">
+        <div class="hs-sheet-title" id="hs-akun-picker-title">Pilih Akun</div>
+        <button class="hs-sheet-close" onclick="hsAkunPickerClose()"><i class="ti ti-x"></i></button>
+      </div>
+      <input type="text" id="hs-akun-picker-search" class="hs-picker-search" style="margin:0 16px 10px" placeholder="Cari akun..." oninput="hsAkunPickerFilter(this.value)">
+      <div class="hs-picker-list" id="hs-akun-picker-list" style="padding:2px 16px 16px"></div>
     </div>
   </div>
 
@@ -2248,6 +2291,103 @@ function hsBonSupPickerSelect(val, label) {
   hsBonSupPickerClose();
 }
 
+// ─── PICKER BOTTOM SHEET: PILIH AKUN (dipakai form Bayar & Bayar Gabungan) ──
+// Sama pola kayak hsBonSupPickerOpen (bottom sheet numpuk di atas sheet lain),
+// nge-drive select asli (hidden) yg tetep dibaca hsSimpanBayar/hsSimpanBayarGabungan
+// via .value — cuma UI-nya diganti biar konsisten & stabil di Android (gak
+// pakai native <select> menu, lihat RULES §5.1 soal Android native select).
+// Filter kelompok akun PERSIS sama kayak _hsPopulateAkunSelect yg dulu dipanggil
+// di sini (debit = beban/kewajiban, kredit = aset & sub_kelompok KAS & BANK).
+var _hsAkunPickerCtx = null; // { selectId, triggerLabelId, posisi }
+
+function _hsAkunPickerFilterFn(posisi) {
+  return posisi === 'debit'
+    ? function(a) { return a.kelompok === 'beban' || a.kelompok === 'kewajiban'; }
+    : function(a) { return a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'; };
+}
+
+function _hsKelompokLabel(k) {
+  return { aset: 'Aset', kewajiban: 'Kewajiban', modal: 'Modal', pendapatan: 'Pendapatan', beban: 'Beban' }[k] || k;
+}
+
+function hsAkunPickerOpen(selectId, triggerLabelId, posisi) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  _hsAkunPickerCtx = { selectId: selectId, triggerLabelId: triggerLabelId, posisi: posisi };
+  var titleEl = document.getElementById('hs-akun-picker-title');
+  if (titleEl) titleEl.textContent = posisi === 'debit' ? 'Debit (Hutang/Beban)' : 'Bayar dari (Kas/Bank)';
+  var searchEl = document.getElementById('hs-akun-picker-search');
+  if (searchEl) searchEl.value = '';
+  _hsAkunPickerRender('', sel.value);
+  hsOpenSheet('hs-akun-picker-overlay');
+  setTimeout(function() { if (searchEl) searchEl.focus({ preventScroll: true }); }, 260);
+}
+
+function hsAkunPickerClose() {
+  hsCloseSheet('hs-akun-picker-overlay');
+  _hsAkunPickerCtx = null;
+}
+
+function hsAkunPickerFilter(q) {
+  var sel = _hsAkunPickerCtx ? document.getElementById(_hsAkunPickerCtx.selectId) : null;
+  _hsAkunPickerRender(q, sel ? sel.value : '');
+}
+
+function _hsAkunPickerRender(q, currentVal) {
+  var listEl = document.getElementById('hs-akun-picker-list');
+  if (!listEl || !_hsAkunPickerCtx) return;
+  q = (q || '').toLowerCase().trim();
+  var filterFn = _hsAkunPickerFilterFn(_hsAkunPickerCtx.posisi);
+  var order = ['aset', 'kewajiban', 'modal', 'pendapatan', 'beban'];
+  var grouped = {}; order.forEach(function(k) { grouped[k] = []; });
+  _hsAkunKas.filter(filterFn).forEach(function(a) {
+    var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
+    if (q && label.toLowerCase().indexOf(q) === -1) return;
+    if (grouped[a.kelompok]) grouped[a.kelompok].push(a);
+  });
+  listEl.innerHTML = '';
+  var totalCount = 0;
+  order.forEach(function(k) {
+    if (!grouped[k].length) return;
+    totalCount += grouped[k].length;
+    var groupEl = document.createElement('div');
+    groupEl.className = 'hs-picker-group';
+    groupEl.textContent = _hsKelompokLabel(k);
+    listEl.appendChild(groupEl);
+    grouped[k].forEach(function(a) {
+      var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
+      var it = document.createElement('div');
+      it.className = 'hs-picker-item' + (String(a.id) === String(currentVal) ? ' active' : '');
+      it.textContent = label;
+      it.onclick = function() { hsAkunPickerSelect(a.id, label); };
+      listEl.appendChild(it);
+    });
+  });
+  if (!totalCount) {
+    var empty = document.createElement('div');
+    empty.className = 'hs-picker-empty';
+    empty.textContent = 'Tidak ada akun yang cocok';
+    listEl.appendChild(empty);
+  }
+}
+
+function hsAkunPickerSelect(id, label) {
+  if (!_hsAkunPickerCtx) return;
+  var sel = document.getElementById(_hsAkunPickerCtx.selectId);
+  if (sel) sel.value = id;
+  var lblEl = document.getElementById(_hsAkunPickerCtx.triggerLabelId);
+  if (lblEl) { lblEl.textContent = label; lblEl.style.color = 'var(--ink)'; }
+  hsAkunPickerClose();
+}
+
+// Reset trigger label picker Akun ke placeholder abu-abu — dipanggil tiap
+// sheet Bayar/Bayar Gabungan dibuka biar gak numpang label dari bon
+// sebelumnya yang beda akunnya.
+function _hsResetAkunTrigger(triggerLabelId) {
+  var lblEl = document.getElementById(triggerLabelId);
+  if (lblEl) { lblEl.textContent = 'Pilih akun...'; lblEl.style.color = 'var(--ink3)'; }
+}
+
 // Resolve supplier_id dari pasangan select+input "baru" — insert supplier
 // baru ke DB kalau perlu. Dipakai bareng form Bon & form Barang.
 async function _hsResolveSupplierId(selectId, baruInputId) {
@@ -2682,6 +2822,10 @@ async function hsOpenDetailBon(bonId) {
 
   var poBanner = document.getElementById('hs-detail-po-banner');
   if (poBanner) poBanner.style.display = b.is_po ? 'block' : 'none';
+  if (b.is_po) {
+    var tglDiterimaInput = document.getElementById('hs-detail-tgl-diterima');
+    if (tglDiterimaInput) tglDiterimaInput.value = new Date().toISOString().slice(0,10);
+  }
 
   var itemsWrap = document.getElementById('hs-detail-items');
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
@@ -2709,6 +2853,8 @@ async function hsOpenDetailBon(bonId) {
   _hsPopulateAkunSelect('hs-pay-akun-kredit', function(a) {
     return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
   });
+  _hsResetAkunTrigger('hs-pay-akun-debit-label');
+  _hsResetAkunTrigger('hs-pay-akun-kredit-label');
   document.getElementById('hs-pay-nominal').value = st.sisa > 0 ? st.sisa.toLocaleString('id-ID') : '';
   idrInput('hs-pay-nominal');
   document.getElementById('hs-pay-tanggal').value = new Date().toISOString().slice(0,10);
@@ -2737,13 +2883,24 @@ async function _hsRenderRiwayatBayar(bonId) {
 async function hsTandaiBarangDiterima() {
   var bonId = _hsCurrentBonId;
   if (!bonId) return;
+  var b0 = _hsBonList.find(function(x){ return x.id===bonId; });
+  // Tanggal Diterima BISA di-backdate — default keisi hari ini (lihat
+  // hsOpenDetailBon), tapi user WAJIB bisa ganti ke tanggal lampau kalau
+  // barangnya udah lama diterima di dunia nyata sebelum sempet ditandai di
+  // app (kasus nyata: H SOLAH, 6 Sep 2026). Kalau selalu dipaksa "hari ini",
+  // Lead Time supplier (_hsLeadTimeForSupplier, itungannya tgl_diterima -
+  // tanggal bon) jadi keliatan lebih lama dari yang sebenarnya.
+  var tglInput = document.getElementById('hs-detail-tgl-diterima');
+  var tglDiterima = (tglInput && tglInput.value) ? tglInput.value : new Date().toISOString().slice(0,10);
+  if (b0 && b0.tanggal && tglDiterima < b0.tanggal) {
+    if (!confirm('Tanggal diterima (' + tglDiterima + ') lebih awal dari tanggal bon (' + b0.tanggal + '). Yakin lanjut?')) return;
+  }
   try {
     // tgl_diterima dicatet SEKALI di sini — satu-satunya sumber data buat
     // hitung Lead Time supplier (lihat _hsLeadTimeForSupplier). Kalau
     // ditandai diterima lebih dari sekali (harusnya gak mungkin, tombolnya
     // ilang begitu is_po jadi false), tanggal PERTAMA yang kepakai gak akan
     // ketiban timpa krn kolom cuma diisi kalau masih null — aman.
-    var tglDiterima = new Date().toISOString().slice(0,10);
     await dbUpdate('hutang_bon', bonId, { is_po: false, tgl_diterima: tglDiterima });
     var b = _hsBonList.find(function(x){ return x.id===bonId; });
     if (b) { b.is_po = false; b.tgl_diterima = tglDiterima; }
@@ -3069,6 +3226,8 @@ function hsOpenBayarGabungan(supplierId, bonIds) {
   _hsPopulateAkunSelect('hs-bayar-gab-akun-kredit', function(a) {
     return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
   });
+  _hsResetAkunTrigger('hs-bayar-gab-akun-debit-label');
+  _hsResetAkunTrigger('hs-bayar-gab-akun-kredit-label');
   document.getElementById('hs-bayar-gab-nominal').value = totalSisa > 0 ? totalSisa.toLocaleString('id-ID') : '';
   idrInput('hs-bayar-gab-nominal');
   document.getElementById('hs-bayar-gab-tanggal').value = new Date().toISOString().slice(0,10);
