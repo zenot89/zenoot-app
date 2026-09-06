@@ -19,6 +19,11 @@
 //
 // Tabel: hutang_supplier, hutang_barang, hutang_bon, hutang_bon_item,
 // hutang_pembayaran (lihat migration SQL terpisah).
+// hutang_bon_item.qty_diterima (numeric, nullable, ditambah manual 6 Sep
+// 2026 — ALTER TABLE hutang_bon_item ADD COLUMN qty_diterima numeric;):
+// qty yang BENERAN diterima per item pas "Barang Diterima" (lihat
+// hsOpenTerimaBarang/hsSimpanTerimaBarang). null = belum pernah dicek;
+// beda dari `qty` (qty dipesan) = supplier kirim kurang dari pesanan.
 
 // ─── LOGO ZENOOT (bulat) buat header PDF — di-preload sekali jadi dataURL
 // pas modul ke-load, biar pas tombol "Export PDF" dipencet gak nunggu
@@ -349,7 +354,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     #hs-item-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
     .hs-item-row { display:flex; align-items:center; gap:8px; background:var(--cream2); border:1px solid var(--ink4); border-radius:10px; padding:8px 10px; }
     .hs-item-row .hs-picker-trigger { flex:1; min-width:0; }
-    .hs-item-row .hs-item-qty {
+    .hs-item-row .hs-item-qty, .hs-detail-item-row .hs-item-qty {
       width:56px; flex:none; text-align:center; color-scheme:light;
       border:2px solid var(--ink); border-radius:8px; background:var(--cream);
       color:var(--ink); font-family:var(--f); font-size:14px; font-weight:700;
@@ -638,6 +643,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div class="hs-sheet-handle"><span></span></div>
       <div class="hs-sheet-header">
         <div class="hs-sheet-title" id="hs-detail-title">Detail Bon</div>
+        <button class="hs-sheet-close" id="hs-detail-edit-btn" title="Edit Bon" onclick="hsOpenEditBon(_hsCurrentBonId)" style="margin-left:auto;margin-right:4px"><i class="ti ti-pencil"></i></button>
         <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-detail')"><i class="ti ti-x"></i></button>
       </div>
       <div class="hs-sheet-body">
@@ -650,7 +656,6 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         </div>
 
         <div id="hs-detail-po-banner" style="display:none;margin-bottom:14px;padding:10px 12px;border:1.5px solid var(--info);border-radius:10px;background:rgba(47,111,176,.08);position:relative">
-          <button id="hs-detail-po-banner-edit-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none;position:absolute;top:8px;right:8px" title="Edit PO" onclick="hsOpenEditBon(_hsCurrentBonId)"><i class="ti ti-pencil"></i></button>
           <div class="hs-row-2" style="gap:8px;align-items:end">
             <div class="hs-form-group" style="margin-bottom:0">
               <input type="date" id="hs-detail-tgl-diterima">
@@ -1767,8 +1772,14 @@ function hsRenderBonList() {
   // user) — dulu klik singkat = rincian, long-press/klik-kanan = Edit Bon,
   // dianggap bikin bingung ada 2 dialog beda buat 1 card. Sekarang SEMUA
   // interaksi klik ke card = langsung ke rincian (hsOpenDetailBon). Akses
-  // Edit buat bon yang masih PO dipindah ke tombol Edit di banner PO
-  // (lihat hsOpenDetailBon & hs-detail-po-banner-edit-btn di HTML sheet).
+  // Edit dipindah ke tombol pensil PERMANEN di header sheet rincian
+  // (#hs-detail-edit-btn) — awalnya sempet cuma ditaro di banner PO (jadi
+  // CUMA nongol buat bon is_po true), ternyata itu bikin bon dropship/non-PO
+  // JADI GAK BISA DIEDIT SAMA SEKALI (gak ada long-press lagi, gak ada
+  // banner). Ketauan dari laporan user 6 Sep 2026 (list Bon di-klik gak ada
+  // tombol edit/pensil buat SEMUA jenis bon). Sekarang tombol edit di
+  // header berlaku buat SEMUA bon, PO maupun dropship, gak ada pengecualian
+  // lagi.
 }
 
 // ─── MASTER BARANG LIST (tabel spreadsheet) ────────────────────
@@ -2826,12 +2837,9 @@ async function hsOpenDetailBon(bonId) {
     var tglDiterimaInput = document.getElementById('hs-detail-tgl-diterima');
     if (tglDiterimaInput) tglDiterimaInput.value = new Date().toISOString().slice(0,10);
   }
-  // Tombol Edit di banner PO — cuma nongol buat bon yg BENERAN masih PO
-  // (b.is_po true). Ini pengganti akses long-press/klik-kanan yang dimatiin
-  // (2 Sep 2026, lihat hsRenderBonList) — sekarang klik card SELALU ke
-  // rincian ini, Edit PO diakses dari tombol pensil di banner ini aja.
-  var poEditBtn = document.getElementById('hs-detail-po-banner-edit-btn');
-  if (poEditBtn) poEditBtn.style.display = b.is_po ? 'flex' : 'none';
+  // Tombol Edit (#hs-detail-edit-btn) sekarang PERMANEN di header sheet ini,
+  // gak dicek/di-toggle berdasarkan is_po lagi — berlaku sama buat semua
+  // jenis bon (PO maupun dropship). Lihat komentar di hsRenderBonList kenapa.
 
   // Section "Bayar" (catat pembayaran langsung dari sheet ini) DIHAPUS
   // total (6 Sep 2026, permintaan user) — dulu ada form Bayar terpisah di
@@ -2906,7 +2914,7 @@ function hsOpenTerimaBarang() {
     if (it.varian_warna) subNama.push('varian: ' + it.varian_warna);
     if (it.nama_supplier) subNama.push('supplier: ' + it.nama_supplier);
     var defaultQty = (it.qty_diterima != null) ? it.qty_diterima : it.qty;
-    return '<div class="hs-detail-item-row" data-item-id="' + it.id + '" data-qty-pesan="' + it.qty + '">' +
+    return '<div class="hs-detail-item-row" style="align-items:center" data-item-id="' + it.id + '" data-qty-pesan="' + it.qty + '">' +
       '<div><div class="hs-detail-item-nama">' + _hsEsc(namaTampil) + '</div>' +
       (subNama.length ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(subNama.join(' · ')) + '</div>' : '') +
       '<div class="hs-detail-item-nama-sup">Dipesan ' + it.qty + ' ' + (it.satuan||'') + '</div></div>' +
