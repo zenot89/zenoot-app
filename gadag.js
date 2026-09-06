@@ -866,7 +866,7 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:6px">
-      <button id="gdg-ang-tambah-btn" class="btn btn-sm btn-primary" onclick="gdgAngShowAdd()" style="display:none"><i class="ti ti-plus"></i> Tambah</button>
+      <button id="gdg-ang-tambah-btn" class="btn btn-sm btn-primary" onclick="gdgAngPilihAkunOpen()" style="display:none"><i class="ti ti-list-check"></i> Pilih Akun</button>
       <button type="button" class="btn btn-sm" id="gdg-ang-hist-btn" onclick="gdgAngHistOpen(_gdgAngPeriodeAktif)" title="History"><i class="ti ti-history"></i></button>
     </div>
     <button type="button" id="gdg-ang-mode-btn" class="btn btn-sm" onclick="gdgAngTogglePeriode()">Mingguan</button>
@@ -963,8 +963,46 @@ document.getElementById('page-gadag').innerHTML = `
 </div>
 </div>
 
+<!-- SHEET BARU (7 Sep 2026): Pilih Akun buat Variable Anggaran Gadag —
+     checkbox multi-select dari SEMUA akun Beban/Kewajiban Kas, GANTIIN
+     modal single-add lama (modal-gdg-ang2 di bawah, sekarang dead code,
+     gak dipanggil dari sini lagi). Nominal per baris CUMA info (live dari
+     kas_anggaran / _gdgKasAnggaranByNama, read-only) — checkbox nentuin
+     SELEKSI doang, nominal gak bisa diedit di sini (ubahnya di halaman
+     Anggaran Kas). Centang/uncentang lalu [Simpan] → di-diff ke
+     gadag_anggaran (insert yg baru dicentang, delete yg baru diuncentang)
+     lewat gdgAngPilihAkunSimpan(). -->
+<div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-ang-pilih" onclick="gdgOverlayClose(event,'modal-gdg-ang-pilih', gdgAngPilihAkunClose)">
+  <div class="modal gdg-sheet" id="gdg-ang-pilih-sheet" style="max-width:420px;width:100%;padding:0">
+    <div class="gdg-sheet-handle"><span></span></div>
+    <div class="gdg-sheet-body" style="padding:0 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:2px dashed var(--gdg-ink2,#5c554d)">
+        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px">
+          <i class="ti ti-list-check"></i> Pilih Akun
+        </div>
+        <button onclick="gdgAngPilihAkunClose()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gdg-ink2,#5c554d);line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <div style="font-size:12px;color:var(--gdg-ink2,#5c554d);margin-bottom:12px">
+        Centang akun Beban/Kewajiban dari Kas yang mau dihitung ke Cost/Realisasi Gadag. Nominalnya ikut Anggaran (Kas) — gak bisa diubah di sini.
+      </div>
+      <div id="gdg-ang-pilih-list" style="max-height:50vh;overflow-y:auto;margin-bottom:14px">
+        <div style="color:var(--gdg-ink2,#5c554d);font-style:italic;padding:10px 0">Memuat...</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="gdgAngPilihAkunClose()">Batal</button>
+        <button class="btn btn-primary" onclick="gdgAngPilihAkunSimpan()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: VARIABLE ANGGARAN (bottom-sheet, konsisten sama Catatan Pendapatan —
      bukan modal "mengambang" di tengah lagi) -->
+<!-- [DEAD CODE per 7 Sep 2026 — GAK DIPANGGIL dari mana pun lagi (gdgAngShowAdd/
+     gdgAngShowEdit/gdgAngHistPilihAkun semua udah dialihin ke sheet checkbox
+     "Pilih Akun" di atas). Dipertahanin apa adanya (bukan dihapus) buat minim
+     blast radius — modal ini + gdgAngSimpan/gdgAngHapusDariModal/dst masih
+     tersambung satu sama lain, aman kalau ada yang kelewat manggil.] -->
 <div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-ang2" onclick="gdgOverlayClose(event,'modal-gdg-ang2', gdgAngCloseModal)">
   <div class="modal gdg-sheet" id="gdg-ang2-sheet" style="max-width:420px;width:100%;padding:0">
     <div id="gdg-ang2-sheet-handle" class="gdg-sheet-handle"><span></span></div>
@@ -2006,32 +2044,80 @@ function _gdgWDrawDailyChart() {
   ctx.stroke();
 }
 
-// ─── ANGGARAN — SATU list per akun, nominal = BULANAN (multi-item, dijumlah
-// = Net Anggaran). Tampilan Mingguan CUMA membagi 4 nominal ini buat
-// ditampilin (BUKAN input terpisah lagi) — lihat gdgAngRenderList().
-// Tabel Supabase: gadag_anggaran (id, minggu_mulai date [REPURPOSED: sekarang
-// nyimpen tanggal 1 bulan yang lagi dianggarin, misal '2026-08-01' — BUKAN
-// tanggal awal minggu lagi. Nama kolom nyesatin tapi dipertahanin apa adanya
-// biar gak perlu migrasi skema], nama text, target numeric [SEKARANG SELALU
-// nominal BULANAN], tgl_jatuh_tempo int [OPSIONAL, cuma buat badge tampilan
-// "tgl X", gak ngaruh ke realisasi/status lagi], periode text [SEKARANG
-// SELALU 'bulanan', kolom dipertahanin apa adanya buat kompatibilitas data
-// lama, gak dipakai buat cabang logic lagi]).
-let _gdgAnggaranList = []; // semua item anggaran BULAN BERJALAN
+// ─── ANGGARAN — per 7 Sep 2026: 2 LAPIS ──────────────────────────────
+// 1) SELEKSI: akun mana yang mau ditrack di Gadag — disimpen di
+//    gadag_anggaran (periode:'bulanan', nama, minggu_mulai=bulan ini),
+//    tapi kolom `target`-nya SEKARANG GAK DIPAKE/DIABAIKAN (selalu 0 pas
+//    insert) — row ini FUNGSINYA CUMA JADI PENANDA "nama ini dipilih buat
+//    Gadag bulan ini", bukan nyimpen nominal lagi.
+// 2) NOMINAL: SELALU live dari kas_anggaran (JOIN by nama ⨝ kas_akun),
+//    persis kayak sebelumnya — biar gak ada budget yg didobel-input.
+// Alasan dipisah gini (bukan auto-include SEMUA akun kas_anggaran kayak
+// sebelumnya): user cuma mau SEBAGIAN akun Beban/Kewajiban Kas yang masuk
+// ke perhitungan Cost/Realisasi Gadag — ada anggaran Kas yang emang gak
+// bakal ketutup pendapatan Gadag (bukan tanggung jawab Gadag), jadi
+// pemilihannya harus manual per akun (checkbox), bukan otomatis semua.
+//
+// _gdgAnggaranList = HASIL GABUNGAN 2 lapis di atas — bentuknya tetep
+// { id, nama, target, tgl_jatuh_tempo:null, minggu_mulai, belumDiset }
+// biar kompatibel sama gdgAngRenderList/gdgAngHitungRealisasi yang udah ada.
+// belumDiset:true kalau akun ini DIPILIH tapi belum punya row kas_anggaran
+// bulan ini (nominal kas-nya emang belum diisi di halaman Anggaran Kas).
+//
+// _gdgKasAnggaranByNama = cache nominal kas_anggaran bulan ini (key: nama
+// akun lowercase) — dipake ulang di checkbox picker (gdgAngPilihAkunOpen)
+// biar gak fetch dobel ke kas_anggaran.
+//
+// Tambah/hapus SEKARANG lewat checkbox picker (gdgAngPilihAkunOpen) —
+// nampilin SEMUA akun Beban/Kewajiban Kas + centang mana yg udah kepilih,
+// user tinggal centang/uncentang terus Simpan (diff-nya di-insert/delete
+// ke gadag_anggaran). Modal single-add lama (modal-gdg-ang2) TETEP ADA di
+// HTML/kode (gdgAngSimpan dst) tapi UDAH GAK DIPANGGIL dari mana pun lagi
+// — dead code, dipertahanin apa adanya (minim blast radius).
+//
+// Tabel gadag_anggaran LAMA (row-row dari SEBELUM 7 Sep 2026, yang masih
+// nyimpen `target` beneran) TETEP DIBIARIN APA ADANYA buat History bulan-
+// bulan lama — gak dihapus/dimigrasi.
+let _gdgAnggaranList = []; // item Variable yang KEPILIH bulan ini (nama + nominal live dari kas_anggaran)
+let _gdgKasAnggaranByNama = {}; // cache nominal kas_anggaran bulan ini, key: nama akun (lowercase)
 
 function gdgAngMonthStartISO(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-01';
 }
 
 async function gdgLoadAnggaran() {
-  const bulanIni = gdgAngMonthStartISO(new Date());
+  const bulanIniISO = gdgAngMonthStartISO(new Date()); // 'YYYY-MM-01' — format minggu_mulai di gadag_anggaran (seleksi)
+  const bulanIniYM  = bulanIniISO.slice(0, 7);          // 'YYYY-MM' — format kolom `bulan` di kas_anggaran (nominal)
   const listEl   = document.getElementById('gdg-ang2-list');
   if (listEl) listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Memuat...</div>';
   try {
-    let rows = await dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=eq.' + bulanIni + '&order=id.asc');
-    rows = rows || [];
-    if (!rows.length) rows = await gdgAngCopyForwardIfEmpty(bulanIni);
-    _gdgAnggaranList = rows;
+    // Perlu _gdgWAkunAll (kas_akun) buat JOIN akun_id → nama, SEBELUM build list.
+    await gdgWEnsureAkunJurnal();
+    const akunById = {};
+    _gdgWAkunAll.forEach(a => { akunById[a.id] = a; });
+
+    const [selRows, kasRows] = await Promise.all([
+      dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=eq.' + bulanIniISO + '&order=id.asc'),
+      dbGet('kas_anggaran', '&bulan=eq.' + bulanIniYM),
+    ]);
+
+    _gdgKasAnggaranByNama = {};
+    (kasRows || []).forEach(r => {
+      const akun = akunById[r.akun_id];
+      if (!akun) return;
+      _gdgKasAnggaranByNama[String(akun.nama || '').trim().toLowerCase()] = Number(r.nominal) || 0;
+    });
+
+    _gdgAnggaranList = (selRows || []).map(r => {
+      const key = String(r.nama || '').trim().toLowerCase();
+      const adaNominal = _gdgKasAnggaranByNama.hasOwnProperty(key);
+      return {
+        id: r.id, nama: r.nama,
+        target: adaNominal ? _gdgKasAnggaranByNama[key] : 0,
+        belumDiset: !adaNominal,
+        tgl_jatuh_tempo: null, minggu_mulai: bulanIniISO,
+      };
+    });
   } catch(e) {
     console.error('Gagal load anggaran:', e.message);
     _gdgAnggaranList = [];
@@ -2040,7 +2126,6 @@ async function gdgLoadAnggaran() {
     gdgUpdateAverageCard();
     return;
   }
-  await gdgWEnsureAkunJurnal(); // pastikan data akun+jurnal ada buat hitung realisasi progress bar
   gdgAngUpdateCostCard();   // SELALU jalan — ini yang nyuplai Overview, gak peduli toggle lagi di mana
   gdgAngRenderActiveList();
   gdgUpdateTargetCard();
@@ -2052,6 +2137,98 @@ async function gdgLoadAnggaran() {
   gdgWRenderWeek();
 }
 
+// ─── SHEET: Pilih Akun (checkbox multi-select) ──────────────────────────
+// Sumber baris: SEMUA akun Kas kelompok Beban/Kewajiban (_gdgWAkunAll, SAMA
+// filter yang dipake gdgAngHitungRealisasi), bukan cuma yang punya budget
+// bulan ini — biar akun yang belum di-set nominalnya pun tetep bisa
+// dicentang duluan (nominalnya nyusul kalau diisi di Anggaran Kas nanti).
+async function gdgAngPilihAkunOpen() {
+  await gdgWEnsureAkunJurnal();
+  gdgAngPilihAkunRender();
+  document.getElementById('modal-gdg-ang-pilih').classList.add('open');
+  requestAnimationFrame(function() {
+    document.getElementById('modal-gdg-ang-pilih').classList.add('gdg-sheet-in');
+  });
+}
+
+function gdgAngPilihAkunClose() {
+  const ov = document.getElementById('modal-gdg-ang-pilih');
+  ov.classList.remove('gdg-sheet-in');
+  setTimeout(function(){ ov.classList.remove('open'); }, 280);
+}
+
+function gdgAngPilihAkunRender() {
+  const listEl = document.getElementById('gdg-ang-pilih-list');
+  if (!listEl) return;
+  const selectedSet = {};
+  _gdgAnggaranList.forEach(it => { selectedSet[String(it.nama||'').trim().toLowerCase()] = true; });
+
+  const akunList = (_gdgWAkunAll || [])
+    .filter(a => a.kelompok === 'beban' || a.kelompok === 'kewajiban')
+    .sort((a,b) => String(a.nama||'').localeCompare(String(b.nama||'')));
+
+  if (!akunList.length) {
+    listEl.innerHTML = '<div style="color:var(--gdg-ink2,#5c554d);font-style:italic;padding:10px 0">Belum ada akun Beban/Kewajiban di Kas.</div>';
+    return;
+  }
+
+  listEl.innerHTML = akunList.map(a => {
+    const key     = String(a.nama||'').trim().toLowerCase();
+    const checked = !!selectedSet[key];
+    const nominal = _gdgKasAnggaranByNama.hasOwnProperty(key) ? _gdgKasAnggaranByNama[key] : null;
+    const nomStr  = nominal === null
+      ? '<span style="color:var(--gdg-ink2,#5c554d);font-style:italic">Belum diset</span>'
+      : gdgFmt(nominal);
+    const namaSafe = String(a.nama||'—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const namaAttr = namaSafe.replace(/"/g,'&quot;');
+    return `<label style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--gdg-rule, rgba(38,34,32,.12));cursor:pointer">
+      <input type="checkbox" data-gdg-pilih-nama="${namaAttr}" ${checked ? 'checked' : ''} style="width:18px;height:18px;flex:none">
+      <span style="flex:1;font-weight:700;color:var(--gdg-ink,#262220)">${namaSafe}</span>
+      <span style="font-size:13px">${nomStr}</span>
+    </label>`;
+  }).join('');
+}
+
+// Diff checkbox yang dicentang SEKARANG vs _gdgAnggaranList (state sebelum
+// dibuka) → insert nama yang baru dicentang, delete nama yang baru
+// diuncentang. Row gadag_anggaran yang di-insert nominalnya SELALU 0 —
+// cuma penanda seleksi, nominal aslinya live dari kas_anggaran pas render
+// (gdgLoadAnggaran).
+async function gdgAngPilihAkunSimpan() {
+  const bulanIniISO = gdgAngMonthStartISO(new Date());
+  const checkboxes  = document.querySelectorAll('#gdg-ang-pilih-list input[type="checkbox"]');
+  const checkedNama = [];
+  checkboxes.forEach(cb => { if (cb.checked) checkedNama.push(cb.dataset.gdgPilihNama); });
+  const checkedSet  = {}; checkedNama.forEach(n => { checkedSet[n.trim().toLowerCase()] = n; });
+
+  const sebelumSet = {}; // key: nama lowercase → id row gadag_anggaran
+  _gdgAnggaranList.forEach(it => { sebelumSet[String(it.nama||'').trim().toLowerCase()] = it.id; });
+
+  const toInsert = Object.keys(checkedSet).filter(k => !sebelumSet.hasOwnProperty(k)).map(k => checkedSet[k]);
+  const toDeleteIds = Object.keys(sebelumSet).filter(k => !checkedSet.hasOwnProperty(k)).map(k => sebelumSet[k]);
+
+  try {
+    for (const nama of toInsert) {
+      await dbInsert('gadag_anggaran', { periode: 'bulanan', nama, target: 0, tgl_jatuh_tempo: null, minggu_mulai: bulanIniISO });
+    }
+    for (const id of toDeleteIds) {
+      await dbDelete('gadag_anggaran', id);
+    }
+  } catch(e) {
+    alert('Gagal simpan pilihan: ' + e.message);
+    return;
+  }
+  gdgAngPilihAkunClose();
+  gdgLoadAnggaran();
+}
+
+
+// apa adanya (bukan dihapus) buat minim blast radius. Dulu dipanggil dari
+// gdgLoadAnggaran() buat auto-salin gadag_anggaran bulan lalu ke bulan baru
+// kalau kosong. Sekarang sumber datanya udah pindah ke kas_anggaran (lihat
+// gdgLoadAnggaran), dan copy-forward budget bulan baru itu udah jadi
+// tanggung jawab halaman Anggaran (Kas) sendiri — dia punya tombol "Salin
+// dari bulan lalu"-nya sendiri (anggaran.js), gak perlu diduplikasi di sini.]
 // Bulan baru & belum ada isinya sama sekali → salin nama+nominal+tempo dari
 // bulan LALU yang PALING BARU punya data (bisa aja lompat >1 bulan kalau
 // beberapa bulan kosong berturut-turut). Row bulan lalu TETAP utuh (gak
@@ -2185,8 +2362,9 @@ function gdgAngTogglePeriode() {
   _gdgAngPeriodeAktif = _gdgAngPeriodeAktif === 'bulanan' ? 'mingguan' : 'bulanan';
   const btn = document.getElementById('gdg-ang-mode-btn');
   if (btn) btn.textContent = _gdgAngPeriodeAktif === 'bulanan' ? 'Bulanan' : 'Mingguan';
-  // Atur Variable Anggaran cuma boleh di mode Bulanan — tombol Tambah
-  // disembunyikan pas Mingguan biar panel Mingguan bersih (read-only).
+  // Per 7 Sep 2026 (revisi): milih akun mana yang masuk Gadag TETEP cuma
+  // boleh di mode Bulanan (sama kayak behavior lama) — [Pilih Akun] buka
+  // checkbox picker (gdgAngPilihAkunOpen), BUKAN modal single-add lama lagi.
   const tambahBtn = document.getElementById('gdg-ang-tambah-btn');
   if (tambahBtn) tambahBtn.style.display = _gdgAngPeriodeAktif === 'bulanan' ? '' : 'none';
   gdgAngRenderActiveList();
@@ -2390,25 +2568,12 @@ async function gdgAngHistRender() {
   gdgDonutApply('gdg-histpage-income-donut', 'gdg-histpage-income-donut-txt', pctInc, 'var(--ok)');
 }
 
-// Tombol [Pilih] di header History — buka form "Tambah Variable" yang
-// SAMA persis kayak tombol + Tambah biasa (reuse modal-gdg-ang2 & validasi/
-// simpan yang udah ada): (1) langsung buka picker akun-nya juga biar user
-// gak perlu nge-tap field nama dulu, (2) set flag _gdgAngHistPilihActive
-// buat trigger auto-isi nominal/tempo dari data terakhir pas akunnya
-// dipilih (lihat gdgAngAkunPickerSelect).
+// Tombol [Pilih] di header History — per 7 Sep 2026 dialihin ke sheet
+// checkbox "Pilih Akun" yang sama kayak tombol [Pilih Akun] di panel
+// Anggaran biasa (dulu reuse modal single-add modal-gdg-ang2, sekarang
+// modal itu dead code — lihat gdgAngPilihAkunOpen).
 async function gdgAngHistPilihAkun() {
-  document.getElementById('gdg-ang2-edit-id').value = '';
-  document.getElementById('gdg-ang2-nominal-input').value = '';
-  document.getElementById('gdg-ang2-tempo-input').value = '';
-  document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Aktifkan Akun';
-  document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
-  gdgAngModalToggleTempo(false);
-  await gdgWEnsureAkunJurnal();
-  gdgAngPopulateAkunSelect('');
-  document.getElementById('modal-gdg-ang2').classList.add('open');
-  gdgAngOpenSheet();
-  _gdgAngHistPilihActive = true;
-  gdgAngAkunPickerOpen();
+  gdgAngPilihAkunOpen();
 }
 
 // Render list TERPADU — sumbernya SATU (_gdgAnggaranList, nominal bulanan).
@@ -2444,7 +2609,7 @@ function gdgAngRenderList() {
   let totalDiserap = 0;
   let rowsHtml = '';
   if (!_gdgAnggaranList.length) {
-    rowsHtml = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada Variable Anggaran. Tekan + Tambah buat mulai.</div>';
+    rowsHtml = '<div style="color:var(--ink3);font-style:italic;padding:10px 0">Belum ada anggaran Beban/Kewajiban bulan ini di halaman Anggaran (Kas). Isi di sana dulu.</div>';
   } else {
     rowsHtml = `<div class="gdg-ang2-thead">
       <span class="gdg-ang2-th-nama">Variable</span>
@@ -2454,6 +2619,22 @@ function gdgAngRenderList() {
     _gdgAnggaranList.forEach((it, i) => {
       const namaSafe = String(it.nama || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;');
       const namaAttr = namaSafe.replace(/"/g,'&quot;');
+      // belumDiset: dipilih di Gadag tapi belum punya row kas_anggaran bulan
+      // ini (nominalnya emang belum diisi di halaman Anggaran Kas) — tampilin
+      // "Belum diset" (sama kayak pola di halaman Anggaran Kas), JANGAN
+      // "Rp0" (bisa disalahartiin budgetnya beneran nol, padahal cuma belum
+      // di-set aja) — dan skip dari perhitungan realisasi/pct.
+      if (it.belumDiset) {
+        rowsHtml += `<div class="gdg-ang2-row" data-id="${it.id}" data-nama="${namaAttr}" data-nominal="0" data-jatuhtempo="">
+          <div class="gdg-ang2-top">
+            <span class="gdg-ang2-idx">${i+1}.</span>
+            <span class="gdg-ang2-nama">${namaSafe}</span>
+            <span class="gdg-ang2-tempo">—</span>
+            <span class="gdg-ang2-nom" style="color:var(--gdg-ink2,#5c554d);font-style:italic;font-size:12px">Belum diset</span>
+          </div>
+        </div>`;
+        return;
+      }
       const nom = (Number(it.target) || 0) / divisor;
       const realisasi = gdgAngHitungRealisasi(it.nama, isoStart, isoEnd);
       totalDiserap += realisasi;
@@ -2725,35 +2906,30 @@ function gdgAngModalToggleTempo(force) {
   }
 }
 
+// Per 7 Sep 2026 (revisi): gdgAngShowAdd() gak dipanggil lagi (tombol udah
+// dialihin ke gdgAngPilihAkunOpen), dipertahanin sebagai fallback info doang.
+// gdgAngShowEdit() (dipanggil dari tekan-tahan row, IIFE di bawah) sekarang
+// nawarin HAPUS DARI SELEKSI (unselect dari Variable Anggaran Gadag —
+// bukan hapus row kas_anggaran, budget aslinya di Kas TETAP UTUH) — ini
+// satu-satunya hal yang emang bisa Gadag kontrol sendiri sekarang; edit
+// nominalnya tetep harus di halaman Anggaran (Kas).
 async function gdgAngShowAdd() {
-  document.getElementById('gdg-ang2-edit-id').value = '';
-  document.getElementById('gdg-ang2-nominal-input').value = '';
-  document.getElementById('gdg-ang2-tempo-input').value = '';
-  document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Variable';
-  document.getElementById('gdg-ang2-modal-hapus').style.display = 'none';
-  gdgAngModalToggleTempo(false);
-  await gdgWEnsureAkunJurnal();
-  gdgAngPopulateAkunSelect('');
-  document.getElementById('modal-gdg-ang2').classList.add('open');
-  gdgAngOpenSheet();
+  gdgAngPilihAkunOpen();
 }
 
-// Dipanggil dari tekan-tahan row (IIFE di bawah) — bukan dari kolom Aksi
+// Dipanggil dari tekan-tahan row (IIFE di bawah)
 async function gdgAngShowEdit(row) {
-  const id       = row.dataset.id;
-  const nama     = row.dataset.nama;
-  const nominal  = row.dataset.nominal;
-  const tempo    = row.dataset.jatuhtempo || '';
-  document.getElementById('gdg-ang2-edit-id').value = id;
-  document.getElementById('gdg-ang2-nominal-input').value = nominal ? Number(nominal).toLocaleString('id-ID') : '';
-  document.getElementById('gdg-ang2-tempo-input').value = tempo;
-  document.getElementById('gdg-ang2-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Variable';
-  document.getElementById('gdg-ang2-modal-hapus').style.display = '';
-  gdgAngModalToggleTempo(!!tempo);
-  await gdgWEnsureAkunJurnal();
-  gdgAngPopulateAkunSelect(nama || '');
-  document.getElementById('modal-gdg-ang2').classList.add('open');
-  gdgAngOpenSheet();
+  const id   = row.dataset.id;
+  const nama = row.dataset.nama || 'variable ini';
+  if (!id) return;
+  const ok = confirm('Hapus "' + nama + '" dari Variable Anggaran Gadag?\n\n(Cuma ngilangin dari seleksi Gadag — budget di halaman Anggaran Kas TETAP UTUH, gak ikut kehapus.)');
+  if (!ok) return;
+  try {
+    await dbDelete('gadag_anggaran', id);
+    gdgLoadAnggaran();
+  } catch(e) {
+    alert('Gagal hapus: ' + e.message);
+  }
 }
 
 function gdgAngCloseModal() {

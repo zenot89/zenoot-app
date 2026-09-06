@@ -18,6 +18,17 @@ document.getElementById('page-anggaran').innerHTML = `
   .ang-ok     { background:var(--ok); }
   .ang-warn   { background:var(--warn); }
   .ang-danger { background:var(--danger); }
+  /* Root cause teks "September 2026" ngga kontras di HP (7 Sep 2026): rule
+     GLOBAL "input[type=month]{color-scheme:dark}" di style.css (@media
+     max-width:900px) SENGAJA maksa dark buat halaman yg emang bertema gelap
+     (misal Gadag). Tapi halaman Anggaran (Kas) ini bertema TERANG (var(--cream)
+     terang), jadi browser render teks native month-picker asumsi background
+     GELAP padahal kita paksa background terang lewat CSS — hasilnya teks jadi
+     abu-abu pudar nyaris nyatu warna sama backgroundnya. Fix di-scope CUMA ke
+     #ang-filter-bulan (ID selector menang lawan aturan global type-selector),
+     supaya halaman lain yang mungkin masih butuh color-scheme:dark (misal di
+     Gadag) sama sekali gak kesenggol. */
+  #ang-filter-bulan { color-scheme: light; }
 </style>
 
 <div class="ang-metrics">
@@ -61,10 +72,6 @@ document.getElementById('page-anggaran').innerHTML = `
     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-chart-pie"></i> Anggaran Beban</span>
     <div style="display:inline-flex;align-items:center;gap:8px">
-      <button class="btn btn-sm" id="ang-btn-salin" onclick="angSalinBulanLalu()"
-        style="display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--cream2);border:1px solid var(--ink3)">
-        <i class="ti ti-copy"></i> Salin Bulan Lalu
-      </button>
       <button class="btn btn-sm" onclick="gotoPage('kas',null)"
         style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
         <i class="ti ti-arrow-left"></i> Jurnal Harian
@@ -164,6 +171,18 @@ async function angLoad() {
     '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const bulan = _angBulanAktif;
+    // Auto-carry-forward (per 7 Sep 2026, GANTI tombol manual "Salin Bulan
+    // Lalu" yang dihapus atas permintaan user — "terlalu ribet"). Kalau
+    // bulan yang lagi dilihat BELUM punya row kas_anggaran SAMA SEKALI,
+    // otomatis disalin dari bulan lalu TERDEKAT yang punya data (bisa lompat
+    // >1 bulan kalau beberapa bulan kosong berturut-turut) — INSERT row BARU
+    // di bulan ini, row bulan lalu TETAP UTUH/gak disentuh, jadi histori aman
+    // dan bulan ini tetep bebas diedit/dihapus tanpa ngubah bulan sebelumnya.
+    // CUMA jalan kalau bulan ini masih 100% kosong (dicek dalam
+    // angAutoCarryForward) — biar item yang UDAH dihapus user gak numbul
+    // lagi tiap reload.
+    if (bulan) await angAutoCarryForward(bulan);
+
     const [akunAll, akunAllFull, angAll, jurnalAll] = await Promise.all([
       dbGet('kas_akun', '&kelompok=eq.beban&sub_kelompok=eq.Beban Operasional&order=kode.asc'),
       dbGet('kas_akun', '&order=kode.asc'),
@@ -362,54 +381,28 @@ function angHapus(id) {
 // ─── SALIN BULAN LALU ─────────────────────────────────────────
 // Ambil semua anggaran dari bulan sebelumnya, insert ke bulan aktif
 // (skip akun yang sudah punya anggaran di bulan aktif)
-async function angSalinBulanLalu() {
-  const bulanAktif = _angBulanAktif;
-  if (!bulanAktif) { alert('Pilih bulan terlebih dahulu.'); return; }
-
-  // Hitung bulan sebelumnya
-  const [y, m] = bulanAktif.split('-').map(Number);
-  const prevDate = new Date(y, m - 2, 1); // m-2 karena JS month 0-based, dan -1 bulan
-  const bulanLalu = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
-
-  const btn = document.getElementById('ang-btn-salin');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Menyalin...'; }
-
+// Auto-carry-forward kas_anggaran — dipanggil dari angLoad() SEBELUM fetch
+// data bulan aktif. Cuma nyalin kalau bulan aktif masih 100% kosong (belum
+// ada row kas_anggaran sama sekali) — gak dipanggil ulang begitu bulan itu
+// udah punya minimal 1 row (termasuk kalau user abis hapus sebagian, sisanya
+// tetep dihitung "udah punya data", jadi gak ke-restore lagi tiap reload).
+// Gagal (network dll) sengaja cuma di-log, gak alert — biar gak ganggu
+// render tabel normal (anggaran kosong tetep kebaca sebagai "Belum diset").
+async function angAutoCarryForward(bulanAktif) {
   try {
-    // Fetch anggaran bulan lalu dan bulan aktif (untuk cek duplikat)
-    const [dataLalu, dataAktif] = await Promise.all([
-      dbGet('kas_anggaran', '&bulan=eq.' + bulanLalu + '&order=akun_id.asc'),
-      dbGet('kas_anggaran', '&bulan=eq.' + bulanAktif + '&order=akun_id.asc'),
-    ]);
+    const cekAktif = await dbGet('kas_anggaran', '&bulan=eq.' + bulanAktif + '&limit=1');
+    if (cekAktif && cekAktif.length) return; // bulan ini udah punya data sendiri
 
-    if (!dataLalu || dataLalu.length === 0) {
-      alert('Tidak ada data anggaran di bulan ' + bulanLalu + '.');
-      return;
-    }
+    const prevRows = await dbGet('kas_anggaran', '&bulan=lt.' + bulanAktif + '&order=bulan.desc,akun_id.asc&limit=200');
+    if (!prevRows || !prevRows.length) return; // belum pernah ada anggaran sama sekali di bulan manapun
 
-    // Set akun_id yang sudah ada di bulan aktif
-    const sudahAda = new Set((dataAktif || []).map(r => r.akun_id));
-
-    // Filter: hanya salin akun yang belum ada di bulan aktif
-    const toInsert = dataLalu.filter(r => !sudahAda.has(r.akun_id));
-
-    if (toInsert.length === 0) {
-      alert('Semua akun sudah punya anggaran di bulan ' + bulanAktif + '.\nTidak ada yang perlu disalin.');
-      return;
-    }
-
-    // Insert satu per satu (Supabase free tier tidak support batch upsert via REST mudah)
-    let berhasil = 0;
-    for (const r of toInsert) {
+    const bulanTerakhir = prevRows[0].bulan;
+    const sumber = prevRows.filter(r => r.bulan === bulanTerakhir);
+    for (const r of sumber) {
       await dbInsert('kas_anggaran', { akun_id: r.akun_id, bulan: bulanAktif, nominal: r.nominal });
-      berhasil++;
     }
-
-    alert('Berhasil menyalin ' + berhasil + ' anggaran dari ' + bulanLalu + ' ke ' + bulanAktif + '.');
-    angLoad();
   } catch(e) {
-    alert('Gagal salin: ' + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-copy"></i> Salin Bulan Lalu'; }
+    console.error('Auto carry-forward anggaran gagal:', e.message);
   }
 }
 
