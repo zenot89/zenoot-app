@@ -4394,11 +4394,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   margin-bottom: 6px;
 }
 
-/* Palet brand (abu netral #9b968d) di-scope ke container ini biar semua turunan
-   yang baca var(--ink)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk
-   yang di-inject langsung dari dashboard.js (beban-row, badge, placeholder) —
-   otomatis ikut kontras, tanpa perlu override manual di tiap child.
-   Level AAA (~6-6.6:1) terhadap bg #9b968d, dinaikkan dari AA (~4.6-4.85:1). */
+/* Palet ink di-scope ke container ini biar semua turunan yang baca
+   var(--ink)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk
+   yang di-inject langsung dari dashboard.js (beban-row, badge, placeholder)
+   — otomatis ikut kontras, tanpa perlu override manual di tiap child.
+   CATATAN (6 Sep 2026): background card ganti dari #9b968d ke #808080,
+   kontras ke warna ink di bawah ini TURUN dari level AAA (~6-6.6:1) ke
+   ~AA (~4.9:1) buat teks normal — masih lolos AA, tapi bukan AAA lagi.
+   Belum di-adjust lebih gelap krn itu di luar scope permintaan ganti
+   warna card — kalau mau balik ke AAA, ink color di bawah perlu digelapin
+   lagi nyesuain bg baru. */
 #nw-swipe-container{
   --ink:#0d0d0d;
   --ink3:#1a1714;
@@ -4408,9 +4413,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Warna header per slide */
-.nw-slide-s1 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s2 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s3 { background: #9b968d; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s1 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s2 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s3 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
 
 .nw-slide-header .nw-slide-label {
   font-size: 10px;
@@ -4457,10 +4462,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
 
 /* Warna data box per slide */
-.nw-slide-s1 + .nw-slide-data { background: #9b968d; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
-.nw-slide-s2 + .nw-slide-data { background: #9b968d; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
+.nw-slide-s1 + .nw-slide-data { background: #808080; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
+.nw-slide-s2 + .nw-slide-data { background: #808080; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
 .nw-slide-s3 + .nw-slide-data {
-  background: #9b968d;
+  background: #808080;
   border: 1px solid var(--ovl-0_09);
   border-top: none;
   scrollbar-color: var(--ovl-0_2) transparent;
