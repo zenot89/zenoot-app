@@ -83,6 +83,19 @@ document.getElementById('page-anggaran').innerHTML = `
     overscroll-behavior: contain; padding: 4px 10px 12px;
   }
   #ang-akun-sheet-list .kas-akun-item { font-size: 15px; padding: 12px 10px; border-radius: 8px; }
+  /* Fix kontras "active" item di picker ini — .kas-akun-item.active (global,
+     style.css) sengaja set color:var(--cream) buat picker GELAP (Kas &
+     Jurnal, bg #111113 hardcoded) biar teks terang kebaca. Sheet Anggaran
+     ini bg-nya TERANG (var(--cream2)), jadi --cream (nyaris putih di light
+     theme) nempel warnanya sama background → teks item yang lagi kepilih
+     jadi invisible (root cause SAMA kayak bug kontras input[type=month] di
+     atas). Di-override CUMA di scope list ini pakai var(--ink) (otomatis
+     kontras baik di light maupun dark theme app, karena --ink selalu jadi
+     warna TEKS di kedua tema itu — beda dari --cream yang perannya jadi
+     SURFACE/background di dark theme). Picker lain (Kas & Jurnal dll) sama
+     sekali gak disentuh. */
+  #ang-akun-sheet-list .kas-akun-item.active { color: var(--ink); }
+  #ang-akun-sheet-list .kas-akun-group { color: var(--ink3); }
   #ang-akun-sheet-list::-webkit-scrollbar { width: 4px; }
   #ang-akun-sheet-list::-webkit-scrollbar-track { background: transparent; }
   #ang-akun-sheet-list::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
@@ -563,11 +576,27 @@ function angAkunPickerClose() {
 
 function angAkunPickerFilter(q) { angAkunPickerRender(q); }
 
+// Sheet "Pilih Akun Beban" — 7 Sep 2026 ditambah 2 hal:
+//  1) Dikelompokkan per sub_kelompok (judul bold uppercase, reuse
+//     .kas-akun-group yang udah dipakai app-wide di picker Kas & Jurnal),
+//     biar gampang nyari (misal semua "Hutang Jangka Panjang" nempel).
+//     _angAkunAllBK udah ke-order by kode.asc dari angLoad(), dan kode akun
+//     per sub_kelompok emang kontigu (2-001..2-006 Kewajiban, 5-001..
+//     5-0xx Beban Operasional dst) — jadi cukup deteksi PERUBAHAN label
+//     dibanding item sebelumnya buat nyisipin divider, gak perlu sort ulang.
+//  2) Kalau akun itu UDAH punya kas_anggaran di bulan aktif (_angAnggaran),
+//     kasih badge nominalnya di kanan — biar user gak nge-set anggaran
+//     dobel ke akun yang sama tanpa sadar (angSimpan sebenarnya udah aman
+//     dari duplikat row karena angAkunSelectChange auto-UPDATE row existing,
+//     tapi user tetep butuh cara TAU dari awal sebelum milih).
 function angAkunPickerRender(q) {
   const listEl = document.getElementById('ang-akun-sheet-list');
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
   const currentVal = document.getElementById('ang-edit-akun-select').value;
+  const angMap = {};
+  (_angAnggaran || []).forEach(a => { angMap[String(a.akun_id)] = a; });
+
   const akunList = (_angAkunAllBK || []).filter(a => {
     if (!q) return true;
     return ((a.kode ? a.kode + ' ' : '') + (a.nama||'')).toLowerCase().indexOf(q) !== -1;
@@ -576,13 +605,24 @@ function angAkunPickerRender(q) {
     listEl.innerHTML = '<div class="kas-akun-empty">Tidak ditemukan</div>';
     return;
   }
-  listEl.innerHTML = akunList.map(a => {
+  let html = '', lastGroup = null;
+  akunList.forEach(a => {
+    const groupLabel = a.sub_kelompok || a.kelompok || '—';
+    if (groupLabel !== lastGroup) {
+      html += `<div class="kas-akun-group">${groupLabel}</div>`;
+      lastGroup = groupLabel;
+    }
     const label = (a.nama||'—') + ' (' + (a.kode||'—') + ')';
     const labelSafe = label.replace(/&/g,'&amp;').replace(/</g,'&lt;');
     const isActive = String(a.id) === String(currentVal);
-    return `<div class="kas-akun-item${isActive?' active':''}" data-val="${a.id}" onclick="angAkunPickerSelectItem(this)">
-      <span class="kas-akun-nama">${labelSafe}</span></div>`;
-  }).join('');
+    const existing = angMap[String(a.id)];
+    const badge = existing
+      ? `<span style="font-size:10px;font-weight:700;color:var(--ok);white-space:nowrap;flex-shrink:0">✓ ${angFmt(Number(existing.nominal)||0)}</span>`
+      : '';
+    html += `<div class="kas-akun-item${isActive?' active':''}" data-val="${a.id}" onclick="angAkunPickerSelectItem(this)">
+      <span class="kas-akun-nama">${labelSafe}</span>${badge}</div>`;
+  });
+  listEl.innerHTML = html;
 }
 
 function angAkunPickerSelectItem(item) {
