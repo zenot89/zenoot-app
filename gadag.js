@@ -2096,6 +2096,15 @@ async function gdgLoadAnggaran() {
     const akunById = {};
     _gdgWAkunAll.forEach(a => { akunById[a.id] = a; });
 
+    // Auto-carry-forward SELEKSI akun (7 Sep 2026) — lihat gdgAngAutoCarryForward
+    // di bawah buat penjelasan. Cuma nyalin DAFTAR NAMA akun yang dipilih,
+    // BUKAN nominal (nominal tetep live dari kas_anggaran, yang carry-forward-nya
+    // sendiri udah ditangani anggaran.js). Ini otomatis nyakup mode Mingguan
+    // MAUPUN Bulanan di panel Anggaran Gadag, karena dua-duanya baca sumber
+    // data yang SAMA (_gdgAnggaranList) — cuma beda CARA NAMPILIN (lihat
+    // gdgAngTogglePeriode), bukan 2 tabel seleksi terpisah.
+    await gdgAngAutoCarryForward(bulanIniISO);
+
     const [selRows, kasRows] = await Promise.all([
       dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=eq.' + bulanIniISO + '&order=id.asc'),
       dbGet('kas_anggaran', '&bulan=eq.' + bulanIniYM),
@@ -2223,20 +2232,38 @@ async function gdgAngPilihAkunSimpan() {
 }
 
 
-// apa adanya (bukan dihapus) buat minim blast radius. Dulu dipanggil dari
-// gdgLoadAnggaran() buat auto-salin gadag_anggaran bulan lalu ke bulan baru
-// kalau kosong. Sekarang sumber datanya udah pindah ke kas_anggaran (lihat
-// gdgLoadAnggaran), dan copy-forward budget bulan baru itu udah jadi
-// tanggung jawab halaman Anggaran (Kas) sendiri — dia punya tombol "Salin
-// dari bulan lalu"-nya sendiri (anggaran.js), gak perlu diduplikasi di sini.]
-// Bulan baru & belum ada isinya sama sekali → salin nama+nominal+tempo dari
-// bulan LALU yang PALING BARU punya data (bisa aja lompat >1 bulan kalau
-// beberapa bulan kosong berturut-turut). Row bulan lalu TETAP utuh (gak
-// disentuh) — yang dibuat cuma row BARU buat bulan berjalan, jadi histori
-// bulan lalu tetep aman/immutable, dan bulan baru ini masih bebas diedit
-// (longpress) tanpa ngubah histori. Kalau emang belum pernah ada data sama
-// sekali, balikin array kosong — biarin user mulai dari nol via [+ Tambah]
-// atau [Pilih] di History.
+// ─── AUTO-CARRY-FORWARD SELEKSI (7 Sep 2026) ─────────────────────────────
+// Sama konsep persis kayak angAutoCarryForward di anggaran.js (Kas): kalau
+// bulan yang lagi dibuka BELUM punya row gadag_anggaran (periode:'bulanan')
+// SAMA SEKALI, seleksi akun dari bulan lalu TERDEKAT yang punya data
+// di-copy ke bulan ini (row BARU, bulan lalu TETAP UTUH/gak disentuh — histori
+// aman). Yang di-carry CUMA daftar `nama` akun (target selalu diinsert 0,
+// TERLEPAS dari nilai target row sumbernya — nominal beneran udah gak pernah
+// dibaca dari sini lagi, selalu live dari kas_anggaran, lihat gdgLoadAnggaran).
+// CUMA jalan kalau bulan ini masih 100% kosong — akun yang UDAH
+// dicentang-hapus user via gdgAngPilihAkunSimpan gak numbul lagi tiap reload.
+async function gdgAngAutoCarryForward(bulanIniISO) {
+  try {
+    const cekAktif = await dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=eq.' + bulanIniISO + '&limit=1');
+    if (cekAktif && cekAktif.length) return; // bulan ini udah punya seleksi sendiri
+
+    const prevRows = await dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=lt.' + bulanIniISO + '&order=minggu_mulai.desc,id.asc&limit=200');
+    if (!prevRows || !prevRows.length) return; // belum pernah ada seleksi sama sekali
+
+    const bulanTerakhir = prevRows[0].minggu_mulai;
+    const sumber = prevRows.filter(r => r.minggu_mulai === bulanTerakhir);
+    for (const r of sumber) {
+      await dbInsert('gadag_anggaran', { periode: 'bulanan', nama: r.nama, target: 0, tgl_jatuh_tempo: null, minggu_mulai: bulanIniISO });
+    }
+  } catch(e) {
+    console.error('Auto carry-forward seleksi anggaran Gadag gagal:', e.message);
+  }
+}
+
+// [DEAD CODE per 7 Sep 2026 — gdgAngCopyForwardIfEmpty di bawah ini GAK
+// DIPANGGIL lagi dari mana pun, digantiin gdgAngAutoCarryForward di atas
+// yang cocok sama semantik baru (target selalu 0, sumber data kas_anggaran).
+// Dibiarin apa adanya, bukan dihapus, biar minim blast radius.]
 async function gdgAngCopyForwardIfEmpty(bulanIniISO) {
   try {
     const prevRows = await dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=lt.' + bulanIniISO + '&order=minggu_mulai.desc,id.asc&limit=50');

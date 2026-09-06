@@ -550,6 +550,26 @@ replace file itu di project dia, sama kayak semua file lain yang diedit).
   `window.open(blob)`, BUKAN `window.print()`/iframe print. Detail lengkap +
   histori percobaan yang GAGAL sebelum ketemu pola ini: lihat §5.9.
 
+### 8.1. Anggaran (Kas + Gadag) — picker BRImo & auto-carry-forward (7 Sep 2026)
+
+- Modal "Set Anggaran" (`anggaran.js`, mode Tambah): `<select>` native "Akun
+  Beban" diganti bottom sheet BRImo-style + search, pola persis
+  `#kas-sheet-akun-picker` di Kas & Jurnal (id sendiri `ang-akun-sheet-*`,
+  `<select>` lama dipertahanin tersembunyi cuma sebagai value-holder biar
+  `angSimpan()`/`angAkunSelectChange()` gak perlu ditulis ulang).
+- `kas_anggaran` (nominal budget per akun per bulan) auto-carry-forward
+  (`angAutoCarryForward`, anggaran.js) — gantiin tombol manual "Salin Bulan
+  Lalu" yang dihapus. `gadag_anggaran` (seleksi akun mana yang ditrack di
+  Variable Anggaran Gadag) JUGA auto-carry-forward sekarang
+  (`gdgAngAutoCarryForward`, gadag.js) — pola identik: bulan aktif 0 row →
+  salin `nama` akun dari bulan lalu terdekat yang ada datanya (row baru,
+  bulan lalu gak disentuh, target selalu diinsert 0 — nominal beneran tetep
+  live dari `kas_anggaran`).
+- **PENTING:** toggle Mingguan/Bulanan di panel Anggaran Gadag itu CUMA cara
+  nampilin (1 sumber data `_gdgAnggaranList`/`gadag_anggaran` periode selalu
+  `'bulanan'`), BUKAN 2 tabel/seleksi terpisah — jadi 1 fungsi carry-forward
+  di atas udah nyakup kedua mode.
+
 ---
 
 ## 9. Workflow Tiap Sesi Baru
