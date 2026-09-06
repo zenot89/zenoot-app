@@ -233,8 +233,8 @@ document.getElementById('page-cost-produksi').innerHTML = `
     <!-- ═══ JURNAL HARIAN ═══ -->
     <div id="cp-panel-jurnal" class="cp-panel">
       <div class="cp-toolbar">
-        <button class="btn btn-primary btn-sm" onclick="cpOpenJurnalForm()"><i class="ti ti-plus"></i> Tambah Jurnal</button>
-        <button class="btn btn-sm" onclick="cpExportJurnalPDF()"><i class="ti ti-file-export"></i> Export PDF (by Tukang)</button>
+        <button class="btn btn-sm" style="flex:1;justify-content:center" onclick="cpExportJurnalPDF()"><i class="ti ti-file-export"></i> Export PDF</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="cpOpenJurnalForm()"><i class="ti ti-plus"></i> Tambah Jurnal</button>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-notebook"></i> Jurnal Harian</div>

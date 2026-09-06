@@ -1868,9 +1868,10 @@ async function gdgWRenderWeek() {
   if (qtyNumEl) qtyNumEl.textContent = totalQty.toLocaleString('id-ID');
   if (lsnNumEl) lsnNumEl.textContent = totalLsn;
 
-  // Update minicard Cost — "anggaran yang diserap" (Nilai + Percent), fixed
-  // minggu berjalan, independen dari periode yg lagi dibrowse di Overview
-  // (start/end/totalBeban di atas TIDAK dipakai lagi buat card ini).
+  // Update minicard Cost — "anggaran yang diserap" (Nilai + Percent).
+  // Per 6 Sep 2026: IKUT periode yg lagi dibrowse (gdgAngUpdateCostCard baca
+  // gdgWGetRange() sendiri) — BUKAN lagi fixed minggu berjalan. Gak perlu
+  // oper start/end/totalBeban dari sini, fungsinya udah ambil range sendiri.
   gdgAngUpdateCostCard();
 
   gdgUpdateTargetCard();
@@ -2038,26 +2039,39 @@ function gdgAngNetTotal() {
   return _gdgAnggaranList.reduce((s, r) => s + (Number(r.target) || 0), 0);
 }
 
-// Versi mingguan (÷4) — dipakai buat Card Cost Overview (SELALU mingguan)
-// & Card Sisa (gdgUpdateTargetCard), biar apple-to-apple lawan realisasi/
-// pendapatan yang emang dihitung per minggu berjalan.
+// Versi mingguan (÷4) — dipakai buat Card Cost Overview PAS mode per-hari
+// (Minggu Ini/Per Minggu/Custom — lihat gdgAngUpdateCostCard) & Card Sisa
+// (gdgUpdateTargetCard), biar apple-to-apple lawan realisasi/pendapatan yang
+// emang dihitung per minggu berjalan.
 function gdgAngNetTotalMingguan() {
   return gdgAngNetTotal() / 4;
 }
 
-// Total realisasi (nilai anggaran yang sudah diserap) minggu berjalan —
-// dijumlah dari semua item Variable Anggaran (÷4 dari nominal bulanan
-// masing-masing, biar apple-to-apple). Dipakai buat Card Cost di Overview
-// — SELALU mingguan, gak peduli toggle Mingguan/Bulanan yang lagi aktif di
-// halaman Anggaran. Card "Penyerapan" di halaman Anggaran punya angkanya
-// SENDIRI (lihat gdgAngRenderList — dia yang nentuin mingguan ÷4 atau
-// bulanan penuh sesuai toggle), fungsi ini CUMA buat Overview.
+// Total realisasi (nilai anggaran yang sudah diserap) PADA PERIODE YANG LAGI
+// DIBROWSE di Overview — dijumlah dari semua item Variable Anggaran. Dulu
+// (sebelum 6 Sep 2026) fungsi ini hardcode ke minggu kalender sekarang
+// (gdgWGetMonday(new Date())) SENGAJA independen dari selector tanggal
+// Overview, biar apple-to-apple lawan Card Penyerapan di halaman Anggaran
+// yang juga fixed mingguan. User minta itu diubah: Cost sekarang WAJIB ikut
+// gdgWGetRange() (state _gdgWMode/_gdgWWeekStart/dst yang sama dipakai
+// Income & tabel breakdown harian), biar geser tanggal di Overview beneran
+// ngubah 3 minicard-nya bareng-bareng (Income, Cost, Net), bukan cuma 2.
+//
+// Pembagi (netAnggaran) ikut nyesuain granularitas periode yang dibrowse:
+// - Mode per-hari (Minggu Ini/Per Minggu/Custom, perHari:true dari
+//   gdgWGetRange) → tetep anggaran MINGGUAN (÷4), approx yang sama kayak
+//   donat Income di gdgWRenderWeek (custom range yg bukan pas 7 hari juga
+//   dibandingin ke mingguan, bukan dihitung ulang proporsional per-hari).
+// - Mode bulan (Bulan Ini/Per Bulan, perHari:false) → anggaran BULANAN PENUH
+//   (gdgAngNetTotal(), TANPA ÷4), soalnya kalau tetep dibagi 4 tapi realisasi
+//   udah sebulan penuh, persennya bisa jebol >400% — gak masuk akal.
+//
+// Card "Penyerapan" di halaman Anggaran (gdgAngRenderList) TETEP independen,
+// ngikutin toggle Mingguan/Bulanan-nya sendiri — gak disatuin ke sini.
 function gdgAngUpdateCostCard() {
-  const wkStart  = gdgWGetMonday(new Date());
-  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
-  const isoStart = gdgWToISO(wkStart);
-  const isoEnd   = gdgWToISO(wkEnd);
-  const netAnggaran  = gdgAngNetTotalMingguan();
+  const range = gdgWGetRange();
+  const { isoStart, isoEnd, perHari } = range;
+  const netAnggaran  = perHari ? gdgAngNetTotalMingguan() : gdgAngNetTotal();
   const totalDiserap = _gdgAnggaranList.reduce((s, it) => s + gdgAngHitungRealisasi(it.nama, isoStart, isoEnd), 0);
   const pct    = netAnggaran > 0 ? Math.round((totalDiserap / netAnggaran) * 100) : 0;
   const pctFmt = pct + '%';
