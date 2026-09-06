@@ -610,8 +610,12 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- 4 MINICARD SEJAJAR (DESKTOP) / 2+metrics (MOBILE) -->
 
-<!-- Desktop: 4 card 1 baris — Income, Cost, Qty/Lsn, Net Income -->
-<div class="gdg-minicards gdg-desktop-only" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+<!-- Desktop: 6 card 3 baris x 2 kolom — Income/Cost, Average Income/Average
+     Cost (baris baru), Qty/Lsn/Target. Average SELALU minggu berjalan
+     (Minggu-Sabtu), independen dari selector tanggal di atas — lihat
+     gdgUpdateAverageCard(). Gak pakai donat (gak ada % yang natural buat
+     rata-rata), tapi warnanya tetep ngikut konsep Income=ijo/Cost=merah. -->
+<div class="gdg-minicards gdg-desktop-only" style="grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
   <div class="card gdg-minicard mc-pend">
     <div class="gdg-hero-label"><i class="ti ti-scissors"></i> Income</div>
     <div class="gdg-hero-value" id="gdg-total-pendapatan" style="color:var(--ok)">Rp0</div>
@@ -621,6 +625,16 @@ document.getElementById('page-gadag').innerHTML = `
     <div class="gdg-hero-label"><i class="ti ti-receipt-2"></i> Cost</div>
     <div class="gdg-hero-value" id="gdg-cost-value" style="color:var(--danger)">Rp0</div>
     <div class="gdg-hero-sub" id="gdg-cost-sub">— (periode ini)</div>
+  </div>
+  <div class="card gdg-minicard mc-pend">
+    <div class="gdg-hero-label"><i class="ti ti-chart-line"></i> Average Income</div>
+    <div class="gdg-hero-value" id="gdg-avg-income-value-d" style="color:var(--ok)">Rp0</div>
+    <div class="gdg-hero-sub">rata-rata harian, minggu ini</div>
+  </div>
+  <div class="card gdg-minicard mc-cost">
+    <div class="gdg-hero-label"><i class="ti ti-chart-line"></i> Average Cost</div>
+    <div class="gdg-hero-value" id="gdg-avg-cost-value-d" style="color:var(--danger)">Rp0</div>
+    <div class="gdg-hero-sub">rata-rata harian, minggu ini</div>
   </div>
   <div class="card gdg-minicard">
     <div class="gdg-hero-label"><i class="ti ti-stack-2"></i> Qty / Lsn</div>
@@ -635,7 +649,9 @@ document.getElementById('page-gadag').innerHTML = `
   </div>
 </div>
 
-<!-- Mobile: 4 card 2x2 grid — Income, Cost, Qty/Lsn, Target -->
+<!-- Mobile: 6 card 3 baris x 2 kolom — Income/Cost, Average Income/Average
+     Cost (baris baru, sama pola card kayak Income/Cost tapi TANPA donat),
+     Qty/Lsn/Target. -->
 <div class="gdg-mobile-only">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
   <div class="card gdg-minicard mc-pend">
@@ -651,6 +667,14 @@ document.getElementById('page-gadag').innerHTML = `
       <div class="gdg-hero-value" id="gdg-cost-value-m" style="color:var(--danger)">Rp0</div>
       <div class="gdg-donut" id="gdg-cost-donut" style="--pct:0;flex-shrink:0"><span id="gdg-cost-donut-txt">0%</span></div>
     </div>
+  </div>
+  <div class="card gdg-minicard mc-pend">
+    <div class="gdg-hero-label"><i class="ti ti-chart-line"></i> Average Income</div>
+    <div class="gdg-hero-value" id="gdg-avg-income-value-m" style="color:var(--ok)">Rp0</div>
+  </div>
+  <div class="card gdg-minicard mc-cost">
+    <div class="gdg-hero-label"><i class="ti ti-chart-line"></i> Average Cost</div>
+    <div class="gdg-hero-value" id="gdg-avg-cost-value-m" style="color:var(--danger)">Rp0</div>
   </div>
   <div class="metric gdg-qtylsn-split" style="margin:0">
     <div class="gdg-qtylsn-col">
@@ -674,15 +698,19 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- /gdg-top-summary -->
 
 <div class="card">
-  <!-- Sticky header: navigator label (read-only) + dropdown mode kanan -->
-  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-    <span id="gdgw-week-label" style="font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">—</span>
-    <button id="gdgw-chart-toggle-btn" class="btn btn-sm" onclick="gdgWToggleChartView()" title="Lihat sebagai grafik batang" style="flex:none;padding:5px 8px;font-size:12px">
-      <i class="ti ti-chart-bar" id="gdgw-chart-toggle-icon"></i>
-    </button>
-    <!-- Tombol trigger dropdown mode — menu-nya dirender ke body (portal fixed) biar ga ke-clip overflow panel -->
-    <button id="gdgw-mode-btn" class="btn btn-sm btn-primary" onclick="gdgWToggleModeMenu(event)" style="flex:none;white-space:nowrap;padding:5px 9px;font-size:12px">
+  <!-- Sticky header: 2 tombol — Sort/Mode (kiri) & Diagram (kanan, diperbesar).
+       Label tanggal (gdgw-week-label) DIHAPUS dari tampilan per request user;
+       elemen span-nya TETAP ADA di DOM (display:none) karena gdgWRenderWeek()
+       masih nulis ke situ tiap render — dihapus total elemennya bisa bikin
+       ngelempar error null di textContent. -->
+  <div id="gdg-sticky-header" class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <span id="gdgw-week-label" style="display:none">—</span>
+    <!-- Tombol trigger dropdown mode ("sort") — kiri. Menu-nya dirender ke body (portal fixed) biar ga ke-clip overflow panel -->
+    <button id="gdgw-mode-btn" class="btn btn-primary" onclick="gdgWToggleModeMenu(event)" style="flex:1;white-space:nowrap;padding:9px 14px;font-size:13px;justify-content:center">
       <span id="gdgw-mode-label">Minggu Ini</span> <i class="ti ti-chevron-down"></i>
+    </button>
+    <button id="gdgw-chart-toggle-btn" class="btn" onclick="gdgWToggleChartView()" title="Lihat sebagai grafik batang" style="flex:1;padding:9px 14px;font-size:13px;justify-content:center">
+      <i class="ti ti-chart-bar" id="gdgw-chart-toggle-icon"></i>
     </button>
   </div>
 
@@ -996,45 +1024,45 @@ document.getElementById('page-gadag').innerHTML = `
           <img src="gadag-icon.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:none">
           <span class="modal-title" style="margin:0;border:none;padding:0;font-size:16px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gdg-ink,#262220)" id="gdg-pend-modal-title">Catatan Pendapatan</span>
         </div>
-        <button onclick="gdgClosePendapatanModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+        <button onclick="gdgClosePendapatanModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gdg-ink2,#5c554d);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
     </div>
     <input type="hidden" id="gdg-pend-edit-id">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
       <div class="form-group">
-        <label>Hari</label>
+        <label style="font-size:10px;color:var(--gdg-ink2,#5c554d);font-weight:700;text-transform:uppercase">Hari</label>
         <input type="text" id="gdg-pend-hari" readonly
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream2);box-sizing:border-box;color:var(--ink2)">
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--gdg-ink,#262220);background:var(--gdg-paper2,#efe8d8);box-sizing:border-box;color:var(--gdg-ink2,#5c554d)">
       </div>
       <div class="form-group">
-        <label>Tanggal</label>
+        <label style="font-size:10px;color:var(--gdg-ink2,#5c554d);font-weight:700;text-transform:uppercase">Tanggal</label>
         <input type="date" id="gdg-pend-tanggal" onchange="gdgUpdateHari()"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--gdg-ink,#262220);background:var(--gdg-paper,#f7f2e6);box-sizing:border-box;color:var(--gdg-ink,#262220)">
       </div>
       <div class="form-group" style="position:relative">
-        <label>Warna</label>
+        <label style="font-size:10px;color:var(--gdg-ink2,#5c554d);font-weight:700;text-transform:uppercase">Warna</label>
         <input type="text" id="gdg-pend-warna" name="gdg-warna-custom-nofill" placeholder="contoh: Merah"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--gdg-ink,#262220);background:var(--gdg-paper,#f7f2e6);box-sizing:border-box;color:var(--gdg-ink,#262220)">
       </div>
       <div class="form-group">
-        <label>SKU</label>
+        <label style="font-size:10px;color:var(--gdg-ink2,#5c554d);font-weight:700;text-transform:uppercase">SKU</label>
         <input type="text" id="gdg-pend-sku-label" readonly placeholder="— pilih —"
           onclick="gdgSkuPickerOpen()"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--gdg-ink,#262220);background:var(--gdg-paper,#f7f2e6);box-sizing:border-box;cursor:pointer;color:var(--gdg-ink,#262220)">
         <input type="hidden" id="gdg-pend-sku-id">
         <input type="hidden" id="gdg-pend-sku-ongkos">
         <input type="hidden" id="gdg-pend-sku-nama">
       </div>
-      <div class="form-group" style="padding:10px;background:var(--cream2);border:1px dashed var(--ink3);margin:0">
-        <label style="font-size:11px;color:var(--ink3)">Total</label>
+      <div class="form-group" style="padding:10px;background:var(--gdg-paper2,#efe8d8);border:1px dashed var(--gdg-ink2,#5c554d);margin:0">
+        <label style="font-size:11px;color:var(--gdg-ink2,#5c554d)">Total</label>
         <div id="gdg-pend-preview" style="font-size:18px;font-weight:800;color:var(--ok)">Rp0</div>
       </div>
       <div class="form-group">
-        <label>Qty (pc)</label>
+        <label style="font-size:10px;color:var(--gdg-ink2,#5c554d);font-weight:700;text-transform:uppercase">Qty (pc)</label>
         <input type="text" inputmode="numeric" id="gdg-pend-qty" placeholder="contoh: 9"
           oninput="gdgRecomputePreview()"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--gdg-ink,#262220);background:var(--gdg-paper,#f7f2e6);box-sizing:border-box;color:var(--gdg-ink,#262220)">
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1875,6 +1903,7 @@ async function gdgWRenderWeek() {
   gdgAngUpdateCostCard();
 
   gdgUpdateTargetCard();
+  gdgUpdateAverageCard();
 }
 
 // ─── TOGGLE TABEL <-> GRAFIK BATANG (breakdown harian Overview) ──
@@ -1995,12 +2024,14 @@ async function gdgLoadAnggaran() {
     _gdgAnggaranList = [];
     if (listEl) listEl.innerHTML = `<div style="color:var(--danger)">Error: ${e.message}</div>`;
     gdgUpdateTargetCard();
+    gdgUpdateAverageCard();
     return;
   }
   await gdgWEnsureAkunJurnal(); // pastikan data akun+jurnal ada buat hitung realisasi progress bar
   gdgAngUpdateCostCard();   // SELALU jalan — ini yang nyuplai Overview, gak peduli toggle lagi di mana
   gdgAngRenderActiveList();
   gdgUpdateTargetCard();
+  gdgUpdateAverageCard();
   // Refresh tabel breakdown harian Overview juga — akunBebanMap-nya bergantung
   // ke _gdgAnggaranList (baru kesedia di titik ini). Tanpa ini, pas awal buka
   // halaman tabelnya sempat/bisa kepancet Rp0 duluan karena gdgWInit() jalan
@@ -2813,6 +2844,42 @@ function gdgAngHapusDariModal() {
 // Card 4 versi mobile: (pendapatan minggu ini) − (Net Anggaran minggu ini).
 // SELALU minggu berjalan (hari ini), independen dari minggu yg lagi
 // dibrowse di navigator Ringkasan — biar ga rancu sama konsep "target".
+// Average Income / Average Cost — SELALU minggu berjalan (kalender Minggu-
+// Sabtu, gdgWGetMonday(new Date()) = hari Minggu, +6 = Sabtu), independen
+// dari selector tanggal Overview yang lagi dibrowse (beda konsep sama Cost
+// card yang sekarang ngikut browsed range — Average ini fixed by design,
+// sesuai permintaan user). Rata-rata = total minggu ini ÷ 7 hari.
+// - Income minggu ini: dari _gdgPendapatanList, sumber sama kayak
+//   gdgUpdateTargetCard.
+// - Cost minggu ini: dari _gdgAnggaranList via gdgAngHitungRealisasi (akun
+//   Beban/Kewajiban yang namanya cocok ke Variable Anggaran), sumber sama
+//   kayak gdgAngUpdateCostCard SEBELUM per-6-Sep-2026 (dulu itu emang selalu
+//   minggu berjalan).
+function gdgUpdateAverageCard() {
+  const wkStart  = gdgWGetMonday(new Date());
+  const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
+  const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
+
+  const incomeMingguIni = _gdgPendapatanList
+    .filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir)
+    .reduce((s,p) => s + (Number(p.total)||0), 0);
+  const costMingguIni = _gdgAnggaranList
+    .reduce((s, it) => s + gdgAngHitungRealisasi(it.nama, isoMulai, isoAkhir), 0);
+
+  const avgIncome = incomeMingguIni / 7;
+  const avgCost   = costMingguIni / 7;
+
+  const elIncomeD = document.getElementById('gdg-avg-income-value-d');
+  const elIncomeM = document.getElementById('gdg-avg-income-value-m');
+  if (elIncomeD) elIncomeD.textContent = gdgWFmt(avgIncome);
+  if (elIncomeM) elIncomeM.textContent = gdgWFmt(avgIncome);
+
+  const elCostD = document.getElementById('gdg-avg-cost-value-d');
+  const elCostM = document.getElementById('gdg-avg-cost-value-m');
+  if (elCostD) elCostD.textContent = gdgWFmt(avgCost);
+  if (elCostM) elCostM.textContent = gdgWFmt(avgCost);
+}
+
 function gdgUpdateTargetCard() {
   const wkStart  = gdgWGetMonday(new Date());
   const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
@@ -2901,6 +2968,7 @@ async function gdgLoad() {
     const skuMetricEl = document.getElementById('gdg-metric-sku');
     if (skuMetricEl) skuMetricEl.textContent = _gdgSkuList.length;
     gdgUpdateTargetCard();
+    gdgUpdateAverageCard();
   } catch(e) {
     skuTbody.innerHTML  = `<tr><td colspan="2" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
     pendTbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
@@ -4005,6 +4073,24 @@ function gdgSkuPickerClose(force) {
   setTimeout(() => { overlay.style.display = 'none'; }, 300);
 }
 
+// ─── Terakhir digunakan — MRU SKU picker Catatan Pendapatan, disimpan di
+// localStorage, max 4, terbaru duluan. Pola sama persis kayak
+// _kasRecentAkunGet/_kasRecentAkunPush di kas.js — cuma satu konteks aja
+// (gak ada variasi debit/kredit kayak Kas & Jurnal), jadi key-nya fixed. ──
+function _gdgRecentSkuKey() { return 'gdg_recent_sku'; }
+function _gdgRecentSkuGet() {
+  try { return JSON.parse(localStorage.getItem(_gdgRecentSkuKey()) || '[]'); }
+  catch(e) { return []; }
+}
+function _gdgRecentSkuPush(id) {
+  if (!id) return;
+  try {
+    const arr = _gdgRecentSkuGet().filter(x => String(x) !== String(id));
+    arr.unshift(String(id));
+    localStorage.setItem(_gdgRecentSkuKey(), JSON.stringify(arr.slice(0, 4)));
+  } catch(e) {}
+}
+
 function gdgSkuPickerFilter(q) {
   _gdgSkuPickerQuery = q;
   gdgSkuPickerRenderList(q);
@@ -4022,7 +4108,8 @@ function gdgSkuPickerRenderList(q) {
     list.innerHTML = `<div style="padding:20px 16px;color:var(--gdg-ink2,#5c554d);font-style:italic;text-align:center">Produk tidak ditemukan</div>`;
     return;
   }
-  list.innerHTML = filtered.map(s => {
+
+  const itemHtml = (s) => {
     const selected = String(s.id) === String(currentId);
     return `<div onclick="gdgSkuPickerSelect('${s.id}','${(s.nama||'').replace(/'/g,"\\'")}',${s.ongkos_lusin||0})"
       style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
@@ -4035,10 +4122,30 @@ function gdgSkuPickerRenderList(q) {
       <span style="font-size:15px;font-weight:800;color:var(--gdg-ink,#262220)">${s.nama||'—'}</span>
       <span style="margin-left:auto;font-size:12px;color:var(--gdg-ink2,#5c554d);font-weight:700">${gdgFmt(s.ongkos_lusin)}/lsn</span>
     </div>`;
-  }).join('');
+  };
+
+  let html = '';
+
+  // "Terakhir Digunakan" — cuma pas search kosong, sama pola kayak
+  // section MRU di kas-akun-picker (kas.js _kasRecentAkunGet). Item yang
+  // sama tetep nongol lagi di listing normal di bawah (gak difilter), biar
+  // konsisten sama behavior kas.js.
+  if (!q) {
+    const recentIds = _gdgRecentSkuGet();
+    const skuById = {}; _gdgSkuList.forEach(s => { skuById[String(s.id)] = s; });
+    const recentSku = recentIds.map(id => skuById[String(id)]).filter(Boolean);
+    if (recentSku.length) {
+      html += `<div style="padding:10px 16px 4px;font-size:11px;font-weight:800;color:var(--gdg-ink2,#5c554d);text-transform:uppercase;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Terakhir Digunakan</div>`;
+      recentSku.forEach(s => { html += itemHtml(s); });
+    }
+  }
+
+  html += filtered.map(itemHtml).join('');
+  list.innerHTML = html;
 }
 
 function gdgSkuPickerSelect(id, nama, ongkos) {
+  _gdgRecentSkuPush(id);
   document.getElementById('gdg-pend-sku-id').value     = id;
   document.getElementById('gdg-pend-sku-nama').value   = nama;
   document.getElementById('gdg-pend-sku-ongkos').value = ongkos;
