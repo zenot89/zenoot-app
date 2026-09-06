@@ -94,6 +94,17 @@ document.getElementById('page-anggaran').innerHTML = `
     }
     #ang-akun-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
   }
+
+  /* Baris pembatas grup non-Beban-Operasional (Kewajiban dll) di tabel
+     utama — 7 Sep 2026, GANTI card "Anggaran Lainnya" terpisah (kesan
+     "nempel"/berat buat cuma 1-2 baris). Sekarang 1 tabel aja, dipisah
+     baris judul kecil biar tetep kebaca beda kategori tanpa duplikasi
+     header/footer tabel. Lihat angRender()/angGroupLabel(). */
+  .ang-group-divider td {
+    background: var(--cream2); font-weight: 700; font-size: 11px;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--ink2);
+    padding: 7px 10px; border-top: 2px solid var(--ink3);
+  }
 </style>
 
 <div id="ang-metrics-wrap">
@@ -165,49 +176,6 @@ document.getElementById('page-anggaran').innerHTML = `
       <tbody id="ang-tbody">
         <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- CARD: Anggaran Lainnya (7 Sep 2026) — akun yang di-set via "+ Anggaran"
-     TAPI bukan bagian Beban Operasional (misal Kewajiban kayak Hutang Bank,
-     atau sub_kelompok Beban lain). Dulu akun-akun ini kesave normal ke
-     kas_anggaran tapi gak pernah kerender di manapun karena tabel utama di
-     atas loop dari _angAkunBeban doang (Beban Operasional doang) — user
-     ngerasa "gak ke-save" padahal cuma invisible. Card ini nongol CUMA kalau
-     ada minimal 1 entry (angRender yang toggle display-nya), biar halaman
-     tetep bersih kalau semua anggaran emang Beban Operasional semua. Total
-     di card atas (ang-total-anggaran dst) SENGAJA tetep cuma ngitung Beban
-     Operasional aja (biar konsisten sama judul panel "Anggaran Beban") — 
-     card ini punya total sendiri di footer-nya. -->
-<div class="card" id="ang-lainnya-card" style="margin-top:14px;display:none">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-list-details"></i> Anggaran Lainnya (Non-Operasional)</span>
-    <span style="font-size:11px;color:var(--ink3);font-weight:400">Kewajiban / sub-kategori beban lain</span>
-  </div>
-  <div class="tbl-wrap" style="max-height:40vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th>Akun</th>
-          <th>Kategori</th>
-          <th style="text-align:right">Anggaran</th>
-          <th style="text-align:right">Realisasi</th>
-          <th style="text-align:right">Selisih</th>
-          <th style="text-align:right">%</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="ang-lainnya-tbody"></tbody>
-      <tfoot>
-        <tr style="font-weight:700;border-top:2px solid var(--ink3)">
-          <td colspan="2">Subtotal</td>
-          <td style="text-align:right" id="ang-lainnya-total-ang">—</td>
-          <td style="text-align:right" id="ang-lainnya-total-rea">—</td>
-          <td colspan="2"></td>
-          <td></td>
-        </tr>
-      </tfoot>
     </table>
   </div>
 </div>
@@ -416,7 +384,24 @@ function angRowHtml(akun, ang, kategoriLabel) {
   return { html, nomAng, nomRea };
 }
 
+// Label baris pembatas grup non-Beban-Operasional — 7 Sep 2026. Khusus
+// kelompok 'kewajiban' pakai nama yang user minta ("Anggaran Pelunasan
+// Hutang"); kelompok/sub_kelompok lain (kalau suatu saat ada) fallback ke
+// nama sub_kelompok/kelompok akun itu sendiri, biar gak hardcode ke 1 kasus doang.
+function angGroupLabel(akun) {
+  if (akun.kelompok === 'kewajiban') return 'Anggaran Pelunasan Hutang';
+  return 'Anggaran ' + (akun.sub_kelompok || akun.kelompok || 'Lainnya');
+}
+
 // ─── RENDER ───────────────────────────────────────────────────
+// Tabel ini render 2 golongan baris dalam 1 tbody yang sama:
+//  1) _angAkunBeban (Beban Operasional) — ikut dihitung ke total metrics atas.
+//  2) Akun di luar itu (misal Kewajiban kayak Hutang Bank) yang KEBETULAN
+//     punya row kas_anggaran bulan aktif — dipisah baris judul (divider),
+//     dikelompokkan per kategori (angGroupLabel), TIDAK ikut total metrics
+//     atas (biar "Total Anggaran" tetep berarti "anggaran beban operasional").
+//     Dulu ini card terpisah (§8.1 lama) — digabung jadi 1 tabel 7 Sep 2026
+//     karena card kedua kesannya "nempel"/berat buat cuma 1-2 baris.
 function angRender() {
   const tbody  = document.getElementById('ang-tbody');
   const angMap = {};
@@ -425,62 +410,43 @@ function angRender() {
   if (!_angAkunBeban.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun beban. Tambah via Kas & Jurnal → Kelola Akun.</td></tr>';
     angUpdateMetrics(0, 0);
-    angRenderLainnya(angMap);
     return;
   }
 
   let totalAng = 0, totalRea = 0;
 
-  const rows = _angAkunBeban.map(akun => {
+  const mainRows = _angAkunBeban.map(akun => {
     const r = angRowHtml(akun, angMap[String(akun.id)]);
     totalAng += r.nomAng;
     totalRea += r.nomRea;
     return r.html;
   });
 
-  tbody.innerHTML = rows.join('');
-  angUpdateMetrics(totalAng, totalRea);
-  angRenderLainnya(angMap);
-}
-
-// ─── RENDER "ANGGARAN LAINNYA" (akun di luar Beban Operasional) ─────────
-// Akun kandidatnya _angAkunAllBK (Beban+Kewajiban SEMUA sub_kelompok, sumber
-// yang sama dipakai picker "+ Anggaran") MINUS akun yang udah tampil di
-// tabel utama (_angAkunBeban). Cuma ditampilin kalau akun itu BENERAN punya
-// row kas_anggaran di bulan aktif (angMap) — bukan semua akun kandidat,
-// biar card ini gak numplek nampilin ratusan akun "Belum diset" yang emang
-// gak relevan buat panel Anggaran Beban ini.
-function angRenderLainnya(angMap) {
-  const card  = document.getElementById('ang-lainnya-card');
-  const tbody = document.getElementById('ang-lainnya-tbody');
-  if (!card || !tbody) return;
-
+  // Akun kandidatnya _angAkunAllBK (Beban+Kewajiban SEMUA sub_kelompok,
+  // sumber yang sama dipakai picker "+ Anggaran") MINUS akun yang udah
+  // tampil di atas (_angAkunBeban). Cuma ditampilin kalau BENERAN punya row
+  // kas_anggaran bulan aktif — bukan semua kandidat, biar gak numplek
+  // nampilin akun "Belum diset" yang emang gak relevan di panel ini.
   const bebanIds = new Set(_angAkunBeban.map(a => String(a.id)));
   const lainnyaAkun = (_angAkunAllBK || []).filter(a =>
     angMap[String(a.id)] && !bebanIds.has(String(a.id))
   );
 
-  if (!lainnyaAkun.length) {
-    card.style.display = 'none';
-    tbody.innerHTML = '';
-    return;
+  let lainnyaRows = [];
+  if (lainnyaAkun.length) {
+    let lastLabel = null;
+    lainnyaAkun.forEach(akun => {
+      const label = angGroupLabel(akun);
+      if (label !== lastLabel) {
+        lainnyaRows.push(`<tr class="ang-group-divider"><td colspan="7">${label}</td></tr>`);
+        lastLabel = label;
+      }
+      lainnyaRows.push(angRowHtml(akun, angMap[String(akun.id)]).html);
+    });
   }
 
-  let totalAng = 0, totalRea = 0;
-  const rows = lainnyaAkun.map(akun => {
-    const kategoriLabel = akun.kelompok === 'kewajiban'
-      ? ('Kewajiban' + (akun.sub_kelompok ? ' · ' + akun.sub_kelompok : ''))
-      : (akun.sub_kelompok || akun.kelompok || '—');
-    const r = angRowHtml(akun, angMap[String(akun.id)], kategoriLabel);
-    totalAng += r.nomAng;
-    totalRea += r.nomRea;
-    return r.html;
-  });
-
-  tbody.innerHTML = rows.join('');
-  document.getElementById('ang-lainnya-total-ang').textContent = angFmt(totalAng);
-  document.getElementById('ang-lainnya-total-rea').textContent = angFmt(totalRea);
-  card.style.display = '';
+  tbody.innerHTML = mainRows.join('') + lainnyaRows.join('');
+  angUpdateMetrics(totalAng, totalRea);
 }
 
 // ─── METRICS ──────────────────────────────────────────────────
