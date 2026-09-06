@@ -4395,17 +4395,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Palet ink di-scope ke container ini biar semua turunan yang baca
-   var(--ink)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) — termasuk
-   yang di-inject langsung dari dashboard.js (beban-row, badge, placeholder)
-   — otomatis ikut kontras, tanpa perlu override manual di tiap child.
-   CATATAN (6 Sep 2026): background card ganti dari #9b968d ke #808080,
-   kontras ke warna ink di bawah ini TURUN dari level AAA (~6-6.6:1) ke
-   ~AA (~4.9:1) buat teks normal — masih lolos AA, tapi bukan AAA lagi.
-   Belum di-adjust lebih gelap krn itu di luar scope permintaan ganti
-   warna card — kalau mau balik ke AAA, ink color di bawah perlu digelapin
-   lagi nyesuain bg baru. */
+   var(--ink)/var(--ink2)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) —
+   termasuk yang di-inject langsung dari dashboard.js (beban-row, income-row,
+   badge, placeholder) — otomatis ikut kontras, tanpa perlu override manual
+   di tiap child.
+   BUG NYATA (6 Sep 2026): --ink2 KELUPAAN di-scope pas list ini pertama
+   dibikin — row label di slide 3/Free Cash Flow (_renderIncome di
+   dashboard.js, pake `color:var(--ink2)` eksplisit) balik ke warna default
+   tema terang (`#8A8580`) yang nyaris gak keliatan di atas background card
+   `#808080`. Slide 2/Beban aman krn row label-nya (_renderBeban) gak set
+   warna eksplisit, ikut var(--ink) yang emang udah kescope. **Kalau nambah
+   elemen teks baru di dalem container ini, cek dulu variable ink APA yang
+   dipake — kalau bukan salah satu dari 5 yang di-scope di bawah, bakal
+   balik ke tema terang & keliatan pudar/ilang di atas bg gelap-medium ini.**
+   CATATAN kontras: background card #808080, teks --ink/--ink2/--ink3 di
+   bawah semua ~AA (~4.5-4.9:1) buat teks normal — bukan AAA lagi (dulu
+   ~6-6.6:1 pas bg masih #9b968d, turun pas bg diganti #808080 6 Sep 2026). */
 #nw-swipe-container{
   --ink:#0d0d0d;
+  --ink2:#1a1714;
   --ink3:#1a1714;
   --ink4:#625d55;
   --danger:#2e0f0a;
