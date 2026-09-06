@@ -848,9 +848,15 @@ document.getElementById('page-gadag').innerHTML = `
 
 </div><!-- /#gdg-panels-wrap -->
 
-<!-- MODAL: SKU -->
-<div class="modal-overlay" id="modal-gdg-sku" style="z-index:320" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
-  <div class="modal" style="max-width:400px;width:100%;padding:16px">
+<!-- MODAL: SKU (bottom-sheet, keyboard-safe via visualViewport — disamain
+     sama pola "Catatan Pendapatan", 6 Sep 2026. Sengaja DIDUPLIKASI jadi
+     fungsi sendiri, bukan digeneralisir/parameterized, ngikutin konvensi
+     yang udah ada di file ini (lihat komentar di gdgAngOpenSheet) biar kode
+     Pendapatan yang udah proven-stable ga ikut kesenggol. -->
+<div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-sku" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
+  <div class="modal gdg-sheet" id="gdg-sku-sheet" style="max-width:400px;width:100%;padding:0">
+    <div id="gdg-sku-sheet-handle" class="gdg-sheet-handle"><span></span></div>
+    <div class="gdg-sheet-body" style="padding:0 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-sku-modal-title">
         <i class="ti ti-plus"></i> Tambah SKU
@@ -877,6 +883,7 @@ document.getElementById('page-gadag').innerHTML = `
         <button class="btn" onclick="gdgCloseSkuModal()">Batal</button>
         <button class="btn btn-primary" onclick="gdgSimpanSku()"><i class="ti ti-check"></i> Simpan</button>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -3523,10 +3530,110 @@ function gdgShowSkuModal(id, nama, ongkos) {
   const hapusBtn = document.getElementById('gdg-sku-modal-hapus');
   if (hapusBtn) hapusBtn.style.display = id ? '' : 'none';
   document.getElementById('modal-gdg-sku').classList.add('open');
+  gdgSkuOpenSheet();
+}
+
+// ─── BOTTOM-SHEET: animasi masuk/keluar + drag-to-close + keyboard-safe (iOS) —
+// modal Tambah/Edit SKU. Pola identik dengan gdgOpenPendSheet (Catatan
+// Pendapatan), sengaja DIDUPLIKASI bukan digeneralisir/parameterized —
+// ngikutin konvensi yang udah ada di file ini (biar kode yang udah
+// proven-stable, kayak Pendapatan, ga ikut kesenggol kalau salah satu
+// modal butuh penyesuaian lain nanti). Sebelum ini, modal SKU masih pakai
+// `.modal-overlay`/`.modal` polos (center-align, position:fixed penuh
+// viewport) — di iOS itu bikin modal "lompat ke atas" pas keyboard buka,
+// karena position:fixed gak ikut nyusut pas keyboard muncul, jadi browser
+// scroll seluruh context biar field yg difokus keliatan (6 Sep 2026,
+// dilaporkan user lewat screenshot "Tambah SKU").
+function gdgSkuOpenSheet() {
+  const overlay = document.getElementById('modal-gdg-sku');
+  const sheet   = document.getElementById('gdg-sku-sheet');
+  if (!overlay || !sheet) return;
+  sheet.style.transform = ''; // pastikan mulai dari posisi tertutup (translateY(100%) dari CSS)
+  void overlay.offsetHeight; // reflow paksa biar posisi awal ke-render dulu
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    overlay.classList.add('gdg-sheet-in');
+  }));
+  _gdgSkuSheetSyncViewport();
+  if (window.visualViewport && !overlay._gdgVVInited) {
+    overlay._gdgVVInited = true;
+    window.visualViewport.addEventListener('resize', _gdgSkuSheetSyncViewport);
+    window.visualViewport.addEventListener('scroll', _gdgSkuSheetSyncViewport);
+  }
+  _gdgInitSkuSheetDragToClose();
+  _gdgInitSkuSheetFocusScroll();
+}
+
+function _gdgSkuSheetSyncViewport() {
+  const overlay = document.getElementById('modal-gdg-sku');
+  const sheet   = document.getElementById('gdg-sku-sheet');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (!window.matchMedia('(max-width:900px)').matches) return; // cuma perlu di layout bottom-sheet (mobile)
+  const vv = window.visualViewport;
+  if (!vv) return;
+  overlay.style.height    = vv.height + 'px';
+  overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+  if (sheet) sheet.style.maxHeight = Math.max(240, vv.height - 12) + 'px';
+}
+
+function _gdgInitSkuSheetFocusScroll() {
+  const overlay = document.getElementById('modal-gdg-sku');
+  if (!overlay || overlay._gdgFocusScrollInited) return;
+  overlay._gdgFocusScrollInited = true;
+  overlay.addEventListener('focusin', function(e) {
+    const t = e.target;
+    if (!(t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+    setTimeout(function() {
+      _gdgSkuSheetSyncViewport();
+      t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 320);
+  });
+}
+
+function _gdgInitSkuSheetDragToClose() {
+  const handle = document.getElementById('gdg-sku-sheet-handle');
+  const sheet  = document.getElementById('gdg-sku-sheet');
+  if (!handle || !sheet || handle._gdgDragInited) return;
+  handle._gdgDragInited = true;
+  var _startY = 0, _dragging = false, _dy = 0;
+  handle.addEventListener('touchstart', function(e) {
+    _startY   = e.touches[0].clientY;
+    _dragging = true;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+  handle.addEventListener('touchmove', function(e) {
+    if (!_dragging) return;
+    _dy = Math.max(0, e.touches[0].clientY - _startY);
+    sheet.style.transform = 'translateY(' + _dy + 'px)';
+  }, { passive: true });
+  handle.addEventListener('touchend', function() {
+    if (!_dragging) return;
+    _dragging = false;
+    sheet.style.transition = '';
+    if (_dy > 90) {
+      gdgCloseSkuModal();
+    } else {
+      sheet.style.transform = '';
+    }
+    _dy = 0;
+  }, { passive: true });
 }
 
 function gdgCloseSkuModal() {
-  document.getElementById('modal-gdg-sku').classList.remove('open');
+  const overlay = document.getElementById('modal-gdg-sku');
+  const sheet   = document.getElementById('gdg-sku-sheet');
+  if (!overlay) return;
+  if (sheet && window.matchMedia('(max-width:900px)').matches) {
+    overlay.classList.remove('gdg-sheet-in');
+    sheet.style.transform = '';
+    setTimeout(function() {
+      overlay.classList.remove('open');
+      overlay.style.height    = '';
+      overlay.style.transform = '';
+      if (sheet) sheet.style.maxHeight = '';
+    }, 280);
+  } else {
+    overlay.classList.remove('open');
+  }
 }
 
 function gdgHapusSkuDariModal() {
