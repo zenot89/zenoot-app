@@ -643,8 +643,17 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div class="hs-sheet-handle"><span></span></div>
       <div class="hs-sheet-header">
         <div class="hs-sheet-title" id="hs-detail-title">Detail Bon</div>
-        <button class="hs-sheet-close" id="hs-detail-edit-btn" title="Edit Bon" onclick="hsOpenEditBon(_hsCurrentBonId)" style="margin-left:auto;margin-right:4px"><i class="ti ti-pencil"></i></button>
-        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-detail')"><i class="ti ti-x"></i></button>
+        <!-- Root cause posisi tombol pensil "ketarik ke tengah" (7 Sep 2026):
+             class .hs-sheet-close punya margin-left:auto bawaan (didesain
+             buat kasus SATU tombol X doang). Sheet ini punya DUA tombol
+             ber-class sama (pensil + X) — dua-duanya sama-sama auto-margin
+             bikin browser bagi rata sisa ruang ke keduanya, jadi pensil
+             nyangkut di tengah, bukan nempel ke X. Fix: cuma tombol PERTAMA
+             (pensil) yang pegang margin-left:auto (buat dorong grupnya ke
+             kanan); tombol kedua (X) di-override margin-left:0 biar nempel
+             ke pensil (jarak natural dari gap:10px punya .hs-sheet-header). -->
+        <button class="hs-sheet-close" id="hs-detail-edit-btn" title="Edit Bon" onclick="hsOpenEditBon(_hsCurrentBonId)" style="margin-left:auto"><i class="ti ti-pencil"></i></button>
+        <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-detail')" style="margin-left:0"><i class="ti ti-x"></i></button>
       </div>
       <div class="hs-sheet-body">
         <div class="hs-detail-summary">
@@ -2538,6 +2547,21 @@ function hsOpenTambahBon() {
 async function hsOpenEditBon(bonId) {
   var b = _hsBonList.find(function(x){ return x.id===bonId; });
   if (!b) return;
+  // Root cause "harus klik X dulu baru Edit Bon keliatan" (7 Sep 2026):
+  // hs-sheet-detail & hs-sheet-bon sama-sama .hs-sheet-overlay (z-index 820
+  // SAMA), dan hs-sheet-detail posisinya belakangan di DOM markup → kalau
+  // z-index sama, elemen yang belakangan di DOM yang menang tampil di atas.
+  // Dulu fungsi ini cuma manggil hsOpenSheet('hs-sheet-bon') TANPA nutup
+  // hs-sheet-detail dulu — Edit Bon-nya udah kebuka betulan, tapi ketutup
+  // fisik sama Detail yang masih .open di atasnya, jadi user ngerasa "gak
+  // ada perubahan" sampe dia klik X buat nutup Detail (baru Edit Bon yang
+  // udah nunggu di belakang jadi keliatan). Fix: tutup Detail INSTAN dulu
+  // (tanpa animasi slide-out — toh langsung ketimpa sheet lain, animasiin
+  // dua sheet numpuk cuma bikin transisi keliatan "loncat") tepat sebelum
+  // Edit Bon dibuka & animasi slide-in normal.
+  var detailOv = document.getElementById('hs-sheet-detail');
+  if (detailOv) { detailOv.classList.remove('hs-sheet-in'); detailOv.classList.remove('open'); }
+
   document.getElementById('hs-bon-form-title').textContent = 'Edit Bon';
   document.getElementById('hs-bon-id').value = b.id;
   document.getElementById('hs-bon-btn-hapus').style.display = 'inline-flex';

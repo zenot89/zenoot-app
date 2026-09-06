@@ -2847,8 +2847,15 @@ function gdgAngHapusDariModal() {
 // Average Income / Average Cost — SELALU minggu berjalan (kalender Minggu-
 // Sabtu, gdgWGetMonday(new Date()) = hari Minggu, +6 = Sabtu), independen
 // dari selector tanggal Overview yang lagi dibrowse (beda konsep sama Cost
-// card yang sekarang ngikut browsed range — Average ini fixed by design,
-// sesuai permintaan user). Rata-rata = total minggu ini ÷ 7 hari.
+// card yang sekarang ikut browsed range — Average ini fixed by design,
+// sesuai permintaan user).
+// Rata-rata = total minggu ini ÷ HARI BERJALAN (dari Minggu s.d. HARI INI,
+// inklusif) — BUKAN ÷7 tetap. Per 7 Sep 2026 diubah dari ÷7: di awal minggu
+// (Minggu/Senin) ÷7 bikin angkanya keliatan kecil banget walau performa hari
+// itu udah bagus (misal income Rp25.000 di hari Minggu doang jadi keliatan
+// cuma Rp3.571/hari). ÷hari-berjalan lebih representatif "on track apa
+// nggak sejauh ini", konsisten sama Card Target/Sisa yang juga ngebandingin
+// ke pendapatan REAL minggu berjalan, bukan proyeksi penuh 7 hari.
 // - Income minggu ini: dari _gdgPendapatanList, sumber sama kayak
 //   gdgUpdateTargetCard.
 // - Cost minggu ini: dari _gdgAnggaranList via gdgAngHitungRealisasi (akun
@@ -2860,14 +2867,22 @@ function gdgUpdateAverageCard() {
   const wkEnd    = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6);
   const isoMulai = gdgWToISO(wkStart), isoAkhir = gdgWToISO(wkEnd);
 
+  // Hari berjalan: dari Minggu (wkStart) s.d. HARI INI, inklusif — clamp
+  // ke max 7 (jaga-jaga kalau device jam/tanggalnya aneh), min 1 (Minggu
+  // hari pertama = ÷1, bukan ÷0).
+  const isoHariIni = gdgWToISO(new Date());
+  const msPerDay   = 86400000;
+  let hariBerjalan = Math.floor((new Date(isoHariIni) - wkStart) / msPerDay) + 1;
+  hariBerjalan     = Math.max(1, Math.min(7, hariBerjalan));
+
   const incomeMingguIni = _gdgPendapatanList
     .filter(p => p.tanggal >= isoMulai && p.tanggal <= isoAkhir)
     .reduce((s,p) => s + (Number(p.total)||0), 0);
   const costMingguIni = _gdgAnggaranList
     .reduce((s, it) => s + gdgAngHitungRealisasi(it.nama, isoMulai, isoAkhir), 0);
 
-  const avgIncome = incomeMingguIni / 7;
-  const avgCost   = costMingguIni / 7;
+  const avgIncome = incomeMingguIni / hariBerjalan;
+  const avgCost   = costMingguIni / hariBerjalan;
 
   const elIncomeD = document.getElementById('gdg-avg-income-value-d');
   const elIncomeM = document.getElementById('gdg-avg-income-value-m');
