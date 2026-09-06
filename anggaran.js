@@ -4,6 +4,7 @@
 // Realisasi: jurnal   { akun_debit, debit, tanggal }
 
 let _angAkunBeban  = [];
+let _angAkunAllBK  = []; // SEMUA akun kelompok beban/kewajiban (semua sub_kelompok) — dipake buat select di modal "+ Anggaran" (angShowAddNew), beda dari _angAkunBeban yang cuma Beban Operasional (dipake buat baris tabel)
 let _angAnggaran   = [];
 let _angJurnal     = [];
 let _angBulanAktif = '';
@@ -29,8 +30,25 @@ document.getElementById('page-anggaran').innerHTML = `
      supaya halaman lain yang mungkin masih butuh color-scheme:dark (misal di
      Gadag) sama sekali gak kesenggol. */
   #ang-filter-bulan { color-scheme: light; }
+
+  /* Hide-on-scroll minicard (7 Sep 2026) — pola SAMA persis kayak
+     .kas-topbar-collapsed di kas.js (_kasScrollCollapseInit), biar konsisten
+     satu app. CUMA aktif di HP (dicek via matchMedia di JS-nya, bukan di
+     CSS, biar gampang di-skip di desktop/laptop tanpa nulis breakpoint 2x). */
+  #ang-metrics-wrap {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 500px;
+    opacity: 1;
+  }
+  #ang-metrics-wrap.ang-metrics-collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
 </style>
 
+<div id="ang-metrics-wrap">
 <div class="ang-metrics">
   <div class="metric">
     <div class="m-label">Total Anggaran</div>
@@ -52,6 +70,7 @@ document.getElementById('page-anggaran').innerHTML = `
     <div class="m-value" id="ang-pct-serapan">—</div>
     <div class="m-delta">dari total anggaran</div>
   </div>
+</div>
 </div>
 
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
@@ -76,9 +95,13 @@ document.getElementById('page-anggaran').innerHTML = `
         style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
         <i class="ti ti-arrow-left"></i> Jurnal Harian
       </button>
+      <button class="btn btn-sm btn-primary" id="ang-btn-tambah" onclick="angShowAddNew()"
+        style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
+        <i class="ti ti-plus"></i> Anggaran
+      </button>
     </div>
   </div>
-  <div class="tbl-wrap" style="overflow-x:auto">
+  <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
     <table class="tbl">
       <thead>
         <tr>
@@ -115,10 +138,16 @@ document.getElementById('page-anggaran').innerHTML = `
     <div class="form-group" style="margin-bottom:8px">
       <label>Akun Beban</label>
       <div id="ang-edit-nama" style="font-weight:700;font-size:15px;padding:6px 0;color:var(--ink)">—</div>
+      <!-- Cuma nongol pas mode TAMBAH (angShowAddNew) — mode edit dari baris
+           tabel tetep pakai div readonly di atas (akun-nya udah pasti). -->
+      <select id="ang-edit-akun-select" onchange="angAkunSelectChange()"
+        style="display:none;width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
+               border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+      </select>
     </div>
     <div class="form-group" style="margin-bottom:8px">
       <label>Bulan</label>
-      <input type="month" id="ang-edit-bulan"
+      <input type="month" id="ang-edit-bulan" onchange="angAkunSelectChange()"
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
                border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
     </div>
@@ -195,6 +224,7 @@ async function angLoad() {
     ]);
     _angJurnalAkunIdMap = {};
     (akunAllFull || []).forEach(a => { _angJurnalAkunIdMap[String(a.id)] = a.kode; });
+    _angAkunAllBK = (akunAllFull || []).filter(a => a.kelompok === 'beban' || a.kelompok === 'kewajiban');
 
     _angAkunBeban = akunAll  || [];
     _angAnggaran  = angAll   || [];
@@ -322,10 +352,45 @@ function angFmt(n) {
 function angShowEdit(akunId, nama, angId, nomAng) {
   document.getElementById('ang-edit-akun-id').value  = akunId;
   document.getElementById('ang-edit-id').value       = angId || '';
+  document.getElementById('ang-edit-nama').style.display = '';
   document.getElementById('ang-edit-nama').textContent = nama;
+  document.getElementById('ang-edit-akun-select').style.display = 'none';
   document.getElementById('ang-edit-bulan').value    = _angBulanAktif || '';
   document.getElementById('ang-edit-nominal').value  = nomAng > 0 ? Number(nomAng).toLocaleString('id-ID') : '';
   document.getElementById('modal-anggaran').classList.add('open');
+}
+
+// Tombol [+ Anggaran] di header — beda dari angShowEdit (yg selalu dari
+// baris tabel yg akunnya udah pasti): di sini akunnya BEBAS dipilih dari
+// SEMUA akun Beban/Kewajiban (_angAkunAllBK, semua sub_kelompok — bukan
+// cuma Beban Operasional yg tampil di tabel), termasuk akun yg gak pernah
+// nongol sebagai baris di tabel ini sama sekali (misal kelompok Kewajiban,
+// atau Beban di luar sub_kelompok "Beban Operasional"). Berguna khususnya
+// buat akun yang mau dipilih di checkbox "Pilih Akun" Gadag tapi belum
+// pernah bisa di-set nominalnya di sini.
+function angShowAddNew() {
+  document.getElementById('ang-edit-id').value      = '';
+  document.getElementById('ang-edit-akun-id').value = '';
+  document.getElementById('ang-edit-nama').style.display = 'none';
+  const sel = document.getElementById('ang-edit-akun-select');
+  sel.style.display = '';
+  sel.innerHTML = '<option value="">— pilih akun —</option>' +
+    _angAkunAllBK.map(a => `<option value="${a.id}">${(a.nama||'—')} (${a.kode||'—'})</option>`).join('');
+  sel.value = '';
+  document.getElementById('ang-edit-bulan').value   = _angBulanAktif || '';
+  document.getElementById('ang-edit-nominal').value = '';
+  document.getElementById('modal-anggaran').classList.add('open');
+}
+
+// Kalau akun yang dipilih di select TERNYATA udah punya kas_anggaran bulan
+// ini, auto-isi nominalnya (biar user gak insert duplikat tanpa sadar —
+// angSimpan bakal UPDATE row itu, bukan bikin baru, lihat di bawah).
+function angAkunSelectChange() {
+  const akunId = document.getElementById('ang-edit-akun-select').value;
+  const bulan  = document.getElementById('ang-edit-bulan').value || _angBulanAktif;
+  const existing = _angAnggaran.find(a => String(a.akun_id) === String(akunId) && a.bulan === bulan);
+  document.getElementById('ang-edit-id').value      = existing ? existing.id : '';
+  document.getElementById('ang-edit-nominal').value = existing ? Number(existing.nominal).toLocaleString('id-ID') : '';
 }
 
 function angFormatNominal(el) {
@@ -344,12 +409,16 @@ function angOverlayClose(e) {
 
 // ─── SIMPAN ───────────────────────────────────────────────────
 async function angSimpan() {
-  const angId  = document.getElementById('ang-edit-id').value.trim();
-  const akunId = document.getElementById('ang-edit-akun-id').value;
+  let angId  = document.getElementById('ang-edit-id').value.trim();
+  // Mode Tambah (select kelihatan) → akunId dari select. Mode Edit (dari
+  // baris tabel, select disembunyikan) → akunId dari hidden input lama.
+  const selEl  = document.getElementById('ang-edit-akun-select');
+  const akunId = selEl.style.display !== 'none' ? selEl.value : document.getElementById('ang-edit-akun-id').value;
   const bulan  = document.getElementById('ang-edit-bulan').value;
   const nomStr = document.getElementById('ang-edit-nominal').value.replace(/\D/g,'');
   const nominal = parseInt(nomStr, 10);
 
+  if (!akunId)            { alert('Pilih akun dulu.'); return; }
   if (!bulan)             { alert('Pilih bulan anggaran.'); return; }
   if (!nominal || nominal <= 0) { alert('Nominal harus lebih dari 0.'); return; }
 
@@ -378,9 +447,7 @@ function angHapus(id) {
   });
 }
 
-// ─── SALIN BULAN LALU ─────────────────────────────────────────
-// Ambil semua anggaran dari bulan sebelumnya, insert ke bulan aktif
-// (skip akun yang sudah punya anggaran di bulan aktif)
+// ─── AUTO-CARRY-FORWARD BULAN BARU ─────────────────────────────
 // Auto-carry-forward kas_anggaran — dipanggil dari angLoad() SEBELUM fetch
 // data bulan aktif. Cuma nyalin kalau bulan aktif masih 100% kosong (belum
 // ada row kas_anggaran sama sekali) — gak dipanggil ulang begitu bulan itu
@@ -410,3 +477,41 @@ async function angAutoCarryForward(bulanAktif) {
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page === 'anggaran') setTimeout(angInit, 50);
 });
+
+// ─── HIDE-ON-SCROLL minicard (HP doang) ─────────────────────────────────
+// Pola SAMA persis kayak _kasScrollCollapseInit di kas.js — direplikasi di
+// sini (bukan dipanggil ulang dari kas.js) karena scope-nya beda container
+// (.content di sini, panel spesifik di sana) & CSS class-nya juga beda
+// (ang-metrics-collapsed vs kas-topbar-collapsed, biar independen/gak
+// nyenggol elemen kas.js). CUMA aktif kalau lebar viewport <=900px — dicek
+// tiap event scroll (bukan sekali di init) biar tetep bener kalau device
+// di-rotate landscape/portrait tanpa reload halaman.
+(function() {
+  function _angScrollCollapseInit() {
+    const content = document.querySelector('.content');
+    const wrap    = document.getElementById('ang-metrics-wrap');
+    if (!content || !wrap || content._angCollapseInited) return;
+    content._angCollapseInited = true;
+    let _lastY = 0;
+    content.addEventListener('scroll', function() {
+      if (!window.matchMedia('(max-width:900px)').matches) return; // desktop/laptop: skip, minicard tetep nampil
+      if (document.body.dataset.page !== 'anggaran') return;
+      const y = content.scrollTop;
+      if (y > 40 && y > _lastY) {
+        wrap.classList.add('ang-metrics-collapsed');
+      } else if (y < _lastY || y <= 40) {
+        wrap.classList.remove('ang-metrics-collapsed');
+      }
+      _lastY = y;
+    }, { passive: true });
+  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'anggaran') return;
+    setTimeout(function() {
+      const wrap = document.getElementById('ang-metrics-wrap');
+      if (wrap) wrap.classList.remove('ang-metrics-collapsed');
+      _angScrollCollapseInit();
+    }, 80);
+  });
+})();
+
