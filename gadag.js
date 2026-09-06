@@ -164,13 +164,19 @@ document.getElementById('page-gadag').innerHTML = `
      mode Mingguan maupun Bulanan (cuma label teksnya yg beda per mode,
      lihat gdgAngTogglePeriode). Teknik: conic-gradient buat cincinnya,
      ::before nutupin tengahnya jadi lubang donut (warna nyamain kertas
-     card biar nyatu), angka % nongol di atas lubang itu. */
+     card biar nyatu), angka % nongol di atas lubang itu.
+     --donut-track = warna "sisa" (bagian yang BELUM ketutup --donut-color).
+     Default abu-abu netral (--gdg-rule) buat semua donut SELAIN Income —
+     Income minicard override ini ke var(--danger) lewat gdgIncomeSetDonut,
+     biar konsepnya "merah penuh di awal, ijo (income) nutupin merah makin
+     deket/lewat target" — bukan ijo-vs-abu netral kayak donut lain. */
   .gdg-donut {
     --pct: 0;
     --donut-color: var(--ok);
+    --donut-track: var(--gdg-rule, rgba(38,34,32,.15));
     width: 38px; height: 38px; flex: none;
     border-radius: 50%;
-    background: conic-gradient(var(--donut-color) calc(var(--pct) * 1%), var(--gdg-rule, rgba(38,34,32,.15)) 0);
+    background: conic-gradient(var(--donut-color) calc(var(--pct) * 1%), var(--donut-track) 0);
     display: flex; align-items: center; justify-content: center;
     position: relative;
     transition: background .25s ease;
@@ -1875,17 +1881,24 @@ async function gdgWRenderWeek() {
   if (pendM) pendM.textContent = gdgWFmt(totalPend);
 
   // Donat Income — % Net Anggaran (target biaya minggu ini) yang udah
-  // ketutup pendapatan periode yang lagi dibrowse. Makin ijo makin aman
-  // (income >= target), makin merah berarti income masih jauh dari target.
+  // ketutup pendapatan periode yang lagi dibrowse. Per 7 Sep 2026: konsepnya
+  // dibalik atas permintaan user — dulu warna ARC yang keisi ganti-ganti
+  // (merah <50%, oranye 50-99%, ijo >=100%) dengan track abu-abu netral,
+  // jadi pas awal minggu (progress kecil) yang keliatan malah arc MERAH tipis
+  // di atas abu-abu — bukan "ijo dikit". Sekarang: arc yang keisi SELALU
+  // ijo (progress income, apa adanya berapa pun persennya), track/sisa-nya
+  // MERAH (var(--danger), diset di gdgIncomeSetDonut) — filosofinya "target
+  // belum tercapai = merah penuh di awal", makin banyak income masuk, makin
+  // banyak ijo nutupin merah, sampai abis/lewat target ijo penuh.
   const netAnggaranIncome = gdgAngNetTotalMingguan();
   if (netAnggaranIncome > 0) {
     const coverPct = Math.round((totalPend / netAnggaranIncome) * 100);
-    let coverColor = 'var(--danger)';
-    if (coverPct >= 100) coverColor = 'var(--ok)';
-    else if (coverPct >= 50) coverColor = 'var(--warn)';
-    gdgIncomeSetDonut(coverPct, coverColor, coverPct + '%');
+    gdgIncomeSetDonut(coverPct, 'var(--ok)', coverPct + '%');
   } else {
-    gdgIncomeSetDonut(totalPend > 0 ? 100 : 0, totalPend > 0 ? 'var(--ok)' : 'var(--ink3)', totalPend > 0 ? '100%' : '—');
+    // Belum ada Anggaran Mingguan sama sekali → gak ada "target" buat
+    // dibandingin, jadi track-nya abu-abu netral (bukan merah) biar gak
+    // kesannya "lagi ketinggalan target" padahal targetnya belum ada.
+    gdgIncomeSetDonut(totalPend > 0 ? 100 : 0, 'var(--ok)', totalPend > 0 ? '100%' : '—', 'var(--gdg-rule, rgba(38,34,32,.15))');
   }
 
   // Update Qty/Lsn metric — mendatar (flex row), bukan tumpuk <br> lagi
@@ -2134,13 +2147,17 @@ let _gdgAngPeriodeAktif = 'mingguan';
 // Income, dan Target (Overview). Ring-nya di-clamp 0-100 (biar visualnya masuk
 // akal), tapi teks tengahnya bisa dioverride buat kasus ekstrem (misal Sisa
 // bisa negatif/lebih dari 100%, ring cuma nunjukin proporsi kasarnya).
-function gdgDonutApply(donutId, txtId, pct, color, textOverride) {
+function gdgDonutApply(donutId, txtId, pct, color, textOverride, trackColor) {
   const donutEl = document.getElementById(donutId);
   const txtEl   = document.getElementById(txtId);
   const pctClamped = Math.max(0, Math.min(100, pct));
   if (donutEl) {
     donutEl.style.setProperty('--pct', pctClamped);
     donutEl.style.setProperty('--donut-color', color);
+    // trackColor cuma dipake Income (lihat gdgIncomeSetDonut) — donut lain
+    // (Cost/Target/Anggaran/Histpage) gak pernah ngirim ini, jadi otomatis
+    // balik ke default abu-abu (--gdg-rule) dari CSS .gdg-donut.
+    if (trackColor !== undefined) donutEl.style.setProperty('--donut-track', trackColor);
   }
   if (txtEl) txtEl.textContent = textOverride !== undefined ? textOverride : (Math.round(pct) + '%');
 }
@@ -2153,8 +2170,15 @@ function gdgTargetSetDonut(pct, color, textOverride) {
   gdgDonutApply('gdg-metric-target-donut', 'gdg-metric-target-donut-txt', pct, color, textOverride);
 }
 
-function gdgIncomeSetDonut(pct, color, textOverride) {
-  gdgDonutApply('gdg-income-donut', 'gdg-income-donut-txt', pct, color, textOverride);
+// Donut Income: beda konsep dari donut lain. Track/sisa-nya MERAH
+// (var(--danger)) by default — filosofinya "target belum tercapai = merah
+// penuh", terus hijau (income masuk) NUTUPIN merah itu makin deket/lewat
+// target. Donut Cost/Target/Anggaran/Histpage TETAP abu-abu (gak dipanggil
+// lewat sini, gak kena efek ini). trackColor bisa di-override (dipake pas
+// belum ada Anggaran sama sekali — gdgWRenderWeek kirim abu-abu netral,
+// soalnya "belum ada target" beda makna sama "target belum tercapai").
+function gdgIncomeSetDonut(pct, color, textOverride, trackColor) {
+  gdgDonutApply('gdg-income-donut', 'gdg-income-donut-txt', pct, color, textOverride, trackColor !== undefined ? trackColor : 'var(--danger)');
 }
 
 function gdgAngTogglePeriode() {
