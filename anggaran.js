@@ -169,6 +169,49 @@ document.getElementById('page-anggaran').innerHTML = `
   </div>
 </div>
 
+<!-- CARD: Anggaran Lainnya (7 Sep 2026) — akun yang di-set via "+ Anggaran"
+     TAPI bukan bagian Beban Operasional (misal Kewajiban kayak Hutang Bank,
+     atau sub_kelompok Beban lain). Dulu akun-akun ini kesave normal ke
+     kas_anggaran tapi gak pernah kerender di manapun karena tabel utama di
+     atas loop dari _angAkunBeban doang (Beban Operasional doang) — user
+     ngerasa "gak ke-save" padahal cuma invisible. Card ini nongol CUMA kalau
+     ada minimal 1 entry (angRender yang toggle display-nya), biar halaman
+     tetep bersih kalau semua anggaran emang Beban Operasional semua. Total
+     di card atas (ang-total-anggaran dst) SENGAJA tetep cuma ngitung Beban
+     Operasional aja (biar konsisten sama judul panel "Anggaran Beban") — 
+     card ini punya total sendiri di footer-nya. -->
+<div class="card" id="ang-lainnya-card" style="margin-top:14px;display:none">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-list-details"></i> Anggaran Lainnya (Non-Operasional)</span>
+    <span style="font-size:11px;color:var(--ink3);font-weight:400">Kewajiban / sub-kategori beban lain</span>
+  </div>
+  <div class="tbl-wrap" style="max-height:40vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Akun</th>
+          <th>Kategori</th>
+          <th style="text-align:right">Anggaran</th>
+          <th style="text-align:right">Realisasi</th>
+          <th style="text-align:right">Selisih</th>
+          <th style="text-align:right">%</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="ang-lainnya-tbody"></tbody>
+      <tfoot>
+        <tr style="font-weight:700;border-top:2px solid var(--ink3)">
+          <td colspan="2">Subtotal</td>
+          <td style="text-align:right" id="ang-lainnya-total-ang">—</td>
+          <td style="text-align:right" id="ang-lainnya-total-rea">—</td>
+          <td colspan="2"></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-anggaran" onclick="angOverlayClose(event)">
   <div class="modal" style="max-width:400px;width:100%;padding:16px">
@@ -319,6 +362,60 @@ function angRealisasi(akunKode) {
   });
   return total;
 }
+// ─── RENDER (baris tabel, dipakai bareng tabel utama & "Anggaran Lainnya") ──
+// Diekstrak dari angRender() (dulu cuma dipakai 1 tabel) — 7 Sep 2026, dipecah
+// biar tabel "Anggaran Lainnya" (akun di luar Beban Operasional) bisa pakai
+// bentuk baris yang identik tanpa duplikasi logic warna/format.
+function angRowHtml(akun, ang, kategoriLabel) {
+  const nomAng = ang ? (Number(ang.nominal) || 0) : 0;
+  const nomRea = angRealisasi(akun.kode);
+
+  const selisih = nomAng - nomRea;
+  const pct     = nomAng > 0 ? Math.round((nomRea / nomAng) * 100) : (nomRea > 0 ? 999 : 0);
+  const barW    = Math.min(pct, 100);
+  const barCls  = pct > 75  ? 'ang-danger' : pct >= 35 ? 'ang-warn' : 'ang-ok';
+  const selCol  = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
+  const pctCol  = pct > 75  ? 'var(--danger)' : pct >= 35 ? 'var(--warn)' : 'var(--ok)';
+
+  const angStr  = nomAng > 0
+    ? angFmt(nomAng)
+    : `<span style="color:var(--ink3);font-style:italic">Belum diset</span>`;
+  const reaStr  = nomRea > 0 ? angFmt(nomRea) : `<span style="color:var(--ink3)">—</span>`;
+  const selStr  = nomAng === 0 ? '—'
+    : `<span style="color:${selCol};font-weight:700">${selisih>=0?'+':''}${angFmt(selisih)}</span>`;
+  const pctStr  = nomAng === 0
+    ? (nomRea > 0 ? `<span style="color:var(--danger)">∞%</span>` : '—')
+    : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
+
+  const safeNama = (akun.nama||'').replace(/'/g,"\\'");
+
+  const html = `<tr>
+    <td>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div>
+          <div style="font-weight:700">${akun.nama||'—'}</div>
+          <div style="font-size:11px;color:var(--ink3);font-family:monospace">${akun.kode||''}</div>
+        </div>
+        ${nomAng > 0 ? `<span style="font-size:12px;font-weight:700;color:${pctCol};white-space:nowrap">${pct}%</span>` : ''}
+      </div>
+      ${nomAng > 0 ? `<div class="ang-bar-wrap" style="margin-top:5px"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : ''}
+    </td>
+    <td style="font-size:12px;color:var(--ink2)">${kategoriLabel||akun.sub_kelompok||'—'}</td>
+    <td style="text-align:right">${angStr}</td>
+    <td style="text-align:right">${reaStr}</td>
+    <td style="text-align:right">${selStr}</td>
+    <td style="text-align:right">${pctStr}</td>
+    <td>
+      <button class="btn btn-sm"
+        onclick="angShowEdit('${akun.id}','${safeNama}','${ang ? ang.id : ''}',${nomAng})"
+        title="Set Anggaran"><i class="ti ti-edit"></i></button>
+      ${ang ? `<button class="btn btn-sm btn-danger" onclick="angHapus('${ang.id}')" style="margin-left:4px" title="Hapus"><i class="ti ti-trash"></i></button>` : ''}
+    </td>
+  </tr>`;
+
+  return { html, nomAng, nomRea };
+}
+
 // ─── RENDER ───────────────────────────────────────────────────
 function angRender() {
   const tbody  = document.getElementById('ang-tbody');
@@ -328,65 +425,62 @@ function angRender() {
   if (!_angAkunBeban.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun beban. Tambah via Kas & Jurnal → Kelola Akun.</td></tr>';
     angUpdateMetrics(0, 0);
+    angRenderLainnya(angMap);
     return;
   }
 
   let totalAng = 0, totalRea = 0;
 
   const rows = _angAkunBeban.map(akun => {
-    const ang    = angMap[String(akun.id)];
-    const nomAng = ang ? (Number(ang.nominal) || 0) : 0;
-    const nomRea = angRealisasi(akun.kode);
-    totalAng += nomAng;
-    totalRea += nomRea;
-
-    const selisih = nomAng - nomRea;
-    const pct     = nomAng > 0 ? Math.round((nomRea / nomAng) * 100) : (nomRea > 0 ? 999 : 0);
-    const barW    = Math.min(pct, 100);
-    const barCls  = pct > 75  ? 'ang-danger' : pct >= 35 ? 'ang-warn' : 'ang-ok';
-    const selCol  = selisih >= 0 ? 'var(--ok)' : 'var(--danger)';
-    const pctCol  = pct > 75  ? 'var(--danger)' : pct >= 35 ? 'var(--warn)' : 'var(--ok)';
-
-    const angStr  = nomAng > 0
-      ? angFmt(nomAng)
-      : `<span style="color:var(--ink3);font-style:italic">Belum diset</span>`;
-    const reaStr  = nomRea > 0 ? angFmt(nomRea) : `<span style="color:var(--ink3)">—</span>`;
-    const selStr  = nomAng === 0 ? '—'
-      : `<span style="color:${selCol};font-weight:700">${selisih>=0?'+':''}${angFmt(selisih)}</span>`;
-    const pctStr  = nomAng === 0
-      ? (nomRea > 0 ? `<span style="color:var(--danger)">∞%</span>` : '—')
-      : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
-
-
-    const safeNama = (akun.nama||'').replace(/'/g,"\\'");
-
-    return `<tr>
-      <td>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div>
-            <div style="font-weight:700">${akun.nama||'—'}</div>
-            <div style="font-size:11px;color:var(--ink3);font-family:monospace">${akun.kode||''}</div>
-          </div>
-          ${nomAng > 0 ? `<span style="font-size:12px;font-weight:700;color:${pctCol};white-space:nowrap">${pct}%</span>` : ''}
-        </div>
-        ${nomAng > 0 ? `<div class="ang-bar-wrap" style="margin-top:5px"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : ''}
-      </td>
-      <td style="font-size:12px;color:var(--ink2)">${akun.sub_kelompok||'—'}</td>
-      <td style="text-align:right">${angStr}</td>
-      <td style="text-align:right">${reaStr}</td>
-      <td style="text-align:right">${selStr}</td>
-      <td style="text-align:right">${pctStr}</td>
-      <td>
-        <button class="btn btn-sm"
-          onclick="angShowEdit('${akun.id}','${safeNama}','${ang ? ang.id : ''}',${nomAng})"
-          title="Set Anggaran"><i class="ti ti-edit"></i></button>
-        ${ang ? `<button class="btn btn-sm btn-danger" onclick="angHapus('${ang.id}')" style="margin-left:4px" title="Hapus"><i class="ti ti-trash"></i></button>` : ''}
-      </td>
-    </tr>`;
+    const r = angRowHtml(akun, angMap[String(akun.id)]);
+    totalAng += r.nomAng;
+    totalRea += r.nomRea;
+    return r.html;
   });
 
   tbody.innerHTML = rows.join('');
   angUpdateMetrics(totalAng, totalRea);
+  angRenderLainnya(angMap);
+}
+
+// ─── RENDER "ANGGARAN LAINNYA" (akun di luar Beban Operasional) ─────────
+// Akun kandidatnya _angAkunAllBK (Beban+Kewajiban SEMUA sub_kelompok, sumber
+// yang sama dipakai picker "+ Anggaran") MINUS akun yang udah tampil di
+// tabel utama (_angAkunBeban). Cuma ditampilin kalau akun itu BENERAN punya
+// row kas_anggaran di bulan aktif (angMap) — bukan semua akun kandidat,
+// biar card ini gak numplek nampilin ratusan akun "Belum diset" yang emang
+// gak relevan buat panel Anggaran Beban ini.
+function angRenderLainnya(angMap) {
+  const card  = document.getElementById('ang-lainnya-card');
+  const tbody = document.getElementById('ang-lainnya-tbody');
+  if (!card || !tbody) return;
+
+  const bebanIds = new Set(_angAkunBeban.map(a => String(a.id)));
+  const lainnyaAkun = (_angAkunAllBK || []).filter(a =>
+    angMap[String(a.id)] && !bebanIds.has(String(a.id))
+  );
+
+  if (!lainnyaAkun.length) {
+    card.style.display = 'none';
+    tbody.innerHTML = '';
+    return;
+  }
+
+  let totalAng = 0, totalRea = 0;
+  const rows = lainnyaAkun.map(akun => {
+    const kategoriLabel = akun.kelompok === 'kewajiban'
+      ? ('Kewajiban' + (akun.sub_kelompok ? ' · ' + akun.sub_kelompok : ''))
+      : (akun.sub_kelompok || akun.kelompok || '—');
+    const r = angRowHtml(akun, angMap[String(akun.id)], kategoriLabel);
+    totalAng += r.nomAng;
+    totalRea += r.nomRea;
+    return r.html;
+  });
+
+  tbody.innerHTML = rows.join('');
+  document.getElementById('ang-lainnya-total-ang').textContent = angFmt(totalAng);
+  document.getElementById('ang-lainnya-total-rea').textContent = angFmt(totalRea);
+  card.style.display = '';
 }
 
 // ─── METRICS ──────────────────────────────────────────────────
