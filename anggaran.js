@@ -212,7 +212,7 @@ document.getElementById('page-anggaran').innerHTML = `
      toolbar ini tetep makan tempat. Digabung biar collapse-nya penuh kayak
      #kas-top-bar di Kas & Jurnal (collapse SEKALIGUS, bukan cuma metrics).
      Desktop gak kepengaruh — collapse cuma jalan kalau matchMedia ≤900px
-     match di _angScrollCollapseInit, style default (gak collapse) sama
+     match di _angInitCollapseGesture, style default (gak collapse) sama
      persis kayak sebelumnya buat layar besar. -->
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="angLoad()">
@@ -797,32 +797,63 @@ document.addEventListener('zenot:page', function(e) {
   if (e.detail.page === 'anggaran') setTimeout(angInit, 50);
 });
 
-// ─── HIDE-ON-SCROLL minicard (HP doang) ─────────────────────────────────
-// Pola SAMA persis kayak _kasScrollCollapseInit di kas.js. Listen-nya ke
-// #ang-tbl-wrap (BUKAN .content lagi — sejak fix layout flex full-height,
-// .content di-set overflow:hidden via app.js/gotoPage buat halaman
-// 'anggaran', jadi .content SAMA SEKALI GAK discroll lagi; yang scroll
-// sekarang cuma #ang-tbl-wrap sendiri di dalam tabel). Dulu masih listen
-// ke .content — makanya event scroll-nya gak pernah kepicu lagi abis fix
-// layout kemarin. CUMA aktif kalau lebar viewport <=900px — dicek tiap
-// event scroll (bukan sekali di init) biar tetep bener kalau device
-// di-rotate landscape/portrait tanpa reload halaman.
+// ─── GESTURE collapse/expand minicard (HP doang, 7 Sep 2026 — revisi ke-4) ──
+// GANTI TOTAL dari scroll-triggered collapse. Root cause gliter versi lama:
+// #ang-metrics-wrap collapse dipicu event 'scroll' di #ang-tbl-wrap — jadi
+// TIAP kali user gerak jari nge-scroll tabel, class ke-toggle & minicard
+// ikut animasi BARENGAN scroll native lagi jalan → 2 hal reflow bareng =
+// gliter, dan scroll tabel jadi kerasa "ketarik" ikut collapse padahal
+// user cuma mau liat data ke atas/bawah.
+//
+// Sekarang scroll #ang-tbl-wrap MURNI scroll data — sama sekali gak ada
+// listener 'scroll' lagi di sini, jadi liat data ke atas/bawah 100% aman,
+// gak nyentuh minicard sama sekali. Kontrol collapse/expand dipisah ke gesture:
+//   - COLLAPSE  : swipe ke ATAS di AREA MINICARD sendiri (#ang-metrics-wrap)
+//     — pakai initSwipeCollapse() yang sama persis kayak dipakai #kas-top-bar
+//     di kas.js (app.js baris ~749).
+//   - EXPAND lagi: begitu minicard collapse (tinggi 0), gak ada lagi area
+//     buat di-swipe langsung. Makanya expand dipicu SWIPE KE BAWAH 2X CEPAT
+//     berturut-turut di area TABEL (#ang-tbl-wrap) — sengaja butuh 2x +
+//     tiap swipe harus cepat (<250ms) & jarak min. 35px, biar gak ke-trigger
+//     gak sengaja pas user cuma scroll pelan ke atas kayak biasa.
 (function() {
-  function _angScrollCollapseInit() {
-    const scroller = document.getElementById('ang-tbl-wrap');
+  function _angInitCollapseGesture() {
     const wrap     = document.getElementById('ang-metrics-wrap');
-    if (!scroller || !wrap || scroller._angCollapseInited) return;
-    scroller._angCollapseInited = true;
-    let _lastY = 0;
-    scroller.addEventListener('scroll', function() {
-      if (!window.matchMedia('(max-width:900px)').matches) return; // desktop/laptop: skip, minicard tetep nampil
-      const y = scroller.scrollTop;
-      if (y > 40 && y > _lastY) {
-        wrap.classList.add('ang-metrics-collapsed');
-      } else if (y < _lastY || y <= 40) {
-        wrap.classList.remove('ang-metrics-collapsed');
+    const scroller = document.getElementById('ang-tbl-wrap');
+    if (!wrap || !scroller || wrap._angGestureInited) return;
+    wrap._angGestureInited = true;
+
+    // 1) Swipe UP di minicard → collapse (swipe DOWN di situ juga expand,
+    //    berguna selama minicard masih ada tinggi buat di-tap/swipe)
+    if (typeof initSwipeCollapse === 'function') {
+      initSwipeCollapse(wrap, wrap, 40, 'ang-metrics-collapsed');
+    }
+
+    // 2) Double-quick-swipe-DOWN di tabel → expand minicard lagi
+    let _tY = 0, _tT = 0, _lastQuickTs = 0;
+    scroller.addEventListener('touchstart', function(e) {
+      if (!window.matchMedia('(max-width:900px)').matches) return;
+      if (!wrap.classList.contains('ang-metrics-collapsed')) return; // gak perlu kalau minicard udah kebuka
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+      _tY = e.touches[0].clientY;
+      _tT = Date.now();
+    }, { passive: true });
+    scroller.addEventListener('touchend', function(e) {
+      if (!window.matchMedia('(max-width:900px)').matches) return;
+      if (!wrap.classList.contains('ang-metrics-collapsed')) return;
+      if (!_tT) return;
+      const dy = e.changedTouches[0].clientY - _tY;
+      const dt = Date.now() - _tT;
+      _tT = 0;
+      if (dy > 35 && dt < 250) { // swipe turun & cepat
+        const now = Date.now();
+        if (now - _lastQuickTs < 500) {
+          wrap.classList.remove('ang-metrics-collapsed');
+          _lastQuickTs = 0;
+        } else {
+          _lastQuickTs = now;
+        }
       }
-      _lastY = y;
     }, { passive: true });
   }
   document.addEventListener('zenot:page', function(e) {
@@ -830,7 +861,7 @@ document.addEventListener('zenot:page', function(e) {
     setTimeout(function() {
       const wrap = document.getElementById('ang-metrics-wrap');
       if (wrap) wrap.classList.remove('ang-metrics-collapsed');
-      _angScrollCollapseInit();
+      _angInitCollapseGesture();
     }, 80);
   });
 })();
