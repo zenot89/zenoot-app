@@ -118,6 +118,33 @@ document.getElementById('page-anggaran').innerHTML = `
     letter-spacing: .04em; text-transform: uppercase; color: var(--ink2);
     padding: 7px 10px; border-top: 2px solid var(--ink3);
   }
+
+  /* Scrollbar halus tabel Anggaran Beban (7 Sep 2026) — dulu polos gak ada
+     style sama sekali jadi browser render scrollbar default (tebal/gelap
+     di Chrome desktop). Disamain ke pola scrollbar tipis app-wide yang
+     sama kayak .kas-akun-list/#ang-akun-sheet-list. Berlaku desktop &
+     mobile (murni CSS, gak ubah layout). */
+  #ang-tbl-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  #ang-tbl-wrap::-webkit-scrollbar-track { background: transparent; }
+  #ang-tbl-wrap::-webkit-scrollbar-thumb { background: var(--ovl-0_15,rgba(0,0,0,.15)); border-radius: 3px; }
+  #ang-tbl-wrap { scrollbar-width: thin; scrollbar-color: var(--ovl-0_15,rgba(0,0,0,.15)) transparent; }
+
+  /* ── MOBILE ONLY (≤900px, breakpoint standar app — RULES.md §5.7):
+     ringkas tabel jadi 2 kolom doang (Akun Beban + bar progres, Anggaran)
+     biar gak perlu scroll ke kiri-kanan lagi di HP. Kolom lain (Kategori,
+     Realisasi, Selisih, %, Aksi) disembunyikan — Aksi diganti tap/long-press
+     di baris (pola SAMA kayak "Long-press buat edit" yang udah dipakai di
+     Hutang Barang, lihat RULES.md §8), BUKAN dihapus fungsinya. Desktop
+     (>900px) SAMA SEKALI gak disentuh — tetap 7 kolom + tombol Aksi biasa. */
+  @media (max-width: 900px) {
+    #ang-tbl-wrap .ang-col-kategori,
+    #ang-tbl-wrap .ang-col-realisasi,
+    #ang-tbl-wrap .ang-col-selisih,
+    #ang-tbl-wrap .ang-col-pct,
+    #ang-tbl-wrap .ang-col-aksi { display: none !important; }
+    #ang-tbl-wrap .ang-data-row { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    #ang-tbl-wrap .ang-data-row.ang-row-pressing { background: var(--cream2); opacity: .7; }
+  }
 </style>
 
 <div id="ang-metrics-wrap">
@@ -143,8 +170,14 @@ document.getElementById('page-anggaran').innerHTML = `
     <div class="m-delta">dari total anggaran</div>
   </div>
 </div>
-</div>
 
+<!-- Toolbar Refresh/Bulan digabung ke dalam #ang-metrics-wrap (7 Sep 2026)
+     — dulu di LUAR wrap jadi cuma minicard yang collapse pas discroll di HP,
+     toolbar ini tetep makan tempat. Digabung biar collapse-nya penuh kayak
+     #kas-top-bar di Kas & Jurnal (collapse SEKALIGUS, bukan cuma metrics).
+     Desktop gak kepengaruh — collapse cuma jalan kalau matchMedia ≤900px
+     match di _angScrollCollapseInit, style default (gak collapse) sama
+     persis kayak sebelumnya buat layar besar. -->
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
   <button class="btn btn-sm" onclick="angLoad()">
     <i class="ti ti-refresh"></i> Refresh
@@ -156,6 +189,7 @@ document.getElementById('page-anggaran').innerHTML = `
       onchange="angOnBulanChange()">
     <button class="btn btn-sm" onclick="angResetBulan()">Bulan Ini</button>
   </div>
+</div>
 </div>
 
 <div class="card">
@@ -173,17 +207,17 @@ document.getElementById('page-anggaran').innerHTML = `
       </button>
     </div>
   </div>
-  <div class="tbl-wrap" style="max-height:65vh;overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
+  <div class="tbl-wrap" id="ang-tbl-wrap" style="overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
     <table class="tbl">
       <thead>
         <tr>
-          <th>Akun Beban</th>
-          <th>Kategori</th>
+          <th class="ang-col-akun">Akun Beban</th>
+          <th class="ang-col-kategori">Kategori</th>
           <th style="text-align:right">Anggaran</th>
-          <th style="text-align:right">Realisasi</th>
-          <th style="text-align:right">Selisih</th>
-          <th style="text-align:right">%</th>
-          <th>Aksi</th>
+          <th class="ang-col-realisasi" style="text-align:right">Realisasi</th>
+          <th class="ang-col-selisih" style="text-align:right">Selisih</th>
+          <th class="ang-col-pct" style="text-align:right">%</th>
+          <th class="ang-col-aksi">Aksi</th>
         </tr>
       </thead>
       <tbody id="ang-tbody">
@@ -369,9 +403,15 @@ function angRowHtml(akun, ang, kategoriLabel) {
     : `<span style="color:${pctCol};font-weight:700">${pct}%</span>`;
 
   const safeNama = (akun.nama||'').replace(/'/g,"\\'");
+  const namaAttr = (akun.nama||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
 
-  const html = `<tr>
-    <td>
+  // data-* di <tr> (7 Sep 2026) — dipakai handler tap/long-press mobile
+  // (_angRowTapInit) buat manggil angShowEdit/angHapus tanpa tombol Aksi
+  // yang disembunyikan di layar ≤900px (lihat CSS .ang-col-aksi).
+  const html = `<tr class="ang-data-row"
+      data-akun-id="${akun.id}" data-akun-nama="${namaAttr}"
+      data-ang-id="${ang ? ang.id : ''}" data-nom-ang="${nomAng}">
+    <td class="ang-col-akun">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <div>
           <div style="font-weight:700">${akun.nama||'—'}</div>
@@ -381,12 +421,12 @@ function angRowHtml(akun, ang, kategoriLabel) {
       </div>
       ${nomAng > 0 ? `<div class="ang-bar-wrap" style="margin-top:5px"><div class="ang-bar-fill ${barCls}" style="width:${barW}%"></div></div>` : ''}
     </td>
-    <td style="font-size:12px;color:var(--ink2)">${kategoriLabel||akun.sub_kelompok||'—'}</td>
+    <td class="ang-col-kategori" style="font-size:12px;color:var(--ink2)">${kategoriLabel||akun.sub_kelompok||'—'}</td>
     <td style="text-align:right">${angStr}</td>
-    <td style="text-align:right">${reaStr}</td>
-    <td style="text-align:right">${selStr}</td>
-    <td style="text-align:right">${pctStr}</td>
-    <td>
+    <td class="ang-col-realisasi" style="text-align:right">${reaStr}</td>
+    <td class="ang-col-selisih" style="text-align:right">${selStr}</td>
+    <td class="ang-col-pct" style="text-align:right">${pctStr}</td>
+    <td class="ang-col-aksi">
       <button class="btn btn-sm"
         onclick="angShowEdit('${akun.id}','${safeNama}','${ang ? ang.id : ''}',${nomAng})"
         title="Set Anggaran"><i class="ti ti-edit"></i></button>
@@ -756,5 +796,70 @@ document.addEventListener('zenot:page', function(e) {
       _angScrollCollapseInit();
     }, 80);
   });
+})();
+
+// ─── TAP/LONG-PRESS baris tabel (HP doang, ≤900px) ───────────────────────
+// Ganti tombol Aksi yang disembunyikan di layar sempit (CSS .ang-col-aksi,
+// lihat blok <style> di atas) — pola SAMA kayak "Long-press buat edit" yang
+// udah dipakai di modul lain (RULES.md §8, mis. Hutang Barang), biar konsisten
+// satu app. Tap singkat = angShowEdit (buka form, isi ulang kalau udah ada
+// nominal). Tahan ~500ms = angHapus (masih lewat confirmDelete bawaannya,
+// jadi aman dari ke-trigger gak sengaja). 1 listener delegated di #ang-tbody
+// (bukan per-baris) — otomatis kepasang lagi tiap angRender() ganti innerHTML
+// karena yang di-listen elemen tbody-nya sendiri, bukan baris di dalamnya.
+(function() {
+  const LONG_PRESS_MS  = 500;
+  const MOVE_CANCEL_PX = 10;
+  let pressTimer = null, pressRow = null, startX = 0, startY = 0, longFired = false;
+
+  function clearPress() {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    if (pressRow) pressRow.classList.remove('ang-row-pressing');
+    pressRow = null;
+  }
+  function onStart(e) {
+    if (!window.matchMedia('(max-width:900px)').matches) return; // desktop: skip total, tombol Aksi tetep dipake
+    const row = e.target.closest('.ang-data-row');
+    if (!row) return;
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX; startY = pt.clientY;
+    longFired = false;
+    pressRow = row;
+    row.classList.add('ang-row-pressing');
+    pressTimer = setTimeout(function() {
+      longFired = true;
+      row.classList.remove('ang-row-pressing');
+      const angId = row.dataset.angId;
+      if (angId) angHapus(angId); // kosong (belum diset) = gak ada apa-apa buat dihapus
+    }, LONG_PRESS_MS);
+  }
+  function onMove(e) {
+    if (!pressRow) return;
+    const pt = e.touches ? e.touches[0] : e;
+    if (Math.abs(pt.clientX - startX) > MOVE_CANCEL_PX || Math.abs(pt.clientY - startY) > MOVE_CANCEL_PX) clearPress();
+  }
+  function onEnd() {
+    if (!pressRow) { clearPress(); return; }
+    const row = pressRow;
+    clearPress();
+    if (longFired) return; // udah ditangani di onStart timeout
+    const akunId = row.dataset.akunId;
+    if (!akunId) return;
+    angShowEdit(akunId, row.dataset.akunNama, row.dataset.angId, Number(row.dataset.nomAng) || 0);
+  }
+  function initTapHandler() {
+    const tbody = document.getElementById('ang-tbody');
+    if (!tbody || tbody._angTapInited) return;
+    tbody._angTapInited = true;
+    tbody.addEventListener('touchstart', onStart, { passive: true });
+    tbody.addEventListener('touchmove',  onMove,  { passive: true });
+    tbody.addEventListener('touchend',   onEnd);
+    tbody.addEventListener('touchcancel', clearPress);
+  }
+  document.addEventListener('zenot:page', function(e) {
+    if (e.detail.page !== 'anggaran') return;
+    setTimeout(initTapHandler, 80);
+  });
+  setTimeout(initTapHandler, 300);
 })();
 

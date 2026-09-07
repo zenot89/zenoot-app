@@ -3150,6 +3150,64 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 
 /* ═══════════════════════════════════════════════════════════
+   FULL-HEIGHT FLEX — ANGGARAN BEBAN (7 Sep 2026)
+   Root cause: #page-anggaran dulu cuma block biasa (default .page.active),
+   jadi kalau total tinggi (metrics+toolbar+card+table) > viewport, .content
+   ikut scroll SATU HALAMAN UTUH — tabel yang harusnya scroll-box independen
+   (#ang-tbl-wrap) keliatan "collapse"/ikut geser bareng metrics pas
+   discroll, padahal itu cuma efek scroll halaman biasa (bukan bug nesting —
+   #ang-metrics-wrap & .card memang 2 elemen terpisah, sama-sama anak
+   langsung #page-anggaran). Disamain ke pola #page-kas: metrics+toolbar
+   (flex-shrink:0, pinned di atas) + card+table ngisi SISA ruang penuh
+   (flex:1) dengan scroll SENDIRI di dalam #ang-tbl-wrap — .content gak
+   perlu scroll sama sekali lagi, tabel jadi scroll-box beneran.
+   chain: .content → #page-anggaran → .card → #ang-tbl-wrap
+   Cuma pola layout (flex chain) — TIDAK mengubah tampilan/kolom desktop
+   maupun mobile yang udah diatur terpisah di anggaran.js.
+   ═══════════════════════════════════════════════════════════ */
+#page-anggaran.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
+#page-anggaran {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+}
+#page-anggaran > #ang-metrics-wrap {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#page-anggaran > .card {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+#ang-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+}
+@supports (-webkit-touch-callout: none) {
+  /* Pastikan #page-anggaran mengisi tinggi penuh eksplisit di iOS —
+     sama alasannya kayak fix #page-kas di atas (iOS Safari gak resolve
+     flex:1 tanpa height eksplisit). */
+  #page-anggaran.active {
+    height: 100%;
+    min-height: 0;
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
    iOS SAFARI — FINAL HEIGHT FIX
    Masalah: iOS Safari tidak resolve flex:1 tanpa height eksplisit.
    Solusi: set .main ke -webkit-fill-available (tinggi viewport
