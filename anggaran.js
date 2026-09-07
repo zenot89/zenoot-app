@@ -40,6 +40,7 @@ document.getElementById('page-anggaran').innerHTML = `
     transition: max-height 0.25s ease, opacity 0.2s ease;
     max-height: 500px;
     opacity: 1;
+    will-change: max-height; /* hint compositor — kurangin jank pas resize bareng scroll #ang-tbl-wrap di siblingnya */
   }
   #ang-metrics-wrap.ang-metrics-collapsed {
     max-height: 0 !important;
@@ -221,7 +222,7 @@ document.getElementById('page-anggaran').innerHTML = `
       </button>
     </div>
   </div>
-  <div class="tbl-wrap" id="ang-tbl-wrap" style="overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth">
+  <div class="tbl-wrap" id="ang-tbl-wrap" style="overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;will-change:scroll-position">
     <table class="tbl">
       <thead>
         <tr>
