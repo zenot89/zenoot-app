@@ -408,8 +408,49 @@ async function simpanProduk() {
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
   try {
+    // Cascade rename (7 Sep 2026) — root cause "Lainnya" di dashboard:
+    // dulu edit SKU/katalog/boss di sini CUMA update tabel produk, histori
+    // penjualan & snapshot stok yang masih rujuk nama/boss LAMA jadi yatim
+    // (gak match lagi pas dashboard join by SKU) → nyasar ke bucket "Lainnya"
+    // walau sebenernya data aslinya ADA. Sekarang kalau ada yang berubah,
+    // ikut di-propagate ke jurnal_penjualan.sku (kalau SKU-nya di-rename)
+    // dan stok.sku_variasi/katalog/boss (snapshot di stok.js, biar gak basi).
+    let old = null;
+    if (id) old = _produkData.find(d => d.id == id);
+
     if (id) { await dbUpdate('produk', id, data); }
     else    { await dbInsert('produk', data); }
+
+    if (id && old) {
+      const oldSkuU = (old.sku_variasi || '').toUpperCase();
+      const newSkuU = data.sku_variasi.toUpperCase();
+      const skuBerubah     = oldSkuU && oldSkuU !== newSkuU;
+      const katalogBerubah = (old.katalog || '') !== data.katalog;
+      const bossBerubah    = (old.boss    || '') !== data.boss;
+
+      if (skuBerubah || katalogBerubah || bossBerubah) {
+        try {
+          // Histori penjualan cuma nyimpen field "sku" (bukan katalog/boss),
+          // jadi cascade cuma perlu kalau SKU-nya sendiri yang berubah.
+          if (skuBerubah) {
+            await dbUpdateWhere('jurnal_penjualan', 'sku=eq.' + encodeURIComponent(oldSkuU), { sku: newSkuU });
+          }
+          // stok.js nyimpen snapshot sku_variasi+katalog+boss — cascade
+          // kalau salah satu dari ketiganya berubah.
+          if (skuBerubah || katalogBerubah || bossBerubah) {
+            await dbUpdateWhere('stok', 'sku_variasi=eq.' + encodeURIComponent(oldSkuU), {
+              sku_variasi: newSkuU, katalog: data.katalog, boss: data.boss
+            });
+          }
+        } catch (cascadeErr) {
+          // Produk-nya sendiri udah kesimpen; cascade gagal jangan nge-block
+          // flow utama, cukup kasih tau biar user sadar histori mungkin
+          // masih nyisa yang belum ke-sync.
+          alert('SKU tersimpan, tapi gagal sync histori lama: ' + cascadeErr.message + '\nCoba edit ulang kalau masih ada data yang nyasar ke "Lainnya".');
+        }
+      }
+    }
+
     cancelFormProduk();
     loadProduk();
   } catch(err) { alert('Gagal simpan: ' + err.message); }

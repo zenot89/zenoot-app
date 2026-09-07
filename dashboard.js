@@ -1153,16 +1153,29 @@ function _renderTopSku(jpData) {
   }).join('');
 }
 
+// _dashNormSku (7 Sep 2026): normalisasi spasi/underscore jadi setara,
+// dipakai sebagai FALLBACK match kalau exact-uppercase-match gagal — pola
+// sama kayak _norm() di _jpResolveSku (jurnal-penjualan.js). Defense-in-depth
+// buat kasus "Lainnya" yang murni gara-gara beda format spasi/underscore
+// (bukan produk yang bener2 gak ketemu). Root cause utama (rename SKU gak
+// cascade) udah difix di simpanProduk(); ini jaring pengaman tambahan.
+function _dashNormSku(s) {
+  return (s || '').toUpperCase().replace(/[\s_]+/g, '_').replace(/__+/g, '_');
+}
+
 // ─── BOSS CHART ──────────────────────────────────────────────
 function _renderBoss(jpData, stokData) {
-  const skuBossMap = {};
+  const skuBossMap = {}, skuBossMapNorm = {};
   stokData.forEach(r => {
-    if (r.sku_variasi && r.boss)
+    if (r.sku_variasi && r.boss) {
       skuBossMap[(r.sku_variasi||'').toUpperCase()] = r.boss;
+      skuBossMapNorm[_dashNormSku(r.sku_variasi)] = r.boss;
+    }
   });
   const bossMap = {};
   jpData.forEach(r => {
-    const boss = skuBossMap[(r.sku||'').toUpperCase()] || 'Lainnya';
+    const skuU = (r.sku||'').toUpperCase();
+    const boss = skuBossMap[skuU] || skuBossMapNorm[_dashNormSku(skuU)] || 'Lainnya';
     if (!bossMap[boss]) bossMap[boss] = {qty:0,omset:0};
     bossMap[boss].qty   += (r.qty||0);
     bossMap[boss].omset += (Number(r.total)||0);
@@ -1344,15 +1357,18 @@ function _renderKatalog(jpData, stokData) {
   if (!canvas) return;
 
   // Map sku → katalog
-  const skuKatalogMap = {};
+  const skuKatalogMap = {}, skuKatalogMapNorm = {};
   stokData.forEach(r => {
-    if (r.sku_variasi && r.katalog)
+    if (r.sku_variasi && r.katalog) {
       skuKatalogMap[(r.sku_variasi||'').toUpperCase()] = r.katalog;
+      skuKatalogMapNorm[_dashNormSku(r.sku_variasi)] = r.katalog;
+    }
   });
 
   const katMap = {};
   jpData.forEach(r => {
-    const kat = skuKatalogMap[(r.sku||'').toUpperCase()] || 'Lainnya';
+    const skuU = (r.sku||'').toUpperCase();
+    const kat  = skuKatalogMap[skuU] || skuKatalogMapNorm[_dashNormSku(skuU)] || 'Lainnya';
     if (!katMap[kat]) katMap[kat] = {qty:0,omset:0};
     katMap[kat].qty   += (Number(r.qty)||0);
     katMap[kat].omset += (Number(r.total)||0);

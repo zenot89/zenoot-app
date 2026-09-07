@@ -55,6 +55,24 @@ async function dbUpdate(table, id, payload) {
   return data;
 }
 
+// dbUpdateWhere (7 Sep 2026): PATCH massal berdasarkan filter PostgREST
+// bebas (bukan cuma by id) — misal 'sku=eq.LAMA' biar bisa update SEMUA
+// baris yang match sekaligus dalam 1 request, gak perlu loop dbUpdate
+// per-id. Dipakai buat cascade-update histori (jurnal_penjualan/stok) pas
+// SKU/katalog/boss di-rename dari halaman Produk — root cause "Lainnya"
+// di dashboard: rename produk dulu cuma nyentuh tabel produk doang, histori
+// lama jadi yatim (gak match lagi ke produk terkini).
+async function dbUpdateWhere(table, filterQuery, payload) {
+  const res  = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + filterQuery, {
+    method:  'PATCH',
+    headers: _headers({ 'Prefer': 'return=representation' }),
+    body:    JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.hint || 'UPDATE ' + table + ' (where) error ' + res.status);
+  return data;
+}
+
 async function dbDelete(table, id) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?id=eq.' + id, {
     method:  'DELETE',
