@@ -19,6 +19,74 @@ document.getElementById('page-produk').innerHTML = `
     .produk-stat-val       { font-size:18px; font-weight:700; color:var(--ink); }
     .produk-stat-sub       { font-size:11px; color:var(--ink3); margin-top:2px; }
     @media(max-width:600px){ #produk-stat-cards { grid-template-columns:repeat(2,1fr); } }
+
+    /* ── PICKER "Boss" (7 Sep 2026) — dulu <input type=text> bebas ketik,
+       root cause bug "Lainnya" di dashboard & "Re Stock" kosong: nama
+       supplier di sini gampang beda ejaan/spasi sama nama di tabel
+       hutang_supplier (Kelola Supplier), jadi gagal match diam-diam.
+       Sekarang wajib PILIH dari daftar hutang_supplier (single source of
+       truth), bukan ketik bebas lagi — kalau supplier belum ada, ada opsi
+       "+ Tambah Supplier Baru" yang insert ke hutang_supplier juga.
+       Bottom sheet-nya pola PERSIS #stok-sku-sheet di stok.js. ── */
+    .produk-boss-trigger {
+      width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between;
+      gap:8px; font-family:var(--f); font-size:15px; padding:8px 10px;
+      border:2px solid var(--ink); background:var(--cream); color:var(--ink);
+      cursor:pointer; border-radius:0;
+    }
+    #produk-boss-sheet-overlay {
+      display: none; position: fixed; inset: 0; z-index: 698;
+      background: rgba(0,0,0,.55);
+    }
+    #produk-boss-sheet-overlay.open { display: block; }
+    #produk-boss-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 699;
+      background: var(--cream2); border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+      max-height: 75vh; display: none; flex-direction: column; overflow: hidden;
+    }
+    #produk-boss-sheet.open { display: flex; transform: translateY(0); }
+    #produk-boss-sheet-handle {
+      width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
+      margin: 12px auto 4px; flex: none;
+    }
+    #produk-boss-sheet-title {
+      text-align: center; font-size: 16px; font-weight: 700; color: var(--ink);
+      padding: 8px 16px 12px; letter-spacing: -0.2px; flex: none;
+    }
+    #produk-boss-sheet-search-wrap { flex: none; padding: 0 16px 10px; }
+    #produk-boss-sheet-search {
+      width: 100%; box-sizing: border-box; background: var(--ovl-0_06);
+      border: 1px solid var(--ovl-0_12); border-radius: 10px; padding: 11px 14px;
+      font-size: 15px; font-family: var(--f); color: var(--ink); outline: none;
+      -webkit-appearance: none;
+    }
+    #produk-boss-sheet-search::placeholder { color: var(--ink3); }
+    #produk-boss-sheet-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
+    #produk-boss-sheet-list {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain; padding: 4px 10px 12px;
+    }
+    #produk-boss-sheet-list .jp-sheet-item {
+      font-size: 15px; padding: 12px 10px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      color: var(--ink2);
+    }
+    #produk-boss-sheet-list .jp-sheet-item:active { background: var(--ovl-0_08); color: var(--ink); }
+    #produk-boss-sheet-list .jp-sheet-empty {
+      padding: 28px 12px; text-align: center; color: var(--ink3);
+      font-size: 13px; font-style: italic;
+    }
+    @media (min-width: 768px) {
+      #produk-boss-sheet {
+        left: 50%; right: auto; bottom: 50%; transform: translate(-50%, 50%) scale(.96);
+        width: 100%; max-width: 380px; border-radius: 16px; max-height: 65vh; opacity: 0;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+      #produk-boss-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
+    }
   </style>
 
   <!-- TOOLBAR NORMAL -->
@@ -129,10 +197,12 @@ document.addEventListener('zenot:page', function(e) {
 });
 
 let _produkData = [];
+let _produkSupplierList = []; // dari hutang_supplier — single source of truth buat picker Boss
 
 async function loadProduk() {
   const tbody = document.getElementById('produk-tbody');
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  _produkLoadSupplierList(); // fire-and-forget, gak perlu nunggu buat render tabel produk
   try {
     const data = await dbGet('produk');
     // Supabase kadang return object error bukan array
@@ -340,6 +410,11 @@ async function editKatalog(kat, hpp, boss) {
   document.getElementById('kat-edit-nama').textContent = kat;
   idrSet('kat-hpp', hpp);
   document.getElementById('kat-boss').value = boss;
+  const lbl = document.getElementById('kat-boss-label');
+  if (lbl) {
+    if (boss) { lbl.textContent = boss; lbl.style.color = 'var(--ink)'; }
+    else      { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  }
   showModal('modal-edit-katalog');
 }
 
@@ -352,6 +427,18 @@ async function simpanEditKatalog() {
   try {
     for (const r of rows) {
       await dbUpdate('produk', r.id, { hpp: hpp, boss: boss });
+      // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
+      // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
+      // ini, snapshot stok tetep basi/yatim. Sekarang ikut di-cascade juga,
+      // pake helper yang sama (_produkCascadeRename). SKU & katalog gak
+      // berubah di modal ini (cuma HPP/Boss), jadi cukup panggil dgn sku
+      // lama=baru — cascade helper otomatis skip kalau gak ada yg berubah.
+      try {
+        const skuU = (r.sku_variasi || '').toUpperCase();
+        await _produkCascadeRename(skuU, skuU, r.katalog, boss, r.katalog, r.boss);
+      } catch (cascadeErr) {
+        console.warn('Cascade gagal buat', r.sku_variasi, ':', cascadeErr.message);
+      }
     }
     hideModal('modal-edit-katalog');
     loadProduk();
@@ -375,6 +462,8 @@ function showFormProduk() {
   document.getElementById('prd-sku').value = '';
   idrSet('prd-hpp', 0);
   document.getElementById('prd-boss').value = '';
+  const lbl = document.getElementById('prd-boss-label');
+  if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
   showModal('modal-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
   sketchForm('form-produk');
@@ -393,9 +482,39 @@ async function editProduk(id) {
   document.getElementById('prd-sku').value     = r.sku_variasi || '';
   idrSet('prd-hpp', r.hpp || 0);
   document.getElementById('prd-boss').value     = r.boss || '';
+  const lbl = document.getElementById('prd-boss-label');
+  if (lbl) {
+    if (r.boss) { lbl.textContent = r.boss; lbl.style.color = 'var(--ink)'; }
+    else        { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  }
   showModal('modal-produk');
   sketchForm('form-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
+}
+
+// Cascade rename (7 Sep 2026) — root cause "Lainnya" di dashboard: dulu
+// edit SKU/katalog/boss CUMA update tabel produk, histori penjualan &
+// snapshot stok yang masih rujuk nama/boss LAMA jadi yatim (gak match lagi
+// pas dashboard join by SKU) → nyasar ke bucket "Lainnya" walau sebenernya
+// data aslinya ADA. Helper ini di-reuse di simpanProduk() (edit 1 SKU) DAN
+// simpanEditKatalog() (edit massal 1 katalog) — biar dua-duanya sama-sama
+// ke-cascade, bukan cuma yang edit-1-SKU doang.
+async function _produkCascadeRename(oldSkuU, newSkuU, newKatalog, newBoss, oldKatalog, oldBoss) {
+  const skuBerubah     = oldSkuU && oldSkuU !== newSkuU;
+  const katalogBerubah = (oldKatalog || '') !== newKatalog;
+  const bossBerubah    = (oldBoss    || '') !== newBoss;
+  if (!skuBerubah && !katalogBerubah && !bossBerubah) return;
+
+  // Histori penjualan cuma nyimpen field "sku" (bukan katalog/boss),
+  // jadi cascade cuma perlu kalau SKU-nya sendiri yang berubah.
+  if (skuBerubah) {
+    await dbUpdateWhere('jurnal_penjualan', 'sku=eq.' + encodeURIComponent(oldSkuU), { sku: newSkuU });
+  }
+  // stok.js nyimpen snapshot sku_variasi+katalog+boss — cascade kalau
+  // salah satu dari ketiganya berubah.
+  await dbUpdateWhere('stok', 'sku_variasi=eq.' + encodeURIComponent(oldSkuU), {
+    sku_variasi: newSkuU, katalog: newKatalog, boss: newBoss
+  });
 }
 
 async function simpanProduk() {
@@ -408,13 +527,6 @@ async function simpanProduk() {
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
   try {
-    // Cascade rename (7 Sep 2026) — root cause "Lainnya" di dashboard:
-    // dulu edit SKU/katalog/boss di sini CUMA update tabel produk, histori
-    // penjualan & snapshot stok yang masih rujuk nama/boss LAMA jadi yatim
-    // (gak match lagi pas dashboard join by SKU) → nyasar ke bucket "Lainnya"
-    // walau sebenernya data aslinya ADA. Sekarang kalau ada yang berubah,
-    // ikut di-propagate ke jurnal_penjualan.sku (kalau SKU-nya di-rename)
-    // dan stok.sku_variasi/katalog/boss (snapshot di stok.js, biar gak basi).
     let old = null;
     if (id) old = _produkData.find(d => d.id == id);
 
@@ -422,32 +534,16 @@ async function simpanProduk() {
     else    { await dbInsert('produk', data); }
 
     if (id && old) {
-      const oldSkuU = (old.sku_variasi || '').toUpperCase();
-      const newSkuU = data.sku_variasi.toUpperCase();
-      const skuBerubah     = oldSkuU && oldSkuU !== newSkuU;
-      const katalogBerubah = (old.katalog || '') !== data.katalog;
-      const bossBerubah    = (old.boss    || '') !== data.boss;
-
-      if (skuBerubah || katalogBerubah || bossBerubah) {
-        try {
-          // Histori penjualan cuma nyimpen field "sku" (bukan katalog/boss),
-          // jadi cascade cuma perlu kalau SKU-nya sendiri yang berubah.
-          if (skuBerubah) {
-            await dbUpdateWhere('jurnal_penjualan', 'sku=eq.' + encodeURIComponent(oldSkuU), { sku: newSkuU });
-          }
-          // stok.js nyimpen snapshot sku_variasi+katalog+boss — cascade
-          // kalau salah satu dari ketiganya berubah.
-          if (skuBerubah || katalogBerubah || bossBerubah) {
-            await dbUpdateWhere('stok', 'sku_variasi=eq.' + encodeURIComponent(oldSkuU), {
-              sku_variasi: newSkuU, katalog: data.katalog, boss: data.boss
-            });
-          }
-        } catch (cascadeErr) {
-          // Produk-nya sendiri udah kesimpen; cascade gagal jangan nge-block
-          // flow utama, cukup kasih tau biar user sadar histori mungkin
-          // masih nyisa yang belum ke-sync.
-          alert('SKU tersimpan, tapi gagal sync histori lama: ' + cascadeErr.message + '\nCoba edit ulang kalau masih ada data yang nyasar ke "Lainnya".');
-        }
+      try {
+        await _produkCascadeRename(
+          (old.sku_variasi || '').toUpperCase(), data.sku_variasi.toUpperCase(),
+          data.katalog, data.boss, old.katalog, old.boss
+        );
+      } catch (cascadeErr) {
+        // Produk-nya sendiri udah kesimpen; cascade gagal jangan nge-block
+        // flow utama, cukup kasih tau biar user sadar histori mungkin
+        // masih nyisa yang belum ke-sync.
+        alert('SKU tersimpan, tapi gagal sync histori lama: ' + cascadeErr.message + '\nCoba edit ulang kalau masih ada data yang nyasar ke "Lainnya".');
       }
     }
 
@@ -589,6 +685,8 @@ function produkBatchSupplier() {
   if (!ids.length) return;
   document.getElementById('batch-sup-count').textContent = ids.length + ' SKU terpilih';
   document.getElementById('batch-sup-input').value = '';
+  const lbl = document.getElementById('batch-sup-label');
+  if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
   showModal('modal-batch-sup');
 }
 
@@ -635,7 +733,11 @@ document.body.insertAdjacentHTML('beforeend', `
     <p id="batch-sup-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
     <div class="form-group" style="margin-bottom:14px">
       <label>Nama Supplier Baru</label>
-      <input type="text" id="batch-sup-input" placeholder="Contoh: HENDRA" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;text-transform:uppercase">
+      <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('batch-sup-input','batch-sup-label')">
+        <span id="batch-sup-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+        <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
+      </button>
+      <input type="hidden" id="batch-sup-input">
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-sup')">Batal</button>
@@ -673,7 +775,14 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">Perubahan akan diterapkan ke <b>semua varian</b> dalam katalog ini.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="kat-hpp" placeholder="0"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Boss</label><input type="text" id="kat-boss" placeholder="mis: ALAN"></div>
+      <div class="form-group" style="flex:1 1 120px">
+        <label>Boss</label>
+        <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('kat-boss','kat-boss-label')">
+          <span id="kat-boss-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+          <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
+        </button>
+        <input type="hidden" id="kat-boss">
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -696,7 +805,14 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="prd-hpp" placeholder="0"></div>
-      <div class="form-group" style="flex:1 1 120px"><label>Boss</label><input type="text" id="prd-boss" placeholder="mis: ALAN"></div>
+      <div class="form-group" style="flex:1 1 120px">
+        <label>Boss</label>
+        <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('prd-boss','prd-boss-label')">
+          <span id="prd-boss-label" style="color:var(--ink3)">— Pilih Supplier —</span>
+          <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
+        </button>
+        <input type="hidden" id="prd-boss">
+      </div>
     </div>
 
     <div class="modal-actions">
@@ -705,6 +821,101 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     </div>
   </div>
 </div>`);
+
+// ── SHEET: Pilih Boss/Supplier (7 Sep 2026) ────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<div id="produk-boss-sheet-overlay" onclick="if(event.target===this) produkBossSheetClose()"></div>
+<div id="produk-boss-sheet">
+  <div id="produk-boss-sheet-handle"></div>
+  <div id="produk-boss-sheet-title">Pilih Supplier</div>
+  <div id="produk-boss-sheet-search-wrap">
+    <input type="text" id="produk-boss-sheet-search" placeholder="Cari atau ketik nama baru..." autocomplete="off"
+      oninput="produkBossSheetFilter(this.value)">
+  </div>
+  <div id="produk-boss-sheet-list"></div>
+</div>`);
+
+// ── LOGIC: Sheet Pilih Boss/Supplier (7 Sep 2026) ──────────────
+// Single source of truth = tabel hutang_supplier (dikelola dari tab Kelola
+// Supplier di Hutang Barang). Dipakai bareng buat 3 titik: form Tambah/Edit
+// SKU (prd-boss), Edit Katalog massal (kat-boss), Edit Supplier massal
+// (batch-sup-input) — makanya target input/label-nya parameter, bukan hardcode.
+let _produkBossSheetTarget = { inputId: '', labelId: '' };
+
+async function _produkLoadSupplierList() {
+  try {
+    _produkSupplierList = await dbGet('hutang_supplier', '&order=nama.asc');
+    if (!Array.isArray(_produkSupplierList)) _produkSupplierList = [];
+  } catch(e) {
+    console.warn('Gagal load daftar supplier:', e.message);
+    _produkSupplierList = [];
+  }
+}
+
+function produkOpenBossSheet(inputId, labelId) {
+  _produkBossSheetTarget = { inputId: inputId, labelId: labelId };
+  const searchEl = document.getElementById('produk-boss-sheet-search');
+  if (searchEl) searchEl.value = '';
+  _produkBossSheetRender('');
+  document.getElementById('produk-boss-sheet-overlay').classList.add('open');
+  document.getElementById('produk-boss-sheet').classList.add('open');
+  setTimeout(function(){ if (searchEl) searchEl.focus(); }, 200);
+}
+
+function produkBossSheetClose() {
+  document.getElementById('produk-boss-sheet-overlay').classList.remove('open');
+  document.getElementById('produk-boss-sheet').classList.remove('open');
+}
+
+function produkBossSheetFilter(q) { _produkBossSheetRender(q); }
+
+function _produkBossSheetRender(q) {
+  const listEl = document.getElementById('produk-boss-sheet-list');
+  if (!listEl) return;
+  const query    = (q || '').trim().toUpperCase();
+  const filtered = _produkSupplierList.filter(s => (s.nama||'').toUpperCase().includes(query));
+
+  let html = filtered.map(function(s) {
+    const nama = (s.nama || '').replace(/'/g, "\\'");
+    return '<div class="jp-sheet-item" onclick="produkBossSheetSelect(\'' + nama + '\')">' +
+      '<span>' + (s.nama||'') + '</span>' +
+      (s.is_reseller ? '<span style="font-size:10px;color:var(--ink3);border:1px solid var(--ink4);border-radius:4px;padding:1px 5px">PO</span>' : '') +
+    '</div>';
+  }).join('');
+
+  // Kalau query gak persis match supplier manapun yg udah ada, kasih opsi
+  // tambah baru — biar user gak kepentok kalau supplier-nya emang belum ada.
+  if (query && !_produkSupplierList.some(s => (s.nama||'').toUpperCase() === query)) {
+    html += '<div class="jp-sheet-item" style="color:var(--ok);font-weight:700" onclick="produkBossSheetTambahBaru(\'' + query.replace(/'/g,"\\'") + '\')">' +
+      '<i class="ti ti-plus" style="margin-right:2px"></i> Tambah supplier "' + query + '"</div>';
+  }
+
+  if (!html) {
+    html = '<div class="jp-sheet-empty">Belum ada supplier. Ketik nama buat nambah baru.</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function produkBossSheetSelect(nama) {
+  const inputEl = document.getElementById(_produkBossSheetTarget.inputId);
+  const labelEl = document.getElementById(_produkBossSheetTarget.labelId);
+  if (inputEl) inputEl.value = nama;
+  if (labelEl) { labelEl.textContent = nama; labelEl.style.color = 'var(--ink)'; }
+  produkBossSheetClose();
+}
+
+async function produkBossSheetTambahBaru(nama) {
+  try {
+    const created = await dbInsert('hutang_supplier', { nama: nama.toUpperCase() });
+    const row = Array.isArray(created) ? created[0] : created;
+    _produkSupplierList.push(row);
+    _produkSupplierList.sort(function(a,b){ return (a.nama||'').localeCompare(b.nama||''); });
+    produkBossSheetSelect(row.nama);
+  } catch(e) {
+    alert('Gagal tambah supplier baru: ' + e.message);
+  }
+}
+
 // ─── SWIPE GESTURE — collapse ops-switcher di landscape touch ────────
 (function() {
   var _mq = window.matchMedia('(hover: none) and (pointer: coarse) and (orientation: landscape)');
