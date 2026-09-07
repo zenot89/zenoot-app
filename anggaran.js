@@ -31,20 +31,29 @@ document.getElementById('page-anggaran').innerHTML = `
      Gadag) sama sekali gak kesenggol. */
   #ang-filter-bulan { color-scheme: light; }
 
-  /* Hide-on-scroll minicard (7 Sep 2026) — pola SAMA persis kayak
-     .kas-topbar-collapsed di kas.js (_kasScrollCollapseInit), biar konsisten
-     satu app. CUMA aktif di HP (dicek via matchMedia di JS-nya, bukan di
-     CSS, biar gampang di-skip di desktop/laptop tanpa nulis breakpoint 2x). */
+  /* Hide-on-scroll minicard (7 Sep 2026) — GANTI dari max-height transition
+     (7 Sep 2026, revisi ke-2) ke transform+opacity. Root cause gliter:
+     max-height yang di-transition (0.25s) bikin browser RE-LAYOUT
+     #ang-tbl-wrap (sibling flex:1-nya) TIAP FRAME animasi — barengan jari
+     user lagi drag-scroll di situ juga, 2 hal ngubah layout bareng di
+     elemen yang sama = keliatan gliter/gak steady. transform+opacity
+     MURNI compositor (gak nyentuh layout sama sekali), jadi gak ada
+     alasan buat reflow #ang-tbl-wrap selama animasinya jalan. max-height
+     tetep dipakai buat collapse (bukan display:none, biar transisinya ada),
+     TAPI GAK di-transition lagi (instan) — jadi reflow-nya cuma kejadian
+     1x pas class toggle, bukan terus-menerus tiap frame kayak sebelumnya. */
   #ang-metrics-wrap {
     overflow: hidden;
-    transition: max-height 0.25s ease, opacity 0.2s ease;
-    max-height: 500px;
+    transform-origin: top;
+    transition: opacity 0.2s ease, transform 0.2s ease;
     opacity: 1;
-    will-change: max-height; /* hint compositor — kurangin jank pas resize bareng scroll #ang-tbl-wrap di siblingnya */
+    transform: scaleY(1);
+    will-change: transform, opacity;
   }
   #ang-metrics-wrap.ang-metrics-collapsed {
-    max-height: 0 !important;
+    max-height: 0 !important; /* instan, sengaja GAK ada di transition list di atas */
     opacity: 0;
+    transform: scaleY(0.9);
     pointer-events: none;
   }
 
@@ -142,6 +151,14 @@ document.getElementById('page-anggaran').innerHTML = `
     z-index: 3;
     background: var(--cream3);
     box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.15);
+    /* Anti-flicker sticky di mobile Chrome/Safari (known issue: sticky +
+       box-shadow suka nge-flicker/gliter pas discroll) — paksa layer
+       compositing sendiri biar browser gak berulang kali repaint bareng
+       konten di belakangnya. */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 
   /* ── MOBILE ONLY (≤900px, breakpoint standar app — RULES.md §5.7):
@@ -159,6 +176,14 @@ document.getElementById('page-anggaran').innerHTML = `
     #ang-tbl-wrap .ang-col-aksi { display: none !important; }
     #ang-tbl-wrap .ang-data-row { cursor: pointer; -webkit-tap-highlight-color: transparent; }
     #ang-tbl-wrap .ang-data-row.ang-row-pressing { background: var(--cream2); opacity: .7; }
+
+    /* Tombol "Jurnal Harian" & "+ Anggaran" dipisah ke ujung kiri-kanan
+       (7 Sep 2026) — dulu ke-cluster nempel kiri pas wrap ke baris sendiri
+       (title-nya kepanjangan buat 1 baris di layar sempit). width:100% +
+       space-between biar 2 tombol itu ngisi lebar penuh barisnya.
+       Desktop TIDAK disentuh — di layar lebar semuanya masih muat 1 baris
+       bareng judul, gap 8px biasa kayak sebelumnya. */
+    .ang-title-btns { width: 100%; justify-content: space-between !important; }
   }
 </style>
 
@@ -211,7 +236,7 @@ document.getElementById('page-anggaran').innerHTML = `
   <div class="card-title"
     style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-chart-pie"></i> Anggaran Beban</span>
-    <div style="display:inline-flex;align-items:center;gap:8px">
+    <div class="ang-title-btns" style="display:inline-flex;align-items:center;gap:8px">
       <button class="btn btn-sm" onclick="gotoPage('kas',null)"
         style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
         <i class="ti ti-arrow-left"></i> Jurnal Harian
