@@ -97,6 +97,18 @@ document.getElementById('page-kas').innerHTML = `
   .kas-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; }
   @media(max-width:520px){ .kas-summary{ grid-template-columns:1fr 1fr !important; } }
 
+  /* ── Sticky header "Cash Jurnal" (7 Sep 2026): di HP judul & 2 tombol
+     (Anggaran/Tambah Transaksi) sejajar 1 baris jadi kelihatan sesak.
+     Pindahin judul ke baris sendiri di atas, 2 tombol turun ke baris
+     bawahnya isi penuh kiri-kanan (space-between) — pola SAMA persis
+     kayak .ang-title-btns di anggaran.js (RULES.md konsistensi UI).
+     Desktop (>900px) SAMA SEKALI gak disentuh — tetap sejajar 1 baris. */
+  @media (max-width: 900px) {
+    #kas-sticky-header .card-title { flex-wrap: wrap; row-gap: 8px; }
+    #kas-sticky-header .card-title > span:first-child { width: 100%; }
+    #kas-sticky-header .kas-title-btns { width: 100%; justify-content: space-between !important; }
+  }
+
   /* ── Portrait: sembunyikan kolom verbose, tampilkan kolom ringkas ── */
   @media(max-width:600px) and (orientation:portrait){
     #kas-jurnal-tbl-wrap .kas-col-ref,
@@ -157,7 +169,7 @@ document.getElementById('page-kas').innerHTML = `
     <div id="kas-sticky-header">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-left:0;padding-right:0;width:100%">
         <span><i class="ti ti-list"></i> Cash Jurnal</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div class="kas-title-btns" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <button class="btn btn-sm" onclick="gotoPage('anggaran',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-chart-pie"></i> Anggaran</button>
           <button class="btn btn-sm btn-primary" onclick="kasShowForm()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><i class="ti ti-plus"></i> Tambah Transaksi</button>
         </div>

@@ -19,17 +19,53 @@ document.getElementById('page-anggaran').innerHTML = `
   .ang-ok     { background:var(--ok); }
   .ang-warn   { background:var(--warn); }
   .ang-danger { background:var(--danger); }
-  /* Root cause teks "September 2026" ngga kontras di HP (7 Sep 2026): rule
-     GLOBAL "input[type=month]{color-scheme:dark}" di style.css (@media
-     max-width:900px) SENGAJA maksa dark buat halaman yg emang bertema gelap
-     (misal Gadag). Tapi halaman Anggaran (Kas) ini bertema TERANG (var(--cream)
-     terang), jadi browser render teks native month-picker asumsi background
-     GELAP padahal kita paksa background terang lewat CSS — hasilnya teks jadi
-     abu-abu pudar nyaris nyatu warna sama backgroundnya. Fix di-scope CUMA ke
-     #ang-filter-bulan (ID selector menang lawan aturan global type-selector),
-     supaya halaman lain yang mungkin masih butuh color-scheme:dark (misal di
-     Gadag) sama sekali gak kesenggol. */
+  /* Fix kontras "September 2026" di atas (7 Sep 2026) SEKARANG MOOT: input
+     native #ang-filter-bulan udah di-hidden total (revisi ke-2 hari yang sama,
+     diganti pill dropdown #ang-bulan-trigger di bawah) jadi gak pernah keliatan
+     lagi. Rule color-scheme:light dipertahanin apa adanya (harmless, nempel ke
+     elemen hidden) — sejarah root cause-nya tetep dicatat kalau suatu saat
+     input-nya perlu ditampilin lagi. */
   #ang-filter-bulan { color-scheme: light; }
+
+  /* Konsolidasi "Bulan: <input>" + tombol "Bulan Ini" jadi 1 pill dropdown
+     (7 Sep 2026, revisi ke-2) — user: "jangan ada kesan 2 tombol untuk sort
+     bulan, buat 1 tombol aja". Pola PERSIS #kas-bulan-trigger/#kas-bulan-dropdown
+     di kas.js (dropdown di-portal ke document.body biar gak clip sama card),
+     CUMA namespace ang-* biar independen. List isi 12 bulan terakhir (bulan
+     berjalan otomatis di urutan teratas), jadi fungsi "balik ke bulan ini"
+     dari tombol lama otomatis kepenuhi tanpa perlu tombol terpisah lagi. */
+  .ang-btn-pill {
+    display:flex; align-items:center; gap:6px;
+    padding:7px 13px; border-radius:20px;
+    font-family:var(--f); font-size:13px; font-weight:600;
+    cursor:pointer; border:2px solid var(--ink); background:var(--cream);
+    color:var(--ink);
+  }
+  .ang-btn-pill:hover { background:var(--cream2); }
+  #ang-bulan-dropdown {
+    position:fixed;
+    background:var(--cream2); border:1px solid var(--ink3);
+    border-radius:14px; min-width:200px; padding:6px;
+    z-index:99999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.3);
+  }
+  #ang-bulan-dropdown.open { display:block; }
+  #ang-bulan-dropdown .dd-section {
+    font-size:10px; font-weight:700; color:var(--ink3);
+    text-transform:uppercase; letter-spacing:.07em; padding:5px 10px 3px;
+  }
+  #ang-bulan-dropdown .dd-list { max-height:220px; overflow-y:auto; }
+  #ang-bulan-dropdown .dd-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-weight:500; color:var(--ink2);
+    cursor:pointer; border:none; background:none;
+    width:100%; text-align:left; font-family:var(--f);
+    white-space:nowrap;
+  }
+  #ang-bulan-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #ang-bulan-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #ang-bulan-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
 
   /* Hide-on-scroll minicard (7 Sep 2026, revisi ke-3) — BALIK ke pola
      max-height transition PERSIS kayak #kas-top-bar di kas.js (style.css),
@@ -218,13 +254,14 @@ document.getElementById('page-anggaran').innerHTML = `
   <button class="btn btn-sm" onclick="angLoad()">
     <i class="ti ti-refresh"></i> Refresh
   </button>
-  <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <label style="font-size:12px;color:var(--ink2)">Bulan:</label>
-    <input type="month" id="ang-filter-bulan"
-      style="font-family:var(--f);font-size:12px;padding:4px 8px;border:2px solid var(--ink);background:var(--cream)"
-      onchange="angOnBulanChange()">
-    <button class="btn btn-sm" onclick="angResetBulan()">Bulan Ini</button>
+  <div style="margin-left:auto;position:relative" id="ang-bulan-wrap">
+    <button class="ang-btn-pill" id="ang-bulan-trigger" onclick="angToggleBulanDD()">
+      <i class="ti ti-calendar"></i>
+      <span id="ang-bulan-label">—</span>
+      <i class="ti ti-chevron-down" id="ang-bulan-arr" style="font-size:12px;margin-left:2px;transition:transform .2s"></i>
+    </button>
   </div>
+  <input type="month" id="ang-filter-bulan" style="display:none" onchange="angOnBulanChange()">
 </div>
 </div>
 
@@ -341,21 +378,105 @@ function angInit() {
   const b   = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   _angBulanAktif = b;
   document.getElementById('ang-filter-bulan').value = b;
+  _angUpdateBulanLabel();
   angLoad();
 }
 
 function angOnBulanChange() {
   _angBulanAktif = document.getElementById('ang-filter-bulan').value || '';
+  _angUpdateBulanLabel();
   angLoad();
 }
 
+// DEAD CODE (7 Sep 2026, revisi ke-2): dulu dipanggil tombol "Bulan Ini"
+// yang sekarang DIHAPUS (diganti pill dropdown #ang-bulan-trigger — lihat
+// _angEnsureBulanDD di bawah, bulan berjalan otomatis di urutan teratas list
+// jadi fungsinya udah kepenuhi dari situ). Dipertahankan apa adanya, minim
+// blast radius, kalau suatu saat perlu reset-cepat-ke-bulan-ini lagi.
 function angResetBulan() {
   const now = new Date();
   const b   = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   _angBulanAktif = b;
   document.getElementById('ang-filter-bulan').value = b;
+  _angUpdateBulanLabel();
   angLoad();
 }
+
+// ─── PILL DROPDOWN BULAN (7 Sep 2026, revisi ke-2) ─────────────
+// Pola PERSIS kasToggleBulanDD/kasSetBulan/_kasEnsureBulanDD di kas.js,
+// namespace ang-* biar independen. Beda satu hal: gak ada item "Semua
+// periode" (Anggaran selalu butuh 1 bulan spesifik buat filter, beda
+// sama Cash Jurnal yang boleh nampilin semua periode sekaligus).
+function _angUpdateBulanLabel() {
+  const val = (document.getElementById('ang-filter-bulan') || {}).value || '';
+  const lbl = document.getElementById('ang-bulan-label');
+  if (lbl && val) {
+    const d = new Date(val + '-01');
+    lbl.textContent = d.toLocaleDateString('id-ID', {month:'short', year:'numeric'});
+  }
+}
+
+function _angEnsureBulanDD() {
+  if (document.getElementById('ang-bulan-dropdown')) return;
+  const dd = document.createElement('div');
+  dd.id = 'ang-bulan-dropdown';
+  const curVal = (document.getElementById('ang-filter-bulan') || {}).value || '';
+  let html = '<div class="dd-section">Pilih Bulan</div><div class="dd-list">';
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d   = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const lbl = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+    html += '<button class="dd-item' + (curVal === val ? ' active' : '') + '" data-bulan="'+val+'" onclick="angSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
+  }
+  html += '</div>';
+  dd.innerHTML = html;
+  document.body.appendChild(dd);
+}
+
+function angToggleBulanDD() {
+  _angEnsureBulanDD();
+  const dd  = document.getElementById('ang-bulan-dropdown');
+  const btn = document.getElementById('ang-bulan-trigger');
+  if (!dd || !btn) return;
+  const isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    const rect = btn.getBoundingClientRect();
+    dd.style.top   = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    dd.style.left  = 'auto';
+  }
+  dd.classList.toggle('open', !isOpen);
+  const arr = document.getElementById('ang-bulan-arr');
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function angSetBulan(val) {
+  const inp = document.getElementById('ang-filter-bulan');
+  if (inp) inp.value = val;
+  _angUpdateBulanLabel();
+  _angBulanAktif = val;
+  angLoad();
+  const dd = document.getElementById('ang-bulan-dropdown');
+  if (dd) {
+    dd.querySelectorAll('.dd-item').forEach(function(el) {
+      el.classList.toggle('active', el.dataset.bulan === val);
+    });
+    dd.classList.remove('open');
+  }
+  const arr = document.getElementById('ang-bulan-arr');
+  if (arr) arr.style.transform = '';
+}
+
+// Tutup dropdown bulan Anggaran kalau klik di luar (pola sama kayak kas.js)
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#ang-bulan-wrap') && !e.target.closest('#ang-bulan-dropdown')) {
+    const dd = document.getElementById('ang-bulan-dropdown');
+    if (dd) dd.classList.remove('open');
+    const arr = document.getElementById('ang-bulan-arr');
+    if (arr) arr.style.transform = '';
+  }
+});
 
 // ─── LOAD ─────────────────────────────────────────────────────
 // _angJurnalAkunIdMap: map dari akun_debit_id (di jurnal) → kode akun
@@ -752,6 +873,9 @@ async function angSimpan() {
     angCloseModal();
     _angBulanAktif = bulan;
     document.getElementById('ang-filter-bulan').value = bulan;
+    _angUpdateBulanLabel();
+    const _angOldDD = document.getElementById('ang-bulan-dropdown');
+    if (_angOldDD) _angOldDD.remove(); // biar dropdown regenerate fresh, active-item ngikutin bulan baru
     angLoad();
   } catch(e) {
     alert('Gagal simpan: ' + e.message);
