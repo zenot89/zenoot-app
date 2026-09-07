@@ -129,6 +129,20 @@ document.getElementById('page-anggaran').innerHTML = `
   #ang-tbl-wrap::-webkit-scrollbar-thumb { background: var(--ovl-0_15,rgba(0,0,0,.15)); border-radius: 3px; }
   #ang-tbl-wrap { scrollbar-width: thin; scrollbar-color: var(--ovl-0_15,rgba(0,0,0,.15)) transparent; }
 
+  /* Sticky thead (7 Sep 2026) — dulu gak di-set sticky sama sekali, beda
+     sama tabel Kas & Jurnal (#kas-jurnal-tbl-wrap .tbl th) yang emang udah
+     sticky. Jadinya waktu tabel Anggaran dijadiin scroll-box sendiri
+     (#ang-tbl-wrap), header "Akun Beban / Anggaran" dll ikut kescroll ke
+     atas kayak baris biasa alih-alih nempel di atas pas discroll. */
+  #ang-tbl-wrap .tbl th {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--cream3);
+    box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.15);
+  }
+
   /* ── MOBILE ONLY (≤900px, breakpoint standar app — RULES.md §5.7):
      ringkas tabel jadi 2 kolom doang (Akun Beban + bar progres, Anggaran)
      biar gak perlu scroll ke kiri-kanan lagi di HP. Kolom lain (Kategori,
@@ -762,24 +776,25 @@ document.addEventListener('zenot:page', function(e) {
 });
 
 // ─── HIDE-ON-SCROLL minicard (HP doang) ─────────────────────────────────
-// Pola SAMA persis kayak _kasScrollCollapseInit di kas.js — direplikasi di
-// sini (bukan dipanggil ulang dari kas.js) karena scope-nya beda container
-// (.content di sini, panel spesifik di sana) & CSS class-nya juga beda
-// (ang-metrics-collapsed vs kas-topbar-collapsed, biar independen/gak
-// nyenggol elemen kas.js). CUMA aktif kalau lebar viewport <=900px — dicek
-// tiap event scroll (bukan sekali di init) biar tetep bener kalau device
+// Pola SAMA persis kayak _kasScrollCollapseInit di kas.js. Listen-nya ke
+// #ang-tbl-wrap (BUKAN .content lagi — sejak fix layout flex full-height,
+// .content di-set overflow:hidden via app.js/gotoPage buat halaman
+// 'anggaran', jadi .content SAMA SEKALI GAK discroll lagi; yang scroll
+// sekarang cuma #ang-tbl-wrap sendiri di dalam tabel). Dulu masih listen
+// ke .content — makanya event scroll-nya gak pernah kepicu lagi abis fix
+// layout kemarin. CUMA aktif kalau lebar viewport <=900px — dicek tiap
+// event scroll (bukan sekali di init) biar tetep bener kalau device
 // di-rotate landscape/portrait tanpa reload halaman.
 (function() {
   function _angScrollCollapseInit() {
-    const content = document.querySelector('.content');
-    const wrap    = document.getElementById('ang-metrics-wrap');
-    if (!content || !wrap || content._angCollapseInited) return;
-    content._angCollapseInited = true;
+    const scroller = document.getElementById('ang-tbl-wrap');
+    const wrap     = document.getElementById('ang-metrics-wrap');
+    if (!scroller || !wrap || scroller._angCollapseInited) return;
+    scroller._angCollapseInited = true;
     let _lastY = 0;
-    content.addEventListener('scroll', function() {
+    scroller.addEventListener('scroll', function() {
       if (!window.matchMedia('(max-width:900px)').matches) return; // desktop/laptop: skip, minicard tetep nampil
-      if (document.body.dataset.page !== 'anggaran') return;
-      const y = content.scrollTop;
+      const y = scroller.scrollTop;
       if (y > 40 && y > _lastY) {
         wrap.classList.add('ang-metrics-collapsed');
       } else if (y < _lastY || y <= 40) {
