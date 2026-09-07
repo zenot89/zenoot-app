@@ -1901,7 +1901,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-restock,
 #page-produk,
 #page-price-list,
-#page-kas {
+#page-kas,
+#page-anggaran {
   padding: 8px;
   gap: 6px;
 }
