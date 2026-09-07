@@ -1481,7 +1481,7 @@ function _renderBeban(bebanData, omsetBln) {
   // Data box: hanya rows detail, tanpa total row
   el.innerHTML = rows.map(r =>
     '<div class="beban-row">' +
-      '<span style="font-size:13px">' + r.nama + '</span>' +
+      '<span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
         (r.persen>0 ? '<span style="font-size:11px;color:var(--ink3)">'+r.persen+'%</span>' : '') +
         '<span style="font-size:13px;font-weight:700;color:var(--danger)">' + _fmtRp(r.nominal) + '</span>' +
@@ -1545,7 +1545,7 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   // Data box: hanya rows detail, tanpa total row
   el.innerHTML = rows.map(([nama, val]) =>
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ovl-0_07);font-size:15px">' +
-      '<span style="color:var(--ink2)">' + nama + '</span>' +
+      '<span style="color:var(--ink2);font-weight:700">' + nama + '</span>' +
       '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
     '</div>'
   ).join('');

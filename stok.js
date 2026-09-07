@@ -13,13 +13,22 @@ function _stokVelocity(sales7, sales30, sales90) {
   return 'zombie';
 }
 
-// Ranking buat sort kolom Status: Fast(4) → Slow(3) → Dead(2) → Zombie(1) → Habis(0)
-// (angka gede duluan pas dir='desc', sesuai urutan tab status yg udah ada).
-// Habis (sisa<=0) nge-override velocity, sama kayak logika tab filter.
+// Ranking buat sort kolom Status (7 Sep 2026 — fix): dulu SEMUA "Habis"
+// disamain rank 0 (paling bawah), padahal komentar di atas (baris 8) udah
+// jelas bilang "Habis: urgent jika Fast, ignore jika Dead/Zombie" — kodenya
+// kontradiksi sama dokumentasinya sendiri. Root cause: rank Habis gak
+// mempertimbangkan velocity asalnya sama sekali.
+// Urutan baru (angka gede duluan pas dir='desc'):
+//   Fast(6) → Habis🔥 dari Fast(5) → Habis merah dari Slow(4) → Slow(3)
+//   → Dead(2) → Zombie(1) → Habis pudar dari Dead/Zombie(0, tetep "ignore")
 function _stokStatusRank(r) {
-  if ((r.sisa || 0) <= 0) return 0;
   var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
-  if (vel === 'fast')   return 4;
+  if ((r.sisa || 0) <= 0) {
+    if (vel === 'fast') return 5; // Habis 🔥 — barusan laris, urgent restock
+    if (vel === 'slow') return 4; // Habis merah — masih ada histori penjualan
+    return 0;                     // Habis pudar (dead/zombie) — ignore
+  }
+  if (vel === 'fast')   return 6;
   if (vel === 'slow')   return 3;
   if (vel === 'dead')   return 2;
   return 1; // zombie
