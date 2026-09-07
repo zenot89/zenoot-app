@@ -31,29 +31,25 @@ document.getElementById('page-anggaran').innerHTML = `
      Gadag) sama sekali gak kesenggol. */
   #ang-filter-bulan { color-scheme: light; }
 
-  /* Hide-on-scroll minicard (7 Sep 2026) — GANTI dari max-height transition
-     (7 Sep 2026, revisi ke-2) ke transform+opacity. Root cause gliter:
-     max-height yang di-transition (0.25s) bikin browser RE-LAYOUT
-     #ang-tbl-wrap (sibling flex:1-nya) TIAP FRAME animasi — barengan jari
-     user lagi drag-scroll di situ juga, 2 hal ngubah layout bareng di
-     elemen yang sama = keliatan gliter/gak steady. transform+opacity
-     MURNI compositor (gak nyentuh layout sama sekali), jadi gak ada
-     alasan buat reflow #ang-tbl-wrap selama animasinya jalan. max-height
-     tetep dipakai buat collapse (bukan display:none, biar transisinya ada),
-     TAPI GAK di-transition lagi (instan) — jadi reflow-nya cuma kejadian
-     1x pas class toggle, bukan terus-menerus tiap frame kayak sebelumnya. */
+  /* Hide-on-scroll minicard (7 Sep 2026, revisi ke-3) — BALIK ke pola
+     max-height transition PERSIS kayak #kas-top-bar di kas.js (style.css),
+     atas permintaan user: "gua mau persis sama kas, dia smooth". Root
+     cause versi transform+scaleY (revisi ke-2) kerasa gak enak: box-nya
+     collapse INSTAN (max-height:0 dipaksa gak di-transition) sementara
+     visualnya doang yang fade 0.2s — jadi #ang-tbl-wrap di bawahnya
+     kesentak naik duluan, animasi fade nyusul belakangan, gak nyambung.
+     Sekarang max-height-nya SENDIRI yang di-transition (0.25s ease, sama
+     kayak Kas), jadi collapse-nya keliatan sebagai 1 gerakan geser
+     nutup yang halus, bukan snap+fade kepisah. */
   #ang-metrics-wrap {
     overflow: hidden;
-    transform-origin: top;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 500px;
     opacity: 1;
-    transform: scaleY(1);
-    will-change: transform, opacity;
   }
   #ang-metrics-wrap.ang-metrics-collapsed {
-    max-height: 0 !important; /* instan, sengaja GAK ada di transition list di atas */
+    max-height: 0;
     opacity: 0;
-    transform: scaleY(0.9);
     pointer-events: none;
   }
 
