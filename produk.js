@@ -87,6 +87,64 @@ document.getElementById('page-produk').innerHTML = `
       }
       #produk-boss-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
     }
+
+    /* Sheet "Sumber Harga Supplier" (7 Sep 2026) — CSS identik #produk-boss-sheet,
+       cuma ID beda karena isinya beda (hutang_barang, bukan hutang_supplier)
+       dan butuh independen biar bisa dibuka dari dalam sheet lain kalau perlu. */
+    #produk-hb-sheet-overlay {
+      display: none; position: fixed; inset: 0; z-index: 698;
+      background: rgba(0,0,0,.55);
+    }
+    #produk-hb-sheet-overlay.open { display: block; }
+    #produk-hb-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 699;
+      background: var(--cream2); border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+      max-height: 75vh; display: none; flex-direction: column; overflow: hidden;
+    }
+    #produk-hb-sheet.open { display: flex; transform: translateY(0); }
+    #produk-hb-sheet-handle {
+      width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
+      margin: 12px auto 4px; flex: none;
+    }
+    #produk-hb-sheet-title {
+      text-align: center; font-size: 16px; font-weight: 700; color: var(--ink);
+      padding: 8px 16px 12px; letter-spacing: -0.2px; flex: none;
+    }
+    #produk-hb-sheet-search-wrap { flex: none; padding: 0 16px 10px; }
+    #produk-hb-sheet-search {
+      width: 100%; box-sizing: border-box; background: var(--ovl-0_06);
+      border: 1px solid var(--ovl-0_12); border-radius: 10px; padding: 11px 14px;
+      font-size: 15px; font-family: var(--f); color: var(--ink); outline: none;
+      -webkit-appearance: none;
+    }
+    #produk-hb-sheet-search::placeholder { color: var(--ink3); }
+    #produk-hb-sheet-search:focus { border-color: var(--ovl-0_25); background: var(--ovl-0_09); }
+    #produk-hb-sheet-list {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain; padding: 4px 10px 12px;
+    }
+    #produk-hb-sheet-list .jp-sheet-item {
+      font-size: 14px; padding: 11px 10px; border-radius: 8px; cursor: pointer;
+      display: flex; flex-direction: column; gap: 2px; color: var(--ink2);
+    }
+    #produk-hb-sheet-list .jp-sheet-item:active { background: var(--ovl-0_08); color: var(--ink); }
+    #produk-hb-sheet-list .jp-sheet-item b { color: var(--ink); font-size: 15px; }
+    #produk-hb-sheet-list .jp-sheet-item small { color: var(--ink3); font-size: 12px; }
+    #produk-hb-sheet-list .jp-sheet-empty {
+      padding: 28px 12px; text-align: center; color: var(--ink3);
+      font-size: 13px; font-style: italic; line-height: 1.5;
+    }
+    @media (min-width: 768px) {
+      #produk-hb-sheet {
+        left: 50%; right: auto; bottom: 50%; transform: translate(-50%, 50%) scale(.96);
+        width: 100%; max-width: 420px; border-radius: 16px; max-height: 65vh; opacity: 0;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+      #produk-hb-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
+    }
   </style>
 
   <!-- TOOLBAR NORMAL -->
@@ -198,11 +256,13 @@ document.addEventListener('zenot:page', function(e) {
 
 let _produkData = [];
 let _produkSupplierList = []; // dari hutang_supplier — single source of truth buat picker Boss
+let _produkHutangBarangList = []; // dari hutang_barang — sumber harga/link Master Barang per katalog
 
 async function loadProduk() {
   const tbody = document.getElementById('produk-tbody');
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
-  _produkLoadSupplierList(); // fire-and-forget, gak perlu nunggu buat render tabel produk
+  _produkLoadSupplierList();     // fire-and-forget, gak perlu nunggu buat render tabel produk
+  _produkLoadHutangBarangList(); // sama
   try {
     const data = await dbGet('produk');
     // Supabase kadang return object error bukan array
@@ -464,6 +524,9 @@ function showFormProduk() {
   document.getElementById('prd-boss').value = '';
   const lbl = document.getElementById('prd-boss-label');
   if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  document.getElementById('prd-hutang-barang-id').value = '';
+  const hbLbl = document.getElementById('prd-hb-label');
+  if (hbLbl) { hbLbl.textContent = '— Belum di-link —'; hbLbl.style.color = 'var(--ink3)'; }
   showModal('modal-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
   sketchForm('form-produk');
@@ -486,6 +549,13 @@ async function editProduk(id) {
   if (lbl) {
     if (r.boss) { lbl.textContent = r.boss; lbl.style.color = 'var(--ink)'; }
     else        { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  }
+  document.getElementById('prd-hutang-barang-id').value = r.hutang_barang_id || '';
+  const hbLbl = document.getElementById('prd-hb-label');
+  if (hbLbl) {
+    const hb = r.hutang_barang_id ? _produkHutangBarangList.find(x => x.id == r.hutang_barang_id) : null;
+    if (hb) { hbLbl.textContent = _produkHbLabelText(hb); hbLbl.style.color = 'var(--ink)'; }
+    else    { hbLbl.textContent = '— Belum di-link —'; hbLbl.style.color = 'var(--ink3)'; }
   }
   showModal('modal-produk');
   sketchForm('form-produk');
@@ -519,11 +589,13 @@ async function _produkCascadeRename(oldSkuU, newSkuU, newKatalog, newBoss, oldKa
 
 async function simpanProduk() {
   const id = document.getElementById('prd-id').value;
+  const hbIdRaw = document.getElementById('prd-hutang-barang-id').value;
   const data = {
-    katalog:     document.getElementById('prd-katalog').value.trim().toUpperCase(),
-    sku_variasi: document.getElementById('prd-sku').value.trim(),
-    hpp:         idrVal('prd-hpp'),
-    boss:        document.getElementById('prd-boss').value.trim().toUpperCase(),
+    katalog:          document.getElementById('prd-katalog').value.trim().toUpperCase(),
+    sku_variasi:      document.getElementById('prd-sku').value.trim(),
+    hpp:              idrVal('prd-hpp'),
+    boss:             document.getElementById('prd-boss').value.trim().toUpperCase(),
+    hutang_barang_id: hbIdRaw ? Number(hbIdRaw) : null,
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
   try {
@@ -814,6 +886,16 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
         <input type="hidden" id="prd-boss">
       </div>
     </div>
+    <div style="margin-bottom:10px">
+      <div class="form-group">
+        <label>Sumber Harga Supplier <span style="font-weight:400;color:var(--ink3);text-transform:none">(opsional — link ke Master Barang)</span></label>
+        <button type="button" class="produk-boss-trigger" onclick="produkOpenHutangBarangSheet()">
+          <span id="prd-hb-label" style="color:var(--ink3)">— Belum di-link —</span>
+          <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
+        </button>
+        <input type="hidden" id="prd-hutang-barang-id">
+      </div>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanProduk()"><i class="ti ti-device-floppy"></i> Simpan</button>
@@ -833,6 +915,24 @@ document.body.insertAdjacentHTML('beforeend', `
       oninput="produkBossSheetFilter(this.value)">
   </div>
   <div id="produk-boss-sheet-list"></div>
+</div>`);
+
+// ── SHEET: Pilih Sumber Harga Supplier / hutang_barang (7 Sep 2026) ──
+// Link produk (per SIZE) → hutang_barang (per katalog+warna, kadang gak
+// mecah per size — mis. RH jual Turtleneck flat 1 harga semua size).
+// Relasi many-to-one: beberapa SKU size beda boleh nunjuk ke baris
+// hutang_barang yang SAMA. List di-filter ke katalog yang lagi diisi di
+// form, biar gak nyasar milih punya katalog lain.
+document.body.insertAdjacentHTML('beforeend', `
+<div id="produk-hb-sheet-overlay" onclick="if(event.target===this) produkHbSheetClose()"></div>
+<div id="produk-hb-sheet">
+  <div id="produk-hb-sheet-handle"></div>
+  <div id="produk-hb-sheet-title">Pilih Sumber Harga Supplier</div>
+  <div id="produk-hb-sheet-search-wrap">
+    <input type="text" id="produk-hb-sheet-search" placeholder="Cari supplier / varian..." autocomplete="off"
+      oninput="produkHbSheetFilter(this.value)">
+  </div>
+  <div id="produk-hb-sheet-list"></div>
 </div>`);
 
 // ── LOGIC: Sheet Pilih Boss/Supplier (7 Sep 2026) ──────────────
@@ -914,6 +1014,94 @@ async function produkBossSheetTambahBaru(nama) {
   } catch(e) {
     alert('Gagal tambah supplier baru: ' + e.message);
   }
+}
+
+// ── LOGIC: Sheet "Sumber Harga Supplier" (link produk → hutang_barang, 7 Sep 2026) ──
+// Many-to-one: beberapa SKU size beda (mis. Turtleneck_HITAM-M &
+// Turtleneck_HITAM-XL) boleh nunjuk ke baris hutang_barang yang SAMA kalau
+// suppliernya jual flat 1 harga semua size (kasus RH). List di-filter ke
+// katalog yang lagi diisi di form (prd-katalog) — diambil live tiap sheet
+// dibuka, bukan di-cache, biar selalu sinkron kalau user baru ganti katalog.
+async function _produkLoadHutangBarangList() {
+  try {
+    _produkHutangBarangList = await dbGet('hutang_barang', '&order=katalog_produk.asc');
+    if (!Array.isArray(_produkHutangBarangList)) _produkHutangBarangList = [];
+  } catch(e) {
+    console.warn('Gagal load daftar Master Barang:', e.message);
+    _produkHutangBarangList = [];
+  }
+}
+
+function _produkHbLabelText(hb) {
+  const harga = hb.harga_po_per_lusin || hb.harga_per_lusin;
+  const hargaTxt = harga ? 'Rp' + Number(harga).toLocaleString('id-ID') + '/lusin' : 'Harga belum diisi';
+  return (hb.nama_supplier || '—') + (hb.varian_warna ? ' — ' + hb.varian_warna : '') + ' · ' + hargaTxt;
+}
+
+function _produkHbLabelUtama(hb) {
+  return (hb.nama_supplier || '—') + (hb.varian_warna ? ' — ' + hb.varian_warna : '');
+}
+
+function _produkHbLabelHarga(hb) {
+  const harga = hb.harga_po_per_lusin || hb.harga_per_lusin;
+  return harga ? 'Rp' + Number(harga).toLocaleString('id-ID') + '/lusin' : 'Harga belum diisi';
+}
+
+function produkOpenHutangBarangSheet() {
+  const searchEl = document.getElementById('produk-hb-sheet-search');
+  if (searchEl) searchEl.value = '';
+  _produkHbSheetRender('');
+  document.getElementById('produk-hb-sheet-overlay').classList.add('open');
+  document.getElementById('produk-hb-sheet').classList.add('open');
+  setTimeout(function(){ if (searchEl) searchEl.focus(); }, 200);
+}
+
+function produkHbSheetClose() {
+  document.getElementById('produk-hb-sheet-overlay').classList.remove('open');
+  document.getElementById('produk-hb-sheet').classList.remove('open');
+}
+
+function produkHbSheetFilter(q) { _produkHbSheetRender(q); }
+
+function _produkHbSheetRender(q) {
+  const listEl = document.getElementById('produk-hb-sheet-list');
+  if (!listEl) return;
+  const katalog = document.getElementById('prd-katalog').value.trim().toUpperCase();
+  const query   = (q || '').trim().toUpperCase();
+
+  if (!katalog) {
+    listEl.innerHTML = '<div class="jp-sheet-empty">Isi "Katalog" dulu di atas, baru bisa pilih sumber harganya.</div>';
+    return;
+  }
+
+  let rows = _produkHutangBarangList.filter(hb => (hb.katalog_produk || '').toUpperCase() === katalog);
+  if (query) {
+    rows = rows.filter(hb =>
+      (hb.nama_supplier || '').toUpperCase().includes(query) ||
+      (hb.varian_warna  || '').toUpperCase().includes(query)
+    );
+  }
+
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="jp-sheet-empty">Belum ada barang di Master Barang (Hutang Barang) buat katalog "' + katalog + '". Tambahin dulu dari halaman Hutang Barang → Master Barang.</div>';
+    return;
+  }
+
+  listEl.innerHTML = rows.map(function(hb) {
+    return '<div class="jp-sheet-item" onclick="produkHbSheetSelect(' + hb.id + ')">' +
+      '<b>' + _produkHbLabelUtama(hb) + '</b>' +
+      '<small>' + _produkHbLabelHarga(hb) + '</small>' +
+    '</div>';
+  }).join('');
+}
+
+function produkHbSheetSelect(hbId) {
+  const hb = _produkHutangBarangList.find(x => x.id == hbId);
+  if (!hb) return;
+  document.getElementById('prd-hutang-barang-id').value = hb.id;
+  const lbl = document.getElementById('prd-hb-label');
+  if (lbl) { lbl.textContent = _produkHbLabelText(hb); lbl.style.color = 'var(--ink)'; }
+  produkHbSheetClose();
 }
 
 // ─── SWIPE GESTURE — collapse ops-switcher di landscape touch ────────
