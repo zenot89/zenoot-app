@@ -821,6 +821,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
           <i class="ti ti-chevron-down"></i>
         </div>
       </div>
+      <div class="hs-form-group" id="hs-brg-variasi-rows-wrap" style="display:none">
+        <label>SKU Variasi Supplier <span style="font-weight:400;text-transform:none;color:var(--ink3)">(buat bikin PO — bahasa supplier, per varian)</span></label>
+        <div id="hs-brg-variasi-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
       <div class="hs-form-group">
         <label>SKU Supplier <span style="font-weight:400;text-transform:none;color:var(--ink3)">(nama/kode versi supplier, bebas)</span></label>
         <input type="text" id="hs-brg-nama-supplier" placeholder="mis: RH_Turtleneck">
@@ -1830,11 +1834,11 @@ function hsRenderMasterList() {
   if (theadRow) {
     theadRow.innerHTML = isMobile
       ? '<th>No</th><th>SKU Induk</th><th>Variant</th><th class="hs-table-num">HPP/Lusin</th>'
-      : '<th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th><th class="hs-table-num">HPP P.O/Lusin</th>';
+      : '<th>No</th><th>SKU Induk</th><th>Variant</th><th>SKU Supplier</th><th>SKU Variasi Supplier</th><th>Supplier</th><th class="hs-table-num">HPP/Lusin</th><th class="hs-table-num">HPP P.O/Lusin</th>';
   }
 
   if (!list.length) {
-    var colspan = isMobile ? 4 : 7;
+    var colspan = isMobile ? 4 : 8;
     el.innerHTML = '<tr><td colspan="' + colspan + '" class="hs-empty">Belum ada Master Barang' + (_hsFilterSupplier?' buat supplier ini':'') + '. Tap "+ Tambah Barang" buat mulai.</td></tr>';
     return;
   }
@@ -1855,6 +1859,7 @@ function hsRenderMasterList() {
       '<td>' + _hsEsc(b.katalog_produk) + '</td>' +
       '<td>' + _hsEsc(b.varian_warna || '—') + '</td>' +
       '<td>' + _hsEsc(b.nama_supplier || '—') + '</td>' +
+      '<td>' + _hsEsc(b.sku_variasi_supplier || '—') + '</td>' +
       '<td>' + _hsEsc(supplier ? supplier.nama : '—') + '</td>' +
       '<td class="hs-table-num">' + fmtRpFull(b.harga_per_lusin) + '</td>' +
       '<td class="hs-table-num">' + (b.harga_po_per_lusin ? fmtRpFull(b.harga_po_per_lusin) : '—') + '</td>' +
@@ -3401,19 +3406,55 @@ function _hsBrgUpdateHargaFieldVisibility() {
 // hutang_barang emang cuma nunjuk ke 1 produk).
 var _hsBrgSelectedProduk = [];
 
+// _hsBrgVariasiSupplierMap: {produk_id: teks} (7 Sep 2026) — "SKU Variasi
+// Supplier" itu beda-beda PER VARIAN (mis. "Tali Tengah_Hitam" vs
+// "Tali Tengah_Kream"), BEDA dari "SKU Supplier" (nama_supplier) yang
+// sifatnya shared 1 nama buat 1 grup/model (mis. "TALI TENGAH"). Makanya
+// butuh map terpisah per produk_id, bukan 1 input biasa kayak nama_supplier.
+// Tujuannya murni bahasa manusia buat bikin PO — TIDAK dipakai buat
+// matching apapun, jadi aman ketik bebas.
+var _hsBrgVariasiSupplierMap = {};
+
 function _hsBrgUpdateSkuTriggerLabel() {
   var lbl = document.getElementById('hs-brg-sku-trigger-label');
-  if (!lbl) return;
-  if (!_hsBrgSelectedProduk.length) {
-    lbl.textContent = 'Pilih SKU Variasi...';
-    lbl.style.color = 'var(--ink3)';
-  } else if (_hsBrgSelectedProduk.length === 1) {
-    lbl.textContent = _hsBrgSelectedProduk[0].katalog + ' — ' + _hsBrgSelectedProduk[0].sku_variasi;
-    lbl.style.color = 'var(--ink)';
-  } else {
-    lbl.textContent = _hsBrgSelectedProduk.length + ' SKU dipilih: ' + _hsBrgSelectedProduk.map(function(p){ return p.sku_variasi; }).join(', ');
-    lbl.style.color = 'var(--ink)';
+  if (lbl) {
+    if (!_hsBrgSelectedProduk.length) {
+      lbl.textContent = 'Pilih SKU Variasi...';
+      lbl.style.color = 'var(--ink3)';
+    } else if (_hsBrgSelectedProduk.length === 1) {
+      lbl.textContent = _hsBrgSelectedProduk[0].katalog + ' — ' + _hsBrgSelectedProduk[0].sku_variasi;
+      lbl.style.color = 'var(--ink)';
+    } else {
+      lbl.textContent = _hsBrgSelectedProduk.length + ' SKU dipilih: ' + _hsBrgSelectedProduk.map(function(p){ return p.sku_variasi; }).join(', ');
+      lbl.style.color = 'var(--ink)';
+    }
   }
+  _hsBrgRenderVariasiRows();
+}
+
+// Render 1 baris input "SKU Variasi Supplier" per SKU Variasi yang lagi
+// kepilih — dipanggil ulang tiap seleksi berubah. Nilai yang udah sempet
+// diketik dipertahanin (baca dari _hsBrgVariasiSupplierMap), jadi kalau
+// user buka-tutup picker buat nambah SKU lain, yang udah keisi gak ke-reset.
+function _hsBrgRenderVariasiRows() {
+  var wrap = document.getElementById('hs-brg-variasi-rows-wrap');
+  var cont = document.getElementById('hs-brg-variasi-rows');
+  if (!wrap || !cont) return;
+  if (!_hsBrgSelectedProduk.length) {
+    wrap.style.display = 'none';
+    cont.innerHTML = '';
+    return;
+  }
+  wrap.style.display = 'block';
+  cont.innerHTML = _hsBrgSelectedProduk.map(function(p) {
+    var val = _hsBrgVariasiSupplierMap[p.id] || '';
+    return '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span style="flex:0 0 38%;font-size:12px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _hsEscAttr(p.sku_variasi) + '">' + _hsEsc(p.sku_variasi) + '</span>' +
+      '<input type="text" value="' + _hsEscAttr(val) + '" placeholder="mis: Tali Tengah_Hitam" ' +
+        'oninput="_hsBrgVariasiSupplierMap[' + p.id + ']=this.value" ' +
+        'style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid var(--ink4);background:var(--cream2);color:var(--ink);font-family:var(--f);font-size:13px">' +
+    '</div>';
+  }).join('');
 }
 
 function hsOpenTambahBarang() {
@@ -3430,6 +3471,7 @@ function hsOpenTambahBarang() {
     _hsBrgUpdateHargaFieldVisibility();
   };
   _hsBrgSelectedProduk = [];
+  _hsBrgVariasiSupplierMap = {};
   _hsBrgUpdateSkuTriggerLabel();
   document.getElementById('hs-brg-nama-supplier').value = '';
   document.getElementById('hs-brg-harga').value = '';
@@ -3667,12 +3709,15 @@ function hsOpenEditBarang(id) {
   // disentuh, teks lama dipertahanin apa adanya).
   var linked = b.produk_id ? _hsProdukAll.find(function(p){ return p.id === b.produk_id; }) : null;
   _hsBrgSelectedProduk = linked ? [linked] : [];
+  _hsBrgVariasiSupplierMap = {};
+  if (linked) _hsBrgVariasiSupplierMap[linked.id] = b.sku_variasi_supplier || '';
   var lbl = document.getElementById('hs-brg-sku-trigger-label');
   if (linked) {
     _hsBrgUpdateSkuTriggerLabel();
   } else if (lbl) {
     lbl.textContent = (b.katalog_produk || '—') + (b.varian_warna ? ' — ' + b.varian_warna : '') + ' (belum di-link, tap buat pilih)';
     lbl.style.color = 'var(--ink3)';
+    _hsBrgRenderVariasiRows();
   }
   document.getElementById('hs-brg-nama-supplier').value = b.nama_supplier || '';
   document.getElementById('hs-brg-harga').value = b.harga_per_lusin ? b.harga_per_lusin.toLocaleString('id-ID') : '';
@@ -3715,24 +3760,28 @@ async function hsSimpanBarang() {
         harga_po_per_lusin: hargaPo,
       };
       if (_hsBrgSelectedProduk.length) {
-        data.produk_id      = _hsBrgSelectedProduk[0].id;
-        data.katalog_produk = _hsBrgSelectedProduk[0].katalog;
-        data.varian_warna   = _hsBrgSelectedProduk[0].sku_variasi;
+        data.produk_id            = _hsBrgSelectedProduk[0].id;
+        data.katalog_produk       = _hsBrgSelectedProduk[0].katalog;
+        data.varian_warna         = _hsBrgSelectedProduk[0].sku_variasi;
+        data.sku_variasi_supplier = (_hsBrgVariasiSupplierMap[_hsBrgSelectedProduk[0].id] || '').trim() || null;
       } else if (existing) {
-        data.produk_id      = existing.produk_id      || null;
-        data.katalog_produk = existing.katalog_produk || null;
-        data.varian_warna   = existing.varian_warna   || null;
+        data.produk_id            = existing.produk_id            || null;
+        data.katalog_produk       = existing.katalog_produk       || null;
+        data.varian_warna         = existing.varian_warna         || null;
+        data.sku_variasi_supplier = existing.sku_variasi_supplier || null;
       }
       await dbUpdate('hutang_barang', id, data);
     } else {
       // TAMBAH: loop 1 insert per SKU Variasi yang dipilih — many-to-one,
-      // semua share supplier/nama-versi/harga yang sama tapi produk_id beda.
+      // semua share supplier/nama-versi/harga yang sama tapi produk_id
+      // (dan sku_variasi_supplier, yang emang beda per varian) beda-beda.
       for (const p of _hsBrgSelectedProduk) {
         await dbInsert('hutang_barang', {
           supplier_id: supplierId,
           produk_id: p.id,
           katalog_produk: p.katalog,
           varian_warna: p.sku_variasi,
+          sku_variasi_supplier: (_hsBrgVariasiSupplierMap[p.id] || '').trim() || null,
           nama_supplier: namaSup,
           harga_per_lusin: harga,
           harga_po_per_lusin: hargaPo,
