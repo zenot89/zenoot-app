@@ -782,6 +782,25 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
   </div>
 
+  <!-- ── PICKER: PILIH SKU VARIASI (7 Sep 2026) ──
+       Base data-nya Kelola Produk (produk.sku_variasi), BUKAN ketik/pilih
+       katalog+varian bebas lagi. Mode 'multi' (dari Tambah Barang) pakai
+       checkbox + tombol konfirmasi di footer — 1 aksi bisa nge-link
+       beberapa SKU size sekaligus ke 1 harga/supplier yang sama (kasus RH:
+       flat 1 harga buat semua size Turtleneck). Mode 'single' (dari Edit
+       Barang, karena 1 baris hutang_barang cuma nunjuk ke 1 produk) tinggal
+       tap 1x langsung kepilih, gak pake checkbox. -->
+  <div class="hs-picker-overlay" id="hs-sku-picker-overlay" onclick="if(event.target===this) hsBrgSkuPickerClose()">
+    <div class="hs-picker-box">
+      <div class="hs-picker-title">Pilih SKU Variasi</div>
+      <input type="text" id="hs-sku-picker-search" class="hs-picker-search" placeholder="Cari katalog / SKU..." oninput="hsBrgSkuPickerFilter(this.value)">
+      <div class="hs-picker-list" id="hs-sku-picker-list"></div>
+      <div id="hs-sku-picker-footer" style="display:none;flex:none;padding:10px 16px;border-top:1px solid var(--ink4)">
+        <button id="hs-sku-picker-confirm-btn" class="hs-btn-pill hs-btn-primary" style="width:100%;justify-content:center" onclick="hsBrgSkuPickerConfirm()">Pilih</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── MODAL: TAMBAH / EDIT MASTER BARANG ──
        Pakai .modal-overlay/.modal GLOBAL (sama kayak modal Paste Massal SKU
        di Kelola Produk) — proper, selalu di tengah, ga kepotong kayak
@@ -796,18 +815,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <input type="text" id="hs-brg-supplier-baru" placeholder="Nama supplier baru..." style="display:none;margin-top:8px">
       </div>
       <div class="hs-form-group">
-        <label>SKU Induk (Katalog Produk)</label>
-        <select id="hs-brg-katalog"></select>
+        <label>SKU Variasi <span style="font-weight:400;text-transform:none;color:var(--ink3)">(dari Kelola Produk — boleh pilih lebih dari satu kalau harganya sama, mis. semua size)</span></label>
+        <div class="hs-picker-trigger" id="hs-brg-sku-trigger" onclick="hsBrgSkuPickerOpen()">
+          <span id="hs-brg-sku-trigger-label">Pilih SKU Variasi...</span>
+          <i class="ti ti-chevron-down"></i>
+        </div>
       </div>
-      <div class="hs-row-2">
-        <div class="hs-form-group">
-          <label>Nama versi Supplier</label>
-          <input type="text" id="hs-brg-nama-supplier" placeholder="mis: H Solah">
-        </div>
-        <div class="hs-form-group">
-          <label>Varian Warna</label>
-          <input type="text" id="hs-brg-varian" placeholder="mis: Hitam">
-        </div>
+      <div class="hs-form-group">
+        <label>SKU Supplier <span style="font-weight:400;text-transform:none;color:var(--ink3)">(nama/kode versi supplier, bebas)</span></label>
+        <input type="text" id="hs-brg-nama-supplier" placeholder="mis: RH_Turtleneck">
       </div>
       <div class="hs-row-2">
         <div class="hs-form-group" id="hs-brg-harga-dropship-wrap">
@@ -933,7 +949,8 @@ var _hsSupplierList     = [];     // [{id, nama, kontak, jenis: 'dropship'|'rese
 var _hsBonList          = [];     // [{id, supplier_id, tanggal, no_nota, total, status, catatan, ...}]
 var _hsPembayaranAll    = [];     // semua hutang_pembayaran
 var _hsBarangMaster     = [];     // semua hutang_barang (master katalog per supplier)
-var _hsKatalogList      = [];     // distinct produk.katalog, buat dropdown SKU Induk
+var _hsKatalogList      = [];     // distinct produk.katalog, dipakai Paste Massal Master Barang (belum diubah)
+var _hsProdukAll        = [];     // SEMUA baris produk {id, katalog, sku_variasi} (7 Sep 2026) — base data buat picker "Pilih SKU Variasi" di Tambah/Edit Barang manual, gantiin dropdown SKU Induk + ketik Varian Warna
 var _hsAkunKas          = [];     // kas_akun, buat select debit/kredit pembayaran
 var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & Master)
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
@@ -953,13 +970,14 @@ async function loadHutangSupplier() {
       dbGet('hutang_pembayaran', '&order=tanggal.desc'),
       dbGet('hutang_barang',   '&order=katalog_produk.asc'),
       dbGet('kas_akun',        '&order=kode.asc'),
-      dbGet('produk',          '&select=katalog'),
+      dbGet('produk',          '&select=id,katalog,sku_variasi&order=katalog.asc,sku_variasi.asc'),
     ]);
     _hsSupplierList  = supplier || [];
     _hsBonList       = bon || [];
     _hsPembayaranAll = pembayaran || [];
     _hsBarangMaster  = barang || [];
     _hsAkunKas       = akun || [];
+    _hsProdukAll     = produk || [];
 
     var katSet = {};
     (produk || []).forEach(function(p) { if (p.katalog) katSet[p.katalog] = true; });
@@ -3344,7 +3362,12 @@ async function hsSimpanBayarGabungan() {
   }
 }
 
-// ─── MASTER BARANG: TAMBAH / EDIT ─────────────────────────────
+// DEAD CODE (7 Sep 2026): dulu dipanggil hsOpenTambahBarang/hsOpenEditBarang
+// buat isi dropdown "SKU Induk (Katalog Produk)" yang sekarang DIHAPUS,
+// diganti picker "Pilih SKU Variasi" (hsBrgSkuPickerOpen, base data langsung
+// dari _hsProdukAll). _hsKatalogList sendiri MASIH DIPAKAI di Paste Massal
+// Master Barang (buat validasi katalog dikenal/nggak) — cuma select ini yang
+// udah gak ada pemanggilnya lagi. Dipertahankan apa adanya, minim blast radius.
 function _hsPopulateKatalogSelect() {
   var sel = document.getElementById('hs-brg-katalog');
   if (!sel) return;
@@ -3371,6 +3394,28 @@ function _hsBrgUpdateHargaFieldVisibility() {
   return { showDropship: showDropship, showPo: showPo };
 }
 
+// _hsBrgSelectedProduk: array of {id, katalog, sku_variasi} — SKU Variasi
+// yang lagi kepilih di form Tambah/Edit Barang (7 Sep 2026). Tambah Barang
+// = boleh lebih dari 1 (many-to-one ke 1 baris harga/supplier yang sama,
+// kasus RH flat 1 harga semua size). Edit Barang = selalu cuma 1 (1 baris
+// hutang_barang emang cuma nunjuk ke 1 produk).
+var _hsBrgSelectedProduk = [];
+
+function _hsBrgUpdateSkuTriggerLabel() {
+  var lbl = document.getElementById('hs-brg-sku-trigger-label');
+  if (!lbl) return;
+  if (!_hsBrgSelectedProduk.length) {
+    lbl.textContent = 'Pilih SKU Variasi...';
+    lbl.style.color = 'var(--ink3)';
+  } else if (_hsBrgSelectedProduk.length === 1) {
+    lbl.textContent = _hsBrgSelectedProduk[0].katalog + ' — ' + _hsBrgSelectedProduk[0].sku_variasi;
+    lbl.style.color = 'var(--ink)';
+  } else {
+    lbl.textContent = _hsBrgSelectedProduk.length + ' SKU dipilih: ' + _hsBrgSelectedProduk.map(function(p){ return p.sku_variasi; }).join(', ');
+    lbl.style.color = 'var(--ink)';
+  }
+}
+
 function hsOpenTambahBarang() {
   document.getElementById('hs-barang-form-title').textContent = 'Tambah Barang';
   document.getElementById('hs-brg-id').value = '';
@@ -3384,17 +3429,9 @@ function hsOpenTambahBarang() {
     document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
     _hsBrgUpdateHargaFieldVisibility();
   };
-  if (!_hsKatalogList.length) {
-    _hsPopulateKatalogSelect();
-    document.getElementById('hs-brg-katalog').insertAdjacentHTML('afterend',
-      '<div class="hs-item-hint" id="hs-brg-katalog-empty-hint">Belum ada data di Kelola Produk — isi dulu SKU di sana biar muncul di sini.</div>');
-  } else {
-    var hint = document.getElementById('hs-brg-katalog-empty-hint');
-    if (hint) hint.remove();
-    _hsPopulateKatalogSelect();
-  }
+  _hsBrgSelectedProduk = [];
+  _hsBrgUpdateSkuTriggerLabel();
   document.getElementById('hs-brg-nama-supplier').value = '';
-  document.getElementById('hs-brg-varian').value = '';
   document.getElementById('hs-brg-harga').value = '';
   idrInput('hs-brg-harga');
   document.getElementById('hs-brg-harga-po').value = '';
@@ -3622,10 +3659,22 @@ function hsOpenEditBarang(id) {
     document.getElementById('hs-brg-supplier-baru').style.display = this.value === '__baru__' ? 'block' : 'none';
     _hsBrgUpdateHargaFieldVisibility();
   };
-  _hsPopulateKatalogSelect();
-  document.getElementById('hs-brg-katalog').value = b.katalog_produk;
+  // Kalau barang ini udah ke-link ke produk (produk_id keisi), pre-select
+  // di picker. Kalau belum (barang lama, dari sebelum fitur ini ada),
+  // biarin kosong — trigger label fallback nampilin teks lama (katalog_produk
+  // + varian_warna) BIAR TETEP KELIATAN, tapi gak maksa user milih ulang
+  // kalau cuma mau edit harga doang (lihat hsSimpanBarang: kalau gak
+  // disentuh, teks lama dipertahanin apa adanya).
+  var linked = b.produk_id ? _hsProdukAll.find(function(p){ return p.id === b.produk_id; }) : null;
+  _hsBrgSelectedProduk = linked ? [linked] : [];
+  var lbl = document.getElementById('hs-brg-sku-trigger-label');
+  if (linked) {
+    _hsBrgUpdateSkuTriggerLabel();
+  } else if (lbl) {
+    lbl.textContent = (b.katalog_produk || '—') + (b.varian_warna ? ' — ' + b.varian_warna : '') + ' (belum di-link, tap buat pilih)';
+    lbl.style.color = 'var(--ink3)';
+  }
   document.getElementById('hs-brg-nama-supplier').value = b.nama_supplier || '';
-  document.getElementById('hs-brg-varian').value = b.varian_warna || '';
   document.getElementById('hs-brg-harga').value = b.harga_per_lusin ? b.harga_per_lusin.toLocaleString('id-ID') : '';
   idrInput('hs-brg-harga');
   document.getElementById('hs-brg-harga-po').value = b.harga_po_per_lusin ? b.harga_po_per_lusin.toLocaleString('id-ID') : '';
@@ -3636,37 +3685,164 @@ function hsOpenEditBarang(id) {
 
 async function hsSimpanBarang() {
   var id       = document.getElementById('hs-brg-id').value;
-  var katalog  = document.getElementById('hs-brg-katalog').value;
   var namaSup  = document.getElementById('hs-brg-nama-supplier').value.trim() || null;
-  var varian   = document.getElementById('hs-brg-varian').value.trim() || null;
   var vis      = _hsBrgUpdateHargaFieldVisibility();
   var harga    = vis.showDropship ? idrVal('hs-brg-harga') : null;
   var hargaPo  = vis.showPo ? idrVal('hs-brg-harga-po') : null;
 
-  if (!katalog) { alert('Pilih SKU Induk!'); return; }
+  // 7 Sep 2026: SKU Induk/Varian Warna gak lagi diketik/dipilih bebas —
+  // base data-nya dari _hsBrgSelectedProduk (picker "Pilih SKU Variasi").
+  // TAMBAH baru: WAJIB pilih minimal 1 (gak ada lagi jalur ketik bebas).
+  // EDIT barang lama yang belum pernah di-link: boleh dibiarin kosong,
+  // teks lama (katalog_produk/varian_warna) dipertahanin apa adanya —
+  // gak maksa migrasi kalau user cuma mau betulin harga.
+  if (!id && !_hsBrgSelectedProduk.length) { alert('Pilih SKU Variasi dulu!'); return; }
   if (vis.showDropship && !harga) { alert('Isi Harga Dropship per Lusin!'); return; }
   if (vis.showPo && !hargaPo) { alert('Supplier ini punya sistem P.O — isi Harga P.O per Lusin!'); return; }
 
   try {
     var supplierId = await _hsResolveSupplierId('hs-brg-supplier-select', 'hs-brg-supplier-baru');
 
-    var data = {
-      supplier_id: supplierId,
-      katalog_produk: katalog,
-      nama_supplier: namaSup,
-      varian_warna: varian,
-      harga_per_lusin: harga,
-      harga_po_per_lusin: hargaPo,
-    };
-
-    if (id) { await dbUpdate('hutang_barang', id, data); }
-    else    { await dbInsert('hutang_barang', data); }
+    if (id) {
+      // EDIT: selalu 1 baris. Kalau user milih ulang lewat picker, pakai
+      // itu; kalau nggak (dibiarin dari data lama), pertahanin katalog_produk
+      // /varian_warna/produk_id yang udah ada di baris ini apa adanya.
+      var existing = _hsBarangMaster.find(function(x){ return x.id == id; });
+      var data = {
+        supplier_id: supplierId,
+        nama_supplier: namaSup,
+        harga_per_lusin: harga,
+        harga_po_per_lusin: hargaPo,
+      };
+      if (_hsBrgSelectedProduk.length) {
+        data.produk_id      = _hsBrgSelectedProduk[0].id;
+        data.katalog_produk = _hsBrgSelectedProduk[0].katalog;
+        data.varian_warna   = _hsBrgSelectedProduk[0].sku_variasi;
+      } else if (existing) {
+        data.produk_id      = existing.produk_id      || null;
+        data.katalog_produk = existing.katalog_produk || null;
+        data.varian_warna   = existing.varian_warna   || null;
+      }
+      await dbUpdate('hutang_barang', id, data);
+    } else {
+      // TAMBAH: loop 1 insert per SKU Variasi yang dipilih — many-to-one,
+      // semua share supplier/nama-versi/harga yang sama tapi produk_id beda.
+      for (const p of _hsBrgSelectedProduk) {
+        await dbInsert('hutang_barang', {
+          supplier_id: supplierId,
+          produk_id: p.id,
+          katalog_produk: p.katalog,
+          varian_warna: p.sku_variasi,
+          nama_supplier: namaSup,
+          harga_per_lusin: harga,
+          harga_po_per_lusin: hargaPo,
+        });
+      }
+    }
 
     closeModal('hs-sheet-barang');
     await loadHutangSupplier();
   } catch(e) {
     alert('Gagal simpan: ' + e.message);
   }
+}
+
+// ─── PICKER: PILIH SKU VARIASI (7 Sep 2026) ────────────────────
+// Mode ditentuin otomatis dari konteks: lagi Edit (hs-brg-id keisi) →
+// single-select (tap = langsung kepilih & nutup). Lagi Tambah (hs-brg-id
+// kosong) → multi-select pake checkbox + tombol konfirmasi di footer.
+function hsBrgSkuPickerOpen() {
+  document.getElementById('hs-sku-picker-search').value = '';
+  document.getElementById('hs-sku-picker-footer').style.display =
+    document.getElementById('hs-brg-id').value ? 'none' : 'block';
+  _hsBrgSkuPickerRender('');
+  document.getElementById('hs-sku-picker-overlay').classList.add('open');
+}
+
+function hsBrgSkuPickerClose() {
+  document.getElementById('hs-sku-picker-overlay').classList.remove('open');
+}
+
+function hsBrgSkuPickerFilter(q) { _hsBrgSkuPickerRender(q); }
+
+function _hsBrgSkuPickerRender(q) {
+  var isEdit = !!document.getElementById('hs-brg-id').value;
+  var listEl = document.getElementById('hs-sku-picker-list');
+  if (!listEl) return;
+
+  if (!_hsProdukAll.length) {
+    listEl.innerHTML = '<div class="hs-picker-empty">Belum ada data SKU di Kelola Produk — isi dulu di sana.</div>';
+    return;
+  }
+
+  q = (q || '').trim().toUpperCase();
+  var rows = _hsProdukAll.filter(function(p) {
+    return !q || (p.katalog||'').toUpperCase().indexOf(q) !== -1 || (p.sku_variasi||'').toUpperCase().indexOf(q) !== -1;
+  });
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="hs-picker-empty">Tidak ada SKU yang cocok</div>';
+    return;
+  }
+
+  var selectedIds = _hsBrgSelectedProduk.map(function(p){ return p.id; });
+
+  if (isEdit) {
+    // Single-select: tap = langsung pilih & nutup, gak pake checkbox.
+    listEl.innerHTML = rows.map(function(p) {
+      var active = selectedIds.indexOf(p.id) !== -1;
+      return '<div class="hs-picker-item' + (active ? ' active' : '') + '" onclick="hsBrgSkuPickerSelectSingle(' + p.id + ')">' +
+        '<div style="font-weight:700">' + _hsEsc(p.sku_variasi) + '</div>' +
+        '<div style="font-size:11.5px;color:var(--ink3)">' + _hsEsc(p.katalog) + '</div>' +
+      '</div>';
+    }).join('');
+  } else {
+    // Multi-select: checkbox, konfirmasi lewat tombol footer.
+    listEl.innerHTML = rows.map(function(p) {
+      var checked = selectedIds.indexOf(p.id) !== -1;
+      var it = '<label class="hs-picker-item" style="display:flex;gap:10px;align-items:center">' +
+        '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBrgSkuPickerToggle(' + p.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink)">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700">' + _hsEsc(p.sku_variasi) + '</div>' +
+          '<div style="font-size:11.5px;color:var(--ink3)">' + _hsEsc(p.katalog) + '</div>' +
+        '</div>' +
+      '</label>';
+      return it;
+    }).join('');
+    _hsBrgSkuPickerUpdateFooter();
+  }
+}
+
+function hsBrgSkuPickerToggle(produkId, checked) {
+  if (checked) {
+    if (_hsBrgSelectedProduk.every(function(p){ return p.id !== produkId; })) {
+      var p = _hsProdukAll.find(function(x){ return x.id === produkId; });
+      if (p) _hsBrgSelectedProduk.push(p);
+    }
+  } else {
+    _hsBrgSelectedProduk = _hsBrgSelectedProduk.filter(function(p){ return p.id !== produkId; });
+  }
+  _hsBrgSkuPickerUpdateFooter();
+}
+
+function _hsBrgSkuPickerUpdateFooter() {
+  var btn = document.getElementById('hs-sku-picker-confirm-btn');
+  if (!btn) return;
+  var n = _hsBrgSelectedProduk.length;
+  btn.disabled = n === 0;
+  btn.textContent = n ? ('Pilih ' + n + ' SKU') : 'Pilih minimal 1 SKU';
+}
+
+function hsBrgSkuPickerConfirm() {
+  _hsBrgUpdateSkuTriggerLabel();
+  hsBrgSkuPickerClose();
+}
+
+function hsBrgSkuPickerSelectSingle(produkId) {
+  var p = _hsProdukAll.find(function(x){ return x.id === produkId; });
+  if (!p) return;
+  _hsBrgSelectedProduk = [p];
+  _hsBrgUpdateSkuTriggerLabel();
+  hsBrgSkuPickerClose();
 }
 
 async function hsHapusBarang() {
