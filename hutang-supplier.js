@@ -480,14 +480,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <table class="hs-table hs-restock-table">
           <thead>
             <tr>
-              <th style="width:32px"></th><th>No</th><th>Supplier</th><th>SKU Induk</th><th>Varian</th><th class="hs-table-num">Sisa</th><th class="hs-table-num">Qty</th><th class="hs-table-num">Nilai</th>
+              <th style="width:32px"></th><th>No</th><th>Supplier</th><th>SKU Induk</th><th>Varian</th><th>SKU Variasi Supplier</th><th class="hs-table-num">Sisa</th><th class="hs-table-num">Qty</th><th class="hs-table-num">Nilai</th>
             </tr>
           </thead>
           <tbody id="hs-restock-list">
-            <tr><td colspan="8" class="hs-empty">Memuat...</td></tr>
+            <tr><td colspan="9" class="hs-empty">Memuat...</td></tr>
           </tbody>
         </table>
       </div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px">* Nilai dari HPP internal — SKU ini belum di-link ke Master Barang, jadi belum pakai harga PO/Dropship asli dari supplier. Link dulu lewat Master Barang biar akurat.</div>
     </div>
 
     <div id="hs-panel-bon" class="hs-panel">
@@ -866,9 +867,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
       <div style="font-size:12px;color:var(--ink3);margin:2px 0 10px;line-height:1.6">
         Copy dari Excel lalu paste di bawah.<br>
-        Urutan kolom: <b>SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin → Harga PO per Lusin</b><br>
-        Kolom Suplier per baris opsional — kalau kosong / cuma 4 kolom, pakai Supplier default di atas. Nama Suplier yang belum ada otomatis dibikin baru.<br>
-        Kolom <b>Harga PO per Lusin</b> (ke-6) juga opsional — cuma perlu diisi kalau suplier-nya P.O/dual-mode (RH-case) dan mau langsung bisa dipakai di Mode P.O. Kosongin aja kalau supplier-nya dropship murni.
+        Urutan kolom: <b>SKU Variasi → SKU Supplier → SKU Variasi Supplier → Supplier → Harga per Lusin → Harga PO per Lusin</b><br>
+        <b>SKU Variasi</b> (kolom ke-1) harus PERSIS sama kayak SKU di Kelola Produk (mis. <code>Turtleneck_HITAM-M</code>) — dari situ SKU Induk/katalog otomatis kebaca, gak perlu diketik terpisah lagi. Baris yang gak ketemu matchnya bakal ditandai ⚠ dan DILEWATIN pas disimpan (gak ke-import ngasal).<br>
+        <b>SKU Supplier</b> = nama model di sisi supplier (mis. "TALI TENGAH"), <b>SKU Variasi Supplier</b> = versi spesifik per varian (mis. "Tali Tengah_Hitam") — dua-duanya bebas ketik, boleh dikosongin.<br>
+        Kolom Supplier per baris opsional — kalau kosong, pakai Supplier default di atas. Nama Supplier yang belum ada otomatis dibikin baru.<br>
+        Kolom <b>Harga PO per Lusin</b> (ke-6) opsional — cuma perlu diisi kalau suplier-nya P.O/dual-mode (RH-case).
       </div>
       <textarea id="hs-paste-area"
         style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px;box-sizing:border-box"
@@ -876,7 +879,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div id="hs-paste-preview" style="margin-top:10px;display:none">
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
         <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
-          <table class="tbl"><thead><tr><th>SKU Induk</th><th>Varian</th><th>SKU Suplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP PO/Lsn</th></tr></thead>
+          <table class="tbl"><thead><tr><th>SKU Variasi</th><th>SKU Supplier</th><th>SKU Variasi Supplier</th><th>Suplier</th><th>HPP/Lsn</th><th>HPP PO/Lsn</th></tr></thead>
           <tbody id="hs-paste-tbody"></tbody></table>
         </div>
       </div>
@@ -1031,7 +1034,7 @@ function _hsBulatkanKelipatan(nilai, kelipatan, min_order) {
 
 async function hsLoadRestockPO() {
   var listEl = document.getElementById('hs-restock-list');
-  if (listEl) listEl.innerHTML = '<tr><td colspan="8" class="hs-empty">Memuat...</td></tr>';
+  if (listEl) listEl.innerHTML = '<tr><td colspan="9" class="hs-empty">Memuat...</td></tr>';
   try {
     var today  = new Date();
     var d14    = new Date(today); d14.setDate(d14.getDate() - 13);
@@ -1039,7 +1042,7 @@ async function hsLoadRestockPO() {
     var d7     = new Date(today); d7.setDate(d7.getDate() - 6);
     var dari7  = d7.toISOString().slice(0, 10);
 
-    var [penjualan14, produkAll, restockSup, stokData, jurnalAll, kasAkun, jurnalKas] = await Promise.all([
+    var [penjualan14, produkAll, restockSup, stokData, jurnalAll, kasAkun, jurnalKas, barangAll] = await Promise.all([
       dbGet('jurnal_penjualan', '&select=sku,qty,tanggal&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari14),
       dbGet('produk',           '&order=katalog.asc'),
       dbGet('restock_supplier').catch(function() { return []; }),
@@ -1047,6 +1050,7 @@ async function hsLoadRestockPO() {
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
       dbGet('kas_akun'),
       dbGet('jurnal', '&select=akun_debit_id,akun_kredit_id,nominal'),
+      dbGet('hutang_barang'),
     ]);
 
     // ── Cash Kas & Bank, semua akun digabung ──
@@ -1088,6 +1092,16 @@ async function hsLoadRestockPO() {
     (produkAll || []).forEach(function(p) {
       var key = (p.sku_variasi || p.sku || '').trim().toUpperCase();
       if (key) produkMap[key] = p;
+    });
+
+    // ── Link ke Master Barang (7 Sep 2026) — kalau SKU udah di-link lewat
+    // produk_id (fitur baru), pakai harga & nama dari situ (lebih akurat,
+    // per-SKU-spesifik) buat itung "Nilai" & nampilin nama yg operator
+    // ngerti pas bikin PO. SKU yang BELUM di-link tetap fallback ke
+    // produk.hpp (perilaku lama, gak putus). ──
+    var hbByProdukId = {};
+    (barangAll || []).forEach(function(b) {
+      if (b.produk_id) hbByProdukId[b.produk_id] = b;
     });
 
     var qtyMap = {};
@@ -1139,7 +1153,19 @@ async function hsLoadRestockPO() {
       if (sisa !== null && sisa > rop_raw) return;
 
       var qty_order   = _hsBulatkanKelipatan(rop_raw, sup.kelipatan, sup.min_order);
-      var nilai       = (p.hpp || 0) * qty_order;
+
+      // Harga per pcs: prioritas dari Master Barang (kalau udah di-link) —
+      // harga_po_per_lusin didahuluin (relevan buat SKU yg emang mode P.O),
+      // fallback ke harga_per_lusin (dropship), baru fallback terakhir ke
+      // produk.hpp (HPP internal, dipakai kalau belum pernah di-link sama sekali).
+      var hb = hbByProdukId[p.id];
+      var hargaPerPcs = p.hpp || 0;
+      var sumberHarga = 'hpp';
+      if (hb) {
+        var hargaLusin = hb.harga_po_per_lusin || hb.harga_per_lusin;
+        if (hargaLusin) { hargaPerPcs = hargaLusin / 12; sumberHarga = 'hutang_barang'; }
+      }
+      var nilai       = hargaPerPcs * qty_order;
       var dos         = (sisa !== null && avg_harian > 0) ? Math.round(sisa / avg_harian) : null;
 
       if (qty_order <= 0) return;
@@ -1156,7 +1182,12 @@ async function hsLoadRestockPO() {
       var uIdx  = sku.lastIndexOf('_');
       var varian = uIdx >= 0 ? sku.slice(uIdx + 1) : sku;
 
-      items.push({ sku: sku, katalog: p.katalog || '—', varian: varian, boss: bossKey, sisa: sisa, qty_order: qty_order, nilai: nilai, prioritas: prioritas, dos: dos });
+      items.push({
+        sku: sku, katalog: p.katalog || '—', varian: varian, boss: bossKey,
+        sisa: sisa, qty_order: qty_order, nilai: nilai, prioritas: prioritas, dos: dos,
+        sku_variasi_supplier: hb ? (hb.sku_variasi_supplier || '') : '',
+        harga_sumber: sumberHarga,
+      });
     });
 
     var prioRank = { SEGERA: 0, PERLU: 1, TUNDA: 2 };
@@ -1184,7 +1215,7 @@ function hsRenderRestockList() {
   if (!listEl) return;
 
   if (!_hsRestockItems.length) {
-    listEl.innerHTML = '<tr><td colspan="8" class="hs-empty">Gak ada rekomendasi restock buat supplier PO saat ini.</td></tr>';
+    listEl.innerHTML = '<tr><td colspan="9" class="hs-empty">Gak ada rekomendasi restock buat supplier PO saat ini.</td></tr>';
     hsRestockUpdateRunningTotal();
     return;
   }
@@ -1193,15 +1224,20 @@ function hsRenderRestockList() {
     var checked = _hsRestockChecked[it.sku] ? 'checked' : '';
     var skuAttr = it.sku.replace(/'/g, "\\'");
     var sisaTxt = it.sisa !== null ? it.sisa : '—';
+    var skuVarSupCell = it.sku_variasi_supplier
+      ? _hsEsc(it.sku_variasi_supplier)
+      : '<span style="color:var(--ink3);font-style:italic;font-size:11px">belum di-link</span>';
+    var nilaiTitle = it.harga_sumber === 'hutang_barang' ? 'Harga dari Master Barang' : 'Harga dari HPP internal (belum di-link ke Master Barang)';
     return '<tr data-sku="' + _hsEsc(it.sku) + '"' + (_hsRestockChecked[it.sku] ? ' class="hs-restock-checked-row"' : '') + '>' +
       '<td class="hs-restock-chk"><input type="checkbox" ' + checked + ' onchange="hsRestockToggle(\'' + skuAttr + '\', this.checked)"></td>' +
       '<td>' + (i + 1) + '</td>' +
       '<td>' + _hsEsc(it.boss) + '</td>' +
       '<td>' + _hsEsc(it.katalog) + '</td>' +
       '<td>' + _hsEsc(it.varian) + '</td>' +
+      '<td>' + skuVarSupCell + '</td>' +
       '<td class="hs-table-num">' + sisaTxt + '</td>' +
       '<td class="hs-table-num">' + it.qty_order + '</td>' +
-      '<td class="hs-table-num">' + fmtRpFull(it.nilai) + '</td>' +
+      '<td class="hs-table-num" title="' + nilaiTitle + '">' + fmtRpFull(it.nilai) + (it.harga_sumber !== 'hutang_barang' ? ' *' : '') + '</td>' +
     '</tr>';
   }).join('');
 
@@ -3537,43 +3573,54 @@ function hsParsePasteBarang() {
     var cols = line.split('\t').map(function(c) { return c.trim(); });
     if (cols.length < 1) return;
 
-    var katalog, varian, skuSup, supNamaRaw, harga, hargaPo;
+    var skuVariasi, skuSup, skuVariasiSup, supNamaRaw, harga, hargaPo;
     if (cols.length >= 6) {
-      // 6 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn → HPP PO/Lsn
-      katalog    = (cols[0] || '').toUpperCase();
-      varian     = (cols[1] || '').trim();
-      skuSup     = (cols[2] || '').trim();
-      supNamaRaw = (cols[3] || '').trim();
-      harga      = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
-      hargaPo    = parseInt((cols[5] || '').replace(/[^0-9]/g,''), 10) || null;
+      // 6 kolom: SKU Variasi → SKU Suplier → SKU Variasi Suplier → Suplier → HPP/Lsn → HPP PO/Lsn
+      skuVariasi    = (cols[0] || '').trim();
+      skuSup        = (cols[1] || '').trim();
+      skuVariasiSup = (cols[2] || '').trim();
+      supNamaRaw    = (cols[3] || '').trim();
+      harga         = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo       = parseInt((cols[5] || '').replace(/[^0-9]/g,''), 10) || null;
     } else if (cols.length >= 5) {
-      // 5 kolom: SKU Induk → Varian → SKU Suplier → Suplier → HPP/Lsn (tanpa HPP PO)
-      katalog    = (cols[0] || '').toUpperCase();
-      varian     = (cols[1] || '').trim();
-      skuSup     = (cols[2] || '').trim();
-      supNamaRaw = (cols[3] || '').trim();
-      harga      = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
-      hargaPo    = null;
+      // 5 kolom (tanpa HPP PO)
+      skuVariasi    = (cols[0] || '').trim();
+      skuSup        = (cols[1] || '').trim();
+      skuVariasiSup = (cols[2] || '').trim();
+      supNamaRaw    = (cols[3] || '').trim();
+      harga         = parseInt((cols[4] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo       = null;
     } else {
-      // Fallback 4 kolom lama: SKU Induk → Varian → SKU Suplier → HPP/Lsn
-      // (ga ada kolom Suplier per baris → pakai Supplier default di atas)
-      katalog    = (cols[0] || '').toUpperCase();
-      varian     = (cols[1] || '').trim();
-      skuSup     = (cols[2] || '').trim();
-      supNamaRaw = '';
-      harga      = parseInt((cols[3] || '').replace(/[^0-9]/g,''), 10) || 0;
-      hargaPo    = null;
+      // Fallback 4 kolom (tanpa kolom Suplier per baris → pakai default)
+      skuVariasi    = (cols[0] || '').trim();
+      skuSup        = (cols[1] || '').trim();
+      skuVariasiSup = (cols[2] || '').trim();
+      supNamaRaw    = '';
+      harga         = parseInt((cols[3] || '').replace(/[^0-9]/g,''), 10) || 0;
+      hargaPo       = null;
     }
 
-    if (!katalog) return;
+    if (!skuVariasi) return;
+
+    // 7 Sep 2026: SKU Variasi WAJIB match persis (case-insensitive) ke
+    // produk.sku_variasi asli — gantiin cara lama (ketik bebas SKU
+    // Induk+Varian, cuma dikasih peringatan tapi tetep bisa disimpan).
+    // Baris yang gak match ditandai matched:false, DILEWATIN pas simpan
+    // (lihat hsSimpanPasteBarang) — biar gak ada lagi data hutang_barang
+    // yang produk_id-nya nyasar/null gara-gara typo.
+    var produk  = _hsProdukAll.find(function(p) { return (p.sku_variasi||'').toUpperCase() === skuVariasi.toUpperCase(); });
+    var matched = !!produk;
 
     var row = {
-      katalog_produk: katalog,
-      varian_warna: varian || null,
-      nama_supplier: skuSup || null, // "nama versi supplier" a.k.a SKU Suplier
+      sku_variasi_input: skuVariasi,
+      produk_id: matched ? produk.id : null,
+      katalog_produk: matched ? produk.katalog : null,
+      varian_warna: matched ? produk.sku_variasi : null,
+      matched: matched,
+      nama_supplier: skuSup || null, // "SKU Suplier" — nama model di sisi supplier
+      sku_variasi_supplier: skuVariasiSup || null,
       harga_per_lusin: harga,
       harga_po_per_lusin: hargaPo,
-      dikenal: _hsKatalogList.indexOf(katalog) !== -1,
       supplier_id: null,
       supplier_nama: null,
       supplier_new: false,
@@ -3598,23 +3645,23 @@ function hsParsePasteBarang() {
   });
 
   if (_hsParsedBarang.length === 0) {
-    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Induk → Varian → SKU Suplier → Suplier → Harga per Lusin → Harga PO per Lusin (opsional)');
+    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: SKU Variasi → SKU Supplier → SKU Variasi Supplier → Supplier → Harga per Lusin → Harga PO per Lusin (opsional)');
     return;
   }
 
-  var jumlahAsing = _hsParsedBarang.filter(function(r){ return !r.dikenal; }).length;
-  document.getElementById('hs-paste-count').textContent =
-    '✓ ' + _hsParsedBarang.length + ' baris siap diimport' +
-    (jumlahAsing ? ' — ⚠ ' + jumlahAsing + ' SKU Induk belum ada di Kelola Produk' : '');
+  var jumlahGakMatch = _hsParsedBarang.filter(function(r){ return !r.matched; }).length;
+  document.getElementById('hs-paste-count').innerHTML =
+    '✓ ' + _hsParsedBarang.length + ' baris terbaca' +
+    (jumlahGakMatch ? ' — <span style="color:var(--warn)">⚠ ' + jumlahGakMatch + ' SKU Variasi gak ketemu di Kelola Produk, bakal DILEWATIN pas disimpan</span>' : '');
   document.getElementById('hs-paste-tbody').innerHTML = _hsParsedBarang.map(function(r) {
     var supCell;
     if (r.use_default_supplier) supCell = '<span style="color:var(--ink3)">(default)</span>';
     else if (r.supplier_new)    supCell = '<span style="color:var(--info)">' + _hsEsc(r.supplier_nama) + ' (baru)</span>';
     else                        supCell = _hsEsc(r.supplier_nama);
-    return '<tr' + (r.dikenal ? '' : ' style="color:var(--warn)"') + '>' +
-      '<td>' + _hsEsc(r.katalog_produk) + (r.dikenal ? '' : ' ⚠') + '</td>' +
-      '<td>' + _hsEsc(r.varian_warna||'—') + '</td>' +
+    return '<tr' + (r.matched ? '' : ' style="color:var(--warn)"') + '>' +
+      '<td>' + _hsEsc(r.sku_variasi_input) + (r.matched ? '' : ' ⚠ gak ketemu') + '</td>' +
       '<td>' + _hsEsc(r.nama_supplier||'—') + '</td>' +
+      '<td>' + _hsEsc(r.sku_variasi_supplier||'—') + '</td>' +
       '<td>' + supCell + '</td>' +
       '<td>Rp' + r.harga_per_lusin.toLocaleString('id-ID') + '</td>' +
       '<td>' + (r.harga_po_per_lusin ? 'Rp' + r.harga_po_per_lusin.toLocaleString('id-ID') : '<span style="color:var(--ink3)">—</span>') + '</td>' +
@@ -3661,15 +3708,18 @@ async function hsSimpanPasteBarang() {
 
   try {
     btn.disabled = true;
-    var ok = 0;
+    var ok = 0, skipped = 0;
     for (var i = 0; i < _hsParsedBarang.length; i++) {
       var r = _hsParsedBarang[i];
+      if (!r.matched) { skipped++; continue; } // SKU gak ketemu di Kelola Produk — dilewatin, gak diimport ngasal
       var supplierId = await resolveRowSupplier(r);
       await dbInsert('hutang_barang', {
         supplier_id: supplierId,
+        produk_id: r.produk_id,
         katalog_produk: r.katalog_produk,
         varian_warna: r.varian_warna,
         nama_supplier: r.nama_supplier,
+        sku_variasi_supplier: r.sku_variasi_supplier,
         harga_per_lusin: r.harga_per_lusin,
         harga_po_per_lusin: r.harga_po_per_lusin
       });
@@ -3678,7 +3728,7 @@ async function hsSimpanPasteBarang() {
     }
     closeModal('hs-sheet-paste-barang');
     await loadHutangSupplier();
-    alert('✓ ' + ok + ' barang berhasil disimpan!');
+    alert('✓ ' + ok + ' barang berhasil disimpan!' + (skipped ? '\n⚠ ' + skipped + ' baris dilewatin (SKU Variasi gak ketemu di Kelola Produk).' : ''));
   } catch(e) {
     alert('Gagal simpan: ' + e.message);
   } finally {
