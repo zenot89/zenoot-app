@@ -1129,8 +1129,30 @@ async function hsLoadRestockPO() {
     Object.keys(qtyMap).forEach(function(sku) {
       var p = produkMap[sku];
       if (!p) return;
-      var bossKey = (p.boss || '').trim().toUpperCase();
-      if (!poSupplierSet[bossKey]) return; // cuma supplier Reseller/PO yang masuk
+
+      // 9 Sep 2026: kalau SKU ini udah di-link RESMI ke Master Barang, link
+      // itu (hutang_barang.supplier_id) yang jadi sumber kebenaran "siapa
+      // supplier-nya" — BUKAN lagi field Boss (text bebas, ketik manual) di
+      // Kelola Produk, yang bisa aja udah basi/gak sinkron. Kasus nyata yang
+      // ketemu: Turtleneck_Coksu-XL Boss-nya masih "DIMI" (DIMI belum
+      // ditambah ke Kelola Supplier sama sekali), padahal SKU itu udah
+      // resmi di-link ke RH (yang notabene udah Reseller/PO) di Master
+      // Barang. Fallback ke Boss text CUMA kalau SKU itu belum pernah
+      // di-link ke Master Barang sama sekali.
+      var hb = hbByProdukId[p.id];
+      var resolvedSupplier = null;
+      var bossKey;
+      if (hb && hb.supplier_id) {
+        resolvedSupplier = _hsSupplierList.find(function(s) { return s.id === hb.supplier_id; });
+      }
+      if (resolvedSupplier) {
+        bossKey = resolvedSupplier.nama.toUpperCase();
+      } else {
+        bossKey = (p.boss || '').trim().toUpperCase();
+      }
+
+      var isReseller = resolvedSupplier ? !!resolvedSupplier.is_reseller : !!poSupplierSet[bossKey];
+      if (!isReseller) return; // cuma supplier Reseller/PO yang masuk
 
       // ── Filter fast-move: harus ada penjualan dalam 7 hari terakhir.
       // SKU yg cuma kejual di hari ke-8..14 (gak gerak minggu ini) TIDAK
@@ -1158,7 +1180,6 @@ async function hsLoadRestockPO() {
       // harga_po_per_lusin didahuluin (relevan buat SKU yg emang mode P.O),
       // fallback ke harga_per_lusin (dropship), baru fallback terakhir ke
       // produk.hpp (HPP internal, dipakai kalau belum pernah di-link sama sekali).
-      var hb = hbByProdukId[p.id];
       var hargaPerPcs = p.hpp || 0;
       var sumberHarga = 'hpp';
       if (hb) {
