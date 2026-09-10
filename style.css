@@ -1877,6 +1877,22 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overscroll-behavior: none;
   touch-action: pan-y pan-x;
   border-right: 1px solid var(--ovl-0_06);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink4) transparent;
+}
+#mi-tbl-wrap::-webkit-scrollbar,
+#mi-flash-tbl-wrap::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+#mi-tbl-wrap::-webkit-scrollbar-track,
+#mi-flash-tbl-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+#mi-tbl-wrap::-webkit-scrollbar-thumb,
+#mi-flash-tbl-wrap::-webkit-scrollbar-thumb {
+  background: var(--ink4);
+  border-radius: 4px;
 }
 #mi-tbl-wrap .tbl th,
 #mi-tbl-wrap .tbl td {
@@ -1909,6 +1925,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow-x: auto;
   overscroll-behavior: none;
   touch-action: pan-y pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink4) transparent;
 }
 #mi-flash-wrap .tbl th,
 #mi-flash-wrap .tbl td {
