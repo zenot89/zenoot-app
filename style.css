@@ -1050,6 +1050,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
   #page-stok,
   #page-restock,
   #page-clearance,
+  #page-modal-induk,
   #page-produk-terjual,
   #page-produk,
   #page-price-list,
@@ -1818,6 +1819,68 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #cl-tbl-wrap {  }
 }
 
+/* ── MODAL PER SKU INDUK ── */
+#page-modal-induk.active {
+  display: -webkit-flex !important;
+  display: flex !important;
+}
+#page-modal-induk {
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 0;
+}
+#page-modal-induk .card {
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+#page-modal-induk .card-title {
+  padding: 8px 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--ovl-0_06);
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+}
+#mi-metrics-strip {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--ovl-0_06);
+}
+#mi-tbl-wrap {
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  overscroll-behavior: none;
+  touch-action: pan-y pan-x;
+}
+#mi-tbl-wrap .tbl th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--cream3);
+  box-shadow: 0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,0.4);
+}
+#mi-footer-wrap {
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 6px 14px;
+}
+
 /* ── PRODUK TERJUAL ── */
 #page-produk-terjual.active {
   display: -webkit-flex !important;
@@ -1897,6 +1960,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok,
 #page-jurnal-penjualan,
 #page-clearance,
+#page-modal-induk,
 #page-produk-terjual,
 #page-restock,
 #page-produk,
@@ -2165,6 +2229,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok .card,
 #page-jurnal-penjualan .card,
 #page-clearance .card,
+#page-modal-induk .card,
 #page-produk-terjual .card,
 #restock-wrap,
 #page-produk .card,
@@ -2185,6 +2250,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #page-stok,
   #page-jurnal-penjualan,
   #page-clearance,
+  #page-modal-induk,
   #page-produk-terjual,
   #page-restock,
   #page-produk,

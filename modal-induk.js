@@ -150,23 +150,31 @@ async function loadModalInduk() {
       return;
     }
 
-    let prevKatalog = null;
-    tbody.innerHTML = rows.map(r => {
-      const isNewGroup = r.katalog !== prevKatalog;
-      prevKatalog = r.katalog;
-      const g = groupTotals[r.katalog];
-      const katalogCell = isNewGroup
-        ? `<td style="font-weight:700;border-top:2px solid var(--ink3)">${r.katalog}<div style="font-weight:400;font-size:10px;color:var(--ink3)">${g.varian} varian · ${fmtRp(g.nilai)}</div></td>`
-        : `<td></td>`;
-      const rowBorder = isNewGroup ? 'border-top:2px solid var(--ink3)' : '';
-      return `<tr>
-        ${katalogCell}
-        <td style="${rowBorder}">${r.sku}</td>
-        <td style="text-align:center;${rowBorder}">${r.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:right;color:var(--warn);font-weight:700;${rowBorder}">${fmtRp(r.nilai)}</td>
-        <td style="${rowBorder}">${r.boss}</td>
-      </tr>`;
-    }).join('');
+    let idx = 0;
+    const htmlParts = [];
+    while (idx < rows.length) {
+      const kat = rows[idx].katalog;
+      const g = groupTotals[kat];
+      htmlParts.push(`<tr style="border-top:2px solid var(--ink3)">
+        <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
+        <td></td>
+        <td></td>
+        <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
+        <td></td>
+      </tr>`);
+      while (idx < rows.length && rows[idx].katalog === kat) {
+        const r = rows[idx];
+        htmlParts.push(`<tr>
+          <td></td>
+          <td>${r.sku}</td>
+          <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
+          <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
+          <td>${r.boss}</td>
+        </tr>`);
+        idx++;
+      }
+    }
+    tbody.innerHTML = htmlParts.join('');
 
     document.getElementById('mi-footer').textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
 
