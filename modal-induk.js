@@ -30,21 +30,44 @@ document.getElementById('page-modal-induk').innerHTML = `
       </div>
     </div>
 
-    <div id="mi-tbl-wrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU <span id="mi-sort-sku">⇅</span></th>
-            <th>Variasi</th>
-            <th onclick="miSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Qty <span id="mi-sort-sisa">⇅</span></th>
-            <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal / Varian <span id="mi-sort-nilai">⇅</span></th>
-            <th>Supplier</th>
-          </tr>
-        </thead>
-        <tbody id="mi-tbody">
-          <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
-        </tbody>
-      </table>
+    <div id="mi-split-wrap">
+      <div id="mi-tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU <span id="mi-sort-sku">⇅</span></th>
+              <th>Variasi</th>
+              <th onclick="miSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Qty <span id="mi-sort-sisa">⇅</span></th>
+              <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal / Varian <span id="mi-sort-nilai">⇅</span></th>
+              <th>Supplier</th>
+            </tr>
+          </thead>
+          <tbody id="mi-tbody">
+            <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="mi-flash-wrap">
+        <div style="padding:8px 10px 6px;font-weight:700;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--ovl-0_06)">
+          <i class="ti ti-bolt"></i> Kandidat Flash Sale <span style="font-weight:400;color:var(--ink3)">(sisa ≥ 3 pcs)</span>
+        </div>
+        <div id="mi-flash-tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>SKU Induk</th>
+                <th>SKU Variasi</th>
+                <th style="text-align:center">Sisa</th>
+              </tr>
+            </thead>
+            <tbody id="mi-flash-tbody">
+              <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="mi-flash-footer" style="font-size:11px;color:var(--ink3);text-align:right;padding:6px 10px"></div>
+      </div>
     </div>
     <div id="mi-footer-wrap"><div id="mi-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
   </div>
@@ -105,6 +128,7 @@ function miRenderTable() {
     tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
     const footerEl = document.getElementById('mi-footer');
     if (footerEl) footerEl.textContent = '';
+    miRenderFlashSale();
     return;
   }
 
@@ -136,6 +160,33 @@ function miRenderTable() {
 
   const footerEl = document.getElementById('mi-footer');
   if (footerEl) footerEl.textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
+
+  miRenderFlashSale();
+}
+
+// ─── TABEL KANAN — Kandidat Flash Sale (sisa >= 3 pcs, syarat minimal Shopee) ──
+function miRenderFlashSale() {
+  const tbody = document.getElementById('mi-flash-tbody');
+  if (!tbody || !_miFlatRows) return;
+
+  const rows = _miFlatRows
+    .filter(r => r.sisa >= 3)
+    .slice()
+    .sort((a, b) => b.nilai - a.nilai);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
+    document.getElementById('mi-flash-footer').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td style="font-size:11px">${r.katalog}</td>
+    <td style="font-size:11px;font-weight:600">${r.sku}</td>
+    <td style="text-align:center;font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
+  </tr>`).join('');
+
+  document.getElementById('mi-flash-footer').textContent = `${rows.length} SKU siap flash sale`;
 }
 
 // ─── LOAD DATA ───────────────────────────────────────────────
