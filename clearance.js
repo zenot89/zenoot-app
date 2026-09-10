@@ -6,8 +6,6 @@ document.getElementById('page-clearance').innerHTML = `
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span><i class="ti ti-tag"></i> Clearance Monitor</span>
-
         <!-- Filter button — nested submenu -->
         <div style="position:relative">
           <button class="btn btn-sm" id="cl-filter-btn" onclick="clToggleFilterAll()"
@@ -23,6 +21,11 @@ document.getElementById('page-clearance').innerHTML = `
         <button class="btn btn-sm" id="cl-reset-btn" onclick="clResetFilter()"
           style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
           <i class="ti ti-x"></i> Reset Filter
+        </button>
+
+        <!-- Modal per SKU Induk -->
+        <button class="btn btn-sm" onclick="gotoPage('modal-induk',null)" style="font-size:12px">
+          <i class="ti ti-stack-2"></i> Modal per SKU Induk
         </button>
       </div>
 
@@ -65,11 +68,10 @@ document.getElementById('page-clearance').innerHTML = `
             <th style="text-align:right">HPP/pcs</th>
             <th onclick="clSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Nilai Stok <span id="cl-sort-nilai">↕</span></th>
             <th>Insight</th>
-            <th style="text-align:center">Aksi</th>
           </tr>
         </thead>
         <tbody id="cl-tbody">
-          <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+          <tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -214,7 +216,7 @@ async function loadClearance() {
 
   } catch(err) {
     const tbody = document.getElementById('cl-tbody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
     console.error('[clearance]', err);
   }
 }
@@ -244,7 +246,7 @@ function clRenderAll() {
   const footer = document.getElementById('cl-footer');
 
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada SKU yang cocok dengan filter.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada SKU yang cocok dengan filter.</td></tr>';
     if (footer) footer.textContent = '';
     clUpdateMetrics(data);
     clUpdateSortIcons();
@@ -264,12 +266,6 @@ function clRenderAll() {
       <td style="text-align:right;color:var(--ink3);font-size:12px">${fmtRp(r.hpp)}</td>
       <td style="text-align:right;font-weight:700;color:var(--warn)">${fmtRp(r.nilai)}</td>
       <td style="font-size:11px;color:var(--ink3);max-width:220px">💡 Modal ${fmtRp(r.nilai)} nyangkut — pertimbangkan clearance/diskon extra</td>
-      <td style="text-align:center">
-        <button class="btn btn-sm" onclick="skdOpen('${r.sku.replace(/'/g, "\\'")}')"
-          style="padding:2px 8px;min-height:26px;font-size:11px" title="Lihat detail SKU ${r.sku}">
-          <i class="ti ti-eye"></i>
-        </button>
-      </td>
     </tr>`;
   }).join('');
 
@@ -281,7 +277,6 @@ function clRenderAll() {
       <td style="text-align:center;color:var(--ink2)">${totalPcs}</td>
       <td></td><td></td>
       <td style="text-align:right;color:var(--warn)">${fmtRp(totalNilai)}</td>
-      <td></td>
       <td></td>
     </tr>`;
 

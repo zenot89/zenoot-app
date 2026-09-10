@@ -1,0 +1,169 @@
+// ─── MODAL-INDUK.JS — Modal per SKU Induk ─────────────────────
+// Agregasi dari data yang sama dengan Clearance Monitor (clearance.js),
+// tapi digabung per KATALOG (SKU induk), bukan per SKU varian.
+// Dipicu dari tombol "Modal per SKU Induk" di header Clearance Monitor.
+
+document.getElementById('page-modal-induk').innerHTML = `
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span><i class="ti ti-stack-2"></i> Modal per SKU Induk</span>
+      <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
+        <i class="ti ti-arrow-left"></i> Kembali ke Clearance Monitor
+      </button>
+    </div>
+
+    <div id="mi-metrics-strip" class="metrics" style="grid-template-columns:repeat(3,1fr);margin:0">
+      <div class="metric">
+        <div class="m-label">Katalog Terdampak</div>
+        <div class="m-value" id="mi-total-katalog">—</div>
+        <div class="m-delta">SKU induk</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Total Varian SKU</div>
+        <div class="m-value" id="mi-total-varian">—</div>
+        <div class="m-delta">non-aktif/dead/zombie</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Total Modal Tertahan</div>
+        <div class="m-value" id="mi-total-nilai">—</div>
+        <div class="m-delta">HPP × sisa (digabung)</div>
+      </div>
+    </div>
+
+    <div id="mi-tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>SKU Induk (Katalog)</th>
+            <th>Boss</th>
+            <th style="text-align:center">Jml Varian</th>
+            <th style="text-align:center">Total Sisa</th>
+            <th style="text-align:right">Total Modal</th>
+          </tr>
+        </thead>
+        <tbody id="mi-tbody">
+          <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="mi-footer-wrap"><div id="mi-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
+  </div>
+`;
+
+setTimeout(() => {
+  if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-modal-induk'));
+}, 80);
+
+// ─── LOAD DATA ───────────────────────────────────────────────
+async function loadModalInduk() {
+  const tbody = document.getElementById('mi-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
+
+  const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
+
+  try {
+    const tgl7  = new Date(); tgl7.setDate(tgl7.getDate() - 7);
+    const tgl30 = new Date(); tgl30.setDate(tgl30.getDate() - 30);
+    const tgl90 = new Date(); tgl90.setDate(tgl90.getDate() - 90);
+    const tgl7Str  = tgl7.toISOString().slice(0, 10);
+    const tgl30Str = tgl30.toISOString().slice(0, 10);
+    const tgl90Str = tgl90.toISOString().slice(0, 10);
+
+    const [produkAll, stokRaw, jpAllRaw, jp7Raw, jp30Raw, jp90Raw] = await Promise.all([
+      dbGet('produk', '&order=katalog.asc'),
+      dbGet('stok'),
+      dbGet('jurnal_penjualan', '&select=sku,qty'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl30Str),
+      dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl90Str)
+    ]);
+
+    // Sisa stok per SKU — identik logic clearance.js
+    const masukMap = {};
+    (stokRaw || []).forEach(s => {
+      const k = (s.sku_variasi || '').trim().toUpperCase();
+      if (k) masukMap[k] = (masukMap[k] || 0) + (s.stok_masuk || 0);
+    });
+    const keluarMap = {};
+    (jpAllRaw || []).forEach(r => {
+      const k = (r.sku || '').trim().toUpperCase();
+      if (k) keluarMap[k] = (keluarMap[k] || 0) + (r.qty || 0);
+    });
+    const sales7Map = {}, sales30Map = {}, sales90Map = {};
+    const _buildMap = (data, map) => {
+      (data || []).forEach(r => {
+        const k = (r.sku || '').trim().toUpperCase();
+        if (k) map[k] = (map[k] || 0) + (r.qty || 0);
+      });
+    };
+    _buildMap(jp7Raw,  sales7Map);
+    _buildMap(jp30Raw, sales30Map);
+    _buildMap(jp90Raw, sales90Map);
+
+    // Kumpulan SKU non-aktif + dead/zombie-aktif yang masih ada sisa — identik logic clearance.js
+    const flat = [];
+    produkAll.forEach(p => {
+      const kat = (p.kategori_produk || 'aktif').toLowerCase();
+      const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+      if (!skuKey) return;
+      const sisa = (masukMap[skuKey] || 0) - (keluarMap[skuKey] || 0);
+      if (sisa <= 0) return;
+
+      if (kat !== 'aktif') {
+        flat.push({ katalog: p.katalog || '—', boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
+      } else if (typeof _stokVelocity === 'function') {
+        const vel = _stokVelocity(sales7Map[skuKey], sales30Map[skuKey], sales90Map[skuKey]);
+        if (vel === 'dead' || vel === 'zombie') {
+          flat.push({ katalog: p.katalog || '—', boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
+        }
+      }
+    });
+
+    // Group per katalog (SKU induk)
+    const grouped = {};
+    flat.forEach(r => {
+      const key = r.katalog;
+      if (!grouped[key]) grouped[key] = { katalog: key, boss: r.boss, bossSet: new Set(), varian: 0, sisa: 0, nilai: 0 };
+      grouped[key].bossSet.add(r.boss);
+      grouped[key].varian += 1;
+      grouped[key].sisa   += r.sisa;
+      grouped[key].nilai  += r.sisa * r.hpp;
+    });
+
+    const rows = Object.values(grouped).sort((a, b) => b.nilai - a.nilai);
+
+    document.getElementById('mi-total-katalog').textContent = rows.length.toLocaleString('id-ID');
+    document.getElementById('mi-total-varian').textContent  = rows.reduce((s, r) => s + r.varian, 0).toLocaleString('id-ID');
+    document.getElementById('mi-total-nilai').textContent   = fmtRp(rows.reduce((s, r) => s + r.nilai, 0));
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
+      document.getElementById('mi-footer').textContent = '';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const bossLabel = r.bossSet.size > 1 ? [...r.bossSet].join(', ') : r.boss;
+      return `<tr>
+        <td style="font-weight:700">${r.katalog}</td>
+        <td>${bossLabel}</td>
+        <td style="text-align:center">${r.varian}</td>
+        <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
+        <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(r.nilai)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('mi-footer').textContent = `${rows.length} SKU induk · ${rows.reduce((s, r) => s + r.varian, 0)} varian SKU`;
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
+    console.error('[modal-induk]', err);
+  }
+}
+
+// ─── AUTO-LOAD SAAT NAVIGASI KE HALAMAN INI ───────────────────
+document.addEventListener('zenot:page', function(e) {
+  if (e.detail.page !== 'modal-induk') return;
+  loadModalInduk();
+});
