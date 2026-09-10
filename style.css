@@ -222,6 +222,13 @@ body{
   gap:8px;
   background:#0e0e0e;
   z-index:10;
+  transition: background 0.15s;
+}
+.logo-block:hover{
+  background:#1a1a1a;
+}
+.logo-block:active{
+  background:#141414;
 }
 .logo-img{
   width:36px;height:36px;display:block;

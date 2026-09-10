@@ -49,7 +49,7 @@
       <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>
   </button>
-  <div class="logo-block">
+  <div class="logo-block" onclick="gotoPage('dashboard',null)" style="cursor:pointer" title="Ke Dashboard">
     <img src="logo.png" alt="zenOt" class="logo-img">
     <div class="logo-text-group">
       <span class="logo-name">zenOt</span>
@@ -67,7 +67,6 @@
       <span class="nav-group-arrow">▾</span>
     </div>
     <div class="nav-group-body">
-      <button class="nav-item active" onclick="gotoPage('dashboard',this)"><span class="ni-icon"><i class="ti ti-layout-dashboard"></i></span><span class="ni-label">Dashboard</span></button>
       <button class="nav-item" onclick="gotoPage('jurnal-penjualan',this)"><span class="ni-icon"><i class="ti ti-receipt"></i></span><span class="ni-label">Jurnal Penjualan</span></button>
       <button class="nav-item" onclick="gotoPage('stok',this)"><span class="ni-icon"><i class="ti ti-package"></i></span><span class="ni-label">Stok Produk</span></button>
       <button class="nav-item" onclick="gotoPage('restock',this)"><span class="ni-icon"><i class="ti ti-refresh"></i></span><span class="ni-label">Re-Stock</span></button>
@@ -225,7 +224,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260910-bf6d28cb6ad3';
+  window.APP_BUILD = '20260909-e42720b4b084';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
