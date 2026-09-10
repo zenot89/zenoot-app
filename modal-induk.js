@@ -158,7 +158,7 @@ async function loadModalInduk() {
       htmlParts.push(`<tr style="border-top:2px solid var(--ink3)">
         <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
         <td></td>
-        <td></td>
+        <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
         <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
         <td></td>
       </tr>`);
