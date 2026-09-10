@@ -34,10 +34,10 @@ document.getElementById('page-modal-induk').innerHTML = `
       <table class="tbl">
         <thead>
           <tr>
-            <th>SKU</th>
+            <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU <span id="mi-sort-sku">⇅</span></th>
             <th>Variasi</th>
-            <th style="text-align:center">Qty</th>
-            <th style="text-align:right">Modal / Varian</th>
+            <th onclick="miSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Qty <span id="mi-sort-sisa">⇅</span></th>
+            <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal / Varian <span id="mi-sort-nilai">⇅</span></th>
             <th>Supplier</th>
           </tr>
         </thead>
@@ -53,6 +53,90 @@ document.getElementById('page-modal-induk').innerHTML = `
 setTimeout(() => {
   if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-modal-induk'));
 }, 80);
+
+// ─── STATE (cache biar sort gak perlu fetch ulang) ────────────
+let _miGroupTotals = null;  // { katalog: {katalog,varian,sisa,nilai} }
+let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}]
+let _miSort        = { col: 'nilai', dir: 'desc' };
+
+function miSort(col) {
+  if (_miSort.col === col) {
+    _miSort.dir = (_miSort.dir === 'desc') ? 'asc' : 'desc';
+  } else {
+    _miSort.col = col;
+    _miSort.dir = (col === 'sku') ? 'asc' : 'desc';
+  }
+  miRenderTable();
+}
+
+function miUpdateSortIcons() {
+  ['sku', 'sisa', 'nilai'].forEach(c => {
+    const el = document.getElementById('mi-sort-' + c);
+    if (!el) return;
+    el.textContent = _miSort.col === c ? (_miSort.dir === 'asc' ? '▲' : '▼') : '⇅';
+    el.style.color = _miSort.col === c ? 'var(--accent)' : 'var(--ink3)';
+  });
+}
+
+// ─── RENDER (pakai data yang udah di-cache) ────────────────────
+function miRenderTable() {
+  const tbody = document.getElementById('mi-tbody');
+  if (!tbody || !_miGroupTotals || !_miFlatRows) return;
+  const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
+
+  miUpdateSortIcons();
+
+  const groupList = Object.values(_miGroupTotals).sort((a, b) => {
+    let d;
+    if (_miSort.col === 'sku')   d = a.katalog.localeCompare(b.katalog);
+    else d = a[_miSort.col] - b[_miSort.col];
+    return _miSort.dir === 'asc' ? d : -d;
+  });
+  const groupRank = {};
+  groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
+
+  const rows = _miFlatRows.slice().sort((a, b) => {
+    const rk = groupRank[a.katalog] - groupRank[b.katalog];
+    if (rk !== 0) return rk;
+    return b.nilai - a.nilai;
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
+    const footerEl = document.getElementById('mi-footer');
+    if (footerEl) footerEl.textContent = '';
+    return;
+  }
+
+  let idx = 0;
+  const htmlParts = [];
+  while (idx < rows.length) {
+    const kat = rows[idx].katalog;
+    const g = _miGroupTotals[kat];
+    htmlParts.push(`<tr style="background:var(--ovl-0_1);border-top:2px solid var(--ink3)">
+      <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
+      <td style="color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
+      <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
+      <td></td>
+      <td></td>
+    </tr>`);
+    while (idx < rows.length && rows[idx].katalog === kat) {
+      const r = rows[idx];
+      htmlParts.push(`<tr>
+        <td></td>
+        <td>${r.sku}</td>
+        <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
+        <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
+        <td>${r.boss}</td>
+      </tr>`);
+      idx++;
+    }
+  }
+  tbody.innerHTML = htmlParts.join('');
+
+  const footerEl = document.getElementById('mi-footer');
+  if (footerEl) footerEl.textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
+}
 
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadModalInduk() {
@@ -121,7 +205,7 @@ async function loadModalInduk() {
     });
     flat.forEach(r => { r.nilai = r.sisa * r.hpp; });
 
-    // Total per katalog (SKU induk) — dipakai buat urutan grup & metrik atas
+    // Total per katalog (SKU induk) — dipakai buat metrik atas & sort grup
     const groupTotals = {};
     flat.forEach(r => {
       if (!groupTotals[r.katalog]) groupTotals[r.katalog] = { katalog: r.katalog, varian: 0, sisa: 0, nilai: 0 };
@@ -129,54 +213,14 @@ async function loadModalInduk() {
       groupTotals[r.katalog].sisa   += r.sisa;
       groupTotals[r.katalog].nilai  += r.nilai;
     });
-    const groupList = Object.values(groupTotals).sort((a, b) => b.nilai - a.nilai);
-    const groupRank = {};
-    groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
 
-    // Urutan tampil: per grup SKU induk (modal terbesar dulu), lalu varian di dalamnya modal terbesar dulu
-    const rows = flat.slice().sort((a, b) => {
-      const rk = groupRank[a.katalog] - groupRank[b.katalog];
-      if (rk !== 0) return rk;
-      return b.nilai - a.nilai;
-    });
+    document.getElementById('mi-total-katalog').textContent = Object.keys(groupTotals).length.toLocaleString('id-ID');
+    document.getElementById('mi-total-varian').textContent  = flat.length.toLocaleString('id-ID');
+    document.getElementById('mi-total-nilai').textContent   = fmtRp(flat.reduce((s, r) => s + r.nilai, 0));
 
-    document.getElementById('mi-total-katalog').textContent = groupList.length.toLocaleString('id-ID');
-    document.getElementById('mi-total-varian').textContent  = rows.length.toLocaleString('id-ID');
-    document.getElementById('mi-total-nilai').textContent   = fmtRp(rows.reduce((s, r) => s + r.nilai, 0));
-
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
-      document.getElementById('mi-footer').textContent = '';
-      return;
-    }
-
-    let idx = 0;
-    const htmlParts = [];
-    while (idx < rows.length) {
-      const kat = rows[idx].katalog;
-      const g = groupTotals[kat];
-      htmlParts.push(`<tr style="border-top:2px solid var(--ink3)">
-        <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
-        <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
-        <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
-        <td></td>
-        <td></td>
-      </tr>`);
-      while (idx < rows.length && rows[idx].katalog === kat) {
-        const r = rows[idx];
-        htmlParts.push(`<tr>
-          <td></td>
-          <td>${r.sku}</td>
-          <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
-          <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
-          <td>${r.boss}</td>
-        </tr>`);
-        idx++;
-      }
-    }
-    tbody.innerHTML = htmlParts.join('');
-
-    document.getElementById('mi-footer').textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
+    _miGroupTotals = groupTotals;
+    _miFlatRows    = flat;
+    miRenderTable();
 
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
