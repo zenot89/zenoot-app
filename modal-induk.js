@@ -34,10 +34,10 @@ document.getElementById('page-modal-induk').innerHTML = `
       <table class="tbl">
         <thead>
           <tr>
-            <th>SKU Induk</th>
-            <th>SKU Variasi</th>
-            <th style="text-align:center">Sisa (Qty)</th>
-            <th style="text-align:right">Total Modal</th>
+            <th>SKU</th>
+            <th>Variasi</th>
+            <th style="text-align:center">Qty</th>
+            <th style="text-align:right">Modal / Varian</th>
             <th>Supplier</th>
           </tr>
         </thead>
@@ -157,9 +157,9 @@ async function loadModalInduk() {
       const g = groupTotals[kat];
       htmlParts.push(`<tr style="border-top:2px solid var(--ink3)">
         <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
-        <td></td>
-        <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
         <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
+        <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
+        <td></td>
         <td></td>
       </tr>`);
       while (idx < rows.length && rows[idx].katalog === kat) {
