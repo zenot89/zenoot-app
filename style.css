@@ -1050,7 +1050,7 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
   #page-stok,
   #page-restock,
   #page-clearance,
-  #page-modal-induk,
+  #page-clearance-induk,
   #page-produk-terjual,
   #page-produk,
   #page-price-list,
@@ -1820,11 +1820,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── MODAL PER SKU INDUK ── */
-#page-modal-induk.active {
+#page-clearance-induk.active {
   display: -webkit-flex !important;
   display: flex !important;
 }
-#page-modal-induk {
+#page-clearance-induk {
   -webkit-flex-direction: column;
   flex-direction: column;
   -webkit-flex: 1 1 0;
@@ -1832,7 +1832,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   min-height: 0;
   padding: 0;
 }
-#page-modal-induk .card {
+#page-clearance-induk .card {
   padding: 0;
   border-radius: 0;
   margin-bottom: 0;
@@ -1844,7 +1844,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   -webkit-flex-direction: column;
   flex-direction: column;
 }
-#page-modal-induk .card-title {
+#page-clearance-induk .card-title {
   padding: 8px 14px;
   margin-bottom: 0;
   border-bottom: 1px solid var(--ovl-0_06);
@@ -2024,7 +2024,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok,
 #page-jurnal-penjualan,
 #page-clearance,
-#page-modal-induk,
+#page-clearance-induk,
 #page-produk-terjual,
 #page-restock,
 #page-produk,
@@ -2293,7 +2293,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-stok .card,
 #page-jurnal-penjualan .card,
 #page-clearance .card,
-#page-modal-induk .card,
+#page-clearance-induk .card,
 #page-produk-terjual .card,
 #restock-wrap,
 #page-produk .card,
@@ -2314,7 +2314,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #page-stok,
   #page-jurnal-penjualan,
   #page-clearance,
-  #page-modal-induk,
+  #page-clearance-induk,
   #page-produk-terjual,
   #page-restock,
   #page-produk,

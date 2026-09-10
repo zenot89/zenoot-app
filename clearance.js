@@ -24,7 +24,7 @@ document.getElementById('page-clearance').innerHTML = `
         </button>
 
         <!-- Modal per SKU Induk -->
-        <button class="btn btn-sm" onclick="gotoPage('modal-induk',null)" style="font-size:12px">
+        <button class="btn btn-sm" onclick="gotoPage('clearance-induk',null)" style="font-size:12px">
           <i class="ti ti-stack-2"></i> Modal per SKU Induk
         </button>
       </div>

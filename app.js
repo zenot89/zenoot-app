@@ -148,7 +148,7 @@ var pageMap = {
   'cost-produksi':      { title:'Cost Produksi',        sub:'ongkos operator per SKU & divisi' },
   'penutupan-periode':  { title:'Penutupan Periode',    sub:'month-end close & lock jurnal'   },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
-  'modal-induk':        { title:'Modal per SKU Induk',   sub:'total modal tertahan digabung per katalog/induk produk' },
+  'clearance-induk':    { title:'Modal per SKU Induk',   sub:'total modal tertahan digabung per katalog/induk produk' },
   'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
   'shopee-dashboard':   { title:'Analisis Shopee',        sub:'performa & insight toko Shopee'     },
   'proyeksi-harga':     { title:'Proyeksi Harga',         sub:'pricing engine & kalkulasi margin'  },
@@ -194,7 +194,7 @@ function gotoPage(page, btn) {
   var contentEl = document.querySelector('.content');
   var mainEl    = document.querySelector('.main');
   if (contentEl) {
-    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'modal-induk', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier', 'cost-produksi', 'anggaran'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'clearance-induk', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier', 'cost-produksi', 'anggaran'];
     if (fullHeightPages.indexOf(page) !== -1) {
       // Full-height pages: paksa height chain html→body→main→content eksplisit
       // iOS Safari tidak bisa resolve flex:1 jika ancestor tidak punya height eksplisit
