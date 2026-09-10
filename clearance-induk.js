@@ -80,14 +80,20 @@ setTimeout(() => {
 // ─── STATE (cache biar sort gak perlu fetch ulang) ────────────
 let _miGroupTotals = null;  // { katalog: {katalog,varian,sisa,nilai} }
 let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}]
-let _miSort        = { col: 'nilai', dir: 'desc' };
+let _miSort        = { col: null, dir: null };  // null = netral (default: modal desc)
 
 function miSort(col) {
   if (_miSort.col === col) {
-    _miSort.dir = (_miSort.dir === 'desc') ? 'asc' : 'desc';
+    if (_miSort.dir === 'asc') {
+      _miSort.dir = 'desc';
+    } else {
+      // udah di posisi desc → balik ke netral
+      _miSort.col = null;
+      _miSort.dir = null;
+    }
   } else {
     _miSort.col = col;
-    _miSort.dir = (col === 'sku') ? 'asc' : 'desc';
+    _miSort.dir = 'asc';
   }
   miRenderTable();
 }
@@ -109,11 +115,13 @@ function miRenderTable() {
 
   miUpdateSortIcons();
 
+  const sortCol = _miSort.col || 'nilai';
+  const sortDir = _miSort.col ? _miSort.dir : 'desc';
   const groupList = Object.values(_miGroupTotals).sort((a, b) => {
     let d;
-    if (_miSort.col === 'sku')   d = a.katalog.localeCompare(b.katalog);
-    else d = a[_miSort.col] - b[_miSort.col];
-    return _miSort.dir === 'asc' ? d : -d;
+    if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
+    else d = a[sortCol] - b[sortCol];
+    return sortDir === 'asc' ? d : -d;
   });
   const groupRank = {};
   groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
@@ -175,11 +183,13 @@ function miRenderFlashSale() {
   if (!tbody || !_miFlatRows || !_miGroupTotals) return;
 
   // urutan grup SKU induk disamakan dengan tabel kiri (sesuai sort aktif)
+  const sortCol = _miSort.col || 'nilai';
+  const sortDir = _miSort.col ? _miSort.dir : 'desc';
   const groupOrder = Object.values(_miGroupTotals).sort((a, b) => {
     let d;
-    if (_miSort.col === 'sku') d = a.katalog.localeCompare(b.katalog);
-    else d = a[_miSort.col] - b[_miSort.col];
-    return _miSort.dir === 'asc' ? d : -d;
+    if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
+    else d = a[sortCol] - b[sortCol];
+    return sortDir === 'asc' ? d : -d;
   });
   const groupRank = {};
   groupOrder.forEach((g, i) => { groupRank[g.katalog] = i; });
