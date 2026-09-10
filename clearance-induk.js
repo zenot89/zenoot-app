@@ -137,24 +137,29 @@ function miRenderTable() {
   while (idx < rows.length) {
     const kat = rows[idx].katalog;
     const g = _miGroupTotals[kat];
-    htmlParts.push(`<tr style="background:var(--ovl-0_1);border-top:2px solid var(--ink3)">
+    let j = idx;
+    while (j < rows.length && rows[j].katalog === kat) j++;
+    const groupRows = rows.slice(idx, j);
+
+    htmlParts.push(`<tr class="mi-grp-row mi-grp-first">
       <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
       <td style="color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
       <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
       <td></td>
       <td></td>
     </tr>`);
-    while (idx < rows.length && rows[idx].katalog === kat) {
-      const r = rows[idx];
-      htmlParts.push(`<tr>
+    groupRows.forEach((r, i) => {
+      const isLast = (i === groupRows.length - 1);
+      htmlParts.push(`<tr class="mi-grp-row${isLast ? ' mi-grp-last' : ''}">
         <td></td>
         <td>${r.sku}</td>
         <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
         <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
         <td>${r.boss}</td>
       </tr>`);
-      idx++;
-    }
+    });
+    htmlParts.push('<tr class="mi-grp-gap"><td colspan="5"></td></tr>');
+    idx = j;
   }
   tbody.innerHTML = htmlParts.join('');
 
@@ -200,20 +205,25 @@ function miRenderFlashSale() {
   const htmlParts = [];
   while (idx < rows.length) {
     const kat = rows[idx].katalog;
-    htmlParts.push(`<tr style="background:var(--ovl-0_1);border-top:2px solid var(--ink3)">
+    let j = idx;
+    while (j < rows.length && rows[j].katalog === kat) j++;
+    const groupRows = rows.slice(idx, j);
+
+    htmlParts.push(`<tr class="mi-grp-row mi-grp-first">
       <td style="font-weight:700">${kat}</td>
       <td></td>
       <td style="text-align:center;font-weight:700">${groupSisaFlash[kat].toLocaleString('id-ID')}</td>
     </tr>`);
-    while (idx < rows.length && rows[idx].katalog === kat) {
-      const r = rows[idx];
-      htmlParts.push(`<tr>
+    groupRows.forEach((r, i) => {
+      const isLast = (i === groupRows.length - 1);
+      htmlParts.push(`<tr class="mi-grp-row${isLast ? ' mi-grp-last' : ''}">
         <td></td>
         <td style="font-size:11px;font-weight:600">${r.sku}</td>
         <td style="text-align:center;font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
       </tr>`);
-      idx++;
-    }
+    });
+    htmlParts.push('<tr class="mi-grp-gap"><td colspan="3"></td></tr>');
+    idx = j;
   }
   tbody.innerHTML = htmlParts.join('');
 

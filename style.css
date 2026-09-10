@@ -1947,6 +1947,30 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   z-index: 3;
   background: var(--cream3);
 }
+
+/* ── efek "floating card" per grup SKU induk — Opsi A: shadow halus + gap ── */
+.mi-grp-row td {
+  background: var(--cream2);
+  border-bottom: 1px solid var(--cream3);
+}
+.mi-grp-row.mi-grp-first td {
+  background: var(--ovl-0_06);
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+  border-bottom: none;
+}
+.mi-grp-row.mi-grp-first td:first-child { border-radius: 8px 0 0 0; }
+.mi-grp-row.mi-grp-first td:last-child  { border-radius: 0 8px 0 0; }
+.mi-grp-row.mi-grp-last td {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+}
+.mi-grp-row.mi-grp-last td:first-child { border-radius: 0 0 0 8px; border-bottom: none; }
+.mi-grp-row.mi-grp-last td:last-child  { border-radius: 0 0 8px 0; border-bottom: none; }
+.mi-grp-gap td {
+  padding: 0;
+  border: none;
+  background: transparent;
+  height: 9px;
+}
 #mi-footer-wrap {
   -webkit-flex-shrink: 0;
   flex-shrink: 0;
