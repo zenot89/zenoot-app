@@ -34,11 +34,11 @@ document.getElementById('page-modal-induk').innerHTML = `
       <table class="tbl">
         <thead>
           <tr>
-            <th>SKU Induk (Katalog)</th>
-            <th>Boss</th>
-            <th style="text-align:center">Jml Varian</th>
-            <th style="text-align:center">Total Sisa</th>
+            <th>SKU Induk</th>
+            <th>SKU Variasi</th>
+            <th style="text-align:center">Sisa (Qty)</th>
             <th style="text-align:right">Total Modal</th>
+            <th>Supplier</th>
           </tr>
         </thead>
         <tbody id="mi-tbody">
@@ -111,30 +111,37 @@ async function loadModalInduk() {
       if (sisa <= 0) return;
 
       if (kat !== 'aktif') {
-        flat.push({ katalog: p.katalog || '—', boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
+        flat.push({ katalog: p.katalog || '—', sku: skuKey, boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
       } else if (typeof _stokVelocity === 'function') {
         const vel = _stokVelocity(sales7Map[skuKey], sales30Map[skuKey], sales90Map[skuKey]);
         if (vel === 'dead' || vel === 'zombie') {
-          flat.push({ katalog: p.katalog || '—', boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
+          flat.push({ katalog: p.katalog || '—', sku: skuKey, boss: p.boss || '—', sisa, hpp: p.hpp || 0 });
         }
       }
     });
+    flat.forEach(r => { r.nilai = r.sisa * r.hpp; });
 
-    // Group per katalog (SKU induk)
-    const grouped = {};
+    // Total per katalog (SKU induk) — dipakai buat urutan grup & metrik atas
+    const groupTotals = {};
     flat.forEach(r => {
-      const key = r.katalog;
-      if (!grouped[key]) grouped[key] = { katalog: key, boss: r.boss, bossSet: new Set(), varian: 0, sisa: 0, nilai: 0 };
-      grouped[key].bossSet.add(r.boss);
-      grouped[key].varian += 1;
-      grouped[key].sisa   += r.sisa;
-      grouped[key].nilai  += r.sisa * r.hpp;
+      if (!groupTotals[r.katalog]) groupTotals[r.katalog] = { katalog: r.katalog, varian: 0, sisa: 0, nilai: 0 };
+      groupTotals[r.katalog].varian += 1;
+      groupTotals[r.katalog].sisa   += r.sisa;
+      groupTotals[r.katalog].nilai  += r.nilai;
+    });
+    const groupList = Object.values(groupTotals).sort((a, b) => b.nilai - a.nilai);
+    const groupRank = {};
+    groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
+
+    // Urutan tampil: per grup SKU induk (modal terbesar dulu), lalu varian di dalamnya modal terbesar dulu
+    const rows = flat.slice().sort((a, b) => {
+      const rk = groupRank[a.katalog] - groupRank[b.katalog];
+      if (rk !== 0) return rk;
+      return b.nilai - a.nilai;
     });
 
-    const rows = Object.values(grouped).sort((a, b) => b.nilai - a.nilai);
-
-    document.getElementById('mi-total-katalog').textContent = rows.length.toLocaleString('id-ID');
-    document.getElementById('mi-total-varian').textContent  = rows.reduce((s, r) => s + r.varian, 0).toLocaleString('id-ID');
+    document.getElementById('mi-total-katalog').textContent = groupList.length.toLocaleString('id-ID');
+    document.getElementById('mi-total-varian').textContent  = rows.length.toLocaleString('id-ID');
     document.getElementById('mi-total-nilai').textContent   = fmtRp(rows.reduce((s, r) => s + r.nilai, 0));
 
     if (!rows.length) {
@@ -143,18 +150,25 @@ async function loadModalInduk() {
       return;
     }
 
+    let prevKatalog = null;
     tbody.innerHTML = rows.map(r => {
-      const bossLabel = r.bossSet.size > 1 ? [...r.bossSet].join(', ') : r.boss;
+      const isNewGroup = r.katalog !== prevKatalog;
+      prevKatalog = r.katalog;
+      const g = groupTotals[r.katalog];
+      const katalogCell = isNewGroup
+        ? `<td style="font-weight:700;border-top:2px solid var(--ink3)">${r.katalog}<div style="font-weight:400;font-size:10px;color:var(--ink3)">${g.varian} varian · ${fmtRp(g.nilai)}</div></td>`
+        : `<td></td>`;
+      const rowBorder = isNewGroup ? 'border-top:2px solid var(--ink3)' : '';
       return `<tr>
-        <td style="font-weight:700">${r.katalog}</td>
-        <td>${bossLabel}</td>
-        <td style="text-align:center">${r.varian}</td>
-        <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:right;color:var(--warn);font-weight:700">${fmtRp(r.nilai)}</td>
+        ${katalogCell}
+        <td style="${rowBorder}">${r.sku}</td>
+        <td style="text-align:center;${rowBorder}">${r.sisa.toLocaleString('id-ID')}</td>
+        <td style="text-align:right;color:var(--warn);font-weight:700;${rowBorder}">${fmtRp(r.nilai)}</td>
+        <td style="${rowBorder}">${r.boss}</td>
       </tr>`;
     }).join('');
 
-    document.getElementById('mi-footer').textContent = `${rows.length} SKU induk · ${rows.reduce((s, r) => s + r.varian, 0)} varian SKU`;
+    document.getElementById('mi-footer').textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
 
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
