@@ -13,9 +13,6 @@ document.getElementById('page-restock').innerHTML = `
         <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
           <i class="ti ti-refresh"></i>
         </button>
-        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-          <i class="ti ti-tag"></i> Produk Clearance
-        </button>
         <div id="restock-summary-btn-wrap"></div>
       </div>
     </div>
@@ -31,9 +28,6 @@ document.getElementById('page-restock').innerHTML = `
       <div id="restock-aksi-mobile" style="display:flex;gap:6px;align-items:center;padding:8px 14px 6px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="loadRestock()" title="Refresh" style="padding:4px 8px">
           <i class="ti ti-refresh"></i>
-        </button>
-        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px">
-          <i class="ti ti-tag"></i> Clearance
         </button>
         <div id="restock-tab-bar-wrap-mobile" style="margin-left:auto"></div>
       </div>
