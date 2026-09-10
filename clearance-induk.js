@@ -7,9 +7,15 @@ document.getElementById('page-clearance-induk').innerHTML = `
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <span><i class="ti ti-stack-2"></i> Modal per SKU Induk</span>
-      <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
-        <i class="ti ti-arrow-left"></i> Kembali ke Clearance Monitor
-      </button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select id="mi-filter-sku" onchange="miFilterBySku(this.value)"
+          style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--ovl-0_1);background:var(--cream2);color:var(--ink)">
+          <option value="">Semua SKU</option>
+        </select>
+        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
+          <i class="ti ti-arrow-left"></i> Back
+        </button>
+      </div>
     </div>
 
     <div id="mi-metrics-strip" class="metrics" style="grid-template-columns:repeat(3,1fr);margin:0">
@@ -81,6 +87,28 @@ setTimeout(() => {
 let _miGroupTotals = null;  // { katalog: {katalog,varian,sisa,nilai} }
 let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}]
 let _miSort        = { col: null, dir: null };  // null = netral (default: modal desc)
+let _miSkuFilter   = '';    // '' = semua SKU
+
+function miPopulateSkuFilter() {
+  const sel = document.getElementById('mi-filter-sku');
+  if (!sel || !_miGroupTotals) return;
+  const skus = Object.keys(_miGroupTotals).sort((a, b) => a.localeCompare(b));
+  const prev = _miSkuFilter;
+  sel.innerHTML = '<option value="">Semua SKU</option>' +
+    skus.map(k => `<option value="${k}">${k}</option>`).join('');
+  // pertahankan pilihan sebelumnya kalau masih valid, kalau nggak reset ke "Semua SKU"
+  if (prev && skus.includes(prev)) {
+    sel.value = prev;
+  } else {
+    _miSkuFilter = '';
+    sel.value = '';
+  }
+}
+
+function miFilterBySku(val) {
+  _miSkuFilter = val || '';
+  miRenderTable();
+}
 
 function miSort(col) {
   if (_miSort.col === col) {
@@ -117,20 +145,25 @@ function miRenderTable() {
 
   const sortCol = _miSort.col || 'nilai';
   const sortDir = _miSort.col ? _miSort.dir : 'desc';
-  const groupList = Object.values(_miGroupTotals).sort((a, b) => {
-    let d;
-    if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
-    else d = a[sortCol] - b[sortCol];
-    return sortDir === 'asc' ? d : -d;
-  });
+  const groupList = Object.values(_miGroupTotals)
+    .filter(g => !_miSkuFilter || g.katalog === _miSkuFilter)
+    .sort((a, b) => {
+      let d;
+      if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
+      else d = a[sortCol] - b[sortCol];
+      return sortDir === 'asc' ? d : -d;
+    });
   const groupRank = {};
   groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
 
-  const rows = _miFlatRows.slice().sort((a, b) => {
-    const rk = groupRank[a.katalog] - groupRank[b.katalog];
-    if (rk !== 0) return rk;
-    return b.nilai - a.nilai;
-  });
+  const rows = _miFlatRows
+    .filter(r => !_miSkuFilter || r.katalog === _miSkuFilter)
+    .slice()
+    .sort((a, b) => {
+      const rk = groupRank[a.katalog] - groupRank[b.katalog];
+      if (rk !== 0) return rk;
+      return b.nilai - a.nilai;
+    });
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
@@ -194,7 +227,7 @@ function miRenderFlashSale() {
   const groupRank = {};
   groupOrder.forEach((g, i) => { groupRank[g.katalog] = i; });
 
-  const flashFlat = _miFlatRows.filter(r => r.sisa >= 3);
+  const flashFlat = _miFlatRows.filter(r => r.sisa >= 3 && (!_miSkuFilter || r.katalog === _miSkuFilter));
 
   if (!flashFlat.length) {
     tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
@@ -322,6 +355,7 @@ async function loadModalInduk() {
 
     _miGroupTotals = groupTotals;
     _miFlatRows    = flat;
+    miPopulateSkuFilter();
     miRenderTable();
 
   } catch (err) {
