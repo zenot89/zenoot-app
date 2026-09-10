@@ -13,7 +13,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <option value="">Semua SKU</option>
         </select>
         <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
-          <i class="ti ti-arrow-left"></i> Back
+          <i class="ti ti-list-details"></i> Detail per SKU
         </button>
       </div>
     </div>

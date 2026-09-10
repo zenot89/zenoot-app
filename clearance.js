@@ -22,16 +22,11 @@ document.getElementById('page-clearance').innerHTML = `
           style="display:none;align-items:center;gap:4px;font-size:12px;border-color:var(--danger);color:var(--danger)">
           <i class="ti ti-x"></i> Reset Filter
         </button>
-
-        <!-- Modal per SKU Induk -->
-        <button class="btn btn-sm" onclick="gotoPage('clearance-induk',null)" style="font-size:12px">
-          <i class="ti ti-stack-2"></i> Modal per SKU Induk
-        </button>
       </div>
 
-      <!-- Kanan: kembali -->
-      <button class="btn btn-sm" onclick="gotoPage('restock',null)" style="font-size:12px">
-        <i class="ti ti-arrow-left"></i> Kembali ke Re-Stock
+      <!-- Kanan: kembali ke Modal per SKU Induk (halaman pertama) -->
+      <button class="btn btn-sm" onclick="gotoPage('clearance-induk',null)" style="font-size:12px">
+        <i class="ti ti-arrow-left"></i> Back
       </button>
     </div>
 
