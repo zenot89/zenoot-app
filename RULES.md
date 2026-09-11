@@ -1,585 +1,81 @@
-# RULES.md — Panduan Kerja untuk Claude di Project Zenoot
-
-> **Buat Claude yang baca ini:** file ini adalah "memori" dari sesi-sesi sebelumnya.
-> Baca SELURUH file ini dulu sebelum megang kode, sebelum nanya-nanya ke user,
-> dan sebelum bikin asumsi. User akan upload file .zip project + file ini setiap
-> mulai sesi baru — anggap ini pengganti context yang hilang karena sesi lama abis.
-
----
-
-## 1. Tentang Project
-
-**Zenoot** adalah aplikasi PWA (Progressive Web App) buat UMKM garmen/konveksi —
-mencatat produksi, pendapatan, kas, jurnal, dsb. Single Page App, vanilla JS
-(TANPA framework kayak React/Vue), backend Supabase (Postgres + REST API).
-
-Modul yang paling banyak dikerjain sejauh ini: **Gadag** (`gadag.js`) — modul
-pencatatan ongkos jahit/makloon per lusin. Tapi pola-pola di bawah ini berlaku
-buat modul lain juga (Kas, Jurnal, dll) karena mereka satu arsitektur.
-
-**Stack:**
-- Frontend: vanilla JS, HTML string di-inject via `innerHTML`, CSS inline di dalam `<style>` tag per file
-- Backend: Supabase (REST API langsung dari client pakai anon key, TIDAK ada auth/session)
-- PWA: ada `sw.js` (service worker) buat caching offline
-- Font & ikon: Tabler Icons (`class="ti ti-*"`) via CDN, Google Fonts via `<link>`
-
-**Palet brand (4 warna netral, dikonfirmasi user 2 Sep 2026):**
-| Nama | Hex | CSS var (`:root`) | Pemakaian |
-|---|---|---|---|
-| Abu tua | `#2B2B2B` | `--ink` | teks, tombol utama, badge |
-| Putih | `#FFFFFF` | `--cream2` | background kartu/menu |
-| Abu muda | `#F0EFEB` | `--cream` | background halaman |
-| Abu netral | `#8A8580` | `--ink2` | subteks/keterangan |
-
-Ini murni netral (gak ada warna aksen kayak merah/ijo/biru) — status color
-(`--danger`, `--ok`, `--info`, `--warn`) itu sistem TERPISAH, jangan disamain
-sebagai "warna brand" pas user nyebut itu.
-
----
-
-## 2. Struktur File & Cara Kerja 1 Halaman
-
-Setiap "halaman"/modul (Gadag, Kas, Jurnal, dst) itu **1 file JS mandiri**
-(`gadag.js`, `kas.js`, dst), pola isinya:
-
-```js
-// 1. Comment di atas file = dokumentasi skema tabel Supabase yg dipakai
-// Tabel: gadag_sku        { id, nama, ongkos_lusin, created_at }
-// Tabel: gadag_pendapatan { id, tanggal, sku_id, sku_nama, ongkos_lusin, qty, total, created_at }
-
-let _xxxState = []; // state global di-prefix sesuai modul (gdg untuk Gadag)
-
-document.getElementById('page-gadag').innerHTML = `
-<style> /* SEMUA css khusus halaman ini nempel di sini, per-file */ </style>
-<div id="gdg-panel-mingguan" class="gdg-panel active"> ... </div>
-<div id="gdg-panel-pendapatan" class="gdg-panel"> ... </div>
-<!-- panel lain... -->
-<!-- modal-modal... -->
-`;
-
-function gdgInit() { ... }       // dipanggil pas halaman dibuka
-function gdgLoad() { ... }       // fetch data dari Supabase, render ulang
-function gdgApplyView() { ... }  // show/hide panel sesuai menu yg dipilih
-// dst — semua fungsi di-prefix sesuai modul (gdg = Gadag, kas = Kas, dst)
-```
-
-**Kenapa dijelasin ini duluan:** karena SEMUA edit ke halaman ini artinya edit
-1 file JS gede yang isinya HTML template string + CSS + logic jadi satu. Hati-hati
-pas `str_replace` — banyak string mirip (misal ada 4 tombol Refresh yang keliatan
-identik tapi beda konteks/panel).
-
----
-
-## 3. WAJIB Sebelum Mulai Edit
-
-1. **`view` file yang relevan dulu**, jangan langsung `str_replace` berdasarkan
-   ingatan/asumsi dari chat history — file bisa udah berubah dari sesi sebelumnya.
-2. Kalau user kasih **screenshot bug**, coba reproduce dulu di kepala: baca kode
-   yang relevan, jangan langsung nebak/nambal gejala. Beberapa bug yang pernah
-   kejadian di project ini akar masalahnya nggak intuitif (lihat §5 — Jebakan).
-3. Setelah edit HTML-template-di-dalam-JS-string, **selalu validasi struktur**
-   sebelum ngasih file ke user (lihat §6 — cara validasi). Ini WAJIB karena
-   bug paling parah yang pernah kejadian di project ini adalah HTML yang gagal
-   nge-nest dengan benar (§5.1).
-4. Kirim balik **HANYA file yang berubah** (bukan seluruh zip), kecuali user
-   minta zip utuh. User lebih suka replace file satu-satu ke project asli dia.
-5. Pakai `present_files` buat setiap file yang dikasih ke user.
-
----
-
-## 4. Gaya Komunikasi yang Dipakai User
-
-- User nulis santai, campur huruf besar buat emphasis, kadang typo — itu normal,
-  jangan dikoreksi, langsung pahami maksudnya.
-- Bahasa Indonesia informal ("gua/lo" register), balas dengan register yang sama
-  (bukan bahasa formal/baku).
-- User SUKA penjelasan **root cause**, bukan cuma "udah aku benerin". Selalu
-  jelasin KENAPA bug itu terjadi sebelum ngejelasin fix-nya — user teknikal dan
-  menghargai pemahaman, bukan cuma hasil.
-- Kalau user kasih beberapa poin dalam 1 pesan (poin 1, poin 2, dst), kerjain
-  SEMUA poin dalam 1 balasan, jangan cuma sebagian terus nanya lanjut.
-- Kalau ada mockup/referensi visual (screenshot Canva dkk), ikutin sedetail
-  mungkin tapi tetep kasih tau keterbatasan teknis kalau ada (contoh: font
-  custom Canva "More Sugar" nggak bisa di-embed ke web, jadi dikasih fallback
-  dan dijelasin kenapa).
-
----
-
-## 5. Jebakan & Pola Penting (WAJIB paham sebelum edit)
-
-### 5.1. Panel show/hide — JANGAN PERNAH kasih `display` di ID selector tanpa `.active`
-
-Semua panel pakai pola:
-```css
-.gdg-panel { display: none; }
-.gdg-panel.active { display: block; }
-```
-```js
-document.getElementById('gdg-panel-xxx').classList.toggle('active', kondisi);
-```
-
-**JEBAKAN YANG PERNAH KEJADIAN:** nulis rule kayak
-`#gdg-panel-pendapatan { display: flex; }` (ID selector, TANPA `.active`) —
-ini spesifisitasnya LEBIH TINGGI dari `.gdg-panel{display:none}`, jadi panel
-itu **selalu keliatan** biarpun nggak aktif, numpuk di atas panel lain (bocor
-data antar halaman). FIX: selalu tulis `#gdg-panel-xxx.active { display: ...; }`
-kalau butuh override display selain `block` (misal butuh `flex`).
-
-### 5.2. Validasi HTML setelah edit — hitung jumlah tag doang TIDAK CUKUP
-
-Jumlah `<div>` == jumlah `</div>` bisa sama padahal nesting-nya salah (div
-ke-tutup di tempat yang salah, ke-nest di parent yang salah). WAJIB pakai
-depth-checker (lihat §6), bukan cuma `grep -c`.
-
-### 5.3. `@import` CSS di tengah `<style>` block = di-skip diem-diem
-
-`@import url(...)` WAJIB jadi baris PALING PERTAMA di sebuah stylesheet.
-Kalau ditaruh di tengah (misal buat load Google Font), browser SKIP baris itu
-tanpa error apapun — susah didebug karena keliatannya "harusnya jalan".
-**Solusi yang dipakai:** load font via `<link rel="stylesheet">` yang di-`
-appendChild` ke `document.head` lewat JS (sekali aja, ada guard biar nggak
-dobel), BUKAN `@import` di dalam `<style>` template.
-
-### 5.4. Spesifisitas CSS vs inline style vs class lain
-
-Banyak elemen di file ini punya `style="font-family:var(--f)"` inline, dan
-`style.css` global punya puluhan class spesifik (`.m-value`, dst) yang set
-property sendiri. Kalau mau override tampilan sebuah section secara total
-(contoh: tema notebook khusus `#page-gadag`), **inline style menang lawan
-apapun kecuali `!important`**. Solusinya pakai universal selector +
-`!important`: `#page-gadag *:not(i):not(.ti) { ... !important; }` — TAPI
-selalu exclude elemen ikon (`<i class="ti ti-*">`), soalnya ikon itu font
-khusus (tabler-icons) yang render glyph lewat font-family; kalau ke-timpa,
-ikon jadi kotak kosong.
-
-### 5.5. iOS Safari vs Android — kapan beda, kapan nggak
-
-- Perbedaan device Android vs iPhone **HAMPIR SELALU** soal device-width
-  (`@media max-width:900px`), BUKAN soal OS. Jangan buat logic yang cabang
-  berdasarkan deteksi OS kalau nggak kepepet.
-- iOS Safari kasih efek "mental"/bouncy pas scroll (elastic/rubber-band) dan
-  scrollTop kadang nggak monotonic pas momentum-scroll — kalau bikin logic
-  collapse/expand berbasis scroll listener, WAJIB kasih noise threshold +
-  cooldown (lihat pola di `_gdgInitScrollCollapse`), jangan react ke tiap
-  event scroll mentah-mentah.
-- Modal/bottom-sheet yang responsif ke keyboard iOS **WAJIB** pakai
-  `window.visualViewport` (resize + scroll listener), bukan cuma `dvh` CSS —
-  `dvh` cuma ngitung UI browser (address bar), BUKAN keyboard.
-- Font system (`Comic Sans MS`, dst) cuma ada di iOS, nggak ada di Android
-  stock. Kalau butuh tampilan identik di kedua platform, font WAJIB di-load
-  sendiri (Google Fonts/self-hosted), jangan andalin font sistem sebagai
-  prioritas pertama di font-stack.
-- App ini pakai `<meta name="color-scheme" content="dark">` global (`index.html`)
-  — native form control (date picker dsb) akan selalu dark, walau card di
-  sekitarnya udah tema terang. Ini expected behavior, bukan bug, kecuali
-  user minta diubah global.
-
-### 5.6. Service Worker (`sw.js`) — cache strategy per tipe file
-
-- `JS_APP_FILES` (termasuk `gadag.js`, `autocomplete.js`) → **network-first**,
-  jadi update ke file ini nyampe ke user relatif cepat.
-- CDN/font (`fonts.googleapis.com`, `fonts.gstatic.com`) → **cache-first**.
-  URL font BARU (belum pernah di-fetch) tetap bisa network-fetch pertama kali
-  (cache-miss → fetch → cache), TAPI kalau app di-install sebagai PWA,
-  service worker versi lama bisa nyangkut sampai ada update-cycle — kalau user
-  bilang "perubahan nggak muncul di manapun" padahal kode udah bener, curigai
-  ini juga, bukan cuma kesalahan kode.
-
-### 5.7. Mobile-only vs semua-platform
-
-Kalau user minta perubahan **khusus HP** (bukan laptop), JANGAN ubah elemen
-yang sama — bikin 2 versi (desktop & mobile) pakai class toggle:
-```css
-.gdg-mobile-only { display: none; }
-@media (max-width: 900px) {
-  .gdg-desktop-only { display: none !important; }
-  .gdg-mobile-only  { display: block; }
-}
-```
-Breakpoint `900px` ini yang udah dipakai konsisten di seluruh modul Gadag buat
-mobile/desktop split (sama kayak breakpoint bottom-sheet). Pertahanin angka ini
-biar konsisten, jangan bikin breakpoint baru tanpa alasan kuat.
-
-### 5.8. Copyright/font Canva
-
-Font eksklusif Canva (misal "More Sugar") TIDAK BISA di-embed ke web. Kalau
-user minta font semacam itu, cari font Google Fonts yang paling mirip sebagai
-pengganti, dan bilang terus terang kenapa nggak bisa pakai yang asli.
-
-### 5.8.5. Input teks yang harusnya "nyambung" ke tabel lain → pakai `acAttach`, bukan free-text polos
-
-Ada modul (`autocomplete.js`) yang nempelin dropdown saran ke sebuah
-`<input>`, isinya dari kolom tabel Supabase lain (bukan histori
-session — beneran query). Dipakai pas ada 2 field di modul BEDA yang
-konsepnya harusnya sama tapi disimpan sebagai teks bebas masing-masing
-(rawan typo bikin mismatch senyap, gak ada error, cuma logic di modul lain
-diam-diam salah — contoh nyata: `restock_supplier.boss` (teks bebas) vs
-`produk.boss` (sumber asli), lihat §7 kalau nambah source baru — key baru
-di `_acSources`, terus `acAttach(input, 'key_baru')` pas modal render/buka.
-JANGAN bikin field itu jadi `<select>` native (lihat §5.5 soal native
-control) — autocomplete ini yang jadi standarnya, tetap ngizinin ketik bebas
-buat kasus valid yang belum ada di tabel sumbernya.
-
-### 5.8.6. Container yang "harus selalu beda tema" dari `:root` — WAJIB re-scope CSS var, gak otomatis ngikut
-
-Beberapa container di-hardcode background-nya beda dari tema default halaman
-(`.sidebar` selalu gelap `#0e0e0e` walau app-nya tema terang; card
-Net Worth/Beban/FCF di Dashboard — `#nw-swipe-container` — sengaja beda tema
-juga). Kalau container kayak gini CUMA hardcode `background`-nya doang tanpa
-ikut redeclare custom property (`--ink`, `--ink3`, `--danger`, `--ok`, dst),
-elemen di dalamnya yang baca `var(--ink)` dkk bakal ambil nilai dari `:root`
-— yang didesain buat tema SEBALIKNYA. Hasilnya teks nyaris invisible (teks
-terang di atas bg terang, atau teks gelap di atas bg gelap), TAPI CSS-nya
-keliatan "benar" kalau cuma dibaca sekilas (gak ada typo, gak ada error).
-
-**Kejadian nyata:** teks "zenOt" di logo sidebar & label nav-item aktif
-nyaris gak keliatan (root `--ink`/`--active-nav` itu buat tema terang, dibaca
-sidebar yang selalu gelap). Juga di Dashboard: label & badge di card Net
-Worth pakai warna yang sama persis kayak background barunya.
-
-**Pola fix yang established:** scope ulang custom property yang relevan di
-level container (`#page-gadag`, `.sidebar`, `#nw-swipe-container` — lihat
-kode buat contoh), BUKAN hardcode warna satu-satu di tiap child selector.
-Keuntungan: otomatis ke-apply ke elemen yang warnanya di-inject inline dari
-JS pakai `style="color:var(--danger)"` juga (lihat §5.11 kenapa ini penting).
-
-**WAJIB dicek sebelum nganggep beres:** trace SEMUA child yang baca custom
-property itu di dalam container-nya (bukan cuma yang keliatan di screenshot
-user) — termasuk badge, hover state, placeholder text, dan style inline yang
-di-generate JS (`element.style.color = 'var(--xxx)'` atau template string
-`style="color:var(--xxx)"`). Grep `var(--nama-property)` di file `.js` yang
-relevan, jangan cuma di `style.css`.
-
-### 5.8.7. File JS bisa punya duplikat inline `<style>` — cek semua file, jangan cuma `style.css`
-
-Beberapa modul (`networth.js`) nyimpen COPY dari sebagian rule CSS yang juga
-ada di `style.css` (inject `<style>` sendiri saat widget-nya di-render).
-Kalau cuma edit `style.css` dan lupa cek duplikatnya, hasil fix bisa ke-override
-lagi tergantung urutan cascade (siapa yang nge-load terakhir menang kalau
-spesifisitasnya sama). **Sebelum nganggep 1 file css cukup buat fix warna/style
-sebuah komponen, `grep` nama class-nya di SEMUA file `.js`** — kalau ketemu
-duplikat, edit semuanya sekaligus biar konsisten.
-
-### 5.8.8. SEBELUM edit warna/style sebuah class, `grep` DULU apakah class itu beneran dipakai di JS — dan cek class TURUNANNYA gak di-share ke component lain
-
-**Kejadian nyata:** ada 2 class mirip nama, `.kas-tipe-card` (list 1 kolom,
-background gelap) dan `.kas-tipe-cell` (grid 2 kolom, background TERANG
-`var(--cream3)`). Pas benerin kontras di modul Kas, kena edit `.kas-tipe-card`
-— padahal class itu **dead code, 0 pemakaian** di JS manapun (`grep` baru
-ketauan belakangan). Yang lebih parah: `.kas-tipe-label` (teks label) itu
-**di-share** kedua class itu. Karena dikira cuma dipake di card gelap, warnanya
-diganti terang (`var(--ink)` → `var(--cream)`) — hasilnya beneran fix di card
-yang gak kepake, tapi JUSTRU MERUSAK `.kas-tipe-cell` yang asli dipakai user
-(teks terang di atas bg terang, kontras dari harusnya bagus jadi 1.08).
-
-**Wajib sebelum ubah warna/background sebuah class:**
-1. `grep -rn "nama-class" *.js` DULU — pastiin class itu beneran ke-render,
-   bukan cuma nebak dari nama yang "kedengeran cocok" sama bug di screenshot.
-2. Kalau mau ubah property yang ke-share banyak selector (`color`, dst),
-   cek SEMUA selector yang pakai class itu (`grep -n "\.nama-class" style.css`)
-   dan pastiin background di TIAP konteks pemakaiannya sama-sama cocok sama
-   warna baru — jangan asumsi 1 konteks mewakili semua.
-3. Kalau ternyata ada 2+ class mirip nama/fungsi tapi cuma 1 yang kepake,
-   PERTIMBANGIN buat kasih tau user ada dead code (biar bisa dihapus atau
-   di-rename biar gak nyasar lagi ke depannya).
-
-
-
-### 5.8.9. Live site (`zenot89.github.io`) bisa beda versi dari zip yang di-upload user
-
-Pernah kejadian: nilai `--danger` di `:root` (`style.css` dalam zip) beda
-dari warna yang benar-benar ke-render di screenshot live site user (root
-bilang satu hex, tapi yang muncul di layar persis nilai fallback lama —
-indikasi live site jalanin versi `style.css` yang beda/lebih lama dari yang
-ada di zip). **Kalau nemu kejanggalan gini, jangan maksa nyocokin analisis
-ke pixel screenshot** — cukup flag ke user sebagai catatan ("live site
-mungkin belum sinkron sama zip ini"), dan tetap kerjain fix berdasarkan
-KODE YANG ADA DI ZIP (itu yang bakal di-replace user), bukan berdasarkan
-nebak-nebak dari pixel yang mungkin representasi versi lama.
-
-### 5.8.10. Ubah nilai variable di `:root` bisa ngerusak area gelap yang DIAM-DIAM numpang nilai lama itu
-
-Beda kasus sama §5.8.6 (container gelap yang gak redeclare var). Di sini
-containernya UDAH benar redeclare beberapa var (`--ink`, `--cream`, dst),
-tapi ada var LAIN yang kebetulan gak pernah di-redeclare karena nilai
-`:root`-nya SAAT ITU kebetulan udah cocok buat kedua konteks (terang & gelap).
-Begitu nilai `:root` itu diubah (misal `--ink3`/`--warn`/`--ok`/`--danger`
-digelapin biar kontras di halaman terang), SEMUA tempat yang diam-diam
-numpang nilai lama itu di halaman/komponen gelap ikut kena — walau
-komponennya sendiri gak disentuh sama sekali.
-
-**Checklist WAJIB tiap kali ubah nilai di `:root` (bukan cuma nambah var
-baru, tapi ubah value yang UDAH ADA):**
-1. `grep -n "var(--nama-property)"` ke SELURUH `style.css` DAN semua `.js`
-   (inline style), cari SEMUA pemakaian, bukan cuma yang lagi jadi fokus.
-2. Buat tiap hasil grep, cek background AKTUAL di konteks itu — apakah
-   gelap (butuh versi terang) atau terang (butuh versi gelap/baru)?
-3. Cek juga blok `@media (prefers-color-scheme: dark)` — kalau ada
-   `:root { --xxx: ... !important }` di situ, itu WAJIB di-update juga,
-   kalau kelewat bakal nge-reset balik ke nilai lama pas OS user dark mode.
-4. Buat tiap konteks gelap yang ketemu di langkah 2, kalau container-nya
-   belum redeclare var itu, tambahin scope preservasi (isi ULANG nilai
-   LAMA di situ) — JANGAN samain user harus terima efek samping di area
-   yang gak mereka minta diubah.
-
-Contoh nyata: gelapin `--ink3`/`--warn`/`--ok`/`--danger` buat benerin
-kontras di halaman terang (root), ternyata numpang dipakai juga di
-`.sidebar`, `.kas-akun-list`, dan `#page-gadag`/`#page-hutang-supplier`
-— 3 tempat gelap yang sebelumnya "kebetulan benar" karena nilai lama
-`:root` pas kebetulan terang. Semua itu perlu scope preservasi terpisah.
-
-
-
-
-**Gejala:** tombol Export PDF bikin app **force-close total** (bukan error
-JS biasa yang bisa di-`alert()`) — kejadian di Android, khusus pas app
-dibuka lewat **PWA yang di-"Add to Home Screen"** (`display:standalone`),
-bukan pas dibuka lewat tab Chrome biasa.
-
-**Histori percobaan yang GAGAL** (dari kasus nyata di Cost Produksi, 29 Agu
-2026 — semua modul yang masih pakai pola pertama di bawah ini KEMUNGKINAN
-BESAR juga kena, termasuk Gadag & Hutang Barang per saat ditulis):
-
-1. **`window.open(blobURL, '_blank')` + `window.print()`** (pola lama Gadag,
-   `gdgExportRiwayatPDF` dkk) — CRASH. Teori awal: `blob:` URL cuma valid di
-   proses yang bikin dia, `window.open` coba lempar ke browsing context lain
-   (tab/window baru) → force close.
-2. **jsPDF + autoTable, `doc.save()` buat Android/desktop, `navigator.share()`
-   buat iOS** (pola yang dipakai `hutang-supplier.js`, awalnya dikira udah
-   fix) — user lapor **masih crash juga** di Android, padahal jalur Android
-   di sini SAMA SEKALI nggak manggil `window.open` ataupun `navigator.share`.
-   Ini yang bikin teori #1 di atas jadi diragukan — kemungkinan bukan cuma
-   soal blob-lintas-context, tapi jsPDF+autoTable sendiri (library berat)
-   yang bikin memory pressure di WebView standalone PWA (yang resource-nya
-   lebih terbatas dibanding tab Chrome biasa).
-3. **jsPDF + autoTable, `navigator.share()` dicoba juga di Android** — masih
-   crash (belum ke-konfirmasi beda dari #2).
-
-**Pola yang KEBUKTI JALAN (dikonfirmasi user via screenshot Android, 30 Agu
-2026) — status FINAL, jangan diutak-atik lagi tanpa laporan crash baru:**
-
-jsPDF + autoTable seperti biasa, tapi delivery-nya `navigator.share({ files:
-[pdfFile] })` **TANPA field `title`**, dicoba di SEMUA platform (bukan cuma
-iOS), fallback ke `doc.save()` kalau `canShare` gak ada / share gagal /
-user cancel. Konfirmasi: PDF "SLIP BAYARAN KARYAWAN" dari Cost Produksi
-berhasil terkirim ke WhatsApp di Android PWA standalone, gak force-close.
-
-```js
-if (navigator.canShare) {
-  try {
-    var pdfFile = new File([doc.output('arraybuffer')], fileName, { type: 'application/pdf' });
-    if (navigator.canShare({ files: [pdfFile] })) {
-      navigator.share({ files: [pdfFile] }).catch(function(err) {
-        if (err && err.name !== 'AbortError') doc.save(fileName);
-      });
-      return;
-    }
-  } catch (e) { /* fallback ke doc.save() di bawah */ }
-}
-doc.save(fileName);
-```
-
-Kenapa `title` dibuang: percobaan awal (yang masih dianggap "aman" waktu itu)
-nyertain `title: fileName`, dan itu bikin sebagian target app share (Samsung
-Notes dkk) munculin dialog perantara ("Pilih format PDF") sebelum file
-beneran terkirim — nambah klik yang gak perlu. Files-only = share sheet
-langsung muncul, minim langkah.
-
-Sudah diterapin di `cpDoExportJurnalPDFInner` (cost-produksi.js) dan
-`hsBuildAndDeliverBonPDF` (hutang-supplier.js) per 30 Agu 2026. Kalau nambah
-export PDF baru di modul lain (Gadag dkk), pakai pola inilah, BUKAN
-`window.open(blob)` (percobaan #1, gagal) atau iframe hidden print
-(sempat jadi rencana cadangan, tapi gak jadi dipakai — kepentok lebih ribet
-+ browser print dialog default nempelin header/footer URL halaman kecuali
-user manual matiin, jadi bukan pilihan yang direkomendasiin).
-
-**Cara diagnosis kalau ternyata masih ada laporan crash di device lain:**
-minta user sambungin HP Android ke laptop via USB, buka `chrome://inspect`
-di Chrome laptop, reproduce bug-nya, liat console log SEBELUM app
-force-close. Itu satu-satunya cara dapet signal asli — jangan nebak-nebak
-berkali-kali tanpa data kayak yang kejadian di histori percobaan #1-3 di atas.
-
----
-
-## 6. Cara Validasi Sebelum Present File ke User
-
-Jalanin ini di `bash_tool` SETIAP KALI abis edit HTML-template-di-dalam-JS,
-sebelum `present_files`:
-
-```bash
-node -e "
-const fs = require('fs');
-let c = fs.readFileSync('NAMA_FILE.js','utf8');
-console.log('brace {', (c.match(/\{/g)||[]).length, '} ', (c.match(/\}/g)||[]).length);
-
-const start = c.indexOf('innerHTML = \`');
-const end   = c.indexOf('\`;', start);
-const html  = c.slice(start, end);
-const tags  = html.match(/<div\b[^>]*>|<\/div>/g) || [];
-let depth = 0, bad = false;
-for (const t of tags) {
-  if (t.startsWith('<div')) depth++;
-  else { depth--; if (depth < 0) bad = true; }
-}
-console.log('final div depth (harus 0):', depth, bad ? '❌ ADA YANG MINUS DI TENGAH' : '✅');
-"
-```
-
-Kalau depth akhir bukan 0, ATAU sempat minus di tengah proses, JANGAN kirim
-file itu — cari `</div>` yang ilang/nyasar dulu.
-
-Untuk cek panel-panel sejajar (bukan numpuk nested), pakai variasi script yang
-nge-track depth tiap `id="gdg-panel-xxx"` ketemu — semua panel harus punya
-depth yang SAMA (lihat riwayat percakapan buat contoh scriptnya).
-
-### 6.1. Validasi kontras warna (WCAG) sebelum ngasih rekomendasi/fix warna teks
-
-Kalau kerjaannya ganti warna background/teks (bukan cuma layout/logic),
-JANGAN nebak "kayaknya kontras" dari mata doang — hitung rasio WCAG-nya:
-
-```python
-def lin(c):
-    c/=255
-    return c/12.92 if c<=0.03928 else ((c+0.055)/1.055)**2.4
-def lum(hex):
-    hex=hex.lstrip('#')
-    r,g,b=int(hex[0:2],16),int(hex[2:4],16),int(hex[4:6],16)
-    return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b)
-def contrast(a,b):
-    la,lb=lum(a),lum(b)
-    L1,L2=max(la,lb),min(la,lb)
-    return (L1+0.05)/(L2+0.05)
-```
-
-Target minimum: **4.5:1** buat teks normal (AA), **3:1** buat teks besar/bold
-(≥18.66px bold atau ≥24px), **7:1** kalau user minta "lebih kontras lagi" (AAA).
-Kalau background-nya semi-transparan (badge `rgba(...)`), hitung dulu warna
-hasil composite-nya di atas base background sebelum ngukur kontras teksnya
-(jangan ukur langsung ke warna rgba mentahnya). Sample pixel asli dari
-screenshot user (`PIL.Image.getpixel`) kalau ada keraguan warna yang
-BENERAN ke-render vs yang tertulis di CSS (lihat §5.8.9).
-
----
-
-## 7. Database (Supabase)
-
-- Helper yang udah ada (`supabase.js`): `dbGet(table, filter)`,
-  `dbInsert(table, payload)`, `dbUpdate(table, id, payload)`,
-  `dbDelete(table, id)`. Filter format: `'&kolom=eq.nilai'` (leading `&`).
-- **Tidak ada auth/session** — semua akses lewat anon key langsung dari client.
-- Kalau bikin tabel baru dan Supabase nanya soal RLS (Row Level Security):
-  pilih **"Run without RLS"**, biar konsisten sama tabel-tabel lain yang udah
-  ada (yang juga nggak pakai RLS). Kalau pilih "Run and enable RLS" tanpa
-  nambahin policy, tabel itu bakal nolak SEMUA request dari app (termasuk yang
-  sah), error "permission denied".
-- Uang/currency disimpan sebagai `numeric` polos (tanpa simbol/titik), format
-  tampilan "Rp xxx.xxx" itu kerjaan fungsi `gdgFmt()` di JS, BUKAN di database.
-
-**Tabel yang udah ada (Gadag):**
-```sql
-gadag_sku        { id, nama, ongkos_lusin, created_at }
-gadag_pendapatan { id, tanggal, hari, warna, sku_id, sku_nama, ongkos_lusin, qty, total, created_at }
-gadag_anggaran   { id, minggu_mulai (date, unique), target (numeric), deskripsi (text, opsional), created_at }
-```
-
----
-
-## 7.5. Service Worker (`sw.js`) — Kapan WAJIB Bump Cache Version
-
-`sw.js` punya 3 bucket cache beda strategi:
-
-- **`CACHE_VERSION`** (`STATIC_ASSETS`: `logo.png`, `icon-192.png`, `icon-512.png`,
-  `gadag-icon.png`, `manifest.json`) → **cache-first**, gambar/aset statis.
-- **`JS_CACHE`** (semua file `.js` + `style.css`) → **network-first**, selalu
-  ambil versi terbaru. Auto di-bump tiap push ke `main` lewat
-  `.github/workflows/auto-version.yml` (hash `*.js style.css index.html`).
-- **`index.html`** → **selalu network**, tidak pernah dicache sama sekali.
-
-**Akibatnya:** ganti isi file JS/CSS/HTML → user langsung dapet versi baru,
-gak perlu ngapa-ngapain (auto-version.yml udah handle). TAPI kalau yang
-diganti isinya salah satu dari 5 `STATIC_ASSETS` di atas (paling sering:
-ganti `gadag-icon.png` atau icon lain) → CI **TIDAK** nyentuh `CACHE_VERSION`,
-jadi browser bakal keukeuh serve file lama selama-lamanya walau filenya udah
-diganti di server/hosting.
-
-**Rule:** setiap kali isi salah satu `STATIC_ASSETS` diganti (bukan cuma
-ditambah — replace konten file yang sudah ada), **WAJIB** manual bump versi
-di `sw.js`:
-
-```js
-var CACHE_VERSION = 'zenot-static-v28'; // naikin angka + komentar alasannya
-```
-
-Gak perlu bump kalau yang diubah cuma JS/CSS/HTML biasa (itu udah auto).
-Kejadian nyata: `gadag-icon.png` diganti (bg transparan) tapi `CACHE_VERSION`
-lupa di-bump → user masih liat versi lama (bg hitam) walau file udah bener
-di-deploy. Fix-nya bump `v27` → `v28`.
-
----
-
-## 7.6. `present_files` — Kirim `sw.js` Juga Kalau Bump Cache Version
-
-Kalau sesi ini bump `CACHE_VERSION` di `sw.js` (lihat §7.5), **`sw.js` WAJIB**
-ikut di-`present_files`-kan ke user sebagai salah satu file yang berubah —
-jangan cuma bilang "udah dibenerin" tanpa ngirim file aktualnya (user perlu
-replace file itu di project dia, sama kayak semua file lain yang diedit).
-
----
-
-## 8. Pola UI yang Udah Establish (ikutin biar konsisten)
-  `gdgWGetMonday(date)` (namanya "Monday" tapi return hari Minggu — legacy
-  naming, jangan bingung), `gdgWToISO(date)`, `gdgWFmtRange(start,end)` (format
-  ringkas kayak "10-17 Ags 2026").
-- **Bottom-sheet modal** (mobile) pola IG-comment-style: drag handle di atas,
-  slide-up animation, sync ke `visualViewport`, drag-to-close di handle-nya
-  aja (bukan di seluruh body sheet, biar nggak nabrak scroll form).
-- **Long-press buat edit** (dipilih user daripada tombol Aksi/hapus per baris):
-  touchstart+setTimeout(~500ms)+cek movement threshold buat batalin kalau
-  ternyata itu scroll, bukan tekan-lama. Support juga mousedown/mouseup versi
-  desktop.
-- **Header per-panel** = 1 baris gabungan: `[Refresh] [tombol aksi lain kalau
-  ada] [ikon+judul panel] ......... [dropdown menu pilih panel]`. JANGAN bikin
-  toolbar Refresh terpisah di tiap panel lagi — itu udah dirapikan jadi 1 pola
-  seragam di semua panel.
-- **Card count/label** = tampilin info yang BERGUNA (jumlah data, dsb), BUKAN
-  ngulang nama panel yang udah ada di judul besar di atasnya (contoh: card
-  "Catatan" nggak perlu judul "Catatan" lagi di dalamnya, ganti jadi counter
-  "7 catatan").
-- **Export PDF** = jsPDF+autoTable → `navigator.share({ files:[pdfFile] })`
-  (TANPA `title`) di semua platform, fallback `doc.save()`. BUKAN
-  `window.open(blob)`, BUKAN `window.print()`/iframe print. Detail lengkap +
-  histori percobaan yang GAGAL sebelum ketemu pola ini: lihat §5.9.
-
-### 8.1. Anggaran (Kas + Gadag) — picker BRImo & auto-carry-forward (7 Sep 2026)
-
-- Modal "Set Anggaran" (`anggaran.js`, mode Tambah): `<select>` native "Akun
-  Beban" diganti bottom sheet BRImo-style + search, pola persis
-  `#kas-sheet-akun-picker` di Kas & Jurnal (id sendiri `ang-akun-sheet-*`,
-  `<select>` lama dipertahanin tersembunyi cuma sebagai value-holder biar
-  `angSimpan()`/`angAkunSelectChange()` gak perlu ditulis ulang).
-- `kas_anggaran` (nominal budget per akun per bulan) auto-carry-forward
-  (`angAutoCarryForward`, anggaran.js) — gantiin tombol manual "Salin Bulan
-  Lalu" yang dihapus. `gadag_anggaran` (seleksi akun mana yang ditrack di
-  Variable Anggaran Gadag) JUGA auto-carry-forward sekarang
-  (`gdgAngAutoCarryForward`, gadag.js) — pola identik: bulan aktif 0 row →
-  salin `nama` akun dari bulan lalu terdekat yang ada datanya (row baru,
-  bulan lalu gak disentuh, target selalu diinsert 0 — nominal beneran tetep
-  live dari `kas_anggaran`).
-- **PENTING:** toggle Mingguan/Bulanan di panel Anggaran Gadag itu CUMA cara
-  nampilin (1 sumber data `_gdgAnggaranList`/`gadag_anggaran` periode selalu
-  `'bulanan'`), BUKAN 2 tabel/seleksi terpisah — jadi 1 fungsi carry-forward
-  di atas udah nyakup kedua mode.
-
----
-
-## 9. Workflow Tiap Sesi Baru
-
-1. Extract file .zip yang user upload.
-2. Baca file ini (`RULES.md`) SAMPAI HABIS.
-3. Kalau user nunjuk modul spesifik (misal "di Gadag"), `view` file JS-nya
-   dulu SEBELUM ngerjain apapun — jangan asumsi struktur dari dokumentasi ini
-   doang, dokumentasi bisa ketinggalan kalau ada perubahan besar belakangan.
-4. Kerjain sesuai §3, §4, §5.
-5. Validasi sesuai §6 sebelum kirim file.
-6. Kirim file yang berubah aja lewat `present_files`, kasih rekap perubahan
-   dengan gaya bahasa sesuai §4 (santai, root-cause dulu baru fix).
+# RULES — Zenoot App
+
+## Rules kerja (wajib dibaca tiap sesi baru)
+
+- Selalu baca dan pahami struktur kode dari file ZIP yang dikirim sebelum mulai apapun
+- Trace properly — jangan tebak-tebak, harus trace flow secara menyeluruh sebelum menyimpulkan root cause
+- Tidak bolak-balik — fix harus benar dari awal, bukan reaktif trial-error
+- Sebelum eksekusi apapun: unzip & trace struktur kode dulu (bukan tebak dari nama file/fungsi)
+- Kalau nemu potential root cause yang levelnya keputusan desain besar (bukan sekadar bug kecil), presentasikan dulu opsi-opsi + konsekuensinya, baru eksekusi setelah dikonfirmasi
+- Tiap kode divalidasi sebelum dikirim: node --check (syntax), hitung brace {}/() balance, cek div-depth di innerHTML template literal harus balik ke 0
+- Kalau nemu kode/behavior yang kelihatannya bug tapi ternyata sengaja (ada komentar penjelasan sebelumnya), jangan main ubah — jelasin dulu root cause & alasan desain lamanya
+- Dead code (fungsi yang jadi gak kepake gara-gara refactor) dipertahanin apa adanya + dikasih komentar jelas, bukan langsung dihapus — minim blast radius
+- Perubahan skema database (ALTER TABLE) gak bisa dieksekusi otomatis — kasih SQL persis, tunggu konfirmasi dijalanin baru lanjut kode yang gantung ke kolom itu
+- Setiap kirim file hasil edit, selalu sertakan instruksi deploy yang jelas
+
+## Repo
+
+Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
+- **zenoot89/zenoot-app** — aplikasi dashboard/seller utama, yang lagi aktif dikerjain sekarang
+- **zenoot89/zenot-shop** (custom domain zenoot.web.id) — shop customer, katalog produk
+- **zenoot89/zenot-seller** — seller center/admin dashboard lama, akses via zenoot89.github.io/zenot-seller
+
+## Progress project (zenoot-app) — state per file, terbaru di bawah tiap file
+
+**clearance.js + clearance-induk.js (fitur "Clearance", state final per 10 Sep 2026)**:
+- Flow 2 halaman: sidebar "Clearance Monitor" → landing di clearance-induk.js (page-clearance-induk, judul "Modal per SKU Induk") = halaman pertama. Tombol "Detail per SKU" → clearance.js (page-clearance, "Clearance Monitor" list detail per varian) = halaman kedua. Tombol "Back" di clearance.js → balik ke clearance-induk.js.
+- clearance-induk.js: header ada dropdown filter "Semua SKU"/per SKU Induk (#mi-filter-sku, fungsi miFilterBySku — 1 filter buat 2 tabel sekaligus) + metrics strip (Katalog Terdampak/Total Varian SKU/Total Modal Tertahan). Layout split 2 kolom (#mi-split-wrap, gap 12px, collapse jadi stack vertikal di mobile <900px): kiri tabel utama SKU→Variasi→Qty→Modal/Varian→Supplier (font 13px); kanan tabel "Kandidat Flash Sale" (SKU Induk→SKU Variasi→Sisa) cuma varian sisa≥3pcs (syarat minimal Shopee).
+- Tiap tabel dikelompokkan per SKU Induk (grup di-rank sesuai sort aktif), baris header grup nampilin Total Modal & Total Qty. Efek visual "floating card": gap 16px antar grup + rounded corner + shadow halus (class mi-grp-first/mi-grp-last/mi-grp-gap di style.css).
+- Sort header (SKU/Qty/Modal) 3-state: klik1=asc(▲)→klik2=desc(▼)→klik3=netral(⇅).
+- Data di-cache di _miGroupTotals/_miFlatRows biar sort/filter gak fetch ulang ke DB. Scrollbar custom tipis abu-abu (var(--ink4)).
+- **PENTING buat halaman full-height baru manapun ke depan**: WAJIB didaftarkan juga di style.css (bukan cuma app.js+index.html) — search "#page-clearance" dan tambahkan selector `#page-<nama>` yang sama persis di semua block terkait, + CSS wrapper tabel sendiri mirror #cl-tbl-wrap — kalau lupa, halaman gak bisa di-scroll.
+- Restock.js: tombol "Produk Clearance" di topbar Re-Stock DIHAPUS (redundan, Clearance udah punya menu sidebar sendiri) — sisa 1 tombol kontekstual "Lihat Clearance" di panel Summary.
+- Sidebar: tombol "Dashboard" DIHAPUS — klik logo/header zenOt (.logo-block) langsung navigasi ke dashboard.
+
+**produk.js** (Kelola Produk — base data SKU, murni base, gak nyimpen link ke supplier manapun):
+- Field "Boss" jadi PICKER dari hutang_supplier (single source of truth) + opsi "+ Tambah supplier baru". Cascade rename (_produkCascadeRename): edit SKU/katalog/boss ikut update jurnal_penjualan.sku & stok.sku_variasi/katalog/boss.
+- Paste Massal SKU: kolom Boss dicek ke hutang_supplier, yang belum ada auto-insert (Dropship default), badge "baru" di preview.
+- REVERTED: field "Sumber Harga Supplier" (link ke hutang_barang) DIHAPUS TOTAL — Kelola Produk harus tetep base data doang. Linking dipindah ke hutang-supplier.js.
+
+**dashboard.js**:
+- Fix bug "Lainnya" nelen data asli di Performa Supplier/Omset per Katalog: tambah fallback normalized match (_dashNormSku) selain exact match.
+- Label kriteria & item Beban Operasional/Income dibold-in.
+
+**stok.js**: Fix _stokStatusRank — urutan baru Fast → Habis(dari Fast) → Habis(dari Slow) → Slow → Dead → Zombie → Habis(Dead/Zombie).
+
+**supabase.js**: tambah dbUpdateWhere(table, filterQuery, payload) — PATCH massal by filter custom.
+
+**cost-produksi.js** — panel Jurnal Harian: tombol Export PDF & Tambah Jurnal ditukar posisi, teks "(by Tukang)" dihapus, lebar sama rata.
+
+**gadag.js**:
+- Overview: tombol sort & diagram diperbesar/sejajar di sticky header, label tanggal dihapus.
+- Minicard jadi 3x2: Income/Cost, Average Income/Cost (baru, dibagi hari berjalan bukan ÷7 tetap), Qty-Lsn/Target.
+- Donut Income: arc terisi selalu ijo, track/sisa MERAH (filosofi: target belum tercapai = merah).
+- SKU picker Catatan Pendapatan: tambah "Terakhir Digunakan" (MRU localStorage max 4).
+- Anggaran Gadag: sumber nominal pindah total ke kas_anggaran — 2 lapis: SELEKSI akun (gadag_anggaran, checkbox multi-select) + NOMINAL (live JOIN ke kas_anggaran+kas_akun). Item terpilih tanpa budget → "Belum diset". Tekan-tahan row = hapus dari seleksi doang.
+
+**hutang-supplier.js**:
+- Fix "Edit Bon harus klik X Detail dulu" — z-index conflict, fix: tutup Detail instan sebelum buka Edit Bon.
+- Fix tombol pensil "ketarik ke tengah" — class margin-left:auto konflik 2 tombol, fix: cuma tombol pertama pegang auto-margin.
+- Root cause "Re Stock kosong total": Gate is_reseller — supplier yang gak dicentang Reseller bikin semua SKU-nya ke-skip.
+- Fitur "Pilih SKU Variasi" di Master Barang: picker langsung dari produk.sku_variasi (bukan input bebas lagi). Tambah = multi-select, Edit = single-select. hutang_barang.produk_id jadi link resmi (FK ke produk.id).
+- Kolom baru hutang_barang.sku_variasi_supplier: teks bebas per baris, buat bahasa manusia bikin PO doang, gak dipakai matching.
+- Paste Massal Barang dirombak: kolom SKU Variasi, SKU Supplier, SKU Variasi Supplier, Supplier, Harga per Lusin, Harga PO per Lusin — SKU Variasi wajib match persis ke produk.sku_variasi.
+- Re Stock: prioritas baca harga dari hutang_barang kalau udah di-link, fallback produk.hpp (ditandai bintang) kalau belum. Gate is_reseller prioritas baca link resmi ketimbang produk.boss text.
+
+**anggaran.js**:
+- Fix kontras "September 2026" di input Bulan — scope rule dark ke #ang-filter-bulan doang.
+- "Salin Bulan Lalu" DIHAPUS, diganti auto-carry-forward kalau bulan kosong total.
+- Tombol "+ Anggaran": bisa pilih akun dari SEMUA akun Beban/Kewajiban, auto-update kalau udah ada.
+- Tabel dibungkus scroll box max-height 65vh.
+- Minicard HP: scroll-collapse diganti gesture swipe (atas=collapse, bawah 2x cepat=expand).
+- Filter bulan: input type=month diganti pill dropdown #ang-bulan-trigger (portal ke body), pola sama kas.js.
+
+**kas.js**: Sticky header "Cash Jurnal" HP — judul & tombol dipisah baris (class .kas-title-btns, mobile-only).
+
+## Belum kelar / open issue
+
+- Sistem Re-Stock ada 2 versi gak sinkron: restock.js (baca produk.boss langsung, semua supplier) vs hutang-supplier.js tab Re Stock (filter Reseller/PO doang, prioritas link hutang_barang). SKU sama bisa beda status/boss di 2 tempat. User minta di-skip dulu, dipikirin ulang arahnya (satuin sistem / bikin gate keliatan di UI).
+  - TURTLENECK_BATA-XL: gak muncul di Hutang Barang punya Re Stock meski udah Reseller — belum ketemu akar sebabnya, investigasi di-pause.
+  - Ada sisa stok MINUS (Army-XL -1) — belum ditrace.
+- Bug nominal "ALAT-ALAT"/"OPS HARIAN" (kas_anggaran) gak ke-save pas reload di Anggaran (Kas) — udah ditrace penuh, gak ketemu bug di kode. Nunggu detail lebih spesifik dari user (ada alert error gak).
