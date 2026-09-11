@@ -147,6 +147,7 @@ var pageMap = {
   'hutang-supplier':    { title:'Hutang Barang',        sub:'utang aktif & pembayaran per supplier' },
   'cost-produksi':      { title:'Cost Produksi',        sub:'ongkos operator per SKU & divisi' },
   'penutupan-periode':  { title:'Penutupan Periode',    sub:'month-end close & lock jurnal'   },
+  'penutupan-riwayat':  { title:'Riwayat Lengkap',       sub:'semua snapshot bulanan penutupan periode' },
   'clearance':          { title:'Clearance Monitor',    sub:'SKU non-aktif yang masih ada stok' },
   'clearance-induk':    { title:'Modal per SKU Induk',   sub:'total modal tertahan digabung per katalog/induk produk' },
   'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
