@@ -81,6 +81,30 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     pointer-events: none;
   }
   #pp-toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Dropdown periode grafik (gaya Shopee) ── */
+  #pp-period-trigger {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 6px 10px;
+    border: 1.5px solid var(--ovl-0_1); border-radius: 6px;
+    background: var(--cream2); color: var(--ink); cursor: pointer;
+  }
+  #pp-period-trigger .pp-period-label { font-weight: 700; }
+  #pp-period-panel {
+    position: absolute; top: calc(100% + 4px); right: 0;
+    background: var(--cream2); border: 1.5px solid var(--ovl-0_1);
+    border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    min-width: 220px; z-index: 50; display: none; overflow: hidden;
+  }
+  #pp-period-panel.open { display: block; }
+  .pp-period-item {
+    padding: 9px 14px; font-size: 12.5px; cursor: pointer;
+    color: var(--ink2); border-bottom: 1px solid var(--ovl-0_05);
+  }
+  .pp-period-item:last-child { border-bottom: none; }
+  .pp-period-item:hover { background: var(--ovl-0_05); }
+  .pp-period-item.active { color: var(--accent); font-weight: 700; background: var(--ovl-0_05); }
+  .pp-period-divider { padding: 6px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink4); background: var(--ovl-0_03); }
 </style>
 
 <div id="pp-toast"></div>
@@ -125,7 +149,23 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 <div class="card pp-section">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-chart-line"></i> Grafik</span>
-    <div id="pp-range-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <div style="position:relative">
+      <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
+        <i class="ti ti-calendar"></i>
+        <span>Periode:</span>
+        <span class="pp-period-label" id="pp-period-current-label">Per Bulan</span>
+        <i class="ti ti-chevron-down" style="font-size:11px"></i>
+      </div>
+      <div id="pp-period-panel">
+        <div class="pp-period-item" data-mode="minggu_ini"  onclick="ppSelectPeriodMode('minggu_ini')">Minggu Ini (Berjalan)</div>
+        <div class="pp-period-item" data-mode="minggu_lalu" onclick="ppSelectPeriodMode('minggu_lalu')">Minggu Lalu</div>
+        <div class="pp-period-item" data-mode="bulan_ini"   onclick="ppSelectPeriodMode('bulan_ini')">Bulan Ini (Berjalan)</div>
+        <div class="pp-period-item" data-mode="bulan_lalu"  onclick="ppSelectPeriodMode('bulan_lalu')">Bulan Lalu</div>
+        <div class="pp-period-divider">Tren</div>
+        <div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode('per_bulan')">Per Bulan</div>
+        <div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode('per_tahun')">Per Tahun</div>
+      </div>
+    </div>
   </div>
   <div style="position:relative;height:220px;margin-top:12px">
     <canvas id="pp-chart-canvas" style="width:100%;height:100%;display:block"></canvas>
@@ -154,14 +194,14 @@ document.getElementById('page-penutupan-riwayat').innerHTML = `
 
 setTimeout(function() { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-penutupan-periode')); }, 80);
 setTimeout(function() { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-penutupan-riwayat')); }, 80);
-_ppRenderKriteriaChecks();
-_ppRenderRangeChips();
 
 // ─── STATE ────────────────────────────────────────────────────
 var _ppHistoriCache = [];
-var _ppFullSeries    = [];               // semua periode (histori asc + live), buat grafik
+var _ppFullSeries    = [];               // semua periode bulanan (histori asc + live) — sumber utk mode per_bulan/per_tahun
+var _ppChartSeries   = [];               // seri yang lagi ditampilkan di grafik (hasil olahan sesuai mode aktif)
+var _ppLiveDataCache = null;             // hasil fetch live bulan berjalan, di-cache biar mode bulan_ini gak fetch ulang
 var _ppChartKriteria = new Set(['net_worth', 'laba_rugi']); // default kriteria dicentang
-var _ppChartRange    = 3;                // 3 | 6 | 12 | 'all'
+var _ppPeriodMode    = 'per_bulan';      // minggu_ini | minggu_lalu | bulan_ini | bulan_lalu | per_bulan | per_tahun
 
 // ─── DEFINISI BARIS KRITERIA UNTUK TABEL PERBANDINGAN & GRAFIK ─
 var _ppKriteriaDefs = [
@@ -247,23 +287,131 @@ function ppToggleKriteria(key) {
   _ppRenderChart();
 }
 
-// ─── RANGE CHIPS (Section 3) ───────────────────────────────────
-function _ppRenderRangeChips() {
-  var wrap = document.getElementById('pp-range-chips');
-  if (!wrap) return;
-  var opts = [[3, '3 Bulan'], [6, '6 Bulan'], [12, '12 Bulan'], ['all', 'Semua']];
-  wrap.innerHTML = opts.map(function(o) {
-    var active = (_ppChartRange === o[0]);
-    var arg = (o[0] === 'all') ? "'all'" : o[0];
-    return '<button class="btn btn-sm" onclick="ppSetChartRange(' + arg + ')" style="font-size:11px;padding:3px 10px' +
-      (active ? ';background:var(--ink);color:var(--cream);border-color:var(--ink)' : '') + '">' + o[1] + '</button>';
-  }).join('');
+// ─── DROPDOWN PERIODE GRAFIK (gaya Shopee) ────────────────────
+var _ppPeriodLabels = {
+  minggu_ini:  'Minggu Ini',
+  minggu_lalu: 'Minggu Lalu',
+  bulan_ini:   'Bulan Ini',
+  bulan_lalu:  'Bulan Lalu',
+  per_bulan:   'Per Bulan',
+  per_tahun:   'Per Tahun',
+};
+
+function ppTogglePeriodPanel() {
+  var panel = document.getElementById('pp-period-panel');
+  if (panel) panel.classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('pp-period-panel');
+  var trigger = document.getElementById('pp-period-trigger');
+  if (!panel || !panel.classList.contains('open')) return;
+  if (panel.contains(e.target) || (trigger && trigger.contains(e.target))) return;
+  panel.classList.remove('open');
+});
+
+function ppSelectPeriodMode(mode) {
+  _ppPeriodMode = mode;
+  var labelEl = document.getElementById('pp-period-current-label');
+  if (labelEl) labelEl.textContent = _ppPeriodLabels[mode] || mode;
+  document.querySelectorAll('.pp-period-item').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-mode') === mode);
+  });
+  var panel = document.getElementById('pp-period-panel');
+  if (panel) panel.classList.remove('open');
+  _ppLoadPeriodMode(mode);
 }
 
-function ppSetChartRange(r) {
-  _ppChartRange = r;
-  _ppRenderRangeChips();
+// Hitung rentang tanggal 1 minggu (Minggu–Sabtu, offset 0 = minggu ini, -1 = minggu lalu, dst)
+function _ppWeekRange(offset) {
+  var now = new Date();
+  var day = now.getDay(); // 0 = Minggu
+  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + (offset * 7));
+  var end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (end > today) end = today; // minggu berjalan: jangan proyeksi ke depan
+  var toStr = function(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+  var fmtShort = function(d) { return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]; };
+  return { start: toStr(start), end: toStr(end), label: fmtShort(start) + '–' + fmtShort(end) };
+}
+
+// ─── LOAD SESUAI MODE DROPDOWN, LALU RENDER GRAFIK ────────────
+async function _ppLoadPeriodMode(mode) {
+  var emptyEl = document.getElementById('pp-chart-empty');
+  var canvas  = document.getElementById('pp-chart-canvas');
+  if (canvas) canvas.style.display = 'none';
+  if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = 'Memuat...'; }
+
+  try {
+    if (mode === 'per_bulan') {
+      _ppChartSeries = _ppFullSeries;
+    } else if (mode === 'per_tahun') {
+      _ppChartSeries = _ppBuildYearlySeries();
+    } else if (mode === 'minggu_ini' || mode === 'minggu_lalu') {
+      var offA = (mode === 'minggu_ini') ? -1 : -2;
+      var offB = (mode === 'minggu_ini') ?  0 : -1;
+      var rgA = _ppWeekRange(offA), rgB = _ppWeekRange(offB);
+      var [dA, dB] = await Promise.all([_ppFetchDataRange(rgA.start, rgA.end), _ppFetchDataRange(rgB.start, rgB.end)]);
+      _ppChartSeries = [
+        { periode: rgA.start, label: rgA.label, data: dA },
+        { periode: rgB.start, label: rgB.label, data: dB },
+      ];
+    } else if (mode === 'bulan_ini' || mode === 'bulan_lalu') {
+      // Reuse data yang udah ke-fetch di ppLoadUtama (hindari fetch ulang)
+      var now = new Date();
+      var ymSkrg = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+      var d1 = new Date(now.getFullYear(), now.getMonth()-1, 1);
+      var ym1 = d1.getFullYear() + '-' + String(d1.getMonth()+1).padStart(2,'0');
+      var d2 = new Date(now.getFullYear(), now.getMonth()-2, 1);
+      var ym2 = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0');
+      var snapMap = {};
+      _ppHistoriCache.forEach(function(r) { snapMap[r.periode] = r; });
+
+      if (mode === 'bulan_ini') {
+        var dataLalu = snapMap[ym1] || await _ppFetchData(ym1);
+        _ppChartSeries = [
+          { periode: ym1, label: _ppPeriodeLabel(ym1), data: dataLalu },
+          { periode: ymSkrg, label: _ppPeriodeLabel(ymSkrg), data: _ppLiveDataCache },
+        ];
+      } else {
+        var data2 = snapMap[ym2] || await _ppFetchData(ym2);
+        var data1 = snapMap[ym1] || await _ppFetchData(ym1);
+        _ppChartSeries = [
+          { periode: ym2, label: _ppPeriodeLabel(ym2), data: data2 },
+          { periode: ym1, label: _ppPeriodeLabel(ym1), data: data1 },
+        ];
+      }
+    }
+  } catch(e) {
+    console.error('[PP] _ppLoadPeriodMode error', e);
+    _ppChartSeries = [];
+  }
+
   _ppRenderChart();
+}
+
+// Kelompokkan seri bulanan (_ppFullSeries) jadi per tahun — jumlah utk arus (pendapatan/beban),
+// nilai TERAKHIR di tahun itu utk saldo (net_worth/kas/stok/escrow/hutang/laba_rugi)
+function _ppBuildYearlySeries() {
+  var byYear = {};
+  _ppFullSeries.forEach(function(s) {
+    if (!s.data || !s.periode) return;
+    var yr = s.periode.split('-')[0];
+    if (!byYear[yr]) byYear[yr] = { periode: yr, label: yr, data: {
+      total_kas:0, nilai_stok:0, escrow_shopee:0, net_worth:0, total_kewajiban:0,
+      total_pendapatan:0, total_beban:0, laba_rugi:0,
+    }};
+    var acc = byYear[yr].data;
+    acc.total_pendapatan += Number(s.data.total_pendapatan||0);
+    acc.total_beban      += Number(s.data.total_beban||0);
+    acc.laba_rugi         = acc.total_pendapatan - acc.total_beban;
+    // Nilai posisi (bukan arus) dipakai dari titik TERAKHIR tahun itu
+    acc.total_kas       = Number(s.data.total_kas||0);
+    acc.nilai_stok       = Number(s.data.nilai_stok||0);
+    acc.escrow_shopee    = Number(s.data.escrow_shopee||0);
+    acc.net_worth        = Number(s.data.net_worth||0);
+    acc.total_kewajiban  = Number(s.data.total_kewajiban||0);
+  });
+  return Object.values(byYear).sort(function(a,b){ return a.periode.localeCompare(b.periode); });
 }
 
 // ─── RENDER GRAFIK (multi-line, canvas) ───────────────────────
@@ -275,8 +423,7 @@ function _ppRenderChart() {
   if (!canvas) return;
 
   var keys = Array.prototype.slice.call(_ppChartKriteria);
-  var series = (!_ppFullSeries || _ppFullSeries.length === 0) ? [] :
-    (_ppChartRange === 'all' ? _ppFullSeries : _ppFullSeries.slice(-_ppChartRange));
+  var series = _ppChartSeries || [];
 
   if (keys.length === 0 || series.length === 0) {
     canvas.style.display = 'none';
@@ -413,18 +560,21 @@ function _ppRenderChart() {
   canvas.onmouseleave = function() { if (tooltip) tooltip.style.display = 'none'; };
 }
 
-// ─── FETCH DATA UNTUK SATU PERIODE ───────────────────────────
-async function _ppFetchData(ym) {
+// ─── FETCH DATA UNTUK RENTANG TANGGAL BEBAS ───────────────────
+// CATATAN PENTING: total_pendapatan/total_beban/laba_rugi BENERAN kefilter sesuai
+// dateStart–dateEnd yang dikasih. Tapi net_worth/total_kas/nilai_stok/escrow_shopee/
+// total_kewajiban itu POSISI SAAT INI (dihitung dari semua data s.d. sekarang, bukan
+// posisi historis di tanggal itu) — makanya utk histori BULANAN, angka posisi diambil
+// dari snapshot tersimpan (penutupan_periode), bukan dari fungsi ini. Utk mode
+// Minggu Ini/Minggu Lalu (gak ada snapshot mingguan), kolom posisi ini akan SAMA
+// nilainya di kedua titik (karena emang belum ada histori mingguan) — cuma
+// Pendapatan/Beban/Laba-Rugi yang beneran valid dibandingkan per minggu.
+async function _ppFetchDataRange(dateStart, dateEnd) {
   try {
-    var parts   = ym.split('-');
-    var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
-    var ymStart = ym + '-01';
-    var ymEnd   = ym + '-' + String(lastDay).padStart(2, '0');
-
     var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, hutang, bayar, shopeeRaw] = await Promise.all([
       dbGet('kas_akun', '').catch(function() { return []; }),
       dbGet('jurnal', '').catch(function() { return []; }),
-      dbGet('jurnal', '&tanggal=gte.' + ymStart + '&tanggal=lte.' + ymEnd).catch(function() { return []; }),
+      dbGet('jurnal', '&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
       dbGet('produk', '').catch(function() { return []; }),
       dbGet('stok', '').catch(function() { return []; }),
       dbGet('jurnal_penjualan', '&select=sku,qty').catch(function() { return []; }),
@@ -479,7 +629,7 @@ async function _ppFetchData(ym) {
     var escrow = 0;
     if (Array.isArray(shopeeRaw) && shopeeRaw.length > 0) escrow = Number(shopeeRaw[0].escrow_transit || 0);
 
-    // P&L bulan ini saja (filter by periode)
+    // P&L pada rentang tanggal yang diminta
     var totalPend = 0, totalBeban = 0;
     (jurnalBulan || []).forEach(function(r) {
       var n  = Number(r.nominal || r.debit || 0);
@@ -493,7 +643,7 @@ async function _ppFetchData(ym) {
     var netWorth = totalAset + escrow - totalHutang;
 
     return {
-      periode:          ym,
+      periode:          null,
       total_kas:        totalKas,
       nilai_stok:       nilaiStok,
       escrow_shopee:    escrow,
@@ -505,9 +655,20 @@ async function _ppFetchData(ym) {
       total_kewajiban:  totalHutang,
     };
   } catch(e) {
-    console.error('[PP] _ppFetchData error', e);
+    console.error('[PP] _ppFetchDataRange error', e);
     return null;
   }
+}
+
+// ─── FETCH DATA UNTUK SATU PERIODE BULAN (wrapper _ppFetchDataRange) ──
+async function _ppFetchData(ym) {
+  var parts   = ym.split('-');
+  var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+  var ymStart = ym + '-01';
+  var ymEnd   = ym + '-' + String(lastDay).padStart(2, '0');
+  var data = await _ppFetchDataRange(ymStart, ymEnd);
+  if (data) data.periode = ym;
+  return data;
 }
 
 // ─── RENDER TABEL PERBANDINGAN (Kriteria x 4 kolom bulan) ────
@@ -631,12 +792,13 @@ async function ppLoadUtama() {
     _ppRenderCompareTable(cols);
 
     // Bangun seri lengkap (semua histori + bulan berjalan) buat grafik
+    _ppLiveDataCache = liveData;
     var histAsc = _ppHistoriCache.slice().reverse();
     _ppFullSeries = histAsc.map(function(r) {
       return { periode: r.periode, label: _ppPeriodeLabel(r.periode), data: r };
     });
     _ppFullSeries.push({ periode: ymSkrg, label: _ppPeriodeLabel(ymSkrg), data: liveData });
-    _ppRenderChart();
+    _ppLoadPeriodMode(_ppPeriodMode);
 
   } catch(e) {
     console.error('[PP] loadUtama error', e);
@@ -728,6 +890,9 @@ document.addEventListener('zenot:page', function(e) {
     ppLoadRiwayatFull();
   }
 });
+
+// Render checkbox pertama kali (setelah semua var/fungsi di atas siap)
+_ppRenderKriteriaChecks();
 
 // ─── AUTO-SNAPSHOT: 3 detik setelah app load ─────────────────
 setTimeout(function() {
