@@ -114,6 +114,27 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   </div>
 </div>
 
+<!-- ── Section 2: Checkbox Kriteria ── -->
+<div class="card pp-section">
+  <div class="card-title"><i class="ti ti-adjustments"></i> Grafik Kriteria</div>
+  <div id="pp-kriteria-checks" style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px"></div>
+  <div id="pp-kriteria-count" style="font-size:11px;color:var(--ink3);margin-top:10px"></div>
+</div>
+
+<!-- ── Section 3: Grafik ── -->
+<div class="card pp-section">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-chart-line"></i> Grafik</span>
+    <div id="pp-range-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+  <div style="position:relative;height:220px;margin-top:12px">
+    <canvas id="pp-chart-canvas" style="width:100%;height:100%;display:block"></canvas>
+    <div id="pp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px"></div>
+    <div id="pp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
+  </div>
+  <div id="pp-chart-legend" style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--ink3);flex-wrap:wrap"></div>
+</div>
+
 </div><!-- /pp-scroll-zone -->
 `;
 
@@ -133,20 +154,25 @@ document.getElementById('page-penutupan-riwayat').innerHTML = `
 
 setTimeout(function() { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-penutupan-periode')); }, 80);
 setTimeout(function() { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-penutupan-riwayat')); }, 80);
+_ppRenderKriteriaChecks();
+_ppRenderRangeChips();
 
 // ─── STATE ────────────────────────────────────────────────────
 var _ppHistoriCache = [];
+var _ppFullSeries    = [];               // semua periode (histori asc + live), buat grafik
+var _ppChartKriteria = new Set(['net_worth', 'laba_rugi']); // default kriteria dicentang
+var _ppChartRange    = 3;                // 3 | 6 | 12 | 'all'
 
-// ─── DEFINISI BARIS KRITERIA UNTUK TABEL PERBANDINGAN ────────
+// ─── DEFINISI BARIS KRITERIA UNTUK TABEL PERBANDINGAN & GRAFIK ─
 var _ppKriteriaDefs = [
-  { key: 'net_worth',        label: 'Net Worth',      valStyle: true,  big: true },
-  { key: 'total_kas',        label: 'Kas & Bank' },
-  { key: 'nilai_stok',       label: 'Stok' },
-  { key: 'escrow_shopee',    label: 'Escrow Shopee' },
-  { key: 'total_kewajiban',  label: 'Hutang',          color: 'var(--danger)' },
-  { key: 'total_pendapatan', label: 'Pendapatan',      color: 'var(--ok)' },
-  { key: 'total_beban',      label: 'Beban',           color: 'var(--danger)' },
-  { key: 'laba_rugi',        label: 'Laba / Rugi',     valStyle: true },
+  { key: 'net_worth',        label: 'Net Worth',      valStyle: true,  big: true, chartColor: '#2f6fed' },
+  { key: 'total_kas',        label: 'Kas & Bank',                                 chartColor: '#8a5cf6' },
+  { key: 'nilai_stok',       label: 'Stok',                                       chartColor: '#f5a623' },
+  { key: 'escrow_shopee',    label: 'Escrow Shopee',                              chartColor: '#17a2b8' },
+  { key: 'total_kewajiban',  label: 'Hutang',          color: 'var(--danger)',    chartColor: '#e0475a' },
+  { key: 'total_pendapatan', label: 'Pendapatan',      color: 'var(--ok)',        chartColor: '#3ddb6b' },
+  { key: 'total_beban',      label: 'Beban',           color: 'var(--danger)',    chartColor: '#ff7849' },
+  { key: 'laba_rugi',        label: 'Laba / Rugi',     valStyle: true,            chartColor: '#111827' },
 ];
 
 // ─── LAYOUT ──────────────────────────────────────────────────
@@ -166,7 +192,7 @@ function _ppEnsureLayout() {
 }
 window.addEventListener('resize', function() {
   var pg = document.getElementById('page-penutupan-periode');
-  if (pg && pg.classList.contains('active')) _ppEnsureLayout();
+  if (pg && pg.classList.contains('active')) { _ppEnsureLayout(); _ppRenderChart(); }
 });
 
 // ─── HELPERS ─────────────────────────────────────────────────
@@ -193,6 +219,198 @@ function _ppToast(msg, ms) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, ms || 3000);
+}
+
+// ─── CHECKBOX KRITERIA (Section 2) ────────────────────────────
+function _ppRenderKriteriaChecks() {
+  var wrap = document.getElementById('pp-kriteria-checks');
+  if (!wrap) return;
+  wrap.innerHTML = _ppKriteriaDefs.map(function(def) {
+    var checked = _ppChartKriteria.has(def.key) ? 'checked' : '';
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;user-select:none">' +
+      '<input type="checkbox" ' + checked + ' onchange="ppToggleKriteria(\'' + def.key + '\')" style="accent-color:' + def.chartColor + ';width:14px;height:14px">' +
+      '<span style="width:9px;height:9px;border-radius:50%;background:' + def.chartColor + ';display:inline-block;flex-shrink:0"></span>' +
+      '<span>' + def.label + '</span>' +
+      '</label>';
+  }).join('');
+  _ppUpdateKriteriaCount();
+}
+
+function _ppUpdateKriteriaCount() {
+  var el = document.getElementById('pp-kriteria-count');
+  if (el) el.textContent = 'Kriteria dipilih: ' + _ppChartKriteria.size + '/' + _ppKriteriaDefs.length;
+}
+
+function ppToggleKriteria(key) {
+  if (_ppChartKriteria.has(key)) { _ppChartKriteria.delete(key); } else { _ppChartKriteria.add(key); }
+  _ppUpdateKriteriaCount();
+  _ppRenderChart();
+}
+
+// ─── RANGE CHIPS (Section 3) ───────────────────────────────────
+function _ppRenderRangeChips() {
+  var wrap = document.getElementById('pp-range-chips');
+  if (!wrap) return;
+  var opts = [[3, '3 Bulan'], [6, '6 Bulan'], [12, '12 Bulan'], ['all', 'Semua']];
+  wrap.innerHTML = opts.map(function(o) {
+    var active = (_ppChartRange === o[0]);
+    var arg = (o[0] === 'all') ? "'all'" : o[0];
+    return '<button class="btn btn-sm" onclick="ppSetChartRange(' + arg + ')" style="font-size:11px;padding:3px 10px' +
+      (active ? ';background:var(--ink);color:var(--cream);border-color:var(--ink)' : '') + '">' + o[1] + '</button>';
+  }).join('');
+}
+
+function ppSetChartRange(r) {
+  _ppChartRange = r;
+  _ppRenderRangeChips();
+  _ppRenderChart();
+}
+
+// ─── RENDER GRAFIK (multi-line, canvas) ───────────────────────
+function _ppRenderChart() {
+  var canvas  = document.getElementById('pp-chart-canvas');
+  var tooltip = document.getElementById('pp-chart-tooltip');
+  var emptyEl = document.getElementById('pp-chart-empty');
+  var legEl   = document.getElementById('pp-chart-legend');
+  if (!canvas) return;
+
+  var keys = Array.prototype.slice.call(_ppChartKriteria);
+  var series = (!_ppFullSeries || _ppFullSeries.length === 0) ? [] :
+    (_ppChartRange === 'all' ? _ppFullSeries : _ppFullSeries.slice(-_ppChartRange));
+
+  if (keys.length === 0 || series.length === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = keys.length === 0 ? 'Pilih minimal 1 kriteria' : 'Belum ada data'; }
+    if (legEl) legEl.innerHTML = '';
+    if (tooltip) tooltip.style.display = 'none';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
+    if (canvas.offsetParent === null) return;
+    setTimeout(_ppRenderChart, 80);
+    return;
+  }
+
+  var defsByKey = {};
+  _ppKriteriaDefs.forEach(function(d) { defsByKey[d.key] = d; });
+
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.offsetWidth;
+  var H = canvas.offsetHeight || 220;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  var padL = 54, padR = 16, padT = 14, padB = 28;
+  var cW = W - padL - padR, cH = H - padT - padB;
+
+  var allVals = [0];
+  keys.forEach(function(k) {
+    series.forEach(function(s) { if (s.data) allVals.push(Number(s.data[k] || 0)); });
+  });
+  var maxVal = Math.max.apply(null, allVals);
+  var minVal = Math.min.apply(null, allVals);
+  if (maxVal === minVal) maxVal += 1;
+  var span = maxVal - minVal;
+  var step = cW / (series.length - 1 || 1);
+  var colGrid = 'var(--ovl-0_06)', colLabel = '#909090';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid horizontal + label Y
+  for (var i = 0; i <= 4; i++) {
+    var val = minVal + (span * i / 4);
+    var y = padT + cH - (cH * i / 4);
+    ctx.strokeStyle = colGrid; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + cW, y); ctx.stroke();
+    ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(typeof _fmtRpShort === 'function' ? _fmtRpShort(val) : _ppFmt(val), padL - 6, y + 3);
+  }
+
+  // Garis nol putus-putus kalau range-nya lintas negatif↔positif
+  if (minVal < 0 && maxVal > 0) {
+    var yZero = padT + cH - ((0 - minVal) / span) * cH;
+    ctx.strokeStyle = 'var(--ink4)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(padL, yZero); ctx.lineTo(padL + cW, yZero); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Garis tiap kriteria terpilih
+  keys.forEach(function(k) {
+    var def = defsByKey[k];
+    if (!def) return;
+    var col = def.chartColor || '#888';
+    var pts = series.map(function(s) {
+      if (!s.data) return null;
+      var v = Number(s.data[k] || 0);
+      return { x: 0, y: padT + cH - ((v - minVal) / span) * cH };
+    });
+    pts.forEach(function(p, idx) { if (p) p.x = padL + idx * step; });
+
+    ctx.beginPath();
+    var started = false;
+    pts.forEach(function(p) {
+      if (!p) { started = false; return; }
+      if (!started) { ctx.moveTo(p.x, p.y); started = true; } else { ctx.lineTo(p.x, p.y); }
+    });
+    ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
+
+    pts.forEach(function(p) {
+      if (!p) return;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    });
+  });
+
+  // X labels — kalau kepadetan, skip sebagian
+  var everyN = series.length > 8 ? Math.ceil(series.length / 8) : 1;
+  series.forEach(function(s, idx) {
+    if (idx % everyN !== 0 && idx !== series.length - 1) return;
+    var x = padL + idx * step;
+    var short = s.label.split(' ');
+    var lbl = (short[0] ? short[0].slice(0, 3) : '') + (short[1] ? ' ' + short[1].slice(2) : '');
+    ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(lbl, x, padT + cH + 14);
+  });
+
+  // Legend
+  if (legEl) {
+    var lastS = series[series.length - 1];
+    legEl.innerHTML = keys.map(function(k) {
+      var def = defsByKey[k];
+      if (!def) return '';
+      var lastVal = (lastS && lastS.data) ? Number(lastS.data[k] || 0) : 0;
+      return '<span style="display:inline-flex;align-items:center;gap:4px">' +
+        '<span style="width:14px;height:3px;background:' + def.chartColor + ';display:inline-block;border-radius:2px"></span>' +
+        def.label + ': ' + _ppFmtVal(lastVal) + '</span>';
+    }).join('');
+  }
+
+  // Tooltip hover
+  canvas.onmousemove = function(e) {
+    if (!tooltip) return;
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var idx = Math.round((mx - padL) / step);
+    if (idx < 0 || idx >= series.length) { tooltip.style.display = 'none'; return; }
+    var s = series[idx];
+    var lines = keys.map(function(k) {
+      var def = defsByKey[k];
+      if (!def) return '';
+      var v = s.data ? Number(s.data[k] || 0) : 0;
+      return '<div><span style="color:' + def.chartColor + '">●</span> ' + def.label + ': ' + _ppFmtVal(v) + '</div>';
+    }).join('');
+    tooltip.innerHTML = '<b>' + s.label + '</b>' + lines;
+    tooltip.style.display = 'block';
+    var tx = padL + idx * step;
+    tooltip.style.left = Math.min(Math.max(tx - 40, 0), W - 120) + 'px';
+    tooltip.style.top = '4px';
+  };
+  canvas.onmouseleave = function() { if (tooltip) tooltip.style.display = 'none'; };
 }
 
 // ─── FETCH DATA UNTUK SATU PERIODE ───────────────────────────
@@ -308,14 +526,33 @@ function _ppRenderCompareTable(cols) {
   }).join('');
 
   tbody.innerHTML = _ppKriteriaDefs.map(function(def) {
-    var tds = cols.map(function(c) {
+    var tds = cols.map(function(c, idx) {
       if (!c.data) return '<td style="color:var(--ink4)">—</td>';
       var raw = c.data[def.key];
       var n   = Number(raw || 0);
       var txt = def.valStyle ? _ppFmtVal(n) : _ppFmt(n);
       var color = def.valStyle ? _ppColor(n) : (def.color || 'var(--ink)');
       var sizeStyle = def.big ? ' font-size:15px;' : '';
-      return '<td style="color:' + color + ';' + sizeStyle + '">' + txt + '</td>';
+
+      // Badge naik/turun % vs kolom sebelumnya
+      var deltaHtml = '';
+      var prevCol = cols[idx - 1];
+      if (prevCol && prevCol.data) {
+        var prevN = Number(prevCol.data[def.key] || 0);
+        if (prevN !== 0) {
+          var pct = ((n - prevN) / Math.abs(prevN)) * 100;
+          var badFields  = { total_kewajiban: 1, total_beban: 1 };
+          var isBadField = !!badFields[def.key];
+          var isGoodMove = pct >= 0 ? !isBadField : isBadField;
+          var arrow = pct >= 0 ? '▲' : '▼';
+          deltaHtml = '<div style="font-size:10px;font-weight:700;color:' + (isGoodMove ? 'var(--ok)' : 'var(--danger)') + ';margin-top:2px">' +
+            arrow + ' ' + Math.abs(pct).toFixed(1) + '%</div>';
+        } else if (n !== 0) {
+          deltaHtml = '<div style="font-size:10px;font-weight:700;color:var(--ink3);margin-top:2px">baru</div>';
+        }
+      }
+
+      return '<td style="color:' + color + ';' + sizeStyle + '">' + txt + deltaHtml + '</td>';
     }).join('');
     return '<tr><td>' + def.label + '</td>' + tds + '</tr>';
   }).join('');
@@ -392,6 +629,14 @@ async function ppLoadUtama() {
     cols.push({ periode: ymSkrg, label: _ppPeriodeLabel(ymSkrg), badge: 'live', data: liveData });
 
     _ppRenderCompareTable(cols);
+
+    // Bangun seri lengkap (semua histori + bulan berjalan) buat grafik
+    var histAsc = _ppHistoriCache.slice().reverse();
+    _ppFullSeries = histAsc.map(function(r) {
+      return { periode: r.periode, label: _ppPeriodeLabel(r.periode), data: r };
+    });
+    _ppFullSeries.push({ periode: ymSkrg, label: _ppPeriodeLabel(ymSkrg), data: liveData });
+    _ppRenderChart();
 
   } catch(e) {
     console.error('[PP] loadUtama error', e);
