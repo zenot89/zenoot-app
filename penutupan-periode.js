@@ -124,6 +124,15 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   .pp-mp-month:hover:not(:disabled) { background: var(--ovl-0_05); }
   .pp-mp-month.active { background: var(--ink); color: var(--cream); font-weight: 700; }
   .pp-mp-month:disabled { color: var(--ink4); cursor: default; }
+
+  /* ── Sub-panel pilih tahun spesifik (list tahun yang ada datanya) ── */
+  #pp-year-picker {
+    position: fixed;
+    background: var(--cream2); border: 1px solid var(--ink3);
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
+    min-width: 150px; z-index: 100000; display: none; overflow: hidden;
+  }
+  #pp-year-picker.open { display: block; }
 </style>
 
 
@@ -167,15 +176,13 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 
 <!-- ── Section 3: Grafik ── -->
 <div class="card pp-section">
-  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-chart-line"></i> Grafik</span>
-    <div>
-      <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
-        <i class="ti ti-calendar"></i>
-        <span>Periode:</span>
-        <span class="pp-period-label" id="pp-period-current-label">Per Bulan</span>
-        <i class="ti ti-chevron-down" style="font-size:11px"></i>
-      </div>
+  <div class="card-title"><i class="ti ti-chart-line"></i> Grafik</div>
+  <div style="margin-top:10px">
+    <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
+      <i class="ti ti-calendar"></i>
+      <span>Periode:</span>
+      <span class="pp-period-label" id="pp-period-current-label">Tren Bulanan</span>
+      <i class="ti ti-chevron-down" style="font-size:11px"></i>
     </div>
   </div>
   <div style="position:relative;height:220px;margin-top:12px">
@@ -183,6 +190,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
     <div id="pp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px"></div>
     <div id="pp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
   </div>
+  <div id="pp-chart-note" style="display:none;font-size:11px;color:var(--ink3);font-style:italic;margin-top:8px"></div>
   <div id="pp-chart-legend" style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--ink3);flex-wrap:wrap"></div>
 </div>
 
@@ -300,13 +308,12 @@ function ppToggleKriteria(key) {
 
 // ─── DROPDOWN PERIODE GRAFIK (gaya Shopee) ────────────────────
 var _ppPeriodLabels = {
-  minggu_ini:  'Minggu Ini',
-  minggu_lalu: 'Minggu Lalu',
   bulan_ini:   'Bulan Ini',
   bulan_lalu:  'Bulan Lalu',
   per_bulan:   'Tren Bulanan',
-  per_tahun:   'Per Tahun',
+  per_tahun:   'Tren Tahunan',
 };
+var _PP_PANEL_W = 230; // lebar perkiraan dropdown/flyout, dipakai buat clamp posisi biar gak kepotong layar
 
 function ppTogglePeriodPanel() {
   _ppEnsurePeriodPanel();
@@ -316,13 +323,28 @@ function ppTogglePeriodPanel() {
   var isOpen = panel.classList.contains('open');
   if (!isOpen) {
     var rect = trigger.getBoundingClientRect();
+    var leftPos = Math.max(6, Math.min(rect.left, window.innerWidth - _PP_PANEL_W - 6));
     panel.style.top   = (rect.bottom + 6) + 'px';
-    panel.style.left  = 'auto';
-    panel.style.right = (window.innerWidth - rect.right) + 'px';
+    panel.style.left  = leftPos + 'px';
+    panel.style.right = 'auto';
   } else {
     _ppCloseMonthPicker();
+    _ppCloseYearPicker();
   }
   panel.classList.toggle('open', !isOpen);
+}
+
+// Posisikan flyout (portal, position:fixed) di SAMPING sebuah item pemicu —
+// coba di kanan dulu, kalau gak muat baru flip ke kiri; top di-clamp biar
+// gak keluar bawah layar. Dipakai buat month-picker & year-picker.
+function _ppPositionSideFlyout(panel, itemRect, widthPx) {
+  var top = Math.max(6, Math.min(itemRect.top, window.innerHeight - 40));
+  panel.style.top = top + 'px';
+  var spaceRight = window.innerWidth - itemRect.right - 6;
+  var leftPos = (spaceRight >= widthPx) ? (itemRect.right + 6) : (itemRect.left - 6 - widthPx);
+  leftPos = Math.max(6, Math.min(leftPos, window.innerWidth - widthPx - 6));
+  panel.style.left  = leftPos + 'px';
+  panel.style.right = 'auto';
 }
 
 // Portal panel dropdown periode ke body (dibuat sekali, dipakai ulang) —
@@ -333,32 +355,36 @@ function _ppEnsurePeriodPanel() {
   var panel = document.createElement('div');
   panel.id = 'pp-period-panel';
   panel.innerHTML =
-    '<div class="pp-period-item" data-mode="minggu_ini"  onclick="ppSelectPeriodMode(\'minggu_ini\')">Minggu Ini (Berjalan)</div>' +
-    '<div class="pp-period-item" data-mode="minggu_lalu" onclick="ppSelectPeriodMode(\'minggu_lalu\')">Minggu Lalu</div>' +
     '<div class="pp-period-item" data-mode="bulan_ini"   onclick="ppSelectPeriodMode(\'bulan_ini\')">Bulan Ini (Berjalan)</div>' +
     '<div class="pp-period-item" data-mode="bulan_lalu"  onclick="ppSelectPeriodMode(\'bulan_lalu\')">Bulan Lalu</div>' +
     '<div class="pp-period-item has-sub" id="pp-item-pilih-bulan" data-mode="pilih_bulan" onclick="ppOpenMonthPicker(event)">Pilih Bulan <i class="ti ti-chevron-right" style="font-size:11px"></i></div>' +
+    '<div class="pp-period-item has-sub" id="pp-item-pilih-tahun" data-mode="pilih_tahun" onclick="ppOpenYearPicker(event)">Pilih Tahun <i class="ti ti-chevron-right" style="font-size:11px"></i></div>' +
     '<div class="pp-period-divider">Tren</div>' +
     '<div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode(\'per_bulan\')">Tren Bulanan</div>' +
-    '<div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode(\'per_tahun\')">Per Tahun</div>';
+    '<div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode(\'per_tahun\')">Tren Tahunan</div>';
   document.body.appendChild(panel);
 }
 document.addEventListener('click', function(e) {
   var panel = document.getElementById('pp-period-panel');
   var trigger = document.getElementById('pp-period-trigger');
-  var picker = document.getElementById('pp-month-picker');
-  var pilihItem = document.getElementById('pp-item-pilih-bulan');
+  var mp = document.getElementById('pp-month-picker');
+  var yp = document.getElementById('pp-year-picker');
+  var itemBulan = document.getElementById('pp-item-pilih-bulan');
+  var itemTahun = document.getElementById('pp-item-pilih-tahun');
   if (!panel || !panel.classList.contains('open')) return;
-  var insidePanel  = panel.contains(e.target) || (trigger && trigger.contains(e.target));
-  var insidePicker = picker && (picker.contains(e.target) || (pilihItem && pilihItem.contains(e.target)));
-  if (insidePanel || insidePicker) return;
+  var insidePanel = panel.contains(e.target) || (trigger && trigger.contains(e.target));
+  var insideMp = mp && (mp.contains(e.target) || (itemBulan && itemBulan.contains(e.target)));
+  var insideYp = yp && (yp.contains(e.target) || (itemTahun && itemTahun.contains(e.target)));
+  if (insidePanel || insideMp || insideYp) return;
   panel.classList.remove('open');
   _ppCloseMonthPicker();
+  _ppCloseYearPicker();
 });
 
 function ppSelectPeriodMode(mode) {
   _ppPeriodMode = mode;
-  _ppPilihBulanYm = null; // pindah ke mode lain — reset seleksi bulan spesifik
+  _ppPilihBulanYm = null; // pindah ke mode lain — reset seleksi bulan/tahun spesifik
+  _ppPilihTahunYr = null;
   var labelEl = document.getElementById('pp-period-current-label');
   if (labelEl) labelEl.textContent = _ppPeriodLabels[mode] || mode;
   document.querySelectorAll('.pp-period-item').forEach(function(el) {
@@ -367,6 +393,7 @@ function ppSelectPeriodMode(mode) {
   var panel = document.getElementById('pp-period-panel');
   if (panel) panel.classList.remove('open');
   _ppCloseMonthPicker();
+  _ppCloseYearPicker();
   _ppLoadPeriodMode(mode);
 }
 
@@ -389,21 +416,14 @@ function _ppCloseMonthPicker() {
 
 function ppOpenMonthPicker(e) {
   if (e) e.stopPropagation();
+  _ppCloseYearPicker();
   _ppEnsureMonthPicker();
   var picker = document.getElementById('pp-month-picker');
   var itemEl = document.getElementById('pp-item-pilih-bulan');
   if (!picker || !itemEl) return;
-  var rect = itemEl.getBoundingClientRect();
-  picker.style.top   = rect.top + 'px';
-  picker.style.left  = (rect.right + 6) + 'px';
-  picker.style.right = 'auto';
-  // Kalau kepotong di kanan layar (HP), taruh di kiri item sebagai gantinya
-  if (rect.right + 6 + 230 > window.innerWidth) {
-    picker.style.left  = 'auto';
-    picker.style.right = (window.innerWidth - rect.left + 6) + 'px';
-  }
   _ppMpYear = _ppPilihBulanYm ? parseInt(_ppPilihBulanYm.split('-')[0], 10) : new Date().getFullYear();
   _ppRenderMonthPicker();
+  _ppPositionSideFlyout(picker, itemEl.getBoundingClientRect(), _PP_PANEL_W);
   picker.classList.add('open');
 }
 
@@ -481,6 +501,75 @@ async function _ppLoadSpecificMonth(ym) {
   _ppRenderChart();
 }
 
+// ─── SUB-PANEL PILIH TAHUN SPESIFIK (list tahun yang punya data) ──────
+var _ppPilihTahunYr = null; // 'YYYY' tahun spesifik yang lagi aktif (mode pilih_tahun)
+
+function _ppEnsureYearPicker() {
+  if (document.getElementById('pp-year-picker')) return;
+  var picker = document.createElement('div');
+  picker.id = 'pp-year-picker';
+  document.body.appendChild(picker);
+}
+
+function _ppCloseYearPicker() {
+  var picker = document.getElementById('pp-year-picker');
+  if (picker) picker.classList.remove('open');
+}
+
+// Ambil daftar tahun yang beneran ada datanya (dari histori yang udah di-load), terbaru dulu
+function _ppAvailableYears() {
+  var yearly = _ppBuildYearlySeries();
+  return yearly.map(function(s) { return s.periode; }).sort(function(a, b) { return b.localeCompare(a); });
+}
+
+function ppOpenYearPicker(e) {
+  if (e) e.stopPropagation();
+  _ppCloseMonthPicker();
+  _ppEnsureYearPicker();
+  var picker = document.getElementById('pp-year-picker');
+  var itemEl = document.getElementById('pp-item-pilih-tahun');
+  if (!picker || !itemEl) return;
+  var years = _ppAvailableYears();
+  if (years.length === 0) years = [String(new Date().getFullYear())];
+  picker.innerHTML = years.map(function(yr) {
+    var isActive = yr === _ppPilihTahunYr;
+    return '<div class="pp-period-item' + (isActive ? ' active' : '') + '" onclick="ppPilihTahun(\'' + yr + '\')">' + yr + '</div>';
+  }).join('');
+  _ppPositionSideFlyout(picker, itemEl.getBoundingClientRect(), _PP_PANEL_W);
+  picker.classList.add('open');
+}
+
+async function ppPilihTahun(yr) {
+  _ppPilihTahunYr = yr;
+  _ppPeriodMode = 'pilih_tahun';
+  var labelEl = document.getElementById('pp-period-current-label');
+  if (labelEl) labelEl.textContent = yr;
+  document.querySelectorAll('.pp-period-item').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-mode') === 'pilih_tahun');
+  });
+  _ppCloseYearPicker();
+  var panel = document.getElementById('pp-period-panel');
+  if (panel) panel.classList.remove('open');
+  _ppLoadSpecificYear(yr);
+}
+
+// Ambil data 1 tahun terpilih dari agregat yang udah dihitung _ppBuildYearlySeries
+// (reuse logic yang sama biar gak ada 2 versi rumus agregasi tahunan)
+function _ppAggregateYear(yr) {
+  var found = _ppBuildYearlySeries().find(function(s) { return s.periode === String(yr); });
+  return found ? found.data : null;
+}
+
+// Tampilkan tahun yang dipilih vs tahun sebelumnya (2 titik)
+function _ppLoadSpecificYear(yr) {
+  var yrPrev = String(Number(yr) - 1);
+  _ppChartSeries = [
+    { periode: yrPrev, label: yrPrev, data: _ppAggregateYear(yrPrev) },
+    { periode: yr,      label: yr,     data: _ppAggregateYear(yr) },
+  ];
+  _ppRenderChart();
+}
+
 // Hitung rentang tanggal 1 minggu (Minggu–Sabtu, offset 0 = minggu ini, -1 = minggu lalu, dst)
 function _ppWeekRange(offset) {
   var now = new Date();
@@ -507,6 +596,13 @@ async function _ppLoadPeriodMode(mode) {
     } else if (mode === 'per_tahun') {
       _ppChartSeries = _ppBuildYearlySeries();
     } else if (mode === 'minggu_ini' || mode === 'minggu_lalu') {
+      // DEAD CODE per permintaan user (12 Sep 2026): item menu "Minggu Ini/Minggu
+      // Lalu" dihapus dari dropdown karena buat GRAFIK garis, datanya kurang
+      // relevan (kolom posisi net_worth/kas/stok/escrow/hutang selalu SAMA di
+      // 2 titik minggu karena gak ada snapshot mingguan — cuma pendapatan/beban/
+      // laba-rugi yang valid dibandingkan per minggu). Logic-nya dipertahanin,
+      // gak dihapus, buat kalau ke depan mau dipakai lagi sbg TABEL data
+      // (bukan grafik) — ide dari user sendiri.
       var offA = (mode === 'minggu_ini') ? -1 : -2;
       var offB = (mode === 'minggu_ini') ?  0 : -1;
       var rgA = _ppWeekRange(offA), rgB = _ppWeekRange(offB);
@@ -584,13 +680,27 @@ function _ppRenderChart() {
 
   var keys = Array.from(_ppChartKriteria);
   var series = _ppChartSeries || [];
+  var noteEl = document.getElementById('pp-chart-note');
 
   if (keys.length === 0 || series.length === 0) {
     canvas.style.display = 'none';
     if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = keys.length === 0 ? 'Pilih minimal 1 kriteria' : 'Belum ada data'; }
     if (legEl) legEl.innerHTML = '';
     if (tooltip) tooltip.style.display = 'none';
+    if (noteEl) noteEl.style.display = 'none';
     return;
+  }
+
+  // Tren Tahunan/Pilih Tahun baru kelihatan garisnya kalau histori udah ≥2 tahun —
+  // ini bukan bug, cuma soal data yang masih terkumpul (bisnis baru mulai 2026)
+  if (noteEl) {
+    var pointsWithData = series.filter(function(s) { return s.data; }).length;
+    if ((_ppPeriodMode === 'per_tahun' || _ppPeriodMode === 'pilih_tahun') && pointsWithData < 2) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = '📌 Tren tahunan makin kelihatan setelah histori tembus lebih dari 1 tahun — saat ini baru ada data ' + (series.filter(function(s){return s.data;}).map(function(s){return s.periode;}).join(', ') || '-') + '.';
+    } else {
+      noteEl.style.display = 'none';
+    }
   }
 
   canvas.style.display = 'block';
@@ -876,7 +986,7 @@ function _ppRenderCompareTable(cols, refBefore) {
       }
 
       return '<td style="color:' + color + ';' + sizeStyle + '">' +
-        '<span style="display:inline-flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap">' +
+        '<span style="display:inline-flex;align-items:baseline;justify-content:flex-end;gap:16px;white-space:nowrap">' +
           '<span>' + txt + '</span>' + deltaHtml +
         '</span>' +
       '</td>';
