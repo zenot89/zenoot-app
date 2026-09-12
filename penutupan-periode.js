@@ -176,14 +176,14 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 
 <!-- ── Section 3: Grafik ── -->
 <div class="card pp-section">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:10px;margin-bottom:2px;border-bottom:1px solid var(--ovl-0_05)">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <span><i class="ti ti-chart-line"></i> Grafik</span>
     <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
       <i class="ti ti-calendar"></i>
       <span>Periode:</span>
       <span class="pp-period-label" id="pp-period-current-label">Tren Bulanan</span>
       <i class="ti ti-chevron-down" style="font-size:11px"></i>
     </div>
-    <div class="card-title" style="margin:0;padding-bottom:0;border-bottom:none"><i class="ti ti-chart-line"></i> Grafik</div>
   </div>
   <div style="position:relative;height:220px;margin-top:12px">
     <canvas id="pp-chart-canvas" style="width:100%;height:100%;display:block"></canvas>
