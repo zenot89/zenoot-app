@@ -267,9 +267,9 @@ function _ppRenderKriteriaChecks() {
   if (!wrap) return;
   wrap.innerHTML = _ppKriteriaDefs.map(function(def) {
     var checked = _ppChartKriteria.has(def.key) ? 'checked' : '';
-    return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;user-select:none">' +
-      '<input type="checkbox" ' + checked + ' onchange="ppToggleKriteria(\'' + def.key + '\')" style="accent-color:' + def.chartColor + ';width:14px;height:14px">' +
-      '<span style="width:9px;height:9px;border-radius:50%;background:' + def.chartColor + ';display:inline-block;flex-shrink:0"></span>' +
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink2);cursor:pointer;user-select:none">' +
+      '<input type="checkbox" ' + checked + ' onchange="ppToggleKriteria(\'' + def.key + '\')" style="accent-color:' + def.chartColor + ';width:17px;height:17px">' +
+      '<span style="width:11px;height:11px;border-radius:50%;background:' + def.chartColor + ';display:inline-block;flex-shrink:0"></span>' +
       '<span>' + def.label + '</span>' +
       '</label>';
   }).join('');
@@ -422,7 +422,7 @@ function _ppRenderChart() {
   var legEl   = document.getElementById('pp-chart-legend');
   if (!canvas) return;
 
-  var keys = Array.prototype.slice.call(_ppChartKriteria);
+  var keys = Array.from(_ppChartKriteria);
   var series = _ppChartSeries || [];
 
   if (keys.length === 0 || series.length === 0) {
@@ -673,7 +673,9 @@ async function _ppFetchData(ym) {
 
 // ─── RENDER TABEL PERBANDINGAN (Kriteria x 4 kolom bulan) ────
 // cols = [{ periode, label, badge:'snap'|'live'|null, data:{...}|null }, ...] urut lama → baru
-function _ppRenderCompareTable(cols) {
+// refBefore = { data:{...} } opsional — snapshot SATU bulan sebelum kolom pertama,
+// dipakai HANYA buat hitung % kolom pertama (gak dirender jadi kolom sendiri)
+function _ppRenderCompareTable(cols, refBefore) {
   var headRow = document.getElementById('pp-cmp-head-row');
   var tbody   = document.getElementById('pp-cmp-tbody');
   if (!headRow || !tbody) return;
@@ -695,9 +697,9 @@ function _ppRenderCompareTable(cols) {
       var color = def.valStyle ? _ppColor(n) : (def.color || 'var(--ink)');
       var sizeStyle = def.big ? ' font-size:15px;' : '';
 
-      // Badge naik/turun % vs kolom sebelumnya
+      // Badge naik/turun % vs kolom sebelumnya (kolom pertama pakai refBefore kalau ada)
       var deltaHtml = '';
-      var prevCol = cols[idx - 1];
+      var prevCol = cols[idx - 1] || (idx === 0 ? refBefore : null);
       if (prevCol && prevCol.data) {
         var prevN = Number(prevCol.data[def.key] || 0);
         if (prevN !== 0) {
@@ -706,14 +708,18 @@ function _ppRenderCompareTable(cols) {
           var isBadField = !!badFields[def.key];
           var isGoodMove = pct >= 0 ? !isBadField : isBadField;
           var arrow = pct >= 0 ? '▲' : '▼';
-          deltaHtml = '<div style="font-size:10px;font-weight:700;color:' + (isGoodMove ? 'var(--ok)' : 'var(--danger)') + ';margin-top:2px">' +
-            arrow + ' ' + Math.abs(pct).toFixed(1) + '%</div>';
+          deltaHtml = '<span style="font-weight:700;color:' + (isGoodMove ? 'var(--ok)' : 'var(--danger)') + '">' +
+            arrow + ' ' + Math.abs(pct).toFixed(1) + '%</span>';
         } else if (n !== 0) {
-          deltaHtml = '<div style="font-size:10px;font-weight:700;color:var(--ink3);margin-top:2px">baru</div>';
+          deltaHtml = '<span style="font-weight:700;color:var(--ink3)">baru</span>';
         }
       }
 
-      return '<td style="color:' + color + ';' + sizeStyle + '">' + txt + deltaHtml + '</td>';
+      return '<td style="color:' + color + ';' + sizeStyle + '">' +
+        '<span style="display:inline-flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap">' +
+          '<span>' + txt + '</span>' + deltaHtml +
+        '</span>' +
+      '</td>';
     }).join('');
     return '<tr><td>' + def.label + '</td>' + tds + '</tr>';
   }).join('');
@@ -779,8 +785,11 @@ async function ppLoadUtama() {
     if (btn) btn.style.display = '';
 
     // Bangun 4 kolom: 3 bulan terakhir (snapshot, lama→baru) + bulan berjalan (live)
-    var tiga = _ppHistoriCache.slice(0, 3); // terbaru dulu (desc)
-    var tigaAsc = tiga.slice().reverse();   // urut lama → baru
+    // Ambil 4 snapshot (bukan 3) — snapshot ke-4 (lebih tua) dipakai HANYA sebagai
+    // referensi buat hitung % kolom pertama, gak dirender jadi kolom sendiri.
+    var empat = _ppHistoriCache.slice(0, 4); // terbaru dulu (desc)
+    var tigaAsc = empat.slice(0, 3).reverse(); // 3 terbaru, urut lama → baru
+    var refSebelum = empat[3] || null;
     var cols = tigaAsc.map(function(r) {
       return { periode: r.periode, label: _ppPeriodeLabel(r.periode), badge: 'snap', data: r };
     });
@@ -789,7 +798,7 @@ async function ppLoadUtama() {
     }
     cols.push({ periode: ymSkrg, label: _ppPeriodeLabel(ymSkrg), badge: 'live', data: liveData });
 
-    _ppRenderCompareTable(cols);
+    _ppRenderCompareTable(cols, refSebelum ? { data: refSebelum } : null);
 
     // Bangun seri lengkap (semua histori + bulan berjalan) buat grafik
     _ppLiveDataCache = liveData;
