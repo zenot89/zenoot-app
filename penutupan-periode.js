@@ -105,6 +105,25 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   .pp-period-item:hover { background: var(--ovl-0_05); }
   .pp-period-item.active { color: var(--accent); font-weight: 700; background: var(--ovl-0_05); }
   .pp-period-divider { padding: 6px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink4); background: var(--ovl-0_03); }
+  .pp-period-item.has-sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+  /* ── Sub-panel pilih bulan spesifik (gaya Shopee) ── */
+  #pp-month-picker {
+    position: fixed;
+    background: var(--cream2); border: 1px solid var(--ink3);
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
+    min-width: 230px; z-index: 100000; display: none; padding: 10px;
+  }
+  #pp-month-picker.open { display: block; }
+  .pp-mp-yearnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 700; font-size: 13px; color: var(--ink); }
+  .pp-mp-yearnav button { background: none; border: none; cursor: pointer; font-size: 15px; color: var(--ink2); padding: 3px 9px; border-radius: 6px; }
+  .pp-mp-yearnav button:hover:not(:disabled) { background: var(--ovl-0_05); }
+  .pp-mp-yearnav button:disabled { opacity: .3; cursor: default; }
+  .pp-mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pp-mp-month { padding: 9px 0; text-align: center; border-radius: 8px; font-size: 12.5px; cursor: pointer; background: none; border: none; color: var(--ink2); font-family: var(--f); }
+  .pp-mp-month:hover:not(:disabled) { background: var(--ovl-0_05); }
+  .pp-mp-month.active { background: var(--ink); color: var(--cream); font-weight: 700; }
+  .pp-mp-month:disabled { color: var(--ink4); cursor: default; }
 </style>
 
 
@@ -285,7 +304,7 @@ var _ppPeriodLabels = {
   minggu_lalu: 'Minggu Lalu',
   bulan_ini:   'Bulan Ini',
   bulan_lalu:  'Bulan Lalu',
-  per_bulan:   'Per Bulan',
+  per_bulan:   'Tren Bulanan',
   per_tahun:   'Per Tahun',
 };
 
@@ -300,6 +319,8 @@ function ppTogglePeriodPanel() {
     panel.style.top   = (rect.bottom + 6) + 'px';
     panel.style.left  = 'auto';
     panel.style.right = (window.innerWidth - rect.right) + 'px';
+  } else {
+    _ppCloseMonthPicker();
   }
   panel.classList.toggle('open', !isOpen);
 }
@@ -316,21 +337,28 @@ function _ppEnsurePeriodPanel() {
     '<div class="pp-period-item" data-mode="minggu_lalu" onclick="ppSelectPeriodMode(\'minggu_lalu\')">Minggu Lalu</div>' +
     '<div class="pp-period-item" data-mode="bulan_ini"   onclick="ppSelectPeriodMode(\'bulan_ini\')">Bulan Ini (Berjalan)</div>' +
     '<div class="pp-period-item" data-mode="bulan_lalu"  onclick="ppSelectPeriodMode(\'bulan_lalu\')">Bulan Lalu</div>' +
+    '<div class="pp-period-item has-sub" id="pp-item-pilih-bulan" data-mode="pilih_bulan" onclick="ppOpenMonthPicker(event)">Pilih Bulan <i class="ti ti-chevron-right" style="font-size:11px"></i></div>' +
     '<div class="pp-period-divider">Tren</div>' +
-    '<div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode(\'per_bulan\')">Per Bulan</div>' +
+    '<div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode(\'per_bulan\')">Tren Bulanan</div>' +
     '<div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode(\'per_tahun\')">Per Tahun</div>';
   document.body.appendChild(panel);
 }
 document.addEventListener('click', function(e) {
   var panel = document.getElementById('pp-period-panel');
   var trigger = document.getElementById('pp-period-trigger');
+  var picker = document.getElementById('pp-month-picker');
+  var pilihItem = document.getElementById('pp-item-pilih-bulan');
   if (!panel || !panel.classList.contains('open')) return;
-  if (panel.contains(e.target) || (trigger && trigger.contains(e.target))) return;
+  var insidePanel  = panel.contains(e.target) || (trigger && trigger.contains(e.target));
+  var insidePicker = picker && (picker.contains(e.target) || (pilihItem && pilihItem.contains(e.target)));
+  if (insidePanel || insidePicker) return;
   panel.classList.remove('open');
+  _ppCloseMonthPicker();
 });
 
 function ppSelectPeriodMode(mode) {
   _ppPeriodMode = mode;
+  _ppPilihBulanYm = null; // pindah ke mode lain — reset seleksi bulan spesifik
   var labelEl = document.getElementById('pp-period-current-label');
   if (labelEl) labelEl.textContent = _ppPeriodLabels[mode] || mode;
   document.querySelectorAll('.pp-period-item').forEach(function(el) {
@@ -338,7 +366,119 @@ function ppSelectPeriodMode(mode) {
   });
   var panel = document.getElementById('pp-period-panel');
   if (panel) panel.classList.remove('open');
+  _ppCloseMonthPicker();
   _ppLoadPeriodMode(mode);
+}
+
+// ─── SUB-PANEL PILIH BULAN SPESIFIK (gaya Shopee: navigasi tahun + grid 12 bulan) ──
+var _ppMpYear       = new Date().getFullYear(); // tahun yang lagi ditampilin di month-picker
+var _ppPilihBulanYm = null;                     // 'YYYY-MM' bulan spesifik yang lagi aktif (mode pilih_bulan)
+var _ppBulanShort   = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+function _ppEnsureMonthPicker() {
+  if (document.getElementById('pp-month-picker')) return;
+  var picker = document.createElement('div');
+  picker.id = 'pp-month-picker';
+  document.body.appendChild(picker);
+}
+
+function _ppCloseMonthPicker() {
+  var picker = document.getElementById('pp-month-picker');
+  if (picker) picker.classList.remove('open');
+}
+
+function ppOpenMonthPicker(e) {
+  if (e) e.stopPropagation();
+  _ppEnsureMonthPicker();
+  var picker = document.getElementById('pp-month-picker');
+  var itemEl = document.getElementById('pp-item-pilih-bulan');
+  if (!picker || !itemEl) return;
+  var rect = itemEl.getBoundingClientRect();
+  picker.style.top   = rect.top + 'px';
+  picker.style.left  = (rect.right + 6) + 'px';
+  picker.style.right = 'auto';
+  // Kalau kepotong di kanan layar (HP), taruh di kiri item sebagai gantinya
+  if (rect.right + 6 + 230 > window.innerWidth) {
+    picker.style.left  = 'auto';
+    picker.style.right = (window.innerWidth - rect.left + 6) + 'px';
+  }
+  _ppMpYear = _ppPilihBulanYm ? parseInt(_ppPilihBulanYm.split('-')[0], 10) : new Date().getFullYear();
+  _ppRenderMonthPicker();
+  picker.classList.add('open');
+}
+
+function _ppRenderMonthPicker() {
+  var picker = document.getElementById('pp-month-picker');
+  if (!picker) return;
+  var now = new Date();
+  var isCurYear = _ppMpYear === now.getFullYear();
+  var html = '<div class="pp-mp-yearnav">' +
+    '<button onclick="ppMpChangeYear(-1)"><i class="ti ti-chevrons-left"></i></button>' +
+    '<span>' + _ppMpYear + '</span>' +
+    '<button onclick="ppMpChangeYear(1)" ' + (isCurYear ? 'disabled' : '') + '><i class="ti ti-chevrons-right"></i></button>' +
+  '</div><div class="pp-mp-grid">';
+  for (var m = 0; m < 12; m++) {
+    var ym = _ppMpYear + '-' + String(m + 1).padStart(2, '0');
+    var isFuture = isCurYear && m > now.getMonth();
+    var isActive = ym === _ppPilihBulanYm;
+    html += '<button class="pp-mp-month' + (isActive ? ' active' : '') + '" ' + (isFuture ? 'disabled' : '') +
+      ' onclick="ppPilihBulan(\'' + ym + '\')">' + _ppBulanShort[m] + '</button>';
+  }
+  html += '</div>';
+  picker.innerHTML = html;
+}
+
+function ppMpChangeYear(delta) {
+  var now = new Date();
+  var newYear = _ppMpYear + delta;
+  if (newYear > now.getFullYear()) return;
+  _ppMpYear = newYear;
+  _ppRenderMonthPicker();
+}
+
+async function ppPilihBulan(ym) {
+  _ppPilihBulanYm = ym;
+  _ppPeriodMode = 'pilih_bulan';
+  var labelEl = document.getElementById('pp-period-current-label');
+  if (labelEl) labelEl.textContent = _ppPeriodeLabel(ym);
+  document.querySelectorAll('.pp-period-item').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-mode') === 'pilih_bulan');
+  });
+  _ppCloseMonthPicker();
+  var panel = document.getElementById('pp-period-panel');
+  if (panel) panel.classList.remove('open');
+  await _ppLoadSpecificMonth(ym);
+}
+
+// Tampilkan bulan yang dipilih vs bulan sebelumnya (2 titik, sama pola dgn mode bulan_ini/bulan_lalu)
+async function _ppLoadSpecificMonth(ym) {
+  var emptyEl = document.getElementById('pp-chart-empty');
+  var canvas  = document.getElementById('pp-chart-canvas');
+  if (canvas) canvas.style.display = 'none';
+  if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = 'Memuat...'; }
+
+  try {
+    var parts  = ym.split('-');
+    var dPrev  = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 2, 1);
+    var ymPrev = dPrev.getFullYear() + '-' + String(dPrev.getMonth() + 1).padStart(2, '0');
+    var now    = new Date();
+    var ymSkrg = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+    var snapMap = {};
+    _ppHistoriCache.forEach(function(r) { snapMap[r.periode] = r; });
+
+    var dataYm   = (ym === ymSkrg)     ? _ppLiveDataCache : (snapMap[ym]     || await _ppFetchData(ym));
+    var dataPrev = (ymPrev === ymSkrg) ? _ppLiveDataCache : (snapMap[ymPrev] || await _ppFetchData(ymPrev));
+
+    _ppChartSeries = [
+      { periode: ymPrev, label: _ppPeriodeLabel(ymPrev), data: dataPrev },
+      { periode: ym,     label: _ppPeriodeLabel(ym),     data: dataYm },
+    ];
+  } catch(e) {
+    console.error('[PP] _ppLoadSpecificMonth error', e);
+    _ppChartSeries = [];
+  }
+  _ppRenderChart();
 }
 
 // Hitung rentang tanggal 1 minggu (Minggu–Sabtu, offset 0 = minggu ini, -1 = minggu lalu, dst)
