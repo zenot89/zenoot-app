@@ -167,17 +167,10 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   </div>
 </div>
 
-<!-- ── Section 2: Checkbox Kriteria ── -->
-<div class="card pp-section">
-  <div class="card-title"><i class="ti ti-adjustments"></i> Grafik Kriteria</div>
-  <div id="pp-kriteria-checks" style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px"></div>
-  <div id="pp-kriteria-count" style="font-size:11px;color:var(--ink3);margin-top:10px"></div>
-</div>
-
-<!-- ── Section 3: Grafik ── -->
+<!-- ── Section 2: Checkbox Kriteria (+ dropdown Periode sejajar di judul) ── -->
 <div class="card pp-section">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <span><i class="ti ti-chart-line"></i> Grafik</span>
+    <span><i class="ti ti-adjustments"></i> Grafik Kriteria</span>
     <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
       <i class="ti ti-calendar"></i>
       <span>Periode:</span>
@@ -185,7 +178,13 @@ document.getElementById('page-penutupan-periode').innerHTML = `
       <i class="ti ti-chevron-down" style="font-size:11px"></i>
     </div>
   </div>
-  <div style="position:relative;height:220px;margin-top:12px">
+  <div id="pp-kriteria-checks" style="display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:10px"></div>
+  <div id="pp-kriteria-count" style="font-size:11px;color:var(--ink3);margin-top:10px"></div>
+</div>
+
+<!-- ── Section 3: Grafik (tanpa judul/header lagi — udah nyatu ke atas) ── -->
+<div class="card pp-section">
+  <div style="position:relative;height:220px">
     <canvas id="pp-chart-canvas" style="width:100%;height:100%;display:block"></canvas>
     <div id="pp-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px"></div>
     <div id="pp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
