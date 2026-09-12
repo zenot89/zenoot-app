@@ -82,7 +82,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   }
   #pp-toast.show { transform: translateX(-50%) translateY(0); }
 
-  /* ── Dropdown periode grafik (gaya Shopee) ── */
+  /* ── Dropdown periode grafik (gaya Shopee, portal ke body) ── */
   #pp-period-trigger {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 12px; padding: 6px 10px;
@@ -91,10 +91,10 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   }
   #pp-period-trigger .pp-period-label { font-weight: 700; }
   #pp-period-panel {
-    position: absolute; top: calc(100% + 4px); right: 0;
-    background: var(--cream2); border: 1.5px solid var(--ovl-0_1);
-    border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    min-width: 220px; z-index: 50; display: none; overflow: hidden;
+    position: fixed;
+    background: var(--cream2); border: 1px solid var(--ink3);
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
+    min-width: 220px; z-index: 99999; display: none; overflow: hidden;
   }
   #pp-period-panel.open { display: block; }
   .pp-period-item {
@@ -106,6 +106,7 @@ document.getElementById('page-penutupan-periode').innerHTML = `
   .pp-period-item.active { color: var(--accent); font-weight: 700; background: var(--ovl-0_05); }
   .pp-period-divider { padding: 6px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink4); background: var(--ovl-0_03); }
 </style>
+
 
 <div id="pp-toast"></div>
 <div id="pp-scroll-zone">
@@ -149,21 +150,12 @@ document.getElementById('page-penutupan-periode').innerHTML = `
 <div class="card pp-section">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span><i class="ti ti-chart-line"></i> Grafik</span>
-    <div style="position:relative">
+    <div>
       <div id="pp-period-trigger" onclick="ppTogglePeriodPanel()">
         <i class="ti ti-calendar"></i>
         <span>Periode:</span>
         <span class="pp-period-label" id="pp-period-current-label">Per Bulan</span>
         <i class="ti ti-chevron-down" style="font-size:11px"></i>
-      </div>
-      <div id="pp-period-panel">
-        <div class="pp-period-item" data-mode="minggu_ini"  onclick="ppSelectPeriodMode('minggu_ini')">Minggu Ini (Berjalan)</div>
-        <div class="pp-period-item" data-mode="minggu_lalu" onclick="ppSelectPeriodMode('minggu_lalu')">Minggu Lalu</div>
-        <div class="pp-period-item" data-mode="bulan_ini"   onclick="ppSelectPeriodMode('bulan_ini')">Bulan Ini (Berjalan)</div>
-        <div class="pp-period-item" data-mode="bulan_lalu"  onclick="ppSelectPeriodMode('bulan_lalu')">Bulan Lalu</div>
-        <div class="pp-period-divider">Tren</div>
-        <div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode('per_bulan')">Per Bulan</div>
-        <div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode('per_tahun')">Per Tahun</div>
       </div>
     </div>
   </div>
@@ -298,8 +290,36 @@ var _ppPeriodLabels = {
 };
 
 function ppTogglePeriodPanel() {
+  _ppEnsurePeriodPanel();
   var panel = document.getElementById('pp-period-panel');
-  if (panel) panel.classList.toggle('open');
+  var trigger = document.getElementById('pp-period-trigger');
+  if (!panel || !trigger) return;
+  var isOpen = panel.classList.contains('open');
+  if (!isOpen) {
+    var rect = trigger.getBoundingClientRect();
+    panel.style.top   = (rect.bottom + 6) + 'px';
+    panel.style.left  = 'auto';
+    panel.style.right = (window.innerWidth - rect.right) + 'px';
+  }
+  panel.classList.toggle('open', !isOpen);
+}
+
+// Portal panel dropdown periode ke body (dibuat sekali, dipakai ulang) —
+// hindari nempel di dalam .card-title yang punya stacking context sendiri
+// (ini yang bikin dropdown ketiban/transparan sama tooltip grafik).
+function _ppEnsurePeriodPanel() {
+  if (document.getElementById('pp-period-panel')) return;
+  var panel = document.createElement('div');
+  panel.id = 'pp-period-panel';
+  panel.innerHTML =
+    '<div class="pp-period-item" data-mode="minggu_ini"  onclick="ppSelectPeriodMode(\'minggu_ini\')">Minggu Ini (Berjalan)</div>' +
+    '<div class="pp-period-item" data-mode="minggu_lalu" onclick="ppSelectPeriodMode(\'minggu_lalu\')">Minggu Lalu</div>' +
+    '<div class="pp-period-item" data-mode="bulan_ini"   onclick="ppSelectPeriodMode(\'bulan_ini\')">Bulan Ini (Berjalan)</div>' +
+    '<div class="pp-period-item" data-mode="bulan_lalu"  onclick="ppSelectPeriodMode(\'bulan_lalu\')">Bulan Lalu</div>' +
+    '<div class="pp-period-divider">Tren</div>' +
+    '<div class="pp-period-item active" data-mode="per_bulan" onclick="ppSelectPeriodMode(\'per_bulan\')">Per Bulan</div>' +
+    '<div class="pp-period-item" data-mode="per_tahun" onclick="ppSelectPeriodMode(\'per_tahun\')">Per Tahun</div>';
+  document.body.appendChild(panel);
 }
 document.addEventListener('click', function(e) {
   var panel = document.getElementById('pp-period-panel');
@@ -725,6 +745,35 @@ function _ppRenderCompareTable(cols, refBefore) {
   }).join('');
 }
 
+// ─── AUTO-SNAPSHOT SATU BULAN (dipakai global timer & ppLoadUtama) ────
+// Kalau snapshot bulan `ym` belum ada, fetch + simpan. Return data yang baru
+// disimpan (null kalau udah ada / gagal fetch) — 1 sumber logic, dipakai di
+// 2 tempat biar gak ada 2 versi payload yang bisa divergen.
+async function _ppAutoSnapshotBulan(ym) {
+  var existing = await dbGet('penutupan_periode', '&periode=eq.' + ym).catch(function() { return []; });
+  if (existing && existing.length > 0) return null; // udah ada, gak perlu apa-apa
+  var data = await _ppFetchData(ym);
+  if (!data) return null;
+  var now = new Date();
+  await dbInsert('penutupan_periode', {
+    periode:          data.periode,
+    tanggal_tutup:    now.toISOString().split('T')[0],
+    total_pendapatan: data.total_pendapatan,
+    total_beban:      data.total_beban,
+    laba_rugi:        data.laba_rugi,
+    total_aset:       0,
+    total_kewajiban:  data.total_kewajiban,
+    total_modal:      0,
+    total_kas:        data.total_kas,
+    nilai_stok:       data.nilai_stok,
+    escrow_shopee:    data.escrow_shopee,
+    net_worth:        data.net_worth,
+    catatan:          null,
+  });
+  data.tanggal_tutup = now.toISOString().split('T')[0];
+  return data;
+}
+
 // ─── LOAD UTAMA ──────────────────────────────────────────────
 async function ppLoadUtama() {
   var statusEl = document.getElementById('pp-status');
@@ -751,24 +800,8 @@ async function ppLoadUtama() {
     // Belum ada snapshot bulan lalu — ambil live dan simpan otomatis
     if (!snapLalu) {
       if (statusEl) statusEl.textContent = 'Mengambil snapshot ' + _ppPeriodeLabel(ymLalu) + '...';
-      var dataLalu = await _ppFetchData(ymLalu);
+      var dataLalu = await _ppAutoSnapshotBulan(ymLalu);
       if (dataLalu) {
-        await dbInsert('penutupan_periode', {
-          periode:          dataLalu.periode,
-          tanggal_tutup:    now.toISOString().split('T')[0],
-          total_pendapatan: dataLalu.total_pendapatan,
-          total_beban:      dataLalu.total_beban,
-          laba_rugi:        dataLalu.laba_rugi,
-          total_aset:       0,
-          total_kewajiban:  dataLalu.total_kewajiban,
-          total_modal:      0,
-          total_kas:        dataLalu.total_kas,
-          nilai_stok:       dataLalu.nilai_stok,
-          escrow_shopee:    dataLalu.escrow_shopee,
-          net_worth:        dataLalu.net_worth,
-          catatan:          null,
-        });
-        dataLalu.tanggal_tutup = now.toISOString().split('T')[0];
         _ppToast('📸 Snapshot ' + _ppPeriodeLabel(ymLalu) + ' otomatis tersimpan');
         // Reload histori biar konsisten
         var newSnaps = await dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; });
@@ -903,16 +936,20 @@ document.addEventListener('zenot:page', function(e) {
 // Render checkbox pertama kali (setelah semua var/fungsi di atas siap)
 _ppRenderKriteriaChecks();
 
-// ─── AUTO-SNAPSHOT: 3 detik setelah app load ─────────────────
+// ─── AUTO-SNAPSHOT: 3 detik setelah app dibuka (di halaman APAPUN) ───
+// Gak perlu buka halaman Penutupan Periode — begitu app dibuka & bulan lalu
+// belum ada snapshot-nya, langsung disimpan di background pakai fungsi yang
+// sama dengan yang dipakai ppLoadUtama.
 setTimeout(function() {
-  if (typeof dbGet !== 'function') return;
+  if (typeof dbGet !== 'function' || typeof dbInsert !== 'function' || typeof _ppFetchData !== 'function') return;
   var now = new Date();
   var dLalu = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
-  dbGet('penutupan_periode', '&periode=eq.' + ymLalu).then(function(rows) {
-    if (!rows || rows.length === 0) {
-      // Snapshot belum ada — akan dibuat saat halaman dibuka pertama kali
-      console.log('[PP] Auto-snapshot bulan lalu akan dibuat saat halaman dibuka.');
-    }
-  }).catch(function() {});
+  _ppAutoSnapshotBulan(ymLalu).then(function(data) {
+    if (!data) return; // udah ada / gagal fetch — gak ada yang perlu dilakukan
+    console.log('[PP] Auto-snapshot ' + ymLalu + ' tersimpan otomatis di background.');
+    // Kalau kebetulan user lagi ada di halaman Laporan Bulanan, refresh biar konsisten
+    var pg = document.getElementById('page-penutupan-periode');
+    if (pg && pg.classList.contains('active') && typeof ppLoadUtama === 'function') ppLoadUtama();
+  }).catch(function(e) { console.error('[PP] Auto-snapshot background gagal', e); });
 }, 3000);
