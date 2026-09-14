@@ -88,6 +88,42 @@ document.getElementById('page-kas').innerHTML = `
   }
   .kas-panel { display:none; }
   .kas-panel.active { display:block; }
+
+  /* ── TAB CASHFLOW (12 Sep 2026) — bar mingguan + donut kategori,
+     terinspirasi tracker blu, pakai data jurnal yang sudah ada ── */
+  #kas-cf-bulan-dropdown {
+    position:fixed;
+    background:var(--cream2); border:1px solid var(--ink3);
+    border-radius:14px; min-width:220px; padding:6px;
+    z-index:99999; display:none;
+    box-shadow:0 8px 28px rgba(0,0,0,.3);
+  }
+  #kas-cf-bulan-dropdown.open { display:block; }
+  #kas-cf-bulan-dropdown .dd-list { max-height:200px; overflow-y:auto; }
+  #kas-cf-bulan-dropdown .dd-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 12px; border-radius:10px;
+    font-size:13px; font-weight:500; color:var(--ink2);
+    cursor:pointer; border:none; background:none;
+    width:100%; text-align:left; font-family:var(--f); white-space:nowrap;
+  }
+  #kas-cf-bulan-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #kas-cf-bulan-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #kas-cf-bulan-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
+  .kas-cf-toggle-item {
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    font-size:12px; font-weight:600; color:var(--ink3); cursor:pointer; flex:1;
+  }
+  .kas-cf-toggle-item.active { color:var(--ink); }
+  .kas-cf-toggle-icn {
+    width:38px; height:38px; border-radius:50%; background:var(--cream2);
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; color:var(--ink2);
+  }
+  .kas-cf-toggle-item.active .kas-cf-toggle-icn { background:var(--ink); color:var(--cream); }
+  .kas-cf-donut-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ovl-0_05); gap:10px; }
+  .kas-cf-donut-row:last-child { border-bottom:none; }
+  .kas-cf-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
   .akun-badge { display:inline-block; padding:2px 7px; border-radius:2px; font-size:11px; font-weight:700; border:1.5px solid currentColor; }
   .akun-aset      { color:#2a6e3a; }
   .akun-kewajiban { color:#b03020; }
@@ -298,6 +334,50 @@ document.getElementById('page-kas').innerHTML = `
         <tbody id="kas-akun-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- PANEL: CASHFLOW -->
+<div id="kas-panel-cashflow" class="kas-panel">
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span><i class="ti ti-chart-donut-3"></i> Cashflow</span>
+      <div style="position:relative;display:inline-block" id="kas-cf-bulan-wrap">
+        <button class="kas-btn-pill" id="kas-cf-bulan-trigger" onclick="kasCfToggleBulanDD()">
+          <i class="ti ti-calendar"></i>
+          <span id="kas-cf-bulan-label">—</span>
+          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-cf-bulan-arr"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toggle Cashflow / Pengeluaran / Pemasukan -->
+    <div style="display:flex;gap:12px;margin:14px 0" id="kas-cf-toggle">
+      <div class="kas-cf-toggle-item active" data-view="cashflow" onclick="kasCfSetView('cashflow')">
+        <span class="kas-cf-toggle-icn"><i class="ti ti-report-money"></i></span>Cashflow
+      </div>
+      <div class="kas-cf-toggle-item" data-view="pengeluaran" onclick="kasCfSetView('pengeluaran')">
+        <span class="kas-cf-toggle-icn"><i class="ti ti-arrow-up"></i></span>Pengeluaran
+      </div>
+      <div class="kas-cf-toggle-item" data-view="pemasukan" onclick="kasCfSetView('pemasukan')">
+        <span class="kas-cf-toggle-icn"><i class="ti ti-arrow-down"></i></span>Pemasukan
+      </div>
+    </div>
+
+    <!-- VIEW: Cashflow (bar mingguan) -->
+    <div id="kas-cf-view-cashflow" class="kas-cf-view">
+      <div style="position:relative;height:200px">
+        <canvas id="kas-cf-bar-canvas" style="width:100%;height:100%;display:block"></canvas>
+        <div id="kas-cf-bar-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px"></div>
+      </div>
+      <div id="kas-cf-bar-totals" style="display:flex;justify-content:space-around;margin-top:14px;text-align:center"></div>
+    </div>
+
+    <!-- VIEW: Pengeluaran (donut + list kategori, isi diisi JS) -->
+    <div id="kas-cf-view-pengeluaran" class="kas-cf-view" style="display:none"></div>
+
+    <!-- VIEW: Pemasukan (donut + list kategori, isi diisi JS) -->
+    <div id="kas-cf-view-pemasukan" class="kas-cf-view" style="display:none"></div>
   </div>
 </div>
 `;
@@ -702,9 +782,10 @@ if (document.readyState === 'loading') {
 // ─── TAB ─────────────────────────────────────────────────────
 // ── Kas tab meta ─────────────────────────────────────────────
 var _kasTabMeta = {
-  jurnal:  { label:'Jurnal Harian', icon:'ti-notebook'  },
-  laporan: { label:'Laporan',       icon:'ti-chart-bar' },
-  akun:    { label:'Kelola Akun',   icon:'ti-settings'  }
+  jurnal:   { label:'Jurnal Harian', icon:'ti-notebook'      },
+  laporan:  { label:'Laporan',       icon:'ti-chart-bar'     },
+  akun:     { label:'Kelola Akun',   icon:'ti-settings'      },
+  cashflow: { label:'Cashflow',      icon:'ti-chart-donut-3' },
 };
 
 // ── Tab dropdown portal ───────────────────────────────────────
@@ -716,6 +797,7 @@ function _kasEnsureTabDD() {
     '<div class="dd-section">Menu</div>' +
     '<button class="dd-item active" data-tab="jurnal" onclick="kasGotoTab(&quot;jurnal&quot;)"><i class="ti ti-notebook"></i> Jurnal Harian</button>' +
     '<button class="dd-item" data-tab="laporan" onclick="kasGotoTab(&quot;laporan&quot;)"><i class="ti ti-chart-bar"></i> Laporan</button>' +
+    '<button class="dd-item" data-tab="cashflow" onclick="kasGotoTab(&quot;cashflow&quot;)"><i class="ti ti-chart-donut-3"></i> Cashflow</button>' +
     '<button class="dd-item" data-tab="akun" onclick="kasGotoTab(&quot;akun&quot;)"><i class="ti ti-settings"></i> Kelola Akun</button>';
   document.body.appendChild(dd);
 }
@@ -819,7 +901,7 @@ document.addEventListener('click', function(e) {
 });
 
 function kasGotoTab(tab) {
-  const tabs = ['jurnal','laporan','akun'];
+  const tabs = ['jurnal','laporan','akun','cashflow'];
   // Sync dropdown
   var tabDD = document.getElementById('kas-tab-dropdown');
   if (tabDD) tabDD.querySelectorAll('.dd-item').forEach(function(el) {
@@ -866,6 +948,7 @@ function kasGotoTab(tab) {
   if (toolbar) toolbar.style.display = tab === 'jurnal' ? 'flex' : 'none';
   if (tab === 'laporan') kasRenderLaporan();
   if (tab === 'akun')    kasLoadAkun();
+  if (tab === 'cashflow') kasRenderCashflowTab();
 }
 
 function _kasLockPanelHeight(panel) {
@@ -2503,6 +2586,312 @@ function _kasGetSaldoMap() {
     if (r.akun_kredit_id) { if (!map[r.akun_kredit_id]) map[r.akun_kredit_id] = {d:0,k:0}; map[r.akun_kredit_id].k += n; }
   });
   return map;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB CASHFLOW (12 Sep 2026) — breakdown Pengeluaran/Pemasukan per
+// kategori (nama akun individual) + bar mingguan, gaya tracker blu.
+// Sumber data: _kasJurnalAll + _kasAkunMap yang UDAH ADA (jurnal
+// double-entry) — gak butuh kolom/tabel baru sama sekali. Kategori
+// = "akun lawan" dari sisi Kas & Bank di tiap transaksi (misal debit
+// Kas & Bank vs kredit "Pendapatan Jualan Shopee" → kategori
+// pemasukannya "Pendapatan Jualan Shopee"). Transfer antar-akun
+// Kas & Bank (2 sisi sama-sama Kas & Bank, misal tarik tunai bank→kas)
+// DIKECUALIKAN dari breakdown ini karena bukan pendapatan/beban
+// beneran, cuma perpindahan uang sendiri.
+// ═══════════════════════════════════════════════════════════
+var _kasCfBulan = '';           // 'YYYY-MM' — filter bulan KHUSUS tab ini, independen dari tab Jurnal/Laporan (pola sama kayak _kasLapBulan)
+var _kasCfView  = 'cashflow';   // 'cashflow' | 'pengeluaran' | 'pemasukan'
+var _KAS_CF_COLORS = ['#e0a730','#4a7fd6','#c0503a','#3a9e6e','#8a5ec8','#4aa8c8','#c85a8a','#7a8a3a','#b0973a','#5a6a9a'];
+
+function _kasCfIsKasBank(akunId) {
+  var a = _kasAkunMap[akunId];
+  return !!(a && a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK');
+}
+
+// Ambil transaksi bulan terpilih, TANPA transfer internal antar-akun Kas&Bank
+function _kasCfGetRows() {
+  var rows = _kasCfBulan ? _kasJurnalAll.filter(function(r) { return (r.tanggal||'').startsWith(_kasCfBulan); }) : _kasJurnalAll;
+  return rows.filter(function(r) {
+    var isD = _kasCfIsKasBank(r.akun_debit_id);
+    var isK = _kasCfIsKasBank(r.akun_kredit_id);
+    return isD !== isK; // persis 1 sisi Kas&Bank — exclude transfer internal (dua-duanya) & transaksi yang gak nyentuh kas sama sekali
+  });
+}
+
+function kasRenderCashflowTab() {
+  _kasCfBulanInit();
+  _kasCfRenderAll();
+}
+
+// ── Bulan picker (portal ke body, independen dari filter tab lain — pola sama kayak _kasEnsureBulanDD) ──
+function _kasCfEnsureBulanDD() {
+  if (document.getElementById('kas-cf-bulan-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'kas-cf-bulan-dropdown';
+  document.body.appendChild(dd);
+}
+function _kasCfBulanInit() {
+  if (!_kasCfBulan) {
+    var now = new Date();
+    _kasCfBulan = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  }
+  var lbl = document.getElementById('kas-cf-bulan-label');
+  if (lbl) lbl.textContent = new Date(_kasCfBulan + '-01').toLocaleDateString('id-ID', {month:'short', year:'numeric'});
+  _kasCfEnsureBulanDD();
+  var dd = document.getElementById('kas-cf-bulan-dropdown');
+  var html = '<div class="dd-section">Filter Bulan</div><div class="dd-list">';
+  var now2 = new Date();
+  for (var i = 0; i < 12; i++) {
+    var d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
+    var val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    var lblTxt = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+    html += '<button class="dd-item' + (_kasCfBulan === val ? ' active' : '') + '" onclick="kasCfSetBulan(&quot;' + val + '&quot;)"><i class="ti ti-calendar"></i> ' + lblTxt + '</button>';
+  }
+  html += '</div>';
+  dd.innerHTML = html;
+}
+function kasCfToggleBulanDD() {
+  _kasCfEnsureBulanDD();
+  var dd  = document.getElementById('kas-cf-bulan-dropdown');
+  var btn = document.getElementById('kas-cf-bulan-trigger');
+  if (!dd || !btn) return;
+  var isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    dd.style.top   = (rect.bottom + 6) + 'px';
+    dd.style.left  = Math.max(6, Math.min(rect.left, window.innerWidth - 220 - 6)) + 'px';
+    dd.style.right = 'auto';
+  }
+  dd.classList.toggle('open', !isOpen);
+  var arr = document.getElementById('kas-cf-bulan-arr');
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+function kasCfSetBulan(val) {
+  _kasCfBulan = val;
+  var dd = document.getElementById('kas-cf-bulan-dropdown');
+  if (dd) dd.classList.remove('open');
+  var arr = document.getElementById('kas-cf-bulan-arr');
+  if (arr) arr.style.transform = '';
+  _kasCfBulanInit();
+  _kasCfRenderAll();
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#kas-cf-bulan-wrap') && !e.target.closest('#kas-cf-bulan-dropdown')) {
+    var dd = document.getElementById('kas-cf-bulan-dropdown');
+    if (dd) dd.classList.remove('open');
+    var arr = document.getElementById('kas-cf-bulan-arr');
+    if (arr) arr.style.transform = '';
+  }
+});
+
+// ── Toggle Cashflow / Pengeluaran / Pemasukan ──────────────────
+function kasCfSetView(view) {
+  _kasCfView = view;
+  document.querySelectorAll('#kas-cf-toggle .kas-cf-toggle-item').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  ['cashflow', 'pengeluaran', 'pemasukan'].forEach(function(v) {
+    var el = document.getElementById('kas-cf-view-' + v);
+    if (el) el.style.display = (v === view) ? 'block' : 'none';
+  });
+  if (view !== 'cashflow') _kasCfRenderDonut(view);
+}
+
+function _kasCfRenderAll() {
+  _kasCfRenderBar();
+  if (_kasCfView !== 'cashflow') _kasCfRenderDonut(_kasCfView);
+}
+
+// ── VIEW 1: Bar chart mingguan (Pengeluaran vs Pemasukan) ──────
+function _kasCfRenderBar() {
+  var canvas   = document.getElementById('kas-cf-bar-canvas');
+  var emptyEl  = document.getElementById('kas-cf-bar-empty');
+  var totalsEl = document.getElementById('kas-cf-bar-totals');
+  if (!canvas) return;
+
+  var rows = _kasCfGetRows();
+  if (rows.length === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = 'Belum ada transaksi bulan ini'; }
+    if (totalsEl) totalsEl.innerHTML = '';
+    return;
+  }
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  if (!canvas.offsetWidth || canvas.offsetWidth < 10) { setTimeout(_kasCfRenderBar, 80); return; }
+
+  // Bucket per minggu: 1-7, 8-14, 15-21, 22-28, 29-akhir bulan
+  var parts = _kasCfBulan.split('-');
+  var yr = parseInt(parts[0], 10), mo = parseInt(parts[1], 10);
+  var lastDate = new Date(yr, mo, 0).getDate();
+  var buckets = [
+    { from: 1,  to: 7,  label: '1-7'   },
+    { from: 8,  to: 14, label: '8-14'  },
+    { from: 15, to: 21, label: '15-21' },
+    { from: 22, to: 28, label: '22-28' },
+    { from: 29, to: lastDate, label: '29-' + lastDate },
+  ];
+  var pengData = buckets.map(function() { return 0; });
+  var pemData  = buckets.map(function() { return 0; });
+  var totalPeng = 0, totalPem = 0;
+
+  rows.forEach(function(r) {
+    var tgl = r.tanggal || '';
+    var day = parseInt(tgl.split('-')[2], 10);
+    if (!day) return;
+    var bIdx = -1;
+    for (var i = 0; i < buckets.length; i++) { if (day >= buckets[i].from && day <= buckets[i].to) { bIdx = i; break; } }
+    if (bIdx === -1) return;
+    var isD = _kasCfIsKasBank(r.akun_debit_id);
+    var n = r.nominal || r.debit || r.kredit || 0;
+    if (isD) { pemData[bIdx] += n; totalPem += n; }
+    else     { pengData[bIdx] += n; totalPeng += n; }
+  });
+
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.offsetWidth, H = canvas.offsetHeight || 200;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  var padL = 56, padR = 12, padT = 10, padB = 22;
+  var cW = W - padL - padR, cH = H - padT - padB;
+  var maxRaw = Math.max(0, Math.max.apply(null, pengData.concat(pemData)));
+  var niceMax = _kasCfNiceMax(maxRaw);
+
+  // Grid + label sumbu Y (pola warna sama kayak chart di penutupan-periode.js)
+  ctx.strokeStyle = 'var(--ovl-0_06)'; ctx.lineWidth = 0.7;
+  ctx.fillStyle = '#909090'; ctx.font = '10px sans-serif';
+  var gridN = 4;
+  for (var g = 0; g <= gridN; g++) {
+    var gy = padT + cH - (cH * g / gridN);
+    ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W - padR, gy); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(_kasCfFmtShort(niceMax * g / gridN), padL - 8, gy);
+  }
+
+  var groupW = cW / buckets.length;
+  var barW = Math.min(18, groupW * 0.22);
+  var colorPeng = '#e0a730', colorPem = '#3a9e6e';
+  buckets.forEach(function(b, i) {
+    var cx = padL + groupW * i + groupW / 2;
+    var hPeng = niceMax > 0 ? (pengData[i] / niceMax) * cH : 0;
+    var hPem  = niceMax > 0 ? (pemData[i]  / niceMax) * cH : 0;
+    ctx.fillStyle = colorPeng;
+    ctx.fillRect(cx - barW - 2, padT + cH - hPeng, barW, hPeng);
+    ctx.fillStyle = colorPem;
+    ctx.fillRect(cx + 2, padT + cH - hPem, barW, hPem);
+    ctx.fillStyle = '#909090'; ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(b.label, cx, padT + cH + 6);
+  });
+
+  if (totalsEl) {
+    totalsEl.innerHTML =
+      '<div><div style="font-size:16px;font-weight:700;color:' + colorPeng + '">Rp' + fmtRpFull(totalPeng).replace('Rp', '') + '</div><div style="font-size:11px;color:var(--ink3)">Pengeluaran</div></div>' +
+      '<div><div style="font-size:16px;font-weight:700;color:' + colorPem + '">Rp' + fmtRpFull(totalPem).replace('Rp', '') + '</div><div style="font-size:11px;color:var(--ink3)">Pemasukan</div></div>';
+  }
+}
+
+function _kasCfNiceMax(v) {
+  if (v <= 0) return 1;
+  var mag = Math.pow(10, Math.floor(Math.log10(v)));
+  var norm = v / mag;
+  var nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+function _kasCfFmtShort(v) {
+  if (v >= 1e9) return 'Rp' + (v / 1e9).toFixed(1).replace('.0', '') + 'M';
+  if (v >= 1e6) return 'Rp' + (v / 1e6).toFixed(1).replace('.0', '') + 'jt';
+  if (v >= 1e3) return 'Rp' + (v / 1e3).toFixed(0) + 'rb';
+  return 'Rp' + v.toFixed(0);
+}
+
+// ── VIEW 2/3: Donut kategori (per NAMA AKUN individual) ────────
+// side: 'pengeluaran' (akun lawan dari sisi debit, dana KELUAR dari Kas&Bank)
+//    atau 'pemasukan'  (akun lawan dari sisi kredit, dana MASUK ke Kas&Bank)
+function _kasCfRenderDonut(side) {
+  var container = document.getElementById('kas-cf-view-' + side);
+  if (!container) return;
+  var rows = _kasCfGetRows();
+
+  var perAkun = {}; // akunId -> { nama, total, count }
+  var grandTotal = 0;
+  rows.forEach(function(r) {
+    var isMasuk = _kasCfIsKasBank(r.akun_debit_id); // debit = Kas&Bank → uang MASUK
+    if ((side === 'pemasukan' && !isMasuk) || (side === 'pengeluaran' && isMasuk)) return;
+    var lawanId = isMasuk ? r.akun_kredit_id : r.akun_debit_id;
+    var lawan = _kasAkunMap[lawanId];
+    var nama = lawan ? lawan.nama : '(akun tak dikenal)';
+    var n = r.nominal || r.debit || r.kredit || 0;
+    if (!perAkun[lawanId]) perAkun[lawanId] = { nama: nama, total: 0, count: 0 };
+    perAkun[lawanId].total += n;
+    perAkun[lawanId].count += 1;
+    grandTotal += n;
+  });
+
+  var list = Object.keys(perAkun).map(function(k) { return perAkun[k]; }).sort(function(a, b) { return b.total - a.total; });
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--ink3);font-style:italic;font-size:13px;padding:40px 0">Belum ada data ' + side + ' bulan ini</div>';
+    return;
+  }
+
+  list.forEach(function(item, i) { item.color = _KAS_CF_COLORS[i % _KAS_CF_COLORS.length]; item.pct = grandTotal ? (item.total / grandTotal * 100) : 0; });
+  var terbesar = list[0];
+
+  var canvasId = 'kas-cf-donut-' + side;
+  var listHtml = list.map(function(item) {
+    return '<div class="kas-cf-donut-row">' +
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0"><span class="kas-cf-dot" style="background:' + item.color + '"></span>' +
+      '<span style="font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + item.nama + '</span></div>' +
+      '<div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700">' + fmtRpFull(item.total) + '</div>' +
+      '<div style="font-size:11px;color:var(--ink3)">' + item.count + 'x · ' + item.pct.toFixed(1) + '%</div></div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML =
+    '<div style="text-align:center;margin-bottom:6px">' +
+      '<div style="font-size:12px;color:var(--ink3)">Kategori ' + (side === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran') + ' Terbesar</div>' +
+      '<div style="font-size:15px;font-weight:700;color:' + terbesar.color + '">' + terbesar.nama + '</div>' +
+    '</div>' +
+    '<div style="position:relative;height:190px;display:flex;align-items:center;justify-content:center">' +
+      '<canvas id="' + canvasId + '" width="190" height="190" style="width:190px;height:190px"></canvas>' +
+      '<div style="position:absolute;text-align:center;pointer-events:none">' +
+        '<div style="font-size:11px;color:var(--ink3)">Total</div>' +
+        '<div style="font-size:15px;font-weight:700">' + fmtRpFull(grandTotal) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="margin-top:14px">' + listHtml + '</div>';
+
+  _kasCfDrawDonut(canvasId, list);
+}
+
+function _kasCfDrawDonut(canvasId, list) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  var dpr = window.devicePixelRatio || 1;
+  var size = 190;
+  canvas.width  = size * dpr; canvas.height = size * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var cx = size / 2, cy = size / 2, rOuter = size / 2 - 6, rInner = rOuter - 26;
+  var total = list.reduce(function(s, i) { return s + i.total; }, 0);
+  var start = -Math.PI / 2;
+  list.forEach(function(item) {
+    var frac = total ? item.total / total : 0;
+    var end = start + frac * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rOuter, start, end);
+    ctx.arc(cx, cy, rInner, end, start, true);
+    ctx.closePath();
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    start = end;
+  });
 }
 
 function kasPopulatePickerList(listId, akunData) {
