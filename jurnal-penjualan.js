@@ -1803,7 +1803,7 @@ function showTambahJP() {
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lblV0 = document.getElementById('jp-picker-variasi-label');
   if (lblV0) { lblV0.textContent = '— Pilih Variasi —'; lblV0.style.color = 'var(--ink3)'; }
-  document.getElementById('jp-qty').value        = '';
+  document.getElementById('jp-qty').value        = '1';
   var _btnT = document.getElementById('jp-btn-tambah-sku');
   if (_btnT) _btnT.style.display = 'none';
 
@@ -2029,7 +2029,7 @@ function jpSimpanDanTambah() {
   var mw2 = document.getElementById('jp-sku-induk-manual-wrap');
   if (mw2) mw2.style.display = 'none';
   document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
-  document.getElementById('jp-qty').value = '';
+  document.getElementById('jp-qty').value = '1';
   idrSet('jp-harga', 0);
   idrSet('jp-total', 0);
 
@@ -2457,6 +2457,39 @@ var _jpChKatConfig = {
   toko_utama: 'Toko Utama', reseller: 'Reseller', lazada: 'Lazada',
   tiktok: 'TikTok', offline: 'Offline'
 };
+// ─── Riwayat channel — frekuensi + terakhir dipakai, localStorage.
+// Beda dari _gdgRecentSkuGet (recency doang, max 4): di sini kita
+// simpen {count, last} per channel biar bisa nampilin "yang paling
+// SERING dipakai" di atas (bukan cuma yang terakhir), sesuai
+// permintaan user (12 Sep 2026). Tie-break pakai waktu terakhir
+// dipakai kalau count sama. ──
+function _jpChHistKey() { return 'jp_channel_hist'; }
+function _jpChHistGet() {
+  try { return JSON.parse(localStorage.getItem(_jpChHistKey()) || '{}'); }
+  catch(e) { return {}; }
+}
+function _jpChHistPush(id) {
+  if (!id) return;
+  try {
+    var hist = _jpChHistGet();
+    var key = String(id);
+    var cur = hist[key] || { count: 0, last: 0 };
+    hist[key] = { count: cur.count + 1, last: Date.now() };
+    localStorage.setItem(_jpChHistKey(), JSON.stringify(hist));
+  } catch(e) {}
+}
+// Ambil top-N id channel diurut: count desc, tie-break last desc
+function _jpChHistTop(n) {
+  var hist = _jpChHistGet();
+  return Object.keys(hist)
+    .sort(function(a, b) {
+      var ha = hist[a], hb = hist[b];
+      if (hb.count !== ha.count) return hb.count - ha.count;
+      return hb.last - ha.last;
+    })
+    .slice(0, n);
+}
+
 function _jpSkuSheetRenderChannel(q) {
   var listEl = document.getElementById('jp-sku-sheet-list');
   if (!listEl) return;
@@ -2472,8 +2505,23 @@ function _jpSkuSheetRenderChannel(q) {
   });
   var kats = Object.keys(grouped);
   var html = '';
+
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong, sama pola
+  // kayak MRU SKU picker Gadag (_gdgRecentSkuGet) — item yang sama
+  // tetep nongol lagi di listing normal per kategori di bawah.
+  if (!q) {
+    var topIds = _jpChHistTop(5).filter(function(id) { return _jpChannelMap[id]; });
+    if (topIds.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
+      topIds.forEach(function(id) {
+        var ch = _jpChannelMap[id];
+        html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectChannel(\'' + ch.id + '\')"><span>' + ch.nama + '</span></div>';
+      });
+    }
+  }
+
   if (!kats.length) {
-    html = '<div class="jp-sheet-empty">' + (ids.length === 0 ? 'Channel belum ada' : 'Tidak ada channel yang cocok') + '</div>';
+    html += '<div class="jp-sheet-empty">' + (ids.length === 0 ? 'Channel belum ada' : 'Tidak ada channel yang cocok') + '</div>';
   } else {
     kats.forEach(function(kat) {
       html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── ' + (_jpChKatConfig[kat] || kat) + ' ──</div>';
@@ -2493,7 +2541,7 @@ function jpSkuSheetSelectChannel(id) {
     lbl.textContent = ch ? ch.nama : '— Pilih Channel —';
     lbl.style.color = ch ? 'var(--ink)' : 'var(--ink3)';
   }
-  if (id && ch) _jpSaveLastChannel(id, ch.nama); // buat prefill "channel terakhir" pas buka Tambah baru
+  if (id && ch) { _jpSaveLastChannel(id, ch.nama); _jpChHistPush(id); } // prefill "channel terakhir" + riwayat sering/terakhir dipakai
   jpSkuSheetClose();
 }
 
