@@ -527,7 +527,12 @@ async function _autoRefreshTokenIfNeeded() {
 
     console.log('[shopee-sync] Token OK, mulai sync saat load...');
     await syncShopeeFinance(tok);
-    await shopeeSyncOrders(tok);
+    // shopeeSyncOrders (tarik pesanan/penjualan → jurnal_penjualan) DIMATIKAN
+    // per permintaan user (14 Sep 2026) — semua pencatatan penjualan sekarang
+    // manual lewat Jurnal Penjualan aja, biar gak ada dobel-hitung stok kalau
+    // order yang sama kebetulan udah diinput manual juga. Finance sync (baris
+    // di atas) TETEP jalan — itu gak nyentuh jurnal_penjualan/stok.
+    // await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Auto-sync on load skip:', e.message);
   }
@@ -541,7 +546,8 @@ setInterval(async function() {
     console.log('[shopee-sync] Periodic sync (30 menit)...');
     await syncShopeeFinance(tok);
     await syncActiveOrderEscrow(tok);
-    await shopeeSyncOrders(tok);
+    // shopeeSyncOrders dimatiin — lihat komentar di auto-sync on load di atas
+    // await shopeeSyncOrders(tok);
   } catch(e) {
     console.warn('[shopee-sync] Periodic sync skip:', e.message);
   }

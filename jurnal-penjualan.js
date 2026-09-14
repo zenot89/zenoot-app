@@ -590,6 +590,26 @@ function _jpNowDate() {
 function _jpLocalDate(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+// Format timestamp lokal presisi jam:menit:detik — dibutuhkan buat filter
+// "Minggu Ini" yang batas atasnya bukan pas ganti hari (00:00) tapi jam
+// 19:30 Sabtu (bukan tengah malam kayak mode lain).
+function _jpLocalDateTime(d) {
+  return _jpLocalDate(d) + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+}
+// Hitung rentang "Minggu Ini": Minggu 00:00 s/d Sabtu jam 19:30. Kalau waktu
+// sekarang udah lewat Sabtu 19:30 minggu berjalan, otomatis geser ke minggu
+// berikutnya (Minggu depan s/d Sabtu depan 19:30) — sesuai aturan user
+// (12 Sep 2026): "lebih dari itu masuk ke minggu berikutnya".
+function _jpMingguIniRange(now) {
+  var dow = now.getDay(); // 0=Minggu .. 6=Sabtu
+  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0);
+  var cutoff = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 19, 30, 0);
+  if (now.getTime() > cutoff.getTime()) {
+    start  = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7, 0, 0, 0);
+    cutoff = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate() + 7, 19, 30, 0);
+  }
+  return { start: start, cutoff: cutoff };
+}
 
 // ─── MODAL ───────────────────────────────────────────────────
 function jpOverlayClose(e) {
@@ -975,6 +995,9 @@ async function loadJurnalPenjualan() {
       const tgl   = _jpLocalDate(d);
       const today = _jpLocalDate(now); // hari ini = batas atas eksklusif utk kemarin
       filter = '&tanggal=gte.' + tgl + '&tanggal=lt.' + today;
+    } else if (mode === 'minggu-ini') {
+      var rng = _jpMingguIniRange(now);
+      filter = '&tanggal=gte.' + _jpLocalDateTime(rng.start) + '&tanggal=lt.' + _jpLocalDateTime(rng.cutoff);
     } else if (mode === '7hari') {
       const since = _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000));
       const besok = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
@@ -1130,12 +1153,13 @@ function jpResetChannel() {
 // ─── UPDATE LABEL TOMBOL ─────────────────────────────────────
 function jpUpdatePeriodeLabel() {
   var map = {
-    'hari-ini': 'Hari Ini',
-    'kemarin':  'Kemarin',
-    '7hari':    '7 Hari',
-    '30hari':   '1 Bulan Terakhir',
-    'bulan':    'Bulan',
-    'semua':    'Semua'
+    'hari-ini':   'Hari Ini',
+    'kemarin':    'Kemarin',
+    'minggu-ini': 'Minggu Ini',
+    '7hari':      '7 Hari',
+    '30hari':     '1 Bulan Terakhir',
+    'bulan':      'Bulan',
+    'semua':      'Semua'
   };
   var el = document.getElementById('jp-periode-label');
   if (el) el.textContent = map[_jpWaktuMode] || 'Hari Ini';
@@ -2084,6 +2108,7 @@ async function exportJurnalPenjualan() {
       + '<div id="jp-waktu-opts" style="display:flex;flex-direction:column;gap:3px">'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="hari-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Hari Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="kemarin" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Kemarin</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="7hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 7 Hari Terakhir</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="30hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 1 Bulan Terakhir</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan</label>'

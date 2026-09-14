@@ -231,7 +231,12 @@ async function _shopeeExchangeToken(code, shopId) {
     const newTok = { shop_id: shopId, access_token: data.access_token, expire_at: data.expire_at || Math.floor(Date.now()/1000) + 14400 };
     if (typeof syncShopeeFinance === 'function')     syncShopeeFinance(newTok).catch(()=>{});
     if (typeof syncActiveOrderEscrow === 'function') syncActiveOrderEscrow(newTok).catch(()=>{});
-    if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
+    // shopeeSyncOrders (tarik pesanan/penjualan → jurnal_penjualan) DIMATIKAN
+    // per permintaan user (14 Sep 2026) — semua pencatatan penjualan sekarang
+    // manual lewat Jurnal Penjualan aja, biar gak ada dobel-hitung stok kalau
+    // order yang sama kebetulan udah diinput manual juga. Finance/escrow sync
+    // (2 baris di atas) TETEP jalan — itu gak nyentuh jurnal_penjualan/stok.
+    // if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
 
   } catch(err) {
     _saLog('Gagal dapat token: ' + err.message, 'err');
@@ -344,7 +349,8 @@ async function shopeeRefreshToken() {
     const newTok = { ...tok, access_token: data.access_token, expire_at: data.expire_at || Math.floor(Date.now()/1000) + 14400 };
     if (typeof syncShopeeFinance === 'function')     syncShopeeFinance(newTok).catch(()=>{});
     if (typeof syncActiveOrderEscrow === 'function') syncActiveOrderEscrow(newTok).catch(()=>{});
-    if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
+    // shopeeSyncOrders dimatiin — lihat komentar di connectShopee() di atas
+    // if (typeof shopeeSyncOrders === 'function')      shopeeSyncOrders(newTok).catch(()=>{});
   } catch(err) {
     _saLog('Refresh gagal: ' + err.message, 'err');
   }
