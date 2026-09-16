@@ -436,7 +436,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <button id="hs-menu-item-bon" class="hs-tab-btn" onclick="hsSwitchView('bon')">Bon</button>
       <button id="hs-menu-item-pembayaran" class="hs-tab-btn" onclick="hsSwitchView('pembayaran')">Riwayat Bayar</button>
       <button id="hs-menu-item-master" class="hs-tab-btn" onclick="hsSwitchView('master')">Master Barang</button>
-      <button id="hs-menu-item-supplier" class="hs-tab-btn" onclick="hsSwitchView('supplier')">Kelola Supplier</button>
+      <!-- 15 Sep 2026: tab "Kelola Supplier" DIHAPUS dari sini — pindah total
+           ke Channel > Supplier & ROP (channel-master.js), biar cuma 1 tempat
+           kelola data supplier (masih 1 tabel hutang_supplier di belakangnya). -->
     </div>
     <div id="hs-page-dots" class="hs-page-dots">
       <span class="hs-page-dot active" onclick="hsSwitchView('overview')"></span>
@@ -444,7 +446,6 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <span class="hs-page-dot" onclick="hsSwitchView('bon')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('pembayaran')"></span>
       <span class="hs-page-dot" onclick="hsSwitchView('master')"></span>
-      <span class="hs-page-dot" onclick="hsSwitchView('supplier')"></span>
     </div>
   </div>
 
@@ -525,60 +526,14 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       </div>
     </div>
 
-    <div id="hs-panel-supplier" class="hs-panel">
-      <div class="hs-toolbar">
-        <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahSupplierMaster()"><i class="ti ti-plus"></i> Tambah Supplier</button>
-      </div>
-      <div class="hs-item-hint" style="margin-bottom:12px">
-        <b>Dropship</b>: suplier ngirim langsung hari itu juga, gak perlu PO — dipilih di Tambah Bon langsung jadi hutang aktif.<br>
-        <b>Reseller</b>: harus PO dulu (bisa uang muka), baru jalan pas barang jadi — otomatis muncul badge "PO" di tab Bon sampai ditandai diterima.
-      </div>
-      <div class="hs-divider"></div>
-      <div class="hs-table-wrap">
-        <table class="hs-table hs-supplier-table">
-          <thead>
-            <tr>
-              <th>Nama Supplier</th><th>Lead Time</th><th>Sistem</th>
-            </tr>
-          </thead>
-          <tbody id="hs-supplier-master-list"></tbody>
-        </table>
-      </div>
-    </div>
   </div>
 
+  <!-- 15 Sep 2026: panel "Kelola Supplier" + modal Tambah/Edit Supplier
+       DIHAPUS dari sini — pindah ke Channel > Supplier & ROP. -->
+
   <!-- ── MODAL: TAMBAH / EDIT SUPPLIER ── -->
-  <div class="modal-overlay" id="hs-sheet-supplier-master">
-    <div class="modal" style="max-width:380px">
-      <div class="modal-title" id="hs-sup-form-title"><i class="ti ti-truck"></i> Tambah Supplier</div>
-      <input type="hidden" id="hs-supm-id">
-      <div class="hs-form-group">
-        <label>Nama Supplier</label>
-        <input type="text" id="hs-supm-nama" placeholder="mis: RH">
-      </div>
-      <div class="hs-form-group">
-        <label>Sistem</label>
-        <div style="display:flex;gap:8px">
-          <label class="hs-jenis-radio" id="hs-supm-jenis-dropship-wrap">
-            <input type="checkbox" id="hs-supm-dropship" checked>
-            <i class="ti ti-truck-delivery"></i> Dropship
-          </label>
-          <label class="hs-jenis-radio" id="hs-supm-jenis-reseller-wrap">
-            <input type="checkbox" id="hs-supm-reseller">
-            <i class="ti ti-file-invoice"></i> Reseller
-          </label>
-        </div>
-        <div class="hs-item-hint" style="margin-top:8px">
-          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka), lead time bisa berminggu-minggu. Bisa dicentang dua-duanya kalau supplier ini bisa dua cara (mis. dropship harga normal, tapi bisa juga di-PO dengan harga lebih murah).
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="hsSimpanSupplierMaster()"><i class="ti ti-check"></i> Simpan</button>
-        <button class="btn btn-danger btn-sm" id="hs-supm-btn-hapus" style="display:none" onclick="hsHapusSupplierMaster()"><i class="ti ti-trash"></i> Hapus</button>
-        <button class="btn btn-sm" onclick="closeModal('hs-sheet-supplier-master')">Batal</button>
-      </div>
-    </div>
-  </div>
+  <!-- 15 Sep 2026: modal Tambah/Edit Supplier DIHAPUS dari sini — pindah ke
+       Channel > Supplier & ROP (channel-master.js). -->
 
   <!-- ── SHEET: TAMBAH / EDIT BON ── -->
   <div class="hs-sheet-overlay" id="hs-sheet-bon" onclick="if(event.target===this) hsCloseSheet('hs-sheet-bon')">
@@ -1042,16 +997,19 @@ async function hsLoadRestockPO() {
     var d7     = new Date(today); d7.setDate(d7.getDate() - 6);
     var dari7  = d7.toISOString().slice(0, 10);
 
-    var [penjualan14, produkAll, restockSup, stokData, jurnalAll, kasAkun, jurnalKas, barangAll] = await Promise.all([
+    var [penjualan14, produkAll, stokData, jurnalAll, kasAkun, jurnalKas, barangAll] = await Promise.all([
       dbGet('jurnal_penjualan', '&select=sku,qty,tanggal&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari14),
       dbGet('produk',           '&order=katalog.asc'),
-      dbGet('restock_supplier').catch(function() { return []; }),
       dbGet('stok'),
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
       dbGet('kas_akun'),
       dbGet('jurnal', '&select=akun_debit_id,akun_kredit_id,nominal'),
       dbGet('hutang_barang'),
     ]);
+    // 15 Sep 2026: ROP config (lead_time/min_order/kelipatan/budget/catatan)
+    // udah dipindah dari tabel restock_supplier ke hutang_supplier langsung
+    // (1 sumber, dicocokin by ID lewat _hsSupplierList yang udah ke-load).
+    // Tabel restock_supplier gak dipake lagi di sini.
 
     // ── Cash Kas & Bank, semua akun digabung ──
     var kasBankIds = {};
@@ -1114,13 +1072,13 @@ async function hsLoadRestockPO() {
     });
 
     var supplierMap = {};
-    (restockSup || []).forEach(function(s) {
-      var key = (s.boss || '').trim().toUpperCase();
+    (_hsSupplierList || []).forEach(function(s) {
+      var key = (s.nama || '').trim().toUpperCase();
       supplierMap[key] = {
         lead_time:   s.lead_time   || 7,
         min_order:   s.min_order   || 6,
         kelipatan:   s.kelipatan   || s.min_order || 6,
-        buffer_hari: s.buffer_hari || 3,
+        buffer_hari: 3,
       };
     });
     var DEFAULT_SUP = { lead_time: 7, min_order: 6, kelipatan: 6, buffer_hari: 3 };
@@ -1292,9 +1250,9 @@ var _HS_VIEW_LABEL = {
   bon:        { label: 'Jurnal Re-Stock', icon: 'ti-receipt' },
   pembayaran: { label: 'Riwayat Bayar',   icon: 'ti-cash' },
   master:     { label: 'Master Barang',   icon: 'ti-list-details' },
-  supplier:   { label: 'Kelola Supplier', icon: 'ti-truck' },
+  // 15 Sep 2026: 'supplier' dihapus dari sini, pindah ke Channel > Supplier & ROP
 };
-var _HS_VIEW_ORDER = ['overview', 'restock', 'bon', 'pembayaran', 'master', 'supplier'];
+var _HS_VIEW_ORDER = ['overview', 'restock', 'bon', 'pembayaran', 'master'];
 
 // Jenis supplier: 'dropship' = suplier yang kirim langsung hari itu juga
 // (gak perlu PO). 'reseller' = harus PO dulu + (opsional) uang muka, baru
@@ -1326,7 +1284,6 @@ function hsSwitchView(view) {
   hsRenderSupplierCards();
   hsRenderBonList();
   hsRenderMasterList();
-  hsRenderSupplierMasterList();
   if (view === 'restock') hsLoadRestockPO(); // lazy-load, query lumayan berat, gak usah jalan tiap ganti tab lain
 }
 
@@ -1928,118 +1885,12 @@ function hsRenderMasterList() {
   }
 }
 
-// ─── KELOLA SUPPLIER (nama + jenis Dropship/Reseller) ──────────
-// Sumber picker supplier di seluruh modul Hutang Barang. Jenis dipake buat
-// nentuin flow "Tambah Bon" (Dropship langsung, Reseller jadi PO dulu —
-// lihat hsOnBonSupplierChange & hsSimpanBon).
-function hsRenderSupplierMasterList() {
-  var el = document.getElementById('hs-supplier-master-list');
-  if (!el) return;
-
-  if (!_hsSupplierList.length) {
-    el.innerHTML = '<tr><td colspan="3" class="hs-empty">Belum ada Supplier. Tap "+ Tambah Supplier" buat mulai.</td></tr>';
-    return;
-  }
-
-  el.innerHTML = _hsSupplierList.map(function(s) {
-    var badges = '';
-    if (s.is_dropship) badges += '<span class="hs-jenis-badge hs-jenis-dropship"><i class="ti ' + _HS_JENIS_LABEL.dropship.icon + '"></i> ' + _HS_JENIS_LABEL.dropship.label + '</span>';
-    if (s.is_reseller) badges += ' <span class="hs-jenis-badge hs-jenis-reseller"><i class="ti ' + _HS_JENIS_LABEL.reseller.icon + '"></i> ' + _HS_JENIS_LABEL.reseller.label + '</span>';
-    if (!badges) badges = '<span class="hs-leadtime-empty">—</span>';
-    return '<tr data-id="' + s.id + '" onclick="hsOpenEditSupplierMaster(' + s.id + ')">' +
-      '<td>' + _hsEsc(s.nama) + '</td>' +
-      '<td>' + _hsLeadTimeLabel(s) + '</td>' +
-      '<td>' + badges + '</td>' +
-    '</tr>';
-  }).join('');
-}
-
-// ─── LEAD TIME per supplier ─────────────────────────────────────
-// Cuma relevan buat supplier yang punya jalur Reseller/PO (is_reseller,
-// walau dropship-nya juga dicentang). Dropship-murni gak lewat PO, barang
-// dateng hari itu juga jadi leadtime gak pernah dihitung (selalu "Sama
-// hari"). Dihitung dari SEMUA histori bon yang udah pernah ditandai
-// diterima (kolom tgl_diterima keisi), rata-rata (tgl_diterima - tanggal)
-// dalam hari. Bon yang masih PO (belum ditandai diterima) gak ikut dihitung.
-// 25 Agu 2026, poin 2.
-function _hsLeadTimeForSupplier(supplierId) {
-  var bons = _hsBonList.filter(function(b) {
-    return b.supplier_id === supplierId && b.tgl_diterima && b.tanggal;
-  });
-  if (!bons.length) return null;
-  var totalHari = bons.reduce(function(sum, b) {
-    var mulai  = new Date(b.tanggal + 'T00:00:00');
-    var selesai = new Date(b.tgl_diterima + 'T00:00:00');
-    var hari = Math.round((selesai - mulai) / 86400000);
-    return sum + Math.max(0, hari);
-  }, 0);
-  return { rataRata: Math.round(totalHari / bons.length), jumlahBon: bons.length };
-}
-
-function _hsLeadTimeLabel(s) {
-  if (!s.is_reseller) return '<span class="hs-leadtime-empty">Sama hari</span>';
-  var lt = _hsLeadTimeForSupplier(s.id);
-  if (!lt) return '<span class="hs-leadtime-empty">Belum ada data</span>';
-  return '<span class="hs-leadtime">' + lt.rataRata + ' hari</span>';
-}
-
-function hsOpenTambahSupplierMaster() {
-  document.getElementById('hs-sup-form-title').textContent = 'Tambah Supplier';
-  document.getElementById('hs-supm-id').value = '';
-  document.getElementById('hs-supm-btn-hapus').style.display = 'none';
-  document.getElementById('hs-supm-nama').value = '';
-  document.getElementById('hs-supm-dropship').checked = true;
-  document.getElementById('hs-supm-reseller').checked = false;
-  document.getElementById('hs-sheet-supplier-master').classList.add('open');
-}
-
-function hsOpenEditSupplierMaster(id) {
-  var s = _hsSupplierList.find(function(x){ return x.id===id; });
-  if (!s) return;
-  document.getElementById('hs-sup-form-title').textContent = 'Edit Supplier';
-  document.getElementById('hs-supm-id').value = s.id;
-  document.getElementById('hs-supm-btn-hapus').style.display = 'inline-flex';
-  document.getElementById('hs-supm-nama').value = s.nama;
-  document.getElementById('hs-supm-dropship').checked = !!s.is_dropship;
-  document.getElementById('hs-supm-reseller').checked = !!s.is_reseller;
-  document.getElementById('hs-sheet-supplier-master').classList.add('open');
-}
-
-async function hsSimpanSupplierMaster() {
-  var id    = document.getElementById('hs-supm-id').value;
-  var nama  = document.getElementById('hs-supm-nama').value.trim();
-  var isDropship = document.getElementById('hs-supm-dropship').checked;
-  var isReseller = document.getElementById('hs-supm-reseller').checked;
-
-  if (!nama) { alert('Isi nama supplier!'); return; }
-  if (!isDropship && !isReseller) { alert('Pilih minimal 1 sistem: Dropship dan/atau Reseller!'); return; }
-
-  try {
-    var data = { nama: nama.toUpperCase(), is_dropship: isDropship, is_reseller: isReseller };
-    if (id) {
-      await dbUpdate('hutang_supplier', id, data);
-    } else {
-      await dbInsert('hutang_supplier', data);
-    }
-    closeModal('hs-sheet-supplier-master');
-    await loadHutangSupplier();
-  } catch(e) {
-    alert('Gagal simpan: ' + e.message);
-  }
-}
-
-async function hsHapusSupplierMaster() {
-  var id = document.getElementById('hs-supm-id').value;
-  if (!id) return;
-  if (!confirm('Hapus supplier ini? Bon/Master Barang yang udah pernah pakai supplier ini TIDAK ikut kehapus, tapi bakal nampilin "—" di kolom Supplier.')) return;
-  try {
-    await dbDelete('hutang_supplier', id);
-    closeModal('hs-sheet-supplier-master');
-    await loadHutangSupplier();
-  } catch(e) {
-    alert('Gagal hapus: ' + e.message);
-  }
-}
+// 15 Sep 2026: fungsi CRUD Kelola Supplier (hsRenderSupplierMasterList,
+// hsSupmJenisToggle, hsOpenTambahSupplierMaster, hsOpenEditSupplierMaster,
+// hsSimpanSupplierMaster, hsHapusSupplierMaster) DIHAPUS dari sini — pindah
+// ke Channel > Supplier & ROP (channel-master.js), semua nulis/baca ke tabel
+// hutang_supplier yang sama. _hsSupplierList di bawah masih dipakai read-only
+// buat picker supplier di Bon/Master Barang/Re-Stock.
 
 // ─── OVERVIEW ───────────────────────────────────────────────
 function hsRenderOverview() {
@@ -3079,7 +2930,6 @@ async function hsSimpanTerimaBarang() {
     document.getElementById('hs-detail-po-banner').style.display = 'none';
     hsCloseSheet('hs-sheet-terima');
     hsRenderBonList();
-    hsRenderSupplierMasterList();
     await hsOpenDetailBon(bonId); // refresh rincian biar qty diterima ke-update di layar
   } catch(e) {
     alert('Gagal update: ' + e.message);

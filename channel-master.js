@@ -3,6 +3,19 @@
 // Halaman Beban Operasional sudah dihapus, setting harga ada di sini
 
 document.getElementById('page-channel').innerHTML = `
+  <style>
+    /* Dipinjam dari pola hutang-supplier.js — dipakai checkbox Sistem
+       (Dropship/Reseller/Produksi Sendiri) di modal Tambah/Edit Supplier. */
+    .hs-jenis-radio {
+      flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+      padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
+      font-size:13px; font-weight:700; color:var(--ink2); background:var(--cream2);
+      transition:background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .hs-jenis-radio input { accent-color:var(--ink); }
+    .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
+    .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
+  </style>
 
   <!-- ══ TAB NAVIGATION ══ -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink)">
@@ -146,6 +159,26 @@ document.getElementById('page-channel').innerHTML = `
         <div class="form-group" style="flex:1;min-width:100px">
           <label>Lead Time (hari)</label>
           <input type="number" id="supplier-leadtime" placeholder="7" min="1" max="90" value="7">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Sistem</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="hs-jenis-radio" id="supplier-jenis-dropship-wrap">
+            <input type="checkbox" id="supplier-dropship" checked onchange="chSupplierJenisToggle('dropship')">
+            <i class="ti ti-truck-delivery"></i> Dropship
+          </label>
+          <label class="hs-jenis-radio" id="supplier-jenis-reseller-wrap">
+            <input type="checkbox" id="supplier-reseller" onchange="chSupplierJenisToggle('reseller')">
+            <i class="ti ti-file-invoice"></i> Reseller
+          </label>
+          <label class="hs-jenis-radio" id="supplier-jenis-produksi-wrap">
+            <input type="checkbox" id="supplier-produksi" onchange="chSupplierJenisToggle('produksi')">
+            <i class="ti ti-hammer"></i> Produksi Sendiri
+          </label>
+        </div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:6px">
+          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka). Bisa dua-duanya kalau supplier ini bisa dua cara. Produksi Sendiri = bukan supplier luar (mis. tukang rajut sendiri) — gak bisa digabung Dropship/Reseller, gak muncul di tab eksekusi Re Stock (Bon/PO) Hutang Barang, diarahin ke Cost Produksi.
         </div>
       </div>
       <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap">
@@ -552,8 +585,12 @@ document.body.insertAdjacentHTML('beforeend', `
 
 // ═══════════════════════════════════════════════════════════════
 // ─── SUPPLIER & ROP ────────────────────────────────────────────
-// Tabel Supabase: restock_supplier
-// Kolom: id, boss, lead_time, min_order, kelipatan, budget, catatan, created_at
+// 15 Sep 2026: SATU-SATUNYA tempat kelola data supplier di seluruh app.
+// Tabel Supabase: hutang_supplier (BUKAN restock_supplier lagi — tabel itu
+// udah di-retire, cuma numpang lewat doang buat migrasi data awal).
+// hutang_supplier.id dipakai sebagai FK oleh hutang_barang.supplier_id &
+// hutang_bon.supplier_id (riwayat Bon/PO/pembayaran) — makanya hapusSupplier
+// di bawah WAJIB dicek dulu sebelum betulan delete, biar histori gak putus.
 // ═══════════════════════════════════════════════════════════════
 
 var _supplierData = [];
@@ -563,19 +600,13 @@ async function loadSupplierROP() {
   if (!wrap) return;
   wrap.innerHTML = '<div style="color:var(--ink3);font-style:italic;padding:12px 0"><i class="ti ti-loader"></i> Memuat...</div>';
   try {
-    const data = await dbGet('restock_supplier', '&order=boss.asc');
+    const data = await dbGet('hutang_supplier', '&order=nama.asc');
     _supplierData = data || [];
     renderSupplierROP();
   } catch(e) {
     wrap.innerHTML = `
       <div style="color:var(--danger);padding:12px 0">
-        ⚠️ Tabel <b>restock_supplier</b> belum ada di Supabase.<br>
-        <span style="font-size:12px;color:var(--ink3)">
-          Buat di Supabase → Table Editor → New Table → nama: <b>restock_supplier</b><br>
-          Kolom: id (int8 PK auto), boss (text), lead_time (int4 default 7),
-          min_order (int4 default 6), kelipatan (int4 default 6),
-          budget (int8 default 0), catatan (text), created_at (timestamptz default now())
-        </span>
+        ⚠️ Gagal memuat tabel <b>hutang_supplier</b>: ${e.message}
       </div>`;
   }
 }
@@ -595,6 +626,7 @@ function renderSupplierROP() {
       <thead>
         <tr>
           <th>Boss / Supplier</th>
+          <th>Sistem</th>
           <th style="text-align:center">Lead Time</th>
           <th style="text-align:center">Min Order</th>
           <th style="text-align:center">Kelipatan</th>
@@ -604,9 +636,15 @@ function renderSupplierROP() {
         </tr>
       </thead>
       <tbody>
-        ${_supplierData.map(s => `
+        ${_supplierData.map(s => { 
+          let badges = '';
+          if (s.is_produksi_sendiri) badges += '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(91,163,224,0.12);color:#5ba3e0;border:1px solid #5ba3e0;white-space:nowrap"><i class="ti ti-hammer"></i> Produksi Sendiri</span>';
+          if (s.is_dropship) badges += ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(120,120,120,0.1);color:var(--ink2);border:1px solid var(--ink3);white-space:nowrap"><i class="ti ti-truck-delivery"></i> Dropship</span>';
+          if (s.is_reseller) badges += ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(200,90,60,0.1);color:#c85a3c;border:1px solid #c85a3c;white-space:nowrap"><i class="ti ti-file-invoice"></i> Reseller</span>';
+          return `
           <tr>
-            <td><b style="color:var(--ink)">${s.boss || '—'}</b></td>
+            <td><b style="color:var(--ink)">${s.nama || '—'}</b></td>
+            <td>${badges || '—'}</td>
             <td style="text-align:center">${s.lead_time || 7} hari</td>
             <td style="text-align:center">${s.min_order || 6} pcs</td>
             <td style="text-align:center">× ${s.kelipatan || s.min_order || 6}</td>
@@ -618,12 +656,12 @@ function renderSupplierROP() {
               <button class="btn btn-sm" onclick="editSupplier(${s.id})" style="margin-right:4px">
                 <i class="ti ti-edit"></i>
               </button>
-              <button class="btn btn-sm btn-danger" onclick="hapusSupplier(${s.id},'${(s.boss||'').replace(/'/g,"\\'")}')">
+              <button class="btn btn-sm btn-danger" onclick="hapusSupplier(${s.id},'${(s.nama||'').replace(/'/g,"\\'")}')">
                 <i class="ti ti-trash"></i>
               </button>
             </td>
           </tr>
-        `).join('')}
+        `; }).join('')}
       </tbody>
     </table>
     <div style="margin-top:12px;padding:10px 14px;background:var(--cream3);border-radius:6px;font-size:12px;color:var(--ink3)">
@@ -650,6 +688,21 @@ function _chAttachBossAutocomplete() {
   if (input && typeof acAttach === 'function') acAttach(input, 'boss_produk');
 }
 
+// Produksi Sendiri gak bisa digabung sama Dropship/Reseller (bukan supplier
+// luar) — saling eksklusif, sama kayak pola di hutang-supplier.js.
+function chSupplierJenisToggle(which) {
+  var elDropship = document.getElementById('supplier-dropship');
+  var elReseller = document.getElementById('supplier-reseller');
+  var elProduksi = document.getElementById('supplier-produksi');
+  if (which === 'produksi' && elProduksi.checked) {
+    elDropship.checked = false;
+    elReseller.checked = false;
+  } else if ((which === 'dropship' || which === 'reseller') &&
+             (elDropship.checked || elReseller.checked)) {
+    elProduksi.checked = false;
+  }
+}
+
 function showModalSupplier() {
   document.getElementById('supplier-modal-title').textContent = 'Tambah Supplier';
   document.getElementById('supplier-id').value       = '';
@@ -659,6 +712,9 @@ function showModalSupplier() {
   document.getElementById('supplier-kelipatan').value = '';
   idrSet('supplier-budget', 0);
   document.getElementById('supplier-catatan').value  = '';
+  document.getElementById('supplier-dropship').checked = true;
+  document.getElementById('supplier-reseller').checked = false;
+  document.getElementById('supplier-produksi').checked = false;
   showModal('modal-supplier-rop');
   _chAttachBossAutocomplete();
 }
@@ -668,34 +724,45 @@ function editSupplier(id) {
   if (!s) return;
   document.getElementById('supplier-modal-title').textContent = 'Edit Supplier';
   document.getElementById('supplier-id').value        = s.id;
-  document.getElementById('supplier-nama').value      = s.boss || '';
+  document.getElementById('supplier-nama').value      = s.nama || '';
   document.getElementById('supplier-leadtime').value  = s.lead_time || 7;
   document.getElementById('supplier-minorder').value  = s.min_order || '';
   document.getElementById('supplier-kelipatan').value = s.kelipatan || s.min_order || '';
   idrSet('supplier-budget', s.budget || 0);
   document.getElementById('supplier-catatan').value   = s.catatan || '';
+  document.getElementById('supplier-dropship').checked = !!s.is_dropship;
+  document.getElementById('supplier-reseller').checked = !!s.is_reseller;
+  document.getElementById('supplier-produksi').checked = !!s.is_produksi_sendiri;
   showModal('modal-supplier-rop');
   _chAttachBossAutocomplete();
 }
 
 async function simpanSupplier() {
   const id        = document.getElementById('supplier-id').value;
-  const boss      = (document.getElementById('supplier-nama').value || '').trim().toUpperCase();
+  const nama      = (document.getElementById('supplier-nama').value || '').trim().toUpperCase();
   const lead_time = parseInt(document.getElementById('supplier-leadtime').value) || 7;
   const min_order = parseInt(document.getElementById('supplier-minorder').value) || 6;
   const kelipatan = parseInt(document.getElementById('supplier-kelipatan').value) || min_order;
   const budget    = idrVal('supplier-budget');
   const catatan   = (document.getElementById('supplier-catatan').value || '').trim();
+  const isDropship = document.getElementById('supplier-dropship').checked;
+  const isReseller = document.getElementById('supplier-reseller').checked;
+  const isProduksi = document.getElementById('supplier-produksi').checked;
 
-  if (!boss) { alert('Nama boss/supplier wajib diisi!'); return; }
+  if (!nama) { alert('Nama boss/supplier wajib diisi!'); return; }
+  if (!isDropship && !isReseller && !isProduksi) { alert('Pilih minimal 1 sistem: Dropship, Reseller, atau Produksi Sendiri!'); return; }
+  if (isProduksi && (isDropship || isReseller)) { alert('Produksi Sendiri gak bisa digabung Dropship/Reseller!'); return; }
 
-  const payload = { boss, lead_time, min_order, kelipatan, budget, catatan };
+  const payload = {
+    nama, lead_time, min_order, kelipatan, budget, catatan,
+    is_dropship: isDropship, is_reseller: isReseller, is_produksi_sendiri: isProduksi
+  };
 
   try {
     if (id) {
-      await dbUpdate('restock_supplier', id, payload);
+      await dbUpdate('hutang_supplier', id, payload);
     } else {
-      await dbInsert('restock_supplier', payload);
+      await dbInsert('hutang_supplier', payload);
     }
     hideModal('modal-supplier-rop');
     loadSupplierROP();
@@ -704,10 +771,27 @@ async function simpanSupplier() {
   }
 }
 
+// Sebelum betulan hapus, cek dulu apa supplier ini udah pernah kepake di Bon
+// (hutang_bon) atau Master Barang (hutang_barang) — kalau iya, hapus tetap
+// diizinin (data lama gak ikut kehapus, cuma nampilin "—" di kolom Supplier
+// di tempat-tempat itu) tapi user dikasih tau dulu biar gak kaget.
 async function hapusSupplier(id, nama) {
-  if (!confirm('Hapus supplier "' + nama + '"?')) return;
+  let sudahDipakai = false;
   try {
-    await dbDelete('restock_supplier', id);
+    const [bonPakai, barangPakai] = await Promise.all([
+      dbGet('hutang_bon', '&select=id&supplier_id=eq.' + id + '&limit=1'),
+      dbGet('hutang_barang', '&select=id&supplier_id=eq.' + id + '&limit=1'),
+    ]);
+    sudahDipakai = (bonPakai && bonPakai.length > 0) || (barangPakai && barangPakai.length > 0);
+  } catch(e) { /* kalau gagal cek, lanjut ke konfirmasi biasa aja */ }
+
+  const pesan = sudahDipakai
+    ? 'Supplier "' + nama + '" udah pernah dipakai di Bon/Master Barang. Riwayatnya TIDAK ikut kehapus, tapi bakal nampilin "—" di kolom Supplier. Tetap hapus?'
+    : 'Hapus supplier "' + nama + '"?';
+  if (!confirm(pesan)) return;
+
+  try {
+    await dbDelete('hutang_supplier', id);
     loadSupplierROP();
   } catch(e) {
     alert('Error: ' + e.message);
