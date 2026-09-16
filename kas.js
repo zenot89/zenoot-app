@@ -37,6 +37,7 @@ document.getElementById('page-kas').innerHTML = `
   #kas-tab-dropdown .dd-item {
     display:flex; align-items:center; gap:10px;
     padding:9px 12px; border-radius:10px;
+    min-height:44px;
     font-size:13px; font-weight:500; color:var(--ink2);
     cursor:pointer; border:none; background:none;
     width:100%; text-align:left; font-family:var(--f);
@@ -64,6 +65,7 @@ document.getElementById('page-kas').innerHTML = `
   #kas-bulan-dropdown .dd-item {
     display:flex; align-items:center; gap:10px;
     padding:9px 12px; border-radius:10px;
+    min-height:44px;
     font-size:13px; font-weight:500; color:var(--ink2);
     cursor:pointer; border:none; background:none;
     width:100%; text-align:left; font-family:var(--f);
@@ -103,6 +105,7 @@ document.getElementById('page-kas').innerHTML = `
   #kas-cf-bulan-dropdown .dd-item {
     display:flex; align-items:center; gap:10px;
     padding:9px 12px; border-radius:10px;
+    min-height:44px;
     font-size:13px; font-weight:500; color:var(--ink2);
     cursor:pointer; border:none; background:none;
     width:100%; text-align:left; font-family:var(--f); white-space:nowrap;
