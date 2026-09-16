@@ -5,34 +5,45 @@
 
 document.getElementById('page-clearance-induk').innerHTML = `
   <div class="card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div class="card-title mi-header">
       <span><i class="ti ti-stack-2"></i> Modal per SKU Induk</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <select id="mi-filter-sku" onchange="miFilterBySku(this.value)"
-          style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--ovl-0_1);background:var(--cream2);color:var(--ink)">
-          <option value="">Semua SKU</option>
-        </select>
+      <div class="mi-header-controls">
+        <div class="mi-select-wrap">
+          <i class="ti ti-filter"></i>
+          <select id="mi-filter-sku" onchange="miFilterBySku(this.value)">
+            <option value="">Semua SKU</option>
+          </select>
+        </div>
         <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
           <i class="ti ti-list-details"></i> Detail per SKU
         </button>
       </div>
     </div>
 
-    <div id="mi-metrics-strip" class="metrics" style="grid-template-columns:repeat(3,1fr);margin:0">
-      <div class="metric">
-        <div class="m-label">Katalog Terdampak</div>
-        <div class="m-value" id="mi-total-katalog">—</div>
-        <div class="m-delta">SKU induk</div>
+    <div id="mi-metrics-strip">
+      <div class="mi-metric mi-metric-blue">
+        <div class="mi-metric-icon"><i class="ti ti-package"></i></div>
+        <div>
+          <div class="m-label">Katalog Terdampak</div>
+          <div class="m-value" id="mi-total-katalog">—</div>
+          <div class="m-delta">SKU induk</div>
+        </div>
       </div>
-      <div class="metric">
-        <div class="m-label">Total Varian SKU</div>
-        <div class="m-value" id="mi-total-varian">—</div>
-        <div class="m-delta">non-aktif/dead/zombie</div>
+      <div class="mi-metric mi-metric-amber">
+        <div class="mi-metric-icon"><i class="ti ti-layers-intersect"></i></div>
+        <div>
+          <div class="m-label">Total Varian SKU</div>
+          <div class="m-value" id="mi-total-varian">—</div>
+          <div class="m-delta">non-aktif/dead/zombie</div>
+        </div>
       </div>
-      <div class="metric">
-        <div class="m-label">Total Modal Tertahan</div>
-        <div class="m-value" id="mi-total-nilai">—</div>
-        <div class="m-delta">HPP × sisa (digabung)</div>
+      <div class="mi-metric mi-metric-red">
+        <div class="mi-metric-icon"><i class="ti ti-coin"></i></div>
+        <div>
+          <div class="m-label">Total Modal Tertahan</div>
+          <div class="m-value" id="mi-total-nilai">—</div>
+          <div class="m-delta">HPP × sisa (digabung)</div>
+        </div>
       </div>
     </div>
 
@@ -55,8 +66,8 @@ document.getElementById('page-clearance-induk').innerHTML = `
       </div>
 
       <div id="mi-flash-wrap">
-        <div style="padding:8px 10px 6px;font-weight:700;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--ovl-0_06)">
-          <i class="ti ti-bolt"></i> Kandidat Flash Sale <span style="font-weight:400;color:var(--ink3)">(sisa ≥ 3 pcs)</span>
+        <div class="mi-flash-title">
+          <i class="ti ti-bolt"></i> Kandidat Flash Sale <span>(sisa ≥ 3 pcs)</span>
         </div>
         <div id="mi-flash-tbl-wrap">
           <table class="tbl">
@@ -135,12 +146,29 @@ function miUpdateSortIcons() {
   });
 }
 
+// ─── METRICS STRIP (ikut filter SKU aktif, dipanggil tiap render) ──
+function miUpdateMetrics() {
+  const elKat = document.getElementById('mi-total-katalog');
+  const elVar = document.getElementById('mi-total-varian');
+  const elNil = document.getElementById('mi-total-nilai');
+  if (!elKat || !_miGroupTotals || !_miFlatRows) return;
+  const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
+
+  const groupList = Object.values(_miGroupTotals).filter(g => !_miSkuFilter || g.katalog === _miSkuFilter);
+  const flatList  = _miFlatRows.filter(r => !_miSkuFilter || r.katalog === _miSkuFilter);
+
+  elKat.textContent = groupList.length.toLocaleString('id-ID');
+  elVar.textContent = flatList.length.toLocaleString('id-ID');
+  elNil.textContent = fmtRp(flatList.reduce((s, r) => s + r.nilai, 0));
+}
+
 // ─── RENDER (pakai data yang udah di-cache) ────────────────────
 function miRenderTable() {
   const tbody = document.getElementById('mi-tbody');
   if (!tbody || !_miGroupTotals || !_miFlatRows) return;
   const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
 
+  miUpdateMetrics();
   miUpdateSortIcons();
 
   const sortCol = _miSort.col || 'nilai';
@@ -348,10 +376,6 @@ async function loadModalInduk() {
       groupTotals[r.katalog].sisa   += r.sisa;
       groupTotals[r.katalog].nilai  += r.nilai;
     });
-
-    document.getElementById('mi-total-katalog').textContent = Object.keys(groupTotals).length.toLocaleString('id-ID');
-    document.getElementById('mi-total-varian').textContent  = flat.length.toLocaleString('id-ID');
-    document.getElementById('mi-total-nilai').textContent   = fmtRp(flat.reduce((s, r) => s + r.nilai, 0));
 
     _miGroupTotals = groupTotals;
     _miFlatRows    = flat;
