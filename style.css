@@ -1,4 +1,27 @@
 *{box-sizing:border-box;margin:0;padding:0;forced-color-adjust:none;-webkit-forced-color-adjust:none}
+
+/* ── SCROLLBAR TEMA APP — GLOBAL (16 Sep 2026) ───────────────────
+   Sebelumnya scrollbar tipis custom (var(--ink4)) cuma didaftar manual
+   satu-satu per container (#mi-tbl-wrap, .kas-akun-list, dll) — banyak
+   tabel/panel lain (contoh: #jp-tbl-wrap "Jurnal Penjualan", #stok-tbl-wrap,
+   #cl-tbl-wrap, #pt-tbl-wrap, #kas-jurnal-tbl-wrap, #kas-lap-tbl-wrap,
+   #kas-akun-tbl-scroll, #restock-tbl-scroll, #restock-body, #sup-tbl-wrap,
+   #ops-switcher-produk, #pl-card, #kas-panel-akun) gak pernah didaftar,
+   jadi jatuh ke scrollbar default browser/OS — item hitam tebal, gak
+   nyambung sama tema app. Fix: pasang default tipis tema app di level
+   universal, biar semua container scroll (lama & baru) otomatis ikut,
+   gak perlu didaftar manual lagi. Rule spesifik yang udah ada (mis. yang
+   sengaja disembunyiin: #kas-numpad-history, #stok-status-tabs-scroll)
+   tetap menang karena selector ID/class lebih spesifik dari universal. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink4) transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+*::-webkit-scrollbar-corner { background: transparent; }
 html{
   /* position:fixed + inset:0 — KUNCI utama blok iOS rubber-band di root level.
      iOS Safari tidak bisa rubber-band window kalau root element fixed.
