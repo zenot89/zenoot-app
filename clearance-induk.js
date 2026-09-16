@@ -76,10 +76,11 @@ document.getElementById('page-clearance-induk').innerHTML = `
                 <th>SKU Induk</th>
                 <th>SKU Variasi</th>
                 <th style="text-align:center">Sisa</th>
+                <th style="text-align:center">Status</th>
               </tr>
             </thead>
             <tbody id="mi-flash-tbody">
-              <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+              <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
             </tbody>
           </table>
         </div>
@@ -96,7 +97,8 @@ setTimeout(() => {
 
 // ─── STATE (cache biar sort gak perlu fetch ulang) ────────────
 let _miGroupTotals = null;  // { katalog: {katalog,varian,sisa,nilai} }
-let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}]
+let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}] — KHUSUS clearance (non-aktif/dead/zombie), buat tabel kiri
+let _miFlashRows   = null;  // [{katalog, sku, boss, sisa, hpp, nilai, vel}] — SEMUA SKU (semua velocity), buat panel Flash Sale
 let _miSort        = { col: null, dir: null };  // null = netral (default: modal desc)
 let _miSkuFilter   = '';    // '' = semua SKU
 
@@ -238,33 +240,58 @@ function miRenderTable() {
   miRenderFlashSale();
 }
 
-// ─── TABEL KANAN — Kandidat Flash Sale (sisa >= 3 pcs, syarat minimal Shopee) ──
+// ─── Badge status velocity (dipakai di kolom Status Flash Sale) ──
+function _miStatusBadge(vel) {
+  const map = {
+    fast:   { label: 'Fast',   color: '#00c896' },
+    slow:   { label: 'Slow',   color: '#c8a000' },
+    dead:   { label: 'Dead',   color: '#e05c00' },
+    zombie: { label: 'Zombie', color: 'var(--ink3)' }
+  };
+  const m = map[vel];
+  if (m) return `<span style="font-size:10px;font-weight:700;color:${m.color};padding:2px 6px;border:1.5px solid ${m.color};border-radius:4px;white-space:nowrap">${m.label}</span>`;
+  // non-aktif / kategori custom lain (bukan hasil velocity) — pakai raw label-nya
+  const label = vel ? vel.charAt(0).toUpperCase() + vel.slice(1) : '—';
+  return `<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:4px;white-space:nowrap">${label}</span>`;
+}
+
+// ─── TABEL KANAN — Kandidat Flash Sale (sisa >= 3 pcs, syarat minimal
+// Shopee). Sumber: _miFlashRows = SEMUA SKU semua velocity (lihat
+// catatan di loadModalInduk) — urutan grup dihitung dari total
+// masing-masing SKU induk sendiri (independen dari grup Clearance di
+// tabel kiri), biar SKU induk yang gak masuk kriteria Clearance sama
+// sekali (mis. full Fast-moving) tetap kehandle rankingnya. ──
 function miRenderFlashSale() {
   const tbody = document.getElementById('mi-flash-tbody');
-  if (!tbody || !_miFlatRows || !_miGroupTotals) return;
+  if (!tbody || !_miFlashRows) return;
 
-  // urutan grup SKU induk disamakan dengan tabel kiri (sesuai sort aktif)
-  const sortCol = _miSort.col || 'nilai';
-  const sortDir = _miSort.col ? _miSort.dir : 'desc';
-  const groupOrder = Object.values(_miGroupTotals).sort((a, b) => {
-    let d;
-    if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
-    else d = a[sortCol] - b[sortCol];
-    return sortDir === 'asc' ? d : -d;
-  });
-  const groupRank = {};
-  groupOrder.forEach((g, i) => { groupRank[g.katalog] = i; });
-
-  const flashFlat = _miFlatRows.filter(r => r.sisa >= 3 && (!_miSkuFilter || r.katalog === _miSkuFilter));
+  const flashFlat = _miFlashRows.filter(r => r.sisa >= 3 && (!_miSkuFilter || r.katalog === _miSkuFilter));
 
   if (!flashFlat.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
     document.getElementById('mi-flash-footer').textContent = '';
     return;
   }
 
-  const groupSisaFlash = {};
-  flashFlat.forEach(r => { groupSisaFlash[r.katalog] = (groupSisaFlash[r.katalog] || 0) + r.sisa; });
+  // total per katalog dari data flash SENDIRI (bukan _miGroupTotals kiri)
+  const flashGroupTotals = {};
+  flashFlat.forEach(r => {
+    if (!flashGroupTotals[r.katalog]) flashGroupTotals[r.katalog] = { katalog: r.katalog, sisa: 0, nilai: 0 };
+    flashGroupTotals[r.katalog].sisa  += r.sisa;
+    flashGroupTotals[r.katalog].nilai += r.nilai;
+  });
+
+  const sortCol = _miSort.col || 'nilai';
+  const sortDir = _miSort.col ? _miSort.dir : 'desc';
+  const groupOrder = Object.values(flashGroupTotals).sort((a, b) => {
+    let d;
+    if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
+    else if (sortCol === 'sisa') d = a.sisa - b.sisa;
+    else d = a.nilai - b.nilai;
+    return sortDir === 'asc' ? d : -d;
+  });
+  const groupRank = {};
+  groupOrder.forEach((g, i) => { groupRank[g.katalog] = i; });
 
   const rows = flashFlat.slice().sort((a, b) => {
     const rk = groupRank[a.katalog] - groupRank[b.katalog];
@@ -283,7 +310,8 @@ function miRenderFlashSale() {
     htmlParts.push(`<tr class="mi-grp-row mi-grp-first">
       <td style="font-weight:700">${kat}</td>
       <td></td>
-      <td style="text-align:center;font-weight:700">${groupSisaFlash[kat].toLocaleString('id-ID')}</td>
+      <td style="text-align:center;font-weight:700">${flashGroupTotals[kat].sisa.toLocaleString('id-ID')}</td>
+      <td></td>
     </tr>`);
     groupRows.forEach((r, i) => {
       const isLast = (i === groupRows.length - 1);
@@ -291,9 +319,10 @@ function miRenderFlashSale() {
         <td></td>
         <td style="font-size:11px;font-weight:600">${r.sku}</td>
         <td style="text-align:center;font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
+        <td style="text-align:center">${_miStatusBadge(r.vel)}</td>
       </tr>`);
     });
-    htmlParts.push('<tr class="mi-grp-gap"><td colspan="3"></td></tr>');
+    htmlParts.push('<tr class="mi-grp-gap"><td colspan="4"></td></tr>');
     idx = j;
   }
   tbody.innerHTML = htmlParts.join('');
@@ -368,6 +397,27 @@ async function loadModalInduk() {
     });
     flat.forEach(r => { r.nilai = r.sisa * r.hpp; });
 
+    // ── Kandidat Flash Sale: SEMUA SKU (semua velocity — Fast/Slow/Dead/
+    // Zombie/non-aktif), BUKAN cuma yang masuk kriteria Clearance (kolom
+    // kiri) kayak sebelumnya. Alasan (16 Sep 2026, request user): flash
+    // sale lebih efektif didorong ke SKU yang emang lagi laris (Fast) —
+    // dampaknya ke penjualan lebih gede — bukan cuma buat ngabisin stok
+    // mati. Dipisah dari `flat` di atas biar tabel kiri (murni Clearance)
+    // gak ikut berubah.
+    const flashFlat = [];
+    produkAll.forEach(p => {
+      const skuKey = (p.sku_variasi || p.sku || '').trim().toUpperCase();
+      if (!skuKey) return;
+      const sisa = (masukMap[skuKey] || 0) - (keluarMap[skuKey] || 0);
+      if (sisa <= 0) return;
+      const katRaw = (p.kategori_produk || 'aktif').toLowerCase();
+      const vel = katRaw !== 'aktif'
+        ? katRaw
+        : (typeof _stokVelocity === 'function' ? _stokVelocity(sales7Map[skuKey], sales30Map[skuKey], sales90Map[skuKey]) : null);
+      flashFlat.push({ katalog: p.katalog || '—', sku: skuKey, boss: p.boss || '—', sisa, hpp: p.hpp || 0, vel });
+    });
+    flashFlat.forEach(r => { r.nilai = r.sisa * r.hpp; });
+
     // Total per katalog (SKU induk) — dipakai buat metrik atas & sort grup
     const groupTotals = {};
     flat.forEach(r => {
@@ -379,6 +429,7 @@ async function loadModalInduk() {
 
     _miGroupTotals = groupTotals;
     _miFlatRows    = flat;
+    _miFlashRows   = flashFlat;
     miPopulateSkuFilter();
     miRenderTable();
 
@@ -391,5 +442,13 @@ async function loadModalInduk() {
 // ─── AUTO-LOAD SAAT NAVIGASI KE HALAMAN INI ───────────────────
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page !== 'clearance-induk') return;
+  // Fix 16 Sep 2026: dulu _miSkuFilter kebawa nempel dari kunjungan
+  // sebelumnya (gak ke-reset), jadi kalau user pernah pilih 1 SKU lalu
+  // pindah & balik lagi ke halaman ini, dropdown diam-diam masih
+  // nge-filter ke SKU lama itu — kelihatan kayak "sort cuma nampilin
+  // 1 SKU" padahal itu efek filter lama yang nyangkut, bukan dari sort.
+  // Reset total ke "Semua SKU" tiap kali halaman ini dibuka dari awal.
+  _miSkuFilter = '';
+  _miSort = { col: null, dir: null };
   loadModalInduk();
 });
