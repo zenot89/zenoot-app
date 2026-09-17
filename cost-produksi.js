@@ -76,19 +76,23 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi .tbl { table-layout:fixed; }
       #page-cost-produksi .tbl-wrap { overflow-x:hidden; }
       #page-cost-produksi .tbl th, #page-cost-produksi .tbl td { white-space:normal; word-break:break-word; font-size:11.5px; padding:6px 5px; }
-      /* Master Ongkos: kolom per-divisi (Rajut/Lingking/dst — jumlahnya
-         dinamis, nth-child(n+4) nangkep semuanya) disembunyiin di mobile,
-         sisain 3 kolom fix (SKU Induk / SKU Variasi / Total Cost) — biar
-         GAK perlu geser horizontal (itu udah kepake buat swipe ganti tab).
-         Breakdown per-divisi lengkap tetep bisa diliat: tap barisnya. */
-      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(n+4),
-      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(n+4) { display:none; }
+      /* Master Ongkos: kolom per-divisi + Bahan/Berat/Biaya Bahan/Total
+         Cost (jumlahnya dinamis, nth-child(n+3) nangkep semuanya kecuali
+         kolom ke-7/HPP-Pc yang sengaja dikecualikan) disembunyiin di
+         mobile, sisain 3 kolom fix (SKU Induk / SKU Variasi / HPP per Pc)
+         — biar GAK perlu geser horizontal (itu udah kepake buat swipe
+         ganti tab). Breakdown lengkap tetep bisa diliat: tap barisnya.
+         16 Sep 2026: dulu nth-child(n+4) nyisain kolom-3 (Total Cost),
+         sekarang nyisain kolom-7 (HPP per Pc) karena itu angka final
+         yang lebih relevan buat diliat sekilas. */
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(n+3):not(:nth-child(7)),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(n+3):not(:nth-child(7)) { display:none; }
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(1),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(1) { width:32%; font-size:11px; padding:6px 4px 6px 8px; }
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(2),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(2) { width:38%; font-size:11px; padding:6px 4px; }
-      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(3),
-      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(3) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(7),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(7) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
 
       /* Jurnal Harian: sembunyiin Divisi(kolom-2), SKU Variasi(kolom-5,
          sekarang kolom terpisah dari SKU Induk buat versi desktop) &
@@ -198,12 +202,14 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <button id="cp-menu-item-jurnal" class="cp-tab-btn" onclick="cpSwitchView('jurnal')">Jurnal Harian</button>
       <button id="cp-menu-item-rate" class="cp-tab-btn" onclick="cpSwitchView('rate')">Master Ongkos</button>
       <button id="cp-menu-item-tukang" class="cp-tab-btn" onclick="cpSwitchView('tukang')">Master Tukang</button>
+      <button id="cp-menu-item-bahan" class="cp-tab-btn" onclick="cpSwitchView('bahan')">Master Bahan</button>
     </div>
     <div id="cp-page-dots" class="cp-page-dots">
       <span class="cp-page-dot active" onclick="cpSwitchView('overview')"></span>
       <span class="cp-page-dot" onclick="cpSwitchView('jurnal')"></span>
       <span class="cp-page-dot" onclick="cpSwitchView('rate')"></span>
       <span class="cp-page-dot" onclick="cpSwitchView('tukang')"></span>
+      <span class="cp-page-dot" onclick="cpSwitchView('bahan')"></span>
     </div>
   </div>
 
@@ -252,6 +258,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
           <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('sku')"><i class="ti ti-edit"></i> Edit per SKU</button>
           <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('variant')"><i class="ti ti-list-check"></i> Edit per Variant</button>
           <button class="btn btn-primary btn-sm" onclick="cpOpenRateBulk('divisi')"><i class="ti ti-category"></i> Edit per Divisi</button>
+          <button class="btn btn-sm" onclick="cpSwitchView('bahan')"><i class="ti ti-flask"></i> Master Bahan</button>
         </div>
         <button class="btn btn-primary btn-sm cp-rate-toolbar-mobile" onclick="cpOpenRateModeSheet()">
           <i class="ti ti-edit"></i> Edit Rate <i class="ti ti-chevron-down" style="margin-left:2px"></i>
@@ -283,6 +290,23 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <div class="tbl-wrap" id="cp-tukang-pivot-wrap" style="overflow-x:auto;display:none"><table class="tbl">
           <thead><tr id="cp-tukang-pivot-thead"></tr></thead>
           <tbody id="cp-tukang-pivot-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ MASTER BAHAN (16 Sep 2026) — jenis benang + harga/kg, dipakai
+         buat hitung Biaya Bahan/pc di Master Ongkos (kolom BAHAN/BERAT/
+         BIAYA BAHAN/HPP PER PC). Pola CRUD sama persis kayak Master Tukang. ═══ -->
+    <div id="cp-panel-bahan" class="cp-panel">
+      <div class="cp-toolbar">
+        <span id="cp-bahan-total-label" style="color:var(--ink2);font-size:13px;font-weight:700">Total Jenis Bahan: 0</span>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="cpOpenBahanForm()"><i class="ti ti-plus"></i> Tambah Bahan</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-flask"></i> Master Bahan (jenis benang &amp; harga/kg)</div>
+        <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Nama Bahan</th><th style="text-align:right">Harga / Kg</th></tr></thead>
+          <tbody id="cp-bahan-tbody"><tr><td colspan="2" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -461,6 +485,49 @@ document.getElementById('page-cost-produksi').innerHTML = `
     </div>
   </div>
 
+  <!-- ═══ MODAL: Tambah/Edit Bahan (16 Sep 2026) ═══ -->
+  <div class="modal-overlay" id="modal-cp-bahan" onclick="if(event.target===this)hideModal('modal-cp-bahan')">
+    <div class="modal" style="max-width:380px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+        <div class="modal-title" id="cp-bahan-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-flask"></i> Tambah Bahan</div>
+        <button onclick="hideModal('modal-cp-bahan')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <input type="hidden" id="cp-bahan-edit-id">
+      <div class="form-group"><label>Nama Bahan</label><input type="text" id="cp-bahan-nama" placeholder="mis. Benang Rajut Katun 24S"></div>
+      <div class="form-group"><label>Harga per Kg (Rp)</label><input type="text" inputmode="numeric" id="cp-bahan-harga" placeholder="0"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn btn-danger" id="cp-bahan-del-btn" style="display:none" onclick="cpDeleteBahan()"><i class="ti ti-trash"></i> Hapus</button>
+        <button class="btn" onclick="hideModal('modal-cp-bahan')">Batal</button>
+        <button class="btn btn-primary" onclick="cpSaveBahan()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: Set Bahan & Berat per SKU Variasi (16 Sep 2026) — dipicu
+       dari kolom BAHAN/BERAT di Master Ongkos. Nyimpen ke produk.bahan_id
+       & produk.berat_gram (bukan ke cost_rate — bahan/berat itu properti
+       SKU Variasi, bukan properti per-divisi, jadi 1 sumber kebenaran di
+       tabel produk). ═══ -->
+  <div class="modal-overlay" id="modal-cp-bb" onclick="if(event.target===this)hideModal('modal-cp-bb')">
+    <div class="modal" style="max-width:380px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-scale"></i> Bahan &amp; Berat</div>
+        <button onclick="hideModal('modal-cp-bb')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+      </div>
+      <input type="hidden" id="cp-bb-produk-id">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:10px" id="cp-bb-sku-label"></div>
+      <div class="form-group">
+        <label>Jenis Bahan</label>
+        <select id="cp-bb-bahan-id"><option value="">— Pilih Bahan —</option></select>
+      </div>
+      <div class="form-group"><label>Berat per Pc (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn" onclick="hideModal('modal-cp-bb')">Batal</button>
+        <button class="btn btn-primary" onclick="cpSaveBahanBerat()"><i class="ti ti-check"></i> Simpan</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ PICKER SHEET generik — konsep sama kayak sheet Uang Keluar
        (kas.js) & sheet Pilih Akun: slide dari bawah, search di atas,
        list scroll di bawahnya, tap = pilih & sheet nutup sendiri.
@@ -483,14 +550,16 @@ document.getElementById('page-cost-produksi').innerHTML = `
 var _cpJurnal = [];
 var _cpRate   = [];
 var _cpTukang = [];
+var _cpBahan  = [];
 var _cpProdukDimi = []; // katalog/varian dari Kelola Produk, boss=DIMI doang
 var _cpView   = 'overview';
-var _CP_VIEW_ORDER = ['overview', 'jurnal', 'rate', 'tukang'];
+var _CP_VIEW_ORDER = ['overview', 'jurnal', 'rate', 'tukang', 'bahan'];
 var _CP_VIEW_LABEL = {
   overview: { label: 'Overview',      icon: 'ti-chart-donut'   },
   jurnal:   { label: 'Jurnal Harian', icon: 'ti-notebook'      },
   rate:     { label: 'Master Ongkos', icon: 'ti-list-details'  },
   tukang:   { label: 'Master Tukang', icon: 'ti-users'         },
+  bahan:    { label: 'Master Bahan',  icon: 'ti-flask'         },
 };
 
 // Urutan divisi baku (sesuai alur produksi Turtleneck di spreadsheet lo).
@@ -539,8 +608,9 @@ async function cpLoadAll() {
       dbGet('cost_rate',   '&order=sku.asc'),
       dbGet('cost_tukang', '&order=nama.asc'),
       dbGet('produk',      '&boss=eq.DIMI&order=katalog.asc').catch(function() { return []; }),
+      dbGet('master_bahan','&order=nama_bahan.asc').catch(function() { return []; }),
     ]);
-    _cpJurnal = res[0]; _cpRate = res[1]; _cpTukang = res[2]; _cpProdukDimi = res[3] || [];
+    _cpJurnal = res[0]; _cpRate = res[1]; _cpTukang = res[2]; _cpProdukDimi = res[3] || []; _cpBahan = res[4] || [];
   } catch (e) {
     alert('Gagal load Cost Produksi: ' + e.message);
     return;
@@ -549,6 +619,7 @@ async function cpLoadAll() {
   cpRenderJurnal();
   cpRenderRate();
   cpRenderTukang();
+  cpRenderBahan();
 }
 
 // ─── SWITCH VIEW (tab-bar desktop / dot mobile) ───────────────
@@ -734,19 +805,26 @@ function cpRenderJurnal() {
 // Baris dasarnya SEMUA kombinasi SKU+Variasi dari Kelola Produk (Boss:
 // DIMI) — bukan cuma yang udah punya rate — biar tabel ini jadi checklist
 // langsung: tap baris apapun (udah keisi atau masih "—") langsung ke form,
-// SKU+Variasi udah otomatis kekunci, ga perlu nyari/pilih lagi. ──
+// SKU+Variasi udah otomatis kekunci, ga perlu nyari/pilih lagi.
+//
+// 16 Sep 2026 — nambah kolom BAHAN/BERAT/BIAYA BAHAN/HPP PER PC biar
+// "Total Cost" (ongkos jasa doang, per LUSIN) ke-lengkapin jadi HPP
+// PENUH per PC: HPP/pc = (Total Cost ongkos ÷ 12) + Biaya Bahan/pc.
+// Bahan & Berat itu properti SKU Variasi (bukan per-divisi), makanya
+// disimpen di produk.bahan_id/produk.berat_gram — BUKAN di cost_rate. ──
 function cpRenderRate() {
   var cols = cpDivisiColumns();
   var theadRow = document.getElementById('cp-rate-thead-row');
-  theadRow.innerHTML = '<th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Total Cost</th>' + cols.map(function(c) {
-    return '<th style="text-align:right">' + cpEsc(c) + '</th>';
-  }).join('');
+  theadRow.innerHTML = '<th>SKU Induk</th><th>SKU Variasi</th>' +
+    '<th>Bahan</th><th style="text-align:right">Berat (gr)</th><th style="text-align:right">Biaya Bahan</th>' +
+    '<th style="text-align:right">Total Cost</th><th style="text-align:right">HPP / Pc</th>' +
+    cols.map(function(c) { return '<th style="text-align:right">' + cpEsc(c) + '</th>'; }).join('');
 
   var groupMap = {};
   _cpProdukDimi.forEach(function(p) {
     if (!p.katalog || !p.sku_variasi) return;
     var key = p.katalog + '||' + p.sku_variasi;
-    if (!groupMap[key]) groupMap[key] = { sku: p.katalog, variasi: p.sku_variasi, cells: {} };
+    if (!groupMap[key]) groupMap[key] = { sku: p.katalog, variasi: p.sku_variasi, cells: {}, produkId: p.id, bahanId: p.bahan_id, beratGram: p.berat_gram };
   });
   _cpRate.forEach(function(r) {
     var key = r.sku + '||' + (r.sku_variasi || '');
@@ -759,7 +837,7 @@ function cpRenderRate() {
   });
   var tbody = document.getElementById('cp-rate-tbody');
   if (!keys.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 3) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 7) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
     return;
   }
   tbody.innerHTML = keys.map(function(key) {
@@ -770,10 +848,23 @@ function cpRenderRate() {
       if (row) total += Number(row.ongkos_per_lusin) || 0;
       return '<td style="text-align:right">' + (row ? fmtRpFull(row.ongkos_per_lusin) : '<span style="color:var(--ink3)">—</span>') + '</td>';
     }).join('');
+
+    var bahanObj = g.bahanId ? _cpBahan.find(function(b) { return b.id == g.bahanId; }) : null;
+    var ongkosPcs = total / 12;
+    var biayaBahanPcs = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000) * Number(bahanObj.harga_per_kg) : 0;
+    var hppPcs = ongkosPcs + biayaBahanPcs;
+    var bbClick = g.produkId
+      ? "event.stopPropagation();cpOpenBahanBerat(" + g.produkId + ",'" + cpEscJs(g.sku) + "','" + cpEscJs(g.variasi) + "')"
+      : "event.stopPropagation();alert('SKU ini belum ada di Kelola Produk (Boss DIMI) — tambahin dulu di sana.')";
+
     return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(g.sku) + '\',\'' + cpEscJs(g.variasi) + '\')" style="cursor:pointer">' +
       '<td>' + cpEsc(g.sku) + '</td>' +
       '<td>' + (g.variasi ? cpEsc(g.variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
+      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;color:' + (bahanObj ? 'var(--ink)' : 'var(--ink3)') + '">' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : 'set bahan') + '</td>' +
+      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.beratGram ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : 'set berat') + '</td>' +
+      '<td style="text-align:right">' + fmtRpFull(biayaBahanPcs) + '</td>' +
       '<td style="text-align:right;font-weight:700">' + fmtRpFull(total) + '</td>' +
+      '<td style="text-align:right;font-weight:700;color:var(--info,#2F6FB0)">' + fmtRpFull(hppPcs) + '</td>' +
       cells +
     '</tr>';
   }).join('');
@@ -1673,3 +1764,86 @@ async function cpDeleteTukang() {
 document.addEventListener('zenot:page', function(e) {
   if (e.detail && e.detail.page === 'cost-produksi') cpLoadAll();
 });
+
+// ─── MASTER BAHAN — CRUD (16 Sep 2026, pola sama persis kayak Master
+// Tukang). Dipakai buat isi harga/kg per jenis benang, sumber lookup
+// kalkulasi Biaya Bahan di Master Ongkos. ─────────────────────────
+function cpRenderBahan() {
+  document.getElementById('cp-bahan-total-label').textContent = 'Total Jenis Bahan: ' + _cpBahan.length;
+  var tbody = document.getElementById('cp-bahan-tbody');
+  if (!_cpBahan.length) {
+    tbody.innerHTML = '<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada bahan. Tap "+ Tambah Bahan" buat mulai.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _cpBahan.map(function(b) {
+    return '<tr onclick="cpOpenBahanForm(' + b.id + ')" style="cursor:pointer">' +
+      '<td>' + cpEsc(b.nama_bahan) + '</td>' +
+      '<td style="text-align:right;font-weight:700">' + fmtRpFull(b.harga_per_kg) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function cpOpenBahanForm(id) {
+  document.getElementById('cp-bahan-edit-id').value = id || '';
+  document.getElementById('cp-bahan-form-title').innerHTML = id
+    ? '<i class="ti ti-edit"></i> Edit Bahan'
+    : '<i class="ti ti-flask"></i> Tambah Bahan';
+  document.getElementById('cp-bahan-del-btn').style.display = id ? '' : 'none';
+
+  var row = id ? _cpBahan.find(function(b) { return b.id == id; }) : null;
+  document.getElementById('cp-bahan-nama').value = row ? row.nama_bahan : '';
+  idrSet('cp-bahan-harga', row ? row.harga_per_kg : 0);
+  idrInput('cp-bahan-harga');
+  showModal('modal-cp-bahan');
+}
+
+async function cpSaveBahan() {
+  var id = document.getElementById('cp-bahan-edit-id').value;
+  var nama = document.getElementById('cp-bahan-nama').value.trim();
+  var harga = idrVal('cp-bahan-harga');
+  if (!nama) return alert('Nama bahan wajib diisi.');
+
+  var payload = { nama_bahan: nama, harga_per_kg: harga };
+  try {
+    if (id) await dbUpdate('master_bahan', id, payload);
+    else    await dbInsert('master_bahan', payload);
+  } catch (e) { return alert('Gagal simpan: ' + e.message); }
+  hideModal('modal-cp-bahan');
+  cpLoadAll();
+}
+
+async function cpDeleteBahan() {
+  var id = document.getElementById('cp-bahan-edit-id').value;
+  if (!id) return;
+  if (!confirm('Hapus bahan ini? SKU yang udah kepilih bahan ini bakal jadi kosong lagi (bukan error, tapi Biaya Bahan-nya jadi 0 sampe dipilih ulang).')) return;
+  try { await dbDelete('master_bahan', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
+  hideModal('modal-cp-bahan');
+  cpLoadAll();
+}
+
+// ─── Set Bahan & Berat per SKU Variasi (dipicu dari kolom BAHAN/BERAT
+// di Master Ongkos) — nyimpen ke produk.bahan_id & produk.berat_gram. ──
+function cpOpenBahanBerat(produkId, sku, variasi) {
+  document.getElementById('cp-bb-produk-id').value = produkId;
+  document.getElementById('cp-bb-sku-label').textContent = sku + (variasi ? ' — ' + variasi : '');
+  var sel = document.getElementById('cp-bb-bahan-id');
+  sel.innerHTML = '<option value="">— Pilih Bahan —</option>' + _cpBahan.map(function(b) {
+    return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
+  }).join('');
+  var row = _cpProdukDimi.find(function(p) { return p.id == produkId; });
+  sel.value = (row && row.bahan_id) ? row.bahan_id : '';
+  document.getElementById('cp-bb-berat').value = (row && row.berat_gram != null) ? row.berat_gram : '';
+  showModal('modal-cp-bb');
+}
+
+async function cpSaveBahanBerat() {
+  var id = document.getElementById('cp-bb-produk-id').value;
+  var bahanId = document.getElementById('cp-bb-bahan-id').value || null;
+  var berat = document.getElementById('cp-bb-berat').value;
+  berat = berat === '' ? null : Number(berat);
+  try {
+    await dbUpdate('produk', id, { bahan_id: bahanId, berat_gram: berat });
+  } catch (e) { return alert('Gagal simpan: ' + e.message); }
+  hideModal('modal-cp-bb');
+  cpLoadAll();
+}
