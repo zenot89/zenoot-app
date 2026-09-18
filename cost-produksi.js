@@ -23,6 +23,22 @@
 //
 // Tabel: cost_rate, cost_tukang, cost_jurnal (lihat migration SQL terpisah,
 // total_cost adalah GENERATED COLUMN di DB — jangan pernah insert manual).
+//
+// 17 Sep 2026 — 3 perubahan Master Ongkos/Jurnal (disetujui user):
+//   1. produk.berat_gram sekarang PER LUSIN (dulu per pc) — biar konsisten
+//      sama semua rate ongkos yang emang Rp/lusin. Formula Biaya Bahan/pc
+//      jadi (berat_gram / 1000 / 12) × harga_per_kg.
+//   2. Kolom Master Ongkos diurutin ulang: SKU Induk, SKU Variasi, HPP/Pc,
+//      Total Cost, Bahan, Berat, Biaya Bahan, baru kolom per-divisi.
+//   3. cost_jurnal dapet kolom baru berat_aktual_gram (nullable, cuma keisi
+//      di entri divisi RAJUT — satu-satunya tahap yang makan bahan baku).
+//      HPP/Pc di Jurnal Harian = (total ongkos semua divisi dari Master
+//      Ongkos ÷ 12) + Biaya Bahan, dan Biaya Bahan-nya PRIORITASIN data
+//      aktual (entri Rajut terbaru SKU itu yang punya berat_aktual_gram),
+//      fallback ke berat proyeksi (produk.berat_gram) kalau belum pernah
+//      ada entri Rajut buat SKU+Variasi itu. Ongkos jasa 6 divisi TETEP
+//      pakai rate standar Master Ongkos (bukan real-time gabungan tiap
+//      divisi — disepakati biar gak overengineering).
 
 document.getElementById('page-cost-produksi').innerHTML = `
   <style>
@@ -76,36 +92,39 @@ document.getElementById('page-cost-produksi').innerHTML = `
       #page-cost-produksi .tbl { table-layout:fixed; }
       #page-cost-produksi .tbl-wrap { overflow-x:hidden; }
       #page-cost-produksi .tbl th, #page-cost-produksi .tbl td { white-space:normal; word-break:break-word; font-size:11.5px; padding:6px 5px; }
-      /* Master Ongkos: kolom per-divisi + Bahan/Berat/Biaya Bahan/Total
-         Cost (jumlahnya dinamis, nth-child(n+3) nangkep semuanya kecuali
-         kolom ke-7/HPP-Pc yang sengaja dikecualikan) disembunyiin di
-         mobile, sisain 3 kolom fix (SKU Induk / SKU Variasi / HPP per Pc)
-         — biar GAK perlu geser horizontal (itu udah kepake buat swipe
-         ganti tab). Breakdown lengkap tetep bisa diliat: tap barisnya.
-         16 Sep 2026: dulu nth-child(n+4) nyisain kolom-3 (Total Cost),
-         sekarang nyisain kolom-7 (HPP per Pc) karena itu angka final
-         yang lebih relevan buat diliat sekilas. */
-      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(n+3):not(:nth-child(7)),
-      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(n+3):not(:nth-child(7)) { display:none; }
+      /* Master Ongkos: kolom per-divisi + Total Cost/Bahan/Berat/Biaya
+         Bahan (jumlahnya dinamis, nth-child(n+4) nangkep semuanya dari
+         kolom-4 dst) disembunyiin di mobile, sisain 3 kolom fix (SKU
+         Induk / SKU Variasi / HPP per Pc) — biar GAK perlu geser
+         horizontal (itu udah kepake buat swipe ganti tab). Breakdown
+         lengkap tetep bisa diliat: tap barisnya.
+         17 Sep 2026: HPP/Pc dipindah ke kolom-3 (dulu kolom-7), jadi
+         selector mobile ikut disederhanain — kolom 1-3 tetep tampil apa
+         adanya, tinggal sembunyiin kolom-4 dst. */
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(n+4),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(n+4) { display:none; }
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(1),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(1) { width:32%; font-size:11px; padding:6px 4px 6px 8px; }
       #page-cost-produksi #cp-panel-rate .tbl th:nth-child(2),
       #page-cost-produksi #cp-panel-rate .tbl td:nth-child(2) { width:38%; font-size:11px; padding:6px 4px; }
-      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(7),
-      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(7) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
+      #page-cost-produksi #cp-panel-rate .tbl th:nth-child(3),
+      #page-cost-produksi #cp-panel-rate .tbl td:nth-child(3) { width:30%; font-size:11px; padding:6px 8px 6px 4px; }
 
       /* Jurnal Harian: sembunyiin Divisi(kolom-2), SKU Variasi(kolom-5,
-         sekarang kolom terpisah dari SKU Induk buat versi desktop) &
-         Total(kolom-7) di mobile, sisain Tanggal(Hari) / Tukang / SKU
-         Induk / Qty — muat tanpa geser. Variasi tetep keliatan nempel
-         jadi baris ke-2 di sel SKU Induk (.cp-jrn-variasi-mobile).
-         Tap baris buat liat divisi & total lengkapnya. */
+         sekarang kolom terpisah dari SKU Induk buat versi desktop),
+         Total(kolom-7) & HPP/Pc(kolom-8, baru 17 Sep 2026) di mobile,
+         sisain Tanggal(Hari) / Tukang / SKU Induk / Qty — muat tanpa
+         geser. Variasi tetep keliatan nempel jadi baris ke-2 di sel SKU
+         Induk (.cp-jrn-variasi-mobile). Tap baris buat liat divisi,
+         total & HPP/Pc lengkapnya. */
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(2),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(2),
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(5),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(5),
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(7),
-      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(7) { display:none; }
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(7),
+      #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(8),
+      #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(8) { display:none; }
       #page-cost-produksi #cp-panel-jurnal .cp-jrn-variasi-mobile { display:inline !important; }
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(1),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(1) { width:24%; font-size:10.5px; padding:6px 4px 6px 8px; }
@@ -245,8 +264,8 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="ti ti-notebook"></i> Jurnal Harian</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th></tr></thead>
-          <tbody id="cp-jurnal-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th><th style="text-align:right">HPP/Pc</th></tr></thead>
+          <tbody id="cp-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -364,6 +383,10 @@ document.getElementById('page-cost-produksi').innerHTML = `
           <input type="text" inputmode="numeric" id="cp-jrn-qty" placeholder="0" oninput="cpUpdateJurnalPreview()">
         </div>
       </div>
+      <div class="form-group" id="cp-jrn-berat-group" style="display:none">
+        <label>Berat Aktual Dipakai (gram) — total bahan buat qty ini</label>
+        <input type="number" id="cp-jrn-berat-aktual" placeholder="mis. 5000 (=5kg)">
+      </div>
       <div class="cp-preview" id="cp-jrn-preview">Rate: —</div>
 
       <div class="modal-actions" style="margin-top:16px">
@@ -447,6 +470,18 @@ document.getElementById('page-cost-produksi').innerHTML = `
         </div>
         <div id="cp-bulk-variant-list" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--ink4);border-radius:8px;padding:4px 8px;background:var(--cream2)"></div>
       </div>
+      <!-- Bahan & Berat — cuma nongol di mode 'sku' (17 Sep 2026). Nyimpen
+           ke produk.bahan_id/berat_gram (semua varian SKU induk ini
+           sekaligus), sama kayak "set bahan"/"set berat" satuan di Master
+           Ongkos, cuma versi bulk. Kosongin = jangan diubah. -->
+      <div class="form-group" id="cp-bulk-bahan-group" style="display:none">
+        <label>Bahan (opsional — kosongkan biar gak diubah)</label>
+        <select id="cp-bulk-bahan-id"><option value="">— Jangan ubah —</option></select>
+      </div>
+      <div class="form-group" id="cp-bulk-berat-group" style="display:none">
+        <label>Berat per Lusin (gram, opsional — kosongkan biar gak diubah)</label>
+        <input type="number" id="cp-bulk-berat" placeholder="mis. 1200">
+      </div>
       <div id="cp-bulk-fields"></div>
       <div class="form-group" id="cp-bulk-single-rate-group" style="display:none">
         <label>Ongkos Baru (Rp/lusin)</label>
@@ -520,7 +555,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <label>Jenis Bahan</label>
         <select id="cp-bb-bahan-id"><option value="">— Pilih Bahan —</option></select>
       </div>
-      <div class="form-group"><label>Berat per Pc (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
+      <div class="form-group"><label>Berat per Lusin (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn" onclick="hideModal('modal-cp-bb')">Batal</button>
         <button class="btn btn-primary" onclick="cpSaveBahanBerat()"><i class="ti ti-check"></i> Simpan</button>
@@ -775,6 +810,50 @@ function cpRenderOverview() {
 }
 
 
+// ─── HELPER: HPP/Pc buat 1 SKU+Variasi, dipakai Jurnal Harian (17 Sep
+// 2026). Beda sama HPP/Pc di Master Ongkos (yang MURNI proyeksi): di sini
+// Biaya Bahan PRIORITASIN data aktual (entri jurnal Rajut terbaru SKU itu
+// yang punya berat_aktual_gram), fallback ke berat proyeksi produk.berat_gram
+// kalau belum pernah ada entri Rajut. Ongkos jasa (6 divisi) tetap dari
+// rate standar Master Ongkos, bukan digabung real-time antar divisi. ──
+function cpLatestActualRajut(sku, variasi) {
+  var rows = _cpJurnal.filter(function(j) {
+    return j.sku === sku && (j.sku_variasi || '') === (variasi || '') &&
+      (j.divisi || '').toLowerCase() === 'rajut' &&
+      j.berat_aktual_gram != null && Number(j.qty_pcs) > 0;
+  });
+  if (!rows.length) return null;
+  rows.sort(function(a, b) {
+    if (a.tanggal !== b.tanggal) return a.tanggal < b.tanggal ? 1 : -1;
+    return (Number(b.id) || 0) - (Number(a.id) || 0);
+  });
+  return rows[0];
+}
+
+function cpHppPcsJurnal(sku, variasi) {
+  var ongkosTotal = 0;
+  _cpRate.forEach(function(r) {
+    if (r.sku === sku && (r.sku_variasi || '') === (variasi || '')) ongkosTotal += Number(r.ongkos_per_lusin) || 0;
+  });
+  var ongkosPcs = ongkosTotal / 12;
+
+  var produk = _cpProdukDimi.find(function(p) { return p.katalog === sku && p.sku_variasi === variasi; });
+  var bahanObj = produk && produk.bahan_id ? _cpBahan.find(function(b) { return b.id == produk.bahan_id; }) : null;
+
+  var biayaBahanPcs = 0, sumberBahan = null;
+  if (bahanObj) {
+    var actual = cpLatestActualRajut(sku, variasi);
+    if (actual) {
+      biayaBahanPcs = (Number(actual.berat_aktual_gram) / Number(actual.qty_pcs)) / 1000 * Number(bahanObj.harga_per_kg);
+      sumberBahan = 'aktual';
+    } else if (produk && produk.berat_gram) {
+      biayaBahanPcs = (Number(produk.berat_gram) / 1000 / 12) * Number(bahanObj.harga_per_kg);
+      sumberBahan = 'proyeksi';
+    }
+  }
+  return { hppPcs: ongkosPcs + biayaBahanPcs, sumber: sumberBahan };
+}
+
 // ─── RENDER: Jurnal Harian — desktop: SKU Induk & SKU Variasi kolom
 // terpisah. Mobile: kolom SKU Variasi disembunyiin (nth-child CSS), tapi
 // variasinya tetep keliatan nempel jadi baris ke-2 di sel SKU Induk (span
@@ -782,13 +861,17 @@ function cpRenderOverview() {
 function cpRenderJurnal() {
   var tbody = document.getElementById('cp-jurnal-tbody');
   if (!_cpJurnal.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada jurnal. Tap "+ Tambah Jurnal" buat mulai.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Belum ada jurnal. Tap "+ Tambah Jurnal" buat mulai.</td></tr>';
     return;
   }
   tbody.innerHTML = _cpJurnal.map(function(j) {
     var variasiMobile = j.sku_variasi
       ? ' <span class="cp-jrn-variasi-mobile" style="display:none;color:var(--ink3);font-size:11px">— ' + cpEsc(j.sku_variasi) + '</span>'
       : '';
+    var h = cpHppPcsJurnal(j.sku, j.sku_variasi || '');
+    var hppTitle = h.sumber === 'aktual' ? 'Biaya bahan pakai berat aktual (entri Rajut terbaru)'
+                 : h.sumber === 'proyeksi' ? 'Biaya bahan pakai berat proyeksi (Master Ongkos)'
+                 : 'Belum ada data Bahan/Berat buat SKU ini';
     return '<tr onclick="cpOpenJurnalForm(' + j.id + ')" style="cursor:pointer">' +
       '<td>' + cpEsc(cpFmtHari(j.tanggal)) + '</td>' +
       '<td>' + cpEsc(j.divisi) + '</td>' +
@@ -797,6 +880,7 @@ function cpRenderJurnal() {
       '<td>' + (j.sku_variasi ? cpEsc(j.sku_variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right">' + (j.qty_pcs || 0) + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(j.total_cost) + '</td>' +
+      '<td style="text-align:right;color:var(--info,#2F6FB0)" title="' + cpEsc(hppTitle) + '">' + fmtRpFull(h.hppPcs) + '</td>' +
     '</tr>';
   }).join('');
 }
@@ -816,8 +900,8 @@ function cpRenderRate() {
   var cols = cpDivisiColumns();
   var theadRow = document.getElementById('cp-rate-thead-row');
   theadRow.innerHTML = '<th>SKU Induk</th><th>SKU Variasi</th>' +
-    '<th>Bahan</th><th style="text-align:right">Berat (gr)</th><th style="text-align:right">Biaya Bahan</th>' +
-    '<th style="text-align:right">Total Cost</th><th style="text-align:right">HPP / Pc</th>' +
+    '<th style="text-align:right">HPP / Pc</th><th style="text-align:right">Total Cost</th>' +
+    '<th>Bahan</th><th style="text-align:right">Berat/Lusin (gr)</th><th style="text-align:right">Biaya Bahan</th>' +
     cols.map(function(c) { return '<th style="text-align:right">' + cpEsc(c) + '</th>'; }).join('');
 
   var groupMap = {};
@@ -851,7 +935,10 @@ function cpRenderRate() {
 
     var bahanObj = g.bahanId ? _cpBahan.find(function(b) { return b.id == g.bahanId; }) : null;
     var ongkosPcs = total / 12;
-    var biayaBahanPcs = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000) * Number(bahanObj.harga_per_kg) : 0;
+    // 17 Sep 2026: berat_gram sekarang PER LUSIN (dulu per pc) — makanya
+    // dibagi 12 lagi di sini biar konsisten sama ongkos jasa yang emang
+    // Rp/lusin semua.
+    var biayaBahanPcs = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000 / 12) * Number(bahanObj.harga_per_kg) : 0;
     var hppPcs = ongkosPcs + biayaBahanPcs;
     var bbClick = g.produkId
       ? "event.stopPropagation();cpOpenBahanBerat(" + g.produkId + ",'" + cpEscJs(g.sku) + "','" + cpEscJs(g.variasi) + "')"
@@ -860,11 +947,11 @@ function cpRenderRate() {
     return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(g.sku) + '\',\'' + cpEscJs(g.variasi) + '\')" style="cursor:pointer">' +
       '<td>' + cpEsc(g.sku) + '</td>' +
       '<td>' + (g.variasi ? cpEsc(g.variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
+      '<td style="text-align:right;font-weight:700;color:var(--info,#2F6FB0)">' + fmtRpFull(hppPcs) + '</td>' +
+      '<td style="text-align:right;font-weight:700">' + fmtRpFull(total) + '</td>' +
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;color:' + (bahanObj ? 'var(--ink)' : 'var(--ink3)') + '">' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : 'set bahan') + '</td>' +
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.beratGram ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : 'set berat') + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(biayaBahanPcs) + '</td>' +
-      '<td style="text-align:right;font-weight:700">' + fmtRpFull(total) + '</td>' +
-      '<td style="text-align:right;font-weight:700;color:var(--info,#2F6FB0)">' + fmtRpFull(hppPcs) + '</td>' +
       cells +
     '</tr>';
   }).join('');
@@ -1009,6 +1096,7 @@ function cpOpenJurnalForm(id) {
   var row = id ? _cpJurnal.find(function(j) { return j.id == id; }) : null;
   document.getElementById('cp-jrn-tanggal').value = row ? row.tanggal : new Date().toISOString().slice(0, 10);
   document.getElementById('cp-jrn-qty').value = row ? row.qty_pcs : '';
+  document.getElementById('cp-jrn-berat-aktual').value = (row && row.berat_aktual_gram != null) ? row.berat_aktual_gram : '';
 
   _cpJrnSelSku    = row ? row.sku            : '';
   _cpJrnSelDivisi = row ? row.divisi         : '';
@@ -1020,9 +1108,21 @@ function cpOpenJurnalForm(id) {
   document.getElementById('cp-jrn-divisi-display').textContent = _cpJrnSelDivisi || 'auto ikut tukang';
   cpSetJrnLabel('sku', _cpJrnSelSku);
   cpRefreshVarianField(); // ini juga yang nentuin _cpJrnRate, karena rate sekarang baru ketauan setelah Varian jelas
+  cpUpdateJrnBeratVisibility();
 
   cpUpdateJurnalPreview();
   showModal('modal-cp-jurnal');
+}
+
+// Field "Berat Aktual" cuma relevan buat divisi RAJUT (satu-satunya tahap
+// yang makan bahan baku/benang) — disembunyiin buat divisi lain, dan
+// value-nya di-reset biar gak numpang kesimpen kalau user ganti tukang
+// dari Rajut ke divisi lain di form yang sama (17 Sep 2026).
+function cpUpdateJrnBeratVisibility() {
+  var isRajut = (_cpJrnSelDivisi || '').toLowerCase() === 'rajut';
+  var group = document.getElementById('cp-jrn-berat-group');
+  if (group) group.style.display = isRajut ? '' : 'none';
+  if (!isRajut) document.getElementById('cp-jrn-berat-aktual').value = '';
 }
 
 function cpSetJrnLabel(field, val) {
@@ -1096,6 +1196,7 @@ function cpOpenTukangSheet() {
     document.getElementById('cp-jrn-divisi-display').textContent = t.divisi;
     cpSetJrnLabel('sku', '');
     cpRefreshVarianField();
+    cpUpdateJrnBeratVisibility();
     cpUpdateJurnalPreview();
   });
 }
@@ -1158,10 +1259,18 @@ async function cpSaveJurnal() {
   var rr = _cpRate.find(function(r) { return r.sku === _cpJrnSelSku && r.sku_variasi === _cpJrnSelVarian && r.divisi.toLowerCase() === _cpJrnSelDivisi.toLowerCase(); });
   if (!rr) return alert('Rate buat kombinasi SKU + Varian + Divisi ini belum ada — tambahin dulu di Master Ongkos.');
 
+  // Berat Aktual cuma kepake/kesimpen buat divisi RAJUT (satu-satunya
+  // tahap yang makan bahan baku) — divisi lain selalu null, walaupun
+  // field-nya kebetulan keisi dari sesi sebelumnya (jaga-jaga, karena
+  // visibility field-nya cuma diatur CSS, bukan bener-bener dihapus).
+  var beratAktualRaw = document.getElementById('cp-jrn-berat-aktual').value;
+  var beratAktual = (_cpJrnSelDivisi.toLowerCase() === 'rajut' && beratAktualRaw !== '') ? Number(beratAktualRaw) : null;
+
   var payload = {
     tanggal: tanggal, divisi: _cpJrnSelDivisi, tukang: _cpJrnSelTukang, sku: _cpJrnSelSku,
     sku_variasi: _cpJrnSelVarian || null,
-    qty_pcs: qty, rate_snapshot: Number(rr.ongkos_per_lusin)
+    qty_pcs: qty, rate_snapshot: Number(rr.ongkos_per_lusin),
+    berat_aktual_gram: beratAktual
   };
   try {
     if (id) await dbUpdate('cost_jurnal', id, payload);
@@ -1537,6 +1646,17 @@ function cpOpenRateBulk(mode) {
   document.getElementById('cp-bulk-single-rate-group').style.display = mode === 'divisi' ? '' : 'none';
   document.getElementById('cp-bulk-extra-divisi-group').style.display = mode === 'divisi' ? 'none' : '';
 
+  // Bahan & Berat: cuma mode 'sku' (per keputusan 17 Sep 2026 — belum
+  // diminta buat mode 'variant'/'divisi').
+  document.getElementById('cp-bulk-bahan-group').style.display = mode === 'sku' ? '' : 'none';
+  document.getElementById('cp-bulk-berat-group').style.display = mode === 'sku' ? '' : 'none';
+  var bahanSel = document.getElementById('cp-bulk-bahan-id');
+  bahanSel.innerHTML = '<option value="">— Jangan ubah —</option>' + _cpBahan.map(function(b) {
+    return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
+  }).join('');
+  bahanSel.value = '';
+  document.getElementById('cp-bulk-berat').value = '';
+
   var cols = cpDivisiColumns();
   document.getElementById('cp-bulk-fields').innerHTML = cols.map(function(c) {
     var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
@@ -1699,7 +1819,15 @@ async function cpSaveRateBulk() {
   var extraVal = idrVal('cp-bulk-extra-ongkos');
   if (extraDivisi && extraVal > 0) divisiVals[extraDivisi] = extraVal;
 
-  if (!Object.keys(divisiVals).length) return alert('Isi minimal 1 rate divisi dulu.');
+  // Bahan & Berat (mode 'sku' doang) — kosong = jangan diubah.
+  var bahanIdRaw = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-bahan-id').value : '';
+  var beratRaw   = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-berat').value.trim() : '';
+  var produkPatch = {};
+  if (bahanIdRaw !== '') produkPatch.bahan_id = Number(bahanIdRaw);
+  if (beratRaw !== '') produkPatch.berat_gram = Number(beratRaw);
+  var hasProdukPatch = Object.keys(produkPatch).length > 0;
+
+  if (!Object.keys(divisiVals).length && !hasProdukPatch) return alert('Isi minimal 1 rate divisi, atau Bahan/Berat, dulu.');
 
   var jobs = [];
   targetVariants.forEach(function(variasi) {
@@ -1713,6 +1841,11 @@ async function cpSaveRateBulk() {
         : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: divisi, ongkos_per_lusin: val }));
     });
   });
+
+  if (hasProdukPatch) {
+    _cpProdukDimi.filter(function(p) { return p.katalog === sku && targetVariants.indexOf(p.sku_variasi) !== -1; })
+      .forEach(function(p) { jobs.push(dbUpdate('produk', p.id, produkPatch)); });
+  }
 
   try {
     await Promise.all(jobs);
