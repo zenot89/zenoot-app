@@ -492,7 +492,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-bahan-group">
           <label>Bahan</label>
-          <select id="cp-bulk-bahan-id" onchange="cpBulkFieldErr('cp-bulk-bahan-id',false)"><option value="">— Isi Bahan, Kalau Masih Kosong —</option></select>
+          <select id="cp-bulk-bahan-id" onchange="cpBulkFieldErr('cp-bulk-bahan-id',false)"><option value="">— Pilih Bahan —</option></select>
           <div class="cp-err-msg" id="cp-bulk-bahan-err">Wajib diisi.</div>
         </div>
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-berat-group">
@@ -1711,7 +1711,7 @@ function cpOpenRateBulk(mode) {
   idrInput('cp-bulk-buffer');
   idrInput('cp-bulk-montir');
   var bahanSel = document.getElementById('cp-bulk-bahan-id');
-  bahanSel.innerHTML = '<option value="">— Isi Bahan, Kalau Masih Kosong —</option>' + _cpBahan.map(function(b) {
+  bahanSel.innerHTML = '<option value="">— Pilih Bahan —</option>' + _cpBahan.map(function(b) {
     return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
   }).join('');
   bahanSel.value = '';
