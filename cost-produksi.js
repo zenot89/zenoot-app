@@ -81,7 +81,31 @@ document.getElementById('page-cost-produksi').innerHTML = `
 
     #cp-panels-wrap { flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
     #page-cost-produksi .cp-panel { display:none; min-height:0; }
-    #page-cost-produksi .cp-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; }
+    /* 18 Sep 2026: dulu .cp-panel.active sendiri yang scroll (overflow-y:auto),
+       makanya card-title + thead ikut kegulung ke atas & hilang pas scroll
+       (dikeluhin user — screenshot Master Ongkos, header ilang). Root cause:
+       position:sticky di .tbl th nempelnya ke SCROLL CONTAINER TERDEKAT —
+       yang ternyata .tbl-wrap sendiri (dia udah punya overflow-x:auto, jadi
+       otomatis jadi scroll container versi CSS spec), BUKAN .cp-panel. Tapi
+       .tbl-wrap gak punya tinggi kebatasi (cuma segede isinya), jadi sticky
+       gak punya "ruang" buat napak — makanya keliatannya kayak gak sticky
+       sama sekali. Fix: pindahin scroll-nya SATU LEVEL KE DALAM (.tbl-wrap
+       yang jadi scroll box beneran, dibatasin tinggi lewat flex), pola
+       PERSIS sama yang udah kebukti jalan di #stok-tbl-wrap (stok.js). */
+    #page-cost-produksi .cp-panel.active { display:flex; flex-direction:column; flex:1 1 0; min-height:0; overflow:hidden; }
+    #page-cost-produksi .cp-panel .card {
+      flex:1 1 0; min-height:0; display:flex; flex-direction:column;
+    }
+    #page-cost-produksi .cp-panel .card-title { flex-shrink:0; }
+    #page-cost-produksi .cp-panel .tbl-wrap {
+      flex:1 1 0; min-height:0;
+      overflow-y:auto; overflow-x:auto;
+    }
+    #page-cost-produksi .cp-panel .tbl-wrap .tbl th {
+      position:-webkit-sticky; position:sticky; top:0; z-index:3;
+      background:var(--cream3);
+      box-shadow:0 1px 0 var(--ovl-0_05), 0 2px 6px rgba(0,0,0,.4);
+    }
 
     #page-cost-produksi .rasio-card { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; flex-shrink:0; }
     #page-cost-produksi .rasio-item { background:var(--cream2); border:2px solid var(--ink3); padding:12px 14px; border-radius:2px; }
@@ -100,7 +124,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
        Master Barang (hutang-supplier.js) & Daftar Hutang (keuangan.js) ── */
     @media (max-width:600px) {
       #page-cost-produksi .tbl { table-layout:fixed; }
-      #page-cost-produksi .tbl-wrap { overflow-x:hidden; }
+      #page-cost-produksi .cp-panel .tbl-wrap { overflow-x:hidden; }
       #page-cost-produksi .tbl th, #page-cost-produksi .tbl td { white-space:normal; word-break:break-word; font-size:11.5px; padding:6px 5px; }
       /* Master Ongkos: kolom per-divisi + Total Cost/Bahan/Berat/Biaya
          Bahan (jumlahnya dinamis, nth-child(n+4) nangkep semuanya dari
