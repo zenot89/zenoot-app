@@ -470,19 +470,34 @@ document.getElementById('page-cost-produksi').innerHTML = `
         </div>
         <div id="cp-bulk-variant-list" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--ink4);border-radius:8px;padding:4px 8px;background:var(--cream2)"></div>
       </div>
-      <!-- Bahan & Berat — cuma nongol di mode 'sku' (17 Sep 2026). Nyimpen
-           ke produk.bahan_id/berat_gram (semua varian SKU induk ini
-           sekaligus), sama kayak "set bahan"/"set berat" satuan di Master
-           Ongkos, cuma versi bulk. Kosongin = jangan diubah. -->
-      <div class="form-group" id="cp-bulk-bahan-group" style="display:none">
-        <label>Bahan (opsional — kosongkan biar gak diubah)</label>
-        <select id="cp-bulk-bahan-id"><option value="">— Jangan ubah —</option></select>
-      </div>
-      <div class="form-group" id="cp-bulk-berat-group" style="display:none">
-        <label>Berat per Lusin (gram, opsional — kosongkan biar gak diubah)</label>
-        <input type="number" id="cp-bulk-berat" placeholder="mis. 1200">
+      <!-- Bahan/Berat/Buffer/Montir — cuma nongol di mode 'sku' (17 Sep
+           2026, Buffer & Montir ditambah 18 Sep 2026, dipindah ke ujung
+           & dipasangin 2 kolom 18 Sep 2026). Nyimpen ke produk.bahan_id/
+           berat_gram/buffer_per_lusin/montir_per_lusin (semua varian SKU
+           induk ini sekaligus), sama kayak "set bahan"/"set berat"/"set
+           buffer"/"set montir" satuan di Master Ongkos, cuma versi bulk.
+           Kosongin = jangan diubah. -->
+      <div style="display:flex;gap:10px">
+        <div class="form-group" style="flex:1;display:none" id="cp-bulk-bahan-group">
+          <label>Bahan (opsional — kosongkan biar gak diubah)</label>
+          <select id="cp-bulk-bahan-id"><option value="">— Jangan ubah —</option></select>
+        </div>
+        <div class="form-group" style="flex:1;display:none" id="cp-bulk-berat-group">
+          <label>Berat per Lusin (gram, opsional)</label>
+          <input type="number" id="cp-bulk-berat" placeholder="mis. 1200">
+        </div>
       </div>
       <div id="cp-bulk-fields"></div>
+      <div style="display:flex;gap:10px">
+        <div class="form-group" style="flex:1;display:none" id="cp-bulk-buffer-group">
+          <label>Buffer (Rp/lusin, opsional)</label>
+          <input type="number" id="cp-bulk-buffer" placeholder="mis. 30000">
+        </div>
+        <div class="form-group" style="flex:1;display:none" id="cp-bulk-montir-group">
+          <label>Montir (Rp/lusin, opsional)</label>
+          <input type="number" id="cp-bulk-montir" placeholder="0">
+        </div>
+      </div>
       <div class="form-group" id="cp-bulk-single-rate-group" style="display:none">
         <label>Ongkos Baru (Rp/lusin)</label>
         <input type="text" inputmode="numeric" id="cp-bulk-single-rate" placeholder="0">
@@ -538,15 +553,16 @@ document.getElementById('page-cost-produksi').innerHTML = `
     </div>
   </div>
 
-  <!-- ═══ MODAL: Set Bahan & Berat per SKU Variasi (16 Sep 2026) — dipicu
-       dari kolom BAHAN/BERAT di Master Ongkos. Nyimpen ke produk.bahan_id
-       & produk.berat_gram (bukan ke cost_rate — bahan/berat itu properti
-       SKU Variasi, bukan properti per-divisi, jadi 1 sumber kebenaran di
-       tabel produk). ═══ -->
+  <!-- ═══ MODAL: Set Bahan, Berat, Buffer & Montir per SKU Variasi (16 Sep
+       2026, diperluas 18 Sep 2026) — dipicu dari kolom BAHAN/BERAT/BUFFER/
+       MONTIR di Master Ongkos. Nyimpen ke produk.bahan_id, berat_gram,
+       buffer_per_lusin, montir_per_lusin (bukan ke cost_rate — semuanya
+       properti SKU Variasi, bukan properti per-divisi, jadi 1 sumber
+       kebenaran di tabel produk). ═══ -->
   <div class="modal-overlay" id="modal-cp-bb" onclick="if(event.target===this)hideModal('modal-cp-bb')">
     <div class="modal" style="max-width:380px;width:100%">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-scale"></i> Bahan &amp; Berat</div>
+        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-scale"></i> Bahan, Buffer &amp; Montir</div>
         <button onclick="hideModal('modal-cp-bb')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
       </div>
       <input type="hidden" id="cp-bb-produk-id">
@@ -556,6 +572,8 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <select id="cp-bb-bahan-id"><option value="">— Pilih Bahan —</option></select>
       </div>
       <div class="form-group"><label>Berat per Lusin (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
+      <div class="form-group"><label>Buffer (Rp/lusin)</label><input type="number" id="cp-bb-buffer" placeholder="mis. 30000"></div>
+      <div class="form-group"><label>Montir (Rp/lusin)</label><input type="number" id="cp-bb-montir" placeholder="0"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn" onclick="hideModal('modal-cp-bb')">Batal</button>
         <button class="btn btn-primary" onclick="cpSaveBahanBerat()"><i class="ti ti-check"></i> Simpan</button>
@@ -895,17 +913,22 @@ function cpRenderJurnal() {
 // 18 Sep 2026 — disamain semua ke per-LUSIN biar konsisten sebaris
 // (disetujui user): Biaya Bahan sekarang per-lusin (bukan per-pc lagi),
 // Total Cost = Total Ongkos (jasa) + Biaya Bahan, keduanya per-lusin.
-// Kolom baru "Total Ongkos" (di antara Biaya Bahan & Rajut) nge-sum
-// cuma ongkos jasa 6 divisi, biar breakdown-nya lengkap keliatan.
-// HPP/Pc satu-satunya kolom per-PC: = Total Cost ÷ 12.
-// Bahan & Berat itu properti SKU Variasi (bukan per-divisi), makanya
-// disimpen di produk.bahan_id/produk.berat_gram — BUKAN di cost_rate. ──
+// Kolom "Total Ongkos" (di antara Montir & Rajut) nge-sum cuma ongkos
+// jasa 6 divisi, biar breakdown-nya lengkap keliatan. HPP/Pc satu-
+// satunya kolom per-PC: = Total Cost ÷ 12.
+// 18 Sep 2026 (lanjutan) — nambah 2 kolom biaya per-SKU lagi: Buffer
+// (cost cadangan/tak-terduga biar gak boncos) & Montir (ongkos orang
+// lapangan) — keduanya Rp/lusin, ikut masuk Total Cost & HPP/Pc, dan
+// "Berat/Lusin (gr)" dipendekin jadi "Berat" biar header gak kepanjangan.
+// Bahan/Berat/Buffer/Montir semua properti SKU Variasi (bukan per-
+// divisi), makanya disimpen di kolom produk.* — BUKAN di cost_rate. ──
 function cpRenderRate() {
   var cols = cpDivisiColumns();
   var theadRow = document.getElementById('cp-rate-thead-row');
   theadRow.innerHTML = '<th>SKU Induk</th><th>SKU Variasi</th>' +
     '<th style="text-align:right">HPP / Pc</th><th style="text-align:right">Total Cost</th>' +
-    '<th>Bahan</th><th style="text-align:right">Berat/Lusin (gr)</th><th style="text-align:right">Biaya Bahan</th>' +
+    '<th>Bahan</th><th style="text-align:right">Berat</th><th style="text-align:right">Biaya Bahan</th>' +
+    '<th style="text-align:right">Buffer</th><th style="text-align:right">Montir</th>' +
     '<th style="text-align:right">Total Ongkos</th>' +
     cols.map(function(c) { return '<th style="text-align:right">' + cpEsc(c) + '</th>'; }).join('');
 
@@ -913,7 +936,7 @@ function cpRenderRate() {
   _cpProdukDimi.forEach(function(p) {
     if (!p.katalog || !p.sku_variasi) return;
     var key = p.katalog + '||' + p.sku_variasi;
-    if (!groupMap[key]) groupMap[key] = { sku: p.katalog, variasi: p.sku_variasi, cells: {}, produkId: p.id, bahanId: p.bahan_id, beratGram: p.berat_gram };
+    if (!groupMap[key]) groupMap[key] = { sku: p.katalog, variasi: p.sku_variasi, cells: {}, produkId: p.id, bahanId: p.bahan_id, beratGram: p.berat_gram, bufferPerLusin: p.buffer_per_lusin, montirPerLusin: p.montir_per_lusin };
   });
   _cpRate.forEach(function(r) {
     var key = r.sku + '||' + (r.sku_variasi || '');
@@ -926,7 +949,7 @@ function cpRenderRate() {
   });
   var tbody = document.getElementById('cp-rate-tbody');
   if (!keys.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 8) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 10) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
     return;
   }
   tbody.innerHTML = keys.map(function(key) {
@@ -943,7 +966,11 @@ function cpRenderRate() {
     // lusin sejak 17 Sep) — gak dibagi 12 lagi di sini, biar sebaris
     // sama Total Ongkos & kolom-kolom divisi yang emang Rp/lusin semua.
     var biayaBahanLusin = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000) * Number(bahanObj.harga_per_kg) : 0;
-    var totalCostLusin = totalOngkos + biayaBahanLusin;
+    // Buffer (cost cadangan/tak-terduga) & Montir (ongkos orang lapangan)
+    // — udah Rp/lusin langsung dari produk.*, gak perlu dikonversi.
+    var bufferLusin = Number(g.bufferPerLusin) || 0;
+    var montirLusin = Number(g.montirPerLusin) || 0;
+    var totalCostLusin = totalOngkos + biayaBahanLusin + bufferLusin + montirLusin;
     var hppPcs = totalCostLusin / 12;
     var bbClick = g.produkId
       ? "event.stopPropagation();cpOpenBahanBerat(" + g.produkId + ",'" + cpEscJs(g.sku) + "','" + cpEscJs(g.variasi) + "')"
@@ -957,6 +984,8 @@ function cpRenderRate() {
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;color:' + (bahanObj ? 'var(--ink)' : 'var(--ink3)') + '">' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : 'set bahan') + '</td>' +
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.beratGram ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : 'set berat') + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(biayaBahanLusin) + '</td>' +
+      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.bufferPerLusin != null ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.bufferPerLusin != null ? fmtRpFull(g.bufferPerLusin) : 'set buffer') + '</td>' +
+      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.montirPerLusin != null ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.montirPerLusin != null ? fmtRpFull(g.montirPerLusin) : 'set montir') + '</td>' +
       '<td style="text-align:right;font-weight:700">' + fmtRpFull(totalOngkos) + '</td>' +
       cells +
     '</tr>';
@@ -1652,23 +1681,32 @@ function cpOpenRateBulk(mode) {
   document.getElementById('cp-bulk-single-rate-group').style.display = mode === 'divisi' ? '' : 'none';
   document.getElementById('cp-bulk-extra-divisi-group').style.display = mode === 'divisi' ? 'none' : '';
 
-  // Bahan & Berat: cuma mode 'sku' (per keputusan 17 Sep 2026 — belum
-  // diminta buat mode 'variant'/'divisi').
+  // Bahan/Berat/Buffer/Montir: cuma mode 'sku' (per keputusan 17 Sep
+  // 2026 — belum diminta buat mode 'variant'/'divisi').
   document.getElementById('cp-bulk-bahan-group').style.display = mode === 'sku' ? '' : 'none';
   document.getElementById('cp-bulk-berat-group').style.display = mode === 'sku' ? '' : 'none';
+  document.getElementById('cp-bulk-buffer-group').style.display = mode === 'sku' ? '' : 'none';
+  document.getElementById('cp-bulk-montir-group').style.display = mode === 'sku' ? '' : 'none';
   var bahanSel = document.getElementById('cp-bulk-bahan-id');
   bahanSel.innerHTML = '<option value="">— Jangan ubah —</option>' + _cpBahan.map(function(b) {
     return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
   }).join('');
   bahanSel.value = '';
   document.getElementById('cp-bulk-berat').value = '';
+  document.getElementById('cp-bulk-buffer').value = '';
+  document.getElementById('cp-bulk-montir').value = '';
 
   var cols = cpDivisiColumns();
-  document.getElementById('cp-bulk-fields').innerHTML = cols.map(function(c) {
-    var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
-    return '<div class="form-group"><label>' + cpEsc(c) + ' (Rp/lusin)</label>' +
-      '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0"></div>';
-  }).join('');
+  var fieldRows = [];
+  for (var i = 0; i < cols.length; i += 2) {
+    var pair = cols.slice(i, i + 2);
+    fieldRows.push('<div style="display:flex;gap:10px">' + pair.map(function(c) {
+      var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
+      return '<div class="form-group" style="flex:1"><label>' + cpEsc(c) + ' (Rp/lusin)</label>' +
+        '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0"></div>';
+    }).join('') + '</div>');
+  }
+  document.getElementById('cp-bulk-fields').innerHTML = fieldRows.join('');
   cols.forEach(function(c) {
     var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
     idrInput(fid);
@@ -1745,9 +1783,11 @@ function cpBulkPrefillFromSku(sku) {
     idrSet(fid, existing ? Number(existing.ongkos_per_lusin) : 0);
   });
 
-  var produkRow = _cpProdukDimi.find(function(p) { return p.katalog === sku && (p.bahan_id || p.berat_gram != null); });
+  var produkRow = _cpProdukDimi.find(function(p) { return p.katalog === sku && (p.bahan_id || p.berat_gram != null || p.buffer_per_lusin != null || p.montir_per_lusin != null); });
   document.getElementById('cp-bulk-bahan-id').value = (produkRow && produkRow.bahan_id) ? produkRow.bahan_id : '';
   document.getElementById('cp-bulk-berat').value = (produkRow && produkRow.berat_gram != null) ? produkRow.berat_gram : '';
+  document.getElementById('cp-bulk-buffer').value = (produkRow && produkRow.buffer_per_lusin != null) ? produkRow.buffer_per_lusin : '';
+  document.getElementById('cp-bulk-montir').value = (produkRow && produkRow.montir_per_lusin != null) ? produkRow.montir_per_lusin : '';
 }
 
 function cpBulkRenderVariantChecklist(sku) {
@@ -1845,15 +1885,19 @@ async function cpSaveRateBulk() {
   var extraVal = idrVal('cp-bulk-extra-ongkos');
   if (extraDivisi && extraVal > 0) divisiVals[extraDivisi] = extraVal;
 
-  // Bahan & Berat (mode 'sku' doang) — kosong = jangan diubah.
+  // Bahan/Berat/Buffer/Montir (mode 'sku' doang) — kosong = jangan diubah.
   var bahanIdRaw = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-bahan-id').value : '';
   var beratRaw   = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-berat').value.trim() : '';
+  var bufferRaw  = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-buffer').value.trim() : '';
+  var montirRaw  = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-montir').value.trim() : '';
   var produkPatch = {};
   if (bahanIdRaw !== '') produkPatch.bahan_id = Number(bahanIdRaw);
   if (beratRaw !== '') produkPatch.berat_gram = Number(beratRaw);
+  if (bufferRaw !== '') produkPatch.buffer_per_lusin = Number(bufferRaw);
+  if (montirRaw !== '') produkPatch.montir_per_lusin = Number(montirRaw);
   var hasProdukPatch = Object.keys(produkPatch).length > 0;
 
-  if (!Object.keys(divisiVals).length && !hasProdukPatch) return alert('Isi minimal 1 rate divisi, atau Bahan/Berat, dulu.');
+  if (!Object.keys(divisiVals).length && !hasProdukPatch) return alert('Isi minimal 1 rate divisi, atau Bahan/Berat/Buffer/Montir, dulu.');
 
   var jobs = [];
   targetVariants.forEach(function(variasi) {
@@ -1992,6 +2036,8 @@ function cpOpenBahanBerat(produkId, sku, variasi) {
   var row = _cpProdukDimi.find(function(p) { return p.id == produkId; });
   sel.value = (row && row.bahan_id) ? row.bahan_id : '';
   document.getElementById('cp-bb-berat').value = (row && row.berat_gram != null) ? row.berat_gram : '';
+  document.getElementById('cp-bb-buffer').value = (row && row.buffer_per_lusin != null) ? row.buffer_per_lusin : '';
+  document.getElementById('cp-bb-montir').value = (row && row.montir_per_lusin != null) ? row.montir_per_lusin : '';
   showModal('modal-cp-bb');
 }
 
@@ -1999,9 +2045,13 @@ async function cpSaveBahanBerat() {
   var id = document.getElementById('cp-bb-produk-id').value;
   var bahanId = document.getElementById('cp-bb-bahan-id').value || null;
   var berat = document.getElementById('cp-bb-berat').value;
+  var buffer = document.getElementById('cp-bb-buffer').value;
+  var montir = document.getElementById('cp-bb-montir').value;
   berat = berat === '' ? null : Number(berat);
+  buffer = buffer === '' ? null : Number(buffer);
+  montir = montir === '' ? null : Number(montir);
   try {
-    await dbUpdate('produk', id, { bahan_id: bahanId, berat_gram: berat });
+    await dbUpdate('produk', id, { bahan_id: bahanId, berat_gram: berat, buffer_per_lusin: buffer, montir_per_lusin: montir });
   } catch (e) { return alert('Gagal simpan: ' + e.message); }
   hideModal('modal-cp-bb');
   cpLoadAll();
