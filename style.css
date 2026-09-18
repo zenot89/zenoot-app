@@ -815,6 +815,19 @@ body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
   padding-right:30px;
 }
 .form-group input:focus,.form-group select:focus{background:var(--cream2);border-color:var(--ink3)}
+/* 18 Sep 2026: matiin panah spin-button bawaan browser di semua
+   input[type=number] app-wide — -webkit-appearance:none di elemen
+   inputnya sendiri (baris di atas) gak cukup buat Chrome/Edge, harus
+   target pseudo-element spin-button-nya langsung. Firefox pake
+   -moz-appearance:textfield. Ketauan dari field "Berat per Lusin"
+   Cost Produksi (panah item hitam nempel di kanan input, gak keliatan
+   di light theme) tapi berlaku ke SEMUA type=number di app (kas.js,
+   hutang-supplier.js, dll — 37 titik). */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
 
 /* ─── MODAL ──────────────────────────────────────────────── */
 .modal-overlay{

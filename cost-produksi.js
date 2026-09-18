@@ -156,6 +156,16 @@ document.getElementById('page-cost-produksi').innerHTML = `
     }
     #page-cost-produksi .cp-picker-trigger .cp-placeholder { color:var(--ink3); }
 
+    /* ── Validasi "wajib diisi" — Edit per SKU (18 Sep 2026). Border
+       merah di field yang kosong pas coba Terapkan, + teks merah kecil
+       di bawahnya. Ditaruh/dilepas via JS di cpBulkValidateRequired(). ── */
+    #page-cost-produksi .cp-err-msg {
+      display:none; color:var(--danger,#a13b3b); font-size:11px;
+      font-weight:700; margin-top:4px;
+    }
+    #page-cost-produksi .cp-field-invalid { border-color:var(--danger,#a13b3b) !important; }
+    #page-cost-produksi .cp-field-invalid.cp-picker-trigger { border-width:1.5px; }
+
     /* ── Checkbox checklist varian (Edit per Variant) — override CSS
        global .form-group input yang bikin checkbox keilangan tampilan
        (appearance:none, dikira input teks biasa). ── */
@@ -457,11 +467,12 @@ document.getElementById('page-cost-produksi').innerHTML = `
       </div>
       <div class="form-group">
         <label>SKU Induk</label>
-        <div class="cp-picker-trigger" onclick="cpOpenSkuSheetForBulk()">
+        <div class="cp-picker-trigger" id="cp-bulk-sku-trigger" onclick="cpOpenSkuSheetForBulk()">
           <span id="cp-bulk-sku-label" class="cp-placeholder">— Pilih SKU (Boss: DIMI) —</span>
           <i class="ti ti-chevron-down"></i>
         </div>
         <input type="hidden" id="cp-bulk-sku">
+        <div class="cp-err-msg" id="cp-bulk-sku-err">Wajib diisi.</div>
       </div>
       <div class="form-group" id="cp-bulk-variant-group" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -476,26 +487,31 @@ document.getElementById('page-cost-produksi').innerHTML = `
            berat_gram/buffer_per_lusin/montir_per_lusin (semua varian SKU
            induk ini sekaligus), sama kayak "set bahan"/"set berat"/"set
            buffer"/"set montir" satuan di Master Ongkos, cuma versi bulk.
-           Kosongin = jangan diubah. -->
+           SEMUA WAJIB DIISI di mode 'sku' (18 Sep 2026, ganti dari
+           "kosong = jangan diubah" — lihat cpBulkValidateSkuFields). -->
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-bahan-group">
-          <label>Bahan (opsional — kosongkan biar gak diubah)</label>
-          <select id="cp-bulk-bahan-id"><option value="">— Isi Bahan, Kalau Masih Kosong —</option></select>
+          <label>Bahan</label>
+          <select id="cp-bulk-bahan-id" onchange="cpBulkFieldErr('cp-bulk-bahan-id',false)"><option value="">— Isi Bahan, Kalau Masih Kosong —</option></select>
+          <div class="cp-err-msg" id="cp-bulk-bahan-err">Wajib diisi.</div>
         </div>
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-berat-group">
-          <label>Berat per Lusin (gram, opsional)</label>
-          <input type="number" id="cp-bulk-berat" placeholder="mis. 1200">
+          <label>Berat per Lusin (gram)</label>
+          <input type="number" id="cp-bulk-berat" placeholder="mis. 1200" oninput="cpBulkFieldErr('cp-bulk-berat',false)">
+          <div class="cp-err-msg" id="cp-bulk-berat-err">Wajib diisi.</div>
         </div>
       </div>
       <div id="cp-bulk-fields"></div>
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-buffer-group">
-          <label>Buffer (Rp/lusin, opsional)</label>
-          <input type="text" inputmode="numeric" id="cp-bulk-buffer" placeholder="mis. 30.000">
+          <label>Buffer (Rp/lusin)</label>
+          <input type="text" inputmode="numeric" id="cp-bulk-buffer" placeholder="mis. 30.000" oninput="cpBulkFieldErr('cp-bulk-buffer',false)">
+          <div class="cp-err-msg" id="cp-bulk-buffer-err">Wajib diisi.</div>
         </div>
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-montir-group">
-          <label>Montir (Rp/lusin, opsional)</label>
-          <input type="text" inputmode="numeric" id="cp-bulk-montir" placeholder="0">
+          <label>Montir (Rp/lusin)</label>
+          <input type="text" inputmode="numeric" id="cp-bulk-montir" placeholder="0" oninput="cpBulkFieldErr('cp-bulk-montir',false)">
+          <div class="cp-err-msg" id="cp-bulk-montir-err">Wajib diisi.</div>
         </div>
       </div>
       <div class="form-group" id="cp-bulk-single-rate-group" style="display:none">
@@ -1657,6 +1673,8 @@ function cpOpenRateBulk(mode) {
   _cpBulkMode = mode;
   _cpBulkSelected = {};
   document.getElementById('cp-bulk-mode').value = mode;
+  document.querySelectorAll('#modal-cp-rate-bulk .cp-field-invalid').forEach(function(el) { el.classList.remove('cp-field-invalid'); });
+  document.querySelectorAll('#modal-cp-rate-bulk .cp-err-msg').forEach(function(el) { el.style.display = 'none'; });
   document.getElementById('cp-bulk-title').innerHTML =
     mode === 'sku'    ? '<i class="ti ti-edit"></i> Edit per SKU (semua varian)'
   : mode === 'variant' ? '<i class="ti ti-list-check"></i> Edit per Variant (pilih sendiri)'
@@ -1708,7 +1726,8 @@ function cpOpenRateBulk(mode) {
     fieldRows.push('<div style="display:flex;gap:10px">' + pair.map(function(c) {
       var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
       return '<div class="form-group" style="flex:1"><label>' + cpEsc(c) + ' (Rp/lusin)</label>' +
-        '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0"></div>';
+        '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0" oninput="cpBulkFieldErr(\'' + fid + '\',false)">' +
+        '<div class="cp-err-msg" id="' + fid + '-err">Wajib diisi.</div></div>';
     }).join('') + '</div>');
   }
   document.getElementById('cp-bulk-fields').innerHTML = fieldRows.join('');
@@ -1763,6 +1782,7 @@ function cpOpenSkuSheetForBulk() {
     var skuLabel = document.getElementById('cp-bulk-sku-label');
     skuLabel.textContent = katalog;
     skuLabel.classList.remove('cp-placeholder');
+    cpBulkFieldErr('cp-bulk-sku', false, 'cp-bulk-sku-trigger');
     _cpBulkSelected = {};
     if (_cpBulkMode === 'variant' || _cpBulkMode === 'divisi') {
       cpBulkRenderVariantChecklist(katalog);
@@ -1842,9 +1862,71 @@ function cpBulkUpdateHint() {
     : 'Belum ada varian yang dicentang.';
 }
 
+// Toggle border merah + teks error merah kecil di 1 field (18 Sep 2026,
+// validasi "wajib diisi" mode 'sku'). triggerId dipakai kalau elemen yang
+// diberi border beda dari elemen yang nyimpen value (kasus picker SKU
+// Induk: value di <input type=hidden>, border di .cp-picker-trigger).
+function cpBulkFieldErr(inputId, invalid, triggerId) {
+  var el = document.getElementById(triggerId || inputId);
+  var err = document.getElementById(inputId + '-err');
+  if (el) el.classList.toggle('cp-field-invalid', !!invalid);
+  if (err) err.style.display = invalid ? 'block' : 'none';
+}
+
+// Validasi semua field mode 'sku' wajib diisi (18 Sep 2026, per
+// permintaan user — sebelumnya kosong = "jangan diubah", sekarang
+// SEMUA field mode 'sku' wajib penuh biar bisa Terapkan). Return true
+// kalau semua terisi, false kalau ada yang kosong (sekalian nandain
+// border + teks merah di tiap field yang kosong).
+function cpBulkValidateSkuFields() {
+  var ok = true;
+
+  var sku = document.getElementById('cp-bulk-sku').value.trim();
+  cpBulkFieldErr('cp-bulk-sku', !sku, 'cp-bulk-sku-trigger');
+  if (!sku) ok = false;
+
+  var bahan = document.getElementById('cp-bulk-bahan-id').value;
+  cpBulkFieldErr('cp-bulk-bahan-id', !bahan);
+  if (!bahan) ok = false;
+
+  var berat = document.getElementById('cp-bulk-berat').value.trim();
+  cpBulkFieldErr('cp-bulk-berat', !berat);
+  if (!berat) ok = false;
+
+  cpDivisiColumns().forEach(function(c) {
+    var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
+    var el = document.getElementById(fid);
+    var empty = !el || el.value.trim() === '';
+    cpBulkFieldErr(fid, empty);
+    if (empty) ok = false;
+  });
+
+  var buffer = document.getElementById('cp-bulk-buffer').value.trim();
+  cpBulkFieldErr('cp-bulk-buffer', !buffer);
+  if (!buffer) ok = false;
+
+  var montir = document.getElementById('cp-bulk-montir').value.trim();
+  cpBulkFieldErr('cp-bulk-montir', !montir);
+  if (!montir) ok = false;
+
+  return ok;
+}
+
 async function cpSaveRateBulk() {
   var sku = document.getElementById('cp-bulk-sku').value.trim();
-  if (!sku) return alert('Pilih SKU Induk dulu.');
+
+  // Mode 'sku' ("Edit per SKU") — SEMUA field wajib diisi, gak ada lagi
+  // toleransi kosong = "jangan diubah". Gagal validasi = gak alert,
+  // cukup border + teks merah di tiap field yang kosong (18 Sep 2026).
+  if (_cpBulkMode === 'sku') {
+    if (!cpBulkValidateSkuFields()) {
+      var firstInvalid = document.querySelector('#modal-cp-rate-bulk .cp-field-invalid');
+      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  } else if (!sku) {
+    return alert('Pilih SKU Induk dulu.');
+  }
 
   var targetVariants;
   if (_cpBulkMode === 'sku') {
@@ -1877,20 +1959,25 @@ async function cpSaveRateBulk() {
     return;
   }
 
-  // ── Mode SKU / Variant: sampe 6 field divisi + 1 divisi custom, field
-  // yang dibiarin 0 di-skip (BUKAN dianggap hapus rate) ──
+  // ── Mode SKU / Variant: sampe 6 field divisi + 1 divisi custom.
+  // Mode 'variant': field yang dibiarin 0 tetep di-skip (BUKAN dianggap
+  // hapus rate) — behavior lama, gak diubah, gak diminta.
+  // Mode 'sku': semua field UDAH divalidasi wajib diisi di atas (termasuk
+  // "0" valid buat divisi yang emang gak ada ongkosnya), jadi 6-6nya
+  // selalu dipasang, termasuk yang nilainya 0 (18 Sep 2026). ──
   var cols = cpDivisiColumns();
-  var divisiVals = {}; // divisi -> rate value (>0 aja yang dipasang)
+  var divisiVals = {}; // divisi -> rate value
   cols.forEach(function(c) {
     var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
     var val = idrVal(fid);
-    if (val > 0) divisiVals[c] = val;
+    if (_cpBulkMode === 'sku' || val > 0) divisiVals[c] = val;
   });
   var extraDivisi = document.getElementById('cp-bulk-extra-divisi').value.trim();
   var extraVal = idrVal('cp-bulk-extra-ongkos');
   if (extraDivisi && extraVal > 0) divisiVals[extraDivisi] = extraVal;
 
-  // Bahan/Berat/Buffer/Montir (mode 'sku' doang) — kosong = jangan diubah.
+  // Bahan/Berat/Buffer/Montir (mode 'sku' doang) — udah wajib diisi &
+  // divalidasi di atas, jadi selalu ada isinya di titik ini.
   var bahanIdRaw = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-bahan-id').value : '';
   var beratRaw   = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-berat').value.trim() : '';
   var bufferRaw  = _cpBulkMode === 'sku' ? document.getElementById('cp-bulk-buffer').value.trim() : '';
