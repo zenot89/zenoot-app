@@ -480,7 +480,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-bahan-group">
           <label>Bahan (opsional — kosongkan biar gak diubah)</label>
-          <select id="cp-bulk-bahan-id"><option value="">— Jangan ubah —</option></select>
+          <select id="cp-bulk-bahan-id"><option value="">— Isi Bahan, Kalau Masih Kosong —</option></select>
         </div>
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-berat-group">
           <label>Berat per Lusin (gram, opsional)</label>
@@ -491,11 +491,11 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div style="display:flex;gap:10px">
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-buffer-group">
           <label>Buffer (Rp/lusin, opsional)</label>
-          <input type="number" id="cp-bulk-buffer" placeholder="mis. 30000">
+          <input type="text" inputmode="numeric" id="cp-bulk-buffer" placeholder="mis. 30.000">
         </div>
         <div class="form-group" style="flex:1;display:none" id="cp-bulk-montir-group">
           <label>Montir (Rp/lusin, opsional)</label>
-          <input type="number" id="cp-bulk-montir" placeholder="0">
+          <input type="text" inputmode="numeric" id="cp-bulk-montir" placeholder="0">
         </div>
       </div>
       <div class="form-group" id="cp-bulk-single-rate-group" style="display:none">
@@ -572,8 +572,8 @@ document.getElementById('page-cost-produksi').innerHTML = `
         <select id="cp-bb-bahan-id"><option value="">— Pilih Bahan —</option></select>
       </div>
       <div class="form-group"><label>Berat per Lusin (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
-      <div class="form-group"><label>Buffer (Rp/lusin)</label><input type="number" id="cp-bb-buffer" placeholder="mis. 30000"></div>
-      <div class="form-group"><label>Montir (Rp/lusin)</label><input type="number" id="cp-bb-montir" placeholder="0"></div>
+      <div class="form-group"><label>Buffer (Rp/lusin)</label><input type="text" inputmode="numeric" id="cp-bb-buffer" placeholder="mis. 30.000"></div>
+      <div class="form-group"><label>Montir (Rp/lusin)</label><input type="text" inputmode="numeric" id="cp-bb-montir" placeholder="0"></div>
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn" onclick="hideModal('modal-cp-bb')">Batal</button>
         <button class="btn btn-primary" onclick="cpSaveBahanBerat()"><i class="ti ti-check"></i> Simpan</button>
@@ -972,20 +972,23 @@ function cpRenderRate() {
     var montirLusin = Number(g.montirPerLusin) || 0;
     var totalCostLusin = totalOngkos + biayaBahanLusin + bufferLusin + montirLusin;
     var hppPcs = totalCostLusin / 12;
-    var bbClick = g.produkId
-      ? "event.stopPropagation();cpOpenBahanBerat(" + g.produkId + ",'" + cpEscJs(g.sku) + "','" + cpEscJs(g.variasi) + "')"
-      : "event.stopPropagation();alert('SKU ini belum ada di Kelola Produk (Boss DIMI) — tambahin dulu di sana.')";
 
-    return '<tr onclick="cpOpenRateForm(\'' + cpEscJs(g.sku) + '\',\'' + cpEscJs(g.variasi) + '\')" style="cursor:pointer">' +
+    // 18 Sep 2026: baris/kolom Master Ongkos DIBIKIN NON-KLIK (disetujui
+    // user) — dulu klik baris buka cpOpenRateForm (edit 1 SKU+Variasi) &
+    // klik sel Bahan/Berat/Buffer/Montir buka cpOpenBahanBerat, sekarang
+    // tabel murni tampilan. Semua edit HARUS lewat tombol toolbar (Edit
+    // per SKU/Variant/Divisi, Master Bahan) — cpOpenRateForm & modal-cp-bb
+    // masih ada di kode tapi jadi gak kepanggil dari sini lagi.
+    return '<tr>' +
       '<td>' + cpEsc(g.sku) + '</td>' +
       '<td>' + (g.variasi ? cpEsc(g.variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right;font-weight:700;color:var(--info,#2F6FB0)">' + fmtRpFull(hppPcs) + '</td>' +
       '<td style="text-align:right;font-weight:700">' + fmtRpFull(totalCostLusin) + '</td>' +
-      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;color:' + (bahanObj ? 'var(--ink)' : 'var(--ink3)') + '">' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : 'set bahan') + '</td>' +
-      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.beratGram ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : 'set berat') + '</td>' +
+      '<td>' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
+      '<td style="text-align:right">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right">' + fmtRpFull(biayaBahanLusin) + '</td>' +
-      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.bufferPerLusin != null ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.bufferPerLusin != null ? fmtRpFull(g.bufferPerLusin) : 'set buffer') + '</td>' +
-      '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.montirPerLusin != null ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.montirPerLusin != null ? fmtRpFull(g.montirPerLusin) : 'set montir') + '</td>' +
+      '<td style="text-align:right">' + (g.bufferPerLusin != null ? fmtRpFull(g.bufferPerLusin) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
+      '<td style="text-align:right">' + (g.montirPerLusin != null ? fmtRpFull(g.montirPerLusin) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right;font-weight:700">' + fmtRpFull(totalOngkos) + '</td>' +
       cells +
     '</tr>';
@@ -1687,8 +1690,10 @@ function cpOpenRateBulk(mode) {
   document.getElementById('cp-bulk-berat-group').style.display = mode === 'sku' ? '' : 'none';
   document.getElementById('cp-bulk-buffer-group').style.display = mode === 'sku' ? '' : 'none';
   document.getElementById('cp-bulk-montir-group').style.display = mode === 'sku' ? '' : 'none';
+  idrInput('cp-bulk-buffer');
+  idrInput('cp-bulk-montir');
   var bahanSel = document.getElementById('cp-bulk-bahan-id');
-  bahanSel.innerHTML = '<option value="">— Jangan ubah —</option>' + _cpBahan.map(function(b) {
+  bahanSel.innerHTML = '<option value="">— Isi Bahan, Kalau Masih Kosong —</option>' + _cpBahan.map(function(b) {
     return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
   }).join('');
   bahanSel.value = '';
@@ -1786,8 +1791,8 @@ function cpBulkPrefillFromSku(sku) {
   var produkRow = _cpProdukDimi.find(function(p) { return p.katalog === sku && (p.bahan_id || p.berat_gram != null || p.buffer_per_lusin != null || p.montir_per_lusin != null); });
   document.getElementById('cp-bulk-bahan-id').value = (produkRow && produkRow.bahan_id) ? produkRow.bahan_id : '';
   document.getElementById('cp-bulk-berat').value = (produkRow && produkRow.berat_gram != null) ? produkRow.berat_gram : '';
-  document.getElementById('cp-bulk-buffer').value = (produkRow && produkRow.buffer_per_lusin != null) ? produkRow.buffer_per_lusin : '';
-  document.getElementById('cp-bulk-montir').value = (produkRow && produkRow.montir_per_lusin != null) ? produkRow.montir_per_lusin : '';
+  idrSet('cp-bulk-buffer', (produkRow && produkRow.buffer_per_lusin != null) ? produkRow.buffer_per_lusin : 0);
+  idrSet('cp-bulk-montir', (produkRow && produkRow.montir_per_lusin != null) ? produkRow.montir_per_lusin : 0);
 }
 
 function cpBulkRenderVariantChecklist(sku) {
@@ -1893,8 +1898,8 @@ async function cpSaveRateBulk() {
   var produkPatch = {};
   if (bahanIdRaw !== '') produkPatch.bahan_id = Number(bahanIdRaw);
   if (beratRaw !== '') produkPatch.berat_gram = Number(beratRaw);
-  if (bufferRaw !== '') produkPatch.buffer_per_lusin = Number(bufferRaw);
-  if (montirRaw !== '') produkPatch.montir_per_lusin = Number(montirRaw);
+  if (bufferRaw !== '') produkPatch.buffer_per_lusin = idrVal('cp-bulk-buffer');
+  if (montirRaw !== '') produkPatch.montir_per_lusin = idrVal('cp-bulk-montir');
   var hasProdukPatch = Object.keys(produkPatch).length > 0;
 
   if (!Object.keys(divisiVals).length && !hasProdukPatch) return alert('Isi minimal 1 rate divisi, atau Bahan/Berat/Buffer/Montir, dulu.');
@@ -2036,8 +2041,10 @@ function cpOpenBahanBerat(produkId, sku, variasi) {
   var row = _cpProdukDimi.find(function(p) { return p.id == produkId; });
   sel.value = (row && row.bahan_id) ? row.bahan_id : '';
   document.getElementById('cp-bb-berat').value = (row && row.berat_gram != null) ? row.berat_gram : '';
-  document.getElementById('cp-bb-buffer').value = (row && row.buffer_per_lusin != null) ? row.buffer_per_lusin : '';
-  document.getElementById('cp-bb-montir').value = (row && row.montir_per_lusin != null) ? row.montir_per_lusin : '';
+  idrInput('cp-bb-buffer');
+  idrInput('cp-bb-montir');
+  idrSet('cp-bb-buffer', (row && row.buffer_per_lusin != null) ? row.buffer_per_lusin : 0);
+  idrSet('cp-bb-montir', (row && row.montir_per_lusin != null) ? row.montir_per_lusin : 0);
   showModal('modal-cp-bb');
 }
 
@@ -2045,11 +2052,11 @@ async function cpSaveBahanBerat() {
   var id = document.getElementById('cp-bb-produk-id').value;
   var bahanId = document.getElementById('cp-bb-bahan-id').value || null;
   var berat = document.getElementById('cp-bb-berat').value;
-  var buffer = document.getElementById('cp-bb-buffer').value;
-  var montir = document.getElementById('cp-bb-montir').value;
+  var bufferRaw = document.getElementById('cp-bb-buffer').value.trim();
+  var montirRaw = document.getElementById('cp-bb-montir').value.trim();
   berat = berat === '' ? null : Number(berat);
-  buffer = buffer === '' ? null : Number(buffer);
-  montir = montir === '' ? null : Number(montir);
+  var buffer = bufferRaw === '' ? null : idrVal('cp-bb-buffer');
+  var montir = montirRaw === '' ? null : idrVal('cp-bb-montir');
   try {
     await dbUpdate('produk', id, { bahan_id: bahanId, berat_gram: berat, buffer_per_lusin: buffer, montir_per_lusin: montir });
   } catch (e) { return alert('Gagal simpan: ' + e.message); }
