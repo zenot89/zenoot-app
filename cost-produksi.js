@@ -1720,8 +1720,28 @@ function cpOpenSkuSheetForBulk() {
     } else {
       var count = _cpProdukDimi.filter(function(p) { return p.katalog === katalog; }).length;
       document.getElementById('cp-bulk-target-hint').textContent = 'Rate ini bakal kepasang ke SEMUA ' + count + ' varian ' + katalog + '.';
+      cpBulkPrefillFromSku(katalog);
     }
   });
+}
+
+// 18 Sep 2026: pas SKU dipilih di mode 'sku', isiin field ongkos +
+// Bahan/Berat pakai nilai yang UDAH ADA (ambil dari varian manapun yang
+// udah kepasang — normalnya seragam per SKU) — biar user gak perlu
+// ngetik ulang dari nol, tinggal koreksi yang gak sesuai aja. Field tetep
+// full-editable, dan simpanan tetap ngikutin logic lama ("0"/kosong =
+// jangan diubah).
+function cpBulkPrefillFromSku(sku) {
+  var cols = cpDivisiColumns();
+  cols.forEach(function(c) {
+    var fid = 'cp-bulk-f-' + c.replace(/[^a-z0-9]/gi, '_');
+    var existing = _cpRate.find(function(r) { return r.sku === sku && r.divisi.toLowerCase() === c.toLowerCase(); });
+    idrSet(fid, existing ? Number(existing.ongkos_per_lusin) : 0);
+  });
+
+  var produkRow = _cpProdukDimi.find(function(p) { return p.katalog === sku && (p.bahan_id || p.berat_gram != null); });
+  document.getElementById('cp-bulk-bahan-id').value = (produkRow && produkRow.bahan_id) ? produkRow.bahan_id : '';
+  document.getElementById('cp-bulk-berat').value = (produkRow && produkRow.berat_gram != null) ? produkRow.berat_gram : '';
 }
 
 function cpBulkRenderVariantChecklist(sku) {
