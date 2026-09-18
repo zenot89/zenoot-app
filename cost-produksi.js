@@ -891,9 +891,13 @@ function cpRenderJurnal() {
 // langsung: tap baris apapun (udah keisi atau masih "—") langsung ke form,
 // SKU+Variasi udah otomatis kekunci, ga perlu nyari/pilih lagi.
 //
-// 16 Sep 2026 — nambah kolom BAHAN/BERAT/BIAYA BAHAN/HPP PER PC biar
-// "Total Cost" (ongkos jasa doang, per LUSIN) ke-lengkapin jadi HPP
-// PENUH per PC: HPP/pc = (Total Cost ongkos ÷ 12) + Biaya Bahan/pc.
+// 16 Sep 2026 — nambah kolom BAHAN/BERAT/BIAYA BAHAN/HPP PER PC.
+// 18 Sep 2026 — disamain semua ke per-LUSIN biar konsisten sebaris
+// (disetujui user): Biaya Bahan sekarang per-lusin (bukan per-pc lagi),
+// Total Cost = Total Ongkos (jasa) + Biaya Bahan, keduanya per-lusin.
+// Kolom baru "Total Ongkos" (di antara Biaya Bahan & Rajut) nge-sum
+// cuma ongkos jasa 6 divisi, biar breakdown-nya lengkap keliatan.
+// HPP/Pc satu-satunya kolom per-PC: = Total Cost ÷ 12.
 // Bahan & Berat itu properti SKU Variasi (bukan per-divisi), makanya
 // disimpen di produk.bahan_id/produk.berat_gram — BUKAN di cost_rate. ──
 function cpRenderRate() {
@@ -902,6 +906,7 @@ function cpRenderRate() {
   theadRow.innerHTML = '<th>SKU Induk</th><th>SKU Variasi</th>' +
     '<th style="text-align:right">HPP / Pc</th><th style="text-align:right">Total Cost</th>' +
     '<th>Bahan</th><th style="text-align:right">Berat/Lusin (gr)</th><th style="text-align:right">Biaya Bahan</th>' +
+    '<th style="text-align:right">Total Ongkos</th>' +
     cols.map(function(c) { return '<th style="text-align:right">' + cpEsc(c) + '</th>'; }).join('');
 
   var groupMap = {};
@@ -921,25 +926,25 @@ function cpRenderRate() {
   });
   var tbody = document.getElementById('cp-rate-tbody');
   if (!keys.length) {
-    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 7) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (cols.length + 8) + '" style="color:var(--ink3);font-style:italic">Belum ada produk dengan Boss = DIMI di Kelola Produk.</td></tr>';
     return;
   }
   tbody.innerHTML = keys.map(function(key) {
     var g = groupMap[key];
-    var total = 0;
+    var totalOngkos = 0;
     var cells = cols.map(function(c) {
       var row = g.cells[c.toLowerCase()];
-      if (row) total += Number(row.ongkos_per_lusin) || 0;
+      if (row) totalOngkos += Number(row.ongkos_per_lusin) || 0;
       return '<td style="text-align:right">' + (row ? fmtRpFull(row.ongkos_per_lusin) : '<span style="color:var(--ink3)">—</span>') + '</td>';
     }).join('');
 
     var bahanObj = g.bahanId ? _cpBahan.find(function(b) { return b.id == g.bahanId; }) : null;
-    var ongkosPcs = total / 12;
-    // 17 Sep 2026: berat_gram sekarang PER LUSIN (dulu per pc) — makanya
-    // dibagi 12 lagi di sini biar konsisten sama ongkos jasa yang emang
-    // Rp/lusin semua.
-    var biayaBahanPcs = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000 / 12) * Number(bahanObj.harga_per_kg) : 0;
-    var hppPcs = ongkosPcs + biayaBahanPcs;
+    // 18 Sep 2026: Biaya Bahan sekarang PER LUSIN (beratGram udah per
+    // lusin sejak 17 Sep) — gak dibagi 12 lagi di sini, biar sebaris
+    // sama Total Ongkos & kolom-kolom divisi yang emang Rp/lusin semua.
+    var biayaBahanLusin = (g.beratGram && bahanObj) ? (Number(g.beratGram) / 1000) * Number(bahanObj.harga_per_kg) : 0;
+    var totalCostLusin = totalOngkos + biayaBahanLusin;
+    var hppPcs = totalCostLusin / 12;
     var bbClick = g.produkId
       ? "event.stopPropagation();cpOpenBahanBerat(" + g.produkId + ",'" + cpEscJs(g.sku) + "','" + cpEscJs(g.variasi) + "')"
       : "event.stopPropagation();alert('SKU ini belum ada di Kelola Produk (Boss DIMI) — tambahin dulu di sana.')";
@@ -948,10 +953,11 @@ function cpRenderRate() {
       '<td>' + cpEsc(g.sku) + '</td>' +
       '<td>' + (g.variasi ? cpEsc(g.variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right;font-weight:700;color:var(--info,#2F6FB0)">' + fmtRpFull(hppPcs) + '</td>' +
-      '<td style="text-align:right;font-weight:700">' + fmtRpFull(total) + '</td>' +
+      '<td style="text-align:right;font-weight:700">' + fmtRpFull(totalCostLusin) + '</td>' +
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;color:' + (bahanObj ? 'var(--ink)' : 'var(--ink3)') + '">' + (bahanObj ? cpEsc(bahanObj.nama_bahan) : 'set bahan') + '</td>' +
       '<td onclick="' + bbClick + '" style="cursor:pointer;text-decoration:underline dotted;text-align:right;color:' + (g.beratGram ? 'var(--ink)' : 'var(--ink3)') + '">' + (g.beratGram ? Number(g.beratGram).toLocaleString('id-ID') : 'set berat') + '</td>' +
-      '<td style="text-align:right">' + fmtRpFull(biayaBahanPcs) + '</td>' +
+      '<td style="text-align:right">' + fmtRpFull(biayaBahanLusin) + '</td>' +
+      '<td style="text-align:right;font-weight:700">' + fmtRpFull(totalOngkos) + '</td>' +
       cells +
     '</tr>';
   }).join('');
