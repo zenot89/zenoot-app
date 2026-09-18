@@ -39,6 +39,16 @@
 //      ada entri Rajut buat SKU+Variasi itu. Ongkos jasa 6 divisi TETEP
 //      pakai rate standar Master Ongkos (bukan real-time gabungan tiap
 //      divisi — disepakati biar gak overengineering).
+//
+// 18 Sep 2026 — kolom HPP/Pc & Total di Jurnal Harian TUKAR POSISI
+//   (HPP/Pc sekarang persis setelah Qty(pcs), Total di paling kanan).
+//   Ditrace ulang cpHppPcsJurnal() sekalian — ketemu 1 gap: Buffer &
+//   Montir (buffer_per_lusin/montir_per_lusin, kolom yang ada di Master
+//   Ongkos sejak 18 Sep) belum ikut disum di HPP/Pc Jurnal Harian, padahal
+//   di Master Ongkos keduanya ikut masuk Total Cost. DIKONFIRMASI user
+//   ("kan itu termasuk total HPP") → sekarang ikut disum (÷12, sama kayak
+//   ongkos per-divisi). Formula biaya bahan aktual (÷qty_pcs baris itu,
+//   bukan ÷12) TETAP — sesuai label field "total bahan buat qty ini".
 
 document.getElementById('page-cost-produksi').innerHTML = `
   <style>
@@ -112,11 +122,16 @@ document.getElementById('page-cost-produksi').innerHTML = `
 
       /* Jurnal Harian: sembunyiin Divisi(kolom-2), SKU Variasi(kolom-5,
          sekarang kolom terpisah dari SKU Induk buat versi desktop),
-         Total(kolom-7) & HPP/Pc(kolom-8, baru 17 Sep 2026) di mobile,
-         sisain Tanggal(Hari) / Tukang / SKU Induk / Qty — muat tanpa
-         geser. Variasi tetep keliatan nempel jadi baris ke-2 di sel SKU
-         Induk (.cp-jrn-variasi-mobile). Tap baris buat liat divisi,
-         total & HPP/Pc lengkapnya. */
+         HPP/Pc(kolom-7) & Total(kolom-8) di mobile, sisain Tanggal(Hari)
+         / Tukang / SKU Induk / Qty — muat tanpa geser. Variasi tetep
+         keliatan nempel jadi baris ke-2 di sel SKU Induk
+         (.cp-jrn-variasi-mobile). Tap baris buat liat divisi, HPP/Pc &
+         total lengkapnya.
+         18 Sep 2026: HPP/Pc & Total TUKAR POSISI (HPP/Pc sekarang kolom-7,
+         Total kolom-8, dulu kebalik) — selector di bawah TETEP nth-child(7)
+         & nth-child(8) apa adanya, gak perlu diubah karena dua-duanya
+         emang udah disembunyiin bareng di mobile (cuma tuker isi, bukan
+         nambah/kurang kolom yg disembunyiin). */
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(2),
       #page-cost-produksi #cp-panel-jurnal .tbl td:nth-child(2),
       #page-cost-produksi #cp-panel-jurnal .tbl th:nth-child(5),
@@ -274,7 +289,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
       <div class="card">
         <div class="card-title"><i class="ti ti-notebook"></i> Jurnal Harian</div>
         <div class="tbl-wrap" style="overflow-x:auto"><table class="tbl">
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">Total</th><th style="text-align:right">HPP/Pc</th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Tukang</th><th>SKU Induk</th><th>SKU Variasi</th><th style="text-align:right">Qty(pcs)</th><th style="text-align:right">HPP/Pc</th><th style="text-align:right">Total</th></tr></thead>
           <tbody id="cp-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
         </table></div>
       </div>
@@ -874,6 +889,14 @@ function cpHppPcsJurnal(sku, variasi) {
   var produk = _cpProdukDimi.find(function(p) { return p.katalog === sku && p.sku_variasi === variasi; });
   var bahanObj = produk && produk.bahan_id ? _cpBahan.find(function(b) { return b.id == produk.bahan_id; }) : null;
 
+  // 18 Sep 2026: Buffer & Montir ikut disum (disetujui user — "kan itu
+  // termasuk total HPP") biar sejalan sama Total Cost di Master Ongkos
+  // (cpRenderRate: totalCostLusin = totalOngkos + biayaBahanLusin +
+  // bufferLusin + montirLusin). Keduanya Rp/lusin dari produk.*, sama
+  // kayak ongkos per-divisi — dibagi 12 buat jadi per-pc.
+  var bufferPcs = (produk && produk.buffer_per_lusin != null) ? Number(produk.buffer_per_lusin) / 12 : 0;
+  var montirPcs = (produk && produk.montir_per_lusin != null) ? Number(produk.montir_per_lusin) / 12 : 0;
+
   var biayaBahanPcs = 0, sumberBahan = null;
   if (bahanObj) {
     var actual = cpLatestActualRajut(sku, variasi);
@@ -885,7 +908,7 @@ function cpHppPcsJurnal(sku, variasi) {
       sumberBahan = 'proyeksi';
     }
   }
-  return { hppPcs: ongkosPcs + biayaBahanPcs, sumber: sumberBahan };
+  return { hppPcs: ongkosPcs + bufferPcs + montirPcs + biayaBahanPcs, sumber: sumberBahan };
 }
 
 // ─── RENDER: Jurnal Harian — desktop: SKU Induk & SKU Variasi kolom
@@ -913,8 +936,8 @@ function cpRenderJurnal() {
       '<td>' + cpEsc(j.sku) + variasiMobile + '</td>' +
       '<td>' + (j.sku_variasi ? cpEsc(j.sku_variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
       '<td style="text-align:right">' + (j.qty_pcs || 0) + '</td>' +
-      '<td style="text-align:right">' + fmtRpFull(j.total_cost) + '</td>' +
       '<td style="text-align:right;color:var(--info,#2F6FB0)" title="' + cpEsc(hppTitle) + '">' + fmtRpFull(h.hppPcs) + '</td>' +
+      '<td style="text-align:right">' + fmtRpFull(j.total_cost) + '</td>' +
     '</tr>';
   }).join('');
 }
