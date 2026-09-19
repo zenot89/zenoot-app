@@ -12,7 +12,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
         style="display:flex;align-items:center;gap:4px;font-size:12px">
         <i class="ti ti-calendar"></i>
-        <span class="jp-periode-label-sync">7 Hari</span>
+        <span class="jp-periode-label-sync">Minggu Ini</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
       <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
@@ -41,7 +41,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <button class="btn btn-sm" id="jp-periode-btn" onclick="jpTogglePeriode()"
         style="display:flex;align-items:center;gap:3px;font-size:11px">
         <i class="ti ti-calendar"></i>
-        <span id="jp-periode-label">7 Hari Terakhir</span>
+        <span id="jp-periode-label">Minggu Ini</span>
         <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
@@ -423,15 +423,20 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
       <!-- Tombol aksi -->
       <div class="modal-actions"
-        style="border-top:1.5px dashed var(--ink3);padding-top:12px">
-        <button class="btn btn-sm" onclick="closeModalJP()" id="jp-btn-batal"
-          style="min-width:80px">
-          <i class="ti ti-x"></i> Batal
+        style="border-top:1.5px dashed var(--ink3);padding-top:12px;display:flex;align-items:center;justify-content:space-between">
+        <button class="btn btn-sm btn-danger" onclick="jpHapusDariModal()" id="jp-btn-hapus" style="display:none;flex:0 0 auto">
+          <i class="ti ti-trash"></i> Hapus
         </button>
-        <button class="btn btn-primary btn-sm" onclick="simpanJP()"
-          style="font-weight:700;font-size:14px;padding:8px 16px">
-          <i class="ti ti-device-floppy"></i> SIMPAN
-        </button>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
+          <button class="btn btn-sm" onclick="closeModalJP()" id="jp-btn-batal"
+            style="min-width:80px">
+            <i class="ti ti-x"></i> Batal
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="simpanJP()"
+            style="font-weight:700;font-size:14px;padding:8px 16px">
+            <i class="ti ti-device-floppy"></i> SIMPAN
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -488,8 +493,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
           <th>Harga Sat.</th>
           <th>Total</th>
           <th style="text-align:center">Sisa Stok</th>
-          <th style="text-align:center">Status</th>
-          <th>Aksi</th>
         </tr>
       </thead>
       <tbody id="jp-tbody">
@@ -973,9 +976,9 @@ function hitungTotalJP() {
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadJurnalPenjualan() {
   const tbody = document.getElementById('jp-tbody');
-  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
-    const mode = _jpWaktuMode || '7hari';
+    const mode = _jpWaktuMode || 'minggu-ini';
     const now  = new Date();
     let filter = '';
 
@@ -1028,13 +1031,13 @@ async function loadJurnalPenjualan() {
     // Re-apply flex layout setelah data selesai — pastikan portrait juga flat seperti landscape
     _jpEnsureFlexLayout();
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
 }
 
 
 // ─── FILTER WAKTU BERGAYA SHOPEE ─────────────────────────────
-var _jpWaktuMode = '7hari'; // default: 7 hari terakhir
+var _jpWaktuMode = 'minggu-ini'; // default: Minggu Ini (18 Sep 2026, permintaan user — sebelumnya 7hari)
 
 function jpSetWaktu(mode) {
   _jpWaktuMode = mode;
@@ -1093,9 +1096,9 @@ function jpClosePeriodeOutside(e) {
   }
 }
 function jpResetPeriode() {
-  _jpWaktuMode = '7hari';
+  _jpWaktuMode = 'minggu-ini';
   var radios = document.querySelectorAll('input[name="jp-waktu"]');
-  radios.forEach(function(r) { r.checked = r.value === '7hari'; });
+  radios.forEach(function(r) { r.checked = r.value === 'minggu-ini'; });
   var bulanWrap = document.getElementById('jp-bulan-wrap');
   if (bulanWrap) bulanWrap.style.display = 'none';
   jpUpdateBadge();
@@ -1179,11 +1182,11 @@ function jpUpdateChannelLabel() {
 
 function jpToggleFilter() {} // legacy stub — sudah diganti 2 panel
 function jpUpdateBadge() {
-  var mode    = _jpWaktuMode || '7hari';
+  var mode    = _jpWaktuMode || 'minggu-ini';
   var channel = (document.getElementById('jp-filter-channel') || {}).value || '';
   // Badge Periode (titik indikator kalau filter bukan default)
   var pBadge = document.getElementById('jp-periode-badge');
-  if (pBadge) pBadge.style.display = mode !== '7hari' ? 'inline' : 'none';
+  if (pBadge) pBadge.style.display = mode !== 'minggu-ini' ? 'inline' : 'none';
   // Badge Channel
   var cBadge = document.getElementById('jp-channel-badge');
   if (cBadge) cBadge.style.display = channel ? 'inline' : 'none';
@@ -1648,7 +1651,7 @@ function renderTabelJP(data) {
   const tbody = document.getElementById('jp-tbody');
   const fmtRp = v => fmtRpFull(v);
   if (!data || !data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada entri penjualan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada entri penjualan</td></tr>';
     document.getElementById('jp-footer').textContent = '';
     return;
   }
@@ -1695,23 +1698,6 @@ function renderTabelJP(data) {
               ? '<b style="color:var(--warn)">' + sisaVal + '</b>'
               : '<b style="color:var(--ok)">' + sisaVal + '</b>';
 
-      // ─── Status order ─────────────────────────────────────
-      const statusVal = row.order_status || '';
-      var statusHtml;
-      if (statusVal === 'READY_TO_SHIP') {
-        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000;white-space:nowrap">Perlu Kirim</span>';
-      } else if (statusVal === 'PROCESSED') {
-        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--warn);color:#000;white-space:nowrap">Diproses</span>';
-      } else if (statusVal === 'SHIPPED') {
-        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ok);color:#000;white-space:nowrap">Dikirim</span>';
-      } else if (statusVal === 'COMPLETED') {
-        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--ink2);color:var(--bg);white-space:nowrap">Selesai</span>';
-      } else if (statusVal === 'CANCELLED') {
-        statusHtml = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--danger);color:#fff;white-space:nowrap">Dibatal</span>';
-      } else {
-        statusHtml = '<span style="color:var(--ink3);font-size:10px">Manual</span>';
-      }
-
       // ─── Qty & Harga: kosong kalau Shopee tanpa SKU ───────
       const qtyDisplay   = (!row.sku && isShopee)
         ? '<span style="color:var(--ink3)">—</span>'
@@ -1723,8 +1709,7 @@ function renderTabelJP(data) {
       // ─── Row style: border kiri untuk baris Shopee ────────
       const rowStyle = isShopee ? 'border-left:2px solid var(--accent);' : '';
 
-      const safeSku = (row.sku||'').replace(/'/g, "\'");
-      return '<tr style="' + rowStyle + '">'
+      return '<tr data-id="' + row.id + '" style="cursor:pointer;' + rowStyle + '">'
         + '<td style="white-space:nowrap"><b>' + tgl + '</b> <span style="font-size:11px;color:var(--ink3)">' + jam + '</span></td>'
         + '<td>' + chHtml + '</td>'
         + '<td>' + skuHtml + '</td>'
@@ -1732,17 +1717,65 @@ function renderTabelJP(data) {
         + '<td>' + hargaDisplay + '</td>'
         + '<td><b style="color:var(--ok)">' + fmtRp(row.total) + '</b></td>'
         + '<td style="text-align:center">' + sisaHtml + '</td>'
-        + '<td style="text-align:center">' + statusHtml + '</td>'
-        + '<td>'
-        + '<button class="btn btn-sm" onclick="editJP(' + row.id + ')" style="margin-right:4px"><i class="ti ti-edit"></i></button>'
-        + '<button class="btn btn-sm btn-danger" onclick="hapusJP(' + row.id + ',\'' + safeSku + '\')"><i class="ti ti-trash"></i></button>'
-        + '</td></tr>';
+        + '</tr>';
     }).join('');
     document.getElementById('jp-footer').textContent = 'Menampilkan ' + data.length + ' entri';
+    _jpInitLongPress();
   }
 
   // Render pakai _jpSisakMap terkini (sudah di-refresh oleh _jpRefreshSisakMap di loadJurnalPenjualan)
   _jpRenderWithStok(_jpSisakMap);
+}
+
+// ─── LONG-PRESS baris tabel → buka modal Edit Penjualan ───────
+// 18 Sep 2026: kolom Aksi (pensil+hapus) DIHAPUS atas permintaan user
+// ("biar lebih clean") — diganti tekan-tahan (~500ms) baris buat buka
+// modal edit, pola PERSIS niru _gdgInitLongPress (gadag.js), yang udah
+// kebukti jalan buat kasus sama (tabel tanpa kolom Aksi). Tombol Hapus
+// dipindah ke dalam modal-jp sendiri (lihat #jp-btn-hapus & jpHapusDariModal),
+// nongol cuma pas mode edit — sama persis kayak pola gdg-pend-modal-hapus.
+function _jpInitLongPress() {
+  const tbody = document.getElementById('jp-tbody');
+  if (!tbody || tbody._jpLongPressInited) return;
+  tbody._jpLongPressInited = true;
+  const HOLD_MS    = 500; // durasi tekan biar dianggap "tekan lama"
+  const MOVE_LIMIT = 10;  // px — kalau jari geser lebih dari ini, batal (dianggap scroll)
+  let _timer = null, _startX = 0, _startY = 0, _row = null;
+
+  function cancel() { if (_timer) { clearTimeout(_timer); _timer = null; } _row = null; }
+  function fire() {
+    if (navigator.vibrate) navigator.vibrate(15); // getar halus, konfirmasi tekan lama kena
+    const r = _row;
+    cancel();
+    editJP(r.getAttribute('data-id'));
+  }
+
+  tbody.addEventListener('touchstart', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row    = tr;
+    _startX = e.touches[0].clientX;
+    _startY = e.touches[0].clientY;
+    _timer  = setTimeout(fire, HOLD_MS);
+  }, { passive: true });
+  tbody.addEventListener('touchmove', function(e) {
+    if (!_timer) return;
+    const dx = Math.abs(e.touches[0].clientX - _startX);
+    const dy = Math.abs(e.touches[0].clientY - _startY);
+    if (dx > MOVE_LIMIT || dy > MOVE_LIMIT) cancel(); // jari geser → batal, biarin scroll normal
+  }, { passive: true });
+  tbody.addEventListener('touchend', cancel, { passive: true });
+  tbody.addEventListener('touchcancel', cancel, { passive: true });
+
+  // Desktop/laptop: mouse click-and-hold juga didukung (mousedown/mouseup)
+  tbody.addEventListener('mousedown', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row   = tr;
+    _timer = setTimeout(fire, HOLD_MS);
+  });
+  tbody.addEventListener('mouseup', cancel);
+  tbody.addEventListener('mouseleave', cancel);
 }
 
 // ─── REFRESH SISAK MAP (all-time, independen dari filter periode) ─────────────
@@ -1818,6 +1851,8 @@ function _jpSaveLastChannel(val, label) {
 function showTambahJP() {
   document.getElementById('jp-modal-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Penjualan';
   document.getElementById('jp-id').value         = '';
+  var hapusBtn0 = document.getElementById('jp-btn-hapus');
+  if (hapusBtn0) hapusBtn0.style.display = 'none';
   document.getElementById('jp-tgl').value        = _jpNowDate();
   document.getElementById('jp-waktu').value      = _jpNowTime();
   document.getElementById('jp-sku-induk').value  = '';
@@ -1862,6 +1897,8 @@ async function editJP(id) {
     const r = data[0];
     document.getElementById('jp-modal-title').innerHTML = '<i class="ti ti-edit"></i> Edit Penjualan';
     document.getElementById('jp-id').value      = r.id;
+    var hapusBtn1 = document.getElementById('jp-btn-hapus');
+    if (hapusBtn1) hapusBtn1.style.display = '';
     document.getElementById('jp-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
     document.getElementById('jp-waktu').value   = r.waktu ? String(r.waktu).slice(0,5) : _jpNowTime();
     document.getElementById('jp-channel').value = r.channel_id || '';
@@ -2072,10 +2109,22 @@ async function hapusJP(id, sku) {
   confirmDelete('Hapus transaksi SKU "' + sku + '"?', async () => {
     try {
       await dbDelete('jurnal_penjualan', id);
+      var m = document.getElementById('modal-jp');
+      if (m && m.classList.contains('open')) closeModalJP();
       loadJurnalPenjualan();
       if (typeof loadDashboard === 'function') loadDashboard();
     } catch(err) { alert('Gagal hapus: ' + err.message); }
   });
+}
+
+// 18 Sep 2026: dipanggil tombol Hapus di dalam modal-jp (mode edit) —
+// baris tabel udah gak punya kolom Aksi lagi (lihat _jpInitLongPress).
+function jpHapusDariModal() {
+  const id = document.getElementById('jp-id').value;
+  if (!id) return;
+  const sku = document.getElementById('jp-sku-variasi').value
+    || document.getElementById('jp-sku-induk').value || '';
+  hapusJP(id, sku);
 }
 
 // ─── EXPORT ──────────────────────────────────────────────────
@@ -2106,9 +2155,9 @@ async function exportJurnalPenjualan() {
     pp.innerHTML = '<div style="padding:10px 12px">'
       + '<div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:7px;letter-spacing:.5px">Pilih Periode</div>'
       + '<div id="jp-waktu-opts" style="display:flex;flex-direction:column;gap:3px">'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="hari-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Hari Ini</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="hari-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Hari Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="kemarin" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Kemarin</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="7hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 7 Hari Terakhir</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="30hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 1 Bulan Terakhir</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan</label>'
@@ -2148,8 +2197,8 @@ async function exportJurnalPenjualan() {
 })();
 
 // ─── INIT ────────────────────────────────────────────────────
-// Default periode: 7 hari terakhir
-_jpWaktuMode = '7hari';
+// Default periode: Minggu Ini (18 Sep 2026, permintaan user — sebelumnya 7 hari terakhir)
+_jpWaktuMode = 'minggu-ini';
 // Guard: pastikan elemen sudah ada sebelum mengisi nilai (IIFE inject sudah jalan di atas)
 (function _jpSafeInit() {
   var bulanEl = document.getElementById('jp-filter-bulan');
