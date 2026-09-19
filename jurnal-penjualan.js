@@ -89,11 +89,18 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
         <div id="jp-chart-tooltip" style="display:none;position:absolute;background:var(--cream);border:2px solid var(--ink);padding:5px 10px;font-size:11px;font-family:var(--f);pointer-events:none;box-shadow:3px 3px 0 var(--ink4);z-index:10;white-space:nowrap"></div>
       </div>
+      <!-- 19 Sep 2026: MOBILE ONLY — isi ruang kosong di bawah chart (setelah
+           Best Seller/Channel dipindah keluar jadi swipe-pair sendiri) pakai
+           ringkasan performa tertinggi periode ini. Laptop tidak disentuh —
+           div ini disembunyikan total via CSS di layar ≥768px. -->
+      <div id="jp-tren-ringkasan">
+        <div style="color:var(--ink3);font-style:italic;font-size:13px;text-align:center;padding:16px 0">Memuat ringkasan...</div>
+      </div>
     </div>
 
     </div><!-- /jp-tren-sticky -->
 
-    <!-- BEST SELLER + CHANNEL TERBAIK: side by side -->
+    <!-- BEST SELLER + CHANNEL TERBAIK: side by side — LAPTOP SAJA, tidak diubah -->
     <div id="jp-bs-ch-wrap" style="display:flex;gap:10px;align-items:stretch;flex:1;min-height:0;overflow:hidden">
 
       <!-- BEST SELLER (kiri) -->
@@ -125,6 +132,54 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </div>
 
     </div>
+
+    <!-- 19 Sep 2026: MOBILE ONLY — Best Seller & Channel Terbaik dipisah jadi
+         2 "halaman" swipe (bukan lagi berdampingan/numpuk), niru persis pola
+         .db-swipe-pair dashboard.js (dot indikator bold, hint teks polos
+         TANPA ikon — permintaan user eksplisit). CSS & mekanisme swipe
+         (touch drag + dot click) REUSE 100% dari dashboard.js lewat
+         window.dbSwipeInit() — gak nulis ulang, biar konsisten & battle-tested.
+         Laptop (≥768px): elemen ini disembunyikan total, jp-bs-ch-wrap di
+         atas yang tampil apa adanya — TIDAK diubah sama sekali. -->
+    <div class="db-swipe-pair" id="jp-bs-ch-swipe">
+      <div class="db-swipe-track">
+
+        <!-- SLIDE 1: BEST SELLER -->
+        <div class="db-swipe-slide">
+          <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Channel Terbaik</span></div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;flex-shrink:0">
+              <div class="card-title" style="margin-bottom:0"><i class="ti ti-trophy"></i> Best Seller</div>
+              <div style="display:flex;gap:4px">
+                <button id="jp-bs-sort-rp-mob" onclick="jpBsSort('rp')"
+                  style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer">
+                  Omset (Rp)
+                </button>
+                <button id="jp-bs-sort-qty-mob" onclick="jpBsSort('qty')"
+                  style="padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer">
+                  Qty (pcs)
+                </button>
+              </div>
+            </div>
+            <div id="jp-bestseller-list-mob">
+              <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SLIDE 2: CHANNEL TERBAIK -->
+        <div class="db-swipe-slide">
+          <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Best Seller</span></div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px;flex-shrink:0"><i class="ti ti-building-store"></i> Channel Terbaik</div>
+            <div id="jp-channel-terbaik-list-mob">
+              <div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /db-swipe-track -->
+    </div><!-- /jp-bs-ch-swipe -->
 
   </div><!-- /jp-pane-tren -->
 
@@ -213,11 +268,29 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   @media (min-width: 768px) {
     #jp-aksi-laptop { display: flex !important; }
     #jp-aksi-mobile { display: none !important; }
+    #jp-bs-ch-swipe { display: none !important; }
+    #jp-tren-ringkasan { display: none !important; }
   }
-  /* ── Mobile (portrait & landscape HP): toolbar dalam card ── */
+  /* ── Mobile (portrait & landscape HP): toolbar dalam card ──
+     19 Sep 2026: Best Seller & Channel Terbaik jadi swipe-pair (bukan lagi
+     side-by-side kayak laptop) + ringkasan performa ngisi ruang kosong di
+     bawah chart Tren — permintaan user, laptop (#jp-bs-ch-wrap di atas)
+     TIDAK disentuh sama sekali, cuma disembunyikan di lebar ini. */
   @media (max-width: 767px) {
     #jp-aksi-laptop { display: none !important; }
     #jp-aksi-mobile { display: flex !important; }
+    #jp-bs-ch-wrap  { display: none !important; }
+    #jp-bs-ch-swipe { display: flex !important; flex-direction: column; flex: 1; min-height: 0; margin-bottom: 0 !important; }
+    #jp-bs-ch-swipe .db-swipe-track  { flex: 1; min-height: 0; }
+    #jp-bs-ch-swipe .db-swipe-slide  { display: flex; flex-direction: column; min-height: 0; }
+    #jp-bs-ch-swipe .db-swipe-slide .card {
+      margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px;
+    }
+    #jp-bs-ch-swipe #jp-bestseller-list-mob,
+    #jp-bs-ch-swipe #jp-channel-terbaik-list-mob {
+      display: flex; flex-direction: column; gap: 0; overflow-y: auto; flex: 1; min-height: 0;
+    }
+    #jp-tren-ringkasan { display: block; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--ink4); }
   }
 
     /* ── PICKER BOTTOM SHEET (ala BRImo) — SKU Induk & SKU Variasi ──
@@ -1326,7 +1399,7 @@ function _jpRenderChartTren(data, _retry, _token) {
   const now = new Date();
   const mode     = _jpWaktuMode || 'hari-ini';
   const isHourly = (mode === 'hari-ini' || mode === 'kemarin');
-  const labels = [], totals = [], dateKeys = [];
+  const labels = [], totals = [], qtys = [], dateKeys = [];
 
   if (isHourly) {
     let baseDate;
@@ -1340,10 +1413,9 @@ function _jpRenderChartTren(data, _retry, _token) {
     for (let h = 0; h <= 23; h++) {
       const hStr = String(h).padStart(2,'0');
       labels.push(hStr + ':00');
-      const sum = data
-        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === baseDate && String(r.waktu||'00:00').slice(0,2) === hStr)
-        .reduce((s,r) => s + (Number(r.total)||0), 0);
-      totals.push(sum);
+      const rowsJam = data.filter(r => r.tanggal && String(r.tanggal).slice(0,10) === baseDate && String(r.waktu||'00:00').slice(0,2) === hStr);
+      totals.push(rowsJam.reduce((s,r) => s + (Number(r.total)||0), 0));
+      qtys.push(rowsJam.reduce((s,r) => s + (Number(r.qty)||0), 0));
       dateKeys.push(baseDate);
     }
   } else {
@@ -1354,11 +1426,10 @@ function _jpRenderChartTren(data, _retry, _token) {
       const dEnd = new Date(range.end + 'T00:00:00');
       while (dCur.getTime() <= dEnd.getTime()) {
         const dtKey = _jpLocalDate(dCur);
-        const sum = data
-          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dtKey)
-          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const rowsHari = data.filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dtKey);
         labels.push(String(dCur.getDate()).padStart(2,'0') + '/' + String(dCur.getMonth()+1).padStart(2,'0'));
-        totals.push(sum);
+        totals.push(rowsHari.reduce((s,r) => s + (Number(r.total)||0), 0));
+        qtys.push(rowsHari.reduce((s,r) => s + (Number(r.qty)||0), 0));
         dateKeys.push(dtKey);
         dCur = new Date(dCur.getFullYear(), dCur.getMonth(), dCur.getDate() + 1);
       }
@@ -1368,18 +1439,22 @@ function _jpRenderChartTren(data, _retry, _token) {
       data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
       const dates = Object.keys(dateSet).sort();
       dates.forEach(dt => {
-        const sum = data
-          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const rowsHari = data.filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt);
         const dObj = new Date(dt + 'T00:00:00');
         labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-        totals.push(sum);
+        totals.push(rowsHari.reduce((s,r) => s + (Number(r.total)||0), 0));
+        qtys.push(rowsHari.reduce((s,r) => s + (Number(r.qty)||0), 0));
         dateKeys.push(dt);
       });
     }
   }
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
+  // 19 Sep 2026: ringkasan performa tertinggi — MOBILE ONLY, isi ruang
+  // kosong di kartu Tren Penjualan setelah Best Seller/Channel dipindah
+  // jadi swipe-pair sendiri. Aman dipanggil di sini walau div-nya
+  // disembunyikan di laptop — cuma hitung + tulis innerHTML, gak berat.
+  _jpRenderTrenRingkasan(isHourly, labels, totals, qtys, dateKeys, data);
 
 
   if (totals.length === 0) {
@@ -1542,6 +1617,11 @@ function jpSwitchTab(tab) {
     // Render best seller + channel langsung
     _jpRenderBestSeller(_jpLastFilterData, _jpBsSortBy);
     _jpRenderChannelTerbaik(_jpLastFilterData);
+    // 19 Sep 2026: init swipe (drag + dot click) buat pair Best Seller ↔
+    // Channel Terbaik versi HP — REUSE mekanisme dashboard.js apa adanya
+    // (window.dbSwipeInit di-expose global di sana), idempotent karena
+    // ada guard _swipeInited per elemen jadi aman dipanggil berkali-kali.
+    if (typeof window.dbSwipeInit === 'function') window.dbSwipeInit();
     // Chart: 1 rAF agar browser selesai layout flex setelah display:flex
     requestAnimationFrame(function() {
       _jpScheduleChartRender(_jpLastFilterData);
@@ -1556,12 +1636,16 @@ function jpToggleTab() {
 
 function jpBsSort(by) {
   _jpBsSortBy = by;
-  var btnRp  = document.getElementById('jp-bs-sort-rp');
-  var btnQty = document.getElementById('jp-bs-sort-qty');
+  var btnRp     = document.getElementById('jp-bs-sort-rp');
+  var btnQty    = document.getElementById('jp-bs-sort-qty');
+  var btnRpMob  = document.getElementById('jp-bs-sort-rp-mob');
+  var btnQtyMob = document.getElementById('jp-bs-sort-qty-mob');
   var activeStyle   = 'padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:var(--accent);color:#fff;border:2px solid var(--accent);border-radius:4px;cursor:pointer';
   var inactiveStyle = 'padding:3px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;color:var(--ink3);border:2px solid var(--ink3);border-radius:4px;cursor:pointer';
-  if (btnRp)  btnRp.style.cssText  = by === 'rp'  ? activeStyle : inactiveStyle;
-  if (btnQty) btnQty.style.cssText = by === 'qty' ? activeStyle : inactiveStyle;
+  if (btnRp)     btnRp.style.cssText     = by === 'rp'  ? activeStyle : inactiveStyle;
+  if (btnQty)    btnQty.style.cssText    = by === 'qty' ? activeStyle : inactiveStyle;
+  if (btnRpMob)  btnRpMob.style.cssText  = by === 'rp'  ? activeStyle : inactiveStyle;
+  if (btnQtyMob) btnQtyMob.style.cssText = by === 'qty' ? activeStyle : inactiveStyle;
   _jpRenderBestSeller(_jpLastFilterData, by);
 }
 
@@ -1579,11 +1663,68 @@ function _jpSkuInduk(sku) {
   return noSize;
 }
 
+// 19 Sep 2026: ringkasan performa tertinggi buat kartu Tren Penjualan
+// (MOBILE ONLY — dibuat compact/2-baris biar gak makan banyak ruang,
+// karena "jangan sampai ada scroll" di layar HP). Dipanggil dari
+// _jpRenderChartTren tiap kali chart di-render ulang. Laptop: div
+// #jp-tren-ringkasan disembunyikan total via CSS, jadi fungsi ini boleh
+// jalan di semua device tanpa perlu dicek lebar layar dulu.
+function _jpRenderTrenRingkasan(isHourly, labels, totals, qtys, dateKeys, data) {
+  var el = document.getElementById('jp-tren-ringkasan');
+  if (!el) return;
+  if (!totals.length || !data || !data.length) {
+    el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:12px;text-align:center">Belum ada penjualan di periode ini</div>';
+    return;
+  }
+  var maxIdx = 0;
+  for (var i = 1; i < totals.length; i++) { if (totals[i] > totals[maxIdx]) maxIdx = i; }
+  var maxVal = totals[maxIdx];
+  var maxQty = qtys[maxIdx] || 0;
+  var whenLabel;
+  if (maxVal <= 0) {
+    whenLabel = '—';
+  } else if (isHourly) {
+    whenLabel = 'Jam ' + labels[maxIdx];
+  } else {
+    var dObj = new Date(dateKeys[maxIdx] + 'T00:00:00');
+    var hariNama = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][dObj.getDay()];
+    whenLabel = hariNama + ', ' + labels[maxIdx];
+  }
+  // Produk terlaris (per SKU Induk) sepanjang periode ini — reuse _jpSkuInduk
+  var indukMap = {};
+  data.forEach(function(r) {
+    var induk = _jpSkuInduk(r.sku);
+    if (!indukMap[induk]) indukMap[induk] = 0;
+    indukMap[induk] += (Number(r.qty)||0);
+  });
+  var topInduk = '—', topQty = 0;
+  Object.keys(indukMap).forEach(function(k) { if (indukMap[k] > topQty) { topQty = indukMap[k]; topInduk = k; } });
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0">' +
+      '<i class="ti ti-trophy" style="color:var(--warn);flex-shrink:0"></i>' +
+      '<span style="color:var(--ink3)">Tertinggi</span>' +
+      '<span style="font-weight:700;flex-shrink:0">' + whenLabel + '</span>' +
+      '<span style="color:var(--ink3)">·</span>' +
+      '<span style="font-weight:700;color:var(--ok)">' + fmtRpFull(maxVal) + '</span>' +
+      '<span style="color:var(--ink3);font-size:11px">(' + maxQty + ' pcs)</span>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0">' +
+      '<i class="ti ti-package" style="color:var(--accent);flex-shrink:0"></i>' +
+      '<span style="color:var(--ink3)">Produk terlaris</span>' +
+      '<span style="font-weight:700">' + topInduk + '</span>' +
+      '<span style="color:var(--ink3);font-size:11px">(' + topQty + ' pcs)</span>' +
+    '</div>';
+}
+
 function _jpRenderBestSeller(data, sortBy) {
   var listEl = document.getElementById('jp-bestseller-list');
-  if (!listEl) return;
+  var listElMob = document.getElementById('jp-bestseller-list-mob');
+  if (!listEl && !listElMob) return;
   if (!data || !data.length) {
-    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    var emptyHtml = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    if (listEl) listEl.innerHTML = emptyHtml;
+    if (listElMob) listElMob.innerHTML = emptyHtml;
     return;
   }
   var indukMap = {};
@@ -1601,7 +1742,7 @@ function _jpRenderBestSeller(data, sortBy) {
   indukList.sort(function(a,b){ return sortBy==='rp' ? b.data.rp-a.data.rp : b.data.qty-a.data.qty; });
   var totalRp = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
 
-  listEl.innerHTML = indukList.map(function(item, idx) {
+  var htmlOut = indukList.map(function(item, idx) {
     var pct = totalRp > 0 ? Math.round(item.data.rp / totalRp * 100) : 0;
     var variList = Object.keys(item.data.variasi).map(function(k){ return {sku:k, d:item.data.variasi[k]}; });
     variList.sort(function(a,b){ return sortBy==='rp' ? b.d.rp-a.d.rp : b.d.qty-a.d.qty; });
@@ -1625,13 +1766,18 @@ function _jpRenderBestSeller(data, sortBy) {
       + variHtml
       + '</div>';
   }).join('');
+  if (listEl) listEl.innerHTML = htmlOut;
+  if (listElMob) listElMob.innerHTML = htmlOut;
 }
 
 function _jpRenderChannelTerbaik(data) {
   var listEl = document.getElementById('jp-channel-terbaik-list');
-  if (!listEl) return;
+  var listElMob = document.getElementById('jp-channel-terbaik-list-mob');
+  if (!listEl && !listElMob) return;
   if (!data || !data.length) {
-    listEl.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    var emptyHtml = '<div style="color:var(--ink3);font-style:italic;font-size:13px;padding:10px 0">Belum ada data di periode ini</div>';
+    if (listEl) listEl.innerHTML = emptyHtml;
+    if (listElMob) listElMob.innerHTML = emptyHtml;
     return;
   }
   // Agregasi per channel
@@ -1650,7 +1796,7 @@ function _jpRenderChannelTerbaik(data) {
   chList.sort(function(a,b){ return b.data.rp - a.data.rp; });
   var totalRp = data.reduce(function(s,r){ return s+(r.total||0); }, 0);
 
-  listEl.innerHTML = chList.map(function(ch, idx) {
+  var htmlOut2 = chList.map(function(ch, idx) {
     var pct = totalRp > 0 ? Math.round(ch.data.rp / totalRp * 100) : 0;
     // Top 3 variasi by qty
     var variList = Object.keys(ch.data.variasi).map(function(k){ return {sku:k, d:ch.data.variasi[k]}; });
@@ -1674,6 +1820,8 @@ function _jpRenderChannelTerbaik(data) {
       + (topVari ? '<div style="padding-bottom:6px">' + topVari + '</div>' : '')
       + '</div>';
   }).join('');
+  if (listEl) listEl.innerHTML = htmlOut2;
+  if (listElMob) listElMob.innerHTML = htmlOut2;
 }
 
 function filterJP() {
