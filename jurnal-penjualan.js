@@ -607,6 +607,39 @@ function _jpMingguIniRange(now) {
   return { start: start, cutoff: cutoff };
 }
 
+// 19 Sep 2026: dulu sumbu-X chart Tren Penjualan dibangun cuma dari tanggal
+// yang ADA transaksinya — kalau hari pertama periode kosong (misal Minggu
+// tanggal 13 gak ada penjualan), chart "loncat" mulai dari hari pertama yang
+// ADA datanya (14 Sep), bukan dari awal periode beneran. DIKONFIRMASI user —
+// harus konsisten mulai dari awal periode, hari kosong tetap tampil (Rp0).
+// Helper ini bikin rentang tanggal FIX (bukan dari isi data) yang PERSIS
+// sama kayak filter query di loadJurnalPenjualan(), per mode. Return null
+// buat 'semua' (gak ada batas pasti secara alami — tetap data-driven).
+function _jpChartDateRange(mode, now) {
+  if (mode === 'minggu-ini') {
+    var rng = _jpMingguIniRange(now);
+    var end = new Date(rng.start.getFullYear(), rng.start.getMonth(), rng.start.getDate() + 6);
+    return { start: _jpLocalDate(rng.start), end: _jpLocalDate(end) };
+  }
+  if (mode === '7hari') {
+    return { start: _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000)), end: _jpLocalDate(now) };
+  }
+  if (mode === '30hari') {
+    return { start: _jpLocalDate(new Date(now.getTime() - 30*24*60*60*1000)), end: _jpLocalDate(now) };
+  }
+  if (mode === 'bulan') {
+    var fBulan = (document.getElementById('jp-filter-bulan') || {}).value || '';
+    if (!fBulan) return null;
+    var bParts = fBulan.split('-'); var by = parseInt(bParts[0]); var bm = parseInt(bParts[1]);
+    var lastDay = new Date(by, bm, 0).getDate(); // hari terakhir bulan itu
+    return {
+      start: by + '-' + String(bm).padStart(2,'0') + '-01',
+      end:   by + '-' + String(bm).padStart(2,'0') + '-' + String(lastDay).padStart(2,'0')
+    };
+  }
+  return null; // 'semua' & fallback lain: tetap data-driven (gak ada batas alami)
+}
+
 // ─── MODAL ───────────────────────────────────────────────────
 function jpOverlayClose(e) {
   if (e.target === document.getElementById('modal-jp')) closeModalJP();
@@ -1290,6 +1323,7 @@ function _jpRenderChartTren(data, _retry, _token) {
   const emptyEl = document.getElementById('jp-chart-empty');
   if (!canvas) return;
 
+  const now = new Date();
   const mode     = _jpWaktuMode || 'hari-ini';
   const isHourly = (mode === 'hari-ini' || mode === 'kemarin');
   const labels = [], totals = [], dateKeys = [];
@@ -1313,18 +1347,36 @@ function _jpRenderChartTren(data, _retry, _token) {
       dateKeys.push(baseDate);
     }
   } else {
-    const dateSet = {};
-    data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
-    const dates = Object.keys(dateSet).sort();
-    dates.forEach(dt => {
-      const sum = data
-        .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
-        .reduce((s,r) => s + (Number(r.total)||0), 0);
-      const dObj = new Date(dt + 'T00:00:00');
-      labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
-      totals.push(sum);
-      dateKeys.push(dt);
-    });
+    const range = _jpChartDateRange(mode, now);
+    if (range) {
+      // Rentang FIX per mode — semua hari dalam periode tampil, termasuk yang kosong (Rp0)
+      let dCur = new Date(range.start + 'T00:00:00');
+      const dEnd = new Date(range.end + 'T00:00:00');
+      while (dCur.getTime() <= dEnd.getTime()) {
+        const dtKey = _jpLocalDate(dCur);
+        const sum = data
+          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dtKey)
+          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        labels.push(String(dCur.getDate()).padStart(2,'0') + '/' + String(dCur.getMonth()+1).padStart(2,'0'));
+        totals.push(sum);
+        dateKeys.push(dtKey);
+        dCur = new Date(dCur.getFullYear(), dCur.getMonth(), dCur.getDate() + 1);
+      }
+    } else {
+      // Mode 'semua' (atau fallback): gak ada batas periode alami, tetap data-driven
+      const dateSet = {};
+      data.forEach(r => { if (r.tanggal) dateSet[String(r.tanggal).slice(0,10)] = true; });
+      const dates = Object.keys(dateSet).sort();
+      dates.forEach(dt => {
+        const sum = data
+          .filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dt)
+          .reduce((s,r) => s + (Number(r.total)||0), 0);
+        const dObj = new Date(dt + 'T00:00:00');
+        labels.push(String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0'));
+        totals.push(sum);
+        dateKeys.push(dt);
+      });
+    }
   }
 
   const totalAll = totals.reduce((a,b) => a+b, 0);
