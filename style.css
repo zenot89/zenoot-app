@@ -553,7 +553,10 @@ body[data-page="gadag"] .page-sub   { font-size: 11px; padding-left: 0; }
 body[data-page="gadag"] .topbar-title-lockup { gap: 6px; }
 .date-pill{
   font-size:12px;font-family:var(--f2);font-weight:700;
-  padding:5px 13px;border:none;background:none;
+  padding:5px 13px;border:none;
+  background:var(--cream2);
+  border-radius:8px;
+  box-shadow:var(--card-shadow);
   -webkit-transform:rotate(-.8deg);transform:rotate(-.8deg);
   white-space:nowrap;position:relative;
 }

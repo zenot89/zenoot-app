@@ -21,17 +21,16 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span class="jp-channel-label-sync">Channel</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
-      <!-- Tab buttons sejajar filter -->
-      <div style="display:flex;gap:0;margin-left:auto;align-self:stretch">
-        <button id="jp-tab-jurnal" onclick="jpSwitchTab('jurnal')"
-          style="padding:6px 16px;font-family:var(--f);font-size:12px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
-          <i class="ti ti-receipt"></i> Jurnal
-        </button>
-        <button id="jp-tab-tren" onclick="jpSwitchTab('tren')"
-          style="padding:6px 16px;font-family:var(--f);font-size:12px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
-          <i class="ti ti-chart-line"></i> Tren & Best Seller
-        </button>
-      </div>
+      <!-- 19 Sep 2026: 2 tombol Jurnal/Tren digabung jadi 1 toggle (permintaan
+           user) — safe karena id lama (jp-tab-jurnal/tren + versi -mob) cuma
+           dipakai internal di jpSwitchTab(), gak ada referensi lain di file
+           manapun. Label tombol nunjukin TUJUAN kalau diklik (bukan tab
+           aktif) — default Jurnal aktif, tombol bilang "Tren & Best Seller". -->
+      <button class="btn btn-sm" id="jp-tab-toggle" onclick="jpToggleTab()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px;margin-left:auto;align-self:center">
+        <i class="ti ti-chart-line" id="jp-tab-toggle-icon"></i>
+        <span id="jp-tab-toggle-label">Tren &amp; Best Seller</span>
+      </button>
     </div>
     <!-- TOOLBAR MOBILE: filter + tab dalam satu baris -->
     <div id="jp-aksi-mobile" style="display:flex;gap:4px;margin-bottom:0;align-items:center;flex-wrap:nowrap;border-bottom:2px solid var(--ink4);padding-bottom:0">
@@ -52,17 +51,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
-      <!-- Tab buttons mobile -->
-      <div style="display:flex;gap:0;margin-left:auto;align-self:stretch">
-        <button id="jp-tab-jurnal-mob" onclick="jpSwitchTab('jurnal')"
-          style="padding:6px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;color:var(--ink);cursor:pointer">
-          Jurnal
-        </button>
-        <button id="jp-tab-tren-mob" onclick="jpSwitchTab('tren')"
-          style="padding:6px 10px;font-family:var(--f);font-size:11px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--ink3);cursor:pointer">
-          Tren
-        </button>
-      </div>
+      <button class="btn btn-sm" id="jp-tab-toggle-mob" onclick="jpToggleTab()"
+        style="display:flex;align-items:center;gap:3px;font-size:11px;margin-left:auto">
+        <i class="ti ti-chart-line" id="jp-tab-toggle-icon-mob"></i>
+        <span id="jp-tab-toggle-label-mob">Tren</span>
+      </button>
     </div>
   </div>
 
@@ -73,7 +66,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div id="jp-tren-sticky">
 
     <!-- MINI CARDS -->
-    <div class="metrics" style="margin-bottom:0;flex-shrink:0">
+    <div class="metrics" style="flex-shrink:0">
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
         <div class="m-value" id="jp-total-penjualan2">—</div>
@@ -1452,23 +1445,24 @@ function jpSwitchTab(tab) {
   _jpActiveTab = tab;
   var pJurnal = document.getElementById('jp-pane-jurnal');
   var pTren   = document.getElementById('jp-pane-tren');
-  var tJurnal  = document.getElementById('jp-tab-jurnal');
-  var tTren    = document.getElementById('jp-tab-tren');
-  var tJurnalM = document.getElementById('jp-tab-jurnal-mob');
-  var tTrenM   = document.getElementById('jp-tab-tren-mob');
   if (!pJurnal || !pTren) return;
-  var setActive = function(el, active) {
-    if (!el) return;
-    el.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
-    el.style.color = active ? 'var(--ink)' : 'var(--ink3)';
-  };
+  // 19 Sep 2026: label tombol toggle nunjukin TUJUAN kalau diklik lagi
+  // (bukan tab yang lagi aktif) — di Jurnal, tombol nawarin "Tren & Best
+  // Seller"; di Tren, tombol nawarin "Jurnal".
+  var lbl  = document.getElementById('jp-tab-toggle-label');
+  var lblM = document.getElementById('jp-tab-toggle-label-mob');
+  var ic   = document.getElementById('jp-tab-toggle-icon');
+  var icM  = document.getElementById('jp-tab-toggle-icon-mob');
+  var isJurnal = tab === 'jurnal';
+  if (lbl)  lbl.textContent  = isJurnal ? 'Tren & Best Seller' : 'Jurnal';
+  if (lblM) lblM.textContent = isJurnal ? 'Tren' : 'Jurnal';
+  if (ic)   ic.className  = isJurnal ? 'ti ti-chart-line' : 'ti ti-receipt';
+  if (icM)  icM.className = isJurnal ? 'ti ti-chart-line' : 'ti ti-receipt';
   var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
   if (tab === 'jurnal') {
     pJurnal.style.display = 'flex';
     pTren.style.display   = 'none';
-    setActive(tJurnal, true);  setActive(tTren, false);
-    setActive(tJurnalM, true); setActive(tTrenM, false);
     // Balikin jp-pane-tren ke mode default (flex:1, overflow-y:auto dari CSS)
     // dan kunci lagi .content — tabel jurnal butuh layout freeze.
     pTren.style.flex       = '';
@@ -1479,8 +1473,6 @@ function jpSwitchTab(tab) {
   } else {
     pJurnal.style.display = 'none';
     pTren.style.display   = 'flex';
-    setActive(tJurnal, false);  setActive(tTren, true);
-    setActive(tJurnalM, false); setActive(tTrenM, true);
     // Semua device: jp-pane-tren scroll sendiri — simple, konsisten, tidak ada
     // race condition dengan _jpEnsureFlexLayout yang ubah overflow .content.
     pTren.style.flex      = '1 1 0';
@@ -1495,6 +1487,11 @@ function jpSwitchTab(tab) {
       _jpScheduleChartRender(_jpLastFilterData);
     });
   }
+}
+
+// 19 Sep 2026: pengganti 2 tombol Jurnal/Tren terpisah — 1 tombol toggle.
+function jpToggleTab() {
+  jpSwitchTab(_jpActiveTab === 'jurnal' ? 'tren' : 'jurnal');
 }
 
 function jpBsSort(by) {
