@@ -1380,9 +1380,17 @@ function _jpRenderChartTren(data, _retry, _token) {
   }
 
   // Area fill
+  // 19 Sep 2026: root cause "area di titik pertama keliatan segitiga dari 0"
+  // — titik pertama (i===0) dulu moveTo ke BASELINE (padT+cH), bukan ke
+  // tinggi data point pertama (y), jadi area-nya nanjak dari 0 ke titik
+  // ke-2 padahal garisnya sendiri udah di ketinggian yg bener dari awal.
+  // Fix: moveTo ke (x,y) titik pertama, baru turun ke baseline di KEDUA
+  // ujung (kanan lalu kiri) sebelum closePath, biar sisi bawahnya rata
+  // ngikutin baseline, bukan garis diagonal motong.
   ctx.beginPath();
-  totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0 ? ctx.moveTo(x,padT+cH) : ctx.lineTo(x,y); });
-  ctx.lineTo(padL+(totals.length-1)*step, padT+cH);
+  totals.forEach((v,i) => { const x=padL+i*step, y=padT+cH-(v/maxVal)*cH; i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.lineTo(padL+(totals.length-1)*step, padT+cH); // turun ke baseline, ujung kanan
+  ctx.lineTo(padL, padT+cH);                         // balik ke baseline, ujung kiri (x titik pertama)
   ctx.closePath(); ctx.fillStyle = colFill; ctx.fill();
 
   // Garis
