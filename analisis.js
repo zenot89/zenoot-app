@@ -151,6 +151,16 @@
     'html.zan-phone #hasilWrap .empty-state,html.zan-phone #hasilWrapM .empty-state{font-size:0;padding:36px 16px;}',
     'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
 
+    // ══ Teks yang menunjuk tombol/kolom khusus laptop → diganti kalimat yang masuk akal di HP (teks aslinya disembunyikan lewat font-size:0) ══
+    'html.zan-phone #page-hpp .page-head p{font-size:0;}',
+    'html.zan-phone #page-hpp .page-head p::after{content:"HPP dibaca langsung dari Kelola Produk zenOt (SKU Variasi = Nomor Referensi SKU) \\2014  tidak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik \u201CMuat ulang HPP\u201D. Upload data dilakukan dari laptop.";display:block;font-size:13px;line-height:1.5;}',
+    'html.zan-phone #page-hpp .empty-state{font-size:0;}',
+    'html.zan-phone #page-hpp .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
+    'html.zan-phone #page-checkadmin td[colspan="7"]{font-size:0;}',
+    'html.zan-phone #page-checkadmin td[colspan="7"]::after{content:"Belum ada data \\2014  paste di kotak atas, lalu klik Parse & Hitung.";display:block;font-size:13px;}',
+    'html.zan-phone .rekap-empty-note{font-size:0;}',
+    'html.zan-phone .rekap-empty-note::after{content:"Belum ada data tersimpan di sini. Simpan ke Rekap dilakukan dari laptop.";display:block;font-size:12.5px;}',
+
     // ══ Halaman lain (dikembalikan ke HP 21 Sep 2026): aturan umum biar tidak melebar keluar layar & tidak kejepit "1 layar penuh" laptop ══
     'html.zan-phone .card{padding:14px 12px;}',
     'html.zan-phone .page-head{flex-wrap:wrap;gap:8px;}',
@@ -174,19 +184,19 @@
     // "Pilih data" = alur hapus data → eksekusi, cuma di laptop
     'html.zan-phone #btnRekapSelect,html.zan-phone #btnRekapSelectM,html.zan-phone .rekap-selectbar{display:none !important;}',
     'html.zan-phone .rekap-card{padding:2px;}',
-    'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table{font-size:12.5px;}',
+    'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table{font-size:13px;}',
     'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 th,html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 td{padding:8px 7px;}',
-    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table thead th{font-size:11.5px;letter-spacing:0;}',
-    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-name{font-size:11.5px;}',
-    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-range{font-size:10.5px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table thead th{font-size:12px;letter-spacing:0;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-name{font-size:12px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-range{font-size:11px;}',
     // lebar kolom (asli di-set inline dalam em oleh analisis.html → ditimpa pakai !important; cocok lewat nilai em-nya)
-    'html.zan-phone .rekap-table.rekap-12 col{width:96px !important;}',
+    'html.zan-phone .rekap-table.rekap-12 col{width:108px !important;}',
     'html.zan-phone .rekap-table.rekap-12 col[style*="4.2em"]{width:44px !important;}',
     'html.zan-phone .rekap-table.rekap-12 col[style*="7.5em"]{width:72px !important;}',
-    'html.zan-phone .rekap-table.rekap-12 col:first-child{width:104px !important;}',
+    'html.zan-phone .rekap-table.rekap-12 col:first-child{width:108px !important;}',
     // kolom Kriteria: nempel kiri saat digeser ke samping, teks boleh 2 baris, tombol mode (bulan / ⇄) disembunyikan
     'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria,html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 th.rekap-kriteria{position:sticky;left:0;min-width:0;padding-left:8px;white-space:normal;line-height:1.2;}',
-    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria{z-index:2;font-size:11.5px;box-shadow:1px 0 0 var(--line);}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria{z-index:2;font-size:12px;box-shadow:1px 0 0 var(--line);}',
     'html.zan-phone .rekap-kr-btns{display:none;}',
     // panah naik/turun ditaruh di bawah angka (kalau sebaris, angka kepotong di kolom sempit)
     'html.zan-phone .rekap-trend{display:block;margin-left:0;margin-top:1px;font-size:10px;}'
