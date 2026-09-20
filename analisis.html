@@ -1535,7 +1535,20 @@ async function zProdukLoad(){
   zProdukMap = m;
   return m.size;
 }
-function zProdukHpp(ref){ var k = zProdukNorm(ref); return k ? zProdukMap.get(k) : undefined; }
+/* "Turun SKU" (20 Sep 2026): produk di-upload ke Shopee dengan 4 size (S, M, L, XL), tapi yang benar-benar diproduksi cuma M dan XL.
+   Jadi SKU Variasi ber-size -S narik HPP size -M, dan -L narik HPP size -XL (contoh: Turtleneck_Abu muda-L -> Turtleneck_Abu muda-XL).
+   Cari PERSIS dulu (kalau S/L suatu saat diproduksi beneran & ada di Kelola Produk, HPP aslinya yang dipakai); fallback cuma kalau gak ketemu.
+   Ini SATU-SATUNYA pintu HPP buat RKS, Rekap, HPP Produk, Check Admin, versi Mingguan & sync Price List (semua lewat state.hppMaster / zProdukHpp),
+   jadi cukup diubah di sini. Data di Kelola Produk & tabel produk TIDAK disentuh. */
+var Z_SIZE_TURUN = { 'S':'M', 'L':'XL' };
+function zProdukHpp(ref){
+  var k = zProdukNorm(ref);
+  if(!k) return undefined;
+  var h = zProdukMap.get(k);
+  if(h !== undefined) return h;
+  var m = /^(.*-)(S|L)$/.exec(k);   // ukuran = seluruh segmen terakhir setelah tanda "-" (XL / XS gak ikut kena)
+  return m ? zProdukMap.get(m[1] + Z_SIZE_TURUN[m[2]]) : undefined;
+}
 function zHppView(){
   return new Proxy({}, {
     get: function(t, p){
