@@ -31,11 +31,11 @@ var CDN_ASSETS = [
 var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
   'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
-  'produk-terjual.js', 'price-list.js', 'dataorder.js',
-  'rekap.js', 'channel-master.js', 'beban-operasional.js',
+  'produk-terjual.js', 'price-list.js',
+  'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'autocomplete.js',
+  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'analisis.js', 'autocomplete.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // index.html: tidak di-cache (selalu fresh)

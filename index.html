@@ -90,19 +90,6 @@
     </div>
   </div>
 
-  <!-- TOKO -->
-  <div class="nav-group" id="group-toko">
-    <div class="nav-group-header" onclick="toggleNavGroup('group-toko')">
-      <span class="nav-group-label"><i class="ti ti-shopping-bag"></i> Toko</span>
-      <span class="nav-group-arrow">▾</span>
-    </div>
-    <div class="nav-group-body">
-      <button class="nav-item" onclick="gotoPage('dataorder',this)"><span class="ni-icon"><i class="ti ti-shopping-cart"></i></span><span class="ni-label">Data Order</span></button>
-      <button class="nav-item" onclick="gotoPage('rekap',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">Rekap & P&L</span></button>
-      <button class="nav-item" onclick="gotoPage('shopee-auth',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Shopee Connect</span></button>
-    </div>
-  </div>
-
   <!-- ANALISIS TOKO -->
   <div class="nav-group" id="group-analisis">
     <div class="nav-group-header" onclick="toggleNavGroup('group-analisis')">
@@ -112,6 +99,25 @@
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('shopee-dashboard',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Analisis Shopee</span></button>
       <button class="nav-item" id="ni-proyeksi-harga-group" onclick="phGoto('proyeksi-ringkasan',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span></button>
+    </div>
+  </div>
+
+  <!-- ZENOOT ANALISIS (halaman-halamannya dibuka di dalam analisis.html lewat page-analisis; analisis.js) -->
+  <div class="nav-group" id="group-zanalisis">
+    <div class="nav-group-header" onclick="toggleNavGroup('group-zanalisis')">
+      <span class="nav-group-label"><i class="ti ti-chart-histogram"></i> Zenoot Analisis</span>
+      <span class="nav-group-arrow">▾</span>
+    </div>
+    <div class="nav-group-body">
+      <button class="nav-item" onclick="analisisGoto('hasil',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">RKS Overview</span></button>
+      <button class="nav-item" onclick="analisisGoto('rekap',this)"><span class="ni-icon"><i class="ti ti-layout-grid"></i></span><span class="ni-label">Rekap</span></button>
+      <button class="nav-item" onclick="analisisGoto('hpp',this)"><span class="ni-icon"><i class="ti ti-tag"></i></span><span class="ni-label">HPP Produk</span></button>
+      <button class="nav-item" onclick="analisisGoto('checkadmin',this)"><span class="ni-icon"><i class="ti ti-checklist"></i></span><span class="ni-label">Check Admin</span></button>
+      <button class="nav-item" onclick="analisisGoto('proyeksi',this)"><span class="ni-icon"><i class="ti ti-activity"></i></span><span class="ni-label">By Operasional</span></button>
+      <button class="nav-item" onclick="analisisGoto('byqty',this)"><span class="ni-icon"><i class="ti ti-target"></i></span><span class="ni-label">By Target Qty</span></button>
+      <button class="nav-item" onclick="analisisGoto('hasilM',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">RKS Mingguan</span></button>
+      <button class="nav-item" onclick="analisisGoto('rekapM',this)"><span class="ni-icon"><i class="ti ti-layout-grid"></i></span><span class="ni-label">Rekap Mingguan</span></button>
+      <button class="nav-item" onclick="analisisGoto('setting',this)"><span class="ni-icon"><i class="ti ti-settings"></i></span><span class="ni-label">Setting Analisis</span></button>
     </div>
   </div>
 
@@ -125,6 +131,7 @@
       <button class="nav-item" onclick="gotoPage('produk',this)"><span class="ni-icon"><i class="ti ti-box"></i></span><span class="ni-label">Kelola Produk</span></button>
       <button class="nav-item" onclick="gotoPage('price-list',this)"><span class="ni-icon"><i class="ti ti-tag"></i></span><span class="ni-label">Price List</span></button>
       <button class="nav-item" onclick="gotoPage('channel',this)"><span class="ni-icon"><i class="ti ti-antenna"></i></span><span class="ni-label">Channel</span></button>
+      <button class="nav-item" onclick="gotoPage('shopee-auth',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Shopee Connect</span></button>
 
     </div>
   </div>
@@ -161,8 +168,6 @@
     <div id="page-jurnal-penjualan" class="page"></div>
     <div id="page-produk-terjual" class="page"></div>
     <div id="page-price-list" class="page"></div>
-    <div id="page-dataorder" class="page"></div>
-    <div id="page-rekap" class="page"></div>
     <div id="page-produk" class="page"></div>
     <div id="page-channel" class="page"></div>
     <div id="page-beban-operasional" class="page"></div>
@@ -178,6 +183,7 @@
     <div id="page-shopee-auth" class="page"></div>
     <div id="page-shopee-dashboard" class="page"></div>
     <div id="page-proyeksi-harga" class="page"></div>
+    <div id="page-analisis" class="page"></div>
   </div>
 </div>
 
@@ -236,9 +242,9 @@
       'rough-ui.js','supabase.js','app.js','dashboard.js',
       'produk.js','stok.js','restock.js','kas.js','gadag.js',
       'jurnal-penjualan.js','produk-terjual.js','price-list.js',
-      'dataorder.js','rekap.js','channel-master.js',
+      'channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',
-      'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','clearance-induk.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','autocomplete.js'
+      'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','clearance-induk.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','analisis.js','autocomplete.js'
     ];
     var i = 0;
     var _timer = null;
