@@ -1551,6 +1551,11 @@ async function zProdukLoad(){
    Cari PERSIS dulu (kalau S/L suatu saat diproduksi beneran & ada di Kelola Produk, HPP aslinya yang dipakai); fallback cuma kalau gak ketemu.
    Data di Kelola Produk & tabel produk TIDAK disentuh. */
 var Z_SIZE_TURUN = { 'S':'M', 'L':'XL' };
+/* Aturan turun size TERPISAH per SKU Induk (20 Sep 2026) — Half Zip RH (RH_Zipper-salur) punya aturan sendiri, peta Turtleneck di atas TIDAK disentuh.
+   RH_Zipper-salur cuma disimpan 2 size di Kelola Produk (L dan XXL) karena stok fisik cuma itu, padahal di Shopee ada M, L, XL, XXL:
+   M -> L, XL -> XXL. Produk yang gak terdaftar di sini tetap pakai Z_SIZE_TURUN. Tetap cari persis dulu (kalau M/XL suatu saat diisi sendiri, HPP aslinya yang dipakai).
+   Cuma jalan lewat jalur SKU Induk + size (zProdukHppBy) — Order Completed Half Zip Nomor Referensi-nya kosong, jadi semua lewat jalur ini. */
+var Z_SIZE_TURUN_INDUK = { 'RH_ZIPPER-SALUR': { 'M':'L', 'XL':'XXL' } };
 function zProdukHpp(ref){
   var k = zProdukNorm(ref);
   if(!k) return undefined;
@@ -1575,7 +1580,8 @@ function zProdukHppBy(induk, nomorRef, variasi){
   var sz = zProdukNorm(parts[parts.length-1]);
   if(!sz) return undefined;
   var tries = [sz];
-  if(Z_SIZE_TURUN[sz]) tries.push(Z_SIZE_TURUN[sz]);
+  var tm = Z_SIZE_TURUN_INDUK[ik] || Z_SIZE_TURUN;   // induk yang punya aturan sendiri pakai petanya sendiri, sisanya (Turtleneck dkk) pakai peta lama
+  if(tm[sz]) tries.push(tm[sz]);
   for(var i = 0; i < tries.length; i++){
     var a = zProdukIdxSize.get(ik + '|' + tries[i]);
     if(a && a.length) return Math.max.apply(null, a);
