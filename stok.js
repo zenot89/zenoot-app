@@ -272,7 +272,7 @@ document.getElementById('page-stok').innerHTML = `
         Urutan kolom: <b>SKU Variasi → Qty (akan DITAMBAHKAN ke stok yang ada)</b>
       </div>
       <textarea id="paste-area-stok"
-        style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none"
+        style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);resize:vertical;outline:none"
         placeholder="Paste di sini..."></textarea>
       <div id="paste-stok-preview" style="margin-top:10px;display:none">
         <div id="paste-stok-scope-notif" style="display:none;background:rgba(255,180,0,0.1);border:1.5px solid #c8a000;border-radius:6px;padding:8px 12px;font-size:12px;color:#c8a000;margin-bottom:8px;line-height:1.6"></div>

@@ -829,7 +829,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         Kolom <b>Harga PO per Lusin</b> (ke-6) opsional — cuma perlu diisi kalau suplier-nya P.O/dual-mode (RH-case).
       </div>
       <textarea id="hs-paste-area"
-        style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);resize:vertical;outline:none;border-radius:6px;box-sizing:border-box"
+        style="width:100%;height:160px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);resize:vertical;outline:none;border-radius:6px;box-sizing:border-box"
         placeholder="Paste di sini..."></textarea>
       <div id="hs-paste-preview" style="margin-top:10px;display:none">
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="hs-paste-count"></div>
