@@ -845,7 +845,7 @@
   <section class="page" id="page-hpp">
     <div class="page-head">
       <div>
-        <p>Katalog HPP produk — otomatis kesimpen di database (sama di semua akun & browser). Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</p>
+        <p>HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU) — gak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</p>
       </div>
     </div>
 
@@ -853,9 +853,10 @@
       <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;">
         <div style="display:flex;gap:8px;align-items:center;">
           <h3 style="margin:0;">HPP</h3>
-          <button class="btn secondary small" id="btnToggleSelect">Pilih</button>
+          <button class="btn secondary small" id="btnToggleSelect" style="display:none">Pilih</button>
+          <button class="btn secondary small" id="btnReloadHpp" onclick="zStore.flush().then(()=>location.reload(),()=>location.reload())">↻ Muat ulang HPP</button>
           <button class="btn ghost small" id="btnFilterMissing">Belum Diisi</button>
-          <button class="btn danger small" id="btnHapusHppSelected" title="Hapus SKU manual permanen; SKU dari Order Completed HPP-nya direset ke Belum Diisi (barisnya tetep ada karena masih ada di file order)">Hapus (0)</button>
+          <button class="btn danger small" id="btnHapusHppSelected" style="display:none" title="Hapus SKU manual permanen; SKU dari Order Completed HPP-nya direset ke Belum Diisi (barisnya tetep ada karena masih ada di file order)">Hapus (0)</button>
         </div>
         <span id="hppSummary" class="hint" style="margin:0;"></span>
       </div>
@@ -1516,6 +1517,36 @@ const zStore = (function(){
 })();
 const zLS = zStore.zLS;
 
+/* ================================================================
+   HPP dari Kelola Produk (tabel `produk` zenOt) — HPP di Analisis TIDAK lagi disimpan/diedit di sini.
+   Konvensi: SKU Variasi di Kelola Produk = "Nomor Referensi SKU" di file Order Completed Shopee (dicocokkan tanpa peduli huruf besar/kecil & spasi pinggir).
+   state.hppMaster jadi tampilan baca-saja (Proxy): state.hppMaster['SKUINDUK|NOMORREF|VARIASI'] → HPP produk dengan SKU Variasi = NOMORREF,
+   atau undefined kalau belum ada / HPP-nya 0. Jadi semua kode hitung yang sudah ada (RKS, Rekap, Check Admin, Price List) jalan tanpa diubah.
+   ================================================================ */
+var zProdukMap = new Map();
+function zProdukNorm(s){ return String(s==null?'':s).trim().toUpperCase(); }
+async function zProdukLoad(){
+  var rows = await dbGet('produk');
+  var m = new Map();
+  rows.forEach(function(r){
+    var k = zProdukNorm(r.sku_variasi), h = Number(r.hpp) || 0;
+    if(k && h > 0 && !m.has(k)) m.set(k, h);
+  });
+  zProdukMap = m;
+  return m.size;
+}
+function zProdukHpp(ref){ var k = zProdukNorm(ref); return k ? zProdukMap.get(k) : undefined; }
+function zHppView(){
+  return new Proxy({}, {
+    get: function(t, p){
+      if(typeof p === 'string' && p.indexOf('|') >= 0) return zProdukHpp(p.split('|')[1]);
+      return t[p];
+    },
+    set: function(){ return true; },            // baca-saja: ubah HPP lewat Kelola Produk
+    deleteProperty: function(){ return true; }
+  });
+}
+
 </script>
 <script id="analisisMain" type="text/plain">
 /* ================= STATE ================= */
@@ -1528,7 +1559,7 @@ const state = {
   orderHeaders: [],
   incomeFile: null,
   adsFile: null,
-  hppMaster: {},
+  hppMaster: zHppView(),   // baca-saja: HPP dari Kelola Produk zenOt (zHppView di zStore)
   manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
   settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, minNpmRp:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null },
   priceList: [], // [{sku, hpp, ops}] — dasar Proyeksi Harga (Proyeksi & By Target Qty); income target sekarang global dari Setting
@@ -1713,13 +1744,10 @@ try{ loadPriceListFromStorage(); }catch(e){ console.error('Gagal load Price List
 /* ================= HPP: PERSIST KE localStorage (sekarang lewat zLS → database) ================= */
 const HPP_LS_KEY = 'zenootAnalisis.hppMaster';
 function saveHppMasterToStorage(){
-  try{ zLS.setItem(HPP_LS_KEY, JSON.stringify(state.hppMaster)); }catch(e){}
+  // NONAKTIF (tahap B): HPP sekarang dibaca dari Kelola Produk, gak disimpan di Analisis. Key lama di database dibiarkan sebagai arsip.
 }
 function loadHppMasterFromStorage(){
-  try{
-    const raw = zLS.getItem(HPP_LS_KEY);
-    if(raw){ state.hppMaster = { ...JSON.parse(raw), ...state.hppMaster }; }
-  }catch(e){}
+  // NONAKTIF (tahap B): HPP master lama gak dimuat lagi — sumber HPP = Kelola Produk.
 }
 try{ loadHppMasterFromStorage(); }catch(e){ console.error('Gagal load HPP master:', e); }
 
@@ -2708,7 +2736,7 @@ function renderHPP(){
       <td>${p.namaProduk}</td>
       <td>${p.nomorRef}</td>
       <td>${p.variasi}</td>
-      <td class="num"><input type="text" inputmode="numeric" class="numinput ${cls}" data-key="${key}" value="${val!==undefined?fmtNum(val):''}" placeholder="isi HPP"></td>
+      <td class="num">${val!==undefined ? fmtNum(val) : '<span class="status-warn">belum ada di Kelola Produk</span>'}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -3407,7 +3435,7 @@ function openAddSkuSheet(idx){
   document.getElementById('caSheetNamaProduk').textContent = item.namaProduk || '(tanpa nama produk)';
   document.getElementById('caSheetMeta').textContent = `${item.kodeVariasi||'-'} · ${item.variasi||'-'}`;
   document.getElementById('caSheetInduk').value = '';
-  document.getElementById('caSheetHpp').value = '';
+  { const _h = zProdukHpp(item.kodeVariasi); const _el = document.getElementById('caSheetHpp'); _el.value = _h ? fmtNum(_h) : ''; _el.readOnly = true; _el.placeholder = 'belum ada di Kelola Produk'; }
   document.getElementById('caSheetSuggest').classList.remove('show');
   document.getElementById('caSheetErr').classList.remove('show');
   document.getElementById('caAddSkuSheetOverlay').classList.add('show');
@@ -3442,9 +3470,9 @@ function saveAddSkuSheet(){
   const item = caLastParsed.items[idx];
   const errEl = document.getElementById('caSheetErr');
   const skuInduk = (document.getElementById('caSheetInduk').value||'').trim();
-  const hppVal = parseNum(document.getElementById('caSheetHpp').value)||0;
+  const hppVal = zProdukHpp(item.kodeVariasi)||0;   // HPP dari Kelola Produk (SKU Variasi = kode variasi)
   if(!skuInduk){ errEl.textContent='SKU Induk gak boleh kosong.'; errEl.classList.add('show'); return; }
-  if(!hppVal || hppVal<=0){ errEl.textContent='Isi HPP-nya dulu (harus lebih dari 0).'; errEl.classList.add('show'); return; }
+  if(!hppVal || hppVal<=0){ errEl.textContent='SKU '+(item.kodeVariasi||'-')+' belum ada / HPP-nya masih kosong di Kelola Produk. Tambahkan dulu di Kelola Produk (SKU Variasi = kode variasi), lalu muat ulang halaman HPP Produk.'; errEl.classList.add('show'); return; }
   errEl.classList.remove('show');
   const nomorRef = item.kodeVariasi || '';
   const variasi = item.variasi || '';
@@ -3455,8 +3483,7 @@ function saveAddSkuSheet(){
     state.customHppProducts.push({ skuInduk, nomorRef, variasi, namaProduk });
     saveCustomHppProductsToStorage();
   }
-  state.hppMaster[key] = hppVal;
-  saveHppMasterToStorage();
+  // HPP gak disimpan di sini lagi — dibaca dari Kelola Produk lewat nomorRef.
   if(caLastOverrides) caLastOverrides[idx] = null; // reset override — biar auto-match Tier 1 dari SKU yang baru ditambah
   closeAddSkuSheet();
   renderCheckAdminResult(caLastParsed, caLastOverrides);
@@ -3772,7 +3799,7 @@ function renderHasil(){
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
       ${fromRekap ? `<span class="hasil-src-badge">Dari Rekap · ${rekapMonthLabel(hasilViewKey)}</span><button type="button" class="btn ghost small" id="btnHasilBackLive">Kembali ke data saat ini</button>` : ''}
-      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada harga HPP-nya di halaman HPP Produk.</span>` : ''}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
       <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
@@ -4994,8 +5021,8 @@ function rksInsights(c){
 
   // 0) Kualitas data
   if(M.hppCalc && M.hppCalc.missingHpp>0) add('warn','HPP belum lengkap',
-    M.hppCalc.missingHpp+' baris pesanan belum punya HPP di Data Toko, jadi HPP terlalu kecil dan laba di laporan ini kemungkinan terlalu tinggi.',
-    'Lengkapi HPP produk yang belum terisi di halaman Data Toko, lalu export ulang laporan ini.');
+    M.hppCalc.missingHpp+' baris pesanan belum punya HPP di Kelola Produk, jadi HPP terlalu kecil dan laba di laporan ini kemungkinan terlalu tinggi.',
+    'Lengkapi HPP produk yang belum terisi di Kelola Produk, lalu export ulang laporan ini.');
   if(!c.fromRekap && (M.iklan===null || M.iklan===undefined)) add('warn','Faktur iklan belum diunggah',
     'Biaya iklan dianggap Rp 0, sehingga laba, ROAS dan ACOS di laporan ini belum menggambarkan kondisi sebenarnya.',
     'Unggah Faktur Iklan (PDF) lalu export ulang.');
@@ -5854,7 +5881,7 @@ function renderHasilM(){
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
       ${periodeChip}
-      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada harga HPP-nya di halaman HPP Produk.</span>` : ''}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
       <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
@@ -6383,7 +6410,7 @@ try{
   var domReady = new Promise(function(res){
     if(document.readyState !== 'loading') res(); else document.addEventListener('DOMContentLoaded', function(){ res(); });
   });
-  Promise.all([zStore.init(), domReady]).then(function(r){
+  Promise.all([zStore.init(), zProdukLoad(), domReady]).then(function(r){
     startMain();
     tellParent('analisis:ready');
     try{ showMigration(r[0], /[?&]migrate=1/.test(location.search)); }catch(e){ console.error('banner migrasi:', e); }
