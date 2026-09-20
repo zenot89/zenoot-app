@@ -633,8 +633,8 @@
   .ca-sheet-err.show{ display:block; }
 
   .hrow{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); gap:14px; }
-  .sku-induk-cell{ cursor:pointer; border-radius:6px; }
-  .sku-induk-cell:hover{ background:var(--panel-alt); text-decoration:underline dotted; text-underline-offset:3px; }
+  /* 20 Sep 2026: HPP Produk baca-saja penuh (SKU Induk juga gak bisa diedit dari sini) — gak ada cursor pointer / efek hover */
+  .sku-induk-cell{ border-radius:6px; }
   .hrow:last-child{ border-bottom:none; }
   .hrow .lbl{ font-size:13px; font-weight:600; }
   .hrow .lbl .ket{ display:block; font-size:11px; color:var(--ink-soft); font-weight:400; margin-top:1px; }
@@ -2787,7 +2787,7 @@ function renderHPP(){
     const variasiAttr = (p.variasi||'').replace(/"/g,'&quot;');
     html += `<tr>
       ${chkCol ? `<td class="chk"><input type="checkbox" data-selkey="${key}" ${checked}></td>` : ''}
-      <td class="sku-induk-cell" data-key="${key}" data-induk="${indukAttr}" data-nomorref="${nomorRefAttr}" data-variasi="${variasiAttr}" title="Klik buat ganti SKU Induk">${p.skuInduk ? p.skuInduk : '<span style="color:var(--ink-soft);">(kosong)</span>'}</td>
+      <td class="sku-induk-cell" data-key="${key}" data-induk="${indukAttr}" data-nomorref="${nomorRefAttr}" data-variasi="${variasiAttr}">${p.skuInduk ? p.skuInduk : '<span style="color:var(--ink-soft);">(kosong)</span>'}</td>
       <td>${p.namaProduk}</td>
       <td>${p.nomorRef}</td>
       <td>${p.variasi}</td>
@@ -2797,9 +2797,9 @@ function renderHPP(){
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 
-  wrap.querySelectorAll('td.sku-induk-cell').forEach(td=>{
-    td.addEventListener('click', ()=> startEditSkuInduk(td));
-  });
+  // 20 Sep 2026: listener klik-edit SKU Induk DIMATIKAN — HPP Produk baca-saja, ubah data cukup di Kelola Produk.
+  // startEditSkuInduk()/renameSkuInduk() sengaja dipertahankan (dead code, minim blast radius); override lama di skuIndukOverrides tetap kepakai lewat resolveOrderRowSkuInduk().
+  // wrap.querySelectorAll('td.sku-induk-cell').forEach(td=>{ td.addEventListener('click', ()=> startEditSkuInduk(td)); });
   wrap.querySelectorAll('input.numinput').forEach(inp=>{
     attachThousands(inp);
     inp.addEventListener('change', ()=>{
@@ -2823,6 +2823,7 @@ function renderHPP(){
   else summaryEl.innerHTML += ` — <span class="status-ok">semua sudah diisi ✓</span>`;
 }
 
+// DEAD CODE (20 Sep 2026): gak dipanggil lagi — klik-edit SKU Induk di HPP Produk dimatikan. Dipertahankan apa adanya.
 function startEditSkuInduk(td){
   if(td.querySelector('input')) return; // udah dalam mode edit
   const current = td.dataset.induk || '';
