@@ -8,9 +8,11 @@
 // lewat postMessage, (3) CSS full-height untuk page-analisis (di-inject dari sini, jadi style.css TIDAK disentuh),
 // (4) [20 Sep 2026] menu 3 sub-menu di sidebar (Rasio Keuangan / Proyeksi Harga / Setting Analisis) + TAB BAR gaya Gadag di atas iframe.
 //
-// (5) [21 Sep 2026] MODE HP: di HP (layar sentuh sempit) cuma RKS Overview & RKS Mingguan yang tampil, read-only (buat bandingin angka;
-// eksekusi upload/analisis murni di laptop). Semua aturan HP hidup di file INI (CSS di-inject ke dalam iframe + filter tab) — laptop tidak tersentuh.
-// Halaman lain baru boleh masuk HP setelah ada konsep tampilan HP-nya: tambahkan kuncinya ke PHONE_PAGES + rapikan CSS-nya di PHONE_CSS.
+// (5) [21 Sep 2026] MODE HP: di HP (layar sentuh sempit) tampilan dirapikan lewat CSS yang di-inject ke dalam iframe (PHONE_CSS). Semua halaman tetap
+// bisa dibuka (daftar di PHONE_PAGES), tapi tombol/panel EKSEKUSI upload (Data Toko, Simpan ke Rekap, Export PDF, Hapus/Edit file, Pilih data di
+// Rekap, tambah/ubah/hapus toko) disembunyikan — upload & analisis murni di laptop. RKS Overview & RKS Mingguan = tampilan paling matang;
+// Rekap/Rekap Mingguan dipadatkan (kolom Kriteria sticky); HPP/Check Admin/Proyeksi/Setting baru dijaga supaya tidak melebar keluar layar.
+// Semua aturan HP hidup di file INI (CSS + filter tab) — laptop tidak tersentuh.
 //
 // analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
@@ -34,11 +36,22 @@
   // HP = layar sentuh utama (hover:none + pointer:coarse) & lebar <= 1024px. Laptop (mouse/touchpad, termasuk laptop layar sentuh) &
   // jendela browser laptop yang dikecilkan TIDAK kena, karena pointer utamanya 'fine'.
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
-  var PHONE_PAGES = ['hasil', 'hasilM'];   // satu-satunya halaman yang boleh tampil di HP (RKS Overview & RKS Mingguan)
+  // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
+  // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'setting'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
   function phoneOk(page) { return PHONE_PAGES.indexOf(page) >= 0; }
+  function phoneSidebarCss() {
+    var hide = [];
+    for (var gi = 0; gi < GROUP_ORDER.length; gi++) {
+      var gk = GROUP_ORDER[gi], any = false, tb = GROUPS[gk].tabs;
+      for (var ti = 0; ti < tb.length; ti++) { if (phoneOk(tb[ti][0])) { any = true; break; } }
+      if (!any) hide.push('#' + GROUPS[gk].btn);
+    }
+    return hide.length ? '@media ' + PHONE_MQ + '{' + hide.join(',') + '{display:none !important;}}' : '';
+  }
   function tabsOf(group) {
     var all = GROUPS[group].tabs;
     if (!isPhone()) return all;
@@ -71,8 +84,8 @@
     '.zan-tab-btn{-webkit-flex:none;flex:none;background:none;border:none;border-bottom:2px solid transparent;padding:4px 1px 8px;font-family:var(--f);font-size:13px;font-weight:700;color:#1B1E24;opacity:.6;cursor:pointer;white-space:nowrap;transition:opacity .15s ease,border-color .15s ease;}' +
     '.zan-tab-btn:hover{opacity:.9;}' +
     '.zan-tab-btn.active{opacity:1;color:#156b3c;border-bottom-color:#156b3c;}' +
-    // HP: sub-menu Proyeksi Harga & Setting Analisis disembunyikan (belum ada konsep tampilan HP-nya). Media query-nya HARUS sama dengan PHONE_MQ.
-    '@media (hover: none) and (pointer: coarse) and (max-width: 1024px){#ni-zan-proyeksi,#ni-zan-setting{display:none !important;}}';
+    // HP: sub-menu yang SEMUA halamannya tidak ada di PHONE_PAGES disembunyikan (sekarang tidak ada). Media query-nya HARUS sama dengan PHONE_MQ.
+    phoneSidebarCss();
   document.head.appendChild(st);
 
   pageEl.innerHTML =
@@ -136,7 +149,47 @@
     'html.zan-phone #page-hasil footer.note.status-warn,html.zan-phone #page-hasilM footer.note.status-warn{font-size:0;}',
     'html.zan-phone #page-hasil footer.note.status-warn::after,html.zan-phone #page-hasilM footer.note.status-warn::after{content:"\\26A0  Data Income & Iklan belum lengkap \\2014  lengkapi dari laptop biar rasio kehitung.";display:block;font-size:12px;}',
     'html.zan-phone #hasilWrap .empty-state,html.zan-phone #hasilWrapM .empty-state{font-size:0;padding:36px 16px;}',
-    'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}'
+    'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
+
+    // ══ Halaman lain (dikembalikan ke HP 21 Sep 2026): aturan umum biar tidak melebar keluar layar & tidak kejepit "1 layar penuh" laptop ══
+    'html.zan-phone .card{padding:14px 12px;}',
+    'html.zan-phone .page-head{flex-wrap:wrap;gap:8px;}',
+    'html.zan-phone .stat-grid{grid-template-columns:1fr 1fr !important;gap:8px;}',
+    'html.zan-phone .ca-table{display:block;max-width:100%;overflow-x:auto;}',
+    // HPP Produk & Check Admin: kolom kiri-kanan ditumpuk (panel input/paste di atas, hasil di bawah)
+    'html.zan-phone .hpp-layout{display:flex;flex-direction:column;gap:12px;}',
+    'html.zan-phone .hpp-uploads{width:100%;flex:none;order:-1;}',
+    'html.zan-phone .hpp-main{width:100%;flex:none;}',
+    // Proyeksi Harga: By Operasional & By Target Qty — panel input di bawah hasil, halaman mengalir biasa
+    'html.zan-phone #page-proyeksi.active,html.zan-phone #page-byqty.active,html.zan-phone #proyeksiView-input.active,html.zan-phone #byqtyView-input.active{display:block;flex:none;min-height:0;}',
+    'html.zan-phone #proyeksiView-input .rks-shell,html.zan-phone #byqtyView-input .rks-shell{display:block;}',
+    'html.zan-phone #proyeksiInputPanel,html.zan-phone #byqtyInputPanel{width:100%;flex:none;margin-top:10px;}',
+    'html.zan-phone .pricelist-scroll{max-height:none;}',
+    'html.zan-phone #proyeksiView-list > div:first-child,html.zan-phone #byqtyView-list > div:first-child{gap:8px;}',
+    'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',
+
+    // ══ Rekap & Rekap Mingguan: tabel dipadatkan, kolom Kriteria nempel di kiri (sticky), header beku, isi scroll DI DALAM kartu ══
+    'html.zan-phone #page-rekap.active,html.zan-phone #page-rekapM.active{display:flex;flex-direction:column;height:calc(100vh - 96px);min-height:0;margin-bottom:0;}',
+    'html.zan-phone #page-rekap .page-head,html.zan-phone #page-rekapM .page-head{justify-content:flex-start;margin-bottom:8px;}',
+    // "Pilih data" = alur hapus data → eksekusi, cuma di laptop
+    'html.zan-phone #btnRekapSelect,html.zan-phone #btnRekapSelectM,html.zan-phone .rekap-selectbar{display:none !important;}',
+    'html.zan-phone .rekap-card{padding:2px;}',
+    'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table{font-size:12.5px;}',
+    'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 th,html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 td{padding:8px 7px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table thead th{font-size:11.5px;letter-spacing:0;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-name{font-size:11.5px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-wk-range{font-size:10.5px;}',
+    // lebar kolom (asli di-set inline dalam em oleh analisis.html → ditimpa pakai !important; cocok lewat nilai em-nya)
+    'html.zan-phone .rekap-table.rekap-12 col{width:96px !important;}',
+    'html.zan-phone .rekap-table.rekap-12 col[style*="4.2em"]{width:44px !important;}',
+    'html.zan-phone .rekap-table.rekap-12 col[style*="7.5em"]{width:72px !important;}',
+    'html.zan-phone .rekap-table.rekap-12 col:first-child{width:104px !important;}',
+    // kolom Kriteria: nempel kiri saat digeser ke samping, teks boleh 2 baris, tombol mode (bulan / ⇄) disembunyikan
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria,html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 th.rekap-kriteria{position:sticky;left:0;min-width:0;padding-left:8px;white-space:normal;line-height:1.2;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria{z-index:2;font-size:11.5px;box-shadow:1px 0 0 var(--line);}',
+    'html.zan-phone .rekap-kr-btns{display:none;}',
+    // panah naik/turun ditaruh di bawah angka (kalau sebaris, angka kepotong di kolom sempit)
+    'html.zan-phone .rekap-trend{display:block;margin-left:0;margin-top:1px;font-size:10px;}'
   ].join('');
 
   // Pasang mode HP ke iframe: inject <style> (sekali per dokumen iframe) + nyalakan/matikan class html.zan-phone.
