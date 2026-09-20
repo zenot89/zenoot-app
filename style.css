@@ -859,6 +859,12 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
   gap:8px;margin-top:14px;-webkit-flex-wrap:wrap;flex-wrap:wrap;
 }
 
+/* 20 Sep 2026: textarea Paste Massal SKU (Kelola Produk), Paste Massal Barang (Hutang Barang), Paste Stok — teks kebaca putih di atas bg krem.
+   Root cause: index.html maksa color-scheme:dark (meta + :root), jadi warna teks bawaan browser buat textarea = terang,
+   sementara bg textarea ini di-set inline var(--cream) (krem terang) tanpa color. Fix: warna teks & placeholder eksplisit gelap. */
+#paste-area-produk, #hs-paste-area, #paste-area-stok{color:var(--ink)}
+#paste-area-produk::placeholder, #hs-paste-area::placeholder, #paste-area-stok::placeholder{color:var(--ink3);opacity:1}
+
 /* ─── STICKY NOTE ────────────────────────────────────────── */
 
 /* ─── DOODLE ─────────────────────────────────────────────── */
