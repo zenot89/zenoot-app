@@ -8,6 +8,10 @@
 // lewat postMessage, (3) CSS full-height untuk page-analisis (di-inject dari sini, jadi style.css TIDAK disentuh),
 // (4) [20 Sep 2026] menu 3 sub-menu di sidebar (Rasio Keuangan / Proyeksi Harga / Setting Analisis) + TAB BAR gaya Gadag di atas iframe.
 //
+// (5) [21 Sep 2026] MODE HP: di HP (layar sentuh sempit) cuma RKS Overview & RKS Mingguan yang tampil, read-only (buat bandingin angka;
+// eksekusi upload/analisis murni di laptop). Semua aturan HP hidup di file INI (CSS di-inject ke dalam iframe + filter tab) — laptop tidak tersentuh.
+// Halaman lain baru boleh masuk HP setelah ada konsep tampilan HP-nya: tambahkan kuncinya ke PHONE_PAGES + rapikan CSS-nya di PHONE_CSS.
+//
 // analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -25,6 +29,21 @@
   var lastTab = { rasio: 'hasil', proyeksi: 'checkadmin', setting: 'setting' };  // tab terakhir per sub-menu
   var curGroup = null;   // sub-menu yang sedang tampil
   var curPage = null;    // halaman Analisis yang sedang tampil (kunci data-page)
+
+  // ── Mode HP ──────────────────────────────────────────────────
+  // HP = layar sentuh utama (hover:none + pointer:coarse) & lebar <= 1024px. Laptop (mouse/touchpad, termasuk laptop layar sentuh) &
+  // jendela browser laptop yang dikecilkan TIDAK kena, karena pointer utamanya 'fine'.
+  var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
+  var PHONE_PAGES = ['hasil', 'hasilM'];   // satu-satunya halaman yang boleh tampil di HP (RKS Overview & RKS Mingguan)
+  var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
+  var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
+  function isPhone() { return !!(phoneMq && phoneMq.matches); }
+  function phoneOk(page) { return PHONE_PAGES.indexOf(page) >= 0; }
+  function tabsOf(group) {
+    var all = GROUPS[group].tabs;
+    if (!isPhone()) return all;
+    return all.filter(function (t) { return phoneOk(t[0]); });
+  }
 
   function groupOf(page) {
     for (var i = 0; i < GROUP_ORDER.length; i++) {
@@ -51,7 +70,9 @@
     '#page-analisis.zan-has-tabs #analisis-loading{top:44px;}' +
     '.zan-tab-btn{-webkit-flex:none;flex:none;background:none;border:none;border-bottom:2px solid transparent;padding:4px 1px 8px;font-family:var(--f);font-size:13px;font-weight:700;color:#1B1E24;opacity:.6;cursor:pointer;white-space:nowrap;transition:opacity .15s ease,border-color .15s ease;}' +
     '.zan-tab-btn:hover{opacity:.9;}' +
-    '.zan-tab-btn.active{opacity:1;color:#156b3c;border-bottom-color:#156b3c;}';
+    '.zan-tab-btn.active{opacity:1;color:#156b3c;border-bottom-color:#156b3c;}' +
+    // HP: sub-menu Proyeksi Harga & Setting Analisis disembunyikan (belum ada konsep tampilan HP-nya). Media query-nya HARUS sama dengan PHONE_MQ.
+    '@media (hover: none) and (pointer: coarse) and (max-width: 1024px){#ni-zan-proyeksi,#ni-zan-setting{display:none !important;}}';
   document.head.appendChild(st);
 
   pageEl.innerHTML =
@@ -66,6 +87,90 @@
   var ready = false;        // iframe sudah selesai boot (kirim 'analisis:ready')
   var pendingPage = null;   // halaman Analisis yang diminta dari menu zenOt
   var obs = null;           // MutationObserver di nav iframe
+
+  // ── CSS mode HP (di-inject ke DALAM iframe; semua selector diawali html.zan-phone → tanpa class itu = tidak ada efek sama sekali) ──
+  // Yang diatur: (1) tombol/panel eksekusi (upload, simpan, export, hapus, edit, kelola toko) disembunyikan, (2) layout 1 kolom dengan
+  // scroll normal (aturan "1 layar penuh" laptop dimatikan), (3) header ringkas: judul kotak disembunyikan (sudah ada di tab), sisa pemilih toko.
+  var PHONE_CSS = [
+    'html.zan-phone body{display:block;min-height:0;}',
+    'html.zan-phone.embed #main{display:block;padding:0 12px 24px;}',
+    // header: cuma pemilih toko (judul halaman sudah ada di tab)
+    'html.zan-phone.embed #storeTopbar{height:auto;min-height:52px;margin:0 -12px 10px -12px;padding:8px 12px;}',
+    'html.zan-phone #storeTopbar .page-title-bar{display:none;}',
+    'html.zan-phone #storeTopbar .store-badge{flex:1 1 auto;min-width:0;}',
+    'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+    'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;}',
+    // tombol & panel eksekusi → hilang di HP
+    'html.zan-phone #btnToggleDataTokoPanel,html.zan-phone #btnToggleDataTokoPanelM,html.zan-phone #btnSimpanRekap,html.zan-phone #btnSimpanRekapM,',
+    'html.zan-phone #btnExportPDF,html.zan-phone #btnExportPDFM{display:none !important;}',
+    'html.zan-phone .rks-datatoko-panel,html.zan-phone #tokoSetupCard{display:none !important;}',
+    'html.zan-phone #page-hasilM .page-head,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
+    'html.zan-phone #page-hasil .page-head{margin-bottom:10px;justify-content:flex-start;}',
+    'html.zan-phone #page-hasil .page-head .toolbar{margin-bottom:0;}',
+    'html.zan-phone #btnHasilMonth{padding:9px 14px;}',
+    // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
+    'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
+    'html.zan-phone .toko-pop .tk-act,html.zan-phone .toko-pop .toko-add,html.zan-phone .toko-pop .toko-sep,html.zan-phone .toko-pop .toko-sep + .toko-item{display:none !important;}',
+    // layout: satu kolom, scroll normal
+    'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active{display:block;flex:none;min-height:0;}',
+    'html.zan-phone #page-hasil .rks-shell,html.zan-phone #page-hasilM .rks-shell{display:block;}',
+    'html.zan-phone #hasilWrap,html.zan-phone #hasilWrapM{display:block;height:auto;}',
+    'html.zan-phone #hasilWrap .hasil-grid,html.zan-phone #hasilWrapM .hasil-grid{display:block;}',
+    'html.zan-phone #hasilWrap .hasil-grid > .card,html.zan-phone #hasilWrapM .hasil-grid > .card{display:block;}',
+    'html.zan-phone #hasilWrap .hasil-grid > .card .hrow-list,html.zan-phone #hasilWrapM .hasil-grid > .card .hrow-list{display:block;}',
+    'html.zan-phone #page-hasil .card,html.zan-phone #page-hasilM .card{padding:12px;margin-bottom:10px;border-radius:10px;}',
+    'html.zan-phone #page-hasil .card h3,html.zan-phone #page-hasilM .card h3{font-size:15px;padding:6px 10px;margin-bottom:8px;}',
+    // Overview: Net Income selebar penuh, Laba/Rugi + Rasio Laba berdampingan
+    'html.zan-phone #page-hasil .stat-grid,html.zan-phone #page-hasilM .stat-grid{grid-template-columns:1fr 1fr;gap:8px;margin-top:8px !important;}',
+    'html.zan-phone #page-hasil .stat-grid .stat-card:first-child,html.zan-phone #page-hasilM .stat-grid .stat-card:first-child{grid-column:1 / -1;}',
+    'html.zan-phone #page-hasil .stat-card,html.zan-phone #page-hasilM .stat-card{padding:10px 12px;min-width:0;}',
+    'html.zan-phone #page-hasil .stat-card .stat-value,html.zan-phone #page-hasilM .stat-card .stat-value{font-size:16px;overflow-wrap:anywhere;}',
+    // baris angka: label kiri, nilai kanan; keterangan rumus disembunyikan (berguna di laptop, bikin daftar 2x lebih panjang di HP)
+    'html.zan-phone #page-hasil .hrow,html.zan-phone #page-hasilM .hrow{padding:8px 0;gap:10px;}',
+    'html.zan-phone #page-hasil .hrow .lbl,html.zan-phone #page-hasilM .hrow .lbl{font-size:12.5px;flex:1 1 auto;min-width:0;}',
+    'html.zan-phone #page-hasil .hrow .lbl .ket,html.zan-phone #page-hasilM .hrow .lbl .ket{display:none;}',
+    'html.zan-phone #page-hasil .hrow .val,html.zan-phone #page-hasilM .hrow .val{font-size:14px;}',
+    // baris Net Income / Laba-Rugi (nilai + persen): ditumpuk, bukan berdesakan di samping label
+    'html.zan-phone #page-hasil .hrow .val[style*="display:flex"],html.zan-phone #page-hasilM .hrow .val[style*="display:flex"]{flex-direction:column;align-items:flex-end;gap:1px !important;}',
+    // teks yang menyuruh upload / klik "Data Toko" → ganti dengan penjelasan yang masuk akal di HP
+    'html.zan-phone #page-hasil footer.note.status-warn,html.zan-phone #page-hasilM footer.note.status-warn{font-size:0;}',
+    'html.zan-phone #page-hasil footer.note.status-warn::after,html.zan-phone #page-hasilM footer.note.status-warn::after{content:"\\26A0  Data Income & Iklan belum lengkap \\2014  lengkapi dari laptop biar rasio kehitung.";display:block;font-size:12px;}',
+    'html.zan-phone #hasilWrap .empty-state,html.zan-phone #hasilWrapM .empty-state{font-size:0;padding:36px 16px;}',
+    'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}'
+  ].join('');
+
+  // Pasang mode HP ke iframe: inject <style> (sekali per dokumen iframe) + nyalakan/matikan class html.zan-phone.
+  // Dipanggil tiap iframe selesai dimuat (termasuk habis ganti toko = reload) dan tiap kondisi HP/laptop berubah.
+  function applyPhoneToFrame() {
+    try {
+      var d = frame.contentDocument;
+      if (!d || !d.documentElement) return;
+      if (isPhone()) {
+        // style baru di-inject kalau memang HP — di laptop iframe tidak diberi apa-apa
+        if (!d.getElementById('zan-phone-css') && (d.head || d.body)) {
+          var ps = d.createElement('style');
+          ps.id = 'zan-phone-css';
+          ps.textContent = PHONE_CSS;
+          (d.head || d.documentElement).appendChild(ps);
+        }
+        d.documentElement.classList.add('zan-phone');
+      } else {
+        d.documentElement.classList.remove('zan-phone');
+      }
+    } catch (e) {}
+  }
+  frame.addEventListener('load', applyPhoneToFrame);
+
+  // Kondisi HP/laptop berubah (mis. tablet diputar): perbarui iframe, tab bar, dan pulangkan ke halaman HP kalau perlu
+  function onPhoneChange() {
+    applyPhoneToFrame();
+    if (curGroup) { renderTabs(curGroup); if (curPage) markActiveTab(curPage); }
+    if (isPhone() && curPage && !phoneOk(curPage) && ready) { pendingPage = PHONE_HOME; sendGoto(); }
+  }
+  if (phoneMq) {
+    if (phoneMq.addEventListener) phoneMq.addEventListener('change', onPhoneChange);
+    else if (phoneMq.addListener) phoneMq.addListener(onPhoneChange);
+  }
 
   function ensureFrame() {
     if (srcSet) return;
@@ -86,14 +191,15 @@
   function renderTabs(group) {
     var g = GROUPS[group];
     if (!g) return;
-    if (g.tabs.length < 2) {            // Setting: cuma 1 halaman → sembunyikan tab bar
+    var tabs = tabsOf(group);           // di HP cuma tab yang ada di PHONE_PAGES
+    if (tabs.length < 2) {              // Setting: cuma 1 halaman → sembunyikan tab bar
       tabsEl.innerHTML = '';
       pageEl.classList.remove('zan-has-tabs');
       return;
     }
     var h = '';
-    for (var i = 0; i < g.tabs.length; i++) {
-      h += '<button type="button" class="zan-tab-btn" data-zan-page="' + g.tabs[i][0] + '">' + g.tabs[i][1] + '</button>';
+    for (var i = 0; i < tabs.length; i++) {
+      h += '<button type="button" class="zan-tab-btn" data-zan-page="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
     }
     tabsEl.innerHTML = h;
     pageEl.classList.add('zan-has-tabs');
@@ -154,7 +260,14 @@
   }
   function syncFromFrame() {
     var p = readFramePage();
-    if (p && p !== curPage) setPage(p);
+    if (!p || p === curPage) return;
+    if (isPhone() && !phoneOk(p)) {
+      // HP mendarat di halaman yang tidak diizinkan (mis. halaman default iframe = Rekap, atau resume setelah ganti toko) → balik ke halaman HP
+      pendingPage = (curPage && phoneOk(curPage)) ? curPage : PHONE_HOME;
+      sendGoto();
+      return;
+    }
+    setPage(p);
   }
   function watchFrame(syncNow) {
     try {
@@ -174,6 +287,7 @@
     if (!e.data || e.source !== frame.contentWindow) return;
     if (e.data.type === 'analisis:ready') {
       ready = true;
+      applyPhoneToFrame();
       frame.classList.add('ready');
       if (loading) loading.style.display = 'none';
       var hadPending = !!pendingPage;   // kalau ada perintah tertunda, jangan sync dulu (hindari tab kedip ke halaman default iframe)
@@ -194,6 +308,7 @@
 
   // Pindah ke halaman Analisis tertentu (kunci data-page) — dipakai internal & dipertahankan buat kompatibilitas
   window.analisisGoto = function (sub, btn) {
+    if (isPhone() && !phoneOk(sub)) sub = PHONE_HOME;   // HP: halaman yang belum punya konsep HP dialihkan ke RKS Overview
     pendingPage = sub;
     if (typeof gotoPage === 'function') gotoPage('analisis', btn);  // → event zenot:page → ensureFrame + sendGoto
     setPage(sub);
@@ -203,6 +318,7 @@
   // Buka tab terakhir yang dipakai di sub-menu itu (default: tab pertama).
   window.analisisOpenGroup = function (group, btn) {
     if (!GROUPS[group]) return;
+    if (isPhone() && group !== 'rasio') group = 'rasio';   // HP: cuma sub-menu Rasio Keuangan (RKS Overview & RKS Mingguan)
     var target = (curGroup === group && curPage) ? curPage : lastTab[group];
     window.analisisGoto(target, btn);
   };
