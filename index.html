@@ -94,22 +94,18 @@
        shopee-dashboard.js, proyeksi-harga.js, div page-shopee-dashboard/page-proyeksi-harga, PAGE_META & phGoto di app.js
        sengaja DIPERTAHANIN sebagai dead code (belum ada jalan masuk dari sidebar). -->
 
-  <!-- ZENOOT ANALISIS (halaman-halamannya dibuka di dalam analisis.html lewat page-analisis; analisis.js) -->
+  <!-- ZENOOT ANALISIS: 3 sub-menu (Rasio Keuangan / Proyeksi Harga / Setting Analisis). Halaman-halamannya tampil sebagai TAB di atas iframe
+       (dirender analisis.js, gaya tab Gadag) — isi halaman tetap dibuka di dalam analisis.html lewat page-analisis.
+       Sebelumnya (sampai 20 Sep 2026): daftar flat 9 tombol analisisGoto(...); analisisGoto masih ada di analisis.js buat kompatibilitas. -->
   <div class="nav-group" id="group-zanalisis">
     <div class="nav-group-header" onclick="toggleNavGroup('group-zanalisis')">
       <span class="nav-group-label"><i class="ti ti-chart-histogram"></i> Zenoot Analisis</span>
       <span class="nav-group-arrow">▾</span>
     </div>
     <div class="nav-group-body">
-      <button class="nav-item" onclick="analisisGoto('hasil',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">RKS Overview</span></button>
-      <button class="nav-item" onclick="analisisGoto('rekap',this)"><span class="ni-icon"><i class="ti ti-layout-grid"></i></span><span class="ni-label">Rekap</span></button>
-      <button class="nav-item" onclick="analisisGoto('hpp',this)"><span class="ni-icon"><i class="ti ti-tag"></i></span><span class="ni-label">HPP Produk</span></button>
-      <button class="nav-item" onclick="analisisGoto('checkadmin',this)"><span class="ni-icon"><i class="ti ti-checklist"></i></span><span class="ni-label">Check Admin</span></button>
-      <button class="nav-item" onclick="analisisGoto('proyeksi',this)"><span class="ni-icon"><i class="ti ti-activity"></i></span><span class="ni-label">By Operasional</span></button>
-      <button class="nav-item" onclick="analisisGoto('byqty',this)"><span class="ni-icon"><i class="ti ti-target"></i></span><span class="ni-label">By Target Qty</span></button>
-      <button class="nav-item" onclick="analisisGoto('hasilM',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">RKS Mingguan</span></button>
-      <button class="nav-item" onclick="analisisGoto('rekapM',this)"><span class="ni-icon"><i class="ti ti-layout-grid"></i></span><span class="ni-label">Rekap Mingguan</span></button>
-      <button class="nav-item" onclick="analisisGoto('setting',this)"><span class="ni-icon"><i class="ti ti-settings"></i></span><span class="ni-label">Setting Analisis</span></button>
+      <button class="nav-item" id="ni-zan-rasio" onclick="analisisOpenGroup('rasio',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">Rasio Keuangan</span></button>
+      <button class="nav-item" id="ni-zan-proyeksi" onclick="analisisOpenGroup('proyeksi',this)"><span class="ni-icon"><i class="ti ti-chart-line"></i></span><span class="ni-label">Proyeksi Harga</span></button>
+      <button class="nav-item" id="ni-zan-setting" onclick="analisisOpenGroup('setting',this)"><span class="ni-icon"><i class="ti ti-settings"></i></span><span class="ni-label">Setting Analisis</span></button>
     </div>
   </div>
 
@@ -223,7 +219,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260920-02e1dbacbd77';
+  window.APP_BUILD = '20260920-79a15a86efe0';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
