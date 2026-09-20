@@ -1524,22 +1524,32 @@ const zLS = zStore.zLS;
    atau undefined kalau belum ada / HPP-nya 0. Jadi semua kode hitung yang sudah ada (RKS, Rekap, Check Admin, Price List) jalan tanpa diubah.
    ================================================================ */
 var zProdukMap = new Map();
+var zProdukIdxSize = new Map();   // 'KATALOG|SIZE' -> [HPP unik] (dari kolom Katalog + akhiran SKU Variasi di Kelola Produk)
 function zProdukNorm(s){ return String(s==null?'':s).trim().toUpperCase(); }
+// Size dari SKU Variasi Kelola Produk = segmen terakhir setelah tanda "-" (Turtleneck_Bata-XL -> XL). Dipakai buat indeks SKU Induk + size.
+function zProdukSizeOfSku(k){ var i = k.lastIndexOf('-'); return i >= 0 ? k.slice(i+1).trim() : ''; }
 async function zProdukLoad(){
   var rows = await dbGet('produk');
-  var m = new Map();
+  var m = new Map(), ix = new Map();
   rows.forEach(function(r){
     var k = zProdukNorm(r.sku_variasi), h = Number(r.hpp) || 0;
     if(k && h > 0 && !m.has(k)) m.set(k, h);
+    // Indeks SKU Induk + size (Katalog di Kelola Produk = SKU Induk di Shopee, dicocokkan tanpa peduli huruf besar/kecil)
+    var kat = zProdukNorm(r.katalog), sz = zProdukSizeOfSku(k);
+    if(kat && sz && h > 0){
+      var ik = kat + '|' + sz, a = ix.get(ik);
+      if(!a){ a = []; ix.set(ik, a); }
+      if(a.indexOf(h) < 0) a.push(h);
+    }
   });
   zProdukMap = m;
+  zProdukIdxSize = ix;
   return m.size;
 }
 /* "Turun SKU" (20 Sep 2026): produk di-upload ke Shopee dengan 4 size (S, M, L, XL), tapi yang benar-benar diproduksi cuma M dan XL.
    Jadi SKU Variasi ber-size -S narik HPP size -M, dan -L narik HPP size -XL (contoh: Turtleneck_Abu muda-L -> Turtleneck_Abu muda-XL).
    Cari PERSIS dulu (kalau S/L suatu saat diproduksi beneran & ada di Kelola Produk, HPP aslinya yang dipakai); fallback cuma kalau gak ketemu.
-   Ini SATU-SATUNYA pintu HPP buat RKS, Rekap, HPP Produk, Check Admin, versi Mingguan & sync Price List (semua lewat state.hppMaster / zProdukHpp),
-   jadi cukup diubah di sini. Data di Kelola Produk & tabel produk TIDAK disentuh. */
+   Data di Kelola Produk & tabel produk TIDAK disentuh. */
 var Z_SIZE_TURUN = { 'S':'M', 'L':'XL' };
 function zProdukHpp(ref){
   var k = zProdukNorm(ref);
@@ -1549,10 +1559,36 @@ function zProdukHpp(ref){
   var m = /^(.*-)(S|L)$/.exec(k);   // ukuran = seluruh segmen terakhir setelah tanda "-" (XL / XS gak ikut kena)
   return m ? zProdukMap.get(m[1] + Z_SIZE_TURUN[m[2]]) : undefined;
 }
+/* Tarik HPP pakai SKU Induk + size (20 Sep 2026) — buat SKU yang udah dihapus dari Kelola Produk (efisiensi SKU / warna eliminasi)
+   atau SKU variasi yang typo/asing di listing Shopee (mis. Turtleneck_PUTIH-XLL, "Turtleneck_Kream Muda- XL").
+   Urutan (tiap lapis cuma jalan kalau lapis sebelumnya gak ketemu):
+     1) SKU Variasi persis  2) turun size di SKU yang sama (zProdukHpp)  3) SKU Induk + size dari Nama Variasi ("Warna,Size"), warna apa aja
+        — size itu sendiri dulu, baru turun size (S->M, L->XL). Kalau HPP antar warna di size itu beda, pakai yang TERTINGGI (konservatif).
+   Size diambil dari Nama Variasi Shopee (bukan dari kode SKU) karena kode SKU bisa typo, nama variasinya konsisten. */
+function zProdukHppBy(induk, nomorRef, variasi){
+  var h = zProdukHpp(nomorRef);
+  if(h !== undefined) return h;
+  var ik = zProdukNorm(induk);
+  if(!ik) return undefined;
+  var parts = String(variasi==null?'':variasi).split(',');
+  if(parts.length < 2) return undefined;          // gak ada dimensi size (mis. "Random")
+  var sz = zProdukNorm(parts[parts.length-1]);
+  if(!sz) return undefined;
+  var tries = [sz];
+  if(Z_SIZE_TURUN[sz]) tries.push(Z_SIZE_TURUN[sz]);
+  for(var i = 0; i < tries.length; i++){
+    var a = zProdukIdxSize.get(ik + '|' + tries[i]);
+    if(a && a.length) return Math.max.apply(null, a);
+  }
+  return undefined;
+}
 function zHppView(){
   return new Proxy({}, {
     get: function(t, p){
-      if(typeof p === 'string' && p.indexOf('|') >= 0) return zProdukHpp(p.split('|')[1]);
+      if(typeof p === 'string' && p.indexOf('|') >= 0){
+        var q = p.split('|');                       // key = SKUINDUK|NOMORREF|VARIASI (lihat makeKey)
+        return zProdukHppBy(q[0], q[1], q.slice(2).join('|'));
+      }
       return t[p];
     },
     set: function(){ return true; },            // baca-saja: ubah HPP lewat Kelola Produk
