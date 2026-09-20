@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 20 Sep 2026: Shantell Sans di-load dari Google Fonts biar HP (iPhone/Android, gak punya Comic Sans MS) tetap dapat font ala Comic Sans, bukan font script bawaan -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Zenoot Analisis — Analisa Shopee</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -40,7 +44,9 @@
   body{
     background:var(--bg);
     color:var(--ink);
-    font-family:'Comic Sans MS','Comic Sans',cursive,'Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    /* 20 Sep 2026: 'cursive' DIBUANG — di iPhone/Android (gak ada Comic Sans MS) generic 'cursive' jatuh ke font script (Snell Roundhand),
+       makanya teks kebaca tulisan sambung. Sekarang: Comic Sans MS (desktop) -> Shantell Sans (HP, di-load di <head>) -> sans-serif biasa kalau offline. */
+    font-family:'Comic Sans MS','Comic Sans','Shantell Sans','Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
     display:flex;
     min-height:100vh;
   }
