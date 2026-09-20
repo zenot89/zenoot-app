@@ -90,17 +90,9 @@
     </div>
   </div>
 
-  <!-- ANALISIS TOKO -->
-  <div class="nav-group" id="group-analisis">
-    <div class="nav-group-header" onclick="toggleNavGroup('group-analisis')">
-      <span class="nav-group-label"><i class="ti ti-chart-arrows-vertical"></i> Analisis Toko</span>
-      <span class="nav-group-arrow">▾</span>
-    </div>
-    <div class="nav-group-body">
-      <button class="nav-item" onclick="gotoPage('shopee-dashboard',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Analisis Shopee</span></button>
-      <button class="nav-item" id="ni-proyeksi-harga-group" onclick="phGoto('proyeksi-ringkasan',this)"><span class="ni-icon"><i class="ti ti-calculator"></i></span><span class="ni-label">Proyeksi Harga</span></button>
-    </div>
-  </div>
+  <!-- ANALISIS TOKO: blok sidebar (Analisis Shopee + Proyeksi Harga) DIHAPUS 20 Sep 2026.
+       shopee-dashboard.js, proyeksi-harga.js, div page-shopee-dashboard/page-proyeksi-harga, PAGE_META & phGoto di app.js
+       sengaja DIPERTAHANIN sebagai dead code (belum ada jalan masuk dari sidebar). -->
 
   <!-- ZENOOT ANALISIS (halaman-halamannya dibuka di dalam analisis.html lewat page-analisis; analisis.js) -->
   <div class="nav-group" id="group-zanalisis">
