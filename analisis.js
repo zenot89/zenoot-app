@@ -25,6 +25,7 @@
 // Kartu Net Income 1 baris (label kiri, nilai IDR kanan). Header RKS Mingguan jadi [Periode][Toko] saja.
 //
 // (8) [21 Sep 2026] Tab baru Proyeksi Harga > By Harga Jual (byharga): masuk daftar tab & PHONE_PAGES; layout HP mengikuti By Target Qty (hasil di atas, panel Input di bawah). Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
+// (9) [22 Sep 2026] By Harga Jual di HP jadi SWIPE 4 halaman + indikator ●●●● (Input, Perhitungan per pcs, Batas aman + Voucher, Minicard) — semua di byhCss() di bawah; laptop tidak tersentuh.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -118,6 +119,49 @@
   // penyusun selector: satu aturan → dua halaman (RKS Overview #hasilWrap/#page-hasil  &  RKS Mingguan #hasilWrapM/#page-hasilM)
   function hw(rest, body) { return 'html.zan-phone #hasilWrap' + rest + ',html.zan-phone #hasilWrapM' + rest.replace(/#hasilWrap\b/g, '#hasilWrapM') + '{' + body + '}'; }
   function pg(rest, body) { return 'html.zan-phone #page-hasil' + rest + ',html.zan-phone #page-hasilM' + rest + '{' + body + '}'; }
+  // [22 Sep 2026] By Harga Jual di HP: 4 slide yang digeser ke samping — 1 Input, 2 Perhitungan per pcs, 3 Batas aman + Voucher penjual, 4 Minicard (Ringkasan).
+  // DOM asli (analisis.html) tetap: #byhargaStats (minicard) | .rks-shell > .rks-main > #byhargaDetail > .byh-cols > .byh-col x2 | #byhargaInputPanel.
+  // Pembungkus tengah dileburkan (display:contents) supaya keempat blok jadi anak langsung zona geser, lalu diurutkan pakai `order`. Indikator ●●●● murni CSS:
+  // tiap slide punya bar judul sendiri, titik ke-n hitam = slide ini (sama polanya dengan RKS Overview). Slide 4 tidak punya h3 -> bar judulnya dibuat lewat ::before.
+  function byhCss() {
+    var V = 'html.zan-phone ';
+    var S = [V + '#byhargaInputPanel',
+             V + '#byhargaView-input .byh-cols > .byh-col:nth-child(1)',
+             V + '#byhargaView-input .byh-cols > .byh-col:nth-child(2)',
+             V + '#byhargaStats'];
+    var T = [V + '#byhargaInputPanel h3',
+             S[1] + ' > .card:first-child h3',
+             S[2] + ' > .card:first-child h3'];
+    function dots(n) {
+      var g = [];
+      for (var i = 0; i < 4; i++) g.push('radial-gradient(circle,' + (i === n ? '#000' : '#BDBDBD') + ' 3.5px,transparent 4px)');
+      return g.join(',');
+    }
+    var out = [
+      // halaman = 1 layar (tinggi = 100vh - topbar 66px), yang bergerak cuma isi slide
+      V + '#page-byharga.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
+      'html.zan-phone.embed[data-zan-page="byharga"] #main{padding-bottom:0;}',
+      // zona geser
+      V + '#byhargaView-input.active{display:flex;flex-direction:row;align-items:stretch;flex:1 1 0;min-height:0;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;}',
+      V + '#byhargaView-input::-webkit-scrollbar{display:none;}',
+      V + '#byhargaView-input .rks-shell,' + V + '#byhargaView-input .rks-main,' + V + '#byhargaDetail,' + V + '#byhargaView-input .byh-cols{display:contents;}',
+      // tiap slide = selebar layar, isinya scroll ke bawah sendiri
+      S.join(',') + '{flex:0 0 100%;width:100%;min-width:0;box-sizing:border-box;margin:0;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}',
+      S[0] + '{order:1;align-self:stretch;}',
+      S[1] + '{order:2;gap:10px;}',
+      S[2] + '{order:3;gap:10px;}',
+      S[3] + '{order:4;}',
+      // bar judul tiap slide + ruang untuk ●●●● di kanan
+      T.join(',') + '{position:relative;font-size:15px;padding:6px 76px 6px 10px;margin-bottom:6px;}',
+      T.join('::after,') + '::after{content:"";position:absolute;right:12px;top:50%;width:50px;height:8px;margin-top:-4px;background-repeat:no-repeat;background-size:8px 8px;background-position:0 0,14px 0,28px 0,42px 0;}'
+    ];
+    for (var n = 0; n < 3; n++) out.push(T[n] + '::after{background-image:' + dots(n) + ';}');
+    // slide 4 (minicard): bar judul "Ringkasan" lewat ::before, titik digambar sebagai background berlapis di bar itu sendiri
+    out.push(S[3] + '::before{content:"Ringkasan";display:block;box-sizing:border-box;margin-bottom:6px;padding:6px 76px 6px 10px;font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--ink);' +
+             'border:1px solid var(--ink);border-radius:4px;background-color:var(--title-bg);background-image:' + dots(3) + ';background-repeat:no-repeat;background-size:8px 8px;' +
+             'background-position:right 54px center,right 40px center,right 26px center,right 12px center;}');
+    return out.join('');
+  }
   var PHONE_CSS = [
     'html.zan-phone body{display:block;min-height:0;}',
     'html.zan-phone.embed #main{display:block;padding:0 12px 24px;}',
@@ -244,10 +288,9 @@
     'html.zan-phone #proyeksiView-input .rks-shell,html.zan-phone #byqtyView-input .rks-shell{display:block;}',
     'html.zan-phone #proyeksiInputPanel,html.zan-phone #byqtyInputPanel{width:100%;flex:none;margin-top:10px;}',
     // [21 Sep 2026] By Harga Jual: sama seperti By Target Qty — hasil di atas, panel Input di bawah, satu kolom
-    'html.zan-phone #byhargaView-input .rks-shell{display:block;}',
-    'html.zan-phone #byhargaInputPanel{width:100%;flex:none;margin-top:10px;}',
-    'html.zan-phone .byh-cols{grid-template-columns:1fr;gap:10px;}',
-    'html.zan-phone .byh-col{gap:10px;}',
+    // [22 Sep 2026] By Harga Jual di HP = SWIPE 4 halaman dengan indikator ●●●● (lihat byhCss). Rule lama (satu kolom, panel Input di bawah hasil) dipertahankan di sini biar gampang balik:
+    //   html.zan-phone #byhargaView-input .rks-shell{display:block;} | html.zan-phone #byhargaInputPanel{width:100%;flex:none;margin-top:10px;} | html.zan-phone .byh-cols{grid-template-columns:1fr;gap:10px;} | html.zan-phone .byh-col{gap:10px;}
+    byhCss(),
     'html.zan-phone .pricelist-scroll{max-height:none;}',
     'html.zan-phone #proyeksiView-list > div:first-child,html.zan-phone #byqtyView-list > div:first-child{gap:8px;}',
     'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',

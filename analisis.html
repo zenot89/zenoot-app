@@ -573,6 +573,21 @@
   .byh-pct{ font-weight:400; color:var(--ink-soft); font-size:11.5px; margin-left:6px; }
   .byh-note{ font-size:11.5px; color:var(--ink-soft); line-height:1.5; margin-top:8px; }
   .byh-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 14px; }
+  /* [22 Sep 2026] GPM acuan (di Harga Jual = sebelum voucher) dibuat lebih tegas dari persen lainnya */
+  .byh-pct.byh-ref{ color:var(--ink); font-weight:700; }
+  /* ===== Tanda tanya (?) [22 Sep 2026] — keterangan kecil (.ket, .roas-note, .byh-note, .zq-h) disembunyikan; isinya muncul lewat ikon (?) di sebelah judul/labelnya.
+     Dipasang otomatis oleh script #zHintScript (sumber teks tetap ada di DOM, cuma disembunyikan lewat .zq-src). Pesan status/peringatan (.byh-hint, footer.note, kartu kosong) TIDAK ikut. ===== */
+  .zq{ position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:15px; height:15px; margin-left:6px; box-sizing:border-box;
+       border:1.3px solid #9AA0AA; border-radius:50%; color:#8A909B; background:transparent; font-family:inherit; font-size:10px; font-weight:700; line-height:1;
+       text-transform:none; letter-spacing:0; vertical-align:middle; cursor:help; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .zq::after{ content:""; position:absolute; left:-7px; right:-7px; top:-7px; bottom:-7px; }   /* area sentuh diperluas, ikonnya tetap kecil */
+  .zq:hover, .zq.on, .zq:focus-visible{ color:var(--ink); border-color:var(--ink); outline:none; }
+  .zq[hidden]{ display:none !important; }
+  .zq-src{ display:none !important; }
+  .zq-pop{ display:none; position:fixed; left:0; top:0; z-index:100000; box-sizing:border-box; max-width:min(280px, calc(100vw - 16px)); padding:8px 11px; border-radius:8px;
+           background:var(--ink); color:#fff; font-size:12px; font-weight:400; line-height:1.5; text-transform:none; letter-spacing:0; white-space:normal; overflow-wrap:anywhere;
+           box-shadow:0 6px 20px rgba(20,20,20,.25); pointer-events:none; }
+  .zq-pop div + div{ margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.2); }
   @media (max-width:900px){ .byh-cols{ grid-template-columns:1fr; } }
   .rekap-selectbar{
     position:fixed; left:50%; bottom:22px; transform:translate(-50%, 16px);
@@ -947,7 +962,7 @@
       <div class="hpp-uploads">
         <div class="card" id="checkAdminQuickHistoryCard" style="display:none;">
           <h3>Riwayat Terakhir</h3>
-          <div class="hint" style="margin-top:0;margin-bottom:6px;">6 terakhir — klik buat buka lagi.</div>
+          <div class="hint zq-h" style="margin-top:0;margin-bottom:6px;">6 terakhir — klik buat buka lagi.</div>
           <div id="checkAdminQuickHistoryBtns"></div>
         </div>
         <div class="card">
@@ -1113,7 +1128,7 @@
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(2 bulan)</span></h3>
-            <div class="hint">"Pesanan Selesai" (.xlsx), 1 slot = 1 bulan — otomatis digabung &amp; di-dedupe.</div>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx), 1 slot = 1 bulan — otomatis digabung &amp; di-dedupe.</div>
             <div class="order-slots">
               <div>
                 <div class="drop" id="dropOrder1">
@@ -1137,7 +1152,7 @@
 
           <div class="card">
             <h3>Income</h3>
-            <div class="hint">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan".</div>
+            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan".</div>
             <div class="drop" id="dropIncome">
               <div class="lbl">Klik atau drop .xlsx</div>
               <input type="file" id="inputIncome" accept=".xlsx,.xls">
@@ -1147,7 +1162,7 @@
 
           <div class="card">
             <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
-            <div class="hint">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf).</div>
+            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf).</div>
             <div class="drop" id="dropAds">
               <div class="lbl">Klik atau drop .csv / .pdf</div>
               <input type="file" id="inputAds" accept=".csv,.pdf">
@@ -1194,7 +1209,7 @@
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(minggu ini)</span></h3>
-            <div class="hint">"Pesanan Selesai" (.xlsx). Rentang tanggalnya boleh lebih panjang dari minggu ini — yang dihitung cuma pesanan yang dananya dilepas di file Income minggu ini.</div>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx). Rentang tanggalnya boleh lebih panjang dari minggu ini — yang dihitung cuma pesanan yang dananya dilepas di file Income minggu ini.</div>
             <div class="order-slots">
               <div>
                 <div class="drop" id="dropOrder1M">
@@ -1209,7 +1224,7 @@
 
           <div class="card">
             <h3>Income</h3>
-            <div class="hint">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan", periode minggu ini.</div>
+            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan", periode minggu ini.</div>
             <div class="drop" id="dropIncomeM">
               <div class="lbl">Klik atau drop .xlsx</div>
               <input type="file" id="inputIncomeM" accept=".xlsx,.xls">
@@ -1219,7 +1234,7 @@
 
           <div class="card">
             <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
-            <div class="hint">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf), periode minggu ini.</div>
+            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf), periode minggu ini.</div>
             <div class="drop" id="dropAdsM">
               <div class="lbl">Klik atau drop .csv / .pdf</div>
               <input type="file" id="inputAdsM" accept=".csv,.pdf">
@@ -1724,6 +1739,135 @@ function zHppView(){
 }
 
 </script>
+<script id="zHintScript">
+/* ================= TANDA TANYA (?) — keterangan kecil jadi ikon [22 Sep 2026] =================
+   Sumber teks (selektor SEL): .ket (sub-teks label), .roas-note, .byh-note, dan .hint yang diberi penanda class .zq-h.
+   Tiap sumber DISEMBUNYIKAN (class .zq-src) dan ikon (?) dipasang di judul/labelnya (owner): parent .lbl/.stat-label, atau .lbl di dalam .hrow/.roas-block,
+   atau h3 kartunya. Kalau owner tidak ketemu, sumber dibiarkan tampil (info tidak boleh hilang tanpa ikon).
+   Satu owner = satu ikon; teks dari beberapa sumber digabung di popover. Teks dibaca SAAT DITAMPILKAN (bukan disalin), jadi catatan dinamis (voucher/ROAS)
+   selalu terbaru; ikon otomatis disembunyikan kalau semua sumbernya kosong. Popover pakai textContent (aman dari injeksi HTML).
+   Dipasang lewat MutationObserver, jadi render ulang lewat innerHTML tetap ikut. Klik didengar di level document (capture) — baris hasil salinan (cloneNode) tetap jalan.
+   Desktop: hover + klik (kunci). HP: ketuk. Esc / klik di luar / scroll = tutup. Pesan status & peringatan (.byh-hint, footer.note, kartu kosong) sengaja TIDAK ikut. */
+(function(){
+  var SEL = '.ket, .roas-note, .byh-note, .zq-h';
+  var seq = 0, pop = null, cur = null, pinned = false, timer = 0;
+  var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+
+  function txt(el){ return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+  function texts(key){
+    var out = [], seen = {}, els = document.querySelectorAll('[data-zq="' + key + '"]');
+    for(var i = 0; i < els.length; i++){ var t = txt(els[i]); if(t && !seen[t]){ seen[t] = 1; out.push(t); } }
+    return out;
+  }
+  function ownerOf(s){
+    var p = s.parentElement;
+    if(!p) return null;
+    if(p.classList.contains('lbl') || p.classList.contains('stat-label')) return p;
+    if(p.classList.contains('hrow') || p.classList.contains('roas-block')){
+      for(var i = 0; i < p.children.length; i++){ if(p.children[i].classList.contains('lbl')) return p.children[i]; }
+      return null;
+    }
+    var c = s.closest ? s.closest('.card') : null;
+    return c ? c.querySelector('h3') : null;
+  }
+  function fill(q){
+    var list = texts(q.getAttribute('data-zq-for'));
+    pop.textContent = '';
+    for(var i = 0; i < list.length; i++){ var d = document.createElement('div'); d.textContent = list[i]; pop.appendChild(d); }
+    return list.length;
+  }
+  function place(q){
+    var r = q.getBoundingClientRect(), root = document.documentElement;
+    var vw = root.clientWidth, vh = root.clientHeight;
+    pop.style.visibility = 'hidden'; pop.style.display = 'block'; pop.style.left = '0px'; pop.style.top = '0px';
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, vw - pw - 8));
+    var top = r.bottom + 8;
+    if(top + ph > vh - 8 && r.top - 8 - ph >= 8) top = r.top - 8 - ph;
+    pop.style.left = left + 'px'; pop.style.top = Math.max(8, top) + 'px'; pop.style.visibility = 'visible';
+  }
+  function hide(){
+    if(cur) cur.classList.remove('on');
+    cur = null; pinned = false;
+    if(pop) pop.style.display = 'none';
+  }
+  function show(q){
+    if(!pop){
+      pop = document.createElement('div'); pop.className = 'zq-pop'; pop.setAttribute('role', 'tooltip');
+      document.body.appendChild(pop);
+    }
+    if(cur && cur !== q) cur.classList.remove('on');
+    if(!fill(q)){ hide(); return; }
+    cur = q; q.classList.add('on'); place(q);
+  }
+
+  // Pasang ikon untuk sumber baru + sinkronkan status tampil/sembunyi. Aman dipanggil berulang: cuma menulis DOM kalau memang ada yang berubah.
+  function pass(){
+    timer = 0;
+    var els = document.querySelectorAll(SEL), i;
+    for(i = 0; i < els.length; i++){
+      var s = els[i];
+      if(s.hasAttribute('data-zq')) continue;
+      var o = ownerOf(s);
+      if(!o) continue;
+      var k = o.getAttribute('data-zq-o');
+      if(!k){ k = 'zq' + (++seq); o.setAttribute('data-zq-o', k); }
+      s.setAttribute('data-zq', k);
+      s.classList.add('zq-src');
+      if(!o.querySelector('.zq[data-zq-for="' + k + '"]')){
+        var q = document.createElement('span');
+        q.className = 'zq'; q.setAttribute('role', 'button'); q.setAttribute('tabindex', '0');
+        q.setAttribute('aria-label', 'Keterangan'); q.setAttribute('data-zq-for', k); q.textContent = '?';
+        o.appendChild(q);
+      }
+    }
+    var qs = document.querySelectorAll('.zq[data-zq-for]');
+    for(i = 0; i < qs.length; i++){
+      var has = texts(qs[i].getAttribute('data-zq-for')).length > 0;
+      if(qs[i].hidden === has) qs[i].hidden = !has;
+    }
+    if(cur){
+      if(!cur.isConnected || cur.hidden) hide();
+      else if(pop && pop.style.display === 'block'){ fill(cur); place(cur); }
+    }
+  }
+  function schedule(){ if(!timer) timer = setTimeout(pass, 40); }
+
+  function qOf(e){ return (e.target && e.target.closest) ? e.target.closest('.zq') : null; }
+  document.addEventListener('click', function(e){
+    var q = qOf(e);
+    if(q){
+      e.preventDefault(); e.stopPropagation();
+      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; }
+      return;
+    }
+    if(cur) hide();
+  }, true);
+  document.addEventListener('mouseover', function(e){
+    if(!hoverMq || !hoverMq.matches || pinned) return;
+    var q = qOf(e); if(q) show(q);
+  }, true);
+  document.addEventListener('mouseout', function(e){
+    if(!hoverMq || !hoverMq.matches || pinned) return;
+    if(qOf(e)) hide();
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ if(cur) hide(); return; }
+    if((e.key === 'Enter' || e.key === ' ') && qOf(e)){
+      e.preventDefault();
+      var q = qOf(e);
+      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; }
+    }
+  }, true);
+  window.addEventListener('scroll', function(){ if(cur) hide(); }, true);
+  window.addEventListener('resize', function(){ if(cur) hide(); });
+
+  if(typeof MutationObserver !== 'undefined'){
+    new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  }
+  pass();
+})();
+</script>
 <script id="analisisMain" type="text/plain">
 /* ================= STATE ================= */
 // Nama file panjang (mis. Order.completed.20260820_20260919.xlsx) dipatahin di . _ - biar turun baris rapi di dalam kotak.
@@ -2197,7 +2341,7 @@ function renderTokoSetup(){
   el.style.display = '';
   el.innerHTML = `<div class="card toko-setup">
     <div class="ts-head"><h3>Setup toko baru</h3><span class="ts-prog">${st.done} dari 3 data</span><button type="button" class="btn ghost small" data-ts="cancel">Batalkan setup</button></div>
-    <div class="hint">Toko baru masuk ke daftar toko setelah ketiga data lengkap. Nama toko diambil otomatis dari file Income.</div>
+    <div class="hint zq-h">Toko baru masuk ke daftar toko setelah ketiga data lengkap. Nama toko diambil otomatis dari file Income.</div>
     <div class="ts-row">${ic(st.income)}<div class="ts-main"><div class="ts-t">1. Income</div><div class="ts-h">${st.income ? 'Toko: <b>'+tokoEsc(uname||'-')+'</b> — '+tokoEsc(inc.name) : 'File "Income sudah dilepas" (.xlsx). Nama toko diambil dari file ini.'}</div></div><button type="button" class="btn ghost small" data-ts="income">${inc?'Ganti':'Upload'}</button></div>
     <div class="ts-row">${ic(st.ordersOk)}<div class="ts-main"><div class="ts-t">2. Order Completed (2 bulan)</div><div class="ts-h">${st.orders} dari 2 file: bulan lalu dan bulan ini</div></div><button type="button" class="btn ghost small" data-ts="order0">${state.orderSlots[0]?'Ganti ':''}Bulan 1</button><button type="button" class="btn ghost small" data-ts="order1">${state.orderSlots[1]?'Ganti ':''}Bulan 2</button></div>
     <div class="ts-row">${ic(st.ads)}<div class="ts-main"><div class="ts-t">3. Iklan</div><div class="ts-h">${ads ? tokoEsc(ads.name) : (tanpa ? 'Toko ini tidak pakai iklan' : 'Tagihan iklan (.csv) dari Seller Centre')}</div></div>${ads ? '' : `<label class="ts-chk"><input type="checkbox" data-ts="noads" ${tanpa?'checked':''}> Tidak pakai iklan</label>`}<button type="button" class="btn ghost small" data-ts="ads">${ads?'Ganti':'Upload CSV'}</button></div>
@@ -3473,7 +3617,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
           <h3 style="margin-bottom:8px;">Overview</h3>
-          <div class="hint" style="margin-bottom:0;">NPM = GPM − Admin+Layanan − ACOS − Rasio Ops (semua dalam %). Net Income = IDR NPM + IDR Rasio Ops.</div>
+          <div class="hint zq-h" style="margin-bottom:0;">NPM = GPM − Admin+Layanan − ACOS − Rasio Ops (semua dalam %). Net Income = IDR NPM + IDR Rasio Ops.</div>
         </div>
       </div>
       <div class="stat-grid stat-grid-5" style="margin-top:14px;">
@@ -5341,19 +5485,31 @@ function renderByHargaResult(){
 
   // ---- rincian ----
   const B = has ? c.B : undefined;
+  // [22 Sep 2026] neg() TIDAK dipakai lagi: baris pengurang sekarang tampil tanpa kurung (sudah jelas mengurangi). Dipertahankan (RULES.md: minim blast radius).
   const neg = x=>(has ? -x : undefined);
+  // [22 Sep 2026] GPM = (harga − HPP) ÷ harga. Di Harga Jual = SEBELUM voucher = acuan (rumus & basis sama dengan GPM di Check Admin: Subtotal Pesanan);
+  // di Harga Efektif = setelah voucher (info tambahan). Persen Voucher dihitung dari Harga Jual, persen baris lain dari Harga Efektif (sama seperti Rekap).
+  const gpmJual = (c.hasPrice && P>0) ? (P - c.hpp)/P : null;
+  const gpmEfektif = has ? (B - c.hpp)/B : null;
+  const gpmTag = (x, ref)=> (x===null) ? '' : '<span class="byh-pct'+(ref?' byh-ref':'')+'">GPM '+fmtPct(x)+'</span>';
+  // NET INCOME = Income/pcs + Operasional (Ops tetap masuk kantong sendiri) — rumus yang sama dengan Check Admin, RKS & By Operasional (NPM + Operasional)
+  const netInc = has ? c.income + B*c.ops : null;
   const left = `
+    <div class="byh-col">
     <div class="card byh-card"><h3>Perhitungan per pcs</h3>
-      ${hr('HARGA JUAL', c.hasPrice?fmtRp(P):'-')}
-      ${hr('VOUCHER PENJUAL', c.hasPrice?fmtRp(-V):'-')}
-      ${hr('HARGA EFEKTIF', has?fmtRp(B):'-', true)}
-      ${hr('ADMIN & LAYANAN'+pct(c.admin), has?fmtRp(neg(B*c.admin)):'-')}
-      ${hr('BPP', has?fmtRp(-c.bpp):'-')}
-      ${hr('IKLAN (ACOS)'+pct(c.acos), has?fmtRp(neg(B*c.acos)):'-')}
-      ${hr('BUFFER (LAINNYA)'+pct(c.lainnya), has?fmtRp(neg(B*c.lainnya)):'-')}
-      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(neg(B*c.ops)):'-')}
-      ${hr('HPP', has?fmtRp(-c.hpp):'-')}
-      ${hr('INCOME / PCS', has?fmtRp(c.income):'-', true)}
+      ${hr('HARGA JUAL'+gpmTag(gpmJual, true), c.hasPrice?fmtRp(P):'-')}
+      ${hr('VOUCHER PENJUAL'+((c.hasPrice && P>0)?pct(V/P):''), c.hasPrice?fmtRp(V):'-')}
+      ${hr('HARGA EFEKTIF'+gpmTag(gpmEfektif, false), has?fmtRp(B):'-', true)}
+      ${hr('ADMIN & LAYANAN'+pct(c.admin), has?fmtRp(B*c.admin):'-')}
+      ${hr('BPP'+(has?pct(c.bpp/B):''), has?fmtRp(c.bpp):'-')}
+      ${hr('IKLAN (ACOS)'+pct(c.acos), has?fmtRp(B*c.acos):'-')}
+      ${hr('BUFFER (LAINNYA)'+pct(c.lainnya), has?fmtRp(B*c.lainnya):'-')}
+      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(B*c.ops):'-')}
+      ${hr('HPP', has?fmtRp(c.hpp):'-')}
+      ${hr('INCOME / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
+      ${hr('NET INCOME'+(has?pct(netInc/B):''), has?fmtRp(netInc):'-', true)}
+      <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = INCOME / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
+    </div>
     </div>`;
   const right = `
     <div class="byh-col">
