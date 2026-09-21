@@ -657,6 +657,22 @@
   .toko-pop .toko-item button.tk-del:hover{ color:var(--bad); }
   .toko-pop .toko-sep{ height:1px; background:var(--line); margin:6px 2px; }
   .toko-pop .toko-add{ padding:8px; border-radius:4px; cursor:pointer; font-weight:700; }
+  .toko-pop-head{ display:flex; align-items:center; gap:6px; position:sticky; top:-6px; margin:-6px -6px 6px -6px; padding:6px 6px 8px; background:#fff; z-index:1; border-bottom:1px solid var(--line); }
+  .toko-search-wrap{ position:relative; flex:1; min-width:0; }
+  .toko-search{ width:100%; box-sizing:border-box; padding:7px 28px 7px 9px; border:1px solid var(--line); border-radius:4px; font:inherit; font-size:12.5px; background:#fff; color:var(--ink); }
+  .toko-search:focus{ outline:none; border-color:var(--ink); }
+  .toko-search-ic{ position:absolute; right:7px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--ink-soft); pointer-events:none; }
+  .toko-gear{ flex:0 0 auto; width:30px; height:30px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--ink-soft); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; font-family:inherit; }
+  .toko-gear:hover{ background:var(--panel-alt); color:var(--ink); }
+  .toko-gear.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .toko-pop .toko-edit-item .toko-chk{ width:16px; flex:0 0 16px; display:flex; align-items:center; justify-content:center; }
+  .toko-pop .toko-edit-item .toko-chk input{ width:15px; height:15px; margin:0; cursor:pointer; }
+  .toko-pop .toko-edit-item.sel{ background:var(--panel-alt); }
+  .toko-edit-actions{ display:flex; gap:8px; padding:8px 8px 4px; }
+  .toko-edit-actions .btn{ flex:1; }
+  .toko-editdone{ width:100%; padding:8px; border:0; background:transparent; cursor:pointer; font-weight:700; font-size:13px; color:var(--ink); border-radius:4px; font-family:inherit; margin-top:2px; }
+  .toko-editdone:hover{ background:var(--panel-alt); }
+  .toko-pop .toko-empty{ padding:14px 8px; text-align:center; color:var(--ink-soft); font-size:12.5px; }
 
   /* ===== Setup toko baru (kartu di atas RKS Overview) ===== */
   #tokoSetupCard .toko-setup{ margin-bottom:16px; }
@@ -2447,35 +2463,62 @@ function renderTokoSetup(){
   });
 })();
 
+let TOKO_EDIT_MODE = false;   // mode edit toko di dalam popup (checkbox + Ubah Nama/Hapus), lepas dari mode switch biasa
+let TOKO_EDIT_QUERY = '';     // isi search box popup, dipakai filter di mode manapun
+let TOKO_EDIT_SEL = null;     // id toko yang lagi dicentang di mode edit (single-select)
 function tokoClosePop(){
   const pop = document.getElementById('tokoPop');
   if(pop) pop.remove();
   document.removeEventListener('mousedown', tokoPopOutside, true);
   document.removeEventListener('keydown', tokoPopEsc);
   window.removeEventListener('resize', tokoClosePop);
+  TOKO_EDIT_MODE = false; TOKO_EDIT_QUERY = ''; TOKO_EDIT_SEL = null;   // reset state tiap popup ditutup
 }
 function tokoPopOutside(e){
   const pop = document.getElementById('tokoPop');
   if(pop && !pop.contains(e.target) && !e.target.closest('#storeTopbarBadge')) tokoClosePop();
 }
 function tokoPopEsc(e){ if(e.key==='Escape') tokoClosePop(); }
+// Render bagian baris toko + footer aksi (dipanggil ulang tiap search/checkbox berubah) — header/search box gak ikut dibangun ulang biar fokus input gak ilang.
+function tokoRenderRows(){
+  const wrap = document.getElementById('tokoPopRows'); if(!wrap) return;
+  const q = TOKO_EDIT_QUERY.trim().toLowerCase();
+  const reals = TOKO_REG.list.filter(t=>!t.draft && (!q || t.nama.toLowerCase().includes(q) || (t.username||'').toLowerCase().includes(q)));
+  const draft = TOKO_REG.list.find(t=>t.draft);
+  if(TOKO_EDIT_MODE){
+    const rows = reals.map(t=>{
+      const sel = t.id===TOKO_EDIT_SEL;
+      return `<div class="toko-item toko-edit-item${sel?' sel':''}" data-id="${tokoEsc(t.id)}"><span class="toko-chk"><input type="checkbox" ${sel?'checked':''} tabindex="-1" aria-hidden="true"></span><div class="tk-main"><div class="tk-name">${tokoEsc(t.nama)}</div><div class="tk-user">${t.username ? 'Shopee: '+tokoEsc(t.username) : 'belum ada file Income'}</div></div></div>`;
+    }).join('') || '<div class="toko-empty">Toko gak ketemu.</div>';
+    let footer;
+    if(TOKO_EDIT_SEL && reals.some(t=>t.id===TOKO_EDIT_SEL)){
+      const canDel = TOKO_EDIT_SEL!==TOKO_ACTIVE && tokoRealCount()>1;
+      footer = `<div class="toko-edit-actions"><button type="button" class="btn ghost small" data-a="editrename">Ubah Nama</button>${canDel ? '<button type="button" class="btn danger small" data-a="editdel">Hapus</button>' : ''}</div>`;
+    } else {
+      footer = `<div class="toko-sep"></div><div class="toko-add" data-a="add">+ Tambah toko</div>`;
+    }
+    wrap.innerHTML = rows + footer + `<div class="toko-sep"></div><button type="button" class="toko-editdone" data-a="editdone">Selesai</button>`;
+  } else {
+    const rows = reals.map(t=>{
+      const isAct = t.id===TOKO_ACTIVE;
+      return `<div class="toko-item" data-id="${tokoEsc(t.id)}"><span class="tick">${isAct?'✓':''}</span><div class="tk-main"><div class="tk-name">${tokoEsc(t.nama)}</div><div class="tk-user">${t.username ? 'Shopee: '+tokoEsc(t.username) : 'belum ada file Income'}</div></div></div>`;
+    }).join('') || '<div class="toko-empty">Toko gak ketemu.</div>';
+    let draftHtml = '';
+    if(draft){
+      const isAct = draft.id===TOKO_ACTIVE;
+      draftHtml = `<div class="toko-sep"></div><div class="toko-item" data-id="${tokoEsc(draft.id)}"><span class="tick">${isAct?'✓':''}</span><div class="tk-main"><div class="tk-name">Setup toko baru</div><div class="tk-user">${tokoDraftProgress(draft.id)} dari 3 data · belum jadi toko</div></div><button type="button" class="tk-act tk-del" data-a="cancel" title="Batalkan setup">✕</button></div>`;
+    }
+    wrap.innerHTML = rows + draftHtml;
+  }
+}
+// Render header (search+gear) + panggil tokoRenderRows() buat isi baris. Dipanggil tiap popup dibuka / ganti mode edit.
 function tokoRenderPop(){
   const pop = document.getElementById('tokoPop'); if(!pop) return;
-  const reals = TOKO_REG.list.filter(t=>!t.draft);
-  const draft = TOKO_REG.list.find(t=>t.draft);
-  const rows = reals.map(t=>{
-    const isAct = t.id===TOKO_ACTIVE;
-    const canDel = !isAct && reals.length>1;
-    return `<div class="toko-item" data-id="${tokoEsc(t.id)}"><span class="tick">${isAct?'✓':''}</span><div class="tk-main"><div class="tk-name">${tokoEsc(t.nama)}</div><div class="tk-user">${t.username ? 'Shopee: '+tokoEsc(t.username) : 'belum ada file Income'}</div></div><button type="button" class="tk-act" data-a="rename" title="Ubah nama">✎</button>${canDel ? '<button type="button" class="tk-act tk-del" data-a="del" title="Hapus toko">✕</button>' : ''}</div>`;
-  }).join('');
-  let extra;
-  if(draft){
-    const isAct = draft.id===TOKO_ACTIVE;
-    extra = `<div class="toko-sep"></div><div class="toko-item" data-id="${tokoEsc(draft.id)}"><span class="tick">${isAct?'✓':''}</span><div class="tk-main"><div class="tk-name">Setup toko baru</div><div class="tk-user">${tokoDraftProgress(draft.id)} dari 3 data · belum jadi toko</div></div><button type="button" class="tk-act tk-del" data-a="cancel" title="Batalkan setup">✕</button></div>`;
-  } else {
-    extra = '<div class="toko-sep"></div><div class="toko-add" data-a="add">+ Tambah toko</div>';
-  }
-  pop.innerHTML = rows + extra;
+  pop.innerHTML = `<div class="toko-pop-head">
+    <div class="toko-search-wrap"><input type="text" class="toko-search" placeholder="Cari toko" value="${tokoEsc(TOKO_EDIT_QUERY)}"><span class="toko-search-ic" aria-hidden="true">🔍</span></div>
+    <button type="button" class="toko-gear${TOKO_EDIT_MODE?' on':''}" data-a="editmode" title="${TOKO_EDIT_MODE?'Selesai edit':'Edit toko'}">⚙</button>
+  </div><div class="toko-pop-rows" id="tokoPopRows"></div>`;
+  tokoRenderRows();
 }
 function tokoTogglePop(){
   if(document.getElementById('tokoPop')){ tokoClosePop(); return; }
@@ -2484,13 +2527,25 @@ function tokoTogglePop(){
   pop.id = 'tokoPop'; pop.className = 'toko-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label','Pilih toko');
   document.body.appendChild(pop);
   tokoRenderPop();
+  pop.addEventListener('input', e=>{
+    const inp = e.target.closest('.toko-search'); if(!inp) return;
+    TOKO_EDIT_QUERY = inp.value;
+    tokoRenderRows();
+  });
   pop.addEventListener('click', e=>{
     const act = e.target.closest('[data-a]');
     const item = e.target.closest('.toko-item');
+    if(act && act.dataset.a==='editmode'){ TOKO_EDIT_MODE = !TOKO_EDIT_MODE; TOKO_EDIT_SEL = null; tokoRenderPop(); return; }
+    if(act && act.dataset.a==='editdone'){ TOKO_EDIT_MODE = false; TOKO_EDIT_SEL = null; tokoRenderPop(); return; }
+    if(act && act.dataset.a==='editrename'){ if(TOKO_EDIT_SEL) tokoRenamePrompt(TOKO_EDIT_SEL); return; }
+    if(act && act.dataset.a==='editdel'){ if(TOKO_EDIT_SEL) tokoDeletePrompt(TOKO_EDIT_SEL); return; }
     if(act && act.dataset.a==='add'){ tokoStartSetup(); return; }
-    if(act && item && act.dataset.a==='rename'){ tokoRenamePrompt(item.dataset.id); return; }
-    if(act && item && act.dataset.a==='del'){ tokoDeletePrompt(item.dataset.id); return; }
     if(act && item && act.dataset.a==='cancel'){ tokoCancelSetupPrompt(item.dataset.id); return; }
+    if(item && TOKO_EDIT_MODE){
+      TOKO_EDIT_SEL = (TOKO_EDIT_SEL===item.dataset.id) ? null : item.dataset.id;
+      tokoRenderRows();
+      return;
+    }
     if(item && item.dataset.id!==TOKO_ACTIVE) tokoSwitch(item.dataset.id);
     else if(item) tokoClosePop();   // klik toko yang lagi aktif: tutup aja
   });
