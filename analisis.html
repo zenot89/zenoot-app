@@ -5186,7 +5186,10 @@ function byhargaVoucherStats(plSku){
       let mode = 0, best = 0;
       cnt.forEach((c,v)=>{ if(c>best || (c===best && v>mode)){ best = c; mode = v; } });   // seri -> ambil yang lebih besar (lebih hati-hati)
       const nVoucher = vals.filter(v=>v>0).length;
-      res = { status:'ok', file:slot.name, col, tier: single.length?'single':'multi', n:vals.length, nVoucher, share:nVoucher/vals.length, mode };
+      // [21 Sep 2026] FIX wording: dulu "Rp20.000 ... dipakai di 46%" padahal 46% itu order yang pakai voucher APA PUN (nominal apa saja), bukan nominal modusnya.
+      // Sekarang dipisah: share = order ber-voucher (apa pun), modeShare = order yang pakai NOMINAL modus, avgAll = rata-rata voucher per order (order tanpa voucher dihitung 0).
+      res = { status:'ok', file:slot.name, col, tier: single.length?'single':'multi', n:vals.length, nVoucher, share:nVoucher/vals.length,
+              mode, modeCount:best, modeShare:best/vals.length, avgAll: vals.reduce((a,b)=>a+b,0)/vals.length };
     }
   }
   byhargaVcCache.map.set(plSku, res);
@@ -5249,7 +5252,7 @@ function byhargaRenderVoucherNote(){
   if(st.status==='nofile') txt = 'Belum ada Order Completed file 1 — isi voucher manual.';
   else if(st.status==='nocol') txt = 'Kolom voucher penjual tidak ditemukan di "'+st.file+'" — isi manual.';
   else if(st.status==='nomatch') txt = 'SKU ini tidak ada di file 1 ('+st.file+') — isi manual.';
-  else if(st.mode>0) txt = 'Otomatis: '+fmtRp(st.mode)+' — paling sering, dipakai di '+Math.round(st.share*100)+'% dari '+st.n.toLocaleString('id-ID')+' order (file 1).';
+  else if(st.mode>0) txt = 'Otomatis: '+fmtRp(st.mode)+' — nominal paling sering (di '+Math.round(st.modeShare*100)+'% order). Ada voucher di '+Math.round(st.share*100)+'% dari '+st.n.toLocaleString('id-ID')+' order (file 1).';
   else txt = 'Otomatis: tidak ada order ber-voucher untuk SKU ini di file 1 ('+st.n.toLocaleString('id-ID')+' order).';
   if(vc.isManual && st.status==='ok') txt = 'Manual. '+txt;
   else if(vc.isManual) txt = 'Manual. '+txt;
@@ -5364,11 +5367,13 @@ function renderByHargaResult(){
       </div>
       <div class="card byh-card"><h3>Voucher penjual</h3>
         ${hr('DIPAKAI'+(vc.isManual?'<span class="byh-pct">manual</span>':'<span class="byh-pct">otomatis</span>'), fmtRp(V))}
-        ${hr('PALING SERING (FILE 1)', vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
-        ${hr('DIPAKAI DI', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
+        ${hr('NOMINAL PALING SERING'+(vc.stats.status==='ok'&&vc.stats.mode>0?'<span class="byh-pct">di '+Math.round(vc.stats.modeShare*100)+'% order</span>':''), vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
+        ${hr('ORDER BER-VOUCHER (APA PUN)', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
+        ${hr('VOUCHER RATA-RATA / ORDER', vc.stats.status==='ok'?fmtRp(vc.stats.avgAll):'-')}
         ${hr('INCOME TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
+        ${hr('INCOME RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
         <div class="byh-note">${vc.stats.status==='ok'
-          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'.')
+          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Income rata-rata memperhitungkan seberapa sering voucher dipakai.')
           : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
       </div>
     </div>`;
