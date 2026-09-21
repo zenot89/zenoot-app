@@ -5503,13 +5503,35 @@ function rksConfigMingguan(){
     fee:f?f.adminLayananBreakdown:null, prev, prevLabel:prev?(prev.label||'minggu sebelumnya'):null, prevMissingLabel,
     file:'laporan-rks-mingguan-'+(info?info.key:new Date().toISOString().slice(0,10))+'.pdf' };
 }
+/* [21 Sep 2026] Kirim PDF di HP: share sheet native (files-only, tanpa title) — pola yang sama dengan cost-produksi.js & hutang-supplier.js.
+   Root cause "Analisis loading ulang habis kirim PDF": doc.save() di jsPDF = klik <a download href=blob:> DI DALAM iframe. Di PWA iPhone (standalone)
+   blob itu dibuka DI iframe yang sama -> halaman Analisis diganti PDF (pagehide -> zenOt nampilin "Memuat Zenoot Analisis..."), lalu pas kembali
+   Analisis di-boot ulang dari nol (ambil data Supabase lagi). Share sheet muncul sebagai overlay & halaman TIDAK berpindah -> gak ada loading ulang.
+   Cuma dipakai di HP (media query yang sama dengan mode HP di analisis.js); laptop tetap doc.save() (download biasa) seperti sebelumnya.
+   Kalau share gak tersedia / gagal (selain dibatalkan user) -> fallback doc.save() seperti dulu. */
+function rksDeliverPdf(doc, fileName){
+  const isPhone = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse) and (max-width: 1024px)').matches);
+  if(isPhone && navigator.canShare){
+    try{
+      const pdfFile = new File([doc.output('arraybuffer')], fileName, { type:'application/pdf' });
+      if(navigator.canShare({ files:[pdfFile] })){
+        navigator.share({ files:[pdfFile] }).catch(function(err){
+          if(err && err.name !== 'AbortError') doc.save(fileName);   // user batal = diam saja; gagal lain = fallback download
+        });
+        return;
+      }
+    }catch(e){ /* fallback ke doc.save() di bawah */ }
+  }
+  doc.save(fileName);
+}
 function rksExport(cfgFn){
   try{
     const c=cfgFn();
     if(c.M.pendapatan===null||c.M.pendapatan===undefined||c.M.penghasilan===null||c.M.penghasilan===undefined||!c.M.pendapatan){
       alert('Data belum lengkap. Unggah file Income dulu, lalu coba export lagi.'); return;
     }
-    rksBuildReport(c).save(c.file);
+    // [21 Sep 2026] SEBELUMNYA: rksBuildReport(c).save(c.file);  -> diganti rksDeliverPdf (lihat catatan di atas fungsinya)
+    rksDeliverPdf(rksBuildReport(c), c.file);
   }catch(e){ console.error('Gagal export PDF:', e); alert('Gagal membuat PDF: '+e.message); }
 }
 document.getElementById('btnExportPDF').addEventListener('click', ()=> rksExport(rksConfigBulanan));

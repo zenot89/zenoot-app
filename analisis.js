@@ -22,7 +22,7 @@
 // popup pilih bulan/minggu di tengah layar, tombol mode Rekap (bulan/minggu + ⇄) tampil lagi, tinggi Rekap sampai ujung bawah, header RKS Mingguan [Periode][Toko][PDF].
 //
 // (7) [21 Sep 2026] Tombol PDF di HP dipindah dari header ke SEJAJAR KIRI kartu Net Income (ikon saja, kecil), di RKS Overview DAN RKS Mingguan (Overview sebelumnya belum punya).
-// Header RKS Mingguan jadi [Periode][Toko] saja. Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
+// Kartu Net Income 1 baris (label kiri, nilai IDR kanan). Header RKS Mingguan jadi [Periode][Toko] saja. Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -183,6 +183,10 @@
     hw(' .zan-pdf-btn', 'display:flex;align-items:center;justify-content:center;grid-column:1;grid-row:1;justify-self:start;align-self:stretch;width:44px;min-height:44px;box-sizing:border-box;padding:0;margin:0;background:var(--panel,#fff);border:1px solid var(--line,#D9D9D9);border-radius:10px;box-shadow:var(--shadow);cursor:pointer;-webkit-tap-highlight-color:transparent;'),
     hw(' .zan-pdf-btn:active', 'background:var(--title-bg,#E4E4E4);'),
     hw(' .zan-pdf-btn svg', 'width:26px;height:30px;display:block;pointer-events:none;'),
+    // [21 Sep 2026] Kartu Net Income jadi 1 baris: label kiri, nilai IDR kanan (sebelumnya label di atas, nilai di bawah). Kartu Rasio Laba & Laba/Rugi tetap 2 baris.
+    hw(' .stat-card:nth-child(1)', 'display:flex;align-items:center;justify-content:space-between;gap:10px;'),
+    hw(' .stat-card:nth-child(1) .stat-label', 'margin:0;white-space:nowrap;'),
+    hw(' .stat-card:nth-child(1) .stat-value', 'white-space:nowrap;text-align:right;'),
     // tabel: zona geser horizontal (Ringkasan ↔ Rasio), tiap slide = 1 kartu selebar layar
     hw(' .hasil-grid', 'display:flex;flex-direction:row;align-items:stretch;flex:1 1 0;min-height:0;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;'),
     hw(' .hasil-grid::-webkit-scrollbar', 'display:none;'),
