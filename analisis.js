@@ -17,7 +17,10 @@
 // Net Income & Laba/Rugi tampil di dua slide: nominal (IDR) di Ringkasan, persen di Rasio.
 // Semua aturan HP hidup di file INI (CSS + filter tab) — laptop tidak tersentuh.
 //
-// analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
+// (6) [21 Sep 2026] Permintaan "global" (HP + laptop) memaksa analisis.html ikut diubah (hanya bagian ini): RKS Overview default = bulan terakhir di Rekap
+// (opsi "Data saat ini" dihapus), RKS Mingguan dapat picker periode + default minggu terakhir di Rekap Mingguan. Di file INI cuma CSS HP-nya:
+// popup pilih bulan/minggu di tengah layar, tombol mode Rekap (bulan/minggu + ⇄) tampil lagi, tinggi Rekap sampai ujung bawah, header RKS Mingguan [Periode][Toko][PDF].
+// (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
 (function () {
@@ -126,13 +129,25 @@
     'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
     'html.zan-phone #btnToggleDataTokoPanel,html.zan-phone #btnToggleDataTokoPanelM,html.zan-phone #btnSimpanRekap,html.zan-phone #btnSimpanRekapM,',
-    'html.zan-phone #btnExportPDF,html.zan-phone #btnExportPDFM{display:none !important;}',
+    'html.zan-phone #btnExportPDF{display:none !important;}',
     'html.zan-phone .rks-datatoko-panel,html.zan-phone #tokoSetupCard{display:none !important;}',
-    'html.zan-phone #page-hasilM .page-head,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
-    'html.zan-phone #page-hasil .page-head{margin:0;padding:0;height:0;min-height:0;}',
-    'html.zan-phone #page-hasil .page-head .toolbar{margin:0;}',
+    'html.zan-phone #page-hasilM .page-head > .toolbar:first-child,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
+    'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head{margin:0;padding:0;height:0;min-height:0;}',
+    'html.zan-phone #page-hasil .page-head .toolbar,html.zan-phone #page-hasilM .page-head .toolbar{margin:0;}',
+    // [21 Sep 2026] RKS Mingguan di HP: satu baris header [Periode ▾] kiri + [Toko ▾] tengah + [PDF] kanan (tombol periode & PDF melayang di atas topbar, sama polanya dengan tombol bulan RKS Overview)
+    'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:36vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
+    'html.zan-phone #btnHasilPeriodM:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
+    'html.zan-phone #btnHasilPeriodM *{color:#000;}',
+    'html.zan-phone #btnHasilPeriodM #hasilPeriodLabelM{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
+    'html.zan-phone #btnHasilPeriodM .hp-full{display:none;}',
+    'html.zan-phone #btnHasilPeriodM .hp-short{display:inline;}',
+    'html.zan-phone #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:center;padding:0;font-size:0;color:#000;}',
+    'html.zan-phone #btnExportPDFM::after{content:"PDF";font-size:13px;font-weight:700;color:#000;}',
+    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc(36vw + 8px);margin-right:56px;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
+    // [21 Sep 2026] popup pilih bulan/minggu: posisinya dari JS = nempel ke tombol (miring ke kiri di HP) → di HP dipaksa tepat di tengah layar
+    'html.zan-phone .mp-pop{left:50% !important;right:auto !important;transform:translateX(-50%);width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 90px);overflow-y:auto;}',
     'html.zan-phone .toko-pop .tk-act,html.zan-phone .toko-pop .toko-add,html.zan-phone .toko-pop .toko-sep,html.zan-phone .toko-pop .toko-sep + .toko-item{display:none !important;}',
 
     // ══ RKS Overview & RKS Mingguan — pola halaman Hutang: minicard di atas (bisa di-minimize), tabel di bawah bisa digeser ● ● ══
@@ -214,11 +229,14 @@
     'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',
 
     // ══ Rekap & Rekap Mingguan: tabel dipadatkan, kolom Kriteria nempel di kiri (sticky), header beku, isi scroll DI DALAM kartu ══
-    'html.zan-phone #page-rekap.active,html.zan-phone #page-rekapM.active{display:flex;flex-direction:column;height:calc(100vh - 96px);min-height:0;margin-bottom:0;}',
+    // [21 Sep 2026] tinggi halaman = 100vh - topbar (66px), sama seperti RKS Overview; padding bawah #main dibuang → kartu tabel habis sampai ujung bawah layar
+    'html.zan-phone #page-rekap.active,html.zan-phone #page-rekapM.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
+    'html.zan-phone.embed[data-zan-page="rekap"] #main,html.zan-phone.embed[data-zan-page="rekapM"] #main{padding-bottom:0;}',
     'html.zan-phone #page-rekap .page-head,html.zan-phone #page-rekapM .page-head{justify-content:flex-start;margin-bottom:8px;}',
     // "Pilih data" = alur hapus data → eksekusi, cuma di laptop
     'html.zan-phone #btnRekapSelect,html.zan-phone #btnRekapSelectM,html.zan-phone .rekap-selectbar{display:none !important;}',
     'html.zan-phone .rekap-card{padding:2px;}',
+    'html.zan-phone :is(#rekapWrap,#rekapWrapM) > .rekap-card{margin-bottom:0;}',
     'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table{font-size:13px;}',
     'html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 th,html.zan-phone :is(#rekapWrap,#rekapWrapM) .rekap-table.rekap-12 td{padding:8px 7px;}',
     'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table thead th{font-size:12px;letter-spacing:0;}',
@@ -232,7 +250,11 @@
     // kolom Kriteria: nempel kiri saat digeser ke samping, teks boleh 2 baris, tombol mode (bulan / ⇄) disembunyikan
     'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria,html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 th.rekap-kriteria{position:sticky;left:0;min-width:0;padding-left:8px;white-space:normal;line-height:1.2;}',
     'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-table.rekap-12 td.rekap-kriteria{z-index:2;font-size:12px;box-shadow:1px 0 0 var(--line);}',
-    'html.zan-phone .rekap-kr-btns{display:none;}',
+    // [21 Sep 2026] tombol mode di header Kriteria DIMUNCULKAN LAGI di HP: [bulan/minggu ▾] = pilih patokan, [⇄] = ganti tampilan (Anual/Average/Sum ↔ 3 bulan terakhir; Rekap bulanan ada siklus ke-3 Full Jan–Des)
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-kr-wrap{flex-direction:column;align-items:flex-start;gap:4px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-kr-btns{display:inline-flex;gap:4px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-month-btn{font-size:11.5px;line-height:18px;padding:0 5px;gap:3px;}',
+    'html.zan-phone :is(#page-rekap,#page-rekapM) .rekap-swap-btn{font-size:13px;line-height:18px;padding:0 6px;}',
     // panah naik/turun ditaruh di bawah angka (kalau sebaris, angka kepotong di kolom sempit)
     'html.zan-phone .rekap-trend{display:block;margin-left:0;margin-top:1px;font-size:10px;}'
   ].join('');

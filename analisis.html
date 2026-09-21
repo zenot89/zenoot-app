@@ -364,6 +364,7 @@
   .mp-live.sel .mp-live-sub{ color:#EE4D2D; }
   .mp-legend{ display:flex; align-items:center; gap:6px; padding:0 18px 14px; font-size:12px; color:var(--ink-soft); }
   .mp-legend span{ margin-left:auto; color:#A7ACB5; }
+  #btnHasilPeriodM .hp-short{ display:none; }
   .hasil-src-badge{ background:var(--accent-soft); color:var(--accent-dark); border:1px solid var(--accent); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; }
   .btn:disabled{ opacity:.5; cursor:not-allowed; }
   .btn.ghost:disabled:hover{ border-color:var(--line); color:var(--ink-soft); }
@@ -999,7 +1000,7 @@
         <button class="btn secondary small" id="btnToggleDataTokoPanel">Data Toko</button>
       </div>
       <div class="toolbar">
-        <button class="btn ghost" id="btnHasilMonth" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap"><span id="hasilMonthLabel">Data saat ini</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
+        <button class="btn ghost" id="btnHasilMonth" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap"><span id="hasilMonthLabel">Pilih bulan</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
         <button class="btn ghost" id="btnSimpanRekap">Simpan ke Rekap</button>
         <button class="btn secondary" id="btnExportPDF">Export PDF</button>
       </div>
@@ -1081,6 +1082,7 @@
         <button class="btn secondary small" id="btnToggleDataTokoPanelM">Data Toko</button>
       </div>
       <div class="toolbar">
+        <button class="btn ghost" id="btnHasilPeriodM" type="button" data-mp-trigger title="Pilih periode (minggu) yang sudah tersimpan di Rekap Mingguan"><span id="hasilPeriodLabelM">Pilih periode</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
         <button class="btn ghost" id="btnSimpanRekapM">Simpan ke Rekap Mingguan</button>
         <button class="btn secondary" id="btnExportPDFM">Export PDF</button>
       </div>
@@ -2608,7 +2610,7 @@ document.getElementById('btnHapusData').addEventListener('click', ()=>{
   state.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
   try{ zLS.removeItem(SESSION_LS_KEY); }catch(e){}
   renderOrderList(); renderIncomeList(); renderAdsList();
-  hasilViewKey = null;
+  hasilViewKey = rekapLatestDataKey();   // data live sudah kosong -> tampilkan bulan terakhir di Rekap
   if(document.getElementById('hasilWrap')) renderHasil();
   try{ renderTokoSetup(); }catch(e){}
 });
@@ -3781,9 +3783,11 @@ function computeHasilMetrics(){
 }
 
 /* ---------- RKS Overview: pilih bulan (data yang sudah tersimpan di Rekap) ---------- */
-// hasilViewKey: null = "Data saat ini" (file Income/Iklan/Order yang lagi dimuat, perilaku lama).
-// 'YYYY-MM' = tampilkan bulan yang tersimpan di Rekap (read-only). Export PDF ngikut yang lagi tampil. Gak disimpen.
-let hasilViewKey = null;
+// hasilViewKey: 'YYYY-MM' = tampilkan bulan yang tersimpan di Rekap (read-only). Export PDF ngikut yang lagi tampil. Gak disimpen.
+// [21 Sep 2026] DEFAULT = bulan terakhir yang punya data di Rekap (opsi "Data saat ini" DIHAPUS dari picker, HP & laptop).
+// null = data file yang baru dimuat lewat "Data Toko" → HANYA muncul otomatis habis klik Hitung (biar alur upload → cek → "Simpan ke Rekap" tetap jalan),
+// atau kalau Rekap masih kosong. Habis Simpan → pindah ke bulan yang baru disimpan; habis Hapus Data → balik ke bulan terakhir di Rekap.
+let hasilViewKey = rekapLatestDataKey();
 function hasilMetricsFromRekap(key){
   const s = state.rekap[key];
   const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
@@ -3798,7 +3802,8 @@ function hasilMetricsFromRekap(key){
 function syncHasilToolbar(){
   const fromRekap = !!(hasilViewKey && state.rekap[hasilViewKey]);
   const lbl = document.getElementById('hasilMonthLabel'), btnM = document.getElementById('btnHasilMonth'), simpan = document.getElementById('btnSimpanRekap');
-  if(lbl) lbl.textContent = fromRekap ? rekapMonthLabel(hasilViewKey) : 'Data saat ini';
+  const livePer = fromRekap ? null : currentMonthKeyAndLabel();
+  if(lbl) lbl.textContent = fromRekap ? rekapMonthLabel(hasilViewKey) : (livePer ? livePer.label : 'Pilih bulan');
   if(btnM) btnM.classList.toggle('active', fromRekap);
   if(simpan){ simpan.disabled = fromRekap; simpan.title = fromRekap ? 'Bulan ini sudah tersimpan di Rekap' : ''; }
 }
@@ -3813,8 +3818,7 @@ function hasilMonthPickerBody(){
   if(!pop) return;
   const [minY, maxY] = hasilYearBounds();
   const y = hasilPickerYear;
-  const livePer = state.incomeFile ? currentMonthKeyAndLabel() : null;
-  const liveLabel = livePer ? livePer.label : (state.incomeFile ? 'periode gak kebaca' : 'file yang lagi dimuat');
+  // [21 Sep 2026] tombol "Data saat ini" dihapus dari picker (liveLabel tidak dipakai lagi)
   const anyData = Object.keys(state.rekap).length > 0;
   pop.innerHTML = `
     <div class="mp-head">
@@ -3822,7 +3826,6 @@ function hasilMonthPickerBody(){
       <span class="mp-year">${y}</span>
       <button type="button" class="mp-arrow" data-a="next" aria-label="Tahun berikutnya" ${y>=maxY?'disabled':''}>»</button>
     </div>
-    <button type="button" class="mp-live${hasilViewKey===null?' sel':''}" data-live="1"><span>Data saat ini</span><span class="mp-live-sub">${liveLabel}</span></button>
     <div class="mp-grid">${REKAP_BULAN_SHORT.map((lbl,i)=>{
       const k = y+'-'+String(i+1).padStart(2,'0');
       const has = !!state.rekap[k];
@@ -3832,7 +3835,7 @@ function hasilMonthPickerBody(){
     <div class="mp-legend">${anyData ? '<i class="mp-dot"></i> Ada data di Rekap<span>Abu-abu = belum ada data</span>' : 'Belum ada bulan yang disimpan ke Rekap.'}</div>`;
   pop.querySelector('[data-a="prev"]').addEventListener('click', ()=>{ if(hasilPickerYear>minY){ hasilPickerYear--; hasilMonthPickerBody(); } });
   pop.querySelector('[data-a="next"]').addEventListener('click', ()=>{ if(hasilPickerYear<maxY){ hasilPickerYear++; hasilMonthPickerBody(); } });
-  pop.querySelector('.mp-live').addEventListener('click', ()=>{ closeRekapMonthPicker(); hasilViewKey = null; renderHasil(); });
+  { const liveBtn = pop.querySelector('.mp-live'); if(liveBtn) liveBtn.addEventListener('click', ()=>{ closeRekapMonthPicker(); hasilViewKey = null; renderHasil(); }); }   // tombol ini sudah tidak dirender (21 Sep 2026); handler dibiarkan aman-null
   pop.querySelectorAll('.mp-m:not(:disabled)').forEach(b=>b.addEventListener('click', ()=>{ closeRekapMonthPicker(); hasilViewKey = b.dataset.k; renderHasil(); }));
 }
 document.getElementById('btnHasilMonth').addEventListener('click', e=>{
@@ -3845,7 +3848,7 @@ document.getElementById('btnHasilMonth').addEventListener('click', e=>{
 
 function renderHasil(){
   const wrap = document.getElementById('hasilWrap');
-  if(hasilViewKey && !state.rekap[hasilViewKey]) hasilViewKey = null;   // bulan yang lagi dilihat udah dihapus dari Rekap -> balik ke data saat ini
+  if(hasilViewKey && !state.rekap[hasilViewKey]) hasilViewKey = rekapLatestDataKey();   // bulan yang lagi dilihat udah dihapus dari Rekap -> pindah ke bulan terakhir yang masih ada
   syncHasilToolbar();
   const fromRekap = !!hasilViewKey;
   if(!fromRekap && !state.orderSlots.filter(Boolean).length){
@@ -3860,7 +3863,7 @@ function renderHasil(){
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
-      ${fromRekap ? `<span class="hasil-src-badge">Dari Rekap · ${rekapMonthLabel(hasilViewKey)}</span><button type="button" class="btn ghost small" id="btnHasilBackLive">Kembali ke data saat ini</button>` : ''}
+      ${/* [21 Sep 2026] badge "Dari Rekap" & tombol "Kembali ke data saat ini" DIHAPUS (btnHasilBackLive tidak dirender lagi) */''}
       ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
@@ -4067,6 +4070,8 @@ document.getElementById('btnSimpanRekap').addEventListener('click', ()=>{
     state.rekap[key] = snapshot;
     saveRekapToStorage();
     rekapYear = parseInt(key.slice(0,4),10);
+    hasilViewKey = key;   // [21 Sep 2026] habis Simpan -> tampilan pindah ke bulan yang barusan tersimpan
+    try{ renderHasil(); }catch(e){}
     renderCaRoasDisplay();
     renderProyeksiHargaBoth();
     if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
@@ -5475,6 +5480,17 @@ function rksConfigBulanan(){
     file:'laporan-rks-'+key+'.pdf' };
 }
 function rksConfigMingguan(){
+  if(hasilViewKeyM && state.mingguan.rekap[hasilViewKeyM]){
+    // [21 Sep 2026] periode yang lagi tampil = minggu tersimpan di Rekap Mingguan → PDF ngikut minggu itu
+    const key = hasilViewKeyM, snap = state.mingguan.rekap[key], pl = rekapMPlaceOf(key);
+    const label = hasilWeekLabelsM(key).full;
+    const prev = pl ? (state.mingguan.rekap[ymdKeyFromTs(pl.dariTs-7*DAY_MS)] || null) : null;
+    return { M:hasilMetricsFromRekapM(key), settings:state.settings, unit:'minggu', title:'Laporan RKS Mingguan', fromRekap:true,
+      periodText:label, periodShort:label, rangeText:null, sourceText:'Rekap Mingguan (data tersimpan)',
+      fee:snap.adminLayananBreakdown || null, prev, prevLabel:prev?(prev.label||'minggu sebelumnya'):null,
+      prevMissingLabel: pl ? makeWeekLabel(pl.dariTs-7*DAY_MS, pl.keTs-7*DAY_MS) : null,
+      file:'laporan-rks-mingguan-'+key+'.pdf' };
+  }
   const M=computeHasilMetricsM(), info=weekInfoFromIncome(), f=state.mingguan.incomeFile;
   let prev=null;
   let prevMissingLabel=null;
@@ -5829,6 +5845,7 @@ document.getElementById('btnHapusDataM').addEventListener('click', ()=>{
   state.mingguan.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
   try{ zLS.removeItem(SESSION_M_LS_KEY); }catch(e){}
   renderOrderListM(); renderIncomeListM(); renderAdsListM();
+  hasilViewKeyM = hasilLatestKeyM();   // data live sudah kosong -> tampilkan minggu terakhir di Rekap Mingguan
   if(document.getElementById('hasilWrapM')) renderHasilM();
 });
 document.getElementById('btnEditHitungM').addEventListener('click', ()=>{
@@ -5843,6 +5860,7 @@ document.getElementById('btnEditHitungM').addEventListener('click', ()=>{
     btn.textContent = 'Edit file';
     btn.classList.remove('active');
     renderOrderListM(); renderIncomeListM(); renderAdsListM();
+    hasilViewKeyM = null;   // habis Hitung -> tampilkan data yang baru dimuat (sama seperti RKS Overview)
     if(document.getElementById('hasilWrapM')) renderHasilM();
     const panel = document.getElementById('rksDataTokoPanelM');
     if(panel) panel.classList.remove('open');
@@ -5923,15 +5941,85 @@ function computeHasilMetricsM(){
     aov: basketCalc.aov, basket: basketCalc.basket };
 }
 
+/* ---------- RKS Mingguan: pilih periode (minggu yang sudah tersimpan di Rekap Mingguan) — [21 Sep 2026], laptop & HP ---------- */
+// hasilViewKeyM: kunci minggu ('YYYY-MM-DD' = tanggal Dari) yang tersimpan di Rekap Mingguan. DEFAULT = minggu terakhir yang tersimpan.
+// null = data file yang baru dimuat lewat "Data Toko" → muncul otomatis habis klik Hitung (atau kalau belum ada minggu tersimpan). Aturannya sama persis dengan RKS Overview.
+function hasilLatestKeyM(){ const ps = rekapMPlaces(); return ps.length ? ps[ps.length-1].key : null; }
+let hasilViewKeyM = hasilLatestKeyM();
+function hasilMetricsFromRekapM(key){
+  const s = state.mingguan.rekap[key];
+  const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
+  const pend = n(s.pendapatan), npm = n(s.npm);
+  return { fromRekap:true, key,
+    hppCalc:{ orderCount: s.orderCount||0, missingHpp:0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
+    pendapatan:pend, penghasilan:n(s.penghasilan), hpp:n(s.hpp), operasional:n(s.operasional)||0, iklan:n(s.iklan),
+    ratioAdmin:n(s.ratioAdmin)||0, canCompute:true, rasioOperasional:n(s.rasioOperasional), roas:n(s.roas), acos:n(s.acos),
+    rasioMargin:n(s.rasioMargin), labaRugi:n(s.labaRugi), rasioLaba:n(s.rasioLaba), npm,
+    npmRp:(npm!==null && pend) ? npm*pend : null, netIncome:n(s.netIncome), aov:n(s.aov), basket:n(s.basket) };
+}
+function hasilWeekLabelsM(key){
+  const pl = rekapMPlaceOf(key), snap = state.mingguan.rekap[key];
+  if(!pl) return { full: key, short: key };
+  return { full: (snap && snap.label) || makeWeekLabel(pl.dariTs, pl.keTs), short: fmtDayMonth(pl.dariTs)+'–'+fmtDayMonth(pl.keTs) };
+}
+function syncHasilToolbarM(){
+  const fromRekap = !!(hasilViewKeyM && state.mingguan.rekap[hasilViewKeyM]);
+  const lbl = document.getElementById('hasilPeriodLabelM'), btnP = document.getElementById('btnHasilPeriodM'), simpan = document.getElementById('btnSimpanRekapM');
+  if(lbl){
+    if(fromRekap){ const L = hasilWeekLabelsM(hasilViewKeyM); lbl.innerHTML = `<span class="hp-full">${L.full}</span><span class="hp-short">${L.short}</span>`; }
+    else { const wi = weekInfoFromIncome(); lbl.textContent = wi ? wi.label : 'Pilih periode'; }
+  }
+  if(btnP) btnP.classList.toggle('active', fromRekap);
+  if(simpan){ simpan.disabled = fromRekap; simpan.title = fromRekap ? 'Minggu ini sudah tersimpan di Rekap Mingguan' : ''; }
+}
+let hasilWkPickerYm = null;   // {y, m} bulan yang lagi dibuka di popup periode
+function hasilWeekBoundsM(){
+  const ms = rekapMMonthsWithData().map(x=>x.y*12+x.m).sort((a,b)=>a-b);
+  return ms.length ? [ms[0], ms[ms.length-1]] : null;
+}
+function hasilWeekPickerBody(){
+  const pop = document.getElementById('rekapMonthPop');
+  if(!pop || !hasilWkPickerYm) return;
+  const {y, m} = hasilWkPickerYm;
+  const b = hasilWeekBoundsM();
+  const cur = y*12+m;
+  const weeks = rekapMPlaces().filter(p=>p.y===y && p.m===m);
+  pop.innerHTML = `
+    <div class="mp-head">
+      <button type="button" class="mp-arrow" data-a="prev" aria-label="Bulan sebelumnya" ${(!b || cur<=b[0])?'disabled':''}>«</button>
+      <span class="mp-year">${REKAP_BULAN_FULL[m]} ${y}</span>
+      <button type="button" class="mp-arrow" data-a="next" aria-label="Bulan berikutnya" ${(!b || cur>=b[1])?'disabled':''}>»</button>
+    </div>
+    <div class="mp-weeks">${weeks.length ? weeks.map(p=>{
+      const L = hasilWeekLabelsM(p.key);
+      return `<button type="button" class="mp-w${p.key===hasilViewKeyM?' sel':''}" data-k="${p.key}" title="${L.full}"><span>Minggu ${p.slot}</span><span class="mp-w-range">${L.short}</span><i class="mp-dot" title="Ada data di Rekap Mingguan"></i></button>`;
+    }).join('') : '<div class="mp-legend" style="padding:12px 10px 4px;">Belum ada minggu tersimpan di bulan ini.</div>'}</div>`;
+  const shift = d=>{ let mm = m+d, yy = y; while(mm<0){ mm+=12; yy--; } while(mm>11){ mm-=12; yy++; } hasilWkPickerYm = {y:yy, m:mm}; hasilWeekPickerBody(); };
+  pop.querySelector('[data-a="prev"]').addEventListener('click', ()=>{ if(b && cur>b[0]) shift(-1); });
+  pop.querySelector('[data-a="next"]').addEventListener('click', ()=>{ if(b && cur<b[1]) shift(1); });
+  pop.querySelectorAll('.mp-w').forEach(btn=>btn.addEventListener('click', ()=>{ closeRekapMonthPicker(); hasilViewKeyM = btn.dataset.k; renderHasilM(); }));
+}
+document.getElementById('btnHasilPeriodM').addEventListener('click', e=>{
+  e.stopPropagation();
+  const key = (hasilViewKeyM && state.mingguan.rekap[hasilViewKeyM]) ? hasilViewKeyM : hasilLatestKeyM();
+  const pl = key ? rekapMPlaceOf(key) : null;
+  const now = new Date();
+  hasilWkPickerYm = pl ? { y:pl.y, m:pl.m } : { y:now.getFullYear(), m:now.getMonth() };
+  toggleRekapMonthPicker(e.currentTarget, { renderBody: hasilWeekPickerBody, onPick: ()=>{} });
+});
+
 function renderHasilM(){
   const wrap = document.getElementById('hasilWrapM');
   if(!wrap) return;
-  if(!state.mingguan.orderSlots.filter(Boolean).length){
+  if(hasilViewKeyM && !state.mingguan.rekap[hasilViewKeyM]) hasilViewKeyM = hasilLatestKeyM();   // minggu yang lagi dilihat sudah dihapus dari Rekap Mingguan -> pindah ke minggu terakhir yang masih ada
+  syncHasilToolbarM();
+  const fromRekap = !!hasilViewKeyM;
+  if(!fromRekap && !state.mingguan.orderSlots.filter(Boolean).length){
     wrap.innerHTML = `<div class="card"><div class="empty-state"><div class="big"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>Belum ada data Order Completed minggu ini. Upload dulu lewat tombol "Data Toko" di kanan atas.</div></div>`;
     return;
   }
-  const M = computeHasilMetricsM();
-  const wi = weekInfoFromIncome();
+  const M = fromRekap ? hasilMetricsFromRekapM(hasilViewKeyM) : computeHasilMetricsM();
+  const wi = fromRekap ? null : weekInfoFromIncome();   // periode minggu tersimpan sudah tampil di tombol periode → chip cuma buat data live
   const periodeChip = wi
     ? `<span style="font-size:12px;font-weight:600;color:${wi.isSunSat?'var(--ink-soft)':'var(--bad)'};">Periode income: ${wi.label}${wi.isSunSat?'':' ⚠ bukan 1 minggu penuh Minggu–Sabtu'}</span>`
     : '';
@@ -5964,11 +6052,11 @@ function renderHasilM(){
     <div class="card">
       <h3>Ringkasan</h3>
       <div class="hrow-list">
-      <div class="hrow highlight"><div class="lbl">TOTAL PENDAPATAN<span class="ket">Otomatis dari file Income minggu ini</span></div><div class="val">${fmtRp(pendapatan)}</div></div>
-      <div class="hrow highlight"><div class="lbl">TOTAL PENGHASILAN<span class="ket">Otomatis dari file Income minggu ini</span></div><div class="val">${fmtRp(penghasilan)}</div></div>
-      <div class="hrow highlight"><div class="lbl">HPP<span class="ket">Otomatis: ${hppCalc.orderCount} pesanan × harga HPP (yang dananya sudah dilepas)</span></div><div class="val">${fmtRp(hpp)}</div></div>
-      <div class="hrow highlight"><div class="lbl">OPERASIONAL<span class="ket">Otomatis: Operasional Toko bulanan di Setting ÷ 4</span></div><div class="val">${fmtRp(operasional)}</div></div>
-      <div class="hrow highlight"><div class="lbl">IKLAN<span class="ket">${state.mingguan.adsFile && state.mingguan.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'}</span></div><div class="val">${fmtRp(iklan)}</div></div>
+      <div class="hrow highlight"><div class="lbl">TOTAL PENDAPATAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : 'Otomatis dari file Income minggu ini'}</span></div><div class="val">${fmtRp(pendapatan)}</div></div>
+      <div class="hrow highlight"><div class="lbl">TOTAL PENGHASILAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : 'Otomatis dari file Income minggu ini'}</span></div><div class="val">${fmtRp(penghasilan)}</div></div>
+      <div class="hrow highlight"><div class="lbl">HPP<span class="ket">${fromRekap ? (hppCalc.orderCount ? hppCalc.orderCount+' pesanan · tersimpan di Rekap Mingguan' : 'Tersimpan di Rekap Mingguan') : 'Otomatis: '+hppCalc.orderCount+' pesanan × harga HPP (yang dananya sudah dilepas)'}</span></div><div class="val">${fmtRp(hpp)}</div></div>
+      <div class="hrow highlight"><div class="lbl">OPERASIONAL<span class="ket">${fromRekap ? 'Nilai saat minggu ini disimpan ke Rekap Mingguan' : 'Otomatis: Operasional Toko bulanan di Setting ÷ 4'}</span></div><div class="val">${fmtRp(operasional)}</div></div>
+      <div class="hrow highlight"><div class="lbl">IKLAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : state.mingguan.adsFile && state.mingguan.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'}</span></div><div class="val">${fmtRp(iklan)}</div></div>
       <div class="hrow"><div class="lbl">AOV AKTUAL<span class="ket">Rata-rata nilai per pesanan</span></div><div class="val">${fmtRp(basketCalc.aov)}</div></div>
       <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val">${roas ? roas.toFixed(2)+'x' : '-'}</div></div>
       </div>
@@ -5991,6 +6079,7 @@ function renderHasilM(){
 }
 
 document.getElementById('btnSimpanRekapM').addEventListener('click', ()=>{
+  if(hasilViewKeyM) return;   // lagi lihat minggu dari Rekap Mingguan: gak ada yang perlu disimpen
   const M = computeHasilMetricsM();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan minggu ini) sebelum disimpan ke Rekap Mingguan.'); return; }
   const info = weekInfoFromIncome();
@@ -6011,6 +6100,8 @@ document.getElementById('btnSimpanRekapM').addEventListener('click', ()=>{
   rekapMYm = { y: info.y, m: info.m };   // langsung lompat ke bulan minggu yang barusan disimpan
   rekapMSelected.clear();
   renderRekapM();
+  hasilViewKeyM = info.key;   // [21 Sep 2026] habis Simpan -> tampilan pindah ke minggu yang barusan tersimpan
+  try{ renderHasilM(); }catch(e){}
   const btn = document.getElementById('btnSimpanRekapM');
   const original = btn.textContent;
   btn.textContent = '✓ Tersimpan ('+info.label+')';
