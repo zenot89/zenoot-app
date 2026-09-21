@@ -555,6 +555,25 @@
   #proyeksiInputPanel .hrow.stack .val input, #byqtyInputPanel .hrow.stack .val input,
   #proyeksiInputPanel .hrow.stack .val select, #byqtyInputPanel .hrow.stack .val select{ width:100%; box-sizing:border-box; }
   #proyeksiInputPanel .hrow .lbl, #byqtyInputPanel .hrow .lbl{ font-size:12.5px; }
+  /* ===== By Harga Jual (simulasi instan, [21 Sep 2026]): 1 tampilan — hasil di kiri, panel Input di kanan. Blok terpisah supaya rule By Operasional/By Target Qty gak tersentuh ===== */
+  #byhargaInputPanel{ flex:0 0 340px; width:340px; align-self:flex-start; }
+  #byhargaInputPanel .rks-datatoko-panel-inner{ width:100%; }
+  #byhargaInputPanel .hrow.stack{ flex-direction:column; align-items:stretch; gap:8px; }
+  #byhargaInputPanel .hrow.stack .val{ width:100%; white-space:normal; }
+  #byhargaInputPanel .hrow.stack .val input, #byhargaInputPanel .hrow.stack .val select{ width:100%; box-sizing:border-box; }
+  #byhargaInputPanel .hrow .lbl{ font-size:12.5px; }
+  #byhargaInputPanel .hrow .roas-note{ margin-top:0; }
+  .byh-cols{ display:grid; grid-template-columns:1.25fr 1fr; gap:16px; align-items:start; }
+  .byh-col{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .byh-card{ padding:16px 22px 12px; margin-bottom:0; min-width:0; }
+  .byh-card h3{ margin:0 0 8px; font-size:15px; }
+  .byh-card .hrow{ padding:8px 0; }
+  .byh-card .hrow .lbl{ font-size:13px; }
+  .byh-card .hrow .val{ font-size:14.5px; white-space:nowrap; }
+  .byh-pct{ font-weight:400; color:var(--ink-soft); font-size:11.5px; margin-left:6px; }
+  .byh-note{ font-size:11.5px; color:var(--ink-soft); line-height:1.5; margin-top:8px; }
+  .byh-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 14px; }
+  @media (max-width:900px){ .byh-cols{ grid-template-columns:1fr; } }
   .rekap-selectbar{
     position:fixed; left:50%; bottom:22px; transform:translate(-50%, 16px);
     display:none; align-items:center; gap:8px;
@@ -874,6 +893,7 @@
       <div class="nav-submenu">
         <button data-page="proyeksi"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> By Operasional</button>
         <button data-page="byqty"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> By Target Qty</button>
+        <button data-page="byharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Harga Jual</button>
         <button data-page="hasilM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Mingguan</button>
         <button data-page="rekapM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Mingguan</button>
       </div>
@@ -1025,6 +1045,43 @@
               <div class="hrow editable stack">
                 <div class="lbl">Target Order Harian<span class="ket">qty pesanan per hari</span></div>
                 <div class="val"><input type="text" inputmode="numeric" id="byqtyQtyHarian" placeholder="0"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE: PROYEKSI HARGA > BY HARGA JUAL (simulasi instan) ============ -->
+  <section class="page" id="page-byharga">
+    <div class="subview active" id="byhargaView-input">
+      <div id="byhargaStats"></div>
+      <div class="rks-shell">
+        <div class="rks-main"><div id="byhargaDetail"></div></div>
+        <div id="byhargaInputPanel">
+          <div class="rks-datatoko-panel-inner">
+            <div class="card">
+              <h3>Input By Harga Jual</h3>
+              <div class="hrow editable stack">
+                <div class="lbl">Produk<span class="ket">pilih dari Price List</span></div>
+                <div class="val"><select id="byhargaProduk" style="font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:6px 8px;"></select></div>
+              </div>
+              <div class="hrow editable stack">
+                <div class="lbl">Harga Jual (Rp)<span class="ket">harga pasang di Shopee (Subtotal Pesanan), sebelum voucher</span></div>
+                <div class="val"><input type="text" inputmode="numeric" id="byhargaHarga" placeholder="mis. 99.000"></div>
+              </div>
+              <div class="hrow editable stack">
+                <div class="lbl">Voucher Penjual (Rp)<span class="ket">voucher toko yang ditanggung penjual, per pesanan</span></div>
+                <div class="val"><input type="text" inputmode="numeric" id="byhargaVoucher" placeholder="0"></div>
+                <div class="roas-note" id="byhargaVoucherNote"></div>
+                <button type="button" class="btn secondary small" id="byhargaVoucherAuto" style="display:none;">Pakai otomatis</button>
+              </div>
+              <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
+                <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
+                <div class="roas-seg" id="byhargaRoasSeg"></div>
+                <input type="text" inputmode="decimal" id="byhargaRoasInput" placeholder="ketik ROAS, mis. 6.00" style="display:none;">
+                <div class="roas-note" id="byhargaRoasNote"></div>
               </div>
             </div>
           </div>
@@ -1746,6 +1803,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='setting') renderSetting();
       if(btn.dataset.page==='proyeksi') renderProyeksi();
       if(btn.dataset.page==='byqty') renderByQty();
+      if(btn.dataset.page==='byharga') renderByHarga();
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
@@ -2285,6 +2343,7 @@ const PAGE_TITLES = {
   checkadmin: 'Check Admin',
   proyeksi: 'By Operasional',
   byqty: 'By Target Qty',
+  byharga: 'By Harga Jual',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   program: 'Analisis Program',
@@ -5020,6 +5079,7 @@ function renderByQtyResult(){
 function renderProyeksiHargaBoth(){
   if(document.getElementById('page-proyeksi')) renderProyeksi();
   if(document.getElementById('page-byqty')) renderByQty();
+  if(document.getElementById('page-byharga')) renderByHarga();
 }
 function showSubview(prefix, which){
   const listEl = document.getElementById(prefix+'View-list');
@@ -5039,6 +5099,281 @@ document.getElementById('btnProyeksiNext').addEventListener('click', ()=>showSub
 document.getElementById('btnProyeksiBack').addEventListener('click', ()=>showSubview('proyeksi','list'));
 document.getElementById('btnByqtyNext').addEventListener('click', ()=>showSubview('byqty','input'));
 document.getElementById('btnByqtyBack').addEventListener('click', ()=>showSubview('byqty','list'));
+
+/* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
+/* [21 Sep 2026] Konsep ketiga di Proyeksi Harga. By Operasional & By Target Qty MENGHITUNG harga jual (NET) dari target income;
+   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke minimum target income (Setting: Income Target)?"
+     Harga efektif (B) = Harga jual − Voucher penjual
+     Income/pcs        = B × (1 − Admin% − ACOS − Buffer% − Ops%) − HPP − BPP      (kebalikan persis rumus NET di calcNetPrice)
+     Harga minimum     = NET + Voucher  (NET = calcNetPrice, sama persis dengan tab lain)
+   Kenapa dihitung dari harga SETELAH voucher: di rincian pembayaran Shopee semua biaya persen (admin, layanan XTRA, gratis ongkir) ternyata dihitung dari harga
+   setelah voucher penjual, dan Total Pendapatan di Rekap juga setelah voucher -> Admin%/ACOS/Ops% dari Rekap basisnya sama (B), bukan harga jual mentah.
+   Voucher: otomatis dari Order Completed file 1 (kolom voucher ditanggung penjual): nominal non-nol yang PALING SERING dipakai di order SKU itu (dihitung sekali per No. Pesanan);
+   bisa di-override manual. Sumber ROAS: 4 pilihan yang sama dengan tab lain. Semua state halaman ini cuma di memori (gak disimpen) — sama seperti simulasi ROAS. */
+const byhargaRoasSim = { source:'mingguan', input:null };
+function resolveByhargaRoas(){ return resolveRoasSim(byhargaRoasSim); }
+function renderByhargaRoasControl(){ renderRoasSimControl('byharga', byhargaRoasSim, renderByHargaResult); }
+bindRoasSimInput('byharga', byhargaRoasSim, ()=>renderByHargaResult());
+
+let byhargaSelectedSku = null;
+const byhargaHargaBySku = {};       // SKU Price List -> harga jual yang lagi diketik
+const byhargaVoucherManual = {};    // SKU Price List -> voucher manual (gak ada key = pakai otomatis)
+const BYHARGA_TIPIS = 0.01;         // ruang aman < 1 poin persen = ditandai kuning ("masuk tapi tipis")
+function byhEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function byhargaNum(v){
+  if(v===null || v===undefined || v==='') return 0;
+  if(typeof v==='number') return isFinite(v) ? v : 0;
+  const n = parseNum(v);
+  return (n===null || !isFinite(n)) ? 0 : n;
+}
+// Kolom voucher ditanggung penjual di Order Completed (persis "Voucher Ditanggung Penjual", atau header yang mengandung voucher + penjual/toko, BUKAN yang Shopee)
+function byhargaVoucherCol(headers){
+  const norm = h=>String(h||'').trim().toLowerCase();
+  const exact = headers.find(h=>norm(h)==='voucher ditanggung penjual');
+  if(exact) return exact;
+  return headers.find(h=>{ const n = norm(h); return n.includes('voucher') && /(penjual|toko|seller)/.test(n) && !n.includes('shopee'); }) || null;
+}
+// Baris Price List = "SKU Induk" atau "SKU Induk — SIZE" (lihat syncPriceListFromHpp)
+function byhargaSkuParts(plSku){
+  const i = plSku.indexOf(' — ');
+  return i<0 ? { induk: plSku.trim().toLowerCase(), size:null }
+             : { induk: plSku.slice(0,i).trim().toLowerCase(), size: plSku.slice(i+3).trim().toLowerCase() };
+}
+function byhargaMatchRow(parts, r){
+  if((resolveOrderRowSkuInduk(r)||'').toString().trim().toLowerCase() !== parts.induk) return false;
+  if(parts.size===null) return true;
+  const variasi = (r['Nama Variasi']||'').toString().trim();
+  return extractSizeToken(variasi)===parts.size || variasi.toLowerCase()===parts.size;
+}
+const byhargaVcCache = { rows:null, map:new Map() };
+function byhargaVoucherStats(plSku){
+  const slot = state.orderSlots.find(Boolean);   // "file 1" = slot Order Completed pertama yang terisi
+  if(!slot || !slot.rows || !slot.rows.length) return { status:'nofile' };
+  if(byhargaVcCache.rows !== slot.rows){ byhargaVcCache.rows = slot.rows; byhargaVcCache.map = new Map(); }
+  if(byhargaVcCache.map.has(plSku)) return byhargaVcCache.map.get(plSku);
+  const rows = slot.rows;
+  const col = byhargaVoucherCol(Object.keys(rows[0]));
+  let res;
+  if(!col){
+    res = { status:'nocol', file:slot.name };
+  } else {
+    const parts = byhargaSkuParts(plSku);
+    const orders = new Map();
+    rows.forEach(r=>{
+      const no = (r['No. Pesanan']||'').toString().trim(); if(!no) return;
+      let o = orders.get(no);
+      if(!o){ o = { lines:new Set(), n:0, allMatch:true, anyMatch:false, qty:0, voucher:0 }; orders.set(no, o); }
+      const lk = [r['Nomor Referensi SKU'], r['Nama Variasi'], r['Jumlah']].join('~');
+      if(o.lines.has(lk)) return;                       // baris ganda pada order yang sama
+      o.lines.add(lk); o.n++;
+      if(byhargaMatchRow(parts, r)){ o.anyMatch = true; o.qty += Number(r['Jumlah'])||0; } else { o.allMatch = false; }
+      const v = Math.abs(byhargaNum(r[col]));           // voucher itu level ORDER (nilainya berulang di tiap baris) -> ambil sekali
+      if(v>o.voucher) o.voucher = v;
+    });
+    // Basis: order yang isinya HANYA SKU ini. Utama = order 1 baris & 1 pcs (cocok dengan asumsi simulasi 1 order = 1 pcs); kalau gak ada, order lain dibagi qty.
+    const single = [], multi = [];
+    orders.forEach(o=>{
+      if(!o.anyMatch || !o.allMatch) return;
+      if(o.n===1 && o.qty===1) single.push(o.voucher);
+      multi.push(o.qty>0 ? o.voucher/o.qty : o.voucher);
+    });
+    const vals = single.length ? single : multi;
+    if(!vals.length){
+      res = { status:'nomatch', file:slot.name, col };
+    } else {
+      const cnt = new Map();
+      vals.filter(v=>v>0).forEach(v=>{ const k = Math.round(v); cnt.set(k, (cnt.get(k)||0)+1); });
+      let mode = 0, best = 0;
+      cnt.forEach((c,v)=>{ if(c>best || (c===best && v>mode)){ best = c; mode = v; } });   // seri -> ambil yang lebih besar (lebih hati-hati)
+      const nVoucher = vals.filter(v=>v>0).length;
+      res = { status:'ok', file:slot.name, col, tier: single.length?'single':'multi', n:vals.length, nVoucher, share:nVoucher/vals.length, mode };
+    }
+  }
+  byhargaVcCache.map.set(plSku, res);
+  return res;
+}
+function byhargaVoucherFor(sku){
+  const st = byhargaVoucherStats(sku);
+  const auto = (st.status==='ok') ? st.mode : 0;
+  const manual = byhargaVoucherManual[sku];
+  const isManual = (manual!==undefined && manual!==null);
+  return { value: isManual ? manual : auto, auto, isManual, stats:st };
+}
+
+// Hitung murni (gak nyentuh DOM) — dipakai render & gampang dites
+function byhargaCompute(row, harga, voucher, roas){
+  const { adminPct, bpp } = resolveAdminBpp();
+  const admin = (adminPct||0)/100;
+  const acos = (roas && roas>0) ? 1/roas : 0;
+  const lainnya = (state.settings.lainnyaPct||0)/100;
+  const ops = plOpsPct()/100;
+  const denom = 1 - admin - acos - lainnya - ops;
+  const hpp = row.hpp||0, bppV = bpp||0, T = state.settings.minNpmRp||0;
+  if(denom<=0) return { ok:false, reason:'denom' };
+  const net = calcNetPrice(row, roas);
+  const r = { ok:true, admin, acos, lainnya, ops, denom, hpp, bpp:bppV, T, net, roas, voucher,
+              hargaMin:(net===null)?null:net+voucher, hasPrice:false, invalid:null };
+  if(harga>0){
+    const B = harga - voucher;
+    r.hasPrice = true; r.harga = harga; r.B = B;
+    if(B>0){
+      const income = B*denom - hpp - bppV;
+      const base = 1 - admin - lainnya - ops;
+      const aTarget = base - (hpp+bppV+T)/B, aImpas = base - (hpp+bppV)/B;
+      r.income = income; r.incomeR = Math.round(income);
+      r.masuk = r.incomeR >= T;
+      r.diff = r.incomeR - T;
+      r.ruang = (income - T)/B;                        // berapa poin (fraksi B) potongan boleh naik sebelum income < target
+      r.roasMin = aTarget>0 ? 1/aTarget : null;         // ROAS minimal supaya tetap masuk target
+      r.roasImpas = aImpas>0 ? 1/aImpas : null;         // ROAS minimal supaya income >= 0
+      r.rasioIncome = income/B;
+      r.incomeTanpaVoucher = harga*denom - hpp - bppV;
+    } else { r.masuk = false; r.invalid = 'voucher'; }
+  }
+  return r;
+}
+
+function byhargaSyncInputs(){
+  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher');
+  const sku = byhargaSelectedSku;
+  if(!sku){ hEl.value = ''; vEl.value = ''; return; }
+  if(document.activeElement!==hEl){ const pr = byhargaHargaBySku[sku]; hEl.value = pr>0 ? fmtNum(pr) : ''; }
+  if(document.activeElement!==vEl){ vEl.value = fmtNum(byhargaVoucherFor(sku).value); }
+}
+function byhargaRenderVoucherNote(){
+  const noteEl = document.getElementById('byhargaVoucherNote'), autoBtn = document.getElementById('byhargaVoucherAuto');
+  const sku = byhargaSelectedSku;
+  if(!sku){ noteEl.textContent = ''; autoBtn.style.display = 'none'; return; }
+  const vc = byhargaVoucherFor(sku), st = vc.stats;
+  let txt;
+  if(st.status==='nofile') txt = 'Belum ada Order Completed file 1 — isi voucher manual.';
+  else if(st.status==='nocol') txt = 'Kolom voucher penjual tidak ditemukan di "'+st.file+'" — isi manual.';
+  else if(st.status==='nomatch') txt = 'SKU ini tidak ada di file 1 ('+st.file+') — isi manual.';
+  else if(st.mode>0) txt = 'Otomatis: '+fmtRp(st.mode)+' — paling sering, dipakai di '+Math.round(st.share*100)+'% dari '+st.n.toLocaleString('id-ID')+' order (file 1).';
+  else txt = 'Otomatis: tidak ada order ber-voucher untuk SKU ini di file 1 ('+st.n.toLocaleString('id-ID')+' order).';
+  if(vc.isManual && st.status==='ok') txt = 'Manual. '+txt;
+  else if(vc.isManual) txt = 'Manual. '+txt;
+  noteEl.textContent = txt; noteEl.title = txt;
+  autoBtn.style.display = (vc.isManual && st.status==='ok') ? '' : 'none';
+}
+
+function renderByHarga(){
+  const sel = document.getElementById('byhargaProduk');
+  fillProdukSelect(sel, byhargaSelectedSku);
+  byhargaSelectedSku = sel.value || null;
+  sel.onchange = ()=>{ byhargaSelectedSku = sel.value || null; byhargaSyncInputs(); renderByHargaResult(); };
+  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher');
+  if(!hEl.dataset.bound){
+    hEl.dataset.bound = '1';
+    attachThousands(hEl); attachThousands(vEl);
+    hEl.addEventListener('input', ()=>{
+      if(!byhargaSelectedSku) return;
+      const v = parseNum(hEl.value);
+      byhargaHargaBySku[byhargaSelectedSku] = (v>0) ? v : null;
+      renderByHargaResult();
+    });
+    vEl.addEventListener('input', ()=>{
+      if(!byhargaSelectedSku) return;
+      byhargaVoucherManual[byhargaSelectedSku] = parseNum(vEl.value)||0;
+      renderByHargaResult();
+    });
+    document.getElementById('byhargaVoucherAuto').addEventListener('click', ()=>{
+      if(!byhargaSelectedSku) return;
+      delete byhargaVoucherManual[byhargaSelectedSku];
+      byhargaSyncInputs();
+      renderByHargaResult();
+    });
+  }
+  renderByhargaRoasControl();
+  byhargaSyncInputs();
+  renderByHargaResult();
+}
+
+function renderByHargaResult(){
+  const statsEl = document.getElementById('byhargaStats'), detailEl = document.getElementById('byhargaDetail');
+  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku);
+  byhargaRenderVoucherNote();
+  if(!row){
+    detailEl.innerHTML = '';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Price List masih kosong — buka By Operasional atau By Target Qty, lalu klik "Salin dari HPP".</div></div>';
+    return;
+  }
+  const { roas } = resolveByhargaRoas();
+  const vc = byhargaVoucherFor(row.sku);
+  const V = vc.value||0;
+  const hargaRaw = parseNum(document.getElementById('byhargaHarga').value);
+  const P = (hargaRaw>0) ? hargaRaw : 0;
+  const c = byhargaCompute(row, P, V, roas);
+  if(!c.ok){
+    detailEl.innerHTML = '';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA+OPS harus &lt;100%).</div></div>';
+    return;
+  }
+  const T = c.T;
+  const has = c.hasPrice && !c.invalid;
+  const sgnRp = n=>(n<0?'−':'+')+'Rp'+Math.abs(Math.round(n)).toLocaleString('id-ID');
+  const hr = (lbl, val, hl)=>'<div class="hrow'+(hl?' highlight':'')+'"><div class="lbl">'+lbl+'</div><div class="val">'+val+'</div></div>';
+  const pct = x=>'<span class="byh-pct">'+fmtPct(x)+'</span>';
+
+  // ---- kartu ringkas di atas ----
+  let cVerdict='', vVerdict='—', sVerdict = c.invalid ? 'harga jual harus lebih besar dari voucher' : 'isi Harga Jual di panel Input';
+  if(has){
+    cVerdict = c.masuk ? (c.ruang<BYHARGA_TIPIS ? 'warn' : 'good') : 'bad';
+    vVerdict = c.masuk ? 'MASUK' : 'TIDAK MASUK';
+    sVerdict = 'Income '+fmtRp(c.incomeR)+(c.masuk?' ≥ ':' < ')+'target '+fmtRp(T);
+  } else if(c.invalid){ cVerdict='bad'; vVerdict='TIDAK MASUK'; }
+  const ruangTxt = has ? ((c.ruang>=0?'+':'−')+Math.abs(c.ruang*100).toFixed(1)+' poin') : '—';
+  const ruangSub = has ? (c.ruang>=0 ? 'potongan boleh naik segini sebelum di bawah target' : 'potongan harus turun segini supaya masuk target') : '';
+  const roasSub = has ? ('ROAS sekarang '+((roas>0)?roas.toFixed(2)+'x':'-')+' · impas '+(c.roasImpas?c.roasImpas.toFixed(2)+'x':'tak tercapai')) : '';
+  statsEl.innerHTML = `
+    <div class="stat-grid stat-grid-6">
+      ${statCard('Hasil', vVerdict, sVerdict, cVerdict)}
+      ${statCard('Income / Pcs', has?fmtRp(c.incomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.incomeR<0?'bad':''):'')}
+      ${statCard('Harga Efektif', has?fmtRp(c.B):'—', has?(fmtRp(P)+' − voucher '+fmtRp(V)):'harga jual − voucher')}
+      ${statCard('Harga Minimum', c.hargaMin===null?'—':fmtRp(c.hargaMin), 'NET '+fmtRp(c.net)+' + voucher '+fmtRp(V), 'accent')}
+      ${statCard('Ruang Aman', ruangTxt, ruangSub, has?(c.masuk?(c.ruang<BYHARGA_TIPIS?'warn':''):'bad'):'')}
+      ${statCard('ROAS Minimum', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'—', has?(c.roasMin?roasSub:'tanpa iklan pun di bawah target'):'supaya tetap masuk target')}
+    </div>
+    ${(roas>0)?'':'<div class="byh-hint">ROAS belum ada — ACOS dihitung 0%. Isi Target ROAS di Setting atau pilih sumber ROAS di panel Input.</div>'}`;
+
+  // ---- rincian ----
+  const B = has ? c.B : undefined;
+  const neg = x=>(has ? -x : undefined);
+  const left = `
+    <div class="card byh-card"><h3>Perhitungan per pcs</h3>
+      ${hr('HARGA JUAL', c.hasPrice?fmtRp(P):'-')}
+      ${hr('VOUCHER PENJUAL', c.hasPrice?fmtRp(-V):'-')}
+      ${hr('HARGA EFEKTIF', has?fmtRp(B):'-', true)}
+      ${hr('ADMIN & LAYANAN'+pct(c.admin), has?fmtRp(neg(B*c.admin)):'-')}
+      ${hr('BPP', has?fmtRp(-c.bpp):'-')}
+      ${hr('IKLAN (ACOS)'+pct(c.acos), has?fmtRp(neg(B*c.acos)):'-')}
+      ${hr('BUFFER (LAINNYA)'+pct(c.lainnya), has?fmtRp(neg(B*c.lainnya)):'-')}
+      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(neg(B*c.ops)):'-')}
+      ${hr('HPP', has?fmtRp(-c.hpp):'-')}
+      ${hr('INCOME / PCS', has?fmtRp(c.income):'-', true)}
+    </div>`;
+  const right = `
+    <div class="byh-col">
+      <div class="card byh-card"><h3>Batas aman</h3>
+        ${hr('HARGA MINIMUM', c.hargaMin===null?'-':fmtRp(c.hargaMin), true)}
+        ${hr('SELISIH HARGA', (has&&c.hargaMin!==null)?sgnRp(P-c.hargaMin):'-')}
+        ${hr('ROAS MINIMUM (TARGET)', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'-')}
+        ${hr('ROAS IMPAS (INCOME 0)', (has&&c.roasImpas)?c.roasImpas.toFixed(2)+'x':'-')}
+        ${hr('RASIO INCOME', has?fmtPct(c.rasioIncome):'-')}
+        <div class="byh-note">Harga minimum = NET (dari Income Target ${fmtRp(T)}) + voucher. Rasio & ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
+      </div>
+      <div class="card byh-card"><h3>Voucher penjual</h3>
+        ${hr('DIPAKAI'+(vc.isManual?'<span class="byh-pct">manual</span>':'<span class="byh-pct">otomatis</span>'), fmtRp(V))}
+        ${hr('PALING SERING (FILE 1)', vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
+        ${hr('DIPAKAI DI', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
+        ${hr('INCOME TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
+        <div class="byh-note">${vc.stats.status==='ok'
+          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'.')
+          : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
+      </div>
+    </div>`;
+  detailEl.innerHTML = '<div class="byh-cols">'+left+right+'</div>';
+}
 
 /* ================= PAGE: SETTING ================= */
 function settingEditableInputs(){

@@ -22,7 +22,9 @@
 // popup pilih bulan/minggu di tengah layar, tombol mode Rekap (bulan/minggu + ⇄) tampil lagi, tinggi Rekap sampai ujung bawah, header RKS Mingguan [Periode][Toko][PDF].
 //
 // (7) [21 Sep 2026] Tombol PDF di HP dipindah dari header ke SEJAJAR KIRI kartu Net Income (ikon saja, kecil), di RKS Overview DAN RKS Mingguan (Overview sebelumnya belum punya).
-// Kartu Net Income 1 baris (label kiri, nilai IDR kanan). Header RKS Mingguan jadi [Periode][Toko] saja. Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
+// Kartu Net Income 1 baris (label kiri, nilai IDR kanan). Header RKS Mingguan jadi [Periode][Toko] saja.
+//
+// (8) [21 Sep 2026] Tab baru Proyeksi Harga > By Harga Jual (byharga): masuk daftar tab & PHONE_PAGES; layout HP mengikuti By Target Qty (hasil di atas, panel Input di bawah). Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -33,7 +35,7 @@
   // ── Peta menu: sub-menu sidebar → tab. Kunci halaman = data-page di analisis.html ──
   var GROUPS = {
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap'], ['hpp', 'HPP Produk'], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan']] },
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
   var GROUP_ORDER = ['rasio', 'proyeksi', 'setting'];
@@ -47,7 +49,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'setting'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -241,6 +243,11 @@
     'html.zan-phone #page-proyeksi.active,html.zan-phone #page-byqty.active,html.zan-phone #proyeksiView-input.active,html.zan-phone #byqtyView-input.active{display:block;flex:none;min-height:0;}',
     'html.zan-phone #proyeksiView-input .rks-shell,html.zan-phone #byqtyView-input .rks-shell{display:block;}',
     'html.zan-phone #proyeksiInputPanel,html.zan-phone #byqtyInputPanel{width:100%;flex:none;margin-top:10px;}',
+    // [21 Sep 2026] By Harga Jual: sama seperti By Target Qty — hasil di atas, panel Input di bawah, satu kolom
+    'html.zan-phone #byhargaView-input .rks-shell{display:block;}',
+    'html.zan-phone #byhargaInputPanel{width:100%;flex:none;margin-top:10px;}',
+    'html.zan-phone .byh-cols{grid-template-columns:1fr;gap:10px;}',
+    'html.zan-phone .byh-col{gap:10px;}',
     'html.zan-phone .pricelist-scroll{max-height:none;}',
     'html.zan-phone #proyeksiView-list > div:first-child,html.zan-phone #byqtyView-list > div:first-child{gap:8px;}',
     'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',
