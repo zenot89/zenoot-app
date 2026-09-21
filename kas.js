@@ -2988,24 +2988,56 @@ function kasClosePicker(list) {
 var _kasAkunPickerCtx      = null; // {pickerId, targetId, isDebit, tipe}
 var _kasAkunPickerVpHandler = null;
 
-// ─── Terakhir digunakan — MRU akun per konteks (tipe transaksi + posisi
-// debit/kredit), disimpan di localStorage, max 4, terbaru duluan.
-// Discoped per konteks karena kelompok yg boleh dipilih beda-beda per tipe
-// (misal akun kredit buat "keluar" != akun kredit buat "masuk"). ──────────
+// ─── Terakhir digunakan — akun per konteks (tipe transaksi + posisi
+// debit/kredit), disimpan di localStorage. Discoped per konteks karena
+// kelompok yg boleh dipilih beda-beda per tipe (misal akun kredit buat
+// "keluar" != akun kredit buat "masuk").
+// [22 Sep 2026] UBAH urutan dari MRU (recency, terakhir dipakai duluan) jadi
+// FREKUENSI (paling SERING dipakai duluan; kalau count sama, yang lebih baru
+// dipakai menang sebagai tie-break). Format lama (array polos id urutan
+// recency) otomatis dimigrasi pas kebaca pertama kali (dikasih bobot count
+// menurun sesuai posisi lama), biar histori lama gak hilang/error. Interface
+// _kasRecentAkunGet(ctx) tetap balikin array id max 4 sama kayak sebelumnya —
+// kode render "Terakhir Digunakan" di bawah gak perlu diubah. ──────────
 function _kasRecentAkunKey(ctx) {
   return 'kas_recent_akun_' + (ctx.tipe || '') + '_' + (ctx.isDebit ? 'd' : 'k');
 }
+function _kasRecentAkunMap(ctx) {
+  var raw;
+  try { raw = JSON.parse(localStorage.getItem(_kasRecentAkunKey(ctx)) || 'null'); }
+  catch(e) { raw = null; }
+  if (Array.isArray(raw)) {
+    // Migrasi format lama (MRU array, index 0 = terbaru) -> map {id:{n,t}}.
+    var migrated = {};
+    raw.forEach(function(id, i) { migrated[String(id)] = { n: raw.length - i, t: Date.now() - i }; });
+    return migrated;
+  }
+  return (raw && typeof raw === 'object') ? raw : {};
+}
 function _kasRecentAkunGet(ctx) {
-  try { return JSON.parse(localStorage.getItem(_kasRecentAkunKey(ctx)) || '[]'); }
-  catch(e) { return []; }
+  var map = _kasRecentAkunMap(ctx);
+  return Object.keys(map)
+    .sort(function(a, b) { return (map[b].n - map[a].n) || (map[b].t - map[a].t); })
+    .slice(0, 4);
 }
 function _kasRecentAkunPush(ctx, id) {
   if (!ctx || !id) return;
   try {
     var key = _kasRecentAkunKey(ctx);
-    var arr = _kasRecentAkunGet(ctx).filter(function(x) { return String(x) !== String(id); });
-    arr.unshift(String(id));
-    localStorage.setItem(key, JSON.stringify(arr.slice(0, 4)));
+    var map = _kasRecentAkunMap(ctx);
+    var k = String(id);
+    var cur = map[k] || { n: 0, t: 0 };
+    map[k] = { n: cur.n + 1, t: Date.now() };
+    // Simpen maksimal 20 akun paling relevan (count tertinggi/terbaru) biar
+    // localStorage gak numpuk akun yg cuma kepencet 1x bertahun-tahun lalu —
+    // 4 yg ditampilin di UI tetap cukup diambil dari sini.
+    var keys = Object.keys(map).sort(function(a, b) { return (map[b].n - map[a].n) || (map[b].t - map[a].t); });
+    if (keys.length > 20) {
+      var pruned = {};
+      keys.slice(0, 20).forEach(function(kk) { pruned[kk] = map[kk]; });
+      map = pruned;
+    }
+    localStorage.setItem(key, JSON.stringify(map));
   } catch(e) {}
 }
 
