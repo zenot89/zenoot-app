@@ -12,6 +12,8 @@
 // bisa dibuka (daftar di PHONE_PAGES), tapi tombol/panel EKSEKUSI upload (Data Toko, Simpan ke Rekap, Export PDF, Hapus/Edit file, Pilih data di
 // Rekap, tambah/ubah/hapus toko) disembunyikan — upload & analisis murni di laptop. RKS Overview & RKS Mingguan = tampilan paling matang;
 // Rekap/Rekap Mingguan dipadatkan (kolom Kriteria sticky); HPP/Check Admin/Proyeksi/Setting baru dijaga supaya tidak melebar keluar layar.
+// RKS Overview & RKS Mingguan di HP mengikuti pola halaman Hutang: minicard di atas (swipe ke atas = minimize, ke bawah = buka),
+// tabel di bawah bisa digeser Ringkasan ↔ Rasio dengan indikator ● ●; semua teks hitam, angka negatif merah.
 // Semua aturan HP hidup di file INI (CSS + filter tab) — laptop tidak tersentuh.
 //
 // analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
@@ -104,47 +106,73 @@
   // ── CSS mode HP (di-inject ke DALAM iframe; semua selector diawali html.zan-phone → tanpa class itu = tidak ada efek sama sekali) ──
   // Yang diatur: (1) tombol/panel eksekusi (upload, simpan, export, hapus, edit, kelola toko) disembunyikan, (2) layout 1 kolom dengan
   // scroll normal (aturan "1 layar penuh" laptop dimatikan), (3) header ringkas: judul kotak disembunyikan (sudah ada di tab), sisa pemilih toko.
+  // penyusun selector: satu aturan → dua halaman (RKS Overview #hasilWrap/#page-hasil  &  RKS Mingguan #hasilWrapM/#page-hasilM)
+  function hw(rest, body) { return 'html.zan-phone #hasilWrap' + rest + ',html.zan-phone #hasilWrapM' + rest.replace(/#hasilWrap\b/g, '#hasilWrapM') + '{' + body + '}'; }
+  function pg(rest, body) { return 'html.zan-phone #page-hasil' + rest + ',html.zan-phone #page-hasilM' + rest + '{' + body + '}'; }
   var PHONE_CSS = [
     'html.zan-phone body{display:block;min-height:0;}',
     'html.zan-phone.embed #main{display:block;padding:0 12px 24px;}',
-    // header: cuma pemilih toko (judul halaman sudah ada di tab)
-    'html.zan-phone.embed #storeTopbar{height:auto;min-height:52px;margin:0 -12px 10px -12px;padding:8px 12px;}',
+    // ══ Header satu baris: [Data saat ini ▾] kiri + pemilih toko kanan (judul halaman sudah ada di tab) ══
+    'html.zan-phone.embed #storeTopbar{height:56px;min-height:56px;box-sizing:border-box;margin:0 -12px 10px -12px;padding:8px 12px;}',
     'html.zan-phone #storeTopbar .page-title-bar{display:none;}',
-    'html.zan-phone #storeTopbar .store-badge{flex:1 1 auto;min-width:0;}',
-    'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
-    'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;}',
+    'html.zan-phone #storeTopbar .store-badge{flex:1 1 auto;min-width:0;height:40px;box-sizing:border-box;color:#000;}',
+    'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;}',
+    'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;color:#000;}',
+    // di RKS Overview badge toko bergeser ke kanan, tombol bulan (fixed, di atas topbar) menempati sisi kiri baris yang sama
+    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc(40vw + 8px);}',
+    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:40vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
+    'html.zan-phone #btnHasilMonth:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
+    'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
     'html.zan-phone #btnToggleDataTokoPanel,html.zan-phone #btnToggleDataTokoPanelM,html.zan-phone #btnSimpanRekap,html.zan-phone #btnSimpanRekapM,',
     'html.zan-phone #btnExportPDF,html.zan-phone #btnExportPDFM{display:none !important;}',
     'html.zan-phone .rks-datatoko-panel,html.zan-phone #tokoSetupCard{display:none !important;}',
     'html.zan-phone #page-hasilM .page-head,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
-    'html.zan-phone #page-hasil .page-head{margin-bottom:10px;justify-content:flex-start;}',
-    'html.zan-phone #page-hasil .page-head .toolbar{margin-bottom:0;}',
-    'html.zan-phone #btnHasilMonth{padding:9px 14px;}',
+    'html.zan-phone #page-hasil .page-head{margin:0;padding:0;height:0;min-height:0;}',
+    'html.zan-phone #page-hasil .page-head .toolbar{margin:0;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
     'html.zan-phone .toko-pop .tk-act,html.zan-phone .toko-pop .toko-add,html.zan-phone .toko-pop .toko-sep,html.zan-phone .toko-pop .toko-sep + .toko-item{display:none !important;}',
-    // layout: satu kolom, scroll normal
-    'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active{display:block;flex:none;min-height:0;}',
-    'html.zan-phone #page-hasil .rks-shell,html.zan-phone #page-hasilM .rks-shell{display:block;}',
-    'html.zan-phone #hasilWrap,html.zan-phone #hasilWrapM{display:block;height:auto;}',
-    'html.zan-phone #hasilWrap .hasil-grid,html.zan-phone #hasilWrapM .hasil-grid{display:block;}',
-    'html.zan-phone #hasilWrap .hasil-grid > .card,html.zan-phone #hasilWrapM .hasil-grid > .card{display:block;}',
-    'html.zan-phone #hasilWrap .hasil-grid > .card .hrow-list,html.zan-phone #hasilWrapM .hasil-grid > .card .hrow-list{display:block;}',
-    'html.zan-phone #page-hasil .card,html.zan-phone #page-hasilM .card{padding:12px;margin-bottom:10px;border-radius:10px;}',
-    'html.zan-phone #page-hasil .card h3,html.zan-phone #page-hasilM .card h3{font-size:15px;padding:6px 10px;margin-bottom:8px;}',
-    // Overview: Net Income selebar penuh, Laba/Rugi + Rasio Laba berdampingan
-    'html.zan-phone #page-hasil .stat-grid,html.zan-phone #page-hasilM .stat-grid{grid-template-columns:1fr 1fr;gap:8px;margin-top:8px !important;}',
-    'html.zan-phone #page-hasil .stat-grid .stat-card:first-child,html.zan-phone #page-hasilM .stat-grid .stat-card:first-child{grid-column:1 / -1;}',
-    'html.zan-phone #page-hasil .stat-card,html.zan-phone #page-hasilM .stat-card{padding:10px 12px;min-width:0;}',
-    'html.zan-phone #page-hasil .stat-card .stat-value,html.zan-phone #page-hasilM .stat-card .stat-value{font-size:16px;overflow-wrap:anywhere;}',
-    // baris angka: label kiri, nilai kanan; keterangan rumus disembunyikan (berguna di laptop, bikin daftar 2x lebih panjang di HP)
-    'html.zan-phone #page-hasil .hrow,html.zan-phone #page-hasilM .hrow{padding:8px 0;gap:10px;}',
-    'html.zan-phone #page-hasil .hrow .lbl,html.zan-phone #page-hasilM .hrow .lbl{font-size:12.5px;flex:1 1 auto;min-width:0;}',
-    'html.zan-phone #page-hasil .hrow .lbl .ket,html.zan-phone #page-hasilM .hrow .lbl .ket{display:none;}',
-    'html.zan-phone #page-hasil .hrow .val,html.zan-phone #page-hasilM .hrow .val{font-size:14px;}',
+
+    // ══ RKS Overview & RKS Mingguan — pola halaman Hutang: minicard di atas (bisa di-minimize), tabel di bawah bisa digeser ● ● ══
+    // rantai tinggi: halaman = 1 layar (tanpa scroll halaman); yang scroll cuma isi tabel
+    pg('.active', 'display:flex;flex-direction:column;flex:none;height:calc(100vh - 100px);min-height:0;margin-bottom:0;'),
+    pg(' .rks-shell', 'display:flex;flex:1 1 auto;min-height:0;gap:0;'),
+    hw('', 'display:flex;flex-direction:column;flex:1 1 auto;height:100%;min-width:0;min-height:0;'),
+    // minicard: tanpa kotak pembungkus "Overview"; 2 kolom; Net Income lebar penuh; Rasio Laba kiri, Laba/Rugi kanan
+    hw(' > .card:first-child', 'flex:0 0 auto;background:transparent;border:0;box-shadow:none;padding:0;margin:0 0 8px 0;overflow:hidden;max-height:300px;opacity:1;transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .22s ease,margin .28s ease;'),
+    hw('.zan-mini > .card:first-child', 'max-height:0 !important;opacity:0;margin-bottom:0 !important;pointer-events:none;'),
+    hw(' > .card:first-child h3', 'display:none;'),
+    hw(' > .card:first-child > div:first-child', 'margin:0 !important;padding:0 2px;gap:0 10px !important;'),
+    hw(' > .card:first-child > div:first-child > *', 'margin-bottom:6px;'),
+    hw(' .stat-grid', 'grid-template-columns:1fr 1fr !important;gap:8px !important;margin:0 !important;'),
+    hw(' .stat-card:nth-child(1)', 'grid-column:1 / -1;'),
+    hw(' .stat-card:nth-child(3)', 'order:1;'),
+    hw(' .stat-card:nth-child(2)', 'order:2;'),
+    hw(' .stat-card', 'padding:8px 12px;min-width:0;border-radius:10px;'),
+    hw(' .stat-card .stat-label', 'font-size:11px;margin-bottom:3px;'),
+    hw(' .stat-card .stat-value', 'font-size:17px;line-height:1.15;overflow-wrap:anywhere;'),
+    // tabel: zona geser horizontal (Ringkasan ↔ Rasio), tiap slide = 1 kartu selebar layar
+    hw(' .hasil-grid', 'display:flex;flex-direction:row;align-items:stretch;flex:1 1 0;min-height:0;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;'),
+    hw(' .hasil-grid::-webkit-scrollbar', 'display:none;'),
+    hw(' .hasil-grid > .card', 'flex:0 0 100%;min-width:0;box-sizing:border-box;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;min-height:0;margin:0 !important;padding:12px;'),
+    hw(' .hasil-grid > .card h3', 'flex:0 0 auto;position:relative;font-size:15px;padding:6px 64px 6px 10px;margin-bottom:6px;'),
+    // indikator ● ● di kanan judul (slide ini = titik hitam, slide lain = abu-abu) — murni CSS
+    hw(' .hasil-grid > .card h3::after', 'content:"";position:absolute;right:12px;top:50%;width:22px;height:8px;margin-top:-4px;background-repeat:no-repeat;background-size:8px 8px;'),
+    hw(' .hasil-grid > .card:nth-child(1) h3::after', 'background-image:radial-gradient(circle,#000 3.5px,transparent 4px),radial-gradient(circle,#BDBDBD 3.5px,transparent 4px);background-position:0 0,14px 0;'),
+    hw(' .hasil-grid > .card:nth-child(2) h3::after', 'background-image:radial-gradient(circle,#BDBDBD 3.5px,transparent 4px),radial-gradient(circle,#000 3.5px,transparent 4px);background-position:0 0,14px 0;'),
+    // baris angka: label kiri, nilai kanan; hanya baris yang scroll di dalam kartu; keterangan rumus disembunyikan
+    hw(' .hasil-grid > .card .hrow-list', 'flex:1 1 0;min-height:0;overflow-y:auto;display:block;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;'),
+    hw(' .hrow', 'padding:9px 0;gap:10px;'),
+    hw(' .hrow .lbl', 'font-size:13px;flex:1 1 auto;min-width:0;'),
+    hw(' .hrow .lbl .ket', 'display:none;'),
+    hw(' .hrow .val', 'font-size:14.5px;'),
     // baris Net Income / Laba-Rugi (nilai + persen): ditumpuk, bukan berdesakan di samping label
-    'html.zan-phone #page-hasil .hrow .val[style*="display:flex"],html.zan-phone #page-hasilM .hrow .val[style*="display:flex"]{flex-direction:column;align-items:flex-end;gap:1px !important;}',
+    hw(' .hrow .val[style*="display:flex"]', 'flex-direction:column;align-items:flex-end;gap:1px !important;'),
+    // WARNA: semua teks hitam; hanya angka negatif yang merah (class .zan-neg dipasang otomatis oleh markNeg())
+    hw(' .stat-label,html.zan-phone #hasilWrap .stat-value,html.zan-phone #hasilWrap .hrow .lbl,html.zan-phone #hasilWrap .hrow .val,html.zan-phone #hasilWrap .hrow .val *,html.zan-phone #hasilWrap h3,html.zan-phone #hasilWrap .hasil-src-badge', 'color:#000 !important;'),
+    hw(' > .card:first-child > div:first-child > span:not([style*="var(--bad)"])', 'color:#000 !important;'),
+    hw(' .zan-neg.zan-neg.zan-neg', 'color:var(--bad) !important;'),
     // teks yang menyuruh upload / klik "Data Toko" → ganti dengan penjelasan yang masuk akal di HP
     'html.zan-phone #page-hasil footer.note.status-warn,html.zan-phone #page-hasilM footer.note.status-warn{font-size:0;}',
     'html.zan-phone #page-hasil footer.note.status-warn::after,html.zan-phone #page-hasilM footer.note.status-warn::after{content:"\\26A0  Data Income & Iklan belum lengkap \\2014  lengkapi dari laptop biar rasio kehitung.";display:block;font-size:12px;}',
@@ -217,10 +245,63 @@
           (d.head || d.documentElement).appendChild(ps);
         }
         d.documentElement.classList.add('zan-phone');
+        stampFramePage(curPage || pendingPage);
+        initPhoneBehaviors(d);
       } else {
         d.documentElement.classList.remove('zan-phone');
+        d.documentElement.removeAttribute('data-zan-page');
       }
     } catch (e) {}
+  }
+
+  // Tandai halaman aktif di <html> iframe (dipakai CSS HP: mis. geser badge toko cuma di RKS Overview)
+  function stampFramePage(page) {
+    try {
+      var d = frame.contentDocument;
+      if (!d || !d.documentElement) return;
+      if (isPhone() && page) d.documentElement.setAttribute('data-zan-page', page);
+      else d.documentElement.removeAttribute('data-zan-page');
+    } catch (e) {}
+  }
+
+  // ── Perilaku HP di dalam iframe (sekali per dokumen iframe) ──
+  // (a) angka negatif → class .zan-neg (CSS bikin merah; sisanya hitam) — dipasang ulang tiap halaman di-render ulang
+  // (b) swipe vertikal di zona RKS Overview/Mingguan: geser ke ATAS = minimize minicard, geser ke BAWAH = buka lagi (sama seperti halaman Hutang)
+  var NEG_RE = /^\s*(\(|[-\u2212\u2013]\s*\d)/;   // "(Rp1.000)" atau "-29.8%"
+  function markNeg(root) {
+    var els = root.querySelectorAll('.stat-value, .hrow .val, .hrow .val > *');
+    for (var i = 0; i < els.length; i++) {
+      els[i].classList.toggle('zan-neg', NEG_RE.test(els[i].textContent || ''));
+    }
+  }
+  function initPhoneBehaviors(d) {
+    if (d.__zanPhoneInit) return;
+    d.__zanPhoneInit = true;
+    var win = d.defaultView;
+    ['hasilWrap', 'hasilWrapM'].forEach(function (id) {
+      var el = d.getElementById(id);
+      if (!el) return;
+      var run = function () { markNeg(el); };
+      new win.MutationObserver(run).observe(el, { childList: true, subtree: true, characterData: true });
+      run();
+    });
+    var ZONE = '#hasilWrap .hasil-grid, #hasilWrap > .card:first-child, #hasilWrapM .hasil-grid, #hasilWrapM > .card:first-child';
+    var sx = 0, sy = 0, track = false, wrapEl = null;
+    d.addEventListener('touchstart', function (e) {
+      var t = e.target;
+      if (!t || !t.closest || t.closest('button, input, select, a') || !t.closest(ZONE)) { track = false; return; }
+      wrapEl = t.closest('#hasilWrap, #hasilWrapM');
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; track = true;
+    }, { passive: true });
+    d.addEventListener('touchend', function (e) {
+      if (!track) return;
+      track = false;
+      if (!isPhone() || !wrapEl) return;
+      var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > Math.abs(dy) || Math.abs(dy) < 50) return;   // horizontal = ganti slide (native), gerakan pendek = abaikan
+      wrapEl.classList.toggle('zan-mini', dy < 0);                      // ke atas = minimize, ke bawah = buka
+    }, { passive: true });
+    d.addEventListener('touchcancel', function () { track = false; }, { passive: true });
   }
   frame.addEventListener('load', applyPhoneToFrame);
 
@@ -302,6 +383,7 @@
     curPage = page;
     lastTab[g] = page;
     markActiveTab(page);
+    stampFramePage(page);
   }
 
   tabsEl.addEventListener('click', function (e) {
