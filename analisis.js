@@ -14,6 +14,7 @@
 // Rekap/Rekap Mingguan dipadatkan (kolom Kriteria sticky); HPP/Check Admin/Proyeksi/Setting baru dijaga supaya tidak melebar keluar layar.
 // RKS Overview & RKS Mingguan di HP mengikuti pola halaman Hutang: minicard di atas (swipe ke atas = minimize, ke bawah = buka),
 // tabel di bawah bisa digeser Ringkasan ↔ Rasio dengan indikator ● ●; semua teks hitam, angka negatif merah.
+// Net Income & Laba/Rugi tampil di dua slide: nominal (IDR) di Ringkasan, persen di Rasio.
 // Semua aturan HP hidup di file INI (CSS + filter tab) — laptop tidak tersentuh.
 //
 // analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
@@ -119,8 +120,8 @@
     'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;}',
     'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;color:#000;}',
     // di RKS Overview badge toko bergeser ke kanan, tombol bulan (fixed, di atas topbar) menempati sisi kiri baris yang sama
-    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc(40vw + 8px);}',
-    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:40vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
+    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc(38vw + 8px);}',
+    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:38vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
     'html.zan-phone #btnHasilMonth:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
@@ -136,7 +137,9 @@
 
     // ══ RKS Overview & RKS Mingguan — pola halaman Hutang: minicard di atas (bisa di-minimize), tabel di bawah bisa digeser ● ● ══
     // rantai tinggi: halaman = 1 layar (tanpa scroll halaman); yang scroll cuma isi tabel
-    pg('.active', 'display:flex;flex-direction:column;flex:none;height:calc(100vh - 100px);min-height:0;margin-bottom:0;'),
+    pg('.active', 'display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;'),
+    // kotak Ringkasan/Rasio habis sampai ujung bawah layar (tanpa jarak menggantung): padding bawah #main dibuang di dua halaman ini
+    'html.zan-phone.embed[data-zan-page="hasil"] #main,html.zan-phone.embed[data-zan-page="hasilM"] #main{padding-bottom:0;}',
     pg(' .rks-shell', 'display:flex;flex:1 1 auto;min-height:0;gap:0;'),
     hw('', 'display:flex;flex-direction:column;flex:1 1 auto;height:100%;min-width:0;min-height:0;'),
     // minicard: tanpa kotak pembungkus "Overview"; 2 kolom; Net Income lebar penuh; Rasio Laba kiri, Laba/Rugi kanan
@@ -169,6 +172,10 @@
     hw(' .hrow .val', 'font-size:14.5px;'),
     // baris Net Income / Laba-Rugi (nilai + persen): ditumpuk, bukan berdesakan di samping label
     hw(' .hrow .val[style*="display:flex"]', 'flex-direction:column;align-items:flex-end;gap:1px !important;'),
+    // NET INCOME & LABA/RUGI ada di dua slide: Ringkasan = nominal (IDR), Rasio = persen (baris salinan diberi class .zan-dup oleh dupRows())
+    hw(' .hasil-grid > .card:nth-child(1) .zan-dup .val > span:nth-child(2)', 'display:none;'),
+    hw(' .hasil-grid > .card:nth-child(2) .hrow .val[style*="display:flex"] > span:nth-child(1)', 'display:none;'),
+    hw(' .hasil-grid > .card:nth-child(2) .hrow .val[style*="display:flex"] > span:nth-child(2)', 'font-size:inherit !important;'),
     // WARNA: semua teks hitam; hanya angka negatif yang merah (class .zan-neg dipasang otomatis oleh markNeg())
     hw(' .stat-label,html.zan-phone #hasilWrap .stat-value,html.zan-phone #hasilWrap .hrow .lbl,html.zan-phone #hasilWrap .hrow .val,html.zan-phone #hasilWrap .hrow .val *,html.zan-phone #hasilWrap h3,html.zan-phone #hasilWrap .hasil-src-badge', 'color:#000 !important;'),
     hw(' > .card:first-child > div:first-child > span:not([style*="var(--bad)"])', 'color:#000 !important;'),
@@ -274,6 +281,21 @@
       els[i].classList.toggle('zan-neg', NEG_RE.test(els[i].textContent || ''));
     }
   }
+  // Salin baris NET INCOME & LABA/RUGI (yang di kartu Rasio berisi nominal + persen) ke kartu Ringkasan; CSS lalu menampilkan
+  // nominalnya di Ringkasan dan persennya di Rasio. Aman dipanggil berulang: kalau salinan sudah ada, tidak berbuat apa-apa.
+  function dupRows(wrap) {
+    var grid = wrap.querySelector('.hasil-grid');
+    if (!grid || grid.children.length < 2) return;
+    var listA = grid.children[0].querySelector('.hrow-list'), listB = grid.children[1].querySelector('.hrow-list');
+    if (!listA || !listB || listA.querySelector('.zan-dup')) return;
+    var rows = listB.querySelectorAll('.hrow');
+    for (var i = 0; i < rows.length; i++) {
+      if (!rows[i].querySelector('.val[style*="display:flex"]')) continue;
+      var c = rows[i].cloneNode(true);
+      c.classList.add('zan-dup');
+      listA.appendChild(c);
+    }
+  }
   function initPhoneBehaviors(d) {
     if (d.__zanPhoneInit) return;
     d.__zanPhoneInit = true;
@@ -281,7 +303,7 @@
     ['hasilWrap', 'hasilWrapM'].forEach(function (id) {
       var el = d.getElementById(id);
       if (!el) return;
-      var run = function () { markNeg(el); };
+      var run = function () { dupRows(el); markNeg(el); };
       new win.MutationObserver(run).observe(el, { childList: true, subtree: true, characterData: true });
       run();
     });
@@ -463,7 +485,7 @@
   // Buka tab terakhir yang dipakai di sub-menu itu (default: tab pertama).
   window.analisisOpenGroup = function (group, btn) {
     if (!GROUPS[group]) return;
-    if (isPhone() && group !== 'rasio') group = 'rasio';   // HP: cuma sub-menu Rasio Keuangan (RKS Overview & RKS Mingguan)
+    if (isPhone() && !tabsOf(group).length) group = 'rasio';   // HP: grup yang SEMUA halamannya tidak ada di PHONE_PAGES dialihkan ke Rasio Keuangan
     var target = (curGroup === group && curPage) ? curPage : lastTab[group];
     window.analisisGoto(target, btn);
   };
