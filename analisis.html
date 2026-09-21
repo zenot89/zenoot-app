@@ -81,6 +81,13 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  /* [22 Sep 2026] FIX "goyang" pas ngetik di panel Input (By Harga Jual/By Qty/dst): tiap keystroke
+     renderByHargaResult() (dan render sejenis) nge-replace innerHTML statsEl/detailEl, tinggi konten
+     naik-turun dikit tiap ketik -> nyeberang batas tinggi viewport -> scrollbar browser muncul/hilang
+     -> lebar halaman berubah beberapa piksel -> seluruh layout keliatan geser tiap ketik.
+     Fix: kunci scrollbar vertikal SELALU ada di root, sama pola dengan .content{overflow-y:scroll}
+     di style.css (app utama) yang sudah lebih dulu nge-fix masalah sama di tempat lain. */
+  html{ overflow-y:scroll; }
   body{
     background:var(--bg);
     color:var(--ink);
