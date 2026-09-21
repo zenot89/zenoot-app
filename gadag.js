@@ -2842,6 +2842,32 @@ function _gdgAkunPickerReposition() {
   sheet.style.maxHeight = Math.max(240, vp.height - TOP_GAP) + 'px';
 }
 
+// ─── Terakhir digunakan — akun Anggaran Gadag, disimpan di localStorage per
+// NAMA (bukan id — konsisten sama data model gadag_anggaran yg link by nama),
+// diurutkan paling SERING dipakai duluan (pola sama kayak _kasRecentAkun* di
+// kas.js). [22 Sep 2026]
+function _gdgAngAkunRecentMap() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem('gdg_recent_akun_anggaran') || 'null'); } catch(e) { raw = null; }
+  return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+}
+function _gdgAngAkunRecentGet() {
+  const map = _gdgAngAkunRecentMap();
+  return Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t)).slice(0, 4);
+}
+function _gdgAngAkunRecentPush(nama) {
+  const key = String(nama||'').trim().toLowerCase();
+  if (!key) return;
+  try {
+    const map = _gdgAngAkunRecentMap();
+    const cur = map[key] || { n:0, t:0 };
+    map[key] = { n: cur.n+1, t: Date.now() };
+    const keys = Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t));
+    let pruned = map;
+    if (keys.length > 20) { pruned = {}; keys.slice(0,20).forEach(kk => pruned[kk]=map[kk]); }
+    localStorage.setItem('gdg_recent_akun_anggaran', JSON.stringify(pruned));
+  } catch(e) {}
+}
 function gdgAngAkunPickerRender(q) {
   const listEl = document.getElementById('gdg-akunpicker-list');
   if (!listEl) return;
@@ -2855,36 +2881,52 @@ function gdgAngAkunPickerRender(q) {
   const aktifSet = {};
   _gdgAnggaranList.forEach(r => { if (String(r.id) !== editId) aktifSet[String(r.nama || '').trim().toLowerCase()] = true; });
 
+  const byNama = {};
+  _gdgAngAkunCache.forEach(a => { byNama[String(a.nama||'').trim().toLowerCase()] = a; });
+
+  function _itemHtml(a) {
+    const nama    = String(a.nama || '');
+    const esc     = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const escAttr = esc.replace(/'/g,"\\'");
+    const key     = nama.trim().toLowerCase();
+    const isActive = key === currentVal;
+    const sudahAktif = aktifSet[key];
+    if (sudahAktif) {
+      return `<div class="gdg-akunpicker-item gdg-akunpicker-item-disabled">${esc} <span style="color:var(--gdg-ink3,#7a746c);font-weight:400">· sudah aktif</span></div>`;
+    }
+    return `<div class="gdg-akunpicker-item${isActive ? ' active' : ''}" onclick="gdgAngAkunPickerSelect('${escAttr}')">${esc}</div>`;
+  }
+
   q = (q || '').toLowerCase().trim();
   let akunList = _gdgAngAkunCache.slice();
   if (q) akunList = akunList.filter(a => String(a.nama || '').toLowerCase().indexOf(q) !== -1);
+
+  let html = '';
+
+  // "Terakhir Digunakan" — cuma pas search kosong, sama pola kayak kas.js.
+  if (!q) {
+    const recentAkun = _gdgAngAkunRecentGet().map(k => byNama[k]).filter(Boolean);
+    if (recentAkun.length) {
+      html += '<div class="gdg-akunpicker-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      recentAkun.forEach(a => { html += _itemHtml(a); });
+    }
+  }
 
   const order = ['kewajiban', 'beban'];
   const label = { kewajiban: 'Kewajiban', beban: 'Beban' };
   const grouped = {}; order.forEach(k => grouped[k] = []);
   akunList.forEach(a => { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
 
-  let html = '';
   order.forEach(k => {
     if (!grouped[k].length) return;
     html += '<div class="gdg-akunpicker-group">' + label[k] + '</div>';
-    grouped[k].forEach(a => {
-      const nama    = String(a.nama || '');
-      const esc     = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-      const escAttr = esc.replace(/'/g,"\\'");
-      const isActive = nama.trim().toLowerCase() === currentVal;
-      const sudahAktif = aktifSet[nama.trim().toLowerCase()];
-      if (sudahAktif) {
-        html += `<div class="gdg-akunpicker-item gdg-akunpicker-item-disabled">${esc} <span style="color:var(--gdg-ink3,#7a746c);font-weight:400">· sudah aktif</span></div>`;
-      } else {
-        html += `<div class="gdg-akunpicker-item${isActive ? ' active' : ''}" onclick="gdgAngAkunPickerSelect('${escAttr}')">${esc}</div>`;
-      }
-    });
+    grouped[k].forEach(a => { html += _itemHtml(a); });
   });
   listEl.innerHTML = html || '<div class="gdg-akunpicker-empty">Belum ada akun Beban/Kewajiban</div>';
 }
 
 async function gdgAngAkunPickerSelect(nama) {
+  _gdgAngAkunRecentPush(nama);
   const inp = document.getElementById('gdg-ang2-nama-input');
   if (inp) inp.value = nama;
   gdgAngAkunPickerClose();

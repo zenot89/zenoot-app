@@ -2004,6 +2004,31 @@ function _keuCicSheetRenderHutang(q) {
   }
   listEl.innerHTML = html;
 }
+// ─── Terakhir digunakan — akun Bayar Cicilan, disimpan di localStorage,
+// diurutkan paling SERING dipakai duluan (pola sama kayak _kasRecentAkun* di
+// kas.js / _angRecentAkun* di anggaran.js). [22 Sep 2026]
+function _keuRecentAkunMap() {
+  var raw;
+  try { raw = JSON.parse(localStorage.getItem('keu_recent_akun_cicilan') || 'null'); } catch(e) { raw = null; }
+  return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+}
+function _keuRecentAkunGet() {
+  var map = _keuRecentAkunMap();
+  return Object.keys(map).sort(function(a,b) { return (map[b].n-map[a].n) || (map[b].t-map[a].t); }).slice(0, 4);
+}
+function _keuRecentAkunPush(id) {
+  if (!id) return;
+  try {
+    var map = _keuRecentAkunMap();
+    var k = String(id);
+    var cur = map[k] || { n:0, t:0 };
+    map[k] = { n: cur.n+1, t: Date.now() };
+    var keys = Object.keys(map).sort(function(a,b) { return (map[b].n-map[a].n) || (map[b].t-map[a].t); });
+    var pruned = map;
+    if (keys.length > 20) { pruned = {}; keys.slice(0,20).forEach(function(kk) { pruned[kk]=map[kk]; }); }
+    localStorage.setItem('keu_recent_akun_cicilan', JSON.stringify(pruned));
+  } catch(e) {}
+}
 function _keuCicSheetRenderAkun(q) {
   var listEl = document.getElementById('keu-cic-sheet-list');
   if (!listEl) return;
@@ -2011,14 +2036,26 @@ function _keuCicSheetRenderAkun(q) {
   var items = _keuCicAkunList.filter(function(a) {
     return !q || a.nama.toLowerCase().indexOf(q) !== -1 || (a.kode||'').toLowerCase().indexOf(q) !== -1;
   });
+  function _itemHtml(a) {
+    var label = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
+    return '<div class="jp-sheet-item" onclick="keuCicSheetSelectAkun(\'' + a.id + '\')"><span>' + label + '</span></div>';
+  }
   var html = '';
+
+  // "Terakhir Digunakan" — cuma pas search kosong, sama pola kayak kas.js.
+  if (!q) {
+    var byId = {}; _keuCicAkunList.forEach(function(a) { byId[String(a.id)] = a; });
+    var recentAkun = _keuRecentAkunGet().map(function(id) { return byId[String(id)]; }).filter(Boolean);
+    if (recentAkun.length) {
+      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      recentAkun.forEach(function(a) { html += _itemHtml(a); });
+    }
+  }
+
   if (!items.length) {
-    html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada akun aset') + '</div>';
+    html += '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada akun aset') + '</div>';
   } else {
-    items.forEach(function(a) {
-      var label = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
-      html += '<div class="jp-sheet-item" onclick="keuCicSheetSelectAkun(\'' + a.id + '\')"><span>' + label + '</span></div>';
-    });
+    items.forEach(function(a) { html += _itemHtml(a); });
   }
   listEl.innerHTML = html;
 }
@@ -2042,6 +2079,7 @@ function keuCicSheetSelectAkun(id) {
     lbl.textContent = item ? ((item.kode ? item.kode+' \u00b7 ' : '') + item.nama) : '— Pilih Akun —';
     lbl.style.color = item ? 'var(--ink)' : 'var(--ink3)';
   }
+  _keuRecentAkunPush(id);
   try { localStorage.setItem('keu_last_bayar_akun', String(id)); } catch(e) {}
   keuCicSheetClose();
 }

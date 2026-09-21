@@ -786,6 +786,42 @@ function angAkunPickerFilter(q) { angAkunPickerRender(q); }
 //     dobel ke akun yang sama tanpa sadar (angSimpan sebenarnya udah aman
 //     dari duplikat row karena angAkunSelectChange auto-UPDATE row existing,
 //     tapi user tetep butuh cara TAU dari awal sebelum milih).
+// ─── Terakhir digunakan — akun Anggaran, disimpan di localStorage, diurutkan
+// paling SERING dipakai duluan (pola sama kayak _kasRecentAkun* di kas.js).
+// [22 Sep 2026]
+function _angRecentAkunMap() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem('ang_recent_akun') || 'null'); } catch(e) { raw = null; }
+  return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+}
+function _angRecentAkunGet() {
+  const map = _angRecentAkunMap();
+  return Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t)).slice(0, 4);
+}
+function _angRecentAkunPush(id) {
+  if (!id) return;
+  try {
+    const map = _angRecentAkunMap();
+    const k = String(id);
+    const cur = map[k] || { n:0, t:0 };
+    map[k] = { n: cur.n+1, t: Date.now() };
+    const keys = Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t));
+    let pruned = map;
+    if (keys.length > 20) { pruned = {}; keys.slice(0,20).forEach(kk => pruned[kk]=map[kk]); }
+    localStorage.setItem('ang_recent_akun', JSON.stringify(pruned));
+  } catch(e) {}
+}
+function _angAkunItemHtml(a, angMap, currentVal) {
+  const label = (a.nama||'—') + ' (' + (a.kode||'—') + ')';
+  const labelSafe = label.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const isActive = String(a.id) === String(currentVal);
+  const existing = angMap[String(a.id)];
+  const badge = existing
+    ? `<span style="font-size:10px;font-weight:700;color:var(--ok);white-space:nowrap;flex-shrink:0">✓ ${angFmt(Number(existing.nominal)||0)}</span>`
+    : '';
+  return `<div class="kas-akun-item${isActive?' active':''}" data-val="${a.id}" onclick="angAkunPickerSelectItem(this)">
+      <span class="kas-akun-nama">${labelSafe}</span>${badge}</div>`;
+}
 function angAkunPickerRender(q) {
   const listEl = document.getElementById('ang-akun-sheet-list');
   if (!listEl) return;
@@ -802,28 +838,34 @@ function angAkunPickerRender(q) {
     listEl.innerHTML = '<div class="kas-akun-empty">Tidak ditemukan</div>';
     return;
   }
-  let html = '', lastGroup = null;
+  let html = '';
+
+  // "Terakhir Digunakan" — cuma pas search kosong, sama pola kayak kas.js.
+  if (!q) {
+    const akunById = {};
+    (_angAkunAllBK || []).forEach(a => { akunById[String(a.id)] = a; });
+    const recentAkun = _angRecentAkunGet().map(id => akunById[String(id)]).filter(Boolean);
+    if (recentAkun.length) {
+      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      recentAkun.forEach(a => { html += _angAkunItemHtml(a, angMap, currentVal); });
+    }
+  }
+
+  let lastGroup = null;
   akunList.forEach(a => {
     const groupLabel = a.sub_kelompok || a.kelompok || '—';
     if (groupLabel !== lastGroup) {
       html += `<div class="kas-akun-group">${groupLabel}</div>`;
       lastGroup = groupLabel;
     }
-    const label = (a.nama||'—') + ' (' + (a.kode||'—') + ')';
-    const labelSafe = label.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    const isActive = String(a.id) === String(currentVal);
-    const existing = angMap[String(a.id)];
-    const badge = existing
-      ? `<span style="font-size:10px;font-weight:700;color:var(--ok);white-space:nowrap;flex-shrink:0">✓ ${angFmt(Number(existing.nominal)||0)}</span>`
-      : '';
-    html += `<div class="kas-akun-item${isActive?' active':''}" data-val="${a.id}" onclick="angAkunPickerSelectItem(this)">
-      <span class="kas-akun-nama">${labelSafe}</span>${badge}</div>`;
+    html += _angAkunItemHtml(a, angMap, currentVal);
   });
   listEl.innerHTML = html;
 }
 
 function angAkunPickerSelectItem(item) {
   const val = item.dataset.val;
+  _angRecentAkunPush(val);
   const sel = document.getElementById('ang-edit-akun-select');
   sel.value = val;
   sel.dispatchEvent(new Event('change'));
