@@ -20,6 +20,9 @@
 // (6) [21 Sep 2026] Permintaan "global" (HP + laptop) memaksa analisis.html ikut diubah (hanya bagian ini): RKS Overview default = bulan terakhir di Rekap
 // (opsi "Data saat ini" dihapus), RKS Mingguan dapat picker periode + default minggu terakhir di Rekap Mingguan. Di file INI cuma CSS HP-nya:
 // popup pilih bulan/minggu di tengah layar, tombol mode Rekap (bulan/minggu + ⇄) tampil lagi, tinggi Rekap sampai ujung bawah, header RKS Mingguan [Periode][Toko][PDF].
+//
+// (7) [21 Sep 2026] Tombol PDF di HP dipindah dari header ke SEJAJAR KIRI kartu Net Income (ikon saja, kecil), di RKS Overview DAN RKS Mingguan (Overview sebelumnya belum punya).
+// Header RKS Mingguan jadi [Periode][Toko] saja. Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -129,7 +132,8 @@
     'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
     'html.zan-phone #btnToggleDataTokoPanel,html.zan-phone #btnToggleDataTokoPanelM,html.zan-phone #btnSimpanRekap,html.zan-phone #btnSimpanRekapM,',
-    'html.zan-phone #btnExportPDF{display:none !important;}',
+    // [21 Sep 2026] tombol PDF header (Overview & Mingguan) disembunyikan di HP; diganti tombol ikon .zan-pdf-btn sejajar kartu Net Income (lihat ensurePdfBtn)
+    'html.zan-phone #btnExportPDF,html.zan-phone #btnExportPDFM{display:none !important;}',
     'html.zan-phone .rks-datatoko-panel,html.zan-phone #tokoSetupCard{display:none !important;}',
     'html.zan-phone #page-hasilM .page-head > .toolbar:first-child,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
     'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head{margin:0;padding:0;height:0;min-height:0;}',
@@ -141,9 +145,10 @@
     'html.zan-phone #btnHasilPeriodM #hasilPeriodLabelM{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
     'html.zan-phone #btnHasilPeriodM .hp-full{display:none;}',
     'html.zan-phone #btnHasilPeriodM .hp-short{display:inline;}',
-    'html.zan-phone #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:center;padding:0;font-size:0;color:#000;}',
-    'html.zan-phone #btnExportPDFM::after{content:"PDF";font-size:13px;font-weight:700;color:#000;}',
-    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc(36vw + 8px);margin-right:56px;}',
+    // [21 Sep 2026] DINONAKTIFKAN (tombol PDF Mingguan pindah ke sejajar kartu Net Income). Rule lama dipertahankan di sini biar gampang balik:
+    //   #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;...;font-size:0;} + #btnExportPDFM::after{content:"PDF";...}
+    // [21 Sep 2026] margin-right badge toko 56px -> 0 (tombol PDF sudah tidak ada di header)
+    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc(36vw + 8px);margin-right:0;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
     // [21 Sep 2026] popup pilih bulan/minggu: posisinya dari JS = nempel ke tombol (miring ke kiri di HP) → di HP dipaksa tepat di tengah layar
@@ -170,6 +175,14 @@
     hw(' .stat-card', 'padding:8px 12px;min-width:0;border-radius:10px;'),
     hw(' .stat-card .stat-label', 'font-size:11px;margin-bottom:3px;'),
     hw(' .stat-card .stat-value', 'font-size:17px;line-height:1.15;overflow-wrap:anywhere;'),
+    // [21 Sep 2026] Tombol PDF (ikon saja) sejajar di KIRI kartu Net Income, RKS Overview & RKS Mingguan. Tombolnya dibuat ensurePdfBtn() (JS) & ditaruh di dalam .stat-grid;
+    // kartu Net Income digeser 52px ke kanan (margin-left) dan tombol menempati ruang kosong itu di baris yang sama (tinggi otomatis ikut kartu Net Income).
+    // Rule dasar TANPA prefix html.zan-phone = tersembunyi, supaya kalau layar berubah HP -> laptop (mis. tablet diputar) tombolnya tidak nongol di laptop.
+    '.zan-pdf-btn{display:none;}',
+    hw(' .stat-grid.zan-has-pdf .stat-card:nth-child(1)', 'grid-column:1 / -1;grid-row:1;margin-left:52px;'),
+    hw(' .zan-pdf-btn', 'display:flex;align-items:center;justify-content:center;grid-column:1;grid-row:1;justify-self:start;align-self:stretch;width:44px;min-height:44px;box-sizing:border-box;padding:0;margin:0;background:var(--panel,#fff);border:1px solid var(--line,#D9D9D9);border-radius:10px;box-shadow:var(--shadow);cursor:pointer;-webkit-tap-highlight-color:transparent;'),
+    hw(' .zan-pdf-btn:active', 'background:var(--title-bg,#E4E4E4);'),
+    hw(' .zan-pdf-btn svg', 'width:26px;height:30px;display:block;pointer-events:none;'),
     // tabel: zona geser horizontal (Ringkasan ↔ Rasio), tiap slide = 1 kartu selebar layar
     hw(' .hasil-grid', 'display:flex;flex-direction:row;align-items:stretch;flex:1 1 0;min-height:0;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;'),
     hw(' .hasil-grid::-webkit-scrollbar', 'display:none;'),
@@ -318,6 +331,34 @@
       listA.appendChild(c);
     }
   }
+  // [21 Sep 2026] Tombol PDF (ikon saja) di HP, sejajar kiri kartu Net Income — RKS Overview & RKS Mingguan. Dibuat sekali per render (wrap di-render ulang lewat innerHTML
+  // oleh analisis.html, jadi dipasang ulang dari MutationObserver; aman dipanggil berulang). Klik = meneruskan klik ke tombol Export PDF asli (yang disembunyikan di header),
+  // jadi logika export/PDF-nya tetap satu sumber di analisis.html (rksExport). Posisi & ukuran diatur CSS (.zan-pdf-btn) di PHONE_CSS.
+  var PDF_ICON = '<svg viewBox="0 0 32 38" aria-hidden="true" focusable="false">' +
+    '<path d="M6 2h14l7 7v25a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#E5645A" stroke-width="1.8" stroke-linejoin="round"/>' +
+    '<path d="M20 2v7h7" fill="none" stroke="#E5645A" stroke-width="1.8" stroke-linejoin="round"/>' +
+    '<rect x="1" y="8" width="16" height="8" rx="1.5" fill="#fff" stroke="#E5645A" stroke-width="1.3"/>' +
+    '<text x="9" y="14.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="6" font-weight="700" fill="#E5645A">PDF</text>' +
+    '<circle cx="15.5" cy="27" r="6" fill="#E5645A"/>' +
+    '<path d="M15.5 23.6v6M12.9 27.3l2.6 2.7 2.6-2.7" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>';
+  function ensurePdfBtn(wrap) {
+    var grid = wrap.querySelector('.stat-grid');
+    if (!grid || grid.querySelector('.zan-pdf-btn')) return;
+    var d = wrap.ownerDocument;
+    var b = d.createElement('button');
+    b.type = 'button';
+    b.className = 'zan-pdf-btn';
+    b.setAttribute('aria-label', 'Export PDF');
+    b.title = 'Export PDF';
+    b.innerHTML = PDF_ICON;
+    b.addEventListener('click', function () {
+      var src = d.getElementById(wrap.id === 'hasilWrapM' ? 'btnExportPDFM' : 'btnExportPDF');
+      if (src) src.click();
+    });
+    grid.appendChild(b);           // terakhir → urutan nth-child kartu (Net Income, Laba/Rugi, Rasio Laba) tidak bergeser
+    grid.classList.add('zan-has-pdf');
+  }
   function initPhoneBehaviors(d) {
     if (d.__zanPhoneInit) return;
     d.__zanPhoneInit = true;
@@ -325,7 +366,7 @@
     ['hasilWrap', 'hasilWrapM'].forEach(function (id) {
       var el = d.getElementById(id);
       if (!el) return;
-      var run = function () { dupRows(el); markNeg(el); };
+      var run = function () { dupRows(el); ensurePdfBtn(el); markNeg(el); };
       new win.MutationObserver(run).observe(el, { childList: true, subtree: true, characterData: true });
       run();
     });
