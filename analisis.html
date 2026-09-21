@@ -713,6 +713,35 @@
   .ca-sheet-err{ font-size:11px; color:var(--bad); margin-top:-6px; margin-bottom:10px; display:none; }
   .ca-sheet-err.show{ display:block; }
 
+  /* [22 Sep 2026] Picker "Pilih Produk" (Proyeksi Harga: By Operasional/By Target Qty/By Harga Jual) — bottom sheet BRImo-style
+     (pola sama "Tambah SKU Baru" .ca-sheet di atas), ganti native <select>. Sumber list = Kelola Produk (zKatalogGroups), live. */
+  .pl-produk-btn{
+    width:100%; text-align:left; font-family:inherit; font-size:14px; font-weight:700;
+    border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff; color:var(--ink);
+    cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .pl-produk-btn:hover{ background:var(--panel-alt); }
+  .pl-produk-btn .pl-car{ color:var(--ink-soft); font-size:11px; flex:0 0 auto; }
+  #plSkuSheet{ max-height:78vh; display:flex; flex-direction:column; overflow:hidden; }
+  #plSkuSheetTitle{ font-size:14.5px; font-weight:700; padding:0 2px 10px; display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+  .pl-sheet-back{ all:unset; cursor:pointer; font-size:16px; color:var(--ink-soft); padding:2px 6px 2px 2px; line-height:1; }
+  .pl-sheet-back:hover{ color:var(--ink); }
+  #plSkuSheetSearch{
+    width:100%; box-sizing:border-box; font-size:13.5px; padding:9px 10px; border:1px solid var(--line);
+    border-radius:9px; font-family:inherit; margin-bottom:6px; flex:0 0 auto;
+  }
+  #plSkuSheetSearch:focus{ outline:none; border-color:var(--accent); }
+  #plSkuSheetList{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
+  .pl-sheet-item{
+    padding:11px 6px; border-radius:8px; cursor:pointer; display:flex; align-items:center;
+    justify-content:space-between; gap:10px; font-size:13.5px; border-bottom:1px solid var(--line);
+  }
+  .pl-sheet-item:last-child{ border-bottom:none; }
+  .pl-sheet-item:hover, .pl-sheet-item:active{ background:var(--panel-alt); }
+  .pl-sheet-item-main{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pl-sheet-item-meta{ font-size:11.5px; color:var(--ink-soft); white-space:nowrap; flex:0 0 auto; }
+  .pl-sheet-empty{ padding:28px 12px; text-align:center; color:var(--ink-soft); font-size:12.5px; font-style:italic; }
+
   .hrow{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); gap:14px; }
   /* 20 Sep 2026: HPP Produk baca-saja penuh (SKU Induk juga gak bisa diedit dari sini) — gak ada cursor pointer / efek hover */
   .sku-induk-cell{ border-radius:6px; }
@@ -1007,8 +1036,8 @@
             <div class="card">
               <h3>Input By Operasional</h3>
               <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Price List</span></div>
-                <div class="val"><select id="proyeksiProduk" style="font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:6px 8px;"></select></div>
+                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
+                <div class="val"><button type="button" class="pl-produk-btn" id="proyeksiProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
               </div>
               <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
                 <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
@@ -1048,8 +1077,8 @@
             <div class="card">
               <h3>Input By Target Qty</h3>
               <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Price List</span></div>
-                <div class="val"><select id="byqtyProduk" style="font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:6px 8px;"></select></div>
+                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
+                <div class="val"><button type="button" class="pl-produk-btn" id="byqtyProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
               </div>
               <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
                 <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
@@ -1079,8 +1108,8 @@
             <div class="card">
               <h3>Input By Harga Jual</h3>
               <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Price List</span></div>
-                <div class="val"><select id="byhargaProduk" style="font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:6px 8px;"></select></div>
+                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
+                <div class="val"><button type="button" class="pl-produk-btn" id="byhargaProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
               </div>
               <div class="hrow editable stack">
                 <div class="lbl">Harga Jual (Rp)<span class="ket">harga pasang di Shopee (Subtotal Pesanan), sebelum voucher</span></div>
@@ -1664,6 +1693,7 @@ var zProdukIdxSize = new Map();   // 'KATALOG|SIZE' -> [HPP unik] (dari kolom Ka
 function zProdukNorm(s){ return String(s==null?'':s).trim().toUpperCase(); }
 // Size dari SKU Variasi Kelola Produk = segmen terakhir setelah tanda "-" (Turtleneck_Bata-XL -> XL). Dipakai buat indeks SKU Induk + size.
 function zProdukSizeOfSku(k){ var i = k.lastIndexOf('-'); return i >= 0 ? k.slice(i+1).trim() : ''; }
+var zProdukRows = [];  // [22 Sep 2026] simpan mentahan rows(produk) juga (bukan cuma di-map) — dipakai picker "Pilih Produk" di Proyeksi Harga (zKatalogGroups)
 async function zProdukLoad(){
   var rows = await dbGet('produk');
   var m = new Map(), ix = new Map();
@@ -1678,9 +1708,47 @@ async function zProdukLoad(){
       if(a.indexOf(h) < 0) a.push(h);
     }
   });
+  zProdukRows = rows || [];
   zProdukMap = m;
   zProdukIdxSize = ix;
   return m.size;
+}
+/* [22 Sep 2026] zKatalogGroups(): Kelola Produk dikelompokkan per Katalog (SKU Induk), dipakai picker "Pilih Produk" di Proyeksi Harga
+   (By Operasional/By Target Qty/By Harga Jual) — sumbernya LANGSUNG dari Kelola Produk (live), BUKAN dari uniqueProductList() (riwayat
+   Order Completed) — supaya produk yang belum pernah kejual pun tetap bisa diproyeksikan harganya dari awal. Baris HPP=0 (belum diisi
+   di Kelola Produk) di-skip sama kayak zProdukMap di atas. */
+function zKatalogGroups(){
+  var map = new Map();
+  zProdukRows.forEach(function(r){
+    var kat = (r.katalog||'').toString().trim();
+    var sku = (r.sku_variasi||'').toString().trim();
+    var hpp = Number(r.hpp) || 0;
+    if(!kat || !sku || hpp<=0) return;
+    if(!map.has(kat)) map.set(kat, []);
+    map.get(kat).push({ sku_variasi: sku, hpp: hpp, size: zProdukSizeOfSku(zProdukNorm(sku)) });
+  });
+  var out = [];
+  map.forEach(function(variants, katalog){
+    variants.sort(function(a,b){ return a.sku_variasi.localeCompare(b.sku_variasi); });
+    out.push({ katalog: katalog, variants: variants });
+  });
+  out.sort(function(a,b){ return a.katalog.localeCompare(b.katalog); });
+  return out;
+}
+/* [22 Sep 2026] plResolveIdentity(): dari 1 SKU Variasi yang dipilih user di picker, tentukan identitas baris Price List.
+   Pakai ATURAN YANG SAMA dengan syncPriceListFromHpp() (1 baris per SKU Induk, KECUALI HPP beda per size dalam 1 induk -> pecah per
+   size) — bedanya di sini datanya diambil langsung dari zKatalogGroups() (live Kelola Produk), bukan uniqueProductList()+hppMaster. */
+function plResolveIdentity(katalog, skuVariasi){
+  var group = zKatalogGroups().find(function(g){ return g.katalog===katalog; });
+  if(!group) return { sku: katalog, hpp: 0 };
+  var picked = group.variants.find(function(v){ return v.sku_variasi===skuVariasi; });
+  var distinctHpp = [...new Set(group.variants.map(function(v){ return v.hpp; }))];
+  if(distinctHpp.length<=1){
+    return { sku: katalog, hpp: distinctHpp[0]||0 };
+  }
+  var sizeLabel = (picked && picked.size) ? picked.size.toUpperCase() : '';
+  var sku = sizeLabel ? (katalog+' — '+sizeLabel) : katalog;
+  return { sku: sku, hpp: picked ? picked.hpp : (distinctHpp[0]||0) };
 }
 /* "Turun SKU" (20 Sep 2026): produk di-upload ke Shopee dengan 4 size (S, M, L, XL), tapi yang benar-benar diproduksi cuma M dan XL.
    Jadi SKU Variasi ber-size -S narik HPP size -M, dan -L narik HPP size -XL (contoh: Turtleneck_Abu muda-L -> Turtleneck_Abu muda-XL).
@@ -4920,10 +4988,171 @@ function renderPriceListCard(containerId, tabKey){
   }));
 }
 
+// [22 Sep 2026] SUDAH TIDAK DIPAKAI — dulu ngisi <select> native dari state.priceList (snapshot "Salin dari HPP").
+// Diganti picker bottom-sheet plSkuSheetOpen()/zKatalogGroups() (sumber langsung Kelola Produk, live). Dead code,
+// dipertahankan sesuai aturan kerja (bukan langsung dihapus) — gak ada pemanggil lagi di renderProyeksi/renderByQty/renderByHarga.
 function fillProdukSelect(selectEl, selectedSku){
   const skus = state.priceList.map(r=>r.sku);
   selectEl.innerHTML = skus.length ? skus.map(s=>`<option value="${s}">${s}</option>`).join('') : '<option value="">— Price List kosong —</option>';
   if(selectedSku && skus.includes(selectedSku)) selectEl.value = selectedSku;
+}
+
+/* ================= [22 Sep 2026] Picker "Pilih Produk" — bottom sheet, dipakai bareng oleh By Operasional/By Target Qty/By Harga Jual =================
+   Pola sama "Tambah SKU Baru" (ensureAddSkuSheet, lihat di atas): dibangun sekali lewat JS lalu di-reuse. 2 langkah kayak picker
+   Induk/Variasi jurnal-penjualan.js: pilih SKU Induk dulu, lanjut pilih Variasi — begitu Variasi dipilih, identitasnya "dikembalikan"
+   ke level Induk (atau Induk — SIZE kalau HPP beda per size, sama persis aturan syncPriceListFromHpp) via plResolveIdentity(). */
+let _plSkuCtx = null;          // 'proyeksi' | 'byqty' | 'byharga' — context aktif pas sheet dibuka
+let _plSkuStep = 'induk';      // 'induk' | 'variasi'
+let _plSkuIndukPicked = null;
+
+function ensurePlSkuSheet(){
+  if(document.getElementById('plSkuSheetOverlay')) return;
+  const div = document.createElement('div');
+  div.id = 'plSkuSheetOverlay';
+  div.className = 'ca-sheet-overlay';
+  div.innerHTML = `
+    <div class="ca-sheet" id="plSkuSheet">
+      <div class="ca-sheet-handle"></div>
+      <div id="plSkuSheetTitle">Pilih Produk</div>
+      <input type="text" id="plSkuSheetSearch" placeholder="Cari produk..." autocomplete="off">
+      <div id="plSkuSheetList"></div>
+    </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click', e=>{ if(e.target===div) plSkuSheetClose(); });
+  document.getElementById('plSkuSheetSearch').addEventListener('input', e=>plSkuSheetRender(e.target.value));
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') plSkuSheetClose(); });
+}
+
+function plSkuSheetOpen(ctx){
+  ensurePlSkuSheet();
+  _plSkuCtx = ctx;
+  _plSkuStep = 'induk';
+  _plSkuIndukPicked = null;
+  document.getElementById('plSkuSheetTitle').textContent = 'Pilih Produk';
+  document.getElementById('plSkuSheetSearch').value = '';
+  document.getElementById('plSkuSheetOverlay').classList.add('show');
+  plSkuSheetRender('');
+  setTimeout(()=>{ const el = document.getElementById('plSkuSheetSearch'); if(el) el.focus(); }, 80);
+}
+
+function plSkuSheetClose(){
+  const ov = document.getElementById('plSkuSheetOverlay');
+  if(ov) ov.classList.remove('show');
+}
+
+function plSkuSheetRender(q){
+  if(_plSkuStep==='induk') plSkuSheetRenderInduk(q);
+  else plSkuSheetRenderVariasi(q);
+}
+
+function plSkuSheetRenderInduk(q){
+  const listEl = document.getElementById('plSkuSheetList');
+  const qq = (q||'').trim().toLowerCase();
+  const groups = zKatalogGroups();
+  const filtered = qq ? groups.filter(g=>g.katalog.toLowerCase().includes(qq)) : groups;
+  if(!filtered.length){
+    listEl.innerHTML = `<div class="pl-sheet-empty">${groups.length===0 ? 'Produk belum ada / HPP belum diisi — tambah di Kelola Produk' : 'Tidak ada produk yang cocok'}</div>`;
+    return;
+  }
+  listEl.innerHTML = filtered.map(g=>{
+    const hpps = [...new Set(g.variants.map(v=>v.hpp))];
+    const hppLabel = hpps.length<=1 ? fmtRp(hpps[0]||0) : (fmtRp(Math.min(...hpps))+'–'+fmtRp(Math.max(...hpps)));
+    return `<div class="pl-sheet-item" data-kat="${byhEsc(g.katalog)}">
+      <span class="pl-sheet-item-main">${byhEsc(g.katalog)}</span>
+      <span class="pl-sheet-item-meta">${g.variants.length} var · ${hppLabel}</span>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
+    el.addEventListener('click', ()=>plSkuSheetSelectInduk(el.dataset.kat));
+  });
+}
+
+function plSkuSheetSelectInduk(katalog){
+  _plSkuStep = 'variasi';
+  _plSkuIndukPicked = katalog;
+  document.getElementById('plSkuSheetTitle').innerHTML = `<button type="button" class="pl-sheet-back" id="plSkuSheetBackBtn">←</button> ${byhEsc(katalog)}`;
+  document.getElementById('plSkuSheetBackBtn').addEventListener('click', plSkuSheetBack);
+  document.getElementById('plSkuSheetSearch').value = '';
+  plSkuSheetRenderVariasi('');
+}
+
+function plSkuSheetBack(){
+  _plSkuStep = 'induk';
+  _plSkuIndukPicked = null;
+  document.getElementById('plSkuSheetTitle').textContent = 'Pilih Produk';
+  document.getElementById('plSkuSheetSearch').value = '';
+  plSkuSheetRenderInduk('');
+}
+
+function plSkuSheetRenderVariasi(q){
+  const listEl = document.getElementById('plSkuSheetList');
+  const qq = (q||'').trim().toLowerCase();
+  const group = zKatalogGroups().find(g=>g.katalog===_plSkuIndukPicked);
+  const variants = group ? group.variants : [];
+  const filtered = qq ? variants.filter(v=>v.sku_variasi.toLowerCase().includes(qq)) : variants;
+  if(!filtered.length){
+    listEl.innerHTML = `<div class="pl-sheet-empty">Tidak ada variasi yang cocok</div>`;
+    return;
+  }
+  listEl.innerHTML = filtered.map(v=>{
+    let label = v.sku_variasi;
+    if(_plSkuIndukPicked && label.toLowerCase().startsWith(_plSkuIndukPicked.toLowerCase())){
+      label = label.slice(_plSkuIndukPicked.length).replace(/^[_\-\s]+/,'') || v.sku_variasi;
+    }
+    return `<div class="pl-sheet-item" data-sku="${byhEsc(v.sku_variasi)}">
+      <span class="pl-sheet-item-main">${byhEsc(label)}</span>
+      <span class="pl-sheet-item-meta">${fmtRp(v.hpp)}</span>
+    </div>`;
+  }).join('');
+  listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
+    el.addEventListener('click', ()=>plSkuSheetSelectVariasi(el.dataset.sku));
+  });
+}
+
+function plSkuSheetSelectVariasi(skuVariasi){
+  const picked = plResolveIdentity(_plSkuIndukPicked, skuVariasi);
+  plSkuSheetClose();
+  plApplyPickedSku(_plSkuCtx, picked);
+}
+
+// Tambah/sinkron 1 baris Price List dari hasil pick picker — HPP diambil live dari Kelola Produk. Kalau baris sku itu udah ada
+// (misal dari "Salin dari HPP" sebelumnya), HPP-nya disinkronkan ke nilai live terbaru; ops (gak dipakai lagi, ada global di Setting).
+function plUpsertPriceListRow(sku, hpp){
+  let row = state.priceList.find(r=>r.sku===sku);
+  if(!row){
+    row = { sku, hpp, ops: 0 };
+    state.priceList.push(row);
+  } else if(row.hpp !== hpp){
+    row.hpp = hpp;
+  }
+  savePriceListToStorage();
+  return row;
+}
+
+function plSyncProdukBtn(btnId, sku){
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  btn.innerHTML = `${byhEsc(sku || '— Pilih Produk —')}<span class="pl-car">▾</span>`;
+}
+
+function plApplyPickedSku(ctx, picked){
+  plUpsertPriceListRow(picked.sku, picked.hpp);
+  if(ctx==='proyeksi'){
+    proyeksiSelectedSku = picked.sku;
+    plSyncProdukBtn('proyeksiProdukBtn', picked.sku);
+    renderPriceListCard('priceListCard-proyeksi','proyeksi');
+    renderProyeksiResult();
+  } else if(ctx==='byqty'){
+    byqtySelectedSku = picked.sku;
+    plSyncProdukBtn('byqtyProdukBtn', picked.sku);
+    renderPriceListCard('priceListCard-byqty','byqty');
+    renderByQtyResult();
+  } else if(ctx==='byharga'){
+    byhargaSelectedSku = picked.sku;
+    plSyncProdukBtn('byhargaProdukBtn', picked.sku);
+    byhargaSyncInputs();
+    renderByHargaResult();
+  }
 }
 
 function statCard(label, value, sub, cls){
@@ -5038,10 +5267,9 @@ function renderProyeksi(){
     saveSettingsToStorage();
     renderProyeksiResult();
   };
-  const sel = document.getElementById('proyeksiProduk');
-  fillProdukSelect(sel, proyeksiSelectedSku);
-  if(sel.value) proyeksiSelectedSku = sel.value;
-  sel.onchange = ()=>{ proyeksiSelectedSku = sel.value; renderProyeksiResult(); };
+  const btn = document.getElementById('proyeksiProdukBtn');
+  plSyncProdukBtn('proyeksiProdukBtn', proyeksiSelectedSku);
+  btn.onclick = ()=>plSkuSheetOpen('proyeksi');
   renderProyeksiResult();
 }
 
@@ -5133,10 +5361,9 @@ function renderByQty(){
     qtyEl.dataset.bound = '1';
     qtyEl.onchange = ()=>renderByQtyResult();
   }
-  const sel = document.getElementById('byqtyProduk');
-  fillProdukSelect(sel, byqtySelectedSku);
-  if(sel.value) byqtySelectedSku = sel.value;
-  sel.onchange = ()=>{ byqtySelectedSku = sel.value; renderByQtyResult(); };
+  const btn = document.getElementById('byqtyProdukBtn');
+  plSyncProdukBtn('byqtyProdukBtn', byqtySelectedSku);
+  btn.onclick = ()=>plSkuSheetOpen('byqty');
   renderByQtyResult();
 }
 
@@ -5405,10 +5632,9 @@ function byhargaRenderVoucherNote(){
 }
 
 function renderByHarga(){
-  const sel = document.getElementById('byhargaProduk');
-  fillProdukSelect(sel, byhargaSelectedSku);
-  byhargaSelectedSku = sel.value || null;
-  sel.onchange = ()=>{ byhargaSelectedSku = sel.value || null; byhargaSyncInputs(); renderByHargaResult(); };
+  const btn = document.getElementById('byhargaProdukBtn');
+  plSyncProdukBtn('byhargaProdukBtn', byhargaSelectedSku);
+  btn.onclick = ()=>plSkuSheetOpen('byharga');
   const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher');
   if(!hEl.dataset.bound){
     hEl.dataset.bound = '1';
@@ -5442,7 +5668,7 @@ function renderByHargaResult(){
   byhargaRenderVoucherNote();
   if(!row){
     detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Price List masih kosong — buka By Operasional atau By Target Qty, lalu klik "Salin dari HPP".</div></div>';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Pilih produk dulu buat lihat hasil.</div></div>';
     return;
   }
   const { roas } = resolveByhargaRoas();
