@@ -8,12 +8,52 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Zenoot Analisis — Analisa Shopee</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>if(window.pdfjsLib){ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }</script>
+<script>
+/* [21 Sep 2026] Library berat (SheetJS, PapaParse, jsPDF, jsPDF-autotable, pdf.js — total +-1,6 MB) TIDAK lagi diblok di <head>.
+   SEBELUMNYA: 5 <script src> sinkron di sini (+ 1 script inline setelahnya buat workerSrc pdf.js) -> halaman & pengambilan data baru mulai jalan setelah
+   semuanya selesai diunduh; ini bagian terbesar dari "Memuat Zenoot Analisis...". Library-nya cuma dipakai pas upload file / export PDF, bukan pas tampil.
+   SEKARANG: dimuat SETELAH Analisis siap (dipanggil dari boot habis 'analisis:ready'), dan dijaga di titik pakainya — tiap fitur cuma menunggu library yang dipakainya:
+   - upload (setupDrop): .xlsx/.xls -> 'xlsx', .csv -> 'papa', .pdf -> 'pdfjs';  - Export PDF (rksExport): 'pdf' (jsPDF + autotable). Gagal unduh 1 library tidak mengganggu fitur lain.
+   Export PDF sengaja TIDAK menunggu (async) — share sheet di HP butuh tap langsung — jadi kalau belum siap cuma kasih pesan. Gagal unduh -> dicoba lagi di panggilan berikutnya.
+   API: zLibsReady(keys?) -> boolean, zLoadLibs(keys?) -> Promise<boolean>; keys = subset dari ['xlsx','papa','pdfjs','pdf'] (kosong = semua). */
+(function(){
+  var CDN = 'https://cdnjs.cloudflare.com/ajax/libs/';
+  var ALL = ['xlsx', 'papa', 'pdfjs', 'pdf'];
+  var CHECK = {
+    xlsx:  function(){ return !!window.XLSX; },
+    papa:  function(){ return !!window.Papa; },
+    pdfjs: function(){ return !!window.pdfjsLib; },
+    pdf:   function(){ return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }
+  };
+  function add(src){
+    return new Promise(function(res){
+      var s = document.createElement('script');
+      s.src = src; s.onload = function(){ res(true); }; s.onerror = function(){ res(false); };
+      document.head.appendChild(s);
+    });
+  }
+  var LOAD = {
+    xlsx:  function(){ return add(CDN + 'xlsx/0.18.5/xlsx.full.min.js'); },
+    papa:  function(){ return add(CDN + 'PapaParse/5.4.1/papaparse.min.js'); },
+    pdfjs: function(){ return add(CDN + 'pdf.js/3.11.174/pdf.min.js').then(function(ok){
+             if(ok && window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = CDN + 'pdf.js/3.11.174/pdf.worker.min.js';
+             return ok; }); },
+    // jsPDF dulu, baru autotable (autotable butuh jsPDF)
+    pdf:   function(){ var hasJ = !!(window.jspdf && window.jspdf.jsPDF);
+             return (hasJ ? Promise.resolve(true) : add(CDN + 'jspdf/2.5.1/jspdf.umd.min.js'))
+               .then(function(ok){ return ok ? (CHECK.pdf() ? true : add(CDN + 'jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')) : false; }); }
+  };
+  var inflight = {};
+  window.zLibsReady = function(keys){ return (keys || ALL).every(function(k){ return CHECK[k](); }); };
+  window.zLoadLibs = function(keys){
+    return Promise.all((keys || ALL).map(function(k){
+      if(CHECK[k]()) return true;
+      if(!inflight[k]) inflight[k] = LOAD[k]().then(function(ok){ inflight[k] = null; return ok && CHECK[k](); });
+      return inflight[k];
+    })).then(function(r){ return r.every(Boolean); });
+  };
+})();
+</script>
 <script src="supabase.js"></script>
 <script>if(/[?&]embed=1/.test(location.search)) document.documentElement.classList.add('embed');</script>
 <style>
@@ -1422,6 +1462,13 @@ const zStore = (function(){
 
   /* ---------- init: muat data ---------- */
   async function init(){
+    // [21 Sep 2026] PARALEL: toko aktif di perangkat ini (ACTIVE_LS, tersimpan lokal) ditebak & dimuat BERSAMAAN dengan registry _global,
+    // bukan menunggu registry selesai dulu (sebelumnya 2 request berurutan). Kalau tebakan benar -> hemat 1 kali tunggu; kalau salah
+    // (toko sudah dihapus / belum ada) hasil tebakan dibuang & dimuat ulang persis seperti alur lama. Data yang dilihat aplikasi sama.
+    var guess = lsGet(ACTIVE_LS);
+    var guessP = (guess && guess !== GLOBAL)
+      ? loadRows([guess]).then(function(r){ return { id:guess, rows:r }; }, function(){ return null; })
+      : null;
     var g = await loadRows([GLOBAL]);
     var list = null;
     Object.keys(g).forEach(function(gk){
@@ -1444,7 +1491,16 @@ const zStore = (function(){
     // muat data toko aktif + toko yang masih setup (draft) — toko lain tidak perlu dimuat
     var need = [active];
     (list || []).forEach(function(t){ if(t.draft && need.indexOf(t.id) < 0) need.push(t.id); });
-    var t = await loadRows(need);
+    var t = {}, needNow = need;
+    var pre = guessP ? await guessP : null;
+    if(pre && need.indexOf(pre.id) >= 0){
+      t = pre.rows;
+      needNow = need.filter(function(id){ return id !== pre.id; });
+    }
+    if(needNow.length){
+      var t2 = await loadRows(needNow);
+      Object.keys(t2).forEach(function(k){ t[k] = t2[k]; });
+    }
     Object.keys(t).forEach(function(gk){
       var parts = gk.split('\u0000');
       var k = joinKey(parts[0], parts[1]);
@@ -2278,7 +2334,23 @@ function findCol(headers, name){
 }
 
 /* ================= FILE: ORDER COMPLETED ================= */
-function setupDrop(dropId, inputId, handler){
+function setupDrop(dropId, inputId, handlerRaw){
+  // [21 Sep 2026] SheetJS/PapaParse/pdf.js dimuat SETELAH Analisis siap (lihat loader di <head>) -> upload menunggu library sesuai tipe filenya kalau belum ada.
+  // File disalin ke array dulu (FileList dari drop bisa kosong kalau dibaca setelah event selesai).
+  const needOf = arr=>{
+    const k = new Set();
+    arr.forEach(f=>{ const n = (f && f.name || '').toLowerCase(); if(/\.xlsx?$/.test(n)) k.add('xlsx'); else if(/\.csv$/.test(n)) k.add('papa'); else if(/\.pdf$/.test(n)) k.add('pdfjs'); });
+    return Array.from(k);
+  };
+  const handler = files=>{
+    const arr = Array.from(files || []);
+    const need = needOf(arr);
+    if(!need.length || !window.zLoadLibs || window.zLibsReady(need)){ handlerRaw(arr); return; }
+    window.zLoadLibs(need).then(ok=>{
+      if(ok) handlerRaw(arr);
+      else alert('Pustaka baca file gagal dimuat — cek koneksi lalu coba lagi.');
+    });
+  };
   const drop = document.getElementById(dropId);
   const input = document.getElementById(inputId);
   drop.addEventListener('click', ()=>input.click());
@@ -5525,6 +5597,8 @@ function rksDeliverPdf(doc, fileName){
   doc.save(fileName);
 }
 function rksExport(cfgFn){
+  // [21 Sep 2026] jsPDF dimuat setelah Analisis siap (loader di <head>); kalau tap PDF sebelum siap, kasih pesan (bukan error teknis)
+  if(window.zLibsReady && !window.zLibsReady(['pdf'])){ if(window.zLoadLibs) window.zLoadLibs(['pdf']); alert('Pustaka PDF masih dimuat — coba lagi sebentar.'); return; }
   try{
     const c=cfgFn();
     if(c.M.pendapatan===null||c.M.pendapatan===undefined||c.M.penghasilan===null||c.M.penghasilan===undefined||!c.M.pendapatan){
@@ -6588,6 +6662,7 @@ try{
   Promise.all([zStore.init(), zProdukLoad(), domReady]).then(function(r){
     startMain();
     tellParent('analisis:ready');
+    setTimeout(function(){ try{ window.zLoadLibs(); }catch(e){} }, 300);   // [21 Sep 2026] library berat dimuat SETELAH siap (lihat loader di <head>)
     try{ showMigration(r[0], /[?&]migrate=1/.test(location.search)); }catch(e){ console.error('banner migrasi:', e); }
   }).catch(function(e){
     domReady.then(function(){ bootError(e); });
