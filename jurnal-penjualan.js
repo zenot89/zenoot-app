@@ -697,8 +697,16 @@ function _jpChartDateRange(mode, now) {
   if (mode === '7hari') {
     return { start: _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000)), end: _jpLocalDate(now) };
   }
-  if (mode === '30hari') {
-    return { start: _jpLocalDate(new Date(now.getTime() - 30*24*60*60*1000)), end: _jpLocalDate(now) };
+  if (mode === 'minggu') {
+    const dari   = (document.getElementById('jp-filter-minggu-dari') || {}).value || '';
+    const sampai = (document.getElementById('jp-filter-minggu-sampai') || {}).value || '';
+    if (!dari || !sampai) return null;
+    return { start: dari, end: sampai };
+  }
+  if (mode === 'tahun') {
+    const fTahun = (document.getElementById('jp-filter-tahun') || {}).value || '';
+    if (!fTahun) return null;
+    return { start: fTahun + '-01-01', end: fTahun + '-12-31' };
   }
   if (mode === 'bulan') {
     var fBulan = (document.getElementById('jp-filter-bulan') || {}).value || '';
@@ -1104,10 +1112,20 @@ async function loadJurnalPenjualan() {
       const since = _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000));
       const besok = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
       filter = '&tanggal=gte.' + since + '&tanggal=lt.' + besok;
-    } else if (mode === '30hari') {
-      const since = _jpLocalDate(new Date(now.getTime() - 30*24*60*60*1000));
-      const besok = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
-      filter = '&tanggal=gte.' + since + '&tanggal=lt.' + besok;
+    } else if (mode === 'minggu') {
+      const dari   = (document.getElementById('jp-filter-minggu-dari')||{}).value || '';
+      const sampai = (document.getElementById('jp-filter-minggu-sampai')||{}).value || '';
+      if (dari && sampai) {
+        const besok = _jpLocalDate(new Date(new Date(sampai+'T00:00:00').getTime() + 24*60*60*1000));
+        filter = '&tanggal=gte.' + dari + '&tanggal=lt.' + besok;
+      }
+    } else if (mode === 'tahun') {
+      const fTahun = (document.getElementById('jp-filter-tahun')||{}).value || '';
+      if (fTahun) {
+        const from       = fTahun + '-01-01';
+        const tahunDepan = (parseInt(fTahun)+1) + '-01-01';
+        filter = '&tanggal=gte.' + from + '&tanggal=lt.' + tahunDepan;
+      }
     } else if (mode === 'bulan') {
       const fBulan = (document.getElementById('jp-filter-bulan')||{}).value || '';
       if (fBulan) {
@@ -1142,12 +1160,16 @@ function jpSetWaktu(mode) {
   _jpWaktuMode = mode;
   // Show/hide sub-input
   var bulanWrap  = document.getElementById('jp-bulan-wrap');
+  var mingguWrap = document.getElementById('jp-minggu-wrap');
+  var tahunWrap  = document.getElementById('jp-tahun-wrap');
   if (bulanWrap)  bulanWrap.style.display  = mode === 'bulan'  ? 'block' : 'none';
+  if (mingguWrap) mingguWrap.style.display = mode === 'minggu' ? 'flex'  : 'none';
+  if (tahunWrap)  tahunWrap.style.display  = mode === 'tahun'  ? 'block' : 'none';
   jpUpdatePeriodeLabel();
   jpUpdateBadge();
-  if (mode !== 'bulan') {
+  if (mode !== 'bulan' && mode !== 'minggu' && mode !== 'tahun') {
     loadJurnalPenjualan();
-    // Tutup panel periode setelah pilih (kecuali bulan yang butuh sub-input)
+    // Tutup panel periode setelah pilih (kecuali mode yang butuh sub-input: bulan/minggu/tahun)
     var panel = document.getElementById('jp-periode-panel');
     if (panel) panel.style.display = 'none';
     document.removeEventListener('click', jpClosePeriodeOutside);
@@ -1200,6 +1222,10 @@ function jpResetPeriode() {
   radios.forEach(function(r) { r.checked = r.value === 'minggu-ini'; });
   var bulanWrap = document.getElementById('jp-bulan-wrap');
   if (bulanWrap) bulanWrap.style.display = 'none';
+  var mingguWrap = document.getElementById('jp-minggu-wrap');
+  if (mingguWrap) mingguWrap.style.display = 'none';
+  var tahunWrap = document.getElementById('jp-tahun-wrap');
+  if (tahunWrap) tahunWrap.style.display = 'none';
   jpUpdateBadge();
   jpUpdatePeriodeLabel();
   loadJurnalPenjualan();
@@ -1257,10 +1283,11 @@ function jpUpdatePeriodeLabel() {
   var map = {
     'hari-ini':   'Hari Ini',
     'kemarin':    'Kemarin',
-    'minggu-ini': 'Minggu Ini',
     '7hari':      '7 Hari',
-    '30hari':     '1 Bulan Terakhir',
+    'minggu-ini': 'Minggu Ini',
+    'minggu':     'Minggu',
     'bulan':      'Bulan',
+    'tahun':      'Tahun',
     'semua':      'Semua'
   };
   var el = document.getElementById('jp-periode-label');
@@ -2362,12 +2389,21 @@ async function exportJurnalPenjualan() {
       + '<div id="jp-waktu-opts" style="display:flex;flex-direction:column;gap:3px">'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="hari-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Hari Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="kemarin" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Kemarin</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="7hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 7 Hari Terakhir</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="30hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 1 Bulan Terakhir</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu</label>'
+      + '<div id="jp-minggu-wrap" style="display:none;align-items:center;gap:5px;padding-left:20px;margin-top:2px">'
+      + '<input type="date" id="jp-filter-minggu-dari" style="font-family:var(--f);font-size:11.5px;padding:3px 4px;border:1.5px solid var(--ink3);background:var(--cream);width:100%;box-sizing:border-box" oninput="loadJurnalPenjualan();jpUpdateBadge()">'
+      + '<span style="font-size:11px;color:var(--ink3)">–</span>'
+      + '<input type="date" id="jp-filter-minggu-sampai" style="font-family:var(--f);font-size:11.5px;padding:3px 4px;border:1.5px solid var(--ink3);background:var(--cream);width:100%;box-sizing:border-box" oninput="loadJurnalPenjualan();jpUpdateBadge()">'
+      + '</div>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan</label>'
       + '<div id="jp-bulan-wrap" style="display:none;padding-left:20px;margin-top:2px">'
       + '<input type="month" id="jp-filter-bulan" style="font-family:var(--f);font-size:12px;padding:3px 6px;border:1.5px solid var(--ink3);background:var(--cream);width:100%;box-sizing:border-box" oninput="loadJurnalPenjualan();jpUpdateBadge()">'
+      + '</div>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="tahun" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Tahun</label>'
+      + '<div id="jp-tahun-wrap" style="display:none;padding-left:20px;margin-top:2px">'
+      + '<input type="number" id="jp-filter-tahun" min="2015" max="2100" step="1" style="font-family:var(--f);font-size:12px;padding:3px 6px;border:1.5px solid var(--ink3);background:var(--cream);width:100%;box-sizing:border-box" oninput="loadJurnalPenjualan();jpUpdateBadge()">'
       + '</div>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="semua" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Semua</label>'
       + '</div>'
@@ -2410,6 +2446,19 @@ _jpWaktuMode = 'minggu-ini';
   if (bulanEl) {
     var n = new Date();
     bulanEl.value = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0');
+  }
+  var tahunEl = document.getElementById('jp-filter-tahun');
+  if (tahunEl) tahunEl.value = new Date().getFullYear();
+  // Default isi "Minggu" (range custom) = minggu LALU (Minggu–Sabtu), biar begitu radio
+  // ini dipilih langsung kepakai buat lihat minggu sebelumnya tanpa perlu ngatur manual dulu.
+  var mDariEl = document.getElementById('jp-filter-minggu-dari'), mSampaiEl = document.getElementById('jp-filter-minggu-sampai');
+  if (mDariEl && mSampaiEl) {
+    var mn = new Date();
+    var thisWeekStart = new Date(mn.getFullYear(), mn.getMonth(), mn.getDate() - mn.getDay());
+    var lastWeekStart  = new Date(thisWeekStart.getFullYear(), thisWeekStart.getMonth(), thisWeekStart.getDate() - 7);
+    var lastWeekEnd    = new Date(lastWeekStart.getFullYear(), lastWeekStart.getMonth(), lastWeekStart.getDate() + 6);
+    mDariEl.value   = _jpLocalDate(lastWeekStart);
+    mSampaiEl.value = _jpLocalDate(lastWeekEnd);
   }
   // Sedikit delay agar DOM inject selesai di semua engine (terutama iOS WebKit)
   setTimeout(function() {
