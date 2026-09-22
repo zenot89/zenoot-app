@@ -703,7 +703,7 @@
   .tc-kr-group-items{ display:flex; flex-wrap:wrap; gap:8px 16px; }
   .tc-kr-item{ display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; user-select:none; }
   .tc-kr-item input{ width:14px; height:14px; cursor:pointer; margin:0; }
-  .tc-control-row{ margin-top:12px; }
+  .tc-control-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .tc-period-btn{ display:inline-flex; align-items:center; gap:10px; border:1px solid var(--ink); border-radius:6px; background:#fff; padding:9px 14px; cursor:pointer; font-family:inherit; }
   .tc-period-btn-label{ font-size:11px; color:var(--ink-soft); font-weight:600; }
   .tc-period-btn-value{ font-size:13px; color:var(--ink); font-weight:700; }
@@ -1367,11 +1367,14 @@
   <!-- ============ PAGE: PERBANDINGAN TOKO (data Rekap semua toko sekaligus, langsung dari Supabase) ============ -->
   <section class="page" id="page-tokocompare">
     <div class="card tc-kriteria-card">
-      <div class="tc-kriteria-head"><h3>Pilih Kriteria</h3><span class="tc-kriteria-count" id="tcKriteriaCount"></span></div>
+      <div class="tc-kriteria-head">
+        <div class="tc-control-row">
+          <button type="button" class="tc-period-btn" id="tcModeBtn"><span class="tc-period-btn-value" id="tcModeBtnValue">Data Periode</span><span class="tc-period-btn-caret">▾</span></button>
+          <button type="button" class="tc-period-btn" id="tcGranBtn"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
+        </div>
+        <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
+      </div>
       <div class="tc-kriteria-grid" id="tcKriteriaGrid"></div>
-    </div>
-    <div class="tc-control-row">
-      <button type="button" class="tc-period-btn" id="tcPeriodBtn"><span class="tc-period-btn-label">Periode Data</span><span class="tc-period-btn-value" id="tcPeriodBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
     </div>
     <div id="tcContent"></div>
   </section>
@@ -2777,7 +2780,12 @@ function tcUpdateKriteriaCount(){
   const el = document.getElementById('tcKriteriaCount');
   if(el) el.textContent = 'Kriteria Dipilih: '+TC_KRITERIA.size+'/'+REKAP_METRICS.length;
 }
-let TC_DD_OPEN = false;   // status dropdown "Periode Data" (mode/gran/range) — default ketutup, gaya Shopee
+// [22 Sep 2026] Dulu 1 tombol "Periode Data" buka 1 dropdown gado-gado (Tampilan+Granularitas+Periode digabung,
+// ambigu). Sekarang dipecah 2 tombol terpisah: tcModeBtn (Data Periode/Tren) & tcGranBtn (Granularitas+Periode,
+// alur 2 step — pilih Bulanan/Mingguan dulu baru muncul pilihan periodenya).
+let TC_MODE_DD_OPEN = false;
+let TC_GRAN_DD_OPEN = false;
+let TC_GRAN_DD_STEP = 'gran';   // 'gran' (baru switch Bulanan/Mingguan) | 'period' (udah muncul pilihan periode) — direset tiap dropdown dibuka
 function tcRangeLabel(){
   const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
   if(TC_RANGE==='3bulan') return '3 '+label+' Terakhir';
@@ -2785,74 +2793,117 @@ function tcRangeLabel(){
   if(TC_RANGE==='custom') return (TC_RANGE_FROM||TC_RANGE_TO) ? 'Custom' : 'Custom (belum dipilih)';
   return '6 '+label+' Terakhir';
 }
-function tcUpdatePeriodBtnLabel(){
-  const el = document.getElementById('tcPeriodBtnValue'); if(!el) return;
+function tcUpdateModeBtnLabel(){
+  const el = document.getElementById('tcModeBtnValue'); if(!el) return;
+  el.textContent = TC_MODE==='tren' ? 'Tren' : 'Data Periode';
+}
+function tcUpdateGranBtnLabel(){
+  const el = document.getElementById('tcGranBtnValue'); if(!el) return;
   const granTxt = TC_GRAN==='mingguan' ? 'Mingguan' : 'Bulanan';
   if(TC_MODE==='bulan'){
-    el.textContent = (TC_BULAN_PICK ? tcPeriodLabel(TC_BULAN_PICK, TC_GRAN) : 'Belum ada data') + ' · ' + granTxt;
+    el.textContent = granTxt + ' · ' + (TC_BULAN_PICK ? tcPeriodLabel(TC_BULAN_PICK, TC_GRAN) : 'Belum ada data');
   } else {
-    el.textContent = 'Tren · ' + tcRangeLabel() + ' · ' + granTxt;
+    el.textContent = granTxt + ' · ' + tcRangeLabel();
   }
 }
-function tcClosePeriodDropdown(){
-  const dd = document.getElementById('tcPeriodDD');
+function tcCloseModeDropdown(){
+  const dd = document.getElementById('tcModeDD');
   if(dd) dd.remove();
-  TC_DD_OPEN = false;
-  document.removeEventListener('mousedown', tcDDOutside, true);
-  document.removeEventListener('keydown', tcDDEsc);
-  window.removeEventListener('resize', tcClosePeriodDropdown);
+  TC_MODE_DD_OPEN = false;
+  document.removeEventListener('mousedown', tcModeDDOutside, true);
+  document.removeEventListener('keydown', tcModeDDEsc);
+  window.removeEventListener('resize', tcCloseModeDropdown);
 }
-function tcDDOutside(e){
-  const dd = document.getElementById('tcPeriodDD');
-  if(dd && !dd.contains(e.target) && !e.target.closest('#tcPeriodBtn')) tcClosePeriodDropdown();
+function tcModeDDOutside(e){
+  const dd = document.getElementById('tcModeDD');
+  if(dd && !dd.contains(e.target) && !e.target.closest('#tcModeBtn')) tcCloseModeDropdown();
 }
-function tcDDEsc(e){ if(e.key==='Escape') tcClosePeriodDropdown(); }
-function tcTogglePeriodDropdown(){
-  if(TC_DD_OPEN){ tcClosePeriodDropdown(); return; }
-  const btn = document.getElementById('tcPeriodBtn'); if(!btn) return;
+function tcModeDDEsc(e){ if(e.key==='Escape') tcCloseModeDropdown(); }
+function tcToggleModeDropdown(){
+  if(TC_MODE_DD_OPEN){ tcCloseModeDropdown(); return; }
+  tcCloseGranDropdown();
+  const btn = document.getElementById('tcModeBtn'); if(!btn) return;
   const dd = document.createElement('div');
-  dd.id = 'tcPeriodDD'; dd.className = 'tc-period-dd';
+  dd.id = 'tcModeDD'; dd.className = 'tc-period-dd';
   document.body.appendChild(dd);
-  TC_DD_OPEN = true;
-  tcRenderPeriodDropdownContent();
-  const r = btn.getBoundingClientRect();
-  dd.style.top = (r.bottom + 6)+'px';
-  dd.style.left = Math.max(8, r.left)+'px';
-  document.addEventListener('mousedown', tcDDOutside, true);
-  document.addEventListener('keydown', tcDDEsc);
-  window.addEventListener('resize', tcClosePeriodDropdown);
-}
-function tcRenderPeriodDropdownContent(){
-  const dd = document.getElementById('tcPeriodDD'); if(!dd) return;
-  const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
-  let periodHtml;
-  if(TC_MODE==='bulan'){
-    if(!TC_BULAN_PICK || keys.indexOf(TC_BULAN_PICK)<0) TC_BULAN_PICK = keys.length ? keys[keys.length-1] : null;
-    periodHtml = keys.length
-      ? `<select class="toko-input" id="tcBulanPick" style="width:100%;margin:0;">${keys.slice().reverse().map(k=>`<option value="${k}" ${k===TC_BULAN_PICK?'selected':''}>${tcPeriodLabel(k,TC_GRAN)}</option>`).join('')}</select>`
-      : '<span class="tc-period-empty">Belum ada data Rekap tersimpan.</span>';
-  } else {
-    const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
-    periodHtml = `<div class="tc-range-btns">`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='3bulan'?' active':''}" data-r="3bulan">3 ${label}</button>`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='6bulan'?' active':''}" data-r="6bulan">6 ${label}</button>`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='12bulan'?' active':''}" data-r="12bulan">12 ${label}</button>`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='custom'?' active':''}" data-r="custom">Custom</button>`
-      + `</div>`
-      + (TC_RANGE==='custom' ? `<div class="tc-range-custom" style="margin-top:8px;">`
-        + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeFrom" value="${TC_RANGE_FROM||''}" style="width:auto;margin:0;">`
-        + `<span>–</span>`
-        + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeTo" value="${TC_RANGE_TO||''}" style="width:auto;margin:0;">`
-        + `</div>` : '');
-  }
+  TC_MODE_DD_OPEN = true;
   dd.innerHTML = `
     <div class="tc-pd-section">
-      <div class="tc-pd-label">Tampilan</div>
       <div class="tc-mode-switch" id="tcModeSwitch">
-        <button type="button" class="tc-mode-btn${TC_MODE==='bulan'?' active':''}" data-mode="bulan">Per Periode</button>
+        <button type="button" class="tc-mode-btn${TC_MODE==='bulan'?' active':''}" data-mode="bulan">Data Periode</button>
         <button type="button" class="tc-mode-btn${TC_MODE==='tren'?' active':''}" data-mode="tren">Tren</button>
       </div>
     </div>
+  `;
+  dd.querySelectorAll('.tc-mode-btn').forEach(b=>b.addEventListener('click', ()=>{
+    TC_MODE = b.dataset.mode;
+    tcUpdateModeBtnLabel(); tcUpdateGranBtnLabel(); tcRenderContent();
+    tcCloseModeDropdown();
+  }));
+  const r = btn.getBoundingClientRect();
+  dd.style.top = (r.bottom + 6)+'px';
+  dd.style.left = Math.max(8, r.left)+'px';
+  document.addEventListener('mousedown', tcModeDDOutside, true);
+  document.addEventListener('keydown', tcModeDDEsc);
+  window.addEventListener('resize', tcCloseModeDropdown);
+}
+function tcCloseGranDropdown(){
+  const dd = document.getElementById('tcGranDD');
+  if(dd) dd.remove();
+  TC_GRAN_DD_OPEN = false;
+  TC_GRAN_DD_STEP = 'gran';
+  document.removeEventListener('mousedown', tcGranDDOutside, true);
+  document.removeEventListener('keydown', tcGranDDEsc);
+  window.removeEventListener('resize', tcCloseGranDropdown);
+}
+function tcGranDDOutside(e){
+  const dd = document.getElementById('tcGranDD');
+  if(dd && !dd.contains(e.target) && !e.target.closest('#tcGranBtn')) tcCloseGranDropdown();
+}
+function tcGranDDEsc(e){ if(e.key==='Escape') tcCloseGranDropdown(); }
+function tcToggleGranDropdown(){
+  if(TC_GRAN_DD_OPEN){ tcCloseGranDropdown(); return; }
+  tcCloseModeDropdown();
+  const btn = document.getElementById('tcGranBtn'); if(!btn) return;
+  const dd = document.createElement('div');
+  dd.id = 'tcGranDD'; dd.className = 'tc-period-dd';
+  document.body.appendChild(dd);
+  TC_GRAN_DD_OPEN = true;
+  TC_GRAN_DD_STEP = 'gran';   // tiap dibuka ulang, mulai dari step pilih granularitas dulu
+  tcRenderGranDropdownContent();
+  const r = btn.getBoundingClientRect();
+  dd.style.top = (r.bottom + 6)+'px';
+  dd.style.left = Math.max(8, r.left)+'px';
+  document.addEventListener('mousedown', tcGranDDOutside, true);
+  document.addEventListener('keydown', tcGranDDEsc);
+  window.addEventListener('resize', tcCloseGranDropdown);
+}
+function tcRenderGranDropdownContent(){
+  const dd = document.getElementById('tcGranDD'); if(!dd) return;
+  const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
+  let periodHtml = '';
+  if(TC_GRAN_DD_STEP==='period'){
+    if(TC_MODE==='bulan'){
+      if(!TC_BULAN_PICK || keys.indexOf(TC_BULAN_PICK)<0) TC_BULAN_PICK = keys.length ? keys[keys.length-1] : null;
+      periodHtml = keys.length
+        ? `<select class="toko-input" id="tcBulanPick" style="width:100%;margin:0;">${keys.slice().reverse().map(k=>`<option value="${k}" ${k===TC_BULAN_PICK?'selected':''}>${tcPeriodLabel(k,TC_GRAN)}</option>`).join('')}</select>`
+        : '<span class="tc-period-empty">Belum ada data Rekap tersimpan.</span>';
+    } else {
+      const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
+      periodHtml = `<div class="tc-range-btns">`
+        + `<button type="button" class="tc-range-btn${TC_RANGE==='3bulan'?' active':''}" data-r="3bulan">3 ${label}</button>`
+        + `<button type="button" class="tc-range-btn${TC_RANGE==='6bulan'?' active':''}" data-r="6bulan">6 ${label}</button>`
+        + `<button type="button" class="tc-range-btn${TC_RANGE==='12bulan'?' active':''}" data-r="12bulan">12 ${label}</button>`
+        + `<button type="button" class="tc-range-btn${TC_RANGE==='custom'?' active':''}" data-r="custom">Custom</button>`
+        + `</div>`
+        + (TC_RANGE==='custom' ? `<div class="tc-range-custom" style="margin-top:8px;">`
+          + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeFrom" value="${TC_RANGE_FROM||''}" style="width:auto;margin:0;">`
+          + `<span>–</span>`
+          + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeTo" value="${TC_RANGE_TO||''}" style="width:auto;margin:0;">`
+          + `</div>` : '');
+    }
+  }
+  dd.innerHTML = `
     <div class="tc-pd-section">
       <div class="tc-pd-label">Granularitas</div>
       <div class="tc-gran-switch" id="tcGranSwitch">
@@ -2860,20 +2911,29 @@ function tcRenderPeriodDropdownContent(){
         <button type="button" class="tc-gran-btn${TC_GRAN==='mingguan'?' active':''}" data-gran="mingguan">Mingguan</button>
       </div>
     </div>
-    <div class="tc-pd-section tc-period">${periodHtml}</div>
+    ${TC_GRAN_DD_STEP==='period' ? `<div class="tc-pd-section tc-period">${periodHtml}</div>` : ''}
   `;
-  dd.querySelectorAll('.tc-mode-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_MODE = b.dataset.mode; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
-  dd.querySelectorAll('.tc-gran-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_GRAN = b.dataset.gran; TC_BULAN_PICK = null; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
-  dd.querySelectorAll('.tc-range-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_RANGE = b.dataset.r; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
+  dd.querySelectorAll('.tc-gran-btn').forEach(b=>b.addEventListener('click', ()=>{
+    const changed = (b.dataset.gran !== TC_GRAN);
+    TC_GRAN = b.dataset.gran;
+    if(changed) TC_BULAN_PICK = null;
+    TC_GRAN_DD_STEP = 'period';   // muncul step pilih periode setelah Bulanan/Mingguan diklik
+    tcRenderGranDropdownContent();
+    tcUpdateGranBtnLabel();
+    tcRenderContent();
+  }));
   const sel = document.getElementById('tcBulanPick');
-  if(sel) sel.addEventListener('change', ()=>{ TC_BULAN_PICK = sel.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
+  if(sel) sel.addEventListener('change', ()=>{ TC_BULAN_PICK = sel.value; tcUpdateGranBtnLabel(); tcRenderContent(); });
+  dd.querySelectorAll('.tc-range-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_RANGE = b.dataset.r; tcRenderGranDropdownContent(); tcUpdateGranBtnLabel(); tcRenderContent(); }));
   const f = document.getElementById('tcRangeFrom'), t = document.getElementById('tcRangeTo');
-  if(f) f.addEventListener('change', ()=>{ TC_RANGE_FROM = f.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
-  if(t) t.addEventListener('change', ()=>{ TC_RANGE_TO = t.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
+  if(f) f.addEventListener('change', ()=>{ TC_RANGE_FROM = f.value; tcUpdateGranBtnLabel(); tcRenderContent(); });
+  if(t) t.addEventListener('change', ()=>{ TC_RANGE_TO = t.value; tcUpdateGranBtnLabel(); tcRenderContent(); });
 }
 (function(){
-  const btn = document.getElementById('tcPeriodBtn');
-  if(btn) btn.addEventListener('click', tcTogglePeriodDropdown);
+  const mb = document.getElementById('tcModeBtn');
+  if(mb) mb.addEventListener('click', tcToggleModeDropdown);
+  const gb = document.getElementById('tcGranBtn');
+  if(gb) gb.addEventListener('click', tcToggleGranDropdown);
 })();
 function tcBuildChartSvg(periods, seriesList, fmt){
   const allVals = [];
@@ -2957,8 +3017,9 @@ async function tcEnsureData(force){
 async function renderTokoCompare(){
   tcRenderKriteriaGrid();
   await tcEnsureData(false);
-  tcUpdatePeriodBtnLabel();
-  if(TC_DD_OPEN) tcRenderPeriodDropdownContent();
+  tcUpdateModeBtnLabel();
+  tcUpdateGranBtnLabel();
+  if(TC_GRAN_DD_OPEN) tcRenderGranDropdownContent();
   tcRenderContent();
 }
 (function(){
