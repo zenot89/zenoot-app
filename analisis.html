@@ -1862,24 +1862,41 @@ function zProdukHpp(ref){
    Urutan (tiap lapis cuma jalan kalau lapis sebelumnya gak ketemu):
      1) SKU Variasi persis  2) turun size di SKU yang sama (zProdukHpp)  3) SKU Induk + size dari Nama Variasi ("Warna,Size"), warna apa aja
         — size itu sendiri dulu, baru turun size (S->M, L->XL). Kalau HPP antar warna di size itu beda, pakai yang TERTINGGI (konservatif).
+     4) [22 Sep 2026] SKU Induk doang, HPP flat — buat varian TANPA size sama sekali (mis. "Coffee", "Abu Muda", gak ada koma jadi
+        Lapis 3 gak bisa jalan) atau kalau Lapis 3 gak ketemu. Cuma jalan kalau SEMUA varian dalam SKU Induk yang sama di Kelola
+        Produk HPP-nya SAMA PERSIS (gak ambigu) — kalau beda-beda per varian, tetep undefined ("belum ada di Kelola Produk")
+        daripada nebak angka yang salah.
    Size diambil dari Nama Variasi Shopee (bukan dari kode SKU) karena kode SKU bisa typo, nama variasinya konsisten. */
+function zProdukKatalogHppFlat(ik){
+  var flat = null, ok = true;
+  zProdukRows.forEach(function(r){
+    if(zProdukNorm(r.katalog) !== ik) return;
+    var rh = Number(r.hpp) || 0;
+    if(rh <= 0) return;
+    if(flat === null) flat = rh;
+    else if(flat !== rh) ok = false;
+  });
+  return (ok && flat !== null) ? flat : undefined;
+}
 function zProdukHppBy(induk, nomorRef, variasi){
   var h = zProdukHpp(nomorRef);
   if(h !== undefined) return h;
   var ik = zProdukNorm(induk);
   if(!ik) return undefined;
   var parts = String(variasi==null?'':variasi).split(',');
-  if(parts.length < 2) return undefined;          // gak ada dimensi size (mis. "Random")
-  var sz = zProdukNorm(parts[parts.length-1]);
-  if(!sz) return undefined;
-  var tries = [sz];
-  var tm = Z_SIZE_TURUN_INDUK[ik] || Z_SIZE_TURUN;   // induk yang punya aturan sendiri pakai petanya sendiri, sisanya (Turtleneck dkk) pakai peta lama
-  if(tm[sz]) tries.push(tm[sz]);
-  for(var i = 0; i < tries.length; i++){
-    var a = zProdukIdxSize.get(ik + '|' + tries[i]);
-    if(a && a.length) return Math.max.apply(null, a);
+  if(parts.length >= 2){
+    var sz = zProdukNorm(parts[parts.length-1]);
+    if(sz){
+      var tries = [sz];
+      var tm = Z_SIZE_TURUN_INDUK[ik] || Z_SIZE_TURUN;   // induk yang punya aturan sendiri pakai petanya sendiri, sisanya (Turtleneck dkk) pakai peta lama
+      if(tm[sz]) tries.push(tm[sz]);
+      for(var i = 0; i < tries.length; i++){
+        var a = zProdukIdxSize.get(ik + '|' + tries[i]);
+        if(a && a.length) return Math.max.apply(null, a);
+      }
+    }
   }
-  return undefined;
+  return zProdukKatalogHppFlat(ik);
 }
 function zHppView(){
   return new Proxy({}, {
