@@ -2407,7 +2407,6 @@ async function exportJurnalPenjualan() {
       + '</div>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="semua" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Semua</label>'
       + '</div>'
-      + '</div>'
       + '</div>';
     document.body.appendChild(pp);
   }
