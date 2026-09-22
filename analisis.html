@@ -214,6 +214,7 @@
     border-bottom:1px solid var(--line);
   }
   #storeTopbar .page-title-bar{ font-size:17px; font-weight:800; color:var(--ink); letter-spacing:-.2px; background:var(--title-bg); border:1px solid var(--ink); border-radius:4px; padding:8px 14px; }
+  .store-title-wrap{ display:flex; align-items:center; gap:8px; }
   #storeTopbar .store-badge{
     display:flex; align-items:center; gap:9px;
     background:var(--title-bg); border:1px solid var(--ink); border-radius:4px;
@@ -702,14 +703,22 @@
   .tc-kr-group-items{ display:flex; flex-wrap:wrap; gap:8px 16px; }
   .tc-kr-item{ display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; user-select:none; }
   .tc-kr-item input{ width:14px; height:14px; cursor:pointer; margin:0; }
-  .tc-control-card{ display:flex; align-items:center; flex-wrap:wrap; gap:14px; padding:12px 16px; margin-top:14px; }
-  .tc-mode-switch, .tc-gran-switch{ display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-  .tc-mode-btn, .tc-gran-btn{ border:0; background:#fff; color:var(--ink-soft); padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; border-left:1px solid var(--line); }
+  .tc-control-row{ margin-top:12px; }
+  .tc-period-btn{ display:inline-flex; align-items:center; gap:10px; border:1px solid var(--ink); border-radius:6px; background:#fff; padding:9px 14px; cursor:pointer; font-family:inherit; }
+  .tc-period-btn-label{ font-size:11px; color:var(--ink-soft); font-weight:600; }
+  .tc-period-btn-value{ font-size:13px; color:var(--ink); font-weight:700; }
+  .tc-period-btn-caret{ font-size:10px; color:var(--ink-soft); }
+  .tc-period-dd{ position:fixed; z-index:60; width:320px; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:14px; }
+  .tc-pd-section{ margin-bottom:12px; }
+  .tc-pd-section:last-child{ margin-bottom:0; }
+  .tc-pd-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+  .tc-mode-switch, .tc-gran-switch{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .tc-mode-btn, .tc-gran-btn{ flex:1; border:0; background:#fff; color:var(--ink-soft); padding:7px 10px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; border-left:1px solid var(--line); }
   .tc-mode-btn:first-child, .tc-gran-btn:first-child{ border-left:0; }
   .tc-mode-btn.active, .tc-gran-btn.active{ background:var(--ink); color:#fff; }
-  .tc-period{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .tc-range-btns{ display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-  .tc-range-btn{ border:0; background:#fff; color:var(--ink-soft); padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; border-left:1px solid var(--line); }
+  .tc-period{ display:flex; flex-direction:column; gap:8px; }
+  .tc-range-btns{ display:flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .tc-range-btn{ flex:1 1 auto; border:0; background:#fff; color:var(--ink-soft); padding:7px 8px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; border-left:1px solid var(--line); white-space:nowrap; }
   .tc-range-btn:first-child{ border-left:0; }
   .tc-range-btn.active{ background:var(--ink); color:#fff; }
   .tc-range-custom{ display:flex; align-items:center; gap:6px; }
@@ -1017,7 +1026,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><span class="page-title-bar" id="pageTitleBar">Rekap</span><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1357,25 +1366,12 @@
 
   <!-- ============ PAGE: PERBANDINGAN TOKO (data Rekap semua toko sekaligus, langsung dari Supabase) ============ -->
   <section class="page" id="page-tokocompare">
-    <div class="page-head">
-      <div class="toolbar">
-        <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></div>
-      </div>
-    </div>
     <div class="card tc-kriteria-card">
       <div class="tc-kriteria-head"><h3>Pilih Kriteria</h3><span class="tc-kriteria-count" id="tcKriteriaCount"></span></div>
       <div class="tc-kriteria-grid" id="tcKriteriaGrid"></div>
     </div>
-    <div class="card tc-control-card">
-      <div class="tc-mode-switch" id="tcModeSwitch">
-        <button type="button" class="tc-mode-btn active" data-mode="bulan">Per Periode</button>
-        <button type="button" class="tc-mode-btn" data-mode="tren">Tren</button>
-      </div>
-      <div class="tc-gran-switch" id="tcGranSwitch">
-        <button type="button" class="tc-gran-btn active" data-gran="bulanan">Bulanan</button>
-        <button type="button" class="tc-gran-btn" data-gran="mingguan">Mingguan</button>
-      </div>
-      <div class="tc-period" id="tcPeriodWrap"></div>
+    <div class="tc-control-row">
+      <button type="button" class="tc-period-btn" id="tcPeriodBtn"><span class="tc-period-btn-label">Periode Data</span><span class="tc-period-btn-value" id="tcPeriodBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
     </div>
     <div id="tcContent"></div>
   </section>
@@ -2100,6 +2096,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+btn.dataset.page).classList.add('active');
     currentPage = btn.dataset.page;
+    const tcInfo = document.getElementById('tcTopbarInfo'); if(tcInfo) tcInfo.style.display = (currentPage==='tokocompare') ? 'inline-flex' : 'none';
     updatePageTitleBar(currentPage);
     try{
       if(btn.dataset.page==='hpp') renderHPP();
@@ -2753,43 +2750,104 @@ function tcUpdateKriteriaCount(){
   const el = document.getElementById('tcKriteriaCount');
   if(el) el.textContent = 'Kriteria Dipilih: '+TC_KRITERIA.size+'/'+REKAP_METRICS.length;
 }
-function tcRenderControls(){
-  const modeWrap = document.getElementById('tcModeSwitch');
-  if(modeWrap) modeWrap.querySelectorAll('.tc-mode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===TC_MODE));
-  const granWrap = document.getElementById('tcGranSwitch');
-  if(granWrap) granWrap.querySelectorAll('.tc-gran-btn').forEach(b=>b.classList.toggle('active', b.dataset.gran===TC_GRAN));
-  tcRenderPeriodControls();
+let TC_DD_OPEN = false;   // status dropdown "Periode Data" (mode/gran/range) — default ketutup, gaya Shopee
+function tcRangeLabel(){
+  const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
+  if(TC_RANGE==='3bulan') return '3 '+label+' Terakhir';
+  if(TC_RANGE==='12bulan') return '12 '+label+' Terakhir';
+  if(TC_RANGE==='custom') return (TC_RANGE_FROM||TC_RANGE_TO) ? 'Custom' : 'Custom (belum dipilih)';
+  return '6 '+label+' Terakhir';
 }
-function tcRenderPeriodControls(){
-  const wrap = document.getElementById('tcPeriodWrap'); if(!wrap) return;
-  if(!TC_DATA){ wrap.innerHTML = ''; return; }
-  const keys = tcAllPeriodKeys(TC_DATA, TC_GRAN);
+function tcUpdatePeriodBtnLabel(){
+  const el = document.getElementById('tcPeriodBtnValue'); if(!el) return;
+  const granTxt = TC_GRAN==='mingguan' ? 'Mingguan' : 'Bulanan';
+  if(TC_MODE==='bulan'){
+    el.textContent = (TC_BULAN_PICK ? tcPeriodLabel(TC_BULAN_PICK, TC_GRAN) : 'Belum ada data') + ' · ' + granTxt;
+  } else {
+    el.textContent = 'Tren · ' + tcRangeLabel() + ' · ' + granTxt;
+  }
+}
+function tcClosePeriodDropdown(){
+  const dd = document.getElementById('tcPeriodDD');
+  if(dd) dd.remove();
+  TC_DD_OPEN = false;
+  document.removeEventListener('mousedown', tcDDOutside, true);
+  document.removeEventListener('keydown', tcDDEsc);
+  window.removeEventListener('resize', tcClosePeriodDropdown);
+}
+function tcDDOutside(e){
+  const dd = document.getElementById('tcPeriodDD');
+  if(dd && !dd.contains(e.target) && !e.target.closest('#tcPeriodBtn')) tcClosePeriodDropdown();
+}
+function tcDDEsc(e){ if(e.key==='Escape') tcClosePeriodDropdown(); }
+function tcTogglePeriodDropdown(){
+  if(TC_DD_OPEN){ tcClosePeriodDropdown(); return; }
+  const btn = document.getElementById('tcPeriodBtn'); if(!btn) return;
+  const dd = document.createElement('div');
+  dd.id = 'tcPeriodDD'; dd.className = 'tc-period-dd';
+  document.body.appendChild(dd);
+  TC_DD_OPEN = true;
+  tcRenderPeriodDropdownContent();
+  const r = btn.getBoundingClientRect();
+  dd.style.top = (r.bottom + 6)+'px';
+  dd.style.left = Math.max(8, r.left)+'px';
+  document.addEventListener('mousedown', tcDDOutside, true);
+  document.addEventListener('keydown', tcDDEsc);
+  window.addEventListener('resize', tcClosePeriodDropdown);
+}
+function tcRenderPeriodDropdownContent(){
+  const dd = document.getElementById('tcPeriodDD'); if(!dd) return;
+  const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
+  let periodHtml;
   if(TC_MODE==='bulan'){
     if(!TC_BULAN_PICK || keys.indexOf(TC_BULAN_PICK)<0) TC_BULAN_PICK = keys.length ? keys[keys.length-1] : null;
-    if(!keys.length){ wrap.innerHTML = '<span class="tc-period-empty">Belum ada data Rekap tersimpan.</span>'; return; }
-    const opts = keys.slice().reverse().map(k=>`<option value="${k}" ${k===TC_BULAN_PICK?'selected':''}>${tcPeriodLabel(k,TC_GRAN)}</option>`).join('');
-    wrap.innerHTML = `<select class="toko-input" id="tcBulanPick" style="width:auto;margin:0;">${opts}</select>`;
-    const sel = document.getElementById('tcBulanPick');
-    if(sel) sel.addEventListener('change', ()=>{ TC_BULAN_PICK = sel.value; tcRenderContent(); });
+    periodHtml = keys.length
+      ? `<select class="toko-input" id="tcBulanPick" style="width:100%;margin:0;">${keys.slice().reverse().map(k=>`<option value="${k}" ${k===TC_BULAN_PICK?'selected':''}>${tcPeriodLabel(k,TC_GRAN)}</option>`).join('')}</select>`
+      : '<span class="tc-period-empty">Belum ada data Rekap tersimpan.</span>';
   } else {
     const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
-    wrap.innerHTML = `<div class="tc-range-btns">`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='3bulan'?' active':''}" data-r="3bulan">3 ${label} Terakhir</button>`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='6bulan'?' active':''}" data-r="6bulan">6 ${label} Terakhir</button>`
-      + `<button type="button" class="tc-range-btn${TC_RANGE==='12bulan'?' active':''}" data-r="12bulan">12 ${label} Terakhir</button>`
+    periodHtml = `<div class="tc-range-btns">`
+      + `<button type="button" class="tc-range-btn${TC_RANGE==='3bulan'?' active':''}" data-r="3bulan">3 ${label}</button>`
+      + `<button type="button" class="tc-range-btn${TC_RANGE==='6bulan'?' active':''}" data-r="6bulan">6 ${label}</button>`
+      + `<button type="button" class="tc-range-btn${TC_RANGE==='12bulan'?' active':''}" data-r="12bulan">12 ${label}</button>`
       + `<button type="button" class="tc-range-btn${TC_RANGE==='custom'?' active':''}" data-r="custom">Custom</button>`
       + `</div>`
-      + (TC_RANGE==='custom' ? `<div class="tc-range-custom">`
+      + (TC_RANGE==='custom' ? `<div class="tc-range-custom" style="margin-top:8px;">`
         + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeFrom" value="${TC_RANGE_FROM||''}" style="width:auto;margin:0;">`
         + `<span>–</span>`
         + `<input type="${TC_GRAN==='mingguan'?'date':'month'}" class="toko-input" id="tcRangeTo" value="${TC_RANGE_TO||''}" style="width:auto;margin:0;">`
         + `</div>` : '');
-    wrap.querySelectorAll('.tc-range-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_RANGE = b.dataset.r; tcRenderPeriodControls(); tcRenderContent(); }));
-    const f = document.getElementById('tcRangeFrom'), t = document.getElementById('tcRangeTo');
-    if(f) f.addEventListener('change', ()=>{ TC_RANGE_FROM = f.value; tcRenderContent(); });
-    if(t) t.addEventListener('change', ()=>{ TC_RANGE_TO = t.value; tcRenderContent(); });
   }
+  dd.innerHTML = `
+    <div class="tc-pd-section">
+      <div class="tc-pd-label">Tampilan</div>
+      <div class="tc-mode-switch" id="tcModeSwitch">
+        <button type="button" class="tc-mode-btn${TC_MODE==='bulan'?' active':''}" data-mode="bulan">Per Periode</button>
+        <button type="button" class="tc-mode-btn${TC_MODE==='tren'?' active':''}" data-mode="tren">Tren</button>
+      </div>
+    </div>
+    <div class="tc-pd-section">
+      <div class="tc-pd-label">Granularitas</div>
+      <div class="tc-gran-switch" id="tcGranSwitch">
+        <button type="button" class="tc-gran-btn${TC_GRAN==='bulanan'?' active':''}" data-gran="bulanan">Bulanan</button>
+        <button type="button" class="tc-gran-btn${TC_GRAN==='mingguan'?' active':''}" data-gran="mingguan">Mingguan</button>
+      </div>
+    </div>
+    <div class="tc-pd-section tc-period">${periodHtml}</div>
+  `;
+  dd.querySelectorAll('.tc-mode-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_MODE = b.dataset.mode; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
+  dd.querySelectorAll('.tc-gran-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_GRAN = b.dataset.gran; TC_BULAN_PICK = null; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
+  dd.querySelectorAll('.tc-range-btn').forEach(b=>b.addEventListener('click', ()=>{ TC_RANGE = b.dataset.r; tcRenderPeriodDropdownContent(); tcUpdatePeriodBtnLabel(); tcRenderContent(); }));
+  const sel = document.getElementById('tcBulanPick');
+  if(sel) sel.addEventListener('change', ()=>{ TC_BULAN_PICK = sel.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
+  const f = document.getElementById('tcRangeFrom'), t = document.getElementById('tcRangeTo');
+  if(f) f.addEventListener('change', ()=>{ TC_RANGE_FROM = f.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
+  if(t) t.addEventListener('change', ()=>{ TC_RANGE_TO = t.value; tcUpdatePeriodBtnLabel(); tcRenderContent(); });
 }
+(function(){
+  const btn = document.getElementById('tcPeriodBtn');
+  if(btn) btn.addEventListener('click', tcTogglePeriodDropdown);
+})();
 function tcBuildChartSvg(periods, seriesList, fmt){
   const allVals = [];
   seriesList.forEach(s=>s.values.forEach(v=>{ if(v!==null && v!==undefined && !isNaN(v)) allVals.push(v); }));
@@ -2801,6 +2859,7 @@ function tcBuildChartSvg(periods, seriesList, fmt){
   const yOf = v => padT + plotH - ((v-minV)/(maxV-minV))*plotH;
   const xOf = i => periods.length<=1 ? padL+plotW/2 : padL + (i/(periods.length-1))*plotW;
   const gridLines = [0,0.25,0.5,0.75,1].map(t=>{
+
     const v = minV + t*(maxV-minV), y = padT + plotH - t*plotH;
     return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${padL-6}" y="${y+3}" font-size="9" text-anchor="end" fill="var(--ink-soft)">${fmtRekapVal(v, fmt)}</text>`;
   }).join('');
@@ -2870,22 +2929,12 @@ async function tcEnsureData(force){
 }
 async function renderTokoCompare(){
   tcRenderKriteriaGrid();
-  tcRenderControls();
   await tcEnsureData(false);
-  tcRenderPeriodControls();
+  tcUpdatePeriodBtnLabel();
+  if(TC_DD_OPEN) tcRenderPeriodDropdownContent();
   tcRenderContent();
 }
 (function(){
-  const modeWrap = document.getElementById('tcModeSwitch');
-  if(modeWrap) modeWrap.addEventListener('click', e=>{
-    const b = e.target.closest('.tc-mode-btn'); if(!b) return;
-    TC_MODE = b.dataset.mode; tcRenderControls(); tcRenderContent();
-  });
-  const granWrap = document.getElementById('tcGranSwitch');
-  if(granWrap) granWrap.addEventListener('click', e=>{
-    const b = e.target.closest('.tc-gran-btn'); if(!b) return;
-    TC_GRAN = b.dataset.gran; TC_BULAN_PICK = null; tcRenderControls(); tcRenderContent();
-  });
   const grid = document.getElementById('tcKriteriaGrid');
   if(grid) grid.addEventListener('change', e=>{
     const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
