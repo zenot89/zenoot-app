@@ -5480,6 +5480,18 @@ function plSkuSheetRenderInduk(q){
 }
 
 function plSkuSheetSelectInduk(katalog){
+  const group = zKatalogGroups().find(g=>g.katalog===katalog);
+  const distinctHpp = group ? [...new Set(group.variants.map(v=>v.hpp))] : [];
+  // [22 Sep 2026] Kalau HPP semua varian dalam SKU Induk ini SAMA (kasus umum), langsung dipakai --
+  // gak perlu maksa user milih SKU Variasi lagi, cukup pilih SKU Induk doang. Baru lanjut ke Step 2
+  // (pilih Variasi) kalau HPP beda per varian dalam 1 Induk, kayak RH_ZIPPER-SALUR (L vs XXL beda
+  // harga) -- di situ user emang wajib milih biar size & HPP-nya kebawa yang bener.
+  if(distinctHpp.length<=1){
+    const picked = plResolveIdentity(katalog, '');
+    plSkuSheetClose();
+    plApplyPickedSku(_plSkuCtx, picked);
+    return;
+  }
   _plSkuStep = 'variasi';
   _plSkuIndukPicked = katalog;
   document.getElementById('plSkuSheetTitle').innerHTML = `<button type="button" class="pl-sheet-back" id="plSkuSheetBackBtn">←</button> ${byhEsc(katalog)}`;
