@@ -141,7 +141,7 @@ var pageMap = {
   'channel':            { title:'Channel',             sub:'master data channel toko'       },
   'beban-operasional':  { title:'Beban Operasional',   sub:'acuan % beban & target NPM'     },
   'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
-  'keuangan':           { title:'Keuangan Operasional', sub:'hutang, neraca, rasio & valuasi' },
+  'keuangan':           { title:'Hutang Aing', sub:'hutang, neraca, rasio & valuasi' },
   'hutang-supplier':    { title:'Hutang Barang',        sub:'utang aktif & pembayaran per supplier' },
   'cost-produksi':      { title:'Cost Produksi',        sub:'ongkos operator per SKU & divisi' },
   'penutupan-periode':  { title:'Penutupan Periode',    sub:'month-end close & lock jurnal'   },
