@@ -2733,13 +2733,23 @@ function tcAllPeriodKeys(dataByToko, gran){
   });
   return Array.from(set).sort();
 }
+function tcAddDays(key, days){
+  const d = new Date(key+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function tcPeriodLabel(key, gran){
   if(gran==='bulanan'){
     const y = key.slice(0,4), m = parseInt(key.slice(5,7),10)-1;
     return (REKAP_BULAN_SHORT[m]||'?')+' '+y;
   }
   const p = key.split('-');
-  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0].slice(2)) : key;
+  if(p.length!==3) return key;
+  const startLbl = p[2]+'/'+p[1]+'/'+p[0].slice(2);
+  // periode minggu = Minggu–Sabtu (7 hari), key = tanggal mulai (Minggu) → tampilkan rentang dari-sampai
+  const ep = tcAddDays(key, 6).split('-');
+  const endLbl = ep[2]+'/'+ep[1]+'/'+ep[0].slice(2);
+  return startLbl+' – '+endLbl;
 }
 function tcRangeKeys(allKeys){
   if(TC_RANGE==='custom'){
