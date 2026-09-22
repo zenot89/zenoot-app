@@ -133,7 +133,7 @@ document.getElementById('page-produk').innerHTML = `
       <div id="paste-produk-preview" style="margin-top:10px;display:none">
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="paste-produk-count"></div>
         <div class="tbl-wrap" style="max-height:160px;overflow-y:auto">
-          <table class="tbl"><thead><tr><th>Katalog</th><th>SKU Variasi</th><th>HPP</th><th>Boss</th></tr></thead>
+          <table class="tbl"><thead><tr><th>Katalog</th><th>SKU Variasi</th><th>HPP</th><th>Boss</th><th>Status</th></tr></thead>
           <tbody id="paste-produk-tbody"></tbody></table>
         </div>
       </div>
@@ -517,6 +517,11 @@ async function _produkCascadeRename(oldSkuU, newSkuU, newKatalog, newBoss, oldKa
   });
 }
 
+// Cegah SKU Variasi duplikat (22 Sep 2026) — dulu simpanProduk()/simpanPasteProduk() insert tanpa
+// cek, SKU Variasi yang sama bisa kesimpen 2x jadi baris terpisah (kejadian nyata: paste ulang MGR_Reiko).
+// Cocokin tanpa peduli besar-kecil huruf & spasi pinggir, sama kayak konvensi matching di Analisis (zProdukNorm).
+function _produkSkuNorm(s) { return String(s == null ? '' : s).trim().toUpperCase(); }
+
 async function simpanProduk() {
   const id = document.getElementById('prd-id').value;
   const data = {
@@ -526,6 +531,14 @@ async function simpanProduk() {
     boss:        document.getElementById('prd-boss').value.trim().toUpperCase(),
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
+
+  const skuNormNew = _produkSkuNorm(data.sku_variasi);
+  const dup = _produkData.find(d => d.id != id && _produkSkuNorm(d.sku_variasi) === skuNormNew);
+  if (dup) {
+    alert(`SKU Variasi "${data.sku_variasi}" sudah ada di Kelola Produk (katalog: ${dup.katalog}). Edit baris yang sudah ada, bukan bikin baru.`);
+    return;
+  }
+
   try {
     let old = null;
     if (id) old = _produkData.find(d => d.id == id);
@@ -579,6 +592,11 @@ function parsePasteProduk() {
   const knownSupplier = {}; // Set nama supplier yg udah ada di hutang_supplier — buat deteksi "baru"
   (_produkSupplierList || []).forEach(s => { knownSupplier[(s.nama||'').toUpperCase()] = true; });
 
+  // Cegah SKU Variasi duplikat (22 Sep 2026) — cek ke SKU yang udah ada di Kelola Produk SEKARANG,
+  // dan ke baris lain di batch paste yang sama (kalau user gak sengaja paste dobel). Case/spasi diabaikan.
+  const existingSku = new Set((_produkData || []).map(d => _produkSkuNorm(d.sku_variasi)));
+  const seenInBatch = new Set();
+
   for (const line of lines) {
     if (!line.trim()) continue;
     // Split by tab (dari Excel) atau multiple spaces
@@ -599,7 +617,12 @@ function parsePasteProduk() {
     const bossIsNew = !!boss && !knownSupplier[boss];
 
     if (!sku) continue;
-    _parsedProduk.push({ katalog: katalog.toUpperCase(), sku_variasi: sku, hpp, boss, bossIsNew });
+
+    const skuNorm = _produkSkuNorm(sku);
+    const isDup = existingSku.has(skuNorm) || seenInBatch.has(skuNorm);
+    seenInBatch.add(skuNorm);
+
+    _parsedProduk.push({ katalog: katalog.toUpperCase(), sku_variasi: sku, hpp, boss, bossIsNew, isDup });
   }
 
   if (_parsedProduk.length === 0) {
@@ -607,20 +630,23 @@ function parsePasteProduk() {
     return;
   }
 
-  // Render preview
-  const newBossCount = _parsedProduk.filter(r => r.bossIsNew).length;
+  // Render preview — baris duplikat ditampilin (biar keliatan mana yang di-skip) tapi gak ikut disimpan
+  const dupCount = _parsedProduk.filter(r => r.isDup).length;
+  const newBossCount = _parsedProduk.filter(r => r.bossIsNew && !r.isDup).length;
   document.getElementById('paste-produk-count').innerHTML =
-    `✓ ${_parsedProduk.length} SKU siap diimport` +
+    `✓ ${_parsedProduk.length - dupCount} SKU siap diimport` +
+    (dupCount ? ` — <span style="color:var(--danger)">${dupCount} dilewati (SKU Variasi sudah ada)</span>` : '') +
     (newBossCount ? ` — <span style="color:var(--warn)">${newBossCount} pakai supplier baru, bakal otomatis ditambahin ke Kelola Supplier (mode Dropship, bisa diedit nanti)</span>` : '');
   document.getElementById('paste-produk-tbody').innerHTML = _parsedProduk.map(r => `
-    <tr>
+    <tr${r.isDup ? ' style="opacity:.5"' : ''}>
       <td>${r.katalog}</td>
       <td>${r.sku_variasi}</td>
       <td>Rp${r.hpp.toLocaleString('id-ID')}</td>
       <td>${r.boss||'—'}${r.bossIsNew ? ' <span style="font-size:10px;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 4px">baru</span>' : ''}</td>
+      <td>${r.isDup ? '<span style="font-size:11px;color:var(--danger)">duplikat</span>' : '<span style="font-size:11px;color:var(--ok)">✓ lolos</span>'}</td>
     </tr>`).join('');
   document.getElementById('paste-produk-preview').style.display = 'block';
-  document.getElementById('btn-simpan-paste-produk').style.display = 'inline-block';
+  document.getElementById('btn-simpan-paste-produk').style.display = (dupCount < _parsedProduk.length) ? 'inline-block' : 'none';
 }
 
 async function simpanPasteProduk() {
@@ -635,7 +661,10 @@ async function simpanPasteProduk() {
     // nyimpang diam-diam kayak sebelumnya. Default Dropship (paling aman
     // buat supplier yg belum dikenal) — user tinggal ubah ke Reseller
     // nanti dari Kelola Supplier kalau perlu.
-    const newBossNames = [...new Set(_parsedProduk.filter(r => r.bossIsNew).map(r => r.boss))];
+    // Baris duplikat (isDup) di-skip total — udah ditandain "duplikat" di preview, gak ikut disimpan
+    // maupun ikut nge-trigger auto-create supplier baru.
+    const rowsToSave = _parsedProduk.filter(r => !r.isDup);
+    const newBossNames = [...new Set(rowsToSave.filter(r => r.bossIsNew).map(r => r.boss))];
     for (const nama of newBossNames) {
       const created = await dbInsert('hutang_supplier', { nama, is_dropship: true, is_reseller: false });
       const row = Array.isArray(created) ? created[0] : created;
@@ -644,14 +673,17 @@ async function simpanPasteProduk() {
 
     // Insert satu per satu (Supabase REST tidak support bulk insert via anon key easily)
     let ok = 0;
-    for (const row of _parsedProduk) {
+    for (const row of rowsToSave) {
       await dbInsert('produk', { katalog: row.katalog, sku_variasi: row.sku_variasi, hpp: row.hpp, boss: row.boss });
       ok++;
-      btn.textContent = `Menyimpan ${ok}/${_parsedProduk.length}...`;
+      btn.textContent = `Menyimpan ${ok}/${rowsToSave.length}...`;
     }
     closeModal('modal-paste-produk');
     loadProduk();
-    alert(`✓ ${ok} SKU berhasil disimpan!` + (newBossNames.length ? `\n✓ ${newBossNames.length} supplier baru ditambahin ke Kelola Supplier (mode Dropship): ${newBossNames.join(', ')}` : ''));
+    const dupSkipped = _parsedProduk.length - rowsToSave.length;
+    alert(`✓ ${ok} SKU berhasil disimpan!` +
+      (dupSkipped ? `\n⚠ ${dupSkipped} SKU dilewati karena sudah ada di Kelola Produk` : '') +
+      (newBossNames.length ? `\n✓ ${newBossNames.length} supplier baru ditambahin ke Kelola Supplier (mode Dropship): ${newBossNames.join(', ')}` : ''));
   } catch(err) {
     alert('Gagal simpan: ' + err.message);
   } finally {
