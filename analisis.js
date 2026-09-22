@@ -36,11 +36,12 @@
   // ── Peta menu: sub-menu sidebar → tab. Kunci halaman = data-page di analisis.html ──
   var GROUPS = {
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap'], ['hpp', 'HPP Produk'], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan']] },
+    tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
     proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
-  var GROUP_ORDER = ['rasio', 'proyeksi', 'setting'];
-  var lastTab = { rasio: 'hasil', proyeksi: 'checkadmin', setting: 'setting' };  // tab terakhir per sub-menu
+  var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
+  var lastTab = { tokocompare: 'tokocompare', rasio: 'hasil', proyeksi: 'checkadmin', setting: 'setting' };  // tab terakhir per sub-menu
   var curGroup = null;   // sub-menu yang sedang tampil
   var curPage = null;    // halaman Analisis yang sedang tampil (kunci data-page)
 
@@ -50,7 +51,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
