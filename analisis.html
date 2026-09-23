@@ -949,8 +949,9 @@
   .setting-edit-btn:hover{ filter:brightness(.97); }
   .setting-edit-btn.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
   #settingCardsWrap{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; }
-  #settingCardsWrap .setting-toko-card{ flex:1 1 340px; max-width:420px; margin-bottom:0 !important; }
-  @media (max-width:600px){ #settingCardsWrap .setting-toko-card{ flex:1 1 100%; max-width:none; } }
+  #settingCardsWrap .setting-toko-card, #settingSumRow .setting-toko-card{ flex:1 1 340px; max-width:420px; margin-bottom:0 !important; }
+  @media (max-width:600px){ #settingCardsWrap .setting-toko-card, #settingSumRow .setting-toko-card{ flex:1 1 100%; max-width:none; } }
+  #settingSumRow{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; margin-bottom:14px; }
   .hrow.highlight .val{ color:var(--accent-dark); }
   .hrow.negative .val{ color:var(--bad); }
   .hrow.section-title{ padding-top:16px; }
@@ -1513,12 +1514,25 @@
         <span class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll). Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko.</div></span>
       </div>
     </div>
-    <div class="card" id="settingSumCard" style="max-width:480px;margin-bottom:14px;">
-      <div class="hrow highlight">
-        <div class="lbl">SUM OPERASIONAL BULAN SEBELUMNYA<span class="ket">Gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
-        <div class="val" id="settingSumOperasional">-</div>
+    <div class="setting-sum-row" id="settingSumRow">
+      <div class="card setting-toko-card" style="margin-bottom:14px;">
+        <div class="hrow highlight">
+          <div class="lbl">SUM OPERASIONAL<span class="ket">Gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
+          <div class="val" id="settingSumOperasional">-</div>
+        </div>
       </div>
-      <div id="settingSumBreakdown"></div>
+      <div class="card setting-toko-card" style="margin-bottom:14px;">
+        <div class="hrow highlight">
+          <div class="lbl">BEBAN OPERASIONAL<span class="ket" id="settingSumBebanKet">Dari Jurnal</span></div>
+          <div class="val" id="settingSumBeban">-</div>
+        </div>
+      </div>
+      <div class="card setting-toko-card" style="margin-bottom:14px;">
+        <div class="hrow highlight">
+          <div class="lbl">CICILAN AKTIF<span class="ket">Kewajiban dari Hutang Aing</span></div>
+          <div class="val" id="settingSumKewajiban">-</div>
+        </div>
+      </div>
     </div>
     <div id="settingCardsWrap"></div>
   </section>
@@ -6967,14 +6981,12 @@ async function renderSetting(){
   }
 
   if(sumEl) sumEl.textContent = fmtRp(ops.totalGabungan);
-  const bdEl = document.getElementById('settingSumBreakdown');
-  if(bdEl){
-    bdEl.innerHTML =
-      '<div class="hrow"><div class="lbl">BEBAN OPERASIONAL<span class="ket">Dari Jurnal — '+rekapMonthLabel(ops.ymKey)+'</span></div>'+
-      '<div class="val">'+fmtRp(ops.totalBeban)+'</div></div>'+
-      '<div class="hrow"><div class="lbl">CICILAN AKTIF<span class="ket">Kewajiban dari Hutang Aing</span></div>'+
-      '<div class="val">'+fmtRp(ops.totalKewajiban)+'</div></div>';
-  }
+  const bebanEl = document.getElementById('settingSumBeban');
+  const bebanKetEl = document.getElementById('settingSumBebanKet');
+  const kewajibanEl = document.getElementById('settingSumKewajiban');
+  if(bebanEl) bebanEl.textContent = fmtRp(ops.totalBeban);
+  if(bebanKetEl) bebanKetEl.textContent = 'Dari Jurnal — '+rekapMonthLabel(ops.ymKey);
+  if(kewajibanEl) kewajibanEl.textContent = fmtRp(ops.totalKewajiban);
   if(!wrap) return;
 
   wrap.innerHTML = (tokoList.map(t=>{
