@@ -731,6 +731,9 @@
   .tc-table td.tc-kriteria, .tc-table th.tc-kriteria{ text-align:left; font-weight:600; min-width:200px; position:sticky; left:0; background:#fff; }
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
+  .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
+  .tc-table th.tc-biz:first-of-type, .tc-table td.tc-biz:first-of-type{ border-left:2px solid var(--line); }
+  .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
   .tc-chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
   .tc-chart-card{ padding:12px 14px; }
   .tc-chart-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
@@ -3003,19 +3006,62 @@ function tcRenderContent(){
   if(!TC_KRITERIA.size){ wrap.innerHTML = '<div class="card tc-empty">Centang minimal 1 kriteria dulu.</div>'; return; }
   if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else tcRenderCharts(wrap, tokoList);
 }
+// [23 Sep 2026] Kolom gabungan SELURUH toko jadi satu ("bisnis gua"), bukan per-toko.
+// Nominal (Rp, kecuali AOV — sama kayak isNominal di rekapAggForMetric) digabung pakai SUM
+// antar toko per bulan; rasio/AOV/dll digabung pakai AVERAGE antar toko per bulan (gak ada
+// cara "jumlah" yang valid buat rasio). Rumus Average/Anual di bawah ini sengaja disamain
+// persis kayak rekapAggForMetric() di halaman Rekap biar konsisten satu aplikasi.
+function tcBusinessValueAt(m, key, tokoList){
+  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const vals = tokoList.map(t=>{
+    const snap = dictOf(t)[key];
+    const v = snap ? snap[m.key] : null;
+    return (v===null||v===undefined||isNaN(v)) ? null : v;
+  }).filter(v=>v!==null);
+  if(!vals.length) return null;
+  const isNominal = m.fmt==='rp' && m.key!=='aov';
+  const sumVal = vals.reduce((a,b)=>a+b,0);
+  return isNominal ? sumVal : sumVal/vals.length;
+}
+function tcBusinessAggForMetric(m, tokoList, keys){
+  const series = keys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
+  const count = series.length;
+  const isNominal = m.fmt==='rp' && m.key!=='aov';
+  const avg = count ? series.reduce((a,b)=>a+b,0)/count : null;
+  const anual = (isNominal && avg!==null) ? avg*12 : null;
+  return { avg, anual };
+}
 function tcRenderTable(wrap, tokoList){
   if(!TC_BULAN_PICK){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan.</div>'; return; }
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
   const head = tokoList.map(t=>`<th>${tokoEsc(t.nama)}</th>`).join('');
+  // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Average/Anual/Tren)
+  const showBiz = (TC_GRAN==='bulanan');
+  const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
+  const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
+  const bizHead = showBiz
+    ? `<th class="tc-biz" title="Gabungan ${tokoList.length} toko — ${tcPeriodLabel(TC_BULAN_PICK,TC_GRAN)}, dgn tren vs bulan sebelumnya">TOTAL BISNIS</th><th class="tc-biz" title="Rata-rata per bulan, gabungan semua toko, dari seluruh histori data">AVERAGE</th><th class="tc-biz" title="Proyeksi setahun (Average × 12), gabungan semua toko">ANUAL</th>`
+    : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     const cells = tokoList.map(t=>{
       const snap = dictOf(t)[TC_BULAN_PICK];
       const v = snap ? snap[m.key] : null;
       return `<td>${(v===null||v===undefined||isNaN(v)) ? '-' : fmtRekapVal(v, m.fmt)}</td>`;
     }).join('');
-    return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}</tr>`;
+    let bizCells = '';
+    if(showBiz){
+      const curBiz = tcBusinessValueAt(m, TC_BULAN_PICK, tokoList);
+      const prevBiz = prevKey ? tcBusinessValueAt(m, prevKey, tokoList) : null;
+      const trend = rekapTrendHtml(curBiz, prevBiz, m.goodUp, m.fmt);
+      const agg = tcBusinessAggForMetric(m, tokoList, keys);
+      const totalCell = curBiz===null ? '-' : (fmtRekapVal(curBiz, m.fmt)+trend);
+      const avgCell = agg.avg===null ? '-' : fmtRekapVal(agg.avg, m.fmt);
+      const anualCell = agg.anual===null ? '-' : fmtRekapVal(agg.anual, m.fmt);
+      bizCells = `<td class="tc-biz">${totalCell}</td><td class="tc-biz">${avgCell}</td><td class="tc-biz">${anualCell}</td>`;
+    }
+    return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`;
   }).join('');
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${head}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${head}${bizHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function tcRenderCharts(wrap, tokoList){
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
