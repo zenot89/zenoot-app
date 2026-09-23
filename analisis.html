@@ -702,7 +702,9 @@
   .tc-kr-toggle-btn:hover{ border-color:var(--ink); color:var(--ink); }
   .tc-kriteria-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .tc-kr-group{ border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
-  .tc-kr-group-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; }
+  .tc-kr-group-headrow{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .tc-kr-group-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; }
+  .tc-kr-group-actions{ display:flex; gap:6px; flex-wrap:wrap; }
   .tc-kr-group-items{ display:flex; flex-wrap:wrap; gap:8px 16px; }
   .tc-kr-item{ display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; user-select:none; }
   .tc-kr-item input{ width:14px; height:14px; cursor:pointer; margin:0; }
@@ -748,6 +750,40 @@
   .tc-chart-empty{ padding:40px 0; text-align:center; color:var(--ink-soft); font-size:12px; }
   @media (max-width: 820px){ .tc-kriteria-grid{ grid-template-columns:1fr; } }
   @media (max-width: 1100px){ .tc-chart-grid{ grid-template-columns:1fr; } }
+
+  /* ---- Perbandingan Toko: mobile (≤600px) — grup kriteria & kolom data jadi picker bottom-sheet ---- */
+  .tc-mobile-only{ display:none; }
+  .tc-mobile-kr-row{ gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .tc-mobile-kr-btn, .tc-mobile-col-btn{ border:1px solid var(--ink); border-radius:6px; background:#fff; color:var(--ink); padding:9px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+  .tc-mobile-kr-count{ font-size:11px; font-weight:700; color:var(--accent-dark); }
+  .tc-mobile-col-row{ margin-bottom:10px; }
+  .tc-mobile-col-btn{ width:100%; justify-content:space-between; }
+  .tc-mobile-col-btn-caret{ font-size:10px; color:var(--ink-soft); }
+  @media (max-width:600px){
+    .tc-mobile-only{ display:flex; }
+    .tc-kriteria-grid{ display:none; }
+    .tc-table th[data-col], .tc-table td[data-col]{ display:none; }
+    .tc-table th[data-col].tc-mobile-active, .tc-table td[data-col].tc-mobile-active{ display:table-cell; }
+  }
+  /* Bottom sheet — gaya BRIMO / komentar Instagram: slide dari bawah, overlay gelap */
+  .tc-sheet-overlay{ position:fixed; inset:0; background:rgba(20,20,20,.45); z-index:300; opacity:0; transition:opacity .2s ease; }
+  .tc-sheet-overlay.open{ opacity:1; }
+  .tc-sheet{ position:fixed; left:0; right:0; bottom:0; z-index:301; background:#fff; border-radius:16px 16px 0 0; max-height:78vh; display:flex; flex-direction:column; box-shadow:0 -8px 28px rgba(20,20,20,.2); transform:translateY(100%); transition:transform .22s ease; }
+  .tc-sheet.open{ transform:translateY(0); }
+  .tc-sheet-handle{ width:36px; height:4px; border-radius:2px; background:#DDD; margin:10px auto 2px; flex:none; }
+  .tc-sheet-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 18px 12px; border-bottom:1px solid var(--line); flex:none; }
+  .tc-sheet-title{ font-size:14.5px; font-weight:700; color:var(--ink); }
+  .tc-sheet-close{ border:0; background:transparent; font-size:18px; color:var(--ink-soft); cursor:pointer; padding:4px 6px; line-height:1; }
+  .tc-sheet-body{ overflow-y:auto; padding:14px 18px 20px; }
+  .tc-sheet-actions{ display:flex; gap:8px; margin-bottom:12px; }
+  .tc-sheet-kr-list{ display:flex; flex-direction:column; gap:14px; }
+  .tc-sheet-kr-item{ font-size:14px; padding:2px 0; }
+  .tc-sheet-kr-item input{ width:18px; height:18px; }
+  .tc-sheet-done{ display:block; width:100%; margin-top:16px; border:0; border-radius:8px; background:var(--ink); color:#fff; padding:13px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+  .tc-sheet-radio-list{ display:flex; flex-direction:column; }
+  .tc-sheet-radio-item{ text-align:left; border:0; border-bottom:1px solid var(--line); background:transparent; padding:13px 4px; font-size:14px; color:var(--ink); cursor:pointer; font-family:inherit; }
+  .tc-sheet-radio-item:last-child{ border-bottom:0; }
+  .tc-sheet-radio-item.sel{ color:var(--accent-dark); font-weight:700; }
 
   .z-toast{
     position:fixed; left:24px; bottom:24px; z-index:140;
@@ -1374,12 +1410,10 @@
           <button type="button" class="tc-period-btn" id="tcGranBtn"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcPeriodValBtn"><span class="tc-period-btn-value" id="tcPeriodValBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
         </div>
-        <div class="tc-kriteria-actions">
-          <button type="button" class="tc-kr-toggle-btn" id="tcSelectAllBtn">Centang Semua</button>
-          <button type="button" class="tc-kr-toggle-btn" id="tcDeselectAllBtn">Un-Centang Semua</button>
-          <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
-        </div>
+        <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
       </div>
+      <div class="tc-mobile-kr-row tc-mobile-only" id="tcMobileKrRow"></div>
+      <div class="tc-mobile-col-row tc-mobile-only" id="tcMobileColRow"></div>
       <div class="tc-kriteria-grid" id="tcKriteriaGrid"></div>
     </div>
     <div id="tcContent"></div>
@@ -2715,6 +2749,7 @@ let TC_MODE = 'bulan';              // 'bulan' (1 periode, side-by-side) | 'tren
 let TC_GRAN = 'bulanan';            // 'bulanan' | 'mingguan'
 let TC_KRITERIA = new Set(['labaRugi','pendapatan','rasioMargin','acos']);   // default kriteria yang udah ke-check
 let TC_BULAN_PICK = null;           // key periode terpilih di mode Per Periode
+let TC_MOBILE_COL = null;           // [23 Sep 2026] kolom data yang ditampilkan di HP (layar sempit = 1 kolom data aja): 'anual'|'average'|'sum'|'toko:<id>'
 let TC_RANGE = '6bulan';            // '3bulan' | '6bulan' | '12bulan' | 'custom' — dipakai di mode Tren
 let TC_RANGE_FROM = null, TC_RANGE_TO = null;
 const TC_KRITERIA_GROUPS = [
@@ -2777,21 +2812,139 @@ function tcRangeKeys(allKeys){
   const n = TC_RANGE==='3bulan' ? 3 : TC_RANGE==='12bulan' ? 12 : 6;
   return allKeys.slice(-n);
 }
+// [23 Sep 2026] Grid desktop: tiap grup (Nominal/Rasio) punya tombol Centang Semua/Un-Centang Semua
+// SENDIRI-SENDIRI (data-grp-all/data-grp-none = index grup) — centang semua di Nominal gak ikut nyentang Rasio.
 function tcRenderKriteriaGrid(){
   const grid = document.getElementById('tcKriteriaGrid'); if(!grid) return;
   const byKey = {}; REKAP_METRICS.forEach(m=>{ byKey[m.key] = m; });
-  grid.innerHTML = TC_KRITERIA_GROUPS.map(g=>{
+  grid.innerHTML = TC_KRITERIA_GROUPS.map((g,i)=>{
     const items = g.keys.map(k=>{
       const m = byKey[k]; if(!m) return '';
       return `<label class="tc-kr-item"><input type="checkbox" data-k="${k}" ${TC_KRITERIA.has(k)?'checked':''}><span>${tokoEsc(m.label)}</span></label>`;
     }).join('');
-    return `<div class="tc-kr-group"><div class="tc-kr-group-label">${tokoEsc(g.label)}</div><div class="tc-kr-group-items">${items}</div></div>`;
+    return `<div class="tc-kr-group">
+      <div class="tc-kr-group-headrow">
+        <div class="tc-kr-group-label">${tokoEsc(g.label)}</div>
+        <div class="tc-kr-group-actions">
+          <button type="button" class="tc-kr-toggle-btn" data-grp-all="${i}">Centang Semua</button>
+          <button type="button" class="tc-kr-toggle-btn" data-grp-none="${i}">Un-Centang Semua</button>
+        </div>
+      </div>
+      <div class="tc-kr-group-items">${items}</div>
+    </div>`;
   }).join('');
   tcUpdateKriteriaCount();
+  tcRenderMobileKrRow();
 }
 function tcUpdateKriteriaCount(){
   const el = document.getElementById('tcKriteriaCount');
   if(el) el.textContent = 'Kriteria Dipilih: '+TC_KRITERIA.size+'/'+REKAP_METRICS.length;
+}
+/* ---- Bottom sheet generik (gaya BRIMO / komentar Instagram: slide dari bawah + overlay gelap) ---- */
+function tcOpenSheet(title, bodyHtml){
+  tcCloseSheet();
+  const ov = document.createElement('div'); ov.id = 'tcSheetOverlay'; ov.className = 'tc-sheet-overlay';
+  document.body.appendChild(ov);
+  const sheet = document.createElement('div'); sheet.id = 'tcSheet'; sheet.className = 'tc-sheet';
+  sheet.innerHTML = `<div class="tc-sheet-handle"></div><div class="tc-sheet-head"><span class="tc-sheet-title">${tokoEsc(title)}</span><button type="button" class="tc-sheet-close" id="tcSheetCloseBtn" aria-label="Tutup">✕</button></div><div class="tc-sheet-body" id="tcSheetBody">${bodyHtml}</div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(()=>{ ov.classList.add('open'); sheet.classList.add('open'); });
+  ov.addEventListener('click', tcCloseSheet);
+  document.getElementById('tcSheetCloseBtn').addEventListener('click', tcCloseSheet);
+}
+function tcCloseSheet(){
+  const ov = document.getElementById('tcSheetOverlay');
+  const sheet = document.getElementById('tcSheet');
+  if(sheet) sheet.classList.remove('open');
+  if(ov) ov.classList.remove('open');
+  setTimeout(()=>{ const o=document.getElementById('tcSheetOverlay'); if(o) o.remove(); const s=document.getElementById('tcSheet'); if(s) s.remove(); }, 220);
+}
+// Sheet grup kriteria (dipanggil dari tombol "Nominal (Rp)"/"Rasio & Performa" di HP)
+function tcOpenKriteriaSheet(groupIndex){
+  const g = TC_KRITERIA_GROUPS[groupIndex]; if(!g) return;
+  const byKey = {}; REKAP_METRICS.forEach(m=>{ byKey[m.key] = m; });
+  const itemsHtml = g.keys.map(k=>{
+    const m = byKey[k]; if(!m) return '';
+    return `<label class="tc-kr-item tc-sheet-kr-item"><input type="checkbox" data-k="${k}"${TC_KRITERIA.has(k)?' checked':''}><span>${tokoEsc(m.label)}</span></label>`;
+  }).join('');
+  tcOpenSheet(g.label, `
+    <div class="tc-sheet-actions">
+      <button type="button" class="tc-kr-toggle-btn" id="tcSheetSelAll">Centang Semua</button>
+      <button type="button" class="tc-kr-toggle-btn" id="tcSheetDeselAll">Un-Centang Semua</button>
+    </div>
+    <div class="tc-sheet-kr-list">${itemsHtml}</div>
+    <button type="button" class="tc-sheet-done" id="tcSheetDone">Selesai</button>
+  `);
+  const body = document.getElementById('tcSheetBody');
+  body.addEventListener('change', e=>{
+    const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
+    if(cb.checked) TC_KRITERIA.add(cb.dataset.k); else TC_KRITERIA.delete(cb.dataset.k);
+    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
+  });
+  document.getElementById('tcSheetSelAll').addEventListener('click', ()=>{
+    g.keys.forEach(k=>{ if(byKey[k]) TC_KRITERIA.add(k); });
+    body.querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{ cb.checked = true; });
+    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
+  });
+  document.getElementById('tcSheetDeselAll').addEventListener('click', ()=>{
+    g.keys.forEach(k=>TC_KRITERIA.delete(k));
+    body.querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{ cb.checked = false; });
+    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
+  });
+  document.getElementById('tcSheetDone').addEventListener('click', ()=>{
+    tcCloseSheet();
+    tcRenderKriteriaGrid();
+    tcRenderContent();
+  });
+}
+function tcRenderMobileKrRow(){
+  const row = document.getElementById('tcMobileKrRow'); if(!row) return;
+  const byKey = {}; REKAP_METRICS.forEach(m=>{ byKey[m.key] = m; });
+  row.innerHTML = TC_KRITERIA_GROUPS.map((g,i)=>{
+    const total = g.keys.filter(k=>byKey[k]).length;
+    const checked = g.keys.filter(k=>TC_KRITERIA.has(k)).length;
+    return `<button type="button" class="tc-mobile-kr-btn" data-grp="${i}">${tokoEsc(g.label)} <span class="tc-mobile-kr-count">${checked}/${total}</span></button>`;
+  }).join('');
+  row.querySelectorAll('.tc-mobile-kr-btn').forEach(b=>b.addEventListener('click', ()=>tcOpenKriteriaSheet(parseInt(b.dataset.grp,10))));
+}
+// Opsi kolom data buat picker HP: toko dulu, baru Anual/Average/Sum — cuma ada di mode Data Periode + Bulanan
+function tcMobileColOptions(tokoList){
+  const opts = tokoList.map(t=>({ id:'toko:'+t.id, label:t.nama }));
+  if(TC_GRAN==='bulanan'){
+    opts.push({ id:'anual', label:'ANUAL' }, { id:'average', label:'AVERAGE' }, { id:'sum', label:'SUM' });
+  }
+  return opts;
+}
+function tcSyncMobileColDefault(tokoList){
+  const opts = tcMobileColOptions(tokoList);
+  if(!opts.length){ TC_MOBILE_COL = null; return; }
+  if(!TC_MOBILE_COL || !opts.some(o=>o.id===TC_MOBILE_COL)) TC_MOBILE_COL = opts[0].id;
+}
+function tcRenderMobileColButton(tokoList){
+  const row = document.getElementById('tcMobileColRow'); if(!row) return;
+  if(TC_MODE!=='bulan' || !tokoList || !tokoList.length){ row.innerHTML = ''; return; }
+  const opts = tcMobileColOptions(tokoList);
+  tcSyncMobileColDefault(tokoList);
+  const cur = opts.find(o=>o.id===TC_MOBILE_COL);
+  row.innerHTML = `<button type="button" class="tc-mobile-col-btn" id="tcMobileColBtn"><span>Data ditampilkan: <strong>${cur?tokoEsc(cur.label):'—'}</strong></span><span class="tc-mobile-col-btn-caret">▾</span></button>`;
+  const btn = document.getElementById('tcMobileColBtn');
+  if(btn) btn.addEventListener('click', ()=>tcOpenMobileColSheet(tokoList));
+}
+function tcOpenMobileColSheet(tokoList){
+  const opts = tcMobileColOptions(tokoList);
+  const itemsHtml = opts.map(o=>`<button type="button" class="tc-sheet-radio-item${o.id===TC_MOBILE_COL?' sel':''}" data-col="${o.id}">${tokoEsc(o.label)}</button>`).join('');
+  tcOpenSheet('Pilih Data Ditampilkan', `<div class="tc-sheet-radio-list">${itemsHtml}</div>`);
+  document.getElementById('tcSheetBody').querySelectorAll('.tc-sheet-radio-item').forEach(b=>b.addEventListener('click', ()=>{
+    TC_MOBILE_COL = b.dataset.col;
+    tcCloseSheet();
+    tcRenderMobileColButton(tokoList);
+    tcApplyMobileColumnVisibility();
+  }));
+}
+function tcApplyMobileColumnVisibility(){
+  document.querySelectorAll('#tcContent .tc-table [data-col]').forEach(el=>{
+    el.classList.toggle('tc-mobile-active', el.dataset.col===TC_MOBILE_COL);
+  });
 }
 // [22 Sep 2026] 3 tombol independen, masing-masing dropdown sendiri (gak digabung/nested lagi):
 // tcModeBtn (Data Periode/Tren) · tcGranBtn (Bulanan/Mingguan) · tcPeriodValBtn (nilai periode konkret —
@@ -3069,17 +3222,17 @@ function tcBuildChartSvg(periods, seriesList, fmt){
 }
 function tcRenderContent(){
   const wrap = document.getElementById('tcContent'); if(!wrap) return;
-  if(!TC_DATA){ wrap.innerHTML = '<div class="card tc-empty">Memuat data toko…</div>'; return; }
+  const colRow = document.getElementById('tcMobileColRow');
+  if(!TC_DATA){ wrap.innerHTML = '<div class="card tc-empty">Memuat data toko…</div>'; if(colRow) colRow.innerHTML=''; return; }
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
-  if(!tokoList.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada toko.</div>'; return; }
-  if(!TC_KRITERIA.size){ wrap.innerHTML = '<div class="card tc-empty">Centang minimal 1 kriteria dulu.</div>'; return; }
-  if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else tcRenderCharts(wrap, tokoList);
+  if(!tokoList.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada toko.</div>'; if(colRow) colRow.innerHTML=''; return; }
+  if(!TC_KRITERIA.size){ wrap.innerHTML = '<div class="card tc-empty">Centang minimal 1 kriteria dulu.</div>'; if(colRow) colRow.innerHTML=''; return; }
+  if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else { if(colRow) colRow.innerHTML=''; tcRenderCharts(wrap, tokoList); }
 }
 // [23 Sep 2026] Kolom gabungan SELURUH toko jadi satu ("bisnis gua"), bukan per-toko.
 // Nominal (Rp, kecuali AOV — sama kayak isNominal di rekapAggForMetric) digabung pakai SUM
 // antar toko per bulan; rasio/AOV/dll digabung pakai AVERAGE antar toko per bulan (gak ada
-// cara "jumlah" yang valid buat rasio). Rumus Average/Anual di bawah ini sengaja disamain
-// persis kayak rekapAggForMetric() di halaman Rekap biar konsisten satu aplikasi.
+// cara "jumlah" yang valid buat rasio). Dipakai sebagai bahan seri histori buat ANUAL.
 function tcBusinessValueAt(m, key, tokoList){
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
   const vals = tokoList.map(t=>{
@@ -3092,55 +3245,71 @@ function tcBusinessValueAt(m, key, tokoList){
   const sumVal = vals.reduce((a,b)=>a+b,0);
   return isNominal ? sumVal : sumVal/vals.length;
 }
-// [23 Sep 2026] Sekarang termasuk sum, biar strukturnya sama persis kayak rekapAggForMetric()
-// di halaman Rekap: {anual, avg, sum} — dipakai buat kolom ANUAL/AVERAGE/SUM.
-function tcBusinessAggForMetric(m, tokoList, keys){
-  const series = keys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
-  const count = series.length;
+// [23 Sep 2026] ANUAL = proyeksi dari SELURUH histori data toko (average bulanan gabungan × 12) —
+// beda dari AVERAGE/SUM di bawah yang cuma dari 1 bulan yang lagi dipilih.
+function tcAnualForMetric(m, tokoList, keys){
   const isNominal = m.fmt==='rp' && m.key!=='aov';
-  const sumVal = count ? series.reduce((a,b)=>a+b,0) : null;
-  const avg = count ? sumVal/count : null;
-  const anual = (isNominal && avg!==null) ? avg*12 : null;
-  return { avg, anual, sum: isNominal ? sumVal : null };
+  if(!isNominal) return null;
+  const series = keys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
+  if(!series.length) return null;
+  const avg = series.reduce((a,b)=>a+b,0)/series.length;
+  return avg*12;
 }
-// [23 Sep 2026] Susunan kolom disamain persis kayak tabel Rekap (file 5): Kriteria -> ANUAL, AVERAGE, SUM
-// (agregat gabungan semua toko, gak ada tren — sama kayak rekapAggCellsHtml gak punya tren), baru
-// disusul kolom per-toko masing-masing, dan tiap kolom toko sekarang punya tren panah vs bulan sebelumnya
-// (sama kayak kolom bulan di tabel Rekap), bukan cuma kolom gabungan doang.
+// [23 Sep 2026] AVERAGE & SUM = gabungan 3 toko buat BULAN YANG DIPILIH aja (TC_BULAN_PICK) —
+// SUM = total 3 toko (cuma masuk akal buat nominal Rp), AVERAGE = rata-rata 3 toko (semua tipe metrik).
+function tcSelectedMonthAgg(m, tokoList){
+  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const vals = tokoList.map(t=>{
+    const snap = dictOf(t)[TC_BULAN_PICK];
+    const v = snap ? snap[m.key] : null;
+    return (v===null||v===undefined||isNaN(v)) ? null : v;
+  }).filter(v=>v!==null);
+  if(!vals.length) return { avg:null, sum:null };
+  const isNominal = m.fmt==='rp' && m.key!=='aov';
+  const sumVal = vals.reduce((a,b)=>a+b,0);
+  return { avg: sumVal/vals.length, sum: isNominal ? sumVal : null };
+}
+// [23 Sep 2026] Susunan kolom disamain persis kayak tabel Rekap (file 5): Kriteria -> ANUAL, AVERAGE, SUM,
+// baru disusul kolom per-toko masing-masing, tiap kolom toko punya tren panah vs bulan sebelumnya (sama
+// kayak kolom bulan di tabel Rekap). Tiap sel dikasih data-col — dipakai buat mode HP (1 kolom data aja,
+// dipilih lewat picker bottom-sheet, lihat tcApplyMobileColumnVisibility).
 function tcRenderTable(wrap, tokoList){
   if(!TC_BULAN_PICK){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan.</div>'; return; }
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
-  const tokoHead = tokoList.map(t=>`<th>${tokoEsc(t.nama)}</th>`).join('');
-  // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Average/Anual/Sum)
+  const tokoHead = tokoList.map(t=>`<th data-col="toko:${t.id}">${tokoEsc(t.nama)}</th>`).join('');
+  // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Anual)
   const showBiz = (TC_GRAN==='bulanan');
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
   const bizHead = showBiz
-    ? `<th class="tc-biz" title="Proyeksi setahun (Average × 12), gabungan semua toko">ANUAL</th><th class="tc-biz" title="Rata-rata per bulan, gabungan semua toko, dari seluruh histori data">AVERAGE</th><th class="tc-biz" title="Total akumulasi seluruh bulan yang ada data, gabungan semua toko">SUM</th>`
+    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko di bulan yang dipilih">SUM</th>`
     : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
-      const agg = tcBusinessAggForMetric(m, tokoList, keys);
-      const anualCell = agg.anual===null ? '-' : fmtRekapVal(agg.anual, m.fmt);
-      const avgCell = agg.avg===null ? '-' : fmtRekapVal(agg.avg, m.fmt);
-      const sumCell = agg.sum===null ? '-' : fmtRekapVal(agg.sum, m.fmt);
-      bizCells = `<td class="tc-biz">${anualCell}</td><td class="tc-biz">${avgCell}</td><td class="tc-biz">${sumCell}</td>`;
+      const anual = tcAnualForMetric(m, tokoList, keys);
+      const sel = tcSelectedMonthAgg(m, tokoList);
+      const anualCell = anual===null ? '-' : fmtRekapVal(anual, m.fmt);
+      const avgCell = sel.avg===null ? '-' : fmtRekapVal(sel.avg, m.fmt);
+      const sumCell = sel.sum===null ? '-' : fmtRekapVal(sel.sum, m.fmt);
+      bizCells = `<td class="tc-biz" data-col="anual">${anualCell}</td><td class="tc-biz" data-col="average">${avgCell}</td><td class="tc-biz" data-col="sum">${sumCell}</td>`;
     }
     const cells = tokoList.map(t=>{
       const snap = dictOf(t)[TC_BULAN_PICK];
       const v = snap ? snap[m.key] : null;
-      if(v===null||v===undefined||isNaN(v)) return '<td>-</td>';
+      if(v===null||v===undefined||isNaN(v)) return `<td data-col="toko:${t.id}">-</td>`;
       let trend = '';
       if(showBiz && prevKey){
         const prevSnap = dictOf(t)[prevKey];
         trend = rekapTrendHtml(v, prevSnap ? prevSnap[m.key] : null, m.goodUp, m.fmt);
       }
-      return `<td>${fmtRekapVal(v, m.fmt)}${trend}</td>`;
+      return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
     return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
   }).join('');
   wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${bizHead}${tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  tcRenderMobileColButton(tokoList);
+  tcApplyMobileColumnVisibility();
 }
 function tcRenderCharts(wrap, tokoList){
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
@@ -3182,21 +3351,26 @@ async function renderTokoCompare(){
 }
 (function(){
   const grid = document.getElementById('tcKriteriaGrid');
-  if(grid) grid.addEventListener('change', e=>{
-    const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
-    if(cb.checked) TC_KRITERIA.add(cb.dataset.k); else TC_KRITERIA.delete(cb.dataset.k);
-    tcUpdateKriteriaCount(); tcRenderContent();
-  });
-  const selAllBtn = document.getElementById('tcSelectAllBtn');
-  if(selAllBtn) selAllBtn.addEventListener('click', ()=>{
-    REKAP_METRICS.forEach(m=>TC_KRITERIA.add(m.key));
-    tcRenderKriteriaGrid(); tcRenderContent();
-  });
-  const deselAllBtn = document.getElementById('tcDeselectAllBtn');
-  if(deselAllBtn) deselAllBtn.addEventListener('click', ()=>{
-    TC_KRITERIA.clear();
-    tcRenderKriteriaGrid(); tcRenderContent();
-  });
+  if(grid){
+    grid.addEventListener('change', e=>{
+      const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
+      if(cb.checked) TC_KRITERIA.add(cb.dataset.k); else TC_KRITERIA.delete(cb.dataset.k);
+      tcUpdateKriteriaCount(); tcRenderMobileKrRow(); tcRenderContent();
+    });
+    grid.addEventListener('click', e=>{
+      const allBtn = e.target.closest('[data-grp-all]');
+      const noneBtn = e.target.closest('[data-grp-none]');
+      if(allBtn){
+        const g = TC_KRITERIA_GROUPS[parseInt(allBtn.dataset.grpAll,10)]; if(!g) return;
+        g.keys.forEach(k=>TC_KRITERIA.add(k));
+        tcRenderKriteriaGrid(); tcRenderContent();
+      } else if(noneBtn){
+        const g = TC_KRITERIA_GROUPS[parseInt(noneBtn.dataset.grpNone,10)]; if(!g) return;
+        g.keys.forEach(k=>TC_KRITERIA.delete(k));
+        tcRenderKriteriaGrid(); tcRenderContent();
+      }
+    });
+  }
 })();
 
 const PAGE_TITLES = {
