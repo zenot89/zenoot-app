@@ -2750,6 +2750,13 @@ function tcPeriodLabel(key, gran){
   const endLbl = ep[2]+'/'+ep[1]+'/'+ep[0].slice(2);
   return startLbl+' – '+endLbl;
 }
+function tcSyncBulanPickDefault(){
+  // [23 Sep 2026] Dipanggil tiap TC_DATA/TC_GRAN berubah — TC_BULAN_PICK gak boleh
+  // nunggu dropdown periode dibuka dulu buat ke-set, biar pas halaman baru dibuka
+  // langsung ada data (default = periode terakhir yang ADA datanya, bukan hardcode bulan tertentu).
+  const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
+  if(!TC_BULAN_PICK || keys.indexOf(TC_BULAN_PICK)<0) TC_BULAN_PICK = keys.length ? keys[keys.length-1] : null;
+}
 function tcRangeKeys(allKeys){
   if(TC_RANGE==='custom'){
     let a = allKeys;
@@ -2879,7 +2886,7 @@ function tcToggleGranDropdown(){
   dd.querySelectorAll('.tc-gran-btn').forEach(b=>b.addEventListener('click', ()=>{
     const changed = (b.dataset.gran !== TC_GRAN);
     TC_GRAN = b.dataset.gran;
-    if(changed) TC_BULAN_PICK = null;
+    if(changed) tcSyncBulanPickDefault();
     tcUpdateGranBtnLabel(); tcUpdatePeriodValBtnLabel(); tcRenderContent();
     tcCloseGranDropdown();
   }));
@@ -2924,7 +2931,7 @@ function tcRenderPeriodValDropdownContent(){
   const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   let periodHtml;
   if(TC_MODE==='bulan'){
-    if(!TC_BULAN_PICK || keys.indexOf(TC_BULAN_PICK)<0) TC_BULAN_PICK = keys.length ? keys[keys.length-1] : null;
+    tcSyncBulanPickDefault();
     periodHtml = keys.length
       ? `<select class="toko-input" id="tcBulanPick" style="width:100%;margin:0;">${keys.slice().reverse().map(k=>`<option value="${k}" ${k===TC_BULAN_PICK?'selected':''}>${tcPeriodLabel(k,TC_GRAN)}</option>`).join('')}</select>`
       : '<span class="tc-period-empty">Belum ada data Rekap tersimpan.</span>';
@@ -3040,6 +3047,7 @@ async function tcEnsureData(force){
 async function renderTokoCompare(){
   tcRenderKriteriaGrid();
   await tcEnsureData(false);
+  tcSyncBulanPickDefault();
   tcUpdateModeBtnLabel();
   tcUpdateGranBtnLabel();
   tcUpdatePeriodValBtnLabel();
