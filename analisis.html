@@ -1026,7 +1026,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -3074,11 +3074,31 @@ const PAGE_TITLES = {
   tokocompare: 'Perbandingan Toko'
 };
 let currentPage = 'rekap';
+// [23 Sep 2026] Halaman yang punya tab sendiri di tab bar zenOt (lihat GROUPS.rasio di analisis.js) — kotak judul di sini jadi dobel sama nama tab,
+// jadi disembunyikan. 'rekap'/'rekapM' SENGAJA TIDAK masuk sini karena keduanya sudah dikeluarkan dari tab bar (noTab) — kotak ini jadi
+// satu-satunya penanda nama halaman buat keduanya, dilengkapi tombol "Lihat Rekap"/"Lihat Rekap Mingguan" & "Kembali" di bawah.
+const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
-  if(!el) return;
-  el.textContent = (pageKey==='hpp') ? 'HPP Produk' : (PAGE_TITLES[pageKey] || '');   // nama toko udah diwakili badge toko aktif di kanan atas
+  if(el){
+    el.textContent = (pageKey==='hpp') ? 'HPP Produk' : (PAGE_TITLES[pageKey] || '');   // nama toko udah diwakili badge toko aktif di kanan atas
+    el.style.display = PAGE_TITLE_HIDDEN[pageKey] ? 'none' : '';
+  }
+  const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
+  const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
+  const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
+  const boM = document.getElementById('btnBackOverviewM'); if(boM) boM.style.display = (pageKey==='rekapM') ? '' : 'none';
 }
+(function(){
+  const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewM:'hasilM' };
+  Object.keys(map).forEach(function(id){
+    const b = document.getElementById(id);
+    if(b) b.addEventListener('click', function(){
+      const nb = document.querySelector('nav.menu button[data-page="'+map[id]+'"]');
+      if(nb) nb.click();
+    });
+  });
+})();
 try{ renderStoreTopbar(); }catch(e){ console.error('Gagal render store topbar:', e); }
 // Render Rekap awal dipindah ke akhir script (butuh REKAP_METRICS & state kolom yang didefinisikan di bawah).
 function fmtRp(n){

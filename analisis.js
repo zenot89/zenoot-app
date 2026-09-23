@@ -35,7 +35,10 @@
 
   // ── Peta menu: sub-menu sidebar → tab. Kunci halaman = data-page di analisis.html ──
   var GROUPS = {
-    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap'], ['hpp', 'HPP Produk'], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan']] },
+    // [23 Sep 2026] 'rekap'/'rekapM' TETAP terdaftar di sini (supaya groupOf/highlightSidebar tetap kenal halamannya & submenu "Rasio Keuangan"
+    // tetap nyala pas Rekap dibuka) tapi diberi flag noTab (elemen ke-3 truthy) → tabsOf() membuangnya dari tab bar. Rekap & Rekap Mingguan sekarang
+    // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
+    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk'], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
     proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
@@ -66,7 +69,7 @@
     return hide.length ? '@media ' + PHONE_MQ + '{' + hide.join(',') + '{display:none !important;}}' : '';
   }
   function tabsOf(group) {
-    var all = GROUPS[group].tabs;
+    var all = GROUPS[group].tabs.filter(function (t) { return !t[2]; });   // buang entri noTab (t[2] truthy) — tetap ada di GROUPS buat groupOf, tapi tidak dirender sebagai tab
     if (!isPhone()) return all;
     return all.filter(function (t) { return phoneOk(t[0]); });
   }
