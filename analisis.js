@@ -269,8 +269,13 @@
     'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
 
     // ══ Teks yang menunjuk tombol/kolom khusus laptop → diganti kalimat yang masuk akal di HP (teks aslinya disembunyikan lewat font-size:0) ══
+    // [23 Sep 2026] DEAD CODE: <p> penjelasan HPP Produk di analisis.html sudah diganti jadi ikon (?) info-tip (sebelah tombol "Belum Diisi"),
+    // jadi selector di bawah ini sekarang tidak match apapun (aman, tidak berefek). Dipertahankan apa adanya — minim blast radius.
     'html.zan-phone #page-hpp .page-head p{font-size:0;}',
     'html.zan-phone #page-hpp .page-head p::after{content:"HPP dibaca langsung dari Kelola Produk zenOt (SKU Variasi = Nomor Referensi SKU) \\2014  tidak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik \u201CMuat ulang HPP\u201D. Upload data dilakukan dari laptop.";display:block;font-size:13px;line-height:1.5;}',
+    // [23 Sep 2026] HPP Produk di HP: tabel dipadatkan jadi 3 kolom (SKU Induk, Nama Variasi, HPP) — Nama Produk & Nomor Referensi SKU
+    // disembunyikan (kepanjangan buat layar sempit, isinya juga sudah terwakili SKU Induk+Variasi). Kelasnya ditambahkan di renderHPP() (analisis.html).
+    'html.zan-phone #page-hpp .hpp-col-namaproduk,html.zan-phone #page-hpp .hpp-col-nomorref{display:none;}',
     'html.zan-phone #page-hpp .empty-state{font-size:0;}',
     'html.zan-phone #page-hpp .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
     'html.zan-phone #page-checkadmin td[colspan="7"]{font-size:0;}',

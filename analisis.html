@@ -1030,12 +1030,6 @@
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
-    <div class="page-head">
-      <div>
-        <p>HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU) — gak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</p>
-      </div>
-    </div>
-
     <div class="hpp-main">
       <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;">
         <div style="display:flex;gap:8px;align-items:center;">
@@ -1043,6 +1037,7 @@
           <button class="btn secondary small" id="btnToggleSelect" style="display:none">Pilih</button>
           <button class="btn secondary small" id="btnReloadHpp" onclick="zStore.flush().then(()=>location.reload(),()=>location.reload())">↻ Muat ulang HPP</button>
           <button class="btn ghost small" id="btnFilterMissing">Belum Diisi</button>
+          <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU) — gak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</div></div>
           <button class="btn danger small" id="btnHapusHppSelected" style="display:none" title="Hapus SKU manual permanen; SKU dari Order Completed HPP-nya direset ke Belum Diisi (barisnya tetep ada karena masih ada di file order)">Hapus (0)</button>
         </div>
         <span id="hppSummary" class="hint" style="margin:0;"></span>
@@ -3074,10 +3069,9 @@ const PAGE_TITLES = {
   tokocompare: 'Perbandingan Toko'
 };
 let currentPage = 'rekap';
-// [23 Sep 2026] Halaman yang punya tab sendiri di tab bar zenOt (lihat GROUPS.rasio di analisis.js) — kotak judul di sini jadi dobel sama nama tab,
-// jadi disembunyikan. 'rekap'/'rekapM' SENGAJA TIDAK masuk sini karena keduanya sudah dikeluarkan dari tab bar (noTab) — kotak ini jadi
-// satu-satunya penanda nama halaman buat keduanya, dilengkapi tombol "Lihat Rekap"/"Lihat Rekap Mingguan" & "Kembali" di bawah.
-const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1 };
+// [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
+// sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
+const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
@@ -3658,7 +3652,7 @@ function renderHPP(){
   const chkCol = state.hppSelectMode;
   let html = `<table><thead><tr>
     ${chkCol ? '<th class="chk"></th>' : ''}
-    <th>SKU Induk</th><th>Nama Produk</th><th>Nomor Referensi SKU</th><th>Nama Variasi</th><th class="num">HPP</th>
+    <th>SKU Induk</th><th class="hpp-col-namaproduk">Nama Produk</th><th class="hpp-col-nomorref">Nomor Referensi SKU</th><th>Nama Variasi</th><th class="num">HPP</th>
   </tr></thead><tbody>`;
   displayList.forEach(p=>{
     const key = makeKey(p.skuInduk, p.nomorRef, p.variasi);
@@ -3671,8 +3665,8 @@ function renderHPP(){
     html += `<tr>
       ${chkCol ? `<td class="chk"><input type="checkbox" data-selkey="${key}" ${checked}></td>` : ''}
       <td class="sku-induk-cell" data-key="${key}" data-induk="${indukAttr}" data-nomorref="${nomorRefAttr}" data-variasi="${variasiAttr}">${p.skuInduk ? p.skuInduk : '<span style="color:var(--ink-soft);">(kosong)</span>'}</td>
-      <td>${p.namaProduk}</td>
-      <td>${p.nomorRef}</td>
+      <td class="hpp-col-namaproduk">${p.namaProduk}</td>
+      <td class="hpp-col-nomorref">${p.nomorRef}</td>
       <td>${p.variasi}</td>
       <td class="num">${val!==undefined ? fmtNum(val) : '<span class="status-warn">belum ada di Kelola Produk</span>'}</td>
     </tr>`;
