@@ -948,10 +948,28 @@
   }
   .setting-edit-btn:hover{ filter:brightness(.97); }
   .setting-edit-btn.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
-  #settingCardsWrap{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; }
-  #settingCardsWrap .setting-toko-card, #settingSumRow .setting-toko-card{ flex:1 1 340px; max-width:420px; margin-bottom:0 !important; }
-  @media (max-width:600px){ #settingCardsWrap .setting-toko-card, #settingSumRow .setting-toko-card{ flex:1 1 100%; max-width:none; } }
-  #settingSumRow{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; margin-bottom:14px; }
+  #settingSumRow{ margin-bottom:14px; }
+  /* Minicard Setting (SUM OPERASIONAL/BEBAN/CICILAN + kartu tiap toko) — konsep swipe sama
+     kayak nw-swipe di Dashboard: HP geser satu-satu + titik ●●, laptop deret penuh rata kanan-kiri. */
+  .st-swipe{ position:relative; }
+  .st-swipe-track{ display:flex; }
+  .st-swipe-slide{ box-sizing:border-box; }
+  .st-swipe-slide .setting-toko-card{ margin-bottom:0; }
+  .st-swipe-dots{ display:none; }
+  @media (max-width:767px){
+    .st-swipe{ width:100%; overflow:hidden; }
+    .st-swipe-track{ transition:transform .3s cubic-bezier(.4,0,.2,1); will-change:transform; touch-action:pan-y; }
+    .st-swipe-slide{ min-width:100%; width:100%; flex-shrink:0; }
+    .st-swipe-dots{ display:flex; align-items:center; justify-content:center; gap:5px; padding:8px 0 2px; }
+    .st-dot{ width:6px; height:6px; border-radius:50%; background:var(--ink-soft); opacity:.35; transition:opacity .2s,background .2s; }
+    .st-dot.active{ background:var(--ink); opacity:1; }
+  }
+  @media (min-width:768px){
+    .st-swipe{ overflow:visible; }
+    .st-swipe-track{ gap:14px; transform:none !important; }
+    .st-swipe-slide{ flex:1 1 0; min-width:0; }
+    .st-swipe-dots{ display:none !important; }
+  }
   .hrow.highlight .val{ color:var(--accent-dark); }
   .hrow.negative .val{ color:var(--bad); }
   .hrow.section-title{ padding-top:16px; }
@@ -1514,24 +1532,35 @@
         <span class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll). Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko.</div></span>
       </div>
     </div>
-    <div class="setting-sum-row" id="settingSumRow">
-      <div class="card setting-toko-card" style="margin-bottom:14px;">
-        <div class="hrow highlight">
-          <div class="lbl">SUM OPERASIONAL<span class="ket">Gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
-          <div class="val" id="settingSumOperasional">-</div>
+    <div class="st-swipe" id="settingSumRow">
+      <div class="st-swipe-track">
+        <div class="st-swipe-slide">
+          <div class="card setting-toko-card">
+            <div class="hrow highlight">
+              <div class="lbl">SUM OPERASIONAL</div>
+              <div class="val" id="settingSumOperasional">-</div>
+            </div>
+          </div>
+        </div>
+        <div class="st-swipe-slide">
+          <div class="card setting-toko-card">
+            <div class="hrow highlight">
+              <div class="lbl">BEBAN OPERASIONAL</div>
+              <div class="val" id="settingSumBeban">-</div>
+            </div>
+          </div>
+        </div>
+        <div class="st-swipe-slide">
+          <div class="card setting-toko-card">
+            <div class="hrow highlight">
+              <div class="lbl">CICILAN AKTIF</div>
+              <div class="val" id="settingSumKewajiban">-</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card setting-toko-card" style="margin-bottom:14px;">
-        <div class="hrow highlight">
-          <div class="lbl">BEBAN OPERASIONAL<span class="ket" id="settingSumBebanKet">Dari Jurnal</span></div>
-          <div class="val" id="settingSumBeban">-</div>
-        </div>
-      </div>
-      <div class="card setting-toko-card" style="margin-bottom:14px;">
-        <div class="hrow highlight">
-          <div class="lbl">CICILAN AKTIF<span class="ket">Kewajiban dari Hutang Aing</span></div>
-          <div class="val" id="settingSumKewajiban">-</div>
-        </div>
+      <div class="st-swipe-dots">
+        <span class="st-dot active"></span><span class="st-dot"></span><span class="st-dot"></span>
       </div>
     </div>
     <div id="settingCardsWrap"></div>
@@ -6996,20 +7025,21 @@ async function renderSetting(){
     const fieldsHtml = SETTING_FIELDS.map(f=>{
       const v = s[f.key];
       const disp = f.type==='rupiah' ? fmtNum(v) : ((v!==null && v!==undefined) ? v : '');
-      return '<div class="hrow editable"><div class="lbl">'+f.label+'<span class="ket">'+f.ket+'</span></div>'+
+      return '<div class="hrow editable"><div class="lbl">'+f.label+'</div>'+
         '<div class="val"><input type="text" inputmode="'+(f.type==='decimal'?'decimal':'numeric')+'" id="set_'+f.key+'_'+t.id+'" placeholder="'+f.ph+'" value="'+tokoEsc(disp)+'" readonly></div></div>';
     }).join('');
-    const omsetKet = auto.omset===null
-      ? 'Belum ada data Rekap '+rekapMonthLabel(ops.ymKey)
-      : 'Omset '+fmtRp(auto.omset)+' dari total '+fmtRp(ops.totalOmsetGabungan)+' ('+(auto.share*100).toFixed(1)+'%) dari Total Operasional '+fmtRp(ops.totalGabungan);
-    return '<div class="card setting-toko-card" id="settingCard_'+t.id+'" style="max-width:480px;margin-bottom:14px;">'+
+    return '<div class="st-swipe-slide"><div class="card setting-toko-card" id="settingCard_'+t.id+'">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'+
       '<div style="font-weight:700;font-size:14px;">'+tokoEsc(namaToko)+'</div>'+
       '<button type="button" class="setting-edit-btn" id="btnSettingEdit_'+t.id+'">Edit</button></div>'+
-      '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO<span class="ket">Otomatis: proporsi omset toko ini dari Beban Operasional (Jurnal) + Kewajiban (Hutang Aing) bulan sebelumnya — sudah gak manual</span><span class="ket">'+omsetKet+'</span></div>'+
+      '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO</div>'+
       '<div class="val">'+fmtRp(auto.operasional)+'</div></div>'+
-      fieldsHtml+'</div>';
-  }).join('')) || '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
+      fieldsHtml+'</div></div>';
+  }).join(''));
+  const dotsHtml = tokoList.map((t,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('');
+  wrap.innerHTML = tokoList.length
+    ? '<div class="st-swipe" id="settingStoreSwipe"><div class="st-swipe-track">'+wrap.innerHTML+'</div><div class="st-swipe-dots">'+dotsHtml+'</div></div>'
+    : '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
 
   // Sinkronkan nilai auto ke toko yang lagi aktif supaya halaman lain (RKS Overview, Proyeksi Harga)
   // yang baca state.settings.operasionalToko tetap ikut nilai terbaru tanpa perlu diubah satu-satu.
@@ -7048,6 +7078,51 @@ async function renderSetting(){
       }
     });
   });
+
+  initStSwipe(document.getElementById('settingSumRow'));
+  initStSwipe(document.getElementById('settingStoreSwipe'));
+}
+
+/* ================= MINICARD SWIPE (Setting) =================
+   Konsep sama kayak nw-swipe di Dashboard: geser satu-satu + titik ●● di HP,
+   deret penuh (gak ada celah) di laptop — layout laptop/HP diatur CSS (.st-swipe),
+   di sini cuma pasang gesture geser buat versi HP. Dipanggil ulang tiap render
+   karena DOM slide-nya dibuat baru tiap kali (gak di-guard _swipeInited). */
+function initStSwipe(container){
+  if(!container || container._stSwipeInited) return;
+  container._stSwipeInited = true;
+  const track = container.querySelector('.st-swipe-track');
+  if(!track) return;
+  const slides = container.querySelectorAll('.st-swipe-slide');
+  const dots = container.querySelectorAll('.st-dot');
+  let current = 0, startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
+  function goTo(idx){
+    if(idx < 0 || idx >= slides.length) return;
+    current = idx;
+    track.style.transform = 'translateX(-'+(idx*100)+'%)';
+    dots.forEach((d,j)=>d.classList.toggle('active', j===idx));
+  }
+  track.addEventListener('touchstart', e=>{
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; startT = Date.now();
+    isDragging = true; isHoriz = null;
+  }, { passive:true });
+  track.addEventListener('touchmove', e=>{
+    if(!isDragging) return;
+    const dx = e.touches[0].clientX-startX, dy = e.touches[0].clientY-startY;
+    if(isHoriz===null && (Math.abs(dx)>4 || Math.abs(dy)>4)) isHoriz = Math.abs(dx)>Math.abs(dy);
+    if(isHoriz) e.preventDefault();
+  }, { passive:false });
+  track.addEventListener('touchend', e=>{
+    if(!isDragging) return;
+    isDragging = false;
+    if(!isHoriz) return;
+    const dx = e.changedTouches[0].clientX-startX, dt = Date.now()-startT;
+    const isFlick = Math.abs(dx)/Math.max(dt,1) > 0.3;
+    if((dx<-40 || (isFlick && dx<0)) && current<slides.length-1) goTo(current+1);
+    else if((dx>40 || (isFlick && dx>0)) && current>0) goTo(current-1);
+  }, { passive:true });
+  track.addEventListener('touchcancel', ()=>{ isDragging=false; isHoriz=null; }, { passive:true });
+  dots.forEach((dot, idx)=> dot.addEventListener('click', ()=>goTo(idx)));
 }
 
 /* ================= PDF EXPORT ================= */
