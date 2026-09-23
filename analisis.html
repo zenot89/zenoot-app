@@ -948,6 +948,9 @@
   }
   .setting-edit-btn:hover{ filter:brightness(.97); }
   .setting-edit-btn.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
+  #settingCardsWrap{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; }
+  #settingCardsWrap .setting-toko-card{ flex:1 1 340px; max-width:420px; margin-bottom:0 !important; }
+  @media (max-width:600px){ #settingCardsWrap .setting-toko-card{ flex:1 1 100%; max-width:none; } }
   .hrow.highlight .val{ color:var(--accent-dark); }
   .hrow.negative .val{ color:var(--bad); }
   .hrow.section-title{ padding-top:16px; }

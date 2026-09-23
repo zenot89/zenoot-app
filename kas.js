@@ -1644,14 +1644,18 @@ async function kasSimpanJurnal() {
           return parseInt(raw,10) || 0;
         })();
         const jatuhTempo = document.getElementById('kas-pjm-jatuh-tempo').value || null;
+        const frekuensiPjm = document.getElementById('kas-pjm-frekuensi').value || 'bulanan';
+        // [23 Sep 2026] Fix: cicilan_per_bulan dulu selalu disamain sama cicilan_nominal mentah,
+        // gak dibagi 12 kalau frekuensi Tahunan — bikin Fix Cost/Kewajiban kehitung 12x lipat.
+        const cicilanPerBulan = frekuensiPjm === 'tahunan' ? Math.round(cicilan / 12) : cicilan;
         const hutangData = {
           kreditur:          kreditur,
           jenis:             'lainnya',
           pokok:             nominal,
           bunga:             bunga,
           tenor:             tenor,
-          frekuensi:         document.getElementById('kas-pjm-frekuensi').value || 'bulanan',
-          cicilan_per_bulan: cicilan,
+          frekuensi:         frekuensiPjm,
+          cicilan_per_bulan: cicilanPerBulan,
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
@@ -1746,14 +1750,16 @@ async function kasUpdateJurnal() {
           return parseInt(raw,10) || 0;
         })();
         const jatuhTempo = document.getElementById('kas-edit-pjm-jatuh-tempo').value || null;
+        const frekuensiPjmEdit = document.getElementById('kas-edit-pjm-frekuensi').value || 'bulanan';
+        const cicilanPerBulanEdit = frekuensiPjmEdit === 'tahunan' ? Math.round(cicilan / 12) : cicilan;
         await dbInsert('hutang', {
           kreditur:          kreditur,
           jenis:             'lainnya',
           pokok:             nominal,
           bunga:             bunga,
           tenor:             tenor,
-          frekuensi:         document.getElementById('kas-edit-pjm-frekuensi').value || 'bulanan',
-          cicilan_per_bulan: cicilan,
+          frekuensi:         frekuensiPjmEdit,
+          cicilan_per_bulan: cicilanPerBulanEdit,
           cicilan_nominal:   cicilan,
           tgl_mulai:         tgl,
           jatuh_tempo:       jatuhTempo,
