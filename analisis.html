@@ -6024,7 +6024,7 @@ function renderPriceListCard(containerId, tabKey){
         <div class="stat-value">${(roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-'}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Income Target (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
+        <div class="stat-label">Profit Target (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
         <div class="stat-value">${fmtRp(state.settings.minNpmRp||0)}</div>
       </div>
     </div>
@@ -6406,7 +6406,7 @@ function renderProyeksiResult(){
         <div class="pr-rows">
           <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
           <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">INCOME TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
+          <div class="hrow"><div class="lbl">PROFIT TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
           <div class="hrow"><div class="lbl">OPRASIONAL (Budget Bulanan)</div><div class="val">${fmtRp(opsBudget)}</div></div>
           <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
         </div>
@@ -6417,7 +6417,7 @@ function renderProyeksiResult(){
           <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
           <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
           <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
+          <div class="hrow highlight"><div class="lbl">RASIO PROFIT</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
         </div>
       </div>
       <div class="card pr-card">
@@ -6501,7 +6501,7 @@ function renderByQtyResult(){
         <div class="pr-rows">
           <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
           <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">INCOME TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
+          <div class="hrow"><div class="lbl">PROFIT TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
           <div class="hrow"><div class="lbl">OPRASIONAL (Bulanan)</div><div class="val">${fmtRp(oprasionalBulanan)}</div></div>
           <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
         </div>
@@ -6512,7 +6512,7 @@ function renderByQtyResult(){
           <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
           <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
           <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
+          <div class="hrow highlight"><div class="lbl">RASIO PROFIT</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
         </div>
       </div>
       <div class="card pr-card">
@@ -6559,7 +6559,7 @@ document.getElementById('btnByqtyBack').addEventListener('click', ()=>showSubvie
 
 /* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
 /* [21 Sep 2026] Konsep ketiga di Proyeksi Harga. By Operasional & By Target Qty MENGHITUNG harga jual (NET) dari target income;
-   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke minimum target income (Setting: Income Target)?"
+   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke minimum target profit (Setting: Profit Target)?"
      Harga efektif (B) = Harga jual − Voucher penjual
      Income/pcs        = B × (1 − Admin% − ACOS − Buffer% − Ops%) − HPP − BPP      (kebalikan persis rumus NET di calcNetPrice)
      Harga minimum     = NET + Voucher  (NET = calcNetPrice, sama persis dengan tab lain)
@@ -6841,7 +6841,7 @@ function renderByHargaResult(){
         ${hr('PROFIT TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
         ${hr('PROFIT RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
         <div class="byh-note">${vc.stats.status==='ok'
-          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Income rata-rata memperhitungkan seberapa sering voucher dipakai.')
+          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Profit rata-rata memperhitungkan seberapa sering voucher dipakai.')
           : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
       </div>
     </div>`;
