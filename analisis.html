@@ -1515,9 +1515,10 @@
     </div>
     <div class="card" id="settingSumCard" style="max-width:480px;margin-bottom:14px;">
       <div class="hrow highlight">
-        <div class="lbl">SUM OPERASIONAL BULAN SEBELUMNYA<span class="ket">Beban Operasional dari Jurnal + Kewajiban (cicilan aktif) dari Hutang Aing — gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
+        <div class="lbl">SUM OPERASIONAL BULAN SEBELUMNYA<span class="ket">Gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
         <div class="val" id="settingSumOperasional">-</div>
       </div>
+      <div id="settingSumBreakdown"></div>
     </div>
     <div id="settingCardsWrap"></div>
   </section>
@@ -6852,18 +6853,34 @@ async function opsHitungKewajibanAktif(){
     return sisa > 0;
   }).reduce((s,h)=>s+(Number(h.cicilan_per_bulan)||0), 0);
 }
-// Baca Rekap bulanan toko lain LANGSUNG dari zLS — aman tanpa switch toko karena semua data
-// toko sudah dimuat penuh sekali di awal lewat zStore.init() (lihat komentar zStore di atas).
-function opsOmsetTokoBulan(tokoId, ymKey){
-  try{
-    const raw = zLS.getItem(tokoScopedKey('zenootAnalisis.rekap', tokoId));
-    if(!raw) return null;
-    const rekap = JSON.parse(raw);
-    const s = rekap[ymKey];
-    if(!s) return null;
-    const v = Number(s.pendapatan);
-    return isNaN(v) ? null : v;
-  }catch(e){ return null; }
+// [23 Sep 2026] DEAD CODE — diganti opsFetchAllRekap (di bawah) karena asumsi komentar lama ini SALAH:
+// zStore.init() cuma muat data toko AKTIF (+ toko draft), bukan semua toko (lihat init(), baris ~1763-1765).
+// Efeknya: toko non-aktif di toggle kanan atas selalu balik null -> kartu Setting toko itu salah nampilin
+// "Belum ada data Rekap" padahal datanya ada. Dipertahankan (dikomentari, gak dihapus) sesuai RULES.md.
+// function opsOmsetTokoBulan(tokoId, ymKey){
+//   try{
+//     const raw = zLS.getItem(tokoScopedKey('zenootAnalisis.rekap', tokoId));
+//     if(!raw) return null;
+//     const rekap = JSON.parse(raw);
+//     const s = rekap[ymKey];
+//     if(!s) return null;
+//     const v = Number(s.pendapatan);
+//     return isNaN(v) ? null : v;
+//   }catch(e){ return null; }
+// }
+// Baca Rekap bulanan SEMUA toko langsung dari Supabase (zStore.loadRows), TANPA switch toko aktif —
+// pola sama persis dengan tcFetchAllRekap() di Perbandingan Toko (baris ~2822), disamakan supaya satu
+// sumber kebenaran buat baca data toko lain (fix bug toggle di Setting).
+async function opsFetchAllRekap(tokoIds){
+  const rows = await zStore.loadRows(tokoIds);
+  const out = {};
+  tokoIds.forEach(id=>{
+    const r = rows[id+'\u0000zenootAnalisis.rekap'];
+    let rekap = {};
+    if(r){ try{ rekap = JSON.parse(r.value) || {}; }catch(e){} }
+    out[id] = rekap;
+  });
+  return out;
 }
 let _opsAutoCache = null; // cache 1x per sesi halaman; { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko:{id:{omset,share,operasional}} }
 async function opsHitungSemua(force){
@@ -6877,8 +6894,13 @@ async function opsHitungSemua(force){
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   const omsetMap = {};
   let totalOmsetGabungan = 0;
+  let rekapByToko = {};
+  try{ rekapByToko = await opsFetchAllRekap(tokoList.map(t=>t.id)); }
+  catch(e){ console.error('Gagal fetch Rekap semua toko:', e); }
   tokoList.forEach(t=>{
-    const o = opsOmsetTokoBulan(t.id, ymKey);
+    const snap = (rekapByToko[t.id] || {})[ymKey];
+    const v = snap ? Number(snap.pendapatan) : NaN;
+    const o = isNaN(v) ? null : v;
     omsetMap[t.id] = o;
     if(o!==null) totalOmsetGabungan += o;
   });
@@ -6944,10 +6966,14 @@ async function renderSetting(){
     ops = { ymKey: opsPrevMonthKey(), totalBeban:0, totalKewajiban:0, totalGabungan:0, totalOmsetGabungan:0, perToko:{} };
   }
 
-  if(sumEl){
-    sumEl.innerHTML = fmtRp(ops.totalGabungan) +
-      '<span class="ket" style="display:block;font-weight:400;font-size:11px;margin-top:2px;">'+
-      rekapMonthLabel(ops.ymKey)+' — Beban '+fmtRp(ops.totalBeban)+' + Kewajiban '+fmtRp(ops.totalKewajiban)+'</span>';
+  if(sumEl) sumEl.textContent = fmtRp(ops.totalGabungan);
+  const bdEl = document.getElementById('settingSumBreakdown');
+  if(bdEl){
+    bdEl.innerHTML =
+      '<div class="hrow"><div class="lbl">BEBAN OPERASIONAL<span class="ket">Dari Jurnal — '+rekapMonthLabel(ops.ymKey)+'</span></div>'+
+      '<div class="val">'+fmtRp(ops.totalBeban)+'</div></div>'+
+      '<div class="hrow"><div class="lbl">CICILAN AKTIF<span class="ket">Kewajiban dari Hutang Aing</span></div>'+
+      '<div class="val">'+fmtRp(ops.totalKewajiban)+'</div></div>';
   }
   if(!wrap) return;
 
