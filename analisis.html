@@ -1510,7 +1510,7 @@
   <section class="page" id="page-setting">
     <div class="page-head">
       <div>
-        <p>Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll). Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko.</p>
+        <span class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll). Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko.</div></span>
       </div>
     </div>
     <div class="card" id="settingSumCard" style="max-width:480px;margin-bottom:14px;">
@@ -6994,8 +6994,8 @@ async function renderSetting(){
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'+
       '<div style="font-weight:700;font-size:14px;">'+tokoEsc(namaToko)+'</div>'+
       '<button type="button" class="setting-edit-btn" id="btnSettingEdit_'+t.id+'">Edit</button></div>'+
-      '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO<span class="ket">Otomatis: proporsi omset toko ini dari Beban Operasional (Jurnal) + Kewajiban (Hutang Aing) bulan sebelumnya — sudah gak manual</span></div>'+
-      '<div class="val">'+fmtRp(auto.operasional)+'<span class="ket" style="display:block;font-weight:400;font-size:10.5px;">'+omsetKet+'</span></div></div>'+
+      '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO<span class="ket">Otomatis: proporsi omset toko ini dari Beban Operasional (Jurnal) + Kewajiban (Hutang Aing) bulan sebelumnya — sudah gak manual</span><span class="ket">'+omsetKet+'</span></div>'+
+      '<div class="val">'+fmtRp(auto.operasional)+'</div></div>'+
       fieldsHtml+'</div>';
   }).join('')) || '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
 
