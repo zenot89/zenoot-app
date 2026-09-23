@@ -1004,6 +1004,25 @@
   .ca-badge.ok{ background:#dcfce7; color:#15803d; }
   .ca-badge.warn{ background:#fef3c7; color:#b45309; }
 
+  /* ===== Setting (Zenoot Analisis > Setting): dipadetin biar muat 1 layar tanpa scroll,
+     baik HP (Samsung A51/iPhone 12 mini) maupun laptop — scoped ke #page-setting doang,
+     gak ganggu .card/.hrow di halaman lain. ===== */
+  #page-setting .card{ padding:10px 14px; margin-bottom:8px; }
+  #page-setting #settingSumRow{ margin-bottom:6px; }
+  #page-setting .st-mini-card{ gap:3px; }
+  #page-setting .st-mini-val{ font-size:16px; line-height:1; }
+  #page-setting .st-mini-lbl{ font-size:9.5px; padding:3px 7px; border-radius:6px; }
+  #page-setting .setting-toko-card > div:first-child{ margin-bottom:0; }
+  #page-setting .setting-toko-card > div:first-child > div{ font-size:12.5px; }
+  #page-setting .setting-edit-btn{ padding:3px 10px; font-size:10.5px; }
+  #page-setting .hrow{ padding:4.5px 0; gap:8px; }
+  #page-setting .hrow .lbl{ font-size:11px; }
+  #page-setting .hrow .val{ font-size:12px; }
+  #page-setting .hrow.editable .val input{ font-size:11px; padding:3px 6px; width:110px; }
+  @media (max-width:767px){
+    #page-setting .st-swipe-dots{ top:-2px; }
+  }
+
   /* ===== Check Admin: dashboard-style stat cards & fee cards ===== */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
   .stat-grid.stat-grid-4{ grid-template-columns:repeat(4,1fr); }
