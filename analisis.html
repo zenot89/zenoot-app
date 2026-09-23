@@ -764,6 +764,12 @@
     .tc-kriteria-grid{ display:none; }
     .tc-table th[data-col], .tc-table td[data-col]{ display:none; }
     .tc-table th[data-col].tc-mobile-active, .tc-table td[data-col].tc-mobile-active{ display:table-cell; }
+    /* [23 Sep 2026] 3 tombol Data Periode/Bulanan/nilai periode dipaksa 1 baris (sebelumnya kepotong
+       jadi 2 baris karena flex-wrap + label kepanjangan) — cuma efektif di layar ≤600px, desktop gak kepengaruh */
+    .tc-control-row{ flex-wrap:nowrap; gap:6px; width:100%; }
+    .tc-control-row .tc-period-btn{ flex:1 1 0; min-width:0; padding:8px 6px; gap:4px; justify-content:center; }
+    .tc-control-row .tc-period-btn-value{ font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tc-control-row .tc-period-btn-caret{ font-size:9px; flex:none; }
   }
   /* Bottom sheet — gaya BRIMO / komentar Instagram: slide dari bawah, overlay gelap */
   .tc-sheet-overlay{ position:fixed; inset:0; background:rgba(20,20,20,.45); z-index:300; opacity:0; transition:opacity .2s ease; }
@@ -1413,7 +1419,9 @@
         <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
       </div>
       <div class="tc-mobile-kr-row tc-mobile-only" id="tcMobileKrRow"></div>
-      <div class="tc-mobile-col-row tc-mobile-only" id="tcMobileColRow"></div>
+      <!-- [23 Sep 2026] Row "Data ditampilkan" (#tcMobileColRow) DIHAPUS dari sini — fungsinya
+           dipindah ke badge toko di topbar (#storeTopbarBadge), khusus halaman ini + layar HP.
+           Lihat renderStoreTopbar() & tokoTogglePop(). -->
       <div class="tc-kriteria-grid" id="tcKriteriaGrid"></div>
     </div>
     <div id="tcContent"></div>
@@ -2378,11 +2386,23 @@ try{ loadSkuIndukOverridesFromStorage(); }catch(e){ console.error('Gagal load SK
 function renderStoreTopbar(){
   const el = document.getElementById('storeTopbarBadge');
   if(el){
-    const t = tokoActiveEntry();
-    const label = t.draft ? (t.username ? t.nama+' · setup' : 'Setup toko baru') : t.nama;
-    el.className = 'store-badge clickable';
-    el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Ganti toko');
-    el.innerHTML = `<span class="dot"></span><span class="store-name">${tokoEsc(label)}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
+    // [23 Sep 2026] Khusus halaman Perbandingan Toko + layar HP (≤600px): badge topbar dipakai ulang
+    // buat "Pilih Data Ditampilkan" (toko/Anual/Average/Sum) — ganti toko aktif gak relevan di halaman
+    // ini (datanya narik SEMUA toko sekaligus). Desktop & halaman lain TETAP badge ganti-toko biasa.
+    if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='bulan' && TC_MOBILE_COL){
+      const tokoList = TOKO_REG.list.filter(t=>!t.draft);
+      const opts = tcMobileColOptions(tokoList);
+      const cur = opts.find(o=>o.id===TC_MOBILE_COL);
+      el.className = 'store-badge clickable';
+      el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Pilih data ditampilkan');
+      el.innerHTML = `<span class="dot"></span><span class="store-name">${cur?tokoEsc(cur.label):'—'}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
+    } else {
+      const t = tokoActiveEntry();
+      const label = t.draft ? (t.username ? t.nama+' · setup' : 'Setup toko baru') : t.nama;
+      el.className = 'store-badge clickable';
+      el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Ganti toko');
+      el.innerHTML = `<span class="dot"></span><span class="store-name">${tokoEsc(label)}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
+    }
   }
   updatePageTitleBar(currentPage);
 }
@@ -2649,6 +2669,12 @@ function tokoRenderPop(){
   tokoRenderRows();
 }
 function tokoTogglePop(){
+  // [23 Sep 2026] Badge topbar di halaman Perbandingan Toko (layar HP) fungsinya "Pilih Data
+  // Ditampilkan", bukan ganti toko — lihat catatan sama di renderStoreTopbar().
+  if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='bulan' && TC_MOBILE_COL){
+    tcOpenMobileColSheet(TOKO_REG.list.filter(t=>!t.draft));
+    return;
+  }
   if(document.getElementById('tokoPop')){ tokoClosePop(); return; }
   const badge = document.getElementById('storeTopbarBadge'); if(!badge) return;
   const pop = document.createElement('div');
@@ -2855,6 +2881,13 @@ function tcOpenSheet(title, bodyHtml){
 function tcCloseSheet(){
   const ov = document.getElementById('tcSheetOverlay');
   const sheet = document.getElementById('tcSheet');
+  // [23 Sep 2026] FIX root cause bug "mental": sebelumnya setTimeout di bawah ini SELALU
+  // dijadwalkan tiap tcCloseSheet() dipanggil — termasuk saat dipanggil sebagai "cleanup" di awal
+  // tcOpenSheet() padahal belum ada sheet yang kebuka. Efeknya: 220ms setelah sheet BARU dibuka,
+  // timeout basi ini nemu #tcSheetOverlay/#tcSheet (yang barusan dibuat) lalu ikut ngehapusnya —
+  // sheet keliatan kebuka sebentar terus "turun lagi" sendiri. Guard ini: kalau emang gak ada
+  // sheet yang lagi kebuka, gak usah jadwalin apa-apa.
+  if(!ov && !sheet) return;
   if(sheet) sheet.classList.remove('open');
   if(ov) ov.classList.remove('open');
   setTimeout(()=>{ const o=document.getElementById('tcSheetOverlay'); if(o) o.remove(); const s=document.getElementById('tcSheet'); if(s) s.remove(); }, 220);
@@ -2920,6 +2953,9 @@ function tcSyncMobileColDefault(tokoList){
   if(!opts.length){ TC_MOBILE_COL = null; return; }
   if(!TC_MOBILE_COL || !opts.some(o=>o.id===TC_MOBILE_COL)) TC_MOBILE_COL = opts[0].id;
 }
+// [23 Sep 2026] DEAD CODE — udah gak dipanggil dari manapun sejak #tcMobileColRow dihapus dari HTML
+// (fungsinya pindah ke badge topbar, lihat renderStoreTopbar()/tokoTogglePop()). Dipertahankan
+// apa adanya sesuai RULES.md, bukan dihapus — row-nya emang udah gak ada jadi ini otomatis no-op.
 function tcRenderMobileColButton(tokoList){
   const row = document.getElementById('tcMobileColRow'); if(!row) return;
   if(TC_MODE!=='bulan' || !tokoList || !tokoList.length){ row.innerHTML = ''; return; }
@@ -2937,7 +2973,7 @@ function tcOpenMobileColSheet(tokoList){
   document.getElementById('tcSheetBody').querySelectorAll('.tc-sheet-radio-item').forEach(b=>b.addEventListener('click', ()=>{
     TC_MOBILE_COL = b.dataset.col;
     tcCloseSheet();
-    tcRenderMobileColButton(tokoList);
+    renderStoreTopbar();   // [23 Sep 2026] badge di topbar yang nampilin pilihan sekarang, bukan #tcMobileColRow
     tcApplyMobileColumnVisibility();
   }));
 }
@@ -2959,7 +2995,10 @@ function tcRangeLabel(){
 }
 function tcUpdateModeBtnLabel(){
   const el = document.getElementById('tcModeBtnValue'); if(!el) return;
-  el.textContent = TC_MODE==='tren' ? 'Tren' : 'Data Periode';
+  // [23 Sep 2026] Label diperpendek jadi "Data" khusus layar HP (<=600px) biar 3 tombol muat 1 baris;
+  // desktop tetap "Data Periode", gak diubah.
+  const isMobileW = window.innerWidth<=600;
+  el.textContent = TC_MODE==='tren' ? 'Tren' : (isMobileW ? 'Data' : 'Data Periode');
 }
 function tcUpdateGranBtnLabel(){
   const el = document.getElementById('tcGranBtnValue'); if(!el) return;
@@ -3227,7 +3266,7 @@ function tcRenderContent(){
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   if(!tokoList.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada toko.</div>'; if(colRow) colRow.innerHTML=''; return; }
   if(!TC_KRITERIA.size){ wrap.innerHTML = '<div class="card tc-empty">Centang minimal 1 kriteria dulu.</div>'; if(colRow) colRow.innerHTML=''; return; }
-  if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else { if(colRow) colRow.innerHTML=''; tcRenderCharts(wrap, tokoList); }
+  if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else { if(colRow) colRow.innerHTML=''; renderStoreTopbar(); tcRenderCharts(wrap, tokoList); }
 }
 // [23 Sep 2026] Kolom gabungan SELURUH toko jadi satu ("bisnis gua"), bukan per-toko.
 // Nominal (Rp, kecuali AOV — sama kayak isNominal di rekapAggForMetric) digabung pakai SUM
@@ -3308,7 +3347,8 @@ function tcRenderTable(wrap, tokoList){
     return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
   }).join('');
   wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${bizHead}${tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  tcRenderMobileColButton(tokoList);
+  tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
+  renderStoreTopbar();
   tcApplyMobileColumnVisibility();
 }
 function tcRenderCharts(wrap, tokoList){
