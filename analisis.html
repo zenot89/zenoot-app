@@ -770,6 +770,18 @@
     .tc-control-row .tc-period-btn{ flex:1 1 0; min-width:0; padding:8px 6px; gap:4px; justify-content:center; }
     .tc-control-row .tc-period-btn-value{ font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .tc-control-row .tc-period-btn-caret{ font-size:9px; flex:none; }
+    /* [23 Sep 2026] Urutan tombol di HP: [Bulanan-Mingguan] [Nilai Periode] [Data-Tren] — beda dari
+       urutan DOM aslinya (Data-Tren tetap tombol PERTAMA di HTML/desktop, cuma order visual di HP yang
+       digeser pakai CSS `order`, biar DOM & desktop gak ikut berubah). Berlaku di kedua mode (Data & Tren)
+       karena rule-nya gak digantung ke TC_MODE — 3 tombolnya selalu ada, cuma isi teksnya yang beda per mode. */
+    #tcGranBtn{ order:1; }
+    #tcPeriodValBtn{ order:2; }
+    #tcModeBtn{ order:3; }
+    /* [23 Sep 2026] Shortcut rentang cepat (3 Bulan/6 Bulan/1 Tahun) khusus mode Tren, biar gak perlu buka
+       dropdown tombol nilai-periode dulu buat ganti rentang — dropdown-nya (isi sama: 3/6/12bulan + Custom)
+       tetap ada, ini cuma jalan pintas. Disembunyikan (lewat JS, li tcRenderTrenQuickRange) kalau lagi mode
+       Data Periode, karena konsep rentang gak berlaku di sana. */
+    .tc-tren-range-wrap{ margin-bottom:10px; }
     /* [23 Sep 2026] "Kriteria Dipilih: X/Y" (#tcKriteriaCount) DISEMBUNYIKAN di HP — info hitungan yang
        sama udah ada per-grup di #tcMobileKrRow (badge di tombol Nominal (Rp)/Rasio & Performa), jadi baris
        ini cuma DUPLIKAT. Sebelum ini disembunyikan, .tc-kriteria-head (flex + wrap) kepaksa nurunin dia ke
@@ -1463,6 +1475,9 @@
           <button type="button" class="tc-period-btn" id="tcPeriodValBtn"><span class="tc-period-btn-value" id="tcPeriodValBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
         </div>
         <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
+      </div>
+      <div class="tc-mobile-only tc-tren-range-wrap" id="tcTrenQuickRangeWrap">
+        <div class="tc-range-btns" id="tcTrenQuickRange"></div>
       </div>
       <div class="tc-mobile-kr-row tc-mobile-only" id="tcMobileKrRow"></div>
       <!-- [23 Sep 2026] Row "Data ditampilkan" (#tcMobileColRow) DIHAPUS dari sini — fungsinya
@@ -3083,6 +3098,29 @@ function tcUpdatePeriodValBtnLabel(){
     ? (TC_BULAN_PICK ? tcPeriodLabel(TC_BULAN_PICK, TC_GRAN) : 'Belum ada data')
     : tcRangeLabel();
 }
+// [23 Sep 2026] Shortcut rentang cepat (3 Bulan/6 Bulan/1 Tahun) di HP, mode Tren — request user:
+// jangan cuma bisa ganti rentang lewat dropdown tombol nilai-periode (2x tap), tapi ada juga jalan
+// pintas langsung di bawah baris tombol. "Custom" sengaja TIDAK diduplikasi ke sini (butuh 2 input
+// tanggal, gak muat jadi 1 tombol pintas) — tetap cuma lewat dropdown tcPeriodValBtn seperti biasa.
+function tcRenderTrenQuickRange(){
+  const wrap = document.getElementById('tcTrenQuickRangeWrap');
+  const el = document.getElementById('tcTrenQuickRange');
+  if(!wrap || !el) return;
+  if(TC_MODE!=='tren'){ wrap.style.display = 'none'; el.innerHTML = ''; return; }
+  wrap.style.display = '';
+  const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
+  el.innerHTML = `
+    <button type="button" class="tc-range-btn${TC_RANGE==='3bulan'?' active':''}" data-r="3bulan">3 ${label}</button>
+    <button type="button" class="tc-range-btn${TC_RANGE==='6bulan'?' active':''}" data-r="6bulan">6 ${label}</button>
+    <button type="button" class="tc-range-btn${TC_RANGE==='12bulan'?' active':''}" data-r="12bulan">1 Tahun</button>
+  `;
+  el.querySelectorAll('.tc-range-btn').forEach(b=>b.addEventListener('click', ()=>{
+    TC_RANGE = b.dataset.r;
+    tcUpdatePeriodValBtnLabel();
+    tcCloseAllTcDropdowns();
+    tcRenderContent();
+  }));
+}
 function tcCloseAllTcDropdowns(except){
   if(except!=='mode') tcCloseModeDropdown();
   if(except!=='gran') tcCloseGranDropdown();
@@ -3345,6 +3383,7 @@ function tcBuildChartSvg(periods, seriesList, fmt){
 function tcRenderContent(){
   const wrap = document.getElementById('tcContent'); if(!wrap) return;
   const colRow = document.getElementById('tcMobileColRow');
+  tcRenderTrenQuickRange();
   if(!TC_DATA){ wrap.innerHTML = '<div class="card tc-empty">Memuat data toko…</div>'; if(colRow) colRow.innerHTML=''; return; }
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   if(!tokoList.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada toko.</div>'; if(colRow) colRow.innerHTML=''; return; }
