@@ -770,6 +770,17 @@
     .tc-control-row .tc-period-btn{ flex:1 1 0; min-width:0; padding:8px 6px; gap:4px; justify-content:center; }
     .tc-control-row .tc-period-btn-value{ font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .tc-control-row .tc-period-btn-caret{ font-size:9px; flex:none; }
+    /* [23 Sep 2026] "Kriteria Dipilih: X/Y" (#tcKriteriaCount) DISEMBUNYIKAN di HP — info hitungan yang
+       sama udah ada per-grup di #tcMobileKrRow (badge di tombol Nominal (Rp)/Rasio & Performa), jadi baris
+       ini cuma DUPLIKAT. Sebelum ini disembunyikan, .tc-kriteria-head (flex + wrap) kepaksa nurunin dia ke
+       baris ke-2 sendirian (karena .tc-control-row di atas sudah dipaksa width:100%) — nyangkut, gak sejajar
+       apa-apa. Root cause "kepotong"-nya di situ; fix-nya sembunyikan aja, bukan direposisi. */
+    .tc-kriteria-count{ display:none; }
+    /* [23 Sep 2026] .tc-period-dd (dropdown Data Periode/Tren, Bulanan/Mingguan, nilai periode) lebar tetapnya
+       320px kadang lebih lebar dari layar HP-nya sendiri → separuh badannya nongol keluar layar. Batas lebar
+       maksimal digenapin di sini; batas posisi kiri/kanan (biar gak mepet ke tepi) di-clamp di JS,
+       lihat tcClampDdLeft() di bawah — dua-duanya perlu jalan bareng buat benar-benar gak kepotong. */
+    .tc-period-dd{ width:min(320px, calc(100vw - 16px)); }
 
     /* [23 Sep 2026] Halaman "flat": tinggi = 1 layar, gak menggantung nyisain ruang kosong di bawah walau kriteria/data
        dikit. Card kriteria di atas tetap ukuran asli (flex:none), sisanya (#tcContent) stretch ngisi ruang yang ada —
@@ -815,6 +826,12 @@
   .tc-sheet-kr-item{ font-size:14px; padding:2px 0; }
   .tc-sheet-kr-item input{ width:18px; height:18px; }
   .tc-sheet-done{ display:block; width:100%; margin-top:16px; border:0; border-radius:8px; background:var(--ink); color:#fff; padding:13px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+  /* [23 Sep 2026] Footer sheet Kriteria (Batal + Simpan berdampingan) — dipakai KHUSUS tcOpenKriteriaSheet,
+     sheet lain (mis. tcOpenMobileColSheet) tetap 1 tombol .tc-sheet-done polos kayak sebelumnya. */
+  .tc-sheet-foot{ display:flex; gap:10px; margin-top:16px; }
+  .tc-sheet-foot .tc-sheet-done{ margin-top:0; flex:1 1 0; }
+  .tc-sheet-batal{ flex:1 1 0; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink-soft); padding:13px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+  .tc-sheet-batal:hover{ border-color:var(--ink); color:var(--ink); }
   .tc-sheet-radio-list{ display:flex; flex-direction:column; }
   .tc-sheet-radio-item{ text-align:left; border:0; border-bottom:1px solid var(--line); background:transparent; padding:13px 4px; font-size:14px; color:var(--ink); cursor:pointer; font-family:inherit; }
   .tc-sheet-radio-item:last-child{ border-bottom:0; }
@@ -2425,6 +2442,15 @@ function renderStoreTopbar(){
       el.className = 'store-badge clickable';
       el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Pilih data ditampilkan');
       el.innerHTML = `<span class="dot"></span><span class="store-name">${cur?tokoEsc(cur.label):'—'}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
+    } else if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='tren'){
+      // [23 Sep 2026] FIX bug "menyesatkan": mode Tren narik data SEMUA toko sekaligus (persis kayak
+      // cabang mode Bulan di atas), jadi badge "ganti toko aktif" di sini gak relevan sama sekali —
+      // user bisa kepencet ganti toko padahal grafik Tren-nya gak kepengaruh apa-apa (data tetap semua
+      // toko). Dikunci nampilin "Semua Toko" & BUKAN tombol (gak ada caret, gak clickable) — beda dari
+      // cabang mode Bulan (yang emang sengaja jadi tombol karena beneran ganti kolom data ditampilkan).
+      el.className = 'store-badge';
+      el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('title');
+      el.innerHTML = `<span class="dot"></span><span class="store-name">Semua Toko</span>`;
     } else {
       const t = tokoActiveEntry();
       const label = t.draft ? (t.username ? t.nama+' · setup' : 'Setup toko baru') : t.nama;
@@ -2704,6 +2730,9 @@ function tokoTogglePop(){
     tcOpenMobileColSheet(TOKO_REG.list.filter(t=>!t.draft));
     return;
   }
+  // [23 Sep 2026] Mode Tren: badge dikunci "Semua Toko" (bukan tombol, lihat renderStoreTopbar) — klik/Enter
+  // gak boleh buka popover ganti toko, karena ganti toko aktif emang gak ngaruh ke grafik Tren.
+  if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='tren') return;
   if(document.getElementById('tokoPop')){ tokoClosePop(); return; }
   const badge = document.getElementById('storeTopbarBadge'); if(!badge) return;
   const pop = document.createElement('div');
@@ -2925,6 +2954,10 @@ function tcCloseSheet(){
 function tcOpenKriteriaSheet(groupIndex){
   const g = TC_KRITERIA_GROUPS[groupIndex]; if(!g) return;
   const byKey = {}; REKAP_METRICS.forEach(m=>{ byKey[m.key] = m; });
+  // [23 Sep 2026] Snapshot buat "Batal" — checkbox/Centang Semua/Un-Centang Semua di bawah tetap langsung
+  // ubah TC_KRITERIA (biar preview-nya real-time, sama kayak sebelumnya), tapi "Batal"/✕/tap area gelap
+  // balikin ke snapshot ini. Cuma "Simpan" yang commit (tcRenderKriteriaGrid+tcRenderContent).
+  const before = new Set(TC_KRITERIA);
   const itemsHtml = g.keys.map(k=>{
     const m = byKey[k]; if(!m) return '';
     return `<label class="tc-kr-item tc-sheet-kr-item"><input type="checkbox" data-k="${k}"${TC_KRITERIA.has(k)?' checked':''}><span>${tokoEsc(m.label)}</span></label>`;
@@ -2935,29 +2968,40 @@ function tcOpenKriteriaSheet(groupIndex){
       <button type="button" class="tc-kr-toggle-btn" id="tcSheetDeselAll">Un-Centang Semua</button>
     </div>
     <div class="tc-sheet-kr-list">${itemsHtml}</div>
-    <button type="button" class="tc-sheet-done" id="tcSheetDone">Selesai</button>
+    <div class="tc-sheet-foot">
+      <button type="button" class="tc-sheet-batal" id="tcSheetBatal">Batal</button>
+      <button type="button" class="tc-sheet-done" id="tcSheetDone">Simpan</button>
+    </div>
   `);
   const body = document.getElementById('tcSheetBody');
+  function revert(){ TC_KRITERIA = new Set(before); }
+  function batalAndClose(){ revert(); tcCloseSheet(); }
   body.addEventListener('change', e=>{
     const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
     if(cb.checked) TC_KRITERIA.add(cb.dataset.k); else TC_KRITERIA.delete(cb.dataset.k);
-    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
   });
   document.getElementById('tcSheetSelAll').addEventListener('click', ()=>{
     g.keys.forEach(k=>{ if(byKey[k]) TC_KRITERIA.add(k); });
     body.querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{ cb.checked = true; });
-    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
   });
   document.getElementById('tcSheetDeselAll').addEventListener('click', ()=>{
     g.keys.forEach(k=>TC_KRITERIA.delete(k));
     body.querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{ cb.checked = false; });
-    tcUpdateKriteriaCount(); tcRenderMobileKrRow();
   });
+  document.getElementById('tcSheetBatal').addEventListener('click', batalAndClose);
   document.getElementById('tcSheetDone').addEventListener('click', ()=>{
     tcCloseSheet();
     tcRenderKriteriaGrid();
     tcRenderContent();
   });
+  // [23 Sep 2026] ✕ & tap area gelap di luar sheet defaultnya cuma nutup (tcCloseSheet, dari tcOpenSheet) —
+  // di sheet Kriteria ini diganti jadi ikutan BATAL (revert dulu baru tutup), biar konsisten sama tombol
+  // Batal: nutup sheet TANPA nekan Simpan = perubahan gak ke-apply. removeEventListener dulu biar gak
+  // dobel manggil tcCloseSheet (listener lama dari tcOpenSheet + listener baru sekaligus).
+  const closeBtn = document.getElementById('tcSheetCloseBtn');
+  const overlay = document.getElementById('tcSheetOverlay');
+  if(closeBtn){ closeBtn.removeEventListener('click', tcCloseSheet); closeBtn.addEventListener('click', batalAndClose); }
+  if(overlay){ overlay.removeEventListener('click', tcCloseSheet); overlay.addEventListener('click', batalAndClose); }
 }
 function tcRenderMobileKrRow(){
   const row = document.getElementById('tcMobileKrRow'); if(!row) return;
@@ -3045,6 +3089,16 @@ function tcCloseAllTcDropdowns(except){
   if(except!=='periodval') tcClosePeriodValDropdown();
   if(except!=='periodval') tcCloseCalPicker();
 }
+// [23 Sep 2026] FIX "kepotong": tcToggleModeDropdown/tcToggleGranDropdown/tcTogglePeriodValDropdown cuma
+// nge-clamp batas KIRI dropdown (Math.max(8, r.left)) — batas KANAN gak pernah dicek, jadi kalau tombol
+// pemicunya (tcModeBtn/tcGranBtn/tcPeriodValBtn) posisinya udah di sisi kanan layar (di HP row-nya nowrap,
+// tcPeriodValBtn ada di paling kanan), dropdown lebar ~320px nongol nabrak/kepotong tepi kanan layar.
+// Helper ini nyontek pola yang UDAH BENER di tcOpenBulanCalendarPicker (clamp kiri DAN kanan sekaligus),
+// dipakai bareng oleh ketiganya biar konsisten — satu rumus, bukan 3 tempat beda-beda.
+function tcClampDdLeft(left, width){
+  const w = width || 320;
+  return Math.max(8, Math.min(left, window.innerWidth - w - 8));
+}
 function tcCloseModeDropdown(){
   const dd = document.getElementById('tcModeDD');
   if(dd) dd.remove();
@@ -3081,7 +3135,7 @@ function tcToggleModeDropdown(){
   }));
   const r = btn.getBoundingClientRect();
   dd.style.top = (r.bottom + 6)+'px';
-  dd.style.left = Math.max(8, r.left)+'px';
+  dd.style.left = tcClampDdLeft(r.left, dd.offsetWidth)+'px';
   document.addEventListener('mousedown', tcModeDDOutside, true);
   document.addEventListener('keydown', tcModeDDEsc);
   window.addEventListener('resize', tcCloseModeDropdown);
@@ -3124,7 +3178,7 @@ function tcToggleGranDropdown(){
   }));
   const r = btn.getBoundingClientRect();
   dd.style.top = (r.bottom + 6)+'px';
-  dd.style.left = Math.max(8, r.left)+'px';
+  dd.style.left = tcClampDdLeft(r.left, dd.offsetWidth)+'px';
   document.addEventListener('mousedown', tcGranDDOutside, true);
   document.addEventListener('keydown', tcGranDDEsc);
   window.addEventListener('resize', tcCloseGranDropdown);
@@ -3162,7 +3216,7 @@ function tcTogglePeriodValDropdown(){
   tcRenderPeriodValDropdownContent();
   const r = btn.getBoundingClientRect();
   dd.style.top = (r.bottom + 6)+'px';
-  dd.style.left = Math.max(8, r.left)+'px';
+  dd.style.left = tcClampDdLeft(r.left, dd.offsetWidth)+'px';
   document.addEventListener('mousedown', tcPeriodValDDOutside, true);
   document.addEventListener('keydown', tcPeriodValDDEsc);
   window.addEventListener('resize', tcClosePeriodValDropdown);
