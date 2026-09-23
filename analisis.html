@@ -697,6 +697,9 @@
   .tc-kriteria-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
   .tc-kriteria-head h3{ margin:0; font-size:15px; }
   .tc-kriteria-count{ font-size:12px; color:var(--accent-dark); font-weight:700; }
+  .tc-kriteria-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .tc-kr-toggle-btn{ border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink-soft); padding:5px 10px; font-size:11.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .tc-kr-toggle-btn:hover{ border-color:var(--ink); color:var(--ink); }
   .tc-kriteria-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .tc-kr-group{ border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
   .tc-kr-group-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; }
@@ -732,7 +735,7 @@
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
   .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
-  .tc-table th.tc-biz:first-of-type, .tc-table td.tc-biz:first-of-type{ border-left:2px solid var(--line); }
+  .tc-table th.tc-biz:last-of-type, .tc-table td.tc-biz:last-of-type{ border-right:2px solid var(--line); }
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
   .tc-chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
   .tc-chart-card{ padding:12px 14px; }
@@ -1371,7 +1374,11 @@
           <button type="button" class="tc-period-btn" id="tcGranBtn"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcPeriodValBtn"><span class="tc-period-btn-value" id="tcPeriodValBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
         </div>
-        <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
+        <div class="tc-kriteria-actions">
+          <button type="button" class="tc-kr-toggle-btn" id="tcSelectAllBtn">Centang Semua</button>
+          <button type="button" class="tc-kr-toggle-btn" id="tcDeselectAllBtn">Un-Centang Semua</button>
+          <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
+        </div>
       </div>
       <div class="tc-kriteria-grid" id="tcKriteriaGrid"></div>
     </div>
@@ -2815,6 +2822,7 @@ function tcCloseAllTcDropdowns(except){
   if(except!=='mode') tcCloseModeDropdown();
   if(except!=='gran') tcCloseGranDropdown();
   if(except!=='periodval') tcClosePeriodValDropdown();
+  if(except!=='periodval') tcCloseCalPicker();
 }
 function tcCloseModeDropdown(){
   const dd = document.getElementById('tcModeDD');
@@ -2914,6 +2922,15 @@ function tcPeriodValDDOutside(e){
 }
 function tcPeriodValDDEsc(e){ if(e.key==='Escape') tcClosePeriodValDropdown(); }
 function tcTogglePeriodValDropdown(){
+  // [23 Sep 2026] Mode Data Periode + Bulanan = 1 klik langsung buka kalender
+  // pilih bulan (gaya date-picker Shopee, sama kayak Rekap) — gak lewat dd+<select> lagi.
+  if(TC_MODE==='bulan' && TC_GRAN==='bulanan'){
+    if(document.getElementById('tcCalPop')){ tcCloseCalPicker(); return; }
+    tcCloseAllTcDropdowns();
+    const btn = document.getElementById('tcPeriodValBtn'); if(!btn) return;
+    tcOpenBulanCalendarPicker(btn);
+    return;
+  }
   if(TC_PERIODVAL_DD_OPEN){ tcClosePeriodValDropdown(); return; }
   tcCloseAllTcDropdowns('periodval');
   const btn = document.getElementById('tcPeriodValBtn'); if(!btn) return;
@@ -2928,6 +2945,58 @@ function tcTogglePeriodValDropdown(){
   document.addEventListener('mousedown', tcPeriodValDDOutside, true);
   document.addEventListener('keydown', tcPeriodValDDEsc);
   window.addEventListener('resize', tcClosePeriodValDropdown);
+}
+let tcCalYear = null;
+function tcCloseCalPicker(){
+  const pop = document.getElementById('tcCalPop');
+  if(pop) pop.remove();
+  document.removeEventListener('mousedown', tcCalPickerOutside, true);
+  document.removeEventListener('keydown', tcCalPickerEsc, true);
+  window.removeEventListener('resize', tcCloseCalPicker);
+}
+function tcCalPickerOutside(e){
+  const pop = document.getElementById('tcCalPop');
+  if(pop && !pop.contains(e.target) && !e.target.closest('#tcPeriodValBtn')) tcCloseCalPicker();
+}
+function tcCalPickerEsc(e){ if(e.key==='Escape') tcCloseCalPicker(); }
+function tcRenderCalPickerBody(keysSet){
+  const pop = document.getElementById('tcCalPop'); if(!pop) return;
+  const y = tcCalYear;
+  pop.innerHTML = `
+    <div class="mp-head">
+      <button type="button" class="mp-arrow" data-a="prev" aria-label="Tahun sebelumnya">«</button>
+      <span class="mp-year">${y}</span>
+      <button type="button" class="mp-arrow" data-a="next" aria-label="Tahun berikutnya">»</button>
+    </div>
+    <div class="mp-grid">${REKAP_BULAN_SHORT.map((lbl,i)=>{
+      const k = y+'-'+String(i+1).padStart(2,'0');
+      const has = keysSet.has(k);
+      return `<button type="button" class="mp-m${k===TC_BULAN_PICK?' sel':''}" data-k="${k}" ${has?'':'disabled'}>${lbl}</button>`;
+    }).join('')}</div>`;
+  pop.querySelector('[data-a="prev"]').addEventListener('click', ()=>{ tcCalYear--; tcRenderCalPickerBody(keysSet); });
+  pop.querySelector('[data-a="next"]').addEventListener('click', ()=>{ tcCalYear++; tcRenderCalPickerBody(keysSet); });
+  pop.querySelectorAll('.mp-m:not(:disabled)').forEach(b=>b.addEventListener('click', ()=>{
+    TC_BULAN_PICK = b.dataset.k;
+    tcCloseCalPicker();
+    tcUpdatePeriodValBtnLabel(); tcRenderContent();
+  }));
+}
+function tcOpenBulanCalendarPicker(btn){
+  const keys = TC_DATA ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
+  const keysSet = new Set(keys);
+  tcSyncBulanPickDefault();
+  tcCalYear = TC_BULAN_PICK ? parseInt(TC_BULAN_PICK.slice(0,4),10) : new Date().getFullYear();
+  const pop = document.createElement('div');
+  pop.id = 'tcCalPop'; pop.className = 'mp-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label','Pilih bulan');
+  document.body.appendChild(pop);
+  tcRenderCalPickerBody(keysSet);
+  const r = btn.getBoundingClientRect();
+  const w = pop.offsetWidth || 272;
+  pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+  pop.style.top = (r.bottom + 6) + 'px';
+  document.addEventListener('mousedown', tcCalPickerOutside, true);
+  document.addEventListener('keydown', tcCalPickerEsc, true);
+  window.addEventListener('resize', tcCloseCalPicker);
 }
 function tcRenderPeriodValDropdownContent(){
   const dd = document.getElementById('tcPeriodValDD'); if(!dd) return;
@@ -3023,45 +3092,55 @@ function tcBusinessValueAt(m, key, tokoList){
   const sumVal = vals.reduce((a,b)=>a+b,0);
   return isNominal ? sumVal : sumVal/vals.length;
 }
+// [23 Sep 2026] Sekarang termasuk sum, biar strukturnya sama persis kayak rekapAggForMetric()
+// di halaman Rekap: {anual, avg, sum} — dipakai buat kolom ANUAL/AVERAGE/SUM.
 function tcBusinessAggForMetric(m, tokoList, keys){
   const series = keys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
   const count = series.length;
   const isNominal = m.fmt==='rp' && m.key!=='aov';
-  const avg = count ? series.reduce((a,b)=>a+b,0)/count : null;
+  const sumVal = count ? series.reduce((a,b)=>a+b,0) : null;
+  const avg = count ? sumVal/count : null;
   const anual = (isNominal && avg!==null) ? avg*12 : null;
-  return { avg, anual };
+  return { avg, anual, sum: isNominal ? sumVal : null };
 }
+// [23 Sep 2026] Susunan kolom disamain persis kayak tabel Rekap (file 5): Kriteria -> ANUAL, AVERAGE, SUM
+// (agregat gabungan semua toko, gak ada tren — sama kayak rekapAggCellsHtml gak punya tren), baru
+// disusul kolom per-toko masing-masing, dan tiap kolom toko sekarang punya tren panah vs bulan sebelumnya
+// (sama kayak kolom bulan di tabel Rekap), bukan cuma kolom gabungan doang.
 function tcRenderTable(wrap, tokoList){
   if(!TC_BULAN_PICK){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan.</div>'; return; }
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
-  const head = tokoList.map(t=>`<th>${tokoEsc(t.nama)}</th>`).join('');
-  // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Average/Anual/Tren)
+  const tokoHead = tokoList.map(t=>`<th>${tokoEsc(t.nama)}</th>`).join('');
+  // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Average/Anual/Sum)
   const showBiz = (TC_GRAN==='bulanan');
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
   const bizHead = showBiz
-    ? `<th class="tc-biz" title="Gabungan ${tokoList.length} toko — ${tcPeriodLabel(TC_BULAN_PICK,TC_GRAN)}, dgn tren vs bulan sebelumnya">TOTAL BISNIS</th><th class="tc-biz" title="Rata-rata per bulan, gabungan semua toko, dari seluruh histori data">AVERAGE</th><th class="tc-biz" title="Proyeksi setahun (Average × 12), gabungan semua toko">ANUAL</th>`
+    ? `<th class="tc-biz" title="Proyeksi setahun (Average × 12), gabungan semua toko">ANUAL</th><th class="tc-biz" title="Rata-rata per bulan, gabungan semua toko, dari seluruh histori data">AVERAGE</th><th class="tc-biz" title="Total akumulasi seluruh bulan yang ada data, gabungan semua toko">SUM</th>`
     : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
+    let bizCells = '';
+    if(showBiz){
+      const agg = tcBusinessAggForMetric(m, tokoList, keys);
+      const anualCell = agg.anual===null ? '-' : fmtRekapVal(agg.anual, m.fmt);
+      const avgCell = agg.avg===null ? '-' : fmtRekapVal(agg.avg, m.fmt);
+      const sumCell = agg.sum===null ? '-' : fmtRekapVal(agg.sum, m.fmt);
+      bizCells = `<td class="tc-biz">${anualCell}</td><td class="tc-biz">${avgCell}</td><td class="tc-biz">${sumCell}</td>`;
+    }
     const cells = tokoList.map(t=>{
       const snap = dictOf(t)[TC_BULAN_PICK];
       const v = snap ? snap[m.key] : null;
-      return `<td>${(v===null||v===undefined||isNaN(v)) ? '-' : fmtRekapVal(v, m.fmt)}</td>`;
+      if(v===null||v===undefined||isNaN(v)) return '<td>-</td>';
+      let trend = '';
+      if(showBiz && prevKey){
+        const prevSnap = dictOf(t)[prevKey];
+        trend = rekapTrendHtml(v, prevSnap ? prevSnap[m.key] : null, m.goodUp, m.fmt);
+      }
+      return `<td>${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
-    let bizCells = '';
-    if(showBiz){
-      const curBiz = tcBusinessValueAt(m, TC_BULAN_PICK, tokoList);
-      const prevBiz = prevKey ? tcBusinessValueAt(m, prevKey, tokoList) : null;
-      const trend = rekapTrendHtml(curBiz, prevBiz, m.goodUp, m.fmt);
-      const agg = tcBusinessAggForMetric(m, tokoList, keys);
-      const totalCell = curBiz===null ? '-' : (fmtRekapVal(curBiz, m.fmt)+trend);
-      const avgCell = agg.avg===null ? '-' : fmtRekapVal(agg.avg, m.fmt);
-      const anualCell = agg.anual===null ? '-' : fmtRekapVal(agg.anual, m.fmt);
-      bizCells = `<td class="tc-biz">${totalCell}</td><td class="tc-biz">${avgCell}</td><td class="tc-biz">${anualCell}</td>`;
-    }
-    return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`;
+    return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
   }).join('');
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${head}${bizHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${bizHead}${tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function tcRenderCharts(wrap, tokoList){
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
@@ -3091,6 +3170,7 @@ async function tcEnsureData(force){
   return TC_DATA;
 }
 async function renderTokoCompare(){
+  tcCloseAllTcDropdowns();
   tcRenderKriteriaGrid();
   await tcEnsureData(false);
   tcSyncBulanPickDefault();
@@ -3106,6 +3186,16 @@ async function renderTokoCompare(){
     const cb = e.target.closest('input[type=checkbox][data-k]'); if(!cb) return;
     if(cb.checked) TC_KRITERIA.add(cb.dataset.k); else TC_KRITERIA.delete(cb.dataset.k);
     tcUpdateKriteriaCount(); tcRenderContent();
+  });
+  const selAllBtn = document.getElementById('tcSelectAllBtn');
+  if(selAllBtn) selAllBtn.addEventListener('click', ()=>{
+    REKAP_METRICS.forEach(m=>TC_KRITERIA.add(m.key));
+    tcRenderKriteriaGrid(); tcRenderContent();
+  });
+  const deselAllBtn = document.getElementById('tcDeselectAllBtn');
+  if(deselAllBtn) deselAllBtn.addEventListener('click', ()=>{
+    TC_KRITERIA.clear();
+    tcRenderKriteriaGrid(); tcRenderContent();
   });
 })();
 
