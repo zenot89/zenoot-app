@@ -770,6 +770,35 @@
     .tc-control-row .tc-period-btn{ flex:1 1 0; min-width:0; padding:8px 6px; gap:4px; justify-content:center; }
     .tc-control-row .tc-period-btn-value{ font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .tc-control-row .tc-period-btn-caret{ font-size:9px; flex:none; }
+
+    /* [23 Sep 2026] Halaman "flat": tinggi = 1 layar, gak menggantung nyisain ruang kosong di bawah walau kriteria/data
+       dikit. Card kriteria di atas tetap ukuran asli (flex:none), sisanya (#tcContent) stretch ngisi ruang yang ada —
+       tabel/chart card ikut ditarik sampai ujung bawah layar. Patokan "100vh - 66px" cuma valid pas topbar udah mode HP
+       (56px tinggi + 10px margin, di-set html.zan-phone lewat analisis.js) — makanya di-scope html.zan-phone juga di sini,
+       bukan cuma lebar layar, biar laptop yang window-nya di-resize sempit gak ikut kepasang tinggi yang salah. */
+    html.zan-phone #page-tokocompare.active{ display:flex; flex-direction:column; flex:none; height:calc(100vh - 66px); min-height:0; margin-bottom:0; }
+    html.zan-phone .tc-kriteria-card{ flex:0 0 auto; margin-bottom:10px; }
+    html.zan-phone #tcContent{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+    html.zan-phone #tcContent > .tc-empty{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; margin:0; }
+    html.zan-phone #tcContent > .tc-table-card{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin:0; }
+    html.zan-phone #tcContent > .tc-table-card > .tc-table-scroll{ flex:1 1 auto; min-height:0; overflow:auto; }
+
+    /* ---- Mode Tren: dipasangkan 2 chart per slide ("flat", gak manjang ke bawah), sisanya digeser ●●● ----
+       Desktop/tablet (>600px) tetap pakai .tc-chart-grid biasa (di-render bareng tcRenderCharts, cuma disembunyikan di sini).
+       #tcChartSwipe & .tc-chart-slide dibuat di tcRenderCharts() (analisis.html, JS). Di-scope html.zan-phone juga
+       (sama alasannya kayak blok "flat" di atas) — biar tinggi slide-nya ngikut #tcContent yang cuma flex pas mode HP. */
+    html.zan-phone #tcContent > .tc-chart-grid{ display:none; }
+    html.zan-phone #tcContent > .tc-chart-swipe{ flex:1 1 auto; min-height:0; display:flex; flex-direction:row; align-items:stretch; gap:0; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; scrollbar-width:none; }
+    html.zan-phone #tcContent > .tc-chart-swipe::-webkit-scrollbar{ display:none; }
+    html.zan-phone .tc-chart-slide{ flex:0 0 100%; width:100%; min-width:0; min-height:0; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; display:flex; flex-direction:column; gap:8px; }
+    html.zan-phone .tc-chart-slide-dots{ flex:0 0 auto; display:flex; justify-content:center; align-items:center; gap:6px; padding:2px 0 6px; }
+    html.zan-phone .tc-chart-dot{ width:6px; height:6px; border-radius:50%; background:#BDBDBD; }
+    html.zan-phone .tc-chart-dot.active{ background:#000; }
+    html.zan-phone .tc-chart-slide-inner{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:8px; }
+    html.zan-phone .tc-chart-slide .tc-chart-card{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; margin:0 !important; }
+    html.zan-phone .tc-chart-slide .tc-chart-head{ flex:0 0 auto; }
+    html.zan-phone .tc-chart-slide .tc-chart-svg{ flex:1 1 0; min-height:0; width:100%; height:auto; }
+    html.zan-phone .tc-chart-slide .tc-chart-empty{ flex:1 1 0; min-height:0; display:flex; align-items:center; justify-content:center; padding:0; }
   }
   /* Bottom sheet — gaya BRIMO / komentar Instagram: slide dari bawah, overlay gelap */
   .tc-sheet-overlay{ position:fixed; inset:0; background:rgba(20,20,20,.45); z-index:300; opacity:0; transition:opacity .2s ease; }
@@ -3355,15 +3384,29 @@ function tcRenderCharts(wrap, tokoList){
   const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
   const periods = tcRangeKeys(tcAllPeriodKeys(TC_DATA, TC_GRAN));
   if(!periods.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan buat periode ini.</div>'; return; }
-  const cards = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
+  const metrics = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key));
+  const chartCardHtml = m=>{
     const seriesList = tokoList.map((t,i)=>{
       const dict = dictOf(t);
       return { label:t.nama, color:TC_PALETTE[i%TC_PALETTE.length], values: periods.map(k=> dict[k] ? dict[k][m.key] : null) };
     });
     const legend = seriesList.map(s=>`<span class="tc-legend-item"><span class="tc-legend-dot" style="background:${s.color}"></span>${tokoEsc(s.label)}</span>`).join('');
     return `<div class="card tc-chart-card"><div class="tc-chart-head"><span class="tc-chart-title">${tokoEsc(m.label)}</span><span class="tc-legend">${legend}</span></div>${tcBuildChartSvg(periods, seriesList, m.fmt)}</div>`;
-  }).join('');
-  wrap.innerHTML = `<div class="tc-chart-grid">${cards}</div>`;
+  };
+  // Desktop/tablet (>600px): grid biasa, semua chart tampil sekaligus (tetap seperti sebelumnya).
+  const gridHtml = metrics.map(chartCardHtml).join('');
+  // [23 Sep 2026] HP (≤600px, CSS di @media max-width:600px yang nyembunyiin .tc-chart-grid & nampilin ini):
+  // chart dipasangkan 2-2 jadi 1 slide "flat" (persis 1 layar, gak manjang ke bawah), sisa pasangan digeser ke samping
+  // dengan indikator titik ●●● (titik ke-n hitam = slide ini) — jumlah titik ngikutin jumlah kriteria yang dicentang (2/slide).
+  const slideCount = Math.ceil(metrics.length/2);
+  const slidesHtml = [];
+  for(let i=0; i<metrics.length; i+=2){
+    const slideIdx = i/2;
+    const pair = metrics.slice(i, i+2);
+    const dots = Array.from({length:slideCount}, (_,di)=>`<span class="tc-chart-dot${di===slideIdx?' active':''}"></span>`).join('');
+    slidesHtml.push(`<div class="tc-chart-slide"><div class="tc-chart-slide-dots">${dots}</div><div class="tc-chart-slide-inner">${pair.map(chartCardHtml).join('')}</div></div>`);
+  }
+  wrap.innerHTML = `<div class="tc-chart-grid">${gridHtml}</div><div class="tc-chart-swipe" id="tcChartSwipe">${slidesHtml.join('')}</div>`;
 }
 async function tcEnsureData(force){
   if(TC_DATA && !force) return TC_DATA;

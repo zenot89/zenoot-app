@@ -176,8 +176,9 @@
     'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;}',
     'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;color:#000;}',
     // di RKS Overview badge toko bergeser ke kanan, tombol bulan (fixed, di atas topbar) menempati sisi kiri baris yang sama
-    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc(38vw + 8px);}',
-    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:38vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
+    // [23 Sep 2026] lebar tombol bulan dipersempit 38vw→27vw (isinya cuma "Agu 2026" + caret, muat) biar badge toko dapat ruang lebih lebar → nama toko gak kepotong
+    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc(27vw + 8px);}',
+    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:27vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
     'html.zan-phone #btnHasilMonth:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
@@ -189,7 +190,8 @@
     'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head{margin:0;padding:0;height:0;min-height:0;}',
     'html.zan-phone #page-hasil .page-head .toolbar,html.zan-phone #page-hasilM .page-head .toolbar{margin:0;}',
     // [21 Sep 2026] RKS Mingguan di HP: satu baris header [Periode ▾] kiri + [Toko ▾] tengah + [PDF] kanan (tombol periode & PDF melayang di atas topbar, sama polanya dengan tombol bulan RKS Overview)
-    'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:36vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
+    // [23 Sep 2026] lebar tombol periode dipersempit 36vw→27vw (label sudah singkat lewat .hp-short, mis. "1/9–7/9") biar badge toko dapat ruang lebih lebar → nama toko gak kepotong
+    'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:27vw;height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
     'html.zan-phone #btnHasilPeriodM:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilPeriodM *{color:#000;}',
     'html.zan-phone #btnHasilPeriodM #hasilPeriodLabelM{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
@@ -198,7 +200,8 @@
     // [21 Sep 2026] DINONAKTIFKAN (tombol PDF Mingguan pindah ke sejajar kartu Net Income). Rule lama dipertahankan di sini biar gampang balik:
     //   #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;...;font-size:0;} + #btnExportPDFM::after{content:"PDF";...}
     // [21 Sep 2026] margin-right badge toko 56px -> 0 (tombol PDF sudah tidak ada di header)
-    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc(36vw + 8px);margin-right:0;}',
+    // [23 Sep 2026] ikut lebar tombol periode baru (36vw→27vw, lihat #btnHasilPeriodM di atas)
+    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc(27vw + 8px);margin-right:0;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
     // [21 Sep 2026] popup pilih bulan/minggu: posisinya dari JS = nempel ke tombol (miring ke kiri di HP) → di HP dipaksa tepat di tengah layar
@@ -282,6 +285,11 @@
     'html.zan-phone #page-checkadmin td[colspan="7"]::after{content:"Belum ada data \\2014  paste di kotak atas, lalu klik Parse & Hitung.";display:block;font-size:13px;}',
     'html.zan-phone .rekap-empty-note{font-size:0;}',
     'html.zan-phone .rekap-empty-note::after{content:"Belum ada data tersimpan di sini. Simpan ke Rekap dilakukan dari laptop.";display:block;font-size:12.5px;}',
+
+    // ══ Perbandingan Toko (Data & Tren): layout full-height "flat" ala RKS Overview dipasang langsung di analisis.html sendiri
+    // (halaman ini sejak awal punya CSS HP-nya sendiri di dalam analisis.html, lihat @media (max-width:600px) di sana — bukan lewat file INI).
+    // Cuma padding bawah #main yang perlu ditimpa di sini (sama pola kayak hasil/hasilM/rekap/rekapM) biar card gak nge-gantung dgn jarak kosong di ujung bawah layar.
+    'html.zan-phone.embed[data-zan-page="tokocompare"] #main{padding-bottom:0;}',
 
     // ══ Halaman lain (dikembalikan ke HP 21 Sep 2026): aturan umum biar tidak melebar keluar layar & tidak kejepit "1 layar penuh" laptop ══
     'html.zan-phone .card{padding:14px 12px;}',
