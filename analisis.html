@@ -1541,7 +1541,7 @@
         <div class="val"><input type="text" inputmode="decimal" id="inLainnyaPct" placeholder="mis. 4"></div>
       </div>
       <div class="hrow editable">
-        <div class="lbl">MINIMUM NET INCOME TOKO<span class="ket">Target income per SKU (Rp) — manual. Dipakai sebagai Income Target di Proyeksi Harga; %-nya adalah hasil, dilihat di halaman Proyeksi</span></div>
+        <div class="lbl">MINIMUM PROFIT TOKO<span class="ket">Target profit per SKU (Rp) — manual. Dipakai sebagai Profit Target di Proyeksi Harga (khususnya By Harga Jual); %-nya adalah hasil, dilihat di halaman Proyeksi</span></div>
         <div class="val"><input type="text" inputmode="numeric" id="inMinNpmRp" placeholder="0"></div>
       </div>
       <div class="hrow editable">
@@ -3032,7 +3032,8 @@ function tcRenderMobileKrRow(){
 function tcMobileColOptions(tokoList){
   const opts = tokoList.map(t=>({ id:'toko:'+t.id, label:t.nama }));
   if(TC_GRAN==='bulanan'){
-    opts.push({ id:'anual', label:'ANUAL' }, { id:'average', label:'AVERAGE' }, { id:'sum', label:'SUM' });
+    const sumRangeLabel = TC_RANGE==='3bulan' ? '3 Bulan' : TC_RANGE==='12bulan' ? '1 Tahun' : '6 Bulan';
+    opts.push({ id:'anual', label:'ANUAL' }, { id:'average', label:'AVERAGE' }, { id:'sum', label:'SUM ('+sumRangeLabel+')' });
   }
   return opts;
 }
@@ -3102,11 +3103,15 @@ function tcUpdatePeriodValBtnLabel(){
 // jangan cuma bisa ganti rentang lewat dropdown tombol nilai-periode (2x tap), tapi ada juga jalan
 // pintas langsung di bawah baris tombol. "Custom" sengaja TIDAK diduplikasi ke sini (butuh 2 input
 // tanggal, gak muat jadi 1 tombol pintas) — tetap cuma lewat dropdown tcPeriodValBtn seperti biasa.
+// [23 Sep 2026, poin 1] Sekarang juga tampil di mode Data Periode + granularitas Bulanan (HP) — dipakai
+// buat nentuin rentang kolom SUM (lihat tcRangeSumForMetric), BUKAN buat AVERAGE/ANUAL (tetap 1 periode/histori
+// penuh seperti sebelumnya, sesuai request user).
 function tcRenderTrenQuickRange(){
   const wrap = document.getElementById('tcTrenQuickRangeWrap');
   const el = document.getElementById('tcTrenQuickRange');
   if(!wrap || !el) return;
-  if(TC_MODE!=='tren'){ wrap.style.display = 'none'; el.innerHTML = ''; return; }
+  const showInData = (TC_MODE==='bulan' && TC_GRAN==='bulanan');
+  if(TC_MODE!=='tren' && !showInData){ wrap.style.display = 'none'; el.innerHTML = ''; return; }
   wrap.style.display = '';
   const label = TC_GRAN==='mingguan' ? 'Minggu' : 'Bulan';
   el.innerHTML = `
@@ -3151,6 +3156,13 @@ function tcModeDDOutside(e){
 }
 function tcModeDDEsc(e){ if(e.key==='Escape') tcCloseModeDropdown(); }
 function tcToggleModeDropdown(){
+  // [23 Sep 2026, poin 2] HP: cuma 2 pilihan (Data Periode/Tren), jadi klik langsung toggle — gak perlu
+  // buka dropdown lagi. Desktop TIDAK disentuh, tetap dropdown seperti sebelumnya.
+  if(window.innerWidth<=600){
+    TC_MODE = (TC_MODE==='bulan') ? 'tren' : 'bulan';
+    tcUpdateModeBtnLabel(); tcUpdatePeriodValBtnLabel(); tcRenderContent();
+    return;
+  }
   if(TC_MODE_DD_OPEN){ tcCloseModeDropdown(); return; }
   tcCloseAllTcDropdowns('mode');
   const btn = document.getElementById('tcModeBtn'); if(!btn) return;
@@ -3192,6 +3204,16 @@ function tcGranDDOutside(e){
 }
 function tcGranDDEsc(e){ if(e.key==='Escape') tcCloseGranDropdown(); }
 function tcToggleGranDropdown(){
+  // [23 Sep 2026, poin 2] HP: cuma 2 pilihan (Bulanan/Mingguan), jadi klik langsung toggle — gak perlu
+  // buka dropdown lagi. Desktop TIDAK disentuh, tetap dropdown seperti sebelumnya.
+  if(window.innerWidth<=600){
+    const newGran = (TC_GRAN==='bulanan') ? 'mingguan' : 'bulanan';
+    const changed = (newGran !== TC_GRAN);
+    TC_GRAN = newGran;
+    if(changed) tcSyncBulanPickDefault();
+    tcUpdateGranBtnLabel(); tcUpdatePeriodValBtnLabel(); tcRenderContent();
+    return;
+  }
   if(TC_GRAN_DD_OPEN){ tcCloseGranDropdown(); return; }
   tcCloseAllTcDropdowns('gran');
   const btn = document.getElementById('tcGranBtn'); if(!btn) return;
@@ -3430,6 +3452,21 @@ function tcSelectedMonthAgg(m, tokoList){
   const sumVal = vals.reduce((a,b)=>a+b,0);
   return { avg: sumVal/vals.length, sum: isNominal ? sumVal : null };
 }
+// [23 Sep 2026, poin 1] SUM sekarang bisa gabungan beberapa bulan (TC_RANGE: 3/6/12 bulan), bukan cuma
+// bulan yang dipilih — dihitung dari bulan TC_BULAN_PICK mundur ke belakang sebanyak N bulan (N dari
+// TC_RANGE). Custom TIDAK didukung di sini (quick-range di mode Data cuma nampilin 3/6/12, gak ada Custom).
+// Cuma buat metrik nominal (Rp, bukan AOV) — sama kayak sel.sum yang digantikannya.
+function tcRangeSumForMetric(m, tokoList, keys){
+  const isNominal = m.fmt==='rp' && m.key!=='aov';
+  if(!isNominal) return null;
+  const endIdx = keys.indexOf(TC_BULAN_PICK);
+  if(endIdx<0) return null;
+  const n = TC_RANGE==='3bulan' ? 3 : TC_RANGE==='12bulan' ? 12 : 6;
+  const rangeKeys = keys.slice(Math.max(0, endIdx-n+1), endIdx+1);
+  const vals = rangeKeys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
+  if(!vals.length) return null;
+  return vals.reduce((a,b)=>a+b,0);
+}
 // [23 Sep 2026] Susunan kolom disamain persis kayak tabel Rekap (file 5): Kriteria -> ANUAL, AVERAGE, SUM,
 // baru disusul kolom per-toko masing-masing, tiap kolom toko punya tren panah vs bulan sebelumnya (sama
 // kayak kolom bulan di tabel Rekap). Tiap sel dikasih data-col — dipakai buat mode HP (1 kolom data aja,
@@ -3442,17 +3479,20 @@ function tcRenderTable(wrap, tokoList){
   const showBiz = (TC_GRAN==='bulanan');
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
+  // [23 Sep 2026, poin 1] Judul kolom SUM sekarang ikut label rentang (3/6/12 Bulan) — ANUAL/AVERAGE tetap kayak sebelumnya.
+  const sumRangeLabel = TC_RANGE==='3bulan' ? '3 Bulan' : TC_RANGE==='12bulan' ? '1 Tahun' : '6 Bulan';
   const bizHead = showBiz
-    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko di bulan yang dipilih">SUM</th>`
+    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${sumRangeLabel})</th>`
     : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
       const anual = tcAnualForMetric(m, tokoList, keys);
       const sel = tcSelectedMonthAgg(m, tokoList);
+      const rangeSum = tcRangeSumForMetric(m, tokoList, keys);
       const anualCell = anual===null ? '-' : fmtRekapVal(anual, m.fmt);
       const avgCell = sel.avg===null ? '-' : fmtRekapVal(sel.avg, m.fmt);
-      const sumCell = sel.sum===null ? '-' : fmtRekapVal(sel.sum, m.fmt);
+      const sumCell = rangeSum===null ? '-' : fmtRekapVal(rangeSum, m.fmt);
       bizCells = `<td class="tc-biz" data-col="anual">${anualCell}</td><td class="tc-biz" data-col="average">${avgCell}</td><td class="tc-biz" data-col="sum">${sumCell}</td>`;
     }
     const cells = tokoList.map(t=>{
@@ -4525,6 +4565,9 @@ function resolveTargetRoas(){
 // ADMIN% & BPP (Biaya Proses Pesanan per order) buat Proyeksi Harga & Target Qty — konsep sama kayak ROAS:
 // 1) Ambil rata-rata BENERAN dari bulan TERAKHIR yang kesimpen di Rekap (adminLayananBreakdown ÷ pendapatan/jumlah pesanan).
 // 2) Fallback ke angka manual di Setting (ADMIN % / BPP fallback) kalau Rekap masih kosong / datanya belum lengkap.
+// [23 Sep 2026, poin 4] ADMIN % sekarang 3 tingkat: Rekap Mingguan terbaru -> (kalau kosong) Rekap Bulanan/Overview
+// terbaru -> (kalau itu juga kosong) Setting manual. Dipakai bareng oleh Check Admin, By Operasional, By Target
+// Qty & By Harga Jual (semua lewat resolveAdminBpp() ini), jadi berubah di sini otomatis berlaku ke semuanya.
 function resolveAdminBpp(){
   // BPP: tetap dari Rekap Bulanan (unchanged) — fallback ke Setting kalau Rekap belum ada.
   const keys = Object.keys(state.rekap).filter(k=>{
@@ -4550,6 +4593,17 @@ function resolveAdminBpp(){
     const wSnap = state.mingguan.rekap[lastWKey];
     adminPct = wSnap.ratioAdmin*100;
     adminSource = 'rekapM'; adminLabel = wSnap.label;
+  } else {
+    // [23 Sep 2026, poin 4] Rekap Mingguan kosong -> fallback ke Rekap Bulanan (Overview) terbaru dulu, sebelum ke Setting.
+    const bKeys = Object.keys(state.rekap).filter(k=>{
+      const s = state.rekap[k];
+      return s && s.ratioAdmin!==null && s.ratioAdmin!==undefined && !isNaN(s.ratioAdmin);
+    }).sort();
+    if(bKeys.length){
+      const lastBKey = bKeys[bKeys.length-1];
+      adminPct = state.rekap[lastBKey].ratioAdmin*100;
+      adminSource = 'rekapB'; adminLabel = rekapMonthLabel(lastBKey);
+    }
   }
   const source = (adminSource==='rekapM' && bppSource==='rekap') ? 'rekap' : (adminSource==='setting' && bppSource==='setting' ? 'setting' : 'mixed');
   return { adminPct, bpp, source, adminSource, adminLabel, bppSource, bppLabel, bppFromSetting };
@@ -5954,7 +6008,7 @@ function renderPriceListCard(containerId, tabKey){
     <h3>Price List &amp; Potongan</h3>
     <div class="stat-grid stat-grid-5" style="margin-bottom:16px;">
       <div class="stat-card">
-        <div class="stat-label">Admin %<span class="ket" style="display:block;font-weight:400;">${adminBpp.adminSource==='rekapM'?`Rekap Mingguan ${adminBpp.adminLabel}`:'fallback Setting'}</span></div>
+        <div class="stat-label">Admin %<span class="ket" style="display:block;font-weight:400;">${adminBpp.adminSource==='rekapM'?`Rekap Mingguan ${adminBpp.adminLabel}`:adminBpp.adminSource==='rekapB'?`Rekap Bulanan ${adminBpp.adminLabel}`:'fallback Setting'}</span></div>
         <div class="stat-value">${fmtPct(adminBpp.adminPct/100)}</div>
       </div>
       <div class="stat-card">
@@ -6725,7 +6779,7 @@ function renderByHargaResult(){
   if(has){
     cVerdict = c.masuk ? (c.ruang<BYHARGA_TIPIS ? 'warn' : 'good') : 'bad';
     vVerdict = c.masuk ? 'MASUK' : 'TIDAK MASUK';
-    sVerdict = 'Income '+fmtRp(c.incomeR)+(c.masuk?' ≥ ':' < ')+'target '+fmtRp(T);
+    sVerdict = 'Profit '+fmtRp(c.incomeR)+(c.masuk?' ≥ ':' < ')+'target '+fmtRp(T);
   } else if(c.invalid){ cVerdict='bad'; vVerdict='TIDAK MASUK'; }
   const ruangTxt = has ? ((c.ruang>=0?'+':'−')+Math.abs(c.ruang*100).toFixed(1)+' poin') : '—';
   const ruangSub = has ? (c.ruang>=0 ? 'potongan boleh naik segini sebelum di bawah target' : 'potongan harus turun segini supaya masuk target') : '';
@@ -6733,7 +6787,7 @@ function renderByHargaResult(){
   statsEl.innerHTML = `
     <div class="stat-grid stat-grid-6">
       ${statCard('Hasil', vVerdict, sVerdict, cVerdict)}
-      ${statCard('Income / Pcs', has?fmtRp(c.incomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.incomeR<0?'bad':''):'')}
+      ${statCard('Profit / Pcs', has?fmtRp(c.incomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.incomeR<0?'bad':''):'')}
       ${statCard('Harga Efektif', has?fmtRp(c.B):'—', has?(fmtRp(P)+' − voucher '+fmtRp(V)):'harga jual − voucher')}
       ${statCard('Harga Minimum', c.hargaMin===null?'—':fmtRp(c.hargaMin), 'NET '+fmtRp(c.net)+' + voucher '+fmtRp(V), 'accent')}
       ${statCard('Ruang Aman', ruangTxt, ruangSub, has?(c.masuk?(c.ruang<BYHARGA_TIPIS?'warn':''):'bad'):'')}
@@ -6764,9 +6818,9 @@ function renderByHargaResult(){
       ${hr('BUFFER (LAINNYA)'+pct(c.lainnya), has?fmtRp(B*c.lainnya):'-')}
       ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(B*c.ops):'-')}
       ${hr('HPP', has?fmtRp(c.hpp):'-')}
-      ${hr('INCOME / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
+      ${hr('PROFIT / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
       ${hr('NET INCOME'+(has?pct(netInc/B):''), has?fmtRp(netInc):'-', true)}
-      <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = INCOME / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
+      <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = PROFIT / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
     </div>
     </div>`;
   const right = `
@@ -6776,16 +6830,16 @@ function renderByHargaResult(){
         ${hr('SELISIH HARGA', (has&&c.hargaMin!==null)?sgnRp(P-c.hargaMin):'-')}
         ${hr('ROAS MINIMUM (TARGET)', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'-')}
         ${hr('ROAS IMPAS (INCOME 0)', (has&&c.roasImpas)?c.roasImpas.toFixed(2)+'x':'-')}
-        ${hr('RASIO INCOME', has?fmtPct(c.rasioIncome):'-')}
-        <div class="byh-note">Harga minimum = NET (dari Income Target ${fmtRp(T)}) + voucher. Rasio & ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
+        ${hr('RASIO PROFIT', has?fmtPct(c.rasioIncome):'-')}
+        <div class="byh-note">Harga minimum = NET (dari Profit Target ${fmtRp(T)}) + voucher. Rasio &amp; ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
       </div>
       <div class="card byh-card"><h3>Voucher penjual</h3>
         ${hr('DIPAKAI'+(vc.isManual?'<span class="byh-pct">manual</span>':'<span class="byh-pct">otomatis</span>'), fmtRp(V))}
         ${hr('NOMINAL PALING SERING'+(vc.stats.status==='ok'&&vc.stats.mode>0?'<span class="byh-pct">di '+Math.round(vc.stats.modeShare*100)+'% order</span>':''), vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
         ${hr('ORDER BER-VOUCHER (APA PUN)', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
         ${hr('VOUCHER RATA-RATA / ORDER', vc.stats.status==='ok'?fmtRp(vc.stats.avgAll):'-')}
-        ${hr('INCOME TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
-        ${hr('INCOME RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
+        ${hr('PROFIT TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
+        ${hr('PROFIT RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
         <div class="byh-note">${vc.stats.status==='ok'
           ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Income rata-rata memperhitungkan seberapa sering voucher dipakai.')
           : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
