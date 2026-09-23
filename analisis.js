@@ -190,6 +190,10 @@
     'html.zan-phone #page-hasilM .page-head > .toolbar:first-child,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
     'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head{margin:0;padding:0;height:0;min-height:0;}',
     'html.zan-phone #page-hasil .page-head .toolbar,html.zan-phone #page-hasilM .page-head .toolbar{margin:0;}',
+    // [23 Sep 2026] RKS Overview & RKS Mingguan di HP: dulu ketinggian halaman cuma sebesar konten (flex:1 gak ngefek krn parent #main jadi display:block di embed HP),
+    // jadi kalau kriteria dikit nyisa ruang kosong nge-gantung di bawah. Sekarang di-flat kayak Rekap/Perbandingan Toko: tinggi eksplisit 1 layar penuh (100vh - 66px topbar),
+    // .rks-shell & #hasilWrap yang udah flex:1 (rule generik di atas) otomatis ngisi turun sampai bawah, hrow-list (justify-content:space-around) yang narik jarak antar barisnya.
+    'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
     // [21 Sep 2026] RKS Mingguan di HP: satu baris header [Periode ▾] kiri + [Toko ▾] tengah + [PDF] kanan (tombol periode & PDF melayang di atas topbar, sama polanya dengan tombol bulan RKS Overview)
     // [23 Sep 2026] proporsi tetap sama kayak #btnHasilMonth di atas: tombol periode 30% dari lebar baris
     'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
