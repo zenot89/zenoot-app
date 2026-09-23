@@ -950,17 +950,27 @@
   .setting-edit-btn.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
   #settingSumRow{ margin-bottom:14px; }
   /* Minicard Setting (SUM OPERASIONAL/BEBAN/CICILAN + kartu tiap toko) — konsep swipe sama
-     kayak nw-swipe di Dashboard: HP geser satu-satu + titik ●●, laptop deret penuh rata kanan-kiri. */
+     kayak nw-swipe di Dashboard: HP geser satu-satu + titik ●●, laptop deret penuh rata kanan-kiri.
+     Titik indikator nempel di pojok kanan-atas kartu (overlay, gak makan baris/ruang sendiri),
+     bukan di tengah-bawah — biar gak ganggu layout mockup. */
   .st-swipe{ position:relative; }
   .st-swipe-track{ display:flex; }
   .st-swipe-slide{ box-sizing:border-box; }
   .st-swipe-slide .setting-toko-card{ margin-bottom:0; }
   .st-swipe-dots{ display:none; }
+  /* Minicard model mockup: nilai gede di atas, label dlm pill abu di bawahnya */
+  .st-mini-card{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .st-mini-val{ font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:800; color:var(--ink); line-height:1.1; }
+  .st-mini-lbl{
+    font-size:11px; font-weight:700; letter-spacing:.03em; color:var(--ink-soft);
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:8px; padding:6px 10px;
+  }
   @media (max-width:767px){
     .st-swipe{ width:100%; overflow:hidden; }
     .st-swipe-track{ transition:transform .3s cubic-bezier(.4,0,.2,1); will-change:transform; touch-action:pan-y; }
     .st-swipe-slide{ min-width:100%; width:100%; flex-shrink:0; }
-    .st-swipe-dots{ display:flex; align-items:center; justify-content:center; gap:5px; padding:8px 0 2px; }
+    .st-swipe-dots{ display:flex; align-items:center; gap:5px; position:absolute; top:-4px; right:10px; z-index:2;
+      background:#fff; border:1px solid var(--line); border-radius:20px; padding:4px 7px; }
     .st-dot{ width:6px; height:6px; border-radius:50%; background:var(--ink-soft); opacity:.35; transition:opacity .2s,background .2s; }
     .st-dot.active{ background:var(--ink); opacity:1; }
   }
@@ -1535,27 +1545,21 @@
     <div class="st-swipe" id="settingSumRow">
       <div class="st-swipe-track">
         <div class="st-swipe-slide">
-          <div class="card setting-toko-card">
-            <div class="hrow highlight">
-              <div class="lbl">SUM OPERASIONAL</div>
-              <div class="val" id="settingSumOperasional">-</div>
-            </div>
+          <div class="card st-mini-card">
+            <div class="st-mini-val" id="settingSumOperasional">-</div>
+            <div class="st-mini-lbl">SUM OPERASIONAL</div>
           </div>
         </div>
         <div class="st-swipe-slide">
-          <div class="card setting-toko-card">
-            <div class="hrow highlight">
-              <div class="lbl">BEBAN OPERASIONAL</div>
-              <div class="val" id="settingSumBeban">-</div>
-            </div>
+          <div class="card st-mini-card">
+            <div class="st-mini-val" id="settingSumBeban">-</div>
+            <div class="st-mini-lbl">BEBAN OPERASIONAL</div>
           </div>
         </div>
         <div class="st-swipe-slide">
-          <div class="card setting-toko-card">
-            <div class="hrow highlight">
-              <div class="lbl">CICILAN AKTIF</div>
-              <div class="val" id="settingSumKewajiban">-</div>
-            </div>
+          <div class="card st-mini-card">
+            <div class="st-mini-val" id="settingSumKewajiban">-</div>
+            <div class="st-mini-lbl">CICILAN AKTIF</div>
           </div>
         </div>
       </div>
