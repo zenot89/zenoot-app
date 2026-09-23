@@ -934,20 +934,20 @@
     font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; text-align:right;
     width:150px; padding:7px 9px; border:1px solid var(--line); border-radius:7px; background:var(--accent-soft);
   }
-  #settingCard{ transition:background-color .15s ease; }
-  #settingCard.is-editing{ background:var(--panel-alt); }
-  #settingCard:not(.is-editing) .hrow.editable .val input{
+  .setting-toko-card{ transition:background-color .15s ease; }
+  .setting-toko-card.is-editing{ background:var(--panel-alt); }
+  .setting-toko-card:not(.is-editing) .hrow.editable .val input{
     background:transparent; border-color:transparent; color:var(--ink); cursor:default;
   }
-  #settingCard.is-editing .hrow.editable .val input{
+  .setting-toko-card.is-editing .hrow.editable .val input{
     background:#fff; border-color:var(--line); cursor:text;
   }
-  #btnSettingToggle{
-    all:unset; cursor:pointer; padding:9px 18px; border-radius:8px; font-size:12.5px; font-weight:700;
+  .setting-edit-btn{
+    all:unset; cursor:pointer; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700;
     background:var(--accent); color:var(--ink); border:1px solid var(--line);
   }
-  #btnSettingToggle:hover{ filter:brightness(.97); }
-  #btnSettingToggle.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
+  .setting-edit-btn:hover{ filter:brightness(.97); }
+  .setting-edit-btn.is-editing{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
   .hrow.highlight .val{ color:var(--accent-dark); }
   .hrow.negative .val{ color:var(--bad); }
   .hrow.section-title{ padding-top:16px; }
@@ -1507,48 +1507,16 @@
   <section class="page" id="page-setting">
     <div class="page-head">
       <div>
-        <p>Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll).</p>
+        <p>Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll). Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko.</p>
       </div>
-      <button type="button" id="btnSettingToggle">Edit</button>
     </div>
-    <div class="card" id="settingCard" style="max-width:480px;">
+    <div class="card" id="settingSumCard" style="max-width:480px;margin-bottom:14px;">
       <div class="hrow highlight">
-        <div class="lbl">NAMA TOKO<span class="ket">Otomatis dari file Income — Username (Penjual)</span></div>
-        <div class="val" id="settingNamaToko">-</div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">TARGET ROAS TOKO<span class="ket">Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan</span></div>
-        <div class="val"><input type="text" inputmode="decimal" id="inTargetRoas" placeholder="mis. 8.3"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">ADMIN % (fallback)<span class="ket">Dipakai di Proyeksi Harga & Target Qty. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong</span></div>
-        <div class="val"><input type="text" inputmode="decimal" id="inAdminPct" placeholder="mis. 25"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">BPP (fallback, Rp)<span class="ket">Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong</span></div>
-        <div class="val"><input type="text" inputmode="numeric" id="inBpp" placeholder="mis. 1250"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">OPERASIONAL TOKO<span class="ket">Gaji, listrik, internet, konsumsi, transportasi, packing, dll — manual</span></div>
-        <div class="val"><input type="text" inputmode="numeric" id="inOperasionalToko" placeholder="0"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">RASIO OPERASIONAL<span class="ket">Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order</span></div>
-        <div class="val"><input type="text" inputmode="decimal" id="inRasioOpsPercent" placeholder="mis. 10"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">BUFFER (LAINNYA) %<span class="ket">Dlm % — cadangan di rumus harga NET (Proyeksi Harga & By Target Qty), buat nutup biaya tak terduga. Default 4</span></div>
-        <div class="val"><input type="text" inputmode="decimal" id="inLainnyaPct" placeholder="mis. 4"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">MINIMUM PROFIT TOKO<span class="ket">Target profit per SKU (Rp) — manual. Dipakai sebagai Profit Target di Proyeksi Harga (khususnya By Harga Jual); %-nya adalah hasil, dilihat di halaman Proyeksi</span></div>
-        <div class="val"><input type="text" inputmode="numeric" id="inMinNpmRp" placeholder="0"></div>
-      </div>
-      <div class="hrow editable">
-        <div class="lbl">TARGET RASIO LABA<span class="ket">Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo</span></div>
-        <div class="val"><input type="text" inputmode="decimal" id="inTargetRasioLaba" placeholder="mis. 15"></div>
+        <div class="lbl">SUM OPERASIONAL BULAN SEBELUMNYA<span class="ket">Beban Operasional dari Jurnal + Kewajiban (cicilan aktif) dari Hutang Aing — gabungan semua toko, sebelum dibagi rasio omset per toko</span></div>
+        <div class="val" id="settingSumOperasional">-</div>
       </div>
     </div>
+    <div id="settingCardsWrap"></div>
   </section>
 
 
@@ -2249,14 +2217,6 @@ document.getElementById('navChevronRasioKeuangan').addEventListener('click', (e)
 document.getElementById('navChevronProyeksiHarga').addEventListener('click', (e)=>{
   e.stopPropagation();
   document.getElementById('navGroupProyeksiHarga').classList.toggle('expanded');
-});
-document.getElementById('btnSettingToggle').addEventListener('click', ()=>{
-  if(!settingEditMode){
-    setSettingEditMode(true);
-  } else {
-    settingEditableInputs().forEach(inp=>{ inp.dispatchEvent(new Event('change')); });
-    setSettingEditMode(false);
-  }
 });
 document.querySelectorAll('.nav-parent-label').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -6849,93 +6809,204 @@ function renderByHargaResult(){
 }
 
 /* ================= PAGE: SETTING ================= */
-function settingEditableInputs(){
-  return ['inTargetRoas','inAdminPct','inBpp','inOperasionalToko','inRasioOpsPercent','inLainnyaPct','inMinNpmRp','inTargetRasioLaba']
-    .map(id=>document.getElementById(id)).filter(Boolean);
+/* ================= OPERASIONAL TOKO OTOMATIS [23 Sep 2026] =================
+   OPERASIONAL TOKO tidak lagi manual. Dihitung dari:
+     Total Beban Operasional bulan sebelumnya (Jurnal, akun kelompok 'beban' — sama persis logika
+     totalBeban di keuangan.js Arus Kas) + Total Cicilan Hutang aktif (Hutang Aing, tabel `hutang`,
+     SUM cicilan_per_bulan yg sisa hutangnya > 0 — sama persis logika totalCicilan di keuangan.js).
+   Gabungan itu dibagi proporsional ke tiap toko pakai rasio TOTAL PENDAPATAN (omset, dari Rekap
+   bulan yg sama) toko itu terhadap omset gabungan SEMUA toko. Tabel hutang gak punya kolom toko
+   (global), makanya cicilan ikut diproporsikan sama kayak Beban. */
+function opsPrevMonthKey(){
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
-let settingEditMode = false;
-function setSettingEditMode(on){
-  settingEditMode = on;
-  const card = document.getElementById('settingCard');
-  const btn = document.getElementById('btnSettingToggle');
-  settingEditableInputs().forEach(inp=>{ inp.readOnly = !on; });
+async function opsHitungBebanBulan(ymKey){
+  const [akunAll, jurnalAll] = await Promise.all([
+    dbGet('kas_akun', '').catch(()=>[]),
+    dbGet('jurnal', '').catch(()=>[])
+  ]);
+  const akunMap = {}; (akunAll||[]).forEach(a=>{ akunMap[a.id]=a; });
+  const jurnalBulan = (jurnalAll||[]).filter(r=>(r.tanggal||'').slice(0,7)===ymKey);
+  let total = 0;
+  jurnalBulan.forEach(r=>{
+    const n = Number(r.nominal || r.debit || 0);
+    const aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
+    if(aD && aD.kelompok==='beban') total += n;
+    if(aK && aK.kelompok==='beban') total -= n;
+  });
+  return total;
+}
+async function opsHitungKewajibanAktif(){
+  const [hutangAll, bayarAll] = await Promise.all([
+    dbGet('hutang', '').catch(()=>[]),
+    dbGet('hutang_bayar', '').catch(()=>[])
+  ]);
+  return (hutangAll||[]).filter(h=>{
+    const sisa = (h.pokok||0) - (bayarAll||[])
+      .filter(b=>String(b.hutang_id)===String(h.id))
+      .reduce((s,b)=>s+Number(b.nominal||0), 0);
+    return sisa > 0;
+  }).reduce((s,h)=>s+(Number(h.cicilan_per_bulan)||0), 0);
+}
+// Baca Rekap bulanan toko lain LANGSUNG dari zLS — aman tanpa switch toko karena semua data
+// toko sudah dimuat penuh sekali di awal lewat zStore.init() (lihat komentar zStore di atas).
+function opsOmsetTokoBulan(tokoId, ymKey){
+  try{
+    const raw = zLS.getItem(tokoScopedKey('zenootAnalisis.rekap', tokoId));
+    if(!raw) return null;
+    const rekap = JSON.parse(raw);
+    const s = rekap[ymKey];
+    if(!s) return null;
+    const v = Number(s.pendapatan);
+    return isNaN(v) ? null : v;
+  }catch(e){ return null; }
+}
+let _opsAutoCache = null; // cache 1x per sesi halaman; { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko:{id:{omset,share,operasional}} }
+async function opsHitungSemua(force){
+  if(_opsAutoCache && !force) return _opsAutoCache;
+  const ymKey = opsPrevMonthKey();
+  let totalBeban = 0, totalKewajiban = 0;
+  try{
+    [totalBeban, totalKewajiban] = await Promise.all([opsHitungBebanBulan(ymKey), opsHitungKewajibanAktif()]);
+  }catch(e){ console.error('Gagal hitung Operasional otomatis:', e); }
+  const totalGabungan = totalBeban + totalKewajiban;
+  const tokoList = TOKO_REG.list.filter(t=>!t.draft);
+  const omsetMap = {};
+  let totalOmsetGabungan = 0;
+  tokoList.forEach(t=>{
+    const o = opsOmsetTokoBulan(t.id, ymKey);
+    omsetMap[t.id] = o;
+    if(o!==null) totalOmsetGabungan += o;
+  });
+  const perToko = {};
+  tokoList.forEach(t=>{
+    const omset = omsetMap[t.id];
+    const share = (omset!==null && totalOmsetGabungan>0) ? omset/totalOmsetGabungan : 0;
+    perToko[t.id] = { omset, share, operasional: Math.round(totalGabungan*share) };
+  });
+  _opsAutoCache = { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko };
+  return _opsAutoCache;
+}
+
+/* ================= PAGE: SETTING (multi-toko) ================= */
+const SETTING_FIELDS = [
+  {key:'targetRoas', label:'TARGET ROAS TOKO', ket:'Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan', ph:'mis. 8.3', type:'decimal'},
+  {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Proyeksi Harga & Target Qty. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
+  {key:'bpp', label:'BPP (fallback, Rp)', ket:'Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 1250', type:'rupiah'},
+  {key:'rasioOpsPercent', label:'RASIO OPERASIONAL', ket:'Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order', ph:'mis. 10', type:'decimal'},
+  {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di rumus harga NET (Proyeksi Harga & By Target Qty), buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
+  {key:'minNpmRp', label:'MINIMUM PROFIT TOKO', ket:'Target profit per SKU (Rp) — manual. Dipakai sebagai Profit Target di Proyeksi Harga (khususnya By Harga Jual); %-nya adalah hasil, dilihat di halaman Proyeksi', ph:'0', type:'rupiah'},
+  {key:'targetRasioLaba', label:'TARGET RASIO LABA', ket:'Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo', ph:'mis. 15', type:'decimal'}
+];
+function opsReadTokoSettings(tokoId){
+  try{
+    const raw = zLS.getItem(tokoScopedKey('zenootAnalisis.settings', tokoId));
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function opsWriteTokoSettings(tokoId, patch){
+  if(tokoId === TOKO_ACTIVE){
+    Object.assign(state.settings, patch);
+    saveSettingsToStorage();
+    return;
+  }
+  const cur = opsReadTokoSettings(tokoId);
+  Object.assign(cur, patch);
+  try{ zLS.setItem(tokoScopedKey('zenootAnalisis.settings', tokoId), JSON.stringify(cur)); }catch(e){}
+}
+function settingCardEditableInputs(tokoId){
+  return SETTING_FIELDS.map(f=>document.getElementById('set_'+f.key+'_'+tokoId)).filter(Boolean);
+}
+const settingEditModeByToko = {};
+function setSettingCardEditMode(tokoId, on){
+  settingEditModeByToko[tokoId] = on;
+  const card = document.getElementById('settingCard_'+tokoId);
+  const btn = document.getElementById('btnSettingEdit_'+tokoId);
+  settingCardEditableInputs(tokoId).forEach(inp=>{ inp.readOnly = !on; });
   if(card) card.classList.toggle('is-editing', on);
   if(btn){ btn.classList.toggle('is-editing', on); btn.textContent = on ? 'Simpan' : 'Edit'; }
 }
-function renderSetting(){
-  document.getElementById('settingNamaToko').textContent = state.settings.namaToko || tokoActiveEntry().nama || '-';
-  const targetRoasEl = document.getElementById('inTargetRoas');
-  const operasionalTokoEl = document.getElementById('inOperasionalToko');
-  const rasioOpsEl = document.getElementById('inRasioOpsPercent');
-  const adminPctEl = document.getElementById('inAdminPct');
-  const bppEl = document.getElementById('inBpp');
-  targetRoasEl.value = (state.settings.targetRoas!==null && state.settings.targetRoas!==undefined) ? state.settings.targetRoas : '';
-  operasionalTokoEl.value = fmtNum(state.settings.operasionalToko);
-  rasioOpsEl.value = (state.settings.rasioOpsPercent!==null && state.settings.rasioOpsPercent!==undefined) ? state.settings.rasioOpsPercent : '';
-  adminPctEl.value = (state.settings.adminPct!==null && state.settings.adminPct!==undefined) ? state.settings.adminPct : '';
-  bppEl.value = fmtNum(state.settings.bpp);
-  attachThousands(operasionalTokoEl);
-  attachThousands(bppEl);
+async function renderSetting(){
+  const wrap = document.getElementById('settingCardsWrap');
+  const sumEl = document.getElementById('settingSumOperasional');
+  if(sumEl) sumEl.textContent = 'menghitung...';
+  if(wrap) wrap.innerHTML = '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Menghitung Operasional otomatis dari Jurnal &amp; Hutang Aing...</div>';
 
-  const lainnyaEl = document.getElementById('inLainnyaPct');
-  lainnyaEl.value = (state.settings.lainnyaPct!==null && state.settings.lainnyaPct!==undefined) ? state.settings.lainnyaPct : '';
-  lainnyaEl.onchange = e=>{
-    const n = parseFloat((e.target.value||'').toString().replace(',','.'));
-    state.settings.lainnyaPct = isNaN(n) ? 0 : n;
-    saveSettingsToStorage();
-    renderProyeksiHargaBoth();
-  };
+  const tokoList = TOKO_REG.list.filter(t=>!t.draft);
+  let ops;
+  try{ ops = await opsHitungSemua(); }
+  catch(e){
+    console.error('Gagal hitung Operasional otomatis:', e);
+    ops = { ymKey: opsPrevMonthKey(), totalBeban:0, totalKewajiban:0, totalGabungan:0, totalOmsetGabungan:0, perToko:{} };
+  }
 
-  const minNpmRpEl = document.getElementById('inMinNpmRp');
-  minNpmRpEl.value = fmtNum(state.settings.minNpmRp);
-  attachThousands(minNpmRpEl);
-  minNpmRpEl.onchange = e=>{
-    state.settings.minNpmRp = parseNum(e.target.value)||0;
-    saveSettingsToStorage();
-    renderProyeksiHargaBoth();
-  };
+  if(sumEl){
+    sumEl.innerHTML = fmtRp(ops.totalGabungan) +
+      '<span class="ket" style="display:block;font-weight:400;font-size:11px;margin-top:2px;">'+
+      rekapMonthLabel(ops.ymKey)+' — Beban '+fmtRp(ops.totalBeban)+' + Kewajiban '+fmtRp(ops.totalKewajiban)+'</span>';
+  }
+  if(!wrap) return;
 
-  const targetRasioLabaEl = document.getElementById('inTargetRasioLaba');
-  targetRasioLabaEl.value = (state.settings.targetRasioLaba!==null && state.settings.targetRasioLaba!==undefined) ? state.settings.targetRasioLaba : '';
-  targetRasioLabaEl.onchange = e=>{
-    const n = parseFloat((e.target.value||'').toString().replace(',','.'));
-    state.settings.targetRasioLaba = isNaN(n) ? null : n;
-    saveSettingsToStorage();
-    if(document.getElementById('hasilWrap')) renderHasil();
-  };
+  wrap.innerHTML = (tokoList.map(t=>{
+    const s = opsReadTokoSettings(t.id);
+    const auto = ops.perToko[t.id] || { omset:null, share:0, operasional:0 };
+    const namaToko = s.namaToko || t.nama || '-';
+    const fieldsHtml = SETTING_FIELDS.map(f=>{
+      const v = s[f.key];
+      const disp = f.type==='rupiah' ? fmtNum(v) : ((v!==null && v!==undefined) ? v : '');
+      return '<div class="hrow editable"><div class="lbl">'+f.label+'<span class="ket">'+f.ket+'</span></div>'+
+        '<div class="val"><input type="text" inputmode="'+(f.type==='decimal'?'decimal':'numeric')+'" id="set_'+f.key+'_'+t.id+'" placeholder="'+f.ph+'" value="'+tokoEsc(disp)+'" readonly></div></div>';
+    }).join('');
+    const omsetKet = auto.omset===null
+      ? 'Belum ada data Rekap '+rekapMonthLabel(ops.ymKey)
+      : 'Omset '+fmtRp(auto.omset)+' dari total '+fmtRp(ops.totalOmsetGabungan)+' ('+(auto.share*100).toFixed(1)+'%) dari Total Operasional '+fmtRp(ops.totalGabungan);
+    return '<div class="card setting-toko-card" id="settingCard_'+t.id+'" style="max-width:480px;margin-bottom:14px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'+
+      '<div style="font-weight:700;font-size:14px;">'+tokoEsc(namaToko)+'</div>'+
+      '<button type="button" class="setting-edit-btn" id="btnSettingEdit_'+t.id+'">Edit</button></div>'+
+      '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO<span class="ket">Otomatis: proporsi omset toko ini dari Beban Operasional (Jurnal) + Kewajiban (Hutang Aing) bulan sebelumnya — sudah gak manual</span></div>'+
+      '<div class="val">'+fmtRp(auto.operasional)+'<span class="ket" style="display:block;font-weight:400;font-size:10.5px;">'+omsetKet+'</span></div></div>'+
+      fieldsHtml+'</div>';
+  }).join('')) || '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
 
-  targetRoasEl.onchange = e=>{
-    const n = parseFloat((e.target.value||'').toString().replace(',','.'));
-    state.settings.targetRoas = isNaN(n) ? null : n;
+  // Sinkronkan nilai auto ke toko yang lagi aktif supaya halaman lain (RKS Overview, Proyeksi Harga)
+  // yang baca state.settings.operasionalToko tetap ikut nilai terbaru tanpa perlu diubah satu-satu.
+  const activeAuto = ops.perToko[TOKO_ACTIVE];
+  if(activeAuto){
+    state.settings.operasionalToko = activeAuto.operasional;
     saveSettingsToStorage();
-    renderCaRoasDisplay();
-    renderProyeksiHargaBoth();
-    if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
-  };
-  adminPctEl.onchange = e=>{
-    const n = parseFloat((e.target.value||'').toString().replace(',','.'));
-    state.settings.adminPct = isNaN(n) ? null : n;
-    saveSettingsToStorage();
-    renderProyeksiHargaBoth();
-  };
-  bppEl.onchange = e=>{
-    state.settings.bpp = parseNum(e.target.value)||0;
-    saveSettingsToStorage();
-    renderProyeksiHargaBoth();
-  };
-  operasionalTokoEl.onchange = e=>{
-    state.settings.operasionalToko = parseNum(e.target.value)||0;
-    saveSettingsToStorage();
-    if(document.getElementById('hasilWrap')) renderHasil();
-  };
-  rasioOpsEl.onchange = e=>{
-    const n = parseFloat((e.target.value||'').toString().replace(',','.'));
-    state.settings.rasioOpsPercent = isNaN(n) ? null : n;
-    saveSettingsToStorage();
-    renderCaOpsDisplay();
-    if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
-  };
-  setSettingEditMode(false);
+  }
+
+  tokoList.forEach(t=>{
+    SETTING_FIELDS.forEach(f=>{
+      const inp = document.getElementById('set_'+f.key+'_'+t.id);
+      if(inp && f.type==='rupiah') attachThousands(inp);
+    });
+    setSettingCardEditMode(t.id, false);
+    const btn = document.getElementById('btnSettingEdit_'+t.id);
+    if(!btn) return;
+    btn.addEventListener('click', ()=>{
+      if(!settingEditModeByToko[t.id]){
+        setSettingCardEditMode(t.id, true);
+        return;
+      }
+      SETTING_FIELDS.forEach(f=>{
+        const inp = document.getElementById('set_'+f.key+'_'+t.id);
+        if(!inp) return;
+        let val;
+        if(f.type==='rupiah'){ val = parseNum(inp.value)||0; }
+        else{ const n = parseFloat((inp.value||'').toString().replace(',','.')); val = isNaN(n) ? null : n; }
+        opsWriteTokoSettings(t.id, { [f.key]: val });
+      });
+      setSettingCardEditMode(t.id, false);
+      if(t.id===TOKO_ACTIVE){
+        renderCaRoasDisplay(); renderCaOpsDisplay(); renderProyeksiHargaBoth();
+        if(document.getElementById('hasilWrap')) renderHasil();
+        if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
+      }
+    });
+  });
 }
 
 /* ================= PDF EXPORT ================= */
