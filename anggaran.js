@@ -846,8 +846,9 @@ function angAkunPickerRender(q) {
     (_angAkunAllBK || []).forEach(a => { akunById[String(a.id)] = a; });
     const recentAkun = _angRecentAkunGet().map(id => akunById[String(id)]).filter(Boolean);
     if (recentAkun.length) {
-      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      html += '<div class="zhist-sec"><div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
       recentAkun.forEach(a => { html += _angAkunItemHtml(a, angMap, currentVal); });
+      html += '</div>';
     }
   }
 

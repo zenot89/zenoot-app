@@ -3372,8 +3372,9 @@ function _kasAkunPickerRender(q, currentVal) {
     var akunById = {}; akunList.forEach(function(a) { akunById[String(a.id)] = a; });
     var recentAkun = recentIds.map(function(id) { return akunById[String(id)]; }).filter(Boolean);
     if (recentAkun.length) {
-      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      html += '<div class="zhist-sec"><div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
       recentAkun.forEach(function(a) { html += _itemHtml(a); });
+      html += '</div>';
     }
   }
 

@@ -5143,3 +5143,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     opacity: 1;
   }
 }
+
+/* Bagian "Sering & Terakhir Digunakan" di semua bottom-sheet picker — latar sedikit lebih tua dari list biasa
+   (pakai overlay --ovl-*, jadi ikut adaptif di tema gelap). [24 Sep 2026] */
+.zhist-sec{ background:var(--ovl-0_05); border-radius:10px; margin:2px 0 6px; padding:0 0 4px; }

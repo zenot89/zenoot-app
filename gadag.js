@@ -2907,8 +2907,9 @@ function gdgAngAkunPickerRender(q) {
   if (!q) {
     const recentAkun = _gdgAngAkunRecentGet().map(k => byNama[k]).filter(Boolean);
     if (recentAkun.length) {
-      html += '<div class="gdg-akunpicker-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
+      html += '<div class="zhist-sec"><div class="gdg-akunpicker-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
       recentAkun.forEach(a => { html += _itemHtml(a); });
+      html += '</div>';
     }
   }
 
@@ -4419,8 +4420,9 @@ function gdgSkuPickerRenderList(q) {
     const skuById = {}; _gdgSkuList.forEach(s => { skuById[String(s.id)] = s; });
     const recentSku = recentIds.map(id => skuById[String(id)]).filter(Boolean);
     if (recentSku.length) {
-      html += `<div style="padding:10px 16px 4px;font-size:11px;font-weight:800;color:var(--gdg-ink2,#5c554d);text-transform:uppercase;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Terakhir Digunakan</div>`;
+      html += `<div class="zhist-sec"><div style="padding:10px 16px 4px;font-size:11px;font-weight:800;color:var(--gdg-ink2,#5c554d);text-transform:uppercase;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Terakhir Digunakan</div>`;
       recentSku.forEach(s => { html += itemHtml(s); });
+      html += '</div>';
     }
   }
 
