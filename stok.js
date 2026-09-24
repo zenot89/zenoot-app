@@ -1032,6 +1032,21 @@ function _stokSkuSheetRenderInduk(q) {
   });
   var katalogs = Object.keys(katalogMap).sort();
   var html = '';
+
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js)
+  if (!q) {
+    var topKat = zHistTop('stok_induk', 5).filter(function(k) { return katalogMap[k]; });
+    if (topKat.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
+      topKat.forEach(function(kat) {
+        html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectInduk(\'' + kat.replace(/'/g,"\\'") + '\')">' +
+          '<span>' + kat + '</span>' +
+          '<span style="font-size:11px;color:var(--ink3)">' + katalogMap[kat] + ' var</span></div>';
+      });
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua SKU ──</div>';
+    }
+  }
+
   if (!katalogs.length) {
     html += '<div class="jp-sheet-empty">' + (_produkForStok.length === 0 ? 'Produk belum ada — tambah di Kelola Produk' : 'Tidak ada SKU yang cocok') + '</div>';
   } else {
@@ -1068,6 +1083,7 @@ function _stokSkuSheetRenderVariasi(q) {
 }
 
 function stokSkuSheetSelectInduk(katalog) {
+  zHistPush('stok_induk', katalog); // riwayat sering/terakhir dipakai
   stokSkuSheetClose();
   var manualWrap = document.getElementById('stok-sku-induk-manual-wrap');
   if (manualWrap) manualWrap.style.display = 'none';

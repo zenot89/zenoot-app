@@ -2100,6 +2100,32 @@ function _hsPopulateSupplierSelect(selectId) {
 // di tengah layar & ga kepotong, dipanggil dari trigger div (.hs-picker-trigger).
 var _hsSupPickerCtx = null; // { selectId, triggerLabelId }
 
+// ─── "Sering & Terakhir Digunakan" buat picker Hutang Barang (riwayat: zHistTop/zHistPush di app.js).
+// Cuma pas search kosong; item yg sama tetep muncul lagi di list lengkap di bawahnya. [24 Sep 2026]
+function _hsAppendHistSection(listEl, q, key, items, idOf, labelOf, onPick, currentVal) {
+  if (q) return;
+  var byId = {};
+  items.forEach(function(x) { byId[String(idOf(x))] = x; });
+  var top = zHistTop(key, 5).filter(function(id) { return byId[id]; });
+  if (!top.length) return;
+  var hd = document.createElement('div');
+  hd.className = 'hs-picker-group';
+  hd.innerHTML = '<i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan';
+  listEl.appendChild(hd);
+  top.forEach(function(id) {
+    var x = byId[id];
+    var it = document.createElement('div');
+    it.className = 'hs-picker-item' + (String(id) === String(currentVal) ? ' active' : '');
+    it.textContent = labelOf(x);
+    it.onclick = function() { onPick(x); };
+    listEl.appendChild(it);
+  });
+  var hd2 = document.createElement('div');
+  hd2.className = 'hs-picker-group';
+  hd2.textContent = 'Semua';
+  listEl.appendChild(hd2);
+}
+
 function hsSupPickerOpen(selectId, triggerLabelId) {
   var sel = document.getElementById(selectId);
   if (!sel) return;
@@ -2137,6 +2163,9 @@ function _hsSupPickerRender(q, currentVal) {
     empty.textContent = 'Tidak ada supplier yang cocok';
     listEl.appendChild(empty);
   }
+  _hsAppendHistSection(listEl, q, 'hs_supplier', _hsSupplierList,
+    function(s) { return s.id; }, function(s) { return s.nama; },
+    function(s) { hsSupPickerSelect(String(s.id), s.nama); }, currentVal);
   items.forEach(function(s) {
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (String(s.id) === String(currentVal) ? ' active' : '');
@@ -2153,6 +2182,7 @@ function _hsSupPickerRender(q, currentVal) {
 
 function hsSupPickerSelect(val, label) {
   if (!_hsSupPickerCtx) return;
+  if (val && val !== '__baru__') zHistPush('hs_supplier', val); // riwayat sering/terakhir dipakai
   var sel = document.getElementById(_hsSupPickerCtx.selectId);
   if (sel) {
     sel.value = val;
@@ -2203,6 +2233,9 @@ function _hsBonSupPickerRender(q, currentVal) {
     empty.textContent = 'Tidak ada supplier yang cocok';
     listEl.appendChild(empty);
   }
+  _hsAppendHistSection(listEl, q, 'hs_supplier', _hsSupplierList,
+    function(s) { return s.id; }, function(s) { return s.nama; },
+    function(s) { hsBonSupPickerSelect(String(s.id), s.nama); }, currentVal);
   items.forEach(function(s) {
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (String(s.id) === String(currentVal) ? ' active' : '');
@@ -2218,6 +2251,7 @@ function _hsBonSupPickerRender(q, currentVal) {
 }
 
 function hsBonSupPickerSelect(val, label) {
+  if (val && val !== '__baru__') zHistPush('hs_supplier', val); // riwayat sering/terakhir dipakai
   var sel = document.getElementById('hs-bon-supplier-select');
   if (sel) {
     sel.value = val;
@@ -2287,6 +2321,11 @@ function _hsAkunPickerRender(q, currentVal) {
   });
   listEl.innerHTML = '';
   var totalCount = 0;
+  var _flatAkun = [];
+  order.forEach(function(k) { grouped[k].forEach(function(a) { _flatAkun.push(a); }); });
+  _hsAppendHistSection(listEl, q, 'hs_akun_' + _hsAkunPickerCtx.posisi, _flatAkun,
+    function(a) { return a.id; }, function(a) { return (a.kode ? a.kode + ' · ' : '') + a.nama; },
+    function(a) { hsAkunPickerSelect(a.id, (a.kode ? a.kode + ' · ' : '') + a.nama); }, currentVal);
   order.forEach(function(k) {
     if (!grouped[k].length) return;
     totalCount += grouped[k].length;
@@ -2313,6 +2352,7 @@ function _hsAkunPickerRender(q, currentVal) {
 
 function hsAkunPickerSelect(id, label) {
   if (!_hsAkunPickerCtx) return;
+  zHistPush('hs_akun_' + _hsAkunPickerCtx.posisi, id); // riwayat sering/terakhir dipakai
   var sel = document.getElementById(_hsAkunPickerCtx.selectId);
   if (sel) sel.value = id;
   var lblEl = document.getElementById(_hsAkunPickerCtx.triggerLabelId);

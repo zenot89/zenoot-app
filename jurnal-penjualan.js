@@ -2663,6 +2663,33 @@ function jpSkuSheetRender(q) {
   else if (_jpSkuSheetMode === 'channel') _jpSkuSheetRenderChannel(q);
 }
 
+// ─── Riwayat SKU Induk — aturan sama persis kayak riwayat channel
+// (_jpChHistGet/Push/Top): simpen {count, last} per katalog di localStorage,
+// diurut paling SERING dipakai, tie-break paling baru. ──
+function _jpIndHistGet() {
+  try { return JSON.parse(localStorage.getItem('jp_induk_hist') || '{}'); }
+  catch(e) { return {}; }
+}
+function _jpIndHistPush(kat) {
+  if (!kat) return;
+  try {
+    var hist = _jpIndHistGet();
+    var cur = hist[kat] || { count: 0, last: 0 };
+    hist[kat] = { count: cur.count + 1, last: Date.now() };
+    localStorage.setItem('jp_induk_hist', JSON.stringify(hist));
+  } catch(e) {}
+}
+function _jpIndHistTop(n) {
+  var hist = _jpIndHistGet();
+  return Object.keys(hist)
+    .sort(function(a, b) {
+      var ha = hist[a], hb = hist[b];
+      if (hb.count !== ha.count) return hb.count - ha.count;
+      return hb.last - ha.last;
+    })
+    .slice(0, n);
+}
+
 function _jpSkuSheetRenderInduk(q) {
   var listEl = document.getElementById('jp-sku-sheet-list');
   if (!listEl) return;
@@ -2676,6 +2703,23 @@ function _jpSkuSheetRenderInduk(q) {
   });
   var katalogs = Object.keys(katalogMap).sort();
   var html = '';
+
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong, sama pola
+  // kayak picker Channel. Item yang sama tetep nongol lagi di list A-Z
+  // di bawah (sengaja dobel).
+  if (!q) {
+    var topKat = _jpIndHistTop(5).filter(function(k) { return katalogMap[k]; });
+    if (topKat.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
+      topKat.forEach(function(kat) {
+        html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectInduk(\'' + kat.replace(/'/g,"\\'") + '\')">' +
+          '<span>' + kat + '</span>' +
+          '<span style="font-size:11px;color:var(--ink3)">' + katalogMap[kat] + ' var</span></div>';
+      });
+      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua SKU ──</div>';
+    }
+  }
+
   if (!katalogs.length) {
     html += '<div class="jp-sheet-empty">' + (_jpProdukList.length === 0 ? 'Produk belum ada — tambah di Kelola Produk' : 'Tidak ada SKU yang cocok') + '</div>';
   } else {
@@ -2728,6 +2772,7 @@ function _jpSetIndukLabel(text) {
 }
 
 function jpSkuSheetSelectInduk(katalog) {
+  _jpIndHistPush(katalog); // riwayat sering/terakhir dipakai
   jpSkuSheetClose();
   var manualWrap = document.getElementById('jp-sku-induk-manual-wrap');
   if (manualWrap) manualWrap.style.display = 'none';

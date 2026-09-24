@@ -929,6 +929,19 @@ function _produkBossSheetRender(q) {
   const query    = (q || '').trim().toUpperCase();
   const filtered = _produkSupplierList.filter(s => (s.nama||'').toUpperCase().includes(query));
 
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js)
+  let histHtml = '';
+  if (!query) {
+    const topNama = zHistTop('produk_boss', 5).filter(function(n) { return _produkSupplierList.some(function(s) { return s.nama === n; }); });
+    if (topNama.length) {
+      histHtml = '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>' +
+        topNama.map(function(n) {
+          return '<div class="jp-sheet-item" onclick="produkBossSheetSelect(\'' + n.replace(/'/g, "\\'") + '\')"><span>' + n + '</span></div>';
+        }).join('') +
+        '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua Supplier ──</div>';
+    }
+  }
+
   let html = filtered.map(function(s) {
     const nama = (s.nama || '').replace(/'/g, "\\'");
     return '<div class="jp-sheet-item" onclick="produkBossSheetSelect(\'' + nama + '\')">' +
@@ -947,10 +960,11 @@ function _produkBossSheetRender(q) {
   if (!html) {
     html = '<div class="jp-sheet-empty">Belum ada supplier. Ketik nama buat nambah baru.</div>';
   }
-  listEl.innerHTML = html;
+  listEl.innerHTML = histHtml + html;
 }
 
 function produkBossSheetSelect(nama) {
+  zHistPush('produk_boss', nama); // riwayat sering/terakhir dipakai
   const inputEl = document.getElementById(_produkBossSheetTarget.inputId);
   const labelEl = document.getElementById(_produkBossSheetTarget.labelId);
   if (inputEl) inputEl.value = nama;

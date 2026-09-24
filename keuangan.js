@@ -1994,8 +1994,22 @@ function _keuCicSheetRenderHutang(q) {
   q = (q || '').toLowerCase().trim();
   var items = _keuCicHutangList.filter(function(a) { return !q || a.nama.toLowerCase().indexOf(q) !== -1; });
   var html = '';
+  function _hutangRowHtml(a) {
+    return '<div class="jp-sheet-item" onclick="keuCicSheetSelectHutang(\'' + a.id + '\')"><span>' + a.nama + '</span>' +
+      '<span style="font-size:11px;color:var(--ink3)">sisa ' + fmtRpFull(a.sisa) + '</span></div>';
+  }
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js)
+  if (!q) {
+    var _byIdH = {}; _keuCicHutangList.forEach(function(a) { _byIdH[String(a.id)] = a; });
+    var _topH = zHistTop('keu_hutang', 5).map(function(id) { return _byIdH[id]; }).filter(Boolean);
+    if (_topH.length) {
+      html += '<div class="kas-akun-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>';
+      _topH.forEach(function(a) { html += _hutangRowHtml(a); });
+      html += '<div class="kas-akun-group">Semua</div>';
+    }
+  }
   if (!items.length) {
-    html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada hutang aktif') + '</div>';
+    html += '<div class="jp-sheet-empty">' + (q ? 'Tidak ada yang cocok' : 'Belum ada hutang aktif') + '</div>';
   } else {
     items.forEach(function(a) {
       html += '<div class="jp-sheet-item" onclick="keuCicSheetSelectHutang(\'' + a.id + '\')"><span>' + a.nama + '</span>' +
@@ -2060,6 +2074,7 @@ function _keuCicSheetRenderAkun(q) {
   listEl.innerHTML = html;
 }
 function keuCicSheetSelectHutang(id) {
+  zHistPush('keu_hutang', id); // riwayat sering/terakhir dipakai
   var item = _keuCicHutangList.find(function(a) { return String(a.id) === String(id); });
   var sel = document.getElementById('keu-bayar-hutang-id');
   if (sel) { sel.value = id; sel.dispatchEvent(new Event('change')); }

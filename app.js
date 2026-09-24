@@ -1241,3 +1241,29 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
     if (_content)  _lastY = _content.scrollTop;
   });
 })();
+
+// ─── RIWAYAT "SERING & TERAKHIR DIGUNAKAN" untuk bottom-sheet picker ───
+// 1 aturan buat semua picker: simpen {n: jumlah pakai, t: waktu terakhir}
+// per id di localStorage (key bebas per picker), diurut n desc lalu t desc.
+// Maks 20 entri disimpen, UI nampilin top-N (default 5). Pola sama kayak
+// riwayat Channel di jurnal-penjualan.js. [24 Sep 2026]
+function zHistPush(key, id) {
+  if (id === undefined || id === null || id === '') return;
+  try {
+    var map = JSON.parse(localStorage.getItem('zhist_' + key) || '{}') || {};
+    var k = String(id);
+    var cur = map[k] || { n: 0, t: 0 };
+    map[k] = { n: cur.n + 1, t: Date.now() };
+    var keys = Object.keys(map).sort(function(a, b) { return (map[b].n - map[a].n) || (map[b].t - map[a].t); });
+    if (keys.length > 20) { var pr = {}; keys.slice(0, 20).forEach(function(x) { pr[x] = map[x]; }); map = pr; }
+    localStorage.setItem('zhist_' + key, JSON.stringify(map));
+  } catch(e) {}
+}
+function zHistTop(key, n) {
+  try {
+    var map = JSON.parse(localStorage.getItem('zhist_' + key) || '{}') || {};
+    return Object.keys(map)
+      .sort(function(a, b) { return (map[b].n - map[a].n) || (map[b].t - map[a].t); })
+      .slice(0, n || 5);
+  } catch(e) { return []; }
+}

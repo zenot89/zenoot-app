@@ -1136,8 +1136,16 @@ function cpRenderTukangPivot() {
 var _cpPickerCtx = null;      // { options, onSelect, selectedKey }
 var _cpPickerFiltered = [];
 
+// Picker yg dapet "Sering & Terakhir Digunakan" (riwayat: zHistTop/zHistPush di app.js),
+// dikenali dari judul sheet. SKU (Jurnal) + SKU Induk (Rate & Edit Massal) berbagi 1 riwayat,
+// begitu juga 2 picker Variasi. Tukang/Divisi/Periode/menu sengaja gak dapet (item dikit). [24 Sep 2026]
+var _CP_HIST_BY_TITLE = {
+  'Ngerjain Apa (SKU)': 'cp_sku',
+  'Pilih SKU Induk (Boss: DIMI)': 'cp_sku',
+  'Pilih Variasi': 'cp_variasi'
+};
 function cpPickerSheetOpen(title, options, selectedKey, onSelect) {
-  _cpPickerCtx = { options: options, onSelect: onSelect, selectedKey: selectedKey };
+  _cpPickerCtx = { options: options, onSelect: onSelect, selectedKey: selectedKey, histKey: _CP_HIST_BY_TITLE[title] || null };
   document.getElementById('cp-picker-sheet-title').textContent = title;
   var searchEl = document.getElementById('cp-picker-sheet-search');
   if (searchEl) searchEl.value = '';
@@ -1162,24 +1170,41 @@ function cpPickerSheetFilter(q) { cpPickerSheetRender(q); }
 function cpPickerSheetRender(q) {
   if (!_cpPickerCtx) return;
   var ql = (q || '').toLowerCase().trim();
-  _cpPickerFiltered = _cpPickerCtx.options.filter(function(o) {
+  var matched = _cpPickerCtx.options.filter(function(o) {
     return !ql || (o.label + ' ' + (o.sub || '')).toLowerCase().indexOf(ql) !== -1;
   });
+  // _cpPickerFiltered = urutan baris yg dirender (index dipakai cpPickerSheetChoose).
+  // Kalau ada riwayat & search kosong: top-5 duluan, lalu list lengkap (sengaja dobel).
+  var top = [];
+  if (!ql && _cpPickerCtx.histKey) {
+    var byKey = {};
+    matched.forEach(function(o) { byKey[String(o.key)] = o; });
+    top = zHistTop(_cpPickerCtx.histKey, 5).map(function(k) { return byKey[k]; }).filter(Boolean);
+  }
+  _cpPickerFiltered = top.concat(matched);
+  function _row(o, i) {
+    var active = (o.key === _cpPickerCtx.selectedKey) ? ' active' : '';
+    return '<div class="cp-sheet-item' + active + '" onclick="cpPickerSheetChoose(' + i + ')">' +
+      cpEsc(o.label) + (o.sub ? ' <span style="color:var(--ink3);font-size:12px">— ' + cpEsc(o.sub) + '</span>' : '') +
+    '</div>';
+  }
+  var hdrStyle = 'font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em';
+  var html = '';
+  if (top.length) {
+    html += '<div style="' + hdrStyle + ';display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering &amp; Terakhir Digunakan</div>';
+    top.forEach(function(o, i) { html += _row(o, i); });
+    html += '<div style="' + hdrStyle + '">── Semua ──</div>';
+  }
+  matched.forEach(function(o, j) { html += _row(o, top.length + j); });
   var list = document.getElementById('cp-picker-sheet-list');
-  list.innerHTML = _cpPickerFiltered.length
-    ? _cpPickerFiltered.map(function(o, i) {
-        var active = (o.key === _cpPickerCtx.selectedKey) ? ' active' : '';
-        return '<div class="cp-sheet-item' + active + '" onclick="cpPickerSheetChoose(' + i + ')">' +
-          cpEsc(o.label) + (o.sub ? ' <span style="color:var(--ink3);font-size:12px">— ' + cpEsc(o.sub) + '</span>' : '') +
-        '</div>';
-      }).join('')
-    : '<div class="cp-sheet-empty">Gak ketemu</div>';
+  list.innerHTML = matched.length ? html : '<div class="cp-sheet-empty">Gak ketemu</div>';
 }
 
 function cpPickerSheetChoose(i) {
   var opt = _cpPickerFiltered[i];
   if (!opt || !_cpPickerCtx) return;
   var cb = _cpPickerCtx.onSelect;
+  if (_cpPickerCtx.histKey) zHistPush(_cpPickerCtx.histKey, opt.key); // riwayat sering/terakhir dipakai
   cpPickerSheetClose();
   cb(opt.raw, opt.key);
 }
