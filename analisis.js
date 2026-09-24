@@ -27,6 +27,9 @@
 // (8) [21 Sep 2026] Tab baru Proyeksi Harga > By Harga Jual (byharga): masuk daftar tab & PHONE_PAGES; layout HP mengikuti By Target Qty (hasil di atas, panel Input di bawah). Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
 // (9) [22 Sep 2026] By Harga Jual di HP jadi SWIPE 4 halaman + indikator ●●●● (Input, Perhitungan per pcs, Batas aman + Voucher, Minicard) — semua di byhCss() di bawah; laptop tidak tersentuh.
 // (10) [24 Sep 2026] Setting Analisis jadi 1 LAYAR PENUH tanpa scroll (HP + laptop, permintaan "global"): CSS isinya di analisis.html (blok Setting), di file INI cuma tinggi halaman + padding bawah #main khusus HP.
+// (11) [24 Sep 2026] Setting Analisis: slide "Rincian Operasional" (selalu slide terakhir di swipe toko) + sumber tunggal angka Operasional — semuanya di analisis.html.
+//      File INI cuma diberi catatan ini SUPAYA hash deploy berubah: workflow auto-version menghitung APP_BUILD dari *.js + style.css + index.html (analisis.html TIDAK ikut),
+//      sedangkan iframe Analisis dibuka lewat analisis.html?embed=1&v=APP_BUILD. Tanpa file .js yang berubah, APP_BUILD sama -> browser/PWA tetap menyajikan analisis.html lama.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.

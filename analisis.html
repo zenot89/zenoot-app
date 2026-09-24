@@ -1048,6 +1048,32 @@
     #page-setting .hrow.editable .val input{ width:clamp(104px, 30vw, 140px); }   /* muat angka Rp 9 karakter (mis. 5.000.000) */
   }
 
+  /* ===== Setting: slide RINCIAN OPERASIONAL (slide TERAKHIR di swipe toko) ===== [24 Sep 2026]
+     Selalu paling ujung: jumlah slide = jumlah toko + 1, jadi nambah toko -> rincian ikut geser (3 toko = urutan 4, 5 toko = urutan 6).
+     Sengaja BUKAN class .setting-toko-card (kelas itu punya aturan baris flex:1 & font !important khusus kartu toko).
+     Isi kartu boleh scroll VERTIKAL di dalam kartu; geser horizontal tetap milik swipe antar-slide. */
+  #page-setting .setting-rincian-card{ flex:1 1 0; min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+  #page-setting .st-swipe-slide .setting-rincian-card{ margin-bottom:0; }
+  #page-setting .rc-head{ flex:0 0 auto; margin-bottom:4px; }
+  #page-setting .rc-title{ font-weight:700; font-size:clamp(16px, 2.4vh, 22px); }
+  #page-setting .rc-sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  #page-setting .rc-body{ flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  #page-setting .rc-sec{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:14px 0 6px; border-bottom:2px solid var(--line); font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--ink-soft); }
+  #page-setting .rc-sec:first-child{ padding-top:6px; }
+  #page-setting .rc-sec .rc-sec-val{ font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0; color:var(--ink); text-transform:none; }
+  #page-setting .rc-row{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); }
+  #page-setting .rc-row .rc-l{ min-width:0; flex:1 1 auto; font-size:13px; overflow:hidden; text-overflow:ellipsis; }
+  #page-setting .rc-row .rc-l small{ display:block; font-size:11px; color:var(--ink-soft); margin-top:1px; white-space:normal; }
+  #page-setting .rc-row .rc-v{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; white-space:nowrap; }
+  #page-setting .rc-row.rc-toko .rc-v{ color:var(--accent-dark); }
+  #page-setting .rc-empty, #page-setting .rc-note{ padding:8px 0; font-size:12px; color:var(--ink-soft); line-height:1.45; }
+  #page-setting .rc-empty{ font-style:italic; }
+  #page-setting .rc-err{ padding:10px 12px; margin:8px 0; border-radius:8px; background:var(--warn-soft); color:var(--warn); font-size:12.5px; line-height:1.45; }
+  #page-setting .rc-retry{ all:unset; cursor:pointer; margin-top:8px; display:inline-block; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700; background:var(--accent); color:var(--ink); border:1px solid var(--line); }
+  @media (max-width:767px){
+    #page-setting .setting-rincian-card{ padding-top:24px; }   /* titik ●●● nempel di pojok kanan-atas kartu, sama kayak kartu toko */
+  }
+
   /* ===== Check Admin: dashboard-style stat cards & fee cards ===== */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
   .stat-grid.stat-grid-4{ grid-template-columns:repeat(4,1fr); }
@@ -1299,7 +1325,7 @@
                 <div class="roas-note" id="proyeksiRoasNote"></div>
               </div>
               <div class="hrow editable stack">
-                <div class="lbl">OPS (Budget Operasional Bulanan)<span class="ket">sama dengan Operasional Toko di Setting</span></div>
+                <div class="lbl">OPS (Budget Operasional Bulanan)<span class="ket">default = Operasional Toko di Setting; ketik angka lain cuma simulasi (tidak disimpan), kosongkan untuk balik ke otomatis</span></div>
                 <div class="val"><input type="text" inputmode="numeric" id="proyeksiOpsBudget" placeholder="0"></div>
               </div>
             </div>
@@ -6396,15 +6422,21 @@ function renderCaRoasDisplay(){ renderRoasSimControl('ca', caRoasSim, caRoasChan
 bindRoasSimInput('ca', caRoasSim, caRoasChanged);
 try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init):', e); }
 
+let proyeksiOpsSim = null;   // [24 Sep 2026] null = pakai Operasional Toko otomatis (Setting); angka = simulasi manual di halaman Proyeksi
+function resolveProyeksiOps(){ return proyeksiOpsSim!==null ? proyeksiOpsSim : (state.settings.operasionalToko||0); }
 function renderProyeksi(){
   renderPriceListCard('priceListCard-proyeksi','proyeksi');
   renderProyeksiRoasControl();
   const opsEl = document.getElementById('proyeksiOpsBudget');
-  opsEl.value = fmtNum(state.settings.operasionalToko);
+  opsEl.value = fmtNum(resolveProyeksiOps());
   attachThousands(opsEl);
+  // [24 Sep 2026] DEAD CODE (perilaku lama): isian di sini MENIMPA state.settings.operasionalToko & disimpan -> bentrok dengan hitungan otomatis di Setting.
+  // opsEl.onchange = e=>{ state.settings.operasionalToko = parseNum(e.target.value)||0; saveSettingsToStorage(); renderProyeksiResult(); };
+  // Sekarang: isian = SIMULASI saja (tidak disimpan, hilang saat reload). Dikosongkan -> balik ke angka otomatis dari Setting.
   opsEl.onchange = e=>{
-    state.settings.operasionalToko = parseNum(e.target.value)||0;
-    saveSettingsToStorage();
+    const raw = String(e.target.value||'').trim();
+    proyeksiOpsSim = raw==='' ? null : (parseNum(raw)||0);
+    if(raw==='') opsEl.value = fmtNum(state.settings.operasionalToko);
     renderProyeksiResult();
   };
   const btn = document.getElementById('proyeksiProdukBtn');
@@ -6422,7 +6454,7 @@ function renderProyeksiResult(){
   const net = calcNetPrice(row, roas);
   const { adminPct, bpp } = resolveAdminBpp();
   const acos = (roas && roas>0) ? 1/roas : 0;
-  const opsBudget = state.settings.operasionalToko||0;
+  const opsBudget = resolveProyeksiOps();   // [24 Sep 2026] sebelumnya state.settings.operasionalToko langsung
   const opsFrac = plOpsPct()/100;
   if(net===null || opsFrac<=0){
     statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek Ops% (harus &gt;0) &amp; total potongan (ADMIN+ACOS+LAINNYA+OPS harus &lt;100%).</div></div>';
@@ -6915,6 +6947,8 @@ function opsPrevMonthKey(){
   const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
+// [24 Sep 2026] DEAD CODE — diganti opsHitungBebanRinci (di bawah): sama rumusnya, tapi filter bulan di server (bukan ambil semua jurnal),
+// pakai paging (batas 1000 baris Supabase) & mengembalikan rincian per akun. Dipertahankan sesuai RULES.md, tidak dipanggil lagi.
 async function opsHitungBebanBulan(ymKey){
   const [akunAll, jurnalAll] = await Promise.all([
     dbGet('kas_akun', '').catch(()=>[]),
@@ -6931,6 +6965,8 @@ async function opsHitungBebanBulan(ymKey){
   });
   return total;
 }
+// [24 Sep 2026] DEAD CODE — diganti opsHitungKewajibanRinci (di bawah): rumus sama (sisa = pokok - total hutang_bayar > 0, jumlahkan cicilan_per_bulan),
+// tapi pakai paging & mengembalikan rincian per hutang. Dipertahankan sesuai RULES.md, tidak dipanggil lagi.
 async function opsHitungKewajibanAktif(){
   const [hutangAll, bayarAll] = await Promise.all([
     dbGet('hutang', '').catch(()=>[]),
@@ -6961,6 +6997,7 @@ async function opsHitungKewajibanAktif(){
 // Baca Rekap bulanan SEMUA toko langsung dari Supabase (zStore.loadRows), TANPA switch toko aktif —
 // pola sama persis dengan tcFetchAllRekap() di Perbandingan Toko (baris ~2822), disamakan supaya satu
 // sumber kebenaran buat baca data toko lain (fix bug toggle di Setting).
+// [24 Sep 2026] DEAD CODE — diganti opsFetchTokoRows (di bawah): fetch yang sama tapi sekalian mengembalikan settings tiap toko. Tidak dipanggil lagi.
 async function opsFetchAllRekap(tokoIds){
   const rows = await zStore.loadRows(tokoIds);
   const out = {};
@@ -6972,21 +7009,89 @@ async function opsFetchAllRekap(tokoIds){
   });
   return out;
 }
-let _opsAutoCache = null; // cache 1x per sesi halaman; { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko:{id:{omset,share,operasional}} }
+// [24 Sep 2026] Blok di bawah = SUMBER TUNGGAL angka Operasional. Semua halaman (Setting, RKS Overview, RKS Mingguan, Proyeksi Harga)
+// membaca state.settings.operasionalToko yang diisi dari hasil opsHitungSemua() ini — dihitung sekali, disimpan ke pengaturan toko aktif.
+const OPS_CACHE_MS = 120000;      // hasil hitung dipakai ulang maks 2 menit; lewat itu dihitung ulang dari database
+let _opsAutoCache = null;         // { ymKey, at, error, settingsOk, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, bebanList, kewajibanList, perToko:{id:{omset,share,operasional}} }
+let _opsSettingsSnap = {};        // pengaturan SEMUA toko dari database ({tokoId:{...}}) — zStore cuma memuat toko aktif, toko lain harus dibaca dari sini
+// Ambil SEMUA baris tabel dengan paging. Supabase membatasi 1000 baris per request; dbGet biasa tanpa limit/urutan bisa terpotong diam-diam.
+async function opsFetchAll(table, filter){
+  const out = [];
+  for(let i=0; i<500; i++){
+    const rows = await dbGet(table, (filter||'')+'&limit=1000&offset='+out.length);
+    if(!rows.length) break;
+    out.push.apply(out, rows);
+  }
+  return out;
+}
+// Beban Operasional 1 bulan dari Jurnal (akun kelompok 'beban': debit +, kredit -) — rumus sama persis dgn totalBeban di Arus Kas keuangan.js,
+// tapi filter bulan dikerjakan server & hasilnya dirinci per akun. Gagal ambil data -> THROW (bukan diam-diam 0).
+async function opsHitungBebanRinci(ymKey){
+  const y = Number(ymKey.slice(0,4)), m = Number(ymKey.slice(5,7));
+  const nextKey = (m===12) ? (y+1)+'-01' : y+'-'+String(m+1).padStart(2,'0');
+  const [akunAll, jurnalAll] = await Promise.all([
+    opsFetchAll('kas_akun', '&order=id.asc'),
+    opsFetchAll('jurnal', '&tanggal=gte.'+ymKey+'-01&tanggal=lt.'+nextKey+'-01&order=tanggal.asc,id.asc')
+  ]);
+  const akunMap = {}; akunAll.forEach(a=>{ akunMap[a.id] = a; });
+  const per = {};
+  const add = (a, n)=>{ const k = String(a.id); (per[k] = per[k] || { id:a.id, kode:a.kode||'', nama:a.nama||'-', total:0 }).total += n; };
+  jurnalAll.filter(r=>(r.tanggal||'').slice(0,7)===ymKey).forEach(r=>{
+    const n = Number(r.nominal || r.debit || 0);
+    const aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
+    if(aD && aD.kelompok==='beban') add(aD, n);
+    if(aK && aK.kelompok==='beban') add(aK, -n);
+  });
+  const all = Object.values(per);
+  return { total: all.reduce((s,x)=>s+x.total, 0), list: all.filter(x=>x.total!==0).sort((a,b)=>b.total-a.total) };
+}
+// Cicilan hutang aktif (sisa = pokok - total hutang_bayar > 0 -> jumlahkan cicilan_per_bulan) — rumus sama persis dgn totalCicilan keuangan.js.
+async function opsHitungKewajibanRinci(){
+  const [hutangAll, bayarAll] = await Promise.all([
+    opsFetchAll('hutang', '&order=id.asc'),
+    opsFetchAll('hutang_bayar', '&order=id.asc')
+  ]);
+  const bayarBy = {};
+  bayarAll.forEach(b=>{ const k = String(b.hutang_id); bayarBy[k] = (bayarBy[k]||0) + Number(b.nominal||0); });
+  const list = [];
+  hutangAll.forEach(h=>{
+    const sisa = (Number(h.pokok)||0) - (bayarBy[String(h.id)]||0);
+    if(sisa > 0) list.push({ id:h.id, nama:h.kreditur||'-', cicilan:Number(h.cicilan_per_bulan)||0, sisa:sisa });
+  });
+  list.sort((a,b)=>b.cicilan-a.cicilan);
+  return { total: list.reduce((s,x)=>s+x.cicilan, 0), list };
+}
+// Rekap bulanan + Pengaturan SEMUA toko langsung dari Supabase (zStore.loadRows), tanpa ganti toko aktif.
+async function opsFetchTokoRows(tokoIds){
+  const rekap = {}, settings = {};
+  if(!tokoIds.length) return { rekap, settings };
+  const rows = await zStore.loadRows(tokoIds);
+  tokoIds.forEach(id=>{
+    let rk = {}, st = {};
+    const r = rows[id+'\u0000zenootAnalisis.rekap'];
+    if(r){ try{ rk = JSON.parse(r.value) || {}; }catch(e){} }
+    const s = rows[id+'\u0000zenootAnalisis.settings'];
+    if(s){ try{ st = JSON.parse(s.value) || {}; }catch(e){} }
+    rekap[id] = rk; settings[id] = st;
+  });
+  return { rekap, settings };
+}
 async function opsHitungSemua(force){
-  if(_opsAutoCache && !force) return _opsAutoCache;
+  if(_opsAutoCache && !force && (Date.now() - _opsAutoCache.at) < OPS_CACHE_MS) return _opsAutoCache;
   const ymKey = opsPrevMonthKey();
-  let totalBeban = 0, totalKewajiban = 0;
-  try{
-    [totalBeban, totalKewajiban] = await Promise.all([opsHitungBebanBulan(ymKey), opsHitungKewajibanAktif()]);
-  }catch(e){ console.error('Gagal hitung Operasional otomatis:', e); }
-  const totalGabungan = totalBeban + totalKewajiban;
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
+  let beban = { total:0, list:[] }, kew = { total:0, list:[] }, rekapByToko = {}, settingsByToko = {}, error = null;
+  try{
+    const r = await Promise.all([ opsHitungBebanRinci(ymKey), opsHitungKewajibanRinci(), opsFetchTokoRows(tokoList.map(t=>t.id)) ]);
+    beban = r[0]; kew = r[1]; rekapByToko = r[2].rekap; settingsByToko = r[2].settings;
+  }catch(e){
+    console.error('Gagal hitung Operasional otomatis:', e);
+    error = (e && e.message) ? e.message : String(e);
+  }
+  if(!error) _opsSettingsSnap = settingsByToko;
+  const totalGabungan = beban.total + kew.total;
   const omsetMap = {};
   let totalOmsetGabungan = 0;
-  let rekapByToko = {};
-  try{ rekapByToko = await opsFetchAllRekap(tokoList.map(t=>t.id)); }
-  catch(e){ console.error('Gagal fetch Rekap semua toko:', e); }
   tokoList.forEach(t=>{
     const snap = (rekapByToko[t.id] || {})[ymKey];
     const v = snap ? Number(snap.pendapatan) : NaN;
@@ -7000,9 +7105,64 @@ async function opsHitungSemua(force){
     const share = (omset!==null && totalOmsetGabungan>0) ? omset/totalOmsetGabungan : 0;
     perToko[t.id] = { omset, share, operasional: Math.round(totalGabungan*share) };
   });
-  _opsAutoCache = { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko };
-  return _opsAutoCache;
+  const res = { ymKey, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
+                bebanList:beban.list, kewajibanList:kew.list, perToko };
+  if(!error) _opsAutoCache = res;   // hasil gagal TIDAK di-cache & TIDAK boleh dipakai buat menimpa angka tersimpan
+  return res;
 }
+// Tulis hasil hitung ke pengaturan toko AKTIF (yang dibaca RKS Overview/Mingguan/Proyeksi). Return true kalau nilainya berubah.
+// Toko lain tidak ditulis dari sini: tiap toko dibuka lewat akunnya sendiri (ganti toko = reload) & disinkron saat itu.
+function opsSyncActive(ops){
+  if(!ops || ops.error) return false;
+  const a = ops.perToko[TOKO_ACTIVE];
+  if(!a) return false;
+  if(state.settings.operasionalToko === a.operasional) return false;
+  state.settings.operasionalToko = a.operasional;
+  saveSettingsToStorage();
+  return true;
+}
+// Render ulang halaman yang memakai Operasional (sama dengan yang dilakukan tombol Simpan di kartu toko aktif).
+function opsRefreshDependents(){
+  try{ renderCaRoasDisplay(); }catch(e){}
+  try{ renderCaOpsDisplay(); }catch(e){}
+  try{ renderProyeksiHargaBoth(); }catch(e){}
+  try{ if(document.getElementById('hasilWrap')) renderHasil(); }catch(e){}
+  try{ if(document.getElementById('hasilWrapM')) renderHasilM(); }catch(e){}
+  try{ if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides); }catch(e){}
+}
+// [24 Sep 2026] DEAD CODE — versi lama opsHitungSemua (tanpa rincian, gagal-diam-diam jadi 0, cache tanpa batas waktu). Diganti blok di atas.
+// --- isi lama (dipertahankan sebagai komentar) ---
+// let _opsAutoCache = null; // cache 1x per sesi halaman; { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko:{id:{omset,share,operasional}} }
+// async function opsHitungSemua(force){
+//   if(_opsAutoCache && !force) return _opsAutoCache;
+//   const ymKey = opsPrevMonthKey();
+//   let totalBeban = 0, totalKewajiban = 0;
+//   try{
+//     [totalBeban, totalKewajiban] = await Promise.all([opsHitungBebanBulan(ymKey), opsHitungKewajibanAktif()]);
+//   }catch(e){ console.error('Gagal hitung Operasional otomatis:', e); }
+//   const totalGabungan = totalBeban + totalKewajiban;
+//   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
+//   const omsetMap = {};
+//   let totalOmsetGabungan = 0;
+//   let rekapByToko = {};
+//   try{ rekapByToko = await opsFetchAllRekap(tokoList.map(t=>t.id)); }
+//   catch(e){ console.error('Gagal fetch Rekap semua toko:', e); }
+//   tokoList.forEach(t=>{
+//     const snap = (rekapByToko[t.id] || {})[ymKey];
+//     const v = snap ? Number(snap.pendapatan) : NaN;
+//     const o = isNaN(v) ? null : v;
+//     omsetMap[t.id] = o;
+//     if(o!==null) totalOmsetGabungan += o;
+//   });
+//   const perToko = {};
+//   tokoList.forEach(t=>{
+//     const omset = omsetMap[t.id];
+//     const share = (omset!==null && totalOmsetGabungan>0) ? omset/totalOmsetGabungan : 0;
+//     perToko[t.id] = { omset, share, operasional: Math.round(totalGabungan*share) };
+//   });
+//   _opsAutoCache = { ymKey, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, perToko };
+//   return _opsAutoCache;
+// }
 
 /* ================= PAGE: SETTING (multi-toko) ================= */
 const SETTING_FIELDS = [
@@ -7014,11 +7174,15 @@ const SETTING_FIELDS = [
   {key:'minNpmRp', label:'MINIMUM PROFIT TOKO', ket:'Target profit per SKU (Rp) — manual. Dipakai sebagai Profit Target di Proyeksi Harga (khususnya By Harga Jual); %-nya adalah hasil, dilihat di halaman Proyeksi', ph:'0', type:'rupiah'},
   {key:'targetRasioLaba', label:'TARGET RASIO LABA', ket:'Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo', ph:'mis. 15', type:'decimal'}
 ];
+// [24 Sep 2026] zStore.init() cuma memuat toko AKTIF, jadi zLS.getItem() untuk toko LAIN selalu kosong -> kartu Setting toko lain
+// tampil kosong semua, dan tombol Simpan-nya menimpa pengaturan aslinya di database dengan isian kosong (data hilang).
+// Sekarang: kalau zLS kosong, pakai snapshot pengaturan dari database (_opsSettingsSnap, diisi opsHitungSemua) sebagai dasar.
 function opsReadTokoSettings(tokoId){
   try{
     const raw = zLS.getItem(tokoScopedKey('zenootAnalisis.settings', tokoId));
-    return raw ? JSON.parse(raw) : {};
-  }catch(e){ return {}; }
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return Object.assign({}, _opsSettingsSnap[tokoId] || {});
 }
 function opsWriteTokoSettings(tokoId, patch){
   if(tokoId === TOKO_ACTIVE){
@@ -7053,16 +7217,18 @@ async function renderSetting(){
   try{ ops = await opsHitungSemua(); }
   catch(e){
     console.error('Gagal hitung Operasional otomatis:', e);
-    ops = { ymKey: opsPrevMonthKey(), totalBeban:0, totalKewajiban:0, totalGabungan:0, totalOmsetGabungan:0, perToko:{} };
+    ops = { ymKey: opsPrevMonthKey(), error:String((e && e.message) || e), settingsOk:false, totalBeban:0, totalKewajiban:0, totalGabungan:0, totalOmsetGabungan:0, bebanList:[], kewajibanList:[], perToko:{} };
   }
 
-  if(sumEl) sumEl.textContent = fmtRp(ops.totalGabungan);
+  // Gagal ambil data -> jangan tampilkan Rp0 (menyesatkan); tampilkan '-' & rincian menjelaskan errornya.
+  const okOps = !ops.error;
+  if(sumEl) sumEl.textContent = okOps ? fmtRp(ops.totalGabungan) : '-';
   const bebanEl = document.getElementById('settingSumBeban');
   const bebanKetEl = document.getElementById('settingSumBebanKet');
   const kewajibanEl = document.getElementById('settingSumKewajiban');
-  if(bebanEl) bebanEl.textContent = fmtRp(ops.totalBeban);
+  if(bebanEl) bebanEl.textContent = okOps ? fmtRp(ops.totalBeban) : '-';
   if(bebanKetEl) bebanKetEl.textContent = 'Dari Jurnal — '+rekapMonthLabel(ops.ymKey);
-  if(kewajibanEl) kewajibanEl.textContent = fmtRp(ops.totalKewajiban);
+  if(kewajibanEl) kewajibanEl.textContent = okOps ? fmtRp(ops.totalKewajiban) : '-';
   if(!wrap) return;
 
   wrap.innerHTML = (tokoList.map(t=>{
@@ -7082,19 +7248,17 @@ async function renderSetting(){
       '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO</div>'+
       '<div class="val">'+fmtRp(auto.operasional)+'</div></div>'+
       fieldsHtml+'</div></div>';
-  }).join(''));
-  const dotsHtml = tokoList.map((t,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('');
+  }).join('')) + (tokoList.length ? opsBuildRincianHtml(ops, tokoList) : '');
+  // titik indikator = jumlah toko + 1 (slide RINCIAN selalu paling akhir)
+  const dotsHtml = (tokoList.length ? tokoList.concat([null]) : []).map((t,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('');
   wrap.innerHTML = tokoList.length
     ? '<div class="st-swipe" id="settingStoreSwipe"><div class="st-swipe-track">'+wrap.innerHTML+'</div><div class="st-swipe-dots">'+dotsHtml+'</div></div>'
     : '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
 
   // Sinkronkan nilai auto ke toko yang lagi aktif supaya halaman lain (RKS Overview, Proyeksi Harga)
   // yang baca state.settings.operasionalToko tetap ikut nilai terbaru tanpa perlu diubah satu-satu.
-  const activeAuto = ops.perToko[TOKO_ACTIVE];
-  if(activeAuto){
-    state.settings.operasionalToko = activeAuto.operasional;
-    saveSettingsToStorage();
-  }
+  // [24 Sep 2026] hanya kalau hitungan berhasil & nilainya berubah; halaman lain ikut dirender ulang supaya angkanya langsung sama.
+  if(opsSyncActive(ops)) opsRefreshDependents();
 
   tokoList.forEach(t=>{
     SETTING_FIELDS.forEach(f=>{
@@ -7104,6 +7268,12 @@ async function renderSetting(){
     setSettingCardEditMode(t.id, false);
     const btn = document.getElementById('btnSettingEdit_'+t.id);
     if(!btn) return;
+    if(t.id!==TOKO_ACTIVE && !ops.settingsOk){
+      // pengaturan toko lain gagal dimuat dari database -> jangan boleh disimpan (akan menimpa data asli dengan isian kosong)
+      btn.disabled = true; btn.title = 'Pengaturan toko ini belum berhasil dimuat — buka ulang halaman Setting';
+      btn.style.opacity = '.45'; btn.style.cursor = 'not-allowed';
+      return;
+    }
     btn.addEventListener('click', ()=>{
       if(!settingEditModeByToko[t.id]){
         setSettingCardEditMode(t.id, true);
@@ -7128,6 +7298,45 @@ async function renderSetting(){
 
   initStSwipe(document.getElementById('settingSumRow'));
   initStSwipe(document.getElementById('settingStoreSwipe'));
+  const rcRetry = document.getElementById('rcRetryBtn');
+  if(rcRetry) rcRetry.addEventListener('click', ()=>{ opsHitungSemua(true).then(()=>renderSetting()); });
+}
+
+/* ================= SLIDE RINCIAN OPERASIONAL (Setting) [24 Sep 2026] =================
+   Slide TERAKHIR di swipe kartu toko. Menjelaskan asal angka: Beban per akun (Jurnal bulan lalu), Cicilan aktif per hutang,
+   dan porsi omset tiap toko yang menentukan Operasional masing-masing. Semua diambil dari objek `ops` (opsHitungSemua) —
+   angkanya PASTI sama dengan minicard & kartu toko, karena satu sumber. */
+function opsBuildRincianHtml(ops, tokoList){
+  const bulan = rekapMonthLabel(ops.ymKey)+' '+ops.ymKey.slice(0,4);   // mis. "Agu 2026"
+  const pct = v=> (v*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
+  const sec = (label, val)=> '<div class="rc-sec"><span>'+label+'</span><span class="rc-sec-val">'+val+'</span></div>';
+  const row = (l, sub, v, cls)=> '<div class="rc-row'+(cls?' '+cls:'')+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'</div></div>';
+  let h = '<div class="st-swipe-slide"><div class="card setting-rincian-card" id="settingRincianCard">'+
+    '<div class="rc-head"><div class="rc-title">Rincian Operasional</div>'+
+    '<div class="rc-sub">Beban '+tokoEsc(bulan)+' &middot; cicilan aktif hari ini</div></div><div class="rc-body">';
+  if(ops.error){
+    h += '<div class="rc-err">Gagal memuat data dari database: '+tokoEsc(ops.error)+'<br>Angka Operasional yang tersimpan tidak diubah.'+
+         '<br><button type="button" class="rc-retry" id="rcRetryBtn">Coba lagi</button></div>';
+  }else{
+    h += sec('Beban operasional', fmtRp(ops.totalBeban));
+    h += ops.bebanList.length
+      ? ops.bebanList.map(a=>row(tokoEsc(a.nama), a.kode?tokoEsc(a.kode):'', fmtRp(a.total))).join('')
+      : '<div class="rc-empty">Tidak ada beban tercatat di Jurnal bulan '+tokoEsc(bulan)+'.</div>';
+    h += sec('Cicilan aktif', fmtRp(ops.totalKewajiban));
+    h += ops.kewajibanList.length
+      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
+      : '<div class="rc-empty">Tidak ada hutang aktif.</div>';
+    h += sec('Dibagi ke toko', fmtRp(ops.totalGabungan));
+    h += tokoList.map(t=>{
+      const a = ops.perToko[t.id] || { omset:null, share:0, operasional:0 };
+      const nm = opsReadTokoSettings(t.id).namaToko || t.nama || '-';
+      const sub = a.omset===null ? 'belum ada Rekap '+tokoEsc(bulan) : 'omset '+fmtRp(a.omset)+' &middot; porsi '+pct(a.share);
+      return row(tokoEsc(nm), sub, fmtRp(a.operasional), 'rc-toko');
+    }).join('');
+    h += '<div class="rc-note">Beban dan cicilan digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+tokoEsc(bulan)+') tiap toko. '+
+         'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi.</div>';
+  }
+  return h + '</div></div></div>';
 }
 
 /* ================= MINICARD SWIPE (Setting) =================
@@ -8577,6 +8786,16 @@ try{
     if(rb) rb.click();
   }
 }catch(e){}
+// [24 Sep 2026] Sinkron OPERASIONAL TOKO otomatis SAAT APP DIBUKA (bukan cuma saat halaman Setting dibuka): RKS Overview, RKS Mingguan &
+// Proyeksi Harga membaca state.settings.operasionalToko, jadi angkanya harus segar walau Setting belum pernah dibuka di sesi ini.
+// Ditunda 1,5 dtk & tidak memblok tampilan (loading Analisis sudah dikeluhkan lama). Gagal -> angka tersimpan dibiarkan apa adanya.
+setTimeout(function(){
+  try{
+    if(!TOKO_REG.list.some(function(t){ return !t.draft; })) return;
+    opsHitungSemua().then(function(ops){ if(opsSyncActive(ops)) opsRefreshDependents(); })
+      .catch(function(e){ console.error('Sinkron Operasional (startup) gagal:', e); });
+  }catch(e){ console.error('Sinkron Operasional (startup) gagal:', e); }
+}, 1500);
 </script>
 <script>
 /* ================================================================
