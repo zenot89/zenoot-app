@@ -6381,10 +6381,13 @@ const PROYEKSI_ROAS_SRC = [
 ];
 function roasSimFrom(sim, key){
   if(key==='overview'){
+    // [24 Sep 2026] "Overview" = ROAS Aktual BULAN TERAKHIR di Rekap (angka yang sama dgn kolom terakhir Rekap / RKS Overview yang tampil),
+    // bukan data file yang lagi ke-load di sesi Data Toko (bisa periode lama, mis. sisa Jan -> 2.36x vs 6.61x Agu).
+    // Data sesi cuma jadi cadangan kalau Rekap masih kosong.
+    const r = resolveTargetRoas();
+    if(r.source==='rekap' && r.roas>0) return { roas:r.roas, label:'ROAS Aktual Rekap '+r.label };
     const pend = state.manual && state.manual.pendapatan, ik = state.manual && state.manual.iklan;
-    if(pend && ik) return { roas: pend/ik, label:'ROAS Aktual RKS Overview' };
-    const r = resolveTargetRoas();   // RKS Overview belum ke-load -> pakai bulan terakhir di Rekap
-    return (r.source==='rekap' && r.roas>0) ? { roas:r.roas, label:'Rekap Bulanan '+r.label } : null;
+    return (pend && ik) ? { roas: pend/ik, label:'ROAS Aktual data sesi (belum di Rekap)' } : null;
   }
   if(key==='mingguan'){
     const r = resolvePriceListRoas();
