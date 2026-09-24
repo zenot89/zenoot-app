@@ -1144,6 +1144,11 @@
   .fee-card .fee-child .excl-tag{ display:block; font-size:10px; text-decoration:none; color:var(--accent-dark); font-style:italic; }
 
   /* ===== Check Admin: lebih padat biar minim scroll ===== */
+  /* [24 Sep 2026] Ruang kosong atas & bawah halaman Check Admin dirapatkan biar gak perlu scroll:
+     .page-head di halaman ini kosong (judul sudah di garis header) tapi masih nyisain margin-bottom 22px -> disembunyiin;
+     padding atas/bawah #main (34px) dikurangi khusus halaman ini lewat margin negatif. Halaman lain gak berubah. */
+  #page-checkadmin .page-head{ display:none; }
+  #page-checkadmin{ margin:-14px 0 -24px; }
   #page-checkadmin .card{ padding:14px 18px; margin-bottom:10px; }
   #page-checkadmin .card h3{ margin-bottom:6px; padding:3px 10px; }   /* kotak judul lebih tipis di halaman ini biar gak nambah scroll */
   #page-checkadmin .card .hint{ margin-bottom:8px; }
