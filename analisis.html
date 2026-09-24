@@ -7024,8 +7024,12 @@ async function opsFetchAll(table, filter){
   }
   return out;
 }
-// Beban Operasional 1 bulan dari Jurnal (akun kelompok 'beban': debit +, kredit -) — rumus sama persis dgn totalBeban di Arus Kas keuangan.js,
-// tapi filter bulan dikerjakan server & hasilnya dirinci per akun. Gagal ambil data -> THROW (bukan diam-diam 0).
+// Beban Operasional 1 bulan dari Jurnal (debit +, kredit -), dirinci per akun. Filter bulan dikerjakan server. Gagal ambil data -> THROW (bukan diam-diam 0).
+// [24 Sep 2026] HANYA akun kelompok 'beban' dengan sub_kelompok 'Beban Operasional' (kode 5-xxx). Sub_kelompok 'Beban Produksi' (6-xxx: Bahan Baku,
+// RE-STOCK, Packaging, Penyusutan Mesin) SENGAJA TIDAK ikut — itu biaya pokok yang sudah terhitung di HPP, kalau ikut = hitung dobel di Laba/Rugi RKS.
+// (Beda dengan totalBeban Arus Kas keuangan.js yang menjumlah semua beban: itu tampilan uang keluar, bukan margin.)
+const OPS_SUB_KELOMPOK = 'BEBAN OPERASIONAL';
+const opsAkunOperasional = a => a && a.kelompok==='beban' && String(a.sub_kelompok||'').trim().toUpperCase()===OPS_SUB_KELOMPOK;
 async function opsHitungBebanRinci(ymKey){
   const y = Number(ymKey.slice(0,4)), m = Number(ymKey.slice(5,7));
   const nextKey = (m===12) ? (y+1)+'-01' : y+'-'+String(m+1).padStart(2,'0');
@@ -7039,8 +7043,8 @@ async function opsHitungBebanRinci(ymKey){
   jurnalAll.filter(r=>(r.tanggal||'').slice(0,7)===ymKey).forEach(r=>{
     const n = Number(r.nominal || r.debit || 0);
     const aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
-    if(aD && aD.kelompok==='beban') add(aD, n);
-    if(aK && aK.kelompok==='beban') add(aK, -n);
+    if(opsAkunOperasional(aD)) add(aD, n);
+    if(opsAkunOperasional(aK)) add(aK, -n);
   });
   const all = Object.values(per);
   return { total: all.reduce((s,x)=>s+x.total, 0), list: all.filter(x=>x.total!==0).sort((a,b)=>b.total-a.total) };
@@ -7319,6 +7323,7 @@ function opsBuildRincianHtml(ops, tokoList){
          '<br><button type="button" class="rc-retry" id="rcRetryBtn">Coba lagi</button></div>';
   }else{
     h += sec('Beban operasional', fmtRp(ops.totalBeban));
+    h += '<div class="rc-note" style="padding-top:4px">Hanya sub-kelompok Beban Operasional. Beban Produksi (bahan baku, re-stock, packaging, penyusutan) tidak ikut karena sudah di HPP.</div>';
     h += ops.bebanList.length
       ? ops.bebanList.map(a=>row(tokoEsc(a.nama), a.kode?tokoEsc(a.kode):'', fmtRp(a.total))).join('')
       : '<div class="rc-empty">Tidak ada beban tercatat di Jurnal bulan '+tokoEsc(bulan)+'.</div>';
