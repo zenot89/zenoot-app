@@ -26,6 +26,7 @@
 //
 // (8) [21 Sep 2026] Tab baru Proyeksi Harga > By Harga Jual (byharga): masuk daftar tab & PHONE_PAGES; layout HP mengikuti By Target Qty (hasil di atas, panel Input di bawah). Tombolnya dibuat lewat JS (ensurePdfBtn) & meneruskan klik ke tombol Export PDF asli di analisis.html; laptop tidak tersentuh.
 // (9) [22 Sep 2026] By Harga Jual di HP jadi SWIPE 4 halaman + indikator ●●●● (Input, Perhitungan per pcs, Batas aman + Voucher, Minicard) — semua di byhCss() di bawah; laptop tidak tersentuh.
+// (10) [24 Sep 2026] Setting Analisis jadi 1 LAYAR PENUH tanpa scroll (HP + laptop, permintaan "global"): CSS isinya di analisis.html (blok Setting), di file INI cuma tinggi halaman + padding bawah #main khusus HP.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -321,6 +322,10 @@
     // [21 Sep 2026] tinggi halaman = 100vh - topbar (66px), sama seperti RKS Overview; padding bawah #main dibuang → kartu tabel habis sampai ujung bawah layar
     'html.zan-phone #page-rekap.active,html.zan-phone #page-rekapM.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
     'html.zan-phone.embed[data-zan-page="rekap"] #main,html.zan-phone.embed[data-zan-page="rekapM"] #main{padding-bottom:0;}',
+    // ══ Setting Analisis (HP) — [24 Sep 2026] 1 layar penuh tanpa scroll: kartu toko ditarik sampai bawah, font dibesarin (isi CSS-nya di analisis.html blok "Setting") ══
+    // tinggi halaman = 100vh - topbar (66px) - jarak bawah 12px (samain jarak kiri-kanan); padding bawah #main HP diganti 24px -> 12px biar pas
+    'html.zan-phone.embed #page-setting.active{flex:none;height:calc(100vh - 78px);margin-bottom:0;}',
+    'html.zan-phone.embed[data-zan-page="setting"] #main{padding-bottom:12px;}',
     'html.zan-phone #page-rekap .page-head,html.zan-phone #page-rekapM .page-head{justify-content:flex-start;margin-bottom:8px;}',
     // "Pilih data" = alur hapus data → eksekusi, cuma di laptop
     'html.zan-phone #btnRekapSelect,html.zan-phone #btnRekapSelectM,html.zan-phone .rekap-selectbar{display:none !important;}',

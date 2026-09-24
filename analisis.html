@@ -1004,23 +1004,48 @@
   .ca-badge.ok{ background:#dcfce7; color:#15803d; }
   .ca-badge.warn{ background:#fef3c7; color:#b45309; }
 
-  /* ===== Setting (Zenoot Analisis > Setting): dipadetin biar muat 1 layar tanpa scroll,
-     baik HP (Samsung A51/iPhone 12 mini) maupun laptop — scoped ke #page-setting doang,
-     gak ganggu .card/.hrow di halaman lain. ===== */
-  #page-setting .card{ padding:10px 14px; margin-bottom:8px; }
-  #page-setting #settingSumRow{ margin-bottom:6px; }
-  #page-setting .st-mini-card{ gap:3px; }
-  #page-setting .st-mini-val{ font-size:16px; line-height:1; }
-  #page-setting .st-mini-lbl{ font-size:9.5px; padding:3px 7px; border-radius:6px; }
-  #page-setting .setting-toko-card > div:first-child{ margin-bottom:0; }
-  #page-setting .setting-toko-card > div:first-child > div{ font-size:12.5px; }
-  #page-setting .setting-edit-btn{ padding:3px 10px; font-size:10.5px; }
-  #page-setting .hrow{ padding:4.5px 0; gap:8px; }
-  #page-setting .hrow .lbl{ font-size:11px; }
-  #page-setting .hrow .val{ font-size:12px; }
-  #page-setting .hrow.editable .val input{ font-size:11px; padding:3px 6px; width:110px; }
+  /* ===== Setting (Zenoot Analisis > Setting): 1 LAYAR PENUH, TANPA SCROLL ===== [24 Sep 2026]
+     Sebelumnya (23 Sep) dipadetin biar muat -> font 11-12px, konten cuma ngisi separuh atas & sisanya kosong (gap bawah).
+     Sekarang halaman = tinggi 1 layar persis (rantai flex: page -> minicard + kartu toko), kartu toko ditarik sampai bawah,
+     baris di dalam kartu dibagi rata (flex:1) dan ukuran font ikut tinggi layar (clamp + vh) — jadi lega & kebaca di laptop/HP.
+     Tinggi halaman: standalone = 100vh - 120px, embed (iframe zenOt) = 100vh - 92px (topbar 56 + jarak 16 + padding bawah 20),
+     HP (html.zan-phone) di-override dari analisis.js (padding bawah #main HP beda). Scoped ke #page-setting doang. */
+  #page-setting{ --st-pad:10px; }
+  #page-setting.active{ display:flex; flex-direction:column; height:calc(100vh - 120px); min-height:480px; }
+  html.embed #page-setting.active{ height:calc(100vh - 92px); }
+  html:has(#page-setting.active){ overflow-y:auto; }   /* scrollbar cuma muncul kalau layar terlalu pendek; normalnya halaman pas 1 layar */
+  #page-setting .card{ padding:14px 20px; margin-bottom:0; }
+  #page-setting #settingSumRow{ flex:0 0 auto; margin-bottom:14px; }
+  #page-setting .st-mini-card{ gap:6px; padding:14px 20px; }
+  #page-setting .st-mini-val{ font-size:clamp(22px, 3.4vh, 34px); line-height:1.05; }
+  #page-setting .st-mini-lbl{ font-size:clamp(11px, 1.55vh, 14px); padding:4px 10px; border-radius:8px; }
+  #settingCardsWrap{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  #settingCardsWrap > .card{ align-self:flex-start; }   /* kartu "Menghitung…"/"Belum ada toko" tetap kecil, gak ikut ditarik */
+  #settingStoreSwipe{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  #settingStoreSwipe > .st-swipe-track{ flex:1 1 0; min-height:0; }
+  #page-setting .st-swipe-slide{ display:flex; }
+  #page-setting .st-swipe-slide .setting-toko-card{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; }
+  #page-setting .st-swipe-slide .st-mini-card{ flex:1 1 0; min-width:0; }   /* slide minicard sekarang flex row (lihat atas) — kartunya tetap harus selebar slide */
+  #page-setting .setting-toko-card > div:first-child{ flex:0 0 auto; margin-bottom:4px; }
+  #page-setting .setting-toko-card > div:first-child > div{ font-size:clamp(16px, 2.4vh, 22px) !important; }   /* !important: nama toko punya inline style font-size:14px dari renderSetting() */
+  #page-setting .setting-edit-btn{ padding:clamp(4px, .7vh, 8px) clamp(12px, 1.6vh, 18px); font-size:clamp(12px, 1.7vh, 15px); }
+  #page-setting .hrow{ flex:1 1 0; min-height:0; padding:0; gap:10px; }
+  #page-setting .hrow .lbl{ font-size:clamp(13px, 2vh, 18px); }
+  #page-setting .hrow .val{ font-size:clamp(14px, 2.2vh, 20px); }
+  #page-setting .hrow.highlight .val{ padding-right:calc(var(--st-pad) + 1px); }   /* sejajar dgn angka di input (border 1px + padding) */
+  #page-setting .hrow.editable .val input{ font-size:clamp(14px, 2.2vh, 20px); padding:clamp(4px, .8vh, 9px) var(--st-pad); width:clamp(120px, 26vh, 190px); }
+  /* Lebar kartu beda-beda (laptop 1366px + sidebar terbuka = kartu ~370px) -> font & lebar input ikut lebar KARTU (container query); baris `font-size` di atasnya = cadangan kalau browser belum dukung cqw */
+  #page-setting .setting-toko-card{ container-type:inline-size; }
+  #page-setting .hrow .lbl{ font-size:clamp(12px, min(2vh, 4.8cqw), 18px); white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  #page-setting .hrow .val, #page-setting .hrow.editable .val input{ font-size:clamp(13px, min(2.2vh, 4.4cqw), 20px); }
+  #page-setting .hrow.editable .val input{ width:clamp(100px, 33cqw, 190px); }
   @media (max-width:767px){
     #page-setting .st-swipe-dots{ top:-2px; }
+    #page-setting .setting-toko-card{ padding-top:24px; }   /* titik ●●● nempel di pojok kanan-atas kartu — jangan nabrak tombol Edit */
+    #page-setting .hrow .lbl{ font-size:clamp(13px, 1.85vh, 15px); white-space:nowrap; }   /* "MINIMUM PROFIT TOKO" harus 1 baris di layar 375px */
+    #page-setting{ --st-pad:8px; }
+    #page-setting .hrow .val, #page-setting .hrow.editable .val input{ font-size:clamp(14px, 2vh, 15.5px); }
+    #page-setting .hrow.editable .val input{ width:clamp(104px, 30vw, 140px); }   /* muat angka Rp 9 karakter (mis. 5.000.000) */
   }
 
   /* ===== Check Admin: dashboard-style stat cards & fee cards ===== */
