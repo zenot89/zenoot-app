@@ -316,14 +316,6 @@ document.getElementById('page-stok').innerHTML = `
           <span id="stok-picker-induk-label" style="color:var(--ink3)">— Pilih SKU Induk —</span>
           <span style="margin-left:auto;color:var(--ink3);font-size:10px">▾</span>
         </div>
-        <!-- Fallback: SKU belum ada di master produk, ketik manual (mis. edit stok
-             lama yang katalognya udah gak ketemu di master). -->
-        <div id="stok-sku-induk-manual-wrap" style="display:none;margin-top:6px">
-          <input type="text" id="stok-sku-induk-manual" placeholder="Ketik SKU manual..."
-            autocomplete="off" oninput="stokOnManualIndukInput()"
-            style="font-family:var(--f);font-size:14px;width:100%;box-sizing:border-box;
-                   padding:6px 10px;border:2px solid var(--ink);background:var(--cream)">
-        </div>
       </div>
 
       <!-- SKU Variasi — picker custom seperti JP -->
@@ -835,8 +827,6 @@ function showTambahStok() {
   document.getElementById('inp-id').value        = '';
   document.getElementById('inp-sku-induk').value = '';
   _stokSetIndukLabel(null);
-  var mw0 = document.getElementById('stok-sku-induk-manual-wrap');
-  if (mw0) mw0.style.display = 'none';
   document.getElementById('inp-masuk').value     = '';
   _stokSelectedSku = '';
   _stokEditMode    = false;
@@ -899,10 +889,8 @@ function editStok(sku) {
   } else {
     document.getElementById('inp-sku-induk').value = sku;
     _stokSetIndukLabel(sku);
-    var mw1 = document.getElementById('stok-sku-induk-manual-wrap');
-    var mi1 = document.getElementById('stok-sku-induk-manual');
-    if (mw1) mw1.style.display = 'block';
-    if (mi1) mi1.value = sku;
+    // Katalog lama yang udah gak ada di Kelola Produk: SKU dipertahankan apa adanya
+    // (tanpa input ketik); ganti SKU cuma lewat picker (data master).
     document.getElementById('inp-sku').innerHTML =
       '<option value="' + sku + '">' + sku + '</option>';
     var lbl = document.getElementById('stok-picker-variasi-label');
@@ -1056,8 +1044,6 @@ function _stokSkuSheetRenderInduk(q) {
         '<span style="font-size:11px;color:var(--ink3)">' + katalogMap[kat] + ' var</span></div>';
     });
   }
-  html += '<div class="jp-sheet-item" style="color:var(--info);font-weight:700;border-top:1px solid var(--ink4);margin-top:4px;padding-top:12px" onclick="stokSkuSheetManualInduk()">' +
-    '<span><i class="ti ti-pencil"></i> Ketik SKU manual...</span></div>';
   listEl.innerHTML = html;
 }
 
@@ -1085,34 +1071,12 @@ function _stokSkuSheetRenderVariasi(q) {
 function stokSkuSheetSelectInduk(katalog) {
   zHistPush('stok_induk', katalog); // riwayat sering/terakhir dipakai
   stokSkuSheetClose();
-  var manualWrap = document.getElementById('stok-sku-induk-manual-wrap');
-  if (manualWrap) manualWrap.style.display = 'none';
   stokPilihKatalog(katalog);
-}
-
-function stokSkuSheetManualInduk() {
-  stokSkuSheetClose();
-  var manualWrap = document.getElementById('stok-sku-induk-manual-wrap');
-  var manualInp  = document.getElementById('stok-sku-induk-manual');
-  if (manualWrap) manualWrap.style.display = 'block';
-  if (manualInp) { manualInp.value = ''; setTimeout(function(){ manualInp.focus(); }, 260); }
-}
-
-function stokOnManualIndukInput() {
-  var manualInp = document.getElementById('stok-sku-induk-manual');
-  var val = manualInp ? manualInp.value : '';
-  document.getElementById('inp-sku-induk').value = val;
-  _stokSetIndukLabel(val || null);
-  document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
-  var lblV = document.getElementById('stok-picker-variasi-label');
-  if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
 }
 
 function stokPilihKatalog(katalog, skipAutoOpen) {
   document.getElementById('inp-sku-induk').value = katalog;
   _stokSetIndukLabel(katalog);
-  var manualWrap = document.getElementById('stok-sku-induk-manual-wrap');
-  if (manualWrap) manualWrap.style.display = 'none';
   var varList = _produkForStok.filter(function(p){ return _stokGetKatalog(p) === katalog; });
   var sel = document.getElementById('inp-sku');
   sel.innerHTML = '<option value="">— Pilih Variasi —</option>';
