@@ -52,15 +52,14 @@ document.getElementById('page-clearance-induk').innerHTML = `
         <table class="tbl">
           <thead>
             <tr>
-              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU <span id="mi-sort-sku">⇅</span></th>
-              <th>Variasi</th>
+              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU Induk / Variasi <span id="mi-sort-sku">⇅</span></th>
               <th onclick="miSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Qty <span id="mi-sort-sisa">⇅</span></th>
-              <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal / Varian <span id="mi-sort-nilai">⇅</span></th>
+              <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal <span id="mi-sort-nilai">⇅</span></th>
               <th>Supplier</th>
             </tr>
           </thead>
           <tbody id="mi-tbody">
-            <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+            <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
           </tbody>
         </table>
       </div>
@@ -73,18 +72,17 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <table class="tbl">
             <thead>
               <tr>
-                <th>SKU Induk</th>
-                <th>SKU Variasi</th>
+                <th>SKU Induk / Variasi</th>
                 <th style="text-align:center">Sisa</th>
                 <th style="text-align:center">Status</th>
               </tr>
             </thead>
             <tbody id="mi-flash-tbody">
-              <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
+              <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
             </tbody>
           </table>
         </div>
-        <div id="mi-flash-footer" style="font-size:11px;color:var(--ink3);text-align:right;padding:6px 10px"></div>
+        <div id="mi-flash-footer" style="font-size:12px;color:var(--ink3);text-align:right;padding:10px 16px"></div>
       </div>
     </div>
     <div id="mi-footer-wrap"><div id="mi-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
@@ -196,7 +194,7 @@ function miRenderTable() {
     });
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
     const footerEl = document.getElementById('mi-footer');
     if (footerEl) footerEl.textContent = '';
     miRenderFlashSale();
@@ -212,24 +210,22 @@ function miRenderTable() {
     while (j < rows.length && rows[j].katalog === kat) j++;
     const groupRows = rows.slice(idx, j);
 
-    htmlParts.push(`<tr class="mi-grp-row mi-grp-first">
-      <td style="font-weight:700">${kat} <span style="font-weight:400;font-size:11px;color:var(--ink3)">(${g.varian} varian)</span></td>
-      <td style="color:var(--warn);font-weight:700">${fmtRp(g.nilai)}</td>
-      <td style="text-align:center;font-weight:700">${g.sisa.toLocaleString('id-ID')}</td>
-      <td></td>
+    // Baris header grup: nama induk + total Qty & Modal SEJAJAR di kolom masing-masing (dulu geser ke kolom Variasi)
+    htmlParts.push(`<tr class="mi-grp-head">
+      <td>${kat} <span class="mi-grp-count">${g.varian} varian</span></td>
+      <td style="text-align:center">${g.sisa.toLocaleString('id-ID')}</td>
+      <td style="text-align:right;color:var(--warn)">${fmtRp(g.nilai)}</td>
       <td></td>
     </tr>`);
-    groupRows.forEach((r, i) => {
-      const isLast = (i === groupRows.length - 1);
-      htmlParts.push(`<tr class="mi-grp-row${isLast ? ' mi-grp-last' : ''}">
-        <td></td>
+    groupRows.forEach(r => {
+      htmlParts.push(`<tr class="mi-var-row">
         <td>${r.sku}</td>
         <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
         <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
         <td>${r.boss}</td>
       </tr>`);
     });
-    htmlParts.push('<tr class="mi-grp-gap"><td colspan="5"></td></tr>');
+    htmlParts.push('<tr class="mi-grp-gap"><td colspan="4"></td></tr>');
     idx = j;
   }
   tbody.innerHTML = htmlParts.join('');
@@ -249,10 +245,10 @@ function _miStatusBadge(vel) {
     zombie: { label: 'Zombie', color: 'var(--ink3)' }
   };
   const m = map[vel];
-  if (m) return `<span style="font-size:10px;font-weight:700;color:${m.color};padding:2px 6px;border:1.5px solid ${m.color};border-radius:4px;white-space:nowrap">${m.label}</span>`;
+  if (m) return `<span style="font-size:11px;font-weight:700;color:${m.color};padding:3px 10px;border:1.5px solid ${m.color};border-radius:6px;white-space:nowrap">${m.label}</span>`;
   // non-aktif / kategori custom lain (bukan hasil velocity) — pakai raw label-nya
   const label = vel ? vel.charAt(0).toUpperCase() + vel.slice(1) : '—';
-  return `<span style="font-size:10px;font-weight:700;color:var(--ink3);padding:2px 6px;border:1.5px solid var(--ink3);border-radius:4px;white-space:nowrap">${label}</span>`;
+  return `<span style="font-size:11px;font-weight:700;color:var(--ink3);padding:3px 10px;border:1.5px solid var(--ink3);border-radius:6px;white-space:nowrap">${label}</span>`;
 }
 
 // ─── TABEL KANAN — Kandidat Flash Sale (sisa >= 3 pcs, syarat minimal
@@ -268,7 +264,7 @@ function miRenderFlashSale() {
   const flashFlat = _miFlashRows.filter(r => r.sisa >= 3 && (!_miSkuFilter || r.katalog === _miSkuFilter));
 
   if (!flashFlat.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
     document.getElementById('mi-flash-footer').textContent = '';
     return;
   }
@@ -307,22 +303,19 @@ function miRenderFlashSale() {
     while (j < rows.length && rows[j].katalog === kat) j++;
     const groupRows = rows.slice(idx, j);
 
-    htmlParts.push(`<tr class="mi-grp-row mi-grp-first">
-      <td style="font-weight:700">${kat}</td>
-      <td></td>
-      <td style="text-align:center;font-weight:700">${flashGroupTotals[kat].sisa.toLocaleString('id-ID')}</td>
+    htmlParts.push(`<tr class="mi-grp-head">
+      <td>${kat}</td>
+      <td style="text-align:center">${flashGroupTotals[kat].sisa.toLocaleString('id-ID')}</td>
       <td></td>
     </tr>`);
-    groupRows.forEach((r, i) => {
-      const isLast = (i === groupRows.length - 1);
-      htmlParts.push(`<tr class="mi-grp-row${isLast ? ' mi-grp-last' : ''}">
-        <td></td>
-        <td style="font-size:11px;font-weight:600">${r.sku}</td>
+    groupRows.forEach(r => {
+      htmlParts.push(`<tr class="mi-var-row">
+        <td>${r.sku}</td>
         <td style="text-align:center;font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
         <td style="text-align:center">${_miStatusBadge(r.vel)}</td>
       </tr>`);
     });
-    htmlParts.push('<tr class="mi-grp-gap"><td colspan="4"></td></tr>');
+    htmlParts.push('<tr class="mi-grp-gap"><td colspan="3"></td></tr>');
     idx = j;
   }
   tbody.innerHTML = htmlParts.join('');
@@ -334,7 +327,7 @@ function miRenderFlashSale() {
 async function loadModalInduk() {
   const tbody = document.getElementById('mi-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
 
   const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
 
@@ -434,7 +427,7 @@ async function loadModalInduk() {
     miRenderTable();
 
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger)">⚠️ Error: ${err.message}</td></tr>`;
     console.error('[clearance-induk]', err);
   }
 }
