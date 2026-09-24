@@ -30,6 +30,7 @@
 // (11) [24 Sep 2026] Setting Analisis: slide "Rincian Operasional" (selalu slide terakhir di swipe toko) + sumber tunggal angka Operasional — semuanya di analisis.html.
 //      File INI cuma diberi catatan ini SUPAYA hash deploy berubah: workflow auto-version menghitung APP_BUILD dari *.js + style.css + index.html (analisis.html TIDAK ikut),
 //      sedangkan iframe Analisis dibuka lewat analisis.html?embed=1&v=APP_BUILD. Tanpa file .js yang berubah, APP_BUILD sama -> browser/PWA tetap menyajikan analisis.html lama.
+// (12) [24 Sep 2026] Setting Analisis: Rincian dipecah jadi 3 halaman (Beban Operasional | Cicilan Aktif | Pembagian Toko) di belakang tombol DATA OPERASIONAL — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 11).
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.

@@ -1074,6 +1074,33 @@
     #page-setting .setting-rincian-card{ padding-top:24px; }   /* titik ●●● nempel di pojok kanan-atas kartu, sama kayak kartu toko */
   }
 
+  /* ===== Setting: tombol DATA OPERASIONAL + tampilan 3 halaman ===== [24 Sep 2026]
+     Pengganti slide Rincian yang dulu numpang di swipe toko. Halaman utama = kartu toko saja; tombol membuka #settingOpsView
+     (3 halaman: Beban Operasional | Cicilan Aktif | Pembagian Toko). HP: geser satu-satu + titik; laptop: 3 kartu berjajar. */
+  #page-setting .st-toolbar{ flex:0 0 auto; display:flex; justify-content:flex-end; margin-bottom:10px; }
+  #page-setting .st-opsbtn{ display:inline-flex; align-items:center; gap:6px; letter-spacing:.3px; }
+  #settingOpsView{ display:none; }
+  #page-setting.ops-open #settingToolbar, #page-setting.ops-open #settingSumRow, #page-setting.ops-open #settingCardsWrap{ display:none; }
+  #page-setting.ops-open #settingOpsView{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  #page-setting .st-opshead{ flex:0 0 auto; display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  #page-setting .st-opstitle{ font-weight:700; font-size:15px; }
+  #page-setting .st-opsperiod{ margin-left:auto; font-size:12px; color:var(--ink-soft); }
+  #settingOpsBody{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  #settingOpsSwipe{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  #settingOpsSwipe > .st-swipe-track{ flex:1 1 0; min-height:0; }
+  #page-setting .rc-head{ position:relative; }
+  #page-setting .rc-total{ flex:0 0 auto; margin:6px 0 4px; padding:8px 0 10px; border-bottom:2px solid var(--line); }
+  #page-setting .rc-total-val{ font-family:'JetBrains Mono',monospace; font-size:clamp(22px, 3.4vh, 30px); font-weight:800; line-height:1.1; }
+  #page-setting .rc-total-lbl{ display:inline-block; margin-top:6px; font-size:11px; font-weight:700; letter-spacing:.03em; color:var(--ink-soft); background:var(--panel-alt); border:1px solid var(--line); border-radius:8px; padding:4px 10px; }
+  #page-setting .rc-row.rc-sum{ border-bottom:none; border-top:2px solid var(--line); margin-top:2px; padding-top:9px; }
+  #page-setting .rc-row.rc-sum .rc-l{ font-weight:700; }
+  #page-setting .rc-row.rc-sum .rc-v{ font-weight:800; }
+  /* (?) di judul Pembagian Toko: bubble selebar kartu (bukan 340px tetap) supaya gak keluar layar HP */
+  #page-setting .rc-tip{ position:static; vertical-align:middle; margin-left:6px; }
+  #page-setting .rc-tip .info-q{ width:20px; height:20px; font-size:12px; }
+  #page-setting .rc-tip .info-bubble{ left:0; right:0; width:auto; top:calc(100% + 6px); font-size:12.5px; line-height:1.5; padding:12px 14px; font-weight:400; }
+  #page-setting .rc-tip .info-bubble::before{ display:none; }
+
   /* ===== Check Admin: dashboard-style stat cards & fee cards ===== */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
   .stat-grid.stat-grid-4{ grid-template-columns:repeat(4,1fr); }
@@ -1611,6 +1638,11 @@
          user yang bikin & pakai sendiri logic-nya. Keterangan lama (buat referensi internal aja):
          "Acuan toko — dipakai sebagai sumber data di halaman lain (RKS Overview, dll).
          Semua toko tampil di bawah, tombol Edit ada di tiap kartu toko." -->
+    <!-- [24 Sep 2026] Tombol DATA OPERASIONAL (pola sama kayak tombol "Tren & Best Seller" di Jurnal Penjualan): buka tampilan 3 halaman
+         (Beban Operasional | Cicilan Aktif | Pembagian Toko). Halaman utama Setting tetap kartu toko. -->
+    <div class="st-toolbar" id="settingToolbar">
+      <button type="button" class="btn small st-opsbtn" id="btnOpsData"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>DATA OPERASIONAL</span></button>
+    </div>
     <div class="st-swipe" id="settingSumRow">
       <div class="st-swipe-track">
         <div class="st-swipe-slide">
@@ -1637,6 +1669,14 @@
       </div>
     </div>
     <div id="settingCardsWrap"></div>
+    <div id="settingOpsView">
+      <div class="st-opshead">
+        <button type="button" class="btn ghost small" id="btnOpsBack">&larr; Kembali</button>
+        <div class="st-opstitle">Data Operasional</div>
+        <div class="st-opsperiod" id="settingOpsPeriod"></div>
+      </div>
+      <div id="settingOpsBody"></div>
+    </div>
   </section>
 
 
@@ -7103,12 +7143,21 @@ async function opsHitungSemua(force){
     omsetMap[t.id] = o;
     if(o!==null) totalOmsetGabungan += o;
   });
+  // [24 Sep 2026] Pembagian EXACT: tiap toko dibulatkan ke bawah, sisa rupiah dibagikan ke toko dgn pecahan terbesar (largest remainder) —
+  // jadi jumlah Operasional semua toko PERSIS sama dgn Total Dibagi (sebelumnya Math.round per toko bisa selisih 1-2 rupiah).
   const perToko = {};
   tokoList.forEach(t=>{
     const omset = omsetMap[t.id];
     const share = (omset!==null && totalOmsetGabungan>0) ? omset/totalOmsetGabungan : 0;
-    perToko[t.id] = { omset, share, operasional: Math.round(totalGabungan*share) };
+    const exact = totalGabungan*share;
+    perToko[t.id] = { omset, share, exact, operasional: Math.floor(exact) };
   });
+  if(totalOmsetGabungan>0){
+    let left = Math.round(totalGabungan) - tokoList.reduce((sum,t)=>sum+perToko[t.id].operasional, 0);
+    const order = tokoList.filter(t=>perToko[t.id].share>0).sort((a,b)=>(perToko[b.id].exact-perToko[b.id].operasional)-(perToko[a.id].exact-perToko[a.id].operasional));
+    for(let i=0; left>0 && order.length; i=(i+1)%order.length, left--) perToko[order[i].id].operasional += 1;
+  }
+  // (versi lama, dipertahankan sbg komentar) operasional: Math.round(totalGabungan*share)
   const res = { ymKey, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
                 bebanList:beban.list, kewajibanList:kew.list, perToko };
   if(!error) _opsAutoCache = res;   // hasil gagal TIDAK di-cache & TIDAK boleh dipakai buat menimpa angka tersimpan
@@ -7210,7 +7259,9 @@ function setSettingCardEditMode(tokoId, on){
   if(card) card.classList.toggle('is-editing', on);
   if(btn){ btn.classList.toggle('is-editing', on); btn.textContent = on ? 'Simpan' : 'Edit'; }
 }
-async function renderSetting(){
+async function renderSetting(keepOps){
+  const pgSet = document.getElementById('page-setting');
+  if(pgSet && !keepOps) pgSet.classList.remove('ops-open');   // buka Setting lagi -> selalu mulai dari halaman utama (kartu toko)
   const wrap = document.getElementById('settingCardsWrap');
   const sumEl = document.getElementById('settingSumOperasional');
   if(sumEl) sumEl.textContent = 'menghitung...';
@@ -7252,9 +7303,9 @@ async function renderSetting(){
       '<div class="hrow highlight"><div class="lbl">OPERASIONAL TOKO</div>'+
       '<div class="val">'+fmtRp(auto.operasional)+'</div></div>'+
       fieldsHtml+'</div></div>';
-  }).join('')) + (tokoList.length ? opsBuildRincianHtml(ops, tokoList) : '');
-  // titik indikator = jumlah toko + 1 (slide RINCIAN selalu paling akhir)
-  const dotsHtml = (tokoList.length ? tokoList.concat([null]) : []).map((t,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('');
+  }).join(''));
+  // [24 Sep 2026] slide Rincian dicopot dari swipe toko (pindah ke tombol DATA OPERASIONAL) -> titik indikator = jumlah toko saja
+  const dotsHtml = tokoList.map((t,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('');
   wrap.innerHTML = tokoList.length
     ? '<div class="st-swipe" id="settingStoreSwipe"><div class="st-swipe-track">'+wrap.innerHTML+'</div><div class="st-swipe-dots">'+dotsHtml+'</div></div>'
     : '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Belum ada toko.</div>';
@@ -7302,14 +7353,27 @@ async function renderSetting(){
 
   initStSwipe(document.getElementById('settingSumRow'));
   initStSwipe(document.getElementById('settingStoreSwipe'));
+  // Tampilan DATA OPERASIONAL (3 halaman) — diisi dari objek `ops` yang sama dengan minicard & kartu toko
+  const opsBody = document.getElementById('settingOpsBody');
+  const opsPeriod = document.getElementById('settingOpsPeriod');
+  if(opsPeriod) opsPeriod.textContent = 'Beban '+opsBulanLabel(ops.ymKey);
+  if(opsBody){
+    opsBody.innerHTML = opsBuildOpsPagesHtml(ops, tokoList);
+    initStSwipe(document.getElementById('settingOpsSwipe'));
+  }
+  const btnOpen = document.getElementById('btnOpsData'), btnBack = document.getElementById('btnOpsBack');
+  if(btnOpen) btnOpen.onclick = ()=>{ if(pgSet) pgSet.classList.add('ops-open'); };
+  if(btnBack) btnBack.onclick = ()=>{ if(pgSet) pgSet.classList.remove('ops-open'); };
   const rcRetry = document.getElementById('rcRetryBtn');
-  if(rcRetry) rcRetry.addEventListener('click', ()=>{ opsHitungSemua(true).then(()=>renderSetting()); });
+  if(rcRetry) rcRetry.addEventListener('click', ()=>{ opsHitungSemua(true).then(()=>renderSetting(true)); });
 }
 
 /* ================= SLIDE RINCIAN OPERASIONAL (Setting) [24 Sep 2026] =================
    Slide TERAKHIR di swipe kartu toko. Menjelaskan asal angka: Beban per akun (Jurnal bulan lalu), Cicilan aktif per hutang,
    dan porsi omset tiap toko yang menentukan Operasional masing-masing. Semua diambil dari objek `ops` (opsHitungSemua) —
    angkanya PASTI sama dengan minicard & kartu toko, karena satu sumber. */
+// [24 Sep 2026] DEAD CODE — slide Rincian tunggal (1 slide, 3 bagian) diganti 3 halaman terpisah di belakang tombol DATA OPERASIONAL
+// (opsBuildOpsPagesHtml di bawah). Tidak dipanggil lagi; dipertahankan sesuai RULES.md.
 function opsBuildRincianHtml(ops, tokoList){
   const bulan = rekapMonthLabel(ops.ymKey)+' '+ops.ymKey.slice(0,4);   // mis. "Agu 2026"
   const pct = v=> (v*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
@@ -7342,6 +7406,71 @@ function opsBuildRincianHtml(ops, tokoList){
          'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi.</div>';
   }
   return h + '</div></div></div>';
+}
+
+
+/* ================= DATA OPERASIONAL — 3 halaman [24 Sep 2026] =================
+   1) Beban Operasional (Jurnal bulan lalu, per akun)  2) Cicilan Aktif (per hutang)  3) Pembagian Toko (porsi omset -> Operasional tiap toko).
+   Semua dari objek `ops` (opsHitungSemua) — angkanya PASTI sama dgn minicard & kartu toko. Hint cuma 1 ikon (?) di judul Pembagian Toko. */
+const OPS_BULAN_NAMA = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function opsBulanLabel(ymKey){   // mis. "2026-08" -> "Agustus 2026" (rekapMonthLabel gak dipakai: dia bisa sudah memuat tahun & bergantung Rekap toko aktif)
+  return OPS_BULAN_NAMA[Number(ymKey.slice(5,7))-1]+' '+ymKey.slice(0,4);
+}
+function opsBuildOpsPagesHtml(ops, tokoList){
+  const bulan = tokoEsc(opsBulanLabel(ops.ymKey));
+  const pct = v=> (v*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
+  const row = (l, sub, v, cls)=> '<div class="rc-row'+(cls?' '+cls:'')+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'</div></div>';
+  const card = (head, totalVal, totalLbl, body)=>
+    '<div class="st-swipe-slide"><div class="card setting-rincian-card">'+
+    '<div class="rc-head">'+head+'</div>'+
+    (totalVal!==null ? '<div class="rc-total"><div class="rc-total-val">'+totalVal+'</div><div class="rc-total-lbl">'+totalLbl+'</div></div>' : '')+
+    '<div class="rc-body">'+body+'</div></div></div>';
+  const wrapSwipe = (slides, n)=>'<div class="st-swipe" id="settingOpsSwipe"><div class="st-swipe-track">'+slides+'</div><div class="st-swipe-dots">'+
+    Array.from({length:n},(_,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('')+'</div></div>';
+  const title = (t, s)=> '<div class="rc-title">'+t+'</div><div class="rc-sub">'+s+'</div>';
+
+  if(ops.error){
+    return wrapSwipe(card(title('Data Operasional','Gagal dimuat'), null, '',
+      '<div class="rc-err">Gagal memuat data dari database: '+tokoEsc(ops.error)+'<br>Angka Operasional yang tersimpan tidak diubah.'+
+      '<br><button type="button" class="rc-retry" id="rcRetryBtn">Coba lagi</button></div>'), 1);
+  }
+
+  // Halaman 1 — Beban Operasional
+  const p1 = card(title('Beban Operasional','Jurnal '+bulan+' &middot; akun Beban Operasional'),
+    fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' AKUN',
+    ops.bebanList.length
+      ? ops.bebanList.map(a=>row(tokoEsc(a.nama), (a.kode?tokoEsc(a.kode):'')+(ops.totalBeban>0?' &middot; '+pct(a.total/ops.totalBeban):''), fmtRp(a.total))).join('')
+      : '<div class="rc-empty">Tidak ada beban tercatat di Jurnal bulan '+bulan+'.</div>');
+
+  // Halaman 2 — Cicilan Aktif
+  const p2 = card(title('Cicilan Aktif','Hutang yang belum lunas per hari ini'),
+    fmtRp(ops.totalKewajiban), 'TOTAL PER BULAN &middot; '+ops.kewajibanList.length+' HUTANG',
+    ops.kewajibanList.length
+      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
+      : '<div class="rc-empty">Tidak ada hutang aktif.</div>');
+
+  // Halaman 3 — Pembagian Toko (+ ikon (?) sebagai satu-satunya hint)
+  const tipHtml = '<span class="info-tip rc-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">'+
+    'Beban Operasional (Jurnal bulan lalu) + Cicilan Aktif digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
+    'Beban hanya dari sub-kelompok Beban Operasional: Beban Produksi sudah di HPP, Bunga Pinjaman sudah di Cicilan.<br>'+
+    'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
+    '</div></span>';
+  let sumToko = 0;
+  const rowsToko = tokoList.map(t=>{
+    const a = ops.perToko[t.id] || { omset:null, share:0, operasional:0 };
+    const nm = opsReadTokoSettings(t.id).namaToko || t.nama || '-';
+    sumToko += a.operasional;
+    const sub = a.omset===null ? 'belum ada Rekap '+bulan : 'omset '+fmtRp(a.omset)+' &middot; porsi '+pct(a.share);
+    return row(tokoEsc(nm), sub, fmtRp(a.operasional), 'rc-toko');
+  }).join('');
+  const p3 = card(title('Pembagian Toko'+tipHtml,'Porsi omset Rekap '+bulan),
+    fmtRp(ops.totalGabungan), 'BEBAN + CICILAN',
+    row('Beban Operasional','',fmtRp(ops.totalBeban)) + row('Cicilan Aktif','',fmtRp(ops.totalKewajiban)) +
+    '<div class="rc-sec"><span>Per toko</span><span class="rc-sec-val">'+tokoList.length+' toko</span></div>'+
+    rowsToko +
+    row('TOTAL DIBAGI', ops.totalOmsetGabungan>0 ? 'omset gabungan '+fmtRp(ops.totalOmsetGabungan) : 'belum ada Rekap '+bulan+' di toko manapun', fmtRp(sumToko), 'rc-sum'));
+
+  return wrapSwipe(p1+p2+p3, 3);
 }
 
 /* ================= MINICARD SWIPE (Setting) =================
