@@ -16,11 +16,17 @@
 // sumber "Produksi Sendiri".
 
 document.getElementById('page-stok-masuk').innerHTML = `
+  <style>
+    /* 27 Sep 2026: sama kayak gotcha #paste-area-produk dkk di style.css —
+       index.html maksa color-scheme:dark, placeholder browser jadi terang
+       di atas bg krem kalau gak di-override eksplisit. */
+    #sm-search::placeholder, #sm-keterangan::placeholder { color: var(--ink3); opacity: 1; }
+  </style>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div style="font-size:13px;color:var(--ink3)" id="sm-summary">Memuat...</div>
     <div style="display:flex;gap:8px;align-items:center">
       <input type="text" id="sm-search" placeholder="Cari SKU..." oninput="renderStokMasuk()"
-        style="font-family:var(--f);font-size:12.5px;padding:6px 10px;border:1.5px solid var(--ink3);background:var(--cream);width:160px;box-sizing:border-box">
+        style="font-family:var(--f);font-size:12.5px;padding:6px 10px;border:1.5px solid var(--ink3);background:var(--cream);width:160px;box-sizing:border-box;color:var(--ink)">
       <button class="btn btn-sm btn-primary" onclick="smOpenTambah()"><i class="ti ti-plus"></i> Tambah (Produksi Sendiri)</button>
     </div>
   </div>
@@ -49,22 +55,22 @@ document.getElementById('page-stok-masuk').innerHTML = `
       <div class="modal-title"><i class="ti ti-hammer"></i> Stock Masuk — Produksi Sendiri</div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">Tanggal</label>
-        <input type="date" id="sm-tanggal" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f)">
+        <input type="date" id="sm-tanggal" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f);color:var(--ink)">
       </div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">SKU Variasi</label>
-        <select id="sm-sku" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f)">
+        <select id="sm-sku" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f);color:var(--ink)">
           <option value="">— Pilih SKU —</option>
         </select>
       </div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">Qty (pcs)</label>
-        <input type="number" min="1" id="sm-qty" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f)">
+        <input type="number" min="1" id="sm-qty" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f);color:var(--ink)">
       </div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">Keterangan (opsional)</label>
         <input type="text" id="sm-keterangan" placeholder="mis. batch Rajut minggu ini"
-          style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f)">
+          style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f);color:var(--ink)">
       </div>
       <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
         <button class="btn btn-sm" onclick="hideModal('modal-sm-tambah')">Batal</button>

@@ -873,12 +873,20 @@ function showTambahStok() {
 // stokSkuSheetSelectVariasi) — cuma dicabang lewat flag _stokPickerIntent.
 function stokBukaEditPicker() {
   _stokPickerIntent = 'edit';
+  document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok';
   document.getElementById('inp-sku-induk').value = '';
   _stokSetIndukLabel(null);
   document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
-  stokSkuSheetOpen('induk');
+  // BUG (27 Sep 2026): #stok-sku-sheet-overlay itu NESTED di dalam
+  // #modal-stok-masuk (bukan overlay independen) — kalau modal-nya belum
+  // di-.open dulu, sheet-nya ketutup gara-gara parent-nya display:none,
+  // biarpun sheet sendiri udah dikasih class .open. Makanya tombol "Edit
+  // Stock" keliatan "stuck"/gak ngapa-ngapain. Fix: buka modal-nya DULU
+  // (kayak pola showTambahStok), baru sheet-nya nyusul — pola sama persis.
+  document.getElementById('modal-stok-masuk').classList.add('open');
+  setTimeout(function(){ stokSkuSheetOpen('induk'); }, 150);
 }
 
 function cancelStokForm() {
