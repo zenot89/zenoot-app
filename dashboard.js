@@ -24,7 +24,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
         <!-- Header: biru -->
-        <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
+        <div class="nw-slide-header nw-slide-s1 nw-slide-header-solo" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
             <div class="nw-slide-label"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
             <div style="display:flex;align-items:center;gap:6px">
@@ -34,13 +34,6 @@ document.getElementById('page-dashboard').innerHTML = `
           </div>
           <div class="nw-slide-value" id="nw-total">Rp —</div>
           <div class="nw-slide-sub" id="nw-update-time">menghitung...</div>
-        </div>
-        <!-- Data box -->
-        <div class="nw-slide-data">
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Aset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-minus"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -76,6 +69,38 @@ document.getElementById('page-dashboard').innerHTML = `
 
     </div><!-- /nw-swipe-track -->
   </div><!-- /nw-swipe-container -->
+
+  <!-- ═══ ROW 2: FINANCIAL OVERVIEW — compact, 4 kartu ═══════════ -->
+  <div class="zd-fin-grid">
+    <div class="zd-fin-card zd-fin-blue">
+      <div class="zd-fin-ic"><i class="ti ti-building-bank"></i></div>
+      <div class="zd-fin-body">
+        <div class="zd-fin-label">Total Asset</div>
+        <div class="zd-fin-val nw-pos" id="nw-aset">—</div>
+      </div>
+    </div>
+    <div class="zd-fin-card zd-fin-red">
+      <div class="zd-fin-ic"><i class="ti ti-credit-card-off"></i></div>
+      <div class="zd-fin-body">
+        <div class="zd-fin-label">Total Hutang</div>
+        <div class="zd-fin-val nw-neg" id="nw-hutang">—</div>
+      </div>
+    </div>
+    <div class="zd-fin-card zd-fin-teal">
+      <div class="zd-fin-ic"><i class="ti ti-truck-delivery"></i></div>
+      <div class="zd-fin-body">
+        <div class="zd-fin-label">Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></div>
+        <div class="zd-fin-val nw-pos" id="nw-escrow">—</div>
+      </div>
+    </div>
+    <div class="zd-fin-card zd-fin-neutral">
+      <div class="zd-fin-ic"><i class="ti ti-chart-line"></i></div>
+      <div class="zd-fin-body">
+        <div class="zd-fin-label">Laba / Rugi</div>
+        <div class="zd-fin-val" id="nw-laba">—</div>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
@@ -168,7 +193,7 @@ document.getElementById('page-dashboard').innerHTML = `
   </div>
 
   <!-- ═══ ROW 3: GRAFIK PENJUALAN + TOP SKU ════════════════════ -->
-  <div class="db-swipe-pair" id="swipe-pair-1">
+  <div class="db-swipe-pair zd-wide-21" id="swipe-pair-1">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
         <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Top SKU</span></div>

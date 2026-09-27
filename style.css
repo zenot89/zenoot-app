@@ -4792,113 +4792,135 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* =================================================================
    NW SWIPE CONTAINER - Net Worth + Beban + Income
-   Global: warna, tipografi, data box (berlaku laptop + mobile)
+   REDESIGN v6 (27 Sep 2026): dulu 3 kartu flat abu #808080 rata semua
+   (kaku, gak ada hierarki warna) — diganti kartu terang bertinta warna
+   semantik per kategori (biru=netral/net worth, oranye=beban/keluar,
+   ijo=cash flow/masuk), radius besar + shadow lembut senada .card
+   lain, aksen garis warna di kiri biar gampang di-scan.
    ================================================================= */
 
-/* Header summary box */
 .nw-slide-header {
-  border-radius: 10px 10px;
-  padding: 14px 16px 14px;
-  margin-bottom: 6px;
+  border-radius: 16px 16px 0 0;
+  padding: 16px 18px 14px;
+  margin-bottom: 0;
+  border-left: 4px solid transparent;
+  position: relative;
 }
 
-/* Palet ink di-scope ke container ini biar semua turunan yang baca
-   var(--ink)/var(--ink2)/var(--ink3)/var(--ink4)/var(--danger)/var(--ok) —
-   termasuk yang di-inject langsung dari dashboard.js (beban-row, income-row,
-   badge, placeholder) — otomatis ikut kontras, tanpa perlu override manual
-   di tiap child.
-   BUG NYATA (6 Sep 2026): --ink2 KELUPAAN di-scope pas list ini pertama
-   dibikin — row label di slide 3/Free Cash Flow (_renderIncome di
-   dashboard.js, pake `color:var(--ink2)` eksplisit) balik ke warna default
-   tema terang (`#8A8580`) yang nyaris gak keliatan di atas background card
-   `#808080`. Slide 2/Beban aman krn row label-nya (_renderBeban) gak set
-   warna eksplisit, ikut var(--ink) yang emang udah kescope. **Kalau nambah
-   elemen teks baru di dalem container ini, cek dulu variable ink APA yang
-   dipake — kalau bukan salah satu dari 5 yang di-scope di bawah, bakal
-   balik ke tema terang & keliatan pudar/ilang di atas bg gelap-medium ini.**
-   CATATAN kontras: background card #808080, teks --ink/--ink2/--ink3 di
-   bawah semua ~AA (~4.5-4.9:1) buat teks normal — bukan AAA lagi (dulu
-   ~6-6.6:1 pas bg masih #9b968d, turun pas bg diganti #808080 6 Sep 2026). */
-#nw-swipe-container{
-  --ink:#0d0d0d;
-  --ink2:#1a1714;
-  --ink3:#1a1714;
-  --ink4:#625d55;
-  --danger:#2e0f0a;
-  --ok:#032015;
-}
-
-/* Warna header per slide */
-.nw-slide-s1 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s2 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
-.nw-slide-s3 { background: #808080; border: 1px solid var(--ovl-0_09); border-bottom: none; }
+.nw-slide-s1 { background: linear-gradient(180deg,#EEF4FF 0%,#FFFFFF 65%); border: 1px solid var(--dash-blue-10); border-left: 4px solid var(--dash-blue); border-bottom: none; }
+/* Slide 1 (Net Worth) gak punya data-box lagi — kartu solo, rounded semua sisi */
+.nw-slide-header-solo{ border-radius: 16px; border-bottom: 1px solid var(--dash-blue-10) !important; padding-bottom: 18px; }
+.nw-slide-s2 { background: linear-gradient(180deg,#FFF3EA 0%,#FFFFFF 65%); border: 1px solid var(--dash-orange-10); border-left: 4px solid var(--dash-orange); border-bottom: none; }
+.nw-slide-s3 { background: linear-gradient(180deg,#EAFBF3 0%,#FFFFFF 65%); border: 1px solid var(--dash-green-10); border-left: 4px solid var(--dash-green); border-bottom: none; }
 
 .nw-slide-header .nw-slide-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ovl-0_65);
+  color: var(--ink3);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 .nw-slide-header .nw-slide-value {
-  font-size: clamp(22px, 3.2vw, 32px);
+  font-size: clamp(24px, 3.4vw, 34px);
   font-weight: 800;
   font-family: var(--mono,'IBM Plex Mono',monospace);
   letter-spacing: -0.02em;
   line-height: 1.15;
-  color: #111;
+  color: var(--ink);
   margin: 2px 0 3px;
 }
-.nw-slide-s1 .nw-slide-value { color: var(--ink); }
-.nw-slide-s2 .nw-slide-value { color: var(--danger, #e05c4b); }
-.nw-slide-s3 .nw-slide-value { color: var(--ok, #2ecc7a); }
+.nw-slide-s1 .nw-slide-value { color: var(--dash-blue); }
+.nw-slide-s2 .nw-slide-value { color: var(--dash-orange); }
+.nw-slide-s3 .nw-slide-value { color: var(--dash-green); }
 .nw-slide-header .nw-slide-sub {
   font-size: 11px;
-  color: var(--ovl-0_6);
+  color: var(--ink3);
   margin-top: 2px;
 }
 
-/* Data box - warna senada header */
+/* Data box - senada header (tint lebih pudar), nyambung tanpa jahitan */
 .nw-slide-data {
-  border-radius: 10px;
+  border-radius: 0 0 16px 16px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 10px 14px;
+  padding: 10px 18px 14px;
   box-sizing: border-box;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,0.2) transparent;
+  scrollbar-color: var(--ovl-0_12) transparent;
+  border-left: 4px solid transparent;
 }
 .nw-slide-data::-webkit-scrollbar { width: 3px; }
 .nw-slide-data::-webkit-scrollbar-track { background: transparent; }
-.nw-slide-data::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 2px; }
+.nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
 
-/* Warna data box per slide */
-.nw-slide-s1 + .nw-slide-data { background: #808080; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
-.nw-slide-s2 + .nw-slide-data { background: #808080; border: 1px solid var(--ovl-0_09); border-top: none; scrollbar-color: var(--ovl-0_2) transparent; }
-.nw-slide-s3 + .nw-slide-data {
-  background: #808080;
-  border: 1px solid var(--ovl-0_09);
-  border-top: none;
-  scrollbar-color: var(--ovl-0_2) transparent;
+.nw-slide-s1 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-blue-10); border-left: 4px solid var(--dash-blue); border-top: none; }
+.nw-slide-s2 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-orange-10); border-left: 4px solid var(--dash-orange); border-top: none; }
+.nw-slide-s3 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-green-10); border-left: 4px solid var(--dash-green); border-top: none; }
+
+.nw-slide-data .nw-row,
+.nw-slide-data .beban-row { border-color: var(--ovl-0_06); }
+
+/* Badge dan refresh button di header */
+.nw-refresh-btn { color: var(--ink3); }
+.nw-refresh-btn:hover { color: var(--ink); background: var(--ovl-0_06); }
+
+/* Kartu hero (nw-swipe-slide) ikut shadow lembut senada card lain */
+#nw-swipe-container .nw-swipe-slide { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+#nw-swipe-container .nw-slide-header,
+#nw-swipe-container .nw-slide-data { box-shadow: none; }
+
+/* ── ROW 2: FINANCIAL OVERVIEW — 4 kartu compact, ikon bulat + aksen warna ── */
+.zd-fin-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.nw-slide-s3 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
-.nw-slide-s2 + .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_2); }
+.zd-fin-card{
+  background: var(--cream2);
+  border: 1px solid var(--ovl-0_05);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
+}
+.zd-fin-ic{
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.zd-fin-blue .zd-fin-ic{ background: var(--dash-blue-10); color: var(--dash-blue); }
+.zd-fin-red  .zd-fin-ic{ background: var(--dash-red-10);  color: var(--dash-red); }
+.zd-fin-teal .zd-fin-ic{ background: var(--dash-teal-10); color: var(--dash-teal); }
+.zd-fin-neutral .zd-fin-ic{ background: var(--dash-gray-10); color: var(--dash-gray); }
+.zd-fin-body{ min-width: 0; }
+.zd-fin-label{
+  font-size: 10px; font-weight: 700; color: var(--ink3);
+  text-transform: uppercase; letter-spacing: .06em;
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.zd-fin-val{
+  font-size: 16px; font-weight: 700; font-family: var(--mono);
+  margin-top: 2px; white-space: nowrap;
+}
+@media (max-width: 900px){
+  .zd-fin-grid{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px){
+  .zd-fin-val{ font-size: 14px; }
+}
 
-/* Teks label/value di data box s1, s2, s3 sekarang ikut var(--ink3)/var(--ink)/
-   var(--ok)/var(--danger) yang udah di-scope kontras di #nw-swipe-container
-   (lihat blok di atas) — gak perlu override warna manual lagi di sini. */
-.nw-slide-s1 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
-.nw-slide-s2 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
-.nw-slide-s3 + .nw-slide-data .nw-row { border-color: var(--ovl-0_06); }
-
-/* Badge dan refresh button di header berwarna */
-.nw-slide-s2 .nw-refresh-btn { color: var(--ovl-0_75); }
-.nw-slide-s2 .nw-refresh-btn:hover { color: var(--ink); background: var(--ovl-0_12); }
+/* ── ROW 3: Tren Penjualan (lebar) + Top 5 SKU (compact) — rasio 2:1 di desktop ── */
+@media (min-width: 768px){
+  .db-swipe-pair.zd-wide-21{ grid-template-columns: 2fr 1fr; }
+}
 
 /* ======================================================
    PORTRAIT MOBILE - layout swipe
@@ -4955,7 +4977,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-direction: row;
     gap: 12px;
     transform: none !important;
-    align-items: stretch;
+    align-items: flex-start;
   }
   .nw-swipe-slide {
     display: flex;
