@@ -903,7 +903,12 @@
   }
   .pl-produk-btn:hover{ background:var(--panel-alt); }
   .pl-produk-btn .pl-car{ color:var(--ink-soft); font-size:11px; flex:0 0 auto; }
-  #plSkuSheet{ max-height:78vh; display:flex; flex-direction:column; overflow:hidden; }
+  #plSkuSheet{ max-height:78vh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+  #plSkuSheetClose{
+    position:absolute; top:8px; right:10px; width:30px; height:30px; border:none;
+    background:var(--panel-alt); border-radius:50%; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:15px; z-index:2; padding:0;
+  }
   #plSkuSheetTitle{ font-size:14.5px; font-weight:700; padding:0 2px 10px; display:flex; align-items:center; gap:6px; flex:0 0 auto; }
   .pl-sheet-back{ all:unset; cursor:pointer; font-size:16px; color:var(--ink-soft); padding:2px 6px 2px 2px; line-height:1; }
   .pl-sheet-back:hover{ color:var(--ink); }
@@ -922,6 +927,7 @@
   .pl-sheet-item-main{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pl-sheet-item-meta{ font-size:11.5px; color:var(--ink-soft); white-space:nowrap; flex:0 0 auto; }
   .pl-sheet-empty{ padding:28px 12px; text-align:center; color:var(--ink-soft); font-size:12.5px; font-style:italic; }
+  .pl-sheet-group{ font-size:11px; font-weight:700; color:var(--ink-soft); padding:10px 10px 2px; letter-spacing:.06em; display:flex; align-items:center; gap:5px; }
 
   .hrow{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); gap:14px; }
   /* 20 Sep 2026: HPP Produk baca-saja penuh (SKU Induk juga gak bisa diedit dari sini) — gak ada cursor pointer / efek hover */
@@ -2842,7 +2848,15 @@ function tokoRenderRows(){
     }
     wrap.innerHTML = rows + footer + `<div class="toko-sep"></div><button type="button" class="toko-editdone" data-a="editdone">Selesai</button>`;
   } else {
-    const rows = reals.map(t=>{
+    // "Sering & Terakhir Digunakan" — toko cuma dikit & selalu full ditampilin (gak ada
+    // hide), jadi top dipakai buat NGURUTIN ke atas (bukan disisipin dobel). [27 Sep 2026]
+    let ordered = reals;
+    if(!q){
+      const byId = {}; reals.forEach(t=>byId[t.id]=t);
+      const top = caHistTop('toko', reals.length).map(id=>byId[id]).filter(Boolean);
+      ordered = top.concat(reals.filter(t=>top.indexOf(t)===-1));
+    }
+    const rows = ordered.map(t=>{
       const isAct = t.id===TOKO_ACTIVE;
       return `<div class="toko-item" data-id="${tokoEsc(t.id)}"><span class="tick">${isAct?'✓':''}</span><div class="tk-main"><div class="tk-name">${tokoEsc(t.nama)}</div><div class="tk-user">${t.username ? 'Shopee: '+tokoEsc(t.username) : 'belum ada file Income'}</div></div></div>`;
     }).join('') || '<div class="toko-empty">Toko gak ketemu.</div>';
@@ -2898,7 +2912,7 @@ function tokoTogglePop(){
       tokoRenderRows();
       return;
     }
-    if(item && item.dataset.id!==TOKO_ACTIVE) tokoSwitch(item.dataset.id);
+    if(item && item.dataset.id!==TOKO_ACTIVE){ caHistPush('toko', item.dataset.id); tokoSwitch(item.dataset.id); }
     else if(item) tokoClosePop();   // klik toko yang lagi aktif: tutup aja
   });
   const r = badge.getBoundingClientRect();
@@ -6196,6 +6210,29 @@ function fillProdukSelect(selectEl, selectedSku){
   if(selectedSku && skus.includes(selectedSku)) selectEl.value = selectedSku;
 }
 
+/* ─── RIWAYAT "SERING & TERAKHIR DIGUNAKAN" untuk picker Analisis ───
+   analisis.html jalan di iframe sendiri (gak akses app.js zenOt), jadi
+   dibikin versi lokal — pola & localStorage key (zhist_*) SAMA PERSIS
+   dengan zHistPush/zHistTop di app.js biar konsisten. [27 Sep 2026] */
+function caHistPush(key, id){
+  if(id===undefined||id===null||id==='') return;
+  try{
+    let map = JSON.parse(localStorage.getItem('zhist_'+key)||'{}')||{};
+    const k = String(id);
+    const cur = map[k] || {n:0,t:0};
+    map[k] = {n:cur.n+1, t:Date.now()};
+    const keys = Object.keys(map).sort((a,b)=>(map[b].n-map[a].n)||(map[b].t-map[a].t));
+    if(keys.length>20){ const pr={}; keys.slice(0,20).forEach(x=>pr[x]=map[x]); map=pr; }
+    localStorage.setItem('zhist_'+key, JSON.stringify(map));
+  }catch(e){}
+}
+function caHistTop(key, n){
+  try{
+    const map = JSON.parse(localStorage.getItem('zhist_'+key)||'{}')||{};
+    return Object.keys(map).sort((a,b)=>(map[b].n-map[a].n)||(map[b].t-map[a].t)).slice(0, n||5);
+  }catch(e){ return []; }
+}
+
 /* ================= [22 Sep 2026] Picker "Pilih Produk" — bottom sheet, dipakai bareng oleh By Operasional/By Target Qty/By Harga Jual =================
    Pola sama "Tambah SKU Baru" (ensureAddSkuSheet, lihat di atas): dibangun sekali lewat JS lalu di-reuse. 2 langkah kayak picker
    Induk/Variasi jurnal-penjualan.js: pilih SKU Induk dulu, lanjut pilih Variasi — begitu Variasi dipilih, identitasnya "dikembalikan"
@@ -6211,6 +6248,7 @@ function ensurePlSkuSheet(){
   div.className = 'ca-sheet-overlay';
   div.innerHTML = `
     <div class="ca-sheet" id="plSkuSheet">
+      <button type="button" id="plSkuSheetClose" aria-label="Tutup"><i class="ti ti-x"></i></button>
       <div class="ca-sheet-handle"></div>
       <div id="plSkuSheetTitle">Pilih Produk</div>
       <input type="text" id="plSkuSheetSearch" placeholder="Cari produk..." autocomplete="off">
@@ -6218,6 +6256,7 @@ function ensurePlSkuSheet(){
     </div>`;
   document.body.appendChild(div);
   div.addEventListener('click', e=>{ if(e.target===div) plSkuSheetClose(); });
+  document.getElementById('plSkuSheetClose').addEventListener('click', plSkuSheetClose);
   document.getElementById('plSkuSheetSearch').addEventListener('input', e=>plSkuSheetRender(e.target.value));
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') plSkuSheetClose(); });
 }
@@ -6253,20 +6292,34 @@ function plSkuSheetRenderInduk(q){
     listEl.innerHTML = `<div class="pl-sheet-empty">${groups.length===0 ? 'Produk belum ada / HPP belum diisi — tambah di Kelola Produk' : 'Tidak ada produk yang cocok'}</div>`;
     return;
   }
-  listEl.innerHTML = filtered.map(g=>{
+  function _rowHtml(g){
     const hpps = [...new Set(g.variants.map(v=>v.hpp))];
     const hppLabel = hpps.length<=1 ? fmtRp(hpps[0]||0) : (fmtRp(Math.min(...hpps))+'–'+fmtRp(Math.max(...hpps)));
     return `<div class="pl-sheet-item" data-kat="${byhEsc(g.katalog)}">
       <span class="pl-sheet-item-main">${byhEsc(g.katalog)}</span>
       <span class="pl-sheet-item-meta">${g.variants.length} var · ${hppLabel}</span>
     </div>`;
-  }).join('');
+  }
+  let html = '';
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong. [27 Sep 2026]
+  if(!qq){
+    const byKat = {}; groups.forEach(g=>byKat[g.katalog]=g);
+    const top = caHistTop('pl_produk', 5).map(k=>byKat[k]).filter(Boolean);
+    if(top.length){
+      html += `<div class="pl-sheet-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>`;
+      html += top.map(_rowHtml).join('');
+      html += `<div class="pl-sheet-group">── Semua ──</div>`;
+    }
+  }
+  html += filtered.map(_rowHtml).join('');
+  listEl.innerHTML = html;
   listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
     el.addEventListener('click', ()=>plSkuSheetSelectInduk(el.dataset.kat));
   });
 }
 
 function plSkuSheetSelectInduk(katalog){
+  caHistPush('pl_produk', katalog); // riwayat sering/terakhir dipakai
   const group = zKatalogGroups().find(g=>g.katalog===katalog);
   const distinctHpp = group ? [...new Set(group.variants.map(v=>v.hpp))] : [];
   // [22 Sep 2026] Kalau HPP semua varian dalam SKU Induk ini SAMA (kasus umum), langsung dipakai --
@@ -6305,7 +6358,7 @@ function plSkuSheetRenderVariasi(q){
     listEl.innerHTML = `<div class="pl-sheet-empty">Tidak ada variasi yang cocok</div>`;
     return;
   }
-  listEl.innerHTML = filtered.map(v=>{
+  function _rowHtml(v){
     let label = v.sku_variasi;
     if(_plSkuIndukPicked && label.toLowerCase().startsWith(_plSkuIndukPicked.toLowerCase())){
       label = label.slice(_plSkuIndukPicked.length).replace(/^[_\-\s]+/,'') || v.sku_variasi;
@@ -6314,13 +6367,27 @@ function plSkuSheetRenderVariasi(q){
       <span class="pl-sheet-item-main">${byhEsc(label)}</span>
       <span class="pl-sheet-item-meta">${fmtRp(v.hpp)}</span>
     </div>`;
-  }).join('');
+  }
+  let html = '';
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong. [27 Sep 2026]
+  if(!qq){
+    const bySku = {}; variants.forEach(v=>bySku[v.sku_variasi.toUpperCase()]=v);
+    const top = caHistTop('pl_variasi', 5).map(k=>bySku[k]).filter(Boolean);
+    if(top.length){
+      html += `<div class="pl-sheet-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>`;
+      html += top.map(_rowHtml).join('');
+      html += `<div class="pl-sheet-group">── Semua ──</div>`;
+    }
+  }
+  html += filtered.map(_rowHtml).join('');
+  listEl.innerHTML = html;
   listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
     el.addEventListener('click', ()=>plSkuSheetSelectVariasi(el.dataset.sku));
   });
 }
 
 function plSkuSheetSelectVariasi(skuVariasi){
+  caHistPush('pl_variasi', skuVariasi.toUpperCase()); // riwayat sering/terakhir dipakai
   const picked = plResolveIdentity(_plSkuIndukPicked, skuVariasi);
   plSkuSheetClose();
   plApplyPickedSku(_plSkuCtx, picked);

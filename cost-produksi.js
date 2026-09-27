@@ -234,6 +234,12 @@ document.getElementById('page-cost-produksi').innerHTML = `
       max-height:80vh; display:none; flex-direction:column; overflow:hidden;
     }
     #cp-picker-sheet.open { display:flex; transform:translateY(0); }
+    #cp-picker-sheet-close {
+      position:absolute; top:10px; right:10px; width:32px; height:32px;
+      border:none; background:var(--ovl-0_06); border-radius:50%;
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      color:var(--ink3); font-size:16px; z-index:2; padding:0;
+    }
     .cp-picker-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:12px auto 4px; flex:none; }
     .cp-picker-sheet-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 16px 12px; letter-spacing:-.2px; flex:none; }
     .cp-picker-sheet-search-wrap { flex:none; padding:0 16px 10px; }
@@ -642,6 +648,7 @@ document.getElementById('page-cost-produksi').innerHTML = `
        Dipakai buat SEMUA picker input di Cost Produksi (Tukang, SKU). ═══ -->
   <div id="cp-picker-overlay" onclick="cpPickerSheetClose()"></div>
   <div id="cp-picker-sheet">
+    <button type="button" id="cp-picker-sheet-close" onclick="cpPickerSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
     <div class="cp-picker-handle"></div>
     <div id="cp-picker-sheet-title" class="cp-picker-sheet-title">Pilih</div>
     <div class="cp-picker-sheet-search-wrap">
@@ -1138,11 +1145,16 @@ var _cpPickerFiltered = [];
 
 // Picker yg dapet "Sering & Terakhir Digunakan" (riwayat: zHistTop/zHistPush di app.js),
 // dikenali dari judul sheet. SKU (Jurnal) + SKU Induk (Rate & Edit Massal) berbagi 1 riwayat,
-// begitu juga 2 picker Variasi. Tukang/Divisi/Periode/menu sengaja gak dapet (item dikit). [24 Sep 2026]
+// begitu juga 2 picker Variasi & 2 picker Tukang. [27 Sep 2026] Rollout ke SEMUA picker,
+// termasuk Tukang/Divisi/Periode yang tadinya sengaja dilewat (item dikit) — per keputusan user.
 var _CP_HIST_BY_TITLE = {
   'Ngerjain Apa (SKU)': 'cp_sku',
   'Pilih SKU Induk (Boss: DIMI)': 'cp_sku',
-  'Pilih Variasi': 'cp_variasi'
+  'Pilih Variasi': 'cp_variasi',
+  'Pilih Tukang': 'cp_tukang',
+  'Export PDF — Pilih Tukang': 'cp_tukang',
+  'Pilih Divisi': 'cp_divisi',
+  'Pilih Periode': 'cp_periode'
 };
 function cpPickerSheetOpen(title, options, selectedKey, onSelect) {
   _cpPickerCtx = { options: options, onSelect: onSelect, selectedKey: selectedKey, histKey: _CP_HIST_BY_TITLE[title] || null };

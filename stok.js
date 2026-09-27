@@ -73,6 +73,12 @@ document.getElementById('page-stok').innerHTML = `
       max-height: 85vh; display: none; flex-direction: column; overflow: hidden;
     }
     #stok-sku-sheet.open { display: flex; transform: translateY(0); }
+    #stok-sku-sheet-close {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: none; background: var(--ovl-0_06); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+    }
     #stok-sku-sheet-handle {
       width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
       margin: 12px auto 4px; flex: none;
@@ -347,6 +353,7 @@ document.getElementById('page-stok').innerHTML = `
            konsisten sama picker akun di Kas & Jurnal / SKU di Tambah Penjualan. -->
       <div id="stok-sku-sheet-overlay" onclick="if(event.target===this) stokSkuSheetClose()"></div>
       <div id="stok-sku-sheet">
+        <button type="button" id="stok-sku-sheet-close" onclick="stokSkuSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
         <div id="stok-sku-sheet-handle"></div>
         <div id="stok-sku-sheet-title">Pilih SKU</div>
         <div id="stok-sku-sheet-search-wrap">
@@ -1139,6 +1146,19 @@ function _stokSkuSheetRenderVariasi(q) {
   } else if (!items.length) {
     html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada variasi yang cocok' : 'Belum ada variasi untuk SKU ini') + '</div>';
   } else {
+    // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
+    if (!q) {
+      var topSku = zHistTop('stok_variasi', 5).filter(function(k) {
+        return items.some(function(p) { return _stokGetSku(p).toUpperCase() === k; });
+      });
+      if (topSku.length) {
+        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
+        topSku.forEach(function(sku) {
+          html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\')"><span>' + sku + '</span></div>';
+        });
+        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua ──</div>';
+      }
+    }
     items.forEach(function(p) {
       var sku = _stokGetSku(p);
       html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\')"><span>' + sku + '</span></div>';
@@ -1189,6 +1209,7 @@ function stokPilihKatalog(katalog, skipAutoOpen) {
 }
 
 function stokSkuSheetSelectVariasi(sku) {
+  zHistPush('stok_variasi', sku.toUpperCase()); // riwayat sering/terakhir dipakai
   _stokSelectedSku = sku.toUpperCase();
   var sel = document.getElementById('inp-sku');
   if (sel) sel.value = sku;

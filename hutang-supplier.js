@@ -398,9 +398,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-picker-box {
       width:100%; max-width:340px; max-height:70vh; background:var(--cream);
       border-radius:16px; box-shadow:0 8px 28px rgba(38,34,32,.35);
-      display:flex; flex-direction:column; overflow:hidden;
+      display:flex; flex-direction:column; overflow:hidden; position:relative;
     }
     .hs-picker-title { font-size:15px; font-weight:800; color:var(--ink); padding:14px 16px 8px; flex:none; }
+    .hs-picker-close {
+      position:absolute; top:8px; right:8px; width:30px; height:30px;
+      border:none; background:var(--ink4); border-radius:50%;
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      color:var(--ink3); font-size:15px; z-index:2; padding:0;
+    }
     .hs-picker-search {
       margin:0 16px 10px; padding:9px 11px; border-radius:8px; border:1px solid var(--ink4);
       background:var(--cream2); color:var(--ink); font-family:var(--f); font-size:14px; outline:none; flex:none;
@@ -729,6 +735,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div class="hs-picker-title" style="display:flex;align-items:center;gap:8px">
         <button id="hs-bon-bayar-picker-back" onclick="hsBonBayarPickerBack()" style="display:none;background:none;border:none;padding:0;color:var(--ink);font-size:17px;cursor:pointer;flex:none"><i class="ti ti-arrow-left"></i></button>
         <span id="hs-bon-bayar-picker-title-text">Pilih Bon yang Mau Dibayar</span>
+        <button type="button" onclick="hsBonBayarPickerClose()" aria-label="Tutup" style="margin-left:auto;background:none;border:none;padding:4px;color:var(--ink3);font-size:17px;cursor:pointer;flex:none"><i class="ti ti-x"></i></button>
       </div>
       <input type="text" id="hs-bon-bayar-picker-search" class="hs-picker-search" placeholder="Cari supplier / no nota..." oninput="hsBonBayarPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-bon-bayar-picker-list"></div>
@@ -748,6 +755,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
        tap 1x langsung kepilih, gak pake checkbox. -->
   <div class="hs-picker-overlay" id="hs-sku-picker-overlay" onclick="if(event.target===this) hsBrgSkuPickerClose()">
     <div class="hs-picker-box">
+      <button type="button" class="hs-picker-close" onclick="hsBrgSkuPickerClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
       <div class="hs-picker-title">Pilih SKU Variasi</div>
       <input type="text" id="hs-sku-picker-search" class="hs-picker-search" placeholder="Cari katalog / SKU..." oninput="hsBrgSkuPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-sku-picker-list"></div>
@@ -851,6 +859,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
        terlepas dari modal Paste Massal di baliknya. ── -->
   <div class="hs-picker-overlay" id="hs-sup-picker-overlay" onclick="if(event.target===this) hsSupPickerClose()">
     <div class="hs-picker-box">
+      <button type="button" class="hs-picker-close" onclick="hsSupPickerClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
       <div class="hs-picker-title">Pilih Supplier</div>
       <input type="text" id="hs-sup-picker-search" class="hs-picker-search" placeholder="Cari supplier..." oninput="hsSupPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-sup-picker-list"></div>
@@ -898,6 +907,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
        opsi "Manual" — sekarang HARUS dari Master Barang, gak ada jalan lain. ── -->
   <div class="hs-picker-overlay" id="hs-brg-picker-overlay" onclick="if(event.target===this) hsBrgPickerClose()">
     <div class="hs-picker-box">
+      <button type="button" class="hs-picker-close" onclick="hsBrgPickerClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
       <div class="hs-picker-title">Pilih Barang</div>
       <input type="text" id="hs-brg-picker-search" class="hs-picker-search" placeholder="Cari barang..." oninput="hsBrgPickerFilter(this.value)">
       <div class="hs-picker-list" id="hs-brg-picker-list"></div>
@@ -2670,17 +2680,36 @@ function _hsBrgPickerRender(q) {
     listEl.appendChild(empty);
     return;
   }
-  items.forEach(function(m) {
+  function _rowEl(m) {
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (row && String(row.barang_id) === String(m.id) ? ' active' : '');
     it.textContent = m.katalog_produk + (m.varian_warna ? ' — ' + m.varian_warna : '');
     it.onclick = function() { hsBrgPickerSelect(m.id); };
-    listEl.appendChild(it);
-  });
+    return it;
+  }
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
+  if (!q) {
+    var byId = {};
+    items.forEach(function(m) { byId[String(m.id)] = m; });
+    var top = zHistTop('hs_barang', 5).map(function(id) { return byId[id]; }).filter(Boolean);
+    if (top.length) {
+      var hd = document.createElement('div');
+      hd.className = 'hs-picker-group';
+      hd.innerHTML = '<i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan';
+      listEl.appendChild(hd);
+      top.forEach(function(m) { listEl.appendChild(_rowEl(m)); });
+      var hd2 = document.createElement('div');
+      hd2.className = 'hs-picker-group';
+      hd2.textContent = 'Semua';
+      listEl.appendChild(hd2);
+    }
+  }
+  items.forEach(function(m) { listEl.appendChild(_rowEl(m)); });
 }
 
 function hsBrgPickerSelect(id) {
   if (!_hsBrgPickerCtx) return;
+  zHistPush('hs_barang', id); // riwayat sering/terakhir dipakai
   var row = _hsItemRows[_hsBrgPickerCtx.idx];
   var m = _hsBarangMaster.find(function(x){ return x.id === id; });
   if (row && m) {
@@ -3127,7 +3156,7 @@ function _hsBonBayarPickerRenderGroups(q) {
     listEl.appendChild(empty);
     return;
   }
-  items.forEach(function(g) {
+  function _groupRowEl(g) {
     var supplier = _hsSupplierList.find(function(s){ return s.id===g.supplierId; });
     var totalSisa = g.bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
     var showModeLabel = modeCountBySupplier[g.supplierId] > 1;
@@ -3137,11 +3166,30 @@ function _hsBonBayarPickerRenderGroups(q) {
     it.innerHTML = '<div style="font-weight:700">' + _hsEsc(label) + '</div>' +
       '<div style="font-size:11.5px;color:var(--ink3);margin-top:2px">' + g.bons.length + ' bon \u00b7 Sisa ' + fmtRpFull(totalSisa) + '</div>';
     it.onclick = function() { hsBonBayarPickerOpenGroup(g.supplierId, g.mode); };
-    listEl.appendChild(it);
-  });
+    return it;
+  }
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
+  if (!q) {
+    var byKey = {};
+    items.forEach(function(g) { byKey[g.supplierId + '|' + g.mode] = g; });
+    var top = zHistTop('hs_bon_bayar_grp', 5).map(function(k) { return byKey[k]; }).filter(Boolean);
+    if (top.length) {
+      var hd = document.createElement('div');
+      hd.className = 'hs-picker-group';
+      hd.innerHTML = '<i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan';
+      listEl.appendChild(hd);
+      top.forEach(function(g) { listEl.appendChild(_groupRowEl(g)); });
+      var hd2 = document.createElement('div');
+      hd2.className = 'hs-picker-group';
+      hd2.textContent = 'Semua';
+      listEl.appendChild(hd2);
+    }
+  }
+  items.forEach(function(g) { listEl.appendChild(_groupRowEl(g)); });
 }
 
 async function hsBonBayarPickerOpenGroup(supplierId, mode) {
+  zHistPush('hs_bon_bayar_grp', supplierId + '|' + mode); // riwayat sering/terakhir dipakai
   _hsBonBayarPickerGroup = { supplierId: supplierId, mode: mode };
   _hsBonBayarPickerChecked = {};
   var bons = _hsBonList.filter(function(b) {
@@ -3848,9 +3896,41 @@ function _hsBrgSkuPickerRender(q) {
 
   var selectedIds = _hsBrgSelectedProduk.map(function(p){ return p.id; });
 
+  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
+  var histHtml = '';
+  if (!q) {
+    var byId = {};
+    rows.forEach(function(p) { byId[String(p.id)] = p; });
+    var topRows = zHistTop('hs_sku_variasi', 5).map(function(id) { return byId[id]; }).filter(Boolean);
+    if (topRows.length) {
+      histHtml += '<div class="hs-picker-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>';
+      if (isEdit) {
+        histHtml += topRows.map(function(p) {
+          var active = selectedIds.indexOf(p.id) !== -1;
+          return '<div class="hs-picker-item' + (active ? ' active' : '') + '" onclick="hsBrgSkuPickerSelectSingle(' + p.id + ')">' +
+            '<div style="font-weight:700">' + _hsEsc(p.sku_variasi) + '</div>' +
+            '<div style="font-size:11.5px;color:var(--ink3)">' + _hsEsc(p.katalog) + '</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        histHtml += topRows.map(function(p) {
+          var checked = selectedIds.indexOf(p.id) !== -1;
+          return '<label class="hs-picker-item" style="display:flex;gap:10px;align-items:center">' +
+            '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBrgSkuPickerToggle(' + p.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink)">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-weight:700">' + _hsEsc(p.sku_variasi) + '</div>' +
+              '<div style="font-size:11.5px;color:var(--ink3)">' + _hsEsc(p.katalog) + '</div>' +
+            '</div>' +
+          '</label>';
+        }).join('');
+      }
+      histHtml += '<div class="hs-picker-group">Semua</div>';
+    }
+  }
+
   if (isEdit) {
     // Single-select: tap = langsung pilih & nutup, gak pake checkbox.
-    listEl.innerHTML = rows.map(function(p) {
+    listEl.innerHTML = histHtml + rows.map(function(p) {
       var active = selectedIds.indexOf(p.id) !== -1;
       return '<div class="hs-picker-item' + (active ? ' active' : '') + '" onclick="hsBrgSkuPickerSelectSingle(' + p.id + ')">' +
         '<div style="font-weight:700">' + _hsEsc(p.sku_variasi) + '</div>' +
@@ -3859,7 +3939,7 @@ function _hsBrgSkuPickerRender(q) {
     }).join('');
   } else {
     // Multi-select: checkbox, konfirmasi lewat tombol footer.
-    listEl.innerHTML = rows.map(function(p) {
+    listEl.innerHTML = histHtml + rows.map(function(p) {
       var checked = selectedIds.indexOf(p.id) !== -1;
       var it = '<label class="hs-picker-item" style="display:flex;gap:10px;align-items:center">' +
         '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="hsBrgSkuPickerToggle(' + p.id + ', this.checked)" style="flex:none;width:18px;height:18px;accent-color:var(--ink)">' +
@@ -3895,6 +3975,7 @@ function _hsBrgSkuPickerUpdateFooter() {
 }
 
 function hsBrgSkuPickerConfirm() {
+  _hsBrgSelectedProduk.forEach(function(p) { zHistPush('hs_sku_variasi', p.id); }); // riwayat sering/terakhir dipakai
   _hsBrgUpdateSkuTriggerLabel();
   hsBrgSkuPickerClose();
 }
@@ -3902,6 +3983,7 @@ function hsBrgSkuPickerConfirm() {
 function hsBrgSkuPickerSelectSingle(produkId) {
   var p = _hsProdukAll.find(function(x){ return x.id === produkId; });
   if (!p) return;
+  zHistPush('hs_sku_variasi', p.id); // riwayat sering/terakhir dipakai
   _hsBrgSelectedProduk = [p];
   _hsBrgUpdateSkuTriggerLabel();
   hsBrgSkuPickerClose();

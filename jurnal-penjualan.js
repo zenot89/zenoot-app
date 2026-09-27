@@ -311,6 +311,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       max-height: 85vh; display: none; flex-direction: column; overflow: hidden;
     }
     #jp-sku-sheet.open { display: flex; transform: translateY(0); }
+    #jp-sku-sheet-close {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: none; background: var(--ovl-0_06); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+    }
     #jp-sku-sheet-handle {
       width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
       margin: 12px auto 4px; flex: none;
@@ -519,6 +525,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
            akun di Kas & Jurnal / supplier di Hutang Barang. ── -->
       <div id="jp-sku-sheet-overlay" onclick="if(event.target===this) jpSkuSheetClose()"></div>
       <div id="jp-sku-sheet">
+        <button type="button" id="jp-sku-sheet-close" onclick="jpSkuSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
         <div id="jp-sku-sheet-handle"></div>
         <div id="jp-sku-sheet-title">Pilih SKU</div>
         <div id="jp-sku-sheet-search-wrap">
@@ -3100,23 +3107,35 @@ function _jpSkuSheetRenderVariasi(q) {
   q = (q || '').toLowerCase().trim();
   var items = varList.filter(function(p) { return !q || _jpGetSku(p).toLowerCase().indexOf(q) !== -1; });
   var html = '';
+  function _varRowHtml(p) {
+    var sku = _jpGetSku(p);
+    var hpp = _jpGetHpp(p);
+    var sisa = _jpSisakMap[sku.toUpperCase()];
+    var sisakHtml = '';
+    if (sisa !== undefined) {
+      var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
+      sisakHtml = '<span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
+    }
+    return '<div class="jp-sheet-item" onclick="jpSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\',' + (hpp||0) + ')">' +
+      '<span>' + sku + '</span>' + sisakHtml + '</div>';
+  }
   if (!katalog) {
     html = '<div class="jp-sheet-empty">Pilih SKU Induk dulu</div>';
   } else if (!items.length) {
     html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada variasi yang cocok' : 'Belum ada variasi untuk SKU ini') + '</div>';
   } else {
-    items.forEach(function(p) {
-      var sku = _jpGetSku(p);
-      var hpp = _jpGetHpp(p);
-      var sisa = _jpSisakMap[sku.toUpperCase()];
-      var sisakHtml = '';
-      if (sisa !== undefined) {
-        var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
-        sisakHtml = '<span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
+    // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
+    if (!q) {
+      var bySku = {};
+      items.forEach(function(p) { bySku[_jpGetSku(p).toUpperCase()] = p; });
+      var top = zHistTop('jp_variasi', 5).map(function(k) { return bySku[k]; }).filter(Boolean);
+      if (top.length) {
+        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
+        top.forEach(function(p) { html += _varRowHtml(p); });
+        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua ──</div>';
       }
-      html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\',' + (hpp||0) + ')">' +
-        '<span>' + sku + '</span>' + sisakHtml + '</div>';
-    });
+    }
+    items.forEach(function(p) { html += _varRowHtml(p); });
   }
   listEl.innerHTML = html;
 }
@@ -3136,6 +3155,7 @@ function jpSkuSheetSelectInduk(katalog) {
 }
 
 function jpSkuSheetSelectVariasi(sku, hpp) {
+  zHistPush('jp_variasi', sku.toUpperCase()); // riwayat sering/terakhir dipakai
   var sel = document.getElementById('jp-sku-variasi');
   if (sel) {
     sel.value = sku;

@@ -5079,6 +5079,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   overflow: hidden;
 }
 #kas-sheet-akun-picker.open { display: flex; transform: translateY(0); }
+#kas-akun-picker-close {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+  border: none; background: var(--ovl-0_06); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+}
 
 #kas-akun-picker-title {
   flex: none;

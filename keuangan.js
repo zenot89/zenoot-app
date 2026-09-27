@@ -32,6 +32,12 @@ document.getElementById('page-keuangan').innerHTML = `
     max-height: 85vh; display: none; flex-direction: column; overflow: hidden;
   }
   #keu-cic-sheet.open { display: flex; transform: translateY(0); }
+  #keu-cic-sheet-close {
+    position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+    border: none; background: var(--ovl-0_06); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+  }
   #keu-cic-sheet-handle {
     width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
     margin: 12px auto 4px; flex: none;
@@ -536,6 +542,7 @@ document.getElementById('page-keuangan').innerHTML = `
        Akun Bayar di Catat Cicilan, mode via _keuCicSheetMode ── -->
   <div id="keu-cic-sheet-overlay" onclick="if(event.target===this) keuCicSheetClose()"></div>
   <div id="keu-cic-sheet">
+    <button type="button" id="keu-cic-sheet-close" onclick="keuCicSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
     <div id="keu-cic-sheet-handle"></div>
     <div id="keu-cic-sheet-title">Pilih</div>
     <div id="keu-cic-sheet-search-wrap">

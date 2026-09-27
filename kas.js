@@ -640,6 +640,7 @@ function _kasInjectSheets() {
 <!-- ══════════════════════════════════════════════════════ -->
 <div id="kas-akun-picker-overlay" onclick="kasAkunPickerClose()"></div>
 <div id="kas-sheet-akun-picker">
+  <button type="button" id="kas-akun-picker-close" onclick="kasAkunPickerClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
   <div class="kas-brimo-handle"></div>
   <div id="kas-akun-picker-title" class="kas-brimo-sheet-title">Pilih Akun</div>
   <div id="kas-akun-picker-search-wrap">
@@ -3872,12 +3873,20 @@ function kasToggleTipePicker(anchor) {
   }
   portal.style.left = rect.left + 'px';
 
-  Object.entries(_KAS_TIPE_META).forEach(function(entry) {
-    var val = entry[0], m = entry[1];
+  // "Sering & Terakhir Digunakan" — dropdown ini item-nya cuma 6 & selalu
+  // full ditampilin (gak ada search), jadi top dipakai buat NGURUTIN ke atas,
+  // bukan disisipin dobel kayak picker lain. (27 Sep 2026)
+  var _tipeKeys = Object.keys(_KAS_TIPE_META);
+  var _tipeTop = zHistTop('kas_tipe', _tipeKeys.length).filter(function(k) { return _KAS_TIPE_META[k]; });
+  var _tipeOrdered = _tipeTop.concat(_tipeKeys.filter(function(k) { return _tipeTop.indexOf(k) === -1; }));
+
+  _tipeOrdered.forEach(function(val) {
+    var m = _KAS_TIPE_META[val];
     var item = document.createElement('div');
     item.className = 'kas-tipe-portal-item';
     item.innerHTML = '<i class="ti ' + m.icon + '"></i><span>' + m.label + '</span>';
     item.addEventListener('click', function() {
+      zHistPush('kas_tipe', val); // riwayat sering/terakhir dipakai
       document.getElementById('kas-edit-tipe').value = val;
       kasSyncTipePicker(val);
       portal.remove();

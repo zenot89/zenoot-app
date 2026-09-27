@@ -111,6 +111,12 @@ document.getElementById('page-anggaran').innerHTML = `
     max-height: 88vh; display: none; flex-direction: column; overflow: hidden;
   }
   #ang-akun-sheet.open { display: flex; transform: translateY(0); }
+  #ang-akun-sheet-close {
+    position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+    border: none; background: var(--ovl-0_06); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+  }
   #ang-akun-sheet-search-wrap { flex: none; padding: 0 16px 10px; }
   #ang-akun-sheet-search {
     width: 100%; box-sizing: border-box; background: var(--ovl-0_06);
@@ -361,6 +367,7 @@ document.getElementById('page-anggaran').innerHTML = `
      nutupnya — sama pola kayak #kas-akun-picker-overlay di Kas & Jurnal. -->
 <div id="ang-akun-sheet-overlay" onclick="angAkunPickerClose()"></div>
 <div id="ang-akun-sheet">
+  <button type="button" id="ang-akun-sheet-close" onclick="angAkunPickerClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
   <div class="kas-brimo-handle"></div>
   <div class="kas-brimo-sheet-title">Pilih Akun Beban</div>
   <div id="ang-akun-sheet-search-wrap">

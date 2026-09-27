@@ -48,6 +48,12 @@ document.getElementById('page-produk').innerHTML = `
       max-height: 75vh; display: none; flex-direction: column; overflow: hidden;
     }
     #produk-boss-sheet.open { display: flex; transform: translateY(0); }
+    #produk-boss-sheet-close {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: none; background: var(--ovl-0_06); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+    }
     #produk-boss-sheet-handle {
       width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px;
       margin: 12px auto 4px; flex: none;
@@ -880,6 +886,7 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
 document.body.insertAdjacentHTML('beforeend', `
 <div id="produk-boss-sheet-overlay" onclick="if(event.target===this) produkBossSheetClose()"></div>
 <div id="produk-boss-sheet">
+  <button type="button" id="produk-boss-sheet-close" onclick="produkBossSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
   <div id="produk-boss-sheet-handle"></div>
   <div id="produk-boss-sheet-title">Pilih Supplier</div>
   <div id="produk-boss-sheet-search-wrap">
