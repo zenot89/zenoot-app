@@ -8,6 +8,14 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ ALERT STRIP ════════════════════════════════════════ -->
   <div id="dash-alerts-wrap"></div>
 
+  <!-- ═══ KEGIATAN MENDATANG (BARU v5) ══════════════════════════ -->
+  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-bottom:12px">
+    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang</div>
+    <div id="dash-kegiatan-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
+
   <!-- ═══ NET WORTH + BEBAN + INCOME SWIPE (portrait) / full width (laptop) ══ -->
   <div class="nw-swipe-pair" id="nw-swipe-container">
     <div class="nw-swipe-track">
@@ -269,6 +277,10 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Status Stok</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-users"></i> Performa Supplier</div>
+          <div class="dash-donut-wrap" style="margin-bottom:10px">
+            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-boss"></canvas></div>
+            <div id="dash-boss-legend" class="dash-donut-legend"></div>
+          </div>
           <div class="tbl-wrap"><table class="tbl">
             <thead><tr><th>Supplier</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
             <tbody id="dash-boss-tbody">
@@ -287,6 +299,10 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Omset Katalog</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
+          <div class="dash-donut-wrap" style="margin-bottom:10px">
+            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-channel"></canvas></div>
+            <div id="dash-channel-legend" class="dash-donut-legend"></div>
+          </div>
           <div class="tbl-wrap"><table class="tbl">
             <thead><tr><th>Channel</th><th>Trx</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
             <tbody id="dash-channel-tbody">
@@ -310,7 +326,38 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-3 -->
 
-  <!-- pair-4 removed — Beban & Income sudah ada di nw-swipe-container atas -->
+  <!-- pair-4 lama (Beban & Income) sudah ada di nw-swipe-container atas —
+       slot ini dipakai ulang untuk 2 donut baru v5 (Laba/Rugi & Beban Perusahaan) -->
+  <div class="db-swipe-pair" id="swipe-pair-4">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Beban Perusahaan</span></div>
+        <div class="card dash-widget" style="margin:0">
+          <div class="card-title"><i class="ti ti-chart-donut"></i> Laba/Rugi Bulan Ini</div>
+          <div class="dash-donut-wrap">
+            <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+              <canvas id="dash-donut-labarugi"></canvas>
+              <div class="dash-donut-center" id="dash-donut-labarugi-center"></div>
+            </div>
+            <div id="dash-donut-labarugi-legend" class="dash-donut-legend"></div>
+          </div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Laba/Rugi</span></div>
+        <div class="card dash-widget" style="margin:0">
+          <div class="card-title"><i class="ti ti-report-money"></i> Beban Perusahaan</div>
+          <div class="dash-donut-wrap">
+            <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+              <canvas id="dash-donut-beban"></canvas>
+              <div class="dash-donut-center" id="dash-donut-beban-center"></div>
+            </div>
+            <div id="dash-donut-beban-legend" class="dash-donut-legend"></div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /swipe-pair-4 -->
 
   <!-- ═══ ROW 7: JURNAL TERAKHIR + AKTIVITAS TERBARU ════════════ -->
   <div class="db-swipe-pair" id="swipe-pair-5">
@@ -1898,6 +1945,7 @@ async function loadDashboard() {
 
     // ── Update label Beban vs Kas dari data arus kas ──
     _dashUpdateBebanVsKas(totalBebanNominal);
+    _renderKegiatanMendatang(); // BARU v5
 
     // ── BARU: Target Omset = Total Anggaran ÷ rasio Shopee (auto, tanpa set manual) ──
     const targetOtomatis = (totalAnggaran > 0 && rasioBebanShopee > 0)
@@ -2042,6 +2090,8 @@ async function loadDashboard() {
       _renderKatalog(_jpForRender, _dashStokData); // BARU
       _renderBeban(Object.entries(bebanDetailMap).map(([nama,nominal])=>({nama_beban:nama,nominal})), omsetBln);
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
+      _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih); // BARU v5
+      _renderDonutBeban(bebanDetailMap);                                    // BARU v5
       if (typeof rerenderUI === "function") rerenderUI(document.getElementById("page-dashboard"));
     }, 300); // FIX: dinaikkan agar canvas punya offsetWidth saat dirender
 
@@ -2078,6 +2128,180 @@ loadDashboard();
 })();
 
 // ─── BEBAN VS KAS — update metric card dari data arus kas ────
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD REDESIGN v5 (27 Sep 2026) — donut Laba/Rugi & Beban
+// Perusahaan + widget Kegiatan Mendatang, adopsi tampilan Accurate.
+// Pola gambar donut sama persis dengan _renderBoss (canvas pie
+// pakai hex warna langsung, BUKAN CSS var — var() tidak di-resolve
+// oleh canvas 2D context).
+// ═══════════════════════════════════════════════════════════
+function _renderDonutLabaRugi(hpp, bebanOps, labaBersih) {
+  const canvas = document.getElementById('dash-donut-labarugi');
+  if (!canvas) return;
+  const parts = [
+    ['HPP',               Math.max(hpp||0, 0),      '#E8862E'],
+    ['Beban Operasional', Math.max(bebanOps||0, 0), '#E0524F'],
+    ['Laba Bersih',       Math.max(labaBersih||0,0),'#1EA672']
+  ];
+  const total = parts.reduce((s,p)=>s+p[1], 0);
+  const dpr  = window.devicePixelRatio || 1;
+  const wrap = canvas.parentElement;
+  const W = wrap ? (wrap.offsetWidth  || 130) : 130;
+  const H = wrap ? (wrap.offsetHeight || 130) : 130;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H/2, r = Math.min(cx,cy) - 4, inner = r * 0.62;
+  if (total <= 0) {
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle = '#E8E6E0'; ctx.fill();
+  } else {
+    let angle = -Math.PI/2;
+    parts.forEach(([,val,color]) => {
+      if (val <= 0) return;
+      const slice = (val/total) * Math.PI * 2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,angle,angle+slice);
+      ctx.closePath();
+      ctx.fillStyle = color; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+      angle += slice;
+    });
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+
+  const centerEl = document.getElementById('dash-donut-labarugi-center');
+  if (centerEl) {
+    centerEl.innerHTML = '<b style="color:'+((labaBersih||0)>=0?'#1EA672':'#E0524F')+'">'+_fmtRpShort(labaBersih||0)+'</b><span>Laba Bersih</span>';
+  }
+  const legendEl = document.getElementById('dash-donut-labarugi-legend');
+  if (legendEl) {
+    legendEl.innerHTML = parts.map(([label,val,color]) => {
+      const pct = total>0 ? (val/total*100).toFixed(0) : 0;
+      return '<div class="dash-donut-leg-row">' +
+        '<span class="dash-donut-dot" style="background:'+color+'"></span>' +
+        '<span class="dash-donut-leg-label">'+label+'</span>' +
+        '<span class="dash-donut-leg-val" style="color:'+color+'">'+pct+'%</span>' +
+      '</div>';
+    }).join('');
+  }
+}
+
+function _renderDonutBeban(bebanDetailMap) {
+  const canvas = document.getElementById('dash-donut-beban');
+  if (!canvas) return;
+  const colors = ['#E0524F','#E8862E','#8B5CF6','#2F6FED','#0EA5A5','#C9971F','#6B7280'];
+  const sorted = Object.entries(bebanDetailMap || {}).sort((a,b)=>b[1]-a[1]);
+  const total  = sorted.reduce((s,[,v])=>s+v, 0);
+  const dpr  = window.devicePixelRatio || 1;
+  const wrap = canvas.parentElement;
+  const W = wrap ? (wrap.offsetWidth  || 130) : 130;
+  const H = wrap ? (wrap.offsetHeight || 130) : 130;
+  canvas.width  = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H/2, r = Math.min(cx,cy) - 4, inner = r * 0.62;
+  if (total <= 0) {
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle = '#E8E6E0'; ctx.fill();
+  } else {
+    let angle = -Math.PI/2;
+    sorted.forEach(([,val],i) => {
+      if (val <= 0) return;
+      const slice = (val/total) * Math.PI * 2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,angle,angle+slice);
+      ctx.closePath();
+      ctx.fillStyle = colors[i%colors.length]; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+      angle += slice;
+    });
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+
+  const centerEl = document.getElementById('dash-donut-beban-center');
+  if (centerEl) centerEl.innerHTML = '<b>'+_fmtRpShort(total)+'</b><span>Total Beban</span>';
+
+  const legendEl = document.getElementById('dash-donut-beban-legend');
+  if (legendEl) {
+    if (!sorted.length) {
+      legendEl.innerHTML = '<div class="dash-kg-empty">Belum ada beban bulan ini</div>';
+    } else {
+      legendEl.innerHTML = sorted.slice(0,6).map(([nama,val],i) => {
+        const pct = total>0 ? (val/total*100).toFixed(0) : 0;
+        return '<div class="dash-donut-leg-row">' +
+          '<span class="dash-donut-dot" style="background:'+colors[i%colors.length]+'"></span>' +
+          '<span class="dash-donut-leg-label">'+nama+'</span>' +
+          '<span class="dash-donut-leg-val">'+pct+'%</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
+}
+
+// ─── KEGIATAN MENDATANG — cicilan hutang aktif + SKU perlu restock ──
+async function _renderKegiatanMendatang() {
+  const listEl = document.getElementById('dash-kegiatan-list');
+  if (!listEl) return;
+  try {
+    const [hutangAll, bayarAll] = await Promise.all([
+      dbGet('hutang',       '').catch(() => []),
+      dbGet('hutang_bayar', '').catch(() => [])
+    ]);
+    const items = [];
+
+    (hutangAll || []).forEach(h => {
+      const sudahBayar = (bayarAll || [])
+        .filter(b => b.hutang_id === h.id)
+        .reduce((s, b) => s + Number(b.nominal || 0), 0);
+      const sisa = (h.pokok || 0) - sudahBayar;
+      if (sisa > 0 && Number(h.cicilan_per_bulan) > 0) {
+        items.push({
+          icon: 'ti-credit-card',
+          cls:  'warn',
+          title: h.kreditur || 'Hutang',
+          sub:  'Cicilan bulanan · sisa ' + _fmtRp(sisa),
+          val:  _fmtRp(h.cicilan_per_bulan)
+        });
+      }
+    });
+
+    (_dashStokData || [])
+      .filter(r => (r.kategori_produk||'aktif')==='aktif' && (r.sales30||0)>0 && r.sisa<=3)
+      .sort((a,b)=>a.sisa-b.sisa)
+      .slice(0,4)
+      .forEach(r => {
+        items.push({
+          icon: 'ti-package',
+          cls:  r.sisa<=0 ? 'danger' : 'warn',
+          title: r.sku_variasi,
+          sub:  r.sisa<=0 ? 'Stok habis — perlu restock' : 'Sisa ' + r.sisa + ' pcs — mendekati habis',
+          val:  r.sisa<=0 ? '🔴 Habis' : '⚠ ' + r.sisa
+        });
+      });
+
+    if (!items.length) {
+      listEl.innerHTML = '<div class="dash-kg-empty">Tidak ada kegiatan mendatang — semua aman 👍</div>';
+      return;
+    }
+    listEl.innerHTML = items.slice(0,6).map(it =>
+      '<div class="dash-kg-item">' +
+        '<div class="dash-kg-ic '+it.cls+'"><i class="ti '+it.icon+'"></i></div>' +
+        '<div style="min-width:0;flex:1">' +
+          '<div class="dash-kg-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+it.title+'</div>' +
+          '<div class="dash-kg-sub">'+it.sub+'</div>' +
+        '</div>' +
+        '<div class="dash-kg-val" style="color:'+(it.cls==='danger'?'var(--danger)':'var(--warn)')+'">'+it.val+'</div>' +
+      '</div>'
+    ).join('');
+  } catch(e) {
+    console.warn('[KegiatanMendatang]', e);
+    listEl.innerHTML = '<div class="dash-kg-empty">Gagal memuat data</div>';
+  }
+}
+
 async function _dashUpdateBebanVsKas(totalBebanDash) {
   try {
     const [hutangAll, bayarAll, kasAkun, jurnal, shopeeCache] = await Promise.all([

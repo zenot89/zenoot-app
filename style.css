@@ -5158,3 +5158,112 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Bagian "Sering & Terakhir Digunakan" di semua bottom-sheet picker — latar sedikit lebih tua dari list biasa
    (pakai overlay --ovl-*, jadi ikut adaptif di tema gelap). [24 Sep 2026] */
 .zhist-sec{ background:var(--ovl-0_05); border-radius:10px; margin:2px 0 6px; padding:0 0 4px; }
+
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD REDESIGN v5 (27 Sep 2026) — palet warna baru + widget
+   modern ala Accurate (icon badge bulat berwarna, radius lebih
+   besar, shadow lembut, donut chart). Semua di-scope ke
+   #page-dashboard supaya halaman lain (Kas, Stok, Gadag, dll)
+   TIDAK ikut berubah — konsisten sama keputusan lama soal Gadag
+   tetap dark theme di atas.
+   Catatan: warna donut canvas di JS pakai hex langsung (BUKAN
+   var(--...)) karena CSS custom property tidak di-resolve oleh
+   canvas 2D context — sudah pola yang sama dipakai _renderBoss.
+   ══════════════════════════════════════════════════════════════ */
+#page-dashboard{
+  --dash-blue:#2F6FED;   --dash-blue-10:rgba(47,111,237,.12);
+  --dash-green:#1EA672;  --dash-green-10:rgba(30,166,114,.12);
+  --dash-orange:#E8862E; --dash-orange-10:rgba(232,134,46,.12);
+  --dash-red:#E0524F;    --dash-red-10:rgba(224,82,79,.12);
+  --dash-purple:#8B5CF6; --dash-purple-10:rgba(139,92,246,.12);
+  --dash-teal:#0EA5A5;   --dash-teal-10:rgba(14,165,165,.12);
+  --dash-gold:#C9971F;   --dash-gold-10:rgba(201,151,31,.12);
+  --dash-gray:#6B7280;   --dash-gray-10:rgba(107,114,128,.12);
+}
+
+/* ── Card & metric modernisasi (radius lebih besar, shadow lembut) ── */
+#page-dashboard .card,
+#page-dashboard .metric{
+  border-radius:16px !important;
+  box-shadow:0 2px 10px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04) !important;
+  border:1px solid var(--ovl-0_05) !important;
+}
+#page-dashboard .card{ padding:16px !important; }
+#page-dashboard .metric{ padding:14px 16px !important; }
+#page-dashboard .card-title{
+  font-size:14px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── Icon badge bulat berwarna: card-title & metric doodle ── */
+#page-dashboard .card-title > i:first-child,
+#page-dashboard .card-title span > i:first-child,
+#page-dashboard .doodle i{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;font-size:13px;flex-shrink:0;
+  background:var(--dash-gray-10);color:var(--dash-gray);
+}
+#page-dashboard .doodle{
+  position:absolute;top:12px;right:12px;bottom:auto;
+  background:none !important;opacity:1 !important;
+}
+#page-dashboard .doodle i{ width:32px;height:32px;font-size:15px; }
+
+/* Warna per metric card, urutan sesuai #dash-metrics (Saldo Kas → SKU Kritis) */
+#page-dashboard .metric:nth-of-type(1) .doodle i{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .metric:nth-of-type(2) .doodle i{background:var(--dash-purple-10);color:var(--dash-purple)}
+#page-dashboard .metric:nth-of-type(3) .doodle i{background:var(--dash-green-10);color:var(--dash-green)}
+#page-dashboard .metric:nth-of-type(4) .doodle i{background:var(--dash-orange-10);color:var(--dash-orange)}
+#page-dashboard .metric:nth-of-type(5) .doodle i{background:var(--dash-teal-10);color:var(--dash-teal)}
+#page-dashboard .metric:nth-of-type(6) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+#page-dashboard .metric:nth-of-type(7) .doodle i{background:var(--dash-gold-10);color:var(--dash-gold)}
+#page-dashboard .metric:nth-of-type(8) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+
+/* Warna per widget card-title, ditarget dari class ikon Tabler-nya */
+#page-dashboard .card-title i.ti-chart-line{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .card-title i.ti-trophy{background:var(--dash-gold-10);color:var(--dash-gold)}
+#page-dashboard .card-title i.ti-package{background:var(--dash-orange-10);color:var(--dash-orange)}
+#page-dashboard .card-title i.ti-users{background:var(--dash-purple-10);color:var(--dash-purple)}
+#page-dashboard .card-title i.ti-building-store{background:var(--dash-teal-10);color:var(--dash-teal)}
+#page-dashboard .card-title i.ti-chart-bar{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .card-title i.ti-list{background:var(--dash-gray-10);color:var(--dash-gray)}
+#page-dashboard .card-title i.ti-clock{background:var(--dash-green-10);color:var(--dash-green)}
+#page-dashboard .card-title i.ti-calendar-event{background:var(--dash-orange-10);color:var(--dash-orange)}
+#page-dashboard .card-title i.ti-chart-donut{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .card-title i.ti-report-money{background:var(--dash-red-10);color:var(--dash-red)}
+
+/* ── Kegiatan Mendatang ── */
+#dash-kegiatan-list{ display:flex;flex-direction:column;gap:0; }
+.dash-kg-item{
+  display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px dashed var(--ovl-0_08);font-size:13px;
+}
+.dash-kg-item:last-child{ border-bottom:none; }
+.dash-kg-ic{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.dash-kg-ic.warn{background:var(--dash-orange-10);color:var(--dash-orange)}
+.dash-kg-ic.danger{background:var(--dash-red-10);color:var(--dash-red)}
+.dash-kg-title{font-weight:600;color:var(--ink)}
+.dash-kg-sub{font-size:11px;color:var(--ink3);margin-top:1px}
+.dash-kg-val{margin-left:auto;font-weight:700;font-size:13px;white-space:nowrap}
+.dash-kg-empty{color:var(--ink3);font-style:italic;font-size:13px;padding:8px 0}
+
+/* ── Donut widgets (Laba/Rugi, Beban Perusahaan, Performa Supplier/Channel) ── */
+.dash-donut-wrap{ display:flex;align-items:center;gap:16px;flex-wrap:wrap; }
+.dash-donut-center{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;pointer-events:none;text-align:center;
+}
+.dash-donut-center b{ font-size:13px;line-height:1.2; }
+.dash-donut-center span{ font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em; }
+.dash-donut-legend{ display:flex;flex-direction:column;gap:7px;flex:1;min-width:120px; }
+.dash-donut-leg-row{ display:flex;align-items:center;gap:7px;font-size:12px; }
+.dash-donut-dot{ width:9px;height:9px;border-radius:50%;flex-shrink:0; }
+.dash-donut-leg-label{ color:var(--ink2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.dash-donut-leg-val{ font-weight:700;flex-shrink:0; }
+
+@media (max-width:520px){
+  .dash-donut-wrap{ justify-content:center; }
+}
