@@ -70,6 +70,7 @@
       <button class="nav-item" onclick="gotoPage('jurnal-penjualan',this)"><span class="ni-icon"><i class="ti ti-receipt"></i></span><span class="ni-label">Jurnal Penjualan</span></button>
       <button class="nav-item" onclick="gotoPage('stok',this)"><span class="ni-icon"><i class="ti ti-package"></i></span><span class="ni-label">Stok Produk</span></button>
       <button class="nav-item" onclick="gotoPage('restock',this)"><span class="ni-icon"><i class="ti ti-refresh"></i></span><span class="ni-label">Re-Stock</span></button>
+      <button class="nav-item" onclick="gotoPage('stok-masuk',this)"><span class="ni-icon"><i class="ti ti-truck-loading"></i></span><span class="ni-label">Jurnal Stock Masuk</span></button>
       <button class="nav-item" onclick="gotoPage('clearance-induk',this)"><span class="ni-icon"><i class="ti ti-tag"></i></span><span class="ni-label">Clearance Monitor</span></button>
     </div>
   </div>
@@ -152,6 +153,7 @@
     <div id="page-dashboard" class="page active"></div>
     <div id="page-stok" class="page"></div>
     <div id="page-restock" class="page"></div>
+    <div id="page-stok-masuk" class="page"></div>
     <div id="page-kas" class="page"></div>
     <div id="page-gadag" class="page"></div>
     <div id="page-jurnal-penjualan" class="page"></div>
@@ -220,7 +222,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260610-fix-android-nw'; // ← aktif
-  window.APP_BUILD = '20260926-0010ff591b30';
+  window.APP_BUILD = '20260924-2202248f87d2';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -229,7 +231,7 @@
     var v = window.APP_BUILD;
     var scripts = [
       'rough-ui.js','supabase.js','app.js','dashboard.js',
-      'produk.js','stok.js','restock.js','kas.js','gadag.js',
+      'produk.js','stok.js','restock.js','stok-masuk.js','kas.js','gadag.js',
       'jurnal-penjualan.js','produk-terjual.js','price-list.js',
       'channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',

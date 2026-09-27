@@ -932,7 +932,9 @@ async function loadHutangSupplier() {
       dbGet('hutang_pembayaran', '&order=tanggal.desc'),
       dbGet('hutang_barang',   '&order=katalog_produk.asc'),
       dbGet('kas_akun',        '&order=kode.asc'),
-      dbGet('produk',          '&select=id,katalog,sku_variasi&order=katalog.asc,sku_variasi.asc'),
+      // 26 Sep 2026: select diperlebar (+boss,hpp) buat kebutuhan auto
+      // stock-in dari "Barang Diterima" — lihat _hsAutoStockInFromBon().
+      dbGet('produk',          '&select=id,katalog,sku_variasi,boss,hpp&order=katalog.asc,sku_variasi.asc'),
     ]);
     _hsSupplierList  = supplier || [];
     _hsBonList       = bon || [];
@@ -2919,6 +2921,54 @@ function hsOpenTerimaBarang() {
   hsOpenSheet('hs-sheet-terima');
 }
 
+// ─── AUTO STOCK-IN dari "Barang Diterima" (26 Sep 2026) ────────────
+// Root cause gap yang dibahas sama user: dulu hsSimpanBon()/
+// hsSimpanTerimaBarang() SAMA SEKALI gak nyentuh tabel `stok` — abis Bon
+// ditandai diterima, stok fisik tetep harus diupdate manual lagi di Stok
+// Produk. Sekarang begitu "Barang Diterima" dikonfirmasi, otomatis:
+//   1. Catet ke stok_masuk_jurnal (sumber='po', link ke bon & bon_item)
+//   2. Nambahin stok.stok_masuk sesuai qty_diterima per item
+// Item yang barang_id-nya gak ke-link ke produk internal (hutang_barang.
+// produk_id null/gak ketemu) DILEWATIN — gak bisa auto tanpa tau SKU
+// internalnya, harus ditambahin manual di Stok Produk kayak biasa (jarang
+// terjadi karena Paste Massal Master Barang udah mewajibkan match SKU dari
+// Kelola Produk, tapi tetep dijaga biar gak insert `stok` ngasal).
+// Dibungkus try/catch per-item & gak nge-block status Bon — kalau auto
+// stock-in gagal, Bon-nya tetep berhasil ditandai diterima (jangan sampe
+// user kejebak gak bisa nutup PO gara-gara ini error).
+async function _hsAutoStockInFromBon(bonId, supplierId, tanggal, itemUpdates) {
+  for (var i = 0; i < itemUpdates.length; i++) {
+    var u = itemUpdates[i];
+    if (!u.qty_diterima || u.qty_diterima <= 0) continue;
+    var itemRow = _hsCurrentBonItems.find(function(x) { return x.id === u.id; });
+    if (!itemRow || !itemRow.barang_id) continue;
+    var barangRow = _hsBarangMaster.find(function(b) { return b.id === itemRow.barang_id; });
+    if (!barangRow || !barangRow.produk_id) continue;
+    var produkRow = _hsProdukAll.find(function(p) { return p.id === barangRow.produk_id; });
+    if (!produkRow || !produkRow.sku_variasi) continue;
+    var skuU = produkRow.sku_variasi.toUpperCase();
+
+    try {
+      await dbInsert('stok_masuk_jurnal', {
+        tanggal: tanggal, sumber: 'po', sku_variasi: skuU, qty: u.qty_diterima,
+        bon_id: bonId, bon_item_id: itemRow.id, supplier_id: supplierId,
+        keterangan: itemRow.nama_supplier ? ('Supplier: ' + itemRow.nama_supplier) : null
+      });
+      var existing = await dbGet('stok', '&sku_variasi=eq.' + encodeURIComponent(skuU));
+      if (existing && existing.length) {
+        await dbUpdate('stok', existing[0].id, { stok_masuk: (existing[0].stok_masuk || 0) + u.qty_diterima });
+      } else {
+        await dbInsert('stok', {
+          sku_variasi: skuU, stok_masuk: u.qty_diterima, stok_keluar: 0,
+          katalog: produkRow.katalog || '', boss: produkRow.boss || '', hpp: produkRow.hpp || 0
+        });
+      }
+    } catch (e) {
+      console.error('Auto stock-in gagal buat ' + skuU + ':', e.message);
+    }
+  }
+}
+
 async function hsSimpanTerimaBarang() {
   var bonId = _hsCurrentBonId;
   if (!bonId) return;
@@ -2967,6 +3017,8 @@ async function hsSimpanTerimaBarang() {
     await dbUpdate('hutang_bon', bonId, { is_po: false, tgl_diterima: tglDiterima });
     var b = _hsBonList.find(function(x){ return x.id===bonId; });
     if (b) { b.is_po = false; b.tgl_diterima = tglDiterima; }
+    // 26 Sep 2026: auto stock-in — lihat _hsAutoStockInFromBon()
+    await _hsAutoStockInFromBon(bonId, b0 ? b0.supplier_id : null, tglDiterima, updates);
     document.getElementById('hs-detail-po-banner').style.display = 'none';
     hsCloseSheet('hs-sheet-terima');
     hsRenderBonList();

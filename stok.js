@@ -152,6 +152,10 @@ document.getElementById('page-stok').innerHTML = `
     <button id="btn-stok-summary-mobile" class="stok-chip-icon-btn" onclick="stokToggleSummary()" title="Summary">
       <i class="ti ti-chart-bar"></i>
     </button>
+    <!-- 26 Sep 2026: versi mobile dari tombol "Edit Stock" toolbar desktop -->
+    <button id="btn-stok-editstock-mobile" class="stok-chip-icon-btn" onclick="stokBukaEditPicker()" title="Edit Stock">
+      <i class="ti ti-edit"></i>
+    </button>
     <button id="btn-filter-all-mobile" class="stok-chip-icon-btn" onclick="stokToggleFilterAll()" title="Filter SKU Induk">
       <i class="ti ti-filter"></i>
     </button>
@@ -219,6 +223,16 @@ document.getElementById('page-stok').innerHTML = `
     <!-- Tombol Summary -->
     <button class="btn btn-sm" id="btn-stok-summary" onclick="stokToggleSummary()" style="border-color:var(--ink3);color:var(--ink);justify-content:center">
       <i class="ti ti-chart-bar"></i> Summary
+    </button>
+
+    <!-- 26 Sep 2026: ganti pencil per-baris (dihapus dari kolom Aksi) jadi
+         1 tombol di toolbar — biar gak ada elemen aksi nempel di tiap
+         baris, sesuai permintaan user. Alurnya: buka picker SKU dulu
+         (reuse stokSkuSheetOpen yang sama kayak "Tambah"), begitu SKU
+         kepilih langsung diarahin ke editStok() (mode "Set Sisa Menjadi")
+         — lihat stokBukaEditPicker() & flag _stokPickerIntent. -->
+    <button class="btn btn-sm" id="btn-stok-editstock" onclick="stokBukaEditPicker()" style="border-color:var(--ink3);color:var(--ink);justify-content:center">
+      <i class="ti ti-edit"></i> Edit Stock
     </button>
 
     <!-- KANAN: Paste Massal + Tambah -->
@@ -388,14 +402,13 @@ document.getElementById('page-stok').innerHTML = `
         <th>Katalog</th><th>SKU Variasi</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
         <th onclick="stokToggleSort('status')" style="cursor:pointer;user-select:none;white-space:nowrap">Status <span id="sort-icon-status">⇅</span></th>
-        <th>Aksi</th>
         <th onclick="stokToggleSort('sales')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales 7hr <span id="sort-icon-sales">⇅</span></th>
         <th onclick="stokToggleSort('sales_total')" style="cursor:pointer;user-select:none;white-space:nowrap">Sales Total <span id="sort-icon-sales_total">⇅</span></th>
         <th>HPP</th><th onclick="stokToggleSort('nilai')" style="cursor:pointer;user-select:none;white-space:nowrap">Nilai Stok <span id="sort-icon-nilai">⇅</span></th>
         <th>Boss</th>
       </tr></thead>
       <tbody id="stok-tbody">
-        <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
     </div>
@@ -421,12 +434,18 @@ let _stokAllData  = [];   // hasil merge produk + stok + jurnal
 let _stokMasukMap = {};   // sku -> {id, qty}  (dari tabel stok)
 let _produkForStok = [];  // dari tabel produk
 let _stokSelectedSku = ''; // SKU variasi yang dipilih dari picker — reliable vs hidden select
+// 26 Sep 2026: intent picker SKU induk/variasi — 'tambah' (default, dipakai
+// showTambahStok) atau 'edit' (dipakai stokBukaEditPicker, tombol toolbar
+// "Edit Stock"). Nentuin apa yang kejadian SETELAH user milih SKU variasi
+// dari picker: mode 'tambah' fokus ke input qty, mode 'edit' langsung
+// lempar ke editStok() (mode "Set Sisa Menjadi").
+let _stokPickerIntent = 'tambah';
 let _stokEditMode    = false; // true = edit existing record (replace), false = tambah baru (akumulasi)
 
 // ─── LOAD UTAMA ───────────────────────────────────────────────
 async function loadStok() {
   const tbody = document.getElementById('stok-tbody');
-  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
 
   try {
     // 1. Ambil semua produk (basis SKU)
@@ -506,7 +525,7 @@ async function loadStok() {
     _stokRenderStatusTabs();
     _stokRenderSupplierTabs();
   } catch(err) {
-    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
   }
 }
 
@@ -514,7 +533,7 @@ async function loadStok() {
 function renderStok(data) {
   const tbody = document.getElementById('stok-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
     return;
   }
 
@@ -534,16 +553,12 @@ function renderStok(data) {
   tbody.innerHTML = data.map(row => {
     const hpp   = row.hpp   ? `Rp${row.hpp.toLocaleString('id-ID')}` : 'Rp—';
     const nilai = row.nilai_stok > 0 ? `Rp${row.nilai_stok.toLocaleString('id-ID')}` : '—';
-    const safeSku = (row.sku_variasi || '').replace(/"/g, '&quot;');
     const vel = _stokVelocity(row.sales7, row.sales30, row.sales90);
     return `<tr>
       <td>${row.katalog || '—'}</td>
       <td><b>${row.sku_variasi || '—'}</b></td>
       <td style="text-align:center"><b>${row.sisa}</b></td>
       <td>${statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
-      <td>
-        <button class="btn btn-sm" data-action="edit-stok" data-sku="${safeSku}" title="Edit stok masuk"><i class="ti ti-edit"></i></button>
-      </td>
       <td style="text-align:center;color:var(--ok)">${row.sales7 || 0}</td>
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
@@ -808,6 +823,14 @@ function filterStok() {
 }
 
 // ─── EVENT DELEGATION ─────────────────────────────────────────
+// 26 Sep 2026: dead code SENGAJA dipertahanin — dulu nangkep klik pencil
+// "Edit Stok" per-baris (data-action="edit-stok"), tapi pencil-nya udah
+// dihapus dari tabel (diganti tombol "Edit Stock" di toolbar, lihat
+// stokBukaEditPicker() → tetep manggil editStok() di ujungnya, cuma beda
+// jalan masuknya). Listener ini gak pernah ke-trigger lagi karena gak ada
+// lagi elemen dengan data-action itu, tapi dibiarin (bukan dihapus) —
+// gak ganggu apa-apa dan gampang di-restore kalau suatu saat pencil
+// per-baris mau dipasang lagi.
 document.getElementById('page-stok').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
@@ -823,6 +846,7 @@ function stokOverlayClose(e) {
 }
 
 function showTambahStok() {
+  _stokPickerIntent = 'tambah';
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Stok Masuk';
   document.getElementById('inp-id').value        = '';
   document.getElementById('inp-sku-induk').value = '';
@@ -842,11 +866,27 @@ function showTambahStok() {
   setTimeout(function(){ stokSkuSheetOpen('induk'); }, 150);
 }
 
+// 26 Sep 2026: entry point tombol toolbar "Edit Stock" — buka picker SKU
+// induk (kayak "Tambah"), tapi begitu SKU variasi kepilih, LANGSUNG masuk
+// ke editStok() (mode set sisa), bukan mode tambah delta. Reuse total
+// picker sheet yang sama (stokSkuSheetOpen/stokPilihKatalog/
+// stokSkuSheetSelectVariasi) — cuma dicabang lewat flag _stokPickerIntent.
+function stokBukaEditPicker() {
+  _stokPickerIntent = 'edit';
+  document.getElementById('inp-sku-induk').value = '';
+  _stokSetIndukLabel(null);
+  document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  var lbl = document.getElementById('stok-picker-variasi-label');
+  if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  stokSkuSheetOpen('induk');
+}
+
 function cancelStokForm() {
   document.getElementById('modal-stok-masuk').classList.remove('open');
   stokSkuSheetClose();
   _stokSelectedSku = '';
   _stokEditMode    = false;
+  _stokPickerIntent = 'tambah'; // reset — jaga-jaga kalau batal di tengah alur "Edit Stock"
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
   var infoEl = document.getElementById('stok-info-sisa');
@@ -900,6 +940,33 @@ function editStok(sku) {
   setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
 }
 
+// Tanggal lokal (WIB) hari ini, format YYYY-MM-DD — pakai getFullYear/
+// getMonth/getDate (bukan toISOString yang basisnya UTC) biar gak geser
+// hari kalau device-nya di WIB dan lagi deket tengah malam.
+function _stokTodayLocal() {
+  var n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+// 26 Sep 2026: setiap perubahan stok_masuk lewat halaman Stok Produk
+// (baik mode "Tambah" delta maupun "Edit Stock" set-sisa) dicatet ke
+// stok_masuk_jurnal sumber='koreksi' — biar ada jejak histori, gak cuma
+// nimpa 1 angka akumulasi kayak dulu. qty yang dicatet = DELTA aktual yang
+// kejadian ke stok_masuk (bisa negatif kalau koreksi ke bawah). Sengaja
+// dibungkus try/catch sendiri & gak di-await blocking alur utama — kalau
+// gagal, penyimpanan stok yang utama tetep jalan (jurnal ini cuma
+// pelengkap histori, bukan sumber kebenaran stok).
+async function _stokLogKoreksi(sku, delta) {
+  if (!delta) return; // gak ada perubahan neto, gak usah dicatet
+  try {
+    await dbInsert('stok_masuk_jurnal', {
+      tanggal: _stokTodayLocal(), sumber: 'koreksi', sku_variasi: sku, qty: delta,
+      keterangan: 'Dari halaman Stok Produk'
+    });
+  } catch (e) {
+    console.error('Gagal catat jurnal koreksi stok:', e.message);
+  }
+}
+
 async function simpanStok() {
   var id  = document.getElementById('inp-id').value;
   // Prioritas: _stokSelectedSku (dari picker) → inp-sku.value → bukan fallback ke katalog
@@ -941,14 +1008,18 @@ async function simpanStok() {
         var dataRow2 = _stokAllData.find(function(r){ return (r.sku_variasi||'').toUpperCase() === sku; });
         var keluarJurnal = dataRow2 ? (dataRow2.stok_keluar || 0) : 0;
         var stokMasukBaru = qty + keluarJurnal;
+        var oldStokMasuk = existingRec.qty || 0;
         await dbUpdate('stok', existingRec.id, { stok_masuk: stokMasukBaru });
+        await _stokLogKoreksi(sku, stokMasukBaru - oldStokMasuk);
       } else {
         // Mode TAMBAH: akumulasi
         var oldQty = existingRec.qty || 0;
         await dbUpdate('stok', existingRec.id, { stok_masuk: oldQty + qty });
+        await _stokLogKoreksi(sku, qty);
       }
     } else {
       await dbInsert('stok', payload);
+      await _stokLogKoreksi(sku, qty);
     }
     cancelStokForm();
     loadStok();
@@ -1092,9 +1163,18 @@ function stokPilihKatalog(katalog, skipAutoOpen) {
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
   if (varList.length === 1) {
     sel.selectedIndex = 1;
-    _stokSelectedSku = _stokGetSku(varList[0]).toUpperCase();
+    var pickedSku = _stokGetSku(varList[0]).toUpperCase();
+    _stokSelectedSku = pickedSku;
     if (lbl) { lbl.textContent = _stokGetSku(varList[0]); lbl.style.color = 'var(--ink)'; }
-    setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
+    // 26 Sep 2026: kalau lagi mode "Edit Stock" (dari toolbar), langsung
+    // lempar ke editStok() begitu SKU ke-resolve — jangan fokus ke input
+    // qty tambah kayak alur "Tambah" biasa.
+    if (_stokPickerIntent === 'edit') {
+      _stokPickerIntent = 'tambah';
+      editStok(pickedSku);
+    } else {
+      setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
+    }
   } else if (varList.length > 1) {
     setTimeout(function() { stokSkuSheetOpen('variasi'); }, 250);
   }
@@ -1107,6 +1187,12 @@ function stokSkuSheetSelectVariasi(sku) {
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = sku || '— Pilih Variasi —'; lbl.style.color = sku ? 'var(--ink)' : 'var(--ink3)'; }
   stokSkuSheetClose();
+  // 26 Sep 2026: lihat komentar sejenis di stokPilihKatalog()
+  if (_stokPickerIntent === 'edit') {
+    _stokPickerIntent = 'tambah';
+    if (sku) editStok(sku);
+    return;
+  }
   if (sku) setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
 }
 

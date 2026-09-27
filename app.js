@@ -133,6 +133,7 @@ var pageMap = {
   'dashboard':          { title:'Dashboard',          sub:'overview performa hari ini'     },
   'stok':               { title:'Stok Produk',         sub:'monitoring stok semua SKU'      },
   'restock':            { title:'Re-Stock',            sub:'daftar reorder per boss'        },
+  'stok-masuk':         { title:'Jurnal Stock Masuk',  sub:'histori PO diterima, produksi sendiri & koreksi stok' },
   'kas':                { title:'Kas & Jurnal',        sub:'pencatatan arus kas harian'     },
   'gadag':              { title:'Gadag',                sub:'Bismillah . Ab damel hela !' },
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
