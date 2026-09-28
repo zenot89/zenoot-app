@@ -84,72 +84,110 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- Baris 1: UANG HARI INI vs AKTIVITAS | Baris 2: PENJUALAN vs TARGET | Baris 3: UNTUNG vs BEBAN | Baris 4: STOK -->
   <div class="metrics" id="dash-metrics">
 
-    <!-- BARIS 1 — Kas Hari Ini -->
-    <div class="metric" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
-      <div class="m-label">Saldo Kas</div>
-      <div class="m-value" id="d-saldo">—</div>
-      <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
-      <div class="doodle"><i class="ti ti-wallet"></i></div>
-    </div>
-    <div class="metric" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);">
-      <div class="m-label">Cash Flow</div>
-      <div class="m-value" id="d-cashflow">—</div>
-      <div class="m-delta" id="d-cashflow-delta">bulan ini</div>
-      <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
-    </div>
-
-    <!-- BARIS 2 — Order & Penjualan -->
-    <div class="metric">
-      <div class="m-label">Order Hari Ini</div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
-        <div class="m-value" id="d-order-qty" style="margin:0">—</div>
-        <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
-        <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
-      </div>
-      <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:3px">Omset bulan: <span id="d-omset-abu">—</span></div>
-      <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
-    </div>
-    <div class="metric">
+    <!-- BARIS 1 — Format donut + rincian (gaya Accurate) : Target, Laba Bersih, Beban vs Kas, Cash Flow -->
+    <div class="metric zd-m" id="card-target-omset">
       <div class="m-label">Target Omset</div>
-      <div class="m-value" id="d-target">—</div>
-      <div class="m-delta">
-        <div id="d-target-bar-wrap" style="margin-top:4px;display:none">
-          <div style="background:var(--cream4);height:6px;border-radius:3px;overflow:hidden;border:1px solid var(--ink4)">
-            <div id="d-target-bar" style="height:100%;background:var(--ok);transition:width .5s;width:0%"></div>
+      <div class="zd-m-body">
+        <div class="zd-m-donutwrap"><canvas id="zd-viz-target"></canvas><div class="zd-m-center" id="zd-viz-target-c"></div></div>
+        <div class="zd-m-side">
+          <div class="m-value" id="d-target">—</div>
+          <div class="m-delta">
+            <div id="d-target-bar-wrap" style="margin-top:4px;display:none">
+              <div style="background:var(--cream4);height:6px;border-radius:3px;overflow:hidden;border:1px solid var(--ink4)">
+                <div id="d-target-bar" style="height:100%;background:var(--ok);transition:width .5s;width:0%"></div>
+              </div>
+              <span id="d-target-pct" style="font-size:10px;color:var(--ink3)">0%</span>
+            </div>
           </div>
-          <span id="d-target-pct" style="font-size:10px;color:var(--ink3)">0%</span>
+          <div class="zd-mrows" id="zd-viz-target-rows"></div>
         </div>
       </div>
       <div class="doodle"><i class="ti ti-target"></i></div>
     </div>
 
-    <!-- BARIS 3 — Laba vs Beban -->
-    <div class="metric">
+    <div class="metric zd-m">
       <div class="m-label">Est. Laba Bersih</div>
-      <div class="m-value" id="d-laba-bersih">—</div>
-      <div class="m-delta">laba kotor − beban</div>
+      <div class="zd-m-body">
+        <div class="zd-m-donutwrap"><canvas id="zd-viz-laba"></canvas><div class="zd-m-center" id="zd-viz-laba-c"></div></div>
+        <div class="zd-m-side">
+          <div class="m-value" id="d-laba-bersih">—</div>
+          <div class="m-delta">laba kotor − beban</div>
+          <div class="zd-mrows" id="zd-viz-laba-rows"></div>
+        </div>
+      </div>
       <div class="doodle"><i class="ti ti-trophy"></i></div>
     </div>
-    <div class="metric" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
+
+    <div class="metric zd-m" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
       <div class="m-label">Beban vs Kas</div>
-      <div class="m-value" id="d-beban">—</div>
-      <div class="m-delta" id="d-beban-delta">bulan ini</div>
-      <div id="d-beban-realisasi" style="font-size:11px;color:var(--ink3);margin-top:2px"></div>
+      <div class="zd-m-body">
+        <div class="zd-m-donutwrap"><canvas id="zd-viz-bebankas"></canvas><div class="zd-m-center" id="zd-viz-bebankas-c"></div></div>
+        <div class="zd-m-side">
+          <div class="m-value" id="d-beban">—</div>
+          <div class="m-delta" id="d-beban-delta">bulan ini</div>
+          <div id="d-beban-realisasi" style="font-size:11px;color:var(--ink3);margin-top:2px"></div>
+          <div class="zd-mrows" id="zd-viz-bebankas-rows"></div>
+        </div>
+      </div>
       <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
 
-    <!-- BARIS 4 — Stok -->
-    <div class="metric">
+    <div class="metric zd-m" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);">
+      <div class="m-label">Cash Flow</div>
+      <div class="zd-m-body">
+        <div class="zd-m-donutwrap"><canvas id="zd-viz-cashflow"></canvas><div class="zd-m-center" id="zd-viz-cashflow-c"></div></div>
+        <div class="zd-m-side">
+          <div class="m-value" id="d-cashflow">—</div>
+          <div class="m-delta" id="d-cashflow-delta">bulan ini</div>
+          <div class="zd-mrows" id="zd-viz-cashflow-rows"></div>
+        </div>
+      </div>
+      <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
+    </div>
+
+    <!-- BARIS 2 — Angka besar + rincian (tanpa donut) : Saldo Kas, Order Hari Ini, Nilai Stok, SKU Kritis -->
+    <div class="metric zd-m" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
+      <div class="m-label">Saldo Kas</div>
+      <div class="zd-m-body"><div class="zd-m-side">
+        <div class="m-value" id="d-saldo">—</div>
+        <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
+        <div class="zd-mrows" id="zd-viz-saldo-rows"></div>
+      </div></div>
+      <div class="doodle"><i class="ti ti-wallet"></i></div>
+    </div>
+
+    <div class="metric zd-m">
+      <div class="m-label">Order Hari Ini</div>
+      <div class="zd-m-body"><div class="zd-m-side">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+          <div class="m-value" id="d-order-qty" style="margin:0">—</div>
+          <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
+          <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
+        </div>
+        <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:3px">Omset bulan: <span id="d-omset-abu">—</span></div>
+        <div class="zd-mrows" id="zd-viz-order-rows"></div>
+      </div></div>
+      <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
+    </div>
+
+    <div class="metric zd-m">
       <div class="m-label">Nilai Stok</div>
-      <div class="m-value" id="d-nilaiStok">—</div>
-      <div class="m-delta">HPP × sisa stok</div>
+      <div class="zd-m-body"><div class="zd-m-side">
+        <div class="m-value" id="d-nilaiStok">—</div>
+        <div class="m-delta">HPP × sisa stok</div>
+        <div class="zd-mrows" id="zd-viz-stok-rows"></div>
+      </div></div>
       <div class="doodle"><i class="ti ti-coin"></i></div>
     </div>
-    <div class="metric" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
+
+    <div class="metric zd-m" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
       <div class="m-label">SKU Kritis</div>
-      <div class="m-value" id="d-kritis">—</div>
-      <div class="m-delta">stok ≤ 3 · klik untuk restock</div>
+      <div class="zd-m-body"><div class="zd-m-side">
+        <div class="m-value" id="d-kritis">—</div>
+        <div class="m-delta">stok ≤ 3 · klik untuk restock</div>
+        <div class="zd-mrows" id="zd-viz-kritis-rows"></div>
+      </div></div>
       <div class="doodle"><i class="ti ti-alert-triangle"></i></div>
     </div>
 
@@ -2023,6 +2061,19 @@ async function loadDashboard() {
       if (pctHEl) pctHEl.textContent = _fmtRp(omsetHari)+' · '+pctH+'% tercapai';
     }
 
+    // ─ Visual 8 minicard (presentasi saja, pakai angka yang sudah dihitung di atas)
+    window._zdMetricData = {
+      omsetBln: omsetBln, target: target, hpp: totalHppTerjual, beban: totalBebanNominal,
+      labaBersih: labaBersih, cfMasuk: cfMasuk, cfKeluar: cfKeluar,
+      kasMasuk: _kasMasuk, kasKeluar: _kasKeluar,
+      trxHariIni: jpHariIni.length, aov: aov,
+      skuTotal: _dashStokData.length,
+      pcsTotal: _dashStokData.reduce(function(a, r) { return a + (Number(r.sisa) || 0); }, 0),
+      kritis: kritis,
+      habis: _dashStokData.filter(function(r) { return (r.kategori_produk || 'aktif') === 'aktif' && (r.sales30 || 0) > 0 && r.sisa <= 0; }).length
+    };
+    _zdRenderMetricViz(window._zdMetricData);
+
     // ─ Alerts
     _renderAlerts(_dashStokData, saldo);
 
@@ -2275,6 +2326,123 @@ function _renderDonutBeban(bebanDetailMap) {
   }
 }
 
+
+// ─── VISUAL 8 MINICARD (gaya Accurate: donut + baris rincian) ──────
+// MURNI PRESENTASI: hanya membaca angka yang sudah dihitung loadDashboard.
+// Tidak menghitung ulang apa pun & tidak menulis ke elemen d-* yang ada.
+function _zdDonut(id, segs, centerHtml) {
+  var cv = document.getElementById('zd-viz-' + id);
+  var ce = document.getElementById('zd-viz-' + id + '-c');
+  if (ce) ce.innerHTML = centerHtml || '';
+  if (!cv) return;
+  var wrap = cv.parentElement;
+  var S = (wrap && wrap.offsetWidth) || 96;
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = S * dpr; cv.height = S * dpr;
+  cv.style.width = S + 'px'; cv.style.height = S + 'px';
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, S, S);
+  var cx = S / 2, cy = S / 2, r = S / 2 - 2, inner = r * 0.68;
+  var total = segs.reduce(function(a, x) { return a + Math.max(0, x.v); }, 0);
+  var ang = -Math.PI / 2;
+  if (total <= 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.arc(cx, cy, inner, 0, Math.PI * 2, true);
+    ctx.fillStyle = '#ececea'; ctx.fill('evenodd'); return;
+  }
+  segs.forEach(function(sg) {
+    var v = Math.max(0, sg.v); if (v <= 0) return;
+    var sl = v / total * Math.PI * 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, ang, ang + sl); ctx.arc(cx, cy, inner, ang + sl, ang, true); ctx.closePath();
+    ctx.fillStyle = sg.c; ctx.fill();
+    ang += sl;
+  });
+}
+function _zdRows(id, rows) {
+  var el = document.getElementById('zd-viz-' + id + '-rows');
+  if (!el) return;
+  el.innerHTML = rows.map(function(r) {
+    return '<div class="zd-mrow"><span class="zd-leg-dot" style="background:' + (r.c || '#bdb8ae') + '"></span>' +
+      '<span class="zd-mrow-l">' + r.l + '</span>' +
+      (r.p !== undefined ? '<span class="zd-leg-pct" style="color:' + (r.c || 'var(--ink3)') + '">' + r.p + '</span>' : '') +
+      '<span class="zd-mrow-v"' + (r.vc ? ' style="color:' + r.vc + '"' : '') + '>' + r.v + '</span></div>';
+  }).join('');
+}
+function _zdRenderMetricViz(d) {
+  if (!d) return;
+  try {
+    var G = '#22a06b', R = '#d9534f', B = '#2266cc', Y = '#c8a000', TR = '#ececea';
+    var pc = function(n, t) { return t > 0 ? Math.round(n / t * 100) + '%' : '0%'; };
+    var ctr = function(big, small, col) {
+      return '<b style="color:' + (col || 'var(--ink)') + '">' + big + '</b><span>' + small + '</span>';
+    };
+
+    // 1. Target Omset — donut progres
+    var tg = d.target > 0;
+    var tp = tg ? d.omsetBln / d.target * 100 : 0;
+    var tcol = tp >= 100 ? G : tp >= 60 ? Y : R;
+    _zdDonut('target', tg ? [{v: Math.min(d.omsetBln, d.target), c: tcol}, {v: Math.max(d.target - d.omsetBln, 0), c: TR}] : [],
+      tg ? ctr(tp.toFixed(1).replace('.0','') + '%', 'tercapai', tcol) : ctr('—', 'belum ada target'));
+    _zdRows('target', [
+      {l: 'Omset bulan ini', v: _fmtRp(d.omsetBln), c: tcol},
+      {l: 'Sisa target', v: tg ? _fmtRp(Math.max(d.target - d.omsetBln, 0)) : '—', c: TR}
+    ]);
+
+    // 2. Est. Laba Bersih — komposisi omset: HPP / Beban / Laba
+    var lb = d.omsetBln > 0;
+    var lba = Math.max(d.labaBersih, 0);
+    _zdDonut('laba', lb ? [{v: d.hpp, c: Y}, {v: d.beban, c: R}, {v: lba, c: G}] : [],
+      lb ? ctr(Math.round(d.labaBersih / d.omsetBln * 100) + '%', 'margin', d.labaBersih >= 0 ? G : R) : ctr('—', 'margin'));
+    _zdRows('laba', [
+      {l: 'Omset', v: _fmtRp(d.omsetBln), c: G},
+      {l: 'HPP terjual', v: _fmtRp(d.hpp), c: Y, p: pc(d.hpp, d.omsetBln)},
+      {l: 'Beban', v: _fmtRp(d.beban), c: R, p: pc(d.beban, d.omsetBln)}
+    ]);
+
+    // 3. Beban vs Kas — seberapa tertutup kebutuhan oleh kas (+escrow)
+    var ak = window._akData;
+    if (ak && ak.totalKeluar > 0) {
+      var cov = ak.totalKas / ak.totalKeluar * 100;
+      _zdDonut('bebankas', [{v: Math.min(Math.max(ak.totalKas, 0), ak.totalKeluar), c: G}, {v: Math.max(ak.totalKeluar - ak.totalKas, 0), c: R}],
+        ctr(Math.min(Math.round(cov), 999) + '%', 'tertutup', cov >= 100 ? G : R));
+      _zdRows('bebankas', [
+        {l: 'Kas + Escrow', v: _fmtRp(ak.totalKas), c: G},
+        {l: 'Beban + Cicilan', v: _fmtRp(ak.totalKeluar), c: R}
+      ]);
+    } else {
+      _zdDonut('bebankas', [], ctr('—', 'tertutup'));
+      _zdRows('bebankas', []);
+    }
+
+    // 4. Cash Flow — masuk vs keluar bulan ini
+    var cfT = d.cfMasuk + d.cfKeluar;
+    _zdDonut('cashflow', [{v: d.cfMasuk, c: G}, {v: d.cfKeluar, c: R}],
+      cfT > 0 ? ctr(pc(d.cfMasuk, cfT), 'masuk', G) : ctr('—', 'masuk'));
+    _zdRows('cashflow', [
+      {l: 'Masuk', v: _fmtRp(d.cfMasuk), c: G},
+      {l: 'Keluar', v: _fmtRp(d.cfKeluar), c: R}
+    ]);
+
+    // Baris 2 — tanpa donut
+    _zdRows('saldo', [
+      {l: 'Total masuk', v: _fmtRp(d.kasMasuk), c: G},
+      {l: 'Total keluar', v: _fmtRp(d.kasKeluar), c: R}
+    ]);
+    _zdRows('order', [
+      {l: 'Transaksi hari ini', v: d.trxHariIni, c: B},
+      {l: 'AOV bulan ini', v: d.aov > 0 ? _fmtRp(d.aov) : '—', c: Y}
+    ]);
+    _zdRows('stok', [
+      {l: 'Total SKU', v: d.skuTotal, c: B},
+      {l: 'Total sisa stok', v: d.pcsTotal + ' pcs', c: Y}
+    ]);
+    _zdRows('kritis', [
+      {l: 'Habis', v: d.habis + ' sku', c: R},
+      {l: 'Mendekati habis', v: Math.max(d.kritis - d.habis, 0) + ' sku', c: Y}
+    ]);
+  } catch (e) { console.warn('[MetricViz]', e); }
+}
+
 // ─── KEGIATAN MENDATANG — cicilan hutang aktif + SKU perlu restock ──
 async function _renderKegiatanMendatang() {
   const listEl = document.getElementById('dash-kegiatan-list');
@@ -2395,6 +2563,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 
     // Expose untuk networth
     window._akData = { totalBeban: totalBebanDash, totalCicilan, totalKeluar, totalKas, isDefisit };
+    if (typeof _zdRenderMetricViz === 'function' && window._zdMetricData) _zdRenderMetricViz(window._zdMetricData);
 
   } catch(e) { console.warn('[BebanVsKas]', e); }
 }
