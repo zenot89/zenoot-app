@@ -168,14 +168,6 @@ document.getElementById('page-dashboard').innerHTML = `
     <div id="d-target-harian-bar"></div>
     <div id="d-target-harian-pct"></div>
   </div>
-  <!-- ═══ KEGIATAN MENDATANG (BARU v5) ══════════════════════════ -->
-  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-top:12px;margin-bottom:0">
-    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang</div>
-    <div id="dash-kegiatan-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
-
   </div><!-- /zd-tab-ringkasan -->
 
   <div class="zd-tab-panel" id="zd-tab-penjualan">
@@ -339,6 +331,13 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-2 -->
+  <!-- ═══ KEGIATAN MENDATANG — RESTOCK (tab Stok & Supplier) ═══ -->
+  <div class="card dash-widget" id="dash-kegiatan-stok-card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-title"><i class="ti ti-package"></i> Kegiatan Mendatang · Restock</div>
+    <div id="dash-kegiatan-stok-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
   </div><!-- /zd-tab-stok -->
 
   <div class="zd-tab-panel" id="zd-tab-keuangan">
@@ -401,6 +400,13 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-5 -->
+  <!-- ═══ KEGIATAN MENDATANG — CICILAN (tab Keuangan) ═══ -->
+  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang · Cicilan</div>
+    <div id="dash-kegiatan-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
   </div><!-- /zd-tab-keuangan -->
 
   <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
@@ -2289,6 +2295,7 @@ async function _renderKegiatanMendatang() {
       const sisa = (h.pokok || 0) - sudahBayar;
       if (sisa > 0 && Number(h.cicilan_per_bulan) > 0) {
         items.push({
+          grp:  'cicilan',
           icon: 'ti-credit-card',
           cls:  'warn',
           title: h.kreditur || 'Hutang',
@@ -2304,6 +2311,7 @@ async function _renderKegiatanMendatang() {
       .slice(0,4)
       .forEach(r => {
         items.push({
+          grp:  'stok',
           icon: 'ti-package',
           cls:  r.sisa<=0 ? 'danger' : 'warn',
           title: r.sku_variasi,
@@ -2312,11 +2320,8 @@ async function _renderKegiatanMendatang() {
         });
       });
 
-    if (!items.length) {
-      listEl.innerHTML = '<div class="dash-kg-empty">Tidak ada kegiatan mendatang — semua aman 👍</div>';
-      return;
-    }
-    listEl.innerHTML = items.slice(0,6).map(it =>
+    const stokListEl = document.getElementById('dash-kegiatan-stok-list');
+    const _kgHtml = arr => arr.map(it =>
       '<div class="dash-kg-item">' +
         '<div class="dash-kg-ic '+it.cls+'"><i class="ti '+it.icon+'"></i></div>' +
         '<div style="min-width:0;flex:1">' +
@@ -2326,9 +2331,19 @@ async function _renderKegiatanMendatang() {
         '<div class="dash-kg-val" style="color:'+(it.cls==='danger'?'var(--danger)':'var(--warn)')+'">'+it.val+'</div>' +
       '</div>'
     ).join('');
+    const cicilanItems = items.filter(it => it.grp === 'cicilan').slice(0,6);
+    const stokItems    = items.filter(it => it.grp === 'stok').slice(0,6);
+    listEl.innerHTML = cicilanItems.length
+      ? _kgHtml(cicilanItems)
+      : '<div class="dash-kg-empty">Tidak ada cicilan mendatang — semua aman 👍</div>';
+    if (stokListEl) stokListEl.innerHTML = stokItems.length
+      ? _kgHtml(stokItems)
+      : '<div class="dash-kg-empty">Tidak ada SKU perlu restock — semua aman 👍</div>';
   } catch(e) {
     console.warn('[KegiatanMendatang]', e);
     listEl.innerHTML = '<div class="dash-kg-empty">Gagal memuat data</div>';
+    var _sl = document.getElementById('dash-kegiatan-stok-list');
+    if (_sl) _sl.innerHTML = '<div class="dash-kg-empty">Gagal memuat data</div>';
   }
 }
 
