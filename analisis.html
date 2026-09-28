@@ -7321,13 +7321,17 @@ function byhargaBinsRender(){
 /* [28 Sep 2026] RINGKASAN PASAR — alur: 1 Data (CSV dari tool Pricing Analysis) -> 2 Peta pasar -> 3 Banding dengan admin (Harga Minimum dari kalkulasi admin/ROAS/HPP).
    Range dengan < BYH_MIN_SAMPLE produk TIDAK dipakai buat rekomendasi (1 produk laku besar = outlier, bukan rata-rata pasar). Label range dibulatkan ke ribuan (cuma tampilan, hitungan tetap angka asli). */
 const BYH_MIN_SAMPLE = 3;
+function byhargaHppNow(){
+  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku);
+  return row ? (row.hpp||0) : 0;
+}
 function byhargaHargaMinNow(withVoucher){
   const row = state.priceList.find(r=>r.sku===byhargaSelectedSku); if(!row) return null;
   const V = (withVoucher===undefined) ? ((byhargaVoucherFor(row.sku)||{}).value||0) : withVoucher;
   const c = byhargaCompute(row, 0, V, resolveByhargaRoas().roas);
   return (c && c.ok && c.hargaMin>0) ? c.hargaMin : null;
 }
-function byhBinsSummaryHtml(rows, P, Hmin, HminW, src){
+function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
   const kf = x=>'Rp'+Math.round((x||0)/1000)+'rb';
   const rg = r=> kf(r.min) + (r.max>0 ? '–'+Math.round(r.max/1000)+'rb' : ' ke atas');
   const n0 = x=>Math.round(x).toLocaleString('id-ID');
@@ -7339,6 +7343,15 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src){
   const reliable = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0);
   const pickMax = (list, f)=> list.reduce((b,r)=> (!b || f(r)>f(b)) ? r : b, null);
   const inRange = (r,x)=> x>=(r.min||0) && (!(r.max>0) || x<=r.max);
+  // Label pasar 2x2 (heuristik, bukan bukti): patokan = rata-rata porsi semua range yang berisi produk. Penjualan tinggi = porsi terjual >= rata-rata; pesaing banyak = porsi produk > rata-rata.
+  // Range < BYH_MIN_SAMPLE produk tidak diberi label (sampel kecil).
+  const live = rows.filter(r=>r.prod>0), avgShare = live.length ? 1/live.length : 0;
+  const oceanOf = r=>{
+    if(!(totSold>0) || !(r.prod>=BYH_MIN_SAMPLE)) return '';
+    const demandHigh = share(r) >= avgShare, crowded = (r.prod/totProd) > avgShare;
+    return demandHigh ? (crowded ? 'red' : 'blue') : (crowded ? 'jenuh' : 'sepi');
+  };
+  const OCEAN_NAME = { blue:'Blue ocean', red:'Red ocean', sepi:'Sepi', jenuh:'Jenuh' };
   const lo = Math.min.apply(null, rows.map(r=>r.min||0)), hiRow = rows.filter(r=>r.max>0).map(r=>r.max), hi = hiRow.length ? Math.max.apply(null, hiRow) : 0;
   // ---- 1 · Data
   let s1 = '<p><b>'+n0(totProd)+' produk</b> pesaing, harga '+kf(lo)+(hi>0?'–'+Math.round(hi/1000)+'rb':' ke atas')+', total terjual <b>'+n0(totSold)+'</b>.</p>';
@@ -7351,6 +7364,13 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src){
   if(topSold) s2 += '<p>Terjual paling banyak: <b>'+rg(topSold)+'</b> ('+fmtPct(share(topSold))+' penjualan, '+n0(topSold.prod)+' produk).</p>';
   if(topTpp) s2 += '<p>Jatah per penjual terbesar: <b>'+rg(topTpp)+'</b> ('+n0(tpp(topTpp))+' terjual/produk, '+n0(topTpp.prod)+' pesaing).</p>';
   else s2 += '<p>Belum ada range dengan minimal '+BYH_MIN_SAMPLE+' produk, jadi jatah per penjual belum bisa dinilai.</p>';
+  const oceanList = k=>rows.filter(r=>oceanOf(r)===k).map(r=>rg(r)+((Hmin>0 && r.max>0 && r.max<Hmin) ? ' (di bawah harga minimum)' : ''));
+  const ob = oceanList('blue'), orr = oceanList('red'), osp = oceanList('sepi'), oje = oceanList('jenuh');
+  if(ob.length)  s2 += '<p><b>Blue ocean</b> (penjualan tinggi, pesaing sedikit): '+ob.join(', ')+'.</p>';
+  if(orr.length) s2 += '<p><b>Red ocean</b> (penjualan tinggi, pesaing padat): '+orr.join(', ')+'.</p>';
+  if(osp.length) s2 += '<p class="sub"><b>Sepi</b> (penjualan rendah, pesaing sedikit, pasar tipis): '+osp.join(', ')+'.</p>';
+  if(oje.length) s2 += '<p class="sub"><b>Jenuh</b> (penjualan rendah, pesaing padat, hindari): '+oje.join(', ')+'.</p>';
+  if(ob.length||orr.length||osp.length||oje.length) s2 += '<p class="sub">Label memakai rata-rata semua range berisi sebagai patokan, jadi ini penunjuk arah, bukan bukti pasar bebas persaingan. Range kurang dari '+BYH_MIN_SAMPLE+' produk tidak dilabeli.</p>';
   const small = rows.filter(r=>r.prod>0 && r.prod<BYH_MIN_SAMPLE && r.sold>0);
   if(small.length) s2 += '<p class="sub">Tidak dipakai buat saran (kurang dari '+BYH_MIN_SAMPLE+' produk): '+small.slice(0,4).map(r=>rg(r)+' ('+r.prod+' produk)').join(', ')+'.</p>';
   const empty = rows.filter(r=>!(r.prod>0));
@@ -7370,7 +7390,9 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src){
     if(best){
       const from = Math.max(best.min||0, Hmin), to = best.max>0 ? best.max : 0;
       if(topTpp && topTpp!==best && topTpp.max>0 && topTpp.max<Hmin) s3 += '<p class="sub">Range dengan jatah terbesar ('+rg(topTpp)+') seluruhnya di bawah harga minimum, jadi tidak layak.</p>';
-      s3 += '<div class="go"><b>Saran eksekusi:</b> pasang di <b>'+fmtRp(from)+(to>0?' sampai '+kf(to):' ke atas')+'</b>. Range '+rg(best)+': '+n0(best.prod)+' pesaing, '+n0(tpp(best))+' terjual/produk, '+fmtPct(share(best))+' penjualan.</div>';
+      const oc = oceanOf(best);
+      const gpmTxt = (hpp>0) ? ' GPM di kisaran itu '+fmtPct((from-hpp)/from)+(to>0 ? ' sampai '+fmtPct((to-hpp)/to) : '')+'.' : '';
+      s3 += '<div class="go"><b>Saran eksekusi:</b> pasang di <b>'+fmtRp(from)+(to>0?' sampai '+kf(to):' ke atas')+'</b>. Range '+rg(best)+(oc?' ('+OCEAN_NAME[oc]+')':'')+': '+n0(best.prod)+' pesaing, '+n0(tpp(best))+' terjual/produk, '+fmtPct(share(best))+' penjualan.'+gpmTxt+'</div>';
       if(HminW>0 && HminW>Hmin+0.5){
         s3 += '<p class="sub">Saat voucher weekend aktif, harga minimum naik jadi '+fmtRp(HminW)+(to>0 && HminW>to ? ', melewati batas atas range saran.' : '.')+'</p>';
       }
@@ -7406,9 +7428,9 @@ function byhargaBinsHighlight(){
     tr.querySelector('[data-c="share"]').textContent = (totSold>0) ? fmtPct((r.sold||0)/totSold) : '-';
   });
   const sku = byhargaSelectedSku, Vw = byhargaVoucherWeekend[sku]||0;
-  let Hmin = null, HminW = null;
-  try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
-  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[byhBinsKey()]||'');
+  let Hmin = null, HminW = null, hpp = 0;
+  try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; hpp = byhargaHppNow(); }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
+  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[byhBinsKey()]||'', hpp);
 }
 function byhargaBinsSync(){
   if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
