@@ -8,6 +8,16 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ ALERT STRIP ════════════════════════════════════════ -->
   <div id="dash-alerts-wrap"></div>
 
+  <!-- ═══ TAB BAR DASHBOARD (gaya Xero: underline tab) ═══════════ -->
+  <div class="zd-tabbar" id="zd-tabbar" role="tablist">
+    <button class="zd-tab active" data-tab="ringkasan" onclick="zdDashTab('ringkasan')"><i class="ti ti-layout-dashboard"></i> Ringkasan</button>
+    <button class="zd-tab" data-tab="penjualan" onclick="zdDashTab('penjualan')"><i class="ti ti-chart-line"></i> Penjualan</button>
+    <button class="zd-tab" data-tab="stok" onclick="zdDashTab('stok')"><i class="ti ti-package"></i> Stok &amp; Supplier</button>
+    <button class="zd-tab" data-tab="keuangan" onclick="zdDashTab('keuangan')"><i class="ti ti-report-money"></i> Keuangan</button>
+  </div>
+
+  <div class="zd-tab-panel zd-tab-active" id="zd-tab-ringkasan">
+
   <!-- ═══ KEGIATAN MENDATANG (BARU v5) ══════════════════════════ -->
   <div class="card dash-widget" id="dash-kegiatan-card" style="margin-bottom:12px">
     <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang</div>
@@ -26,7 +36,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: biru -->
         <div class="nw-slide-header nw-slide-s1 nw-slide-header-solo" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-            <div class="nw-slide-label"><i class="ti ti-chart-pie"></i> NET WORTH AKTUAL</div>
+            <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-blue"><i class="ti ti-chart-pie"></i></span> NET WORTH AKTUAL</div>
             <div style="display:flex;align-items:center;gap:6px">
               <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
               <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
@@ -34,6 +44,7 @@ document.getElementById('page-dashboard').innerHTML = `
           </div>
           <div class="nw-slide-value" id="nw-total">Rp —</div>
           <div class="nw-slide-sub" id="nw-update-time">menghitung...</div>
+          <div class="nw-slide-formula"><i class="ti ti-calculator"></i> Total Aset − Total Hutang + Escrow Shopee</div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -42,7 +53,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
-          <div class="nw-slide-label"><i class="ti ti-report-money"></i> BEBAN OPERASIONAL</div>
+          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
           <div class="nw-slide-value" id="dash-beban-total">Rp —</div>
           <div class="nw-slide-sub" id="dash-beban-pct">bulan ini</div>
         </div>
@@ -57,7 +68,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
         <!-- Header: abu tua, nilai utama = FCF -->
         <div class="nw-slide-header nw-slide-s3">
-          <div class="nw-slide-label"><i class="ti ti-trending-up"></i> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
+          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
           <div class="nw-slide-value" id="dash-fcf-val">Rp —</div>
           <div class="nw-slide-sub">Total Income: <span id="dash-income-total" style="color:#001012;font-weight:700">—</span></div>
         </div>
@@ -191,7 +202,9 @@ document.getElementById('page-dashboard').innerHTML = `
     <div id="d-target-harian-bar"></div>
     <div id="d-target-harian-pct"></div>
   </div>
+  </div><!-- /zd-tab-ringkasan -->
 
+  <div class="zd-tab-panel" id="zd-tab-penjualan">
   <!-- ═══ ROW 3: GRAFIK PENJUALAN + TOP SKU ════════════════════ -->
   <div class="db-swipe-pair zd-wide-21" id="swipe-pair-1">
     <div class="db-swipe-track">
@@ -277,6 +290,42 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-1 -->
 
+  <!-- ═══ ROW 5: PERFORMA CHANNEL + GRAFIK OMSET PER KATALOG ═══ -->
+  <div class="db-swipe-pair" id="swipe-pair-3">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Omset Katalog</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
+          <div class="dash-donut-wrap" style="margin-bottom:10px">
+            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-channel"></canvas></div>
+            <div id="dash-channel-legend" class="dash-donut-legend"></div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>Channel</th><th>Trx</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
+            <tbody id="dash-channel-tbody">
+              <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Channel</span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
+          <div style="position:relative;height:220px;width:100%">
+            <canvas id="dash-chart-katalog" style="width:100%;height:100%;display:block"></canvas>
+            <div id="dash-katalog-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
+              Belum ada data
+            </div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-3 -->
+  </div><!-- /zd-tab-penjualan -->
+
+  <div class="zd-tab-panel" id="zd-tab-stok">
   <!-- ═══ ROW 4: STATUS STOK + PERFORMA BOSS ═══════════════════ -->
   <div class="db-swipe-pair" id="swipe-pair-2">
     <div class="db-swipe-track">
@@ -316,41 +365,9 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-2 -->
+  </div><!-- /zd-tab-stok -->
 
-  <!-- ═══ ROW 5: PERFORMA CHANNEL + GRAFIK OMSET PER KATALOG ═══ -->
-  <div class="db-swipe-pair" id="swipe-pair-3">
-    <div class="db-swipe-track">
-      <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Omset Katalog</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
-          <div class="dash-donut-wrap" style="margin-bottom:10px">
-            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-channel"></canvas></div>
-            <div id="dash-channel-legend" class="dash-donut-legend"></div>
-          </div>
-          <div class="tbl-wrap"><table class="tbl">
-            <thead><tr><th>Channel</th><th>Trx</th><th>Qty</th><th>Omset</th><th>%</th></tr></thead>
-            <tbody id="dash-channel-tbody">
-              <tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
-            </tbody>
-          </table></div>
-        </div>
-      </div><!-- /slide 1 -->
-      <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Channel</span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
-          <div style="position:relative;height:220px;width:100%">
-            <canvas id="dash-chart-katalog" style="width:100%;height:100%;display:block"></canvas>
-            <div id="dash-katalog-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
-              Belum ada data
-            </div>
-          </div>
-        </div>
-      </div><!-- /slide 2 -->
-    </div><!-- /db-swipe-track -->
-  </div><!-- /db-swipe-pair-3 -->
-
+  <div class="zd-tab-panel" id="zd-tab-keuangan">
   <!-- pair-4 lama (Beban & Income) sudah ada di nw-swipe-container atas —
        slot ini dipakai ulang untuk 2 donut baru v5 (Laba/Rugi & Beban Perusahaan) -->
   <div class="db-swipe-pair" id="swipe-pair-4">
@@ -410,6 +427,7 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-5 -->
+  </div><!-- /zd-tab-keuangan -->
 
   <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
   <div style="text-align:right;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
@@ -433,6 +451,19 @@ document.getElementById('page-dashboard').innerHTML = `
     </div>
   </div>
 `;
+
+
+// ─── TAB DASHBOARD ────────────────────────────────────────────
+// Panel non-aktif cuma dikolapskan tingginya (bukan display:none) supaya
+// lebar canvas tetap terhitung benar & grafik tidak perlu redraw.
+function zdDashTab(name){
+  var tabs = document.querySelectorAll('#zd-tabbar .zd-tab');
+  for (var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab')===name);
+  var panels = document.querySelectorAll('#page-dashboard .zd-tab-panel');
+  for (var j=0;j<panels.length;j++) panels[j].classList.toggle('zd-tab-active', panels[j].id==='zd-tab-'+name);
+  window.scrollTo && window.scrollTo(0,0);
+}
+window.zdDashTab = zdDashTab;
 
 // ─── INJECT STYLE ─────────────────────────────────────────────
 (function() {

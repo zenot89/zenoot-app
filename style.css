@@ -4792,26 +4792,55 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* =================================================================
    NW SWIPE CONTAINER - Net Worth + Beban + Income
-   REDESIGN v6 (27 Sep 2026): dulu 3 kartu flat abu #808080 rata semua
-   (kaku, gak ada hierarki warna) — diganti kartu terang bertinta warna
-   semantik per kategori (biru=netral/net worth, oranye=beban/keluar,
-   ijo=cash flow/masuk), radius besar + shadow lembut senada .card
-   lain, aksen garis warna di kiri biar gampang di-scan.
+   REDESIGN v7 (27 Sep 2026): v6 (gradient pastel + border tebal kiri)
+   masih dirasa "jelek/kaku" — diganti gaya flat-professional ala
+   Xero/QuickBooks: kartu putih bersih, garis tipis, aksen warna cuma
+   di strip atas 3px + ikon badge bulat, angka besar netral (ink),
+   BUKAN gradient/pastel penuh. Tinggi 3 kartu disamakan (min-height)
+   biar gak ada void kosong ganjil kalau salah satu kontennya pendek.
    ================================================================= */
 
 .nw-slide-header {
-  border-radius: 16px 16px 0 0;
+  border-radius: 14px 14px 0 0;
   padding: 16px 18px 14px;
   margin-bottom: 0;
-  border-left: 4px solid transparent;
+  border-top: 3px solid transparent;
   position: relative;
+  background: #FFFFFF;
 }
 
-.nw-slide-s1 { background: linear-gradient(180deg,#EEF4FF 0%,#FFFFFF 65%); border: 1px solid var(--dash-blue-10); border-left: 4px solid var(--dash-blue); border-bottom: none; }
-/* Slide 1 (Net Worth) gak punya data-box lagi — kartu solo, rounded semua sisi */
-.nw-slide-header-solo{ border-radius: 16px; border-bottom: 1px solid var(--dash-blue-10) !important; padding-bottom: 18px; }
-.nw-slide-s2 { background: linear-gradient(180deg,#FFF3EA 0%,#FFFFFF 65%); border: 1px solid var(--dash-orange-10); border-left: 4px solid var(--dash-orange); border-bottom: none; }
-.nw-slide-s3 { background: linear-gradient(180deg,#EAFBF3 0%,#FFFFFF 65%); border: 1px solid var(--dash-green-10); border-left: 4px solid var(--dash-green); border-bottom: none; }
+.nw-slide-s1 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-blue);   border-bottom: none; }
+.nw-slide-s2 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-orange); border-bottom: none; }
+.nw-slide-s3 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-green);  border-bottom: none; }
+
+/* Slide 1 (Net Worth) gak punya data-box — kartu solo, rounded semua sisi,
+   tinggi disamain ke slide 2/3 lewat flex column + formula caption di bawah */
+.nw-slide-header-solo{
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+.nw-slide-formula{
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 11px;
+  color: var(--ink4);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-top: 1px dashed var(--ovl-0_08);
+}
+
+/* Ikon badge bulat di label — konsisten sama Financial Overview & metrics */
+.nw-slide-ic{
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.nw-slide-ic-blue{ background: var(--dash-blue-10); color: var(--dash-blue); }
+.nw-slide-ic-orange{ background: var(--dash-orange-10); color: var(--dash-orange); }
+.nw-slide-ic-green{ background: var(--dash-green-10); color: var(--dash-green); }
 
 .nw-slide-header .nw-slide-label {
   font-size: 10px;
@@ -4819,10 +4848,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink3);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 .nw-slide-header .nw-slide-value {
   font-size: clamp(24px, 3.4vw, 34px);
@@ -4833,18 +4862,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   color: var(--ink);
   margin: 2px 0 3px;
 }
-.nw-slide-s1 .nw-slide-value { color: var(--dash-blue); }
-.nw-slide-s2 .nw-slide-value { color: var(--dash-orange); }
-.nw-slide-s3 .nw-slide-value { color: var(--dash-green); }
 .nw-slide-header .nw-slide-sub {
   font-size: 11px;
   color: var(--ink3);
   margin-top: 2px;
 }
 
-/* Data box - senada header (tint lebih pudar), nyambung tanpa jahitan */
+/* Data box - putih polos, nyambung tanpa jahitan sama header */
 .nw-slide-data {
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 14px 14px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -4852,15 +4878,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: var(--ovl-0_12) transparent;
-  border-left: 4px solid transparent;
+  background: #FFFFFF;
 }
 .nw-slide-data::-webkit-scrollbar { width: 3px; }
 .nw-slide-data::-webkit-scrollbar-track { background: transparent; }
 .nw-slide-data::-webkit-scrollbar-thumb { background: var(--ovl-0_15); border-radius: 2px; }
 
-.nw-slide-s1 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-blue-10); border-left: 4px solid var(--dash-blue); border-top: none; }
-.nw-slide-s2 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-orange-10); border-left: 4px solid var(--dash-orange); border-top: none; }
-.nw-slide-s3 + .nw-slide-data { background: #FFFFFF; border: 1px solid var(--dash-green-10); border-left: 4px solid var(--dash-green); border-top: none; }
+.nw-slide-s1 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
+.nw-slide-s2 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
+.nw-slide-s3 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
 
 .nw-slide-data .nw-row,
 .nw-slide-data .beban-row { border-color: var(--ovl-0_06); }
@@ -4869,10 +4895,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-refresh-btn { color: var(--ink3); }
 .nw-refresh-btn:hover { color: var(--ink); background: var(--ovl-0_06); }
 
-/* Kartu hero (nw-swipe-slide) ikut shadow lembut senada card lain */
-#nw-swipe-container .nw-swipe-slide { border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+/* Kartu hero (nw-swipe-slide) ikut shadow lembut senada card lain, tinggi disamain */
+#nw-swipe-container .nw-swipe-slide { border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
 #nw-swipe-container .nw-slide-header,
 #nw-swipe-container .nw-slide-data { box-shadow: none; }
+@media (min-width: 768px){
+  #nw-swipe-container .nw-swipe-slide{ min-height: 252px; }
+}
 
 /* ── ROW 2: FINANCIAL OVERVIEW — 4 kartu compact, ikon bulat + aksen warna ── */
 .zd-fin-grid{
@@ -5288,4 +5317,30 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 @media (max-width:520px){
   .dash-donut-wrap{ justify-content:center; }
+}
+
+/* =================================================================
+   TAB DASHBOARD (gaya Xero — underline tab)
+   Panel non-aktif: tinggi 0 + overflow hidden (BUKAN display:none)
+   → lebar/ukuran canvas tetap valid, grafik gak perlu redraw.
+   ================================================================= */
+.zd-tabbar{
+  display:flex; gap:4px; margin:0 0 14px;
+  border-bottom:1px solid var(--ovl-0_1);
+  overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.zd-tabbar::-webkit-scrollbar{ display:none; }
+.zd-tab{
+  appearance:none; background:none; border:none; cursor:pointer;
+  padding:10px 14px; font-family:var(--f); font-size:13px; font-weight:600;
+  color:var(--ink3); white-space:nowrap; flex-shrink:0;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.zd-tab:hover{ color:var(--ink); }
+.zd-tab.active{ color:var(--dash-blue); border-bottom-color:var(--dash-blue); }
+.zd-tab i{ font-size:15px; }
+.zd-tab-panel:not(.zd-tab-active){
+  height:0; overflow:hidden; margin:0 !important; padding:0 !important;
+  visibility:hidden; pointer-events:none;
 }
