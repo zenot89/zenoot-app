@@ -583,6 +583,11 @@
   .byh-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 14px; }
   /* [22 Sep 2026] GPM acuan (di Harga Jual = sebelum voucher) dibuat lebih tegas dari persen lainnya */
   .byh-pct.byh-ref{ color:var(--ink); font-weight:700; }
+  /* [29 Sep 2026] By Harga Jual: 2 halaman lewat tombol di topbar (bukan scroll panjang ke bawah). Halaman 1 "Kalkulasi" = kartu ringkas + hasil + Normal vs Voucher Weekend;
+     halaman 2 "Data Pasar" = kartu Data kompetitor. Panel Input (kanan) tetap tampil di kedua halaman. Cuma disembunyikan lewat CSS, isi/JS render tidak diubah. */
+  #page-byharga.byh-hal-pasar #byhargaStats, #page-byharga.byh-hal-pasar #byhargaDetail{ display:none; }
+  #page-byharga:not(.byh-hal-pasar) #byhargaBinsWrap{ display:none; }
+  #page-byharga.byh-hal-pasar #byhargaBinsWrap > .card{ margin-top:0 !important; }
   /* [28 Sep 2026] By Harga Jual: tabel Normal vs Voucher Weekend + Data kompetitor per range harga */
   .byh-cmp{ width:100%; border-collapse:collapse; font-size:13.5px; }
   .byh-cmp th{ font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; padding:6px 0; border-bottom:1px solid var(--line); }
@@ -1299,7 +1304,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -3759,6 +3764,15 @@ async function renderTokoCompare(){
   }
 })();
 
+// [29 Sep 2026] By Harga Jual: halaman aktif ('kalk' = Kalkulasi, 'pasar' = Data Pasar). Pakai var (bukan let) supaya aman kalau updatePageTitleBar kepanggil sebelum baris ini jalan.
+var byhargaHal = 'kalk';
+function byhargaSetHal(h){
+  byhargaHal = (h==='pasar') ? 'pasar' : 'kalk';
+  const pg = document.getElementById('page-byharga');
+  if(pg) pg.classList.toggle('byh-hal-pasar', byhargaHal==='pasar');
+  updatePageTitleBar(currentPage);
+  try{ window.scrollTo(0,0); const m = document.getElementById('main'); if(m) m.scrollTop = 0; }catch(e){}
+}
 const PAGE_TITLES = {
   hasil: 'RKS Overview',
   rekap: 'Rekap',
@@ -3786,7 +3800,15 @@ function updatePageTitleBar(pageKey){
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
   const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
   const boM = document.getElementById('btnBackOverviewM'); if(boM) boM.style.display = (pageKey==='rekapM') ? '' : 'none';
+  // [29 Sep 2026] By Harga Jual: tombol pindah halaman Kalkulasi <-> Data Pasar
+  const bgp = document.getElementById('btnByhGotoPasar'); if(bgp) bgp.style.display = (pageKey==='byharga' && byhargaHal!=='pasar') ? '' : 'none';
+  const bbk = document.getElementById('btnByhBackKalk');  if(bbk) bbk.style.display = (pageKey==='byharga' && byhargaHal==='pasar') ? '' : 'none';
 }
+(function(){
+  const g = document.getElementById('btnByhGotoPasar'), b = document.getElementById('btnByhBackKalk');
+  if(g) g.addEventListener('click', function(){ byhargaSetHal('pasar'); });
+  if(b) b.addEventListener('click', function(){ byhargaSetHal('kalk'); });
+})();
 (function(){
   const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewM:'hasilM' };
   Object.keys(map).forEach(function(id){
