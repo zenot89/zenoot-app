@@ -378,9 +378,10 @@ body.sidebar-mini .sidebar-footer::before{
 }
 .nav-group-header:hover{background:var(--ovl-0_03)}
 .nav-group-label{
-  font-size:15px;font-weight:700;color:var(--ink3);
-  text-transform:uppercase;letter-spacing:.08em;font-family:var(--f2);
-  display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:7px;
+  font-size:12px;font-weight:700;color:var(--ink3);
+  text-transform:uppercase;letter-spacing:.04em;font-family:var(--f2);
+  display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:6px;
+  white-space:nowrap;min-width:0;
 }
 .nav-group-arrow{
   font-size:16px;color:var(--ink2);
