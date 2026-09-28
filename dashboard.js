@@ -264,7 +264,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
           <div class="dash-donut-wrap" style="margin-bottom:10px">
-            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-channel"></canvas></div>
+            <div style="position:relative;width:150px;height:150px;flex-shrink:0"><canvas id="dash-chart-channel"></canvas></div>
             <div id="dash-channel-legend" class="dash-donut-legend"></div>
           </div>
           <div class="tbl-wrap"><table class="tbl">
@@ -279,7 +279,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Channel</span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
-          <div style="position:relative;height:220px;width:100%">
+          <div style="position:relative;height:280px;width:100%">
             <canvas id="dash-chart-katalog" style="width:100%;height:100%;display:block"></canvas>
             <div id="dash-katalog-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
               Belum ada data
@@ -318,7 +318,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-users"></i> Performa Supplier</div>
           <div class="dash-donut-wrap" style="margin-bottom:10px">
-            <div style="position:relative;width:110px;height:110px;flex-shrink:0"><canvas id="dash-chart-boss"></canvas></div>
+            <div style="position:relative;width:150px;height:150px;flex-shrink:0"><canvas id="dash-chart-boss"></canvas></div>
             <div id="dash-boss-legend" class="dash-donut-legend"></div>
           </div>
           <div class="tbl-wrap"><table class="tbl">
@@ -1306,8 +1306,8 @@ function _renderBoss(jpData, stokData) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   const cx = W/2, cy = H/2;
-  const r  = Math.min(cx, cy) - 10;
-  const inner = r * 0.46;
+  const r  = Math.min(cx, cy) - 6;
+  const inner = r * 0.64;
   let angle = -Math.PI/2;
   sorted.forEach(([,d],i) => {
     const slice = (d.omset/totalOmset)*Math.PI*2;
@@ -1316,25 +1316,26 @@ function _renderBoss(jpData, stokData) {
     ctx.arc(cx,cy,r,angle,angle+slice);
     ctx.closePath();
     ctx.fillStyle=colors[i%colors.length]; ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
     angle += slice;
   });
   ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
-  ctx.fillStyle='#ede7d9'; ctx.fill();
-  ctx.fillStyle='#1c1a14'; ctx.font='bold 12px sans-serif';
+  ctx.fillStyle='#fff'; ctx.fill();
+  const _fs = Math.max(11, Math.round(inner*0.34));
+  ctx.fillStyle='#1c1a14'; ctx.font='bold '+_fs+'px sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(_fmtRpShort(totalOmset),cx,cy-7);
-  ctx.font='10px sans-serif'; ctx.fillStyle='#6b6354';
-  ctx.fillText('total omset',cx,cy+8);
+  ctx.fillText(_fmtRpShort(totalOmset),cx,cy-_fs*0.35);
+  ctx.font=Math.max(9,_fs-3)+'px sans-serif'; ctx.fillStyle='#8a8580';
+  ctx.fillText('total omset',cx,cy+_fs*0.75);
 
   const legendEl = document.getElementById('dash-boss-legend');
   if (legendEl) {
     legendEl.innerHTML = sorted.map(([boss,d],i) => {
       const pct = totalOmset>0?(d.omset/totalOmset*100).toFixed(0):0;
-      return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;white-space:nowrap">' +
-        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px var(--ovl-0_6)"></span>' +
-        '<span style="font-size:11px;font-weight:700;color:var(--ink);text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+boss+'</span>' +
-        '<span style="font-size:11px;font-weight:700;color:'+colors[i%colors.length]+';text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+pct+'%</span>' +
+      return '<div class="zd-leg-row">' +
+        '<span class="zd-leg-dot" style="background:'+colors[i%colors.length]+'"></span>' +
+        '<span class="zd-leg-name">'+boss+'</span>' +
+        '<span class="zd-leg-pct" style="color:'+colors[i%colors.length]+'">'+pct+'%</span>' +
       '</div>';
     }).join('');
   }
@@ -1400,7 +1401,7 @@ function _renderChannel(jpData) {
   canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-  const cx=W/2, cy=H/2, r=Math.min(cx,cy)-10, inner=r*0.46;
+  const cx=W/2, cy=H/2, r=Math.min(cx,cy)-6, inner=r*0.64;
   let angle=-Math.PI/2;
   sorted.forEach(([,d],i) => {
     const slice=(d.omset/totalOmset)*Math.PI*2;
@@ -1409,26 +1410,27 @@ function _renderChannel(jpData) {
     ctx.arc(cx,cy,r,angle,angle+slice);
     ctx.closePath();
     ctx.fillStyle=colors[i%colors.length]; ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
     angle+=slice;
   });
   ctx.beginPath(); ctx.arc(cx,cy,inner,0,Math.PI*2);
-  ctx.fillStyle='#ede7d9'; ctx.fill();
-  ctx.fillStyle='#1c1a14'; ctx.font='bold 12px sans-serif';
+  ctx.fillStyle='#fff'; ctx.fill();
+  const _fs = Math.max(11, Math.round(inner*0.34));
+  ctx.fillStyle='#1c1a14'; ctx.font='bold '+_fs+'px sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(_fmtRpShort(totalOmset),cx,cy-7);
-  ctx.font='10px sans-serif'; ctx.fillStyle='#6b6354';
-  ctx.fillText(sorted.length+' channel',cx,cy+8);
+  ctx.fillText(_fmtRpShort(totalOmset),cx,cy-_fs*0.35);
+  ctx.font=Math.max(9,_fs-3)+'px sans-serif'; ctx.fillStyle='#8a8580';
+  ctx.fillText(sorted.length+' channel',cx,cy+_fs*0.75);
 
   // Legend
   const legendEl = document.getElementById('dash-channel-legend');
   if (legendEl) {
     legendEl.innerHTML = sorted.map(([ch,d],i) => {
       const pct = totalOmset>0?(d.omset/totalOmset*100).toFixed(0):0;
-      return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;white-space:nowrap">' +
-        '<span style="width:9px;height:9px;border-radius:50%;background:'+colors[i%colors.length]+';flex-shrink:0;display:inline-block;box-shadow:0 0 0 1px var(--ovl-0_6)"></span>' +
-        '<span style="font-size:11px;font-weight:700;color:var(--ink);text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+ch+'</span>' +
-        '<span style="font-size:11px;font-weight:700;color:'+colors[i%colors.length]+';text-shadow:0 0 3px rgba(237,231,217,0.9),0 0 6px rgba(237,231,217,0.9)">'+pct+'%</span>' +
+      return '<div class="zd-leg-row">' +
+        '<span class="zd-leg-dot" style="background:'+colors[i%colors.length]+'"></span>' +
+        '<span class="zd-leg-name">'+ch+'</span>' +
+        '<span class="zd-leg-pct" style="color:'+colors[i%colors.length]+'">'+pct+'%</span>' +
       '</div>';
     }).join('');
   }
@@ -1476,43 +1478,39 @@ function _renderKatalog(jpData, stokData) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr,dpr);
 
-  const padL=10, padR=10, padT=10, padB=10;
-  const labelRightW = 90; // ruang label kanan, cukup untuk Rp999rb + qty
-  const barH    = Math.floor((H-padT-padB-(sorted.length-1)*8) / sorted.length);
-  const trackW  = W - padL - padR - labelRightW;
+  const padL=4, padR=4, padT=4, padB=4;
+  const rowH   = (H-padT-padB) / sorted.length;
+  const trackW = W - padL - padR;
+  const barH   = 7;
+  const _rr = (x,y,w,h,r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); ctx.fill(); };
 
   sorted.forEach(([kat,d],i) => {
-    const y   = padT + i*(barH+8);
+    const y0  = padT + i*rowH;
     const pct = maxO>0 ? d.omset/maxO : 0;
-    const bw  = Math.round(pct * trackW);
+    const bw  = Math.max(pct>0 ? 4 : 0, Math.round(pct * trackW));
+    const barY = y0 + rowH - barH - 4;
 
-    // Background track
-    ctx.fillStyle='rgba(28,26,20,0.06)';
-    ctx.fillRect(padL, y, trackW, barH);
-
-    // Bar
-    ctx.fillStyle=colors[i%colors.length];
-    if (bw > 0) ctx.fillRect(padL, y, bw, barH);
-
-    // Label katalog (kiri, di dalam bar jika panjang, atau di luar)
-    ctx.font = 'bold 11px sans-serif';
+    // Nama katalog (kiri atas) + nilai & qty (kanan atas)
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '600 11px sans-serif';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = pct > 0.25 ? '#fff' : '#1c1a14';
-    ctx.fillText(kat, padL+5, y+barH/2);
-
-    // Nilai omset (kanan bar) — clipped agar tidak keluar canvas
-    ctx.save();
-    ctx.rect(padL+trackW, 0, labelRightW-padR, H);
-    ctx.clip();
     ctx.fillStyle = '#1c1a14';
+    ctx.fillText(kat, padL, barY - 5);
+    ctx.textAlign = 'right';
     ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(_fmtRpShort(d.omset), padL+trackW+6, y+barH/2-5);
+    ctx.fillText(_fmtRpShort(d.omset), padL+trackW, barY - 5);
     ctx.font = '10px sans-serif';
-    ctx.fillStyle = '#6b6354';
-    ctx.fillText(d.qty+' pcs', padL+trackW+6, y+barH/2+7);
-    ctx.restore();
+    ctx.fillStyle = '#8a8580';
+    ctx.font = 'bold 11px sans-serif';
+    const _w1 = ctx.measureText(_fmtRpShort(d.omset)).width;
+    ctx.font = '10px sans-serif';
+    ctx.fillText(d.qty+' pcs · ', padL+trackW-_w1, barY - 5);
+
+    // Track + bar rounded
+    ctx.fillStyle='rgba(28,26,20,0.07)';
+    _rr(padL, barY, trackW, barH, barH/2);
+    ctx.fillStyle=colors[i%colors.length];
+    if (bw > 0) _rr(padL, barY, bw, barH, barH/2);
   });
 }
 

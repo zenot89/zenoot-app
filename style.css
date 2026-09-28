@@ -5360,3 +5360,37 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container .nw-slide-header{ flex:0 0 auto; min-height:100px; box-sizing:border-box; }
   #nw-swipe-container .nw-slide-data{ flex:1 1 auto; min-height:0; }
 }
+
+/* =================================================================
+   TAB RINGKASAN — 8 minicard memenuhi sisa tinggi halaman (desktop)
+   Halaman jadi flex column: hero (tinggi tetap) + metrics (flex:1)
+   + footer. Layar pendek → min-height kartu menjaga isi, halaman scroll.
+   ================================================================= */
+@media (min-width: 900px){
+  #page-dashboard.active{ display:flex; flex-direction:column; }
+  #page-dashboard.active > #zd-tab-ringkasan.zd-tab-active{
+    flex:1 1 auto; display:flex; flex-direction:column; min-height:0;
+  }
+  #zd-tab-ringkasan.zd-tab-active > #dash-metrics{
+    flex:1 1 auto; margin-bottom:10px; align-content:stretch;
+  }
+  #zd-tab-ringkasan #dash-metrics .metric{
+    min-height:120px; display:flex; flex-direction:column; justify-content:center;
+  }
+  #zd-tab-ringkasan #dash-metrics .m-value{ font-size:clamp(26px,2.6vw,36px); }
+}
+
+/* ── Widget Penjualan: legend donut & tabel lebih bersih ── */
+.zd-leg-row{ display:flex; align-items:center; gap:8px; padding:4px 0; white-space:nowrap; }
+.zd-leg-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.zd-leg-name{ font-size:12px; font-weight:600; color:var(--ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.zd-leg-pct{ font-size:11px; font-weight:700; background:var(--ovl-0_05); border-radius:999px; padding:1px 8px; }
+
+#zd-tab-penjualan .tbl, #zd-tab-stok .tbl{ border-collapse:collapse; width:100%; }
+#zd-tab-penjualan .tbl thead th, #zd-tab-stok .tbl thead th{
+  background:transparent !important; box-shadow:none !important;
+  font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink3); border-bottom:1px solid var(--ovl-0_1); padding:8px 10px;
+}
+#zd-tab-penjualan .tbl tbody td, #zd-tab-stok .tbl tbody td{ border-bottom:1px solid var(--ovl-0_05); padding:9px 10px; font-size:12.5px; }
+#zd-tab-penjualan .tbl tbody tr:last-child td, #zd-tab-stok .tbl tbody tr:last-child td{ border-bottom:none; }
