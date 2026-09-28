@@ -599,6 +599,15 @@
   .byh-bin-tbl button.byh-del{ border:0; background:transparent; color:var(--bad); cursor:pointer; font-size:16px; line-height:1; padding:4px 8px; }
   .byh-bin-sum{ font-size:13px; line-height:1.55; margin:8px 0 10px; padding:9px 12px; border-radius:8px; background:var(--accent-soft); }
   .byh-bin-sum.hit{ background:var(--good-soft); }
+  /* [28 Sep 2026] Ringkasan pasar (pengganti tabel di tampilan utama): 3 bagian = 1 Data, 2 Peta pasar, 3 Banding dengan admin */
+  .byh-sum{ font-size:13.5px; line-height:1.6; }
+  .byh-sum-sec{ padding:10px 0; border-bottom:1px solid var(--line); }
+  .byh-sum-sec:last-child{ border-bottom:0; }
+  .byh-sum-h{ font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--ink-soft); margin-bottom:4px; text-transform:uppercase; }
+  .byh-sum p{ margin:3px 0; }
+  .byh-sum .sub{ color:var(--ink-soft); font-size:12px; }
+  .byh-sum .go, .byh-sum .warn, .byh-sum .no{ margin-top:8px; padding:10px 12px; border-radius:8px; }
+  .byh-sum .go{ background:var(--good-soft); } .byh-sum .warn{ background:var(--warn-soft); } .byh-sum .no{ background:var(--bad-soft); }
   .byh-bin-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   #byhBinsPaste{ width:100%; min-height:96px; box-sizing:border-box; margin-top:10px; padding:8px 10px; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; border:1px solid var(--line); border-radius:8px; }
   /* ===== Tanda tanya (?) [22 Sep 2026] — keterangan kecil (.ket, .roas-note, .byh-note, .zq-h) disembunyikan; isinya muncul lewat ikon (?) di sebelah judul/labelnya.
@@ -7160,6 +7169,7 @@ function byhBinsParsePaste(text){
    sama dengan cara sorotan range mencari), harga termurah masuk range pertama. Data produk cuma di memori; yang disimpan hanya hasil per range. */
 let _byhCsv = null;                 // { name, products:[{name,price,fav,sold,rev}] }
 const byhCsvNote = {};              // key SKU induk -> catatan sumber terakhir (cuma memori)
+let _byhTblOpen = false;            // tabel data range disembunyikan secara default (tampilan utama = ringkasan)
 function byhCsvRows(text){
   const rows = []; let row = [], cur = '', q = false;
   text = String(text||'').replace(/^\uFEFF/, '');
@@ -7220,14 +7230,15 @@ function byhargaBinsRender(){
   const rows = byhBinsRows();
   wrap.innerHTML = '<div class="card byh-card" style="margin-top:16px;"><h3>Data kompetitor per range harga</h3>'
     + '<div class="byh-note">Isi dari filter harga di hasil pencarian Shopee (Product / Sold / Favourite / Review Count per range). Disimpan per SKU induk &amp; berlaku untuk semua ukuran. Kolom Sampai kosong = tanpa batas atas.</div>'
-    + '<div class="byh-bin-sum" id="byhBinsSummary"></div>'
+    + '<div class="byh-sum" id="byhBinsSummary"></div>'
+    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
+    + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
+    + '<button type="button" class="btn secondary small" id="byhBinsTblBtn">'+(_byhTblOpen?'Tutup data range':'Lihat / edit data range')+'</button>'
+    + '<button type="button" class="btn ghost small" id="byhBinsClear">Kosongkan</button></div>'
+    + '<div id="byhBinsTblWrap" style="'+(_byhTblOpen?'':'display:none;')+'margin-top:10px;">'
     + '<div class="byh-bin-scroll"><table class="byh-bin-tbl"><thead><tr><th>Dari (Rp)</th><th>Sampai (Rp)</th><th>Produk</th><th>Terjual</th><th>Favorit</th><th>Review</th><th>Terjual/Produk</th><th>Porsi Terjual</th><th></th></tr></thead>'
     + '<tbody id="byhBinsBody">'+rows.map(byhBinRowHtml).join('')+'</tbody></table></div>'
-    + (byhCsvNote[key] ? '<div class="byh-hint" style="margin:8px 0 0;">'+byhEsc(byhCsvNote[key])+'</div>' : '')
-    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsAdd">+ Tambah range</button>'
-    + '<button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
-    + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
-    + '<button type="button" class="btn ghost small" id="byhBinsClear">Kosongkan</button></div>'
+    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsAdd">+ Tambah range</button></div></div>'
     + '<div id="byhBinsCsvBox" style="display:none;margin-top:10px;">'
     + '<div class="byh-note">Pakai file Product_Table.csv (kolom Price, Favourite, Sold, Review, Name). Harga dibagi ke beberapa range sama lebar dari harga termurah sampai termahal, sama seperti grafik Pricing Analysis. Terjual = total sepanjang umur produk (bukan per bulan).</div>'
     + '<div class="hrow editable stack"><div class="lbl">File CSV</div><div class="val"><input type="file" id="byhBinsCsvFile" accept=".csv,text/csv"></div></div>'
@@ -7238,6 +7249,11 @@ function byhargaBinsRender(){
     + '<div id="byhBinsPasteBox" style="display:none;"><textarea id="byhBinsPaste" placeholder="Satu baris = satu range, urutan angka: Dari, Sampai, Produk, Terjual, Favorit, Review&#10;contoh:&#10;50.000  75.000  1200  3400  800  150&#10;75.000  100.000  900  5200  1100  400"></textarea>'
     + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsPasteOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsPasteCancel">Batal</button></div></div>'
     + '</div>';
+  document.getElementById('byhBinsTblBtn').addEventListener('click', ()=>{
+    _byhTblOpen = !_byhTblOpen;
+    document.getElementById('byhBinsTblWrap').style.display = _byhTblOpen ? '' : 'none';
+    document.getElementById('byhBinsTblBtn').textContent = _byhTblOpen ? 'Tutup data range' : 'Lihat / edit data range';
+  });
   const body = document.getElementById('byhBinsBody');
   body.querySelectorAll('input').forEach(attachThousands);
   body.addEventListener('input', (e)=>{
@@ -7302,13 +7318,82 @@ function byhargaBinsRender(){
   });
   byhargaBinsHighlight();
 }
+/* [28 Sep 2026] RINGKASAN PASAR — alur: 1 Data (CSV dari tool Pricing Analysis) -> 2 Peta pasar -> 3 Banding dengan admin (Harga Minimum dari kalkulasi admin/ROAS/HPP).
+   Range dengan < BYH_MIN_SAMPLE produk TIDAK dipakai buat rekomendasi (1 produk laku besar = outlier, bukan rata-rata pasar). Label range dibulatkan ke ribuan (cuma tampilan, hitungan tetap angka asli). */
+const BYH_MIN_SAMPLE = 3;
+function byhargaHargaMinNow(withVoucher){
+  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku); if(!row) return null;
+  const V = (withVoucher===undefined) ? ((byhargaVoucherFor(row.sku)||{}).value||0) : withVoucher;
+  const c = byhargaCompute(row, 0, V, resolveByhargaRoas().roas);
+  return (c && c.ok && c.hargaMin>0) ? c.hargaMin : null;
+}
+function byhBinsSummaryHtml(rows, P, Hmin, HminW, src){
+  const kf = x=>'Rp'+Math.round((x||0)/1000)+'rb';
+  const rg = r=> kf(r.min) + (r.max>0 ? '–'+Math.round(r.max/1000)+'rb' : ' ke atas');
+  const n0 = x=>Math.round(x).toLocaleString('id-ID');
+  const sec = (h, body)=>'<div class="byh-sum-sec"><div class="byh-sum-h">'+h+'</div>'+body+'</div>';
+  if(!rows.length) return sec('1 · Data', '<p>Belum ada data kompetitor. Ekspor <b>Product_Table.csv</b> dari tool Pricing Analysis, lalu klik <b>Impor CSV</b>.</p><p class="sub">Langkah: 1 ekspor data, 2 impor di sini (ringkasan pasar muncul otomatis), 3 bandingkan dengan harga minimum dari admin.</p>');
+  const totProd = rows.reduce((a,r)=>a+(r.prod||0),0), totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
+  const tpp = r=> r.prod>0 ? r.sold/r.prod : 0;
+  const share = r=> totSold>0 ? r.sold/totSold : 0;
+  const reliable = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0);
+  const pickMax = (list, f)=> list.reduce((b,r)=> (!b || f(r)>f(b)) ? r : b, null);
+  const inRange = (r,x)=> x>=(r.min||0) && (!(r.max>0) || x<=r.max);
+  const lo = Math.min.apply(null, rows.map(r=>r.min||0)), hiRow = rows.filter(r=>r.max>0).map(r=>r.max), hi = hiRow.length ? Math.max.apply(null, hiRow) : 0;
+  // ---- 1 · Data
+  let s1 = '<p><b>'+n0(totProd)+' produk</b> pesaing, harga '+kf(lo)+(hi>0?'–'+Math.round(hi/1000)+'rb':' ke atas')+', total terjual <b>'+n0(totSold)+'</b>.</p>';
+  if(src) s1 += '<p class="sub">'+byhEsc(src)+'</p>';
+  s1 += '<p class="sub">Terjual = total sepanjang umur produk &amp; dibulatkan Shopee (mis. "10RB+"), jadi anggap perkiraan.</p>';
+  // ---- 2 · Peta pasar
+  const topSold = pickMax(rows.filter(r=>r.sold>0), r=>r.sold);
+  const topTpp = pickMax(reliable, tpp);
+  let s2 = '';
+  if(topSold) s2 += '<p>Terjual paling banyak: <b>'+rg(topSold)+'</b> ('+fmtPct(share(topSold))+' penjualan, '+n0(topSold.prod)+' produk).</p>';
+  if(topTpp) s2 += '<p>Jatah per penjual terbesar: <b>'+rg(topTpp)+'</b> ('+n0(tpp(topTpp))+' terjual/produk, '+n0(topTpp.prod)+' pesaing).</p>';
+  else s2 += '<p>Belum ada range dengan minimal '+BYH_MIN_SAMPLE+' produk, jadi jatah per penjual belum bisa dinilai.</p>';
+  const small = rows.filter(r=>r.prod>0 && r.prod<BYH_MIN_SAMPLE && r.sold>0);
+  if(small.length) s2 += '<p class="sub">Tidak dipakai buat saran (kurang dari '+BYH_MIN_SAMPLE+' produk): '+small.slice(0,4).map(r=>rg(r)+' ('+r.prod+' produk)').join(', ')+'.</p>';
+  const empty = rows.filter(r=>!(r.prod>0));
+  if(empty.length) s2 += '<p class="sub">Tidak ada pesaing di: '+empty.slice(0,4).map(rg).join(', ')+'.</p>';
+  // ---- 3 · Banding dengan admin
+  let s3 = '';
+  if(!(Hmin>0)){
+    s3 = '<p>Harga minimum dari admin belum bisa dihitung. Pilih produk yang HPP-nya sudah terisi, lalu cek ROAS di panel Input.</p>';
+  } else {
+    const hitMin = rows.find(r=>inRange(r,Hmin));
+    s3 += '<p>Harga minimum dari admin: <b>'+fmtRp(Hmin)+'</b> (profit tepat di target)'+(hitMin?', jatuh di range <b>'+rg(hitMin)+'</b>.':', di luar semua range data.')+'</p>';
+    const below = rows.filter(r=>r.max>0 && r.max<Hmin);
+    const belowShare = totSold>0 ? below.reduce((a,r)=>a+r.sold,0)/totSold : 0;
+    if(belowShare>0.005) s3 += '<p>Sekitar <b>'+fmtPct(belowShare)+'</b> penjualan pasar ada di range yang seluruhnya di bawah harga itu, jadi tidak bisa dikejar tanpa turun dari target profit.</p>';
+    const cand = reliable.filter(r=>!(r.max>0) || r.max>=Hmin);
+    const best = pickMax(cand, tpp);
+    if(best){
+      const from = Math.max(best.min||0, Hmin), to = best.max>0 ? best.max : 0;
+      if(topTpp && topTpp!==best && topTpp.max>0 && topTpp.max<Hmin) s3 += '<p class="sub">Range dengan jatah terbesar ('+rg(topTpp)+') seluruhnya di bawah harga minimum, jadi tidak layak.</p>';
+      s3 += '<div class="go"><b>Saran eksekusi:</b> pasang di <b>'+fmtRp(from)+(to>0?' sampai '+kf(to):' ke atas')+'</b>. Range '+rg(best)+': '+n0(best.prod)+' pesaing, '+n0(tpp(best))+' terjual/produk, '+fmtPct(share(best))+' penjualan.</div>';
+      if(HminW>0 && HminW>Hmin+0.5){
+        s3 += '<p class="sub">Saat voucher weekend aktif, harga minimum naik jadi '+fmtRp(HminW)+(to>0 && HminW>to ? ', melewati batas atas range saran.' : '.')+'</p>';
+      }
+    } else {
+      s3 += '<div class="warn">Tidak ada range berisi minimal '+BYH_MIN_SAMPLE+' produk di atas harga minimum. Datanya terlalu sedikit untuk memberi saran harga.</div>';
+    }
+  }
+  if(P>0){
+    const r = rows.find(x=>inRange(x,P));
+    let t = '<p>Harga jual <b>'+fmtRp(P)+'</b>: ';
+    if(r) t += 'range '+rg(r)+', '+fmtPct(share(r))+' penjualan, '+n0(tpp(r))+' terjual/produk'+(r.prod>0 && r.prod<BYH_MIN_SAMPLE ? ' (sampel kecil)' : '')+'.';
+    else t += 'di luar semua range data.';
+    if(Hmin>0 && P<Hmin) t += ' <b>Di bawah harga minimum</b>, profit di bawah target.';
+    s3 += t+'</p>';
+  } else s3 += '<p class="sub">Isi Harga Jual di panel Input buat lihat posisi harga kamu di peta ini.</p>';
+  return sec('1 · Data', s1) + sec('2 · Peta pasar', s2) + sec('3 · Banding dengan admin', s3);
+}
 function byhargaBinsHighlight(){
   const body = document.getElementById('byhBinsBody'), sumEl = document.getElementById('byhBinsSummary');
   if(!body || !sumEl) return;
   const rows = byhBinsRows();
   const P = parseNum(document.getElementById('byhargaHarga').value)||0;
-  const totProd = rows.reduce((a,r)=>a+(r.prod||0),0), totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
-  const avgTpp = totProd>0 ? totSold/totProd : null;
+  const totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
   const tppOf = r=> r.prod>0 ? r.sold/r.prod : null;
   const f1 = n=> n.toLocaleString('id-ID',{maximumFractionDigits:1});
   let hit = -1;
@@ -7320,23 +7405,10 @@ function byhargaBinsHighlight(){
     tr.querySelector('[data-c="tpp"]').textContent = (t===null) ? '-' : f1(t)+'x';
     tr.querySelector('[data-c="share"]').textContent = (totSold>0) ? fmtPct((r.sold||0)/totSold) : '-';
   });
-  let best = -1;
-  rows.forEach((r,i)=>{ const t = tppOf(r); if(t!==null && r.sold>0 && (best<0 || t>tppOf(rows[best]))) best = i; });
-  let html, hitCls = false;
-  if(!rows.length) html = 'Belum ada data. Tambah range satu-satu, atau tempel dari teks.';
-  else if(!(P>0)) html = 'Isi Harga Jual di panel Input buat lihat posisi harga di antara kompetitor.';
-  else if(hit<0) html = 'Harga '+fmtRp(P)+' <b>di luar semua range</b> yang sudah diisi.';
-  else {
-    const r = rows[hit], t = tppOf(r);
-    hitCls = true;
-    html = 'Harga '+fmtRp(P)+' ada di range <b>'+byhBinLabel(r)+'</b>: '
-      + (totProd>0 ? fmtPct((r.prod||0)/totProd)+' dari produk' : '-')+', '
-      + (totSold>0 ? fmtPct((r.sold||0)/totSold)+' dari penjualan' : '-')
-      + (t!==null ? ', '+f1(t)+' terjual per produk' + (avgTpp!==null ? ' (rata-rata semua range '+f1(avgTpp)+')' : '') : '')+'.';
-  }
-  if(best>=0 && rows.length>1) html += '<br>Range paling laku per produk: <b>'+byhBinLabel(rows[best])+'</b> ('+f1(tppOf(rows[best]))+' terjual/produk).';
-  sumEl.innerHTML = html;
-  sumEl.classList.toggle('hit', hitCls);
+  const sku = byhargaSelectedSku, Vw = byhargaVoucherWeekend[sku]||0;
+  let Hmin = null, HminW = null;
+  try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
+  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[byhBinsKey()]||'');
 }
 function byhargaBinsSync(){
   if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
