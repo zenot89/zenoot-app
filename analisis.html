@@ -7155,6 +7155,63 @@ function byhBinsParsePaste(text){
   });
   return out;
 }
+/* [28 Sep 2026] IMPOR CSV (Product_Table.csv dari tool Pricing Analysis): 1 baris = 1 produk kompetitor. Dicek ke screenshot grafik: hasil binning CSV = angka di grafik
+   (Product/Favourite/Sold Count per range). Range = N bagian sama lebar dari harga termurah s.d. termahal; batas atas tiap range MASUK range itu (harga tepat di batas ikut range bawah,
+   sama dengan cara sorotan range mencari), harga termurah masuk range pertama. Data produk cuma di memori; yang disimpan hanya hasil per range. */
+let _byhCsv = null;                 // { name, products:[{name,price,fav,sold,rev}] }
+const byhCsvNote = {};              // key SKU induk -> catatan sumber terakhir (cuma memori)
+function byhCsvRows(text){
+  const rows = []; let row = [], cur = '', q = false;
+  text = String(text||'').replace(/^\uFEFF/, '');
+  const push = ()=>{ row.push(cur); cur = ''; };
+  const endRow = ()=>{ push(); if(row.some(c=>c.trim()!=='')) rows.push(row); row = []; };
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){ cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else if(ch==='"') q = true;
+    else if(ch===',') push();
+    else if(ch==='\n' || ch==='\r'){ if(ch==='\r' && text[i+1]==='\n') i++; endRow(); }
+    else cur += ch;
+  }
+  if(cur!=='' || row.length) endRow();
+  return rows;
+}
+function byhCsvProducts(text){
+  const rows = byhCsvRows(text);
+  if(rows.length<2) return { error:'File kosong atau bukan CSV.' };
+  const head = rows[0].map(h=>h.trim().toLowerCase());
+  const col = (...names)=>head.findIndex(h=>names.indexOf(h)>=0);
+  const iP = col('price','harga'), iF = col('favourite','favorite','favorit'), iS = col('sold','terjual'), iR = col('review','ulasan'), iN = col('name','nama');
+  if(iP<0) return { error:'Kolom Price tidak ditemukan di baris judul CSV.' };
+  const num = v=>Number(String(v==null?'':v).replace(/[^\d]/g,''))||0;
+  const products = [];
+  rows.slice(1).forEach(r=>{
+    const price = num(r[iP]); if(!(price>0)) return;
+    products.push({ name:String(iN>=0?(r[iN]||''):''), price, fav:iF>=0?num(r[iF]):0, sold:iS>=0?num(r[iS]):0, rev:iR>=0?num(r[iR]):0 });
+  });
+  return products.length ? { products } : { error:'Tidak ada baris produk dengan harga di CSV.' };
+}
+function byhBinsFromProducts(products, n){
+  const ps = (products||[]).filter(p=>p.price>0);
+  if(!ps.length) return [];
+  const prices = ps.map(p=>p.price);
+  const lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+  n = Math.max(1, Math.min(30, Math.round(n)||10));
+  if(hi===lo) n = 1;
+  const edges = [];
+  for(let i=0;i<=n;i++){ const e = Math.round(lo+(hi-lo)*i/n); if(!edges.length || e>edges[edges.length-1]) edges.push(e); }
+  if(edges.length<2) edges.push(edges[0]);
+  const bins = [];
+  for(let i=0;i<edges.length-1;i++) bins.push({ min:edges[i], max:edges[i+1], prod:0, sold:0, fav:0, rev:0 });
+  ps.forEach(p=>{
+    const k = bins.findIndex((b,i)=> i===0 ? (p.price>=b.min && p.price<=b.max) : (p.price>b.min && p.price<=b.max));
+    if(k<0) return;
+    bins[k].prod++; bins[k].sold += p.sold; bins[k].fav += p.fav; bins[k].rev += p.rev;
+  });
+  return bins;
+}
 function byhargaBinsRender(){
   const wrap = document.getElementById('byhargaBinsWrap'); if(!wrap) return;
   const key = byhBinsKey();
@@ -7166,9 +7223,18 @@ function byhargaBinsRender(){
     + '<div class="byh-bin-sum" id="byhBinsSummary"></div>'
     + '<div class="byh-bin-scroll"><table class="byh-bin-tbl"><thead><tr><th>Dari (Rp)</th><th>Sampai (Rp)</th><th>Produk</th><th>Terjual</th><th>Favorit</th><th>Review</th><th>Terjual/Produk</th><th>Porsi Terjual</th><th></th></tr></thead>'
     + '<tbody id="byhBinsBody">'+rows.map(byhBinRowHtml).join('')+'</tbody></table></div>'
+    + (byhCsvNote[key] ? '<div class="byh-hint" style="margin:8px 0 0;">'+byhEsc(byhCsvNote[key])+'</div>' : '')
     + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsAdd">+ Tambah range</button>'
+    + '<button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
     + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
     + '<button type="button" class="btn ghost small" id="byhBinsClear">Kosongkan</button></div>'
+    + '<div id="byhBinsCsvBox" style="display:none;margin-top:10px;">'
+    + '<div class="byh-note">Pakai file Product_Table.csv (kolom Price, Favourite, Sold, Review, Name). Harga dibagi ke beberapa range sama lebar dari harga termurah sampai termahal, sama seperti grafik Pricing Analysis. Terjual = total sepanjang umur produk (bukan per bulan).</div>'
+    + '<div class="hrow editable stack"><div class="lbl">File CSV</div><div class="val"><input type="file" id="byhBinsCsvFile" accept=".csv,text/csv"></div></div>'
+    + '<div class="hrow editable stack"><div class="lbl">Jumlah range</div><div class="val"><input type="text" inputmode="numeric" id="byhBinsCsvN" value="10"></div></div>'
+    + '<div class="hrow editable stack"><div class="lbl">Buang produk yang namanya mengandung</div><div class="val"><input type="text" id="byhBinsCsvSkip" placeholder="mis. topi, kaos kaki (pisahkan koma)"></div></div>'
+    + '<div class="byh-hint" id="byhBinsCsvInfo" style="margin:6px 0;"></div>'
+    + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsCsvOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsCsvCancel">Batal</button></div></div>'
     + '<div id="byhBinsPasteBox" style="display:none;"><textarea id="byhBinsPaste" placeholder="Satu baris = satu range, urutan angka: Dari, Sampai, Produk, Terjual, Favorit, Review&#10;contoh:&#10;50.000  75.000  1200  3400  800  150&#10;75.000  100.000  900  5200  1100  400"></textarea>'
     + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsPasteOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsPasteCancel">Batal</button></div></div>'
     + '</div>';
@@ -7189,6 +7255,34 @@ function byhargaBinsRender(){
     byhBinsRows(true).push({ min:0, max:0, prod:0, sold:0, fav:0, rev:0 });
     byhargaBinsSave(); byhargaBinsRender();
     const ins = document.querySelectorAll('#byhBinsBody tr:last-child input'); if(ins[0]) ins[0].focus();
+  });
+  const csvBox = document.getElementById('byhBinsCsvBox');
+  document.getElementById('byhBinsCsvBtn').addEventListener('click', ()=>{ csvBox.style.display = (csvBox.style.display==='none') ? '' : 'none'; });
+  document.getElementById('byhBinsCsvCancel').addEventListener('click', ()=>{ csvBox.style.display = 'none'; });
+  document.getElementById('byhBinsCsvFile').addEventListener('change', (e)=>{
+    const f = e.target.files && e.target.files[0], infoEl = document.getElementById('byhBinsCsvInfo');
+    if(!f) return;
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      const r = byhCsvProducts(String(fr.result||''));
+      if(r.error){ _byhCsv = null; infoEl.textContent = r.error; return; }
+      _byhCsv = { name:f.name, products:r.products };
+      const pr = r.products.map(x=>x.price);
+      infoEl.textContent = f.name+': '+r.products.length+' produk terbaca, harga '+fmtRp(Math.min.apply(null,pr))+' sampai '+fmtRp(Math.max.apply(null,pr))+'.';
+    };
+    fr.onerror = ()=>{ _byhCsv = null; infoEl.textContent = 'File gagal dibaca.'; };
+    fr.readAsText(f);
+  });
+  document.getElementById('byhBinsCsvOk').addEventListener('click', ()=>{
+    if(!_byhCsv){ alert('Pilih file CSV dulu.'); return; }
+    const n = parseNum(document.getElementById('byhBinsCsvN').value)||10;
+    const kw = String(document.getElementById('byhBinsCsvSkip').value||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+    const ps = _byhCsv.products.filter(p=>!kw.some(k=>p.name.toLowerCase().indexOf(k)>=0));
+    const bins = byhBinsFromProducts(ps, n);
+    if(!bins.length){ alert('Tidak ada produk tersisa setelah filter.'); return; }
+    byhBinsRows(true).splice(0, Infinity, ...bins);
+    byhCsvNote[byhBinsKey()] = 'Sumber: '+_byhCsv.name+', '+ps.length+' produk'+((_byhCsv.products.length-ps.length)>0 ? ' ('+(_byhCsv.products.length-ps.length)+' dibuang filter)' : '')+', '+bins.length+' range.';
+    byhargaBinsSave(); byhargaBinsRender();
   });
   const box = document.getElementById('byhBinsPasteBox');
   document.getElementById('byhBinsPasteBtn').addEventListener('click', ()=>{ box.style.display = (box.style.display==='none') ? '' : 'none'; });
