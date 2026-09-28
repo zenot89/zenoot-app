@@ -18,14 +18,6 @@ document.getElementById('page-dashboard').innerHTML = `
 
   <div class="zd-tab-panel zd-tab-active" id="zd-tab-ringkasan">
 
-  <!-- ═══ KEGIATAN MENDATANG (BARU v5) ══════════════════════════ -->
-  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-bottom:12px">
-    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang</div>
-    <div id="dash-kegiatan-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
-
   <!-- ═══ NET WORTH + BEBAN + INCOME SWIPE (portrait) / full width (laptop) ══ -->
   <div class="nw-swipe-pair" id="nw-swipe-container">
     <div class="nw-swipe-track">
@@ -34,7 +26,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
         <!-- Header: biru -->
-        <div class="nw-slide-header nw-slide-s1 nw-slide-header-solo" id="nw-widget" style="margin:0">
+        <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
             <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-blue"><i class="ti ti-chart-pie"></i></span> NET WORTH AKTUAL</div>
             <div style="display:flex;align-items:center;gap:6px">
@@ -44,7 +36,13 @@ document.getElementById('page-dashboard').innerHTML = `
           </div>
           <div class="nw-slide-value" id="nw-total">Rp —</div>
           <div class="nw-slide-sub" id="nw-update-time">menghitung...</div>
-          <div class="nw-slide-formula"><i class="ti ti-calculator"></i> Total Aset − Total Hutang + Escrow Shopee</div>
+        </div>
+        <!-- Data box: rincian Net Worth -->
+        <div class="nw-slide-data">
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Asset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-credit-card-off"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
+          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -80,38 +78,6 @@ document.getElementById('page-dashboard').innerHTML = `
 
     </div><!-- /nw-swipe-track -->
   </div><!-- /nw-swipe-container -->
-
-  <!-- ═══ ROW 2: FINANCIAL OVERVIEW — compact, 4 kartu ═══════════ -->
-  <div class="zd-fin-grid">
-    <div class="zd-fin-card zd-fin-blue">
-      <div class="zd-fin-ic"><i class="ti ti-building-bank"></i></div>
-      <div class="zd-fin-body">
-        <div class="zd-fin-label">Total Asset</div>
-        <div class="zd-fin-val nw-pos" id="nw-aset">—</div>
-      </div>
-    </div>
-    <div class="zd-fin-card zd-fin-red">
-      <div class="zd-fin-ic"><i class="ti ti-credit-card-off"></i></div>
-      <div class="zd-fin-body">
-        <div class="zd-fin-label">Total Hutang</div>
-        <div class="zd-fin-val nw-neg" id="nw-hutang">—</div>
-      </div>
-    </div>
-    <div class="zd-fin-card zd-fin-teal">
-      <div class="zd-fin-ic"><i class="ti ti-truck-delivery"></i></div>
-      <div class="zd-fin-body">
-        <div class="zd-fin-label">Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></div>
-        <div class="zd-fin-val nw-pos" id="nw-escrow">—</div>
-      </div>
-    </div>
-    <div class="zd-fin-card zd-fin-neutral">
-      <div class="zd-fin-ic"><i class="ti ti-chart-line"></i></div>
-      <div class="zd-fin-body">
-        <div class="zd-fin-label">Laba / Rugi</div>
-        <div class="zd-fin-val" id="nw-laba">—</div>
-      </div>
-    </div>
-  </div>
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
@@ -202,6 +168,14 @@ document.getElementById('page-dashboard').innerHTML = `
     <div id="d-target-harian-bar"></div>
     <div id="d-target-harian-pct"></div>
   </div>
+  <!-- ═══ KEGIATAN MENDATANG (BARU v5) ══════════════════════════ -->
+  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang</div>
+    <div id="dash-kegiatan-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
+
   </div><!-- /zd-tab-ringkasan -->
 
   <div class="zd-tab-panel" id="zd-tab-penjualan">
