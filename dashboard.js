@@ -10,6 +10,10 @@ document.getElementById('page-dashboard').innerHTML = `
 
   <!-- ═══ TAB BAR DASHBOARD (gaya Xero: underline tab) ═══════════ -->
   <div class="zd-tabbar" id="zd-tabbar" role="tablist">
+    <div class="zd-tabbar-left">
+      <button class="btn btn-sm zd-refresh-btn" onclick="loadDashboard()" title="Refresh data dashboard"><i class="ti ti-refresh"></i><span class="zd-refresh-lbl"> Refresh</span></button>
+      <span id="dash-last-refresh" class="zd-last-refresh"></span>
+    </div>
     <button class="zd-tab active" data-tab="ringkasan" onclick="zdDashTab('ringkasan')"><i class="ti ti-layout-dashboard"></i> Ringkasan</button>
     <button class="zd-tab" data-tab="penjualan" onclick="zdDashTab('penjualan')"><i class="ti ti-chart-line"></i> Penjualan</button>
     <button class="zd-tab" data-tab="stok" onclick="zdDashTab('stok')"><i class="ti ti-package"></i> Stok &amp; Supplier</button>
@@ -447,12 +451,6 @@ document.getElementById('page-dashboard').innerHTML = `
   </div>
   </div><!-- /zd-tab-keuangan -->
 
-  <!-- ═══ FOOTER ════════════════════════════════════════════════ -->
-  <div style="text-align:right;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
-    <span id="dash-last-refresh" style="font-size:11px;color:var(--ink3)"></span>
-    <button class="btn btn-sm" onclick="loadDashboard()"><i class="ti ti-refresh"></i> Refresh</button>
-  </div>
-
   <!-- MODAL TARGET OMSET -->
   <div class="modal-overlay" id="modal-target" onclick="if(event.target===this)closeModal('modal-target')">
     <div class="modal" style="max-width:360px">
@@ -479,7 +477,10 @@ function zdDashTab(name){
   for (var i=0;i<tabs.length;i++) tabs[i].classList.toggle('active', tabs[i].getAttribute('data-tab')===name);
   var panels = document.querySelectorAll('#page-dashboard .zd-tab-panel');
   for (var j=0;j<panels.length;j++) panels[j].classList.toggle('zd-tab-active', panels[j].id==='zd-tab-'+name);
-  window.scrollTo && window.scrollTo(0,0);
+  // Scroller aslinya .content (bukan window). .content punya scroll-behavior:smooth →
+  // reset instan supaya tidak ada animasi scroll saat tinggi halaman berubah antar tab.
+  var sc = document.querySelector('.content');
+  if (sc) { sc.style.scrollBehavior = 'auto'; sc.scrollTop = 0; sc.style.scrollBehavior = ''; }
 }
 window.zdDashTab = zdDashTab;
 

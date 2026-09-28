@@ -5325,21 +5325,35 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    → lebar/ukuran canvas tetap valid, grafik gak perlu redraw.
    ================================================================= */
 .zd-tabbar{
-  display:flex; gap:4px; margin:0 0 14px;
+  display:flex; align-items:stretch; gap:4px; margin:0 0 14px;
   border-bottom:1px solid var(--ovl-0_1);
-  overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  /* Konvensi app: setiap scroll container WAJIB overscroll-behavior:none + touch-action.
+     Tanpa ini iOS ngebounce (goyang) saat tab bar disentuh. overflow-y:hidden menutup
+     scroll vertikal 1px yang dulu muncul dari margin-bottom:-1px. */
+  overflow-x:auto; overflow-y:hidden;
+  overscroll-behavior:none; touch-action:pan-x pan-y;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
 }
 .zd-tabbar::-webkit-scrollbar{ display:none; }
+.zd-tabbar-left{ display:flex; align-items:center; gap:10px; margin-right:auto; padding:4px 0; flex-shrink:0; }
+.zd-refresh-btn{ white-space:nowrap; }
+.zd-last-refresh{ font-size:11px; color:var(--ink3); white-space:nowrap; }
 .zd-tab{
   appearance:none; background:none; border:none; cursor:pointer;
   padding:10px 14px; font-family:var(--f); font-size:13px; font-weight:600;
   color:var(--ink3); white-space:nowrap; flex-shrink:0;
-  border-bottom:2px solid transparent; margin-bottom:-1px;
+  box-shadow:inset 0 -2px 0 transparent;   /* garis aktif di dalam kotak → tidak bikin overflow */
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   display:inline-flex; align-items:center; gap:6px;
 }
 .zd-tab:hover{ color:var(--ink); }
-.zd-tab.active{ color:var(--dash-blue); border-bottom-color:var(--dash-blue); }
+.zd-tab.active{ color:var(--dash-blue); box-shadow:inset 0 -2px 0 var(--dash-blue); }
 .zd-tab i{ font-size:15px; }
+@media (max-width: 599px){
+  .zd-last-refresh, .zd-refresh-lbl{ display:none; }
+  .zd-tab{ padding:10px 9px; font-size:12px; gap:0; }
+  .zd-tab i{ display:none; }
+}
 .zd-tab-panel:not(.zd-tab-active){
   height:0; overflow:hidden; margin:0 !important; padding:0 !important;
   visibility:hidden; pointer-events:none;
