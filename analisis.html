@@ -583,6 +583,24 @@
   .byh-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 14px; }
   /* [22 Sep 2026] GPM acuan (di Harga Jual = sebelum voucher) dibuat lebih tegas dari persen lainnya */
   .byh-pct.byh-ref{ color:var(--ink); font-weight:700; }
+  /* [28 Sep 2026] By Harga Jual: tabel Normal vs Voucher Weekend + Data kompetitor per range harga */
+  .byh-cmp{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .byh-cmp th{ font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; padding:6px 0; border-bottom:1px solid var(--line); }
+  .byh-cmp td{ text-align:right; padding:8px 0; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .byh-cmp th:first-child, .byh-cmp td:first-child{ text-align:left; font-weight:600; font-size:13px; }
+  .byh-cmp td.good{ color:var(--good); font-weight:700; } .byh-cmp td.bad{ color:var(--bad); font-weight:700; }
+  .byh-bin-scroll{ overflow-x:auto; }
+  .byh-bin-tbl{ width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+  .byh-bin-tbl th{ font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; padding:6px 4px; border-bottom:1px solid var(--line); }
+  .byh-bin-tbl td{ padding:4px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  .byh-bin-tbl td input{ width:100%; min-width:64px; box-sizing:border-box; text-align:right; padding:6px 8px; font-size:13px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); }
+  .byh-bin-tbl tr.byh-bin-hit td{ background:var(--good-soft); }
+  .byh-bin-tbl td.byh-c{ color:var(--ink-soft); }
+  .byh-bin-tbl button.byh-del{ border:0; background:transparent; color:var(--bad); cursor:pointer; font-size:16px; line-height:1; padding:4px 8px; }
+  .byh-bin-sum{ font-size:13px; line-height:1.55; margin:8px 0 10px; padding:9px 12px; border-radius:8px; background:var(--accent-soft); }
+  .byh-bin-sum.hit{ background:var(--good-soft); }
+  .byh-bin-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  #byhBinsPaste{ width:100%; min-height:96px; box-sizing:border-box; margin-top:10px; padding:8px 10px; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; border:1px solid var(--line); border-radius:8px; }
   /* ===== Tanda tanya (?) [22 Sep 2026] — keterangan kecil (.ket, .roas-note, .byh-note, .zq-h) disembunyikan; isinya muncul lewat ikon (?) di sebelah judul/labelnya.
      Dipasang otomatis oleh script #zHintScript (sumber teks tetap ada di DOM, cuma disembunyikan lewat .zq-src). Pesan status/peringatan (.byh-hint, footer.note, kartu kosong) TIDAK ikut. ===== */
   .zq{ position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:15px; height:15px; margin-left:6px; box-sizing:border-box;
@@ -1419,7 +1437,7 @@
     <div class="subview active" id="byhargaView-input">
       <div id="byhargaStats"></div>
       <div class="rks-shell">
-        <div class="rks-main"><div id="byhargaDetail"></div></div>
+        <div class="rks-main"><div id="byhargaDetail"></div><div id="byhargaBinsWrap"></div></div>
         <div id="byhargaInputPanel">
           <div class="rks-datatoko-panel-inner">
             <div class="card">
@@ -1437,6 +1455,10 @@
                 <div class="val"><input type="text" inputmode="numeric" id="byhargaVoucher" placeholder="0"></div>
                 <div class="roas-note" id="byhargaVoucherNote"></div>
                 <button type="button" class="btn secondary small" id="byhargaVoucherAuto" style="display:none;">Pakai otomatis</button>
+              </div>
+              <div class="hrow editable stack">
+                <div class="lbl">Voucher Weekend (Rp)<span class="ket">opsional — voucher toko yang lebih besar saat weekend/event. Dibandingkan dengan voucher normal di tabel &quot;Normal vs Voucher Weekend&quot;</span></div>
+                <div class="val"><input type="text" inputmode="numeric" id="byhargaVoucherWeekend" placeholder="0"></div>
               </div>
               <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
                 <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
@@ -1709,7 +1731,7 @@ const zStore = (function(){
   var REG_KEY = 'zenootAnalisis.toko', ACTIVE_LS = 'zenootAnalisis.activeToko', MIG_LS = 'zenootAnalisis.migrated';
   var SCOPED = ['zenootAnalisis.session','zenootAnalisis.sessionMingguan','zenootAnalisis.settings',
                 'zenootAnalisis.rekap','zenootAnalisis.rekapMingguan','zenootAnalisis.priceList',
-                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory'];
+                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory','zenootAnalisis.byhargaBins'];
   var realLS = null;
   try{ realLS = window.localStorage; realLS.getItem('x'); }catch(e){ realLS = null; }
   function lsGet(k){ try{ return realLS ? realLS.getItem(k) : null; }catch(e){ return null; } }
@@ -2407,7 +2429,7 @@ const TOKO_LEGACY_ID = 't1';
 const TOKO_SCOPED_BASES = [
   'zenootAnalisis.session', 'zenootAnalisis.sessionMingguan', 'zenootAnalisis.settings',
   'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan', 'zenootAnalisis.priceList',
-  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory'
+  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.byhargaBins'
 ];
 function tokoScopedKey(base, id){ return id===TOKO_LEGACY_ID ? base : base+'::'+id; }
 function tokoReadReg(){
@@ -6895,9 +6917,10 @@ function byhargaCompute(row, harga, voucher, roas){
 }
 
 function byhargaSyncInputs(){
-  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher');
+  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher'), wEl = document.getElementById('byhargaVoucherWeekend');
   const sku = byhargaSelectedSku;
-  if(!sku){ hEl.value = ''; vEl.value = ''; return; }
+  if(!sku){ hEl.value = ''; vEl.value = ''; wEl.value = ''; return; }
+  if(document.activeElement!==wEl){ const w = byhargaVoucherWeekend[sku]; wEl.value = w>0 ? fmtNum(w) : ''; }
   if(document.activeElement!==hEl){ const pr = byhargaHargaBySku[sku]; hEl.value = pr>0 ? fmtNum(pr) : ''; }
   if(document.activeElement!==vEl){ vEl.value = fmtNum(byhargaVoucherFor(sku).value); }
 }
@@ -6922,10 +6945,15 @@ function renderByHarga(){
   const btn = document.getElementById('byhargaProdukBtn');
   plSyncProdukBtn('byhargaProdukBtn', byhargaSelectedSku);
   btn.onclick = ()=>plSkuSheetOpen('byharga');
-  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher');
+  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher'), wEl = document.getElementById('byhargaVoucherWeekend');
   if(!hEl.dataset.bound){
     hEl.dataset.bound = '1';
-    attachThousands(hEl); attachThousands(vEl);
+    attachThousands(hEl); attachThousands(vEl); attachThousands(wEl);
+    wEl.addEventListener('input', ()=>{
+      if(!byhargaSelectedSku) return;
+      byhargaVoucherWeekend[byhargaSelectedSku] = parseNum(wEl.value)||0;
+      renderByHargaResult();
+    });
     hEl.addEventListener('input', ()=>{
       if(!byhargaSelectedSku) return;
       const v = parseNum(hEl.value);
@@ -6953,6 +6981,7 @@ function renderByHargaResult(){
   const statsEl = document.getElementById('byhargaStats'), detailEl = document.getElementById('byhargaDetail');
   const row = state.priceList.find(r=>r.sku===byhargaSelectedSku);
   byhargaRenderVoucherNote();
+  byhargaBinsSync();   // [28 Sep 2026] kartu Data kompetitor: dirender ulang cuma kalau SKU induk berganti, selain itu cukup update sorotan range (input gak ke-reset)
   if(!row){
     detailEl.innerHTML = '';
     statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Pilih produk dulu buat lihat hasil.</div></div>';
@@ -7046,7 +7075,163 @@ function renderByHargaResult(){
           : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
       </div>
     </div>`;
-  detailEl.innerHTML = '<div class="byh-cols">'+left+right+'</div>';
+  // [28 Sep 2026] Normal vs Voucher Weekend — kartu lebar penuh di bawah 2 kolom (input-nya di panel kanan, jadi kartu ini aman di-render ulang tiap ketikan)
+  const Vw = byhargaVoucherWeekend[row.sku]||0;
+  let weekendCard;
+  if(!(Vw>0)){
+    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3><div class="byh-note">Isi Voucher Weekend di panel Input buat membandingkan profit saat voucher lebih besar (weekend/event) dengan voucher normal.</div></div>';
+  } else if(!c.hasPrice){
+    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3><div class="byh-hint" style="margin:0;">Isi Harga Jual di panel Input dulu.</div></div>';
+  } else {
+    const cw = byhargaCompute(row, P, Vw, roas);
+    const okN = has && c.masuk, okW = !cw.invalid && cw.masuk;
+    const netN = has ? c.income + c.B*c.ops : null;
+    const netW = (!cw.invalid) ? cw.income + cw.B*cw.ops : null;
+    const d = (a,b)=> (a===null||b===null) ? '-' : sgnRp(b-a);
+    const row3 = (lbl, a, b, dl, cls)=>'<tr><td>'+lbl+'</td><td'+(cls&&cls[0]?' class="'+cls[0]+'"':'')+'>'+a+'</td><td'+(cls&&cls[1]?' class="'+cls[1]+'"':'')+'>'+b+'</td><td>'+dl+'</td></tr>';
+    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3>'
+      + '<table class="byh-cmp"><thead><tr><th></th><th>NORMAL</th><th>WEEKEND</th><th>SELISIH</th></tr></thead><tbody>'
+      + row3('Voucher penjual', fmtRp(V), fmtRp(Vw), sgnRp(Vw-V))
+      + row3('Harga efektif', has?fmtRp(c.B):'-', cw.invalid?'-':fmtRp(cw.B), has&&!cw.invalid?sgnRp(cw.B-c.B):'-')
+      + row3('Profit / pcs', has?fmtRp(c.incomeR):'-', cw.invalid?'-':fmtRp(cw.incomeR), has&&!cw.invalid?d(c.incomeR,cw.incomeR):'-')
+      + row3('Net income', netN===null?'-':fmtRp(netN), netW===null?'-':fmtRp(netW), d(netN,netW))
+      + row3('Hasil vs target '+fmtRp(T), has?(okN?'MASUK':'TIDAK MASUK'):'-', cw.invalid?'TIDAK MASUK':(okW?'MASUK':'TIDAK MASUK'), '', [has?(okN?'good':'bad'):'', cw.invalid?'bad':(okW?'good':'bad')])
+      + row3('Harga jual minimum', c.hargaMin===null?'-':fmtRp(c.hargaMin), cw.hargaMin===null?'-':fmtRp(cw.hargaMin), (c.hargaMin===null||cw.hargaMin===null)?'-':sgnRp(cw.hargaMin-c.hargaMin))
+      + '</tbody></table>'
+      + '<div class="byh-note">Rumus sama persis dengan hasil di atas, cuma voucher diganti. Harga jual minimum = NET + voucher: harga pasang terendah supaya profit tetap ≥ target di tiap skenario.'+(cw.invalid?' Voucher weekend ≥ harga jual, jadi harga efektif tidak valid.':'')+'</div></div>';
+  }
+  detailEl.innerHTML = '<div class="byh-cols">'+left+right+'</div>'+weekendCard;
+}
+
+/* ================= [28 Sep 2026] By Harga Jual: DATA KOMPETITOR PER RANGE HARGA =================
+   Data dari filter harga Shopee (Product / Sold / Favourite / Review Count per range). Shopee gak punya API publik buat ini, jadi diisi MANUAL
+   (atau tempel dari teks, satu baris = satu range). Disimpen per SKU INDUK (berlaku buat semua ukuran) & per toko (key 'zenootAnalisis.byhargaBins',
+   terdaftar di dua daftar scoped: zStore.SCOPED & TOKO_SCOPED_BASES). Range 'Sampai' kosong/0 = tanpa batas atas.
+   Tabel input SENGAJA di luar #byhargaDetail: #byhargaDetail di-render ulang tiap ketikan harga, kalau tabelnya ikut, fokus input hilang. */
+const BYH_BINS_LS_KEY = tk('zenootAnalisis.byhargaBins');
+let byhargaBins = {};            // { skuIndukLower: [{min,max,prod,sold,fav,rev}] }
+try{
+  const rawBins = zLS.getItem(BYH_BINS_LS_KEY);
+  if(rawBins){ const o = JSON.parse(rawBins); if(o && typeof o==='object' && !Array.isArray(o)) byhargaBins = o; }
+}catch(e){ console.error('Gagal load data kompetitor By Harga Jual:', e); }
+const byhargaVoucherWeekend = {};   // SKU Price List -> voucher weekend (cuma di memori, sama seperti state simulasi lain)
+let _byhBinsShown;                  // key SKU induk yang tabelnya lagi tampil (undefined = belum pernah dirender)
+function byhargaBinsSave(){ try{ zLS.setItem(BYH_BINS_LS_KEY, JSON.stringify(byhargaBins)); }catch(e){} }
+function byhBinsKey(){ return byhargaSelectedSku ? byhargaSkuParts(byhargaSelectedSku).induk : null; }
+function byhBinsRows(create){
+  const k = byhBinsKey(); if(!k) return [];
+  if(!byhargaBins[k]){ if(!create) return []; byhargaBins[k] = []; }
+  return byhargaBins[k];
+}
+function byhBinLabel(r){ return fmtRp(r.min||0) + ((r.max>0) ? ' – '+fmtRp(r.max) : ' ke atas'); }
+function byhBinRowHtml(r, i){
+  const cell = (f)=>'<td><input type="text" inputmode="numeric" data-i="'+i+'" data-f="'+f+'" value="'+(r[f]>0?fmtNum(r[f]):'')+'"></td>';
+  return '<tr>'+cell('min')+cell('max')+cell('prod')+cell('sold')+cell('fav')+cell('rev')
+    +'<td class="byh-c" data-c="tpp"></td><td class="byh-c" data-c="share"></td>'
+    +'<td><button type="button" class="byh-del" data-del="'+i+'" title="Hapus range ini">×</button></td></tr>';
+}
+// Teks tempel -> baris. Tiap baris ambil angka berurutan: Dari, Sampai, Produk, Terjual, Favorit, Review (format Indonesia: titik = ribuan). Baris < 3 angka (judul dsb) dilewati.
+function byhBinsParsePaste(text){
+  const out = [];
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    const nums = (line.replace(/rp/gi,'').match(/\d[\d.,]*/g)||[]).map(x=>parseNum(x)).filter(n=>n!==null);
+    if(nums.length<3) return;
+    out.push({ min:nums[0]||0, max:nums[1]||0, prod:nums[2]||0, sold:nums[3]||0, fav:nums[4]||0, rev:nums[5]||0 });
+  });
+  return out;
+}
+function byhargaBinsRender(){
+  const wrap = document.getElementById('byhargaBinsWrap'); if(!wrap) return;
+  const key = byhBinsKey();
+  _byhBinsShown = key;
+  if(!key){ wrap.innerHTML = ''; return; }
+  const rows = byhBinsRows();
+  wrap.innerHTML = '<div class="card byh-card" style="margin-top:16px;"><h3>Data kompetitor per range harga</h3>'
+    + '<div class="byh-note">Isi dari filter harga di hasil pencarian Shopee (Product / Sold / Favourite / Review Count per range). Disimpan per SKU induk &amp; berlaku untuk semua ukuran. Kolom Sampai kosong = tanpa batas atas.</div>'
+    + '<div class="byh-bin-sum" id="byhBinsSummary"></div>'
+    + '<div class="byh-bin-scroll"><table class="byh-bin-tbl"><thead><tr><th>Dari (Rp)</th><th>Sampai (Rp)</th><th>Produk</th><th>Terjual</th><th>Favorit</th><th>Review</th><th>Terjual/Produk</th><th>Porsi Terjual</th><th></th></tr></thead>'
+    + '<tbody id="byhBinsBody">'+rows.map(byhBinRowHtml).join('')+'</tbody></table></div>'
+    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsAdd">+ Tambah range</button>'
+    + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
+    + '<button type="button" class="btn ghost small" id="byhBinsClear">Kosongkan</button></div>'
+    + '<div id="byhBinsPasteBox" style="display:none;"><textarea id="byhBinsPaste" placeholder="Satu baris = satu range, urutan angka: Dari, Sampai, Produk, Terjual, Favorit, Review&#10;contoh:&#10;50.000  75.000  1200  3400  800  150&#10;75.000  100.000  900  5200  1100  400"></textarea>'
+    + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsPasteOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsPasteCancel">Batal</button></div></div>'
+    + '</div>';
+  const body = document.getElementById('byhBinsBody');
+  body.querySelectorAll('input').forEach(attachThousands);
+  body.addEventListener('input', (e)=>{
+    const el = e.target; if(!el || !el.dataset || el.dataset.f===undefined) return;
+    const list = byhBinsRows(); const r = list[Number(el.dataset.i)]; if(!r) return;
+    r[el.dataset.f] = Math.max(0, parseNum(el.value)||0);
+    byhargaBinsSave(); byhargaBinsHighlight();
+  });
+  body.addEventListener('click', (e)=>{
+    const b = e.target.closest('[data-del]'); if(!b) return;
+    byhBinsRows().splice(Number(b.dataset.del), 1);
+    byhargaBinsSave(); byhargaBinsRender();
+  });
+  document.getElementById('byhBinsAdd').addEventListener('click', ()=>{
+    byhBinsRows(true).push({ min:0, max:0, prod:0, sold:0, fav:0, rev:0 });
+    byhargaBinsSave(); byhargaBinsRender();
+    const ins = document.querySelectorAll('#byhBinsBody tr:last-child input'); if(ins[0]) ins[0].focus();
+  });
+  const box = document.getElementById('byhBinsPasteBox');
+  document.getElementById('byhBinsPasteBtn').addEventListener('click', ()=>{ box.style.display = (box.style.display==='none') ? '' : 'none'; });
+  document.getElementById('byhBinsPasteCancel').addEventListener('click', ()=>{ box.style.display = 'none'; });
+  document.getElementById('byhBinsPasteOk').addEventListener('click', ()=>{
+    const parsed = byhBinsParsePaste(document.getElementById('byhBinsPaste').value);
+    if(!parsed.length){ alert('Tidak ada baris yang terbaca. Tiap baris minimal 3 angka: Dari, Sampai, Produk.'); return; }
+    parsed.sort((a,b)=>a.min-b.min);
+    byhBinsRows(true).splice(0, Infinity, ...parsed);
+    byhargaBinsSave(); byhargaBinsRender();
+  });
+  document.getElementById('byhBinsClear').addEventListener('click', ()=>{
+    if(!byhBinsRows().length) return;
+    if(!confirm('Kosongkan semua range kompetitor untuk SKU induk ini?')) return;
+    byhBinsRows().splice(0, Infinity);
+    byhargaBinsSave(); byhargaBinsRender();
+  });
+  byhargaBinsHighlight();
+}
+function byhargaBinsHighlight(){
+  const body = document.getElementById('byhBinsBody'), sumEl = document.getElementById('byhBinsSummary');
+  if(!body || !sumEl) return;
+  const rows = byhBinsRows();
+  const P = parseNum(document.getElementById('byhargaHarga').value)||0;
+  const totProd = rows.reduce((a,r)=>a+(r.prod||0),0), totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
+  const avgTpp = totProd>0 ? totSold/totProd : null;
+  const tppOf = r=> r.prod>0 ? r.sold/r.prod : null;
+  const f1 = n=> n.toLocaleString('id-ID',{maximumFractionDigits:1});
+  let hit = -1;
+  if(P>0) rows.forEach((r,i)=>{ if(hit<0 && P>=(r.min||0) && (!(r.max>0) || P<=r.max)) hit = i; });
+  body.querySelectorAll('tr').forEach((tr,i)=>{
+    const r = rows[i]; if(!r) return;
+    tr.classList.toggle('byh-bin-hit', i===hit);
+    const t = tppOf(r);
+    tr.querySelector('[data-c="tpp"]').textContent = (t===null) ? '-' : f1(t)+'x';
+    tr.querySelector('[data-c="share"]').textContent = (totSold>0) ? fmtPct((r.sold||0)/totSold) : '-';
+  });
+  let best = -1;
+  rows.forEach((r,i)=>{ const t = tppOf(r); if(t!==null && r.sold>0 && (best<0 || t>tppOf(rows[best]))) best = i; });
+  let html, hitCls = false;
+  if(!rows.length) html = 'Belum ada data. Tambah range satu-satu, atau tempel dari teks.';
+  else if(!(P>0)) html = 'Isi Harga Jual di panel Input buat lihat posisi harga di antara kompetitor.';
+  else if(hit<0) html = 'Harga '+fmtRp(P)+' <b>di luar semua range</b> yang sudah diisi.';
+  else {
+    const r = rows[hit], t = tppOf(r);
+    hitCls = true;
+    html = 'Harga '+fmtRp(P)+' ada di range <b>'+byhBinLabel(r)+'</b>: '
+      + (totProd>0 ? fmtPct((r.prod||0)/totProd)+' dari produk' : '-')+', '
+      + (totSold>0 ? fmtPct((r.sold||0)/totSold)+' dari penjualan' : '-')
+      + (t!==null ? ', '+f1(t)+' terjual per produk' + (avgTpp!==null ? ' (rata-rata semua range '+f1(avgTpp)+')' : '') : '')+'.';
+  }
+  if(best>=0 && rows.length>1) html += '<br>Range paling laku per produk: <b>'+byhBinLabel(rows[best])+'</b> ('+f1(tppOf(rows[best]))+' terjual/produk).';
+  sumEl.innerHTML = html;
+  sumEl.classList.toggle('hit', hitCls);
+}
+function byhargaBinsSync(){
+  if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
+  else byhargaBinsHighlight();
 }
 
 /* ================= PAGE: SETTING ================= */
