@@ -32,6 +32,7 @@
 //      sedangkan iframe Analisis dibuka lewat analisis.html?embed=1&v=APP_BUILD. Tanpa file .js yang berubah, APP_BUILD sama -> browser/PWA tetap menyajikan analisis.html lama.
 // (12) [24 Sep 2026] Setting Analisis: Rincian dipecah jadi 3 halaman (Beban Operasional | Cicilan Aktif | Pembagian Toko) di belakang tombol DATA OPERASIONAL — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 11).
 // (13) [28 Sep 2026] By Harga Jual: tambah input Voucher Weekend + tabel "Normal vs Voucher Weekend" + kartu "Data kompetitor per range harga" (input manual/tempel teks, disimpan per SKU induk per toko) — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
+// (14) [28 Sep 2026] Check Admin: fix "belum match" untuk SKU yang ada di Kelola Produk tapi belum pernah muncul di Order Completed yang ke-load (mis. YUNA_NEVI) — matchItemToHpp dapat tier terakhir 'kelola' yang nanya Kelola Produk langsung. Semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.

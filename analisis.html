@@ -4630,6 +4630,21 @@ function matchItemToHpp(item){
       if(bySize) return { product: bySize, tier: 'saved' };
     }
   }
+  // Tier 4 'kelola' [28 Sep 2026]: SEMUA tier di atas cuma nyari di uniqueProductList() (produk yang pernah muncul di Order Completed yang ke-load / didaftarin manual).
+  // SKU yang ada di Kelola Produk tapi belum pernah kejual di periode yang ke-load (mis. YUNA_NEVI) jadi "belum match" padahal HPP-nya ada — root cause trace 28 Sep 2026.
+  // Lapis terakhir ini nanya Kelola Produk LANGSUNG: kalau SKU Variasi = Kode Variasi ada & HPP-nya > 0 (zProdukHpp, termasuk aturan turun size), bikin produk sementara
+  // dengan SKU Induk = kolom Katalog di Kelola Produk. HPP-nya dibaca lewat state.hppMaster -> zProdukHppBy -> zProdukHpp(nomorRef), jadi angkanya persis sama dengan jalur lain.
+  // Cuma jalan kalau tier 1-3 gagal, jadi hasil yang sudah match sebelumnya TIDAK berubah.
+  if(item.kodeVariasi && zProdukHpp(item.kodeVariasi) !== undefined){
+    const kNorm = zProdukNorm(item.kodeVariasi);
+    let row = (zProdukRows||[]).find(r=>zProdukNorm(r.sku_variasi)===kNorm);
+    if(!row){   // SKU ber-size -S/-L yang "turun size" (lihat zProdukHpp): ambil Katalog dari SKU tujuannya
+      const m = /^(.*-)(S|L)$/.exec(kNorm);
+      if(m) row = (zProdukRows||[]).find(r=>zProdukNorm(r.sku_variasi)===m[1]+Z_SIZE_TURUN[m[2]]);
+    }
+    const induk = row ? (row.katalog||'').toString().trim() : '';
+    return { product: { skuInduk: induk || item.kodeVariasi.trim(), namaProduk: item.namaProduk||'', nomorRef: item.kodeVariasi.trim(), variasi: item.variasi||'' }, tier: 'kelola' };
+  }
   return null;
 }
 
