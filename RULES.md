@@ -73,6 +73,8 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 
 **kas.js**: Sticky header "Cash Jurnal" HP — judul & tombol dipisah baris (class .kas-title-btns, mobile-only).
 
+**dashboard.js + style.css (28 Sep 2026)**: 8 minicard dashboard dibungkus 2 carousel (#zd-car-a: Target/Laba/Beban vs Kas/Cash Flow, #zd-car-b: Saldo Kas/Order Hari Ini/Nilai Stok/SKU Kritis). HP (<768px): 1 halaman = 1 kartu, swipe loop 1-2-3-4-1-2-3-4 (DOM diputar, tanpa klon → ID canvas tetap unik), dot 4 titik. Desktop/tablet: wrapper display:contents, grid lama utuh. Kartu bawah sekarang juga pakai donut (Saldo=% tersisa, Order=omset hari vs target harian, Nilai Stok=komposisi per Boss, SKU Kritis=habis/mendekati/aman). Warna ikon per kartu pindah dari :nth-of-type ke [data-zd-i] karena urutan DOM bisa berputar.
+
 ## Belum kelar / open issue
 
 - Sistem Re-Stock ada 2 versi gak sinkron: restock.js (baca produk.boss langsung, semua supplier) vs hutang-supplier.js tab Re Stock (filter Reseller/PO doang, prioritas link hutang_barang). SKU sama bisa beda status/boss di 2 tempat. User minta di-skip dulu, dipikirin ulang arahnya (satuin sistem / bikin gate keliatan di UI).

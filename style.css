@@ -5261,14 +5261,14 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #page-dashboard .doodle i{ width:32px;height:32px;font-size:15px; }
 
 /* Warna per metric card, urutan sesuai #dash-metrics (Saldo Kas → SKU Kritis) */
-#page-dashboard .metric:nth-of-type(1) .doodle i{background:var(--dash-blue-10);color:var(--dash-blue)}
-#page-dashboard .metric:nth-of-type(2) .doodle i{background:var(--dash-purple-10);color:var(--dash-purple)}
-#page-dashboard .metric:nth-of-type(3) .doodle i{background:var(--dash-green-10);color:var(--dash-green)}
-#page-dashboard .metric:nth-of-type(4) .doodle i{background:var(--dash-orange-10);color:var(--dash-orange)}
-#page-dashboard .metric:nth-of-type(5) .doodle i{background:var(--dash-teal-10);color:var(--dash-teal)}
-#page-dashboard .metric:nth-of-type(6) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
-#page-dashboard .metric:nth-of-type(7) .doodle i{background:var(--dash-gold-10);color:var(--dash-gold)}
-#page-dashboard .metric:nth-of-type(8) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+#page-dashboard .metric[data-zd-i="1"] .doodle i{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .metric[data-zd-i="2"] .doodle i{background:var(--dash-purple-10);color:var(--dash-purple)}
+#page-dashboard .metric[data-zd-i="3"] .doodle i{background:var(--dash-green-10);color:var(--dash-green)}
+#page-dashboard .metric[data-zd-i="4"] .doodle i{background:var(--dash-orange-10);color:var(--dash-orange)}
+#page-dashboard .metric[data-zd-i="5"] .doodle i{background:var(--dash-teal-10);color:var(--dash-teal)}
+#page-dashboard .metric[data-zd-i="6"] .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+#page-dashboard .metric[data-zd-i="7"] .doodle i{background:var(--dash-gold-10);color:var(--dash-gold)}
+#page-dashboard .metric[data-zd-i="8"] .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
 
 /* Warna per widget card-title, ditarget dari class ikon Tabler-nya */
 #page-dashboard .card-title i.ti-chart-line{background:var(--dash-blue-10);color:var(--dash-blue)}
@@ -5434,16 +5434,48 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .zd-mrow .zd-leg-pct{ font-size:10px; padding:0 6px; }
 
 /* ikon badge per kartu mengikuti urutan baru */
-#page-dashboard .metric:nth-of-type(1) .doodle i{background:var(--dash-orange-10);color:var(--dash-orange)}
-#page-dashboard .metric:nth-of-type(2) .doodle i{background:var(--dash-teal-10);color:var(--dash-teal)}
-#page-dashboard .metric:nth-of-type(3) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
-#page-dashboard .metric:nth-of-type(4) .doodle i{background:var(--dash-purple-10);color:var(--dash-purple)}
-#page-dashboard .metric:nth-of-type(5) .doodle i{background:var(--dash-blue-10);color:var(--dash-blue)}
-#page-dashboard .metric:nth-of-type(6) .doodle i{background:var(--dash-green-10);color:var(--dash-green)}
-#page-dashboard .metric:nth-of-type(7) .doodle i{background:var(--dash-gold-10);color:var(--dash-gold)}
-#page-dashboard .metric:nth-of-type(8) .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+#page-dashboard .metric[data-zd-i="1"] .doodle i{background:var(--dash-orange-10);color:var(--dash-orange)}
+#page-dashboard .metric[data-zd-i="2"] .doodle i{background:var(--dash-teal-10);color:var(--dash-teal)}
+#page-dashboard .metric[data-zd-i="3"] .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
+#page-dashboard .metric[data-zd-i="4"] .doodle i{background:var(--dash-purple-10);color:var(--dash-purple)}
+#page-dashboard .metric[data-zd-i="5"] .doodle i{background:var(--dash-blue-10);color:var(--dash-blue)}
+#page-dashboard .metric[data-zd-i="6"] .doodle i{background:var(--dash-green-10);color:var(--dash-green)}
+#page-dashboard .metric[data-zd-i="7"] .doodle i{background:var(--dash-gold-10);color:var(--dash-gold)}
+#page-dashboard .metric[data-zd-i="8"] .doodle i{background:var(--dash-red-10);color:var(--dash-red)}
 
 @media (max-width: 899px){
   .zd-m-body{ flex-direction:column; align-items:flex-start; gap:8px; }
   .zd-m-donutwrap{ width:84px; height:84px; }
+}
+
+/* =================================================================
+   DASHBOARD HP — 1 halaman = 1 kartu, swipe, loop 1234-1234
+   Dua carousel (masing-masing 4 kartu) di #dash-metrics.
+   Desktop/tablet (>=768px): wrapper display:contents → grid lama utuh.
+   ================================================================= */
+.zd-car, .zd-car-track{ display:contents; }
+.zd-car-dots{ display:none; }
+
+@media (max-width: 767px){
+  .zd-car{ display:block; flex:1 1 100%; width:100%; min-width:0; overflow:hidden; position:relative; contain:inline-size; }
+  .zd-car-track{
+    display:flex; align-items:stretch; width:100%;
+    touch-action:pan-y; will-change:transform;
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .zd-car-track.zd-nodrag-anim{ transition:none; }
+  .zd-car .metric{ flex:0 0 100%; min-width:100%; max-width:100%; box-sizing:border-box; }
+  /* layout seragam: donut kiri, angka + rincian kanan */
+  .zd-car .zd-m-body{ flex-direction:row; align-items:center; gap:16px; margin-top:10px; }
+  .zd-car .zd-m-donutwrap{ width:104px; height:104px; }
+  .zd-car .zd-m-center b{ font-size:17px; }
+  .zd-car .zd-m-center span{ font-size:9.5px; }
+  #zd-tab-ringkasan #dash-metrics .zd-car .m-value{ font-size:26px; }
+  .zd-car .zd-mrow, .zd-car .zd-mrow-v{ font-size:12px; }
+  .zd-car-dots{ display:flex; justify-content:center; gap:6px; padding:8px 0 2px; }
+  .zd-car-dots i{
+    width:6px; height:6px; border-radius:50%; background:var(--ink3);
+    opacity:.35; transition:opacity .2s, width .2s;
+  }
+  .zd-car-dots i.on{ opacity:1; background:var(--ink); width:16px; border-radius:3px; }
 }

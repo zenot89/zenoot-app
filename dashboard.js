@@ -87,9 +87,10 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
   <!-- Baris 1: UANG HARI INI vs AKTIVITAS | Baris 2: PENJUALAN vs TARGET | Baris 3: UNTUNG vs BEBAN | Baris 4: STOK -->
   <div class="metrics" id="dash-metrics">
+    <div class="zd-car" id="zd-car-a"><div class="zd-car-track">
 
     <!-- BARIS 1 — Format donut + rincian (gaya Accurate) : Target, Laba Bersih, Beban vs Kas, Cash Flow -->
-    <div class="metric zd-m" id="card-target-omset">
+    <div class="metric zd-m" data-zd-i="1" id="card-target-omset">
       <div class="m-label">Target Omset</div>
       <div class="zd-m-body">
         <div class="zd-m-donutwrap"><canvas id="zd-viz-target"></canvas><div class="zd-m-center" id="zd-viz-target-c"></div></div>
@@ -109,7 +110,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-target"></i></div>
     </div>
 
-    <div class="metric zd-m">
+    <div class="metric zd-m" data-zd-i="2">
       <div class="m-label">Est. Laba Bersih</div>
       <div class="zd-m-body">
         <div class="zd-m-donutwrap"><canvas id="zd-viz-laba"></canvas><div class="zd-m-center" id="zd-viz-laba-c"></div></div>
@@ -122,7 +123,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-trophy"></i></div>
     </div>
 
-    <div class="metric zd-m" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
+    <div class="metric zd-m" data-zd-i="3" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);" title="Lihat detail Arus Kas">
       <div class="m-label">Beban vs Kas</div>
       <div class="zd-m-body">
         <div class="zd-m-donutwrap"><canvas id="zd-viz-bebankas"></canvas><div class="zd-m-center" id="zd-viz-bebankas-c"></div></div>
@@ -136,7 +137,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
 
-    <div class="metric zd-m" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);">
+    <div class="metric zd-m" data-zd-i="4" style="cursor:pointer" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('keuangan')!==-1;});gotoPage('keuangan',b);setTimeout(function(){keuGotoTab('aruskas');},400);">
       <div class="m-label">Cash Flow</div>
       <div class="zd-m-body">
         <div class="zd-m-donutwrap"><canvas id="zd-viz-cashflow"></canvas><div class="zd-m-center" id="zd-viz-cashflow-c"></div></div>
@@ -149,10 +150,13 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
 
-    <!-- BARIS 2 — Angka besar + rincian (tanpa donut) : Saldo Kas, Order Hari Ini, Nilai Stok, SKU Kritis -->
-    <div class="metric zd-m" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
+    </div><div class="zd-car-dots"><i class="on"></i><i></i><i></i><i></i></div></div><!-- /zd-car-a -->
+
+    <div class="zd-car" id="zd-car-b"><div class="zd-car-track">
+    <!-- BARIS 2 — Angka besar + rincian (donut + rincian, seragam dengan baris 1) : Saldo Kas, Order Hari Ini, Nilai Stok, SKU Kritis -->
+    <div class="metric zd-m" data-zd-i="5" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
       <div class="m-label">Saldo Kas</div>
-      <div class="zd-m-body"><div class="zd-m-side">
+      <div class="zd-m-body"><div class="zd-m-donutwrap"><canvas id="zd-viz-saldo"></canvas><div class="zd-m-center" id="zd-viz-saldo-c"></div></div><div class="zd-m-side">
         <div class="m-value" id="d-saldo">—</div>
         <div class="m-delta" id="d-saldo-delta">saldo akhir</div>
         <div class="zd-mrows" id="zd-viz-saldo-rows"></div>
@@ -160,9 +164,9 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-wallet"></i></div>
     </div>
 
-    <div class="metric zd-m">
+    <div class="metric zd-m" data-zd-i="6">
       <div class="m-label">Order Hari Ini</div>
-      <div class="zd-m-body"><div class="zd-m-side">
+      <div class="zd-m-body"><div class="zd-m-donutwrap"><canvas id="zd-viz-order"></canvas><div class="zd-m-center" id="zd-viz-order-c"></div></div><div class="zd-m-side">
         <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
           <div class="m-value" id="d-order-qty" style="margin:0">—</div>
           <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
@@ -175,9 +179,9 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
     </div>
 
-    <div class="metric zd-m">
+    <div class="metric zd-m" data-zd-i="7">
       <div class="m-label">Nilai Stok</div>
-      <div class="zd-m-body"><div class="zd-m-side">
+      <div class="zd-m-body"><div class="zd-m-donutwrap"><canvas id="zd-viz-stok"></canvas><div class="zd-m-center" id="zd-viz-stok-c"></div></div><div class="zd-m-side">
         <div class="m-value" id="d-nilaiStok">—</div>
         <div class="m-delta">HPP × sisa stok</div>
         <div class="zd-mrows" id="zd-viz-stok-rows"></div>
@@ -185,15 +189,17 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-coin"></i></div>
     </div>
 
-    <div class="metric zd-m" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
+    <div class="metric zd-m" data-zd-i="8" id="card-kritis" onclick="window._restockFilterKritis=true;var btn=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(b){return b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf('restock')!==-1;})||null;gotoPage('restock',btn);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(224,82,82,0.08)'" onmouseout="this.style.background=''">
       <div class="m-label">SKU Kritis</div>
-      <div class="zd-m-body"><div class="zd-m-side">
+      <div class="zd-m-body"><div class="zd-m-donutwrap"><canvas id="zd-viz-kritis"></canvas><div class="zd-m-center" id="zd-viz-kritis-c"></div></div><div class="zd-m-side">
         <div class="m-value" id="d-kritis">—</div>
         <div class="m-delta">stok ≤ 3 · klik untuk restock</div>
         <div class="zd-mrows" id="zd-viz-kritis-rows"></div>
       </div></div>
       <div class="doodle"><i class="ti ti-alert-triangle"></i></div>
     </div>
+
+    </div><div class="zd-car-dots"><i class="on"></i><i></i><i></i><i></i></div></div><!-- /zd-car-b -->
 
   </div>
 
@@ -2070,7 +2076,7 @@ async function loadDashboard() {
       trxHariIni: jpHariIni.length, aov: aov,
       skuTotal: _dashStokData.length,
       pcsTotal: _dashStokData.reduce(function(a, r) { return a + (Number(r.sisa) || 0); }, 0),
-      kritis: kritis,
+      kritis: kritis, saldo: saldo, omsetHari: Number(omsetHari) || 0, targetHarian: targetHarian || 0,
       habis: _dashStokData.filter(function(r) { return (r.kategori_produk || 'aktif') === 'aktif' && (r.sales30 || 0) > 0 && r.sisa <= 0; }).length
     };
     _zdRenderMetricViz(window._zdMetricData);
@@ -2424,22 +2430,58 @@ function _zdRenderMetricViz(d) {
       {l: 'Keluar', v: _fmtRp(d.cfKeluar), c: R}
     ]);
 
-    // Baris 2 — tanpa donut
+    // Baris 2 — donut + rincian (seragam dengan baris 1)
+    // 5. Saldo Kas — porsi saldo tersisa dari total kas masuk
+    var kM = Math.max(d.kasMasuk || 0, 0), kK = Math.max(d.kasKeluar || 0, 0);
+    var kSaldo = Math.max(d.saldo || 0, 0);
+    if (kM > 0) {
+      var kp = Math.max(Math.round((d.saldo || 0) / kM * 100), 0);
+      _zdDonut('saldo', [{v: kSaldo, c: G}, {v: Math.min(kK, kM), c: R}], ctr(kp + '%', 'tersisa', (d.saldo || 0) >= 0 ? G : R));
+    } else {
+      _zdDonut('saldo', [], ctr('—', 'tersisa'));
+    }
     _zdRows('saldo', [
       {l: 'Total masuk', v: _fmtRp(d.kasMasuk), c: G},
       {l: 'Total keluar', v: _fmtRp(d.kasKeluar), c: R}
     ]);
+
+    // 6. Order Hari Ini — omset hari ini vs target harian
+    var thr = d.targetHarian > 0;
+    var hp = thr ? d.omsetHari / d.targetHarian * 100 : 0;
+    var hcol = hp >= 100 ? G : hp >= 60 ? Y : R;
+    _zdDonut('order', thr ? [{v: Math.min(d.omsetHari, d.targetHarian), c: hcol}, {v: Math.max(d.targetHarian - d.omsetHari, 0), c: TR}] : [],
+      thr ? ctr(Math.round(hp) + '%', 'target harian', hcol) : ctr('—', 'target harian'));
     _zdRows('order', [
       {l: 'Transaksi hari ini', v: d.trxHariIni, c: B},
       {l: 'AOV bulan ini', v: d.aov > 0 ? _fmtRp(d.aov) : '—', c: Y}
     ]);
-    _zdRows('stok', [
-      {l: 'Total SKU', v: d.skuTotal, c: B},
-      {l: 'Total sisa stok', v: d.pcsTotal + ' pcs', c: Y}
-    ]);
+
+    // 7. Nilai Stok — komposisi nilai per Boss (top 3 + lainnya)
+    var byBoss = {}, nsTot = 0;
+    (_dashStokData || []).forEach(function(r) {
+      var v = Number(r.nilai_stok) || 0; if (v <= 0) return;
+      var k = r.boss || 'Tanpa Boss'; byBoss[k] = (byBoss[k] || 0) + v; nsTot += v;
+    });
+    var bossArr = Object.keys(byBoss).map(function(k) { return [k, byBoss[k]]; }).sort(function(a, b) { return b[1] - a[1]; });
+    var bossCol = [B, Y, G], sSegs = [], sRows = [];
+    bossArr.slice(0, 3).forEach(function(x, i) {
+      sSegs.push({v: x[1], c: bossCol[i]});
+      sRows.push({l: x[0], v: _fmtRp(x[1]), c: bossCol[i], p: pc(x[1], nsTot)});
+    });
+    var lain = bossArr.slice(3).reduce(function(a, x) { return a + x[1]; }, 0);
+    if (lain > 0) { sSegs.push({v: lain, c: '#bdb8ae'}); sRows.push({l: 'Lainnya', v: _fmtRp(lain), c: '#bdb8ae', p: pc(lain, nsTot)}); }
+    _zdDonut('stok', sSegs, nsTot > 0 ? ctr(d.pcsTotal, 'pcs', 'var(--ink)') : ctr('—', 'pcs'));
+    _zdRows('stok', sRows);
+
+    // 8. SKU Kritis — habis / mendekati habis / aman dari total SKU
+    var mdk = Math.max(d.kritis - d.habis, 0);
+    var aman = Math.max(d.skuTotal - d.kritis, 0);
+    _zdDonut('kritis', d.skuTotal > 0 ? [{v: d.habis, c: R}, {v: mdk, c: Y}, {v: aman, c: G}] : [],
+      d.skuTotal > 0 ? ctr(d.kritis, 'kritis', d.kritis > 0 ? R : G) : ctr('—', 'kritis'));
     _zdRows('kritis', [
       {l: 'Habis', v: d.habis + ' sku', c: R},
-      {l: 'Mendekati habis', v: Math.max(d.kritis - d.habis, 0) + ' sku', c: Y}
+      {l: 'Mendekati habis', v: mdk + ' sku', c: Y},
+      {l: 'Aman', v: aman + ' sku', c: G}
     ]);
   } catch (e) { console.warn('[MetricViz]', e); }
 }
@@ -2679,7 +2721,104 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     });
   }
 
+  // ── Carousel metrik HP: 1 kartu/halaman, loop tanpa ujung (1-2-3-4-1-2-3-4) ──
+  // Tanpa klon (ID canvas tetap unik): DOM diputar — kartu aktif selalu di posisi ke-2
+  // [kiri, AKTIF, kanan, sisa]; selesai animasi, node paling depan/belakang dipindah lalu
+  // transform di-reset diam-diam ke -100%.
+  function zdCarSetup(car) {
+    var track = car.querySelector('.zd-car-track');
+    if (!track || car._zdOn) return;
+    car._zdOn = true;
+    var cards = Array.prototype.slice.call(track.children);
+    var n = cards.length, cur = 0, busy = false;
+    var dots = car.querySelectorAll('.zd-car-dots i');
+    var startX = 0, startY = 0, startT = 0, dragging = false, isHoriz = null, dx = 0;
+    track.insertBefore(track.lastElementChild, track.firstElementChild); // aktif = kartu #1 di posisi ke-2
+    track.classList.add('zd-nodrag-anim');
+    track.style.transform = 'translateX(-100%)';
+    void track.offsetWidth;
+    track.classList.remove('zd-nodrag-anim');
+    function paintDots() { dots.forEach(function(d, i) { d.classList.toggle('on', i === cur); }); }
+    function snap(anim) {
+      track.classList.toggle('zd-nodrag-anim', !anim);
+      track.style.transform = 'translateX(-100%)';
+    }
+    function step(dir) { // dir=+1 → kartu berikutnya, -1 → sebelumnya
+      if (busy) return;
+      busy = true;
+      track.classList.remove('zd-nodrag-anim');
+      track.style.transform = 'translateX(' + (dir > 0 ? '-200%' : '0%') + ')';
+      var done = false;
+      function fin() {
+        if (done) return; done = true;
+        track.removeEventListener('transitionend', fin);
+        track.classList.add('zd-nodrag-anim');
+        if (dir > 0) track.appendChild(track.firstElementChild);
+        else track.insertBefore(track.lastElementChild, track.firstElementChild);
+        track.style.transform = 'translateX(-100%)';
+        void track.offsetWidth; // paksa reflow sebelum animasi dinyalakan lagi
+        track.classList.remove('zd-nodrag-anim');
+        cur = (cur + dir + n) % n; paintDots(); busy = false;
+      }
+      track.addEventListener('transitionend', fin);
+      setTimeout(fin, 400);
+    }
+    track.addEventListener('touchstart', function(e) {
+      if (busy) return;
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY; startT = Date.now();
+      dragging = true; isHoriz = null; dx = 0;
+    }, { passive: true });
+    track.addEventListener('touchmove', function(e) {
+      if (!dragging) return;
+      dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (isHoriz === null && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) isHoriz = Math.abs(dx) > Math.abs(dy);
+      if (isHoriz) {
+        e.preventDefault();
+        track.classList.add('zd-nodrag-anim');
+        track.style.transform = 'translateX(calc(-100% + ' + dx + 'px))';
+      }
+    }, { passive: false });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      if (!isHoriz) return;
+      var moved = e.changedTouches ? e.changedTouches[0].clientX - startX : dx;
+      var flick = Math.abs(moved) / Math.max(Date.now() - startT, 1) > 0.3;
+      if (moved < -40 || (flick && moved < 0)) step(1);
+      else if (moved > 40 || (flick && moved > 0)) step(-1);
+      else snap(true);
+    }
+    track.addEventListener('touchend', endDrag, { passive: true });
+    track.addEventListener('touchcancel', function() { dragging = false; isHoriz = null; snap(true); }, { passive: true });
+  }
+  // Balik ke urutan asli + grid biasa kalau layar melebar (>=768px)
+  function zdCarTeardown(car) {
+    if (!car._zdOn) return;
+    var track = car.querySelector('.zd-car-track');
+    var cards = Array.prototype.slice.call(track.children).sort(function(a, b) {
+      return (+a.getAttribute('data-zd-i')) - (+b.getAttribute('data-zd-i'));
+    });
+    cards.forEach(function(c) { track.appendChild(c); });
+    track.style.transform = ''; track.classList.remove('zd-nodrag-anim');
+    var dots = car.querySelectorAll('.zd-car-dots i');
+    dots.forEach(function(d, i) { d.classList.toggle('on', i === 0); });
+    // handler lama tetap menempel di track; buang dengan mengganti node
+    var fresh = track.cloneNode(false);
+    while (track.firstChild) fresh.appendChild(track.firstChild);
+    track.parentNode.replaceChild(fresh, track);
+    car._zdOn = false;
+  }
+  function zdCarAll() {
+    document.querySelectorAll('.zd-car').forEach(function(car) {
+      if (window.innerWidth < 768) zdCarSetup(car); else zdCarTeardown(car);
+    });
+  }
+  var _zdCarRz;
+  window.addEventListener('resize', function() { clearTimeout(_zdCarRz); _zdCarRz = setTimeout(zdCarAll, 200); });
+
   function initAllSwipes() {
+    zdCarAll();
     if (window.innerWidth >= 768) return;
     // Init db-swipe-pair — guard: skip kalau sudah pernah di-init
     document.querySelectorAll('.db-swipe-pair').forEach(function(pair) {
