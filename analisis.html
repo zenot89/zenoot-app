@@ -7246,14 +7246,16 @@ function byhBinsFromProducts(products, n){
   for(let i=0;i<=n;i++){ const e = Math.round(lo+(hi-lo)*i/n); if(!edges.length || e>edges[edges.length-1]) edges.push(e); }
   if(edges.length<2) edges.push(edges[0]);
   const bins = [];
-  for(let i=0;i<edges.length-1;i++) bins.push({ min:edges[i], max:edges[i+1], prod:0, sold:0, fav:0, rev:0, _s:[] });
+  for(let i=0;i<edges.length-1;i++) bins.push({ min:edges[i], max:edges[i+1], prod:0, sold:0, fav:0, rev:0, _s:[], _v:[] });
   ps.forEach(p=>{
     const k = bins.findIndex((b,i)=> i===0 ? (p.price>=b.min && p.price<=b.max) : (p.price>b.min && p.price<=b.max));
     if(k<0) return;
-    bins[k].prod++; bins[k].sold += p.sold; bins[k].fav += p.fav; bins[k].rev += p.rev; bins[k]._s.push(p.sold);
+    bins[k].prod++; bins[k].sold += p.sold; bins[k].fav += p.fav; bins[k].rev += p.rev; bins[k]._s.push(p.sold); bins[k]._v.push(p.sold/Math.max(3, p.mo||12));
   });
   // [29 Sep 2026] med = median terjual per produk, top = terjual produk teratas (buat cek 1 produk mendominasi range). Cuma ada kalau data dari CSV.
   bins.forEach(b=>{
+    const v = b._v.slice().sort((x,y)=>x-y), sv = v.reduce((x,y)=>x+y,0); delete b._v;
+    if(v.length){ const mv = v.length>>1; b.medv = Math.round(((v.length%2) ? v[mv] : (v[mv-1]+v[mv])/2)*10)/10; b.topv = sv>0 ? v[v.length-1]/sv : 0; }   // terjual per bulan (umur produk min 3 bulan)
     const a = b._s.slice().sort((x,y)=>x-y); delete b._s;
     if(!a.length) return;
     const m = a.length>>1;
@@ -7301,7 +7303,7 @@ function byhargaBinsRender(){
     const el = e.target; if(!el || !el.dataset || el.dataset.f===undefined) return;
     const list = byhBinsRows(); const r = list[Number(el.dataset.i)]; if(!r) return;
     r[el.dataset.f] = Math.max(0, parseNum(el.value)||0);
-    delete r.med; delete r.top;   // angka diedit manual -> median/produk teratas dari CSV sudah tidak sinkron
+    delete r.med; delete r.top; delete r.medv; delete r.topv;   // angka diedit manual -> median/produk teratas dari CSV sudah tidak sinkron
     byhargaBinsSave(); byhargaBinsHighlight();
   });
   body.addEventListener('click', (e)=>{
@@ -7476,6 +7478,13 @@ function byhTabSet(t){
   document.querySelectorAll('.byh-tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
   if(t==='kata') byhKwWire();
 }
+function byhHeroHtml(Hmin){
+  if(!(Hmin>0)) return '';
+  const own = new Set(byhOwnIds());
+  const c = byhSavedProds().filter(p=>!own.has(String(p.i)) && p.p>=Hmin).map(p=>({ p, v:(p.s||0)/Math.max(3, p.m||12) })).sort((a,b)=>b.v-a.v).slice(0,3);
+  if(!c.length) return '';
+  return '<div class="byh-sum-sec"><div class="byh-sum-h">Produk andalan di atas harga minimum</div>'+c.map(x=>'<p>'+byhEsc(String(x.p.n).slice(0,48))+' ('+byhEsc(x.p.h||'toko lain')+'): <b>'+fmtRp(x.p.p)+'</b>, '+Math.round(x.v).toLocaleString('id-ID')+' terjual/bulan.</p>').join('')+'<p class="sub">Ini pesaing yang harus dilawan kalau harga di atas harga minimum.</p></div>';
+}
 function byhOwnHtml(rows){
   const own = new Set(byhOwnIds()), mine = byhSavedProds().filter(p=>own.has(String(p.i)));
   if(!mine.length) return '';
@@ -7515,12 +7524,14 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
   const tpp = r=> r.prod>0 ? r.sold/r.prod : 0;
   // [29 Sep 2026] Jatah per penjual = MEDIAN terjual per produk (kalau data dari CSV; input manual/tempel tidak punya median, jadi pakai rata-rata).
   // Konsentrasi = porsi produk teratas terhadap penjualan range (cuma ada dari CSV).
-  const per = r=> (r.med!=null && r.prod>0) ? r.med : tpp(r);
-  const conc = r=> (r.top!=null && r.sold>0) ? r.top/r.sold : null;
+  const per = r=> (r.medv!=null && r.prod>0) ? r.medv : ((r.med!=null && r.prod>0) ? r.med : tpp(r));
+  const unit = r=> r.medv!=null ? ' terjual/bulan' : ' terjual/produk';
+  const conc = r=> r.topv!=null ? r.topv : ((r.top!=null && r.sold>0) ? r.top/r.sold : null);
   const dominated = r=> { const c = conc(r); return c!==null && c>=BYH_MAX_TOP_SHARE; };
   const hasMed = rows.some(r=>r.med!=null);
   const share = r=> totSold>0 ? r.sold/totSold : 0;
-  const reliable = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0 && !dominated(r));
+  const reliable = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0);
+  const solid = reliable.filter(r=>!dominated(r));
   const dom = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0 && dominated(r));
   const pickMax = (list, f)=> list.reduce((b,r)=> (!b || f(r)>f(b)) ? r : b, null);
   const inRange = (r,x)=> x>=(r.min||0) && (!(r.max>0) || x<=r.max);
@@ -7540,12 +7551,12 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
   s1 += '<p class="sub">Terjual = total sepanjang umur produk &amp; dibulatkan Shopee (mis. "10RB+"), jadi anggap perkiraan.</p>';
   // ---- 2 · Peta pasar
   const topSold = pickMax(rows.filter(r=>r.sold>0), r=>r.sold);
-  const topTpp = pickMax(reliable, per);
+  const topTpp = pickMax(solid.length ? solid : reliable, per);
   let s2 = '';
   if(topSold) s2 += '<p>Terjual paling banyak: <b>'+rg(topSold)+'</b> ('+fmtPct(share(topSold))+' penjualan, '+n0(topSold.prod)+' produk).</p>';
-  if(topTpp) s2 += '<p>Jatah per penjual terbesar'+(hasMed?' (median)':'')+': <b>'+rg(topTpp)+'</b> ('+n0(per(topTpp))+' terjual/produk, '+n0(topTpp.prod)+' pesaing).</p>';
+  if(topTpp) s2 += '<p>Jatah per penjual terbesar'+(hasMed?' (median)':'')+': <b>'+rg(topTpp)+'</b> ('+n0(per(topTpp))+unit(topTpp)+', '+n0(topTpp.prod)+' pesaing).</p>';
   else s2 += '<p>Belum ada range dengan minimal '+BYH_MIN_SAMPLE+' produk dan tidak didominasi 1 produk, jadi jatah per penjual belum bisa dinilai.</p>';
-  if(dom.length) s2 += '<p class="sub">Didominasi 1 produk ('+Math.round(BYH_MAX_TOP_SHARE*100)+'% penjualan range atau lebih), tidak dipakai buat saran: '+dom.map(r=>rg(r)+' ('+fmtPct(conc(r))+')').join(', ')+'.</p>';
+  if(dom.length) s2 += '<p class="sub">Didominasi 1 produk ('+Math.round(BYH_MAX_TOP_SHARE*100)+'% penjualan range atau lebih): '+dom.map(r=>rg(r)+' ('+fmtPct(conc(r))+')').join(', ')+'. Range ini hanya dipakai buat saran kalau tidak ada pilihan lain, dengan keyakinan rendah.</p>';
   const oceanList = k=>rows.filter(r=>oceanOf(r)===k).map(r=>rg(r)+((Hmin>0 && r.max>0 && r.max<Hmin) ? ' (di bawah harga minimum)' : '')+(dominated(r) ? ' (1 produk = '+fmtPct(conc(r))+')' : ''));
   const ob = oceanList('blue'), orr = oceanList('red'), osp = oceanList('sepi'), oje = oceanList('jenuh');
   if(ob.length)  s2 += '<p><b>Blue ocean</b> (penjualan tinggi, pesaing sedikit): '+ob.join(', ')+'.</p>';
@@ -7568,7 +7579,9 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
     const belowShare = totSold>0 ? below.reduce((a,r)=>a+r.sold,0)/totSold : 0;
     if(belowShare>0.005) s3 += '<p>Sekitar <b>'+fmtPct(belowShare)+'</b> penjualan pasar ada di range yang seluruhnya di bawah harga itu, jadi tidak bisa dikejar tanpa turun dari target profit.</p>';
     const cand = reliable.filter(r=>!(r.max>0) || r.max>=Hmin);
-    const best = pickMax(cand, per);
+    const candSolid = cand.filter(r=>!dominated(r));
+    const best = pickMax(candSolid.length ? candSolid : cand, per);
+    const lowConf = !!best && dominated(best);
     if(best){
       const from = Math.max(best.min||0, Hmin), to = best.max>0 ? best.max : 0;
       if(topTpp && topTpp!==best && topTpp.max>0 && topTpp.max<Hmin) s3 += '<p class="sub">Range dengan jatah terbesar ('+rg(topTpp)+') seluruhnya di bawah harga minimum, jadi tidak layak.</p>';
@@ -7576,20 +7589,22 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
       const gpmTxt = (hpp>0) ? ' GPM di kisaran itu '+fmtPct((from-hpp)/from)+(to>0 ? ' sampai '+fmtPct((to-hpp)/to) : '')+'.' : '';
       // Alasan: range di atas Harga Minimum yang cukup sampel tapi didominasi 1 produk (dilewati), lalu range terpilih.
       const skipped = dom.filter(r=> (!(r.max>0) || r.max>=Hmin) && (r.min||0) < (best.max>0 ? best.max : Infinity));
-      const why = 'Harga minimum '+fmtRp(Hmin)+'. '+(skipped.length ? 'Range '+skipped.map(rg).join(', ')+' dilewati karena 1 produk mendominasi penjualannya. ' : '')+'Range '+rg(best)+' adalah yang paling laku per penjual di antara range yang layak dan tidak didominasi 1 produk.';
-      const note = (oc==='jenuh' || oc==='sepi' ? 'Range ini berlabel '+OCEAN_NAME[oc]+', jadi pasar di atas harga minimum memang tipis; ini yang paling layak dari data yang ada, bukan peluang besar. ' : '')
+      const why = 'Harga minimum '+fmtRp(Hmin)+'. '+(lowConf ? 'Semua range di atas harga minimum didominasi 1 produk, jadi range '+rg(best)+' dipilih karena median terjualnya paling tinggi, dengan keyakinan rendah.' : (skipped.length ? 'Range '+skipped.map(rg).join(', ')+' dilewati karena 1 produk mendominasi penjualannya. ' : '')+'Range '+rg(best)+' adalah yang paling laku per penjual di antara range yang layak dan tidak didominasi 1 produk.');
+      const note = (lowConf ? 'Keyakinan rendah: 1 produk memegang '+fmtPct(conc(best))+' penjualan range ini, jadi harga awal ini lebih mirip mengikuti satu produk andalan. ' : '')
+        +(oc==='jenuh' || oc==='sepi' ? 'Range ini berlabel '+OCEAN_NAME[oc]+', jadi pasar di atas harga minimum memang tipis; ini yang paling layak dari data yang ada, bukan peluang besar. ' : '')
         +(best.prod<=BYH_MIN_SAMPLE+1 ? 'Hanya '+n0(best.prod)+' pesaing, sinyalnya lemah. ' : '')
         +(hasMed ? '' : 'Data ini tanpa rincian per produk, jadi dominasi 1 produk tidak bisa dicek (impor CSV untuk hasil lebih akurat). ')
-        +'Terjual adalah total sepanjang umur produk. Coba dulu dengan skala kecil sebelum menaikkan stok atau iklan.';
+        +(best.medv!=null ? 'Ukuran per bulan = terjual dibagi umur produk (minimal 3 bulan). ' : 'Terjual adalah total sepanjang umur produk. ')+'Coba dulu dengan skala kecil sebelum menaikkan stok atau iklan.';
+      const heroBox = lowConf ? byhHeroHtml(Hmin) : '';
       s3 += '<div class="go"><p><b>Saran eksekusi:</b> mulai di <b>'+fmtRp(from)+'</b>'+(to>0?', batas atas <b>'+kf(to)+'</b>':', tanpa batas atas')+'.</p>'
         + '<p><b>Kenapa:</b> '+why+'</p>'
-        + '<p><b>Trade-off:</b> '+(oc?OCEAN_NAME[oc]+', ':'')+n0(best.prod)+' pesaing, '+n0(per(best))+' terjual/produk'+(best.med!=null?' (median)':'')+', '+fmtPct(share(best))+' dari penjualan pasar.'+gpmTxt+'</p>'
-        + '<p><b>Catatan data:</b> '+note+'</p></div>';
+        + '<p><b>Trade-off:</b> '+(oc?OCEAN_NAME[oc]+', ':'')+n0(best.prod)+' pesaing, '+n0(per(best))+unit(best)+(best.med!=null?' (median)':'')+', '+fmtPct(share(best))+' dari penjualan pasar.'+gpmTxt+'</p>'
+        + '<p><b>Catatan data:</b> '+note+'</p></div>'+heroBox;
       if(HminW>0 && HminW>Hmin+0.5){
         s3 += '<p class="sub">Saat voucher weekend aktif, harga minimum naik jadi '+fmtRp(HminW)+(to>0 && HminW>to ? ', melewati batas atas range saran.' : '.')+'</p>';
       }
     } else {
-      s3 += '<div class="warn">Belum ada saran harga yang bisa dipercaya. Tidak ada range di atas harga minimum yang berisi minimal '+BYH_MIN_SAMPLE+' produk dan tidak didominasi 1 produk'+(dom.filter(r=>!(r.max>0)||r.max>=Hmin).length ? ' (dilewati: '+dom.filter(r=>!(r.max>0)||r.max>=Hmin).map(rg).join(', ')+')' : '')+'. Pakai data yang lebih banyak atau atur jumlah range di Impor CSV.</div>';
+      s3 += '<div class="warn">Belum ada saran harga yang bisa dipercaya. Tidak ada range di atas harga minimum yang berisi minimal '+BYH_MIN_SAMPLE+' produk. Pakai data yang lebih banyak atau atur jumlah range di Impor CSV.</div>'+byhHeroHtml(Hmin);
     }
   }
   if(P>0){
