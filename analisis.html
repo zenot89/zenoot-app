@@ -606,6 +606,13 @@
   .byh-bin-sum{ font-size:13px; line-height:1.55; margin:8px 0 10px; padding:9px 12px; border-radius:8px; background:var(--accent-soft); }
   .byh-bin-sum.hit{ background:var(--good-soft); }
   /* [28 Sep 2026] Ringkasan pasar (pengganti tabel di tampilan utama): 3 bagian = 1 Data, 2 Peta pasar, 3 Banding dengan admin */
+  .ch-svg{ width:100%; height:auto; display:block; color:var(--ink); } .ch-donut{ width:130px; height:130px; }
+  .ch-grid{ stroke:currentColor; opacity:.13; } .ch-t{ font-size:10px; fill:currentColor; opacity:.75; } .ch-c{ font-size:15px; font-weight:700; fill:currentColor; }
+  .bc-below{ fill:#c9c6bd; background:#c9c6bd; } .bc-ok{ fill:#3f9163; background:#3f9163; } .bc-best{ fill:#1f5c3a; background:#1f5c3a; } .bc-dom{ stroke:#1a1a1a; stroke-width:1.4; stroke-dasharray:4 3; }
+  .ch-min{ stroke:#c0392b; stroke-width:1.6; } .ch-mint{ fill:#c0392b; opacity:1; } .ch-jual{ stroke:#2b6cb0; stroke-width:1.6; } .ch-jualt{ fill:#2b6cb0; opacity:1; }
+  .dn-a{ stroke:#c9c6bd; } .dn-b{ stroke:#3f9163; } .dn-c{ stroke:#d9793a; } .dn-c-k{ background:#d9793a; }
+  .ch-key{ display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:middle; margin-right:3px; }
+  .ch-row{ display:flex; gap:24px; flex-wrap:wrap; } .ch-col{ flex:1 1 220px; }
   .byh-tabs{ display:flex; gap:6px; margin:6px 0 8px; }
   .byh-tab{ border:1px solid var(--line); background:transparent; color:var(--ink-soft); border-radius:8px; padding:5px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
   .byh-tab.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
@@ -7272,8 +7279,8 @@ function byhargaBinsRender(){
   const rows = byhBinsRows();
   wrap.innerHTML = '<div class="card byh-card" style="margin-top:16px;"><h3>Data kompetitor per range harga</h3>'
     + '<div class="byh-note">Isi dari filter harga di hasil pencarian Shopee (Product / Sold / Favourite / Review Count per range). Disimpan per SKU induk &amp; berlaku untuk semua ukuran. Kolom Sampai kosong = tanpa batas atas.</div>'
-    + '<div class="byh-tabs"><button type="button" class="byh-tab'+(_byhTab==='harga'?' on':'')+'" data-tab="harga">Harga</button><button type="button" class="byh-tab'+(_byhTab==='kata'?' on':'')+'" data-tab="kata">Kata kunci</button></div>'
-    + '<div class="byh-sum" id="byhBinsSummary"></div><div class="byh-sum" id="byhKwBox" style="display:none;"></div>'
+    + '<div class="byh-tabs"><button type="button" class="byh-tab'+(_byhTab==='harga'?' on':'')+'" data-tab="harga">Harga</button><button type="button" class="byh-tab'+(_byhTab==='kata'?' on':'')+'" data-tab="kata">Kata kunci</button><button type="button" class="byh-tab'+(_byhTab==='grafik'?' on':'')+'" data-tab="grafik">Grafik</button></div>'
+    + '<div class="byh-sum" id="byhBinsSummary"></div><div class="byh-sum" id="byhKwBox" style="display:none;"></div><div class="byh-sum" id="byhChartBox" style="display:none;"></div>'
     + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
     + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
     + '<button type="button" class="btn secondary small" id="byhBinsTblBtn">'+(_byhTblOpen?'Tutup data range':'Lihat / edit data range')+'</button>'
@@ -7471,12 +7478,66 @@ function byhKwWire(){
     a.download = 'kata-kunci-'+(byhBinsKey()||'produk')+'.csv'; document.body.appendChild(a); a.click(); a.remove();
   });
 }
+/* [29 Sep 2026] TAB GRAFIK — SVG murni (tanpa library). Data = baris range yang sama dengan ringkasan; konteks (harga minimum, harga jual, range saran) diisi byhBinsSummaryHtml lewat _byhCtx. */
+let _byhCtx = {};
+const byhConc = r=> r.topv!=null ? r.topv : ((r.top!=null && r.sold>0) ? r.top/r.sold : null);
+function byhFmtK(n){ n = Number(n)||0; return n>=1e6 ? (Math.round(n/1e5)/10)+'jt' : (n>=1000 ? (Math.round(n/100)/10)+'rb' : String(Math.round(n*10)/10)); }
+function byhBarSvg(rows, valFn, withLines){
+  const c = _byhCtx||{}, Hm = c.Hmin>0 ? c.Hmin : 0;
+  const W=700, H=250, L=46, B=34, T=16, R=10, pw=W-L-R, ph=H-T-B, n=rows.length, bw=pw/n;
+  const vals = rows.map(valFn), mx = Math.max.apply(null, vals.concat([1]));
+  let g = '';
+  for(let i=0;i<=4;i++){ const y = T+ph-ph*i/4; g += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" class="ch-grid"/><text x="'+(L-5)+'" y="'+(y+3)+'" text-anchor="end" class="ch-t">'+byhFmtK(mx*i/4)+'</text>'; }
+  rows.forEach((r,i)=>{
+    const h = ph*vals[i]/mx, x = L+i*bw+bw*0.15, y = T+ph-h, below = Hm>0 && r.max>0 && r.max<Hm, cn = byhConc(r);
+    const cls = below ? 'bc-below' : (c.best===r ? 'bc-best' : 'bc-ok');
+    g += '<rect x="'+x+'" y="'+y+'" width="'+(bw*0.7)+'" height="'+Math.max(h,0.5)+'" class="'+cls+((cn!==null && cn>=BYH_MAX_TOP_SHARE) ? ' bc-dom' : '')+'"/>';
+    g += '<text x="'+(x+bw*0.35)+'" y="'+(y-3)+'" text-anchor="middle" class="ch-t">'+byhFmtK(vals[i])+'</text>';
+    g += '<text x="'+(x+bw*0.35)+'" y="'+(H-B+13)+'" text-anchor="middle" class="ch-t">'+Math.round((r.min||0)/1000)+(r.max>0 ? '-'+Math.round(r.max/1000) : '+')+'</text>';
+  });
+  g += '<text x="'+(L+pw/2)+'" y="'+(H-3)+'" text-anchor="middle" class="ch-t">range harga (rb)</text>';
+  const xOf = p=>{ for(let i=0;i<n;i++){ const r = rows[i]; if(p>(r.min||0) && (!(r.max>0) || p<=r.max)) return r.max>0 ? L+i*bw+bw*(p-(r.min||0))/(r.max-(r.min||0)) : L+i*bw+bw/2; } return p<=(rows[0].min||0) ? L : W-R; };
+  if(withLines){
+    if(Hm>0){ const x = xOf(Hm); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-min"/><text x="'+(x+3)+'" y="'+(T+9)+'" class="ch-t ch-mint">harga min</text>'; }
+    if(c.P>0){ const x = xOf(c.P); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-jual"/><text x="'+(x+3)+'" y="'+(T+22)+'" class="ch-t ch-jualt">harga jual</text>'; }
+  }
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="ch-svg" role="img">'+g+'</svg>';
+}
+function byhDonutSvg(parts, center){
+  const R = 42, C = 2*Math.PI*R, tot = parts.reduce((a,p)=>a+p.v,0) || 1; let cum = 0;
+  const seg = parts.map(p=>{ const len = C*p.v/tot, s = '<circle cx="60" cy="60" r="'+R+'" fill="none" stroke-width="18" class="'+p.cls+'" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-cum)+'" transform="rotate(-90 60 60)"/>'; cum += len; return s; }).join('');
+  return '<svg viewBox="0 0 120 120" class="ch-donut" role="img">'+seg+'<text x="60" y="65" text-anchor="middle" class="ch-c">'+center+'</text></svg>';
+}
+function byhChartHtml(){
+  const rows = byhBinsRows(), c = _byhCtx||{};
+  if(!rows.length) return '<p>Belum ada data range. Impor CSV atau isi data range dulu.</p>';
+  const Hm = c.Hmin>0 ? c.Hmin : 0, tot = rows.reduce((a,r)=>a+r.sold,0);
+  const below = Hm>0 ? rows.filter(r=>r.max>0 && r.max<Hm).reduce((a,r)=>a+r.sold,0) : 0;
+  const pct = x=>(Math.round(x*1000)/10).toLocaleString('id-ID')+'%';
+  let h = '<div class="byh-sum-sec"><div class="byh-sum-h">Penjualan per range harga</div>'+byhBarSvg(rows, r=>r.sold, true)
+    + '<p class="sub"><span class="ch-key bc-below"></span> di bawah harga minimum &nbsp; <span class="ch-key bc-ok"></span> layak &nbsp; <span class="ch-key bc-best"></span> range saran &nbsp; garis putus-putus = 1 produk mendominasi (60% atau lebih). Terjual = total sepanjang umur produk.</p></div>';
+  h += '<div class="ch-row">';
+  if(Hm>0 && tot>0){
+    h += '<div class="byh-sum-sec ch-col"><div class="byh-sum-h">Bisa dikejar atau tidak</div>'+byhDonutSvg([{v:below,cls:'dn-a'},{v:tot-below,cls:'dn-b'}], pct(below/tot))
+      + '<p class="sub"><span class="ch-key bc-below"></span> di bawah harga minimum: '+pct(below/tot)+'<br><span class="ch-key bc-ok"></span> di atasnya: '+pct(1-below/tot)+'</p></div>';
+  }
+  const cn = c.best ? byhConc(c.best) : null;
+  if(c.best && cn!==null){
+    h += '<div class="byh-sum-sec ch-col"><div class="byh-sum-h">Konsentrasi range saran</div>'+byhDonutSvg([{v:cn,cls:'dn-c'},{v:1-cn,cls:'dn-b'}], pct(cn))
+      + '<p class="sub"><span class="ch-key dn-c-k"></span> 1 produk teratas: '+pct(cn)+'<br><span class="ch-key bc-ok"></span> semua produk lain: '+pct(1-cn)+'<br>Range '+byhRg(c.best)+'</p></div>';
+  }
+  h += '</div>';
+  if(rows.some(r=>r.medv!=null)) h += '<div class="byh-sum-sec"><div class="byh-sum-h">Median terjual per bulan per produk</div>'+byhBarSvg(rows, r=>r.medv||0, false)+'<p class="sub">Range mana yang benar-benar laku per penjual, tanpa terpengaruh 1 produk raksasa.</p></div>';
+  return h;
+}
+function byhChartWire(){ const b = document.getElementById('byhChartBox'); if(b) b.innerHTML = byhChartHtml(); }
 function byhTabSet(t){
   _byhTab = t;
-  const s = document.getElementById('byhBinsSummary'), k = document.getElementById('byhKwBox'); if(!s || !k) return;
-  s.style.display = (t==='harga') ? '' : 'none'; k.style.display = (t==='kata') ? '' : 'none';
+  const ids = { harga:'byhBinsSummary', kata:'byhKwBox', grafik:'byhChartBox' };
+  Object.keys(ids).forEach(k=>{ const el = document.getElementById(ids[k]); if(el) el.style.display = (k===t) ? '' : 'none'; });
   document.querySelectorAll('.byh-tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
   if(t==='kata') byhKwWire();
+  if(t==='grafik') byhChartWire();
 }
 function byhHeroHtml(Hmin){
   if(!(Hmin>0)) return '';
@@ -7521,6 +7582,7 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
   const sec = (h, body)=>'<div class="byh-sum-sec"><div class="byh-sum-h">'+h+'</div>'+body+'</div>';
   if(!rows.length) return sec('1 · Data', '<p>Belum ada data kompetitor. Ekspor <b>Product_Table.csv</b> dari tool Pricing Analysis, lalu klik <b>Impor CSV</b>.</p><p class="sub">Langkah: 1 ekspor data, 2 impor di sini (ringkasan pasar muncul otomatis), 3 bandingkan dengan harga minimum dari admin.</p>');
   const totProd = rows.reduce((a,r)=>a+(r.prod||0),0), totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
+  _byhCtx = { Hmin:Hmin, P:P, best:null };
   const tpp = r=> r.prod>0 ? r.sold/r.prod : 0;
   // [29 Sep 2026] Jatah per penjual = MEDIAN terjual per produk (kalau data dari CSV; input manual/tempel tidak punya median, jadi pakai rata-rata).
   // Konsentrasi = porsi produk teratas terhadap penjualan range (cuma ada dari CSV).
@@ -7582,6 +7644,7 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
     const candSolid = cand.filter(r=>!dominated(r));
     const best = pickMax(candSolid.length ? candSolid : cand, per);
     const lowConf = !!best && dominated(best);
+    _byhCtx.best = best || null;
     if(best){
       const from = Math.max(best.min||0, Hmin), to = best.max>0 ? best.max : 0;
       if(topTpp && topTpp!==best && topTpp.max>0 && topTpp.max<Hmin) s3 += '<p class="sub">Range dengan jatah terbesar ('+rg(topTpp)+') seluruhnya di bawah harga minimum, jadi tidak layak.</p>';
@@ -7639,6 +7702,7 @@ function byhargaBinsHighlight(){
   try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; hpp = byhargaHppNow(); }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
   const _k = byhBinsKey(), _sv = byhargaProds[_k];
   sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[_k] || (_sv && _sv.note) || '', hpp) + byhOwnHtml(rows);
+  if(_byhTab==='grafik') byhChartWire();
 }
 function byhargaBinsSync(){
   if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
