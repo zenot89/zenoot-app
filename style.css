@@ -5355,6 +5355,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .zd-last-refresh, .zd-refresh-lbl{ display:none; }
   .zd-tab{ padding:10px 9px; font-size:12px; gap:0; }
   .zd-tab i{ display:none; }
+  /* [29 Sep 2026] HP: tombol Refresh dipisah dari scroll tab — position:sticky kiri, jadi tetap diam & sejajar
+     sementara tab (Ringkasan/Penjualan/Stok & Supplier/Keuangan) bergeser di belakangnya. Latar = warna halaman
+     (var(--cream), otomatis ikut dark mode) supaya tab yang lewat tidak tembus. Laptop/tablet (>=600px) tidak kena. */
+  .zd-tabbar-left{ position:sticky; left:0; z-index:2; background:var(--cream); padding:4px 8px 4px 2px; margin-right:4px; }
 }
 .zd-tab-panel:not(.zd-tab-active){
   height:0; overflow:hidden; margin:0 !important; padding:0 !important;
