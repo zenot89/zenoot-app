@@ -21,7 +21,8 @@
 // Melepas produk dilakukan dari tabel (mode Edit → ikon tempat sampah per baris). Shopee/Lazada/TikTok (tanpa Price List)
 // tetap pakai picker centang/uncentang karena tidak punya tabel untuk melepas.
 // 30 Sep 2026 (malam, revisi 2): Price List punya tombol "Pilih Produk" sendiri (toko & kategori; pilihan kategori
-// disimpan di channel_produk dengan channel_id 'kat:<kategori>' dan berlaku ke semua toko di kategori itu). Katalog
+// disimpan di channel_produk dengan channel_id 'kat:<kategori>'; TIDAK diwariskan ke toko — koreksi 30 Sep malam:
+// tiap toko hanya menampilkan pilihannya SENDIRI, harga kategori cuma jadi patokan Net Income utk katalog yg dipilih toko). Katalog
 // yang tampil = terpilih ∪ sudah punya harga (toko/kategori). Tabel Price List TERKUNCI (teks biasa) — harus klik
 // "Edit" dulu baru kolom Net Income bisa diketik; habis simpan Pilih Produk otomatis masuk mode Edit.
 // 30 Sep 2026 (malam): PILIH PRODUK per channel — tombol "Produk" (ikon kotak + jumlah) di kolom Aksi
@@ -277,7 +278,7 @@ document.getElementById('page-channel').innerHTML = `
           </table></div>
           <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
           <div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5">
-            Harga Jual = HPP + Net Income (Rp). Tabel terkunci — klik Edit dulu untuk mengetik Net Income (Enter/pindah kolom = simpan), lalu Selesai. Produk ditambah lewat Pilih Produk (yang sudah ada tidak muncul lagi) dan dilepas lewat ikon sampah di mode Edit; pilihan kategori berlaku ke semua toko di kategori itu. Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
+            Harga Jual = HPP + Net Income (Rp). Tabel terkunci — klik Edit dulu untuk mengetik Net Income (Enter/pindah kolom = simpan), lalu Selesai. Produk ditambah lewat Pilih Produk (yang sudah ada tidak muncul lagi) dan dilepas lewat ikon sampah di mode Edit; tiap toko hanya menampilkan produk yang dipilihnya sendiri (Net Income kategori dipakai sebagai patokan untuk katalog yang sama). Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
           </div>
         </div>
       </div>
@@ -743,9 +744,10 @@ function _chpKatalogAll() {
   return Object.values(map).sort(function(a, b) { return a.katalog.localeCompare(b.katalog); });
 }
 
-// Katalog yang TAMPIL di Price List = terpilih lewat Pilih Produk ∪ yang sudah punya harga.
-// Mode toko: pilihan toko + pilihan kategorinya ('kat:<kategori>') + harga toko + harga kategori.
-// Mode kategori: pilihan kategori + harga kategori. Bulk, Seed, footer, NPM semuanya lewat fungsi ini.
+// Katalog yang TAMPIL di Price List = terpilih lewat Pilih Produk ∪ yang sudah punya harga — di TINGKAT YANG SEDANG DIBUKA saja.
+// Mode toko: pilihan toko itu + harga toko itu (BUKAN pilihan/harga kategori — toko yang belum memilih tampil kosong).
+// Mode kategori: pilihan kategori + harga kategori. Net Income kategori tetap jadi fallback harga (_chpKatHarga) untuk katalog
+// yang dipilih toko tapi belum punya Net Income sendiri (lihat _chpCalc). Bulk, footer, NPM semuanya lewat fungsi ini.
 function _chpKatalogList() {
   var all = _chpKatalogAll();
   if (!_chProdukOk) return all;   // tabel channel_produk belum ada → perilaku lama
@@ -753,10 +755,6 @@ function _chpKatalogList() {
   function add(o) { Object.keys(o || {}).forEach(function(k) { set[k] = true; }); }
   add(_chProdukMap[_chpSelId]);
   add(_chpHarga);
-  if (!_chpIsKat()) {
-    if (_chpChKat) add(_chProdukMap['kat:' + _chpChKat]);
-    add(_chpKatHarga);
-  }
   var out = all.filter(function(k) { return !!set[k.katalog]; });
   // Terpilih/berharga tapi sudah tidak ada di Kelola Produk (dihapus / di-rename) → tetap tampil supaya bisa dilepas
   var ada = {};
@@ -1263,11 +1261,11 @@ async function _chProdukLoad() {
 
 function _chProdukCount(id) { return Object.keys(_chProdukMap[String(id)] || {}).length; }
 
-var _cpId = '', _cpKat = '', _cpNama = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '', _cpPriced = {}, _cpTbl = '', _cpAddOnly = false, _cpInherit = {};
+var _cpId = '', _cpKat = '', _cpNama = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '', _cpPriced = {}, _cpTbl = '', _cpAddOnly = false;
 
 // id = id channel ATAU 'kat:<kategori>' (pilihan tingkat kategori); kat = kategori channel / kategori itu sendiri
 async function showPilihProduk(id, nama, kat) {
-  _cpId = String(id); _cpKat = kat; _cpNama = nama || ''; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {}; _cpPriced = {}; _cpInherit = {};
+  _cpId = String(id); _cpKat = kat; _cpNama = nama || ''; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {}; _cpPriced = {};
   _cpTbl = _chpTblOf(_cpId);
   var catKey = _cpId.indexOf('kat:') === 0 ? _cpId.slice(4) : kat;
   // Offline/Reseller/Dropship (punya Price List) = TAMBAH-SAJA: yang sudah tampil di Price List tidak ditawarkan lagi.
@@ -1288,12 +1286,6 @@ async function showPilihProduk(id, nama, kat) {
       // yang sudah punya Net Income di tingkat ini
       var pr = await dbGet(_cpTbl, _chpQ(_cpId)).catch(function() { return []; });
       (pr || []).forEach(function(r) { _cpPriced[r.katalog] = r.id; });
-      // mode toko: yang datang dari kategori (dipilih / sudah berharga) juga sudah tampil → jangan ditawarkan lagi
-      if (_cpId.indexOf('kat:') !== 0) {
-        var kp = await dbGet('channel_kategori_harga', _chpQ('kat:' + catKey)).catch(function() { return []; });
-        (kp || []).forEach(function(r) { _cpInherit[r.katalog] = true; });
-        Object.keys(_chProdukMap['kat:' + catKey] || {}).forEach(function(k) { _cpInherit[k] = true; });
-      }
     }
   } catch (err) {
     document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--danger)">Error: ' + _chpEsc(err.message) + '</td></tr>';
@@ -1304,7 +1296,7 @@ async function showPilihProduk(id, nama, kat) {
   var list = _chpKatalogAll();
   if (_cpAddOnly) {
     var skip = {};
-    [cur, _cpPriced, _cpInherit].forEach(function(o) { Object.keys(o).forEach(function(k) { skip[k] = true; }); });
+    [cur, _cpPriced].forEach(function(o) { Object.keys(o).forEach(function(k) { skip[k] = true; }); });
     list = list.filter(function(k) { return !skip[k.katalog]; });
   } else {
     var ada = {};
