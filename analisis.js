@@ -48,6 +48,7 @@
 // (27) [30 Sep 2026] Proyeksi RKS ditambahkan ke HP (tab: RKS Overview | RKS Mingguan | Proyeksi RKS; tab HPP Produk dibuang dari tab bar HP): semua aturan HP Overview/Mingguan dipakai ulang lewat hw()/pg(),
 //      plus CSS/JS khusus 2 nilai per baris (dupRowsP, markPv). Laptop tidak tersentuh. Sisi analisis.html: label periode dapat versi pendek (hp-full/hp-short) — laptop tetap tampil versi penuh.
 // (28) [29 Sep 2026] Tab baru Proyeksi Harga > By Support (bysupport): batas aman harga jual dari GPM minimum (Admin/ACOS dari Proyeksi RKS bulan berjalan -> RKS Mingguan -> RKS Overview; Ops/Buffer/NPM dari Setting) — halaman & hitungannya di analisis.html; di file INI cuma daftar tab + PHONE_PAGES.
+// (29) [30 Sep 2026] By Support dirombak: produk & HPP langsung dari Kelola Produk (bukan Price List lama), GPM Toko = Admin+ACOS+Ops+Buffer+NPM% (NPM% = Target Rasio Laba di Setting), Harga Jual = HPP ÷ (1 − GPM). Logic di analisis.html; file INI cuma catatan supaya APP_BUILD berubah.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.

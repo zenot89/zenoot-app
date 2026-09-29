@@ -7143,13 +7143,14 @@ document.getElementById('btnByqtyNext').addEventListener('click', ()=>showSubvie
 document.getElementById('btnByqtyBack').addEventListener('click', ()=>showSubview('byqty','list'));
 
 /* ================= PROYEKSI HARGA: BY SUPPORT (batas aman harga jual) ================= */
-/* [29 Sep 2026] Kebalikan dari GPM: dari GPM MINIMUM ditarik jadi HARGA JUAL MINIMUM per produk (data produk & HPP = Price List, yang disalin dari HPP Catalog/Kelola Produk).
-     GPM minimum = Admin% + ACOS + Ops% + Buffer% + NPM% (+ BPP%)  ->  Harga minimum = (HPP + BPP + NPM Rp) / (1 − Admin% − ACOS − Ops% − Buffer%)
-     GPM minimum (per produk) = 1 − HPP / Harga minimum   (rumus GPM sama dgn Rekap: (pendapatan − HPP) / pendapatan)
-   Sumber angka (urutan prioritas, per angka):
-     Admin % & ACOS : Proyeksi RKS bulan berjalan -> kalau belum ada RKS Mingguan terbaru -> kalau belum ada RKS Overview (Rekap bulanan) terbaru -> (terakhir) Setting
-     Ops % / Buffer % / NPM (Rp) : Setting.   BPP (Rp/order) : sama seperti tab Proyeksi Harga lain (resolveAdminBpp).
-   Tidak ada state yang disimpan — semua dihitung ulang tiap render. Rumus setara calcNetPrice(), bedanya cuma sumber Admin/ACOS. */
+/* [29 Sep 2026, direvisi 30 Sep 2026] By Support = batas aman harga jual dari GPM TOKO.
+     GPM TOKO berdiri sendiri (gak diambil dari mana pun) = Admin% + ACOS + Ops% + Buffer% + NPM%
+     Harga Jual Minimum = HPP ÷ (1 − GPM TOKO)      (BPP & NPM Rp TIDAK ikut rumus — sesuai keputusan user)
+   Sumber angka:
+     Produk & HPP   : LANGSUNG dari Kelola Produk (zKatalogGroups, live) — BUKAN state.priceList (snapshot lama di localStorage toko, bikin SKU dobel/usang).
+     Admin % & ACOS : Proyeksi RKS bulan berjalan -> kalau belum ada RKS Mingguan terbaru -> kalau belum ada RKS Overview terbaru -> (terakhir) Setting
+     Ops % (Rasio Operasional) / Buffer % / NPM % (= TARGET RASIO LABA, %) : Setting per toko.
+   Tidak ada state yang disimpan — semua dihitung ulang tiap render. */
 function bysupportValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
 function bysupportAcosOf(sn){
   if(!sn) return null;
@@ -7178,55 +7179,74 @@ function bysupportSources(){
 function bysupportParams(){
   const src = bysupportSources();
   const ops = plOpsPct()/100, buffer = (state.settings.lainnyaPct||0)/100;
-  const npmRp = state.settings.minNpmRp||0, bpp = resolveAdminBpp().bpp||0;
-  const denom = 1 - src.admin.value - src.acos.value - ops - buffer;
-  return { src, ops, buffer, npmRp, bpp, denom };
+  const nRaw = state.settings.targetRasioLaba;
+  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting (bukan MINIMUM PROFIT Rp)
+  const gpm = src.admin.value + src.acos.value + ops + buffer + npm;                         // GPM TOKO = penjumlahan, berdiri sendiri
+  return { src, ops, buffer, npm, gpm };
 }
+// Harga Jual = HPP ÷ (1 − GPM)
 function bysupportCalc(row, P){
-  if(P.denom<=0) return null;
+  if(P.gpm>=1) return null;
   const hpp = row.hpp||0;
-  const hargaMin = Math.round((hpp + P.bpp + P.npmRp)/P.denom);
-  const gpmMin = hargaMin>0 ? 1 - hpp/hargaMin : null;
-  return { hpp, hargaMin, gpmMin };
+  return { hpp, hargaMin: Math.round(hpp/(1-P.gpm)) };
 }
-function renderBySupport(){
+// Baris produk LANGSUNG dari Kelola Produk (live). Aturan baris sama dgn plResolveIdentity: 1 baris per Katalog,
+// kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI, karena ini batas aman: harus menutup varian termahal).
+function bysupportRows(){
+  const out = [];
+  zKatalogGroups().forEach(g=>{
+    const distinct = [...new Set(g.variants.map(v=>v.hpp))];
+    if(distinct.length<=1){ out.push({ sku:g.katalog, hpp:distinct[0]||0 }); return; }
+    const bySize = new Map();
+    g.variants.forEach(v=>{
+      const label = v.size ? v.size.toUpperCase() : v.sku_variasi;
+      if(!bySize.has(label) || v.hpp>bySize.get(label)) bySize.set(label, v.hpp);
+    });
+    bySize.forEach((hpp,label)=>out.push({ sku:g.katalog+' — '+label, hpp }));
+  });
+  return out;
+}
+let _bysupportLoadTs = 0;
+function renderBySupport(fromLoad){
   const statsEl = document.getElementById('bysupportStats'), listEl = document.getElementById('bysupportListCard');
   if(!statsEl || !listEl) return;
-  // Price List kosong -> salin otomatis dari HPP Catalog (Kelola Produk) sekali, supaya halaman ini gak kosong
-  if(!state.priceList.length){ try{ syncPriceListFromHpp(); }catch(e){ console.error('Gagal salin HPP ke Price List:', e); } }
+  // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang
+  if(!fromLoad && Date.now()-_bysupportLoadTs > 5000){
+    _bysupportLoadTs = Date.now();
+    zProdukLoad().then(()=>renderBySupport(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
+  }
   const P = bysupportParams();
   const card = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${byhEsc(ket)}</span></div><div class="stat-value">${val}</div></div>`;
   statsEl.innerHTML = `<div class="card" style="margin-bottom:14px;">
     <h3>Komponen GPM Minimum</h3>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
+      ${card('GPM Toko', fmtPct(P.gpm), 'Admin + ACOS + Operasional + Buffer + NPM')}
       ${card('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
       ${card('ACOS', fmtPct(P.src.acos.value), P.src.acos.src)}
-      ${card('Operasional %', fmtPct(P.ops), 'Setting')}
+      ${card('Operasional %', fmtPct(P.ops), 'Setting — Rasio Operasional')}
       ${card('Buffer %', fmtPct(P.buffer), 'Setting')}
-      ${card('NPM (Rp/pcs)', fmtRp(P.npmRp), 'Setting — Minimum Profit Toko')}
-      ${card('BPP (Rp/order)', fmtRp(P.bpp), resolveAdminBpp().bppSource==='rekap' ? 'Rekap '+(resolveAdminBpp().bppLabel||'') : 'Setting (fallback)')}
+      ${card('NPM %', fmtPct(P.npm), P.npm>0 ? 'Setting — Target Rasio Laba' : 'isi Target Rasio Laba di Setting')}
     </div>
   </div>`;
-  if(P.denom<=0){
-    listEl.innerHTML = '<h3>Batas Aman Harga Jual</h3><div class="hint" style="margin:0;">Harga minimum gak bisa dihitung — total Admin + ACOS + Ops + Buffer sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
+  if(P.gpm>=1){
+    listEl.innerHTML = '<h3>Batas Aman Harga Jual</h3><div class="hint" style="margin:0;">Harga minimum gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
     return;
   }
-  const rows = state.priceList.map(row=>{
+  const rows = bysupportRows().map(row=>{
     const c = bysupportCalc(row, P);
     return `<tr>
       <td>${byhEsc(row.sku)}</td>
       <td class="num">${fmtNum(row.hpp)}</td>
-      <td class="num">${c && c.gpmMin!==null ? fmtPct(c.gpmMin) : '-'}</td>
       <td class="num" style="font-weight:700;">${c ? fmtRp(c.hargaMin) : '-'}</td>
     </tr>`;
   }).join('');
   listEl.innerHTML = `
     <h3>Batas Aman Harga Jual</h3>
-    <div class="hint" style="margin:0 0 12px;">Di bawah Harga Minimum, profit per pcs jatuh di bawah NPM target setelah Admin, ACOS, Operasional, Buffer &amp; BPP. GPM Minimum = 1 − HPP ÷ Harga Minimum. Data produk &amp; HPP dari Price List (disalin dari HPP Catalog).</div>
+    <div class="hint" style="margin:0 0 12px;">Harga Jual = HPP ÷ (1 − GPM Toko). Di bawah Harga Min, margin jatuh di bawah target (Admin, ACOS, Operasional, Buffer &amp; NPM). Produk &amp; HPP langsung dari Kelola Produk.</div>
     <div class="pricelist-scroll">
       <table class="ca-table">
-        <thead><tr><th>SKU</th><th class="num">HPP</th><th class="num">GPM Min</th><th class="num">Harga Min</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="4" style="color:var(--ink-soft);">Belum ada produk — isi HPP di HPP Catalog dulu.</td></tr>'}</tbody>
+        <thead><tr><th>SKU</th><th class="num">HPP</th><th class="num">Harga Min</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="3" style="color:var(--ink-soft);">Belum ada produk ber-HPP di Kelola Produk.</td></tr>'}</tbody>
       </table>
     </div>`;
 }
