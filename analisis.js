@@ -45,6 +45,8 @@
 // (24) [29 Sep 2026] Panel upload RKS Overview / RKS Mingguan / Proyeksi RKS dirombak: Order Completed (Overview & Proyeksi 2 slot Bulan lalu + Bulan ini, Mingguan tetap 1 slot), Income & Iklan 1 kotak tanpa header, Edit file = kotak centang + Hapus (yang dicentang saja) + Hitung (terkunci sampai lengkap) — semuanya di analisis.html; Revisi: Edit file pindah ke kiri, Hitung selalu tampil di kanan dan tidak auto-hitung setelah upload — di analisis.html; file INI hanya catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
 // (25) [29 Sep 2026] RKS Overview / Mingguan / Proyeksi: peringatan HPP tidak lengkap ditambah (pesanan cair yang tidak ada di file Order Completed) + konfirmasi sebelum Simpan ke Rekap kalau HPP belum lengkap — semuanya di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
 // (26) [29 Sep 2026] RKS Overview / Mingguan / Proyeksi (laptop): nilai di 3 minicard (Net Income, Laba/Rugi, Rasio Laba) dipindah ke kanan & dibesarkan — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
+// (27) [30 Sep 2026] Proyeksi RKS ditambahkan ke HP (tab: RKS Overview | RKS Mingguan | Proyeksi RKS; tab HPP Produk dibuang dari tab bar HP): semua aturan HP Overview/Mingguan dipakai ulang lewat hw()/pg(),
+//      plus CSS/JS khusus 2 nilai per baris (dupRowsP, markPv). Laptop tidak tersentuh. Sisi analisis.html: label periode dapat versi pendek (hp-full/hp-short) — laptop tetap tampil versi penuh.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -57,7 +59,7 @@
     // [23 Sep 2026] 'rekap'/'rekapM' TETAP terdaftar di sini (supaya groupOf/highlightSidebar tetap kenal halamannya & submenu "Rasio Keuangan"
     // tetap nyala pas Rekap dibuka) tapi diberi flag noTab (elemen ke-3 truthy) → tabsOf() membuangnya dari tab bar. Rekap & Rekap Mingguan sekarang
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
-    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk', 0, 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
+    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
     proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
@@ -73,7 +75,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -148,8 +150,9 @@
   // Yang diatur: (1) tombol/panel eksekusi (upload, simpan, export, hapus, edit, kelola toko) disembunyikan, (2) layout 1 kolom dengan
   // scroll normal (aturan "1 layar penuh" laptop dimatikan), (3) header ringkas: judul kotak disembunyikan (sudah ada di tab), sisa pemilih toko.
   // penyusun selector: satu aturan → dua halaman (RKS Overview #hasilWrap/#page-hasil  &  RKS Mingguan #hasilWrapM/#page-hasilM)
-  function hw(rest, body) { return 'html.zan-phone #hasilWrap' + rest + ',html.zan-phone #hasilWrapM' + rest.replace(/#hasilWrap\b/g, '#hasilWrapM') + '{' + body + '}'; }
-  function pg(rest, body) { return 'html.zan-phone #page-hasil' + rest + ',html.zan-phone #page-hasilM' + rest + '{' + body + '}'; }
+  // [30 Sep 2026] + Proyeksi RKS (#hasilWrapP/#page-hasilP): aturan yang sama otomatis berlaku juga di halaman Proyeksi HP.
+  function hw(rest, body) { return 'html.zan-phone #hasilWrap' + rest + ',html.zan-phone #hasilWrapM' + rest.replace(/#hasilWrap\b/g, '#hasilWrapM') + ',html.zan-phone #hasilWrapP' + rest.replace(/#hasilWrap\b/g, '#hasilWrapP') + '{' + body + '}'; }
+  function pg(rest, body) { return 'html.zan-phone #page-hasil' + rest + ',html.zan-phone #page-hasilM' + rest + ',html.zan-phone #page-hasilP' + rest + '{' + body + '}'; }
   // [22 Sep 2026] By Harga Jual di HP: 4 slide yang digeser ke samping — 1 Input, 2 Perhitungan per pcs, 3 Batas aman + Voucher penjual, 4 Minicard (Ringkasan).
   // DOM asli (analisis.html) tetap: #byhargaStats (minicard) | .rks-shell > .rks-main > #byhargaDetail > .byh-cols > .byh-col x2 | #byhargaInputPanel.
   // Pembungkus tengah dileburkan (display:contents) supaya keempat blok jadi anak langsung zona geser, lalu diurutkan pakai `order`. Indikator ●●●● murni CSS:
@@ -213,14 +216,16 @@
     'html.zan-phone #btnToggleDataTokoPanel,html.zan-phone #btnToggleDataTokoPanelM,html.zan-phone #btnSimpanRekap,html.zan-phone #btnSimpanRekapM,',
     // [21 Sep 2026] tombol PDF header (Overview & Mingguan) disembunyikan di HP; diganti tombol ikon .zan-pdf-btn sejajar kartu Net Income (lihat ensurePdfBtn)
     'html.zan-phone #btnExportPDF,html.zan-phone #btnExportPDFM{display:none !important;}',
+    // [30 Sep 2026] Proyeksi RKS di HP: tombol eksekusi (Data Toko, Simpan, Export PDF header, Lihat Rekap Proyeksi) disembunyikan — sama seperti Overview/Mingguan
+    'html.zan-phone #btnToggleDataTokoPanelP,html.zan-phone #btnSimpanRekapP,html.zan-phone #btnExportPDFP,html.zan-phone #btnGotoRekapP{display:none !important;}',
     'html.zan-phone .rks-datatoko-panel,html.zan-phone #tokoSetupCard{display:none !important;}',
-    'html.zan-phone #page-hasilM .page-head > .toolbar:first-child,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
-    'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head{margin:0;padding:0;height:0;min-height:0;}',
-    'html.zan-phone #page-hasil .page-head .toolbar,html.zan-phone #page-hasilM .page-head .toolbar{margin:0;}',
+    'html.zan-phone #page-hasilM .page-head > .toolbar:first-child,html.zan-phone #page-hasilP .page-head > .toolbar:first-child,html.zan-phone #page-hasil .page-head > .toolbar:first-child{display:none !important;}',
+    'html.zan-phone #page-hasil .page-head,html.zan-phone #page-hasilM .page-head,html.zan-phone #page-hasilP .page-head{margin:0;padding:0;height:0;min-height:0;}',
+    'html.zan-phone #page-hasil .page-head .toolbar,html.zan-phone #page-hasilM .page-head .toolbar,html.zan-phone #page-hasilP .page-head .toolbar{margin:0;}',
     // [23 Sep 2026] RKS Overview & RKS Mingguan di HP: dulu ketinggian halaman cuma sebesar konten (flex:1 gak ngefek krn parent #main jadi display:block di embed HP),
     // jadi kalau kriteria dikit nyisa ruang kosong nge-gantung di bawah. Sekarang di-flat kayak Rekap/Perbandingan Toko: tinggi eksplisit 1 layar penuh (100vh - 66px topbar),
     // .rks-shell & #hasilWrap yang udah flex:1 (rule generik di atas) otomatis ngisi turun sampai bawah, hrow-list (justify-content:space-around) yang narik jarak antar barisnya.
-    'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
+    'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active,html.zan-phone #page-hasilP.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
     // [21 Sep 2026] RKS Mingguan di HP: satu baris header [Periode ▾] kiri + [Toko ▾] tengah + [PDF] kanan (tombol periode & PDF melayang di atas topbar, sama polanya dengan tombol bulan RKS Overview)
     // [23 Sep 2026] proporsi tetap sama kayak #btnHasilMonth di atas: tombol periode 30% dari lebar baris
     'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
@@ -234,6 +239,14 @@
     // [21 Sep 2026] margin-right badge toko 56px -> 0 (tombol PDF sudah tidak ada di header)
     // [23 Sep 2026] ikut proporsi tombol periode baru: margin-left 35% (30% lebar tombol + 5% jarak), badge sisanya 65%
     'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .35);margin-right:0;}',
+    // [30 Sep 2026] Proyeksi RKS di HP: header [Bulan ▾][Toko ▾] — persis pola RKS Overview (bulan) & RKS Mingguan (periode), proporsi 30% / 5% / 65%
+    'html.zan-phone #btnHasilPeriodP{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
+    'html.zan-phone #btnHasilPeriodP:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
+    'html.zan-phone #btnHasilPeriodP *{color:#000;}',
+    'html.zan-phone #btnHasilPeriodP #hasilPeriodLabelP{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
+    'html.zan-phone #btnHasilPeriodP .hp-full{display:none;}',
+    'html.zan-phone #btnHasilPeriodP .hp-short{display:inline;}',
+    'html.zan-phone[data-zan-page="hasilP"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .35);margin-right:0;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
     // [21 Sep 2026] popup pilih bulan/minggu: posisinya dari JS = nempel ke tombol (miring ke kiri di HP) → di HP dipaksa tepat di tengah layar
@@ -244,7 +257,7 @@
     // rantai tinggi: halaman = 1 layar (tanpa scroll halaman); yang scroll cuma isi tabel
     pg('.active', 'display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;'),
     // kotak Ringkasan/Rasio habis sampai ujung bawah layar (tanpa jarak menggantung): padding bawah #main dibuang di dua halaman ini
-    'html.zan-phone.embed[data-zan-page="hasil"] #main,html.zan-phone.embed[data-zan-page="hasilM"] #main{padding-bottom:0;}',
+    'html.zan-phone.embed[data-zan-page="hasil"] #main,html.zan-phone.embed[data-zan-page="hasilM"] #main,html.zan-phone.embed[data-zan-page="hasilP"] #main{padding-bottom:0;}',
     pg(' .rks-shell', 'display:flex;flex:1 1 auto;min-height:0;gap:0;'),
     hw('', 'display:flex;flex-direction:column;flex:1 1 auto;height:100%;min-width:0;min-height:0;'),
     // minicard: tanpa kotak pembungkus "Overview"; 2 kolom; Net Income lebar penuh; Rasio Laba kiri, Laba/Rugi kanan
@@ -298,10 +311,29 @@
     hw(' > .card:first-child > div:first-child > span:not([style*="var(--bad)"])', 'color:#000 !important;'),
     hw(' .zan-neg.zan-neg.zan-neg', 'color:var(--bad) !important;'),
     // teks yang menyuruh upload / klik "Data Toko" → ganti dengan penjelasan yang masuk akal di HP
-    'html.zan-phone #page-hasil footer.note.status-warn,html.zan-phone #page-hasilM footer.note.status-warn{font-size:0;}',
-    'html.zan-phone #page-hasil footer.note.status-warn::after,html.zan-phone #page-hasilM footer.note.status-warn::after{content:"\\26A0  Data Income & Iklan belum lengkap \\2014  lengkapi dari laptop biar rasio kehitung.";display:block;font-size:12px;}',
-    'html.zan-phone #hasilWrap .empty-state,html.zan-phone #hasilWrapM .empty-state{font-size:0;padding:36px 16px;}',
-    'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
+    'html.zan-phone #page-hasil footer.note.status-warn,html.zan-phone #page-hasilM footer.note.status-warn,html.zan-phone #page-hasilP footer.note.status-warn{font-size:0;}',
+    'html.zan-phone #page-hasil footer.note.status-warn::after,html.zan-phone #page-hasilM footer.note.status-warn::after,html.zan-phone #page-hasilP footer.note.status-warn::after{content:"\\26A0  Data Income & Iklan belum lengkap \\2014  lengkapi dari laptop biar rasio kehitung.";display:block;font-size:12px;}',
+    'html.zan-phone #hasilWrap .empty-state,html.zan-phone #hasilWrapM .empty-state,html.zan-phone #hasilWrapP .empty-state{font-size:0;padding:36px 16px;}',
+    'html.zan-phone #hasilWrap .empty-state::after,html.zan-phone #hasilWrapM .empty-state::after,html.zan-phone #hasilWrapP .empty-state::after{content:"Belum ada data. Upload data dilakukan dari laptop.";display:block;font-size:13px;}',
+
+    // ══ [30 Sep 2026] Proyeksi RKS (HP) — pola sama dgn Overview/Mingguan, plus 1 hal khusus: tiap baris punya 2 nilai (SAAT INI + PERKIRAAN AKHIR BULAN).
+    // Di HP nilai ditumpuk: SAAT INI besar di atas, "Akhir bulan: ..." kecil di bawahnya (sama gaya dgn subteks di minicard). Baris header pv-head disembunyikan.
+    // Baris yang nilai akhir bulannya = nilai saat ini (rasio, AOV, ROAS, dst) dikasih class .zan-same oleh markPv() & bagian akhir bulannya disembunyikan (biar gak dobel).
+    'html.zan-phone #hasilWrapP .hrow.pv-head{display:none;}',
+    'html.zan-phone #hasilWrapP .hrow .val.dual{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:1px;}',
+    'html.zan-phone #hasilWrapP .hrow .val.dual .pv-now{min-width:0;text-align:right;}',
+    'html.zan-phone #hasilWrapP .hrow .val.dual .pv-est{min-width:0;text-align:right;font-size:11.5px;font-weight:600;}',
+    // warna abu-abu sengaja selevel (bukan lebih tinggi dari) aturan hitam di atas & LEBIH RENDAH dari .zan-neg -> nilai akhir bulan negatif tetap merah
+    'html.zan-phone #hasilWrapP .val > .pv-est{color:#6B6B6B !important;}',
+    'html.zan-phone #hasilWrapP .hrow .val.dual .pv-est::before{content:"Akhir bulan: ";}',
+    'html.zan-phone #hasilWrapP .hrow .val.dual .pv-est.zan-same{display:none;}',
+    // NET INCOME & LABA/RUGI: salinan di Ringkasan (dupRowsP) tetap menampilkan "Akhir bulan"; aslinya di kartu Rasio disembunyikan (nominalnya sudah pindah ke Ringkasan)
+    'html.zan-phone #hasilWrapP .hasil-grid > .card:nth-child(1) .zan-dup .val > .pv-est:not(.zan-same){display:block !important;}',
+    'html.zan-phone #hasilWrapP .hasil-grid > .card:nth-child(2) .hrow.zan-orig{display:none;}',
+    // minicard Net Income (1 baris: label kiri, nilai kanan) — subteks "Akhir bulan: ..." turun ke baris kedua selebar kartu
+    'html.zan-phone #hasilWrapP .stat-card:nth-child(1){flex-wrap:wrap;row-gap:2px;}',
+    'html.zan-phone #hasilWrapP .stat-card:nth-child(1) > :nth-child(n+3){flex:0 0 100%;margin-top:0 !important;}',
+    'html.zan-phone #hasilWrapP .stat-card > :nth-child(n+3){font-size:11px !important;margin-top:1px !important;}',
 
     // ══ Teks yang menunjuk tombol/kolom khusus laptop → diganti kalimat yang masuk akal di HP (teks aslinya disembunyikan lewat font-size:0) ══
     // [23 Sep 2026] DEAD CODE: <p> penjelasan HPP Produk di analisis.html sudah diganti jadi ikon (?) info-tip (sebelah tombol "Belum Diisi"),
@@ -425,6 +457,33 @@
   }
   // Salin baris NET INCOME & LABA/RUGI (yang di kartu Rasio berisi nominal + persen) ke kartu Ringkasan; CSS lalu menampilkan
   // nominalnya di Ringkasan dan persennya di Rasio. Aman dipanggil berulang: kalau salinan sudah ada, tidak berbuat apa-apa.
+  // [30 Sep 2026] Proyeksi RKS: baris NET INCOME & LABA/RUGI ada di kartu Rasio (nilainya 2 kolom SAAT INI | AKHIR BULAN, bukan flex nominal+persen seperti Overview),
+  // jadi dikenali lewat teks labelnya. Salinannya (.zan-dup) ditaruh di kartu Ringkasan, aslinya diberi .zan-orig (disembunyikan CSS di kartu Rasio). Aman dipanggil berulang.
+  function dupRowsP(wrap) {
+    var grid = wrap.querySelector('.hasil-grid');
+    if (!grid || grid.children.length < 2) return;
+    var listA = grid.children[0].querySelector('.hrow-list'), listB = grid.children[1].querySelector('.hrow-list');
+    if (!listA || !listB || listA.querySelector('.zan-dup')) return;
+    var rows = listB.querySelectorAll('.hrow');
+    for (var i = 0; i < rows.length; i++) {
+      var lb = rows[i].querySelector('.lbl');
+      var t = lb && lb.firstChild ? String(lb.firstChild.textContent || '').trim() : '';
+      if (t !== 'NET INCOME' && t !== 'LABA/RUGI') continue;
+      var c = rows[i].cloneNode(true);
+      c.classList.add('zan-dup');
+      rows[i].classList.add('zan-orig');
+      listA.appendChild(c);
+    }
+  }
+  // [30 Sep 2026] Proyeksi RKS: nilai "akhir bulan" yang sama persis dgn "saat ini" (rasio, AOV, ROAS, basket) disembunyikan di HP supaya tidak tampil dobel
+  function markPv(wrap) {
+    var rows = wrap.querySelectorAll('.hrow .val.dual');
+    for (var i = 0; i < rows.length; i++) {
+      var n = rows[i].querySelector('.pv-now'), e = rows[i].querySelector('.pv-est');
+      if (!n || !e) continue;
+      e.classList.toggle('zan-same', (n.textContent || '').trim() === (e.textContent || '').trim());
+    }
+  }
   function dupRows(wrap) {
     var grid = wrap.querySelector('.hasil-grid');
     if (!grid || grid.children.length < 2) return;
@@ -460,7 +519,7 @@
     b.title = 'Export PDF';
     b.innerHTML = PDF_ICON;
     b.addEventListener('click', function () {
-      var src = d.getElementById(wrap.id === 'hasilWrapM' ? 'btnExportPDFM' : 'btnExportPDF');
+      var src = d.getElementById(wrap.id === 'hasilWrapM' ? 'btnExportPDFM' : (wrap.id === 'hasilWrapP' ? 'btnExportPDFP' : 'btnExportPDF'));
       if (src) src.click();
     });
     grid.appendChild(b);           // terakhir → urutan nth-child kartu (Net Income, Laba/Rugi, Rasio Laba) tidak bergeser
@@ -470,19 +529,21 @@
     if (d.__zanPhoneInit) return;
     d.__zanPhoneInit = true;
     var win = d.defaultView;
-    ['hasilWrap', 'hasilWrapM'].forEach(function (id) {
+    ['hasilWrap', 'hasilWrapM', 'hasilWrapP'].forEach(function (id) {
       var el = d.getElementById(id);
       if (!el) return;
-      var run = function () { dupRows(el); ensurePdfBtn(el); markNeg(el); };
+      var run = (id === 'hasilWrapP')
+        ? function () { dupRowsP(el); markPv(el); ensurePdfBtn(el); markNeg(el); }
+        : function () { dupRows(el); ensurePdfBtn(el); markNeg(el); };
       new win.MutationObserver(run).observe(el, { childList: true, subtree: true, characterData: true });
       run();
     });
-    var ZONE = '#hasilWrap .hasil-grid, #hasilWrap > .card:first-child, #hasilWrapM .hasil-grid, #hasilWrapM > .card:first-child';
+    var ZONE = '#hasilWrap .hasil-grid, #hasilWrap > .card:first-child, #hasilWrapM .hasil-grid, #hasilWrapM > .card:first-child, #hasilWrapP .hasil-grid, #hasilWrapP > .card:first-child';
     var sx = 0, sy = 0, track = false, wrapEl = null;
     d.addEventListener('touchstart', function (e) {
       var t = e.target;
       if (!t || !t.closest || t.closest('button, input, select, a') || !t.closest(ZONE)) { track = false; return; }
-      wrapEl = t.closest('#hasilWrap, #hasilWrapM');
+      wrapEl = t.closest('#hasilWrap, #hasilWrapM, #hasilWrapP');
       sx = e.touches[0].clientX; sy = e.touches[0].clientY; track = true;
     }, { passive: true });
     d.addEventListener('touchend', function (e) {

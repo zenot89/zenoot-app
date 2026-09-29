@@ -83,6 +83,8 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 - analisis.js cuma diberi catatan (24) supaya APP_BUILD berubah.
 - Susunan tombol panel (revisi 29 Sep 2026): [Edit file/Selesai] di kiri, [Hapus] muncul di sebelahnya hanya saat Edit file aktif, [Hitung] SELALU tampil di kanan (terkunci sampai Order+Income+Iklan lengkap). Selesai upload TIDAK otomatis menghitung: hasil baru dihitung ulang saat user klik Hitung, supaya user sempat mengecek kartu file dulu.
 
+**analisis.js + analisis.html — Proyeksi RKS di HP (30 Sep 2026)**: tab bar HP sekarang RKS Overview | RKS Mingguan | Proyeksi RKS (tab HPP Produk dibuang dari tab bar HP; halaman HPP tetap bisa dibuka lewat link internal). `hasilP` masuk PHONE_PAGES; semua aturan HP Overview/Mingguan dipakai ulang lewat `hw()`/`pg()` (kini 3 halaman). Khusus Proyeksi: tiap baris 2 nilai → di HP ditumpuk (SAAT INI + "Akhir bulan: ..." kecil, disembunyikan kalau nilainya sama), baris NET INCOME & LABA/RUGI disalin ke kartu Ringkasan (`dupRowsP`, aslinya disembunyikan di Rasio), `markPv()`. Header HP: [Bulan ▾ 30%][Toko 65%], tombol PDF ikon di kiri kartu Net Income (meneruskan ke `btnExportPDFP`). analisis.html hanya: label periode Proyeksi dapat versi pendek `hp-short` ("Sep 2026") — laptop tetap versi penuh. Laptop tidak tersentuh.
+
 ## Belum kelar / open issue
 
 - Sistem Re-Stock ada 2 versi gak sinkron: restock.js (baca produk.boss langsung, semua supplier) vs hutang-supplier.js tab Re Stock (filter Reseller/PO doang, prioritas link hutang_barang). SKU sama bisa beda status/boss di 2 tempat. User minta di-skip dulu, dipikirin ulang arahnya (satuin sistem / bikin gate keliatan di UI).

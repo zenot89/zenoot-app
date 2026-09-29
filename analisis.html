@@ -431,6 +431,7 @@
   .mp-legend{ display:flex; align-items:center; gap:6px; padding:0 18px 14px; font-size:12px; color:var(--ink-soft); }
   .mp-legend span{ margin-left:auto; color:#A7ACB5; }
   #btnHasilPeriodM .hp-short{ display:none; }
+  #btnHasilPeriodP .hp-short{ display:none; }   /* [30 Sep 2026] versi pendek label periode Proyeksi RKS — cuma dipakai HP (analisis.js) */
   .hasil-src-badge{ background:var(--accent-soft); color:var(--accent-dark); border:1px solid var(--accent); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; }
   .btn:disabled{ opacity:.5; cursor:not-allowed; }
   .btn.ghost:disabled:hover{ border-color:var(--line); color:var(--ink-soft); }
@@ -10278,8 +10279,17 @@ function syncHasilToolbarP(){
   const fromRekap = !!(hasilViewKeyP && state.proyeksi.rekap[hasilViewKeyP]);
   const lbl = document.getElementById('hasilPeriodLabelP'), btnP = document.getElementById('btnHasilPeriodP'), simpan = document.getElementById('btnSimpanRekapP');
   if(lbl){
-    if(fromRekap){ const sn = state.proyeksi.rekap[hasilViewKeyP]; lbl.textContent = sn.label || hasilViewKeyP; }
-    else { const pi = proyeksiInfoFromIncome(); lbl.textContent = pi ? pi.label : 'Pilih periode'; }
+    // [30 Sep 2026] 2 versi teks: hp-full (laptop, tetap seperti semula) & hp-short "Sep 2026" (dipakai HP; tombol periode di HP sempit) — pola sama dgn RKS Mingguan
+    if(fromRekap){
+      const sn = state.proyeksi.rekap[hasilViewKeyP];
+      const mi = parseInt(String(hasilViewKeyP).slice(5,7),10)-1, yy = String(hasilViewKeyP).slice(0,4);
+      const shortL = (mi>=0 && mi<12) ? REKAP_BULAN_SHORT[mi]+' '+yy : hasilViewKeyP;
+      lbl.innerHTML = `<span class="hp-full">${sn.label || hasilViewKeyP}</span><span class="hp-short">${shortL}</span>`;
+    } else {
+      const pi = proyeksiInfoFromIncome();
+      if(pi) lbl.innerHTML = `<span class="hp-full">${pi.label}</span><span class="hp-short">${REKAP_BULAN_SHORT[pi.m]+' '+pi.y}</span>`;
+      else lbl.textContent = 'Pilih periode';
+    }
   }
   if(btnP) btnP.classList.toggle('active', fromRekap);
   if(simpan){ simpan.disabled = fromRekap; simpan.title = fromRekap ? 'Bulan ini sudah tersimpan di Rekap Proyeksi' : ''; }
