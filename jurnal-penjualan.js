@@ -875,7 +875,8 @@ async function loadChannelDropdownJP() {
     // Label + icon per kategori
     const katConfig = {
       toko_utama: { label: 'Toko Utama',  icon: 'shopee'   },
-      reseller:   { label: 'Reseller',    icon: 'reseller' },
+      reseller:   { label: 'Dropship',    icon: 'reseller' },   // key DB reseller = Dropship (ganti nama)
+      reseller_baru: { label: 'Reseller', icon: 'reseller' },
       lazada:     { label: 'Lazada',      icon: 'lazada'   },
       tiktok:     { label: 'TikTok',      icon: 'tiktok'   },
       offline:    { label: 'Offline',     icon: 'offline'  },
@@ -3182,7 +3183,7 @@ function jpSkuSheetSelectVariasi(sku, hpp) {
 // (Toko Utama/Reseller/Lazada/TikTok/Offline), sumber data _jpChannelMap
 // yang udah dipopulate loadChannelDropdownJP(). ──
 var _jpChKatConfig = {
-  toko_utama: 'Toko Utama', reseller: 'Reseller', lazada: 'Lazada',
+  toko_utama: 'Toko Utama', reseller: 'Dropship', reseller_baru: 'Reseller', lazada: 'Lazada',
   tiktok: 'TikTok', offline: 'Offline'
 };
 // ─── Riwayat channel — frekuensi + terakhir dipakai, localStorage.

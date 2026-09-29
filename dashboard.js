@@ -689,12 +689,13 @@ function trenchRenderChannelList() {
   if (!wrap) return;
   var katCfg = {
     toko_utama:{label:'Shopee',icon:'🛍️'},
-    reseller:{label:'Reseller',icon:'👥'},
+    reseller:{label:'Dropship',icon:'🚚'},   // key DB reseller = Dropship (ganti nama)
+    reseller_baru:{label:'Reseller',icon:'👥'},
     tiktok:{label:'TikTok',icon:'🎵'},
     lazada:{label:'Lazada',icon:'📦'},
     offline:{label:'Offline',icon:'🏪'}
   };
-  var katOrder = ['toko_utama','reseller','tiktok','lazada','offline'];
+  var katOrder = ['toko_utama','reseller_baru','reseller','tiktok','lazada','offline'];
   var grouped = {};
   Object.values(_dashChannelMap).forEach(function(ch) {
     var k = ch.kategori || 'lainnya';

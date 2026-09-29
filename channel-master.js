@@ -7,7 +7,8 @@
 // channel_kategori_harga, tombol "Harga" di header kategori) dan (2) per TOKO
 // (channel_harga). 1 toko × 1 katalog = 1 harga, diambil dari yang paling spesifik:
 // harga toko → harga kategori → rumus otomatis HPP × (1 + Beban% + NPM%).
-// KHUSUS Reseller & Offline (_CHP_KATS): harga tetap. Shopee/Lazada/TikTok tidak pakai Price List
+// KHUSUS Offline, Reseller & Dropship (_CHP_KATS, tab "Lainnya"): harga tetap.
+// CATATAN NAMA: key DB 'reseller' = Dropship (kategori lama diganti nama); Reseller sungguhan = key 'reseller_baru'. Shopee/Lazada/TikTok tidak pakai Price List
 // (harga jual bergerak karena promo/voucher; margin dihitung dari harga jual aktual). Data
 // channel_harga lama milik toko-toko itu TIDAK dihapus, cuma tidak ditampilkan.
 
@@ -30,7 +31,8 @@ document.getElementById('page-channel').innerHTML = `
        jadi cap itu dilepas khusus untuk nav tab + tab Channel (selector ber-ID menang
        atas aturan lama). Tab Supplier & ROP tetap 720px. */
     #page-channel > #ch-tabs-nav,
-    #page-channel > #ch-tab-content-channel { max-width:none; }
+    #page-channel > #ch-tab-content-channel,
+    #page-channel > #ch-tab-content-lainnya { max-width:none; }
 
     /* Layout 2 kolom: kiri = daftar channel, kanan = Price List manual (lebih lebar) */
     .ch-grid { display:grid; grid-template-columns:minmax(380px,5fr) minmax(0,7fr); gap:14px; align-items:start; }
@@ -89,17 +91,16 @@ document.getElementById('page-channel').innerHTML = `
       style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
       <i class="ti ti-truck"></i> Supplier &amp; ROP
     </button>
+
+    <button id="ch-tab-lainnya" onclick="chSwitchTab('lainnya')"
+      style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
+      <i class="ti ti-dots"></i> Lainnya
+    </button>
   </div>
 
   <!-- ══ TAB: CHANNEL MASTER ══ -->
   <div id="ch-tab-content-channel">
-   <div class="ch-grid">
-    <div class="ch-col-left">
-
-    <div style="margin-bottom:14px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);border-radius:4px;font-size:13px;color:var(--ink2);line-height:1.7">
-      <b>Master Data Channel</b> — sumber data global untuk seluruh aplikasi.<br>
-      Setiap channel punya <b>% Beban &amp; NPM</b> sendiri (dipakai Dashboard, Keuangan &amp; Proyeksi). Price List (kanan) khusus <b>Reseller &amp; Offline</b> karena harganya tetap — klik salah satu toko untuk harga 1 toko, atau tombol <b>Harga</b> di header kategori untuk semua sekaligus. Shopee, Lazada &amp; TikTok tidak pakai Price List (harga jual bergerak, margin dihitung dari harga jual aktual).
-    </div>
+   <div style="max-width:720px">
 
     <!-- SHOPEE -->
     <div class="card" style="margin-bottom:14px">
@@ -122,22 +123,6 @@ document.getElementById('page-channel').innerHTML = `
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
         <tbody id="ch-tbody-toko_utama"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
-      </table></div>
-    </div>
-
-    <!-- RESELLER -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <span style="display:inline-flex;align-items:center;gap:6px"><i class="ti ti-users" style="font-size:16px"></i> Reseller</span>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="chpPilihKategori('reseller','Reseller')" title="Atur harga jual semua toko Reseller sekaligus"><i class="ti ti-tag"></i> Harga</button>
-          <button class="btn btn-sm" onclick="showEditKategori('reseller','Reseller')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
-          <button class="btn btn-sm btn-primary" onclick="showFormChannel('reseller')"><i class="ti ti-plus"></i> Tambah</button>
-        </div>
-      </div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Reseller</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-reseller"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -174,8 +159,16 @@ document.getElementById('page-channel').innerHTML = `
       </table></div>
     </div>
 
+   </div>
+  </div><!-- end tab channel -->
+
+  <!-- ══ TAB: LAINNYA (Offline · Reseller · Dropship + Price List) ══ -->
+  <div id="ch-tab-content-lainnya" style="display:none">
+   <div class="ch-grid">
+    <div class="ch-col-left">
+
     <!-- OFFLINE -->
-    <div class="card">
+    <div class="card" style="margin-bottom:14px">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <span><i class="ti ti-map-pin"></i> Offline</span>
         <div style="display:flex;gap:6px">
@@ -187,6 +180,38 @@ document.getElementById('page-channel').innerHTML = `
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
         <tbody id="ch-tbody-offline"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- RESELLER BARU (key DB: reseller_baru) -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="display:inline-flex;align-items:center;gap:6px"><i class="ti ti-users" style="font-size:16px"></i> Reseller</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="chpPilihKategori('reseller_baru','Reseller')" title="Atur harga jual semua toko Reseller sekaligus"><i class="ti ti-tag"></i> Harga</button>
+          <button class="btn btn-sm" onclick="showEditKategori('reseller_baru','Reseller')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
+          <button class="btn btn-sm btn-primary" onclick="showFormChannel('reseller_baru')"><i class="ti ti-plus"></i> Tambah</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Nama Reseller</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-reseller_baru"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- DROPSHIP (key DB: reseller) -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="display:inline-flex;align-items:center;gap:6px"><i class="ti ti-truck-delivery" style="font-size:16px"></i> Dropship</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="chpPilihKategori('reseller','Dropship')" title="Atur harga jual semua toko Dropship sekaligus"><i class="ti ti-tag"></i> Harga</button>
+          <button class="btn btn-sm" onclick="showEditKategori('reseller','Dropship')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
+          <button class="btn btn-sm btn-primary" onclick="showFormChannel('reseller')"><i class="ti ti-plus"></i> Tambah</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Nama Dropship</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-reseller"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -203,7 +228,7 @@ document.getElementById('page-channel').innerHTML = `
           </span>
         </div>
         <div id="chp-hint" style="padding:22px 10px;text-align:center;color:var(--ink3);font-style:italic;font-size:14px">
-          Klik salah satu reseller / toko offline di daftar (atau tombol Harga di header kategori) untuk melihat &amp; mengatur harga jualnya.
+          Klik salah satu toko di daftar (atau tombol Harga di header kategori) untuk melihat &amp; mengatur harga jualnya.
         </div>
         <div id="chp-body" style="display:none">
           <div id="chp-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px"></div>
@@ -233,7 +258,7 @@ document.getElementById('page-channel').innerHTML = `
       </div>
     </div>
    </div><!-- end ch-grid -->
-  </div><!-- end tab channel -->
+  </div><!-- end tab lainnya -->
 
 
   <!-- ══ TAB: SUPPLIER & ROP ══ -->
@@ -319,7 +344,7 @@ setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.get
 
 // ─── TAB SWITCH ──────────────────────────────────────────────
 function chSwitchTab(tab) {
-  var tabs    = ['channel', 'supplier'];
+  var tabs    = ['channel', 'supplier', 'lainnya'];
   tabs.forEach(function(t) {
     var btn     = document.getElementById('ch-tab-' + t);
     var content = document.getElementById('ch-tab-content-' + t);
@@ -351,6 +376,7 @@ async function loadChannelMaster() {
     loadChannelByKategori('lazada'),
     loadChannelByKategori('tiktok'),
     loadChannelByKategori('offline'),
+    loadChannelByKategori('reseller_baru'),
   ]);
 }
 
@@ -398,8 +424,8 @@ async function loadChannelByKategori(kat) {
 
 // ─── FORM TAMBAH/EDIT CHANNEL ─────────────────────────────────
 function showFormChannel(kat) {
-  var labels = { toko_utama:'Nama Channel Toko', reseller:'Nama Reseller', lazada:'Nama Toko Lazada', tiktok:'Nama Toko TikTok', offline:'Nama Channel Offline' };
-  var titles = { toko_utama:'Tambah Channel Toko', reseller:'Tambah Reseller', lazada:'Tambah Toko Lazada', tiktok:'Tambah Toko TikTok', offline:'Tambah Channel Offline' };
+  var labels = { toko_utama:'Nama Channel Toko', reseller:'Nama Dropship', reseller_baru:'Nama Reseller', lazada:'Nama Toko Lazada', tiktok:'Nama Toko TikTok', offline:'Nama Channel Offline' };
+  var titles = { toko_utama:'Tambah Channel Toko', reseller:'Tambah Dropship', reseller_baru:'Tambah Reseller', lazada:'Tambah Toko Lazada', tiktok:'Tambah Toko TikTok', offline:'Tambah Channel Offline' };
   document.getElementById('ch-edit-kat').value   = kat;
   document.getElementById('ch-edit-id').value    = '';
   document.getElementById('ch-modal-nama').value = '';
@@ -435,7 +461,7 @@ async function editChannel(id, kat) {
     document.getElementById('ch-edit-id').value    = r.id;
     document.getElementById('ch-modal-nama').value = r.nama       || '';
     document.getElementById('ch-modal-ket').value  = r.keterangan || '';
-    var titles = { toko_utama:'Edit Channel Toko', reseller:'Edit Reseller', lazada:'Edit Toko Lazada', tiktok:'Edit Toko TikTok', offline:'Edit Channel Offline' };
+    var titles = { toko_utama:'Edit Channel Toko', reseller:'Edit Dropship', reseller_baru:'Edit Reseller', lazada:'Edit Toko Lazada', tiktok:'Edit Toko TikTok', offline:'Edit Channel Offline' };
     document.getElementById('ch-modal-title').innerHTML = '<i class="ti ti-edit"></i> ' + (titles[kat]||'Edit Channel');
     showModal('modal-channel');
   } catch(err) { alert('Gagal load: ' + err.message); }
@@ -470,7 +496,7 @@ function cbUpdatePreview() {
   document.getElementById('cb-preview').innerHTML =
     'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
     'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>' +
-    '<br><span style="color:var(--ink3)">Price List hanya untuk Reseller &amp; Offline.</span>';
+    '<br><span style="color:var(--ink3)">Price List ada di tab Lainnya (Offline, Reseller, Dropship).</span>';
 }
 
 async function simpanChannelBeban() {
@@ -498,6 +524,7 @@ async function simpanChannelBeban() {
       loadChannelByKategori('lazada'),
       loadChannelByKategori('tiktok'),
       loadChannelByKategori('offline'),
+    loadChannelByKategori('reseller_baru'),
     ]);
     if (_chpSelId) chpRender();
   } catch(err) { alert('Gagal simpan beban: ' + err.message); }
@@ -625,7 +652,8 @@ var _chpSel     = {};    // katalog → true (dipilih di Edit Massal)
 var _chpFlashT  = null;
 var _chpKatHarga = {};  // katalog → { id, harga_jual } harga KATEGORI dari channel aktif (fallback; hanya mode toko)
 var _chCatChannels = {}; // kategori → [{ id, nama }] (diisi loadChannelByKategori)
-var _CHP_KATS  = ['reseller', 'offline']; // kategori yang punya Price List (harga jual tetap)
+// Kategori yang punya Price List (harga jual tetap): Offline, Reseller (key reseller_baru), Dropship (key reseller — kategori lama, ganti nama).
+var _CHP_KATS  = ['reseller', 'reseller_baru', 'offline'];
 var _chpChKat   = '';   // kategori dari channel aktif (mode toko)
 
 // Mode panel: toko (_chpSelId = id channel) atau kategori (_chpSelId = 'kat:<kategori>').
@@ -719,7 +747,7 @@ async function _chpPilihCore(key, nama, kat) {
   var search = document.getElementById('chp-search');
   if (search) search.value = '';
 
-  document.querySelectorAll('#ch-tab-content-channel tr[data-action="pilih-ch"]').forEach(function(tr) {
+  document.querySelectorAll('#page-channel tr[data-action="pilih-ch"]').forEach(function(tr) {
     tr.classList.toggle('ch-row-sel', tr.dataset.id === _chpSelId);
   });
   document.getElementById('chp-hint').style.display = 'none';

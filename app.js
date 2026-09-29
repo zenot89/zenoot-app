@@ -514,7 +514,7 @@ function chIcon(input) {
   if (kat === 'toko_utama')  return CH_SVG.shopee;
   if (kat === 'lazada')      return CH_SVG.lazada;
   if (kat === 'tiktok')      return CH_SVG.tiktok;
-  if (kat === 'reseller')    return CH_SVG.reseller;
+  if (kat === 'reseller' || kat === 'reseller_baru') return CH_SVG.reseller;
   if (kat === 'offline')     return CH_SVG.offline;
 
   // Fallback: tebak dari nama
