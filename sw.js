@@ -31,7 +31,7 @@ var CDN_ASSETS = [
 var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
   'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
-  'produk-terjual.js', 'price-list.js',
+  'produk-terjual.js',
   'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
@@ -48,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260929-1a05c29e388b'; // dialog.js: dialog tema krem/putih pengganti alert()/confirm()/prompt() bawaan browser, dipakai di seluruh modul + analisis.html + kalkulator
+var JS_CACHE = 'zenot-js-20260930-pricelist-manual'; // Price List dipindah ke halaman Channel (harga manual per channel) — price-list.js dihapus
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

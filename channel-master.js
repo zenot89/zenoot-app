@@ -1,6 +1,8 @@
 // ─── CHANNEL-MASTER.JS v2 — Master Data Channel + Beban Per Channel ──
 // Setiap channel punya % Beban & NPM sendiri → tabel channel_beban
-// Halaman Beban Operasional sudah dihapus, setting harga ada di sini
+// Halaman Beban Operasional sudah dihapus, setting beban/NPM ada di sini
+// 30 Sep 2026: halaman Price List lama dihapus — harga jual per channel sekarang MANUAL
+// (tabel channel_harga), diatur di panel kanan halaman ini (+ Edit Massal).
 
 document.getElementById('page-channel').innerHTML = `
   <style>
@@ -16,30 +18,59 @@ document.getElementById('page-channel').innerHTML = `
     .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
     .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
 
-    /* Layout 2 kolom: kiri = daftar channel, kanan = Price List manual */
-    .ch-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start; }
+    /* ROOT CAUSE lebar mentok: style.css ("Lebar proporsional", 16 Sep) membatasi
+       SEMUA anak langsung #page-channel maks 720px. Tab Channel sekarang 2 kolom,
+       jadi cap itu dilepas khusus untuk nav tab + tab Channel (selector ber-ID menang
+       atas aturan lama). Tab Supplier & ROP tetap 720px. */
+    #page-channel > #ch-tabs-nav,
+    #page-channel > #ch-tab-content-channel { max-width:none; }
+
+    /* Layout 2 kolom: kiri = daftar channel, kanan = Price List manual (lebih lebar) */
+    .ch-grid { display:grid; grid-template-columns:minmax(380px,5fr) minmax(0,7fr); gap:14px; align-items:start; }
     .ch-col-right { position:sticky; top:8px; }
-    .chp-scroll { overflow-y:auto; max-height:calc(100vh - 330px); }
     tr[data-action="pilih-ch"] { cursor:pointer; }
     tr[data-action="pilih-ch"].ch-row-sel { background:var(--cream2); box-shadow:inset 3px 0 0 var(--ink); }
+
+    /* Panel Price List: card setinggi layar, header tabel FREEZE, hanya baris data yang scroll */
+    #chp-card { display:flex; flex-direction:column; height:calc(100vh - 150px); min-height:380px; margin-bottom:0; }
+    #chp-card .card-title { flex-shrink:0; }
+    #chp-body { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+    #chp-body > * { flex-shrink:0; }
+    #chp-body > .chp-scroll { flex:1 1 auto; min-height:0; }
+    .chp-scroll { overflow-y:auto; overflow-x:hidden; overscroll-behavior:none; border:1px solid var(--ink4); }
+    #chp-table { width:100%; table-layout:fixed; }
+    #chp-table thead th { position:sticky; top:0; z-index:3; }
+    #chp-table td { overflow:hidden; text-overflow:ellipsis; }
+    #chp-table .chp-c-chk   { width:44px; text-align:center; }
+    #chp-table .chp-c-hpp   { width:130px; }
+    #chp-table .chp-c-harga { width:190px; }
+    #chp-table .chp-c-npm   { width:90px; }
+    #chp-table:not(.chp-bulk) .chp-c-chk { display:none; }
+    #chp-table .chp-chk { width:17px; height:17px; cursor:pointer; accent-color:var(--ink); }
+    #chp-table tr.chp-sel td { background:var(--cream3); }
     .chp-inp { width:100%; box-sizing:border-box; text-align:right; font-family:var(--f); font-size:13px; padding:5px 8px; border:2px dashed var(--ink3); background:var(--cream); color:var(--ink); }
     .chp-inp.manual { border:2px solid var(--ink); font-weight:700; }
+    .chp-bulkbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; margin-bottom:8px; background:var(--cream2); border:2px dashed var(--ink3); }
+    .chp-bulkbar .chp-bulk-lbl { font-size:12px; font-weight:700; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; }
+    .chp-bulkbar input { flex:1 1 130px; min-width:110px; box-sizing:border-box; text-align:right; font-family:var(--f); font-size:14px; padding:6px 10px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); }
+
     @media (max-width:900px) {
       .ch-grid { grid-template-columns:minmax(0,1fr); }
       .ch-col-right { position:static; order:-1; }
-      .chp-scroll { max-height:55vh; }
+      #chp-card { height:auto; min-height:0; }
+      #chp-body > .chp-scroll { flex:0 0 auto; max-height:60vh; }
     }
-    /* Mobile: tabel muat layar tanpa scroll horizontal — HPP disembunyikan */
+    /* Mobile: tabel muat layar tanpa scroll horizontal — kolom HPP disembunyikan */
     @media (max-width:600px) {
-      #chp-table { table-layout:fixed; width:100%; }
-      #chp-table th:nth-child(2), #chp-table td:nth-child(2) { display:none; }
-      #chp-table th:nth-child(1) { width:38%; }
-      #chp-table th:nth-child(3) { width:36%; }
+      #chp-table .chp-c-hpp { display:none; }
+      #chp-table .chp-c-chk { width:38px; }
+      #chp-table .chp-c-harga { width:38%; }
+      #chp-table .chp-c-npm { width:64px; }
     }
   </style>
 
   <!-- ══ TAB NAVIGATION ══ -->
-  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink)">
+  <div id="ch-tabs-nav" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink)">
     <button id="ch-tab-channel" onclick="chSwitchTab('channel')"
       style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;background:var(--ink);color:var(--cream);cursor:pointer;margin-bottom:-2px">
       <i class="ti ti-antenna"></i> Channel
@@ -155,7 +186,10 @@ document.getElementById('page-channel').innerHTML = `
       <div class="card" id="chp-card">
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <span><i class="ti ti-tag"></i> Price List <span id="chp-title" style="color:var(--accent)"></span></span>
-          <button class="btn btn-sm" id="chp-btn-seed" onclick="chpSeed()" style="display:none" title="Isi katalog yang masih otomatis dengan harga dari rumus lama (HPP × multiplier)"><i class="ti ti-wand"></i> Isi dari rumus lama</button>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm" id="chp-btn-bulk" onclick="chpBulkMulai()" style="display:none" title="Pilih beberapa katalog lalu isi 1 harga sekaligus"><i class="ti ti-checkbox"></i> Edit Massal</button>
+            <button class="btn btn-sm" id="chp-btn-seed" onclick="chpSeed()" style="display:none" title="Isi katalog yang masih otomatis dengan harga dari rumus lama (HPP × multiplier)"><i class="ti ti-wand"></i> Isi dari rumus lama</button>
+          </span>
         </div>
         <div id="chp-hint" style="padding:22px 10px;text-align:center;color:var(--ink3);font-style:italic;font-size:14px">
           Klik salah satu channel di daftar untuk melihat &amp; mengatur harga jualnya.
@@ -164,14 +198,25 @@ document.getElementById('page-channel').innerHTML = `
           <div id="chp-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px"></div>
           <input type="text" id="chp-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="chpFilter(this.value)"
             style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
+          <div class="chp-bulkbar" id="chp-bulkbar" style="display:none">
+            <span class="chp-bulk-lbl">Harga baru</span>
+            <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 75.000" autocomplete="off" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
+            <button class="btn btn-sm btn-primary" id="chp-bulk-btn" onclick="chpBulkTerapkan()"><i class="ti ti-check"></i> Terapkan (0)</button>
+            <button class="btn btn-sm" onclick="chpBulkBatal()"><i class="ti ti-x"></i> Batal</button>
+          </div>
           <div class="chp-scroll"><table class="tbl" id="chp-table">
-            <thead><tr><th>Katalog</th><th style="text-align:right">HPP</th><th style="text-align:right">Harga Jual</th><th style="text-align:center">NPM</th></tr></thead>
+            <thead><tr>
+              <th class="chp-c-chk"><input type="checkbox" class="chp-chk" id="chp-chk-all" onchange="chpToggleAll(this.checked)" title="Pilih semua yang tampil"></th>
+              <th>Katalog</th>
+              <th class="chp-c-hpp" style="text-align:right">HPP</th>
+              <th class="chp-c-harga" style="text-align:right">Harga Jual</th>
+              <th class="chp-c-npm" style="text-align:center">NPM</th>
+            </tr></thead>
             <tbody id="chp-tbody"></tbody>
           </table></div>
           <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.5">
-            Kolom harga kosong (garis putus-putus) = otomatis dari rumus lama. Ketik angka lalu Enter/pindah kolom untuk menyimpan; kosongkan untuk kembali ke otomatis.
-            NPM = margin dari HPP dikurangi Beban channel.
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5">
+            Garis putus-putus = otomatis (rumus lama). Ketik harga lalu Enter/pindah kolom untuk menyimpan; kosongkan = kembali otomatis. NPM = margin dari HPP − Beban channel.
           </div>
         </div>
       </div>
@@ -561,6 +606,9 @@ var _chpHarga   = {};   // katalog → { id, harga_jual } utk channel aktif
 var _chpRows    = [];   // baris yg sedang ter-render (index dipakai input)
 var _chpQuery   = '';
 var _chpSeq     = 0;    // guard race saat ganti channel cepat
+var _chpBulk    = false; // mode Edit Massal aktif?
+var _chpSel     = {};    // katalog → true (dipilih di Edit Massal)
+var _chpFlashT  = null;
 
 function _chpEsc(t) {
   return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -611,6 +659,7 @@ async function _chpLoadProduk() {
 }
 
 async function chpPilih(id, nama) {
+  _chpBulkReset();
   _chpSelId   = String(id);
   _chpSelNama = nama || '';
   _chpQuery   = '';
@@ -623,7 +672,7 @@ async function chpPilih(id, nama) {
   document.getElementById('chp-hint').style.display = 'none';
   document.getElementById('chp-body').style.display = '';
   document.getElementById('chp-title').textContent  = '— ' + _chpSelNama;
-  document.getElementById('chp-btn-seed').style.display = '';
+  _chpSyncButtons();
   document.getElementById('chp-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   // Layar sempit: panel ada di atas → geser ke sana
@@ -647,7 +696,7 @@ async function chpPilih(id, nama) {
     var msg = String(err && err.message || err);
     var hint = /channel_harga/i.test(msg) ? ' — tabel channel_harga belum dibuat, jalankan SQL-nya dulu.' : '';
     document.getElementById('chp-tbody').innerHTML =
-      '<tr><td colspan="4" style="color:var(--danger)">Error: ' + _chpEsc(msg) + hint + '</td></tr>';
+      '<tr><td colspan="' + _chpCols() + '" style="color:var(--danger)">Error: ' + _chpEsc(msg) + hint + '</td></tr>';
   }
 }
 
@@ -656,10 +705,20 @@ function chpFilter(q) {
   chpRender();
 }
 
+function _chpCols() { return _chpBulk ? 5 : 4; }
+
+// Tombol header: Edit Massal + Isi dari rumus lama hanya saat channel dipilih & bukan mode massal
+function _chpSyncButtons() {
+  var show = !!_chpSelId && !_chpBulk;
+  document.getElementById('chp-btn-bulk').style.display = show ? '' : 'none';
+  document.getElementById('chp-btn-seed').style.display = show ? '' : 'none';
+}
+
 function chpRender() {
   if (!_chpSelId) return;
   var tbody = document.getElementById('chp-tbody');
   if (!tbody) return;
+  document.getElementById('chp-table').classList.toggle('chp-bulk', _chpBulk);
 
   var m = _chpBeban();
   document.getElementById('chp-info').innerHTML = m.ada
@@ -671,27 +730,31 @@ function chpRender() {
 
   if (!list.length) {
     _chpRows = [];
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">' +
+    tbody.innerHTML = '<tr><td colspan="' + _chpCols() + '" style="color:var(--ink3);font-style:italic">' +
       (_chpQuery ? 'Katalog tidak ditemukan' : 'Belum ada produk di Kelola Produk') + '</td></tr>';
     document.getElementById('chp-footer').textContent = '';
+    _chpBulkUI();
     return;
   }
 
   _chpRows = list;
   tbody.innerHTML = list.map(function(k, i) {
-    var c = _chpCalc(k);
-    return '<tr>' +
-      '<td style="font-weight:600">' + _chpEsc(k.katalog) + '</td>' +
-      '<td style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
-      '<td style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.isManual ? ' manual' : '') + '"' +
+    var c   = _chpCalc(k);
+    var chk = !!_chpSel[k.katalog];
+    return '<tr class="' + (chk ? 'chp-sel' : '') + '"' + (_chpBulk ? ' style="cursor:pointer" onclick="chpRowClick(' + i + ',event)"' : '') + '>' +
+      '<td class="chp-c-chk"><input type="checkbox" class="chp-chk" data-idx="' + i + '"' + (chk ? ' checked' : '') + ' onchange="chpToggleRow(' + i + ',this.checked)"></td>' +
+      '<td style="font-weight:600" title="' + _chpEsc(k.katalog) + '">' + _chpEsc(k.katalog) + '</td>' +
+      '<td class="chp-c-hpp" style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
+      '<td class="chp-c-harga" style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.isManual ? ' manual' : '') + '"' +
         ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manual) : '') + '"' +
         ' placeholder="' + (k.hpp > 0 ? _chpFmt(c.auto) : '—') + '"' +
         ' oninput="chpFmtInput(this)" onfocus="this.select()" onchange="chpSimpan(this)"' +
         ' onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
-      '<td class="chp-npm" style="text-align:center">' + _chpNpmHtml(c) + '</td>' +
+      '<td class="chp-c-npm chp-npm" style="text-align:center">' + _chpNpmHtml(c) + '</td>' +
     '</tr>';
   }).join('');
   _chpUpdateFooter();
+  _chpBulkUI();
 }
 
 function _chpUpdateFooter() {
@@ -739,6 +802,157 @@ async function chpSimpan(inp) {
   _chpUpdateFooter();
 }
 
+// ─── EDIT MASSAL ─────────────────────────────────────────────
+// Flow: Edit Massal → centang katalog → isi 1 harga → Terapkan → otomatis selesai
+// (kotak centang hilang). Batal = keluar tanpa mengubah apa pun.
+function _chpBulkReset() {
+  _chpBulk = false; _chpSel = {};
+  var bar = document.getElementById('chp-bulkbar'); if (bar) bar.style.display = 'none';
+  var inp = document.getElementById('chp-bulk-harga'); if (inp) inp.value = '';
+  var tbl = document.getElementById('chp-table'); if (tbl) tbl.classList.remove('chp-bulk');
+}
+
+function chpBulkMulai() {
+  if (!_chpSelId) return;
+  _chpBulk = true; _chpSel = {};
+  document.getElementById('chp-bulkbar').style.display = '';
+  document.getElementById('chp-bulk-harga').value = '';
+  _chpSyncButtons();
+  chpRender();
+}
+
+function chpBulkBatal() {
+  _chpBulkReset();
+  _chpSyncButtons();
+  chpRender();
+}
+
+function _chpBulkUI() {
+  var n = Object.keys(_chpSel).length;
+  var btn = document.getElementById('chp-bulk-btn');
+  if (btn) btn.innerHTML = '<i class="ti ti-check"></i> Terapkan (' + n + ')';
+  var all = document.getElementById('chp-chk-all');
+  if (all) {
+    var vis = _chpRows.filter(function(k) { return !!_chpSel[k.katalog]; }).length;
+    all.checked = _chpRows.length > 0 && vis === _chpRows.length;
+    all.indeterminate = vis > 0 && vis < _chpRows.length;
+  }
+}
+
+function chpToggleRow(i, checked) {
+  var k = _chpRows[i]; if (!k) return;
+  if (checked) _chpSel[k.katalog] = true; else delete _chpSel[k.katalog];
+  var tr = document.querySelectorAll('#chp-tbody tr')[i];
+  if (tr) tr.classList.toggle('chp-sel', !!checked);
+  _chpBulkUI();
+}
+
+function chpToggleAll(checked) {
+  _chpRows.forEach(function(k) { if (checked) _chpSel[k.katalog] = true; else delete _chpSel[k.katalog]; });
+  document.querySelectorAll('#chp-tbody tr').forEach(function(tr) {
+    tr.classList.toggle('chp-sel', !!checked);
+    var cb = tr.querySelector('.chp-chk'); if (cb) cb.checked = !!checked;
+  });
+  _chpBulkUI();
+}
+
+// klik di mana saja pada baris = centang/uncentang (kecuali klik langsung di input)
+function chpRowClick(i, e) {
+  if (!_chpBulk) return;
+  if (e && e.target && e.target.closest && e.target.closest('input')) return;
+  var tr = document.querySelectorAll('#chp-tbody tr')[i];
+  var cb = tr ? tr.querySelector('.chp-chk') : null;
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  chpToggleRow(i, cb.checked);
+}
+
+async function _chpReloadHarga(chId) {
+  try {
+    var rows = await dbGet('channel_harga', '&channel_id=eq.' + encodeURIComponent(chId));
+    if (chId !== _chpSelId) return;
+    _chpHarga = {};
+    (rows || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
+  } catch (e) { console.warn('Reload channel_harga gagal:', e); }
+}
+
+async function chpBulkTerapkan() {
+  if (!_chpBulk || !_chpSelId) return;
+  var chId  = _chpSelId;
+  var pilih = Object.keys(_chpSel);
+  if (!pilih.length) { alert('Pilih katalog dulu — centang di kolom paling kiri.'); return; }
+
+  var raw = String(document.getElementById('chp-bulk-harga').value || '').replace(/\D/g, '');
+  var val = raw ? parseInt(raw, 10) : 0;
+  var adaManual = pilih.filter(function(k) { return !!_chpHarga[k]; });
+
+  if (!val) {
+    // harga kosong = kembalikan ke otomatis (hapus harga manual)
+    if (!adaManual.length) { alert('Isi harga baru dulu.'); return; }
+    var okKosong = await zConfirm(
+      'Harga baru kosong. Hapus harga manual ' + adaManual.length + ' katalog terpilih (kembali ke otomatis)?',
+      { title: 'Kembalikan ke otomatis?', ok: 'Ya, hapus', type: 'danger' }
+    );
+    if (!okKosong) return;
+  } else {
+    // pengaman salah ketik: harga di bawah HPP
+    var hppMap = {};
+    _chpKatalogList().forEach(function(k) { hppMap[k.katalog] = k.hpp; });
+    var rugi = pilih.filter(function(k) { return hppMap[k] > 0 && val < hppMap[k]; });
+    if (rugi.length) {
+      var okRugi = await zConfirm(
+        rugi.length + ' dari ' + pilih.length + ' katalog terpilih akan punya harga di BAWAH HPP (' + fmtRpFull(val) + '). Tetap terapkan?',
+        { title: 'Harga di bawah HPP', ok: 'Tetap terapkan', type: 'danger' }
+      );
+      if (!okRugi) return;
+    }
+  }
+
+  var btn = document.getElementById('chp-bulk-btn');
+  if (btn) btn.disabled = true;
+  var msg = '';
+  try {
+    if (!val) {
+      await Promise.all(adaManual.map(function(k) { return dbDelete('channel_harga', _chpHarga[k].id); }));
+      adaManual.forEach(function(k) { delete _chpHarga[k]; });
+      msg = adaManual.length + ' katalog dikembalikan ke otomatis';
+    } else {
+      var upd = [], ins = [];
+      pilih.forEach(function(k) {
+        var cur = _chpHarga[k];
+        if (cur) { if (Number(cur.harga_jual) !== val) upd.push(cur); }
+        else ins.push({ channel_id: chId, katalog: k, harga_jual: val });
+      });
+      await Promise.all(upd.map(function(cur) {
+        return dbUpdate('channel_harga', cur.id, { harga_jual: val }).then(function() { cur.harga_jual = val; });
+      }));
+      if (ins.length) {
+        var res = await dbInsert('channel_harga', ins);
+        (res || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
+      }
+      msg = pilih.length + ' katalog diset ke ' + fmtRpFull(val);
+    }
+  } catch (err) {
+    alert('Gagal menerapkan: ' + err.message);
+    await _chpReloadHarga(chId);   // sinkron ulang dgn database supaya tampilan jujur
+    if (btn) btn.disabled = false;
+    if (chId === _chpSelId) chpRender();
+    return;
+  }
+  if (btn) btn.disabled = false;
+  if (chId !== _chpSelId) return;
+  // SELESAI: kotak centang hilang, tampilan normal
+  _chpBulkReset();
+  _chpSyncButtons();
+  chpRender();
+  var ft = document.getElementById('chp-footer');
+  if (ft) {
+    ft.innerHTML = '<span style="color:var(--ok);font-weight:700">✓ ' + _chpEsc(msg) + '</span>';
+    clearTimeout(_chpFlashT);
+    _chpFlashT = setTimeout(function() { if (chId === _chpSelId && !_chpBulk) _chpUpdateFooter(); }, 4000);
+  }
+}
+
 // Isi SEMUA katalog yang masih otomatis dengan harga rumus lama (sekali jalan)
 async function chpSeed() {
   if (!_chpSelId) return;
@@ -775,7 +989,8 @@ async function chpHapusHargaChannel(id) {
     document.getElementById('chp-hint').style.display = '';
     document.getElementById('chp-body').style.display = 'none';
     document.getElementById('chp-title').textContent  = '';
-    document.getElementById('chp-btn-seed').style.display = 'none';
+    _chpBulkReset();
+    _chpSyncButtons();
   }
 }
 
@@ -845,7 +1060,7 @@ document.body.insertAdjacentHTML('beforeend', `
 <div class="modal-overlay" id="modal-channel-beban" onclick="if(event.target===this)hideModal('modal-channel-beban')">
   <div class="modal" style="max-width:400px;width:100%">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-settings"></i> Setting Harga — <span id="cb-channel-nama" style="color:var(--accent)"></span></div>
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-settings"></i> Setting Beban &amp; NPM — <span id="cb-channel-nama" style="color:var(--accent)"></span></div>
       <button onclick="hideModal('modal-channel-beban')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <input type="hidden" id="cb-channel-id">

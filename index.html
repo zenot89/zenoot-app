@@ -119,7 +119,6 @@
     </div>
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('produk',this)"><span class="ni-icon"><i class="ti ti-box"></i></span><span class="ni-label">Kelola Produk</span></button>
-      <button class="nav-item" onclick="gotoPage('price-list',this)"><span class="ni-icon"><i class="ti ti-tag"></i></span><span class="ni-label">Price List</span></button>
       <button class="nav-item" onclick="gotoPage('channel',this)"><span class="ni-icon"><i class="ti ti-antenna"></i></span><span class="ni-label">Channel</span></button>
       <button class="nav-item" onclick="gotoPage('shopee-auth',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Shopee Connect</span></button>
 
@@ -158,7 +157,6 @@
     <div id="page-gadag" class="page"></div>
     <div id="page-jurnal-penjualan" class="page"></div>
     <div id="page-produk-terjual" class="page"></div>
-    <div id="page-price-list" class="page"></div>
     <div id="page-produk" class="page"></div>
     <div id="page-channel" class="page"></div>
     <div id="page-beban-operasional" class="page"></div>
@@ -222,7 +220,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20260929-1a05c29e388b';
+  window.APP_BUILD = '20260930-pricelist-manual';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -232,7 +230,7 @@
     var scripts = [
       'dialog.js','rough-ui.js','supabase.js','app.js','dashboard.js',
       'produk.js','stok.js','restock.js','stok-masuk.js','kas.js','gadag.js',
-      'jurnal-penjualan.js','produk-terjual.js','price-list.js',
+      'jurnal-penjualan.js','produk-terjual.js',
       'channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',
       'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','clearance-induk.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','analisis.js','autocomplete.js'

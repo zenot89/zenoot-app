@@ -137,7 +137,6 @@ var pageMap = {
   'kas':                { title:'Kas & Jurnal',        sub:'pencatatan arus kas harian'     },
   'gadag':              { title:'Gadag',                sub:'Bismillah . Ab damel hela !' },
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
-  'price-list':         { title:'Price List',          sub:'harga jual otomatis dari HPP'   },
   'produk':             { title:'Kelola Produk',       sub:'master SKU, HPP, dan boss'      },
   'channel':            { title:'Channel',             sub:'master data channel toko'       },
   'beban-operasional':  { title:'Beban Operasional',   sub:'acuan % beban & target NPM'     },
@@ -195,7 +194,7 @@ function gotoPage(page, btn) {
   var contentEl = document.querySelector('.content');
   var mainEl    = document.querySelector('.main');
   if (contentEl) {
-    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'clearance-induk', 'produk-terjual', 'restock', 'produk', 'price-list', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier', 'cost-produksi', 'anggaran', 'analisis'];
+    var fullHeightPages = ['stok', 'jurnal-penjualan', 'clearance', 'clearance-induk', 'produk-terjual', 'restock', 'produk', 'kas', 'penutupan-periode', 'gadag', 'hutang-supplier', 'cost-produksi', 'anggaran', 'analisis'];
     if (fullHeightPages.indexOf(page) !== -1) {
       // Full-height pages: paksa height chain html→body→main→content eksplisit
       // iOS Safari tidak bisa resolve flex:1 jika ancestor tidak punya height eksplisit
