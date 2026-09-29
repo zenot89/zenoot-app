@@ -63,15 +63,23 @@ document.getElementById('page-channel').innerHTML = `
     #page-channel > #ch-tabs-nav,
     #page-channel > #ch-tab-content-channel,
     #page-channel > #ch-tab-content-lainnya { max-width:none; }
+    /* [30 Sep 2026] Tab nav FREEZE saat halaman di-scroll (container scroll = .content).
+       box-shadow ke atas menutup padding .content (16px desktop / 10px HP) supaya isi yang lewat
+       tidak kelihatan di celah atas. z-index 20 < modal-overlay. */
+    #page-channel > #ch-tabs-nav {
+      position:sticky; top:0; z-index:20;
+      background:var(--cream); box-shadow:0 -16px 0 0 var(--cream);
+      padding-top:2px;
+    }
 
     /* Layout 2 kolom: kiri = daftar channel, kanan = Price List manual (lebih lebar) */
     .ch-grid { display:grid; grid-template-columns:minmax(380px,5fr) minmax(0,7fr); gap:14px; align-items:start; }
-    .ch-col-right { position:sticky; top:8px; }
+    .ch-col-right { position:sticky; top:44px; }   /* 44px = tinggi tab nav yang freeze + jarak */
     tr[data-action="pilih-ch"] { cursor:pointer; }
     tr[data-action="pilih-ch"].ch-row-sel { background:var(--cream2); box-shadow:inset 3px 0 0 var(--ink); }
 
     /* Panel Price List: card setinggi layar, header tabel FREEZE, hanya baris data yang scroll */
-    #chp-card { display:flex; flex-direction:column; height:calc(100vh - 150px); min-height:380px; margin-bottom:0; }
+    #chp-card { display:flex; flex-direction:column; height:calc(100vh - 186px); min-height:380px; margin-bottom:0; }
     #chp-card .card-title { flex-shrink:0; }
     #chp-body { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
     #chp-body > * { flex-shrink:0; }
@@ -117,8 +125,8 @@ document.getElementById('page-channel').innerHTML = `
   <!-- ══ TAB NAVIGATION ══ -->
   <div id="ch-tabs-nav">
     <button id="ch-tab-channel"  class="ch-tab-btn active" onclick="chSwitchTab('channel')">Channel</button>
+    <button id="ch-tab-lainnya"  class="ch-tab-btn"        onclick="chSwitchTab('lainnya')">Channel Lainnya</button>
     <button id="ch-tab-supplier" class="ch-tab-btn"        onclick="chSwitchTab('supplier')">Supplier &amp; ROP</button>
-    <button id="ch-tab-lainnya"  class="ch-tab-btn"        onclick="chSwitchTab('lainnya')">Lainnya</button>
   </div>
 
   <!-- ══ TAB: CHANNEL MASTER ══ -->
@@ -522,7 +530,7 @@ function cbUpdatePreview() {
   document.getElementById('cb-preview').innerHTML =
     'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
     'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>' +
-    '<br><span style="color:var(--ink3)">Price List ada di tab Lainnya (Offline, Reseller, Dropship).</span>';
+    '<br><span style="color:var(--ink3)">Price List ada di tab Channel Lainnya (Offline, Reseller, Dropship).</span>';
 }
 
 async function simpanChannelBeban() {
@@ -1261,19 +1269,22 @@ async function _chProdukLoad() {
 
 function _chProdukCount(id) { return Object.keys(_chProdukMap[String(id)] || {}).length; }
 
-var _cpId = '', _cpKat = '', _cpNama = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '', _cpPriced = {}, _cpTbl = '', _cpAddOnly = false;
+var _cpId = '', _cpKat = '', _cpNama = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '', _cpPriced = {}, _cpTbl = '', _cpAddOnly = false, _cpHasPL = false;
 
 // id = id channel ATAU 'kat:<kategori>' (pilihan tingkat kategori); kat = kategori channel / kategori itu sendiri
 async function showPilihProduk(id, nama, kat) {
   _cpId = String(id); _cpKat = kat; _cpNama = nama || ''; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {}; _cpPriced = {};
   _cpTbl = _chpTblOf(_cpId);
   var catKey = _cpId.indexOf('kat:') === 0 ? _cpId.slice(4) : kat;
-  // Offline/Reseller/Dropship (punya Price List) = TAMBAH-SAJA: yang sudah tampil di Price List tidak ditawarkan lagi.
-  _cpAddOnly = _CHP_KATS.indexOf(catKey) !== -1;
+  // [30 Sep 2026] SEMUA channel = TAMBAH-SAJA: katalog yang sudah dipilih/ada di daftar tidak ditampilkan lagi
+  // (pilih produk ke-2 dst hanya menawarkan yang belum ada). _cpHasPL = channel punya Price List (Offline/Reseller/Dropship)
+  // → yang sudah punya Net Income juga ikut disembunyikan. Shopee/Lazada/TikTok tidak punya Price List.
+  _cpHasPL   = _CHP_KATS.indexOf(catKey) !== -1;
+  _cpAddOnly = true;
   document.getElementById('cp-nama').textContent = _cpNama;
-  document.getElementById('cp-desc').textContent = _cpAddOnly
+  document.getElementById('cp-desc').textContent = _cpHasPL
     ? 'Hanya katalog dari Kelola Produk yang BELUM ditambahkan. Centang lalu Tambah — produk langsung masuk Price List. Untuk melepas produk, pakai Edit di tabel Price List.'
-    : 'Daftar diambil dari Kelola Produk (per katalog — semua varian ikut). Centang katalog yang dijual di channel ini.';
+    : 'Hanya katalog dari Kelola Produk yang BELUM ditambahkan ke channel ini. Centang lalu Tambah — semua varian ikut.';
   document.getElementById('cp-search').value = '';
   document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat produk dari Kelola Produk...</td></tr>';
   document.getElementById('cp-footer').textContent = '';
@@ -1282,7 +1293,7 @@ async function showPilihProduk(id, nama, kat) {
   var myId = _cpId;
   try {
     await _chpLoadProduk();
-    if (_cpAddOnly) {
+    if (_cpHasPL) {
       // yang sudah punya Net Income di tingkat ini
       var pr = await dbGet(_cpTbl, _chpQ(_cpId)).catch(function() { return []; });
       (pr || []).forEach(function(r) { _cpPriced[r.katalog] = r.id; });
