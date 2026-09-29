@@ -228,6 +228,13 @@
   #storeTopbar .store-badge .store-name{ color:var(--accent-dark); font-size:16px; font-weight:800; }
   #storeTopbar .store-badge.empty{ color:var(--ink-soft); font-weight:500; }
   #storeTopbar .store-badge.empty .dot{ background:var(--ink-soft); }
+  /* [29 Sep 2026] Tombol navigasi di topbar (Lihat Rekap / Lihat Rekap Mingguan / Lihat Rekap Proyeksi / tombol kembali / Data Pasar / Kalkulasi)
+     disamakan dengan badge pemilih toko: fill abu, border gelap 1px, radius 4, padding & ukuran font sama -> tinggi otomatis sama. Laptop saja (HP punya aturan sendiri di analisis.js). */
+  html:not(.zan-phone) #storeTopbar .store-title-wrap > .btn{
+    background:var(--title-bg); color:var(--ink); border:1px solid var(--ink); border-radius:4px;
+    padding:8px 16px 8px 12px; font-size:16px; font-weight:800; letter-spacing:0;
+  }
+  html:not(.zan-phone) #storeTopbar .store-title-wrap > .btn:hover{ background:var(--panel-alt); color:var(--ink); }
   .page{ display:none; }
   .page.active{ display:block; }
   .subview{ display:none; }

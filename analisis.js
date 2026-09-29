@@ -114,6 +114,12 @@
     '#analisis-tabs{display:none;-webkit-flex:none;flex:none;align-items:flex-end;gap:20px;padding:10px 16px 0;background:#F0F0F0;border-bottom:1px solid #D9D9D9;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}' +
     '#analisis-tabs::-webkit-scrollbar{display:none;}' +
     '#analisis-tabs.zan-tabs-right .zan-tab-btn:first-child{margin-left:auto;}' +   // margin-left:auto (bukan justify-content:flex-end) supaya tab paling kiri tetap bisa di-scroll kalau jendela sempit
+    // [29 Sep 2026] mode tombol (laptop, grup Rasio Keuangan): tab jadi tombol kotak ukuran proper (setara tombol Data Toko), aktif = hijau penuh
+    '#analisis-tabs.zan-tabs-right{align-items:center;gap:10px;padding:10px 16px;}' +
+    '#analisis-tabs.zan-tabs-right .zan-tab-btn{padding:10px 18px;font-size:13px;line-height:1.2;font-weight:700;color:#1B1E24;opacity:1;background:#E2E2E2;border:1px solid #1B1E24;border-radius:4px;}' +
+    '#analisis-tabs.zan-tabs-right .zan-tab-btn:hover{background:#D0D0D0;opacity:1;}' +
+    '#analisis-tabs.zan-tabs-right .zan-tab-btn.active{background:#156b3c;color:#fff;border-color:#156b3c;opacity:1;}' +
+    '#page-analisis.zan-tabs-btnmode #analisis-loading{top:68px;}' +
     '#page-analisis.zan-has-tabs #analisis-tabs{display:flex;}' +
     '#page-analisis.zan-has-tabs #analisis-loading{top:44px;}' +
     '.zan-tab-btn{-webkit-flex:none;flex:none;background:none;border:none;border-bottom:2px solid transparent;padding:4px 1px 8px;font-family:var(--f);font-size:13px;font-weight:700;color:#1B1E24;opacity:.6;cursor:pointer;white-space:nowrap;transition:opacity .15s ease,border-color .15s ease;}' +
@@ -523,6 +529,7 @@
     if (tabs.length < 2) {              // Setting: cuma 1 halaman → sembunyikan tab bar
       tabsEl.innerHTML = '';
       pageEl.classList.remove('zan-has-tabs');
+      pageEl.classList.remove('zan-tabs-btnmode');
       return;
     }
     var h = '';
@@ -532,6 +539,7 @@
     tabsEl.innerHTML = h;
     // [29 Sep 2026] grup Rasio Keuangan di laptop: 3 tab (RKS Overview/Mingguan/Proyeksi) rata kanan. HP tetap rata kiri (tab bar bisa di-scroll)
     tabsEl.classList.toggle('zan-tabs-right', group === 'rasio' && !isPhone());
+    pageEl.classList.toggle('zan-tabs-btnmode', group === 'rasio' && !isPhone());
     pageEl.classList.add('zan-has-tabs');
   }
 
