@@ -5595,6 +5595,24 @@ try{ renderCheckAdminQuickHistory(); }catch(e){ console.error('Gagal render riwa
 try{ renderCheckAdminEmptyState(); }catch(e){ console.error('Gagal render Check Admin empty state (init):', e); }
 
 /* ================= PAGE 3: HASIL RASIO KEUANGAN ================= */
+// [29 Sep 2026] Pesanan yang dananya SUDAH CAIR (ada di file Income) tapi tidak ditemukan di file Order Completed mana pun -> HPP-nya tidak terhitung sama sekali
+// dan TIDAK masuk missingHpp (missingHpp cuma menghitung baris yang ada di file order tapi SKU-nya belum punya HPP). Dihitung dari nomor pesanan saja.
+// [29 Sep 2026] teks konfirmasi sebelum simpan ke Rekap kalau HPP belum lengkap (baris tanpa HPP / pesanan cair yang tidak ada di file Order Completed). '' = aman.
+function hppSaveWarnText(h){
+  if(!h) return '';
+  const a = [];
+  if(h.missingHpp>0) a.push(h.missingHpp+' baris order belum punya HPP di Kelola Produk');
+  if(h.unmatchedReleased>0) a.push(h.unmatchedReleased+' pesanan yang sudah cair tidak ada di file Order Completed');
+  return a.length ? a.join(' dan ')+', jadi HPP di data ini terlalu kecil dan laba terlihat lebih tinggi dari sebenarnya. Tetap simpan ke Rekap?' : '';
+}
+function hppUnmatchedReleased(released, rows){
+  if(!released) return 0;
+  const seen = new Set();
+  rows.forEach(r=>{ seen.add((r['No. Pesanan']||'').toString().trim()); });
+  let n = 0;
+  released.forEach(no=>{ if(!seen.has(no)) n++; });
+  return n;
+}
 function computeHPPTotal(){
   const released = state.incomeFile ? state.incomeFile.releasedOrderNumbers : null;
   const rows = dedupedOrderRows();
@@ -5613,7 +5631,7 @@ function computeHPPTotal(){
     matchedOrders.add(noPesanan);
     qtyTotal += netQty;
   });
-  return {total, matchedLines, missingHpp, orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
+  return {total, matchedLines, missingHpp, unmatchedReleased:hppUnmatchedReleased(released, rows), orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
 }
 
 function computeAOVBasket(matchedOrderNumbers){
@@ -5685,7 +5703,7 @@ function hasilMetricsFromRekap(key){
   const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
   const pend = n(s.pendapatan), npm = n(s.npm);
   return { fromRekap:true, key,
-    hppCalc:{ orderCount: s.orderCount||0, missingHpp:0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
+    hppCalc:{ orderCount: s.orderCount||0, missingHpp: s.missingHpp||0, unmatchedReleased: s.unmatchedReleased||0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
     pendapatan:pend, penghasilan:n(s.penghasilan), hpp:n(s.hpp), operasional:n(s.operasional)||0, iklan:n(s.iklan),
     ratioAdmin:n(s.ratioAdmin)||0, canCompute:true, rasioOperasional:n(s.rasioOperasional), roas:n(s.roas), acos:n(s.acos),
     rasioMargin:n(s.rasioMargin), labaRugi:n(s.labaRugi), rasioLaba:n(s.rasioLaba), npm,
@@ -5757,6 +5775,7 @@ function renderHasil(){
       <h3 style="margin-bottom:0;">Overview</h3>
       ${/* [21 Sep 2026] badge "Dari Rekap" & tombol "Kembali ke data saat ini" DIHAPUS (btnHasilBackLive tidak dirender lagi) */''}
       ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
+      ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
       <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
@@ -5958,6 +5977,7 @@ document.getElementById('btnSimpanRekap').addEventListener('click', ()=>{
   snapshot.adminLayananBreakdown = state.incomeFile ? {...state.incomeFile.adminLayananBreakdown} : null;
   snapshot.biayaIsiSaldo = state.incomeFile ? state.incomeFile.biayaIsiSaldo : null;
   snapshot.orderCount = M.hppCalc.orderCount;
+  snapshot.missingHpp = M.hppCalc.missingHpp||0; snapshot.unmatchedReleased = M.hppCalc.unmatchedReleased||0;
   const doSave = ()=>{
     state.rekap[key] = snapshot;
     saveRekapToStorage();
@@ -5973,8 +5993,13 @@ document.getElementById('btnSimpanRekap').addEventListener('click', ()=>{
     setTimeout(()=>{ btn.textContent = original; }, 1600);
   };
   // Bulan itu udah ada di Rekap -> jangan nimpa diem-diem, tanya dulu.
-  if(state.rekap[key]) rekapConfirmOverwrite(key, state.rekap[key], snapshot, doSave);
-  else doSave();
+  const go = ()=>{
+    if(state.rekap[key]) rekapConfirmOverwrite(key, state.rekap[key], snapshot, doSave);
+    else doSave();
+  };
+  const warn = hppSaveWarnText(M.hppCalc);
+  if(warn) zConfirm(warn, {title:'HPP belum lengkap', type:'warn', ok:'Tetap simpan'}).then(ok=>{ if(ok) go(); });
+  else go();
 });
 
 /* ---------- Rekap: state kolom 12 bulan + mode pilih ---------- */
@@ -9357,7 +9382,7 @@ function computeHPPTotalM(){
     if(hpp===undefined){ missingHpp++; return; }
     total += hpp*netQty; matchedLines++; matchedOrders.add(noPesanan); qtyTotal += netQty;
   });
-  return {total, matchedLines, missingHpp, orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
+  return {total, matchedLines, missingHpp, unmatchedReleased:hppUnmatchedReleased(released, rows), orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
 }
 function computeAOVBasketM(matchedOrderNumbers){
   const rows = dedupedOrderRowsM();
@@ -9412,7 +9437,7 @@ function hasilMetricsFromRekapM(key){
   const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
   const pend = n(s.pendapatan), npm = n(s.npm);
   return { fromRekap:true, key,
-    hppCalc:{ orderCount: s.orderCount||0, missingHpp:0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
+    hppCalc:{ orderCount: s.orderCount||0, missingHpp: s.missingHpp||0, unmatchedReleased: s.unmatchedReleased||0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
     pendapatan:pend, penghasilan:n(s.penghasilan), hpp:n(s.hpp), operasional:n(s.operasional)||0, iklan:n(s.iklan),
     ratioAdmin:n(s.ratioAdmin)||0, canCompute:true, rasioOperasional:n(s.rasioOperasional), roas:n(s.roas), acos:n(s.acos),
     rasioMargin:n(s.rasioMargin), labaRugi:n(s.labaRugi), rasioLaba:n(s.rasioLaba), npm,
@@ -9493,6 +9518,7 @@ function renderHasilM(){
       <h3 style="margin-bottom:0;">Overview</h3>
       ${periodeChip}
       ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
+      ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
       <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
@@ -9543,6 +9569,7 @@ document.getElementById('btnSimpanRekapM').addEventListener('click', async ()=>{
   if(hasilViewKeyM) return;   // lagi lihat minggu dari Rekap Mingguan: gak ada yang perlu disimpen
   const M = computeHasilMetricsM();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan minggu ini) sebelum disimpan ke Rekap Mingguan.'); return; }
+  { const w = hppSaveWarnText(M.hppCalc); if(w && !(await zConfirm(w, {title:'HPP belum lengkap', type:'warn', ok:'Tetap simpan'}))) return; }
   const info = weekInfoFromIncome();
   if(!info){
     alert('Tanggal periode (baris "Dari" & "ke" di sheet Summary) gak kebaca dari file Income minggu ini, jadi minggunya gak bisa ditentuin. Coba upload ulang file Income aslinya dari Shopee.');
@@ -9556,6 +9583,7 @@ document.getElementById('btnSimpanRekapM').addEventListener('click', async ()=>{
   snapshot.adminLayananBreakdown = state.mingguan.incomeFile ? {...state.mingguan.incomeFile.adminLayananBreakdown} : null;
   snapshot.biayaIsiSaldo = state.mingguan.incomeFile ? state.mingguan.incomeFile.biayaIsiSaldo : null;
   snapshot.orderCount = M.hppCalc.orderCount;
+  snapshot.missingHpp = M.hppCalc.missingHpp||0; snapshot.unmatchedReleased = M.hppCalc.unmatchedReleased||0;
   state.mingguan.rekap[info.key] = snapshot;
   saveRekapMingguanToStorage();
   rekapMYm = { y: info.y, m: info.m };   // langsung lompat ke bulan minggu yang barusan disimpan
@@ -10163,7 +10191,7 @@ function computeHPPTotalP(){
     if(hpp===undefined){ missingHpp++; return; }
     total += hpp*netQty; matchedLines++; matchedOrders.add(noPesanan); qtyTotal += netQty;
   });
-  return {total, matchedLines, missingHpp, orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
+  return {total, matchedLines, missingHpp, unmatchedReleased:hppUnmatchedReleased(released, rows), orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
 }
 function computeAOVBasketP(matchedOrderNumbers){
   const rows = dedupedOrderRowsP();
@@ -10215,7 +10243,7 @@ function hasilMetricsFromRekapP(key){
   const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
   const pend = n(s.pendapatan), npm = n(s.npm);
   return { fromRekap:true, key,
-    hppCalc:{ orderCount: s.orderCount||0, missingHpp:0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
+    hppCalc:{ orderCount: s.orderCount||0, missingHpp: s.missingHpp||0, unmatchedReleased: s.unmatchedReleased||0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
     pendapatan:pend, penghasilan:n(s.penghasilan), hpp:n(s.hpp), operasional:n(s.operasional)||0, iklan:n(s.iklan),
     ratioAdmin:n(s.ratioAdmin)||0, canCompute:true, rasioOperasional:n(s.rasioOperasional), roas:n(s.roas), acos:n(s.acos),
     rasioMargin:n(s.rasioMargin), labaRugi:n(s.labaRugi), rasioLaba:n(s.rasioLaba), npm,
@@ -10321,6 +10349,7 @@ function renderHasilP(){
       <h3 style="margin-bottom:0;">Overview</h3>
       ${periodeChip}
       ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
+      ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
       <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
@@ -10376,6 +10405,7 @@ document.getElementById('btnSimpanRekapP').addEventListener('click', async ()=>{
   if(hasilViewKeyP) return;   // lagi lihat bulan dari Rekap Proyeksi: gak ada yang perlu disimpen
   const M = computeHasilMetricsP();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan bulan berjalan) sebelum disimpan ke Rekap Proyeksi.'); return; }
+  { const w = hppSaveWarnText(M.hppCalc); if(w && !(await zConfirm(w, {title:'HPP belum lengkap', type:'warn', ok:'Tetap simpan'}))) return; }
   const pi = proyeksiInfoFromIncome();
   if(!pi){ alert('Tanggal periode (baris "Dari" & "ke" di sheet Summary) gak kebaca dari file Income ini, jadi bulannya gak bisa ditentuin. Coba upload ulang file Income aslinya dari Shopee.'); return; }
   if(!pi.sameMonth){ alert('Periode di file Income ini ('+pi.label+') melewati pergantian bulan. Proyeksi RKS harus dalam 1 bulan yang sama: tanggal 1 sampai hari ini.'); return; }
@@ -10394,6 +10424,7 @@ document.getElementById('btnSimpanRekapP').addEventListener('click', async ()=>{
   snapshot.adminLayananBreakdown = state.proyeksi.incomeFile ? {...state.proyeksi.incomeFile.adminLayananBreakdown} : null;
   snapshot.biayaIsiSaldo = state.proyeksi.incomeFile ? state.proyeksi.incomeFile.biayaIsiSaldo : null;
   snapshot.orderCount = M.hppCalc.orderCount;
+  snapshot.missingHpp = M.hppCalc.missingHpp||0; snapshot.unmatchedReleased = M.hppCalc.unmatchedReleased||0;
   state.proyeksi.rekap[pi.key] = snapshot;
   saveRekapProyeksiToStorage();
   rekapPYear = pi.y;
