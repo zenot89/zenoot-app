@@ -205,11 +205,14 @@
     'html.zan-phone #storeTopbar .store-badge{flex:1 1 auto;min-width:0;height:40px;box-sizing:border-box;color:#000;}',
     'html.zan-phone #storeTopbar .store-badge .store-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;}',
     'html.zan-phone #storeTopbar .store-badge .caret{margin-left:auto;color:#000;}',
+    // [30 Sep 2026] nama toko jangan kepotong: badge lebih lebar (tombol bulan/periode 30%->25%, jarak 5%->3%) + font/padding/jarak badge dirampingkan. Berlaku sama di RKS Overview, Mingguan & Proyeksi.
+    'html.zan-phone #storeTopbar .store-badge{padding:8px 10px 8px 10px;gap:6px;}',
+    'html.zan-phone #storeTopbar .store-badge .store-name{font-size:14px;letter-spacing:-.3px;}',
     // di RKS Overview badge toko bergeser ke kanan, tombol bulan (fixed, di atas topbar) menempati sisi kiri baris yang sama
     // [23 Sep 2026] lebar dibuat proporsi tetap dari lebar baris beneran (100vw dikurangi padding topbar 24px, lihat #storeTopbar.embed di atas):
     // tombol bulan 30%, jarak 5%, badge toko sisanya (flex:1 1 auto otomatis ngisi 65%) — sebelumnya vw+8px flat, kurang presisi & badge kepotong
-    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .35);}',
-    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;}',
+    'html.zan-phone[data-zan-page="hasil"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .28);}',
+    'html.zan-phone #btnHasilMonth{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .25);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 8px;color:#000;font-size:12.5px;font-weight:700;white-space:nowrap;}',
     'html.zan-phone #btnHasilMonth:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilMonth *{color:#000;}',
     // tombol & panel eksekusi → hilang di HP
@@ -228,7 +231,7 @@
     'html.zan-phone #page-hasil.active,html.zan-phone #page-hasilM.active,html.zan-phone #page-hasilP.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
     // [21 Sep 2026] RKS Mingguan di HP: satu baris header [Periode ▾] kiri + [Toko ▾] tengah + [PDF] kanan (tombol periode & PDF melayang di atas topbar, sama polanya dengan tombol bulan RKS Overview)
     // [23 Sep 2026] proporsi tetap sama kayak #btnHasilMonth di atas: tombol periode 30% dari lebar baris
-    'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
+    'html.zan-phone #btnHasilPeriodM{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .25);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 8px;color:#000;font-size:12.5px;font-weight:700;white-space:nowrap;}',
     'html.zan-phone #btnHasilPeriodM:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilPeriodM *{color:#000;}',
     'html.zan-phone #btnHasilPeriodM #hasilPeriodLabelM{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
@@ -238,15 +241,15 @@
     //   #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;...;font-size:0;} + #btnExportPDFM::after{content:"PDF";...}
     // [21 Sep 2026] margin-right badge toko 56px -> 0 (tombol PDF sudah tidak ada di header)
     // [23 Sep 2026] ikut proporsi tombol periode baru: margin-left 35% (30% lebar tombol + 5% jarak), badge sisanya 65%
-    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .35);margin-right:0;}',
+    'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .28);margin-right:0;}',
     // [30 Sep 2026] Proyeksi RKS di HP: header [Bulan ▾][Toko ▾] — persis pola RKS Overview (bulan) & RKS Mingguan (periode), proporsi 30% / 5% / 65%
-    'html.zan-phone #btnHasilPeriodP{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .3);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#000;font-size:13.5px;font-weight:700;white-space:nowrap;}',
+    'html.zan-phone #btnHasilPeriodP{position:fixed;top:8px;left:12px;width:calc((100vw - 24px) * .25);height:40px;box-sizing:border-box;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 8px;color:#000;font-size:12.5px;font-weight:700;white-space:nowrap;}',
     'html.zan-phone #btnHasilPeriodP:not(.active){background:var(--title-bg);border:1px solid var(--ink);border-radius:4px;}',
     'html.zan-phone #btnHasilPeriodP *{color:#000;}',
     'html.zan-phone #btnHasilPeriodP #hasilPeriodLabelP{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
     'html.zan-phone #btnHasilPeriodP .hp-full{display:none;}',
     'html.zan-phone #btnHasilPeriodP .hp-short{display:inline;}',
-    'html.zan-phone[data-zan-page="hasilP"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .35);margin-right:0;}',
+    'html.zan-phone[data-zan-page="hasilP"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .28);margin-right:0;}',
     // pemilih toko (popover): ganti toko boleh, tambah/ubah nama/hapus toko tidak
     'html.zan-phone .toko-pop{width:min(290px,calc(100vw - 16px));}',
     // [21 Sep 2026] popup pilih bulan/minggu: posisinya dari JS = nempel ke tombol (miring ke kiri di HP) → di HP dipaksa tepat di tengah layar
