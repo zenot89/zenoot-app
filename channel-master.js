@@ -11,6 +11,11 @@
 // CATATAN NAMA: key DB 'reseller' = Dropship (kategori lama diganti nama); Reseller sungguhan = key 'reseller_baru'. Shopee/Lazada/TikTok tidak pakai Price List
 // (harga jual bergerak karena promo/voucher; margin dihitung dari harga jual aktual). Data
 // channel_harga lama milik toko-toko itu TIDAK dihapus, cuma tidak ditampilkan.
+// 30 Sep 2026 (malam, revisi): harga jual sekarang DIHITUNG dari NET INCOME dalam RUPIAH:
+// Harga Jual = HPP + Net Income. User cuma mengetik Net Income (IDR) per katalog; kolom Harga Jual
+// read-only. Net Income disimpan di kolom net_income (channel_harga & channel_kategori_harga), jadi
+// kalau HPP berubah, harga jual ikut (Net Income tetap). harga_jual di DB = snapshot (NOT NULL), tidak
+// dipakai untuk hitung. Baris LAMA (net_income NULL) tetap dianggap harga tetap = harga_jual.
 // 30 Sep 2026 (malam): PILIH PRODUK per channel — tombol "Produk" (ikon kotak + jumlah) di kolom Aksi
 // SEMUA baris channel (tab Channel & Lainnya). Daftar katalog diambil dari Kelola Produk (produk aktif +
 // clearance), pilihan disimpan per KATALOG (semua varian ikut) di tabel channel_produk (channel_id, katalog).
@@ -68,7 +73,8 @@ document.getElementById('page-channel').innerHTML = `
     #chp-table td { overflow:hidden; text-overflow:ellipsis; }
     #chp-table .chp-c-chk   { width:44px; text-align:center; }
     #chp-table .chp-c-hpp   { width:130px; }
-    #chp-table .chp-c-harga { width:190px; }
+    #chp-table .chp-c-ni    { width:150px; }
+    #chp-table .chp-c-harga { width:130px; }
     #chp-table .chp-c-npm   { width:90px; }
     #chp-table:not(.chp-bulk) .chp-c-chk { display:none; }
     #chp-table .chp-chk { width:17px; height:17px; cursor:pointer; accent-color:var(--ink); }
@@ -91,7 +97,8 @@ document.getElementById('page-channel').innerHTML = `
     @media (max-width:600px) {
       #chp-table .chp-c-hpp { display:none; }
       #chp-table .chp-c-chk { width:38px; }
-      #chp-table .chp-c-harga { width:38%; }
+      #chp-table .chp-c-ni { width:36%; }
+      #chp-table .chp-c-harga { width:28%; }
       #chp-table .chp-c-npm { width:64px; }
     }
   </style>
@@ -240,8 +247,8 @@ document.getElementById('page-channel').innerHTML = `
           <input type="text" id="chp-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="chpFilter(this.value)"
             style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
           <div class="chp-bulkbar" id="chp-bulkbar" style="display:none">
-            <span class="chp-bulk-lbl">Harga baru</span>
-            <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 75.000" autocomplete="off" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
+            <span class="chp-bulk-lbl">Net Income</span>
+            <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 15.000" autocomplete="off" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
             <button class="btn btn-sm btn-primary" id="chp-bulk-btn" onclick="chpBulkTerapkan()"><i class="ti ti-check"></i> Terapkan (0)</button>
             <button class="btn btn-sm" onclick="chpBulkBatal()"><i class="ti ti-x"></i> Batal</button>
           </div>
@@ -250,6 +257,7 @@ document.getElementById('page-channel').innerHTML = `
               <th class="chp-c-chk"><input type="checkbox" class="chp-chk" id="chp-chk-all" onchange="chpToggleAll(this.checked)" title="Pilih semua yang tampil"></th>
               <th>Katalog</th>
               <th class="chp-c-hpp" style="text-align:right">HPP</th>
+              <th class="chp-c-ni" style="text-align:right">Net Income</th>
               <th class="chp-c-harga" style="text-align:right">Harga Jual</th>
               <th class="chp-c-npm" style="text-align:center">NPM</th>
             </tr></thead>
@@ -257,7 +265,7 @@ document.getElementById('page-channel').innerHTML = `
           </table></div>
           <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
           <div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5">
-            Urutan harga: harga toko → harga kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut harga kategori, hitam = harga sendiri. Ketik harga lalu Enter/pindah kolom untuk menyimpan; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
+            Harga Jual = HPP + Net Income (Rp). Ketik Net Income lalu Enter/pindah kolom untuk menyimpan. Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
           </div>
         </div>
       </div>
@@ -674,11 +682,19 @@ function _chpQ(key) {
     ? '&kategori=eq.' + encodeURIComponent(key.slice(4))
     : '&channel_id=eq.' + encodeURIComponent(key);
 }
-function _chpMkRow(key, katalog, val) {
+// val = NET INCOME (Rp); harga_jual = snapshot HPP + Net Income (kolom NOT NULL, tidak dipakai menghitung)
+function _chpMkRow(key, katalog, val, hpp) {
   key = String(key);
+  var hj = (Number(hpp) || 0) + val;
   return key.indexOf('kat:') === 0
-    ? { kategori: key.slice(4), katalog: katalog, harga_jual: val }
-    : { channel_id: key, katalog: katalog, harga_jual: val };
+    ? { kategori: key.slice(4), katalog: katalog, harga_jual: hj, net_income: val }
+    : { channel_id: key, katalog: katalog, harga_jual: hj, net_income: val };
+}
+// Harga berlaku dari 1 baris DB: net_income terisi → HPP + net_income; NULL (baris lama) → harga_jual tetap
+function _chpRowEff(row, hpp) {
+  if (!row) return 0;
+  if (row.net_income !== null && row.net_income !== undefined && row.net_income !== '') return (Number(hpp) || 0) + Number(row.net_income);
+  return Number(row.harga_jual) || 0;
 }
 
 function _chpEsc(t) {
@@ -730,20 +746,28 @@ function _chpKatalogList() {
   return all.filter(function(k) { return !!set[k.katalog]; });
 }
 
-// hitung 1 baris → 1 harga berlaku. Urutan: harga sendiri (toko / kategori yg sedang dibuka)
-// → harga kategori (hanya mode toko) → otomatis. src: 'own' | 'kat' | 'auto'
+// hitung 1 baris → 1 harga berlaku. Urutan: Net Income sendiri (toko / kategori yg sedang dibuka)
+// → Net Income kategori (hanya mode toko) → otomatis. src: 'own' | 'kat' | 'auto'
+// Harga Jual = HPP + Net Income (baris lama tanpa net_income = harga tetap).
 function _chpCalc(k) {
   var m      = _chpBeban();
   var mult   = 1 + (m.beban + m.npm) / 100;
   var auto   = m.mixed ? 0 : Math.ceil(k.hpp * mult);
-  var man    = _chpHarga[k.katalog];
-  var manual = man ? (Number(man.harga_jual) || 0) : 0;
-  var kh     = (!_chpIsKat() && _chpKatHarga[k.katalog]) ? (Number(_chpKatHarga[k.katalog].harga_jual) || 0) : 0;
-  var eff    = manual || kh || auto;
-  var src    = manual ? 'own' : (kh ? 'kat' : 'auto');
+  var man    = _chpHarga[k.katalog] || null;
+  var khRow  = (!_chpIsKat() && _chpKatHarga[k.katalog]) ? _chpKatHarga[k.katalog] : null;
+  var manEff = man ? _chpRowEff(man, k.hpp) : 0;
+  var kh     = khRow ? _chpRowEff(khRow, k.hpp) : 0;
+  var src    = man ? 'own' : (khRow ? 'kat' : 'auto');
+  var eff    = man ? manEff : (khRow ? kh : auto);
   var npmEst = (k.hpp > 0 && eff > 0 && !m.mixed) ? ((eff - k.hpp) / k.hpp * 100 - m.beban) : null;
   var ok     = npmEst !== null && npmEst >= m.npm - 0.05;
-  return { hpp: k.hpp, auto: auto, manual: manual, kat: kh, eff: eff, src: src, npmEst: npmEst, ok: ok, isManual: !!manual, m: m };
+  return { hpp: k.hpp, auto: auto, manual: manEff, manNi: man ? (manEff - k.hpp) : null, ni: eff > 0 || man || khRow ? (eff - k.hpp) : null, kat: kh, eff: eff, src: src, npmEst: npmEst, ok: ok, isManual: !!man, m: m };
+}
+
+function _chpHjHtml(c) {
+  if (!(c.eff > 0)) return '<span style="color:var(--ink3)">—</span>';
+  if (c.src === 'auto') return '<span style="color:var(--ink3);font-style:italic">' + fmtRpFull(c.eff) + '</span>';
+  return '<span style="font-weight:' + (c.src === 'own' ? '700' : '500') + '">' + fmtRpFull(c.eff) + '</span>';
 }
 
 function _chpNpmHtml(c) {
@@ -823,7 +847,7 @@ function chpFilter(q) {
   chpRender();
 }
 
-function _chpCols() { return _chpBulk ? 5 : 4; }
+function _chpCols() { return _chpBulk ? 6 : 5; }
 
 // Tombol header: Edit Massal (toko & kategori) + Isi dari rumus lama (hanya toko), tersembunyi saat mode massal
 function _chpSyncButtons() {
@@ -877,11 +901,12 @@ function chpRender() {
       '<td class="chp-c-chk"><input type="checkbox" class="chp-chk" data-idx="' + i + '"' + (chk ? ' checked' : '') + ' onchange="chpToggleRow(' + i + ',this.checked)"></td>' +
       '<td style="font-weight:600" title="' + _chpEsc(k.katalog) + '">' + _chpEsc(k.katalog) + '</td>' +
       '<td class="chp-c-hpp" style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
-      '<td class="chp-c-harga" style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.src === 'own' ? ' manual' : (c.src === 'kat' ? ' kat' : '')) + '"' +
-        ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manual) : '') + '"' +
-        ' placeholder="' + (c.eff > 0 ? _chpFmt(c.eff) : '—') + '"' +
+      '<td class="chp-c-ni" style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.src === 'own' ? ' manual' : (c.src === 'kat' ? ' kat' : '')) + '"' +
+        ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manNi) : '') + '"' +
+        ' placeholder="' + (c.ni !== null && c.eff > 0 ? _chpFmt(c.ni) : '—') + '"' +
         ' oninput="chpFmtInput(this)" onfocus="this.select()" onchange="chpSimpan(this)"' +
         ' onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
+      '<td class="chp-c-harga chp-hj" style="text-align:right">' + _chpHjHtml(c) + '</td>' +
       '<td class="chp-c-npm chp-npm" style="text-align:center">' + _chpNpmHtml(c) + '</td>' +
     '</tr>';
   }).join('');
@@ -908,33 +933,37 @@ async function chpSimpan(inp) {
   if (!row || !chId) return;
   var tbl = _chpTblOf(chId);
   var raw = String(inp.value || '').replace(/\D/g, '');
-  var val = raw ? parseInt(raw, 10) : 0;
+  var val = raw === '' ? null : parseInt(raw, 10);   // Net Income (Rp); kosong = hapus, 0 = valid
   var cur = _chpHarga[row.katalog];
   try {
-    if (!val) {
+    if (val === null) {
       if (cur) { await dbDelete(tbl, cur.id); delete _chpHarga[row.katalog]; }
     } else if (cur) {
-      if (Number(cur.harga_jual) !== val) {
-        await dbUpdate(tbl, cur.id, { harga_jual: val });
-        cur.harga_jual = val;
+      var curNi = (cur.net_income !== null && cur.net_income !== undefined) ? Number(cur.net_income) : (Number(cur.harga_jual) || 0) - row.hpp;
+      if (cur.net_income === null || cur.net_income === undefined || curNi !== val) {
+        await dbUpdate(tbl, cur.id, { net_income: val, harga_jual: row.hpp + val });
+        cur.net_income = val; cur.harga_jual = row.hpp + val;
       }
     } else {
-      var ins = await dbInsert(tbl, _chpMkRow(chId, row.katalog, val));
+      var ins = await dbInsert(tbl, _chpMkRow(chId, row.katalog, val, row.hpp));
       if (ins && ins[0]) _chpHarga[row.katalog] = ins[0];
     }
   } catch (err) {
-    alert('Gagal simpan harga: ' + err.message);
+    var em = String(err && err.message || err);
+    alert('Gagal simpan Net Income: ' + em + (/net_income/i.test(em) ? '\n\nKolom net_income belum ada — jalankan channel_net_income.sql di Supabase dulu.' : ''));
   }
   if (chId !== _chpSelId) return;
   // update baris ini saja (bukan render ulang) supaya Tab ke baris berikutnya tidak putus
   var c = _chpCalc(row);
   inp.classList.toggle('manual', c.src === 'own');
   inp.classList.toggle('kat', c.src === 'kat');
-  inp.value = c.isManual ? _chpFmt(c.manual) : '';
-  inp.placeholder = c.eff > 0 ? _chpFmt(c.eff) : '—';
+  inp.value = c.isManual ? _chpFmt(c.manNi) : '';
+  inp.placeholder = (c.ni !== null && c.eff > 0) ? _chpFmt(c.ni) : '—';
   var tr = inp.closest('tr');
   var npmTd = tr ? tr.querySelector('.chp-npm') : null;
   if (npmTd) npmTd.innerHTML = _chpNpmHtml(c);
+  var hjTd = tr ? tr.querySelector('.chp-hj') : null;
+  if (hjTd) hjTd.innerHTML = _chpHjHtml(c);
   _chpUpdateFooter();
 }
 
@@ -1020,57 +1049,48 @@ async function chpBulkTerapkan() {
   if (!pilih.length) { alert('Pilih katalog dulu — centang di kolom paling kiri.'); return; }
 
   var raw = String(document.getElementById('chp-bulk-harga').value || '').replace(/\D/g, '');
-  var val = raw ? parseInt(raw, 10) : 0;
+  var val = raw === '' ? null : parseInt(raw, 10);   // Net Income (Rp); kosong = hapus, 0 = valid
   var adaManual = pilih.filter(function(k) { return !!_chpHarga[k]; });
+  var hppMap = {};
+  _chpKatalogList().forEach(function(k) { hppMap[k.katalog] = k.hpp; });
 
-  if (!val) {
-    // harga kosong = kembalikan ke otomatis (hapus harga manual)
-    if (!adaManual.length) { alert('Isi harga baru dulu.'); return; }
+  if (val === null) {
+    // Net Income kosong = kembalikan ke otomatis (hapus baris manual)
+    if (!adaManual.length) { alert('Isi Net Income dulu.'); return; }
     var okKosong = await zConfirm(
-      'Harga baru kosong. Hapus harga manual ' + adaManual.length + ' katalog terpilih (' + (_chpIsKat() ? 'kembali ke otomatis' : 'ikut harga kategori / otomatis') + ')?',
+      'Net Income kosong. Hapus pengaturan manual ' + adaManual.length + ' katalog terpilih (' + (_chpIsKat() ? 'kembali ke otomatis' : 'ikut kategori / otomatis') + ')?',
       { title: 'Kembalikan ke otomatis?', ok: 'Ya, hapus', type: 'danger' }
     );
     if (!okKosong) return;
-  } else {
-    // pengaman salah ketik: harga di bawah HPP
-    var hppMap = {};
-    _chpKatalogList().forEach(function(k) { hppMap[k.katalog] = k.hpp; });
-    var rugi = pilih.filter(function(k) { return hppMap[k] > 0 && val < hppMap[k]; });
-    if (rugi.length) {
-      var okRugi = await zConfirm(
-        rugi.length + ' dari ' + pilih.length + ' katalog terpilih akan punya harga di BAWAH HPP (' + fmtRpFull(val) + '). Tetap terapkan?',
-        { title: 'Harga di bawah HPP', ok: 'Tetap terapkan', type: 'danger' }
-      );
-      if (!okRugi) return;
-    }
   }
 
   var btn = document.getElementById('chp-bulk-btn');
   if (btn) btn.disabled = true;
   var msg = '';
   try {
-    if (!val) {
+    if (val === null) {
       await Promise.all(adaManual.map(function(k) { return dbDelete(tbl, _chpHarga[k].id); }));
       adaManual.forEach(function(k) { delete _chpHarga[k]; });
-      msg = adaManual.length + (_chpIsKat() ? ' katalog dikembalikan ke otomatis' : ' katalog harga toko dihapus (ikut kategori / otomatis)');
+      msg = adaManual.length + (_chpIsKat() ? ' katalog dikembalikan ke otomatis' : ' katalog toko dihapus (ikut kategori / otomatis)');
     } else {
       var upd = [], ins = [];
       pilih.forEach(function(k) {
         var cur = _chpHarga[k];
-        if (cur) { if (Number(cur.harga_jual) !== val) upd.push(cur); }
-        else ins.push(_chpMkRow(chId, k, val));
+        var hp  = hppMap[k] || 0;
+        if (cur) { if (cur.net_income === null || cur.net_income === undefined || Number(cur.net_income) !== val) upd.push({ cur: cur, hp: hp }); }
+        else ins.push(_chpMkRow(chId, k, val, hp));
       });
-      await Promise.all(upd.map(function(cur) {
-        return dbUpdate(tbl, cur.id, { harga_jual: val }).then(function() { cur.harga_jual = val; });
+      await Promise.all(upd.map(function(u) {
+        return dbUpdate(tbl, u.cur.id, { net_income: val, harga_jual: u.hp + val }).then(function() { u.cur.net_income = val; u.cur.harga_jual = u.hp + val; });
       }));
       if (ins.length) {
         var res = await dbInsert(tbl, ins);
         (res || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
       }
-      msg = pilih.length + ' katalog diset ke ' + fmtRpFull(val);
+      msg = pilih.length + ' katalog diset Net Income ' + fmtRpFull(val);
     }
   } catch (err) {
-    alert('Gagal menerapkan: ' + err.message);
+    alert('Gagal menerapkan: ' + err.message + (/net_income/i.test(String(err.message)) ? '\n\nKolom net_income belum ada — jalankan channel_net_income.sql di Supabase dulu.' : ''));
     await _chpReloadHarga(chId);   // sinkron ulang dgn database supaya tampilan jujur
     if (btn) btn.disabled = false;
     if (chId === _chpSelId) chpRender();
@@ -1105,7 +1125,8 @@ async function chpSeed() {
   if (!ok) return;
   try {
     var payload = todo.map(function(k) {
-      return { channel_id: chId, katalog: k.katalog, harga_jual: Math.ceil(k.hpp * mult) };
+      var h = Math.ceil(k.hpp * mult);
+      return { channel_id: chId, katalog: k.katalog, harga_jual: h, net_income: h - k.hpp };
     });
     var ins = await dbInsert('channel_harga', payload);
     (ins || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
