@@ -2394,7 +2394,7 @@ async function _hsResolveSupplierId(selectId, baruInputId) {
 }
 
 // ─── TAMBAH / EDIT BON ────────────────────────────────────────
-function hsOnBonSupplierChange() {
+async function hsOnBonSupplierChange() {
   var sel = document.getElementById('hs-bon-supplier-select');
   var baruEl = document.getElementById('hs-bon-supplier-baru');
   baruEl.style.display = sel.value === '__baru__' ? 'block' : 'none';
@@ -2402,7 +2402,7 @@ function hsOnBonSupplierChange() {
   var newSupplierId = sel.value === '__baru__' ? null : parseInt(sel.value, 10);
   if (newSupplierId !== _hsCurrentBonSupplierId) {
     var hasFilledRows = _hsItemRows.some(function(r){ return r.barang_id || r.nama_internal || r.nama_supplier; });
-    if (hasFilledRows && !confirm('Ganti supplier bakal reset baris barang yang udah diisi (master barang beda per supplier). Lanjut?')) {
+    if (hasFilledRows && !(await zConfirm('Ganti supplier bakal reset baris barang yang udah diisi (master barang beda per supplier). Lanjut?', {title: 'Ganti supplier?', ok: 'Ganti & reset'}))) {
       // Batal — balikin pilihan select ke supplier sebelumnya
       sel.value = _hsCurrentBonSupplierId || '__baru__';
       baruEl.style.display = sel.value === '__baru__' ? 'block' : 'none';
@@ -2484,12 +2484,12 @@ function _hsUpdateBonFormBySupplier() {
 // Toggle Dropship/PO di form Bon (cuma nongol buat supplier dual-mode).
 // Sama kayak ganti supplier: kalau udah ada baris keisi, konfirmasi dulu
 // sebelum reset — soalnya harga per mode beda (dropship vs PO).
-function hsOnBonModeChange() {
+async function hsOnBonModeChange() {
   var modeEl = document.querySelector('input[name="hs-bon-mode"]:checked');
   var newMode = modeEl ? modeEl.value : 'dropship';
   if (newMode === _hsCurrentBonMode) return;
   var hasFilledRows = _hsItemRows.some(function(r){ return r.barang_id; });
-  if (hasFilledRows && !confirm('Ganti mode beli bakal reset baris barang yang udah diisi (harga beda per mode). Lanjut?')) {
+  if (hasFilledRows && !(await zConfirm('Ganti mode beli bakal reset baris barang yang udah diisi (harga beda per mode). Lanjut?', {title: 'Ganti mode beli?', ok: 'Ganti & reset'}))) {
     var prevEl = document.querySelector('input[name="hs-bon-mode"][value="' + _hsCurrentBonMode + '"]');
     if (prevEl) prevEl.checked = true;
     return;
@@ -2809,7 +2809,7 @@ async function hsSimpanBon() {
 async function hsHapusBon() {
   var id = document.getElementById('hs-bon-id').value;
   if (!id) return;
-  if (!confirm('Hapus bon ini? Semua item & riwayat pembayarannya ikut terhapus.')) return;
+  if (!(await zConfirm('Hapus bon ini? Semua item & riwayat pembayarannya ikut terhapus.', {title: 'Hapus bon?', ok: 'Hapus'}))) return;
   try {
     await dbDelete('hutang_bon', id); // cascade hapus item & pembayaran
     hsCloseSheet('hs-sheet-bon');
@@ -3011,7 +3011,7 @@ async function hsSimpanTerimaBarang() {
   var tglInput = document.getElementById('hs-detail-tgl-diterima');
   var tglDiterima = (tglInput && tglInput.value) ? tglInput.value : new Date().toISOString().slice(0,10);
   if (b0 && b0.tanggal && tglDiterima < b0.tanggal) {
-    if (!confirm('Tanggal diterima (' + tglDiterima + ') lebih awal dari tanggal bon (' + b0.tanggal + '). Yakin lanjut?')) return;
+    if (!(await zConfirm('Tanggal diterima (' + tglDiterima + ') lebih awal dari tanggal bon (' + b0.tanggal + '). Yakin lanjut?', {title: 'Tanggal terima janggal', type: 'warn', ok: 'Yakin, lanjut'}))) return;
   }
 
   var rows = document.querySelectorAll('#hs-terima-list [data-item-id]');
@@ -3027,7 +3027,7 @@ async function hsSimpanTerimaBarang() {
     updates.push({ id: id, qty_diterima: qtyDiterima });
   });
 
-  if (adaKurang && !confirm('Ada barang yang diterima kurang dari yang dipesan. Tandai barang diterima dengan catatan kekurangan ini?')) return;
+  if (adaKurang && !(await zConfirm('Ada barang yang diterima kurang dari yang dipesan. Tandai barang diterima dengan catatan kekurangan ini?', {title: 'Ada barang kurang', type: 'warn', ok: 'Tandai diterima'}))) return;
 
   try {
     // Update qty_diterima per item DULU (butuh kolom qty_diterima di tabel
@@ -3372,7 +3372,7 @@ async function hsSimpanBayarGabungan() {
 
   var totalSisa = bons.reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
   if (nominal > totalSisa + 1) {
-    if (!confirm('Nominal (' + fmtRpFull(nominal) + ') lebih besar dari total sisa hutang supplier ini (' + fmtRpFull(totalSisa) + '). Lanjut tetap? (Kelebihannya nggak dialokasikan ke mana-mana)')) return;
+    if (!(await zConfirm('Nominal (' + fmtRpFull(nominal) + ') lebih besar dari total sisa hutang supplier ini (' + fmtRpFull(totalSisa) + '). Lanjut tetap? (Kelebihannya nggak dialokasikan ke mana-mana)', {title: 'Nominal melebihi sisa hutang', type: 'warn', ok: 'Lanjut tetap'}))) return;
   }
 
   try {
@@ -3992,7 +3992,7 @@ function hsBrgSkuPickerSelectSingle(produkId) {
 async function hsHapusBarang() {
   var id = document.getElementById('hs-brg-id').value;
   if (!id) return;
-  if (!confirm('Hapus barang ini dari Master? Bon yang udah pernah pakai barang ini tetap aman (datanya udah ke-snapshot).')) return;
+  if (!(await zConfirm('Hapus barang ini dari Master? Bon yang udah pernah pakai barang ini tetap aman (datanya udah ke-snapshot).', {title: 'Hapus barang?', ok: 'Hapus'}))) return;
   try {
     await dbDelete('hutang_barang', id);
     closeModal('hs-sheet-barang');

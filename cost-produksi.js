@@ -1421,7 +1421,7 @@ async function cpSaveJurnal() {
 async function cpDeleteJurnal() {
   var id = document.getElementById('cp-jrn-edit-id').value;
   if (!id) return;
-  if (!confirm('Hapus jurnal ini?')) return;
+  if (!(await zConfirm('Hapus jurnal ini?', {title: 'Hapus jurnal?', ok: 'Hapus'}))) return;
   try { await dbDelete('cost_jurnal', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
   hideModal('modal-cp-jurnal');
   cpLoadAll();
@@ -1737,7 +1737,7 @@ async function cpDeleteRate() {
   var sku = document.getElementById('cp-rate-edit-sku').value;
   var variasi = document.getElementById('cp-rate-edit-variasi').value;
   if (!sku) return;
-  if (!confirm('Hapus semua rate buat "' + sku + ' — ' + variasi + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).')) return;
+  if (!(await zConfirm('Hapus semua rate buat "' + sku + ' — ' + variasi + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).', {title: 'Hapus semua rate?', ok: 'Hapus'}))) return;
   var rows = _cpRate.filter(function(r) { return r.sku === sku && r.sku_variasi === variasi; });
   try {
     await Promise.all(rows.map(function(r) { return dbDelete('cost_rate', r.id); }));
@@ -2133,7 +2133,7 @@ async function cpSaveTukang() {
 async function cpDeleteTukang() {
   var id = document.getElementById('cp-tukang-edit-id').value;
   if (!id) return;
-  if (!confirm('Hapus tukang ini?')) return;
+  if (!(await zConfirm('Hapus tukang ini?', {title: 'Hapus tukang?', ok: 'Hapus'}))) return;
   try { await dbDelete('cost_tukang', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
   hideModal('modal-cp-tukang');
   cpLoadAll();
@@ -2194,7 +2194,7 @@ async function cpSaveBahan() {
 async function cpDeleteBahan() {
   var id = document.getElementById('cp-bahan-edit-id').value;
   if (!id) return;
-  if (!confirm('Hapus bahan ini? SKU yang udah kepilih bahan ini bakal jadi kosong lagi (bukan error, tapi Biaya Bahan-nya jadi 0 sampe dipilih ulang).')) return;
+  if (!(await zConfirm('Hapus bahan ini? SKU yang udah kepilih bahan ini bakal jadi kosong lagi (bukan error, tapi Biaya Bahan-nya jadi 0 sampe dipilih ulang).', {title: 'Hapus bahan?', ok: 'Hapus'}))) return;
   try { await dbDelete('master_bahan', id); } catch (e) { return alert('Gagal hapus: ' + e.message); }
   hideModal('modal-cp-bahan');
   cpLoadAll();

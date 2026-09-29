@@ -788,7 +788,7 @@ async function hapusSupplier(id, nama) {
   const pesan = sudahDipakai
     ? 'Supplier "' + nama + '" udah pernah dipakai di Bon/Master Barang. Riwayatnya TIDAK ikut kehapus, tapi bakal nampilin "—" di kolom Supplier. Tetap hapus?'
     : 'Hapus supplier "' + nama + '"?';
-  if (!confirm(pesan)) return;
+  if (!(await zConfirm(pesan, {title: sudahDipakai ? 'Supplier masih dipakai' : 'Hapus supplier?', ok: 'Hapus', type: 'danger'}))) return;
 
   try {
     await dbDelete('hutang_supplier', id);

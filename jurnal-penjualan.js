@@ -2568,10 +2568,11 @@ async function simpanJP() {
     // ── Resolve SKU: normalize dan validasi vs produk list ──
     const resolved = _jpResolveSku(sku);
     if (!resolved.ok) {
-      const lanjut = confirm(
+      const lanjut = await zConfirm(
         'SKU "' + sku + '" tidak ditemukan di master produk.\n' +
         'Pastikan SKU sudah benar sebelum menyimpan.\n\n' +
-        'Tetap simpan?'
+        'Tetap simpan?',
+        {title: 'SKU tidak ditemukan', type: 'warn', ok: 'Tetap simpan'}
       );
       if (!lanjut) return;
     }

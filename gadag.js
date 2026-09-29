@@ -2992,7 +2992,7 @@ async function gdgAngShowEdit(row) {
   const id   = row.dataset.id;
   const nama = row.dataset.nama || 'variable ini';
   if (!id) return;
-  const ok = confirm('Hapus "' + nama + '" dari Variable Anggaran Gadag?\n\n(Cuma ngilangin dari seleksi Gadag — budget di halaman Anggaran Kas TETAP UTUH, gak ikut kehapus.)');
+  const ok = await zConfirm('Hapus "' + nama + '" dari Variable Anggaran Gadag?\n\n(Cuma ngilangin dari seleksi Gadag — budget di halaman Anggaran Kas TETAP UTUH, gak ikut kehapus.)', {title: 'Hapus dari seleksi?', ok: 'Hapus'});
   if (!ok) return;
   try {
     await dbDelete('gadag_anggaran', id);

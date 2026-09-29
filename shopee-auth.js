@@ -358,7 +358,7 @@ async function shopeeRefreshToken() {
 
 // ─── PUTUS KONEKSI ───────────────────────────────────────────
 async function shopeeDisconnect() {
-  if (!confirm('Putus koneksi Shopee? Data yang sudah sync tidak akan terhapus.')) return;
+  if (!(await zConfirm('Putus koneksi Shopee? Data yang sudah sync tidak akan terhapus.', {title: 'Putuskan koneksi Shopee?', ok: 'Putuskan'}))) return;
   try {
     const tokens = await dbGet('shopee_tokens');
     for (const t of tokens) await dbDelete('shopee_tokens', t.id);

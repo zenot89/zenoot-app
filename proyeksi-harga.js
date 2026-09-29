@@ -1246,11 +1246,11 @@
         .catch(function() { histEl.innerHTML = '<div style="color:var(--ph-danger);font-size:12px">Gagal load data rekap.</div>'; });
     }
 
-    function _rekapDeleteMonth(mo) {
+    async function _rekapDeleteMonth(mo) {
       var tid = state.tokoId;
       if (!tid) return;
       var awal = _rekapYear + '-' + (mo < 10 ? '0' : '') + mo + '-01';
-      if (!confirm('Hapus data rekap ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][mo-1] + ' ' + _rekapYear + '?')) return;
+      if (!(await zConfirm('Hapus data rekap ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][mo-1] + ' ' + _rekapYear + '?', {title: 'Hapus rekap bulan?', ok: 'Hapus'}))) return;
       sbGet('channel_rekap', '&channel_id=eq.' + tid + '&periode=eq.' + awal)
         .then(function(rows) {
           if (!rows || !rows.length) return;

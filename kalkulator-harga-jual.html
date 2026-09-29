@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kalkulator Harga Jual — Multi Toko</title>
+<script src="dialog.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -936,18 +937,18 @@
     });
   }
 
-  function renameStore(id){
+  async function renameStore(id){
     const store = data.stores.find(s => s.id === id);
-    const name = prompt('Nama baru untuk toko:', store.name);
+    const name = await zPrompt('Nama baru untuk toko:', store.name, {title:'Ubah nama toko'});
     if(name && name.trim()){
       store.name = name.trim();
       persist(); renderAll();
     }
   }
 
-  function deleteStore(id){
+  async function deleteStore(id){
     const store = data.stores.find(s => s.id === id);
-    if(!confirm(`Hapus toko "${store.name}" beserta semua produknya? Tindakan ini tidak bisa dibatalkan.`)) return;
+    if(!(await zConfirm(`Hapus toko "${store.name}" beserta semua produknya? Tindakan ini tidak bisa dibatalkan.`, {title:'Hapus toko?', ok:'Hapus'}))) return;
     data.stores = data.stores.filter(s => s.id !== id);
     if(state.storeId === id){
       state.storeId = data.stores[0]?.id || null;
@@ -997,22 +998,22 @@
     });
   }
 
-  function renameProduct(id){
+  async function renameProduct(id){
     const store = currentStore();
     if(!store) return;
     const p = store.products.find(x => x.id === id);
     if(!p) return;
-    const name = prompt('Nama / SKU induk baru:', p.name);
+    const name = await zPrompt('Nama / SKU induk baru:', p.name, {title:'Ubah nama produk'});
     if(name && name.trim()){
       p.name = name.trim();
       persist(); renderProducts(); renderBiayaBenefit();
     }
   }
 
-  function deleteProduct(id){
+  async function deleteProduct(id){
     const store = currentStore();
     const p = store.products.find(x => x.id === id);
-    if(!confirm(`Hapus produk "${p.name}"?`)) return;
+    if(!(await zConfirm(`Hapus produk "${p.name}"?`, {title:'Hapus produk?', ok:'Hapus'}))) return;
     store.products = store.products.filter(x => x.id !== id);
     if(state.productId === id) state.productId = null;
     if(store.activeProductId === id) store.activeProductId = null;
@@ -1891,11 +1892,11 @@
   document.getElementById('newProductHpp').addEventListener('keydown', (e) => {
     if(e.key === 'Enter') document.getElementById('addProductBtn').click();
   });
-  document.getElementById('clearAllProductsBtn').addEventListener('click', () => {
+  document.getElementById('clearAllProductsBtn').addEventListener('click', async () => {
     const store = currentStore();
     if(!store){ showToast('Pilih toko dulu'); return; }
     if(!store.products.length){ showToast('Belum ada produk di toko ini'); return; }
-    if(!confirm(`Hapus SEMUA ${store.products.length} produk di toko "${store.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    if(!(await zConfirm(`Hapus SEMUA ${store.products.length} produk di toko "${store.name}"? Tindakan ini tidak bisa dibatalkan.`, {title:'Hapus semua produk?', ok:'Hapus semua'}))) return;
     store.products = [];
     store.activeProductId = null;
     persist();

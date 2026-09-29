@@ -7,7 +7,7 @@
 // Dengan strategi ini, update file JS langsung terasa tanpa perlu
 // unregister SW atau hard refresh.
 
-var CACHE_VERSION = 'zenot-static-v29'; // bump: fix root/PWA navigate request ke-cache-first jadi stale HTML (isNoCache cuma cek 'index.html', gak match start_url "./")
+var CACHE_VERSION = 'zenot-static-v30'; // bump: tambah dialog.js
 var CACHE_CDN     = 'zenot-cdn-v1';
 
 // Hanya file statis yang boleh di-cache (tidak pernah berubah setelah deploy)
@@ -35,7 +35,7 @@ var JS_APP_FILES = [
   'channel-master.js', 'beban-operasional.js',
   'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'analisis.js', 'autocomplete.js',
+  'rough-ui.js', 'dialog.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'analisis.js', 'autocomplete.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // index.html: tidak di-cache (selalu fresh)
@@ -48,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260928-ecd74c43bfad'; // hutang-supplier.js: Overview flat (radius 8px, bar kotak, grid selalu 2x2), Tambah Bon picker simplified, Bon->Jurnal Re-Stock + halaman per-supplier + Export PDF
+var JS_CACHE = 'zenot-js-20260929-0037-dialog'; // dialog.js: dialog tema krem/putih pengganti alert()/confirm()/prompt() bawaan browser, dipakai di seluruh modul + analisis.html + kalkulator
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

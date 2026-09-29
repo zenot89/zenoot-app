@@ -55,6 +55,7 @@
 })();
 </script>
 <script src="supabase.js"></script>
+<script src="dialog.js"></script>
 <script>if(/[?&]embed=1/.test(location.search)) document.documentElement.classList.add('embed');</script>
 <style>
   :root{
@@ -2646,7 +2647,7 @@ function renderStoreTopbar(){
 
 /* ---------- Pemilih toko: popover, ubah nama, hapus, setup toko baru ---------- */
 function tokoEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function tokoReload(){ zStore.flush().then(()=>location.reload(), ()=>{ if(confirm('Perubahan terakhir belum tersimpan ke database (koneksi bermasalah). Tetap ganti toko dan muat ulang? Perubahan yang belum tersimpan akan hilang.')) location.reload(); }); }
+function tokoReload(){ zStore.flush().then(()=>location.reload(), ()=>{ zConfirm('Perubahan terakhir belum tersimpan ke database (koneksi bermasalah). Tetap ganti toko dan muat ulang? Perubahan yang belum tersimpan akan hilang.', {title:'Belum tersimpan', type:'warn', ok:'Tetap muat ulang'}).then(ok=>{ if(ok) location.reload(); }); }); }
 function tokoResumeAndReload(page){
   try{ sessionStorage.setItem(TOKO_RESUME_KEY, page || currentPage); }catch(e){}
   tokoReload();
@@ -4197,8 +4198,8 @@ function renderAdsList(){
 function removeAdsFile(){ state.adsFile=null; state.manual.iklan=null; saveSessionToStorage(); renderAdsList(); }
 
 /* ================= HAPUS DATA (reset Order/Income/Iklan yang udah diupload) ================= */
-document.getElementById('btnHapusData').addEventListener('click', ()=>{
-  if(!confirm('Hapus semua data Order Completed, Income & Tagihan Iklan yang udah diupload? HPP master gak kehapus.')) return;
+document.getElementById('btnHapusData').addEventListener('click', async ()=>{
+  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan yang udah diupload? HPP master gak kehapus.', {title:'Hapus data upload?', ok:'Hapus'}))) return;
   state.orderSlots = [null, null];
   state.incomeFile = null;
   state.adsFile = null;
@@ -4286,7 +4287,7 @@ function updateHapusHppSelectedBtn(){
   btn.style.pointerEvents = n===0 ? 'none' : '';
 }
 
-document.getElementById('btnHapusHppSelected').addEventListener('click', ()=>{
+document.getElementById('btnHapusHppSelected').addEventListener('click', async ()=>{
   const n = state.hppSelected.size;
   if(n===0) return;
   const selectedKeys = [...state.hppSelected];
@@ -4297,7 +4298,7 @@ document.getElementById('btnHapusHppSelected').addEventListener('click', ()=>{
   let msg = `Hapus ${n} SKU yang dicentang?`;
   if(willFullyDelete.length) msg += `\n\n${willFullyDelete.length} SKU manual bakal dihapus permanen dari katalog.`;
   if(willResetOnly.length) msg += `\n\n${willResetOnly.length} SKU asalnya dari data Order Completed — gak bisa dihapus permanen (masih tercatat di file order asli). HPP-nya bakal direset ke "Belum Diisi" aja, barisnya tetep muncul.`;
-  if(!confirm(msg)) return;
+  if(!(await zConfirm(msg, {title:'Hapus SKU terpilih?', ok:'Hapus'}))) return;
 
   const toDeleteSet = new Set(willFullyDelete);
   state.customHppProducts = (state.customHppProducts||[]).filter(p=> !toDeleteSet.has(makeKey(p.skuInduk,p.nomorRef,p.variasi)));
@@ -7332,9 +7333,9 @@ function byhargaBinsRender(){
     byhBinsRows(true).splice(0, Infinity, ...parsed);
     byhargaBinsSave(); byhargaBinsRender();
   });
-  document.getElementById('byhBinsClear').addEventListener('click', ()=>{
+  document.getElementById('byhBinsClear').addEventListener('click', async ()=>{
     if(!byhBinsRows().length) return;
-    if(!confirm('Kosongkan semua range kompetitor untuk SKU induk ini?')) return;
+    if(!(await zConfirm('Kosongkan semua range kompetitor untuk SKU induk ini?', {title:'Kosongkan range kompetitor?', ok:'Kosongkan'}))) return;
     byhBinsRows().splice(0, Infinity);
     byhargaBinsSave(); byhargaBinsRender();
   });
@@ -8803,8 +8804,8 @@ function renderAdsListM(){
   el.innerHTML = `<div class="frow"><div><span class="name">${fnameHtml(f.name)}</span> <span class="status-ok">✓</span>${adsPeriodHtml(f, state.mingguan.incomeFile)}</div></div>`;
 }
 
-document.getElementById('btnHapusDataM').addEventListener('click', ()=>{
-  if(!confirm('Hapus semua data Order Completed, Income & Tagihan Iklan minggu ini? HPP master gak kehapus.')) return;
+document.getElementById('btnHapusDataM').addEventListener('click', async ()=>{
+  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan minggu ini? HPP master gak kehapus.', {title:'Hapus data minggu ini?', ok:'Hapus'}))) return;
   state.mingguan.orderSlots = [null];
   state.mingguan.incomeFile = null;
   state.mingguan.adsFile = null;
@@ -9044,7 +9045,7 @@ function renderHasilM(){
   </div>`;
 }
 
-document.getElementById('btnSimpanRekapM').addEventListener('click', ()=>{
+document.getElementById('btnSimpanRekapM').addEventListener('click', async ()=>{
   if(hasilViewKeyM) return;   // lagi lihat minggu dari Rekap Mingguan: gak ada yang perlu disimpen
   const M = computeHasilMetricsM();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan minggu ini) sebelum disimpan ke Rekap Mingguan.'); return; }
@@ -9054,7 +9055,7 @@ document.getElementById('btnSimpanRekapM').addEventListener('click', ()=>{
     return;
   }
   if(!info.isSunSat){
-    if(!confirm(`Periode di file Income ini ${info.label} (${info.span} hari) — bukan 1 minggu penuh Minggu–Sabtu. Tetap simpan ke Rekap Mingguan?`)) return;
+    if(!(await zConfirm(`Periode di file Income ini ${info.label} (${info.span} hari) — bukan 1 minggu penuh Minggu–Sabtu. Tetap simpan ke Rekap Mingguan?`, {title:'Periode bukan 1 minggu penuh', type:'warn', ok:'Tetap simpan'}))) return;
   }
   const snapshot = { label: info.label, dari: info.dari, ke: info.ke };
   REKAP_METRICS.forEach(m=>{ snapshot[m.key] = M[m.key]; });
@@ -9369,10 +9370,10 @@ function renderRekapMSelectBar(){
     if(rekapMSelected.size===keys.length){ rekapMSelected.clear(); } else { keys.forEach(k=>rekapMSelected.add(k)); }
     renderRekapM();
   });
-  bar.querySelector('[data-act="del"]').addEventListener('click', ()=>{
+  bar.querySelector('[data-act="del"]').addEventListener('click', async ()=>{
     const delKeys = Array.from(rekapMSelected).sort();
     if(!delKeys.length) return;
-    if(!confirm(`Hapus ${delKeys.length} minggu dari Rekap Mingguan? Data snapshot bakal dihapus dari database.`)) return;
+    if(!(await zConfirm(`Hapus ${delKeys.length} minggu dari Rekap Mingguan? Data snapshot bakal dihapus dari database.`, {title:'Hapus minggu dari Rekap?', ok:'Hapus'}))) return;
     delKeys.forEach(k=>{ delete state.mingguan.rekap[k]; });
     saveRekapMingguanToStorage();
     rekapMSelected.clear(); rekapMSelectMode = false;
@@ -9512,9 +9513,9 @@ setTimeout(function(){
       };
       bs[1].onclick = renderIntro;
     }
-    function runMigration(src){
+    async function runMigration(src){
       if(info.dbHadData || zStore.info.wroteData){
-        if(!confirm('Database sudah berisi data Analisis. Migrasi akan MENIMPA item yang sama (daftar toko, HPP, Rekap, dst.) dengan data lama. Lanjut?')) return;
+        if(!(await zConfirm('Database sudah berisi data Analisis. Migrasi akan MENIMPA item yang sama (daftar toko, HPP, Rekap, dst.) dengan data lama. Lanjut?', {title:'Timpa data yang ada?', type:'warn', ok:'Timpa & lanjut'}))) return;
       }
       bar.innerHTML = '<span id="zMigMsg">Memulai migrasi…</span>';
       zStore.migrate(function(m){ var el = document.getElementById('zMigMsg'); if(el) el.textContent = m; }, src).then(function(r){
