@@ -1328,6 +1328,45 @@
   #rekapWrapP .rekap-card{ padding:4px; }
   @media (max-height:880px){ #rekapWrapP .rekap-table.rekap-12 th, #rekapWrapP .rekap-table.rekap-12 td{ padding:6px 13px; } }
   @media (min-height:881px){ #rekapWrapP .rekap-table.rekap-12 th, #rekapWrapP .rekap-table.rekap-12 td{ padding-top:9px; padding-bottom:9px; } }
+  /* [30 Sep 2026] Rekap Proyeksi = SATU kolom (data aktual terbaru) + panel "Jalan Menuju Target NPM" di kanan */
+  #rekapWrapP .rp-layout{ flex:1 1 0; min-height:0; display:flex; gap:14px; align-items:stretch; }
+  #rekapWrapP .rp-table-card{ flex:0 0 clamp(400px, 44%, 580px); min-height:0; overflow:auto; padding:4px; }
+  #rekapWrapP .rp-table{ width:100%; border-collapse:collapse; font-size:14.5px; white-space:nowrap; }
+  #rekapWrapP .rp-table th, #rekapWrapP .rp-table td{ padding:8px 14px; border-bottom:1px solid var(--line); text-align:right; }
+  #rekapWrapP .rp-table thead th{ position:sticky; top:0; z-index:2; background:#ECECEC; font-weight:700; border-bottom:2px solid var(--ink); font-size:13.5px; }
+  #rekapWrapP .rp-table th.rp-k, #rekapWrapP .rp-table td.rp-k{ text-align:left; }
+  #rekapWrapP .rp-table thead th .rp-sub{ display:block; font-size:11.5px; font-weight:500; color:var(--ink-soft); margin-top:2px; }
+  #rekapWrapP .rp-table tbody tr:nth-child(odd):not(.rp-detail) td{ background:#fff; }
+  #rekapWrapP .rp-table tbody tr:nth-child(even):not(.rp-detail) td{ background:#FAFBFD; }
+  #rekapWrapP .rp-table tr.rp-net td{ background:#D5EFE2 !important; font-weight:700; }
+  #rekapWrapP .rp-table tr.rp-goal td{ background:#FFF6D6 !important; font-weight:700; }
+  #rekapWrapP .rp-table tr.rp-detail td{ font-size:13px; color:var(--ink-soft); background:#fafafa; }
+  #rekapWrapP .rp-table tr.rp-detail td.rp-k{ padding-left:30px; }
+  #rekapWrapP .rp-table tr.rp-expandable{ cursor:pointer; }
+  #rekapWrapP .rp-table tr.rp-expandable:hover td{ background:var(--accent-soft) !important; }
+  #rekapWrapP .rp-tgt{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  #rekapWrapP .rp-panel{ flex:1 1 0; min-width:0; min-height:0; overflow:auto; padding:14px 18px; }
+  #rekapWrapP .rp-panel h3{ font-size:16px; margin-bottom:10px; }
+  #rekapWrapP .rp-goal{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  #rekapWrapP .rp-goal .stat-card{ flex:1 1 150px; padding:11px 14px; }
+  #rekapWrapP .rp-goal .stat-value{ font-size:19px; }
+  #rekapWrapP .rp-status{ display:block; font-size:13px; font-weight:700; margin:0 0 12px; }
+  #rekapWrapP .rp-status.ok{ color:var(--good); } #rekapWrapP .rp-status.bad{ color:var(--bad); }
+  #rekapWrapP .rp-lever{ border:1px solid var(--line); border-radius:10px; padding:11px 14px; margin-bottom:10px; background:#fff; }
+  #rekapWrapP .rp-lever-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:700; font-size:14.5px; margin-bottom:6px; }
+  #rekapWrapP .rp-pill{ font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; }
+  #rekapWrapP .rp-pill.ok{ background:var(--good-soft); color:var(--good); }
+  #rekapWrapP .rp-pill.bad{ background:#FBE3E3; color:var(--bad); }
+  #rekapWrapP .rp-pill.info{ background:#ECECEC; color:var(--ink-soft); }
+  #rekapWrapP .rp-lever ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; }
+  #rekapWrapP .rp-lever .rp-note{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; }
+  #rekapWrapP .rp-concl{ border:1px dashed var(--ink); border-radius:10px; padding:10px 14px; font-size:13.5px; line-height:1.55; background:#FAFAFA; }
+  @media (max-width:900px){
+    #page-rekapP.active{ height:auto; min-height:0; margin-bottom:0; }
+    #rekapWrapP .rp-layout{ flex-direction:column; }
+    #rekapWrapP .rp-table-card{ flex:0 0 auto; overflow-x:auto; }
+    #rekapWrapP .rp-panel{ flex:0 0 auto; overflow:visible; }
+  }
   #page-rekapP .rekap-table.rekap-12 thead th{
     position:sticky; top:0; z-index:3; border-bottom:none;
     box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink);
@@ -1814,8 +1853,7 @@
   <section class="page" id="page-rekapP">
     <div class="page-head">
       <div class="toolbar">
-        <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Kolom Jan–Des berisi PERKIRAAN AKHIR BULAN dari data yang disimpan di Proyeksi RKS (tanggal 1 s/d tanggal di bawah nama bulan): angka nominal × (jumlah hari bulan ÷ hari berjalan), rasio tetap. Satu bulan = satu data, ditimpa tiap simpan. Anual = Average × 12.</div></div>
-        <div class="rekap-year-nav" id="rekapYearNavP"></div>
+        <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Data AKTUAL dari Proyeksi RKS terbaru (tanggal 1 s/d tanggal terakhir yang disimpan), bukan perkiraan. Otomatis berganti tiap ada data baru yang disimpan di Proyeksi RKS. Riwayat bulanan ada di RKS Overview &gt; Rekap. Panel kanan = jalan menuju Target NPM (Setting).</div></div>
       </div>
     </div>
     <div id="rekapWrapP"></div>
@@ -7247,7 +7285,7 @@ function renderBySupport(fromLoad){
   const card = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${byhEsc(ket)}</span></div><div class="stat-value">${val}</div></div>`;
   // Minicard ACOS: nilai ACOS di kiri, ROAS (kebalikannya) di kanan
   const roasTxt = P.src.acos.roas>0 ? (Math.round(P.src.acos.roas*100)/100).toString().replace('.',',')+'x' : '-';
-  const acosCard = `<div class="stat-card"><div class="stat-label">ACOS<span class="ket" style="display:block;font-weight:400;">${byhEsc(P.src.acos.src)}</span></div><div class="stat-value" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>${fmtPct(P.src.acos.value)}</span><span style="font-size:13px;font-weight:700;color:var(--ink-soft);">ROAS ${roasTxt}</span></div></div>`;
+  const acosCard = `<div class="stat-card" style="display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:start;"><div class="stat-label" style="grid-column:1;grid-row:1;">ACOS<span class="ket" style="display:block;font-weight:400;">${byhEsc(P.src.acos.src)}</span></div><div class="stat-label" style="grid-column:2;grid-row:1;text-align:right;">ROAS</div><div class="stat-value" style="grid-column:1;grid-row:2;">${fmtPct(P.src.acos.value)}</div><div class="stat-value" style="grid-column:2;grid-row:2;text-align:right;">${roasTxt}</div></div>`;
   statsEl.innerHTML = `<div class="card" style="margin-bottom:14px;">
     <h3>Komponen GPM Minimum</h3>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
@@ -10650,45 +10688,150 @@ function renderRekapPYearNav(){
   const sel = el.querySelector('.rekap-year-select');
   if(sel) sel.addEventListener('change', e=>{ rekapPYear = parseInt(e.target.value,10); renderRekapP(); });
 }
+/* [30 Sep 2026] Rekap Proyeksi DIRUBAH TOTAL: bukan lagi 12 kolom Jan–Des + Anual/Average/Sum, tapi SATU kolom = data AKTUAL (bukan perkiraan) dari Proyeksi RKS terbaru
+   (tgl 1 s/d tanggal terakhir yang disimpan), + panel kanan \"Jalan Menuju Target NPM\". Riwayat bulanan cukup di RKS Overview > Rekap, jadi di sini gak ada pilih bulan.
+   Data bulan-bulan lama di state.proyeksi.rekap TIDAK dihapus (By Support masih baca bulan berjalan dari sini) — cuma gak ditampilkan.
+   Dead code (sengaja dibiarkan): rekapPAggForMetric / rekapPAggCellsHtml / renderRekapPYearNav / rekapPFilledKeys. */
+let rekapPAdminExpanded = false;
+function rpNum(v){ return (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v; }
+function rpPos(v){ return (v!==null && v!==undefined && !isNaN(v) && v>0) ? v : null; }
+function rpDec(v, d){ return v.toFixed(d===undefined?1:d); }
+// Panduan mencapai target NPM. Rumus: NPM = Rasio Margin − Admin − ACOS − Rasio Operasional  => tiap tuas dicari nilainya supaya NPM = target, tuas lain dianggap tetap.
+function rekapPGuideHtml(s){
+  const tNpmPct = rpPos(state.settings.targetRasioLaba), tRoas = rpPos(state.settings.targetRoas), tOpsPct = rpPos(state.settings.rasioOpsPercent);
+  const tNpm = tNpmPct!==null ? tNpmPct/100 : null, tOps = tOpsPct!==null ? tOpsPct/100 : null, acosT = tRoas!==null ? 1/tRoas : null;
+  const pend = rpNum(s.pendapatan), margin = rpNum(s.rasioMargin), admin = rpNum(s.ratioAdmin), acos = rpNum(s.acos), ops = rpNum(s.rasioOperasional), npm = rpNum(s.npm);
+  const aov = rpPos(s.aov), roas = rpNum(s.roas), opsRp = rpNum(s.operasional), iklanRp = rpNum(s.iklan), hari = rpPos(s.hari), hb = rpPos(s.hariBulan);
+  if(tNpm===null) return `<div class="rp-panel card"><h3>Jalan Menuju Target NPM</h3><div class="hint" style="margin:0;">Target NPM belum diisi. Isi <b>Target Rasio Laba</b> di Setting dulu — itu angka NPM yang kita kejar.</div></div>`;
+  if([pend,margin,admin,acos,ops,npm].some(v=>v===null) || !pend) return `<div class="rp-panel card"><h3>Jalan Menuju Target NPM</h3><div class="hint" style="margin:0;">Data Proyeksi RKS belum lengkap (butuh pendapatan, margin, admin, ACOS &amp; operasional) — panduan belum bisa dihitung.</div></div>`;
+
+  const gap = tNpm - npm, reached = gap<=0;
+  const pill = (t,c)=>`<span class="rp-pill ${c}">${t}</span>`;
+  const lever = (title, st, lines, note)=>`<div class="rp-lever"><div class="rp-lever-h"><span>${title}</span>${st}</div><ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul>${note?`<div class="rp-note">${note}</div>`:''}</div>`;
+  const pp = v=>rpDec(Math.abs(v)*100,1)+' pp';
+
+  // --- Tuas 1: OPERASIONAL ---
+  const maxOps = margin - admin - acos - tNpm;
+  const opsBulan = (opsRp!==null && hari && hb) ? opsRp*hb/hari : null;   // operasional prorata -> operasional bulan penuh
+  let L1 = [], st1 = pill('Info','info'), n1 = '';
+  if(ops <= maxOps){
+    st1 = pill('Sudah aman','ok');
+    L1.push(`Rasio operasional <b>${fmtPct(ops)}</b> sudah di bawah batas <b>${fmtPct(Math.max(maxOps,0))}</b> (batas agar NPM = target ${fmtPct(tNpm)}).`);
+  } else if(maxOps<=0){
+    st1 = pill('Tidak cukup','bad');
+    L1.push(`Margin − admin − ACOS (${fmtPct(margin-admin-acos)}) sudah ≤ target NPM, jadi <b>mengejar omzet saja tidak akan cukup</b> — rasio operasional harus 0% pun NPM belum tercapai.`);
+  } else {
+    st1 = pill('Perlu dikejar','bad');
+    L1.push(`Rasio operasional <b>${fmtPct(ops)}</b> → harus turun ke <b>≤ ${fmtPct(maxOps)}</b> supaya NPM = ${fmtPct(tNpm)}.`);
+    if(opsBulan!==null){
+      const pendTarget = opsBulan/maxOps, runRate = pend*hb/hari;
+      L1.push(`Pendapatan sebulan perlu <b>≥ ${fmtRp(Math.round(pendTarget))}</b> (laju sekarang ± ${fmtRp(Math.round(runRate))}/bulan).`);
+      if(aov){
+        const ordM = pendTarget/aov;
+        L1.push(`Setara <b>± ${Math.ceil(ordM)} pesanan/bulan</b> ≈ <b>${rpDec(ordM/hb,1)} pesanan/hari</b> (AOV ${fmtRp(Math.round(aov))}); sekarang ± ${rpDec(pend/aov/hari,1)} pesanan/hari.`);
+        const sisa = hb-hari;
+        if(sisa>0 && pendTarget>pend) L1.push(`Sisa ${sisa} hari bulan ini: butuh ± <b>${rpDec((pendTarget-pend)/aov/sisa,1)} pesanan/hari</b> (± ${fmtRp(Math.round((pendTarget-pend)/sisa))}/hari).`);
+      }
+    }
+    n1 = 'Asumsi: HPP, admin &amp; iklan ikut naik proporsional dengan omzet (rasio tetap); hanya operasional yang nominalnya tetap.';
+  }
+
+  // --- Tuas 2: ACOS / ROAS ---
+  const maxAcos = margin - admin - ops - tNpm;
+  let L2 = [], st2 = pill('Info','info'), n2 = '';
+  if(acosT!==null && roas!==null){
+    if(roas < tRoas){
+      st2 = pill('ROAS di bawah target','bad');
+      const iklanMax = pend*acosT;
+      L2.push(`ROAS <b>${rpDec(roas,2)}x</b> &lt; target toko <b>${rpDec(tRoas,2)}x</b> — beban iklan terlalu besar. Turunkan ACOS dari <b>${fmtPct(acos)}</b> ke <b>≤ ${fmtPct(acosT)}</b>${iklanRp!==null ? ` (iklan ≤ ${fmtRp(Math.round(iklanMax))} dari pendapatan sekarang, hemat ± ${fmtRp(Math.round(iklanRp-iklanMax))})` : ''}.`);
+    } else {
+      st2 = pill('ROAS di atas target','ok');
+      L2.push(`ROAS <b>${rpDec(roas,2)}x</b> ≥ target toko <b>${rpDec(tRoas,2)}x</b> — ada ruang menaikkan iklan sampai ACOS <b>${fmtPct(acosT)}</b>${iklanRp!==null ? ` (± ${fmtRp(Math.round(pend*acosT-iklanRp))} tambahan pada pendapatan sekarang)` : ''} untuk mengejar omzet, selama ROAS tidak turun di bawah target.`);
+    }
+  } else if(acosT===null){ L2.push('Target ROAS Toko belum diisi di Setting — isi dulu supaya ada acuan ROAS.'); }
+  if(maxAcos<0){ L2.push(`Iklan saja <b>tidak cukup</b>: walau ACOS 0% NPM tetap di bawah target — yang menahan ada di operasional / margin / admin.`); if(st2.includes('info')) st2 = pill('Tidak cukup','bad'); }
+  else if(acos>maxAcos){ L2.push(`Kalau hanya lewat iklan: ACOS harus <b>≤ ${fmtPct(maxAcos)}</b> (ROAS ≥ ${rpDec(1/Math.max(maxAcos,0.0001),2)}x) supaya NPM = ${fmtPct(tNpm)}.`); }
+  else { L2.push(`ACOS <b>${fmtPct(acos)}</b> masih di bawah batas <b>${fmtPct(maxAcos)}</b> untuk NPM target.`); }
+
+  // --- Tuas 3: MARGIN / HARGA ---
+  const needMargin = tNpm + admin + acos + ops;
+  let L3 = [], st3 = pill('Info','info'), n3 = '';
+  if(margin >= needMargin){
+    st3 = pill('Sudah aman','ok');
+    L3.push(`Rasio margin <b>${fmtPct(margin)}</b> sudah ≥ kebutuhan <b>${fmtPct(needMargin)}</b>.`);
+  } else {
+    st3 = pill('Kurang '+pp(needMargin-margin),'bad');
+    L3.push(`Rasio margin <b>${fmtPct(margin)}</b> → perlu <b>≥ ${fmtPct(needMargin)}</b> (kurang ${pp(needMargin-margin)}) lewat harga jual naik atau HPP turun.`);
+    if(needMargin<1){ const rise = (1-margin)/(1-needMargin)-1; L3.push(`Kalau lewat harga jual saja (HPP tetap): naik ± <b>${rpDec(rise*100,1)}%</b>.`); n3='Perkiraan kasar — rasio admin, ACOS &amp; operasional dianggap tetap.'; }
+    else L3.push('Kebutuhan margin ≥ 100% — tidak mungkin dicapai lewat harga/HPP saja.');
+  }
+
+  // --- Kesimpulan ---
+  let concl = '';
+  if(tOps!==null && acosT!==null){
+    const npmAtTarget = margin - admin - acosT - tOps;
+    const dOps = ops - tOps, dAcos = acos - acosT;
+    const worst = (dOps<=0 && dAcos<=0) ? null : (dOps>=dAcos ? `operasional (${fmtPct(ops)} vs target ${fmtPct(tOps)}, selisih ${pp(dOps)})` : `ACOS (${fmtPct(acos)} vs batas ${fmtPct(acosT)}, selisih ${pp(dAcos)})`);
+    concl = `Kalau rasio operasional &amp; ACOS sama dengan target Setting (${fmtPct(tOps)} &amp; ${fmtPct(acosT)}), NPM jadi <b>${fmtPct(npmAtTarget)}</b> — ${npmAtTarget>=tNpm ? 'sudah mencapai' : 'masih di bawah'} target ${fmtPct(tNpm)}.` + (worst ? ` Penahan terbesar saat ini: <b>${worst}</b>.` : '');
+  }
+
+  const ke = s.ke ? parsePeriodeDate(s.ke) : null;
+  return `<div class="rp-panel card">
+    <h3>Jalan Menuju Target NPM</h3>
+    <div class="rp-goal">
+      <div class="stat-card"><div class="stat-label">Target NPM</div><div class="stat-value">${fmtPct(tNpm)}</div></div>
+      <div class="stat-card ${reached?'good':'bad'}"><div class="stat-label">NPM aktual${ke!==null ? ' s/d '+fmtDayMonth(ke) : ''}</div><div class="stat-value">${fmtPct(npm)}</div></div>
+    </div>
+    <span class="rp-status ${reached?'ok':'bad'}">${reached ? 'Target tercapai — NPM di atas target '+pp(npm-tNpm)+'.' : 'Belum tercapai — kurang '+pp(gap)+'.'}</span>
+    ${lever('1. Operasional (kejar pesanan)', st1, L1, n1)}
+    ${lever('2. Iklan (ACOS / ROAS)', st2, L2, n2)}
+    ${lever('3. Margin (harga jual / HPP)', st3, L3, n3)}
+    ${concl ? `<div class="rp-concl">${concl}</div>` : ''}
+  </div>`;
+}
 function renderRekapP(){
   const wrap = document.getElementById('rekapWrapP');
   if(!wrap) return;
-  rekapPInitYear();
-  const keys = rekapYearKeys(rekapPYear);
-  const filled = rekapPFilledKeys(rekapPYear);
-  const head = keys.map(k=>{
-    const sn = state.proyeksi.rekap[k];
-    const cls = ['rekap-month-th', sn?'':'is-empty'].filter(Boolean).join(' ');
-    const ke = sn && sn.ke ? parsePeriodeDate(sn.ke) : null;
-    const sub = (sn && ke!==null) ? `<span class="rekap-wk-range" title="Data tgl 1–${new Date(ke).getUTCDate()} dari ${sn.hariBulan} hari">s/d ${fmtDayMonth(ke)}</span>` : '';
-    return `<th class="${cls}" data-key="${k}"><span class="rekap-month-lbl">${REKAP_BULAN_SHORT[parseInt(k.slice(5,7),10)-1]}</span>${sub}</th>`;
-  }).join('');
+  const key = hasilLatestKeyP();
+  const s = key ? state.proyeksi.rekap[key] : null;
+  if(!s){
+    wrap.innerHTML = `<div class="rekap-empty-note">Belum ada data Proyeksi RKS. Buka Proyeksi RKS lalu klik "Simpan ke Rekap Proyeksi".</div>`;
+    return;
+  }
+  const ke = s.ke ? parsePeriodeDate(s.ke) : null;
+  const tNpmPct = rpPos(state.settings.targetRasioLaba);
+  const hasBreakdown = !!s.adminLayananBreakdown;
   const rows = REKAP_METRICS.map(m=>{
-    const cells = keys.map((k,i)=>{
-      const sn = state.proyeksi.rekap[k];
-      if(!sn) return `<td class="is-empty">-</td>`;
-      const e = proyeksiSnapEst(sn);
-      const prevSn = i>0 ? state.proyeksi.rekap[keys[i-1]] : null;
-      const trend = rekapTrendHtml(e[m.key], prevSn ? proyeksiSnapEst(prevSn)[m.key] : null, m.goodUp, m.fmt);
-      return `<td>${fmtRekapVal(e[m.key], m.fmt)}${trend}</td>`;
-    }).join('');
-    const aggCells = rekapPAggCellsHtml(m, keys);
-    if(m.key==='netIncome') return `<tr class="rekap-netincome-row"><td class="rekap-kriteria">${m.label}</td>${aggCells}${cells}</tr>`;
-    return `<tr><td class="rekap-kriteria">${m.label}</td>${aggCells}${cells}</tr>`;
+    let val = fmtRekapVal(s[m.key], m.fmt);
+    if(m.key==='npm' && tNpmPct!==null){
+      const bad = (rpNum(s.npm)!==null && s.npm < tNpmPct/100);
+      val = `<span style="color:${bad?'var(--bad)':'var(--good)'};">${val}</span><span class="rp-tgt">target ${fmtPct(tNpmPct/100)}</span>`;
+    }
+    const cls = m.key==='netIncome' ? 'rp-net' : (m.key==='npm' ? 'rp-goal' : '');
+    if(m.key==='ratioAdmin'){
+      const chevron = hasBreakdown ? `<span class="rekap-toggle-chevron" aria-hidden="true">${rekapPAdminExpanded?'▲':'▽'}</span>` : '';
+      let row = `<tr class="${hasBreakdown?'rp-expandable':''}" ${hasBreakdown?'data-rp-toggle="1"':''}><td class="rp-k">${m.label}${chevron}</td><td>${val}</td></tr>`;
+      if(hasBreakdown && rekapPAdminExpanded){
+        row += ADMIN_LAYANAN_BREAKDOWN_ORDER.map(item=>`<tr class="rp-detail"><td class="rp-k">${item.label}</td><td>${fmtRekapBreakdownCell(s.adminLayananBreakdown[item.key], s.pendapatan)}</td></tr>`).join('');
+        row += `<tr class="rp-detail"><td class="rp-k"><i>Biaya Isi Saldo Otomatis</i></td><td><i>${fmtRekapBreakdownCell((s.biayaIsiSaldo!==undefined)?s.biayaIsiSaldo:null, s.pendapatan)}</i></td></tr>`;
+      }
+      return row;
+    }
+    return `<tr class="${cls}"><td class="rp-k">${m.label}</td><td>${val}</td></tr>`;
   }).join('');
-  const emptyNote = filled.length===0
-    ? `<div class="rekap-empty-note">Belum ada bulan tersimpan di ${rekapPYear}. Buka Proyeksi RKS lalu klik "Simpan ke Rekap Proyeksi".</div>` : '';
-  const _prevScroll = wrap.querySelector('.rekap-scroll');
-  const _sl = _prevScroll ? _prevScroll.scrollLeft : 0, _st = _prevScroll ? _prevScroll.scrollTop : 0;
-  wrap.innerHTML = `${emptyNote}<div class="card rekap-card"><div class="rekap-scroll">
-    <table class="rekap-table rekap-12">
-      ${rekapColgroupHtml(keys.map(k=>!!state.proyeksi.rekap[k]), REKAP_COL_W.emptyWeek, null)}
-      <thead><tr><th class="rekap-kriteria">Kriteria</th><th class="rekap-agg">Anual</th><th class="rekap-agg">Average</th><th class="rekap-agg">Sum</th>${head}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div></div>`;
-  { const _sc = wrap.querySelector('.rekap-scroll'); if(_sc){ _sc.scrollLeft = _sl; _sc.scrollTop = _st; } }
-  renderRekapPYearNav();
+  const _prev = wrap.querySelector('.rp-table-card'); const _st = _prev ? _prev.scrollTop : 0;
+  wrap.innerHTML = `<div class="rp-layout">
+    <div class="card rp-table-card">
+      <table class="rp-table">
+        <thead><tr><th class="rp-k">Kriteria</th><th>Aktual${ke!==null ? ' s/d '+fmtDayMonth(ke) : ''}<span class="rp-sub">${byhEsc(s.label || key)}${s.hari && s.hariBulan ? ' · hari ke-'+s.hari+' dari '+s.hariBulan : ''}</span></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${rekapPGuideHtml(s)}
+  </div>`;
+  const tgl = wrap.querySelector('tr[data-rp-toggle]');
+  if(tgl) tgl.addEventListener('click', ()=>{ rekapPAdminExpanded = !rekapPAdminExpanded; renderRekapP(); });
+  { const c = wrap.querySelector('.rp-table-card'); if(c) c.scrollTop = _st; }
 }
 
 function rksConfigProyeksi(){
