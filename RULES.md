@@ -75,6 +75,13 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 
 **dashboard.js + style.css (28 Sep 2026)**: 8 minicard dashboard dibungkus 2 carousel (#zd-car-a: Target/Laba/Beban vs Kas/Cash Flow, #zd-car-b: Saldo Kas/Order Hari Ini/Nilai Stok/SKU Kritis). HP (<768px): 1 halaman = 1 kartu, swipe loop 1-2-3-4-1-2-3-4 (DOM diputar, tanpa klon → ID canvas tetap unik), dot 4 titik. Desktop/tablet: wrapper display:contents, grid lama utuh. Kartu bawah sekarang juga pakai donut (Saldo=% tersisa, Order=omset hari vs target harian, Nilai Stok=komposisi per Boss, SKU Kritis=habis/mendekati/aman). Warna ikon per kartu pindah dari :nth-of-type ke [data-zd-i] karena urutan DOM bisa berputar.
 
+**analisis.html — panel upload RKS (29 Sep 2026)**: RKS Overview, RKS Mingguan, Proyeksi RKS punya panel upload yang sama, semua dikelola helper bersama `rks*` (RKS_SEL, rksRenderOrders/Income/Ads, rksSyncButtons, rksDeleteSelected, rksHitung, rksToggleEdit; scope 'ov' | 'm' | 'p').
+- Order Completed: Overview & Proyeksi 2 slot (index 0 = Bulan lalu, index 1 = Bulan ini); Mingguan 1 slot (alurnya beda, jangan disamakan). Data Proyeksi lama (1 slot) otomatis masuk "Bulan ini".
+- Income & Iklan: 1 kotak tanpa header; kosong = ajakan upload, terisi = kartu nama file + keterangan (tag kecil Income/Iklan).
+- Edit file -> kartu file dapat kotak centang; tombol jadi "Selesai". Hapus = hanya yang dicentang (konfirmasi, terkunci kalau belum ada centang; hapus Income juga reset pendapatan/penghasilan/rasio admin, hapus Iklan reset iklan). Hitung terkunci sampai lengkap: Income terbaca + Order (Overview 2, Mingguan 1, Proyeksi 2) + Iklan (Overview: file ATAU "tanpa iklan" dari setup toko; Mingguan & Proyeksi: wajib file).
+- Tombol "Hapus Data" (hapus semua) dihapus; kalau mau hapus semua, centang semua.
+- analisis.js cuma diberi catatan (24) supaya APP_BUILD berubah.
+
 ## Belum kelar / open issue
 
 - Sistem Re-Stock ada 2 versi gak sinkron: restock.js (baca produk.boss langsung, semua supplier) vs hutang-supplier.js tab Re Stock (filter Reseller/PO doang, prioritas link hutang_barang). SKU sama bisa beda status/boss di 2 tempat. User minta di-skip dulu, dipikirin ulang arahnya (satuin sistem / bikin gate keliatan di UI).

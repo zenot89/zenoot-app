@@ -278,6 +278,16 @@
   }
   .filelist .frow button:hover{ border-color:var(--accent); color:var(--accent-dark); }
 
+  /* [29 Sep 2026] Panel upload RKS (Overview/Mingguan/Proyeksi): Income & Iklan = 1 kotak tanpa header; kartu file + kotak centang saat Edit file */
+  .rks-single{ margin-bottom:14px; }
+  .rks-single:last-child{ margin-bottom:0; }
+  .rks-single .filelist{ margin-top:0; }
+  .filelist .rks-fcard{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; align-items:flex-start; }
+  .rks-single .filelist .rks-fcard{ margin-top:0; }
+  .filelist .rks-fcard.edit{ cursor:pointer; }
+  .filelist .rks-fcard.sel{ border-color:var(--ink); background:var(--accent-soft); }
+  .rks-fcard .rks-tag{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:2px; }
+  .rks-fcard .rks-chk{ flex:0 0 auto; width:16px; height:16px; margin:2px 0 0; accent-color:var(--ink); cursor:pointer; }
   .status-ok{ color:var(--good); font-weight:700; }
   .status-warn{ color:var(--accent-dark); font-weight:700; }
 
@@ -1568,17 +1578,18 @@
       <div class="rks-main" id="hasilWrap"></div>
       <div class="rks-datatoko-panel" id="rksDataTokoPanel">
         <div class="rks-datatoko-panel-inner">
-          <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;gap:8px;">
-            <button class="btn ghost small" id="btnHapusData">Hapus Data</button>
-            <button class="btn small" id="btnEditHitung">Edit file</button>
+          <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn danger small" id="btnHapusData" style="display:none" disabled>Hapus</button>
+            <button class="btn small" id="btnHitung" style="display:none" disabled>Hitung</button>
+            <button class="btn ghost small" id="btnEditHitung" style="margin-left:auto">Edit file</button>
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(2 bulan)</span></h3>
-            <div class="hint zq-h">"Pesanan Selesai" (.xlsx), 1 slot = 1 bulan — otomatis digabung &amp; di-dedupe.</div>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx), Bulan lalu + Bulan ini — otomatis digabung &amp; di-dedupe.</div>
             <div class="order-slots">
               <div>
                 <div class="drop" id="dropOrder1">
-                  <div class="lbl">Bulan ke-1</div>
+                  <div class="lbl">Bulan lalu</div>
                   <div class="sub">Klik atau drop .xlsx</div>
                   <input type="file" id="inputOrder1" accept=".xlsx,.xls">
                 </div>
@@ -1586,7 +1597,7 @@
               </div>
               <div>
                 <div class="drop" id="dropOrder2">
-                  <div class="lbl">Bulan ke-2</div>
+                  <div class="lbl">Bulan ini</div>
                   <div class="sub">Klik atau drop .xlsx</div>
                   <input type="file" id="inputOrder2" accept=".xlsx,.xls">
                 </div>
@@ -1596,21 +1607,19 @@
             <div class="hint" id="orderCombinedSummary" style="margin-top:10px;margin-bottom:0;"></div>
           </div>
 
-          <div class="card">
-            <h3>Income</h3>
-            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan".</div>
+          <div class="rks-single">
             <div class="drop" id="dropIncome">
-              <div class="lbl">Klik atau drop .xlsx</div>
+              <div class="lbl">Income</div>
+              <div class="sub">Klik atau drop .xlsx</div>
               <input type="file" id="inputIncome" accept=".xlsx,.xls">
             </div>
             <div class="filelist" id="listIncome"></div>
           </div>
 
-          <div class="card">
-            <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
-            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf).</div>
+          <div class="rks-single">
             <div class="drop" id="dropAds">
-              <div class="lbl">Klik atau drop .csv / .pdf</div>
+              <div class="lbl">Tagihan Iklan</div>
+              <div class="sub">Klik atau drop .csv / .pdf</div>
               <input type="file" id="inputAds" accept=".csv,.pdf">
             </div>
             <div class="filelist" id="listAds"></div>
@@ -1649,9 +1658,10 @@
       <div class="rks-main" id="hasilWrapM"></div>
       <div class="rks-datatoko-panel" id="rksDataTokoPanelM">
         <div class="rks-datatoko-panel-inner">
-          <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;gap:8px;">
-            <button class="btn ghost small" id="btnHapusDataM">Hapus Data</button>
-            <button class="btn small" id="btnEditHitungM">Edit file</button>
+          <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn danger small" id="btnHapusDataM" style="display:none" disabled>Hapus</button>
+            <button class="btn small" id="btnHitungM" style="display:none" disabled>Hitung</button>
+            <button class="btn ghost small" id="btnEditHitungM" style="margin-left:auto">Edit file</button>
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(minggu ini)</span></h3>
@@ -1668,21 +1678,19 @@
             <div class="hint" id="orderCombinedSummaryM" style="margin-top:10px;margin-bottom:0;"></div>
           </div>
 
-          <div class="card">
-            <h3>Income</h3>
-            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan", periode minggu ini.</div>
+          <div class="rks-single">
             <div class="drop" id="dropIncomeM">
-              <div class="lbl">Klik atau drop .xlsx</div>
+              <div class="lbl">Income</div>
+              <div class="sub">Klik atau drop .xlsx</div>
               <input type="file" id="inputIncomeM" accept=".xlsx,.xls">
             </div>
             <div class="filelist" id="listIncomeM"></div>
           </div>
 
-          <div class="card">
-            <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
-            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf), periode minggu ini.</div>
+          <div class="rks-single">
             <div class="drop" id="dropAdsM">
-              <div class="lbl">Klik atau drop .csv / .pdf</div>
+              <div class="lbl">Tagihan Iklan</div>
+              <div class="sub">Klik atau drop .csv / .pdf</div>
               <input type="file" id="inputAdsM" accept=".csv,.pdf">
             </div>
             <div class="filelist" id="listAdsM"></div>
@@ -1721,40 +1729,48 @@
       <div class="rks-main" id="hasilWrapP"></div>
       <div class="rks-datatoko-panel" id="rksDataTokoPanelP">
         <div class="rks-datatoko-panel-inner">
-          <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;gap:8px;">
-            <button class="btn ghost small" id="btnHapusDataP">Hapus Data</button>
-            <button class="btn small" id="btnEditHitungP">Edit file</button>
+          <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn danger small" id="btnHapusDataP" style="display:none" disabled>Hapus</button>
+            <button class="btn small" id="btnHitungP" style="display:none" disabled>Hitung</button>
+            <button class="btn ghost small" id="btnEditHitungP" style="margin-left:auto">Edit file</button>
           </div>
           <div class="card">
-            <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(tgl 1 s/d hari ini)</span></h3>
-            <div class="hint zq-h">"Pesanan Selesai" (.xlsx). Rentang tanggalnya boleh lebih panjang — yang dihitung cuma pesanan yang dananya dilepas di file Income Proyeksi (tanggal 1 bulan ini s/d hari ini).</div>
+            <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(bulan lalu + bulan ini)</span></h3>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx), Bulan lalu + Bulan ini. Rentang tanggalnya boleh lebih panjang — yang dihitung cuma pesanan yang dananya dilepas di file Income Proyeksi (tanggal 1 bulan ini s/d hari ini).</div>
             <div class="order-slots">
               <div>
                 <div class="drop" id="dropOrder1P">
-                  <div class="lbl">Klik atau drop .xlsx</div>
+                  <div class="lbl">Bulan lalu</div>
+                  <div class="sub">Klik atau drop .xlsx</div>
                   <input type="file" id="inputOrder1P" accept=".xlsx,.xls">
                 </div>
                 <div class="filelist" id="listOrder1P"></div>
+              </div>
+              <div>
+                <div class="drop" id="dropOrder2P">
+                  <div class="lbl">Bulan ini</div>
+                  <div class="sub">Klik atau drop .xlsx</div>
+                  <input type="file" id="inputOrder2P" accept=".xlsx,.xls">
+                </div>
+                <div class="filelist" id="listOrder2P"></div>
               </div>
             </div>
             <div class="hint" id="orderCombinedSummaryP" style="margin-top:10px;margin-bottom:0;"></div>
           </div>
 
-          <div class="card">
-            <h3>Income</h3>
-            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan", periode tanggal 1 bulan ini s/d hari ini.</div>
+          <div class="rks-single">
             <div class="drop" id="dropIncomeP">
-              <div class="lbl">Klik atau drop .xlsx</div>
+              <div class="lbl">Income</div>
+              <div class="sub">Klik atau drop .xlsx</div>
               <input type="file" id="inputIncomeP" accept=".xlsx,.xls">
             </div>
             <div class="filelist" id="listIncomeP"></div>
           </div>
 
-          <div class="card">
-            <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
-            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf), periode tanggal 1 bulan ini s/d hari ini.</div>
+          <div class="rks-single">
             <div class="drop" id="dropAdsP">
-              <div class="lbl">Klik atau drop .csv / .pdf</div>
+              <div class="lbl">Tagihan Iklan</div>
+              <div class="sub">Klik atau drop .csv / .pdf</div>
               <input type="file" id="inputAdsP" accept=".csv,.pdf">
             </div>
             <div class="filelist" id="listAdsP"></div>
@@ -2497,7 +2513,7 @@ const state = {
   },
   // [29 Sep 2026] Proyeksi RKS: struktur sama dengan mingguan (tanggal 1 bulan berjalan s/d tanggal aktual)
   proyeksi: {
-    orderSlots: [null],
+    orderSlots: [null, null],   // [Bulan lalu, Bulan ini]
     orderHeaders: [],
     incomeFile: null,
     adsFile: null,
@@ -2507,6 +2523,155 @@ const state = {
 };
 // Dideklarasiin di sini (bukan di bawah) biar gak kena TDZ pas renderOrderList() kepanggil dari load session di awal.
 let dataTokoEditMode = false;
+
+/* ================= PANEL UPLOAD RKS: kartu file + centang (Edit file) + Hapus terpilih + Hitung [29 Sep 2026] =================
+   Dipakai bareng RKS Overview ('ov'), RKS Mingguan ('m') dan Proyeksi RKS ('p'). Semua fungsi = function declaration (hoisted) supaya
+   aman dipanggil dari render awal sebelum blok Mingguan/Proyeksi dieksekusi. Aturan:
+   - Order Completed: Overview & Proyeksi 2 slot (Bulan lalu, Bulan ini); Mingguan 1 slot.
+   - Income & Iklan: 1 kotak tanpa header. Kosong = ajakan upload; terisi = kartu nama file + keterangan.
+   - Edit file -> tiap kartu file punya kotak centang. Hapus = hapus yang dicentang saja (terkunci kalau belum ada). Hitung = terkunci sampai lengkap.
+   - Lengkap: Income terbaca + Order (Overview 2, Mingguan 1, Proyeksi 2) + Iklan (Overview: file ATAU "tanpa iklan" dari setup toko seperti sebelumnya; Mingguan & Proyeksi: wajib file). */
+const RKS_SEL = { ov:new Set(), m:new Set(), p:new Set() };
+const RKS_SUF = { ov:'', m:'M', p:'P' };
+function rksBag(scope){ return scope==='ov' ? state : (scope==='m' ? state.mingguan : state.proyeksi); }
+function rksEditGet(scope){ return scope==='ov' ? dataTokoEditMode : (scope==='m' ? dataTokoEditModeM : dataTokoEditModeP); }
+function rksEditSet(scope, v){ if(scope==='ov') dataTokoEditMode = v; else if(scope==='m') dataTokoEditModeM = v; else dataTokoEditModeP = v; }
+function rksHas(scope, key){
+  const b = rksBag(scope);
+  if(key==='income') return !!b.incomeFile;
+  if(key==='ads') return !!b.adsFile;
+  return !!b.orderSlots[+key.slice(5)];
+}
+function rksNeedOrders(scope){ return scope==='m' ? 1 : 2; }
+function rksComplete(scope){
+  const b = rksBag(scope);
+  const inc = !!b.incomeFile && b.incomeFile.totalPendapatan!==null && b.incomeFile.totalPendapatan!==undefined && b.incomeFile.totalPenghasilan!==null && b.incomeFile.totalPenghasilan!==undefined;
+  const orders = b.orderSlots.filter(Boolean).length >= rksNeedOrders(scope);
+  const ads = !!b.adsFile || (scope==='ov' && !!(b.manual && b.manual.tanpaIklan));
+  return inc && orders && ads;
+}
+function rksSaveSession(scope){
+  if(scope==='ov') saveSessionToStorage(); else if(scope==='m') saveSessionMingguanToStorage(); else saveSessionProyeksiToStorage();
+}
+function rksRerender(scope){
+  if(scope==='ov'){ renderOrderList(); renderIncomeList(); }
+  else if(scope==='m'){ renderOrderListM(); renderIncomeListM(); }
+  else { renderOrderListP(); renderIncomeListP(); }
+}
+function rksSyncButtons(scope){
+  const suf = RKS_SUF[scope];
+  const hapus = document.getElementById('btnHapusData'+suf), hitung = document.getElementById('btnHitung'+suf), edit = document.getElementById('btnEditHitung'+suf);
+  const on = rksEditGet(scope);
+  RKS_SEL[scope].forEach(k=>{ if(!rksHas(scope,k)) RKS_SEL[scope].delete(k); });
+  const ok = rksComplete(scope);
+  if(hapus){ hapus.style.display = on ? '' : 'none'; hapus.disabled = RKS_SEL[scope].size===0; hapus.title = RKS_SEL[scope].size ? '' : 'Centang file yang mau dihapus dulu'; }
+  if(hitung){ hitung.style.display = on ? '' : 'none'; hitung.disabled = !ok; hitung.title = ok ? '' : 'Lengkapi file Order Completed, Income & Iklan dulu'; }
+  if(edit){ edit.textContent = on ? 'Selesai' : 'Edit file'; }
+}
+function rksFileCardHtml(scope, key, tag, body){
+  const on = rksEditGet(scope), sel = RKS_SEL[scope].has(key);
+  return `<div class="frow rks-fcard${on?' edit':''}${(on&&sel)?' sel':''}" data-rks-scope="${scope}" data-rks-key="${key}">${on ? `<input type="checkbox" class="rks-chk" ${sel?'checked':''} aria-label="Pilih file">` : ''}<div>${tag ? `<span class="rks-tag">${tag}</span>` : ''}${body}</div></div>`;
+}
+function rksRenderOrders(scope){
+  const b = rksBag(scope), suf = RKS_SUF[scope];
+  const n = b.orderSlots.length;
+  const labels = scope==='m' ? [''] : ['Bulan lalu','Bulan ini'];
+  for(let i=0;i<n;i++){
+    const drop = document.getElementById('dropOrder'+(i+1)+suf), el = document.getElementById('listOrder'+(i+1)+suf);
+    if(!drop || !el) continue;
+    const f = b.orderSlots[i];
+    drop.style.display = f ? 'none' : '';
+    el.innerHTML = f ? rksFileCardHtml(scope, 'order'+i, labels[i]||'', `<span class="name">${fnameHtml(f.name)}</span> <span class="meta">— ${f.rows.length} baris</span> <span class="status-ok">✓</span>`) : '';
+  }
+  const summaryEl = document.getElementById('orderCombinedSummary'+suf);
+  if(summaryEl){
+    const filled = b.orderSlots.filter(Boolean);
+    const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
+    if(scope==='m' || !filled.length) summaryEl.innerHTML = '';
+    else if(filled.length===1) summaryEl.innerHTML = `<span class="status-warn">⚠ Baru 1 dari 2 file keisi (${totalRows} baris) — isi juga slot ${b.orderSlots[0] ? 'Bulan ini' : 'Bulan lalu'} biar datanya lengkap.</span>`;
+    else summaryEl.innerHTML = `Total gabungan: <b>${totalRows}</b> baris dari 2 file. <span class="status-ok">✓ siap dipakai</span>`;
+  }
+  rksSyncButtons(scope);
+}
+function rksRenderIncome(scope){
+  const b = rksBag(scope), suf = RKS_SUF[scope];
+  const drop = document.getElementById('dropIncome'+suf), el = document.getElementById('listIncome'+suf);
+  if(!drop || !el) return;
+  const f = b.incomeFile;
+  drop.style.display = f ? 'none' : '';
+  el.innerHTML = f ? rksFileCardHtml(scope, 'income', 'Income',
+    `<div class="name">${fnameHtml(f.name)}</div>
+     <div class="meta">${f.releasedOrderNumbers.size} pesanan dilepas ${(f.totalPendapatan===null||f.totalPenghasilan===null) ? '<span class="status-warn">⚠ format gak kebaca</span>' : '<span class="status-ok">✓</span>'}</div>
+     ${incomePeriodHtml(f)}`) : '';
+}
+function rksRenderAds(scope){
+  const b = rksBag(scope), suf = RKS_SUF[scope];
+  const drop = document.getElementById('dropAds'+suf), el = document.getElementById('listAds'+suf);
+  if(!drop || !el) return;
+  const f = b.adsFile;
+  drop.style.display = f ? 'none' : '';
+  el.innerHTML = f ? rksFileCardHtml(scope, 'ads', 'Iklan',
+    `<div class="name">${fnameHtml(f.name)}</div>
+     <div class="meta"><span class="status-ok">✓</span></div>
+     ${adsPeriodHtml(f, b.incomeFile)}`) : '';
+  rksSyncButtons(scope);
+}
+document.addEventListener('click', e=>{
+  const c = e.target && e.target.closest ? e.target.closest('.rks-fcard') : null;
+  if(!c) return;
+  const scope = c.getAttribute('data-rks-scope'), key = c.getAttribute('data-rks-key');
+  if(!scope || !RKS_SEL[scope] || !rksEditGet(scope)) return;
+  if(RKS_SEL[scope].has(key)) RKS_SEL[scope].delete(key); else RKS_SEL[scope].add(key);
+  rksRerender(scope);
+});
+function rksToggleEdit(scope){
+  rksEditSet(scope, !rksEditGet(scope));
+  RKS_SEL[scope].clear();
+  rksRerender(scope);
+}
+async function rksDeleteSelected(scope){
+  const b = rksBag(scope);
+  const keys = [...RKS_SEL[scope]].filter(k=>rksHas(scope,k));
+  if(!keys.length) return;
+  const tambahan = scope==='p' ? ' Rekap Proyeksi yang sudah tersimpan tidak ikut terhapus.' : '';
+  if(!(await zConfirm(`Hapus ${keys.length} file yang dicentang? HPP master gak kehapus.${tambahan}`, {title:'Hapus file terpilih?', ok:'Hapus'}))) return;
+  keys.forEach(k=>{
+    if(k==='income'){ b.incomeFile = null; b.manual.pendapatan = null; b.manual.penghasilan = null; b.manual.ratioAdminLayanan = 0; }
+    else if(k==='ads'){ b.adsFile = null; b.manual.iklan = null; }
+    else b.orderSlots[+k.slice(5)] = null;
+  });
+  RKS_SEL[scope].clear();
+  const empty = !b.orderSlots.some(Boolean) && !b.incomeFile && !b.adsFile;
+  if(empty) b.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
+  rksSaveSession(scope);
+  if(empty){
+    const lsKey = scope==='ov' ? SESSION_LS_KEY : (scope==='m' ? SESSION_M_LS_KEY : SESSION_P_LS_KEY);
+    try{ zLS.removeItem(lsKey); }catch(e){}
+  }
+  rksRerender(scope);
+  if(scope==='ov'){
+    if(empty) hasilViewKey = rekapLatestDataKey();
+    if((empty || !hasilViewKey) && document.getElementById('hasilWrap')) renderHasil();
+    try{ renderTokoSetup(); }catch(e){}
+  } else if(scope==='m'){
+    if(empty) hasilViewKeyM = hasilLatestKeyM();
+    if((empty || !hasilViewKeyM) && document.getElementById('hasilWrapM')) renderHasilM();
+  } else {
+    if(empty) hasilViewKeyP = hasilLatestKeyP();
+    if((empty || !hasilViewKeyP) && document.getElementById('hasilWrapP')) renderHasilP();
+  }
+}
+function rksHitung(scope){
+  if(!rksComplete(scope)) return;
+  rksEditSet(scope, false);
+  RKS_SEL[scope].clear();
+  rksRerender(scope);
+  if(scope==='ov'){ hasilViewKey = null; if(document.getElementById('hasilWrap')) renderHasil(); }
+  else if(scope==='m'){ hasilViewKeyM = null; if(document.getElementById('hasilWrapM')) renderHasilM(); }
+  else { hasilViewKeyP = null; if(document.getElementById('hasilWrapP')) renderHasilP(); }
+  const panel = document.getElementById('rksDataTokoPanel'+RKS_SUF[scope]);
+  if(panel) panel.classList.remove('open');
+}
 
 const KEYSEP = '|';
 // Dideklarasiin di atas (bukan dekat pemakainya) karena kartu Income/Iklan (renderIncomeList/renderAdsList) kepanggil pas load session,
@@ -4056,23 +4221,7 @@ function loadOrderSlot(slotIndex, file){
 setupDrop('dropOrder1','inputOrder1', files=> loadOrderSlot(0, files[0]));
 setupDrop('dropOrder2','inputOrder2', files=> loadOrderSlot(1, files[0]));
 
-function renderOrderList(){
-  [0,1].forEach(i=>{
-    const drop = document.getElementById('dropOrder'+(i+1));
-    const el = document.getElementById('listOrder'+(i+1));
-    const f = state.orderSlots[i];
-    drop.style.display = (f && !dataTokoEditMode) ? 'none' : '';
-    el.innerHTML = f ? `<div class="frow">
-      <div><span class="name">${fnameHtml(f.name)}</span> <span class="meta">— ${f.rows.length} baris</span> <span class="status-ok">✓</span></div>
-    </div>` : '';
-  });
-  const filled = state.orderSlots.filter(Boolean);
-  const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
-  const summaryEl = document.getElementById('orderCombinedSummary');
-  if(!filled.length){ summaryEl.innerHTML=''; }
-  else if(filled.length===1){ summaryEl.innerHTML = `<span class="status-warn">⚠ Baru 1 slot keisi (${totalRows} baris) — isi slot ke-2 juga biar datanya lengkap 2 bulan.</span>`; }
-  else{ summaryEl.innerHTML = `Total gabungan: <b>${totalRows}</b> baris dari 2 file. <span class="status-ok">✓ siap dipakai</span>`; }
-}
+function renderOrderList(){ rksRenderOrders('ov'); }
 function removeOrderFile(i){ state.orderSlots[i]=null; saveSessionToStorage(); renderOrderList(); }
 
 function allOrderRows(){
@@ -4238,17 +4387,7 @@ function adsPeriodHtml(f, inc){
 }
 
 function renderIncomeList(){
-  const drop = document.getElementById('dropIncome');
-  const el = document.getElementById('listIncome');
-  const f = state.incomeFile;
-  drop.style.display = (f && !dataTokoEditMode) ? 'none' : '';
-  el.innerHTML = f ? `<div class="frow">
-    <div><span class="name">${fnameHtml(f.name)}</span>
-      <span class="meta">— ${f.releasedOrderNumbers.size} pesanan dilepas</span>
-      ${(f.totalPendapatan===null||f.totalPenghasilan===null) ? '<span class="status-warn">⚠ format gak kebaca</span>' : '<span class="status-ok">✓</span>'}
-      ${incomePeriodHtml(f)}
-    </div>
-  </div>` : '';
+  rksRenderIncome('ov');
   renderAdsList();   // kartu Iklan ngecek top-up terhadap periode Income -> ikut refresh tiap Income berubah
 }
 function removeIncomeFile(){ state.incomeFile=null; saveSessionToStorage(); renderIncomeList(); }
@@ -4336,51 +4475,13 @@ function loadAdsPdf(f){
   };
   reader.readAsArrayBuffer(f);
 }
-function renderAdsList(){
-  const drop = document.getElementById('dropAds');
-  const el = document.getElementById('listAds');
-  const f = state.adsFile;
-  drop.style.display = (f && !dataTokoEditMode) ? 'none' : '';
-  if(!f){ el.innerHTML=''; return; }
-  el.innerHTML = `<div class="frow">
-    <div><span class="name">${fnameHtml(f.name)}</span> <span class="status-ok">✓</span>${adsPeriodHtml(f, state.incomeFile)}</div>
-  </div>`;
-}
+function renderAdsList(){ rksRenderAds('ov'); }
 function removeAdsFile(){ state.adsFile=null; state.manual.iklan=null; saveSessionToStorage(); renderAdsList(); }
 
-/* ================= HAPUS DATA (reset Order/Income/Iklan yang udah diupload) ================= */
-document.getElementById('btnHapusData').addEventListener('click', async ()=>{
-  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan yang udah diupload? HPP master gak kehapus.', {title:'Hapus data upload?', ok:'Hapus'}))) return;
-  state.orderSlots = [null, null];
-  state.incomeFile = null;
-  state.adsFile = null;
-  state.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
-  try{ zLS.removeItem(SESSION_LS_KEY); }catch(e){}
-  renderOrderList(); renderIncomeList(); renderAdsList();
-  hasilViewKey = rekapLatestDataKey();   // data live sudah kosong -> tampilkan bulan terakhir di Rekap
-  if(document.getElementById('hasilWrap')) renderHasil();
-  try{ renderTokoSetup(); }catch(e){}
-});
-document.getElementById('btnEditHitung').addEventListener('click', ()=>{
-  const btn = document.getElementById('btnEditHitung');
-  if(!dataTokoEditMode){
-    // tertutup -> buka mode edit biar bisa isi/ganti file
-    dataTokoEditMode = true;
-    btn.textContent = 'Hitung';
-    btn.classList.add('active');
-    renderOrderList(); renderIncomeList(); renderAdsList();
-  } else {
-    // lagi ngisi -> eksekusi hitung, lalu balik ke kondisi tertutup (Edit file)
-    dataTokoEditMode = false;
-    btn.textContent = 'Edit file';
-    btn.classList.remove('active');
-    renderOrderList(); renderIncomeList(); renderAdsList();
-    hasilViewKey = null;   // habis Hitung -> tampilkan data yang baru dimuat
-    if(document.getElementById('hasilWrap')) renderHasil();
-    const panel = document.getElementById('rksDataTokoPanel');
-    if(panel) panel.classList.remove('open');
-  }
-});
+/* ================= HAPUS (yang dicentang) / HITUNG / EDIT FILE — Overview [29 Sep 2026] ================= */
+document.getElementById('btnHapusData').addEventListener('click', ()=> rksDeleteSelected('ov'));
+document.getElementById('btnHitung').addEventListener('click', ()=> rksHitung('ov'));
+document.getElementById('btnEditHitung').addEventListener('click', ()=> rksToggleEdit('ov'));
 document.getElementById('btnToggleDataTokoPanel').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanel').classList.toggle('open');
 });
@@ -9049,21 +9150,7 @@ function migrateRekapMingguanKeys(){
   if(changed) saveRekapMingguanToStorage();
 }
 
-function renderOrderListM(){
-  [0].forEach(i=>{
-    const drop = document.getElementById('dropOrder'+(i+1)+'M');
-    const el = document.getElementById('listOrder'+(i+1)+'M');
-    const f = state.mingguan.orderSlots[i];
-    drop.style.display = (f && !dataTokoEditModeM) ? 'none' : '';
-    el.innerHTML = f ? `<div class="frow">
-      <div><span class="name">${fnameHtml(f.name)}</span> <span class="meta">— ${f.rows.length} baris</span> <span class="status-ok">✓</span></div>
-    </div>` : '';
-  });
-  const filled = state.mingguan.orderSlots.filter(Boolean);
-  const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
-  const summaryEl = document.getElementById('orderCombinedSummaryM');
-  summaryEl.innerHTML = '';   // 1 file saja — jumlah baris & centangnya udah tampil di kotak file
-}
+function renderOrderListM(){ rksRenderOrders('m'); }
 function allOrderRowsM(){ return state.mingguan.orderSlots.filter(Boolean).flatMap(f=>f.rows); }
 function dedupedOrderRowsM(){
   const seen = new Set(); const out = [];
@@ -9151,17 +9238,7 @@ setupDrop('dropIncomeM','inputIncomeM', files=>{
   reader.readAsArrayBuffer(f);
 });
 function renderIncomeListM(){
-  const drop = document.getElementById('dropIncomeM');
-  const el = document.getElementById('listIncomeM');
-  const f = state.mingguan.incomeFile;
-  drop.style.display = (f && !dataTokoEditModeM) ? 'none' : '';
-  el.innerHTML = f ? `<div class="frow">
-    <div><span class="name">${fnameHtml(f.name)}</span>
-      <span class="meta">— ${f.releasedOrderNumbers.size} pesanan dilepas</span>
-      ${(f.totalPendapatan===null||f.totalPenghasilan===null) ? '<span class="status-warn">⚠ format gak kebaca</span>' : '<span class="status-ok">✓</span>'}
-      ${incomePeriodHtml(f)}
-    </div>
-  </div>` : '';
+  rksRenderIncome('m');
   renderAdsListM();
 }
 
@@ -9230,44 +9307,11 @@ function loadAdsPdfM(f){
   };
   reader.readAsArrayBuffer(f);
 }
-function renderAdsListM(){
-  const drop = document.getElementById('dropAdsM');
-  const el = document.getElementById('listAdsM');
-  const f = state.mingguan.adsFile;
-  drop.style.display = (f && !dataTokoEditModeM) ? 'none' : '';
-  if(!f){ el.innerHTML=''; return; }
-  el.innerHTML = `<div class="frow"><div><span class="name">${fnameHtml(f.name)}</span> <span class="status-ok">✓</span>${adsPeriodHtml(f, state.mingguan.incomeFile)}</div></div>`;
-}
+function renderAdsListM(){ rksRenderAds('m'); }
 
-document.getElementById('btnHapusDataM').addEventListener('click', async ()=>{
-  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan minggu ini? HPP master gak kehapus.', {title:'Hapus data minggu ini?', ok:'Hapus'}))) return;
-  state.mingguan.orderSlots = [null];
-  state.mingguan.incomeFile = null;
-  state.mingguan.adsFile = null;
-  state.mingguan.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
-  try{ zLS.removeItem(SESSION_M_LS_KEY); }catch(e){}
-  renderOrderListM(); renderIncomeListM(); renderAdsListM();
-  hasilViewKeyM = hasilLatestKeyM();   // data live sudah kosong -> tampilkan minggu terakhir di Rekap Mingguan
-  if(document.getElementById('hasilWrapM')) renderHasilM();
-});
-document.getElementById('btnEditHitungM').addEventListener('click', ()=>{
-  const btn = document.getElementById('btnEditHitungM');
-  if(!dataTokoEditModeM){
-    dataTokoEditModeM = true;
-    btn.textContent = 'Hitung';
-    btn.classList.add('active');
-    renderOrderListM(); renderIncomeListM(); renderAdsListM();
-  } else {
-    dataTokoEditModeM = false;
-    btn.textContent = 'Edit file';
-    btn.classList.remove('active');
-    renderOrderListM(); renderIncomeListM(); renderAdsListM();
-    hasilViewKeyM = null;   // habis Hitung -> tampilkan data yang baru dimuat (sama seperti RKS Overview)
-    if(document.getElementById('hasilWrapM')) renderHasilM();
-    const panel = document.getElementById('rksDataTokoPanelM');
-    if(panel) panel.classList.remove('open');
-  }
-});
+document.getElementById('btnHapusDataM').addEventListener('click', ()=> rksDeleteSelected('m'));
+document.getElementById('btnHitungM').addEventListener('click', ()=> rksHitung('m'));
+document.getElementById('btnEditHitungM').addEventListener('click', ()=> rksToggleEdit('m'));
 document.getElementById('btnToggleDataTokoPanelM').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanelM').classList.toggle('open');
 });
@@ -9862,8 +9906,9 @@ function loadSessionProyeksiFromStorage(){
     if(!raw) return;
     const payload = JSON.parse(raw);
     if(payload.orderSlots){
-      const old = payload.orderSlots.filter(Boolean);
-      state.proyeksi.orderSlots = [ old.length<=1 ? (old[0]||null) : { name: old[0].name, rows: old.flatMap(f=>f.rows) } ];
+      const os = payload.orderSlots;
+      if(os.length>=2) state.proyeksi.orderSlots = [os[0]||null, os[1]||null];      // format baru: [Bulan lalu, Bulan ini]
+      else state.proyeksi.orderSlots = [null, os.filter(Boolean)[0]||null];        // format lama (1 slot) -> jadi "Bulan ini"; Bulan lalu upload menyusul
     }
     if(payload.incomeFile) state.proyeksi.incomeFile = {...payload.incomeFile, releasedOrderNumbers:new Set(payload.incomeFile.releasedOrderNumbers)};
     if(payload.adsFile) state.proyeksi.adsFile = payload.adsFile;
@@ -9920,21 +9965,7 @@ function proyeksiEstOf(M, factor){
 }
 function proyeksiSnapEst(snap){ return proyeksiEstOf(snap, proyeksiFactor(snap.hari, snap.hariBulan)); }
 
-function renderOrderListP(){
-  [0].forEach(i=>{
-    const drop = document.getElementById('dropOrder'+(i+1)+'P');
-    const el = document.getElementById('listOrder'+(i+1)+'P');
-    const f = state.proyeksi.orderSlots[i];
-    drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
-    el.innerHTML = f ? `<div class="frow">
-      <div><span class="name">${fnameHtml(f.name)}</span> <span class="meta">— ${f.rows.length} baris</span> <span class="status-ok">✓</span></div>
-    </div>` : '';
-  });
-  const filled = state.proyeksi.orderSlots.filter(Boolean);
-  const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
-  const summaryEl = document.getElementById('orderCombinedSummaryP');
-  summaryEl.innerHTML = '';   // 1 file saja — jumlah baris & centangnya udah tampil di kotak file
-}
+function renderOrderListP(){ rksRenderOrders('p'); }
 function allOrderRowsP(){ return state.proyeksi.orderSlots.filter(Boolean).flatMap(f=>f.rows); }
 function dedupedOrderRowsP(){
   const seen = new Set(); const out = [];
@@ -9960,6 +9991,7 @@ function loadOrderSlotP(slotIndex, file){
   reader.readAsArrayBuffer(file);
 }
 setupDrop('dropOrder1P','inputOrder1P', files=> loadOrderSlotP(0, files[0]));
+setupDrop('dropOrder2P','inputOrder2P', files=> loadOrderSlotP(1, files[0]));
 
 setupDrop('dropIncomeP','inputIncomeP', files=>{
   const f = files[0]; if(!f) return;
@@ -10022,17 +10054,7 @@ setupDrop('dropIncomeP','inputIncomeP', files=>{
   reader.readAsArrayBuffer(f);
 });
 function renderIncomeListP(){
-  const drop = document.getElementById('dropIncomeP');
-  const el = document.getElementById('listIncomeP');
-  const f = state.proyeksi.incomeFile;
-  drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
-  el.innerHTML = f ? `<div class="frow">
-    <div><span class="name">${fnameHtml(f.name)}</span>
-      <span class="meta">— ${f.releasedOrderNumbers.size} pesanan dilepas</span>
-      ${(f.totalPendapatan===null||f.totalPenghasilan===null) ? '<span class="status-warn">⚠ format gak kebaca</span>' : '<span class="status-ok">✓</span>'}
-      ${incomePeriodHtml(f)}
-    </div>
-  </div>` : '';
+  rksRenderIncome('p');
   renderAdsListP();
 }
 
@@ -10101,44 +10123,11 @@ function loadAdsPdfP(f){
   };
   reader.readAsArrayBuffer(f);
 }
-function renderAdsListP(){
-  const drop = document.getElementById('dropAdsP');
-  const el = document.getElementById('listAdsP');
-  const f = state.proyeksi.adsFile;
-  drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
-  if(!f){ el.innerHTML=''; return; }
-  el.innerHTML = `<div class="frow"><div><span class="name">${fnameHtml(f.name)}</span> <span class="status-ok">✓</span>${adsPeriodHtml(f, state.proyeksi.incomeFile)}</div></div>`;
-}
+function renderAdsListP(){ rksRenderAds('p'); }
 
-document.getElementById('btnHapusDataP').addEventListener('click', async ()=>{
-  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan Proyeksi bulan ini? HPP master gak kehapus. Rekap Proyeksi yang sudah tersimpan juga tidak ikut terhapus.', {title:'Hapus data Proyeksi?', ok:'Hapus'}))) return;
-  state.proyeksi.orderSlots = [null];
-  state.proyeksi.incomeFile = null;
-  state.proyeksi.adsFile = null;
-  state.proyeksi.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
-  try{ zLS.removeItem(SESSION_P_LS_KEY); }catch(e){}
-  renderOrderListP(); renderIncomeListP(); renderAdsListP();
-  hasilViewKeyP = hasilLatestKeyP();   // data live sudah kosong -> tampilkan bulan terakhir di Rekap Proyeksi
-  if(document.getElementById('hasilWrapP')) renderHasilP();
-});
-document.getElementById('btnEditHitungP').addEventListener('click', ()=>{
-  const btn = document.getElementById('btnEditHitungP');
-  if(!dataTokoEditModeP){
-    dataTokoEditModeP = true;
-    btn.textContent = 'Hitung';
-    btn.classList.add('active');
-    renderOrderListP(); renderIncomeListP(); renderAdsListP();
-  } else {
-    dataTokoEditModeP = false;
-    btn.textContent = 'Edit file';
-    btn.classList.remove('active');
-    renderOrderListP(); renderIncomeListP(); renderAdsListP();
-    hasilViewKeyP = null;   // habis Hitung -> tampilkan data yang baru dimuat (sama seperti RKS Overview)
-    if(document.getElementById('hasilWrapP')) renderHasilP();
-    const panel = document.getElementById('rksDataTokoPanelP');
-    if(panel) panel.classList.remove('open');
-  }
-});
+document.getElementById('btnHapusDataP').addEventListener('click', ()=> rksDeleteSelected('p'));
+document.getElementById('btnHitungP').addEventListener('click', ()=> rksHitung('p'));
+document.getElementById('btnEditHitungP').addEventListener('click', ()=> rksToggleEdit('p'));
 document.getElementById('btnToggleDataTokoPanelP').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanelP').classList.toggle('open');
 });
