@@ -976,6 +976,73 @@ async function loadProdukListJP() {
   }
 }
 
+// ─── PRODUK PER CHANNEL (channel_produk) ─────────────────────
+// [30 Sep 2026] Pilihan SKU di modal Tambah Penjualan HANYA menampilkan katalog yang sudah ditambahkan ke channel
+// terpilih (Channel Master → ikon Produk). Channel yang belum punya produk = daftar KOSONG + alert (sengaja,
+// produk ditambah manual dulu di Channel Master). Belum pilih channel = semua produk (belum ada acuan).
+// Kalau tabel channel_produk gagal dibaca → jatuh balik ke semua produk supaya input penjualan tidak terblokir.
+// Transaksi lama (edit) tidak terpengaruh: filter cuma berlaku untuk pemilihan SKU lewat picker.
+var _jpChProdukCache = { chId: null, set: null };   // set = { katalog: true } atau null (= tanpa filter)
+
+async function _jpLoadChProduk(chId) {
+  chId = String(chId || '');
+  if (!chId) { _jpChProdukCache = { chId: '', set: null }; return; }
+  try {
+    var rows = await dbGet('channel_produk', '&channel_id=eq.' + encodeURIComponent(chId));
+    var set = {};
+    (rows || []).forEach(function(r) { if (r.katalog) set[r.katalog] = true; });
+    _jpChProdukCache = { chId: chId, set: set };
+  } catch (e) {
+    console.warn('channel_produk gagal dibaca, filter SKU per channel dimatikan:', e);
+    _jpChProdukCache = { chId: chId, set: null };
+  }
+}
+
+// undefined = belum dimuat untuk channel yang sedang dipilih; selain itu = array produk yang boleh dipilih
+function _jpAllowedProduk() {
+  var chId = String(document.getElementById('jp-channel').value || '');
+  if (!chId) return _jpProdukList;
+  if (_jpChProdukCache.chId !== chId) return undefined;
+  var set = _jpChProdukCache.set;
+  if (!set) return _jpProdukList;
+  return _jpProdukList.filter(function(p) { return !!set[_jpGetKatalog(p)]; });
+}
+
+function _jpChannelKosong() {   // channel terpilih + sudah dimuat + tidak ada produk sama sekali
+  var chId = String(document.getElementById('jp-channel').value || '');
+  return !!chId && _jpChProdukCache.chId === chId && !!_jpChProdukCache.set && Object.keys(_jpChProdukCache.set).length === 0;
+}
+
+// Dipanggil setelah channel dipilih di picker: muat produk channel, alert kalau kosong, reset SKU yang tidak berlaku
+async function _jpOnChannelChosen(id) {
+  await _jpLoadChProduk(id);
+  if (String(document.getElementById('jp-channel').value || '') !== String(id || '')) return;   // sudah ganti lagi
+  if (!id) return;
+  var ch = _jpChannelMap[id];
+  if (_jpChannelKosong()) {
+    alert('Channel "' + (ch ? ch.nama : '') + '" belum punya produk.\n\nTambahkan dulu di menu Channel: klik ikon 📦 pada channel ini, pilih produk, lalu Tambah.');
+  }
+  // Transaksi baru saja: SKU yang sudah terpilih tapi tidak ada di channel ini di-reset supaya tidak salah masuk
+  if (!document.getElementById('jp-id').value) {
+    var kat = document.getElementById('jp-sku-induk').value;
+    if (kat) {
+      var allowed = _jpAllowedProduk() || [];
+      var ok = allowed.some(function(p) { return _jpGetKatalog(p) === kat; });
+      if (!ok) {
+        document.getElementById('jp-sku-induk').value = '';
+        _jpSetIndukLabel(null);
+        document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+        var lblV = document.getElementById('jp-picker-variasi-label');
+        if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
+        idrSet('jp-harga', 0);
+        idrSet('jp-total', 0);
+        var bt = document.getElementById('jp-btn-tambah-sku');
+        if (bt) bt.style.display = 'none';
+      }
+    }
+  }
+}
+
 // ─── SKU HELPERS ─────────────────────────────────────────────
 function _jpGetKatalog(p) { return p.katalog || p.nama_katalog || p.catalog || p.nama || ''; }
 function _jpGetSku(p)     { return p.sku || p.sku_variasi || p.kode || ''; }
@@ -2483,7 +2550,9 @@ function showTambahJP() {
   }, 200);
 
   jpTutupDropdownSKU();
+  _jpChProdukCache = { chId: null, set: null };   // selalu baca ulang channel_produk (bisa berubah di menu Channel)
   loadProdukListJP();
+  if (chVal) _jpLoadChProduk(chVal);
   document.getElementById('modal-jp').classList.add('open');
   setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
@@ -2501,6 +2570,7 @@ async function editJP(id) {
     document.getElementById('jp-tgl').value     = r.tanggal ? r.tanggal.split('T')[0] : '';
     document.getElementById('jp-waktu').value   = r.waktu ? String(r.waktu).slice(0,5) : _jpNowTime();
     document.getElementById('jp-channel').value = r.channel_id || '';
+    _jpChProdukCache = { chId: null, set: null };   // baca ulang channel_produk saat picker SKU dibuka
     var lblCEdit = document.getElementById('jp-picker-channel-label');
     if (lblCEdit) {
       var chEdit = r.channel_id ? _jpChannelMap[r.channel_id] : null;
@@ -3063,8 +3133,20 @@ function _jpSkuSheetRenderInduk(q) {
   var listEl = document.getElementById('jp-sku-sheet-list');
   if (!listEl) return;
   q = (q || '').toLowerCase().trim();
+  var _chId = String(document.getElementById('jp-channel').value || '');
+  var allowed = _jpAllowedProduk();
+  if (allowed === undefined) {   // produk channel ini belum dimuat → muat dulu lalu render ulang
+    listEl.innerHTML = '<div class="jp-sheet-empty">Memuat produk channel...</div>';
+    _jpLoadChProduk(_chId).then(function() {
+      if (_jpSkuSheetMode === 'induk') {
+        var se = document.getElementById('jp-sku-sheet-search');
+        jpSkuSheetRender(se ? se.value : '');
+      }
+    });
+    return;
+  }
   var katalogMap = {};
-  _jpProdukList.forEach(function(p) {
+  allowed.forEach(function(p) {
     var kat = _jpGetKatalog(p);
     if (!kat) return;
     if (q && kat.toLowerCase().indexOf(q) === -1) return;
@@ -3090,7 +3172,11 @@ function _jpSkuSheetRenderInduk(q) {
   }
 
   if (!katalogs.length) {
-    html += '<div class="jp-sheet-empty">' + (_jpProdukList.length === 0 ? 'Produk belum ada — tambah di Kelola Produk' : 'Tidak ada SKU yang cocok') + '</div>';
+    var _chNama = (_jpChannelMap[_chId] || {}).nama || '';
+    html += '<div class="jp-sheet-empty">' +
+      (_jpProdukList.length === 0 ? 'Produk belum ada — tambah di Kelola Produk'
+        : (_jpChannelKosong() ? 'Channel ' + _chNama + ' belum punya produk — tambahkan dulu di menu Channel (ikon 📦)'
+        : 'Tidak ada SKU yang cocok')) + '</div>';
   } else {
     katalogs.forEach(function(kat) {
       html += '<div class="jp-sheet-item" onclick="jpSkuSheetSelectInduk(\'' + kat.replace(/'/g,"\\'") + '\')">' +
@@ -3272,6 +3358,7 @@ function jpSkuSheetSelectChannel(id) {
   }
   if (id && ch) { _jpSaveLastChannel(id, ch.nama); _jpChHistPush(id); } // prefill "channel terakhir" + riwayat sering/terakhir dipakai
   jpSkuSheetClose();
+  _jpOnChannelChosen(id);   // muat produk channel ini + alert kalau kosong
 }
 
 // Reset label picker variasi saat katalog/modal reset
