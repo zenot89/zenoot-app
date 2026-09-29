@@ -606,6 +606,15 @@
   .byh-bin-sum{ font-size:13px; line-height:1.55; margin:8px 0 10px; padding:9px 12px; border-radius:8px; background:var(--accent-soft); }
   .byh-bin-sum.hit{ background:var(--good-soft); }
   /* [28 Sep 2026] Ringkasan pasar (pengganti tabel di tampilan utama): 3 bagian = 1 Data, 2 Peta pasar, 3 Banding dengan admin */
+  .byh-tabs{ display:flex; gap:6px; margin:6px 0 8px; }
+  .byh-tab{ border:1px solid var(--line); background:transparent; color:var(--ink-soft); border-radius:8px; padding:5px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
+  .byh-tab.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .byh-kw-rg{ padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .byh-kw-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+  .byh-kw{ border:1px solid var(--line); border-radius:999px; padding:2px 9px; font-size:12px; }
+  .byh-kw i{ font-style:normal; color:var(--ink-soft); font-size:11px; }
+  .byh-kw-pakai{ background:var(--good-soft); } .byh-kw-dasar{ background:var(--line); } .byh-kw-hindari{ background:var(--bad-soft); } .byh-kw-tipis{ opacity:.55; }
+  .byh-shops{ max-height:140px; overflow:auto; display:grid; gap:3px; margin:4px 0; font-size:12.5px; }
   .byh-sum{ font-size:13.5px; line-height:1.6; }
   .byh-sum-sec{ padding:10px 0; border-bottom:1px solid var(--line); }
   .byh-sum-sec:last-child{ border-bottom:0; }
@@ -1746,7 +1755,7 @@ const zStore = (function(){
   var REG_KEY = 'zenootAnalisis.toko', ACTIVE_LS = 'zenootAnalisis.activeToko', MIG_LS = 'zenootAnalisis.migrated';
   var SCOPED = ['zenootAnalisis.session','zenootAnalisis.sessionMingguan','zenootAnalisis.settings',
                 'zenootAnalisis.rekap','zenootAnalisis.rekapMingguan','zenootAnalisis.priceList',
-                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory','zenootAnalisis.byhargaBins'];
+                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory','zenootAnalisis.byhargaBins','zenootAnalisis.byhargaProds'];
   var realLS = null;
   try{ realLS = window.localStorage; realLS.getItem('x'); }catch(e){ realLS = null; }
   function lsGet(k){ try{ return realLS ? realLS.getItem(k) : null; }catch(e){ return null; } }
@@ -2444,7 +2453,7 @@ const TOKO_LEGACY_ID = 't1';
 const TOKO_SCOPED_BASES = [
   'zenootAnalisis.session', 'zenootAnalisis.sessionMingguan', 'zenootAnalisis.settings',
   'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan', 'zenootAnalisis.priceList',
-  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.byhargaBins'
+  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.byhargaBins', 'zenootAnalisis.byhargaProds'
 ];
 function tokoScopedKey(base, id){ return id===TOKO_LEGACY_ID ? base : base+'::'+id; }
 function tokoReadReg(){
@@ -7216,13 +7225,13 @@ function byhCsvProducts(text){
   if(rows.length<2) return { error:'File kosong atau bukan CSV.' };
   const head = rows[0].map(h=>h.trim().toLowerCase());
   const col = (...names)=>head.findIndex(h=>names.indexOf(h)>=0);
-  const iP = col('price','harga'), iF = col('favourite','favorite','favorit'), iS = col('sold','terjual'), iR = col('review','ulasan'), iN = col('name','nama');
+  const iP = col('price','harga'), iF = col('favourite','favorite','favorit'), iS = col('sold','terjual'), iR = col('review','ulasan'), iN = col('name','nama'), iSid = col('shop id'), iSh = col('shop name'), iAge = col('age');
   if(iP<0) return { error:'Kolom Price tidak ditemukan di baris judul CSV.' };
   const num = v=>Number(String(v==null?'':v).replace(/[^\d]/g,''))||0;
   const products = [];
   rows.slice(1).forEach(r=>{
     const price = num(r[iP]); if(!(price>0)) return;
-    products.push({ name:String(iN>=0?(r[iN]||''):''), price, fav:iF>=0?num(r[iF]):0, sold:iS>=0?num(r[iS]):0, rev:iR>=0?num(r[iR]):0 });
+    products.push({ name:String(iN>=0?(r[iN]||''):''), price, fav:iF>=0?num(r[iF]):0, sold:iS>=0?num(r[iS]):0, rev:iR>=0?num(r[iR]):0, sid:iSid>=0?String(r[iSid]||'').trim():'', shop:iSh>=0?String(r[iSh]||'').trim():'', mo:iAge>=0?byhMonths(r[iAge]):0 });
   });
   return products.length ? { products } : { error:'Tidak ada baris produk dengan harga di CSV.' };
 }
@@ -7261,7 +7270,8 @@ function byhargaBinsRender(){
   const rows = byhBinsRows();
   wrap.innerHTML = '<div class="card byh-card" style="margin-top:16px;"><h3>Data kompetitor per range harga</h3>'
     + '<div class="byh-note">Isi dari filter harga di hasil pencarian Shopee (Product / Sold / Favourite / Review Count per range). Disimpan per SKU induk &amp; berlaku untuk semua ukuran. Kolom Sampai kosong = tanpa batas atas.</div>'
-    + '<div class="byh-sum" id="byhBinsSummary"></div>'
+    + '<div class="byh-tabs"><button type="button" class="byh-tab'+(_byhTab==='harga'?' on':'')+'" data-tab="harga">Harga</button><button type="button" class="byh-tab'+(_byhTab==='kata'?' on':'')+'" data-tab="kata">Kata kunci</button></div>'
+    + '<div class="byh-sum" id="byhBinsSummary"></div><div class="byh-sum" id="byhKwBox" style="display:none;"></div>'
     + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
     + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
     + '<button type="button" class="btn secondary small" id="byhBinsTblBtn">'+(_byhTblOpen?'Tutup data range':'Lihat / edit data range')+'</button>'
@@ -7275,7 +7285,7 @@ function byhargaBinsRender(){
     + '<div class="hrow editable stack"><div class="lbl">File CSV</div><div class="val"><input type="file" id="byhBinsCsvFile" accept=".csv,text/csv"></div></div>'
     + '<div class="hrow editable stack"><div class="lbl">Jumlah range</div><div class="val"><input type="text" inputmode="numeric" id="byhBinsCsvN" value="10"></div></div>'
     + '<div class="hrow editable stack"><div class="lbl">Buang produk yang namanya mengandung</div><div class="val"><input type="text" id="byhBinsCsvSkip" placeholder="mis. topi, kaos kaki (pisahkan koma)"></div></div>'
-    + '<div class="byh-hint" id="byhBinsCsvInfo" style="margin:6px 0;"></div>'
+    + '<div class="byh-hint" id="byhBinsCsvInfo" style="margin:6px 0;"></div><div id="byhBinsCsvShops"></div>'
     + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsCsvOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsCsvCancel">Batal</button></div></div>'
     + '<div id="byhBinsPasteBox" style="display:none;"><textarea id="byhBinsPaste" placeholder="Satu baris = satu range, urutan angka: Dari, Sampai, Produk, Terjual, Favorit, Review&#10;contoh:&#10;50.000  75.000  1200  3400  800  150&#10;75.000  100.000  900  5200  1100  400"></textarea>'
     + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsPasteOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsPasteCancel">Batal</button></div></div>'
@@ -7317,6 +7327,7 @@ function byhargaBinsRender(){
       _byhCsv = { name:f.name, products:r.products };
       const pr = r.products.map(x=>x.price);
       infoEl.textContent = f.name+': '+r.products.length+' produk terbaca, harga '+fmtRp(Math.min.apply(null,pr))+' sampai '+fmtRp(Math.max.apply(null,pr))+'.';
+      byhRenderShopPick();
     };
     fr.onerror = ()=>{ _byhCsv = null; infoEl.textContent = 'File gagal dibaca.'; };
     fr.readAsText(f);
@@ -7325,12 +7336,18 @@ function byhargaBinsRender(){
     if(!_byhCsv){ alert('Pilih file CSV dulu.'); return; }
     const n = parseNum(document.getElementById('byhBinsCsvN').value)||10;
     const kw = String(document.getElementById('byhBinsCsvSkip').value||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-    const ps = _byhCsv.products.filter(p=>!kw.some(k=>p.name.toLowerCase().indexOf(k)>=0));
+    const boxes = Array.from(document.querySelectorAll('#byhBinsCsvShops input[data-sid]'));
+    if(boxes.length){ const seen = new Set(boxes.map(x=>x.dataset.sid)); byhOwnSave(byhOwnIds().filter(id=>!seen.has(id)).concat(boxes.filter(x=>x.checked).map(x=>x.dataset.sid))); }
+    const own = new Set(byhOwnIds());
+    const kept = _byhCsv.products.filter(p=>!kw.some(k=>p.name.toLowerCase().indexOf(k)>=0));
+    const ps = kept.filter(p=>!(p.sid && own.has(p.sid)));
     const bins = byhBinsFromProducts(ps, n);
     if(!bins.length){ alert('Tidak ada produk tersisa setelah filter.'); return; }
     byhBinsRows(true).splice(0, Infinity, ...bins);
-    byhCsvNote[byhBinsKey()] = 'Sumber: '+_byhCsv.name+', '+ps.length+' produk'+((_byhCsv.products.length-ps.length)>0 ? ' ('+(_byhCsv.products.length-ps.length)+' dibuang filter)' : '')+', '+bins.length+' range.';
-    byhargaBinsSave(); byhargaBinsRender();
+    const note = 'Sumber: '+_byhCsv.name+', '+ps.length+' produk kompetitor'+((_byhCsv.products.length-kept.length)>0 ? ' ('+(_byhCsv.products.length-kept.length)+' dibuang filter)' : '')+((kept.length-ps.length)>0 ? ', '+(kept.length-ps.length)+' produk toko sendiri dikeluarkan' : '')+', '+bins.length+' range.';
+    byhCsvNote[byhBinsKey()] = note;
+    byhargaProds[byhBinsKey()] = { name:_byhCsv.name, at:new Date().toISOString().slice(0,10), note, products:kept.map(p=>({ n:p.name, p:p.price, s:p.sold, f:p.fav, r:p.rev, i:p.sid, h:p.shop, m:Math.round(p.mo*10)/10 })) };
+    byhProdsSave(); byhargaBinsSave(); byhargaBinsRender();
   });
   const box = document.getElementById('byhBinsPasteBox');
   document.getElementById('byhBinsPasteBtn').addEventListener('click', ()=>{ box.style.display = (box.style.display==='none') ? '' : 'none'; });
@@ -7345,10 +7362,134 @@ function byhargaBinsRender(){
   document.getElementById('byhBinsClear').addEventListener('click', async ()=>{
     if(!byhBinsRows().length) return;
     if(!(await zConfirm('Kosongkan semua range kompetitor untuk SKU induk ini?', {title:'Kosongkan range kompetitor?', ok:'Kosongkan'}))) return;
-    byhBinsRows().splice(0, Infinity);
+    byhBinsRows().splice(0, Infinity); delete byhargaProds[byhBinsKey()]; byhProdsSave();
     byhargaBinsSave(); byhargaBinsRender();
   });
+  document.querySelectorAll('.byh-tab').forEach(b=>b.addEventListener('click', ()=>byhTabSet(b.dataset.tab)));
+  byhTabSet(_byhTab);
   byhargaBinsHighlight();
+}
+/* [29 Sep 2026] KATA KUNCI PER RANGE + TOKO SENDIRI. Daftar produk hasil impor CSV disimpan per SKU induk per toko (key byhargaProds) supaya auto-load;
+   Shop ID toko sendiri disimpan GLOBAL (berlaku 3 toko) dan produknya dikeluarkan dari hitungan kompetitor. Kata kunci dihitung dari judul produk kompetitor
+   pakai terjual per bulan (terjual / umur produk, minimal 3 bulan), bukan terjual seumur produk. Ini korelasi dari judul, bukan volume pencarian. */
+const BYH_PRODS_LS_KEY = tk('zenootAnalisis.byhargaProds');
+const BYH_OWN_LS_KEY = 'zenootAnalisis.ownShopIds';
+let byhargaProds = {};   // { skuIndukLower: { name, at, products:[{n,p,s,f,r,i,h,m}] } }
+try{ const rp = zLS.getItem(BYH_PRODS_LS_KEY); if(rp){ const o = JSON.parse(rp); if(o && typeof o==='object' && !Array.isArray(o)) byhargaProds = o; } }catch(e){ console.error('Gagal load daftar produk kompetitor:', e); }
+function byhProdsSave(){ try{ zLS.setItem(BYH_PRODS_LS_KEY, JSON.stringify(byhargaProds)); }catch(e){} }
+function byhOwnIds(){ try{ const a = JSON.parse(zLS.getItem(BYH_OWN_LS_KEY)||'[]'); return Array.isArray(a) ? a.map(String) : []; }catch(e){ return []; } }
+function byhOwnSave(a){ try{ zLS.setItem(BYH_OWN_LS_KEY, JSON.stringify(Array.from(new Set(a)))); }catch(e){} }
+function byhSavedProds(){ const k = byhBinsKey(); return (k && byhargaProds[k] && byhargaProds[k].products) || []; }
+function byhRg(r){ return 'Rp'+Math.round((r.min||0)/1000)+'rb'+(r.max>0 ? '–'+Math.round(r.max/1000)+'rb' : ' ke atas'); }
+function byhMonths(age){
+  const g = re=>{ const m = String(age||'').match(re); return m ? Number(m[1]) : 0; };
+  return g(/(\d+)\s*Year/i)*12 + g(/(\d+)\s*Month/i) + g(/(\d+)\s*Day/i)/30;
+}
+const BYH_STOP = new Set('dan yang untuk dengan dari atau ini itu bisa the and for with ready stock new best seller'.split(' '));
+function byhTokens(name){
+  const w = String(name||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(x=>x.length>2 && !BYH_STOP.has(x) && !/^\d+$/.test(x));
+  const s = new Set(w); for(let i=0;i<w.length-1;i++) s.add(w[i]+' '+w[i+1]); return s;
+}
+const byhMedian = a=>{ const b = a.slice().sort((x,y)=>x-y), m = b.length>>1; return b.length ? ((b.length%2) ? b[m] : (b[m-1]+b[m])/2) : 0; };
+// Hasil: { n, ranges:[{bin, n, terms:[{t,c,st,med,lift,df,shops}]}] }. st: pakai | dasar | netral | hindari | tipis
+function byhKeywords(prods, bins){
+  const n = prods.length; if(n<5) return { error:'Produk kompetitor kurang dari 5, kata kunci belum bisa dihitung.' };
+  const v = prods.map(p=> (p.s||0)/Math.max(3, p.m||12));
+  const tok = prods.map(p=>byhTokens(p.n));
+  const totV = v.reduce((a,b)=>a+b,0), medAll = byhMedian(v);
+  const g = new Map();
+  tok.forEach((set,i)=>set.forEach(t=>{ let o = g.get(t); if(!o){ o = { idx:[] }; g.set(t,o); } o.idx.push(i); }));
+  const info = t=>{
+    const o = g.get(t), df = o.idx.length, shops = new Set(o.idx.map(i=>prods[i].i||prods[i].h)).size;
+    const sv = o.idx.reduce((a,i)=>a+v[i],0), med = byhMedian(o.idx.map(i=>v[i])), lift = totV>0 ? (sv/totV)/(df/n) : 0;
+    let st = 'netral';
+    if(df<4 || shops<3) st = 'tipis';
+    else if(df/n>=0.6) st = 'dasar';
+    else if(lift>=1 && med>=medAll) st = 'pakai';
+    else if(lift<0.6) st = 'hindari';
+    return { df, shops, med, lift, st };
+  };
+  const ranges = [];
+  (bins||[]).forEach(b=>{
+    const mem = [];
+    prods.forEach((p,i)=>{ const inb = (b.min===bins[0].min) ? (p.p>=b.min && p.p<=b.max) : (p.p>b.min && (!(b.max>0) || p.p<=b.max)); if(inb) mem.push(i); });
+    if(!mem.length) return;
+    if(mem.length<BYH_MIN_SAMPLE){ ranges.push({ bin:b, n:mem.length, terms:[] }); return; }
+    const cnt = new Map();
+    mem.forEach(i=>tok[i].forEach(t=>{ let o = cnt.get(t); if(!o){ o = { c:0, sh:new Set() }; cnt.set(t,o); } o.c++; o.sh.add(prods[i].i||prods[i].h); }));
+    let terms = [];
+    cnt.forEach((o,t)=>{ if(o.c>=2 && o.sh.size>=2){ const f = info(t); terms.push({ t, c:o.c, st:f.st, med:f.med, lift:f.lift, df:f.df, shops:f.shops }); } });
+    terms.sort((a,b)=> b.c-a.c || b.med-a.med);
+    terms = terms.filter(a=>!terms.some(x=>x!==a && x.t.indexOf(a.t)>=0 && x.c===a.c)).slice(0,14);
+    ranges.push({ bin:b, n:mem.length, terms });
+  });
+  return { n, ranges };
+}
+const BYH_ST_NAME = { pakai:'Pakai', dasar:'Dasar', netral:'Netral', hindari:'Hindari', tipis:'Data tipis' };
+const byhLayak = t=>t.st==='pakai' || t.st==='dasar';
+function byhKwHtml(){
+  const prods = byhSavedProds(), own = new Set(byhOwnIds());
+  if(!prods.length) return '<p>Belum ada daftar produk tersimpan. Impor <b>Product_Table.csv</b> (tombol Impor CSV) dulu, kata kunci dihitung dari judul produk kompetitor.</p>';
+  const comp = prods.filter(p=>!own.has(String(p.i)));
+  const r = byhKeywords(comp, byhBinsRows());
+  if(r.error) return '<p>'+byhEsc(r.error)+'</p>';
+  let h = '<p class="sub">Dari '+r.n+' produk kompetitor'+((prods.length-comp.length)>0 ? ' ('+(prods.length-comp.length)+' produk toko sendiri dikeluarkan)' : '')+'. Ukuran = terjual per bulan (median), bukan terjual seumur produk. <b>Pakai</b> = muncul di produk yang lebih laku dari rata-rata. <b>Dasar</b> = ada di hampir semua produk. <b>Hindari</b> = sering dipakai tapi produknya kurang laku. <b>Data tipis</b> = kurang dari 4 produk atau 3 toko. Ini korelasi dari judul, bukan volume pencarian.</p>';
+  h += '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhKwCopy">Salin kata layak</button><button type="button" class="btn secondary small" id="byhKwCsv">Unduh CSV</button></div>';
+  r.ranges.forEach(x=>{
+    h += '<div class="byh-kw-rg"><b>'+byhRg(x.bin)+'</b> <span class="sub">'+x.n+' pesaing</span>';
+    if(!x.terms.length) h += '<div class="sub">'+(x.n<BYH_MIN_SAMPLE ? 'Kurang dari '+BYH_MIN_SAMPLE+' produk, tidak dianalisis.' : 'Tidak ada kata yang dipakai minimal 2 produk dari 2 toko.')+'</div>';
+    else h += '<div class="byh-kw-chips">'+x.terms.map(t=>'<span class="byh-kw byh-kw-'+t.st+'" title="'+BYH_ST_NAME[t.st]+' · '+t.df+' produk pasar · median '+Math.round(t.med)+' terjual/bln · lift '+t.lift.toFixed(2)+'">'+byhEsc(t.t)+' <i>'+t.c+'</i></span>').join('')+'</div>';
+    h += '</div>';
+  });
+  return h;
+}
+function byhKwExport(kind){
+  const comp = byhSavedProds().filter(p=>!new Set(byhOwnIds()).has(String(p.i)));
+  const r = byhKeywords(comp, byhBinsRows()); if(r.error) return '';
+  if(kind==='copy') return r.ranges.filter(x=>x.terms.some(byhLayak)).map(x=>byhRg(x.bin)+': '+x.terms.filter(byhLayak).map(t=>t.t).join(', ')).join('\n');
+  const q = s=>'"'+String(s).replace(/"/g,'""')+'"';
+  const lines = ['Range,Kata kunci,Produk di range,Produk di pasar,Toko di pasar,Median terjual per bulan,Lift,Status'];
+  r.ranges.forEach(x=>x.terms.forEach(t=>lines.push([q(byhRg(x.bin)),q(t.t),t.c,t.df,t.shops,Math.round(t.med),t.lift.toFixed(2),q(BYH_ST_NAME[t.st])].join(','))));
+  return '\uFEFF'+lines.join('\r\n');
+}
+function byhCopyText(txt){
+  if(navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(txt).catch(()=>byhCopyFallback(txt)); }
+  return Promise.resolve(byhCopyFallback(txt));
+}
+function byhCopyFallback(txt){ const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} ta.remove(); }
+let _byhTab = 'harga';
+function byhKwWire(){
+  const box = document.getElementById('byhKwBox'); if(!box) return;
+  box.innerHTML = byhKwHtml();
+  const c = document.getElementById('byhKwCopy'), d = document.getElementById('byhKwCsv');
+  if(c) c.addEventListener('click', ()=>{ const t = byhKwExport('copy'); if(!t){ alert('Belum ada kata layak untuk disalin.'); return; } byhCopyText(t).then(()=>{ c.textContent = 'Tersalin'; setTimeout(()=>{ c.textContent = 'Salin kata layak'; }, 1500); }); });
+  if(d) d.addEventListener('click', ()=>{
+    const t = byhKwExport('csv'); if(!t){ alert('Belum ada data kata kunci.'); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type:'text/csv;charset=utf-8' }));
+    a.download = 'kata-kunci-'+(byhBinsKey()||'produk')+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+  });
+}
+function byhTabSet(t){
+  _byhTab = t;
+  const s = document.getElementById('byhBinsSummary'), k = document.getElementById('byhKwBox'); if(!s || !k) return;
+  s.style.display = (t==='harga') ? '' : 'none'; k.style.display = (t==='kata') ? '' : 'none';
+  document.querySelectorAll('.byh-tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  if(t==='kata') byhKwWire();
+}
+function byhOwnHtml(rows){
+  const own = new Set(byhOwnIds()), mine = byhSavedProds().filter(p=>own.has(String(p.i)));
+  if(!mine.length) return '';
+  const lines = mine.map(p=>{ const r = rows.find(x=> p.p>=(x.min||0) && (!(x.max>0) || p.p<=x.max)); return '<p>'+byhEsc(String(p.n).slice(0,48))+': <b>'+fmtRp(p.p)+'</b>, '+Math.round(p.s).toLocaleString('id-ID')+' terjual'+(r ? ', range '+byhRg(r) : '')+'.</p>'; }).join('');
+  return '<div class="byh-sum-sec"><div class="byh-sum-h">4 · Produk saya di pasar ini</div>'+lines+'<p class="sub">Produk toko sendiri tidak dihitung sebagai kompetitor.</p></div>';
+}
+function byhRenderShopPick(){
+  const el = document.getElementById('byhBinsCsvShops'); if(!el || !_byhCsv) return;
+  const sav = new Set(byhOwnIds()), m = new Map();
+  _byhCsv.products.forEach(p=>{ if(!p.sid) return; const o = m.get(p.sid) || { h:p.shop, n:0 }; o.n++; m.set(p.sid, o); });
+  if(!m.size){ el.innerHTML = '<div class="byh-hint">CSV ini tidak punya kolom Shop ID, jadi toko sendiri tidak bisa dikenali.</div>'; return; }
+  const arr = Array.from(m.entries()).sort((a,b)=>b[1].n-a[1].n);
+  el.innerHTML = '<div class="byh-note">Centang toko milikmu (disimpan, berlaku untuk semua toko). Produknya dikeluarkan dari hitungan kompetitor.</div><div class="byh-shops">'
+    + arr.map(([id,o])=>'<label><input type="checkbox" data-sid="'+byhEsc(id)+'"'+((sav.has(id) || /zenoot|sweag|alley/i.test(o.h||'')) ? ' checked' : '')+'> '+byhEsc(o.h||id)+' <span class="sub">('+o.n+' produk)</span></label>').join('')+'</div>';
 }
 /* [28 Sep 2026] RINGKASAN PASAR — alur: 1 Data (CSV dari tool Pricing Analysis) -> 2 Peta pasar -> 3 Banding dengan admin (Harga Minimum dari kalkulasi admin/ROAS/HPP).
    Range dengan < BYH_MIN_SAMPLE produk TIDAK dipakai buat rekomendasi (1 produk laku besar = outlier, bukan rata-rata pasar). Label range dibulatkan ke ribuan (cuma tampilan, hitungan tetap angka asli). */
@@ -7481,7 +7622,8 @@ function byhargaBinsHighlight(){
   const sku = byhargaSelectedSku, Vw = byhargaVoucherWeekend[sku]||0;
   let Hmin = null, HminW = null, hpp = 0;
   try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; hpp = byhargaHppNow(); }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
-  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[byhBinsKey()]||'', hpp);
+  const _k = byhBinsKey(), _sv = byhargaProds[_k];
+  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[_k] || (_sv && _sv.note) || '', hpp) + byhOwnHtml(rows);
 }
 function byhargaBinsSync(){
   if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
