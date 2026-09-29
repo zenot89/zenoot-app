@@ -81,6 +81,7 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 - Edit file -> kartu file dapat kotak centang; tombol jadi "Selesai". Hapus = hanya yang dicentang (konfirmasi, terkunci kalau belum ada centang; hapus Income juga reset pendapatan/penghasilan/rasio admin, hapus Iklan reset iklan). Hitung terkunci sampai lengkap: Income terbaca + Order (Overview 2, Mingguan 1, Proyeksi 2) + Iklan (Overview: file ATAU "tanpa iklan" dari setup toko; Mingguan & Proyeksi: wajib file).
 - Tombol "Hapus Data" (hapus semua) dihapus; kalau mau hapus semua, centang semua.
 - analisis.js cuma diberi catatan (24) supaya APP_BUILD berubah.
+- Susunan tombol panel (revisi 29 Sep 2026): [Edit file/Selesai] di kiri, [Hapus] muncul di sebelahnya hanya saat Edit file aktif, [Hitung] SELALU tampil di kanan (terkunci sampai Order+Income+Iklan lengkap). Selesai upload TIDAK otomatis menghitung: hasil baru dihitung ulang saat user klik Hitung, supaya user sempat mengecek kartu file dulu.
 
 ## Belum kelar / open issue
 

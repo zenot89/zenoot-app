@@ -1579,9 +1579,9 @@
       <div class="rks-datatoko-panel" id="rksDataTokoPanel">
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn ghost small" id="btnEditHitung">Edit file</button>
             <button class="btn danger small" id="btnHapusData" style="display:none" disabled>Hapus</button>
-            <button class="btn small" id="btnHitung" style="display:none" disabled>Hitung</button>
-            <button class="btn ghost small" id="btnEditHitung" style="margin-left:auto">Edit file</button>
+            <button class="btn small" id="btnHitung" style="margin-left:auto" disabled>Hitung</button>
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(2 bulan)</span></h3>
@@ -1659,9 +1659,9 @@
       <div class="rks-datatoko-panel" id="rksDataTokoPanelM">
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn ghost small" id="btnEditHitungM">Edit file</button>
             <button class="btn danger small" id="btnHapusDataM" style="display:none" disabled>Hapus</button>
-            <button class="btn small" id="btnHitungM" style="display:none" disabled>Hitung</button>
-            <button class="btn ghost small" id="btnEditHitungM" style="margin-left:auto">Edit file</button>
+            <button class="btn small" id="btnHitungM" style="margin-left:auto" disabled>Hitung</button>
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(minggu ini)</span></h3>
@@ -1730,9 +1730,9 @@
       <div class="rks-datatoko-panel" id="rksDataTokoPanelP">
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
+            <button class="btn ghost small" id="btnEditHitungP">Edit file</button>
             <button class="btn danger small" id="btnHapusDataP" style="display:none" disabled>Hapus</button>
-            <button class="btn small" id="btnHitungP" style="display:none" disabled>Hitung</button>
-            <button class="btn ghost small" id="btnEditHitungP" style="margin-left:auto">Edit file</button>
+            <button class="btn small" id="btnHitungP" style="margin-left:auto" disabled>Hitung</button>
           </div>
           <div class="card">
             <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(bulan lalu + bulan ini)</span></h3>
@@ -2565,7 +2565,8 @@ function rksSyncButtons(scope){
   RKS_SEL[scope].forEach(k=>{ if(!rksHas(scope,k)) RKS_SEL[scope].delete(k); });
   const ok = rksComplete(scope);
   if(hapus){ hapus.style.display = on ? '' : 'none'; hapus.disabled = RKS_SEL[scope].size===0; hapus.title = RKS_SEL[scope].size ? '' : 'Centang file yang mau dihapus dulu'; }
-  if(hitung){ hitung.style.display = on ? '' : 'none'; hitung.disabled = !ok; hitung.title = ok ? '' : 'Lengkapi file Order Completed, Income & Iklan dulu'; }
+  // [29 Sep 2026] Hitung SELALU tampil di kanan (bukan cuma saat Edit file): upload selesai != langsung dihitung, user cek dulu kartu file, baru klik Hitung.
+  if(hitung){ hitung.style.display = ''; hitung.disabled = !ok; hitung.title = ok ? 'Hitung dari file yang sudah diupload' : 'Lengkapi file Order Completed, Income & Iklan dulu'; }
   if(edit){ edit.textContent = on ? 'Selesai' : 'Edit file'; }
 }
 function rksFileCardHtml(scope, key, tag, body){
