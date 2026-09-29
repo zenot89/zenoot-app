@@ -1259,6 +1259,51 @@
   #page-hasilM .hrow .lbl{ font-size:13.5px; }
   #page-hasilM .hrow .lbl .ket{ font-size:11px; }
   #page-hasilM .hrow .val{ font-size:14.5px; }
+
+  /* ===== [29 Sep 2026] Proyeksi RKS & Rekap Proyeksi — salinan gaya RKS Mingguan / Rekap Mingguan + kolom perkiraan akhir bulan ===== */
+  #page-hasilP.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
+  #page-hasilP .rks-shell{ flex:1; min-height:0; align-items:stretch; }
+  #hasilWrapP{ display:flex; flex-direction:column; height:100%; }
+  #hasilWrapP .hasil-grid{ flex:1; min-height:0; }
+  #hasilWrapP .hasil-grid > .card{ display:flex; flex-direction:column; }
+  #hasilWrapP .hasil-grid > .card .hrow-list{ flex:1; display:flex; flex-direction:column; justify-content:space-around; }
+  #page-hasilP .card{ padding:14px 18px; margin-bottom:10px; }
+  #page-hasilP .card h3{ margin-bottom:10px; font-size:16px; }
+  #page-hasilP .hasil-grid{ gap:14px; }
+  #page-hasilP .stat-grid{ gap:10px; margin-top:10px !important; }
+  #page-hasilP .stat-card{ padding:11px 14px; }
+  #page-hasilP .stat-card .stat-value{ font-size:17px; }
+  #page-hasilP .hrow{ padding:7px 0; }
+  #page-hasilP .hrow .lbl{ font-size:13.5px; }
+  #page-hasilP .hrow .lbl .ket{ font-size:11px; }
+  #page-hasilP .hrow .val{ font-size:14.5px; }
+  #page-hasilP .hrow .val.dual{ display:flex; justify-content:flex-end; align-items:baseline; gap:18px; }
+  #page-hasilP .hrow .val.dual .pv-now{ min-width:110px; text-align:right; }
+  #page-hasilP .hrow .val.dual .pv-est{ min-width:150px; text-align:right; color:var(--ink-soft); font-weight:700; }
+  #page-hasilP .hrow.pv-head{ padding:0 0 4px; }
+  #page-hasilP .hrow.pv-head .val.dual{ font-size:10.5px; font-weight:700; letter-spacing:.04em; color:var(--ink-soft); }
+  #page-rekapP .rekap-table thead th{ font-size:14.5px; letter-spacing:.3px; color:var(--ink); }
+  #page-rekapP .rekap-table thead th.rekap-month-th.is-empty{ color:#8A8F99; }
+  #page-rekapP .rekap-wk-range{ font-size:12.5px; font-weight:500; color:var(--ink-soft); margin-top:2px; }
+  #page-rekapP .rekap-table.rekap-12 th.rekap-agg,
+  #page-rekapP .rekap-table thead th.rekap-month-th{ background:#ECECEC; }
+  #page-rekapP .rekap-table.rekap-12 .rekap-netincome-row td.rekap-agg{ background:#D5EFE2; }
+  #page-rekapP.active{ display:flex; flex-direction:column; min-height:calc(100vh - 120px); height:calc(100vh - 94px); min-height:0; margin-bottom:-26px; }
+  #page-rekapP .page-head{ justify-content:flex-end; margin-bottom:12px; flex:0 0 auto; }
+  #page-rekapP .toolbar{ margin-bottom:0; }
+  #rekapWrapP{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+  #rekapWrapP > .rekap-card{ flex:1 1 0; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+  #rekapWrapP .rekap-table{ flex:1 1 auto; font-size:clamp(14.5px, 1.7vh, 19px); }
+  #page-rekapP .rekap-table thead th{ font-size:clamp(13.5px, 1.6vh, 17px); }
+  #rekapWrapP .rekap-card{ padding:4px; }
+  @media (max-height:880px){ #rekapWrapP .rekap-table.rekap-12 th, #rekapWrapP .rekap-table.rekap-12 td{ padding:6px 13px; } }
+  @media (min-height:881px){ #rekapWrapP .rekap-table.rekap-12 th, #rekapWrapP .rekap-table.rekap-12 td{ padding-top:9px; padding-bottom:9px; } }
+  #page-rekapP .rekap-table.rekap-12 thead th{
+    position:sticky; top:0; z-index:3; border-bottom:none;
+    box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink);
+  }
+  #page-rekapP .rekap-table.rekap-12 thead th:first-child{ z-index:5; border-radius:6px 0 0 6px; box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset 1px 0 0 var(--ink); }
+  #page-rekapP .rekap-table.rekap-12 thead th:last-child{ border-radius:0 6px 6px 0; box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset -1px 0 0 var(--ink); }
   #page-checkadmin .ca-table td, #page-checkadmin .ca-table th{ padding:6px 8px; }
   .ca-table th.num{ text-align:right; }
   #page-riwayat .ca-table td, #page-riwayat .ca-table th{ padding:10px 14px; }
@@ -1310,6 +1355,8 @@
         <button data-page="byharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Harga Jual</button>
         <button data-page="hasilM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Mingguan</button>
         <button data-page="rekapM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Mingguan</button>
+        <button data-page="hasilP"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span> Proyeksi RKS</button>
+        <button data-page="rekapP"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Proyeksi</button>
       </div>
     </div>
     <button data-page="tokocompare"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></span> Perbandingan Toko</button>
@@ -1321,7 +1368,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1658,6 +1705,77 @@
     <div class="rekap-selectbar" id="rekapSelectBarM"></div>
   </section>
 
+  <!-- ============ PAGE: RKS > PROYEKSI RKS ============ -->
+  <section class="page" id="page-hasilP">
+    <div class="page-head">
+      <div class="toolbar">
+        <button class="btn secondary small" id="btnToggleDataTokoPanelP">Data Toko</button>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" id="btnHasilPeriodP" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap Proyeksi"><span id="hasilPeriodLabelP">Pilih periode</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
+        <button class="btn ghost" id="btnSimpanRekapP">Simpan ke Rekap Proyeksi</button>
+        <button class="btn secondary" id="btnExportPDFP">Export PDF</button>
+      </div>
+    </div>
+    <div class="rks-shell">
+      <div class="rks-main" id="hasilWrapP"></div>
+      <div class="rks-datatoko-panel" id="rksDataTokoPanelP">
+        <div class="rks-datatoko-panel-inner">
+          <div class="toolbar" style="margin-bottom:10px;justify-content:space-between;gap:8px;">
+            <button class="btn ghost small" id="btnHapusDataP">Hapus Data</button>
+            <button class="btn small" id="btnEditHitungP">Edit file</button>
+          </div>
+          <div class="card">
+            <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(tgl 1 s/d hari ini)</span></h3>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx). Rentang tanggalnya boleh lebih panjang — yang dihitung cuma pesanan yang dananya dilepas di file Income Proyeksi (tanggal 1 bulan ini s/d hari ini).</div>
+            <div class="order-slots">
+              <div>
+                <div class="drop" id="dropOrder1P">
+                  <div class="lbl">Klik atau drop .xlsx</div>
+                  <input type="file" id="inputOrder1P" accept=".xlsx,.xls">
+                </div>
+                <div class="filelist" id="listOrder1P"></div>
+              </div>
+            </div>
+            <div class="hint" id="orderCombinedSummaryP" style="margin-top:10px;margin-bottom:0;"></div>
+          </div>
+
+          <div class="card">
+            <h3>Income</h3>
+            <div class="hint zq-h">Laporan income Shopee (.xlsx) — sheet "Summary" &amp; "Penghasilan", periode tanggal 1 bulan ini s/d hari ini.</div>
+            <div class="drop" id="dropIncomeP">
+              <div class="lbl">Klik atau drop .xlsx</div>
+              <input type="file" id="inputIncomeP" accept=".xlsx,.xls">
+            </div>
+            <div class="filelist" id="listIncomeP"></div>
+          </div>
+
+          <div class="card">
+            <h3>Tagihan Iklan <span style="font-weight:400;color:var(--ink-soft);">— opsional</span></h3>
+            <div class="hint zq-h">Riwayat transaksi saldo iklan (.csv) atau Faktur PDF resmi dari Shopee (.pdf), periode tanggal 1 bulan ini s/d hari ini.</div>
+            <div class="drop" id="dropAdsP">
+              <div class="lbl">Klik atau drop .csv / .pdf</div>
+              <input type="file" id="inputAdsP" accept=".csv,.pdf">
+            </div>
+            <div class="filelist" id="listAdsP"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE: RKS > REKAP PROYEKSI ============ -->
+  <section class="page" id="page-rekapP">
+    <div class="page-head">
+      <div class="toolbar">
+        <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">Kolom Jan–Des berisi PERKIRAAN AKHIR BULAN dari data yang disimpan di Proyeksi RKS (tanggal 1 s/d tanggal di bawah nama bulan): angka nominal × (jumlah hari bulan ÷ hari berjalan), rasio tetap. Satu bulan = satu data, ditimpa tiap simpan. Anual = Average × 12.</div></div>
+        <div class="rekap-year-nav" id="rekapYearNavP"></div>
+      </div>
+    </div>
+    <div id="rekapWrapP"></div>
+  </section>
+
+
   <!-- ============ PAGE: PERBANDINGAN TOKO (data Rekap semua toko sekaligus, langsung dari Supabase) ============ -->
   <section class="page" id="page-tokocompare">
     <div class="card tc-kriteria-card">
@@ -1761,6 +1879,7 @@ const zStore = (function(){
   var CHUNK = 350000, DEBOUNCE = 900;
   var REG_KEY = 'zenootAnalisis.toko', ACTIVE_LS = 'zenootAnalisis.activeToko', MIG_LS = 'zenootAnalisis.migrated';
   var SCOPED = ['zenootAnalisis.session','zenootAnalisis.sessionMingguan','zenootAnalisis.settings',
+                'zenootAnalisis.sessionProyeksi','zenootAnalisis.rekapProyeksi',
                 'zenootAnalisis.rekap','zenootAnalisis.rekapMingguan','zenootAnalisis.priceList',
                 'zenoot_ca_manual','zenootAnalisis.checkAdminHistory','zenootAnalisis.byhargaBins','zenootAnalisis.byhargaProds'];
   var realLS = null;
@@ -2375,6 +2494,15 @@ const state = {
     adsFile: null,
     manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
     rekap: {}
+  },
+  // [29 Sep 2026] Proyeksi RKS: struktur sama dengan mingguan (tanggal 1 bulan berjalan s/d tanggal aktual)
+  proyeksi: {
+    orderSlots: [null],
+    orderHeaders: [],
+    incomeFile: null,
+    adsFile: null,
+    manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
+    rekap: {}
   }
 };
 // Dideklarasiin di sini (bukan di bawah) biar gak kena TDZ pas renderOrderList() kepanggil dari load session di awal.
@@ -2430,6 +2558,8 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
+      if(btn.dataset.page==='hasilP') renderHasilP();
+      if(btn.dataset.page==='rekapP') renderRekapP();
       if(btn.dataset.page==='tokocompare') renderTokoCompare();
     }catch(e){ console.error('Gagal render halaman '+btn.dataset.page+':', e); }
   });
@@ -2459,6 +2589,7 @@ const TOKO_RESUME_KEY = 'zenootAnalisis.resumePage';   // sessionStorage: halama
 const TOKO_LEGACY_ID = 't1';
 const TOKO_SCOPED_BASES = [
   'zenootAnalisis.session', 'zenootAnalisis.sessionMingguan', 'zenootAnalisis.settings',
+  'zenootAnalisis.sessionProyeksi', 'zenootAnalisis.rekapProyeksi',
   'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan', 'zenootAnalisis.priceList',
   'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.byhargaBins', 'zenootAnalisis.byhargaProds'
 ];
@@ -3799,6 +3930,8 @@ const PAGE_TITLES = {
   byharga: 'By Harga Jual',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
+  hasilP: 'Proyeksi RKS',
+  rekapP: 'Rekap Proyeksi',
   program: 'Analisis Program',
   setting: 'Setting',
   tokocompare: 'Perbandingan Toko'
@@ -3806,7 +3939,7 @@ const PAGE_TITLES = {
 let currentPage = 'rekap';
 // [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
 // sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
-const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1 };
+const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
@@ -3817,6 +3950,8 @@ function updatePageTitleBar(pageKey){
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
   const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
   const boM = document.getElementById('btnBackOverviewM'); if(boM) boM.style.display = (pageKey==='rekapM') ? '' : 'none';
+  const grP = document.getElementById('btnGotoRekapP');  if(grP) grP.style.display = (pageKey==='hasilP') ? '' : 'none';
+  const boP = document.getElementById('btnBackOverviewP'); if(boP) boP.style.display = (pageKey==='rekapP') ? '' : 'none';
   // [29 Sep 2026] By Harga Jual: tombol pindah halaman Kalkulasi <-> Data Pasar
   const bgp = document.getElementById('btnByhGotoPasar'); if(bgp) bgp.style.display = (pageKey==='byharga' && byhargaHal!=='pasar') ? '' : 'none';
   const bbk = document.getElementById('btnByhBackKalk');  if(bbk) bbk.style.display = (pageKey==='byharga' && byhargaHal==='pasar') ? '' : 'none';
@@ -3827,7 +3962,7 @@ function updatePageTitleBar(pageKey){
   if(b) b.addEventListener('click', function(){ byhargaSetHal('kalk'); });
 })();
 (function(){
-  const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewM:'hasilM' };
+  const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewM:'hasilM', btnGotoRekapP:'rekapP', btnBackOverviewP:'hasilP' };
   Object.keys(map).forEach(function(id){
     const b = document.getElementById(id);
     if(b) b.addEventListener('click', function(){
@@ -7966,6 +8101,7 @@ function opsRefreshDependents(){
   try{ renderProyeksiHargaBoth(); }catch(e){}
   try{ if(document.getElementById('hasilWrap')) renderHasil(); }catch(e){}
   try{ if(document.getElementById('hasilWrapM')) renderHasilM(); }catch(e){}
+  try{ if(document.getElementById('hasilWrapP')) renderHasilP(); }catch(e){}   // Proyeksi RKS: operasional prorata ikut Setting
   try{ if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides); }catch(e){}
 }
 // [24 Sep 2026] DEAD CODE — versi lama opsHitungSemua (tanpa rincian, gagal-diam-diam jadi 0, cache tanpa batas waktu). Diganti blok di atas.
@@ -9695,6 +9831,680 @@ try{ renderRekapM(); }catch(e){ console.error('Gagal render Rekap Mingguan (init
 try{ renderHPP(); }catch(e){ console.error('Gagal render HPP (init):', e); }
 try{ renderRekap(); }catch(e){ console.error('Gagal render Rekap (halaman default):', e); }
 try{ renderTokoSetup(); }catch(e){ console.error('Gagal render setup toko:', e); }
+/* ================================================================
+   PROYEKSI RKS  [29 Sep 2026] — tab ke-3 di grup Rasio Keuangan (RKS Overview / RKS Mingguan / Proyeksi RKS).
+   Struktur, rumus & tampilan SAMA dengan RKS Mingguan; yang beda cuma rentang tanggal: tanggal 1 bulan berjalan s/d tanggal aktual
+   (dibaca dari baris "Dari" & "ke" di sheet Summary file Income — sama caranya dengan RKS Mingguan).
+   Upload & penyimpanan KEPISAH TOTAL (state.proyeksi + localStorage sendiri: sessionProyeksi & rekapProyeksi) — Rekap bulanan & Rekap Mingguan tidak disentuh.
+   Beda dari Mingguan:
+     (1) OPERASIONAL = PRORATA: Operasional Toko bulanan (Setting) × hari berjalan ÷ jumlah hari di bulan itu (Mingguan: ÷ 4).
+     (2) Kolom PERKIRAAN AKHIR BULAN: semua angka NOMINAL × (jumlah hari bulan ÷ hari berjalan) — run-rate linear. Rasio (margin, ACOS, NPM, ROAS, dst) TIDAK berubah,
+         karena pembilang & penyebutnya sama-sama dikali faktor yang sama (Operasional prorata → di akhir bulan jadi Operasional bulanan penuh).
+     (3) Rekap Proyeksi = 1 snapshot per BULAN (key 'YYYY-MM'), ditimpa tiap simpan; kolom Jan–Des berisi PERKIRAAN AKHIR BULAN, Anual/Average/Sum dihitung dari angka itu (Anual = Average × 12).
+   ================================================================ */
+let dataTokoEditModeP = false;
+let hasilViewKeyP = null;
+const SESSION_P_LS_KEY = tk('zenootAnalisis.sessionProyeksi');
+function saveSessionProyeksiToStorage(){
+  try{
+    const payload = {
+      orderSlots: state.proyeksi.orderSlots,
+      incomeFile: state.proyeksi.incomeFile ? {...state.proyeksi.incomeFile, releasedOrderNumbers:[...state.proyeksi.incomeFile.releasedOrderNumbers]} : null,
+      adsFile: state.proyeksi.adsFile,
+      manual: state.proyeksi.manual
+    };
+    zLS.setItem(SESSION_P_LS_KEY, JSON.stringify(payload));
+  }catch(e){}
+}
+function loadSessionProyeksiFromStorage(){
+  try{
+    const raw = zLS.getItem(SESSION_P_LS_KEY);
+    if(!raw) return;
+    const payload = JSON.parse(raw);
+    if(payload.orderSlots){
+      const old = payload.orderSlots.filter(Boolean);
+      state.proyeksi.orderSlots = [ old.length<=1 ? (old[0]||null) : { name: old[0].name, rows: old.flatMap(f=>f.rows) } ];
+    }
+    if(payload.incomeFile) state.proyeksi.incomeFile = {...payload.incomeFile, releasedOrderNumbers:new Set(payload.incomeFile.releasedOrderNumbers)};
+    if(payload.adsFile) state.proyeksi.adsFile = payload.adsFile;
+    if(payload.manual) state.proyeksi.manual = {...state.proyeksi.manual, ...payload.manual};
+  }catch(e){}
+}
+const REKAP_P_LS_KEY = tk('zenootAnalisis.rekapProyeksi');
+function saveRekapProyeksiToStorage(){
+  try{ zLS.setItem(REKAP_P_LS_KEY, JSON.stringify(state.proyeksi.rekap)); }catch(e){}
+}
+function loadRekapProyeksiFromStorage(){
+  try{
+    const raw = zLS.getItem(REKAP_P_LS_KEY);
+    if(raw) state.proyeksi.rekap = JSON.parse(raw) || {};
+  }catch(e){}
+}
+
+// Info periode Proyeksi dari tanggal Dari/ke (string apa adanya dari file Income). null kalau gak kebaca.
+function proyeksiPeriodInfo(dariStr, keStr){
+  const dariTs = parsePeriodeDate(dariStr), keTs = parsePeriodeDate(keStr);
+  if(dariTs===null || keTs===null || keTs<dariTs) return null;
+  const d1 = new Date(dariTs), d2 = new Date(keTs);
+  const y = d2.getUTCFullYear(), m = d2.getUTCMonth();
+  const span = Math.round((keTs-dariTs)/DAY_MS)+1;                          // hari berjalan (inklusif)
+  const hariBulan = new Date(Date.UTC(y, m+1, 0)).getUTCDate();             // jumlah hari di bulan itu
+  const sameMonth = d1.getUTCFullYear()===y && d1.getUTCMonth()===m;
+  const startsOn1 = d1.getUTCDate()===1;
+  return { key: y+'-'+String(m+1).padStart(2,'0'), y, m, dari: ymdKeyFromTs(dariTs), ke: ymdKeyFromTs(keTs), dariTs, keTs,
+    span, hariBulan, sameMonth, startsOn1, valid: sameMonth && startsOn1, label: makeWeekLabel(dariTs, keTs),
+    factor: Math.min(span, hariBulan)>0 ? hariBulan/Math.min(span, hariBulan) : 1 };
+}
+function proyeksiInfoFromIncome(){
+  const f = state.proyeksi.incomeFile;
+  return f ? proyeksiPeriodInfo(f.periodeDari, f.periodeKe) : null;
+}
+// OPERASIONAL PRORATA: Operasional Toko bulanan × hari berjalan ÷ hari di bulan. Tanpa file Income (periode belum diketahui) = 0.
+function resolveOperasionalProyeksi(){
+  const pi = proyeksiInfoFromIncome();
+  if(!pi) return 0;
+  const bln = state.settings.operasionalToko || 0;
+  return Math.round(bln * Math.min(pi.span, pi.hariBulan) / pi.hariBulan);
+}
+// Perkiraan akhir bulan: metrik NOMINAL dikali faktor (hari bulan ÷ hari berjalan); rasio/AOV/basket/ROAS tetap.
+const P_NOMINAL_KEYS = ['pendapatan','penghasilan','hpp','operasional','iklan','labaRugi','netIncome','npmRp'];
+function proyeksiFactor(hari, hariBulan){
+  hari = Number(hari); hariBulan = Number(hariBulan);
+  if(!(hari>0) || !(hariBulan>0)) return 1;
+  return hariBulan/Math.min(hari, hariBulan);
+}
+function proyeksiEstOf(M, factor){
+  const E = {...M};
+  P_NOMINAL_KEYS.forEach(k=>{ if(typeof M[k]==='number' && !isNaN(M[k])) E[k] = M[k]*factor; });
+  return E;
+}
+function proyeksiSnapEst(snap){ return proyeksiEstOf(snap, proyeksiFactor(snap.hari, snap.hariBulan)); }
+
+function renderOrderListP(){
+  [0].forEach(i=>{
+    const drop = document.getElementById('dropOrder'+(i+1)+'P');
+    const el = document.getElementById('listOrder'+(i+1)+'P');
+    const f = state.proyeksi.orderSlots[i];
+    drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
+    el.innerHTML = f ? `<div class="frow">
+      <div><span class="name">${fnameHtml(f.name)}</span> <span class="meta">— ${f.rows.length} baris</span> <span class="status-ok">✓</span></div>
+    </div>` : '';
+  });
+  const filled = state.proyeksi.orderSlots.filter(Boolean);
+  const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
+  const summaryEl = document.getElementById('orderCombinedSummaryP');
+  summaryEl.innerHTML = '';   // 1 file saja — jumlah baris & centangnya udah tampil di kotak file
+}
+function allOrderRowsP(){ return state.proyeksi.orderSlots.filter(Boolean).flatMap(f=>f.rows); }
+function dedupedOrderRowsP(){
+  const seen = new Set(); const out = [];
+  allOrderRowsP().forEach(r=>{
+    const k = [r['No. Pesanan'], r['Nomor Referensi SKU'], r['Nama Variasi'], r['Jumlah']].join('~');
+    if(!seen.has(k)){ seen.add(k); out.push(r); }
+  });
+  return out;
+}
+function loadOrderSlotP(slotIndex, file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const wb = XLSX.read(ev.target.result, {type:'array'});
+    const sheetName = wb.SheetNames.includes('orders') ? 'orders' : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if(rows.length){ state.proyeksi.orderHeaders = Object.keys(rows[0]); }
+    state.proyeksi.orderSlots[slotIndex] = {name:file.name, rows};
+    saveSessionProyeksiToStorage();
+    renderOrderListP();
+  };
+  reader.readAsArrayBuffer(file);
+}
+setupDrop('dropOrder1P','inputOrder1P', files=> loadOrderSlotP(0, files[0]));
+
+setupDrop('dropIncomeP','inputIncomeP', files=>{
+  const f = files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const wb = XLSX.read(ev.target.result, {type:'array'});
+    let totalPendapatan=null, totalDilepasRaw=null, biayaIsiSaldo=0, biayaAdminLayanan=0, namaToko=null, periodeDari=null, periodeKe=null, released=new Set();
+    const adminLayananBreakdown = {};
+    const ADMIN_LAYANAN_LABELS = [
+      'Biaya Administrasi','Biaya Proses Pesanan','Biaya Layanan Promo XTRA','Biaya Gratis Ongkir XTRA',
+      'Biaya Komisi AMS','Biaya Kampanye','Biaya Program Hemat Biaya Kirim','Premi'
+    ];
+    ADMIN_LAYANAN_LABELS.forEach(l=>{ adminLayananBreakdown[l]=0; });
+    if(wb.SheetNames.includes('Summary')){
+      const ws = wb.Sheets['Summary'];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      rows.forEach(row=>{
+        const label = (row[0]||'').toString().trim();
+        if(label.startsWith('1. Total Pendapatan')) totalPendapatan = Number(row[3]) || 0;
+        if(label.startsWith('3. Total yang Dilepas')) totalDilepasRaw = Number(row[3]) || 0;
+        if(label.startsWith('Username (Penjual)')) namaToko = (row[1]||'').toString().trim() || null;
+        if(label==='Dari') periodeDari = (row[1]||'').toString().trim() || null;
+        if(label==='ke') periodeKe = (row[1]||'').toString().trim() || null;
+        const subLabel = (row[1]||'').toString().trim();
+        if(subLabel.startsWith('Biaya Isi Saldo Otomatis')){
+          biayaIsiSaldo += Number(row[2]) || 0;
+        } else if(subLabel){
+          const matched = ADMIN_LAYANAN_LABELS.find(l=>subLabel.startsWith(l));
+          if(matched){ biayaAdminLayanan += Number(row[2]) || 0; adminLayananBreakdown[matched] += Number(row[2]) || 0; }
+        }
+      });
+    }
+    if(wb.SheetNames.includes('Penghasilan')){
+      const ws = wb.Sheets['Penghasilan'];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      let headerRowIdx = rows.findIndex(r=>r.includes('No. Pesanan'));
+      if(headerRowIdx>=0){
+        const headers = rows[headerRowIdx];
+        const colNoPesanan = headers.indexOf('No. Pesanan');
+        for(let i=headerRowIdx+1;i<rows.length;i++){
+          const v = rows[i][colNoPesanan];
+          if(v) released.add(v.toString().trim());
+        }
+      }
+    }
+    const totalPenghasilan = (totalDilepasRaw!==null) ? totalDilepasRaw - biayaIsiSaldo : null;
+    const totalPotonganReal = (totalPendapatan!==null && totalPenghasilan!==null) ? totalPendapatan-totalPenghasilan : null;
+    const ratioAdminLayanan = (totalPendapatan && totalPotonganReal!==null) ? totalPotonganReal/totalPendapatan : null;
+
+    tokoGuardIncome(namaToko, ()=>{
+      state.proyeksi.incomeFile = {name:f.name, totalPendapatan, totalDilepasRaw, biayaIsiSaldo, totalPenghasilan, totalPotonganReal, biayaAdminLayanan, adminLayananBreakdown, ratioAdminLayanan, periodeDari, periodeKe, releasedOrderNumbers:released};
+      if(totalPendapatan!==null) state.proyeksi.manual.pendapatan = totalPendapatan;
+      if(totalPenghasilan!==null) state.proyeksi.manual.penghasilan = totalPenghasilan;
+      if(ratioAdminLayanan!==null) state.proyeksi.manual.ratioAdminLayanan = Math.abs(ratioAdminLayanan);
+      if(namaToko && !state.settings.namaToko){ state.settings.namaToko = namaToko; saveSettingsToStorage(); renderStoreTopbar(); }
+      saveSessionProyeksiToStorage();
+      renderIncomeListP();
+    });
+  };
+  reader.readAsArrayBuffer(f);
+});
+function renderIncomeListP(){
+  const drop = document.getElementById('dropIncomeP');
+  const el = document.getElementById('listIncomeP');
+  const f = state.proyeksi.incomeFile;
+  drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
+  el.innerHTML = f ? `<div class="frow">
+    <div><span class="name">${fnameHtml(f.name)}</span>
+      <span class="meta">— ${f.releasedOrderNumbers.size} pesanan dilepas</span>
+      ${(f.totalPendapatan===null||f.totalPenghasilan===null) ? '<span class="status-warn">⚠ format gak kebaca</span>' : '<span class="status-ok">✓</span>'}
+      ${incomePeriodHtml(f)}
+    </div>
+  </div>` : '';
+  renderAdsListP();
+}
+
+setupDrop('dropAdsP','inputAdsP', files=>{
+  const f = files[0]; if(!f) return;
+  const isPdf = /\.pdf$/i.test(f.name);
+  if(isPdf) loadAdsPdfP(f); else loadAdsCsvP(f);
+});
+function loadAdsCsvP(f){
+  Papa.parse(f, {
+    complete: res=>{
+      const rows = res.data;
+      let headerIdx = rows.findIndex(r=>r.includes('Jumlah'));
+      let totalKeluar = 0;
+      if(headerIdx>=0){
+        const headers = rows[headerIdx];
+        const colJumlah = headers.indexOf('Jumlah');
+        const colDeskripsi = headers.indexOf('Deskripsi');
+        for(let i=headerIdx+1;i<rows.length;i++){
+          const deskripsi = (rows[i][colDeskripsi]||'').toString().trim();
+          if(!/^Isi Saldo/i.test(deskripsi)) continue;
+          const raw = rows[i][colJumlah];
+          if(raw===undefined || raw==='') continue;
+          const n = Number(raw.toString().replace(/\./g,'').replace(',','.'));
+          if(!isNaN(n) && n>0) totalKeluar += n;
+        }
+      }
+      const dt = collectAdsCsvDates(rows, headerIdx);
+      state.proyeksi.adsFile = {name:f.name, source:'csv', totalIklanBeforePPN: totalKeluar, minTs:dt.minTs, maxTs:dt.maxTs, isiSaldo:dt.isiSaldo};
+      state.proyeksi.manual.iklan = Math.round(totalKeluar * 1.11);
+      saveSessionProyeksiToStorage();
+      renderAdsListP();
+    }
+  });
+}
+function loadAdsPdfP(f){
+  const reader = new FileReader();
+  reader.onload = async ev=>{
+    try{
+      if(!window.pdfjsLib){ alert('Pembaca PDF gagal dimuat — coba lagi atau pakai file .csv.'); return; }
+      const pdf = await pdfjsLib.getDocument({data: ev.target.result}).promise;
+      let fullText = '';
+      for(let p=1; p<=pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        fullText += ' ' + content.items.map(it=>it.str).join(' ');
+      }
+      const norm = fullText.replace(/\s+/g,' ');
+      const re = /Isi Saldo[\s\S]{0,120}?(\d{1,3}(?:,\d{3})*\.\d{2})/gi;
+      let total = 0, m, matches = [];
+      while((m = re.exec(norm))){
+        const n = Number(m[1].replace(/,/g,''));
+        if(!isNaN(n)){ total += n; matches.push(n); }
+      }
+      if(!matches.length){
+        alert('Gak nemu baris "Isi Saldo" di PDF ini — format faktur mungkin beda. Coba upload .csv aja.');
+        return;
+      }
+      state.proyeksi.adsFile = {name:f.name, source:'pdf', totalIklanBeforePPN: null, totalIklanFinal: Math.round(total)};
+      state.proyeksi.manual.iklan = Math.round(total);
+      saveSessionProyeksiToStorage();
+      renderAdsListP();
+    }catch(err){
+      alert('Gagal baca PDF-nya — coba upload .csv aja.');
+    }
+  };
+  reader.readAsArrayBuffer(f);
+}
+function renderAdsListP(){
+  const drop = document.getElementById('dropAdsP');
+  const el = document.getElementById('listAdsP');
+  const f = state.proyeksi.adsFile;
+  drop.style.display = (f && !dataTokoEditModeP) ? 'none' : '';
+  if(!f){ el.innerHTML=''; return; }
+  el.innerHTML = `<div class="frow"><div><span class="name">${fnameHtml(f.name)}</span> <span class="status-ok">✓</span>${adsPeriodHtml(f, state.proyeksi.incomeFile)}</div></div>`;
+}
+
+document.getElementById('btnHapusDataP').addEventListener('click', async ()=>{
+  if(!(await zConfirm('Hapus semua data Order Completed, Income & Tagihan Iklan Proyeksi bulan ini? HPP master gak kehapus. Rekap Proyeksi yang sudah tersimpan juga tidak ikut terhapus.', {title:'Hapus data Proyeksi?', ok:'Hapus'}))) return;
+  state.proyeksi.orderSlots = [null];
+  state.proyeksi.incomeFile = null;
+  state.proyeksi.adsFile = null;
+  state.proyeksi.manual = { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 };
+  try{ zLS.removeItem(SESSION_P_LS_KEY); }catch(e){}
+  renderOrderListP(); renderIncomeListP(); renderAdsListP();
+  hasilViewKeyP = hasilLatestKeyP();   // data live sudah kosong -> tampilkan bulan terakhir di Rekap Proyeksi
+  if(document.getElementById('hasilWrapP')) renderHasilP();
+});
+document.getElementById('btnEditHitungP').addEventListener('click', ()=>{
+  const btn = document.getElementById('btnEditHitungP');
+  if(!dataTokoEditModeP){
+    dataTokoEditModeP = true;
+    btn.textContent = 'Hitung';
+    btn.classList.add('active');
+    renderOrderListP(); renderIncomeListP(); renderAdsListP();
+  } else {
+    dataTokoEditModeP = false;
+    btn.textContent = 'Edit file';
+    btn.classList.remove('active');
+    renderOrderListP(); renderIncomeListP(); renderAdsListP();
+    hasilViewKeyP = null;   // habis Hitung -> tampilkan data yang baru dimuat (sama seperti RKS Overview)
+    if(document.getElementById('hasilWrapP')) renderHasilP();
+    const panel = document.getElementById('rksDataTokoPanelP');
+    if(panel) panel.classList.remove('open');
+  }
+});
+document.getElementById('btnToggleDataTokoPanelP').addEventListener('click', ()=>{
+  document.getElementById('rksDataTokoPanelP').classList.toggle('open');
+});
+
+
+function computeHPPTotalP(){
+  const released = state.proyeksi.incomeFile ? state.proyeksi.incomeFile.releasedOrderNumbers : null;
+  const rows = dedupedOrderRowsP();
+  let total = 0, matchedLines=0, missingHpp=0, matchedOrders=new Set(), qtyTotal=0;
+  rows.forEach(r=>{
+    const noPesanan = (r['No. Pesanan']||'').toString().trim();
+    if(released && !released.has(noPesanan)) return;
+    const key = makeKey(resolveOrderRowSkuInduk(r), r['Nomor Referensi SKU'], r['Nama Variasi']);
+    const hpp = state.hppMaster[key];
+    const jumlah = Number(r['Jumlah'])||0;
+    const retur = Number(r['Returned quantity'])||0;
+    const netQty = jumlah - retur;
+    if(hpp===undefined){ missingHpp++; return; }
+    total += hpp*netQty; matchedLines++; matchedOrders.add(noPesanan); qtyTotal += netQty;
+  });
+  return {total, matchedLines, missingHpp, orderCount:matchedOrders.size, qtyTotal, orderNumbers:matchedOrders};
+}
+function computeAOVBasketP(matchedOrderNumbers){
+  const rows = dedupedOrderRowsP();
+  const perOrderValue = {}; const perOrderQty = {};
+  rows.forEach(r=>{
+    const noPesanan = (r['No. Pesanan']||'').toString().trim();
+    if(!matchedOrderNumbers.has(noPesanan)) return;
+    const subtotal = parseNum(r['Subtotal Pesanan'])||0;
+    const jumlah = Number(r['Jumlah'])||0;
+    perOrderValue[noPesanan] = subtotal;
+    perOrderQty[noPesanan] = (perOrderQty[noPesanan]||0) + jumlah;
+  });
+  const orders = Object.keys(perOrderValue);
+  const aov = orders.length ? orders.reduce((a,o)=>a+perOrderValue[o],0)/orders.length : 0;
+  const basket = orders.length ? orders.reduce((a,o)=>a+perOrderQty[o],0)/orders.length : 0;
+  return {aov, basket, orderCount:orders.length};
+}
+
+function computeHasilMetricsP(){
+  const hppCalc = computeHPPTotalP();
+  const basketCalc = computeAOVBasketP(hppCalc.orderNumbers);
+  const pendapatan = state.proyeksi.manual.pendapatan;
+  const penghasilan = state.proyeksi.manual.penghasilan;
+  const hpp = hppCalc.total;
+  const operasional = resolveOperasionalProyeksi();
+  const iklan = state.proyeksi.manual.iklan;
+  const ratioAdmin = state.proyeksi.manual.ratioAdminLayanan || 0;
+
+  const canCompute = pendapatan!==null && penghasilan!==null && iklan!==null;
+  const rasioOperasional = pendapatan ? operasional/pendapatan : null;
+  const roas = iklan ? pendapatan/iklan : null;
+  const acos = pendapatan ? iklan/pendapatan : null;
+  const rasioMargin = pendapatan ? (pendapatan-hpp)/pendapatan : null;
+  const labaRugi = (penghasilan!==null) ? penghasilan-hpp-operasional-(iklan||0) : null;
+  const rasioLaba = (pendapatan && labaRugi!==null) ? labaRugi/pendapatan : null;
+  const npm = (rasioMargin!==null && ratioAdmin!==null && acos!==null && rasioOperasional!==null)
+    ? rasioMargin - ratioAdmin - acos - rasioOperasional : null;
+  const npmRp = (npm!==null && pendapatan) ? npm*pendapatan : null;
+  const netIncome = (npmRp!==null) ? npmRp + operasional : null;
+
+  return { hppCalc, basketCalc, pendapatan, penghasilan, hpp, operasional, iklan, ratioAdmin,
+    canCompute, rasioOperasional, roas, acos, rasioMargin, labaRugi, rasioLaba, npm, npmRp, netIncome,
+    aov: basketCalc.aov, basket: basketCalc.basket };
+}
+
+
+function hasilMetricsFromRekapP(key){
+  const s = state.proyeksi.rekap[key];
+  const n = v => (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v;
+  const pend = n(s.pendapatan), npm = n(s.npm);
+  return { fromRekap:true, key,
+    hppCalc:{ orderCount: s.orderCount||0, missingHpp:0 }, basketCalc:{ aov:n(s.aov), basket:n(s.basket) },
+    pendapatan:pend, penghasilan:n(s.penghasilan), hpp:n(s.hpp), operasional:n(s.operasional)||0, iklan:n(s.iklan),
+    ratioAdmin:n(s.ratioAdmin)||0, canCompute:true, rasioOperasional:n(s.rasioOperasional), roas:n(s.roas), acos:n(s.acos),
+    rasioMargin:n(s.rasioMargin), labaRugi:n(s.labaRugi), rasioLaba:n(s.rasioLaba), npm,
+    npmRp:(npm!==null && pend) ? npm*pend : null, netIncome:n(s.netIncome), aov:n(s.aov), basket:n(s.basket) };
+}
+
+function hasilLatestKeyP(){ const ks = Object.keys(state.proyeksi.rekap).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort(); return ks.length ? ks[ks.length-1] : null; }
+// data tersimpan + faktor proyeksinya (hari & hari-bulan disimpan di snapshot)
+function hasilFactorFromRekapP(key){ const s = state.proyeksi.rekap[key]; return s ? proyeksiFactor(s.hari, s.hariBulan) : 1; }
+
+try{
+  loadSessionProyeksiFromStorage();
+  loadRekapProyeksiFromStorage();
+  renderOrderListP(); renderIncomeListP(); renderAdsListP();
+  hasilViewKeyP = hasilLatestKeyP();
+}catch(e){ console.error('Gagal load/render sesi Proyeksi RKS:', e); }
+
+/* ---------- Proyeksi RKS: pilih bulan (yang sudah tersimpan di Rekap Proyeksi) ---------- */
+function syncHasilToolbarP(){
+  const fromRekap = !!(hasilViewKeyP && state.proyeksi.rekap[hasilViewKeyP]);
+  const lbl = document.getElementById('hasilPeriodLabelP'), btnP = document.getElementById('btnHasilPeriodP'), simpan = document.getElementById('btnSimpanRekapP');
+  if(lbl){
+    if(fromRekap){ const sn = state.proyeksi.rekap[hasilViewKeyP]; lbl.textContent = sn.label || hasilViewKeyP; }
+    else { const pi = proyeksiInfoFromIncome(); lbl.textContent = pi ? pi.label : 'Pilih periode'; }
+  }
+  if(btnP) btnP.classList.toggle('active', fromRekap);
+  if(simpan){ simpan.disabled = fromRekap; simpan.title = fromRekap ? 'Bulan ini sudah tersimpan di Rekap Proyeksi' : ''; }
+}
+function hasilYearBoundsP(){
+  const ys = rekapPYearsWithData(); const cy = new Date().getFullYear();
+  return ys.length ? [ys[0], ys[ys.length-1]] : [cy, cy];
+}
+let hasilPickerYearP = null;
+function hasilMonthPickerBodyP(){
+  const pop = document.getElementById('rekapMonthPop');
+  if(!pop) return;
+  const [minY, maxY] = hasilYearBoundsP();
+  const y = hasilPickerYearP;
+  const anyData = Object.keys(state.proyeksi.rekap).length > 0;
+  pop.innerHTML = `
+    <div class="mp-head">
+      <button type="button" class="mp-arrow" data-a="prev" aria-label="Tahun sebelumnya" ${y<=minY?'disabled':''}>«</button>
+      <span class="mp-year">${y}</span>
+      <button type="button" class="mp-arrow" data-a="next" aria-label="Tahun berikutnya" ${y>=maxY?'disabled':''}>»</button>
+    </div>
+    <div class="mp-grid">${REKAP_BULAN_SHORT.map((lbl,i)=>{
+      const k = y+'-'+String(i+1).padStart(2,'0');
+      const has = !!state.proyeksi.rekap[k];
+      const tip = REKAP_BULAN_FULL[i]+' '+y+(has?' — ada data di Rekap Proyeksi':' — belum ada data');
+      return `<button type="button" class="mp-m${has?' has':''}${k===hasilViewKeyP?' sel':''}" data-k="${k}" title="${tip}" ${has?'':'disabled'}><span>${lbl}</span><i class="mp-dot${has?'':' off'}"></i></button>`;
+    }).join('')}</div>
+    <div class="mp-legend">${anyData ? '<i class="mp-dot"></i> Ada data di Rekap Proyeksi<span>Abu-abu = belum ada data</span>' : 'Belum ada bulan yang disimpan ke Rekap Proyeksi.'}</div>`;
+  pop.querySelector('[data-a="prev"]').addEventListener('click', ()=>{ if(hasilPickerYearP>minY){ hasilPickerYearP--; hasilMonthPickerBodyP(); } });
+  pop.querySelector('[data-a="next"]').addEventListener('click', ()=>{ if(hasilPickerYearP<maxY){ hasilPickerYearP++; hasilMonthPickerBodyP(); } });
+  pop.querySelectorAll('.mp-m:not(:disabled)').forEach(b=>b.addEventListener('click', ()=>{ closeRekapMonthPicker(); hasilViewKeyP = b.dataset.k; renderHasilP(); }));
+}
+document.getElementById('btnHasilPeriodP').addEventListener('click', e=>{
+  e.stopPropagation();
+  const [minY, maxY] = hasilYearBoundsP();
+  const base = hasilViewKeyP ? parseInt(hasilViewKeyP.slice(0,4),10) : maxY;
+  hasilPickerYearP = Math.min(maxY, Math.max(minY, base));
+  toggleRekapMonthPicker(e.currentTarget, { renderBody: hasilMonthPickerBodyP, onPick: ()=>{} });
+});
+
+// baris 2 nilai: SAAT INI | PERKIRAAN AKHIR BULAN
+function pvRow(lbl, ket, nowHtml, estHtml, cls, valStyle){
+  return `<div class="hrow${cls?' '+cls:''}"><div class="lbl">${lbl}<span class="ket">${ket}</span></div><div class="val dual"${valStyle?` style="${valStyle}"`:''}><span class="pv-now">${nowHtml}</span><span class="pv-est">${estHtml}</span></div></div>`;
+}
+function pvHead(nowLabel){
+  return `<div class="hrow pv-head"><div class="lbl"></div><div class="val dual"><span class="pv-now">${nowLabel}</span><span class="pv-est">PERKIRAAN AKHIR BULAN</span></div></div>`;
+}
+
+function renderHasilP(){
+  const wrap = document.getElementById('hasilWrapP');
+  if(!wrap) return;
+  if(hasilViewKeyP && !state.proyeksi.rekap[hasilViewKeyP]) hasilViewKeyP = hasilLatestKeyP();   // bulan yang lagi dilihat sudah dihapus -> pindah ke bulan terakhir yang masih ada
+  syncHasilToolbarP();
+  const fromRekap = !!hasilViewKeyP;
+  if(!fromRekap && !state.proyeksi.orderSlots.filter(Boolean).length){
+    wrap.innerHTML = `<div class="card"><div class="empty-state"><div class="big"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>Belum ada data Order Completed bulan berjalan. Upload dulu lewat tombol "Data Toko" di kanan atas (rentang tanggal 1 bulan ini s/d hari ini).</div></div>`;
+    return;
+  }
+  const M = fromRekap ? hasilMetricsFromRekapP(hasilViewKeyP) : computeHasilMetricsP();
+  const pi = fromRekap ? null : proyeksiInfoFromIncome();
+  const snap = fromRekap ? state.proyeksi.rekap[hasilViewKeyP] : null;
+  const factor = fromRekap ? hasilFactorFromRekapP(hasilViewKeyP) : (pi ? proyeksiFactor(pi.span, pi.hariBulan) : 1);
+  const hari = fromRekap ? snap.hari : (pi ? pi.span : null), hariBulan = fromRekap ? snap.hariBulan : (pi ? pi.hariBulan : null);
+  const E = proyeksiEstOf(M, factor);
+  const warnPeriode = pi && !pi.valid;
+  const periodeChip = pi
+    ? `<span style="font-size:12px;font-weight:600;color:${warnPeriode?'var(--bad)':'var(--ink-soft)'};">Periode income: ${pi.label}${!pi.sameMonth?' ⚠ melewati pergantian bulan':(!pi.startsOn1?' ⚠ tidak mulai dari tanggal 1':'')}</span>`
+    : (fromRekap ? `<span style="font-size:12px;font-weight:600;color:var(--ink-soft);">Data tgl 1–${new Date(parsePeriodeDate(snap.ke)).getUTCDate()} · hari ke-${hari} dari ${hariBulan}</span>` : '');
+  const nowLabel = fromRekap ? 'DATA TERSIMPAN' : 'SAAT INI';
+  const { hppCalc, basketCalc, pendapatan, penghasilan, hpp, operasional, iklan, ratioAdmin,
+    canCompute, rasioOperasional, roas, acos, rasioMargin, labaRugi, rasioLaba, npm, npmRp, netIncome } = M;
+  const est = v => v===null||v===undefined ? '-' : fmtRp(v);
+  const subEst = (v)=> `<div style="font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-top:3px;">Akhir bulan: ${est(v)}</div>`;
+  const negStyle = v => (v!==null && v!==undefined && v<0) ? 'color:var(--bad);' : '';
+
+  wrap.innerHTML = `
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+      <h3 style="margin-bottom:0;">Overview</h3>
+      ${periodeChip}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya di Kelola Produk (daftarnya ada di halaman HPP Produk).</span>` : ''}
+    </div>
+    <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
+      <div class="stat-card ${profitColorClass(netIncome, pendapatan ? netIncome/pendapatan : null)}">
+        <div class="stat-label">Net Income</div>
+        <div class="stat-value">${fmtRp(netIncome)}</div>
+        ${subEst(E.netIncome)}
+      </div>
+      <div class="stat-card ${profitColorClass(labaRugi, rasioLaba)}">
+        <div class="stat-label">Laba/Rugi</div>
+        <div class="stat-value">${fmtRp(labaRugi)}</div>
+        ${subEst(E.labaRugi)}
+      </div>
+      <div class="stat-card ${profitColorClass(labaRugi, rasioLaba)}">
+        <div class="stat-label">Rasio Laba</div>
+        <div class="stat-value">${fmtPct(rasioLaba)}</div>
+      </div>
+    </div>
+  </div>
+  <div class="hasil-grid">
+    <div class="card">
+      <h3>Ringkasan</h3>
+      <div class="hrow-list">
+      ${pvHead(nowLabel)}
+      ${pvRow('TOTAL PENDAPATAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : 'Otomatis dari file Income bulan berjalan', fmtRp(pendapatan), est(E.pendapatan), 'highlight')}
+      ${pvRow('TOTAL PENGHASILAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : 'Otomatis dari file Income bulan berjalan', fmtRp(penghasilan), est(E.penghasilan), 'highlight')}
+      ${pvRow('HPP', fromRekap ? (hppCalc.orderCount ? hppCalc.orderCount+' pesanan · tersimpan di Rekap Proyeksi' : 'Tersimpan di Rekap Proyeksi') : 'Otomatis: '+hppCalc.orderCount+' pesanan × harga HPP (yang dananya sudah dilepas)', fmtRp(hpp), est(E.hpp), 'highlight')}
+      ${pvRow('OPERASIONAL', fromRekap ? 'Prorata saat bulan ini disimpan ke Rekap Proyeksi' : (pi ? 'Prorata: Operasional Toko bulanan di Setting × '+Math.min(pi.span,pi.hariBulan)+'/'+pi.hariBulan+' hari' : 'Prorata: butuh file Income buat tahu hari berjalan'), fmtRp(operasional), est(E.operasional), 'highlight')}
+      ${pvRow('IKLAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : (state.proyeksi.adsFile && state.proyeksi.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'), fmtRp(iklan), est(E.iklan), 'highlight')}
+      ${pvRow('AOV AKTUAL', 'Rata-rata nilai per pesanan', fmtRp(basketCalc.aov), fmtRp(basketCalc.aov))}
+      ${pvRow('ROAS AKTUAL', 'Pendapatan ÷ Iklan', roas ? roas.toFixed(2)+'x' : '-', roas ? roas.toFixed(2)+'x' : '-')}
+      </div>
+      ${!canCompute ? `<footer class="note status-warn">⚠ Upload file Income &amp; Tagihan Iklan lewat tombol "Data Toko" di kanan atas biar rasio di bawah kehitung.</footer>` : ''}
+    </div>
+    <div class="card">
+      <h3>Rasio</h3>
+      <div class="hrow-list">
+      ${pvHead(nowLabel)}
+      ${pvRow('RASIO MARGIN', '(Pendapatan − HPP) ÷ Pendapatan', fmtPct(rasioMargin), fmtPct(rasioMargin))}
+      ${pvRow('RASIO ADMIN DAN LAYANAN', 'Total potongan real, exclude Biaya Isi Saldo Otomatis', ratioAdmin ? (ratioAdmin*100).toFixed(2)+'%' : '-', ratioAdmin ? (ratioAdmin*100).toFixed(2)+'%' : '-')}
+      ${pvRow('RASIO OPERASIONAL', 'Operasional ÷ Pendapatan', fmtPct(rasioOperasional), fmtPct(rasioOperasional))}
+      ${pvRow('ACOS AKTUAL', 'Iklan ÷ Pendapatan', fmtPct(acos), fmtPct(acos))}
+      ${pvRow('BASKET SIZE AKTUAL', 'Rata-rata qty per pesanan', basketCalc.basket ? basketCalc.basket.toFixed(2) : '-', basketCalc.basket ? basketCalc.basket.toFixed(2) : '-')}
+      ${pvRow('NPM', 'RASIO MARGIN − Admin+Layanan − ACOS − Rasio Operasional', fmtPct(npm), fmtPct(npm))}
+      ${pvRow('NPM (IDR)', 'NPM × Pendapatan', fmtRp(npmRp), est(E.npmRp), '', negStyle(npmRp))}
+      ${pvRow('NET INCOME', 'IDR NPM + Operasional', fmtRp(netIncome), est(E.netIncome), '', negStyle(netIncome))}
+      ${pvRow('LABA/RUGI', 'Penghasilan − HPP − Operasional − Iklan', fmtRp(labaRugi), est(E.labaRugi), '', negStyle(labaRugi))}
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('btnSimpanRekapP').addEventListener('click', async ()=>{
+  if(hasilViewKeyP) return;   // lagi lihat bulan dari Rekap Proyeksi: gak ada yang perlu disimpen
+  const M = computeHasilMetricsP();
+  if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan bulan berjalan) sebelum disimpan ke Rekap Proyeksi.'); return; }
+  const pi = proyeksiInfoFromIncome();
+  if(!pi){ alert('Tanggal periode (baris "Dari" & "ke" di sheet Summary) gak kebaca dari file Income ini, jadi bulannya gak bisa ditentuin. Coba upload ulang file Income aslinya dari Shopee.'); return; }
+  if(!pi.sameMonth){ alert('Periode di file Income ini ('+pi.label+') melewati pergantian bulan. Proyeksi RKS harus dalam 1 bulan yang sama: tanggal 1 sampai hari ini.'); return; }
+  if(!pi.startsOn1){
+    if(!(await zConfirm(`Periode di file Income ini ${pi.label} — tidak mulai dari tanggal 1, jadi perkiraan akhir bulan bakal kurang akurat. Tetap simpan ke Rekap Proyeksi?`, {title:'Periode bukan mulai tanggal 1', type:'warn', ok:'Tetap simpan'}))) return;
+  }
+  const old = state.proyeksi.rekap[pi.key];
+  if(old && old.ke){
+    const oldKeTs = parsePeriodeDate(old.ke);
+    if(oldKeTs!==null && oldKeTs > pi.keTs){
+      if(!(await zConfirm(`Rekap Proyeksi bulan ini sudah berisi data sampai ${old.ke}, lebih baru dari file ini (sampai ${pi.ke}). Timpa dengan data yang lebih lama?`, {title:'Data lebih lama akan menimpa', type:'warn', ok:'Tetap timpa'}))) return;
+    }
+  }
+  const snapshot = { label: pi.label, dari: pi.dari, ke: pi.ke, hari: Math.min(pi.span, pi.hariBulan), hariBulan: pi.hariBulan };
+  REKAP_METRICS.forEach(m=>{ snapshot[m.key] = M[m.key]; });
+  snapshot.adminLayananBreakdown = state.proyeksi.incomeFile ? {...state.proyeksi.incomeFile.adminLayananBreakdown} : null;
+  snapshot.biayaIsiSaldo = state.proyeksi.incomeFile ? state.proyeksi.incomeFile.biayaIsiSaldo : null;
+  snapshot.orderCount = M.hppCalc.orderCount;
+  state.proyeksi.rekap[pi.key] = snapshot;
+  saveRekapProyeksiToStorage();
+  rekapPYear = pi.y;
+  try{ renderRekapP(); }catch(e){}
+  hasilViewKeyP = pi.key;   // habis Simpan -> tampilan pindah ke bulan yang barusan tersimpan
+  try{ renderHasilP(); }catch(e){}
+  const btn = document.getElementById('btnSimpanRekapP');
+  const original = btn.textContent;
+  btn.textContent = '✓ Tersimpan ('+pi.label+')';
+  setTimeout(()=>{ btn.textContent = original; }, 1600);
+});
+
+/* ---------- Rekap Proyeksi: kolom Jan–Des, isi = PERKIRAAN AKHIR BULAN (snapshot ditimpa tiap simpan) ---------- */
+let rekapPYear = new Date().getFullYear();
+function rekapPYearsWithData(){
+  const years = new Set(Object.keys(state.proyeksi.rekap).map(k=>parseInt(k.slice(0,4),10)).filter(y=>!isNaN(y)));
+  return Array.from(years).sort();
+}
+function rekapPFilledKeys(year){ return rekapYearKeys(year).filter(k=>state.proyeksi.rekap[k]); }
+function rekapPInitYear(){
+  const years = rekapPYearsWithData();
+  if(years.length && !years.includes(rekapPYear)) rekapPYear = years[years.length-1];
+}
+function rekapPAggForMetric(m, keys){
+  const vals = keys.map(k=>state.proyeksi.rekap[k]).filter(Boolean).map(s=>proyeksiSnapEst(s)[m.key]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+  const count = vals.length;
+  const isNominal = m.fmt==='rp' && m.key!=='aov';
+  const sumVal = count ? vals.reduce((a,b)=>a+b,0) : null;
+  const avg = count ? sumVal/count : null;
+  return { anual: (isNominal && avg!==null) ? avg*12 : null, avg, sum: isNominal ? sumVal : null };
+}
+function rekapPAggCellsHtml(m, keys){
+  const agg = rekapPAggForMetric(m, keys);
+  const na = '<span class="rekap-agg-na">-</span>';
+  const c = v => v===null ? na : fmtRekapVal(v, m.fmt);
+  return `<td class="rekap-agg">${c(agg.anual)}</td><td class="rekap-agg">${c(agg.avg)}</td><td class="rekap-agg">${c(agg.sum)}</td>`;
+}
+function renderRekapPYearNav(){
+  const el = document.getElementById('rekapYearNavP');
+  if(!el) return;
+  const years = rekapPYearsWithData();
+  el.innerHTML = `
+    <button type="button" class="rekap-year-arrow" data-act="prev" aria-label="Tahun sebelumnya">‹</button>
+    <span class="rekap-year-label">${rekapPYear}</span>
+    <button type="button" class="rekap-year-arrow" data-act="next" aria-label="Tahun berikutnya">›</button>
+    <span class="rekap-year-count">${rekapPFilledKeys(rekapPYear).length}/12 bulan terisi</span>
+    ${years.length>1 ? `<select class="rekap-year-select" aria-label="Loncat ke tahun">${years.map(y=>`<option value="${y}" ${y===rekapPYear?'selected':''}>${y}</option>`).join('')}</select>` : ''}`;
+  el.querySelector('[data-act="prev"]').addEventListener('click', ()=>{ rekapPYear--; renderRekapP(); });
+  el.querySelector('[data-act="next"]').addEventListener('click', ()=>{ rekapPYear++; renderRekapP(); });
+  const sel = el.querySelector('.rekap-year-select');
+  if(sel) sel.addEventListener('change', e=>{ rekapPYear = parseInt(e.target.value,10); renderRekapP(); });
+}
+function renderRekapP(){
+  const wrap = document.getElementById('rekapWrapP');
+  if(!wrap) return;
+  rekapPInitYear();
+  const keys = rekapYearKeys(rekapPYear);
+  const filled = rekapPFilledKeys(rekapPYear);
+  const head = keys.map(k=>{
+    const sn = state.proyeksi.rekap[k];
+    const cls = ['rekap-month-th', sn?'':'is-empty'].filter(Boolean).join(' ');
+    const ke = sn && sn.ke ? parsePeriodeDate(sn.ke) : null;
+    const sub = (sn && ke!==null) ? `<span class="rekap-wk-range" title="Data tgl 1–${new Date(ke).getUTCDate()} dari ${sn.hariBulan} hari">s/d ${fmtDayMonth(ke)}</span>` : '';
+    return `<th class="${cls}" data-key="${k}"><span class="rekap-month-lbl">${REKAP_BULAN_SHORT[parseInt(k.slice(5,7),10)-1]}</span>${sub}</th>`;
+  }).join('');
+  const rows = REKAP_METRICS.map(m=>{
+    const cells = keys.map((k,i)=>{
+      const sn = state.proyeksi.rekap[k];
+      if(!sn) return `<td class="is-empty">-</td>`;
+      const e = proyeksiSnapEst(sn);
+      const prevSn = i>0 ? state.proyeksi.rekap[keys[i-1]] : null;
+      const trend = rekapTrendHtml(e[m.key], prevSn ? proyeksiSnapEst(prevSn)[m.key] : null, m.goodUp, m.fmt);
+      return `<td>${fmtRekapVal(e[m.key], m.fmt)}${trend}</td>`;
+    }).join('');
+    const aggCells = rekapPAggCellsHtml(m, keys);
+    if(m.key==='netIncome') return `<tr class="rekap-netincome-row"><td class="rekap-kriteria">${m.label}</td>${aggCells}${cells}</tr>`;
+    return `<tr><td class="rekap-kriteria">${m.label}</td>${aggCells}${cells}</tr>`;
+  }).join('');
+  const emptyNote = filled.length===0
+    ? `<div class="rekap-empty-note">Belum ada bulan tersimpan di ${rekapPYear}. Buka Proyeksi RKS lalu klik "Simpan ke Rekap Proyeksi".</div>` : '';
+  const _prevScroll = wrap.querySelector('.rekap-scroll');
+  const _sl = _prevScroll ? _prevScroll.scrollLeft : 0, _st = _prevScroll ? _prevScroll.scrollTop : 0;
+  wrap.innerHTML = `${emptyNote}<div class="card rekap-card"><div class="rekap-scroll">
+    <table class="rekap-table rekap-12">
+      ${rekapColgroupHtml(keys.map(k=>!!state.proyeksi.rekap[k]), REKAP_COL_W.emptyWeek, null)}
+      <thead><tr><th class="rekap-kriteria">Kriteria</th><th class="rekap-agg">Anual</th><th class="rekap-agg">Average</th><th class="rekap-agg">Sum</th>${head}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div></div>`;
+  { const _sc = wrap.querySelector('.rekap-scroll'); if(_sc){ _sc.scrollLeft = _sl; _sc.scrollTop = _st; } }
+  renderRekapPYearNav();
+}
+
+function rksConfigProyeksi(){
+  const fromRekap = !!(hasilViewKeyP && state.proyeksi.rekap[hasilViewKeyP]);
+  const M = fromRekap ? hasilMetricsFromRekapP(hasilViewKeyP) : computeHasilMetricsP();
+  const pi = fromRekap ? null : proyeksiInfoFromIncome();
+  const snap = fromRekap ? state.proyeksi.rekap[hasilViewKeyP] : null;
+  if(!fromRekap && !pi) throw new Error('Periode di file Income gak kebaca, jadi bulan laporan belum bisa ditentukan. Upload ulang file Income yang benar.');
+  const key = fromRekap ? hasilViewKeyP : pi.key;
+  const mo = parseInt(key.slice(5,7),10)-1, yr = key.slice(0,4);
+  const label = fromRekap ? (snap.label || key) : pi.label;
+  const f = fromRekap ? null : state.proyeksi.incomeFile;
+  const prevKey = rekapShiftKey(key,-1), prev = state.rekap[prevKey] || null;
+  return { M, settings:state.settings, unit:'bulan', title:'Laporan RKS Proyeksi', fromRekap,
+    periodText:REKAP_BULAN_FULL[mo]+' '+yr+' (data '+label+')', periodShort:REKAP_BULAN_SHORT[mo]+' '+yr, rangeText:label,
+    sourceText: fromRekap ? 'Rekap Proyeksi (data tersimpan)' : null,
+    fee: fromRekap ? (snap.adminLayananBreakdown || null) : (f ? f.adminLayananBreakdown : null),
+    prev, prevLabel: prev ? rekapMonthLabel(prevKey) : null,
+    prevMissingLabel: REKAP_BULAN_FULL[parseInt(prevKey.slice(5,7),10)-1]+' '+prevKey.slice(0,4),
+    file:'laporan-rks-proyeksi-'+key+'.pdf' };
+}
+document.getElementById('btnExportPDFP').addEventListener('click', ()=> rksExport(rksConfigProyeksi));
+
+
 // Habis ganti toko (reload): balik ke halaman yang tadi dibuka. Toko yang masih setup selalu dibuka di RKS Overview.
 try{
   let resumePage = sessionStorage.getItem(TOKO_RESUME_KEY);
