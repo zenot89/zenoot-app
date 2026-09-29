@@ -7242,6 +7242,8 @@ function byhCsvProducts(text){
   });
   return products.length ? { products } : { error:'Tidak ada baris produk dengan harga di CSV.' };
 }
+/* [29 Sep 2026] Aturan batas range TUNGGAL, sama dengan Pricing Analysis (sumber CSV): kiri-inklusif [min,max), range terakhir inklusif max. Dipakai semua tempat (bin, kata kunci, grafik, posisi harga). */
+function byhInBin(rows, i, x){ const r = rows[i]; if(!r) return false; return x>=(r.min||0) && (!(r.max>0) || (i===rows.length-1 ? x<=r.max : x<r.max)); }
 function byhBinsFromProducts(products, n){
   const ps = (products||[]).filter(p=>p.price>0);
   if(!ps.length) return [];
@@ -7255,7 +7257,7 @@ function byhBinsFromProducts(products, n){
   const bins = [];
   for(let i=0;i<edges.length-1;i++) bins.push({ min:edges[i], max:edges[i+1], prod:0, sold:0, fav:0, rev:0, _s:[], _v:[] });
   ps.forEach(p=>{
-    const k = bins.findIndex((b,i)=> i===0 ? (p.price>=b.min && p.price<=b.max) : (p.price>b.min && p.price<=b.max));
+    const k = bins.findIndex((b,i)=> byhInBin(bins, i, p.price));
     if(k<0) return;
     bins[k].prod++; bins[k].sold += p.sold; bins[k].fav += p.fav; bins[k].rev += p.rev; bins[k]._s.push(p.sold); bins[k]._v.push(p.sold/Math.max(3, p.mo||12));
   });
@@ -7419,9 +7421,9 @@ function byhKeywords(prods, bins){
     return { df, shops, med, lift, st };
   };
   const ranges = [];
-  (bins||[]).forEach(b=>{
+  (bins||[]).forEach((b,bi)=>{
     const mem = [];
-    prods.forEach((p,i)=>{ const inb = (b.min===bins[0].min) ? (p.p>=b.min && p.p<=b.max) : (p.p>b.min && (!(b.max>0) || p.p<=b.max)); if(inb) mem.push(i); });
+    prods.forEach((p,i)=>{ if(byhInBin(bins, bi, p.p)) mem.push(i); });
     if(!mem.length) return;
     if(mem.length<BYH_MIN_SAMPLE){ ranges.push({ bin:b, n:mem.length, terms:[] }); return; }
     const cnt = new Map();
@@ -7481,7 +7483,7 @@ function byhKwWire(){
 /* [29 Sep 2026] TAB GRAFIK — SVG murni (tanpa library). Data = baris range yang sama dengan ringkasan; konteks (harga minimum, harga jual, range saran) diisi byhBinsSummaryHtml lewat _byhCtx. */
 let _byhCtx = {};
 const byhConc = r=> r.topv!=null ? r.topv : ((r.top!=null && r.sold>0) ? r.top/r.sold : null);
-function byhFmtK(n){ n = Number(n)||0; return n>=1e6 ? (Math.round(n/1e5)/10)+'jt' : (n>=1000 ? (Math.round(n/100)/10)+'rb' : String(Math.round(n*10)/10)); }
+function byhFmtK(n){ n = Number(n)||0; const t = n>=1e6 ? (Math.round(n/1e5)/10)+'jt' : (n>=1000 ? (Math.round(n/100)/10)+'rb' : String(Math.round(n*10)/10)); return t.replace('.', ','); }
 function byhBarSvg(rows, valFn, withLines){
   const c = _byhCtx||{}, Hm = c.Hmin>0 ? c.Hmin : 0;
   const W=700, H=250, L=46, B=34, T=16, R=10, pw=W-L-R, ph=H-T-B, n=rows.length, bw=pw/n;
@@ -7496,11 +7498,11 @@ function byhBarSvg(rows, valFn, withLines){
     g += '<text x="'+(x+bw*0.35)+'" y="'+(H-B+13)+'" text-anchor="middle" class="ch-t">'+Math.round((r.min||0)/1000)+(r.max>0 ? '-'+Math.round(r.max/1000) : '+')+'</text>';
   });
   g += '<text x="'+(L+pw/2)+'" y="'+(H-3)+'" text-anchor="middle" class="ch-t">range harga (rb)</text>';
-  const xOf = p=>{ for(let i=0;i<n;i++){ const r = rows[i]; if(p>(r.min||0) && (!(r.max>0) || p<=r.max)) return r.max>0 ? L+i*bw+bw*(p-(r.min||0))/(r.max-(r.min||0)) : L+i*bw+bw/2; } return p<=(rows[0].min||0) ? L : W-R; };
+  const xOf = p=>{ for(let i=0;i<n;i++){ const r = rows[i]; if(byhInBin(rows, i, p)) return r.max>0 ? L+i*bw+bw*(p-(r.min||0))/(r.max-(r.min||0)) : L+i*bw+bw/2; } return p<=(rows[0].min||0) ? L : W-R; };
   if(withLines){
     if(withLines===true && Hm>0){ const x = xOf(Hm); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-min"/><text x="'+(x+3)+'" y="'+(T+9)+'" class="ch-t ch-mint">harga min</text>'; }
     const pl = c.P>0 ? c.P : (c.ownP||0);
-    if(pl>0){ const x = xOf(pl); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-jual"/><text x="'+(x+3)+'" y="'+(T+22)+'" class="ch-t ch-jualt">'+(c.P>0 ? 'harga jual' : 'harga kamu')+'</text>'; }
+    if(pl>0){ const x = xOf(pl), left = (withLines===true && Hm>0 && x<=xOf(Hm)+2); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-jual"/><text x="'+(left ? x-3 : x+3)+'" y="'+(left ? T+9 : T+22)+'"'+(left ? ' text-anchor="end"' : '')+' class="ch-t ch-jualt">'+(c.P>0 ? 'harga jual' : 'harga kamu')+'</text>'; }
   }
   return '<svg viewBox="0 0 '+W+' '+H+'" class="ch-svg" role="img">'+g+'</svg>';
 }
@@ -7559,7 +7561,7 @@ function byhPosisi(rows){
   const calc = pr=>{ try{ const x = row ? byhargaCompute(row, pr, V, roas) : null; return (x && x.ok && x.hasPrice && !x.invalid) ? x : null; }catch(e){ return null; } };
   const best = c.best || null, from = best ? Math.max(best.min||0, Hm) : 0, to = (best && best.max>0) ? best.max : 0;
   const out = list.map(x=>{
-    const p = x.p, r = rows.find(z=> p>=(z.min||0) && (!(z.max>0) || p<=z.max)) || null, cc = calc(p);
+    const p = x.p, r = rows.find(z=> byhInBin(rows, rows.indexOf(z), p)) || null, cc = calc(p);
     const o = { n:x.n, p, s:x.s, mo:x.mo, r, ocean:(c.oceanOf && r) ? c.oceanOf(r) : null, income:cc?cc.income:null, T:cc?cc.T:null, buffer:Hm>0 ? p-Hm : null, Hm, best, rec:null };
     if(best){
       if(p < from-0.5) o.rec = { type:'naik', target:from };
@@ -7643,7 +7645,7 @@ function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
   const solid = reliable.filter(r=>!dominated(r));
   const dom = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0 && dominated(r));
   const pickMax = (list, f)=> list.reduce((b,r)=> (!b || f(r)>f(b)) ? r : b, null);
-  const inRange = (r,x)=> x>=(r.min||0) && (!(r.max>0) || x<=r.max);
+  const inRange = (r,x)=> byhInBin(rows, rows.indexOf(r), x);
   // Label pasar 2x2 (heuristik, bukan bukti): patokan = rata-rata porsi semua range yang berisi produk. Penjualan tinggi = porsi terjual >= rata-rata; pesaing banyak = porsi produk > rata-rata.
   // Range < BYH_MIN_SAMPLE produk tidak diberi label (sampel kecil).
   const live = rows.filter(r=>r.prod>0), avgShare = live.length ? 1/live.length : 0;
@@ -7737,7 +7739,7 @@ function byhargaBinsHighlight(){
   const tppOf = r=> r.prod>0 ? r.sold/r.prod : null;
   const f1 = n=> n.toLocaleString('id-ID',{maximumFractionDigits:1});
   let hit = -1;
-  if(P>0) rows.forEach((r,i)=>{ if(hit<0 && P>=(r.min||0) && (!(r.max>0) || P<=r.max)) hit = i; });
+  if(P>0) rows.forEach((r,i)=>{ if(hit<0 && byhInBin(rows, i, P)) hit = i; });
   body.querySelectorAll('tr').forEach((tr,i)=>{
     const r = rows[i]; if(!r) return;
     tr.classList.toggle('byh-bin-hit', i===hit);
