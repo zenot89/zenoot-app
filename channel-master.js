@@ -16,6 +16,10 @@
 // read-only. Net Income disimpan di kolom net_income (channel_harga & channel_kategori_harga), jadi
 // kalau HPP berubah, harga jual ikut (Net Income tetap). harga_jual di DB = snapshot (NOT NULL), tidak
 // dipakai untuk hitung. Baris LAMA (net_income NULL) tetap dianggap harga tetap = harga_jual.
+// 30 Sep 2026 (malam, revisi 2): Price List punya tombol "Pilih Produk" sendiri (toko & kategori; pilihan kategori
+// disimpan di channel_produk dengan channel_id 'kat:<kategori>' dan berlaku ke semua toko di kategori itu). Katalog
+// yang tampil = terpilih ∪ sudah punya harga (toko/kategori). Tabel Price List TERKUNCI (teks biasa) — harus klik
+// "Edit" dulu baru kolom Net Income bisa diketik; habis simpan Pilih Produk otomatis masuk mode Edit.
 // 30 Sep 2026 (malam): PILIH PRODUK per channel — tombol "Produk" (ikon kotak + jumlah) di kolom Aksi
 // SEMUA baris channel (tab Channel & Lainnya). Daftar katalog diambil dari Kelola Produk (produk aktif +
 // clearance), pilihan disimpan per KATALOG (semua varian ikut) di tabel channel_produk (channel_id, katalog).
@@ -235,12 +239,14 @@ document.getElementById('page-channel').innerHTML = `
         <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <span><i class="ti ti-tag"></i> Price List <span id="chp-title" style="color:var(--accent)"></span></span>
           <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm" id="chp-btn-pick" onclick="chpPilihProdukPanel()" style="display:none" title="Pilih katalog dari Kelola Produk yang dijual"><i class="ti ti-package"></i> Pilih Produk</button>
+            <button class="btn btn-sm" id="chp-btn-edit" onclick="chpEditToggle()" style="display:none" title="Buka kunci kolom Net Income untuk diedit"><i class="ti ti-edit"></i> Edit</button>
             <button class="btn btn-sm" id="chp-btn-bulk" onclick="chpBulkMulai()" style="display:none" title="Pilih beberapa katalog lalu isi 1 harga sekaligus"><i class="ti ti-checkbox"></i> Edit Massal</button>
             <button class="btn btn-sm" id="chp-btn-seed" onclick="chpSeed()" style="display:none" title="Isi katalog yang masih otomatis dengan harga dari rumus lama (HPP × multiplier)"><i class="ti ti-wand"></i> Isi dari rumus lama</button>
           </span>
         </div>
         <div id="chp-hint" style="padding:22px 10px;text-align:center;color:var(--ink3);font-style:italic;font-size:14px">
-          Klik salah satu toko di daftar (atau tombol Harga di header kategori) untuk melihat &amp; mengatur harga jualnya.
+          Klik salah satu toko di daftar (atau tombol Harga di header kategori) untuk memilih produk &amp; mengatur Net Income-nya.
         </div>
         <div id="chp-body" style="display:none">
           <div id="chp-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px"></div>
@@ -248,7 +254,7 @@ document.getElementById('page-channel').innerHTML = `
             style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
           <div class="chp-bulkbar" id="chp-bulkbar" style="display:none">
             <span class="chp-bulk-lbl">Net Income</span>
-            <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 15.000" autocomplete="off" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
+            <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 15.000" autocomplete="off" spellcheck="false" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
             <button class="btn btn-sm btn-primary" id="chp-bulk-btn" onclick="chpBulkTerapkan()"><i class="ti ti-check"></i> Terapkan (0)</button>
             <button class="btn btn-sm" onclick="chpBulkBatal()"><i class="ti ti-x"></i> Batal</button>
           </div>
@@ -265,7 +271,7 @@ document.getElementById('page-channel').innerHTML = `
           </table></div>
           <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
           <div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5">
-            Harga Jual = HPP + Net Income (Rp). Ketik Net Income lalu Enter/pindah kolom untuk menyimpan. Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
+            Harga Jual = HPP + Net Income (Rp). Tabel terkunci — klik Edit dulu untuk mengetik Net Income (Enter/pindah kolom = simpan), lalu Selesai. Produk dipilih lewat Pilih Produk; pilihan kategori berlaku ke semua toko di kategori itu. Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
           </div>
         </div>
       </div>
@@ -663,6 +669,7 @@ var _chpRows    = [];   // baris yg sedang ter-render (index dipakai input)
 var _chpQuery   = '';
 var _chpSeq     = 0;    // guard race saat ganti channel cepat
 var _chpBulk    = false; // mode Edit Massal aktif?
+var _chpEdit    = false; // mode Edit (kolom Net Income bisa diketik) aktif? default TERKUNCI
 var _chpSel     = {};    // katalog → true (dipilih di Edit Massal)
 var _chpFlashT  = null;
 var _chpKatHarga = {};  // katalog → { id, harga_jual } harga KATEGORI dari channel aktif (fallback; hanya mode toko)
@@ -730,18 +737,19 @@ function _chpKatalogAll() {
   return Object.values(map).sort(function(a, b) { return a.katalog.localeCompare(b.katalog); });
 }
 
-// Katalog yang TAMPIL di Price List = yang dipilih toko aktif (mode toko) / gabungan pilihan
-// semua toko di kategori (mode kategori). Bulk, Seed, footer, NPM semuanya lewat fungsi ini.
+// Katalog yang TAMPIL di Price List = terpilih lewat Pilih Produk ∪ yang sudah punya harga.
+// Mode toko: pilihan toko + pilihan kategorinya ('kat:<kategori>') + harga toko + harga kategori.
+// Mode kategori: pilihan kategori + harga kategori. Bulk, Seed, footer, NPM semuanya lewat fungsi ini.
 function _chpKatalogList() {
   var all = _chpKatalogAll();
   if (!_chProdukOk) return all;   // tabel channel_produk belum ada → perilaku lama
   var set = {};
-  if (_chpIsKat()) {
-    (_chCatChannels[_chpKatKey()] || []).forEach(function(c) {
-      Object.keys(_chProdukMap[c.id] || {}).forEach(function(k) { set[k] = true; });
-    });
-  } else {
-    Object.keys(_chProdukMap[_chpSelId] || {}).forEach(function(k) { set[k] = true; });
+  function add(o) { Object.keys(o || {}).forEach(function(k) { set[k] = true; }); }
+  add(_chProdukMap[_chpSelId]);
+  add(_chpHarga);
+  if (!_chpIsKat()) {
+    if (_chpChKat) add(_chProdukMap['kat:' + _chpChKat]);
+    add(_chpKatHarga);
   }
   return all.filter(function(k) { return !!set[k.katalog]; });
 }
@@ -762,6 +770,21 @@ function _chpCalc(k) {
   var npmEst = (k.hpp > 0 && eff > 0 && !m.mixed) ? ((eff - k.hpp) / k.hpp * 100 - m.beban) : null;
   var ok     = npmEst !== null && npmEst >= m.npm - 0.05;
   return { hpp: k.hpp, auto: auto, manual: manEff, manNi: man ? (manEff - k.hpp) : null, ni: eff > 0 || man || khRow ? (eff - k.hpp) : null, kat: kh, eff: eff, src: src, npmEst: npmEst, ok: ok, isManual: !!man, m: m };
+}
+
+// Kolom Net Income: TERKUNCI = teks biasa; mode Edit = kotak ketik
+function _chpNiCell(c, i) {
+  if (_chpEdit && !_chpBulk) {
+    return '<input type="text" inputmode="numeric" autocomplete="off" spellcheck="false" class="chp-inp' + (c.src === 'own' ? ' manual' : (c.src === 'kat' ? ' kat' : '')) + '"' +
+      ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manNi) : '') + '"' +
+      ' placeholder="' + (c.ni !== null && c.eff > 0 ? _chpFmt(c.ni) : '—') + '"' +
+      ' oninput="chpFmtInput(this)" onfocus="this.select()" onchange="chpSimpan(this)"' +
+      ' onkeydown="if(event.key===\'Enter\')this.blur()">';
+  }
+  if (c.ni === null || !(c.eff > 0 || c.isManual)) return '<span style="color:var(--ink3)">—</span>';
+  if (c.src === 'own')  return '<span style="font-weight:700">' + _chpFmt(c.manNi) + '</span>';
+  if (c.src === 'kat')  return '<span style="font-weight:500;color:var(--ink2)" title="Ikut Net Income kategori">' + _chpFmt(c.ni) + '</span>';
+  return '<span style="color:var(--ink3);font-style:italic" title="Otomatis (rumus lama)">' + _chpFmt(c.ni) + '</span>';
 }
 
 function _chpHjHtml(c) {
@@ -852,8 +875,25 @@ function _chpCols() { return _chpBulk ? 6 : 5; }
 // Tombol header: Edit Massal (toko & kategori) + Isi dari rumus lama (hanya toko), tersembunyi saat mode massal
 function _chpSyncButtons() {
   var show = !!_chpSelId && !_chpBulk;
-  document.getElementById('chp-btn-bulk').style.display = show ? '' : 'none';
-  document.getElementById('chp-btn-seed').style.display = (show && !_chpIsKat()) ? '' : 'none';
+  document.getElementById('chp-btn-pick').style.display = (show && !_chpEdit) ? '' : 'none';
+  document.getElementById('chp-btn-edit').style.display = show ? '' : 'none';
+  document.getElementById('chp-btn-edit').innerHTML = _chpEdit ? '<i class="ti ti-check"></i> Selesai' : '<i class="ti ti-edit"></i> Edit';
+  document.getElementById('chp-btn-bulk').style.display = (show && !_chpEdit) ? '' : 'none';
+  document.getElementById('chp-btn-seed').style.display = (show && !_chpEdit && !_chpIsKat()) ? '' : 'none';
+}
+
+// Tombol "Pilih Produk" di header Price List: toko aktif atau kategori aktif
+function chpPilihProdukPanel() {
+  if (!_chpSelId) return;
+  showPilihProduk(_chpSelId, _chpSelNama, _chpIsKat() ? _chpKatKey() : _chpChKat);
+}
+
+// Tombol Edit / Selesai: buka-tutup kunci kolom Net Income
+function chpEditToggle() {
+  if (!_chpSelId) return;
+  _chpEdit = !_chpEdit;
+  _chpSyncButtons();
+  chpRender();
 }
 
 function chpRender() {
@@ -886,8 +926,8 @@ function chpRender() {
     tbody.innerHTML = '<tr><td colspan="' + _chpCols() + '" style="color:var(--ink3);font-style:italic">' +
       (_chpQuery ? 'Katalog tidak ditemukan'
         : (!_chpKatalogAll().length ? 'Belum ada produk di Kelola Produk'
-        : (_chpIsKat() ? 'Belum ada toko di kategori ini yang punya produk terpilih — klik ikon 📦 di baris toko untuk memilih produk.'
-                       : 'Belum ada produk dipilih untuk toko ini — klik ikon 📦 di baris toko untuk memilih produk.'))) + '</td></tr>';
+        : (_chpIsKat() ? 'Belum ada produk dipilih untuk kategori ini — klik tombol Pilih Produk di atas.'
+                       : 'Belum ada produk dipilih untuk toko ini — klik tombol Pilih Produk di atas.'))) + '</td></tr>';
     document.getElementById('chp-footer').textContent = '';
     _chpBulkUI();
     return;
@@ -901,11 +941,7 @@ function chpRender() {
       '<td class="chp-c-chk"><input type="checkbox" class="chp-chk" data-idx="' + i + '"' + (chk ? ' checked' : '') + ' onchange="chpToggleRow(' + i + ',this.checked)"></td>' +
       '<td style="font-weight:600" title="' + _chpEsc(k.katalog) + '">' + _chpEsc(k.katalog) + '</td>' +
       '<td class="chp-c-hpp" style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
-      '<td class="chp-c-ni" style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.src === 'own' ? ' manual' : (c.src === 'kat' ? ' kat' : '')) + '"' +
-        ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manNi) : '') + '"' +
-        ' placeholder="' + (c.ni !== null && c.eff > 0 ? _chpFmt(c.ni) : '—') + '"' +
-        ' oninput="chpFmtInput(this)" onfocus="this.select()" onchange="chpSimpan(this)"' +
-        ' onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
+      '<td class="chp-c-ni" style="text-align:right">' + _chpNiCell(c, i) + '</td>' +
       '<td class="chp-c-harga chp-hj" style="text-align:right">' + _chpHjHtml(c) + '</td>' +
       '<td class="chp-c-npm chp-npm" style="text-align:center">' + _chpNpmHtml(c) + '</td>' +
     '</tr>';
@@ -971,7 +1007,7 @@ async function chpSimpan(inp) {
 // Flow: Edit Massal → centang katalog → isi 1 harga → Terapkan → otomatis selesai
 // (kotak centang hilang). Batal = keluar tanpa mengubah apa pun.
 function _chpBulkReset() {
-  _chpBulk = false; _chpSel = {};
+  _chpBulk = false; _chpEdit = false; _chpSel = {};
   var bar = document.getElementById('chp-bulkbar'); if (bar) bar.style.display = 'none';
   var inp = document.getElementById('chp-bulk-harga'); if (inp) inp.value = '';
   var tbl = document.getElementById('chp-table'); if (tbl) tbl.classList.remove('chp-bulk');
@@ -979,7 +1015,7 @@ function _chpBulkReset() {
 
 function chpBulkMulai() {
   if (!_chpSelId) return;
-  _chpBulk = true; _chpSel = {};
+  _chpBulk = true; _chpEdit = false; _chpSel = {};
   document.getElementById('chp-bulkbar').style.display = '';
   document.getElementById('chp-bulk-harga').value = '';
   _chpSyncButtons();
@@ -1183,28 +1219,39 @@ async function _chProdukLoad() {
 
 function _chProdukCount(id) { return Object.keys(_chProdukMap[String(id)] || {}).length; }
 
-var _cpId = '', _cpKat = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '';
+var _cpId = '', _cpKat = '', _cpNama = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '', _cpPriced = {}, _cpTbl = '';
 
+// id = id channel ATAU 'kat:<kategori>' (pilihan tingkat kategori); kat = kategori channel / kategori itu sendiri
 async function showPilihProduk(id, nama, kat) {
-  _cpId = String(id); _cpKat = kat; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {};
-  document.getElementById('cp-nama').textContent = nama || '';
+  _cpId = String(id); _cpKat = kat; _cpNama = nama || ''; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {}; _cpPriced = {};
+  _cpTbl = _chpTblOf(_cpId);
+  document.getElementById('cp-nama').textContent = _cpNama;
   document.getElementById('cp-search').value = '';
   document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat produk dari Kelola Produk...</td></tr>';
   document.getElementById('cp-footer').textContent = '';
   document.getElementById('cp-warn').style.display = _chProdukOk ? 'none' : '';
   showModal('modal-channel-produk');
+  var myId = _cpId;
   try {
     await _chpLoadProduk();
+    // Katalog yang SUDAH punya Net Income di tingkat ini ikut terpilih (Price List menampilkannya) — hanya Offline/Reseller/Dropship
+    if (_CHP_KATS.indexOf(_cpId.indexOf('kat:') === 0 ? _cpId.slice(4) : kat) !== -1) {
+      var pr = await dbGet(_cpTbl, _chpQ(_cpId)).catch(function() { return []; });
+      (pr || []).forEach(function(r) { _cpPriced[r.katalog] = r.id; });
+    }
   } catch (err) {
     document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--danger)">Error: ' + _chpEsc(err.message) + '</td></tr>';
     return;
   }
-  if (_cpId !== String(id)) return;
+  if (_cpId !== myId) return;
   var cur  = _chProdukMap[_cpId] || {};
   var list = _chpKatalogAll();
   var ada  = {};
   list.forEach(function(k) { ada[k.katalog] = true; });
-  Object.keys(cur).forEach(function(k) {
+  var pilih = {};
+  Object.keys(cur).forEach(function(k) { pilih[k] = true; });
+  Object.keys(_cpPriced).forEach(function(k) { pilih[k] = true; });
+  Object.keys(pilih).forEach(function(k) {
     _cpSel[k] = true;
     if (!ada[k]) list.push({ katalog: k, hpp: 0, n: 0, orphan: true });
   });
@@ -1277,14 +1324,23 @@ async function cpSimpan() {
   var id  = _cpId;
   if (!id) return;
   var cur = _chProdukMap[id] || {};
-  var add = [], del = [];
+  var add = [], delSel = [], delPrice = [], delPriceNames = [];
   Object.keys(_cpSel).forEach(function(k) { if (!cur[k]) add.push({ channel_id: id, katalog: k }); });
-  Object.keys(cur).forEach(function(k) { if (!_cpSel[k]) del.push(cur[k]); });
+  Object.keys(cur).forEach(function(k) { if (!_cpSel[k]) delSel.push(cur[k]); });
+  Object.keys(_cpPriced).forEach(function(k) { if (!_cpSel[k]) { delPrice.push(_cpPriced[k]); delPriceNames.push(k); } });
+  if (delPrice.length) {
+    var ok = await zConfirm(
+      delPrice.length + ' katalog yang dilepas sudah punya Net Income tersimpan (' + delPriceNames.slice(0, 4).join(', ') + (delPriceNames.length > 4 ? ', …' : '') + ') — ikut dihapus. Lanjut?',
+      { title: 'Hapus Net Income juga?', ok: 'Ya, hapus', type: 'danger' }
+    );
+    if (!ok) return;
+  }
   var btn = document.getElementById('cp-save-btn');
   if (btn) btn.disabled = true;
   try {
-    if (del.length) await Promise.all(del.map(function(rid) { return dbDelete('channel_produk', rid); }));
-    if (add.length) await dbInsert('channel_produk', add);
+    if (delPrice.length) await Promise.all(delPrice.map(function(rid) { return dbDelete(_cpTbl, rid); }));
+    if (delSel.length)   await Promise.all(delSel.map(function(rid) { return dbDelete('channel_produk', rid); }));
+    if (add.length)      await dbInsert('channel_produk', add);
   } catch (err) {
     var msg = String(err && err.message || err);
     alert('Gagal simpan pilihan produk: ' + msg + (/channel_produk/i.test(msg) ? '\n\nTabel channel_produk belum dibuat — jalankan channel_produk.sql di Supabase dulu.' : ''));
@@ -1296,8 +1352,24 @@ async function cpSimpan() {
   await _chProdukLoad();
   if (btn) btn.disabled = false;
   hideModal('modal-channel-produk');
-  loadChannelByKategori(_cpKat);   // angka di tombol Produk ikut ter-update
-  if (_chpSelId) chpRender();      // Price List (tab Lainnya) ikut menyesuaikan
+  var catKey = id.indexOf('kat:') === 0 ? id.slice(4) : _cpKat;
+  if (id.indexOf('kat:') !== 0) loadChannelByKategori(_cpKat);   // angka di tombol Produk ikut ter-update
+  // Kategori bertabel Price List (Offline/Reseller/Dropship): langsung tampilkan produk terpilih + buka mode Edit
+  // supaya Net Income bisa langsung diisi. (Shopee/Lazada/TikTok tidak punya Price List.)
+  if (_CHP_KATS.indexOf(catKey) !== -1) {
+    if (_chpSelId === id) {
+      await _chpReloadHarga(id);
+      if (_chpSelId !== id) return;
+    } else {
+      await _chpPilihCore(id, _cpNama, id.indexOf('kat:') === 0 ? '' : _cpKat);
+      if (_chpSelId !== id) return;
+    }
+    _chpEdit = _chpKatalogList().length > 0;
+    _chpSyncButtons();
+    chpRender();
+  } else if (_chpSelId) {
+    chpRender();
+  }
 }
 
 // Channel dihapus → hapus juga pilihan produknya (channel_produk tanpa FK)
