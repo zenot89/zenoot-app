@@ -7171,9 +7171,12 @@ function bysupportSources(){
     for(const c of cands){ if(bysupportValid(c[field])) return { value:c[field], src:c.name+' '+c.label }; }
     return null;
   };
-  let admin = pick('admin'), acos = pick('acos');
+  let admin = pick('admin');
   if(!admin){ const v = state.settings.adminPct; admin = bysupportValid(v) ? { value:v/100, src:'Setting (fallback)' } : { value:0, src:'belum ada data' }; }
-  if(!acos){ const v = state.settings.targetRoas; acos = bysupportValid(v) ? { value:1/v, src:'Target ROAS di Setting (fallback)' } : { value:0, src:'belum ada data' }; }
+  // [30 Sep 2026] ACOS SEKARANG SELALU dari Setting > TARGET ROAS TOKO (ACOS = 1 ÷ ROAS), bukan lagi dari Rekap.
+  // (bysupportAcosOf & field acos di cands di atas sengaja dibiarkan sebagai dead code — gak dipakai lagi.)
+  const tr = state.settings.targetRoas;
+  const acos = bysupportValid(tr) ? { value:1/tr, roas:tr, src:'Setting — Target ROAS Toko' } : { value:0, roas:0, src:'isi Target ROAS Toko di Setting' };
   return { admin, acos };
 }
 function bysupportParams(){
@@ -7207,6 +7210,31 @@ function bysupportRows(){
   return out;
 }
 let _bysupportLoadTs = 0;
+let _bysupportQuery = '';   // kata kunci Cari SKU (cuma di memori)
+// Net Income per pcs = IDR Operasional + IDR NPM (dari Harga Min): Harga Min × (Ops% + NPM%)
+function bysupportBodyHtml(P){
+  const q = _bysupportQuery.trim().toLowerCase();
+  const all = bysupportRows();
+  const list = q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all;
+  if(!list.length){
+    return `<tr><td colspan="4" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
+  }
+  return list.map(row=>{
+    const c = bysupportCalc(row, P);
+    const netInc = c ? Math.round(c.hargaMin*(P.ops+P.npm)) : null;
+    return `<tr>
+      <td>${byhEsc(row.sku)}</td>
+      <td class="num" style="font-weight:700;">${c ? fmtRp(c.hargaMin) : '-'}</td>
+      <td class="num">${netInc!==null ? fmtRp(netInc) : '-'}</td>
+      <td class="num">${fmtNum(row.hpp)}</td>
+    </tr>`;
+  }).join('');
+}
+function bysupportOnSearch(v){
+  _bysupportQuery = v||'';
+  const body = document.getElementById('bysupportBody');
+  if(body) body.innerHTML = bysupportBodyHtml(bysupportParams());
+}
 function renderBySupport(fromLoad){
   const statsEl = document.getElementById('bysupportStats'), listEl = document.getElementById('bysupportListCard');
   if(!statsEl || !listEl) return;
@@ -7217,12 +7245,15 @@ function renderBySupport(fromLoad){
   }
   const P = bysupportParams();
   const card = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${byhEsc(ket)}</span></div><div class="stat-value">${val}</div></div>`;
+  // Minicard ACOS: nilai ACOS di kiri, ROAS (kebalikannya) di kanan
+  const roasTxt = P.src.acos.roas>0 ? (Math.round(P.src.acos.roas*100)/100).toString().replace('.',',')+'x' : '-';
+  const acosCard = `<div class="stat-card"><div class="stat-label">ACOS<span class="ket" style="display:block;font-weight:400;">${byhEsc(P.src.acos.src)}</span></div><div class="stat-value" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span>${fmtPct(P.src.acos.value)}</span><span style="font-size:13px;font-weight:700;color:var(--ink-soft);">ROAS ${roasTxt}</span></div></div>`;
   statsEl.innerHTML = `<div class="card" style="margin-bottom:14px;">
     <h3>Komponen GPM Minimum</h3>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
       ${card('GPM Toko', fmtPct(P.gpm), 'Admin + ACOS + Operasional + Buffer + NPM')}
       ${card('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
-      ${card('ACOS', fmtPct(P.src.acos.value), P.src.acos.src)}
+      ${acosCard}
       ${card('Operasional %', fmtPct(P.ops), 'Setting — Rasio Operasional')}
       ${card('Buffer %', fmtPct(P.buffer), 'Setting')}
       ${card('NPM %', fmtPct(P.npm), P.npm>0 ? 'Setting — Target Rasio Laba' : 'isi Target Rasio Laba di Setting')}
@@ -7232,23 +7263,24 @@ function renderBySupport(fromLoad){
     listEl.innerHTML = '<h3>Batas Aman Harga Jual</h3><div class="hint" style="margin:0;">Harga minimum gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
     return;
   }
-  const rows = bysupportRows().map(row=>{
-    const c = bysupportCalc(row, P);
-    return `<tr>
-      <td>${byhEsc(row.sku)}</td>
-      <td class="num">${fmtNum(row.hpp)}</td>
-      <td class="num" style="font-weight:700;">${c ? fmtRp(c.hargaMin) : '-'}</td>
-    </tr>`;
-  }).join('');
+  // jaga fokus kolom cari kalau render ulang (mis. abis muat ulang Kelola Produk) kejadian pas lagi ngetik
+  const prev = document.getElementById('bysupportSearch');
+  const hadFocus = prev && document.activeElement===prev;
+  const selS = hadFocus ? prev.selectionStart : null, selE = hadFocus ? prev.selectionEnd : null;
   listEl.innerHTML = `
-    <h3>Batas Aman Harga Jual</h3>
-    <div class="hint" style="margin:0 0 12px;">Harga Jual = HPP ÷ (1 − GPM Toko). Di bawah Harga Min, margin jatuh di bawah target (Admin, ACOS, Operasional, Buffer &amp; NPM). Produk &amp; HPP langsung dari Kelola Produk.</div>
+    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <span>Batas Aman Harga Jual</span>
+      <input type="search" id="bysupportSearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_bysupportQuery)}" oninput="bysupportOnSearch(this.value)"
+        style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
+    </h3>
+    <div class="hint" style="margin:0 0 12px;">Harga Jual = HPP ÷ (1 − GPM Toko). Di bawah Harga Min, margin jatuh di bawah target (Admin, ACOS, Operasional, Buffer &amp; NPM). Net Income = IDR Operasional + IDR NPM dari Harga Min. Produk &amp; HPP langsung dari Kelola Produk.</div>
     <div class="pricelist-scroll">
       <table class="ca-table">
-        <thead><tr><th>SKU</th><th class="num">HPP</th><th class="num">Harga Min</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="3" style="color:var(--ink-soft);">Belum ada produk ber-HPP di Kelola Produk.</td></tr>'}</tbody>
+        <thead><tr><th>SKU</th><th class="num">Harga Min</th><th class="num">Net Income</th><th class="num">HPP</th></tr></thead>
+        <tbody id="bysupportBody">${bysupportBodyHtml(P)}</tbody>
       </table>
     </div>`;
+  if(hadFocus){ const el = document.getElementById('bysupportSearch'); if(el){ el.focus(); try{ el.setSelectionRange(selS, selE); }catch(e){} } }
 }
 
 /* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
