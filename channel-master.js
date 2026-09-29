@@ -30,6 +30,16 @@ document.getElementById('page-channel').innerHTML = `
        SEMUA anak langsung #page-channel maks 720px. Tab Channel sekarang 2 kolom,
        jadi cap itu dilepas khusus untuk nav tab + tab Channel (selector ber-ID menang
        atas aturan lama). Tab Supplier & ROP tetap 720px. */
+    /* Tab: gaya sama dengan Cost Produksi (teks polos, tab aktif digaris bawah), diletakkan di kanan */
+    #ch-tabs-nav { display:flex; align-items:center; justify-content:flex-end; gap:16px; margin-bottom:12px; }
+    #ch-tabs-nav .ch-tab-btn {
+      background:none; border:none; border-bottom:2px solid transparent;
+      padding:4px 1px 8px; font-family:var(--f); font-size:13px; font-weight:800;
+      color:var(--ink2); opacity:.65; cursor:pointer; white-space:nowrap;
+      transition:opacity .15s ease, border-color .15s ease, color .15s ease;
+    }
+    #ch-tabs-nav .ch-tab-btn:hover { opacity:.9; }
+    #ch-tabs-nav .ch-tab-btn.active { opacity:1; color:var(--ink); border-bottom-color:var(--ink); }
     #page-channel > #ch-tabs-nav,
     #page-channel > #ch-tab-content-channel,
     #page-channel > #ch-tab-content-lainnya { max-width:none; }
@@ -81,21 +91,10 @@ document.getElementById('page-channel').innerHTML = `
   </style>
 
   <!-- ══ TAB NAVIGATION ══ -->
-  <div id="ch-tabs-nav" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--ink)">
-    <button id="ch-tab-channel" onclick="chSwitchTab('channel')"
-      style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;background:var(--ink);color:var(--cream);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-antenna"></i> Channel
-    </button>
-
-    <button id="ch-tab-supplier" onclick="chSwitchTab('supplier')"
-      style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-truck"></i> Supplier &amp; ROP
-    </button>
-
-    <button id="ch-tab-lainnya" onclick="chSwitchTab('lainnya')"
-      style="padding:8px 20px;font-family:var(--f);font-size:13px;font-weight:700;border:2px solid var(--ink);border-bottom:none;border-left:none;background:var(--cream);color:var(--ink);cursor:pointer;margin-bottom:-2px">
-      <i class="ti ti-dots"></i> Lainnya
-    </button>
+  <div id="ch-tabs-nav">
+    <button id="ch-tab-channel"  class="ch-tab-btn active" onclick="chSwitchTab('channel')">Channel</button>
+    <button id="ch-tab-supplier" class="ch-tab-btn"        onclick="chSwitchTab('supplier')">Supplier &amp; ROP</button>
+    <button id="ch-tab-lainnya"  class="ch-tab-btn"        onclick="chSwitchTab('lainnya')">Lainnya</button>
   </div>
 
   <!-- ══ TAB: CHANNEL MASTER ══ -->
@@ -349,10 +348,7 @@ function chSwitchTab(tab) {
     var btn     = document.getElementById('ch-tab-' + t);
     var content = document.getElementById('ch-tab-content-' + t);
     var active  = t === tab;
-    if (btn) {
-      btn.style.background = active ? 'var(--ink)' : 'var(--cream)';
-      btn.style.color      = active ? 'var(--cream)' : 'var(--ink)';
-    }
+    if (btn) btn.classList.toggle('active', active);
     if (content) content.style.display = active ? 'block' : 'none';
   });
   if (tab === 'supplier') loadSupplierROP();
