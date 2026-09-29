@@ -15,6 +15,27 @@ document.getElementById('page-channel').innerHTML = `
     .hs-jenis-radio input { accent-color:var(--ink); }
     .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
     .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
+
+    /* Layout 2 kolom: kiri = daftar channel, kanan = Price List manual */
+    .ch-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start; }
+    .ch-col-right { position:sticky; top:8px; }
+    .chp-scroll { overflow-y:auto; max-height:calc(100vh - 330px); }
+    tr[data-action="pilih-ch"] { cursor:pointer; }
+    tr[data-action="pilih-ch"].ch-row-sel { background:var(--cream2); box-shadow:inset 3px 0 0 var(--ink); }
+    .chp-inp { width:100%; box-sizing:border-box; text-align:right; font-family:var(--f); font-size:13px; padding:5px 8px; border:2px dashed var(--ink3); background:var(--cream); color:var(--ink); }
+    .chp-inp.manual { border:2px solid var(--ink); font-weight:700; }
+    @media (max-width:900px) {
+      .ch-grid { grid-template-columns:minmax(0,1fr); }
+      .ch-col-right { position:static; order:-1; }
+      .chp-scroll { max-height:55vh; }
+    }
+    /* Mobile: tabel muat layar tanpa scroll horizontal — HPP disembunyikan */
+    @media (max-width:600px) {
+      #chp-table { table-layout:fixed; width:100%; }
+      #chp-table th:nth-child(2), #chp-table td:nth-child(2) { display:none; }
+      #chp-table th:nth-child(1) { width:38%; }
+      #chp-table th:nth-child(3) { width:36%; }
+    }
   </style>
 
   <!-- ══ TAB NAVIGATION ══ -->
@@ -32,10 +53,12 @@ document.getElementById('page-channel').innerHTML = `
 
   <!-- ══ TAB: CHANNEL MASTER ══ -->
   <div id="ch-tab-content-channel">
+   <div class="ch-grid">
+    <div class="ch-col-left">
 
     <div style="margin-bottom:14px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);border-radius:4px;font-size:13px;color:var(--ink2);line-height:1.7">
       <b>Master Data Channel</b> — sumber data global untuk seluruh aplikasi.<br>
-      Setiap channel bisa punya <b>% Beban &amp; NPM</b> sendiri untuk kalkulasi harga otomatis di Price List.
+      Setiap channel punya <b>% Beban &amp; NPM</b> sendiri (dipakai Dashboard, Keuangan &amp; Proyeksi). Harga jual per channel diatur <b>manual</b> di panel Price List (kanan) — klik salah satu channel.
     </div>
 
     <!-- SHOPEE -->
@@ -57,8 +80,8 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th style="text-align:center">Multiplier</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-toko_utama"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-toko_utama"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -72,8 +95,8 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Reseller</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th style="text-align:center">Multiplier</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-reseller"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Nama Reseller</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-reseller"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -87,8 +110,8 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Toko Lazada</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th style="text-align:center">Multiplier</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-lazada"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Nama Toko Lazada</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-lazada"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -105,8 +128,8 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Toko TikTok</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th style="text-align:center">Multiplier</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-tiktok"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Nama Toko TikTok</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-tiktok"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
@@ -120,11 +143,40 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th style="text-align:center">Multiplier</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-offline"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
+        <tbody id="ch-tbody-offline"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
     </div>
 
+    </div><!-- end ch-col-left -->
+
+    <!-- ══ PANEL KANAN: PRICE LIST MANUAL ══ -->
+    <div class="ch-col-right">
+      <div class="card" id="chp-card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span><i class="ti ti-tag"></i> Price List <span id="chp-title" style="color:var(--accent)"></span></span>
+          <button class="btn btn-sm" id="chp-btn-seed" onclick="chpSeed()" style="display:none" title="Isi katalog yang masih otomatis dengan harga dari rumus lama (HPP × multiplier)"><i class="ti ti-wand"></i> Isi dari rumus lama</button>
+        </div>
+        <div id="chp-hint" style="padding:22px 10px;text-align:center;color:var(--ink3);font-style:italic;font-size:14px">
+          Klik salah satu channel di daftar untuk melihat &amp; mengatur harga jualnya.
+        </div>
+        <div id="chp-body" style="display:none">
+          <div id="chp-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px"></div>
+          <input type="text" id="chp-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="chpFilter(this.value)"
+            style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
+          <div class="chp-scroll"><table class="tbl" id="chp-table">
+            <thead><tr><th>Katalog</th><th style="text-align:right">HPP</th><th style="text-align:right">Harga Jual</th><th style="text-align:center">NPM</th></tr></thead>
+            <tbody id="chp-tbody"></tbody>
+          </table></div>
+          <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.5">
+            Kolom harga kosong (garis putus-putus) = otomatis dari rumus lama. Ketik angka lalu Enter/pindah kolom untuk menyimpan; kosongkan untuk kembali ke otomatis.
+            NPM = margin dari HPP dikurangi Beban channel.
+          </div>
+        </div>
+      </div>
+    </div>
+   </div><!-- end ch-grid -->
   </div><!-- end tab channel -->
 
 
@@ -248,11 +300,11 @@ async function loadChannelMaster() {
 
 async function loadChannelByKategori(kat) {
   const tbody = document.getElementById('ch-tbody-' + kat);
-  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const data = await dbGet('channels', '&kategori=eq.' + kat + '&order=nama.asc');
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(row => {
@@ -260,23 +312,19 @@ async function loadChannelByKategori(kat) {
       const beban    = _chBebanMap[row.id];
       const bPct     = beban ? (beban.beban_persen || 0) : null;
       const nPct     = beban ? (beban.npm_persen   || 0) : null;
-      const mult     = (bPct !== null) ? (1 + (bPct + nPct) / 100).toFixed(3) : null;
       const bLabel   = bPct !== null
         ? '<span style="color:var(--danger);font-weight:600">' + bPct.toFixed(1) + '%</span>'
         : '<span style="color:var(--ink3);font-style:italic">—</span>';
       const nLabel   = nPct !== null
         ? '<span style="color:var(--ok);font-weight:600">' + nPct.toFixed(1) + '%</span>'
         : '<span style="color:var(--ink3);font-style:italic">—</span>';
-      const mLabel   = mult !== null
-        ? '<span style="font-weight:600">×' + mult + '</span>'
-        : '<span style="color:var(--ink3);font-style:italic">—</span>';
-      return '<tr>' +
+      const selCls   = (String(row.id) === _chpSelId) ? ' class="ch-row-sel"' : '';
+      return '<tr data-action="pilih-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls + '>' +
         '<td style="font-weight:600">' + row.nama + '</td>' +
         '<td style="text-align:center">' + bLabel + '</td>' +
         '<td style="text-align:center">' + nLabel + '</td>' +
-        '<td style="text-align:center">' + mLabel + '</td>' +
         '<td style="white-space:nowrap">' +
-          '<button class="btn btn-sm" data-action="setting-beban" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Setting Harga"><i class="ti ti-settings"></i></button>' +
+          '<button class="btn btn-sm" data-action="setting-beban" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Setting Beban &amp; NPM"><i class="ti ti-settings"></i></button>' +
           '<button class="btn btn-sm" data-action="edit-ch" data-id="' + row.id + '" data-kat="' + kat + '" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
           '<button class="btn btn-sm btn-danger" data-action="hapus-ch" data-id="' + row.id + '" data-kat="' + kat + '" data-nama="' + safeNama + '"><i class="ti ti-trash"></i></button>' +
         '</td>' +
@@ -285,7 +333,7 @@ async function loadChannelByKategori(kat) {
 
     if (typeof loadChannelDropdownJP === 'function') loadChannelDropdownJP();
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
 }
 
@@ -339,6 +387,7 @@ async function hapusChannel(id, nama, kat) {
     try {
       await dbDelete('channels', id);
       delete _chBebanMap[id];
+      await chpHapusHargaChannel(id);
       loadChannelByKategori(kat);
     } catch(err) { alert('Gagal hapus: ' + err.message); }
   });
@@ -359,12 +408,10 @@ async function showSettingBeban(channelId, channelNama) {
 function cbUpdatePreview() {
   const b = parseFloat(document.getElementById('cb-beban').value) || 0;
   const n = parseFloat(document.getElementById('cb-npm').value)   || 0;
-  const mult = (1 + (b + n) / 100).toFixed(3);
   document.getElementById('cb-preview').innerHTML =
     'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-    'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-    'Multiplier: <b>×' + mult + '</b> &nbsp;|&nbsp; ' +
-    'Contoh HPP Rp50.000 → <b>Rp' + Math.ceil(50000 * parseFloat(mult)).toLocaleString('id-ID') + '</b>';
+    'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>' +
+    '<br><span style="color:var(--ink3)">Harga jual diatur manual di panel Price List.</span>';
 }
 
 async function simpanChannelBeban() {
@@ -393,6 +440,7 @@ async function simpanChannelBeban() {
       loadChannelByKategori('tiktok'),
       loadChannelByKategori('offline'),
     ]);
+    if (_chpSelId) chpRender();
   } catch(err) { alert('Gagal simpan beban: ' + err.message); }
 }
 
@@ -409,6 +457,8 @@ document.getElementById('page-channel').addEventListener('click', function(e) {
     hapusChannel(id, btn.dataset.nama, kat);
   } else if (action === 'setting-beban') {
     showSettingBeban(id, btn.dataset.nama);
+  } else if (action === 'pilih-ch') {
+    chpPilih(id, btn.dataset.nama);
   }
 });
 
@@ -433,10 +483,9 @@ async function showEditKategori(kat, label) {
 function ekUpdatePreview() {
   var b = parseFloat(document.getElementById('ek-beban').value) || 0;
   var n = parseFloat(document.getElementById('ek-npm').value)   || 0;
-  var mult = (1 + (b + n) / 100).toFixed(3);
   document.getElementById('ek-preview').innerHTML =
-    'Multiplier: <b>×' + mult + '</b> &nbsp;|&nbsp; ' +
-    'Contoh HPP Rp50.000 → <b>Rp' + Math.ceil(50000 * parseFloat(mult)).toLocaleString('id-ID') + '</b>';
+    'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
+    'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>';
 }
 
 async function simpanKategoriBeban() {
@@ -486,12 +535,247 @@ async function simpanKategoriBeban() {
     loadChannelByKategori(kat);
 
     // Refresh price list juga jika sedang terbuka
-    if (typeof loadPriceList === 'function') loadPriceList();
+    if (typeof chpRender === 'function') chpRender();
 
   } catch(err) {
     alert('Gagal simpan: ' + err.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Simpan Semua'; }
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// ─── PRICE LIST MANUAL (panel kanan halaman Channel) ───────────
+// 30 Sep 2026: menggantikan halaman Price List lama. Harga jual per
+// KATALOG × CHANNEL diketik manual, disimpan di tabel channel_harga
+// (channel_id, katalog, harga_jual). Katalog yang belum diisi = otomatis
+// pakai rumus lama: Math.ceil(HPP × (1 + (beban% + npm%)/100)).
+// NPM (estimasi) = (harga − HPP) / HPP × 100 − beban%  → sama konvensinya
+// dengan rumus lama, jadi harga otomatis selalu = NPM setting channel.
+// ═══════════════════════════════════════════════════════════════
+var _chpSelId   = '';   // id channel aktif (string)
+var _chpSelNama = '';
+var _chpProduk  = [];   // baris produk (aktif + clearance)
+var _chpHarga   = {};   // katalog → { id, harga_jual } utk channel aktif
+var _chpRows    = [];   // baris yg sedang ter-render (index dipakai input)
+var _chpQuery   = '';
+var _chpSeq     = 0;    // guard race saat ganti channel cepat
+
+function _chpEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _chpFmt(n) { return Math.round(Number(n) || 0).toLocaleString('id-ID'); }
+
+function _chpBeban() {
+  var b = _chBebanMap[_chpSelId];
+  return { ada: !!b, beban: b ? (Number(b.beban_persen) || 0) : 0, npm: b ? (Number(b.npm_persen) || 0) : 0 };
+}
+
+// 1 katalog = 1 baris, HPP diambil dari baris pertama katalog (sama seperti Price List lama)
+function _chpKatalogList() {
+  var map = {};
+  (_chpProduk || []).forEach(function(r) {
+    var k = r.katalog || '—';
+    if (!map[k]) map[k] = { katalog: k, hpp: Number(r.hpp) || 0 };
+  });
+  return Object.values(map).sort(function(a, b) { return a.katalog.localeCompare(b.katalog); });
+}
+
+// hitung 1 baris: harga manual (kalau ada) / otomatis, + estimasi NPM
+function _chpCalc(k) {
+  var m      = _chpBeban();
+  var mult   = 1 + (m.beban + m.npm) / 100;
+  var auto   = Math.ceil(k.hpp * mult);
+  var man    = _chpHarga[k.katalog];
+  var manual = man ? (Number(man.harga_jual) || 0) : 0;
+  var eff    = manual || auto;
+  var npmEst = k.hpp > 0 ? ((eff - k.hpp) / k.hpp * 100 - m.beban) : null;
+  var ok     = npmEst !== null && npmEst >= m.npm - 0.05;
+  return { hpp: k.hpp, auto: auto, manual: manual, eff: eff, npmEst: npmEst, ok: ok, isManual: !!manual, m: m };
+}
+
+function _chpNpmHtml(c) {
+  if (c.npmEst === null) return '<span style="color:var(--ink3)">—</span>';
+  var txt = c.npmEst.toFixed(1) + '%';
+  if (!c.isManual) return '<span style="color:var(--ink3);font-style:italic">' + txt + '</span>';
+  return '<span style="font-weight:700;color:' + (c.ok ? 'var(--ok)' : 'var(--danger)') + '">' + txt + '</span>';
+}
+
+async function _chpLoadProduk() {
+  try {
+    _chpProduk = await dbGet('produk', '&order=katalog.asc&kategori_produk=in.(aktif,clearance)');
+  } catch (e) {
+    _chpProduk = await dbGet('produk', '&order=katalog.asc');
+  }
+}
+
+async function chpPilih(id, nama) {
+  _chpSelId   = String(id);
+  _chpSelNama = nama || '';
+  _chpQuery   = '';
+  var search = document.getElementById('chp-search');
+  if (search) search.value = '';
+
+  document.querySelectorAll('#ch-tab-content-channel tr[data-action="pilih-ch"]').forEach(function(tr) {
+    tr.classList.toggle('ch-row-sel', tr.dataset.id === _chpSelId);
+  });
+  document.getElementById('chp-hint').style.display = 'none';
+  document.getElementById('chp-body').style.display = '';
+  document.getElementById('chp-title').textContent  = '— ' + _chpSelNama;
+  document.getElementById('chp-btn-seed').style.display = '';
+  document.getElementById('chp-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+
+  // Layar sempit: panel ada di atas → geser ke sana
+  if (window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
+    var card = document.getElementById('chp-card');
+    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  var seq = ++_chpSeq;
+  try {
+    var res = await Promise.all([
+      _chpLoadProduk(),
+      dbGet('channel_harga', '&channel_id=eq.' + encodeURIComponent(_chpSelId))
+    ]);
+    if (seq !== _chpSeq) return;
+    _chpHarga = {};
+    (res[1] || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
+    chpRender();
+  } catch (err) {
+    if (seq !== _chpSeq) return;
+    var msg = String(err && err.message || err);
+    var hint = /channel_harga/i.test(msg) ? ' — tabel channel_harga belum dibuat, jalankan SQL-nya dulu.' : '';
+    document.getElementById('chp-tbody').innerHTML =
+      '<tr><td colspan="4" style="color:var(--danger)">Error: ' + _chpEsc(msg) + hint + '</td></tr>';
+  }
+}
+
+function chpFilter(q) {
+  _chpQuery = String(q || '').trim().toLowerCase();
+  chpRender();
+}
+
+function chpRender() {
+  if (!_chpSelId) return;
+  var tbody = document.getElementById('chp-tbody');
+  if (!tbody) return;
+
+  var m = _chpBeban();
+  document.getElementById('chp-info').innerHTML = m.ada
+    ? 'Beban: <b style="color:var(--danger)">' + m.beban.toFixed(1) + '%</b> &nbsp;|&nbsp; NPM target: <b style="color:var(--ok)">' + m.npm.toFixed(1) + '%</b>'
+    : '<span style="color:var(--danger)">⚠️ Channel ini belum punya setting Beban &amp; NPM (ikon ⚙) — harga otomatis = HPP.</span>';
+
+  var list = _chpKatalogList();
+  if (_chpQuery) list = list.filter(function(k) { return k.katalog.toLowerCase().indexOf(_chpQuery) !== -1; });
+
+  if (!list.length) {
+    _chpRows = [];
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">' +
+      (_chpQuery ? 'Katalog tidak ditemukan' : 'Belum ada produk di Kelola Produk') + '</td></tr>';
+    document.getElementById('chp-footer').textContent = '';
+    return;
+  }
+
+  _chpRows = list;
+  tbody.innerHTML = list.map(function(k, i) {
+    var c = _chpCalc(k);
+    return '<tr>' +
+      '<td style="font-weight:600">' + _chpEsc(k.katalog) + '</td>' +
+      '<td style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
+      '<td style="text-align:right"><input type="text" inputmode="numeric" autocomplete="off" class="chp-inp' + (c.isManual ? ' manual' : '') + '"' +
+        ' data-idx="' + i + '" value="' + (c.isManual ? _chpFmt(c.manual) : '') + '"' +
+        ' placeholder="' + (k.hpp > 0 ? _chpFmt(c.auto) : '—') + '"' +
+        ' oninput="chpFmtInput(this)" onfocus="this.select()" onchange="chpSimpan(this)"' +
+        ' onkeydown="if(event.key===\'Enter\')this.blur()"></td>' +
+      '<td class="chp-npm" style="text-align:center">' + _chpNpmHtml(c) + '</td>' +
+    '</tr>';
+  }).join('');
+  _chpUpdateFooter();
+}
+
+function _chpUpdateFooter() {
+  var all = _chpKatalogList();
+  var manual = all.filter(function(k) { return !!_chpHarga[k.katalog]; }).length;
+  document.getElementById('chp-footer').textContent =
+    all.length + ' katalog · ' + manual + ' manual · ' + (all.length - manual) + ' otomatis';
+}
+
+function chpFmtInput(inp) {
+  var raw = String(inp.value || '').replace(/\D/g, '');
+  inp.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
+}
+
+async function chpSimpan(inp) {
+  var row = _chpRows[parseInt(inp.dataset.idx, 10)];
+  var chId = _chpSelId;
+  if (!row || !chId) return;
+  var raw = String(inp.value || '').replace(/\D/g, '');
+  var val = raw ? parseInt(raw, 10) : 0;
+  var cur = _chpHarga[row.katalog];
+  try {
+    if (!val) {
+      if (cur) { await dbDelete('channel_harga', cur.id); delete _chpHarga[row.katalog]; }
+    } else if (cur) {
+      if (Number(cur.harga_jual) !== val) {
+        await dbUpdate('channel_harga', cur.id, { harga_jual: val });
+        cur.harga_jual = val;
+      }
+    } else {
+      var ins = await dbInsert('channel_harga', { channel_id: chId, katalog: row.katalog, harga_jual: val });
+      if (ins && ins[0]) _chpHarga[row.katalog] = ins[0];
+    }
+  } catch (err) {
+    alert('Gagal simpan harga: ' + err.message);
+  }
+  if (chId !== _chpSelId) return;
+  // update baris ini saja (bukan render ulang) supaya Tab ke baris berikutnya tidak putus
+  var c = _chpCalc(row);
+  inp.classList.toggle('manual', c.isManual);
+  inp.value = c.isManual ? _chpFmt(c.manual) : '';
+  var tr = inp.closest('tr');
+  var npmTd = tr ? tr.querySelector('.chp-npm') : null;
+  if (npmTd) npmTd.innerHTML = _chpNpmHtml(c);
+  _chpUpdateFooter();
+}
+
+// Isi SEMUA katalog yang masih otomatis dengan harga rumus lama (sekali jalan)
+async function chpSeed() {
+  if (!_chpSelId) return;
+  var chId = _chpSelId;
+  var m = _chpBeban();
+  var mult = 1 + (m.beban + m.npm) / 100;
+  var todo = _chpKatalogList().filter(function(k) { return !_chpHarga[k.katalog] && k.hpp > 0; });
+  if (!todo.length) { alert('Semua katalog sudah punya harga manual.'); return; }
+  var ok = await zConfirm(
+    todo.length + ' katalog yang masih otomatis akan diisi dengan harga dari rumus lama (HPP × ' + mult.toFixed(3) + '). Harga manual yang sudah ada tidak diubah.',
+    { title: 'Isi dari rumus lama?', ok: 'Isi' }
+  );
+  if (!ok) return;
+  try {
+    var payload = todo.map(function(k) {
+      return { channel_id: chId, katalog: k.katalog, harga_jual: Math.ceil(k.hpp * mult) };
+    });
+    var ins = await dbInsert('channel_harga', payload);
+    (ins || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
+    if (chId === _chpSelId) chpRender();
+  } catch (err) {
+    alert('Gagal mengisi harga: ' + err.message);
+  }
+}
+
+// Channel dihapus → hapus juga harga manualnya (tabel channel_harga tanpa FK)
+async function chpHapusHargaChannel(id) {
+  try {
+    var rows = await dbGet('channel_harga', '&channel_id=eq.' + encodeURIComponent(String(id)));
+    for (var i = 0; i < rows.length; i++) { await dbDelete('channel_harga', rows[i].id); }
+  } catch (e) { console.warn('Hapus channel_harga gagal:', e); }
+  if (String(id) === _chpSelId) {
+    _chpSelId = ''; _chpSelNama = ''; _chpHarga = {}; _chpRows = [];
+    document.getElementById('chp-hint').style.display = '';
+    document.getElementById('chp-body').style.display = 'none';
+    document.getElementById('chp-title').textContent  = '';
+    document.getElementById('chp-btn-seed').style.display = 'none';
   }
 }
 
