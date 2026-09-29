@@ -55,7 +55,7 @@
     // [23 Sep 2026] 'rekap'/'rekapM' TETAP terdaftar di sini (supaya groupOf/highlightSidebar tetap kenal halamannya & submenu "Rasio Keuangan"
     // tetap nyala pas Rekap dibuka) tapi diberi flag noTab (elemen ke-3 truthy) → tabsOf() membuangnya dari tab bar. Rekap & Rekap Mingguan sekarang
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
-    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk'], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
+    rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk', 0, 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
     proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
@@ -86,7 +86,8 @@
     return hide.length ? '@media ' + PHONE_MQ + '{' + hide.join(',') + '{display:none !important;}}' : '';
   }
   function tabsOf(group) {
-    var all = GROUPS[group].tabs.filter(function (t) { return !t[2]; });   // buang entri noTab (t[2] truthy) — tetap ada di GROUPS buat groupOf, tapi tidak dirender sebagai tab
+    // [29 Sep 2026] elemen ke-4 (t[3]) = tab khusus HP: di laptop tidak dirender (HPP Produk pindah jadi tombol di samping "Data Toko"), di HP tetap tab karena tombol Data Toko disembunyikan di HP
+    var all = GROUPS[group].tabs.filter(function (t) { return !t[2] && !(t[3] && !isPhone()); });   // buang entri noTab (t[2] truthy) — tetap ada di GROUPS buat groupOf, tapi tidak dirender sebagai tab
     if (!isPhone()) return all;
     return all.filter(function (t) { return phoneOk(t[0]); });
   }
@@ -112,6 +113,7 @@
     // ── Tab bar (gaya tab Gadag: teks bold, aktif = hijau + garis bawah). Warna dikunci terang biar nyatu sama isi Analisis (#F0F0F0) ──
     '#analisis-tabs{display:none;-webkit-flex:none;flex:none;align-items:flex-end;gap:20px;padding:10px 16px 0;background:#F0F0F0;border-bottom:1px solid #D9D9D9;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}' +
     '#analisis-tabs::-webkit-scrollbar{display:none;}' +
+    '#analisis-tabs.zan-tabs-right .zan-tab-btn:first-child{margin-left:auto;}' +   // margin-left:auto (bukan justify-content:flex-end) supaya tab paling kiri tetap bisa di-scroll kalau jendela sempit
     '#page-analisis.zan-has-tabs #analisis-tabs{display:flex;}' +
     '#page-analisis.zan-has-tabs #analisis-loading{top:44px;}' +
     '.zan-tab-btn{-webkit-flex:none;flex:none;background:none;border:none;border-bottom:2px solid transparent;padding:4px 1px 8px;font-family:var(--f);font-size:13px;font-weight:700;color:#1B1E24;opacity:.6;cursor:pointer;white-space:nowrap;transition:opacity .15s ease,border-color .15s ease;}' +
@@ -528,6 +530,8 @@
       h += '<button type="button" class="zan-tab-btn" data-zan-page="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
     }
     tabsEl.innerHTML = h;
+    // [29 Sep 2026] grup Rasio Keuangan di laptop: 3 tab (RKS Overview/Mingguan/Proyeksi) rata kanan. HP tetap rata kiri (tab bar bisa di-scroll)
+    tabsEl.classList.toggle('zan-tabs-right', group === 'rasio' && !isPhone());
     pageEl.classList.add('zan-has-tabs');
   }
 

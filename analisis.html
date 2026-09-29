@@ -1387,7 +1387,7 @@
         <div style="display:flex;gap:8px;align-items:center;">
           <h3 style="margin:0;">HPP</h3>
           <button class="btn secondary small" id="btnToggleSelect" style="display:none">Pilih</button>
-          <button class="btn secondary small" id="btnReloadHpp" onclick="zStore.flush().then(()=>location.reload(),()=>location.reload())">↻ Muat ulang HPP</button>
+          <button class="btn secondary small" id="btnReloadHpp" onclick="tokoResumeAndReload('hpp')">↻ Muat ulang HPP</button>
           <button class="btn ghost small" id="btnFilterMissing">Belum Diisi</button>
           <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU) — gak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</div></div>
           <button class="btn danger small" id="btnHapusHppSelected" style="display:none" title="Hapus SKU manual permanen; SKU dari Order Completed HPP-nya direset ke Belum Diisi (barisnya tetep ada karena masih ada di file order)">Hapus (0)</button>
@@ -1565,7 +1565,8 @@
   <section class="page" id="page-hasil">
     <div class="page-head">
       <div class="toolbar">
-        <button class="btn secondary small" id="btnToggleDataTokoPanel">Data Toko</button>
+        <button class="btn secondary" id="btnToggleDataTokoPanel">Data Toko</button>
+        <button class="btn secondary" data-goto-hpp>HPP Produk</button>
       </div>
       <div class="toolbar">
         <button class="btn ghost" id="btnHasilMonth" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap"><span id="hasilMonthLabel">Pilih bulan</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
@@ -1646,7 +1647,8 @@
   <section class="page" id="page-hasilM">
     <div class="page-head">
       <div class="toolbar">
-        <button class="btn secondary small" id="btnToggleDataTokoPanelM">Data Toko</button>
+        <button class="btn secondary" id="btnToggleDataTokoPanelM">Data Toko</button>
+        <button class="btn secondary" data-goto-hpp>HPP Produk</button>
       </div>
       <div class="toolbar">
         <button class="btn ghost" id="btnHasilPeriodM" type="button" data-mp-trigger title="Pilih periode (minggu) yang sudah tersimpan di Rekap Mingguan"><span id="hasilPeriodLabelM">Pilih periode</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
@@ -1717,7 +1719,8 @@
   <section class="page" id="page-hasilP">
     <div class="page-head">
       <div class="toolbar">
-        <button class="btn secondary small" id="btnToggleDataTokoPanelP">Data Toko</button>
+        <button class="btn secondary" id="btnToggleDataTokoPanelP">Data Toko</button>
+        <button class="btn secondary" data-goto-hpp>HPP Produk</button>
       </div>
       <div class="toolbar">
         <button class="btn ghost" id="btnHasilPeriodP" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap Proyeksi"><span id="hasilPeriodLabelP">Pilih periode</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
@@ -4486,6 +4489,10 @@ document.getElementById('btnEditHitung').addEventListener('click', ()=> rksToggl
 document.getElementById('btnToggleDataTokoPanel').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanel').classList.toggle('open');
 });
+// [29 Sep 2026] Tab "HPP Produk" dipindah dari tab bar ke samping tombol "Data Toko" (RKS Overview/Mingguan/Proyeksi) — klik = buka halaman HPP (nav.menu tetap jadi sumber kebenaran halaman aktif)
+document.querySelectorAll('[data-goto-hpp]').forEach(b=>b.addEventListener('click', ()=>{
+  const nb = document.querySelector('nav.menu button[data-page="hpp"]'); if(nb) nb.click();
+}));
 
 /* ================= PAGE 2: HPP ================= */
 function uniqueProductList(){
