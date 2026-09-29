@@ -1383,6 +1383,7 @@
         <button data-page="proyeksi"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> By Operasional</button>
         <button data-page="byqty"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> By Target Qty</button>
         <button data-page="byharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Harga Jual</button>
+        <button data-page="bysupport"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Support</button>
         <button data-page="hasilM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Mingguan</button>
         <button data-page="rekapM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Mingguan</button>
         <button data-page="hasilP"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span> Proyeksi RKS</button>
@@ -1538,6 +1539,12 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ============ PAGE: PROYEKSI HARGA > BY SUPPORT (batas aman harga jual dari GPM minimum) ============ -->
+  <section class="page" id="page-bysupport">
+    <div id="bysupportStats"></div>
+    <div class="card" id="bysupportListCard"></div>
   </section>
 
   <!-- ============ PAGE: PROYEKSI HARGA > BY HARGA JUAL (simulasi instan) ============ -->
@@ -2744,6 +2751,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='proyeksi') renderProyeksi();
       if(btn.dataset.page==='byqty') renderByQty();
       if(btn.dataset.page==='byharga') renderByHarga();
+      if(btn.dataset.page==='bysupport') renderBySupport();
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
@@ -4117,6 +4125,7 @@ const PAGE_TITLES = {
   proyeksi: 'By Operasional',
   byqty: 'By Target Qty',
   byharga: 'By Harga Jual',
+  bysupport: 'By Support',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   hasilP: 'Proyeksi RKS',
@@ -7112,6 +7121,7 @@ function renderProyeksiHargaBoth(){
   if(document.getElementById('page-proyeksi')) renderProyeksi();
   if(document.getElementById('page-byqty')) renderByQty();
   if(document.getElementById('page-byharga')) renderByHarga();
+  if(document.getElementById('page-bysupport')) renderBySupport();
 }
 function showSubview(prefix, which){
   const listEl = document.getElementById(prefix+'View-list');
@@ -7131,6 +7141,95 @@ document.getElementById('btnProyeksiNext').addEventListener('click', ()=>showSub
 document.getElementById('btnProyeksiBack').addEventListener('click', ()=>showSubview('proyeksi','list'));
 document.getElementById('btnByqtyNext').addEventListener('click', ()=>showSubview('byqty','input'));
 document.getElementById('btnByqtyBack').addEventListener('click', ()=>showSubview('byqty','list'));
+
+/* ================= PROYEKSI HARGA: BY SUPPORT (batas aman harga jual) ================= */
+/* [29 Sep 2026] Kebalikan dari GPM: dari GPM MINIMUM ditarik jadi HARGA JUAL MINIMUM per produk (data produk & HPP = Price List, yang disalin dari HPP Catalog/Kelola Produk).
+     GPM minimum = Admin% + ACOS + Ops% + Buffer% + NPM% (+ BPP%)  ->  Harga minimum = (HPP + BPP + NPM Rp) / (1 − Admin% − ACOS − Ops% − Buffer%)
+     GPM minimum (per produk) = 1 − HPP / Harga minimum   (rumus GPM sama dgn Rekap: (pendapatan − HPP) / pendapatan)
+   Sumber angka (urutan prioritas, per angka):
+     Admin % & ACOS : Proyeksi RKS bulan berjalan -> kalau belum ada RKS Mingguan terbaru -> kalau belum ada RKS Overview (Rekap bulanan) terbaru -> (terakhir) Setting
+     Ops % / Buffer % / NPM (Rp) : Setting.   BPP (Rp/order) : sama seperti tab Proyeksi Harga lain (resolveAdminBpp).
+   Tidak ada state yang disimpan — semua dihitung ulang tiap render. Rumus setara calcNetPrice(), bedanya cuma sumber Admin/ACOS. */
+function bysupportValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
+function bysupportAcosOf(sn){
+  if(!sn) return null;
+  if(bysupportValid(sn.acos)) return sn.acos;
+  if(bysupportValid(sn.roas)) return 1/sn.roas;
+  return null;
+}
+function bysupportSources(){
+  const d = new Date(), ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  const cands = [];
+  const sp = state.proyeksi && state.proyeksi.rekap ? state.proyeksi.rekap[ym] : null;
+  if(sp) cands.push({ name:'Proyeksi RKS', label: sp.label || ym, admin: sp.ratioAdmin, acos: bysupportAcosOf(sp) });
+  const mk = Object.keys((state.mingguan && state.mingguan.rekap) || {}).sort();
+  if(mk.length){ const sn = state.mingguan.rekap[mk[mk.length-1]]; cands.push({ name:'RKS Mingguan', label: sn.label || mk[mk.length-1], admin: sn.ratioAdmin, acos: bysupportAcosOf(sn) }); }
+  const ok = Object.keys(state.rekap||{}).sort();
+  if(ok.length){ const sn = state.rekap[ok[ok.length-1]]; cands.push({ name:'RKS Overview', label: rekapMonthLabel(ok[ok.length-1]), admin: sn.ratioAdmin, acos: bysupportAcosOf(sn) }); }
+  const pick = (field)=>{
+    for(const c of cands){ if(bysupportValid(c[field])) return { value:c[field], src:c.name+' '+c.label }; }
+    return null;
+  };
+  let admin = pick('admin'), acos = pick('acos');
+  if(!admin){ const v = state.settings.adminPct; admin = bysupportValid(v) ? { value:v/100, src:'Setting (fallback)' } : { value:0, src:'belum ada data' }; }
+  if(!acos){ const v = state.settings.targetRoas; acos = bysupportValid(v) ? { value:1/v, src:'Target ROAS di Setting (fallback)' } : { value:0, src:'belum ada data' }; }
+  return { admin, acos };
+}
+function bysupportParams(){
+  const src = bysupportSources();
+  const ops = plOpsPct()/100, buffer = (state.settings.lainnyaPct||0)/100;
+  const npmRp = state.settings.minNpmRp||0, bpp = resolveAdminBpp().bpp||0;
+  const denom = 1 - src.admin.value - src.acos.value - ops - buffer;
+  return { src, ops, buffer, npmRp, bpp, denom };
+}
+function bysupportCalc(row, P){
+  if(P.denom<=0) return null;
+  const hpp = row.hpp||0;
+  const hargaMin = Math.round((hpp + P.bpp + P.npmRp)/P.denom);
+  const gpmMin = hargaMin>0 ? 1 - hpp/hargaMin : null;
+  return { hpp, hargaMin, gpmMin };
+}
+function renderBySupport(){
+  const statsEl = document.getElementById('bysupportStats'), listEl = document.getElementById('bysupportListCard');
+  if(!statsEl || !listEl) return;
+  // Price List kosong -> salin otomatis dari HPP Catalog (Kelola Produk) sekali, supaya halaman ini gak kosong
+  if(!state.priceList.length){ try{ syncPriceListFromHpp(); }catch(e){ console.error('Gagal salin HPP ke Price List:', e); } }
+  const P = bysupportParams();
+  const card = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${byhEsc(ket)}</span></div><div class="stat-value">${val}</div></div>`;
+  statsEl.innerHTML = `<div class="card" style="margin-bottom:14px;">
+    <h3>Komponen GPM Minimum</h3>
+    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
+      ${card('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
+      ${card('ACOS', fmtPct(P.src.acos.value), P.src.acos.src)}
+      ${card('Operasional %', fmtPct(P.ops), 'Setting')}
+      ${card('Buffer %', fmtPct(P.buffer), 'Setting')}
+      ${card('NPM (Rp/pcs)', fmtRp(P.npmRp), 'Setting — Minimum Profit Toko')}
+      ${card('BPP (Rp/order)', fmtRp(P.bpp), resolveAdminBpp().bppSource==='rekap' ? 'Rekap '+(resolveAdminBpp().bppLabel||'') : 'Setting (fallback)')}
+    </div>
+  </div>`;
+  if(P.denom<=0){
+    listEl.innerHTML = '<h3>Batas Aman Harga Jual</h3><div class="hint" style="margin:0;">Harga minimum gak bisa dihitung — total Admin + ACOS + Ops + Buffer sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
+    return;
+  }
+  const rows = state.priceList.map(row=>{
+    const c = bysupportCalc(row, P);
+    return `<tr>
+      <td>${byhEsc(row.sku)}</td>
+      <td class="num">${fmtNum(row.hpp)}</td>
+      <td class="num">${c && c.gpmMin!==null ? fmtPct(c.gpmMin) : '-'}</td>
+      <td class="num" style="font-weight:700;">${c ? fmtRp(c.hargaMin) : '-'}</td>
+    </tr>`;
+  }).join('');
+  listEl.innerHTML = `
+    <h3>Batas Aman Harga Jual</h3>
+    <div class="hint" style="margin:0 0 12px;">Di bawah Harga Minimum, profit per pcs jatuh di bawah NPM target setelah Admin, ACOS, Operasional, Buffer &amp; BPP. GPM Minimum = 1 − HPP ÷ Harga Minimum. Data produk &amp; HPP dari Price List (disalin dari HPP Catalog).</div>
+    <div class="pricelist-scroll">
+      <table class="ca-table">
+        <thead><tr><th>SKU</th><th class="num">HPP</th><th class="num">GPM Min</th><th class="num">Harga Min</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" style="color:var(--ink-soft);">Belum ada produk — isi HPP di HPP Catalog dulu.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
 
 /* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
 /* [21 Sep 2026] Konsep ketiga di Proyeksi Harga. By Operasional & By Target Qty MENGHITUNG harga jual (NET) dari target income;

@@ -47,6 +47,7 @@
 // (26) [29 Sep 2026] RKS Overview / Mingguan / Proyeksi (laptop): nilai di 3 minicard (Net Income, Laba/Rugi, Rasio Laba) dipindah ke kanan & dibesarkan — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
 // (27) [30 Sep 2026] Proyeksi RKS ditambahkan ke HP (tab: RKS Overview | RKS Mingguan | Proyeksi RKS; tab HPP Produk dibuang dari tab bar HP): semua aturan HP Overview/Mingguan dipakai ulang lewat hw()/pg(),
 //      plus CSS/JS khusus 2 nilai per baris (dupRowsP, markPv). Laptop tidak tersentuh. Sisi analisis.html: label periode dapat versi pendek (hp-full/hp-short) — laptop tetap tampil versi penuh.
+// (28) [29 Sep 2026] Tab baru Proyeksi Harga > By Support (bysupport): batas aman harga jual dari GPM minimum (Admin/ACOS dari Proyeksi RKS bulan berjalan -> RKS Mingguan -> RKS Overview; Ops/Buffer/NPM dari Setting) — halaman & hitungannya di analisis.html; di file INI cuma daftar tab + PHONE_PAGES.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
@@ -61,7 +62,7 @@
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual'], ['bysupport', 'By Support']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
   var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
@@ -75,7 +76,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'bysupport', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
