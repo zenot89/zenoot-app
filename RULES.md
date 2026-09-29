@@ -91,3 +91,11 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
   - TURTLENECK_BATA-XL: gak muncul di Hutang Barang punya Re Stock meski udah Reseller — belum ketemu akar sebabnya, investigasi di-pause.
   - Ada sisa stok MINUS (Army-XL -1) — belum ditrace.
 - Bug nominal "ALAT-ALAT"/"OPS HARIAN" (kas_anggaran) gak ke-save pas reload di Anggaran (Kas) — udah ditrace penuh, gak ketemu bug di kode. Nunggu detail lebih spesifik dari user (ada alert error gak).
+
+**channel-master.js — Price List 2 tier (30 Sep 2026)**: 1 toko × 1 katalog = 1 harga, diambil dari yang paling spesifik: harga toko (tabel channel_harga) → harga kategori (tabel channel_kategori_harga) → otomatis HPP × (1 + Beban% + NPM%).
+- Price List HANYA untuk Reseller & Offline (`_CHP_KATS`) karena harganya tetap. Shopee/Lazada/TikTok tidak pakai (harga jual bergerak; margin dihitung dari harga jual aktual): tombol Harga tidak ada, baris toko tidak bisa diklik. Data channel_harga lama milik toko-toko itu tidak dihapus, hanya tidak ditampilkan.
+- Tombol "Harga" di header kategori Reseller & Offline membuka panel kanan dalam mode kategori (`_chpSelId = 'kat:<kategori>'`); klik toko = mode toko. Edit Massal & input per baris jalan di kedua mode (pilih tabel lewat `_chpTblOf`, query `_chpQ`, baris baru `_chpMkRow`).
+- Toko yang sudah punya harga sendiri TIDAK ikut berubah saat harga kategori diubah. Kosongkan harga toko = balik ke harga kategori (kalau ada) / otomatis.
+- Kategori yang Beban/NPM tokonya berbeda-beda (`mixed`): harga otomatis & NPM tidak ditampilkan di mode kategori (placeholder "—").
+- "Isi dari rumus lama" hanya di mode toko dan hanya mengisi katalog yang benar-benar masih otomatis (bukan yang sudah punya harga kategori).
+- Kalau tabel channel_kategori_harga belum dibuat: panel toko tetap jalan (fallback kategori dianggap kosong), mode kategori nampilin pesan error + petunjuk jalankan SQL.
