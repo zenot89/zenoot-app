@@ -48,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20260929-8ca09adce357'; // dialog.js: dialog tema krem/putih pengganti alert()/confirm()/prompt() bawaan browser, dipakai di seluruh modul + analisis.html + kalkulator
+var JS_CACHE = 'zenot-js-20260929-8fae5436ccd5'; // dialog.js: dialog tema krem/putih pengganti alert()/confirm()/prompt() bawaan browser, dipakai di seluruh modul + analisis.html + kalkulator
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
