@@ -11,6 +11,12 @@
 // CATATAN NAMA: key DB 'reseller' = Dropship (kategori lama diganti nama); Reseller sungguhan = key 'reseller_baru'. Shopee/Lazada/TikTok tidak pakai Price List
 // (harga jual bergerak karena promo/voucher; margin dihitung dari harga jual aktual). Data
 // channel_harga lama milik toko-toko itu TIDAK dihapus, cuma tidak ditampilkan.
+// 30 Sep 2026 (malam): PILIH PRODUK per channel — tombol "Produk" (ikon kotak + jumlah) di kolom Aksi
+// SEMUA baris channel (tab Channel & Lainnya). Daftar katalog diambil dari Kelola Produk (produk aktif +
+// clearance), pilihan disimpan per KATALOG (semua varian ikut) di tabel channel_produk (channel_id, katalog).
+// Toko yang belum pilih = KOSONG. Price List (tab Lainnya) hanya menampilkan katalog yang dipilih toko itu;
+// mode kategori = gabungan katalog yang dipilih toko-toko di kategori tsb. Kalau tabel channel_produk belum
+// dibuat (_chProdukOk=false) → Price List jatuh balik ke perilaku lama (tampil semua) supaya tidak kosong mendadak.
 
 document.getElementById('page-channel').innerHTML = `
   <style>
@@ -365,6 +371,7 @@ async function loadChannelMaster() {
     _chBebanMap = {};
     (bebanData || []).forEach(b => { _chBebanMap[b.channel_id] = b; });
   } catch(e) { _chBebanMap = {}; }
+  await _chProdukLoad();
 
   await Promise.all([
     loadChannelByKategori('toko_utama'),
@@ -405,6 +412,7 @@ async function loadChannelByKategori(kat) {
         '<td style="text-align:center">' + bLabel + '</td>' +
         '<td style="text-align:center">' + nLabel + '</td>' +
         '<td style="white-space:nowrap">' +
+          '<button class="btn btn-sm" data-action="produk-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Pilih produk yang dijual di channel ini"><i class="ti ti-package"></i> ' + _chProdukCount(row.id) + '</button>' +
           '<button class="btn btn-sm" data-action="setting-beban" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Setting Beban &amp; NPM"><i class="ti ti-settings"></i></button>' +
           '<button class="btn btn-sm" data-action="edit-ch" data-id="' + row.id + '" data-kat="' + kat + '" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
           '<button class="btn btn-sm btn-danger" data-action="hapus-ch" data-id="' + row.id + '" data-kat="' + kat + '" data-nama="' + safeNama + '"><i class="ti ti-trash"></i></button>' +
@@ -469,6 +477,7 @@ async function hapusChannel(id, nama, kat) {
       await dbDelete('channels', id);
       delete _chBebanMap[id];
       await chpHapusHargaChannel(id);
+      await chpHapusProdukChannel(id);
       loadChannelByKategori(kat);
     } catch(err) { alert('Gagal hapus: ' + err.message); }
   });
@@ -539,6 +548,8 @@ document.getElementById('page-channel').addEventListener('click', function(e) {
     hapusChannel(id, btn.dataset.nama, kat);
   } else if (action === 'setting-beban') {
     showSettingBeban(id, btn.dataset.nama);
+  } else if (action === 'produk-ch') {
+    showPilihProduk(id, btn.dataset.nama, kat);
   } else if (action === 'pilih-ch') {
     chpPilih(id, btn.dataset.nama, kat);
   }
@@ -692,13 +703,31 @@ function _chpBeban() {
 }
 
 // 1 katalog = 1 baris, HPP diambil dari baris pertama katalog (sama seperti Price List lama)
-function _chpKatalogList() {
+// SEMUA katalog di Kelola Produk (dipakai modal Pilih Produk). n = jumlah varian.
+function _chpKatalogAll() {
   var map = {};
   (_chpProduk || []).forEach(function(r) {
     var k = r.katalog || '—';
-    if (!map[k]) map[k] = { katalog: k, hpp: Number(r.hpp) || 0 };
+    if (!map[k]) map[k] = { katalog: k, hpp: Number(r.hpp) || 0, n: 0 };
+    map[k].n++;
   });
   return Object.values(map).sort(function(a, b) { return a.katalog.localeCompare(b.katalog); });
+}
+
+// Katalog yang TAMPIL di Price List = yang dipilih toko aktif (mode toko) / gabungan pilihan
+// semua toko di kategori (mode kategori). Bulk, Seed, footer, NPM semuanya lewat fungsi ini.
+function _chpKatalogList() {
+  var all = _chpKatalogAll();
+  if (!_chProdukOk) return all;   // tabel channel_produk belum ada → perilaku lama
+  var set = {};
+  if (_chpIsKat()) {
+    (_chCatChannels[_chpKatKey()] || []).forEach(function(c) {
+      Object.keys(_chProdukMap[c.id] || {}).forEach(function(k) { set[k] = true; });
+    });
+  } else {
+    Object.keys(_chProdukMap[_chpSelId] || {}).forEach(function(k) { set[k] = true; });
+  }
+  return all.filter(function(k) { return !!set[k.katalog]; });
 }
 
 // hitung 1 baris → 1 harga berlaku. Urutan: harga sendiri (toko / kategori yg sedang dibuka)
@@ -831,7 +860,10 @@ function chpRender() {
   if (!list.length) {
     _chpRows = [];
     tbody.innerHTML = '<tr><td colspan="' + _chpCols() + '" style="color:var(--ink3);font-style:italic">' +
-      (_chpQuery ? 'Katalog tidak ditemukan' : 'Belum ada produk di Kelola Produk') + '</td></tr>';
+      (_chpQuery ? 'Katalog tidak ditemukan'
+        : (!_chpKatalogAll().length ? 'Belum ada produk di Kelola Produk'
+        : (_chpIsKat() ? 'Belum ada toko di kategori ini yang punya produk terpilih — klik ikon 📦 di baris toko untuk memilih produk.'
+                       : 'Belum ada produk dipilih untuk toko ini — klik ikon 📦 di baris toko untuk memilih produk.'))) + '</td></tr>';
     document.getElementById('chp-footer').textContent = '';
     _chpBulkUI();
     return;
@@ -1099,6 +1131,164 @@ async function chpHapusHargaChannel(id) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ─── PILIH PRODUK PER CHANNEL (30 Sep 2026) ────────────────────
+// Tabel channel_produk (channel_id TEXT, katalog TEXT, UNIQUE(channel_id, katalog)).
+// Sumber daftar = produk di Kelola Produk (aktif + clearance), dipilih per KATALOG.
+// Toko yang belum pilih = kosong. Catatan: rename katalog di Kelola Produk TIDAK ikut
+// mengubah pilihan (sama seperti channel_harga) — katalog lama tampil bertanda "tidak ada
+// di Kelola Produk" di modal supaya bisa di-uncheck lalu pilih nama barunya.
+// ═══════════════════════════════════════════════════════════════
+var _chProdukMap = {};   // channel_id (string) → { katalog: id baris channel_produk }
+var _chProdukOk  = true; // false = tabel channel_produk belum dibuat / gagal dibaca
+
+async function _chProdukLoad() {
+  try {
+    var rows = await dbGet('channel_produk', '');
+    var m = {};
+    (rows || []).forEach(function(r) {
+      var c = String(r.channel_id);
+      if (!m[c]) m[c] = {};
+      m[c][r.katalog] = r.id;
+    });
+    _chProdukMap = m;
+    _chProdukOk  = true;
+  } catch (e) {
+    console.warn('Load channel_produk gagal (tabel belum dibuat?):', e);
+    _chProdukMap = {};
+    _chProdukOk  = false;
+  }
+}
+
+function _chProdukCount(id) { return Object.keys(_chProdukMap[String(id)] || {}).length; }
+
+var _cpId = '', _cpKat = '', _cpList = [], _cpView = [], _cpSel = {}, _cpQ = '';
+
+async function showPilihProduk(id, nama, kat) {
+  _cpId = String(id); _cpKat = kat; _cpQ = ''; _cpList = []; _cpView = []; _cpSel = {};
+  document.getElementById('cp-nama').textContent = nama || '';
+  document.getElementById('cp-search').value = '';
+  document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat produk dari Kelola Produk...</td></tr>';
+  document.getElementById('cp-footer').textContent = '';
+  document.getElementById('cp-warn').style.display = _chProdukOk ? 'none' : '';
+  showModal('modal-channel-produk');
+  try {
+    await _chpLoadProduk();
+  } catch (err) {
+    document.getElementById('cp-tbody').innerHTML = '<tr><td colspan="3" style="color:var(--danger)">Error: ' + _chpEsc(err.message) + '</td></tr>';
+    return;
+  }
+  if (_cpId !== String(id)) return;
+  var cur  = _chProdukMap[_cpId] || {};
+  var list = _chpKatalogAll();
+  var ada  = {};
+  list.forEach(function(k) { ada[k.katalog] = true; });
+  Object.keys(cur).forEach(function(k) {
+    _cpSel[k] = true;
+    if (!ada[k]) list.push({ katalog: k, hpp: 0, n: 0, orphan: true });
+  });
+  _cpList = list;
+  cpRender();
+}
+
+function cpFilter(q) { _cpQ = String(q || '').trim().toLowerCase(); cpRender(); }
+
+function cpRender() {
+  var tbody = document.getElementById('cp-tbody');
+  if (!tbody) return;
+  var view = _cpList.filter(function(k) { return !_cpQ || k.katalog.toLowerCase().indexOf(_cpQ) !== -1; });
+  _cpView = view;
+  if (!view.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic">' +
+      (_cpQ ? 'Katalog tidak ditemukan' : 'Belum ada produk di Kelola Produk') + '</td></tr>';
+  } else {
+    tbody.innerHTML = view.map(function(k, i) {
+      var chk = !!_cpSel[k.katalog];
+      return '<tr class="' + (chk ? 'chp-sel' : '') + '" style="cursor:pointer" onclick="cpRowClick(' + i + ',event)">' +
+        '<td class="cp-c-chk"><input type="checkbox" class="chp-chk" ' + (chk ? 'checked ' : '') + 'onchange="cpToggle(' + i + ',this.checked)"></td>' +
+        '<td style="font-weight:600">' + _chpEsc(k.katalog) +
+          (k.orphan ? ' <span style="color:var(--danger);font-weight:500;font-size:11px">· tidak ada di Kelola Produk</span>'
+                    : ' <span style="color:var(--ink3);font-weight:400;font-size:11px">· ' + k.n + ' varian</span>') + '</td>' +
+        '<td style="text-align:right;color:var(--ink2)">' + (k.orphan ? '—' : fmtRpFull(k.hpp)) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+  cpUpdateFooter();
+}
+
+function cpUpdateFooter() {
+  var n = Object.keys(_cpSel).length;
+  document.getElementById('cp-footer').textContent = n + ' dipilih dari ' + _cpList.length + ' katalog';
+  var all = document.getElementById('cp-chk-all');
+  if (all) {
+    var vis = _cpView.filter(function(k) { return !!_cpSel[k.katalog]; }).length;
+    all.checked = _cpView.length > 0 && vis === _cpView.length;
+    all.indeterminate = vis > 0 && vis < _cpView.length;
+  }
+  var btn = document.getElementById('cp-save-btn');
+  if (btn) btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan (' + n + ')';
+}
+
+function cpToggle(i, checked) {
+  var k = _cpView[i]; if (!k) return;
+  if (checked) _cpSel[k.katalog] = true; else delete _cpSel[k.katalog];
+  var tr = document.querySelectorAll('#cp-tbody tr')[i];
+  if (tr) tr.classList.toggle('chp-sel', !!checked);
+  cpUpdateFooter();
+}
+
+function cpToggleAll(checked) {
+  _cpView.forEach(function(k) { if (checked) _cpSel[k.katalog] = true; else delete _cpSel[k.katalog]; });
+  cpRender();
+}
+
+// klik di mana saja pada baris = centang/uncentang (kecuali klik langsung di kotak centang)
+function cpRowClick(i, e) {
+  if (e && e.target && e.target.closest && e.target.closest('input')) return;
+  var tr = document.querySelectorAll('#cp-tbody tr')[i];
+  var cb = tr ? tr.querySelector('.chp-chk') : null;
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  cpToggle(i, cb.checked);
+}
+
+async function cpSimpan() {
+  var id  = _cpId;
+  if (!id) return;
+  var cur = _chProdukMap[id] || {};
+  var add = [], del = [];
+  Object.keys(_cpSel).forEach(function(k) { if (!cur[k]) add.push({ channel_id: id, katalog: k }); });
+  Object.keys(cur).forEach(function(k) { if (!_cpSel[k]) del.push(cur[k]); });
+  var btn = document.getElementById('cp-save-btn');
+  if (btn) btn.disabled = true;
+  try {
+    if (del.length) await Promise.all(del.map(function(rid) { return dbDelete('channel_produk', rid); }));
+    if (add.length) await dbInsert('channel_produk', add);
+  } catch (err) {
+    var msg = String(err && err.message || err);
+    alert('Gagal simpan pilihan produk: ' + msg + (/channel_produk/i.test(msg) ? '\n\nTabel channel_produk belum dibuat — jalankan channel_produk.sql di Supabase dulu.' : ''));
+    await _chProdukLoad();       // sinkron ulang dgn database supaya tampilan jujur
+    if (btn) btn.disabled = false;
+    loadChannelByKategori(_cpKat);
+    return;
+  }
+  await _chProdukLoad();
+  if (btn) btn.disabled = false;
+  hideModal('modal-channel-produk');
+  loadChannelByKategori(_cpKat);   // angka di tombol Produk ikut ter-update
+  if (_chpSelId) chpRender();      // Price List (tab Lainnya) ikut menyesuaikan
+}
+
+// Channel dihapus → hapus juga pilihan produknya (channel_produk tanpa FK)
+async function chpHapusProdukChannel(id) {
+  try {
+    var m = _chProdukMap[String(id)] || {};
+    var ids = Object.keys(m).map(function(k) { return m[k]; });
+    await Promise.all(ids.map(function(rid) { return dbDelete('channel_produk', rid); }));
+  } catch (e) { console.warn('Hapus channel_produk gagal:', e); }
+  delete _chProdukMap[String(id)];
+}
+
 // ─── INIT ────────────────────────────────────────────────────
 loadChannelMaster();
 
@@ -1183,6 +1373,44 @@ document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanChannelBeban()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-channel-beban')"><i class="ti ti-x"></i> Batal</button>
+    </div>
+  </div>
+</div>`);
+
+// ─── MODAL PILIH PRODUK PER CHANNEL ──────────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<style>
+  #cp-scroll { max-height:52vh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:none; border:1px solid var(--ink4); }
+  #cp-table { width:100%; }
+  #cp-table thead th { position:sticky; top:0; z-index:3; }
+  #cp-table .cp-c-chk { width:44px; text-align:center; }
+  #cp-table .chp-chk { width:17px; height:17px; cursor:pointer; accent-color:var(--ink); }
+  #cp-table tr.chp-sel td { background:var(--cream3); }
+</style>
+<div class="modal-overlay" id="modal-channel-produk" onclick="if(event.target===this)hideModal('modal-channel-produk')">
+  <div class="modal" style="max-width:560px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-package"></i> Pilih Produk — <span id="cp-nama" style="color:var(--accent)"></span></div>
+      <button onclick="hideModal('modal-channel-produk')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <div style="font-size:12px;color:var(--ink2);margin-bottom:8px">Daftar diambil dari Kelola Produk (per katalog — semua varian ikut). Centang katalog yang dijual di channel ini.</div>
+    <div id="cp-warn" style="display:none;padding:8px 12px;margin-bottom:8px;background:var(--cream2);border:1px dashed var(--danger);font-size:12px;color:var(--danger)">⚠️ Tabel channel_produk belum bisa dibaca — jalankan channel_produk.sql di Supabase dulu, kalau tidak pilihan tidak akan tersimpan.</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" id="cp-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="cpFilter(this.value)"
+        style="flex:1;font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
+    </div>
+    <div id="cp-scroll"><table class="tbl" id="cp-table">
+      <thead><tr>
+        <th class="cp-c-chk"><input type="checkbox" class="chp-chk" id="cp-chk-all" onchange="cpToggleAll(this.checked)" title="Pilih semua yang tampil"></th>
+        <th>Katalog</th>
+        <th style="text-align:right;width:120px">HPP</th>
+      </tr></thead>
+      <tbody id="cp-tbody"></tbody>
+    </table></div>
+    <div id="cp-footer" style="font-size:12px;color:var(--ink3);margin:8px 0 12px;text-align:right"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" id="cp-save-btn" onclick="cpSimpan()"><i class="ti ti-device-floppy"></i> Simpan</button>
+      <button class="btn btn-sm" onclick="hideModal('modal-channel-produk')"><i class="ti ti-x"></i> Batal</button>
     </div>
   </div>
 </div>`);
