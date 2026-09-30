@@ -1158,6 +1158,21 @@
   #settingOpsSwipe.ops-editing .ops-pen{ display:inline; margin-left:8px; color:var(--ink-soft); font-weight:400; }
   #settingOpsSwipe.ops-editing .ops-row{ cursor:pointer; }
   #settingOpsSwipe.ops-editing .ops-row:hover{ background:var(--panel-alt); }
+  /* [30 Sep 2026] LAPTOP SAJA (>=768px; HP tidak diubah): Beban Operasional & Cicilan Aktif ditumpuk di kolom kiri (lebar 2/3), isi daftar tersusun 3 KOLOM
+     (urut ke bawah per kolom); Pembagian Toko di kolom kanan setinggi 2 kartu. Font baris diperbesar. */
+  @media (min-width:768px){
+    #settingOpsSwipe > .st-swipe-track{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); grid-template-rows:minmax(0,1.45fr) minmax(0,1fr); gap:14px; }
+    #settingOpsSwipe > .st-swipe-track > .st-swipe-slide:nth-child(1){ grid-column:1; grid-row:1; }
+    #settingOpsSwipe > .st-swipe-track > .st-swipe-slide:nth-child(2){ grid-column:1; grid-row:2; }
+    #settingOpsSwipe > .st-swipe-track > .st-swipe-slide:nth-child(3){ grid-column:2; grid-row:1 / span 2; }
+    #settingOpsSwipe > .st-swipe-track > .st-swipe-slide:only-child{ grid-column:1 / -1; grid-row:1 / -1; }
+    #settingOpsSwipe .rc-cols{ display:grid; grid-auto-flow:column; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(var(--rc-rows,1),auto); column-gap:32px; align-content:start; }
+    #settingOpsSwipe .rc-cols .rc-empty{ grid-column:1 / -1; }
+    #settingOpsSwipe .rc-row{ padding:clamp(8px,1.4vh,13px) 0; }
+    #settingOpsSwipe .rc-row .rc-l{ font-size:clamp(14px,2.1vh,18px); }
+    #settingOpsSwipe .rc-row .rc-l small{ font-size:clamp(12px,1.7vh,14px); }
+    #settingOpsSwipe .rc-row .rc-v{ font-size:clamp(14px,2.1vh,18px); }
+  }
   #settingOpsView{ display:none; }
   #page-setting.ops-open #settingToolbar, #page-setting.ops-open #settingSumRow, #page-setting.ops-open #settingCardsWrap{ display:none; }
   #page-setting.ops-open #settingOpsView{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
@@ -8769,11 +8784,11 @@ function opsBuildOpsPagesHtml(ops, tokoList){
   const bulan = tokoEsc(opsBulanLabel(ops.ymKey));
   const pct = v=> (v*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
   const row = (l, sub, v, cls)=> '<div class="rc-row'+(cls?' '+cls:'')+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'</div></div>';
-  const card = (head, totalVal, totalLbl, body)=>
+  const card = (head, totalVal, totalLbl, body, bodyCls, bodyAttr)=>
     '<div class="st-swipe-slide"><div class="card setting-rincian-card">'+
     '<div class="rc-head">'+head+'</div>'+
     (totalVal!==null ? '<div class="rc-total"><div class="rc-total-val">'+totalVal+'</div><div class="rc-total-lbl">'+totalLbl+'</div></div>' : '')+
-    '<div class="rc-body">'+body+'</div></div></div>';
+    '<div class="rc-body'+(bodyCls?' '+bodyCls:'')+'"'+(bodyAttr||'')+'>'+body+'</div></div></div>';
   const wrapSwipe = (slides, n)=>'<div class="st-swipe'+(_opsEditOn?' ops-editing':'')+'" id="settingOpsSwipe"><div class="st-swipe-track">'+slides+'</div><div class="st-swipe-dots">'+
     Array.from({length:n},(_,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('')+'</div></div>';
   const title = (t, s)=> '<div class="rc-title">'+t+'</div><div class="rc-sub">'+s+'</div>';
@@ -8793,14 +8808,16 @@ function opsBuildOpsPagesHtml(ops, tokoList){
     fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' AKUN',
     ops.bebanList.length
       ? ops.bebanList.map(a=>rowM(a.id, tokoEsc(a.nama), (a.kode?tokoEsc(a.kode):'')+(ops.totalBeban>0?' &middot; '+pct(a.total/ops.totalBeban):''), fmtRp(a.total))).join('')
-      : '<div class="rc-empty">Belum ada akun Beban Operasional di Kas.</div>');
+      : '<div class="rc-empty">Belum ada akun Beban Operasional di Kas.</div>',
+    'rc-cols', ' style="--rc-rows:'+Math.max(1,Math.ceil(ops.bebanList.length/3))+'"');
 
   // Halaman 2 — Cicilan Aktif (OTOMATIS dari Hutang Aing, seperti semula)
   const p2 = card(title('Cicilan Aktif','Hutang yang belum lunas per hari ini'),
     fmtRp(ops.totalKewajiban), 'TOTAL PER BULAN &middot; '+ops.kewajibanList.length+' HUTANG',
     ops.kewajibanList.length
       ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
-      : '<div class="rc-empty">Tidak ada hutang aktif.</div>');
+      : '<div class="rc-empty">Tidak ada hutang aktif.</div>',
+    'rc-cols', ' style="--rc-rows:'+Math.max(1,Math.ceil(ops.kewajibanList.length/3))+'"');
 
   // Halaman 3 — Pembagian Toko (+ ikon (?) sebagai satu-satunya hint)
   const tipHtml = '<span class="info-tip rc-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">'+
