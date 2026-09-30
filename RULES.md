@@ -103,3 +103,5 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 - Kategori yang Beban/NPM tokonya berbeda-beda (`mixed`): harga otomatis & NPM tidak ditampilkan di mode kategori (placeholder "—").
 - "Isi dari rumus lama" hanya di mode toko dan hanya mengisi katalog yang benar-benar masih otomatis (bukan yang sudah punya harga kategori).
 - Kalau tabel channel_kategori_harga belum dibuat: panel toko tetap jalan (fallback kategori dianggap kosong), mode kategori nampilin pesan error + petunjuk jalankan SQL.
+
+**analisis.html — Data Operasional laptop (30 Sep 2026)**: layout ditumpuk (Beban+Cicilan kiri, Pembagian Toko kanan, isi 3 kolom) dibatalkan karena berantakan; kembali ke 3 kartu sejajar 1 baris (grid bawaan `.st-swipe-track` >=768px), isi 1 kolom per kartu, font baris `clamp(13.5px,1.85vh,16px)` (sedikit lebih besar dari 13px semula). HP tidak disentuh. Class `rc-cols` masih ada di JS tapi tanpa CSS (aman).
