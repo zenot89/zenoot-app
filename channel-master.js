@@ -128,6 +128,16 @@ document.getElementById('page-channel').innerHTML = `
     .chp-bulkbar .chp-bulk-lbl { font-size:12px; font-weight:700; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; }
     .chp-bulkbar input { flex:1 1 130px; min-width:110px; box-sizing:border-box; text-align:right; font-family:var(--f); font-size:14px; padding:6px 10px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); }
 
+    /* [30 Sep 2026] Kolom cari modern: kecil, rata kanan, ikon di dalam, fokus halus */
+    .ch-search { position:relative; width:220px; max-width:100%; margin:0 0 10px auto; }
+    .ch-search i { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:15px; color:var(--ink2); pointer-events:none; }
+    .ch-search input { width:100%; box-sizing:border-box; height:34px; padding:0 12px 0 33px; font-family:var(--f); font-size:13px; color:var(--ink);
+      background:var(--cream2); border:1px solid var(--ink4); border-radius:10px; outline:none; transition:border-color .15s, box-shadow .15s; }
+    .ch-search input::placeholder { color:var(--ink2); }
+    .ch-search input:focus { border-color:var(--ink); box-shadow:0 0 0 3px rgba(128,128,128,.18); }
+    #chp-info:empty { display:none; }
+    @media (max-width:600px) { .ch-search { width:100%; } }
+
     @media (max-width:900px) {
       .ch-grid { grid-template-columns:minmax(0,1fr); }
       .ch-col-right { position:static; order:-1; }
@@ -206,7 +216,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Channel</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-toko_utama"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- LAZADA -->
@@ -221,7 +230,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Toko Lazada</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-lazada"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- TIKTOK -->
@@ -239,7 +247,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Toko TikTok</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-tiktok"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     </div><!-- end ch-col-left (channel) -->
@@ -257,9 +264,8 @@ document.getElementById('page-channel').innerHTML = `
           Klik salah satu toko di daftar (Shopee / Lazada / TikTok) untuk melihat produk yang sudah ditambahkan.
         </div>
         <div id="chs-body" style="display:none">
-          <div id="chs-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px">Produk ini yang akan muncul di pilihan SKU saat Tambah Penjualan di channel ini.</div>
-          <input type="text" id="chs-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="chsFilter(this.value)"
-            style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
+          <div class="ch-search"><i class="ti ti-search"></i>
+            <input type="text" id="chs-search" placeholder="Cari katalog" autocomplete="off" oninput="chsFilter(this.value)"></div>
           <div class="chs-scroll"><table class="tbl" id="chs-table">
             <thead><tr>
               <th class="chs-c-no">No.</th>
@@ -295,7 +301,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Channel</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-offline"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- RESELLER BARU (key DB: reseller_baru) -->
@@ -311,7 +316,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Reseller</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-reseller_baru"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- DROPSHIP (key DB: reseller) -->
@@ -327,7 +331,6 @@ document.getElementById('page-channel').innerHTML = `
         <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Dropship</th><th style="text-align:center">Produk</th></tr></thead>
         <tbody id="ch-tbody-reseller"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
-      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     </div><!-- end ch-col-left -->
@@ -348,8 +351,8 @@ document.getElementById('page-channel').innerHTML = `
         </div>
         <div id="chp-body" style="display:none">
           <div id="chp-info" style="font-size:12px;color:var(--ink2);margin-bottom:8px"></div>
-          <input type="text" id="chp-search" placeholder="🔍 Cari katalog..." autocomplete="off" oninput="chpFilter(this.value)"
-            style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
+          <div class="ch-search"><i class="ti ti-search"></i>
+            <input type="text" id="chp-search" placeholder="Cari katalog" autocomplete="off" oninput="chpFilter(this.value)"></div>
           <div class="chp-bulkbar" id="chp-bulkbar" style="display:none">
             <span class="chp-bulk-lbl">Net Income</span>
             <input type="text" inputmode="numeric" id="chp-bulk-harga" placeholder="mis: 15.000" autocomplete="off" spellcheck="false" oninput="chpFmtInput(this)" onkeydown="if(event.key==='Enter')chpBulkTerapkan()">
@@ -370,9 +373,6 @@ document.getElementById('page-channel').innerHTML = `
             <tbody id="chp-tbody"></tbody>
           </table></div>
           <div id="chp-footer" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:right"></div>
-          <div style="font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.5">
-            Harga Jual = HPP + Net Income (Rp). Tabel terkunci — klik Edit dulu untuk mengetik Net Income (Enter/pindah kolom = simpan), lalu Selesai. Produk ditambah lewat Pilih Produk (yang sudah ada tidak muncul lagi) dan dilepas lewat ikon sampah di mode Edit; tiap toko hanya menampilkan produk yang dipilihnya sendiri (Net Income kategori dipakai sebagai patokan untuk katalog yang sama). Urutan: Net Income toko → Net Income kategori → otomatis (rumus lama). Garis putus-putus = otomatis, abu-abu tebal = ikut kategori, hitam = punya toko sendiri; kosongkan = kembali ke tingkat di atasnya. NPM = margin dari HPP − Beban channel.
-          </div>
         </div>
       </div>
     </div>
@@ -1161,7 +1161,7 @@ function chpRender() {
 
   var m = _chpBeban();
   var infoEl = document.getElementById('chp-info');
-  var bebanHtml = 'Beban: <b style="color:var(--danger)">' + m.beban.toFixed(1) + '%</b> &nbsp;|&nbsp; NPM target: <b style="color:var(--ok)">' + m.npm.toFixed(1) + '%</b>';
+  var bebanHtml = '';   // [30 Sep 2026] info Beban / NPM target dihapus dari tampilan
   if (_chpIsKat()) {
     var chs = _chCatChannels[_chpKatKey()] || [];
     var head = '<div style="margin-bottom:4px">Harga kategori — berlaku ke <b>' + chs.length + ' toko</b> (' +
