@@ -1047,6 +1047,12 @@ async function _jpOnChannelChosen(id) {
 // ─── SKU HELPERS ─────────────────────────────────────────────
 function _jpGetKatalog(p) { return p.katalog || p.nama_katalog || p.catalog || p.nama || ''; }
 function _jpGetSku(p)     { return p.sku || p.sku_variasi || p.kode || ''; }
+// [30 Sep 2026] Urutan variasi = aturan yang sama dgn Kelola Produk (per warna A-Z, lalu size S<M<L<XL<XXL). Pakai _produkSortWarnaSize (produk.js); kalau belum ada → urutan asli.
+function _jpSortVariasi(list) {
+  if (typeof _produkSortWarnaSize !== 'function') return list;
+  var wrap = list.map(function(p) { return { sku_variasi: _jpGetSku(p), _p: p }; });
+  return _produkSortWarnaSize(wrap).map(function(w) { return w._p; });
+}
 
 // ── SKU Resolver: normalize + validasi vs produk list ──────────────────────
 // Return: { sku: string, ok: boolean, warned: boolean }
@@ -1186,7 +1192,7 @@ async function jpPilihKatalog(katalog) {
   document.getElementById('jp-sku-induk').value = katalog;
   _jpSetIndukLabel(katalog);
   jpTutupDropdownSKU();
-  const varList = _jpProdukList.filter(p => _jpGetKatalog(p) === katalog);
+  const varList = _jpSortVariasi(_jpProdukList.filter(p => _jpGetKatalog(p) === katalog));
   const sel = document.getElementById('jp-sku-variasi');
   sel.innerHTML = '<option value="">— Pilih Variasi —</option>';
   varList.forEach(p => {
@@ -3203,7 +3209,7 @@ function _jpSkuSheetRenderVariasi(q) {
   var katalog = document.getElementById('jp-sku-induk').value;
   var varList = _jpProdukList.filter(function(p) { return _jpGetKatalog(p) === katalog; });
   q = (q || '').toLowerCase().trim();
-  var items = varList.filter(function(p) { return !q || _jpGetSku(p).toLowerCase().indexOf(q) !== -1; });
+  var items = _jpSortVariasi(varList.filter(function(p) { return !q || _jpGetSku(p).toLowerCase().indexOf(q) !== -1; }));
   var html = '';
   function _varRowHtml(p) {
     var sku = _jpGetSku(p);
