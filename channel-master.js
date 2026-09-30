@@ -46,6 +46,27 @@ document.getElementById('page-channel').innerHTML = `
     .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
     .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
 
+    /* [30 Sep 2026] Sistem supplier = 3 baris toggle (gaya Shopee) menggantikan 3 tombol .hs-jenis-radio di atas
+       (class lama dibiarkan, tidak dipakai lagi). Elemen tetap <input type=checkbox> dgn id & onchange yang sama,
+       jadi logika simpan/edit/eksklusif Produksi Sendiri tidak berubah — hanya tampilannya jadi switch. */
+    #modal-supplier-rop .ch-sw-wrap { border:2px solid var(--ink); background:var(--cream); }
+    #modal-supplier-rop .ch-sw-row { display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--ink4); margin:0; text-transform:none; letter-spacing:0; }
+    #modal-supplier-rop .ch-sw-row:last-child { border-bottom:none; }
+    #modal-supplier-rop .ch-sw-txt { flex:1; line-height:1.3; }
+    #modal-supplier-rop .ch-sw-ttl { display:block; font-size:14px; font-weight:700; color:var(--ink); }
+    #modal-supplier-rop .ch-sw-desc { display:block; font-size:11px; font-weight:400; color:var(--ink3); }
+    #modal-supplier-rop .ch-sw-row input[type=checkbox] {
+      -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0;
+      width:46px; min-width:46px; height:26px; padding:0; margin:0; border:none; border-radius:13px;
+      background:#c4c4c4; box-shadow:none; cursor:pointer; transition:background .15s ease;
+    }
+    #modal-supplier-rop .ch-sw-row input[type=checkbox]::after {
+      content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+      background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:left .15s ease;
+    }
+    #modal-supplier-rop .ch-sw-row input[type=checkbox]:checked { background:#4cc46b; }
+    #modal-supplier-rop .ch-sw-row input[type=checkbox]:checked::after { left:23px; }
+
     /* ROOT CAUSE lebar mentok: style.css ("Lebar proporsional", 16 Sep) membatasi
        SEMUA anak langsung #page-channel maks 720px. Tab Channel sekarang 2 kolom,
        jadi cap itu dilepas khusus untuk nav tab + tab Channel (selector ber-ID menang
@@ -388,22 +409,22 @@ document.getElementById('page-channel').innerHTML = `
       </div>
       <div class="form-group">
         <label>Sistem</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <label class="hs-jenis-radio" id="supplier-jenis-dropship-wrap">
+        <div class="ch-sw-wrap">
+          <label class="ch-sw-row" id="supplier-jenis-dropship-wrap">
+            <span class="ch-sw-txt"><span class="ch-sw-ttl">Dropship</span><span class="ch-sw-desc">Langsung kirim hari itu, tidak perlu PO. Tidak nyetok.</span></span>
             <input type="checkbox" id="supplier-dropship" checked onchange="chSupplierJenisToggle('dropship')">
-            <i class="ti ti-truck-delivery"></i> Dropship
           </label>
-          <label class="hs-jenis-radio" id="supplier-jenis-reseller-wrap">
+          <label class="ch-sw-row" id="supplier-jenis-reseller-wrap">
+            <span class="ch-sw-txt"><span class="ch-sw-ttl">Reseller</span><span class="ch-sw-desc">Wajib PO (+ opsional uang muka). Stok dilacak.</span></span>
             <input type="checkbox" id="supplier-reseller" onchange="chSupplierJenisToggle('reseller')">
-            <i class="ti ti-file-invoice"></i> Reseller
           </label>
-          <label class="hs-jenis-radio" id="supplier-jenis-produksi-wrap">
+          <label class="ch-sw-row" id="supplier-jenis-produksi-wrap">
+            <span class="ch-sw-txt"><span class="ch-sw-ttl">Produksi Sendiri</span><span class="ch-sw-desc">Bukan supplier luar (mis. tukang rajut sendiri). Diarahkan ke Cost Produksi, tidak muncul di Bon/PO Hutang Barang.</span></span>
             <input type="checkbox" id="supplier-produksi" onchange="chSupplierJenisToggle('produksi')">
-            <i class="ti ti-hammer"></i> Produksi Sendiri
           </label>
         </div>
         <div style="font-size:11px;color:var(--ink3);margin-top:6px">
-          Dropship = langsung kirim hari itu, gak perlu PO. Reseller = wajib PO (+opsional uang muka). Bisa dua-duanya kalau supplier ini bisa dua cara. Produksi Sendiri = bukan supplier luar (mis. tukang rajut sendiri) — gak bisa digabung Dropship/Reseller, gak muncul di tab eksekusi Re Stock (Bon/PO) Hutang Barang, diarahin ke Cost Produksi.
+          Dropship dan Reseller boleh menyala bersamaan kalau supplier ini bisa dua cara. Produksi Sendiri tidak bisa digabung, menyalakannya otomatis mematikan yang lain.
         </div>
       </div>
       <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap">
