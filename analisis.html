@@ -1154,12 +1154,10 @@
   #page-setting .st-opsbtn{ display:inline-flex; align-items:center; gap:6px; letter-spacing:.3px; }
   /* [30 Sep 2026] Data Operasional MANUAL: tombol Edit di kepala kartu, baris bisa diketuk (mode Edit), tombol + Tambah */
   #page-setting .ops-edit-toggle{ position:absolute; top:0; right:0; }
-  #page-setting .ops-pen, #page-setting .ops-add{ display:none; }
+  #page-setting .ops-pen{ display:none; }
   #settingOpsSwipe.ops-editing .ops-pen{ display:inline; margin-left:8px; color:var(--ink-soft); font-weight:400; }
   #settingOpsSwipe.ops-editing .ops-row{ cursor:pointer; }
   #settingOpsSwipe.ops-editing .ops-row:hover{ background:var(--panel-alt); }
-  #settingOpsSwipe.ops-editing .ops-add{ display:block; width:100%; margin-top:10px; padding:9px; border:1px dashed var(--ink-soft); border-radius:6px; background:transparent; color:var(--ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
-  #settingOpsSwipe.ops-editing .ops-add:hover{ background:var(--panel-alt); }
   #settingOpsView{ display:none; }
   #page-setting.ops-open #settingToolbar, #page-setting.ops-open #settingSumRow, #page-setting.ops-open #settingCardsWrap{ display:none; }
   #page-setting.ops-open #settingOpsView{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
@@ -8374,20 +8372,22 @@ async function opsHitungKewajibanRinci(){
   list.sort((a,b)=>b.cicilan-a.cicilan);
   return { total: list.reduce((s,x)=>s+x.cicilan, 0), list };
 }
-/* [30 Sep 2026] SUMBER MANUAL — Beban Operasional & Cicilan Aktif TIDAK lagi dihitung dari Jurnal / Hutang Aing. Diisi sendiri lewat tombol Edit di
-   Setting > Data Operasional, disimpan di tabel Supabase `ops_item` (jenis 'beban' | 'cicilan'). Satu set tetap, berlaku SETIAP bulan sampai diubah
-   (tidak ada kolom bulan = otomatis "reset" tiap bulan dengan angka yang sama). Fungsi lama (opsHitungBebanRinci / opsHitungKewajibanRinci) tidak dipanggil lagi. */
+/* [30 Sep 2026] BEBAN OPERASIONAL = MANUAL (hanya nominalnya). Daftar akun (kas_akun, sub_kelompok Beban Operasional) tetap otomatis & TIDAK bisa diubah
+   dari sini; nominal per akun diisi sendiri lewat tombol Edit di Data Operasional dan disimpan di tabel Supabase `ops_item` (jenis 'beban', akun_id).
+   Satu set tetap, berlaku SETIAP bulan sampai diubah (tidak ada kolom bulan). Akun baru di Kas otomatis muncul dengan nominal Rp0.
+   CICILAN AKTIF tetap OTOMATIS dari Hutang Aing (opsHitungKewajibanRinci) seperti semula. opsHitungBebanRinci (dari Jurnal) tidak dipanggil lagi. */
 const OPS_TABLE = 'ops_item';
-async function opsFetchManual(){
-  const rows = await opsFetchAll(OPS_TABLE, '&order=id.asc');
-  const beban = [], kew = [];
-  rows.forEach(r=>{
-    const n = Number(r.nominal) || 0;
-    if(r.jenis==='beban') beban.push({ id:r.id, kode:'', nama:r.nama||'-', total:n });
-    else if(r.jenis==='cicilan') kew.push({ id:r.id, nama:r.nama||'-', cicilan:n, sisa:null });
+async function opsFetchBebanManual(){
+  const [akunAll, rows] = await Promise.all([ opsFetchAll('kas_akun', '&order=id.asc'), opsFetchAll(OPS_TABLE, '&order=id.asc') ]);
+  const bRows = rows.filter(r=>r.jenis==='beban');
+  const norm = v=>String(v||'').trim().toLowerCase();
+  const list = akunAll.filter(opsAkunOperasional).map(a=>{
+    const r = bRows.find(x=>x.akun_id!==null && x.akun_id!==undefined && String(x.akun_id)===String(a.id)) ||
+              bRows.find(x=>(x.akun_id===null || x.akun_id===undefined) && norm(x.nama)===norm(a.nama));   // baris lama tanpa akun_id: cocokkan lewat nama
+    return { id:a.id, kode:a.kode||'', nama:a.nama||'-', total:r ? (Number(r.nominal)||0) : 0, rowId:r ? r.id : null };
   });
-  beban.sort((a,b)=>b.total-a.total); kew.sort((a,b)=>b.cicilan-a.cicilan);
-  return { beban:{ total:beban.reduce((t,x)=>t+x.total,0), list:beban }, kew:{ total:kew.reduce((t,x)=>t+x.cicilan,0), list:kew } };
+  list.sort((x,y)=> (y.total-x.total) || String(x.kode).localeCompare(String(y.kode)));
+  return { total:list.reduce((t,x)=>t+x.total,0), list:list };
 }
 // Rekap bulanan + Pengaturan SEMUA toko langsung dari Supabase (zStore.loadRows), tanpa ganti toko aktif.
 async function opsFetchTokoRows(tokoIds){
@@ -8410,8 +8410,8 @@ async function opsHitungSemua(force){
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   let beban = { total:0, list:[] }, kew = { total:0, list:[] }, rekapByToko = {}, settingsByToko = {}, error = null;
   try{
-    const r = await Promise.all([ opsFetchManual(), opsFetchTokoRows(tokoList.map(t=>t.id)) ]);   // [30 Sep 2026] manual (ops_item), bukan Jurnal/Hutang
-    beban = r[0].beban; kew = r[0].kew; rekapByToko = r[1].rekap; settingsByToko = r[1].settings;
+    const r = await Promise.all([ opsFetchBebanManual(), opsHitungKewajibanRinci(), opsFetchTokoRows(tokoList.map(t=>t.id)) ]);   // [30 Sep 2026] Beban = manual (ops_item), Cicilan = otomatis Hutang Aing
+    beban = r[0]; kew = r[1]; rekapByToko = r[2].rekap; settingsByToko = r[2].settings;
   }catch(e){
     console.error('Gagal hitung Operasional otomatis:', e);
     error = (e && e.message) ? e.message : String(e);
@@ -8550,7 +8550,7 @@ async function renderSetting(keepOps){
   const wrap = document.getElementById('settingCardsWrap');
   const sumEl = document.getElementById('settingSumOperasional');
   if(sumEl) sumEl.textContent = 'menghitung...';
-  if(wrap) wrap.innerHTML = '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Memuat Operasional...</div>';
+  if(wrap) wrap.innerHTML = '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Menghitung Operasional dari Beban manual &amp; Hutang Aing...</div>';
 
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   let ops;
@@ -8708,10 +8708,6 @@ function opsBulanLabel(ymKey){   // mis. "2026-08" -> "Agustus 2026" (rekapMonth
   return OPS_BULAN_NAMA[Number(ymKey.slice(5,7))-1]+' '+ymKey.slice(0,4);
 }
 let _opsEditOn = false;   // mode Edit Data Operasional (tetap aktif sampai user tekan Selesai)
-function opsFindItem(jenis, oid){
-  const c = _opsAutoCache; if(!c) return null;
-  return (jenis==='beban' ? c.bebanList : c.kewajibanList).find(x=>String(x.id)===String(oid)) || null;
-}
 function opsToggleEdit(){
   _opsEditOn = !_opsEditOn;
   const sw = document.getElementById('settingOpsSwipe'); if(!sw) return;
@@ -8721,63 +8717,53 @@ function opsToggleEdit(){
 function opsBodyClick(e){
   if(e.target.closest('.ops-edit-toggle')){ opsToggleEdit(); return; }
   if(!_opsEditOn) return;
-  const add = e.target.closest('.ops-add'); if(add){ opsItemModal(add.dataset.jenis, null); return; }
-  const row = e.target.closest('.ops-row'); if(row) opsItemModal(row.dataset.jenis, row.dataset.oid);
+  const row = e.target.closest('.ops-row'); if(row) opsItemModal(row.dataset.oid);
 }
 async function opsReload(){
   try{ await opsHitungSemua(true); }catch(e){}
   await renderSetting(true);   // renderSetting menyinkronkan angka ke toko aktif + merender ulang halaman yang memakai Operasional
 }
-function opsItemModal(jenis, oid){
-  const isB = jenis==='beban';
-  const item = oid ? opsFindItem(jenis, oid) : null;
-  if(oid && !item) return;
-  const cur = item ? (isB ? item.total : item.cicilan) : null;
+// Modal ubah nominal 1 akun Beban Operasional. Nama/kode akun hanya DILIHAT (tidak bisa diubah). Nominal diformat ribuan langsung saat mengetik.
+function opsItemModal(oid){
+  const item = (_opsAutoCache && _opsAutoCache.bebanList || []).find(x=>String(x.id)===String(oid));
+  if(!item) return;
   const ov = document.createElement('div');
   ov.className = 'z-modal-overlay';
-  ov.innerHTML = '<div class="z-modal" role="dialog" aria-modal="true"><h3>'+(item?'Ubah ':'Tambah ')+(isB?'beban operasional':'cicilan')+'</h3>'+
-    '<input type="text" class="toko-input" id="opsInNama" maxlength="40" placeholder="'+(isB?'Nama beban, mis. WiFi':'Nama hutang, mis. KUR BRI')+'" value="'+tokoEsc(item?item.nama:'')+'">'+
-    '<input type="text" class="toko-input" id="opsInNom" inputmode="numeric" placeholder="Nominal per bulan (Rp)" value="'+(cur!==null?fmtNum(cur):'')+'">'+
+  ov.innerHTML = '<div class="z-modal" role="dialog" aria-modal="true"><h3>Ubah nominal</h3>'+
+    '<p style="margin:0 0 10px 0"><b style="font-size:14px;color:var(--ink)">'+tokoEsc(item.nama)+'</b>'+(item.kode?'<br><span style="font-size:11px">'+tokoEsc(item.kode)+'</span>':'')+'</p>'+
+    '<input type="text" class="toko-input" id="opsInNom" inputmode="numeric" autocomplete="off" placeholder="Nominal per bulan (Rp)" value="'+(item.total>0?fmtNum(item.total):'')+'">'+
     '<div class="toko-err"></div>'+
-    '<div class="z-modal-actions">'+(item?'<button type="button" class="btn danger small" data-a="del" style="margin-right:auto">Hapus</button>':'')+
-    '<button type="button" class="btn ghost small" data-a="cancel">Batal</button><button type="button" class="btn primary small" data-a="save">Simpan</button></div></div>';
+    '<div class="z-modal-actions"><button type="button" class="btn ghost small" data-a="cancel">Batal</button><button type="button" class="btn primary small" data-a="save">Simpan</button></div></div>';
   document.body.appendChild(ov);
   requestAnimationFrame(()=>ov.classList.add('show'));
-  const inNama = ov.querySelector('#opsInNama'), inNom = ov.querySelector('#opsInNom'), err = ov.querySelector('.toko-err'), btnSave = ov.querySelector('[data-a="save"]');
-  attachThousands(inNom);
+  const inNom = ov.querySelector('#opsInNom'), err = ov.querySelector('.toko-err'), btnSave = ov.querySelector('[data-a="save"]');
+  // format ribuan LIVE: 500000 -> 500.000 (pemisah titik, sama seperti angka lain di aplikasi); angka 0 di depan dibuang
+  inNom.addEventListener('input', ()=>{
+    const d = inNom.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+    inNom.value = d ? Number(d).toLocaleString('id-ID') : '';
+  });
   const close = ()=>{ ov.classList.remove('show'); setTimeout(()=>ov.remove(), 180); document.removeEventListener('keydown', onKey); };
   const save = async ()=>{
-    const nama = inNama.value.trim(), nom = parseNum(inNom.value);
-    if(!nama){ err.textContent = 'Nama wajib diisi.'; return; }
-    if(nom===null || nom<=0){ err.textContent = 'Nominal wajib diisi (lebih dari 0).'; return; }
+    const nom = inNom.value ? parseNum(inNom.value) : 0;
+    if(nom===null || nom<0){ err.textContent = 'Nominal tidak valid.'; return; }
     btnSave.disabled = true; err.textContent = '';
     try{
-      if(item) await dbUpdate(OPS_TABLE, item.id, { nama:nama, nominal:nom });
-      else await dbInsert(OPS_TABLE, { jenis:jenis, nama:nama, nominal:nom });
-    }catch(e){ err.textContent = 'Gagal menyimpan: '+((e && e.message) || e); btnSave.disabled = false; return; }
+      if(item.rowId) await dbUpdate(OPS_TABLE, item.rowId, { nominal:nom, akun_id:item.id, nama:item.nama });
+      else await dbInsert(OPS_TABLE, { jenis:'beban', akun_id:item.id, nama:item.nama, nominal:nom });
+    }catch(e){
+      const m = String((e && e.message) || e);
+      err.textContent = /akun_id/i.test(m) ? 'Kolom akun_id belum ada — jalankan SQL-nya di Supabase dulu.' : 'Gagal menyimpan: '+m;
+      btnSave.disabled = false; return;
+    }
     close();
     opsReload();
   };
-  const onKey = e=>{ if(e.key==='Escape') close(); else if(e.key==='Enter' && (document.activeElement===inNama || document.activeElement===inNom)) save(); };
+  const onKey = e=>{ if(e.key==='Escape') close(); else if(e.key==='Enter' && document.activeElement===inNom) save(); };
   document.addEventListener('keydown', onKey);
   ov.addEventListener('click', e=>{ if(e.target===ov) close(); });
   ov.querySelector('[data-a="cancel"]').addEventListener('click', close);
   btnSave.addEventListener('click', save);
-  const btnDel = ov.querySelector('[data-a="del"]');
-  if(btnDel) btnDel.addEventListener('click', ()=>{
-    close();
-    tokoModal({
-      danger:true, title:'Hapus "'+item.nama+'"?',
-      html:'Item ini dihapus dari Data Operasional dan Operasional tiap toko dihitung ulang.',
-      actions:[
-        { label:'Batal' },
-        { label:'Hapus', cls:'danger', cb:()=>{
-            dbDelete(OPS_TABLE, item.id).then(opsReload).catch(e=>{ alert('Gagal menghapus: '+((e && e.message) || e)); });
-        } }
-      ]
-    });
-  });
-  setTimeout(()=>{ inNama.focus(); inNama.select(); }, 60);
+  setTimeout(()=>{ inNom.focus(); inNom.select(); }, 60);
 }
 function opsBuildOpsPagesHtml(ops, tokoList){
   const bulan = tokoEsc(opsBulanLabel(ops.ymKey));
@@ -8798,29 +8784,28 @@ function opsBuildOpsPagesHtml(ops, tokoList){
       '<br><button type="button" class="rc-retry" id="rcRetryBtn">Coba lagi</button></div>'), 1);
   }
 
-  // [30 Sep 2026] Halaman 1 & 2 = data MANUAL (tabel ops_item): tombol Edit di kepala kartu, ketuk baris untuk ubah/hapus, + Tambah
+  // [30 Sep 2026] Halaman 1 = Beban Operasional MANUAL (nominal saja; akun otomatis dari Kas): tombol Edit di kepala kartu, ketuk baris untuk ubah nominal.
   const editBtn = '<button type="button" class="setting-edit-btn ops-edit-toggle'+(_opsEditOn?' is-editing':'')+'">'+(_opsEditOn?'Selesai':'Edit')+'</button>';
-  const rowM = (jenis, id, l, sub, v)=> '<div class="rc-row ops-row" data-jenis="'+jenis+'" data-oid="'+tokoEsc(String(id))+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'<span class="ops-pen" aria-hidden="true">&#9998;</span></div></div>';
-  const addBtn = jenis=> '<button type="button" class="ops-add" data-jenis="'+jenis+'">+ Tambah</button>';
+  const rowM = (id, l, sub, v)=> '<div class="rc-row ops-row" data-oid="'+tokoEsc(String(id))+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'<span class="ops-pen" aria-hidden="true">&#9998;</span></div></div>';
 
   // Halaman 1 — Beban Operasional
-  const p1 = card(title('Beban Operasional','Tetap tiap bulan &middot; diisi manual')+editBtn,
-    fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' ITEM',
-    (ops.bebanList.length
-      ? ops.bebanList.map(a=>rowM('beban', a.id, tokoEsc(a.nama), ops.totalBeban>0?pct(a.total/ops.totalBeban):'', fmtRp(a.total))).join('')
-      : '<div class="rc-empty">Belum ada beban. Tekan Edit, lalu + Tambah.</div>') + addBtn('beban'));
+  const p1 = card(title('Beban Operasional','Tetap tiap bulan &middot; nominal diisi manual')+editBtn,
+    fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' AKUN',
+    ops.bebanList.length
+      ? ops.bebanList.map(a=>rowM(a.id, tokoEsc(a.nama), (a.kode?tokoEsc(a.kode):'')+(ops.totalBeban>0?' &middot; '+pct(a.total/ops.totalBeban):''), fmtRp(a.total))).join('')
+      : '<div class="rc-empty">Belum ada akun Beban Operasional di Kas.</div>');
 
-  // Halaman 2 — Cicilan Aktif
-  const p2 = card(title('Cicilan Aktif','Tetap tiap bulan &middot; diisi manual')+editBtn,
+  // Halaman 2 — Cicilan Aktif (OTOMATIS dari Hutang Aing, seperti semula)
+  const p2 = card(title('Cicilan Aktif','Hutang yang belum lunas per hari ini'),
     fmtRp(ops.totalKewajiban), 'TOTAL PER BULAN &middot; '+ops.kewajibanList.length+' HUTANG',
-    (ops.kewajibanList.length
-      ? ops.kewajibanList.map(x=>rowM('cicilan', x.id, tokoEsc(x.nama), '', fmtRp(x.cicilan)+'/bln')).join('')
-      : '<div class="rc-empty">Belum ada cicilan. Tekan Edit, lalu + Tambah.</div>') + addBtn('cicilan'));
+    ops.kewajibanList.length
+      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
+      : '<div class="rc-empty">Tidak ada hutang aktif.</div>');
 
   // Halaman 3 — Pembagian Toko (+ ikon (?) sebagai satu-satunya hint)
   const tipHtml = '<span class="info-tip rc-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">'+
-    'Beban Operasional + Cicilan Aktif (angka tetap yang kamu isi sendiri) digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
-    'Cicilan tidak punya kolom toko, jadi ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
+    'Beban Operasional (nominal tetap yang kamu isi sendiri) + Cicilan Aktif (otomatis dari Hutang Aing) digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
+    'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
     '</div></span>';
   let sumToko = 0;
   const rowsToko = tokoList.map(t=>{
