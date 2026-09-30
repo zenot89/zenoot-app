@@ -1237,10 +1237,9 @@ function jpOnPilihVariasi() {
   const hpp = parseInt(opt.dataset.hpp) || 0;
   if (!hpp) return;
   const hargaEl = document.getElementById('jp-harga');
-  _jpGetHargaFromPriceList(hpp).then(harga => {
-    hargaEl.value = harga || hpp;
-    hitungTotalJP();
-  });
+  // [30 Sep 2026] Harga Satuan = HPP dari Kelola Produk (bukan lagi HPP x (1+Beban+NPM) dari channel_beban). _jpGetHargaFromPriceList dibiarkan (tidak dipakai).
+  hargaEl.value = hpp;
+  hitungTotalJP();
 }
 
 function jpTutupDropdownSKU() {

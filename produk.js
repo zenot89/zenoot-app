@@ -294,6 +294,35 @@ function _produkSistemPill(key) {
   return '<span style="display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:4px;border:1px solid ' + m.color + ';color:' + m.color + ';white-space:nowrap">' + m.label + '</span>';
 }
 
+// [30 Sep 2026] Urutan varian dalam 1 katalog yang punya SIZE (mis. Turtleneck, RH_Zipper-salur): per WARNA (A-Z), di dalam warna urut size S<M<L<XL<XXL<XXXL.
+// Format SKU: <induk>_<warna>-<size> (juga <induk>-<warna>-<size>). Katalog yang varian-nya tidak berakhiran size dikenali dibiarkan urutan aslinya.
+var _PRODUK_SIZE_RANK = { 'XXS':0,'XS':1,'S':2,'M':3,'L':4,'XL':5,'XXL':6,'XXXL':7 };
+function _produkParseWarnaSize(sku) {
+  var t = String(sku || '').trim();
+  var i = t.lastIndexOf('-');
+  if (i < 1) return null;
+  var size = t.slice(i + 1).trim().toUpperCase();
+  if (!/^[A-Z0-9]{1,5}$/.test(size)) return null;
+  var base = t.slice(0, i);
+  var j = base.search(/[_-]/);
+  var warna = (j >= 0 ? base.slice(j + 1) : base).trim().toLowerCase();
+  return { warna: warna, size: size };
+}
+function _produkSortWarnaSize(rows) {
+  var parsed = rows.map(function(r, idx) { return { r: r, idx: idx, p: _produkParseWarnaSize(r.sku_variasi) }; });
+  var hasSize = parsed.filter(function(x) { return x.p && _PRODUK_SIZE_RANK[x.p.size] !== undefined; }).length;
+  if (hasSize < 2 || hasSize < rows.length / 2) return rows;   // bukan katalog ber-size → urutan asli
+  parsed.sort(function(a, b) {
+    var wa = a.p ? a.p.warna : '~', wb = b.p ? b.p.warna : '~';
+    if (wa !== wb) return wa < wb ? -1 : 1;
+    var ra = a.p && _PRODUK_SIZE_RANK[a.p.size] !== undefined ? _PRODUK_SIZE_RANK[a.p.size] : 99;
+    var rb = b.p && _PRODUK_SIZE_RANK[b.p.size] !== undefined ? _PRODUK_SIZE_RANK[b.p.size] : 99;
+    if (ra !== rb) return ra - rb;
+    return a.idx - b.idx;
+  });
+  return parsed.map(function(x) { return x.r; });
+}
+
 // Baris katalog: semua varian sama → 1 pill; campur → "Campuran" + rincian kecil di bawahnya
 function _produkSistemKatalogCell(rows) {
   var cnt = {};
@@ -377,7 +406,7 @@ function renderProduk(data) {
 
     // Baris varian (hanya tampil jika expanded)
     if (expanded) {
-      rows.forEach(row => {
+      _produkSortWarnaSize(rows).forEach(row => {
         const safeSku = (row.sku_variasi||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         const checked = _produkSelected[row.id] ? 'checked' : '';
         if (_produkEditMode) {
