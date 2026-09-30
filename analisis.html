@@ -1158,13 +1158,21 @@
   #settingOpsSwipe.ops-editing .ops-pen{ display:inline; margin-left:8px; color:var(--ink-soft); font-weight:400; }
   #settingOpsSwipe.ops-editing .ops-row{ cursor:pointer; }
   #settingOpsSwipe.ops-editing .ops-row:hover{ background:var(--panel-alt); }
-  /* [30 Sep 2026] LAPTOP SAJA (>=768px; HP tidak diubah): 3 kartu SEJAJAR 1 baris (Beban Operasional | Cicilan Aktif | Pembagian Toko),
-     isi daftar 1 kolom per kartu (bukan 3 kolom / bukan ditumpuk), font baris diperbesar sedikit dari semula. */
+  /* [30 Sep 2026] LAPTOP (>=768px): susunan luar tetap 3 kartu SEJAJAR 1 baris. Di dalam kartu Beban Operasional & Cicilan Aktif tiap baris jadi 3 KOLOM
+     dalam 1 baris: Beban = Akun | Kode·% | Nominal ; Cicilan = Nama | Sisa | Cicilan/bln (.rc-l dibuat display:contents supaya teks nama + <small> + nominal
+     jadi 3 sel grid tanpa mengubah JS). Pembagian Toko tidak diubah susunannya. Font baris diperbesar sedikit. */
   @media (min-width:768px){
-    #settingOpsSwipe .rc-row{ padding:clamp(6px,1vh,9px) 0; }
-    #settingOpsSwipe .rc-row .rc-l{ font-size:clamp(13.5px,1.85vh,16px); }
-    #settingOpsSwipe .rc-row .rc-l small{ font-size:clamp(11.5px,1.5vh,13px); }
-    #settingOpsSwipe .rc-row .rc-v{ font-size:clamp(13.5px,1.85vh,16px); }
+    #settingOpsSwipe .rc-row{ padding:clamp(7px,1.2vh,11px) 0; }
+    #settingOpsSwipe .rc-row .rc-l{ font-size:clamp(14.5px,2vh,17px); }
+    #settingOpsSwipe .rc-row .rc-l small{ font-size:clamp(12.5px,1.6vh,14.5px); }
+    #settingOpsSwipe .rc-row .rc-v{ font-size:clamp(14.5px,2vh,17px); }
+    #settingOpsSwipe .rc-cols .rc-row{ display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto; column-gap:14px; align-items:baseline; }
+    #settingOpsSwipe .rc-cols .rc-row .rc-l{ display:contents; }
+    #settingOpsSwipe .rc-cols .rc-row .rc-l small{ display:block; margin-top:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  }
+  /* [30 Sep 2026] HP (<768px): susunan TIDAK diubah, cuma font NOMINAL diperbesar (dulu 13px terlalu kecil) */
+  @media (max-width:767px){
+    #settingOpsSwipe .rc-row .rc-v{ font-size:16px; }
   }
   #settingOpsView{ display:none; }
   #page-setting.ops-open #settingToolbar, #page-setting.ops-open #settingSumRow, #page-setting.ops-open #settingCardsWrap{ display:none; }

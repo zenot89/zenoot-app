@@ -55,6 +55,7 @@
 // (33) [30 Sep 2026] Data Operasional (LAPTOP saja, HP tidak berubah): Beban Operasional & Cicilan Aktif ditumpuk di kolom kiri dengan isi daftar 3 kolom, Pembagian Toko di kanan, font baris diperbesar — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
 // (sebelumnya) analisis.html SENGAJA TIDAK DIUBAH SAMA SEKALI. Tab bar disinkronkan dengan halaman aktif di dalam iframe lewat MutationObserver
 // (34) [30 Sep 2026] Data Operasional (LAPTOP saja, HP tidak berubah): layout ditumpuk/3-kolom-dalam-kartu dikembalikan ke 3 kartu SEJAJAR 1 baris (Beban Operasional | Cicilan Aktif | Pembagian Toko), isi 1 kolom per kartu, font baris diperbesar sedikit — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
+// (35) [30 Sep 2026] Data Operasional: LAPTOP isi Beban Operasional & Cicilan Aktif jadi 3 kolom per baris (Akun|Kode·%|Nominal, Nama|Sisa|Cicilan), font diperbesar; HP susunan tetap, font nominal diperbesar — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
 (function () {

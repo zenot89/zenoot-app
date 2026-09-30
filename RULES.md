@@ -105,3 +105,5 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 - Kalau tabel channel_kategori_harga belum dibuat: panel toko tetap jalan (fallback kategori dianggap kosong), mode kategori nampilin pesan error + petunjuk jalankan SQL.
 
 **analisis.html — Data Operasional laptop (30 Sep 2026)**: layout ditumpuk (Beban+Cicilan kiri, Pembagian Toko kanan, isi 3 kolom) dibatalkan karena berantakan; kembali ke 3 kartu sejajar 1 baris (grid bawaan `.st-swipe-track` >=768px), isi 1 kolom per kartu, font baris `clamp(13.5px,1.85vh,16px)` (sedikit lebih besar dari 13px semula). HP tidak disentuh. Class `rc-cols` masih ada di JS tapi tanpa CSS (aman).
+
+**analisis.html — Data Operasional 3 kolom per baris (30 Sep 2026)**: laptop, kartu Beban & Cicilan: baris = grid 3 kolom (Akun | Kode·% | Nominal; Nama | Sisa | Cicilan/bln) lewat `.rc-cols .rc-row` + `.rc-l{display:contents}` (JS tidak diubah); susunan luar tetap 3 kartu sejajar. HP: susunan tidak diubah, font `.rc-v` di `#settingOpsSwipe` jadi 16px.
