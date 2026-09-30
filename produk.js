@@ -208,9 +208,9 @@ let _produkSupplierList = []; // dari hutang_supplier — single source of truth
 async function loadProduk() {
   const tbody = document.getElementById('produk-tbody');
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
-  _produkLoadSupplierList(); // fire-and-forget, gak perlu nunggu buat render tabel produk
   try {
-    const data = await dbGet('produk');
+    // [30 Sep 2026] daftar supplier dimuat bareng produk: badge "Dropship" butuh flag sistem supplier saat render
+    const [data] = await Promise.all([dbGet('produk'), _produkLoadSupplierList()]);
     // Supabase kadang return object error bukan array
     if (!Array.isArray(data)) {
       const msg = data?.message || data?.hint || JSON.stringify(data);
@@ -303,8 +303,10 @@ function renderProduk(data) {
       <div style="font-size:14px;font-weight:600">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
     </div>`;
+    const dsTag = zIsDropship(rows[0], _produkSupMap(), 0)
+      ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info);vertical-align:middle">DROPSHIP</span>' : '';
     const bossCell = `<div style="line-height:1.2">
-      <div style="font-size:14px;font-weight:600">${boss}</div>
+      <div style="font-size:14px;font-weight:600">${boss}${dsTag}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier</div>
     </div>`;
 
@@ -412,15 +414,38 @@ ${skus.slice(0,120)}...`, async () => {
 }
 
 // Edit per katalog (update semua varian)
+// [30 Sep 2026] Peta supplier (NAMA → baris hutang_supplier) dari daftar yang sudah dimuat, format sama dgn zDsLoadSuppliers()
+function _produkSupMap() {
+  var m = {};
+  (_produkSupplierList || []).forEach(function(s) { var k = String(s.nama || '').trim().toUpperCase(); if (k) m[k] = s; });
+  return m;
+}
+
+// Supplier terpilih di modal Edit Katalog berjenis Dropship + Reseller (mis. RH)? Hanya itu yang butuh penanda per katalog.
+function _produkKatBossDual() {
+  var b = String(document.getElementById('kat-boss').value || '').trim().toUpperCase();
+  var s = _produkSupMap()[b];
+  return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri);
+}
+
+function produkKatSyncDs() {
+  var row = document.getElementById('kat-ds-row');
+  if (row) row.style.display = _produkKatBossDual() ? '' : 'none';
+}
+
 async function editKatalog(kat, hpp, boss) {
   document.getElementById('kat-edit-nama').textContent = kat;
   idrSet('kat-hpp', hpp);
   document.getElementById('kat-boss').value = boss;
+  var _rowsK = _produkData.filter(function(r) { return (r.katalog || '—') === kat; });
+  var _dsChk = document.getElementById('kat-dropship');
+  if (_dsChk) _dsChk.checked = _rowsK.length > 0 && _rowsK.every(function(r) { return r.dropship === true; });
   const lbl = document.getElementById('kat-boss-label');
   if (lbl) {
     if (boss) { lbl.textContent = boss; lbl.style.color = 'var(--ink)'; }
     else      { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
   }
+  produkKatSyncDs();
   showModal('modal-edit-katalog');
 }
 
@@ -430,9 +455,11 @@ async function simpanEditKatalog() {
   var boss    = document.getElementById('kat-boss').value.trim().toUpperCase();
   var rows    = _produkData.filter(r => (r.katalog||'—') === kat);
   if (!rows.length) { hideModal('modal-edit-katalog'); return; }
+  // Penanda dropship hanya dikirim untuk supplier Dropship + Reseller (RH); supplier lain status dropship-nya dari sistem supplier.
+  var dsPayload = _produkKatBossDual() ? { dropship: !!document.getElementById('kat-dropship').checked } : {};
   try {
     for (const r of rows) {
-      await dbUpdate('produk', r.id, { hpp: hpp, boss: boss });
+      await dbUpdate('produk', r.id, Object.assign({ hpp: hpp, boss: boss }, dsPayload));
       // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
       // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
       // ini, snapshot stok tetep basi/yatim. Sekarang ikut di-cascade juga,
@@ -844,6 +871,13 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
         <input type="hidden" id="kat-boss">
       </div>
     </div>
+    <div id="kat-ds-row" style="display:none;margin-bottom:10px;padding:8px 10px;border:1px dashed var(--ink3)">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="kat-dropship" style="margin-top:3px">
+        <span><b>Dropship (tidak nyetok)</b><br>
+        <span style="color:var(--ink3);font-size:11px;line-height:1.5">Supplier ini Dropship + Reseller, jadi tandai katalog yang dropship. Sisa Stok tampil "DS" dan tidak dihitung kritis / restock. Dialihkan ke produksi sendiri? Cukup ganti Boss ke DIMI.</span></span>
+      </label>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanEditKatalog()"><i class="ti ti-device-floppy"></i> Simpan Semua Varian</button>
@@ -977,6 +1011,7 @@ function produkBossSheetSelect(nama) {
   if (inputEl) inputEl.value = nama;
   if (labelEl) { labelEl.textContent = nama; labelEl.style.color = 'var(--ink)'; }
   produkBossSheetClose();
+  if (_produkBossSheetTarget.inputId === 'kat-boss') produkKatSyncDs();   // tampilkan/sembunyikan opsi Dropship sesuai jenis supplier
 }
 
 async function produkBossSheetTambahBaru(nama) {

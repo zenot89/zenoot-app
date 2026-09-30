@@ -1095,6 +1095,7 @@ async function hsLoadRestockPO() {
     });
     var DEFAULT_SUP = { lead_time: 7, min_order: 6, kelipatan: 6, buffer_hari: 3 };
 
+    var dsSupMap = await zDsLoadSuppliers();   // status dropship per produk (supabase.js)
     var items = [];
     Object.keys(qtyMap).forEach(function(sku) {
       var p = produkMap[sku];
@@ -1123,6 +1124,9 @@ async function hsLoadRestockPO() {
 
       var isReseller = resolvedSupplier ? !!resolvedSupplier.is_reseller : !!poSupplierSet[bossKey];
       if (!isReseller) return; // cuma supplier Reseller/PO yang masuk
+      // 30 Sep 2026: produk dropship (mis. ZS_ dari RH yang Dropship + Reseller) tidak disetok → tidak pernah di-PO.
+      // Pakai supplier hasil link Master Barang (bossKey) supaya konsisten dengan penentuan PO di atas.
+      if (zIsDropship({ boss: bossKey, dropship: p.dropship === true }, dsSupMap, masukMap[sku])) return;
 
       // ── Filter fast-move: harus ada penjualan dalam 7 hari terakhir.
       // SKU yg cuma kejual di hari ke-8..14 (gak gerak minggu ini) TIDAK

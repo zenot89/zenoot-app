@@ -731,6 +731,7 @@ let _jpProdukList = [];
 let _jpSkuIndex   = -1;
 let _jpDdMode     = 'bulan'; // default: bulan ini
 let _jpSisakMap   = {}; // stok sisa per SKU (uppercase), diisi saat render tabel
+let _jpDsMap      = {}; // SKU (uppercase) → true kalau produk dropship (tidak nyetok → Sisa Stok tampil "DS", bukan angka minus). Aturannya di zIsDropship() (supabase.js)
 let _jpChartRenderToken = 0; // token untuk cancel render chart lama sebelum render baru
 
 function _jpNowTime() {
@@ -2358,7 +2359,9 @@ function renderTabelJP(data) {
       const sisaVal  = sisakMap[skuKey];
       const sisaHtml = !row.sku
         ? '<span style="color:var(--ink3)">—</span>'
-        : sisaVal === undefined
+        : _jpDsMap[skuKey]
+          ? '<span title="Dropship — tidak nyetok" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>'
+          : sisaVal === undefined
           ? '<span style="color:var(--ink3)">—</span>'
           : sisaVal <= 0
             ? '<b style="color:var(--danger)">' + sisaVal + '</b>'
@@ -2450,10 +2453,11 @@ function _jpInitLongPress() {
 // Dipanggil setiap loadJurnalPenjualan() agar picker selalu tampil nilai aktual
 async function _jpRefreshSisakMap() {
   try {
-    const [produkList, stokList, jurnalAll] = await Promise.all([
-      dbGet('produk', '&select=sku_variasi'),
+    const [produkList, stokList, jurnalAll, dsSupMap] = await Promise.all([
+      dbGet('produk'),   // butuh boss + penanda dropship untuk status DS
       dbGet('stok',   '&select=sku_variasi,stok_masuk&order=id.desc'),
       dbGet('jurnal_penjualan', '&select=sku,qty'),
+      zDsLoadSuppliers(),
     ]);
     // Sama persis dengan stok.js: last-write-wins per SKU (bukan akumulasi)
     const masukMap = {};
@@ -2478,6 +2482,13 @@ async function _jpRefreshSisakMap() {
       sisakMap[k] = (masukMap[k] || 0) - (keluarMap[k] || 0);
     });
     _jpSisakMap = sisakMap;
+    // Status dropship per SKU (boleh minus tanpa dianggap masalah → tampil "DS")
+    const dsMap = {};
+    (produkList || []).forEach(function(p) {
+      const k = (p.sku_variasi || '').toUpperCase();
+      if (k && zIsDropship(p, dsSupMap, masukMap[k])) dsMap[k] = true;
+    });
+    _jpDsMap = dsMap;
     // Re-render tabel pakai sisakMap fresh (kalau tabel sudah ada datanya)
     if (Object.keys(sisakMap).length) {
       const tbody = document.getElementById('jp-tbody');
@@ -3200,7 +3211,9 @@ function _jpSkuSheetRenderVariasi(q) {
     var hpp = _jpGetHpp(p);
     var sisa = _jpSisakMap[sku.toUpperCase()];
     var sisakHtml = '';
-    if (sisa !== undefined) {
+    if (_jpDsMap[sku.toUpperCase()]) {
+      sisakHtml = '<span style="font-size:11px;font-weight:700;color:var(--info)">dropship</span>';
+    } else if (sisa !== undefined) {
       var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
       sisakHtml = '<span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
     }
@@ -3253,7 +3266,9 @@ function jpSkuSheetSelectVariasi(sku, hpp) {
   if (lbl) {
     var sisa = _jpSisakMap[sku.toUpperCase()];
     var sisakTxt = '';
-    if (sisa !== undefined) {
+    if (_jpDsMap[sku.toUpperCase()]) {
+      sisakTxt = ' <span style="font-size:11px;font-weight:700;color:var(--info)">dropship</span>';
+    } else if (sisa !== undefined) {
       var col = sisa <= 0 ? 'var(--danger)' : sisa <= 3 ? 'var(--warn)' : 'var(--ok)';
       sisakTxt = ' <span style="font-size:11px;font-weight:700;color:' + col + '">stok: ' + sisa + '</span>';
     }

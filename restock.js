@@ -271,9 +271,12 @@ async function loadRestock() {
       : Object.entries(qtyMap);
 
     const bossList = {};
+    const dsSupMap = await zDsLoadSuppliers();   // status dropship per produk (supabase.js)
     _loopEntries.forEach(([sku, qty14]) => {
       const p = produkMap[sku];
       if (!p) return;
+      // Dropship = barang tidak disetok (dikirim supplier saat ada order) → tidak pernah masuk daftar Re-Stock
+      if (zIsDropship(p, dsSupMap, _masukMap[sku])) return;
       // ── Filter Mode Kritis: fast + hari_sisa ≤ lead_time (identik dashboard.js) ──
       if (isKritisMode) {
         const bossK2   = (p.boss || '').trim().toUpperCase();

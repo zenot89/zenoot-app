@@ -1741,6 +1741,7 @@ async function loadDashboard() {
     const today    = _localDateStr(); // FIX: WIB bukan UTC
     const todayYM  = today.slice(0,7);
 
+    const _dsSupMap = await zDsLoadSuppliers();   // status dropship per produk (supabase.js)
     const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime, jurnalBulanIni, jpHariIniRaw, supplierRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
@@ -1802,6 +1803,7 @@ async function loadDashboard() {
       const sisa   = masuk - keluar;
       const sales30 = _sales30Map[skuKey] || 0;
       return {
+        dropship:        zIsDropship(p, _dsSupMap, masuk),   // dropship = tidak nyetok → bukan kritis / bukan restock
         sku_variasi:     p.sku_variasi,
         katalog:         p.katalog,
         boss:            p.boss,
@@ -1828,6 +1830,7 @@ async function loadDashboard() {
     // PERLU RESTOCK jika: aktif AND fast AND (habis OR hari_sisa ≤ lead_time)
     const kritis = _dashStokData.filter(r => {
       if ((r.kategori_produk || 'aktif') !== 'aktif') return false;
+      if (r.dropship) return false;   // dropship tidak disetok → tidak pernah "kritis"
       const isFast = (r.sales30 || 0) > 0; // fast = ada penjualan 30hr terakhir
       if (!isFast) return false;
       const leadTime = _supplierLeadMap[(r.boss || '').toUpperCase()] || 7;
@@ -1936,8 +1939,10 @@ async function loadDashboard() {
     // ─ HPP terjual & Laba Kotor — BARU
     const hppMap = {};
     _dashStokData.forEach(r => { hppMap[(r.sku_variasi||'').toUpperCase()] = r.hpp||0; });
+    // [30 Sep 2026] HPP per transaksi: pakai jurnal_penjualan.hpp (dibekukan saat transaksi) supaya mengganti HPP produk
+    // (mis. dropship → produksi sendiri) tidak menggeser laba bulan lalu. Baris tanpa hpp → jatuh balik ke HPP produk sekarang.
     const totalHppTerjual = jpBulan.reduce((s,r) => {
-      const hpp = hppMap[(r.sku||'').toUpperCase()] || 0;
+      const hpp = (r.hpp != null && r.hpp !== '') ? (Number(r.hpp) || 0) : (hppMap[(r.sku||'').toUpperCase()] || 0);
       return s + hpp * (Number(r.qty)||0);
     }, 0);
     const labaKotor = omsetBln - totalHppTerjual;
@@ -2076,9 +2081,9 @@ async function loadDashboard() {
       kasMasuk: _kasMasuk, kasKeluar: _kasKeluar,
       trxHariIni: jpHariIni.length, aov: aov,
       skuTotal: _dashStokData.length,
-      pcsTotal: _dashStokData.reduce(function(a, r) { return a + (Number(r.sisa) || 0); }, 0),
+      pcsTotal: _dashStokData.reduce(function(a, r) { return a + (r.dropship ? 0 : (Number(r.sisa) || 0)); }, 0),
       kritis: kritis, saldo: saldo, omsetHari: Number(omsetHari) || 0, targetHarian: targetHarian || 0,
-      habis: _dashStokData.filter(function(r) { return (r.kategori_produk || 'aktif') === 'aktif' && (r.sales30 || 0) > 0 && r.sisa <= 0; }).length
+      habis: _dashStokData.filter(function(r) { return (r.kategori_produk || 'aktif') === 'aktif' && !r.dropship && (r.sales30 || 0) > 0 && r.sisa <= 0; }).length
     };
     _zdRenderMetricViz(window._zdMetricData);
 
@@ -2086,7 +2091,7 @@ async function loadDashboard() {
     _renderAlerts(_dashStokData, saldo);
 
     // ─ Distribusi Status Stok — BARU
-    _renderStokDist(_dashStokData);
+    _renderStokDist(_dashStokData.filter(function(r) { return !r.dropship; }));   // dropship tidak ikut sebaran stok
 
     // ─ Tabel stok: ROP + Turnover + REORDER — DIUPDATE
     // Selalu 5 baris, urutan prioritas Habis → Kritis → Ati2 → Aman
@@ -2108,7 +2113,7 @@ async function loadDashboard() {
       return pri(a) !== pri(b) ? pri(a) - pri(b) : a.sisa - b.sisa;
     };
     const stokSorted = [..._dashStokData]
-      .filter(r => (r.kategori_produk || 'aktif') === 'aktif')
+      .filter(r => (r.kategori_produk || 'aktif') === 'aktif' && !r.dropship)
       .sort(_sortByPriority);
     const stokTampil = stokSorted.slice(0, 5);
     const EMPTY_ROW  = '<tr><td colspan="7" style="color:var(--ink4);text-align:center">—</td></tr>';
@@ -2516,7 +2521,7 @@ async function _renderKegiatanMendatang() {
     });
 
     (_dashStokData || [])
-      .filter(r => (r.kategori_produk||'aktif')==='aktif' && (r.sales30||0)>0 && r.sisa<=3)
+      .filter(r => (r.kategori_produk||'aktif')==='aktif' && !r.dropship && (r.sales30||0)>0 && r.sisa<=3)
       .sort((a,b)=>a.sisa-b.sisa)
       .slice(0,4)
       .forEach(r => {

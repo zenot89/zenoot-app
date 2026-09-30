@@ -84,3 +84,44 @@ async function dbDelete(table, id) {
     throw new Error(msg);
   }
 }
+
+
+// ─── STATUS DROPSHIP PRODUK (30 Sep 2026) ────────────────────
+// Produk dropship = barang tidak disetok (dikirim supplier), jadi Sisa Stok minus itu wajar dan TIDAK boleh
+// dianggap kritis / perlu restock. Status dibaca berurutan (dipakai bareng oleh Jurnal, Stok, Dashboard, Re-Stock):
+//   1) Boss = supplier "Produksi Sendiri"        → stok dilacak (BUKAN dropship)
+//   2) Boss = supplier Dropship saja             → dropship
+//   3) Boss = supplier Dropship + Reseller (RH)  → ikut penanda produk.dropship (default mati)
+//   4) Boss = Reseller saja / tak terdaftar      → stok dilacak
+//   Pengaman: SKU yang sudah punya barang masuk (stok_masuk > 0) selalu dilacak, karena barangnya memang dipegang.
+// Perpindahan dropship → produksi sendiri = ganti Boss produk ke DIMI (aturan 1), lalu isi sisa stok di halaman Stok.
+var _zDsSup = null, _zDsSupAt = 0;
+
+// Peta supplier: NAMA_UPPERCASE → baris hutang_supplier. Di-cache 60 dtk; gagal baca → peta kosong (semua dianggap stok biasa).
+async function zDsLoadSuppliers(force) {
+  var now = Date.now();
+  if (!force && _zDsSup && (now - _zDsSupAt) < 60000) return _zDsSup;
+  try {
+    var rows = await dbGet('hutang_supplier');
+    var m = {};
+    (rows || []).forEach(function(s) { var k = String(s.nama || '').trim().toUpperCase(); if (k) m[k] = s; });
+    _zDsSup = m; _zDsSupAt = now;
+  } catch (e) {
+    console.warn('zDsLoadSuppliers gagal:', e && e.message);
+    if (!_zDsSup) _zDsSup = {};
+  }
+  return _zDsSup;
+}
+
+// p = baris produk ({boss, dropship}); supMap = hasil zDsLoadSuppliers(); masuk = stok_masuk SKU itu (opsional)
+function zIsDropship(p, supMap, masuk) {
+  if (!p) return false;
+  if ((Number(masuk) || 0) > 0) return false;
+  var s = (supMap || {})[String(p.boss || '').trim().toUpperCase()];
+  if (!s) return false;
+  if (s.is_produksi_sendiri) return false;
+  if (s.is_dropship && !s.is_reseller) return true;
+  if (s.is_dropship && s.is_reseller) return p.dropship === true;
+  return false;
+}
+

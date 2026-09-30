@@ -22,6 +22,7 @@ function _stokVelocity(sales7, sales30, sales90) {
 //   Fast(6) → Habis🔥 dari Fast(5) → Habis merah dari Slow(4) → Slow(3)
 //   → Dead(2) → Zombie(1) → Habis pudar dari Dead/Zombie(0, tetep "ignore")
 function _stokStatusRank(r) {
+  if (r.dropship) return -1;   // dropship: tidak ikut urutan stok, taruh paling bawah
   var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
   if ((r.sisa || 0) <= 0) {
     if (vel === 'fast') return 5; // Habis 🔥 — barusan laris, urgent restock
@@ -505,12 +506,14 @@ async function loadStok() {
     _buildMap(jurnal90Data, sales90Map);
 
     // 4. Merge: semua SKU dari produk sebagai basis
+    const dsSupMap = await zDsLoadSuppliers();   // status dropship per produk (supabase.js)
     _stokAllData = _produkForStok.map(p => {
       const skuKey = (p.sku_variasi || '').toUpperCase();
       const masuk  = _stokMasukMap[skuKey] ? _stokMasukMap[skuKey].qty : 0;
       const keluar = keluarMap[skuKey] || 0;
       const sisa   = masuk - keluar;
       return {
+        dropship:         zIsDropship(p, dsSupMap, masuk),   // dropship = tidak nyetok → Sisa Stok bukan masalah
         sku_variasi:      p.sku_variasi,
         katalog:          p.katalog,
         boss:             p.boss,
@@ -546,7 +549,7 @@ function renderStok(data) {
 
   // Summary
   const totalNilai = data.reduce((s, r) => s + (r.nilai_stok || 0), 0);
-  const totalSisa  = data.reduce((s, r) => s + (r.sisa || 0), 0);
+  const totalSisa  = data.reduce((s, r) => s + (r.dropship ? 0 : (r.sisa || 0)), 0);   // dropship tidak dihitung
   const elSum = document.getElementById('stok-summary');
   if (elSum) elSum.textContent =
     `${data.length} SKU · Sisa: ${totalSisa} pcs · Nilai: Rp${totalNilai.toLocaleString('id-ID')}`;
@@ -564,8 +567,8 @@ function renderStok(data) {
     return `<tr>
       <td>${row.katalog || '—'}</td>
       <td><b>${row.sku_variasi || '—'}</b></td>
-      <td style="text-align:center"><b>${row.sisa}</b></td>
-      <td>${statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
+      <td style="text-align:center">${row.dropship ? '<b style="color:var(--info)" title="Dropship — tidak nyetok">DS</b>' : '<b>' + row.sisa + '</b>'}</td>
+      <td>${row.dropship ? '<span title="Dropship — tidak nyetok, Sisa Stok tidak dihitung" style="font-size:10px;font-weight:700;color:var(--info);padding:2px 6px;border:1.5px solid var(--info);border-radius:2px">Dropship</span>' : statusBadge(row.sisa, vel, row.sales7, row.sales30, row.sales90)}</td>
       <td style="text-align:center;color:var(--ok)">${row.sales7 || 0}</td>
       <td style="text-align:center;color:var(--ink3)">${row.stok_keluar}</td>
       <td>${hpp}</td>
@@ -594,6 +597,7 @@ function stokRenderSummary() {
   var nilai  = { fast:0, slow:0, dead:0, zombie:0 }; // habis selalu 0 (sisa=0)
 
   _stokAllData.forEach(function(r) {
+    if (r.dropship) return;   // dropship tidak punya stok → tidak ikut ringkasan inventory
     var vel = _stokVelocity(r.sales7, r.sales30, r.sales90);
     var sisa = Math.max(0, r.sisa || 0);
     if (r.sisa <= 0) {
@@ -796,7 +800,7 @@ function filterStok() {
     if (_filterStatusTab) {
       const sisa = r.sisa;
       const vel  = _stokVelocity(r.sales7, r.sales30, r.sales90);
-      if (_filterStatusTab === 'habis'  && !(sisa <= 0))    return false;
+      if (_filterStatusTab === 'habis'  && (r.dropship || !(sisa <= 0))) return false;   // dropship tidak pernah "habis"
       if (_filterStatusTab === 'fast'   && vel !== 'fast')  return false;
       if (_filterStatusTab === 'slow'   && vel !== 'slow')  return false;
       if (_filterStatusTab === 'dead'   && vel !== 'dead')  return false;
