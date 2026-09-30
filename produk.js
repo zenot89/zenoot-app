@@ -332,6 +332,10 @@ function renderProduk(data) {
   Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).forEach(([kat, rows]) => {
     const expanded   = _produkExpanded[kat] === true;
     const hpp        = rows[0] ? rows[0].hpp || 0 : 0;
+    // [30 Sep 2026] varian dalam 1 katalog bisa beda HPP (mis. sebagian sudah Produksi Sendiri) → tampil rentang min–maks
+    const _hv        = rows.map(r => r.hpp || 0);
+    const _hMin      = Math.min.apply(null, _hv), _hMax = Math.max.apply(null, _hv);
+    const hppTxt     = !_hMax ? '—' : (_hMin === _hMax ? 'Rp' + _hMax.toLocaleString('id-ID') : 'Rp' + _hMin.toLocaleString('id-ID') + '–' + _hMax.toLocaleString('id-ID'));
     const boss       = rows[0] ? rows[0].boss || '—' : '—';
     const allSelected = rows.every(r => _produkSelected[r.id]);
     const safeKat    = kat.replace(/'/g, "'");
@@ -342,7 +346,7 @@ function renderProduk(data) {
       <div style="font-size:11px;color:var(--ink3);margin-top:2px">${rows.length} varian</div>
     </div>`;
     const hppCell = `<div style="line-height:1.2">
-      <div style="font-size:14px;font-weight:600">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</div>
+      <div style="font-size:14px;font-weight:600">${hppTxt}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
     </div>`;
     // [30 Sep 2026] badge DROPSHIP/DS yang mengambang di kolom Boss dihapus → diganti kolom "Sistem" sendiri
@@ -619,6 +623,8 @@ async function simpanProduk() {
     return;
   }
 
+  // [30 Sep 2026] Guard "total per katalog" dicabut — peralihan Produksi Sendiri boleh per varian.
+
   try {
     let old = null;
     if (id) old = _produkData.find(d => d.id == id);
@@ -827,7 +833,41 @@ function produkBatchSupplier() {
 
 // [30 Sep 2026] Toggle Sistem (Dropship / Reseller) di modal Edit Supplier — HANYA muncul kalau supplier terpilih
 // berjenis Dropship + Reseller (mis. RH). Supplier lain sistemnya sudah pasti dari pengaturan Supplier & ROP.
+// [30 Sep 2026] Peralihan ke Produksi Sendiri BOLEH DICICIL per varian (keputusan user, menggantikan aturan "harus total per
+// katalog"). _produkProduksiViolations/_produkProduksiMsg di bawah jadi DEAD CODE (tidak dipanggil lagi), sengaja dipertahankan
+// kalau aturan total mau dihidupkan lagi. _produkIsProduksiBoss masih dipakai (HPP wajib saat pindah ke Produksi Sendiri).
+function _produkIsProduksiBoss(boss) {
+  var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
+  return !!(s && s.is_produksi_sendiri);
+}
+
+// Kembalikan daftar katalog yang belum total: [{katalog, total, miss}]; kosong = aman.
+function _produkProduksiViolations(boss, selIds) {
+  if (!_produkIsProduksiBoss(boss)) return [];
+  var sel = {}; selIds.forEach(function(id) { sel[id] = true; });
+  var kats = {};
+  _produkData.forEach(function(r) { if (sel[r.id]) kats[r.katalog || '—'] = true; });
+  var out = [];
+  Object.keys(kats).forEach(function(k) {
+    var all  = _produkData.filter(function(r) { return (r.katalog || '—') === k; });
+    var miss = all.filter(function(r) { return !sel[r.id] && !_produkIsProduksiBoss(r.boss); });
+    if (miss.length) out.push({ katalog: k, total: all.length, miss: miss.length });
+  });
+  return out;
+}
+
+function _produkProduksiMsg(v) {
+  return v.map(function(x) { return x.katalog + ': ' + x.miss + ' dari ' + x.total + ' varian belum ikut'; }).join('\n');
+}
+
 function produkBatchSupSyncSistem() {
+  // Pindah ke supplier Produksi Sendiri → wajib isi HPP baru (HPP produksi beda dengan harga beli reseller/dropship)
+  var hr = document.getElementById('batch-sup-hpp-row');
+  if (hr) {
+    var b0 = String(document.getElementById('batch-sup-input').value || '').trim();
+    hr.style.display = (b0 && _produkIsProduksiBoss(b0)) ? '' : 'none';
+    if (hr.style.display === 'none') document.getElementById('batch-sup-hpp').value = '';
+  }
   var row = document.getElementById('batch-sup-sistem-row');
   if (!row) return;
   var boss = String(document.getElementById('batch-sup-input').value || '').trim();
@@ -842,29 +882,47 @@ function produkBatchSupSyncSistem() {
 }
 
 function produkBatchSupSetSistem(v) {
+  // Dua toggle saling meniadakan: satu SKU cuma bisa Reseller ATAU Dropship (produk.dropship = true/false),
+  // jadi menyalakan salah satu otomatis mematikan yang lain.
   document.getElementById('batch-sup-sistem').value = v;
   ['reseller', 'dropship'].forEach(function(k) {
-    var b = document.getElementById('batch-sup-sistem-' + k);
-    if (!b) return;
+    var sw = document.getElementById('batch-sup-sw-' + k);
+    if (!sw) return;
     var on = (k === v);
-    b.style.background = on ? 'var(--ink)' : 'var(--cream)';
-    b.style.color      = on ? 'var(--cream)' : 'var(--ink)';
+    sw.style.background = on ? '#4cc46b' : '#c4c4c4';
+    sw.firstElementChild.style.left = on ? '23px' : '3px';
   });
-  var d = document.getElementById('batch-sup-sistem-desc');
-  if (d) d.textContent = v === 'dropship'
-    ? 'Tidak nyetok — Sisa Stok tampil "DS", tidak dihitung kritis / restock / nilai stok.'
-    : 'Stok dilacak — ikut hitungan kritis, restock, dan nilai stok.';
 }
 
 async function simpanBatchSupplier() {
   const ids  = Object.keys(_produkSelected).map(Number);
   const boss = document.getElementById('batch-sup-input').value.trim().toUpperCase();
   if (!boss) { alert('Masukkan nama supplier'); return; }
+  // Pindah ke Produksi Sendiri (boleh sebagian varian): HPP baru wajib diisi & ikut disimpan ke semua SKU terpilih
+  let hppBaru = 0;
+  if (_produkIsProduksiBoss(boss)) {
+    hppBaru = parseInt(String(document.getElementById('batch-sup-hpp').value || '').replace(/\D/g, '')) || 0;
+    if (!hppBaru) { alert('Isi HPP Produksi dulu — HPP produksi beda dengan harga beli supplier sebelumnya.'); return; }
+  }
   // Toggle Sistem cuma dikirim kalau supplier Dropship + Reseller; supplier lain tidak menyentuh produk.dropship
   const payload = { boss };
+  if (hppBaru) payload.hpp = hppBaru;
   if (_produkIsDualBoss(boss)) payload.dropship = (document.getElementById('batch-sup-sistem').value === 'dropship');
   try {
-    for (const id of ids) { await dbUpdate('produk', id, payload); }
+    const _oldMap = {};
+    _produkData.forEach(r => { _oldMap[r.id] = r; });
+    for (const id of ids) {
+      await dbUpdate('produk', id, payload);
+      // Cascade snapshot stok (stok.boss) — dulu Edit Supplier massal tidak melakukan ini, padahal kalau varian pindah
+      // sebagian, Stok Produk bakal masih menampilkan supplier lama. Pola sama dengan simpanEditKatalog.
+      const r = _oldMap[id];
+      if (r) {
+        try {
+          const skuU = (r.sku_variasi || '').toUpperCase();
+          await _produkCascadeRename(skuU, skuU, r.katalog, boss, r.katalog, r.boss);
+        } catch (cascadeErr) { console.warn('Cascade gagal buat', r.sku_variasi, ':', cascadeErr.message); }
+      }
+    }
     hideModal('modal-batch-sup');
     produkExitEditMode();
     loadProduk();
@@ -988,12 +1046,28 @@ document.body.insertAdjacentHTML('beforeend', `
     </div>
     <div id="batch-sup-sistem-row" class="form-group" style="display:none;margin-bottom:14px">
       <label>Sistem (supplier ini Dropship + Reseller)</label>
-      <div style="display:flex;border:2px solid var(--ink)">
-        <button type="button" id="batch-sup-sistem-reseller" onclick="produkBatchSupSetSistem('reseller')" style="flex:1;padding:8px 6px;font-family:var(--f);font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:2px solid var(--ink)">Reseller</button>
-        <button type="button" id="batch-sup-sistem-dropship" onclick="produkBatchSupSetSistem('dropship')" style="flex:1;padding:8px 6px;font-family:var(--f);font-size:13px;font-weight:700;cursor:pointer;border:none">Dropship</button>
+      <div style="border:2px solid var(--ink);background:var(--cream)">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--ink4);cursor:pointer" onclick="produkBatchSupSetSistem('reseller')">
+          <div style="flex:1;line-height:1.3">
+            <div style="font-size:14px;font-weight:700">Reseller</div>
+            <div style="font-size:11px;color:var(--ink3)">Stok dilacak, ikut hitungan kritis, restock, dan nilai stok.</div>
+          </div>
+          <div id="batch-sup-sw-reseller" style="position:relative;width:46px;height:26px;border-radius:13px;flex-shrink:0;transition:background .15s"><div style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer" onclick="produkBatchSupSetSistem('dropship')">
+          <div style="flex:1;line-height:1.3">
+            <div style="font-size:14px;font-weight:700">Dropship</div>
+            <div style="font-size:11px;color:var(--ink3)">Tidak nyetok, Sisa Stok tampil "DS", tidak dihitung kritis / restock.</div>
+          </div>
+          <div id="batch-sup-sw-dropship" style="position:relative;width:46px;height:26px;border-radius:13px;flex-shrink:0;transition:background .15s"><div style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s"></div></div>
+        </div>
       </div>
       <input type="hidden" id="batch-sup-sistem" value="reseller">
-      <div id="batch-sup-sistem-desc" style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px"></div>
+    </div>
+    <div id="batch-sup-hpp-row" class="form-group" style="display:none;margin-bottom:14px">
+      <label>HPP Produksi Baru (Rp) — wajib</label>
+      <input type="text" inputmode="numeric" id="batch-sup-hpp" placeholder="Contoh: 48000" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);width:100%">
+      <div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px">Berlaku untuk semua SKU terpilih. Varian lain di katalog yang sama tidak berubah. Sisa stok reseller &amp; bon ke supplier lama tidak ikut berubah otomatis.</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-sup')">Batal</button>
