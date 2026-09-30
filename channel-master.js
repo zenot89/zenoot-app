@@ -288,9 +288,10 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-offline"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Channel</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-offline"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- RESELLER BARU (key DB: reseller_baru) -->
@@ -304,9 +305,10 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Reseller</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-reseller_baru"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Reseller</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-reseller_baru"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- DROPSHIP (key DB: reseller) -->
@@ -320,9 +322,10 @@ document.getElementById('page-channel').innerHTML = `
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Dropship</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-reseller"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Dropship</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-reseller"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     </div><!-- end ch-col-left -->
@@ -493,15 +496,16 @@ async function loadChannelMaster() {
 
 async function loadChannelByKategori(kat) {
   const tbody = document.getElementById('ch-tbody-' + kat);
-  tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  const _cols = (_CHP_KATS.indexOf(kat) !== -1) ? 3 : 4;   // [30 Sep 2026] tabel Offline/Reseller/Dropship = No | Nama | Produk
+  tbody.innerHTML = '<tr><td colspan="' + _cols + '" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const data = await dbGet('channels', '&kategori=eq.' + kat + '&order=nama.asc');
     _chCatChannels[kat] = (data || []).map(function(r) { return { id: String(r.id), nama: r.nama || '' }; });
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="' + _cols + '" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>';
       return;
     }
-    tbody.innerHTML = data.map(row => {
+    tbody.innerHTML = data.map((row, _idx) => {
       const safeNama = (row.nama||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       const beban    = _chBebanMap[row.id];
       const bPct     = beban ? (beban.beban_persen || 0) : null;
@@ -519,6 +523,16 @@ async function loadChannelByKategori(kat) {
       const trAttr   = isPL
         ? ' data-action="pilih-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls
         : ' data-action="pilih-chs" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls;
+      // [30 Sep 2026] Offline/Reseller/Dropship: kolom Beban/NPM & tombol Aksi dihapus (Beban/NPM sudah diisi manual di Price List).
+      // Aksi pindah ke menu tekan-tahan baris (data-lp → chLpOpen). Tombol lama (produk/setting/edit/hapus) tidak dirender lagi
+      // untuk kategori ini; handler data-action-nya dibiarkan (dead code) karena Shopee/Lazada/TikTok masih memakainya.
+      if (isPL) {
+        return '<tr' + trAttr + ' data-lp="1">' +
+          '<td style="text-align:center;color:var(--ink3)">' + (_idx + 1) + '</td>' +
+          '<td style="font-weight:600">' + row.nama + '</td>' +
+          '<td style="text-align:center;font-weight:600">' + _chProdukCount(row.id) + '</td>' +
+        '</tr>';
+      }
       return '<tr' + trAttr + '>' +
         '<td style="font-weight:600">' + row.nama + '</td>' +
         '<td style="text-align:center">' + bLabel + '</td>' +
@@ -534,7 +548,7 @@ async function loadChannelByKategori(kat) {
 
     if (typeof loadChannelDropdownJP === 'function') loadChannelDropdownJP();
   } catch(err) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + _cols + '" style="color:var(--danger)">Error: ' + err.message + '</td></tr>';
   }
 }
 
@@ -669,6 +683,111 @@ document.getElementById('page-channel').addEventListener('click', function(e) {
     chsPilih(id, btn.dataset.nama, kat);
   }
 });
+
+// ─── MENU TEKAN-TAHAN BARIS CHANNEL (30 Sep 2026) ───────────────────────────
+// Konsep komentar Instagram: tekan & tahan (mouse atau sentuh) baris channel Offline/Reseller/Dropship → sheet dari bawah
+// berisi Setting Produk, Edit Nama Channel, Hapus, Batal. Klik biasa tetap = pilih channel (Price List), tidak berubah.
+var _chLP = { timer: null, x: 0, y: 0, fired: false };
+var _chLPCtx = null;   // { id, nama, kat }
+
+function _chLpCancel() { if (_chLP.timer) { clearTimeout(_chLP.timer); _chLP.timer = null; } }
+
+function chLpOpen(tr) {
+  if (!tr) return;
+  _chLPCtx = { id: tr.dataset.id, nama: tr.dataset.nama || '', kat: tr.dataset.kat };
+  var namaEl = document.getElementById('ch-lp-nama');
+  var subEl  = document.getElementById('ch-lp-sub');
+  if (namaEl) namaEl.textContent = _chLPCtx.nama;
+  if (subEl)  subEl.textContent = _chProdukCount(_chLPCtx.id) + ' produk ditambahkan';
+  document.getElementById('ch-lp-overlay').classList.add('open');
+  document.getElementById('ch-lp-sheet').classList.add('open');
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+}
+
+function chLpClose() {
+  var o = document.getElementById('ch-lp-overlay'), sh = document.getElementById('ch-lp-sheet');
+  if (o) o.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+
+function chLpAksi(aksi) {
+  var c = _chLPCtx;
+  chLpClose();
+  if (!c) return;
+  if (aksi === 'produk')      showPilihProduk(c.id, c.nama, c.kat);
+  else if (aksi === 'edit')   editChannel(c.id, c.kat);
+  else if (aksi === 'hapus')  hapusChannel(c.id, c.nama, c.kat);
+}
+
+(function() {
+  var page = document.getElementById('page-channel');
+  page.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var tr = e.target.closest('tr[data-lp]');
+    if (!tr) return;
+    _chLP.fired = false;
+    _chLP.x = e.clientX; _chLP.y = e.clientY;
+    _chLpCancel();
+    _chLP.timer = setTimeout(function() {
+      _chLP.timer = null;
+      _chLP.fired = true;
+      chLpOpen(tr);
+    }, 480);
+  });
+  page.addEventListener('pointermove', function(e) {
+    if (!_chLP.timer) return;
+    if (Math.abs(e.clientX - _chLP.x) > 10 || Math.abs(e.clientY - _chLP.y) > 10) _chLpCancel();   // geser/scroll = batal
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(ev) {
+    page.addEventListener(ev, _chLpCancel);
+  });
+  // Setelah tahan berhasil, klik "susulan" saat jari/mouse dilepas jangan ikut memilih baris (fase capture, sebelum handler klik utama)
+  page.addEventListener('click', function(e) {
+    if (_chLP.fired) { _chLP.fired = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  // Cegah menu bawaan browser saat tekan-tahan sentuh; klik kanan mouse ikut membuka sheet yang sama
+  page.addEventListener('contextmenu', function(e) {
+    var tr = e.target.closest('tr[data-lp]');
+    if (!tr) return;
+    e.preventDefault();
+    if (!_chLP.fired && e.pointerType !== 'touch') { _chLP.fired = false; chLpOpen(tr); }
+  });
+})();
+
+document.body.insertAdjacentHTML('beforeend', `
+<style>
+  #page-channel tr[data-lp] { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+  #ch-lp-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1200; }
+  #ch-lp-overlay.open { display:block; }
+  #ch-lp-sheet {
+    display:none; position:fixed; left:50%; bottom:0; z-index:1201; width:100%; max-width:420px;
+    transform:translate(-50%,100%); transition:transform .18s ease;
+    background:var(--cream); border:2px solid var(--ink); border-bottom:none; border-radius:16px 16px 0 0;
+    padding:8px 0 calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -8px 24px rgba(0,0,0,.25);
+  }
+  #ch-lp-sheet.open { display:block; transform:translate(-50%,0); }
+  #ch-lp-handle { width:38px; height:4px; border-radius:2px; background:var(--ink4); margin:2px auto 10px; }
+  #ch-lp-head { padding:0 18px 10px; border-bottom:1px solid var(--ink4); }
+  #ch-lp-nama { font-size:16px; font-weight:800; color:var(--ink); }
+  #ch-lp-sub  { font-size:12px; color:var(--ink3); margin-top:2px; }
+  .ch-lp-item {
+    display:flex; align-items:center; gap:12px; width:100%; padding:14px 18px; background:none; border:none;
+    font-family:var(--f); font-size:15px; font-weight:600; color:var(--ink); text-align:left; cursor:pointer;
+  }
+  .ch-lp-item:active { background:var(--cream2); }
+  .ch-lp-item i { font-size:18px; width:22px; text-align:center; }
+  .ch-lp-item.danger { color:var(--danger); }
+  .ch-lp-item.batal { border-top:1px solid var(--ink4); color:var(--ink3); justify-content:center; }
+</style>
+<div id="ch-lp-overlay" onclick="if(event.target===this) chLpClose()"></div>
+<div id="ch-lp-sheet">
+  <div id="ch-lp-handle"></div>
+  <div id="ch-lp-head"><div id="ch-lp-nama"></div><div id="ch-lp-sub"></div></div>
+  <button type="button" class="ch-lp-item" onclick="chLpAksi('produk')"><i class="ti ti-package"></i> Setting Produk</button>
+  <button type="button" class="ch-lp-item" onclick="chLpAksi('edit')"><i class="ti ti-edit"></i> Edit Nama Channel</button>
+  <button type="button" class="ch-lp-item danger" onclick="chLpAksi('hapus')"><i class="ti ti-trash"></i> Hapus</button>
+  <button type="button" class="ch-lp-item batal" onclick="chLpClose()">Batal</button>
+</div>`);
 
 // ─── EDIT BEBAN PER KATEGORI (bulk set semua channel dalam 1 kategori) ──
 async function showEditKategori(kat, label) {
