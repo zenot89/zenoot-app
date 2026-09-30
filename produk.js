@@ -110,7 +110,7 @@ document.getElementById('page-produk').innerHTML = `
     <button class="produk-btn-pill produk-btn-ghost" onclick="produkSelectAll()">Pilih semua</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-hpp" onclick="produkBatchHpp()" style="opacity:.4" disabled><i class="ti ti-currency-dollar"></i> Edit HPP</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sup" onclick="produkBatchSupplier()" style="opacity:.4" disabled><i class="ti ti-user"></i> Edit Supplier</button>
-    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-ds" onclick="produkBatchDropship()" style="opacity:.4" disabled title="Tandai produk dropship (tidak nyetok)"><i class="ti ti-truck-delivery"></i> Dropship</button>
+    <!-- [30 Sep 2026] Tombol "Dropship" dihapus: pilihan Dropship/Reseller sekarang jadi toggle di dalam modal Edit Supplier (khusus supplier berjenis Dropship + Reseller) -->
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-exp" onclick="produkExportTerpilih()" style="opacity:.4" disabled><i class="ti ti-download"></i> Export</button>
     <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
     <button class="produk-btn-pill produk-btn-cancel" onclick="produkExitEditMode()">Batalkan</button>
@@ -166,9 +166,10 @@ document.getElementById('page-produk').innerHTML = `
           <th>Katalog / SKU</th>
           <th>HPP</th>
           <th>Boss</th>
+          <th>Sistem</th>
         </tr></thead>
         <tbody id="produk-tbody">
-          <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+          <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
         </tbody>
       </table>
     </div>
@@ -241,7 +242,7 @@ function produkEnterEditMode() {
   document.getElementById('produk-toolbar-edit').style.display   = 'flex';
   // Tampilkan kolom checkbox di thead
   var thead = document.getElementById('produk-thead-row');
-  if (thead) thead.innerHTML = '<th style="width:32px"></th><th>Katalog / SKU</th><th>HPP</th><th>Boss</th>';
+  if (thead) thead.innerHTML = '<th style="width:32px"></th><th>Katalog / SKU</th><th>HPP</th><th>Boss</th><th>Sistem</th>';
   renderProduk(_produkData);
 }
 
@@ -252,7 +253,7 @@ function produkExitEditMode() {
   document.getElementById('produk-toolbar-edit').style.display   = 'none';
   // Reset thead
   var thead = document.getElementById('produk-thead-row');
-  if (thead) thead.innerHTML = '<th>Katalog / SKU</th><th>HPP</th><th>Boss</th>';
+  if (thead) thead.innerHTML = '<th>Katalog / SKU</th><th>HPP</th><th>Boss</th><th>Sistem</th>';
   renderProduk(_produkData);
 }
 
@@ -267,10 +268,50 @@ function produkSelectAll() {
   renderProduk(_produkData);
 }
 
+// ── KOLOM "SISTEM" (30 Sep 2026) ──────────────────────────────
+// Turunan dari flag supplier (hutang_supplier) + produk.dropship — aturannya SAMA dgn zIsDropship() di supabase.js:
+//   supplier Produksi Sendiri → "Produksi Sendiri" | Dropship murni → "Dropship" | Reseller murni → "Reseller"
+//   supplier Dropship + Reseller (mis. RH) → ditentukan per SKU lewat produk.dropship (toggle di Edit Supplier)
+function _produkSistemOf(row) {
+  var s = _produkSupMap()[String((row && row.boss) || '').trim().toUpperCase()];
+  if (!s) return '';
+  if (s.is_produksi_sendiri) return 'produksi';
+  if (s.is_dropship && s.is_reseller) return row.dropship === true ? 'dropship' : 'reseller';
+  if (s.is_dropship) return 'dropship';
+  if (s.is_reseller) return 'reseller';
+  return '';
+}
+
+var _PRODUK_SISTEM_META = {
+  produksi: { label: 'Produksi Sendiri', color: 'var(--ok)'   },
+  reseller: { label: 'Reseller',         color: 'var(--info)' },
+  dropship: { label: 'Dropship',         color: 'var(--warn)' }
+};
+
+function _produkSistemPill(key) {
+  var m = _PRODUK_SISTEM_META[key];
+  if (!m) return '<span style="color:var(--ink3)">—</span>';
+  return '<span style="display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:4px;border:1px solid ' + m.color + ';color:' + m.color + ';white-space:nowrap">' + m.label + '</span>';
+}
+
+// Baris katalog: semua varian sama → 1 pill; campur → "Campuran" + rincian kecil di bawahnya
+function _produkSistemKatalogCell(rows) {
+  var cnt = {};
+  rows.forEach(function(r) { var k = _produkSistemOf(r) || '-'; cnt[k] = (cnt[k] || 0) + 1; });
+  var keys = Object.keys(cnt);
+  if (keys.length === 1) return _produkSistemPill(keys[0] === '-' ? '' : keys[0]);
+  var detail = keys.map(function(k) {
+    var m = _PRODUK_SISTEM_META[k];
+    return cnt[k] + ' ' + (m ? m.label : 'Belum diatur');
+  }).join(' · ');
+  return '<div style="line-height:1.2"><span style="display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:4px;border:1px solid var(--ink3);color:var(--ink2,var(--ink));white-space:nowrap">Campuran</span>' +
+         '<div style="font-size:10px;color:var(--ink3);margin-top:3px">' + detail + '</div></div>';
+}
+
 function renderProduk(data) {
   const tbody = document.getElementById('produk-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
     return;
   }
 
@@ -304,13 +345,12 @@ function renderProduk(data) {
       <div style="font-size:14px;font-weight:600">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
     </div>`;
-    const _dsN = rows.filter(r => zIsDropship(r, _produkSupMap(), 0)).length;   // jumlah varian berstatus dropship
-    const dsTag = _dsN === 0 ? ''
-      : ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info);vertical-align:middle">DROPSHIP' + (_dsN === rows.length ? '' : ' ' + _dsN + '/' + rows.length) + '</span>';
+    // [30 Sep 2026] badge DROPSHIP/DS yang mengambang di kolom Boss dihapus → diganti kolom "Sistem" sendiri
     const bossCell = `<div style="line-height:1.2">
-      <div style="font-size:14px;font-weight:600">${boss}${dsTag}</div>
+      <div style="font-size:14px;font-weight:600">${boss}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier</div>
     </div>`;
+    const sistemCellKat = _produkSistemKatalogCell(rows);
 
     if (_produkEditMode) {
       html += `<tr style="background:var(--cream2);cursor:pointer">
@@ -320,12 +360,14 @@ function renderProduk(data) {
         <td onclick="produkToggleExpand('${safeKat}')" style="padding:10px 8px">${katCell}</td>
         <td style="padding:10px 8px">${hppCell}</td>
         <td style="padding:10px 8px">${bossCell}</td>
+        <td style="padding:10px 8px;vertical-align:middle">${sistemCellKat}</td>
       </tr>`;
     } else {
       html += `<tr style="background:var(--cream2);cursor:pointer" onclick="produkToggleExpand('${safeKat}')">
         <td style="padding:10px 8px">${katCell}</td>
         <td style="padding:10px 8px">${hppCell}</td>
         <td style="padding:10px 8px">${bossCell}</td>
+        <td style="padding:10px 8px;vertical-align:middle">${sistemCellKat}</td>
       </tr>`;
     }
 
@@ -341,7 +383,8 @@ function renderProduk(data) {
             </td>
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
-            <td>${row.boss || '—'}${zIsDropship(row, _produkSupMap(), 0) ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>' : ''}</td>
+            <td>${row.boss || '—'}</td>
+            <td>${_produkSistemPill(_produkSistemOf(row))}</td>
           </tr>`;
         } else {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
@@ -349,7 +392,8 @@ function renderProduk(data) {
               <b>${row.sku_variasi}</b>
             </td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
-            <td>${row.boss || '—'}${zIsDropship(row, _produkSupMap(), 0) ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>' : ''}</td>
+            <td>${row.boss || '—'}</td>
+            <td>${_produkSistemPill(_produkSistemOf(row))}</td>
           </tr>`;
         }
       });
@@ -485,7 +529,8 @@ function filterProduk() {
   const filtered = _produkData.filter(r =>
     (r.sku_variasi||'').toLowerCase().includes(q) ||
     (r.katalog||'').toLowerCase().includes(q) ||
-    (r.boss||'').toLowerCase().includes(q)
+    (r.boss||'').toLowerCase().includes(q) ||
+    ((_PRODUK_SISTEM_META[_produkSistemOf(r)] || {}).label || '').toLowerCase().includes(q)
   );
   renderProduk(filtered);
 }
@@ -776,19 +821,57 @@ function produkBatchSupplier() {
   document.getElementById('batch-sup-input').value = '';
   const lbl = document.getElementById('batch-sup-label');
   if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  produkBatchSupSyncSistem();   // reset: toggle Sistem tersembunyi sampai supplier Dropship + Reseller dipilih
   showModal('modal-batch-sup');
+}
+
+// [30 Sep 2026] Toggle Sistem (Dropship / Reseller) di modal Edit Supplier — HANYA muncul kalau supplier terpilih
+// berjenis Dropship + Reseller (mis. RH). Supplier lain sistemnya sudah pasti dari pengaturan Supplier & ROP.
+function produkBatchSupSyncSistem() {
+  var row = document.getElementById('batch-sup-sistem-row');
+  if (!row) return;
+  var boss = String(document.getElementById('batch-sup-input').value || '').trim();
+  var dual = !!boss && _produkIsDualBoss(boss);
+  row.style.display = dual ? '' : 'none';
+  if (!dual) return;
+  // default: ikuti kondisi SKU terpilih sekarang (semua sudah Dropship → Dropship), selain itu Reseller (stok dilacak)
+  var ids  = Object.keys(_produkSelected).map(Number);
+  var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
+  var allDs = rows.length > 0 && rows.every(function(r) { return r.dropship === true && _produkIsDualBoss(r.boss); });
+  produkBatchSupSetSistem(allDs ? 'dropship' : 'reseller');
+}
+
+function produkBatchSupSetSistem(v) {
+  document.getElementById('batch-sup-sistem').value = v;
+  ['reseller', 'dropship'].forEach(function(k) {
+    var b = document.getElementById('batch-sup-sistem-' + k);
+    if (!b) return;
+    var on = (k === v);
+    b.style.background = on ? 'var(--ink)' : 'var(--cream)';
+    b.style.color      = on ? 'var(--cream)' : 'var(--ink)';
+  });
+  var d = document.getElementById('batch-sup-sistem-desc');
+  if (d) d.textContent = v === 'dropship'
+    ? 'Tidak nyetok — Sisa Stok tampil "DS", tidak dihitung kritis / restock / nilai stok.'
+    : 'Stok dilacak — ikut hitungan kritis, restock, dan nilai stok.';
 }
 
 async function simpanBatchSupplier() {
   const ids  = Object.keys(_produkSelected).map(Number);
   const boss = document.getElementById('batch-sup-input').value.trim().toUpperCase();
   if (!boss) { alert('Masukkan nama supplier'); return; }
+  // Toggle Sistem cuma dikirim kalau supplier Dropship + Reseller; supplier lain tidak menyentuh produk.dropship
+  const payload = { boss };
+  if (_produkIsDualBoss(boss)) payload.dropship = (document.getElementById('batch-sup-sistem').value === 'dropship');
   try {
-    for (const id of ids) { await dbUpdate('produk', id, { boss }); }
+    for (const id of ids) { await dbUpdate('produk', id, payload); }
     hideModal('modal-batch-sup');
     produkExitEditMode();
     loadProduk();
-  } catch(err) { alert('Gagal: ' + err.message); }
+  } catch(err) {
+    const msg = String(err && err.message || err);
+    alert('Gagal: ' + msg + (/dropship/i.test(msg) ? '\n\nKolom produk.dropship belum ada — jalankan dropship_hpp.sql di Supabase dulu.' : ''));
+  }
 }
 
 // ── MODAL: Batch HPP ─────────────────────────────────────────
@@ -811,6 +894,9 @@ document.body.insertAdjacentHTML('beforeend', `
   </div>
 </div>`);
 
+// [30 Sep 2026] DEAD CODE: tombol "Dropship" di toolbar sudah dihapus — fungsi & modal di bawah ini (produkBatchDropship,
+// simpanBatchDropship, #modal-batch-ds) tidak dipanggil lagi. Fungsinya digantikan toggle Sistem di modal Edit Supplier
+// (produkBatchSupSyncSistem / simpanBatchSupplier). Sengaja dipertahankan; _produkIsDualBoss masih dipakai toggle baru.
 // ── BATCH: Tandai Dropship (30 Sep 2026) ──────────────────────
 // Penanda produk.dropship HANYA berlaku untuk supplier Dropship + Reseller (mis. RH). Supplier lain status dropship-nya
 // otomatis dari sistem supplier (Supplier & ROP), jadi SKU terpilih yang Boss-nya bukan dual dilewati (tidak disimpan).
@@ -899,6 +985,15 @@ document.body.insertAdjacentHTML('beforeend', `
         <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
       </button>
       <input type="hidden" id="batch-sup-input">
+    </div>
+    <div id="batch-sup-sistem-row" class="form-group" style="display:none;margin-bottom:14px">
+      <label>Sistem (supplier ini Dropship + Reseller)</label>
+      <div style="display:flex;border:2px solid var(--ink)">
+        <button type="button" id="batch-sup-sistem-reseller" onclick="produkBatchSupSetSistem('reseller')" style="flex:1;padding:8px 6px;font-family:var(--f);font-size:13px;font-weight:700;cursor:pointer;border:none;border-right:2px solid var(--ink)">Reseller</button>
+        <button type="button" id="batch-sup-sistem-dropship" onclick="produkBatchSupSetSistem('dropship')" style="flex:1;padding:8px 6px;font-family:var(--f);font-size:13px;font-weight:700;cursor:pointer;border:none">Dropship</button>
+      </div>
+      <input type="hidden" id="batch-sup-sistem" value="reseller">
+      <div id="batch-sup-sistem-desc" style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px"></div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-sup')">Batal</button>
@@ -1086,6 +1181,7 @@ function produkBossSheetSelect(nama) {
   if (labelEl) { labelEl.textContent = nama; labelEl.style.color = 'var(--ink)'; }
   produkBossSheetClose();
   if (_produkBossSheetTarget.inputId === 'kat-boss') produkKatSyncDs();   // tampilkan/sembunyikan opsi Dropship sesuai jenis supplier
+  if (_produkBossSheetTarget.inputId === 'batch-sup-input') produkBatchSupSyncSistem();   // toggle Sistem di Edit Supplier massal
 }
 
 async function produkBossSheetTambahBaru(nama) {
