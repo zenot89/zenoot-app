@@ -110,6 +110,7 @@ document.getElementById('page-produk').innerHTML = `
     <button class="produk-btn-pill produk-btn-ghost" onclick="produkSelectAll()">Pilih semua</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-hpp" onclick="produkBatchHpp()" style="opacity:.4" disabled><i class="ti ti-currency-dollar"></i> Edit HPP</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sup" onclick="produkBatchSupplier()" style="opacity:.4" disabled><i class="ti ti-user"></i> Edit Supplier</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-ds" onclick="produkBatchDropship()" style="opacity:.4" disabled title="Tandai produk dropship (tidak nyetok)"><i class="ti ti-truck-delivery"></i> Dropship</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-exp" onclick="produkExportTerpilih()" style="opacity:.4" disabled><i class="ti ti-download"></i> Export</button>
     <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
     <button class="produk-btn-pill produk-btn-cancel" onclick="produkExitEditMode()">Batalkan</button>
@@ -303,8 +304,9 @@ function renderProduk(data) {
       <div style="font-size:14px;font-weight:600">${hpp ? 'Rp'+hpp.toLocaleString('id-ID') : '—'}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
     </div>`;
-    const dsTag = zIsDropship(rows[0], _produkSupMap(), 0)
-      ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info);vertical-align:middle">DROPSHIP</span>' : '';
+    const _dsN = rows.filter(r => zIsDropship(r, _produkSupMap(), 0)).length;   // jumlah varian berstatus dropship
+    const dsTag = _dsN === 0 ? ''
+      : ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info);vertical-align:middle">DROPSHIP' + (_dsN === rows.length ? '' : ' ' + _dsN + '/' + rows.length) + '</span>';
     const bossCell = `<div style="line-height:1.2">
       <div style="font-size:14px;font-weight:600">${boss}${dsTag}</div>
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier</div>
@@ -339,7 +341,7 @@ function renderProduk(data) {
             </td>
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
-            <td>${row.boss || '—'}</td>
+            <td>${row.boss || '—'}${zIsDropship(row, _produkSupMap(), 0) ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>' : ''}</td>
           </tr>`;
         } else {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
@@ -347,7 +349,7 @@ function renderProduk(data) {
               <b>${row.sku_variasi}</b>
             </td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
-            <td>${row.boss || '—'}</td>
+            <td>${row.boss || '—'}${zIsDropship(row, _produkSupMap(), 0) ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>' : ''}</td>
           </tr>`;
         }
       });
@@ -391,7 +393,7 @@ function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
   const lbl   = document.getElementById('produk-select-count');
   if (lbl) lbl.textContent = count + ' dipilih';
-  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sup','produk-btn-exp'].forEach(function(id) {
+  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sup','produk-btn-ds','produk-btn-exp'].forEach(function(id) {
     var b = document.getElementById(id);
     if (!b) return;
     b.disabled     = count === 0;
@@ -805,6 +807,78 @@ document.body.insertAdjacentHTML('beforeend', `
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-hpp')">Batal</button>
       <button class="btn btn-sm btn-primary" onclick="simpanBatchHpp()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
+  </div>
+</div>`);
+
+// ── BATCH: Tandai Dropship (30 Sep 2026) ──────────────────────
+// Penanda produk.dropship HANYA berlaku untuk supplier Dropship + Reseller (mis. RH). Supplier lain status dropship-nya
+// otomatis dari sistem supplier (Supplier & ROP), jadi SKU terpilih yang Boss-nya bukan dual dilewati (tidak disimpan).
+// Pilih katalog (centang baris katalog) = semua varian ikut; atau centang varian tertentu saja.
+function _produkIsDualBoss(boss) {
+  var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
+  return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri);
+}
+
+function produkBatchDropship() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  const rows  = _produkData.filter(r => ids.includes(r.id));
+  const dual  = rows.filter(r => _produkIsDualBoss(r.boss));
+  const skip  = rows.length - dual.length;
+  document.getElementById('batch-ds-count').textContent = rows.length + ' SKU terpilih';
+  const info = document.getElementById('batch-ds-info');
+  if (!dual.length) {
+    info.innerHTML = '<span style="color:var(--danger)">Tidak ada SKU terpilih yang Boss-nya Dropship + Reseller (mis. RH).</span> Untuk supplier lain, status dropship otomatis mengikuti sistem supplier di Supplier &amp; ROP, jadi tidak perlu ditandai di sini.';
+  } else {
+    info.innerHTML = '<b>' + dual.length + ' SKU</b> akan diubah (Boss Dropship + Reseller).' +
+      (skip ? ' <span style="color:var(--ink3)">' + skip + ' SKU dilewati karena Boss-nya bukan Dropship + Reseller.</span>' : '');
+  }
+  const allDs = dual.length > 0 && dual.every(r => r.dropship === true);
+  document.getElementById('batch-ds-on').checked  = !allDs;
+  document.getElementById('batch-ds-off').checked = allDs;
+  document.getElementById('batch-ds-save').disabled = !dual.length;
+  document.getElementById('batch-ds-save').style.opacity = dual.length ? '1' : '.4';
+  showModal('modal-batch-ds');
+}
+
+async function simpanBatchDropship() {
+  const ids  = Object.keys(_produkSelected).map(Number);
+  const rows = _produkData.filter(r => ids.includes(r.id) && _produkIsDualBoss(r.boss));
+  if (!rows.length) { hideModal('modal-batch-ds'); return; }
+  const nilai = !!document.getElementById('batch-ds-on').checked;
+  try {
+    for (const r of rows) { await dbUpdate('produk', r.id, { dropship: nilai }); }
+    hideModal('modal-batch-ds');
+    produkExitEditMode();
+    loadProduk();
+  } catch(err) {
+    const msg = String(err && err.message || err);
+    alert('Gagal: ' + msg + (/dropship/i.test(msg) ? '\n\nKolom produk.dropship belum ada — jalankan dropship_hpp.sql di Supabase dulu.' : ''));
+  }
+}
+
+// ── MODAL: Batch Dropship ─────────────────────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<div class="modal-overlay" id="modal-batch-ds" onclick="if(event.target===this)hideModal('modal-batch-ds')">
+  <div class="modal" style="max-width:400px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-truck-delivery"></i> Tandai Dropship</div>
+      <button onclick="hideModal('modal-batch-ds')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p id="batch-ds-count" style="font-size:12px;color:var(--ink3);margin-bottom:6px">0 SKU terpilih</p>
+    <p id="batch-ds-info" style="font-size:12px;margin-bottom:12px;line-height:1.5"></p>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;margin-bottom:8px">
+      <input type="radio" name="batch-ds-mode" id="batch-ds-on" style="margin-top:3px">
+      <span><b>Dropship (tidak nyetok)</b><br><span style="color:var(--ink3);font-size:11px;line-height:1.5">Sisa Stok tampil "DS", tidak dihitung kritis / restock / nilai stok.</span></span>
+    </label>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;margin-bottom:14px">
+      <input type="radio" name="batch-ds-mode" id="batch-ds-off" style="margin-top:3px">
+      <span><b>Bukan dropship (stok dilacak)</b><br><span style="color:var(--ink3);font-size:11px;line-height:1.5">Dialihkan ke produksi sendiri? Cukup ganti Boss ke DIMI lewat Edit Supplier.</span></span>
+    </label>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="hideModal('modal-batch-ds')">Batal</button>
+      <button class="btn btn-sm btn-primary" id="batch-ds-save" onclick="simpanBatchDropship()"><i class="ti ti-check"></i> Simpan</button>
     </div>
   </div>
 </div>`);
