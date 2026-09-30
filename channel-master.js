@@ -110,6 +110,7 @@ document.getElementById('page-channel').innerHTML = `
     #chp-table thead th { position:sticky; top:0; z-index:3; }
     #chp-table td { overflow:hidden; text-overflow:ellipsis; }
     #chp-table .chp-c-chk   { width:44px; text-align:center; }
+    #chp-table .chp-c-no    { width:44px; text-align:center; color:var(--ink2); }
     #chp-table .chp-c-del   { width:46px; text-align:center; }
     #chp-table:not(.chp-edit) .chp-c-del { display:none; }
     #chp-table .chp-c-hpp   { width:130px; }
@@ -137,6 +138,7 @@ document.getElementById('page-channel').innerHTML = `
     @media (max-width:600px) {
       #chp-table .chp-c-hpp { display:none; }
       #chp-table .chp-c-chk { width:38px; }
+      #chp-table .chp-c-no { width:34px; }
       #chp-table .chp-c-ni { width:36%; }
       #chp-table .chp-c-harga { width:28%; }
       #chp-table .chp-c-npm { width:64px; }
@@ -153,6 +155,7 @@ document.getElementById('page-channel').innerHTML = `
     #chs-table { width:100%; table-layout:fixed; }
     #chs-table thead th { position:sticky; top:0; z-index:3; }
     #chs-table td { overflow:hidden; text-overflow:ellipsis; }
+    #chs-table .chs-c-no  { width:44px; text-align:center; color:var(--ink2); }
     #chs-table .chs-c-n   { width:84px; text-align:center; }
     #chs-table .chs-c-hpp { width:120px; text-align:right; }
     #chs-table .chs-c-del { width:46px; text-align:center; }
@@ -166,6 +169,7 @@ document.getElementById('page-channel').innerHTML = `
     @media (max-width:600px) {
       #chs-table .chs-c-hpp { display:none; }
       #chs-table .chs-c-n { width:64px; }
+      #chs-table .chs-c-no { width:34px; }
     }
   </style>
 
@@ -258,6 +262,7 @@ document.getElementById('page-channel').innerHTML = `
             style="font-family:var(--f);font-size:13px;padding:5px 10px;border:2px solid var(--ink);background:var(--cream);width:100%;box-sizing:border-box;margin-bottom:8px">
           <div class="chs-scroll"><table class="tbl" id="chs-table">
             <thead><tr>
+              <th class="chs-c-no">No.</th>
               <th>Katalog</th>
               <th class="chs-c-n" style="text-align:center">Varian</th>
               <th class="chs-c-hpp" style="text-align:right">HPP</th>
@@ -354,6 +359,7 @@ document.getElementById('page-channel').innerHTML = `
           <div class="chp-scroll"><table class="tbl" id="chp-table">
             <thead><tr>
               <th class="chp-c-chk"><input type="checkbox" class="chp-chk" id="chp-chk-all" onchange="chpToggleAll(this.checked)" title="Pilih semua yang tampil"></th>
+              <th class="chp-c-no">No.</th>
               <th>Katalog</th>
               <th class="chp-c-hpp" style="text-align:right">HPP</th>
               <th class="chp-c-ni" style="text-align:right">Net Income</th>
@@ -1047,7 +1053,7 @@ async function _chpPilihCore(key, nama, kat) {
   document.getElementById('chp-body').style.display = '';
   document.getElementById('chp-title').textContent  = '— ' + _chpSelNama;
   _chpSyncButtons();
-  document.getElementById('chp-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  document.getElementById('chp-tbody').innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
 
   // Layar sempit: panel ada di atas → geser ke sana
   if (window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
@@ -1091,7 +1097,7 @@ function chpFilter(q) {
   chpRender();
 }
 
-function _chpCols() { return 7; }
+function _chpCols() { return 8; }
 
 // Tombol header: Edit Massal (toko & kategori) + Isi dari rumus lama (hanya toko), tersembunyi saat mode massal
 function _chpSyncButtons() {
@@ -1190,6 +1196,7 @@ function chpRender() {
     var chk = !!_chpSel[k.katalog];
     return '<tr class="' + (chk ? 'chp-sel' : '') + '"' + (_chpBulk ? ' style="cursor:pointer" onclick="chpRowClick(' + i + ',event)"' : '') + '>' +
       '<td class="chp-c-chk"><input type="checkbox" class="chp-chk" data-idx="' + i + '"' + (chk ? ' checked' : '') + ' onchange="chpToggleRow(' + i + ',this.checked)"></td>' +
+      '<td class="chp-c-no">' + (i + 1) + '</td>' +
       '<td style="font-weight:600" title="' + _chpEsc(k.katalog) + '">' + _chpEsc(k.katalog) + (k.orphan ? ' <span style="color:var(--danger);font-weight:500;font-size:11px">· tidak ada di Kelola Produk</span>' : '') + '</td>' +
       '<td class="chp-c-hpp" style="text-align:right;color:var(--ink2)">' + fmtRpFull(k.hpp) + '</td>' +
       '<td class="chp-c-ni" style="text-align:right">' + _chpNiCell(c, i) + '</td>' +
@@ -1667,7 +1674,7 @@ async function chsPilih(id, nama, kat) {
   document.getElementById('chs-body').style.display = '';
   document.getElementById('chs-btn-add').style.display = '';
   document.getElementById('chs-title').textContent = '— ' + _chsSelNama;
-  document.getElementById('chs-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+  document.getElementById('chs-tbody').innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   // Layar sempit: panel ada di atas → geser ke sana
   if (window.matchMedia && window.matchMedia('(max-width:900px)').matches) {
     var card = document.getElementById('chs-card');
@@ -1680,7 +1687,7 @@ async function chsPilih(id, nama, kat) {
     chsRender();
   } catch (err) {
     if (seq !== _chsSeq) return;
-    document.getElementById('chs-tbody').innerHTML = '<tr><td colspan="4" style="color:var(--danger)">Error: ' + _chpEsc(String(err && err.message || err)) + '</td></tr>';
+    document.getElementById('chs-tbody').innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error: ' + _chpEsc(String(err && err.message || err)) + '</td></tr>';
   }
 }
 
@@ -1697,13 +1704,14 @@ function chsRender() {
     .sort(function(a, b) { return a.katalog.localeCompare(b.katalog); });
   var list = _chsQuery ? all.filter(function(k) { return k.katalog.toLowerCase().indexOf(_chsQuery) !== -1; }) : all;
   _chsRows = list;
-  var warn = _chProdukOk ? '' : '<tr><td colspan="4" style="color:var(--danger)">⚠️ Tabel channel_produk belum bisa dibaca — jalankan channel_produk.sql di Supabase dulu.</td></tr>';
+  var warn = _chProdukOk ? '' : '<tr><td colspan="5" style="color:var(--danger)">⚠️ Tabel channel_produk belum bisa dibaca — jalankan channel_produk.sql di Supabase dulu.</td></tr>';
   if (!list.length) {
-    tbody.innerHTML = warn + '<tr><td colspan="4" style="color:var(--ink3);font-style:italic">' +
+    tbody.innerHTML = warn + '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">' +
       (_chsQuery ? 'Katalog tidak ditemukan' : 'Belum ada produk ditambahkan ke channel ini — klik Tambah Produk.') + '</td></tr>';
   } else {
     tbody.innerHTML = warn + list.map(function(k, i) {
       return '<tr>' +
+        '<td class="chs-c-no">' + (i + 1) + '</td>' +
         '<td style="font-weight:600" title="' + _chpEsc(k.katalog) + '">' + _chpEsc(k.katalog) +
           (k.orphan ? ' <span style="color:var(--danger);font-weight:500;font-size:11px">· tidak ada di Kelola Produk</span>' : '') + '</td>' +
         '<td class="chs-c-n" style="color:var(--ink2)">' + (k.orphan ? '—' : k.n) + '</td>' +
