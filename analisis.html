@@ -1152,6 +1152,14 @@
      (3 halaman: Beban Operasional | Cicilan Aktif | Pembagian Toko). HP: geser satu-satu + titik; laptop: 3 kartu berjajar. */
   #page-setting .st-toolbar{ flex:0 0 auto; display:flex; justify-content:flex-end; margin-bottom:10px; }
   #page-setting .st-opsbtn{ display:inline-flex; align-items:center; gap:6px; letter-spacing:.3px; }
+  /* [30 Sep 2026] Data Operasional MANUAL: tombol Edit di kepala kartu, baris bisa diketuk (mode Edit), tombol + Tambah */
+  #page-setting .ops-edit-toggle{ position:absolute; top:0; right:0; }
+  #page-setting .ops-pen, #page-setting .ops-add{ display:none; }
+  #settingOpsSwipe.ops-editing .ops-pen{ display:inline; margin-left:8px; color:var(--ink-soft); font-weight:400; }
+  #settingOpsSwipe.ops-editing .ops-row{ cursor:pointer; }
+  #settingOpsSwipe.ops-editing .ops-row:hover{ background:var(--panel-alt); }
+  #settingOpsSwipe.ops-editing .ops-add{ display:block; width:100%; margin-top:10px; padding:9px; border:1px dashed var(--ink-soft); border-radius:6px; background:transparent; color:var(--ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  #settingOpsSwipe.ops-editing .ops-add:hover{ background:var(--panel-alt); }
   #settingOpsView{ display:none; }
   #page-setting.ops-open #settingToolbar, #page-setting.ops-open #settingSumRow, #page-setting.ops-open #settingCardsWrap{ display:none; }
   #page-setting.ops-open #settingOpsView{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
@@ -8366,6 +8374,21 @@ async function opsHitungKewajibanRinci(){
   list.sort((a,b)=>b.cicilan-a.cicilan);
   return { total: list.reduce((s,x)=>s+x.cicilan, 0), list };
 }
+/* [30 Sep 2026] SUMBER MANUAL — Beban Operasional & Cicilan Aktif TIDAK lagi dihitung dari Jurnal / Hutang Aing. Diisi sendiri lewat tombol Edit di
+   Setting > Data Operasional, disimpan di tabel Supabase `ops_item` (jenis 'beban' | 'cicilan'). Satu set tetap, berlaku SETIAP bulan sampai diubah
+   (tidak ada kolom bulan = otomatis "reset" tiap bulan dengan angka yang sama). Fungsi lama (opsHitungBebanRinci / opsHitungKewajibanRinci) tidak dipanggil lagi. */
+const OPS_TABLE = 'ops_item';
+async function opsFetchManual(){
+  const rows = await opsFetchAll(OPS_TABLE, '&order=id.asc');
+  const beban = [], kew = [];
+  rows.forEach(r=>{
+    const n = Number(r.nominal) || 0;
+    if(r.jenis==='beban') beban.push({ id:r.id, kode:'', nama:r.nama||'-', total:n });
+    else if(r.jenis==='cicilan') kew.push({ id:r.id, nama:r.nama||'-', cicilan:n, sisa:null });
+  });
+  beban.sort((a,b)=>b.total-a.total); kew.sort((a,b)=>b.cicilan-a.cicilan);
+  return { beban:{ total:beban.reduce((t,x)=>t+x.total,0), list:beban }, kew:{ total:kew.reduce((t,x)=>t+x.cicilan,0), list:kew } };
+}
 // Rekap bulanan + Pengaturan SEMUA toko langsung dari Supabase (zStore.loadRows), tanpa ganti toko aktif.
 async function opsFetchTokoRows(tokoIds){
   const rekap = {}, settings = {};
@@ -8387,8 +8410,8 @@ async function opsHitungSemua(force){
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   let beban = { total:0, list:[] }, kew = { total:0, list:[] }, rekapByToko = {}, settingsByToko = {}, error = null;
   try{
-    const r = await Promise.all([ opsHitungBebanRinci(ymKey), opsHitungKewajibanRinci(), opsFetchTokoRows(tokoList.map(t=>t.id)) ]);
-    beban = r[0]; kew = r[1]; rekapByToko = r[2].rekap; settingsByToko = r[2].settings;
+    const r = await Promise.all([ opsFetchManual(), opsFetchTokoRows(tokoList.map(t=>t.id)) ]);   // [30 Sep 2026] manual (ops_item), bukan Jurnal/Hutang
+    beban = r[0].beban; kew = r[0].kew; rekapByToko = r[1].rekap; settingsByToko = r[1].settings;
   }catch(e){
     console.error('Gagal hitung Operasional otomatis:', e);
     error = (e && e.message) ? e.message : String(e);
@@ -8527,7 +8550,7 @@ async function renderSetting(keepOps){
   const wrap = document.getElementById('settingCardsWrap');
   const sumEl = document.getElementById('settingSumOperasional');
   if(sumEl) sumEl.textContent = 'menghitung...';
-  if(wrap) wrap.innerHTML = '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Menghitung Operasional otomatis dari Jurnal &amp; Hutang Aing...</div>';
+  if(wrap) wrap.innerHTML = '<div class="card" style="max-width:480px;color:var(--ink-soft);font-size:13px;">Memuat Operasional...</div>';
 
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   let ops;
@@ -8544,7 +8567,7 @@ async function renderSetting(keepOps){
   const bebanKetEl = document.getElementById('settingSumBebanKet');
   const kewajibanEl = document.getElementById('settingSumKewajiban');
   if(bebanEl) bebanEl.textContent = okOps ? fmtRp(ops.totalBeban) : '-';
-  if(bebanKetEl) bebanKetEl.textContent = 'Dari Jurnal — '+rekapMonthLabel(ops.ymKey);
+  if(bebanKetEl) bebanKetEl.textContent = 'Manual — tetap tiap bulan';
   if(kewajibanEl) kewajibanEl.textContent = okOps ? fmtRp(ops.totalKewajiban) : '-';
   if(!wrap) return;
 
@@ -8618,10 +8641,16 @@ async function renderSetting(keepOps){
   // Tampilan DATA OPERASIONAL (3 halaman) — diisi dari objek `ops` yang sama dengan minicard & kartu toko
   const opsBody = document.getElementById('settingOpsBody');
   const opsPeriod = document.getElementById('settingOpsPeriod');
-  if(opsPeriod) opsPeriod.textContent = 'Beban '+opsBulanLabel(ops.ymKey);
+  if(opsPeriod) opsPeriod.textContent = 'Porsi omset '+opsBulanLabel(ops.ymKey);
   if(opsBody){
+    const keepDot = Array.prototype.indexOf.call(opsBody.querySelectorAll('.st-dot'), opsBody.querySelector('.st-dot.active'));   // tetap di halaman yang sama setelah simpan
     opsBody.innerHTML = opsBuildOpsPagesHtml(ops, tokoList);
     initStSwipe(document.getElementById('settingOpsSwipe'));
+    if(keepDot>0){
+      const tr = opsBody.querySelector('.st-swipe-track'), dd = opsBody.querySelectorAll('.st-dot')[keepDot];
+      if(tr && dd){ tr.style.transition = 'none'; dd.click(); requestAnimationFrame(()=>{ tr.style.transition = ''; }); }
+    }
+    opsBody.onclick = opsBodyClick;
   }
   const btnOpen = document.getElementById('btnOpsData'), btnBack = document.getElementById('btnOpsBack');
   if(btnOpen) btnOpen.onclick = ()=>{ if(pgSet) pgSet.classList.add('ops-open'); };
@@ -8678,6 +8707,78 @@ const OPS_BULAN_NAMA = ['Januari','Februari','Maret','April','Mei','Juni','Juli'
 function opsBulanLabel(ymKey){   // mis. "2026-08" -> "Agustus 2026" (rekapMonthLabel gak dipakai: dia bisa sudah memuat tahun & bergantung Rekap toko aktif)
   return OPS_BULAN_NAMA[Number(ymKey.slice(5,7))-1]+' '+ymKey.slice(0,4);
 }
+let _opsEditOn = false;   // mode Edit Data Operasional (tetap aktif sampai user tekan Selesai)
+function opsFindItem(jenis, oid){
+  const c = _opsAutoCache; if(!c) return null;
+  return (jenis==='beban' ? c.bebanList : c.kewajibanList).find(x=>String(x.id)===String(oid)) || null;
+}
+function opsToggleEdit(){
+  _opsEditOn = !_opsEditOn;
+  const sw = document.getElementById('settingOpsSwipe'); if(!sw) return;
+  sw.classList.toggle('ops-editing', _opsEditOn);
+  sw.querySelectorAll('.ops-edit-toggle').forEach(b=>{ b.textContent = _opsEditOn ? 'Selesai' : 'Edit'; b.classList.toggle('is-editing', _opsEditOn); });
+}
+function opsBodyClick(e){
+  if(e.target.closest('.ops-edit-toggle')){ opsToggleEdit(); return; }
+  if(!_opsEditOn) return;
+  const add = e.target.closest('.ops-add'); if(add){ opsItemModal(add.dataset.jenis, null); return; }
+  const row = e.target.closest('.ops-row'); if(row) opsItemModal(row.dataset.jenis, row.dataset.oid);
+}
+async function opsReload(){
+  try{ await opsHitungSemua(true); }catch(e){}
+  await renderSetting(true);   // renderSetting menyinkronkan angka ke toko aktif + merender ulang halaman yang memakai Operasional
+}
+function opsItemModal(jenis, oid){
+  const isB = jenis==='beban';
+  const item = oid ? opsFindItem(jenis, oid) : null;
+  if(oid && !item) return;
+  const cur = item ? (isB ? item.total : item.cicilan) : null;
+  const ov = document.createElement('div');
+  ov.className = 'z-modal-overlay';
+  ov.innerHTML = '<div class="z-modal" role="dialog" aria-modal="true"><h3>'+(item?'Ubah ':'Tambah ')+(isB?'beban operasional':'cicilan')+'</h3>'+
+    '<input type="text" class="toko-input" id="opsInNama" maxlength="40" placeholder="'+(isB?'Nama beban, mis. WiFi':'Nama hutang, mis. KUR BRI')+'" value="'+tokoEsc(item?item.nama:'')+'">'+
+    '<input type="text" class="toko-input" id="opsInNom" inputmode="numeric" placeholder="Nominal per bulan (Rp)" value="'+(cur!==null?fmtNum(cur):'')+'">'+
+    '<div class="toko-err"></div>'+
+    '<div class="z-modal-actions">'+(item?'<button type="button" class="btn danger small" data-a="del" style="margin-right:auto">Hapus</button>':'')+
+    '<button type="button" class="btn ghost small" data-a="cancel">Batal</button><button type="button" class="btn primary small" data-a="save">Simpan</button></div></div>';
+  document.body.appendChild(ov);
+  requestAnimationFrame(()=>ov.classList.add('show'));
+  const inNama = ov.querySelector('#opsInNama'), inNom = ov.querySelector('#opsInNom'), err = ov.querySelector('.toko-err'), btnSave = ov.querySelector('[data-a="save"]');
+  attachThousands(inNom);
+  const close = ()=>{ ov.classList.remove('show'); setTimeout(()=>ov.remove(), 180); document.removeEventListener('keydown', onKey); };
+  const save = async ()=>{
+    const nama = inNama.value.trim(), nom = parseNum(inNom.value);
+    if(!nama){ err.textContent = 'Nama wajib diisi.'; return; }
+    if(nom===null || nom<=0){ err.textContent = 'Nominal wajib diisi (lebih dari 0).'; return; }
+    btnSave.disabled = true; err.textContent = '';
+    try{
+      if(item) await dbUpdate(OPS_TABLE, item.id, { nama:nama, nominal:nom });
+      else await dbInsert(OPS_TABLE, { jenis:jenis, nama:nama, nominal:nom });
+    }catch(e){ err.textContent = 'Gagal menyimpan: '+((e && e.message) || e); btnSave.disabled = false; return; }
+    close();
+    opsReload();
+  };
+  const onKey = e=>{ if(e.key==='Escape') close(); else if(e.key==='Enter' && (document.activeElement===inNama || document.activeElement===inNom)) save(); };
+  document.addEventListener('keydown', onKey);
+  ov.addEventListener('click', e=>{ if(e.target===ov) close(); });
+  ov.querySelector('[data-a="cancel"]').addEventListener('click', close);
+  btnSave.addEventListener('click', save);
+  const btnDel = ov.querySelector('[data-a="del"]');
+  if(btnDel) btnDel.addEventListener('click', ()=>{
+    close();
+    tokoModal({
+      danger:true, title:'Hapus "'+item.nama+'"?',
+      html:'Item ini dihapus dari Data Operasional dan Operasional tiap toko dihitung ulang.',
+      actions:[
+        { label:'Batal' },
+        { label:'Hapus', cls:'danger', cb:()=>{
+            dbDelete(OPS_TABLE, item.id).then(opsReload).catch(e=>{ alert('Gagal menghapus: '+((e && e.message) || e)); });
+        } }
+      ]
+    });
+  });
+  setTimeout(()=>{ inNama.focus(); inNama.select(); }, 60);
+}
 function opsBuildOpsPagesHtml(ops, tokoList){
   const bulan = tokoEsc(opsBulanLabel(ops.ymKey));
   const pct = v=> (v*100).toLocaleString('id-ID',{maximumFractionDigits:1})+'%';
@@ -8687,35 +8788,39 @@ function opsBuildOpsPagesHtml(ops, tokoList){
     '<div class="rc-head">'+head+'</div>'+
     (totalVal!==null ? '<div class="rc-total"><div class="rc-total-val">'+totalVal+'</div><div class="rc-total-lbl">'+totalLbl+'</div></div>' : '')+
     '<div class="rc-body">'+body+'</div></div></div>';
-  const wrapSwipe = (slides, n)=>'<div class="st-swipe" id="settingOpsSwipe"><div class="st-swipe-track">'+slides+'</div><div class="st-swipe-dots">'+
+  const wrapSwipe = (slides, n)=>'<div class="st-swipe'+(_opsEditOn?' ops-editing':'')+'" id="settingOpsSwipe"><div class="st-swipe-track">'+slides+'</div><div class="st-swipe-dots">'+
     Array.from({length:n},(_,i)=>'<span class="st-dot'+(i===0?' active':'')+'"></span>').join('')+'</div></div>';
   const title = (t, s)=> '<div class="rc-title">'+t+'</div><div class="rc-sub">'+s+'</div>';
 
   if(ops.error){
     return wrapSwipe(card(title('Data Operasional','Gagal dimuat'), null, '',
-      '<div class="rc-err">Gagal memuat data dari database: '+tokoEsc(ops.error)+'<br>Angka Operasional yang tersimpan tidak diubah.'+
+      '<div class="rc-err">Gagal memuat data dari database: '+tokoEsc(ops.error)+(/ops_item/i.test(ops.error)?'<br>Tabel ops_item belum dibuat — jalankan SQL-nya di Supabase dulu.':'')+'<br>Angka Operasional yang tersimpan tidak diubah.'+
       '<br><button type="button" class="rc-retry" id="rcRetryBtn">Coba lagi</button></div>'), 1);
   }
 
+  // [30 Sep 2026] Halaman 1 & 2 = data MANUAL (tabel ops_item): tombol Edit di kepala kartu, ketuk baris untuk ubah/hapus, + Tambah
+  const editBtn = '<button type="button" class="setting-edit-btn ops-edit-toggle'+(_opsEditOn?' is-editing':'')+'">'+(_opsEditOn?'Selesai':'Edit')+'</button>';
+  const rowM = (jenis, id, l, sub, v)=> '<div class="rc-row ops-row" data-jenis="'+jenis+'" data-oid="'+tokoEsc(String(id))+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'<span class="ops-pen" aria-hidden="true">&#9998;</span></div></div>';
+  const addBtn = jenis=> '<button type="button" class="ops-add" data-jenis="'+jenis+'">+ Tambah</button>';
+
   // Halaman 1 — Beban Operasional
-  const p1 = card(title('Beban Operasional','Jurnal '+bulan+' &middot; akun Beban Operasional'),
-    fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' AKUN',
-    ops.bebanList.length
-      ? ops.bebanList.map(a=>row(tokoEsc(a.nama), (a.kode?tokoEsc(a.kode):'')+(ops.totalBeban>0?' &middot; '+pct(a.total/ops.totalBeban):''), fmtRp(a.total))).join('')
-      : '<div class="rc-empty">Tidak ada beban tercatat di Jurnal bulan '+bulan+'.</div>');
+  const p1 = card(title('Beban Operasional','Tetap tiap bulan &middot; diisi manual')+editBtn,
+    fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' ITEM',
+    (ops.bebanList.length
+      ? ops.bebanList.map(a=>rowM('beban', a.id, tokoEsc(a.nama), ops.totalBeban>0?pct(a.total/ops.totalBeban):'', fmtRp(a.total))).join('')
+      : '<div class="rc-empty">Belum ada beban. Tekan Edit, lalu + Tambah.</div>') + addBtn('beban'));
 
   // Halaman 2 — Cicilan Aktif
-  const p2 = card(title('Cicilan Aktif','Hutang yang belum lunas per hari ini'),
+  const p2 = card(title('Cicilan Aktif','Tetap tiap bulan &middot; diisi manual')+editBtn,
     fmtRp(ops.totalKewajiban), 'TOTAL PER BULAN &middot; '+ops.kewajibanList.length+' HUTANG',
-    ops.kewajibanList.length
-      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
-      : '<div class="rc-empty">Tidak ada hutang aktif.</div>');
+    (ops.kewajibanList.length
+      ? ops.kewajibanList.map(x=>rowM('cicilan', x.id, tokoEsc(x.nama), '', fmtRp(x.cicilan)+'/bln')).join('')
+      : '<div class="rc-empty">Belum ada cicilan. Tekan Edit, lalu + Tambah.</div>') + addBtn('cicilan'));
 
   // Halaman 3 — Pembagian Toko (+ ikon (?) sebagai satu-satunya hint)
   const tipHtml = '<span class="info-tip rc-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">'+
-    'Beban Operasional (Jurnal bulan lalu) + Cicilan Aktif digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
-    'Beban hanya dari sub-kelompok Beban Operasional: Beban Produksi sudah di HPP, Bunga Pinjaman sudah di Cicilan.<br>'+
-    'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
+    'Beban Operasional + Cicilan Aktif (angka tetap yang kamu isi sendiri) digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
+    'Cicilan tidak punya kolom toko, jadi ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
     '</div></span>';
   let sumToko = 0;
   const rowsToko = tokoList.map(t=>{
