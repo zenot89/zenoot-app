@@ -195,14 +195,14 @@ document.getElementById('page-channel').innerHTML = `
           Shopee
         </span>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="showEditKategori('toko_utama','Shopee')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('toko_utama')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Channel</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-toko_utama"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Channel</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-toko_utama"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- LAZADA -->
@@ -210,14 +210,14 @@ document.getElementById('page-channel').innerHTML = `
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <span><i class="ti ti-shopping-bag"></i> Lazada</span>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="showEditKategori('lazada','Lazada')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('lazada')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Toko Lazada</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-lazada"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Toko Lazada</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-lazada"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     <!-- TIKTOK -->
@@ -228,14 +228,14 @@ document.getElementById('page-channel').innerHTML = `
           TikTok
         </span>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="showEditKategori('tiktok','TikTok')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('tiktok')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Nama Toko TikTok</th><th style="text-align:center">Beban (%)</th><th style="text-align:center">NPM (%)</th><th>Aksi</th></tr></thead>
-        <tbody id="ch-tbody-tiktok"><tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th style="width:44px;text-align:center">No.</th><th>Nama Toko TikTok</th><th style="text-align:center">Produk</th></tr></thead>
+        <tbody id="ch-tbody-tiktok"><tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:6px"><i class="ti ti-hand-finger"></i> Tekan &amp; tahan nama channel untuk Setting Produk, Edit Nama, atau Hapus.</div>
     </div>
 
     </div><!-- end ch-col-left (channel) -->
@@ -283,7 +283,6 @@ document.getElementById('page-channel').innerHTML = `
         <span><i class="ti ti-map-pin"></i> Offline</span>
         <div style="display:flex;gap:6px">
           <button class="btn btn-sm" onclick="chpPilihKategori('offline','Offline')" title="Atur harga jual semua toko Offline sekaligus"><i class="ti ti-tag"></i> Harga</button>
-          <button class="btn btn-sm" onclick="showEditKategori('offline','Offline')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('offline')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
@@ -300,7 +299,6 @@ document.getElementById('page-channel').innerHTML = `
         <span style="display:inline-flex;align-items:center;gap:6px"><i class="ti ti-users" style="font-size:16px"></i> Reseller</span>
         <div style="display:flex;gap:6px">
           <button class="btn btn-sm" onclick="chpPilihKategori('reseller_baru','Reseller')" title="Atur harga jual semua toko Reseller sekaligus"><i class="ti ti-tag"></i> Harga</button>
-          <button class="btn btn-sm" onclick="showEditKategori('reseller_baru','Reseller')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('reseller_baru')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
@@ -317,7 +315,6 @@ document.getElementById('page-channel').innerHTML = `
         <span style="display:inline-flex;align-items:center;gap:6px"><i class="ti ti-truck-delivery" style="font-size:16px"></i> Dropship</span>
         <div style="display:flex;gap:6px">
           <button class="btn btn-sm" onclick="chpPilihKategori('reseller','Dropship')" title="Atur harga jual semua toko Dropship sekaligus"><i class="ti ti-tag"></i> Harga</button>
-          <button class="btn btn-sm" onclick="showEditKategori('reseller','Dropship')"><i class="ti ti-adjustments"></i> Edit Kategori</button>
           <button class="btn btn-sm btn-primary" onclick="showFormChannel('reseller')"><i class="ti ti-plus"></i> Tambah</button>
         </div>
       </div>
@@ -496,7 +493,7 @@ async function loadChannelMaster() {
 
 async function loadChannelByKategori(kat) {
   const tbody = document.getElementById('ch-tbody-' + kat);
-  const _cols = (_CHP_KATS.indexOf(kat) !== -1) ? 3 : 4;   // [30 Sep 2026] tabel Offline/Reseller/Dropship = No | Nama | Produk
+  const _cols = 3;   // [30 Sep 2026] SEMUA tabel channel = No | Nama | Produk (aksi lewat tekan-tahan)
   tbody.innerHTML = '<tr><td colspan="' + _cols + '" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const data = await dbGet('channels', '&kategori=eq.' + kat + '&order=nama.asc');
@@ -523,10 +520,11 @@ async function loadChannelByKategori(kat) {
       const trAttr   = isPL
         ? ' data-action="pilih-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls
         : ' data-action="pilih-chs" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls;
-      // [30 Sep 2026] Offline/Reseller/Dropship: kolom Beban/NPM & tombol Aksi dihapus (Beban/NPM sudah diisi manual di Price List).
-      // Aksi pindah ke menu tekan-tahan baris (data-lp → chLpOpen). Tombol lama (produk/setting/edit/hapus) tidak dirender lagi
-      // untuk kategori ini; handler data-action-nya dibiarkan (dead code) karena Shopee/Lazada/TikTok masih memakainya.
-      if (isPL) {
+      // [30 Sep 2026] SEMUA kategori (Shopee/Lazada/TikTok/Offline/Reseller/Dropship): kolom Beban/NPM & tombol Aksi dihapus
+      // (Beban/NPM sudah diisi manual). Aksi pindah ke menu tekan-tahan baris (data-lp → chLpOpen). Return di bawah blok ini
+      // (baris lama dengan tombol produk/setting/edit/hapus) sekarang DEAD CODE, sengaja dipertahankan; begitu juga
+      // showEditKategori/#modal-edit-kategori (tombol Edit Kategori sudah dihapus dari semua kartu).
+      {
         return '<tr' + trAttr + ' data-lp="1">' +
           '<td style="text-align:center;color:var(--ink3)">' + (_idx + 1) + '</td>' +
           '<td style="font-weight:600">' + row.nama + '</td>' +
