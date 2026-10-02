@@ -8,7 +8,9 @@
 //                                  sumber ini)
 //   - sumber 'koreksi'          → OTOMATIS dari Stok Produk (tombol
 //                                  "Edit Stock"/"Tambah" — lihat
-//                                  _stokLogKoreksi di stok.js)
+//                                  _stokLogKoreksi di stok.js). Tetap
+//                                  DICATAT di tabel, tapi TIDAK ditampilkan
+//                                  di halaman ini (3 Okt 2026, permintaan user).
 // Dropship SENGAJA gak pernah masuk sini (barangnya emang gak pernah
 // mampir ke gudang sendiri).
 // Halaman ini READ-ONLY buat entri PO & Koreksi (biar histori gak bisa
@@ -21,6 +23,57 @@ document.getElementById('page-stok-masuk').innerHTML = `
        index.html maksa color-scheme:dark, placeholder browser jadi terang
        di atas bg krem kalau gak di-override eksplisit. */
     #sm-search::placeholder, #sm-keterangan::placeholder { color: var(--ink3); opacity: 1; }
+    /* 3 Okt 2026: picker SKU (bottom sheet ala BRImo, desktop = kartu di tengah) — gantiin <select> bawaan browser yang berdempet */
+    #sm-sheet-overlay { display:none; position:fixed; inset:0; z-index:598; background:rgba(0,0,0,.55); }
+    #sm-sheet-overlay.open { display:block; }
+    #sm-sheet {
+      position:fixed; left:0; right:0; bottom:0; z-index:599; background:var(--cream2);
+      border-radius:20px 20px 0 0; transform:translateY(100%);
+      transition:transform .28s cubic-bezier(.4,0,.2,1);
+      padding-bottom:env(safe-area-inset-bottom, 16px);
+      max-height:85vh; display:none; flex-direction:column; overflow:hidden;
+    }
+    #sm-sheet.open { display:flex; transform:translateY(0); }
+    #sm-sheet-close {
+      position:absolute; top:10px; right:10px; width:32px; height:32px; border:none;
+      background:var(--ovl-0_06); border-radius:50%; display:flex; align-items:center;
+      justify-content:center; cursor:pointer; color:var(--ink3); font-size:16px; z-index:2; padding:0;
+    }
+    #sm-sheet-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:12px auto 4px; flex:none; }
+    #sm-sheet-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 16px 12px; flex:none; }
+    #sm-sheet-search-wrap { flex:none; padding:0 16px 12px; }
+    #sm-sheet-search {
+      width:100%; box-sizing:border-box; background:var(--ovl-0_06); border:1px solid var(--ovl-0_12);
+      border-radius:10px; padding:12px 14px; font-size:15px; font-family:var(--f); color:var(--ink);
+      outline:none; -webkit-appearance:none;
+    }
+    #sm-sheet-search::placeholder { color:var(--ink3); opacity:1; }
+    #sm-sheet-search:focus { border-color:var(--ovl-0_25); background:var(--ovl-0_09); }
+    #sm-sheet-list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:0 12px 16px; }
+    .sm-sheet-sec {
+      display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.06em;
+      color:var(--ink3); text-transform:uppercase; padding:16px 8px 8px;
+    }
+    .sm-sheet-item {
+      display:flex; flex-direction:column; gap:3px; padding:13px 14px; margin-bottom:6px;
+      border-radius:10px; cursor:pointer; background:var(--ovl-0_06); color:var(--ink);
+    }
+    .sm-sheet-item:active { background:var(--ovl-0_12); }
+    .sm-sheet-item b { font-size:15px; font-weight:700; }
+    .sm-sheet-item span { font-size:12px; color:var(--ink3); }
+    .sm-sheet-empty { padding:32px 16px; text-align:center; color:var(--ink3); font-size:13px; font-style:italic; line-height:1.5; }
+    #sm-picker {
+      display:flex; align-items:center; gap:8px; width:100%; box-sizing:border-box; padding:8px;
+      border:1.5px solid var(--ink3); background:var(--cream); font-family:var(--f); color:var(--ink); cursor:pointer;
+    }
+    @media (min-width:768px) {
+      #sm-sheet {
+        left:50%; right:auto; bottom:50%; transform:translate(-50%, 50%) scale(.96);
+        width:100%; max-width:420px; border-radius:16px; max-height:70vh; opacity:0;
+        transition:transform .2s ease, opacity .2s ease;
+      }
+      #sm-sheet.open { transform:translate(-50%, 50%) scale(1); opacity:1; }
+    }
   </style>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <div style="font-size:13px;color:var(--ink3)" id="sm-summary">Memuat...</div>
@@ -59,9 +112,11 @@ document.getElementById('page-stok-masuk').innerHTML = `
       </div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">SKU Variasi</label>
-        <select id="sm-sku" style="width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--ink3);background:var(--cream);font-family:var(--f);color:var(--ink)">
-          <option value="">— Pilih SKU —</option>
-        </select>
+        <input type="hidden" id="sm-sku">
+        <div id="sm-picker" onclick="smOpenPicker()">
+          <span id="sm-picker-label" style="color:var(--ink3)">— Pilih SKU —</span>
+          <span style="margin-left:auto;color:var(--ink3);font-size:10px">&#9662;</span>
+        </div>
       </div>
       <div style="margin-top:10px">
         <label style="font-size:12px;color:var(--ink3);display:block;margin-bottom:4px">Qty (pcs)</label>
@@ -78,10 +133,25 @@ document.getElementById('page-stok-masuk').innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- PICKER SKU (Produksi Sendiri saja) -->
+  <div id="sm-sheet-overlay" onclick="smClosePicker()"></div>
+  <div id="sm-sheet">
+    <button type="button" id="sm-sheet-close" onclick="smClosePicker()" aria-label="Tutup"><i class="ti ti-x"></i></button>
+    <div id="sm-sheet-handle"></div>
+    <div id="sm-sheet-title">Pilih SKU Variasi</div>
+    <div id="sm-sheet-search-wrap">
+      <input type="text" id="sm-sheet-search" placeholder="Cari SKU atau katalog..." autocomplete="off"
+        autocorrect="off" autocapitalize="none" spellcheck="false" oninput="smPickerRender(this.value)">
+    </div>
+    <div id="sm-sheet-list"></div>
+  </div>
 `;
 
 var _smData   = [];
-var _smProduk = [];
+var _smProduk = [];   // SEMUA produk (buat cari katalog/boss)
+var _smProdukPS = []; // cuma produk yang Boss-nya supplier sistem "Produksi Sendiri"
+var _smPickerList = [];
 
 document.addEventListener('zenot:page', function(e) {
   if (e.detail.page === 'stok-masuk') loadStokMasuk();
@@ -93,12 +163,19 @@ async function loadStokMasuk() {
   try {
     var res = await Promise.all([
       dbGet('stok_masuk_jurnal', '&order=tanggal.desc,id.desc'),
-      dbGet('produk', '&select=id,katalog,sku_variasi&order=katalog.asc,sku_variasi.asc'),
+      dbGet('produk', '&select=id,katalog,sku_variasi,boss&order=katalog.asc,sku_variasi.asc'),
+      zDsLoadSuppliers(true),   // peta supplier (NAMA → baris hutang_supplier), supabase.js
     ]);
     _smData   = res[0] || [];
     _smProduk = res[1] || [];
+    var supMap = res[2] || {};
+    // 3 Okt 2026: Tambah (Produksi Sendiri) CUMA nampilin produk yang Boss-nya
+    // supplier ber-sistem Produksi Sendiri (hutang_supplier.is_produksi_sendiri).
+    _smProdukPS = _smProduk.filter(function(p) {
+      var sup = supMap[String(p.boss || '').trim().toUpperCase()];
+      return !!(sup && sup.is_produksi_sendiri);
+    });
     renderStokMasuk();
-    _smPopulateSkuSelect();
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error: ' + e.message + '</td></tr>';
   }
@@ -118,7 +195,8 @@ function renderStokMasuk() {
   var tbody = document.getElementById('sm-tbody');
   var sumEl = document.getElementById('sm-summary');
   var q = ((document.getElementById('sm-search') || {}).value || '').trim().toUpperCase();
-  var data = _smData;
+  // 3 Okt 2026: entri 'koreksi' tetap tersimpan di tabel, tapi tidak ditampilkan di sini.
+  var data = _smData.filter(function(r) { return r.sumber !== 'koreksi'; });
   if (q) data = data.filter(function(r) { return (r.sku_variasi || '').toUpperCase().indexOf(q) !== -1; });
 
   if (!data.length) {
@@ -143,12 +221,66 @@ function renderStokMasuk() {
   }).join('');
 }
 
-function _smPopulateSkuSelect() {
-  var sel = document.getElementById('sm-sku');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Pilih SKU —</option>' + _smProduk.map(function(p) {
-    return '<option value="' + p.sku_variasi + '">' + (p.katalog || '—') + ' — ' + p.sku_variasi + '</option>';
-  }).join('');
+function _smEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ─── PICKER SKU (Produksi Sendiri saja) + "Sering & Terakhir Digunakan" ───
+function smOpenPicker() {
+  var s = document.getElementById('sm-sheet-search');
+  if (s) s.value = '';
+  document.getElementById('sm-sheet-overlay').classList.add('open');
+  document.getElementById('sm-sheet').classList.add('open');
+  smPickerRender('');
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (s && !isIOS) setTimeout(function() { s.focus(); }, 260);
+}
+function smClosePicker() {
+  document.getElementById('sm-sheet-overlay').classList.remove('open');
+  document.getElementById('sm-sheet').classList.remove('open');
+}
+function smPickerRender(q) {
+  var listEl = document.getElementById('sm-sheet-list');
+  if (!listEl) return;
+  q = String(q || '').toLowerCase().trim();
+  var items = _smProdukPS.filter(function(p) {
+    return !q || (p.sku_variasi || '').toLowerCase().indexOf(q) !== -1 || (p.katalog || '').toLowerCase().indexOf(q) !== -1;
+  });
+  _smPickerList = [];
+  if (!items.length) {
+    listEl.innerHTML = '<div class="sm-sheet-empty">' + (_smProdukPS.length
+      ? 'Tidak ada SKU yang cocok'
+      : 'Belum ada produk dengan sistem Produksi Sendiri.<br>Atur Boss produk ke supplier Produksi Sendiri di Kelola Produk.') + '</div>';
+    return;
+  }
+  function itemHtml(p) {
+    _smPickerList.push(p);
+    return '<div class="sm-sheet-item" onclick="smPickSku(' + (_smPickerList.length - 1) + ')">' +
+      '<b>' + _smEsc(p.sku_variasi) + '</b><span>' + _smEsc(p.katalog || '—') + '</span></div>';
+  }
+  var html = '';
+  if (!q) {
+    var byKey = {};
+    items.forEach(function(p) { byKey[(p.sku_variasi || '').toUpperCase()] = p; });
+    var top = zHistTop('sm_sku', 5).map(function(k) { return byKey[k]; }).filter(Boolean);
+    if (top.length) {
+      html += '<div class="sm-sheet-sec"><i class="ti ti-clock"></i> Sering &amp; Terakhir Digunakan</div>';
+      top.forEach(function(p) { html += itemHtml(p); });
+      html += '<div class="sm-sheet-sec">Semua</div>';
+    }
+  }
+  items.forEach(function(p) { html += itemHtml(p); });
+  listEl.innerHTML = html;
+}
+function smPickSku(i) {
+  var p = _smPickerList[i];
+  if (!p) return;
+  document.getElementById('sm-sku').value = p.sku_variasi;
+  var lbl = document.getElementById('sm-picker-label');
+  if (lbl) { lbl.textContent = p.sku_variasi; lbl.style.color = 'var(--ink)'; }
+  zHistPush('sm_sku', (p.sku_variasi || '').toUpperCase());
+  smClosePicker();
+  setTimeout(function() { var q = document.getElementById('sm-qty'); if (q) q.focus(); }, 60);
 }
 
 function _smTodayLocal() {
@@ -159,6 +291,8 @@ function _smTodayLocal() {
 function smOpenTambah() {
   document.getElementById('sm-tanggal').value    = _smTodayLocal();
   document.getElementById('sm-sku').value        = '';
+  var pl = document.getElementById('sm-picker-label');
+  if (pl) { pl.textContent = '— Pilih SKU —'; pl.style.color = 'var(--ink3)'; }
   document.getElementById('sm-qty').value        = '';
   document.getElementById('sm-keterangan').value = '';
   showModal('modal-sm-tambah');
@@ -175,6 +309,10 @@ async function smSimpanTambah() {
   if (qty <= 0) { alert('Qty harus lebih dari 0!'); return; }
 
   var prod = _smProduk.find(function(p) { return (p.sku_variasi || '').toUpperCase() === sku; });
+  if (!_smProdukPS.some(function(p) { return (p.sku_variasi || '').toUpperCase() === sku; })) {
+    alert('SKU ini bukan produk Produksi Sendiri. Barang supplier masuk lewat Hutang Barang > Barang Diterima.');
+    return;
+  }
 
   var btn = document.querySelector('#modal-sm-tambah .btn-primary');
   if (btn) { btn.textContent = 'Menyimpan...'; btn.disabled = true; }
