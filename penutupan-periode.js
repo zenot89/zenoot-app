@@ -999,7 +999,45 @@ function _ppRenderCompareTable(cols, refBefore) {
 // Kalau snapshot bulan `ym` belum ada, fetch + simpan. Return data yang baru
 // disimpan (null kalau udah ada / gagal fetch) — 1 sumber logic, dipakai di
 // 2 tempat biar gak ada 2 versi payload yang bisa divergen.
+// 3 Okt 2026: snapshot sekarang dihitung di DATABASE (fungsi SQL pp_* dari
+// pp-snapshot-otomatis.sql) — posisi per AKHIR bulan, bukan posisi saat app
+// dibuka. Cron Supabase juga manggil fungsi yang sama tiap hari, jadi 1 sumber
+// logic. Kalau fungsi SQL belum dipasang (RPC 404), otomatis jatuh ke cara lama
+// di bawah (_ppAutoSnapshotBulanLegacy) supaya app tidak rusak.
+async function _ppRpc(nama, body) {
+  try {
+    var res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + nama, {
+      method: 'POST', headers: _headers(), body: JSON.stringify(body || {})
+    });
+    var data = await res.json().catch(function() { return null; });
+    if (res.status === 404) return { ok: false, missing: true, data: null };
+    if (!res.ok) return { ok: false, missing: false, data: null, error: (data && (data.message || data.hint)) || ('RPC ' + nama + ' ' + res.status) };
+    return { ok: true, missing: false, data: data };
+  } catch (e) {
+    return { ok: false, missing: false, data: null, error: e.message };
+  }
+}
+
 async function _ppAutoSnapshotBulan(ym) {
+  var r = await _ppRpc('pp_simpan_snapshot', { p_ym: ym, p_timpa: false });
+  if (r.ok) return r.data || null; // null = sudah ada; objek = baru dibuat
+  if (!r.missing) console.error('[PP] RPC pp_simpan_snapshot gagal, pakai cara lama:', r.error);
+  return _ppAutoSnapshotBulanLegacy(ym);
+}
+
+// Isi SEMUA bulan yang belum punya snapshot (termasuk yang bolong). Return array periode yang baru dibuat.
+async function _ppCatchupSemua() {
+  var r = await _ppRpc('pp_catchup', {});
+  if (r.ok) return (r.data && r.data.dibuat) || [];
+  if (!r.missing) console.error('[PP] RPC pp_catchup gagal, pakai cara lama:', r.error);
+  var now = new Date();
+  var dLalu = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
+  var d = await _ppAutoSnapshotBulanLegacy(ymLalu);
+  return d ? [ymLalu] : [];
+}
+
+async function _ppAutoSnapshotBulanLegacy(ym) {
   var existing = await dbGet('penutupan_periode', '&periode=eq.' + ym).catch(function() { return []; });
   if (existing && existing.length > 0) return null; // udah ada, gak perlu apa-apa
   var data = await _ppFetchData(ym);
@@ -1036,6 +1074,10 @@ async function ppLoadUtama() {
   var ymLalu  = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
 
   try {
+    // 3 Okt 2026: isi dulu semua bulan yang belum ada snapshot-nya (kalau cron belum sempat jalan)
+    var _dibuat = await _ppCatchupSemua().catch(function() { return []; });
+    if (_dibuat.length) _ppToast('📸 Snapshot ' + _dibuat.map(_ppPeriodeLabel).join(', ') + ' otomatis tersimpan');
+
     // Ambil snapshot tersimpan + data live bulan ini secara paralel
     var [snapRows, liveData] = await Promise.all([
       dbGet('penutupan_periode', '&order=periode.desc').catch(function() { return []; }),
@@ -1108,6 +1150,13 @@ async function ppPerbarui() {
   var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
 
   try {
+    // 3 Okt 2026: timpa snapshot bulan lalu pakai posisi AKHIR bulan (fungsi SQL). Kalau belum dipasang → cara lama.
+    var rpc = await _ppRpc('pp_simpan_snapshot', { p_ym: ymLalu, p_timpa: true });
+    if (rpc.ok) {
+      _ppToast('✅ Snapshot ' + _ppPeriodeLabel(ymLalu) + ' diperbarui (posisi akhir bulan)');
+      ppLoadUtama();
+      return;
+    }
     var data = await _ppFetchData(ymLalu);
     if (!data) throw new Error('Gagal ambil data');
 
@@ -1192,12 +1241,10 @@ _ppRenderKriteriaChecks();
 // sama dengan yang dipakai ppLoadUtama.
 setTimeout(function() {
   if (typeof dbGet !== 'function' || typeof dbInsert !== 'function' || typeof _ppFetchData !== 'function') return;
-  var now = new Date();
-  var dLalu = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  var ymLalu = dLalu.getFullYear() + '-' + String(dLalu.getMonth() + 1).padStart(2, '0');
-  _ppAutoSnapshotBulan(ymLalu).then(function(data) {
-    if (!data) return; // udah ada / gagal fetch — gak ada yang perlu dilakukan
-    console.log('[PP] Auto-snapshot ' + ymLalu + ' tersimpan otomatis di background.');
+  // 3 Okt 2026: catch-up SEMUA bulan yang belum ada (bukan cuma bulan lalu)
+  _ppCatchupSemua().then(function(dibuat) {
+    if (!dibuat || !dibuat.length) return; // udah lengkap — gak ada yang perlu dilakukan
+    console.log('[PP] Auto-snapshot ' + dibuat.join(', ') + ' tersimpan otomatis di background.');
     // Kalau kebetulan user lagi ada di halaman Laporan Bulanan, refresh biar konsisten
     var pg = document.getElementById('page-penutupan-periode');
     if (pg && pg.classList.contains('active') && typeof ppLoadUtama === 'function') ppLoadUtama();
