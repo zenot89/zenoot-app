@@ -886,13 +886,14 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
       .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
     var totalAset = totalAsetJurnal + nilaiStok;
 
-    // Hutang sisa
-    var bayarMap = {};
-    (bayar || []).forEach(function(b) { bayarMap[b.hutang_id] = (bayarMap[b.hutang_id]||0) + Number(b.nominal||0); });
-    var totalHutang = (hutang || []).reduce(function(s, h) {
-      var sisa = (h.pokok||0) - (bayarMap[h.id]||0);
-      return s + (sisa > 0 ? sisa : 0);
-    }, 0);
+    // Hutang = saldo akun kelompok 'kewajiban' di jurnal (kredit - debit, per akun,
+    // yang negatif diabaikan) — PERSIS _getTotalHutang() di networth.js (sumber
+    // Dashboard). 3 Okt 2026: dulu dihitung dari tabel `hutang` pokok - `hutang_bayar`,
+    // sumber beda dgn Dashboard -> Net Worth Oktober selisih Rp841.600. Query
+    // hutang/hutang_bayar di atas dibiarkan (dead, tidak dipakai lagi).
+    var totalHutang = Object.values(akunMap)
+      .filter(function(a) { return a.kelompok === 'kewajiban'; })
+      .reduce(function(s, a) { var saldo = a.sK - a.sD; return s + (saldo > 0 ? saldo : 0); }, 0);
 
     // Escrow
     var escrow = 0;

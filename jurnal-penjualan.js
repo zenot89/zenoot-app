@@ -814,6 +814,13 @@ function _jpChartDateRange(mode, now) {
   if (mode === '7hari') {
     return { start: _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000)), end: _jpLocalDate(now) };
   }
+  if (mode === 'bulan-ini') {
+    // 3 Okt 2026: tanggal 1 s/d hari terakhir bulan berjalan (sama persis dgn query-nya)
+    return {
+      start: _jpLocalDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+      end:   _jpLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    };
+  }
   if (mode === 'minggu') {
     const dari   = (document.getElementById('jp-filter-minggu-dari') || {}).value || '';
     const sampai = (document.getElementById('jp-filter-minggu-sampai') || {}).value || '';
@@ -1305,6 +1312,11 @@ async function loadJurnalPenjualan() {
       var rng = _jpMingguIniRange(now);
       var besokCutoff = new Date(rng.cutoff.getFullYear(), rng.cutoff.getMonth(), rng.cutoff.getDate() + 1);
       filter = '&tanggal=gte.' + _jpLocalDate(rng.start) + '&tanggal=lt.' + _jpLocalDate(besokCutoff);
+    } else if (mode === 'bulan-ini') {
+      // 3 Okt 2026: Bulan Ini = tgl 1 bulan berjalan s/d akhir bulan (batas atas eksklusif = tgl 1 bulan depan)
+      const awalBulan  = _jpLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
+      const bulanDepan = _jpLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      filter = '&tanggal=gte.' + awalBulan + '&tanggal=lt.' + bulanDepan;
     } else if (mode === '7hari') {
       const since = _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000));
       const besok = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
@@ -1482,6 +1494,7 @@ function jpUpdatePeriodeLabel() {
     'kemarin':    'Kemarin',
     '7hari':      '7 Hari',
     'minggu-ini': 'Minggu Ini',
+    'bulan-ini':  'Bulan Ini',
     'minggu':     'Minggu',
     'bulan':      'Bulan',
     'tahun':      'Tahun',
@@ -2841,6 +2854,7 @@ async function exportJurnalPenjualan() {
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="kemarin" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Kemarin</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="7hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 7 Hari Terakhir</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
+      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan Ini</label>'
       + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu</label>'
       + '<div id="jp-minggu-wrap" style="display:none;padding-left:20px;margin-top:2px">'
       + '<button type="button" class="jp-btn-pill" id="jp-minggu-trigger" onclick="jpOpenRangePicker(event)">'
