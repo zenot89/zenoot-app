@@ -389,6 +389,24 @@ document.getElementById('page-stok').innerHTML = `
     </div>
   </div>
 
+  <!-- 3 Okt 2026: EDIT STOCK MASSAL per katalog. Modal TERPISAH (bukan nested di modal-stok-masuk). -->
+  <div class="modal-overlay" id="modal-stok-bulk" onclick="stokBulkOverlayClick(event)">
+    <div class="modal" style="max-width:480px;width:100%;padding:16px;max-height:92vh;display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:10px;border-bottom:2px dashed var(--ink3);flex-shrink:0">
+        <div class="modal-title" id="stok-bulk-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-edit"></i> Edit Stock</div>
+        <button onclick="stokBulkTutup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px;">&#10005;</button>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:6px;flex-shrink:0">Isi kolom di kanan = sisa baru. Baris yang angkanya tidak diubah tidak disimpan.</div>
+      <div id="stok-bulk-list" style="overflow-y:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain"></div>
+      <div id="stok-bulk-err" style="display:none;color:var(--danger);font-size:12px;margin-top:8px;flex-shrink:0"></div>
+      <div style="border-top:1.5px dashed var(--ink3);padding-top:12px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-shrink:0">
+        <div id="stok-bulk-count" style="flex:1 1 100%;font-size:12px;color:var(--ink3)"></div>
+        <button class="btn btn-sm" onclick="stokBulkTutup()" style="flex:1 1 100px;min-width:80px"><i class="ti ti-x"></i> Batal</button>
+        <button class="btn btn-primary btn-sm" id="stok-bulk-simpan" onclick="stokBulkSimpan()" style="flex:2 1 140px;font-weight:700;font-size:14px;padding:8px 16px"><i class="ti ti-device-floppy"></i> SIMPAN</button>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title" id="stok-card-title" style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <i class="ti ti-package"></i> Semua SKU
@@ -883,6 +901,10 @@ function showTambahStok() {
 // picker sheet yang sama (stokSkuSheetOpen/stokPilihKatalog/
 // stokSkuSheetSelectVariasi) — cuma dicabang lewat flag _stokPickerIntent.
 function stokBukaEditPicker() {
+  // 3 Okt 2026: filter katalog lagi aktif -> langsung buka SEMUA varian katalog itu
+  // (mode edit massal), gak perlu pilih Induk/Variasi lagi. Kalau gak ada filter
+  // katalog: pilih SKU Induk dulu (lihat stokSkuSheetSelectInduk), baru daftar varian.
+  if (_filterKatalog) { stokBulkBuka(_filterKatalog); return; }
   _stokPickerIntent = 'edit';
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok';
   document.getElementById('inp-sku-induk').value = '';
@@ -1052,6 +1074,203 @@ async function simpanStok() {
   }
 }
 
+// ─── EDIT STOCK MASSAL PER KATALOG (3 Okt 2026) ──────────────
+// Semua varian 1 katalog tampil sekaligus (sisa sekarang + kolom sisa baru yang
+// sudah terisi), SIMPAN sekali. Rumus sama persis kayak editStok()/simpanStok()
+// mode "Set Sisa Menjadi": stok_masuk_baru = sisa_baru + keluar_jurnal, dan
+// tiap perubahan dicatat ke stok_masuk_jurnal sumber='koreksi' (delta aktual).
+// - Baris yang gak berubah GAK ditulis (ledger gak kebanjiran baris kosong).
+// - Sisa minus: kolom diisi 0; baris dianggap tidak berubah kecuali diedit.
+// - SKU dropship: baris dikunci (stok memang gak dilacak).
+// - Sebelum nulis, stok di server dicek ulang: kalau stok_masuk SKU yg diubah
+//   udah beda dari saat panel dibuka (PO baru diterima / edit dari device lain),
+//   SEMUA dibatalin & user disuruh buka ulang. Gak ada penulisan setengah jalan.
+// - Nulis per baris berurutan (REST gak transaksional): kalau ada yg gagal,
+//   yang lain tetap tersimpan, modal tetap terbuka & nunjukin baris yang gagal.
+var _stokBulkRows  = [];
+var _stokBulkBusy  = false;
+
+function _stokEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function stokBulkBuka(katalog) {
+  var rows = _stokAllData.filter(function(r) { return (r.katalog || '') === katalog; });
+  if (!rows.length) {
+    alert('Data stok belum siap atau katalog "' + katalog + '" belum punya SKU. Coba lagi sebentar.');
+    return;
+  }
+  _stokBulkBusy = false;
+  _stokBulkRows = rows.map(function(r) {
+    var key  = (r.sku_variasi || '').toUpperCase();
+    var rec  = _stokMasukMap[key];
+    var sisa = r.sisa || 0;
+    return {
+      sku: key, label: r.sku_variasi || key, dropship: !!r.dropship,
+      sisaAsli: sisa, awal: sisa > 0 ? sisa : 0, keluar: r.stok_keluar || 0,
+      masukLama: rec ? rec.qty : 0, stokId: rec ? rec.id : null,
+      katalog: r.katalog || '', boss: r.boss || '', hpp: r.hpp || 0
+    };
+  });
+  var html = _stokBulkRows.map(function(r, i) {
+    var sisaTxt = r.dropship ? '<b style="color:var(--info)">DS</b>'
+      : (r.sisaAsli < 0 ? '<b style="color:var(--danger)">' + r.sisaAsli + '</b>' : '<b>' + r.sisaAsli + '</b>');
+    var catatan = r.dropship ? ' · dropship, stok tidak dilacak' : (r.sisaAsli < 0 ? ' · minus, kolom diisi 0' : '');
+    return '<div id="stok-bulk-row-' + i + '" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--ink4)">' +
+      '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _stokEsc(r.label) + '</div>' +
+      '<div style="font-size:11px;color:var(--ink3)">Sisa ' + sisaTxt + catatan + '</div></div>' +
+      '<div id="stok-bulk-delta-' + i + '" style="font-size:12px;font-weight:700;min-width:46px;text-align:right"></div>' +
+      '<input type="text" inputmode="numeric" autocomplete="off" id="stok-bulk-inp-' + i + '" value="' + r.awal + '"' + (r.dropship ? ' disabled' : '') +
+      ' onfocus="this.select()" oninput="stokBulkHitung()" onkeydown="stokBulkKey(event,' + i + ')"' +
+      ' style="width:72px;text-align:center;font-size:18px;font-weight:700;padding:6px 4px;box-sizing:border-box"></div>';
+  }).join('');
+  document.getElementById('stok-bulk-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stock · ' + _stokEsc(katalog);
+  document.getElementById('stok-bulk-list').innerHTML = html;
+  var errEl = document.getElementById('stok-bulk-err');
+  errEl.style.display = 'none'; errEl.textContent = '';
+  stokBulkHitung();
+  document.getElementById('modal-stok-bulk').classList.add('open');
+  // Fokus otomatis cuma di desktop — di HP keyboard langsung nutupin daftar.
+  if (!('ontouchstart' in window)) {
+    setTimeout(function() {
+      for (var j = 0; j < _stokBulkRows.length; j++) {
+        var f = document.getElementById('stok-bulk-inp-' + j);
+        if (f && !f.disabled) { f.focus(); f.select(); break; }
+      }
+    }, 80);
+  }
+}
+
+// Baca semua kolom: {changed:[{i,target}], bad:jumlah kolom tidak valid}
+function _stokBulkCollect() {
+  var out = { changed: [], bad: 0 };
+  _stokBulkRows.forEach(function(r, i) {
+    if (r.dropship) return;
+    var inp = document.getElementById('stok-bulk-inp-' + i);
+    if (!inp) return;
+    var v = String(inp.value == null ? '' : inp.value).trim();
+    if (!/^[0-9]+$/.test(v)) { out.bad++; return; }
+    var t = parseInt(v, 10);
+    if (t !== r.awal) out.changed.push({ i: i, target: t });
+  });
+  return out;
+}
+
+function stokBulkHitung() {
+  var col = _stokBulkCollect();
+  var chg = {};
+  col.changed.forEach(function(c) { chg[c.i] = c.target; });
+  _stokBulkRows.forEach(function(r, i) {
+    if (r.dropship) return;
+    var inp   = document.getElementById('stok-bulk-inp-' + i);
+    var rowEl = document.getElementById('stok-bulk-row-' + i);
+    var dEl   = document.getElementById('stok-bulk-delta-' + i);
+    if (!inp || !rowEl || !dEl) return;
+    var valid = /^[0-9]+$/.test(String(inp.value == null ? '' : inp.value).trim());
+    var isChg = chg[i] !== undefined;
+    rowEl.style.background = !valid ? 'rgba(200,50,50,.10)' : (isChg ? 'rgba(47,111,176,.10)' : '');
+    if (isChg) {
+      var d = chg[i] - r.awal;
+      dEl.textContent = (d > 0 ? '+' : '') + d;
+      dEl.style.color = d > 0 ? 'var(--ok)' : 'var(--danger)';
+    } else {
+      dEl.textContent = '';
+    }
+  });
+  var c = document.getElementById('stok-bulk-count');
+  if (c) c.textContent = col.bad ? (col.bad + ' kolom belum berisi angka valid')
+    : (col.changed.length ? (col.changed.length + ' SKU berubah') : 'Belum ada perubahan');
+  var btn = document.getElementById('stok-bulk-simpan');
+  if (btn) btn.disabled = _stokBulkBusy || col.bad > 0 || col.changed.length === 0;
+}
+
+function stokBulkKey(e, i) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  for (var j = i + 1; j < _stokBulkRows.length; j++) {
+    var nx = document.getElementById('stok-bulk-inp-' + j);
+    if (nx && !nx.disabled) { nx.focus(); return; }
+  }
+  var b = document.getElementById('stok-bulk-simpan');
+  if (b) b.focus();
+}
+
+function stokBulkTutup() {
+  document.getElementById('modal-stok-bulk').classList.remove('open');
+  _stokBulkRows = [];
+  _stokBulkBusy = false;
+}
+
+// Tap di luar modal cuma nutup kalau gak ada perubahan — biar edit belasan angka
+// gak hilang gara-gara kesenggol.
+function stokBulkOverlayClick(e) {
+  if (e.target !== document.getElementById('modal-stok-bulk')) return;
+  if (_stokBulkCollect().changed.length) return;
+  stokBulkTutup();
+}
+
+async function stokBulkSimpan() {
+  if (_stokBulkBusy) return;
+  var errEl = document.getElementById('stok-bulk-err');
+  var btn   = document.getElementById('stok-bulk-simpan');
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  errEl.style.display = 'none'; errEl.textContent = '';
+  var col = _stokBulkCollect();
+  if (col.bad) { showErr('Ada kolom yang belum berisi angka valid.'); return; }
+  if (!col.changed.length) return;
+
+  _stokBulkBusy = true;
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  var gagal = [];
+  var tutup = false;
+  try {
+    // Cek stok server belum berubah sejak panel dibuka
+    var fresh = await dbGet('stok');
+    var freshMap = {};
+    (fresh || []).forEach(function(s) {
+      freshMap[(s.sku_variasi || '').toUpperCase()] = { id: s.id, qty: s.stok_masuk || 0 };
+    });
+    var konflik = [];
+    col.changed.forEach(function(c) {
+      var r = _stokBulkRows[c.i];
+      var f = freshMap[r.sku];
+      if ((f ? f.qty : 0) !== r.masukLama || (f ? f.id : null) !== r.stokId) konflik.push(r.label);
+    });
+    if (konflik.length) {
+      showErr('Stok ' + konflik.join(', ') + ' sudah berubah di tempat lain (mis. PO baru diterima atau edit dari perangkat lain). Belum ada yang disimpan. Tutup lalu buka Edit Stock lagi biar pakai angka terbaru.');
+    } else {
+      for (var k = 0; k < col.changed.length; k++) {
+        var c = col.changed[k];
+        var r = _stokBulkRows[c.i];
+        var masukBaru = c.target + r.keluar;
+        try {
+          if (r.stokId) {
+            await dbUpdate('stok', r.stokId, { stok_masuk: masukBaru });
+          } else {
+            var ins = await dbInsert('stok', { sku_variasi: r.sku, stok_masuk: masukBaru, stok_keluar: 0, katalog: r.katalog, boss: r.boss, hpp: r.hpp });
+            if (!ins || !ins[0]) throw new Error('insert tidak mengembalikan data');
+            r.stokId = ins[0].id;
+          }
+          await _stokLogKoreksi(r.sku, masukBaru - r.masukLama);
+          r.masukLama = masukBaru;
+          r.awal = c.target;
+        } catch (e) {
+          gagal.push(r.label + ' (' + e.message + ')');
+        }
+      }
+      if (gagal.length) showErr(gagal.length + ' SKU gagal disimpan: ' + gagal.join('; ') + '. Yang lain sudah tersimpan. Klik SIMPAN lagi untuk mengulang yang gagal.');
+      else tutup = true;
+      loadStok();
+    }
+  } catch (e) {
+    showErr('Gagal menyimpan: ' + e.message);
+  } finally {
+    _stokBulkBusy = false;
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> SIMPAN';
+  }
+  if (tutup) stokBulkTutup(); else stokBulkHitung();
+}
+
 // ─── KATALOG DROPDOWN — seperti JP ───────────────────────────
 function _stokGetKatalog(p) { return p.katalog || p.nama_katalog || p.catalog || ''; }
 function _stokGetSku(p)     { return p.sku_variasi || p.sku || p.kode || ''; }
@@ -1111,19 +1330,7 @@ function _stokSkuSheetRenderInduk(q) {
   var katalogs = Object.keys(katalogMap).sort();
   var html = '';
 
-  // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js)
-  if (!q) {
-    var topKat = zHistTop('stok_induk', 5).filter(function(k) { return katalogMap[k]; });
-    if (topKat.length) {
-      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
-      topKat.forEach(function(kat) {
-        html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectInduk(\'' + kat.replace(/'/g,"\\'") + '\')">' +
-          '<span>' + kat + '</span>' +
-          '<span style="font-size:11px;color:var(--ink3)">' + katalogMap[kat] + ' var</span></div>';
-      });
-      html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua SKU ──</div>';
-    }
-  }
+  // 3 Okt 2026: "Sering & Terakhir Digunakan" DICABUT di halaman Stok Produk (permintaan user).
 
   if (!katalogs.length) {
     html += '<div class="jp-sheet-empty">' + (_produkForStok.length === 0 ? 'Produk belum ada — tambah di Kelola Produk' : 'Tidak ada SKU yang cocok') + '</div>';
@@ -1150,19 +1357,7 @@ function _stokSkuSheetRenderVariasi(q) {
   } else if (!items.length) {
     html = '<div class="jp-sheet-empty">' + (q ? 'Tidak ada variasi yang cocok' : 'Belum ada variasi untuk SKU ini') + '</div>';
   } else {
-    // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js). [27 Sep 2026]
-    if (!q) {
-      var topSku = zHistTop('stok_variasi', 5).filter(function(k) {
-        return items.some(function(p) { return _stokGetSku(p).toUpperCase() === k; });
-      });
-      if (topSku.length) {
-        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
-        topSku.forEach(function(sku) {
-          html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\')"><span>' + sku + '</span></div>';
-        });
-        html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em">── Semua ──</div>';
-      }
-    }
+    // 3 Okt 2026: "Sering & Terakhir Digunakan" DICABUT di halaman Stok Produk (permintaan user).
     items.forEach(function(p) {
       var sku = _stokGetSku(p);
       html += '<div class="jp-sheet-item" onclick="stokSkuSheetSelectVariasi(\'' + sku.replace(/'/g,"\\'") + '\')"><span>' + sku + '</span></div>';
@@ -1172,8 +1367,14 @@ function _stokSkuSheetRenderVariasi(q) {
 }
 
 function stokSkuSheetSelectInduk(katalog) {
-  zHistPush('stok_induk', katalog); // riwayat sering/terakhir dipakai
   stokSkuSheetClose();
+  // 3 Okt 2026: mode Edit Stock -> tutup modal Tambah/Edit satuan, langsung buka
+  // daftar SEMUA varian katalog ini (edit massal). cancelStokForm() juga reset intent.
+  if (_stokPickerIntent === 'edit') {
+    cancelStokForm();
+    stokBulkBuka(katalog);
+    return;
+  }
   stokPilihKatalog(katalog);
 }
 
@@ -1213,7 +1414,6 @@ function stokPilihKatalog(katalog, skipAutoOpen) {
 }
 
 function stokSkuSheetSelectVariasi(sku) {
-  zHistPush('stok_variasi', sku.toUpperCase()); // riwayat sering/terakhir dipakai
   _stokSelectedSku = sku.toUpperCase();
   var sel = document.getElementById('inp-sku');
   if (sel) sel.value = sku;
