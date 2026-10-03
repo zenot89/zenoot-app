@@ -111,7 +111,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
          3) tabel induk cuma 3 kolom (SKU Induk, Qty, Modal) — TANPA scroll horizontal
          4) ketuk SKU induk → bottom-sheet ala komen Instagram berisi variasinya, tutup pakai tombol X
        Slide non-aktif disembunyiin lewat visibility (bukan display) biar tinggi container tetap. ──── */
-    #mi-phead, #mi-dots, #mi-metrics-strip .mi-m-phone { display: none; }
+    #mi-phead, #mi-metrics-strip .mi-m-phone, .mi-cdots, #page-clearance-induk .mi-sort-btn { display: none; }
 
     /* ── bottom-sheet variasi (fixed full-screen → CSS-nya GAK di-scope ke halaman, biar gak ketiban overflow:hidden) ── */
     #mi-sheet-overlay {
@@ -152,22 +152,39 @@ document.getElementById('page-clearance-induk').innerHTML = `
     .mi-sh-vel { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 10px; font-weight: 700; border: 1.5px solid; border-radius: 5px; line-height: 1.5; }
     .mi-sh-q { text-align: center; font-weight: 700; }
     .mi-sh-m { text-align: right; white-space: nowrap; color: var(--warn); }
+    .mi-sh-stats:empty { display: none; }
+    #mi-sheet.mi-so .mi-sh-title { padding-bottom: 12px; border-bottom: 1px solid var(--ovl-0_06); }
+    .mi-so-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 8px; font-size: 15px; border-bottom: 1px solid var(--ovl-0_04); cursor: pointer; }
+    .mi-so-row:active { background: var(--ovl-0_08); }
+    .mi-so-ck { visibility: hidden; color: var(--ink); font-weight: 800; }
+    .mi-so-row.on { font-weight: 700; }
+    .mi-so-row.on .mi-so-ck { visibility: visible; }
     .mi-sh-empty { padding: 22px 8px; text-align: center; color: var(--ink3); font-style: italic; font-size: 13px; }
 
     @media (max-width: 767px) {
-      /* header: filter melar, tombol "Detail per SKU" gak kepotong lagi */
-      #page-clearance-induk .mi-header { padding: 10px 12px; }
-      #page-clearance-induk .mi-header-controls { width: 100%; }
-      #page-clearance-induk .mi-select-wrap { -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; }
+      /* header: baris 1 = judul + 2 tombol ikon (urutkan, detail per SKU) sejajar judul; baris 2 = filter.
+         Tombol teks "Detail per SKU" jadi ikon saja → hemat tempat, tabel makin luas. */
+      #page-clearance-induk .mi-header { padding: 10px 12px; gap: 8px; }
+      #page-clearance-induk .mi-header > span { order: 1; -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #page-clearance-induk .mi-header-controls { display: contents; }
+      #page-clearance-induk .mi-header .mi-ibtn {
+        display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; justify-content: center;
+        -webkit-flex: 0 0 auto; flex: 0 0 auto; width: 38px; height: 36px; padding: 0; position: relative;
+      }
+      #page-clearance-induk .mi-header .mi-ibtn i { font-size: 19px; }
+      #page-clearance-induk .mi-header .mi-ibtn .mi-btn-t { display: none; }
+      #page-clearance-induk .mi-sort-btn { order: 2; }
+      #page-clearance-induk .mi-detail-btn { order: 3; }
+      #page-clearance-induk .mi-sort-btn.on::after { content: ''; position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger, #e05c4b); }
+      #page-clearance-induk .mi-select-wrap { order: 4; -webkit-flex: 1 1 100%; flex: 1 1 100%; min-width: 0; }
       #page-clearance-induk .mi-select-wrap select { width: 100%; min-width: 0; max-width: none; }
-      #page-clearance-induk .mi-header-controls .btn { -webkit-flex: 0 0 auto; flex: 0 0 auto; white-space: nowrap; }
 
       /* 1) minicard → carousel: semua kartu ditumpuk di 1 sel grid, geser lewat transform */
       #page-clearance-induk #mi-metrics-strip {
-        display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto;
-        gap: 0; padding: 10px 12px 4px; overflow: hidden; touch-action: pan-y;
+        display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto;
+        gap: 0; padding: 8px 10px 8px; overflow: hidden; touch-action: pan-y;
       }
-      #page-clearance-induk .mi-metric { grid-area: 1 / 1; -webkit-flex: none; flex: none; min-width: 0; width: auto; padding: 14px 16px; will-change: transform; }
+      #page-clearance-induk .mi-metric { grid-area: 1 / 1; -webkit-flex: none; flex: none; min-width: 0; width: auto; padding: 14px 16px; position: relative; will-change: transform; }
       #page-clearance-induk .mi-metric:not(.mi-sl-on) { visibility: hidden; pointer-events: none; }
       /* HP cuma 2 minicard: (1) Total Modal Rp, (2) Total Qty (kiri) + Total SKU (kanan) dalam 1 kartu.
          Kartu "Katalog Terdampak" & "Total Varian SKU" cuma buat laptop. */
@@ -180,9 +197,13 @@ document.getElementById('page-clearance-induk').innerHTML = `
       #page-clearance-induk #mi-metrics-strip .m-label { font-size: 11px; }
       #page-clearance-induk #mi-metrics-strip .m-value { font-size: 26px; }
       #page-clearance-induk #mi-metrics-strip .m-delta { font-size: 11px; }
-      #page-clearance-induk #mi-dots { grid-area: 2 / 1; display: flex; justify-content: center; gap: 6px; padding: 8px 0 2px; }
-      #mi-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink3); opacity: .35; transition: opacity .2s, width .2s; }
-      #mi-dots i.on { opacity: 1; background: var(--ink); width: 16px; border-radius: 3px; }
+      /* indikator swipe = 2 titik DI DALAM tiap minicard, sejajar baris label (kanan atas) */
+      #page-clearance-induk .mi-cdots { display: flex; position: absolute; top: 15px; right: 16px; gap: 5px; }
+      .mi-cdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink3); opacity: .35; transition: opacity .2s, width .2s; }
+      .mi-cdots i.on { opacity: 1; background: var(--ink); width: 16px; border-radius: 3px; }
+      /* sort pindah ke tombol (bottom-sheet) → panah sort di header tabel dimatikan di HP */
+      #page-clearance-induk .mi-col th { pointer-events: none; }
+      #page-clearance-induk .mi-col th [data-sort] { display: none; }
 
       /* 2) dua kolom → dua panel swipe; tab di atas = penanda panel aktif (bisa diketuk juga) */
       /* judul panel AKTIF (1 judul, bukan 2 sejajar) + kanan: chip halaman "1/2" & tombol pindah halaman ↓↑ */
@@ -227,8 +248,11 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <option value="">Semua SKU</option>
           </select>
         </div>
-        <button class="btn btn-sm" onclick="gotoPage('clearance',null)" style="font-size:12px">
-          <i class="ti ti-list-details"></i> Detail per SKU
+        <button class="btn btn-sm mi-sort-btn mi-ibtn" onclick="miSortOpen()" aria-label="Urutkan" title="Urutkan">
+          <i class="ti ti-arrows-sort"></i>
+        </button>
+        <button class="btn btn-sm mi-detail-btn mi-ibtn" onclick="gotoPage('clearance',null)" style="font-size:12px" aria-label="Detail per SKU" title="Detail per SKU">
+          <i class="ti ti-list-details"></i> <span class="mi-btn-t">Detail per SKU</span>
         </button>
       </div>
     </div>
@@ -257,6 +281,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <div class="m-value" id="mi-total-nilai">—</div>
           <div class="m-delta">HPP × sisa (digabung)</div>
         </div>
+        <div class="mi-cdots"><i class="on"></i><i></i></div>
       </div>
       <!-- HP saja: minicard ke-2 = Qty (kiri) + SKU (kanan) -->
       <div class="mi-metric mi-metric-amber mi-m-phone">
@@ -273,9 +298,8 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <div class="m-delta">varian SKU</div>
           </div>
         </div>
+        <div class="mi-cdots"><i class="off"></i><i class="on"></i></div>
       </div>
-      <!-- dot penanda carousel minicard — cuma tampil di HP -->
-      <div id="mi-dots"><i class="on"></i><i></i></div>
     </div>
 
     <!-- HP saja: judul panel aktif + chip halaman + tombol pindah halaman -->
@@ -417,6 +441,7 @@ function miSheetOpen(side, katalog) {
   const isFlash = side === 'kanan';
   const pcs = rows.reduce((s, r) => s + r.sisa, 0);
   const nilai = rows.reduce((s, r) => s + r.nilai, 0);
+  document.getElementById('mi-sheet').classList.remove('mi-so');
   document.getElementById('mi-sh-title').textContent = katalog;
   document.getElementById('mi-sh-stats').innerHTML =
     `<b>${rows.length.toLocaleString('id-ID')}</b>varian · <b>${pcs.toLocaleString('id-ID')}</b>pcs · <b class="mi-sh-rp">${_miFmtRp(nilai)}</b>`;
@@ -439,6 +464,41 @@ function miSheetClose() {
   const sh = document.getElementById('mi-sheet');
   if (ov) ov.classList.remove('open');
   if (sh) sh.classList.remove('open');
+  // class mode-urutkan dilepas SETELAH animasi turun selesai (biar isi sheet gak berubah dulu pas menutup)
+  setTimeout(() => { if (sh && !sh.classList.contains('open')) sh.classList.remove('mi-so'); }, 320);
+}
+
+// ─── URUTKAN (HP): tombol ikon di header → bottom-sheet yang sama dgn variasi ──
+// Mengganti klik header kolom (dimatikan di HP). Satu pilihan berlaku utk kedua panel & sheet variasi.
+const _MI_SORTS = [
+  { col: 'nilai', dir: 'desc', label: 'Modal terbesar' },
+  { col: 'nilai', dir: 'asc',  label: 'Modal terkecil' },
+  { col: 'sisa',  dir: 'desc', label: 'Qty terbanyak' },
+  { col: 'sisa',  dir: 'asc',  label: 'Qty tersedikit' },
+  { col: 'sku',   dir: 'asc',  label: 'SKU A → Z' },
+  { col: 'sku',   dir: 'desc', label: 'SKU Z → A' }
+];
+function miSortOpen() {
+  const curCol = _miSort.col || 'nilai', curDir = _miSort.col ? _miSort.dir : 'desc';  // netral = modal terbesar
+  document.getElementById('mi-sh-title').textContent = 'Urutkan';
+  document.getElementById('mi-sh-stats').innerHTML = '';
+  document.getElementById('mi-sh-list').innerHTML = _MI_SORTS.map((o, i) =>
+    `<div class="mi-so-row${o.col === curCol && o.dir === curDir ? ' on' : ''}" onclick="miSortPick(${i})"><span>${o.label}</span><span class="mi-so-ck">✓</span></div>`).join('');
+  document.getElementById('mi-sh-list').scrollTop = 0;
+  document.getElementById('mi-sheet').classList.add('mi-so');
+  document.getElementById('mi-sheet-overlay').classList.add('open');
+  document.getElementById('mi-sheet').classList.add('open');
+}
+function miSortPick(i) {
+  const o = _MI_SORTS[i];
+  if (!o) return;
+  _miSort = (o.col === 'nilai' && o.dir === 'desc') ? { col: null, dir: null } : { col: o.col, dir: o.dir };
+  miSheetClose();
+  miRenderTable();
+}
+function miUpdateSortBtn() {
+  const b = document.querySelector('#page-clearance-induk .mi-sort-btn');
+  if (b) b.classList.toggle('on', !!_miSort.col);   // titik penanda: urutan bukan default
 }
 
 // ─── ENGINE SWIPE (loop, ikut jari, 2+ slide) ─────────────────
@@ -548,9 +608,7 @@ function _miInitSwipe() {
   const strip = document.getElementById('mi-metrics-strip');
   const wrap  = document.getElementById('mi-split-wrap');
   if (!strip || !wrap || _miCarMetrics) return;
-  _miCarMetrics = _miSwipe(strip, '.mi-metric:not(.mi-m-desk)', cur => {
-    document.querySelectorAll('#mi-dots i').forEach((d, i) => d.classList.toggle('on', i === cur));
-  });
+  _miCarMetrics = _miSwipe(strip, '.mi-metric:not(.mi-m-desk)');  // titik indikator ada di dalam tiap kartu (statis)
   _miCarPanels = _miSwipe(wrap, '.mi-col', cur => {
     _miPaintHead(cur);
   });
@@ -746,6 +804,7 @@ function miRenderTable() {
   if (!_miGroupTotals || !_miFlatRows) return;
   miUpdateMetrics();
   miUpdateSortIcons();
+  miUpdateSortBtn();
   _miRenderSide('kiri');
   _miRenderSide('kanan');
 }
