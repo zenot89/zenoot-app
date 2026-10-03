@@ -28,22 +28,27 @@ document.getElementById('page-clearance-induk').innerHTML = `
     .mi-blk::-webkit-scrollbar { width: 7px; height: 7px; }
     .mi-blk::-webkit-scrollbar-track { background: transparent; }
     .mi-blk::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 4px; }
-    .mi-blk-induk { -webkit-flex: 1 1 42%; flex: 1 1 42%; }
-    .mi-blk-var   { -webkit-flex: 1 1 58%; flex: 1 1 58%; }
+    /* 3 Okt 2026 (revisi 2): pola halaman Channel — MASTER di kiri, DETAIL di kanan, berdampingan
+       di dalam tiap kolom. Daftar induk & variasi sama-sama setinggi kolom, jadi gak ada lagi
+       rebutan tinggi antar blok. */
+    .mi-pane-row { -webkit-flex: 1 1 0; flex: 1 1 0; min-height: 0; display: -webkit-flex; display: flex; flex-direction: row; }
+    .mi-blk-induk { -webkit-flex: 0 0 40%; flex: 0 0 40%; min-width: 0; border-right: 1px solid var(--ovl-0_06); }
+    .mi-pane-var  { -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; min-height: 0; display: -webkit-flex; display: flex; flex-direction: column; }
+    .mi-blk-var   { -webkit-flex: 1 1 0; flex: 1 1 0; min-height: 0; }
     .mi-col .tbl { width: 100%; }
     .mi-col .tbl th {
-      padding: 10px 16px; font-size: 11px; letter-spacing: .08em; color: var(--ink3);
+      padding: 10px 12px; font-size: 11px; letter-spacing: .08em; color: var(--ink3);
       position: sticky; top: 0; z-index: 3; background: var(--cream3); box-shadow: none;
       border-bottom: 1px solid var(--ovl-0_06); border-radius: 0; white-space: nowrap;
     }
     .mi-col .tbl td {
-      padding: 10px 16px; font-size: 13.5px; font-variant-numeric: tabular-nums;
+      padding: 10px 12px; font-size: 13.5px; font-variant-numeric: tabular-nums;
       border-bottom: 1px solid var(--ovl-0_04); vertical-align: middle;
     }
-    .mi-col .tbl .c-qty  { width: 74px;  text-align: center; }
-    .mi-col .tbl .c-mdl  { width: 124px; text-align: right; }
-    .mi-col .tbl .c-sup  { width: 96px; }
-    .mi-col .tbl .c-st   { width: 92px;  text-align: center; }
+    .mi-col .tbl .c-qty  { width: 58px;  text-align: center; }
+    .mi-col .tbl .c-mdl  { width: 104px; text-align: right; white-space: nowrap; }
+    .mi-col .tbl .c-sup  { width: 84px; }
+    .mi-col .tbl .c-st   { width: 84px;  text-align: center; }
     .mi-induk-row { cursor: pointer; }
     .mi-induk-row td { font-weight: 600; }
     .mi-induk-row.mi-sel td { background: var(--ovl-0_06); box-shadow: inset 3px 0 0 var(--accent); }
@@ -53,10 +58,11 @@ document.getElementById('page-clearance-induk').innerHTML = `
     .mi-modal { color: var(--warn); }
     .mi-vhead {
       -webkit-flex-shrink: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      padding: 12px 16px; background: var(--ovl-0_05);
-      border-top: 1px solid var(--ovl-0_06); border-bottom: 1px solid var(--ovl-0_06);
+      flex-wrap: wrap;
+      padding: 11px 14px; background: var(--ovl-0_05);
+      border-bottom: 1px solid var(--ovl-0_06);
     }
-    .mi-vhead-l { min-width: 0; }
+    .mi-vhead-l { min-width: 0; -webkit-flex: 1 1 auto; flex: 1 1 auto; }
     .mi-vhead-t { display: block; font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mi-vhead-s { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 1px; }
     .mi-vhead-r { display: flex; align-items: baseline; justify-content: flex-end; flex-wrap: wrap; gap: 4px 18px; text-align: right; }
@@ -72,7 +78,10 @@ document.getElementById('page-clearance-induk').innerHTML = `
     }
     @media (max-width: 900px) {
       #mi-split-wrap { overflow-y: auto; }
-      #mi-split-wrap > .mi-col { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 620px; }
+      #mi-split-wrap > .mi-col { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 640px; }
+      .mi-pane-row { flex-direction: column; }
+      .mi-blk-induk { -webkit-flex: 1 1 45%; flex: 1 1 45%; border-right: none; border-bottom: 1px solid var(--ovl-0_06); }
+      .mi-pane-var  { -webkit-flex: 1 1 55%; flex: 1 1 55%; }
     }
   </style>
   <div class="card">
@@ -122,6 +131,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
       <!-- KOLOM KIRI — Clearance -->
       <div class="mi-col" id="mi-col-kiri">
         <div class="mi-col-title"><span><i class="ti ti-stack-2"></i> Clearance — Modal Tertahan</span><span class="mi-col-sub">non-aktif · dead · zombie</span></div>
+        <div class="mi-pane-row">
         <div class="mi-blk mi-blk-induk">
           <table class="tbl">
             <thead><tr>
@@ -132,6 +142,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <tbody id="mi-tbody"><tr><td colspan="3" class="mi-empty">Memuat data...</td></tr></tbody>
           </table>
         </div>
+        <div class="mi-pane-var">
         <div class="mi-vhead" id="mi-vhead-kiri"><span class="mi-vhead-empty">Pilih SKU induk di atas</span></div>
         <div class="mi-blk mi-blk-var">
           <table class="tbl">
@@ -144,12 +155,15 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <tbody id="mi-vbody-kiri"></tbody>
           </table>
         </div>
+        </div>
+        </div>
         <div class="mi-col-foot" id="mi-footer"></div>
       </div>
 
       <!-- KOLOM KANAN — Kandidat Flash Sale (tampilan identik) -->
       <div class="mi-col" id="mi-col-kanan">
         <div class="mi-col-title"><span><i class="ti ti-bolt"></i> Kandidat Flash Sale</span><span class="mi-col-sub">sisa ≥ 3 pcs</span></div>
+        <div class="mi-pane-row">
         <div class="mi-blk mi-blk-induk">
           <table class="tbl">
             <thead><tr>
@@ -160,6 +174,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <tbody id="mi-flash-tbody"><tr><td colspan="3" class="mi-empty">Memuat data...</td></tr></tbody>
           </table>
         </div>
+        <div class="mi-pane-var">
         <div class="mi-vhead" id="mi-vhead-kanan"><span class="mi-vhead-empty">Pilih SKU induk di atas</span></div>
         <div class="mi-blk mi-blk-var">
           <table class="tbl">
@@ -172,6 +187,8 @@ document.getElementById('page-clearance-induk').innerHTML = `
             </tr></thead>
             <tbody id="mi-vbody-kanan"></tbody>
           </table>
+        </div>
+        </div>
         </div>
         <div class="mi-col-foot" id="mi-flash-footer"></div>
       </div>
