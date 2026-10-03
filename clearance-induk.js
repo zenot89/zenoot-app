@@ -32,9 +32,17 @@ document.getElementById('page-clearance-induk').innerHTML = `
        di dalam tiap kolom. Daftar induk & variasi sama-sama setinggi kolom, jadi gak ada lagi
        rebutan tinggi antar blok. */
     .mi-pane-row { -webkit-flex: 1 1 0; flex: 1 1 0; min-height: 0; display: -webkit-flex; display: flex; flex-direction: row; }
-    .mi-blk-induk { -webkit-flex: 0 0 40%; flex: 0 0 40%; min-width: 0; border-right: 1px solid var(--ovl-0_06); }
+    .mi-blk-induk { -webkit-flex: 0 0 42%; flex: 0 0 42%; min-width: 0; border-right: 1px solid var(--ovl-0_06); }
     .mi-pane-var  { -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; min-height: 0; display: -webkit-flex; display: flex; flex-direction: column; }
     .mi-blk-var   { -webkit-flex: 1 1 0; flex: 1 1 0; min-height: 0; }
+    /* 3 Okt 2026 (revisi 3): 3 minicard SEJAJAR 1 baris (dulu kartu ke-3 turun ke baris 2 karena
+       3×(33.3%−7px)+2 gap melebihi 100%) + dipadatkan → area tabel lebih tinggi */
+    #page-clearance-induk #mi-metrics-strip { -webkit-flex-wrap: nowrap; flex-wrap: nowrap; gap: 12px; padding: 10px 20px; }
+    #page-clearance-induk .mi-metric { -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; padding: 9px 14px; }
+    @media (max-width: 700px) {
+      #page-clearance-induk #mi-metrics-strip { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+      #page-clearance-induk .mi-metric { -webkit-flex: 1 1 calc(50% - 6px); flex: 1 1 calc(50% - 6px); min-width: 140px; }
+    }
     .mi-col .tbl { width: 100%; }
     .mi-col .tbl th {
       padding: 10px 12px; font-size: 11px; letter-spacing: .08em; color: var(--ink3);
@@ -49,6 +57,10 @@ document.getElementById('page-clearance-induk').innerHTML = `
     .mi-col .tbl .c-mdl  { width: 104px; text-align: right; white-space: nowrap; }
     .mi-col .tbl .c-sup  { width: 84px; }
     .mi-col .tbl .c-st   { width: 84px;  text-align: center; }
+    /* style.css global memaksa .tbl td nowrap → nama + "12 varian" + chip status gak mau turun baris
+       dan tabel induk melebar melewati panelnya (kolom Modal kepotong). Sel nama boleh wrap. */
+    .mi-blk-induk .tbl td { white-space: normal; }
+    .mi-blk-induk .tbl td.c-qty, .mi-blk-induk .tbl td.c-mdl { white-space: nowrap; }
     .mi-induk-row { cursor: pointer; }
     .mi-induk-row td { font-weight: 600; }
     .mi-induk-row.mi-sel td { background: var(--ovl-0_06); box-shadow: inset 3px 0 0 var(--accent); }
