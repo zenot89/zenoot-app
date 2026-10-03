@@ -185,6 +185,13 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-bon-main { flex:1; min-width:0; }
     .hs-bon-top  { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
     .hs-bon-nama { font-weight:700; font-size:14px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* 3 Okt 2026: ikon (?) kecil di sebelah nama supplier pada bon otomatis (gantikan teks "Otomatis dari penjualan") */
+    .hs-bon-nama-wrap { display:flex; align-items:center; gap:6px; min-width:0; }
+    .hs-bon-info { flex:none; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; border:1.5px solid var(--ink3); color:var(--ink3); font-size:9.5px; font-weight:800; line-height:1; cursor:pointer; user-select:none; }
+    .hs-bon-info:hover { border-color:var(--ink); color:var(--ink); }
+    .hs-info-bubble { position:fixed; z-index:99999; background:var(--ink); color:var(--cream); font-size:12px; font-weight:600; padding:7px 11px; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; max-width:240px; }
+    /* 3 Okt 2026: hari + tanggal tebal di rincian bon */
+    .hs-detail-summary-tgl { font-size:17px; font-weight:800; color:var(--ink); margin-bottom:4px; letter-spacing:.1px; }
     .hs-bon-badge { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap; }
     .hs-badge-belum { background:rgba(230,168,23,.15); color:var(--warn); }
     .hs-badge-cicil { background:rgba(62,207,106,.12); color:var(--ok); }
@@ -665,6 +672,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div class="hs-sheet-body">
         <div class="hs-detail-summary">
           <div class="hs-detail-summary-txt">
+            <div class="hs-detail-summary-tgl" id="hs-detail-tgl"></div>
             <div class="hs-detail-summary-total" id="hs-detail-total">Rp0</div>
             <div class="hs-detail-summary-sisa" id="hs-detail-sisa">Sisa Rp0</div>
           </div>
@@ -1871,7 +1879,7 @@ function hsRenderBonList() {
     return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')">' +
       '<div class="hs-donut" style="--pct:' + pct + ';--donut-color:' + donutColor + '"><span>' + pct + '%</span></div>' +
       '<div class="hs-bon-main">' +
-        '<div class="hs-bon-top"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
+        '<div class="hs-bon-top"><div class="hs-bon-nama-wrap"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div>' + (_hsBonIsOtomatis(b) ? '<span class="hs-bon-info" title="Otomatis dari penjualan" onclick="event.stopPropagation();hsBonInfoOtomatis(this)">?</span>' : '') + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
         '<div class="hs-bon-sub">' + _hsFmtTgl(b.tanggal) + _hsBonNotaLabel(b) + ' · Total ' + fmtRpFull(b.total) + '</div>' +
         (st.sisa > 0 ? '<div class="hs-bon-sisa">Sisa ' + fmtRpFull(st.sisa) + '</div>' : '') +
         (warnN ? '<div class="hs-bon-sisa" style="color:var(--warn)">⚠ ' + warnN + ' barang belum ada harga — total belum lengkap</div>' : '') +
@@ -2924,10 +2932,31 @@ function _hsDsNota(supNama, ymd) {
   return 'DS-' + slug + '-' + ymd.replace(/-/g, '');
 }
 // Label tambahan di kartu Bon untuk bon otomatis; selain itu no_nota apa adanya.
+function _hsBonIsOtomatis(b) {
+  return !!(b && b.no_nota && b.mode_beli === 'dropship' && /^DS-[A-Z0-9]+-\d{8}$/.test(b.no_nota));
+}
+// 3 Okt 2026: teks "Otomatis dari penjualan" dihapus dari baris kartu → diganti ikon (?) di sebelah nama supplier.
 function _hsBonNotaLabel(b) {
   if (!b || !b.no_nota) return '';
-  if (b.mode_beli === 'dropship' && /^DS-[A-Z0-9]+-\d{8}$/.test(b.no_nota)) return ' · Otomatis dari penjualan';
+  if (_hsBonIsOtomatis(b)) return '';
   return ' · ' + _hsEsc(b.no_nota);
+}
+// Bubble kecil saat (?) diketuk; hilang sendiri 2,5 dtk / saat ketuk di mana saja.
+function hsBonInfoOtomatis(el) {
+  var lama = document.getElementById('hs-info-bubble');
+  if (lama) lama.remove();
+  var r = el.getBoundingClientRect();
+  var b = document.createElement('div');
+  b.id = 'hs-info-bubble'; b.className = 'hs-info-bubble';
+  b.textContent = 'Otomatis dari penjualan';
+  document.body.appendChild(b);
+  var w = b.offsetWidth;
+  var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  b.style.left = left + 'px';
+  b.style.top = (r.bottom + 6) + 'px';
+  var tutup = function() { var x = document.getElementById('hs-info-bubble'); if (x) x.remove(); document.removeEventListener('click', tutup, true); };
+  setTimeout(function() { document.addEventListener('click', tutup, true); }, 0);
+  setTimeout(tutup, 2500);
 }
 // Daftar tanggal [dari..sampai] inklusif
 function _hsDsRentang(dari, sampai) {
@@ -3417,6 +3446,8 @@ async function hsOpenDetailBon(bonId) {
   var st = _hsSisaBon(b);
   var pct = b.total > 0 ? Math.round((st.bayar / b.total) * 100) : 0;
   pct = Math.max(0, Math.min(100, pct));
+  var tglEl = document.getElementById('hs-detail-tgl');
+  if (tglEl) tglEl.textContent = _hsFmtTglPanjang(b.tanggal);
   document.getElementById('hs-detail-total').textContent = 'Total ' + fmtRpFull(b.total);
   document.getElementById('hs-detail-sisa').textContent  = st.sisa > 0 ? 'Sisa ' + fmtRpFull(st.sisa) : 'Lunas';
   var donut = document.getElementById('hs-detail-donut');
@@ -4588,6 +4619,15 @@ function _hsEsc(s) {
 }
 function _hsEscAttr(s) { return _hsEsc(s); }
 
+// "Sabtu, 3 Oktober 2026" — dipakai di rincian bon
+function _hsFmtTglPanjang(iso) {
+  if (!iso) return '—';
+  var d = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return hari[d.getDay()] + ', ' + d.getDate() + ' ' + bln[d.getMonth()] + ' ' + d.getFullYear();
+}
 function _hsFmtTgl(iso) {
   if (!iso) return '—';
   var d = new Date(iso + 'T00:00:00');
