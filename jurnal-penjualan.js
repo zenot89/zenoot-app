@@ -6,19 +6,16 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <div id="jp-top-bar">
     <!-- TOOLBAR LAPTOP: filter + tab dalam satu baris -->
     <div id="jp-aksi-laptop" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;margin-bottom:0;border-bottom:2px solid var(--ink4);padding-bottom:0">
-      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px;flex-shrink:0">
         <i class="ti ti-refresh"></i>
       </button>
-      <button class="btn btn-sm" id="jp-periode-btn-laptop" onclick="jpTogglePeriode()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
+      <!-- 3 Okt 2026: tombol Periode + Channel digabung jadi 1 tombol → 1 sheet (jpPerSheetOpen),
+           sama dengan versi HP. Label diisi _jpFilterBtnSync(). -->
+      <button class="btn btn-sm jp-filter-btn" id="jp-filter-btn-laptop" onclick="jpPerSheetOpen()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px;max-width:380px;min-width:0">
         <i class="ti ti-calendar"></i>
-        <span class="jp-periode-label-sync">Minggu Ini</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" id="jp-channel-btn-laptop" onclick="jpToggleChannel()"
-        style="display:flex;align-items:center;gap:4px;font-size:12px">
-        <i class="ti ti-building-store"></i>
-        <span class="jp-channel-label-sync">Channel</span>
+        <span class="jp-filter-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Minggu Ini</span>
+        <span class="jp-filter-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
       <!-- 19 Sep 2026: 2 tombol Jurnal/Tren digabung jadi 1 toggle (permintaan
@@ -34,25 +31,18 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     </div>
     <!-- TOOLBAR MOBILE: filter + tab dalam satu baris -->
     <div id="jp-aksi-mobile" style="display:flex;gap:4px;margin-bottom:0;align-items:center;flex-wrap:nowrap;border-bottom:2px solid var(--ink4);padding-bottom:0">
-      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px">
+      <button class="btn btn-sm" onclick="loadJurnalPenjualan()" title="Refresh" style="padding:4px 8px;flex-shrink:0">
         <i class="ti ti-refresh"></i>
       </button>
-      <button class="btn btn-sm" id="jp-periode-btn" onclick="jpPerSheetOpen()"
-        style="display:flex;align-items:center;gap:3px;font-size:11px">
-        <i class="ti ti-calendar"></i>
-        <span id="jp-periode-label">Minggu Ini</span>
-        <span id="jp-periode-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-        <span style="font-size:10px">&#9662;</span>
-      </button>
-      <button class="btn btn-sm" id="jp-channel-btn" onclick="jpToggleChannel()"
-        style="display:flex;align-items:center;gap:3px;font-size:11px">
-        <i class="ti ti-building-store"></i>
-        <span id="jp-channel-label">Channel</span>
-        <span id="jp-channel-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
-        <span style="font-size:10px">&#9662;</span>
+      <button class="btn btn-sm jp-filter-btn" id="jp-filter-btn" onclick="jpPerSheetOpen()"
+        style="display:flex;align-items:center;gap:3px;font-size:11px;min-width:0;flex:0 1 auto">
+        <i class="ti ti-calendar" style="flex-shrink:0"></i>
+        <span class="jp-filter-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Minggu Ini</span>
+        <span class="jp-filter-badge" style="display:none;flex-shrink:0;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
+        <span style="font-size:10px;flex-shrink:0">&#9662;</span>
       </button>
       <button class="btn btn-sm" id="jp-tab-toggle-mob" onclick="jpToggleTab()"
-        style="display:flex;align-items:center;gap:3px;font-size:11px;margin-left:auto">
+        style="display:flex;align-items:center;gap:3px;font-size:11px;margin-left:auto;flex-shrink:0">
         <i class="ti ti-chart-line" id="jp-tab-toggle-icon-mob"></i>
         <span id="jp-tab-toggle-label-mob">Tren</span>
       </button>
@@ -449,9 +439,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     }
 
     /* ── 3 Okt 2026: PICKER PERIODE HP — bottom sheet ala komentar Instagram ──
-       Dipakai HANYA oleh tombol periode di toolbar HP (#jp-periode-btn).
-       Tombol/panel laptop (#jp-periode-btn-laptop → #jp-periode-panel) tidak
-       diubah. Layer 600/601 = sama dgn sheet Kas/Stok (di atas nav). ── */
+       Sejak 3 Okt 2026 dipakai tombol gabungan Periode+Channel di HP DAN laptop
+       (#jp-filter-btn / #jp-filter-btn-laptop). Layer 600/601 = sama dgn sheet Kas/Stok (di atas nav). ── */
     #jp-per-overlay {
       position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.5);
       opacity: 0; visibility: hidden; touch-action: none;
@@ -524,6 +513,45 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     }
     .jp-pg-item.today { box-shadow: inset 0 0 0 1.5px var(--ink4); }
     .jp-pg-item.sel { background: var(--ink); color: var(--cream); }
+    /* ── 3 Okt 2026: sheet gabungan Periode + Channel — tab, footer Terapkan, daftar channel ── */
+    #jp-per-tabs { flex: none; display: flex; gap: 6px; padding: 0 12px 8px; }
+    #jp-per-sheet.sub #jp-per-tabs, #jp-per-sheet.sub #jp-per-foot { display: none; }
+    .jp-pt {
+      flex: 1; padding: 9px 0; border: none; border-radius: 10px; background: var(--ovl-0_06);
+      color: var(--ink3); font-family: var(--f); font-size: 14px; font-weight: 700; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .jp-pt.active { background: var(--ink); color: var(--cream); }
+    #jp-per-foot { flex: none; display: flex; gap: 10px; padding: 10px 12px 6px; border-top: 1px solid var(--ovl-0_08); }
+    .jp-pf-reset {
+      flex: none; padding: 10px 18px; border: none; border-radius: 10px; background: var(--ovl-0_06);
+      color: var(--ink); font-family: var(--f); font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    #jp-per-foot .jp-pc-apply { flex: 1; }
+    .jp-pl-group { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--ink3); padding: 12px 12px 4px; text-transform: uppercase; }
+    .jp-pl-empty { padding: 16px 12px; font-size: 13px; color: var(--ink3); }
+    @media (hover: hover) {
+      .jp-pl-item:hover { background: var(--ovl-0_06); }
+      .jp-pt:not(.active):hover, .jp-pf-reset:hover { background: var(--ovl-0_08); }
+    }
+    /* Laptop / layar lebar: sheet yang sama tampil sebagai dialog di tengah layar (isi identik dengan HP) */
+    @media (min-width: 768px) and (min-height: 521px) {
+      #jp-per-overlay { touch-action: auto; }
+      #jp-per-sheet {
+        left: 50%; right: auto; top: 50%; bottom: auto; margin: 0;
+        width: 440px; max-width: calc(100vw - 32px); max-height: 80vh;
+        border-radius: 16px; padding-bottom: 6px; opacity: 0;
+        transform: translate(-50%, -46%) scale(.98);
+        transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
+        box-shadow: 0 12px 40px rgba(0,0,0,.35);
+      }
+      #jp-per-sheet.open {
+        opacity: 1; transform: translate(-50%, -50%);
+        transition: transform .2s ease, opacity .2s ease, visibility 0s;
+      }
+      #jp-per-handle { display: none; }
+      #jp-per-head { padding-top: 6px; }
+    }
     @media (max-height: 520px) {
       .jp-pc-day { height: 32px; font-size: 13px; }
       .jp-pl-item { padding: 10px 12px; }
@@ -967,6 +995,7 @@ async function loadChannelDropdownJP() {
 
     _jpChannelMap = {};
     data.forEach(ch => { _jpChannelMap[ch.id] = ch; });
+    _jpChannelList = data.slice();   // 3 Okt 2026: urutan asli (nama asc) utk tab Channel di sheet filter
 
     // Label + icon per kategori
     const katConfig = {
@@ -1049,6 +1078,8 @@ async function loadChannelDropdownJP() {
       });
     }
 
+    _jpFilterBtnSync();
+    _jpPerRefreshIfOpen();   // kalau sheet filter sedang terbuka, gambar ulang tab Channel
   } catch(e) {
     console.warn('channel dropdown error:', e.message);
     var chEl = document.getElementById('jp-channel');
@@ -1488,6 +1519,10 @@ function _jpPositionPanel(btnId, panelId) {
   panel.style.left = rect.left + 'px';
 }
 
+// ─── DEAD CODE (3 Okt 2026) ──────────────────────────────────
+// jpTogglePeriode / jpToggleChannel / panel radio & panel channel lama tidak lagi dipanggil
+// tombol manapun (diganti 1 tombol gabungan → jpPerSheetOpen). Dipertahankan apa adanya
+// (minim blast radius); hidden input di dalam panel-nya tetap dipakai sebagai state filter aktif.
 // ─── FILTER PANEL: PERIODE ───────────────────────────────────
 function jpTogglePeriode() {
   var panel = document.getElementById('jp-periode-panel');
@@ -1626,6 +1661,7 @@ function jpUpdateBadge() {
   // Update label
   jpUpdatePeriodeLabel();
   jpUpdateChannelLabel();
+  _jpFilterBtnSync();   // 3 Okt 2026: label + titik indikator tombol gabungan
 }
 function jpResetFilter() {
   jpResetPeriode();
@@ -1874,37 +1910,55 @@ function _jpMingguLabelUpdate() {
   lbl.textContent = (sampai && sampai !== dari) ? (fmt(dari) + ' – ' + fmt(sampai)) : fmt(dari);
 }
 
-// ═══ PICKER PERIODE HP — BOTTOM SHEET ALA KOMENTAR INSTAGRAM (3 Okt 2026) ═══
-// Pengganti kotak radio melayang (#jp-periode-panel) KHUSUS tombol periode di
-// toolbar HP (#jp-periode-btn → jpPerSheetOpen). Tombol laptop tetap memanggil
-// jpTogglePeriode() + panel lama — TIDAK diubah sama sekali.
-// Sheet ini TIDAK punya logic query sendiri: ia cuma mengisi _jpWaktuMode +
-// hidden input yang sudah dipakai loadJurnalPenjualan() (jp-filter-minggu-dari/
-// sampai, jp-filter-bulan, jp-filter-tahun) + 1 hidden baru jp-filter-hari
-// (mode 'hari' = tanggal tunggal), lalu memanggil loadJurnalPenjualan().
-// Kenapa sheet (bukan dropdown melayang): panel lama dihitung posisinya dari
-// getBoundingClientRect tombol + dibuka/ditutup lewat listener klik-luar ber-
-// timer 50ms — gampang meleset di HP (scroll/rotasi/keyboard) dan kalender
-// range 2-bulan terlalu lebar buat layar HP. Sheet fixed di bawah tidak
-// bergantung posisi tombol sama sekali.
+// ═══ PICKER FILTER (PERIODE + CHANNEL) — 1 SHEET UNTUK HP & LAPTOP (3 Okt 2026) ═══
+// Menggantikan 2 tombol terpisah (Periode & Channel) dan 2 sistem picker
+// (panel radio melayang di laptop + bottom sheet di HP) dengan SATU tombol
+// (#jp-filter-btn-laptop / #jp-filter-btn) → SATU sheet (#jp-per-sheet) berisi
+// 2 tab: Periode | Channel. Isi & logic sama persis di laptop dan HP; bedanya
+// cuma bentuk (CSS): HP = bottom sheet, laptop (>=768px & tinggi >520px) =
+// dialog di tengah layar.
+// Sheet TIDAK punya logic query sendiri. Alurnya:
+//   buka sheet -> salin state aktif ke _jpDraft -> user ubah draft (periode/channel)
+//   -> tombol Terapkan (jpFilterApply) menulis draft ke state aktif:
+//      _jpWaktuMode + hidden input yang sudah dipakai loadJurnalPenjualan()/filterJP()
+//      (jp-filter-minggu-dari/sampai, jp-filter-bulan, jp-filter-tahun, jp-filter-hari,
+//      jp-filter-channel) lalu memanggil loadJurnalPenjualan() (kalau periode berubah)
+//      atau filterJP() (kalau cuma channel berubah).
+// Tutup tanpa Terapkan = draft dibuang, filter aktif tidak berubah.
+// Preset "Minggu Lalu / Bulan Lalu / 3 Bulan Terakhir" disimpan sebagai mode 'minggu'
+// (rentang dari-sampai) supaya query & chart tidak perlu diubah; labelnya dikenali
+// lagi lewat _jpPerPresetOf().
+// Panel lama (#jp-periode-panel, #jp-channel-panel, jpTogglePeriode, jpToggleChannel,
+// range picker 2 bulan) TIDAK dihapus: sekarang tidak dipanggil tombol manapun (dead
+// code), tapi hidden input di dalamnya (jp-filter-minggu-*, jp-filter-bulan,
+// jp-filter-tahun, jp-filter-channel) masih dipakai sebagai penyimpan state aktif.
 var _JP_PER_ITEMS = [
-  { k: 'minggu-ini', l: 'Minggu Ini' },
-  { k: 'bulan-ini',  l: 'Bulan Ini' },
-  { k: 'hari-ini',   l: 'Hari Ini' },
-  { k: 'kemarin',    l: 'Kemarin' },
-  { k: '7hari',      l: '7 Hari Terakhir' },
-  { k: 'hari',       l: 'Hari',   sub: true },
-  { k: 'minggu',     l: 'Minggu', sub: true },
-  { k: 'bulan',      l: 'Bulan',  sub: true },
-  { k: 'tahun',      l: 'Tahun',  sub: true },
-  { k: 'semua',      l: 'Semua' }
+  { k: 'minggu-ini',  l: 'Minggu Ini' },
+  { k: 'minggu-lalu', l: 'Minggu Lalu',       preset: true },
+  { k: 'bulan-ini',   l: 'Bulan Ini' },
+  { k: 'bulan-lalu',  l: 'Bulan Lalu',        preset: true },
+  { k: 'hari-ini',    l: 'Hari Ini' },
+  { k: 'kemarin',     l: 'Kemarin' },
+  { k: '7hari',       l: '7 Hari Terakhir' },
+  { k: '3bulan',      l: '3 Bulan Terakhir',  preset: true },
+  { k: 'hari',        l: 'Hari',   sub: true },
+  { k: 'minggu',      l: 'Minggu', sub: true },
+  { k: 'bulan',       l: 'Bulan',  sub: true },
+  { k: 'tahun',       l: 'Tahun',  sub: true },
+  { k: 'semua',       l: 'Semua' }
 ];
-var _JP_PER_TITLES = { list: 'Pilih Periode', hari: 'Pilih Hari', minggu: 'Pilih Minggu', bulan: 'Pilih Bulan', tahun: 'Pilih Tahun' };
+var _JP_PER_PRESET_KEYS = ['minggu-lalu', 'bulan-lalu', '3bulan'];
+var _JP_PER_SHORT = { 'hari-ini': 'Hari Ini', 'kemarin': 'Kemarin', '7hari': '7 Hari', 'minggu-ini': 'Minggu Ini', 'bulan-ini': 'Bulan Ini', 'hari': 'Hari', 'minggu': 'Minggu', 'bulan': 'Bulan', 'tahun': 'Tahun', 'semua': 'Semua' };
+var _JP_PER_TITLES = { list: 'Pilih Periode', channel: 'Pilih Channel', hari: 'Pilih Hari', minggu: 'Pilih Minggu', bulan: 'Pilih Bulan', tahun: 'Pilih Tahun' };
 var _JP_NAMA_BULAN_PANJANG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-var _jpPer = { view: 'list', calY: 0, calM: 0, rStart: null, rEnd: null, bYear: 0 };
+var _JP_KAT_LABEL = { toko_utama: 'Toko Utama', reseller: 'Dropship', reseller_baru: 'Reseller', lazada: 'Lazada', tiktok: 'TikTok', offline: 'Offline' };   // sama dgn katConfig di loadChannelDropdownJP (key DB reseller = Dropship)
+var _jpChannelList = [];   // urutan asli dari loadChannelDropdownJP (order nama asc) — _jpChannelMap kehilangan urutan karena key numerik
+var _jpPer = { view: 'list', tab: 'periode', calY: 0, calM: 0, rStart: null, rEnd: null, bYear: 0 };
+var _jpDraft = null;
 
 function _jpPerVal(id) { return (document.getElementById(id) || {}).value || ''; }
 function _jpPerPad(n) { return String(n).padStart(2, '0'); }
+function _jpPerEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 // 'YYYY-MM-DD' -> '30 Sep' (tambah tahun kalau bukan tahun berjalan)
 function _jpPerFmt(str) {
@@ -1914,15 +1968,35 @@ function _jpPerFmt(str) {
   if (parseInt(p[0], 10) !== new Date().getFullYear()) out += ' ' + p[0];
   return out;
 }
-// Ringkasan pilihan aktif utk mode yang butuh sub-input; '' kalau mode biasa.
-function _jpPerSummary() {
-  var mode = _jpWaktuMode;
-  if (mode === 'hari') {
-    var h = _jpPerVal('jp-filter-hari');
-    return h ? _jpPerFmt(h) : '';
-  }
+
+// State filter yang SEDANG AKTIF (sumber: _jpWaktuMode + hidden input).
+function _jpPerCommitted() {
+  return {
+    mode:   _jpWaktuMode || 'minggu-ini',
+    hari:   _jpPerVal('jp-filter-hari'),
+    dari:   _jpPerVal('jp-filter-minggu-dari'),
+    sampai: _jpPerVal('jp-filter-minggu-sampai'),
+    bulan:  _jpPerVal('jp-filter-bulan'),
+    tahun:  _jpPerVal('jp-filter-tahun'),
+    ch:     _jpPerVal('jp-filter-channel')
+  };
+}
+// Kunci periode: dipakai membandingkan apakah periode berubah (perlu fetch ulang) atau cuma channel.
+function _jpPerKey(o) {
+  var v = '';
+  if (o.mode === 'hari')        v = o.hari;
+  else if (o.mode === 'minggu') v = o.dari + '~' + o.sampai;
+  else if (o.mode === 'bulan')  v = o.bulan;
+  else if (o.mode === 'tahun')  v = o.tahun;
+  return o.mode + '|' + v;
+}
+// Ringkasan pilihan utk mode yang butuh sub-input; '' kalau mode biasa.
+function _jpPerSummary(o) {
+  o = o || _jpPerCommitted();
+  var mode = o.mode;
+  if (mode === 'hari') return o.hari ? _jpPerFmt(o.hari) : '';
   if (mode === 'minggu') {
-    var d = _jpPerVal('jp-filter-minggu-dari'), e = _jpPerVal('jp-filter-minggu-sampai');
+    var d = o.dari, e = o.sampai;
     if (!d) return '';
     if (!e || e === d) return _jpPerFmt(d);
     var pd = d.split('-'), pe = e.split('-');
@@ -1930,13 +2004,66 @@ function _jpPerSummary() {
     return _jpPerFmt(d) + '–' + _jpPerFmt(e);
   }
   if (mode === 'bulan') {
-    var b = _jpPerVal('jp-filter-bulan');
-    if (!b) return '';
-    var pb = b.split('-');
+    if (!o.bulan) return '';
+    var pb = o.bulan.split('-');
     return _JP_NAMA_BULAN_PENDEK[parseInt(pb[1], 10) - 1] + ' ' + pb[0];
   }
-  if (mode === 'tahun') return _jpPerVal('jp-filter-tahun');
+  if (mode === 'tahun') return o.tahun || '';
   return '';
+}
+
+// Rentang tanggal preset (relatif terhadap hari ini). Minggu = Minggu–Sabtu (sama dgn definisi minggu di app).
+function _jpPerPresetRange(key) {
+  var n = new Date(), s, e;
+  if (key === 'minggu-lalu') {
+    var ts = new Date(n.getFullYear(), n.getMonth(), n.getDate() - n.getDay());
+    s = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate() - 7);
+    e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
+  } else if (key === 'bulan-lalu') {
+    s = new Date(n.getFullYear(), n.getMonth() - 1, 1);
+    e = new Date(n.getFullYear(), n.getMonth(), 0);
+  } else if (key === '3bulan') {
+    s = new Date(n.getFullYear(), n.getMonth() - 2, 1);
+    e = n;
+  } else return null;
+  return { s: _jpLocalDate(s), e: _jpLocalDate(e) };
+}
+// Kenali apakah rentang dari-sampai persis sama dgn salah satu preset hari ini; '' kalau bukan.
+function _jpPerPresetOf(dari, sampai) {
+  if (!dari || !sampai) return '';
+  for (var i = 0; i < _JP_PER_PRESET_KEYS.length; i++) {
+    var r = _jpPerPresetRange(_JP_PER_PRESET_KEYS[i]);
+    if (r && r.s === dari && r.e === sampai) return _JP_PER_PRESET_KEYS[i];
+  }
+  return '';
+}
+function _jpPerPresetLabel(key) {
+  for (var i = 0; i < _JP_PER_ITEMS.length; i++) if (_JP_PER_ITEMS[i].k === key) return _JP_PER_ITEMS[i].l;
+  return key;
+}
+
+// ── Label tombol gabungan: "Minggu Ini" / "Minggu Ini · Shopee" ──
+function _jpFilterLabel() {
+  var c = _jpPerCommitted();
+  var txt;
+  if (c.mode === 'minggu') {
+    var pk = _jpPerPresetOf(c.dari, c.sampai);
+    txt = pk ? _jpPerPresetLabel(pk) : (_jpPerSummary(c) || 'Minggu');
+  } else if (c.mode === 'hari' || c.mode === 'bulan' || c.mode === 'tahun') {
+    txt = _jpPerSummary(c) || _JP_PER_SHORT[c.mode];
+  } else {
+    txt = _JP_PER_SHORT[c.mode] || 'Hari Ini';
+  }
+  if (c.ch && _jpChannelMap[c.ch]) txt += ' · ' + _jpChannelMap[c.ch].nama;
+  return txt;
+}
+function _jpFilterBtnSync() {
+  var lbl = _jpFilterLabel();
+  var c = _jpPerCommitted();
+  var aktif = c.mode !== 'minggu-ini' || !!c.ch;   // titik indikator kalau filter bukan default
+  document.querySelectorAll('.jp-filter-label').forEach(function(e) { e.textContent = lbl; });
+  document.querySelectorAll('.jp-filter-badge').forEach(function(e) { e.style.display = aktif ? 'inline' : 'none'; });
+  document.querySelectorAll('.jp-filter-btn').forEach(function(b) { b.title = lbl; });
 }
 
 function jpPerSheetOpen() {
@@ -1950,7 +2077,9 @@ function jpPerSheetOpen() {
   var cp = document.getElementById('jp-channel-panel');
   if (cp) cp.style.display = 'none';
   document.removeEventListener('click', jpCloseChannelOutside);
+  _jpDraft = _jpPerCommitted();
   _jpPer.view = 'list';
+  _jpPer.tab  = 'periode';
   _jpPerRender(false);
   sh.style.transition = '';
   sh.style.transform = '';
@@ -1967,48 +2096,86 @@ function jpPerBack() {
   _jpPer.view = 'list';
   _jpPerRender(false);
 }
+// Dipanggil setelah daftar channel selesai dimuat — kalau sheet sedang terbuka, gambar ulang.
+function _jpPerRefreshIfOpen() {
+  var sh = document.getElementById('jp-per-sheet');
+  if (sh && sh.classList.contains('open') && _jpDraft) _jpPerRender(true);
+}
 
 function _jpPerRender(keepScroll) {
   var sh    = document.getElementById('jp-per-sheet');
   var body  = document.getElementById('jp-per-body');
   var title = document.getElementById('jp-per-title');
-  if (!sh || !body) return;
-  var v = _jpPer.view;
+  if (!sh || !body || !_jpDraft) return;
+  var v  = _jpPer.view;
   var st = body.scrollTop;
   if (v === 'list') sh.classList.remove('sub'); else sh.classList.add('sub');
-  if (title) title.textContent = _JP_PER_TITLES[v] || 'Pilih Periode';
+  if (title) title.textContent = (v === 'list') ? (_jpPer.tab === 'channel' ? _JP_PER_TITLES.channel : _JP_PER_TITLES.list) : (_JP_PER_TITLES[v] || _JP_PER_TITLES.list);
+  var tp = document.getElementById('jp-pt-periode'), tc = document.getElementById('jp-pt-channel');
+  if (tp) tp.classList.toggle('active', _jpPer.tab === 'periode');
+  if (tc) {
+    tc.classList.toggle('active', _jpPer.tab === 'channel');
+    tc.textContent = 'Channel' + (_jpDraft.ch ? ' ●' : '');
+  }
   if (v === 'hari' || v === 'minggu') body.innerHTML = _jpPerCalHtml(v);
   else if (v === 'bulan')             body.innerHTML = _jpPerBulanHtml();
   else if (v === 'tahun')             body.innerHTML = _jpPerTahunHtml();
+  else if (_jpPer.tab === 'channel')  body.innerHTML = _jpPerChannelHtml();
   else                                body.innerHTML = _jpPerListHtml();
   body.scrollTop = keepScroll ? st : 0;
 }
 
 function _jpPerListHtml() {
-  var cur = _jpWaktuMode || 'minggu-ini';
+  var d   = _jpDraft;
+  var cur = d.mode || 'minggu-ini';
+  var presetAktif = (cur === 'minggu') ? _jpPerPresetOf(d.dari, d.sampai) : '';
   var html = '';
   _JP_PER_ITEMS.forEach(function(it) {
-    var active = (cur === it.k);
+    var active;
+    if (it.preset)           active = (cur === 'minggu' && presetAktif === it.k);
+    else if (it.k === 'minggu') active = (cur === 'minggu' && !presetAktif);
+    else                     active = (cur === it.k);
     var right;
     if (it.sub) {
-      right = (active ? '<span class="jp-pl-sum">' + _jpPerSummary() + '</span>' : '') + '<i class="ti ti-chevron-right"></i>';
+      right = (active ? '<span class="jp-pl-sum">' + _jpPerSummary(d) + '</span>' : '') + '<i class="ti ti-chevron-right"></i>';
     } else {
       right = active ? '<i class="ti ti-check jp-pl-check"></i>' : '';
     }
-    html += '<button type="button" class="jp-pl-item' + (active ? ' active' : '') + '" data-per="' + (it.sub ? 'sub' : 'pick') + '" data-val="' + it.k + '">'
+    html += '<button type="button" class="jp-pl-item' + (active ? ' active' : '') + '" data-per="' + (it.sub ? 'sub' : (it.preset ? 'preset' : 'pick')) + '" data-val="' + it.k + '">'
       + '<span>' + it.l + '</span><span class="jp-pl-right">' + right + '</span></button>';
   });
   return html;
 }
 
-// Kalender 1 bulan: view 'hari' (pilih 1 tanggal, langsung terapkan) atau
-// 'minggu' (pilih rentang awal→akhir, tombol Terapkan).
+function _jpPerChRow(id, label, active) {
+  return '<button type="button" class="jp-pl-item' + (active ? ' active' : '') + '" data-per="ch" data-val="' + _jpPerEsc(id) + '">'
+    + '<span>' + _jpPerEsc(label) + '</span><span class="jp-pl-right">' + (active ? '<i class="ti ti-check jp-pl-check"></i>' : '') + '</span></button>';
+}
+function _jpPerChannelHtml() {
+  var cur  = String(_jpDraft.ch || '');
+  var html = _jpPerChRow('', 'Semua Channel', cur === '');
+  if (!_jpChannelList.length) return html + '<div class="jp-pl-empty">Memuat channel…</div>';
+  var grouped = {}, order = [];
+  _jpChannelList.forEach(function(ch) {
+    var k = ch.kategori || 'lainnya';
+    if (!grouped[k]) { grouped[k] = []; order.push(k); }
+    grouped[k].push(ch);
+  });
+  order.forEach(function(k) {
+    html += '<div class="jp-pl-group">' + _jpPerEsc(_JP_KAT_LABEL[k] || k) + '</div>';
+    grouped[k].forEach(function(ch) { html += _jpPerChRow(ch.id, ch.nama, String(ch.id) === cur); });
+  });
+  return html;
+}
+
+// Kalender 1 bulan: view 'hari' (pilih 1 tanggal) atau 'minggu' (pilih rentang awal→akhir,
+// tombol "Pilih rentang"). Hasil masuk ke _jpDraft, baru berlaku setelah Terapkan.
 function _jpPerCalHtml(view) {
   var y = _jpPer.calY, m = _jpPer.calM;
   var startDow = new Date(y, m, 1).getDay();           // 0 = Minggu (sama dgn definisi minggu di app)
   var dim      = new Date(y, m + 1, 0).getDate();
   var todayStr = _jpLocalDate(new Date());
-  var selHari  = (view === 'hari' && _jpWaktuMode === 'hari') ? _jpPerVal('jp-filter-hari') : '';
+  var selHari  = (view === 'hari' && _jpDraft.mode === 'hari') ? _jpDraft.hari : '';
   var st = _jpPer.rStart, en = _jpPer.rEnd;
   var html = '<div class="jp-pc-nav">'
     + '<button type="button" data-per="calnav" data-val="-1" aria-label="Bulan sebelumnya"><i class="ti ti-chevron-left"></i></button>'
@@ -2037,14 +2204,14 @@ function _jpPerCalHtml(view) {
     else if (st)               lbl = _jpPerFmt(st) + ' – …';
     else                       lbl = 'Ketuk tanggal awal';
     html += '<div class="jp-pc-foot"><div class="jp-pc-range">' + lbl + '</div>'
-      + '<button type="button" class="jp-pc-apply" data-per="apply"' + (st ? '' : ' disabled') + '>Terapkan</button></div>';
+      + '<button type="button" class="jp-pc-apply" data-per="rangeok"' + (st ? '' : ' disabled') + '>Pilih rentang</button></div>';
   }
   return html;
 }
 
 function _jpPerBulanHtml() {
   var y   = _jpPer.bYear;
-  var cur = (_jpWaktuMode === 'bulan') ? _jpPerVal('jp-filter-bulan') : '';
+  var cur = (_jpDraft.mode === 'bulan') ? _jpDraft.bulan : '';
   var n   = new Date();
   var thisVal = n.getFullYear() + '-' + _jpPerPad(n.getMonth() + 1);
   var html = '<div class="jp-pc-nav">'
@@ -2061,7 +2228,7 @@ function _jpPerBulanHtml() {
 }
 
 function _jpPerTahunHtml() {
-  var cur   = (_jpWaktuMode === 'tahun') ? _jpPerVal('jp-filter-tahun') : '';
+  var cur   = (_jpDraft.mode === 'tahun') ? String(_jpDraft.tahun) : '';
   var thisY = new Date().getFullYear();
   var html  = '<div class="jp-pg">';
   for (var y = thisY; y >= 2015; y--) {   // 2015 = batas min input tahun lama
@@ -2072,18 +2239,15 @@ function _jpPerTahunHtml() {
 }
 
 function _jpPerOpenSub(k) {
-  var now = new Date(), anchor = now;
+  var now = new Date(), anchor = now, d = _jpDraft;
   if (k === 'hari') {
-    var h = _jpPerVal('jp-filter-hari');
-    if (_jpWaktuMode === 'hari' && h) anchor = new Date(h + 'T00:00:00');
+    if (d.mode === 'hari' && d.hari) anchor = new Date(d.hari + 'T00:00:00');
   } else if (k === 'minggu') {
-    var d = _jpPerVal('jp-filter-minggu-dari'), e = _jpPerVal('jp-filter-minggu-sampai');
-    _jpPer.rStart = d || null;
-    _jpPer.rEnd   = e || null;
-    if (d) anchor = new Date(d + 'T00:00:00');
+    _jpPer.rStart = d.dari || null;
+    _jpPer.rEnd   = d.sampai || null;
+    if (d.dari) anchor = new Date(d.dari + 'T00:00:00');
   } else if (k === 'bulan') {
-    var b = _jpPerVal('jp-filter-bulan');
-    _jpPer.bYear = b ? parseInt(b.split('-')[0], 10) : now.getFullYear();
+    _jpPer.bYear = d.bulan ? parseInt(d.bulan.split('-')[0], 10) : now.getFullYear();
   }
   _jpPer.calY = anchor.getFullYear();
   _jpPer.calM = anchor.getMonth();
@@ -2091,7 +2255,7 @@ function _jpPerOpenSub(k) {
   _jpPerRender(false);
 }
 
-// Sinkronkan state panel laptop (radio + sub-input) biar konsisten kalau layar dirotasi/di-resize.
+// Sinkronkan state panel lama (radio + sub-input) biar tetap konsisten dengan filter aktif.
 function _jpPerSyncDesktopPanel(mode) {
   document.querySelectorAll('input[name="jp-waktu"]').forEach(function(r) { r.checked = (r.value === mode); });
   var bw = document.getElementById('jp-bulan-wrap');
@@ -2101,20 +2265,51 @@ function _jpPerSyncDesktopPanel(mode) {
   if (mw) mw.style.display = mode === 'minggu' ? 'flex'  : 'none';
   if (tw) tw.style.display = mode === 'tahun'  ? 'block' : 'none';
 }
-function _jpPerApply(mode) {
-  _jpWaktuMode = mode;
-  _jpPerSyncDesktopPanel(mode);
-  jpPerSheetClose();
-  jpUpdateBadge();          // sekaligus memperbarui label tombol (jpUpdatePeriodeLabel)
-  loadJurnalPenjualan();
-}
 function _jpPerSetVal(id, val) {
   var el = document.getElementById(id);
   if (el) el.value = val;
 }
 
+// Tombol Terapkan: tulis draft -> state aktif, lalu muat ulang seperlunya.
+function jpFilterApply() {
+  var d = _jpDraft;
+  if (!d) { jpPerSheetClose(); return; }
+  var lama = _jpPerCommitted();
+  var periodeBerubah = (_jpPerKey(lama) !== _jpPerKey(d));
+  var channelBerubah = (String(lama.ch || '') !== String(d.ch || ''));
+  _jpWaktuMode = d.mode;
+  _jpPerSetVal('jp-filter-hari', d.hari);
+  _jpPerSetVal('jp-filter-minggu-dari', d.dari);
+  _jpPerSetVal('jp-filter-minggu-sampai', d.sampai);
+  _jpPerSetVal('jp-filter-bulan', d.bulan);
+  _jpPerSetVal('jp-filter-tahun', d.tahun);
+  _jpPerSetVal('jp-filter-channel', d.ch || '');
+  _jpMingguLabelUpdate();
+  _jpBulanUpdateLabel();
+  _jpPerSyncDesktopPanel(d.mode);
+  jpPerSheetClose();
+  jpUpdateBadge();          // sekaligus memperbarui label tombol gabungan (_jpFilterBtnSync)
+  if (periodeBerubah)      loadJurnalPenjualan();   // fetch ulang, filterJP() dipanggil di dalamnya
+  else if (channelBerubah) filterJP();              // data periode sama, cukup saring ulang
+}
+
 function _jpPerOnTap(act, val) {
-  if (act === 'pick') { _jpPerApply(val); return; }
+  var d = _jpDraft;
+  if (!d) return;
+  if (act === 'tab') {
+    _jpPer.tab = (val === 'channel') ? 'channel' : 'periode';
+    _jpPer.view = 'list';
+    _jpPerRender(false);
+    return;
+  }
+  if (act === 'pick')   { d.mode = val; _jpPerRender(true); return; }
+  if (act === 'preset') {
+    var r = _jpPerPresetRange(val);
+    if (!r) return;
+    d.mode = 'minggu'; d.dari = r.s; d.sampai = r.e;
+    _jpPerRender(true);
+    return;
+  }
   if (act === 'sub')  { _jpPerOpenSub(val); return; }
   if (act === 'calnav') {
     var m = _jpPer.calM + parseInt(val, 10), y = _jpPer.calY;
@@ -2130,8 +2325,9 @@ function _jpPerOnTap(act, val) {
   }
   if (act === 'day') {
     if (_jpPer.view === 'hari') {
-      _jpPerSetVal('jp-filter-hari', val);
-      _jpPerApply('hari');
+      d.mode = 'hari'; d.hari = val;
+      _jpPer.view = 'list';
+      _jpPerRender(false);
     } else {
       // rentang: ketuk 1 = awal, ketuk 2 = akhir (kalau lebih awal dari awal → ditukar), ketuk 3 = mulai lagi
       var st = _jpPer.rStart, en = _jpPer.rEnd;
@@ -2142,28 +2338,21 @@ function _jpPerOnTap(act, val) {
     }
     return;
   }
-  if (act === 'apply') {
+  if (act === 'rangeok') {
     var s = _jpPer.rStart;
     if (!s) return;
     var e = _jpPer.rEnd || s;
     if (e < s) { var t = s; s = e; e = t; }
-    _jpPerSetVal('jp-filter-minggu-dari', s);
-    _jpPerSetVal('jp-filter-minggu-sampai', e);
-    _jpMingguLabelUpdate();
-    _jpPerApply('minggu');
+    d.mode = 'minggu'; d.dari = s; d.sampai = e;
+    _jpPer.view = 'list';
+    _jpPerRender(false);
     return;
   }
-  if (act === 'bulan') {
-    _jpPerSetVal('jp-filter-bulan', val);
-    _jpBulanUpdateLabel();
-    _jpPerApply('bulan');
-    return;
-  }
-  if (act === 'tahun') {
-    _jpPerSetVal('jp-filter-tahun', val);
-    _jpPerApply('tahun');
-    return;
-  }
+  if (act === 'bulan') { d.mode = 'bulan'; d.bulan = val; _jpPer.view = 'list'; _jpPerRender(false); return; }
+  if (act === 'tahun') { d.mode = 'tahun'; d.tahun = String(val); _jpPer.view = 'list'; _jpPerRender(false); return; }
+  if (act === 'ch')    { d.ch = String(val || ''); _jpPerRender(true); return; }
+  if (act === 'reset') { d.mode = 'minggu-ini'; d.ch = ''; _jpPerRender(true); return; }   // reset DRAFT saja; berlaku setelah Terapkan
+  if (act === 'go')    { jpFilterApply(); return; }
 }
 
 // Pasang overlay + sheet langsung ke <body> (alasan sama dgn panel lain: .content
@@ -2176,31 +2365,46 @@ function _jpPerOnTap(act, val) {
   var sh = document.createElement('div');
   sh.id = 'jp-per-sheet';
   sh.setAttribute('role', 'dialog');
-  sh.setAttribute('aria-label', 'Pilih periode');
+  sh.setAttribute('aria-label', 'Filter periode dan channel');
   sh.innerHTML = '<div id="jp-per-head">'
     + '<div id="jp-per-handle"></div>'
     + '<button type="button" id="jp-per-back" aria-label="Kembali"><i class="ti ti-chevron-left"></i></button>'
     + '<div id="jp-per-title">Pilih Periode</div>'
     + '<button type="button" id="jp-per-close" aria-label="Tutup"><i class="ti ti-x"></i></button>'
     + '</div>'
+    + '<div id="jp-per-tabs">'
+    +   '<button type="button" class="jp-pt active" id="jp-pt-periode" data-per="tab" data-val="periode">Periode</button>'
+    +   '<button type="button" class="jp-pt" id="jp-pt-channel" data-per="tab" data-val="channel">Channel</button>'
+    + '</div>'
     + '<div id="jp-per-body"></div>'
+    + '<div id="jp-per-foot">'
+    +   '<button type="button" class="jp-pf-reset" data-per="reset">Reset</button>'
+    +   '<button type="button" class="jp-pc-apply" data-per="go">Terapkan</button>'
+    + '</div>'
     + '<input type="hidden" id="jp-filter-hari">';
   document.body.appendChild(ov);
   document.body.appendChild(sh);
 
   document.getElementById('jp-per-back').addEventListener('click', jpPerBack);
   document.getElementById('jp-per-close').addEventListener('click', jpPerSheetClose);
-  document.getElementById('jp-per-body').addEventListener('click', function(e) {
+  // 1 listener untuk seluruh sheet (tab, isi, footer) lewat atribut data-per
+  sh.addEventListener('click', function(e) {
     var t = e.target.closest ? e.target.closest('[data-per]') : null;
     if (!t || t.disabled) return;
     _jpPerOnTap(t.getAttribute('data-per'), t.getAttribute('data-val'));
   });
+  // Esc menutup (berguna di laptop)
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sh.classList.contains('open')) jpPerSheetClose();
+  });
 
-  // Tarik header ke bawah untuk menutup (seperti sheet komentar Instagram)
+  // Tarik header ke bawah untuk menutup (seperti sheet komentar Instagram) — HANYA mode bottom sheet.
+  // Mode dialog tengah (laptop) tidak digeser supaya posisi tengahnya tidak rusak di layar sentuh lebar.
   var head = document.getElementById('jp-per-head');
   var y0 = null, dy = 0;
+  function modeDialog() { return window.matchMedia && window.matchMedia('(min-width: 768px) and (min-height: 521px)').matches; }
   head.addEventListener('touchstart', function(e) {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1 || modeDialog()) return;
     y0 = e.touches[0].clientY; dy = 0;
     sh.style.transition = 'none';
   }, { passive: true });
