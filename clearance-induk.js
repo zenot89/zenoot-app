@@ -111,7 +111,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
          3) tabel induk cuma 3 kolom (SKU Induk, Qty, Modal) — TANPA scroll horizontal
          4) ketuk SKU induk → bottom-sheet ala komen Instagram berisi variasinya, tutup pakai tombol X
        Slide non-aktif disembunyiin lewat visibility (bukan display) biar tinggi container tetap. ──── */
-    #mi-ptabs, #mi-dots { display: none; }
+    #mi-phead, #mi-dots, #mi-metrics-strip .mi-m-phone { display: none; }
 
     /* ── bottom-sheet variasi (fixed full-screen → CSS-nya GAK di-scope ke halaman, biar gak ketiban overflow:hidden) ── */
     #mi-sheet-overlay {
@@ -169,6 +169,13 @@ document.getElementById('page-clearance-induk').innerHTML = `
       }
       #page-clearance-induk .mi-metric { grid-area: 1 / 1; -webkit-flex: none; flex: none; min-width: 0; width: auto; padding: 14px 16px; will-change: transform; }
       #page-clearance-induk .mi-metric:not(.mi-sl-on) { visibility: hidden; pointer-events: none; }
+      /* HP cuma 2 minicard: (1) Total Modal Rp, (2) Total Qty (kiri) + Total SKU (kanan) dalam 1 kartu.
+         Kartu "Katalog Terdampak" & "Total Varian SKU" cuma buat laptop. */
+      #page-clearance-induk .mi-metric.mi-m-desk { display: none; }
+      #page-clearance-induk #mi-metrics-strip .mi-m-phone { display: -webkit-flex; display: flex; }
+      .mi-duo { -webkit-flex: 1 1 auto; flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) 1px minmax(0,1fr); column-gap: 16px; align-items: center; }
+      .mi-duo-sep { width: 1px; align-self: stretch; background: var(--ovl-0_1, rgba(0,0,0,.1)); }
+      .mi-duo-c { min-width: 0; }
       #page-clearance-induk .mi-metric-icon { width: 42px; height: 42px; font-size: 20px; }
       #page-clearance-induk #mi-metrics-strip .m-label { font-size: 11px; }
       #page-clearance-induk #mi-metrics-strip .m-value { font-size: 26px; }
@@ -178,15 +185,18 @@ document.getElementById('page-clearance-induk').innerHTML = `
       #mi-dots i.on { opacity: 1; background: var(--ink); width: 16px; border-radius: 3px; }
 
       /* 2) dua kolom → dua panel swipe; tab di atas = penanda panel aktif (bisa diketuk juga) */
-      #page-clearance-induk #mi-ptabs { display: flex; -webkit-flex: 0 0 auto; flex: 0 0 auto; padding: 0 12px; background: var(--cream); border-bottom: 1px solid var(--ovl-0_06); }
-      .mi-ptab {
-        -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; padding: 9px 4px 8px; background: none; border: none;
-        border-bottom: 2px solid transparent; text-align: center; color: var(--ink3); font-family: inherit; cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
+      /* judul panel AKTIF (1 judul, bukan 2 sejajar) + kanan: chip halaman "1/2" & tombol pindah halaman ↓↑ */
+      #page-clearance-induk #mi-phead {
+        display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; justify-content: space-between; gap: 10px;
+        -webkit-flex: 0 0 auto; flex: 0 0 auto; padding: 10px 12px 9px; background: var(--cream); border-bottom: 1px solid var(--ovl-0_06);
       }
-      .mi-ptab b { display: block; font-size: 14px; font-weight: 700; }
-      .mi-ptab small { display: block; margin-top: 1px; font-size: 11px; font-weight: 400; }
-      .mi-ptab.on { color: var(--ink); border-bottom-color: var(--accent); }
+      .mi-ph-l { min-width: 0; -webkit-flex: 1 1 auto; flex: 1 1 auto; }
+      .mi-ph-t { display: block; font-size: 15px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .mi-ph-s { display: block; margin-top: 1px; font-size: 11.5px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .mi-ph-r { -webkit-flex: 0 0 auto; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+      .mi-ph-pg { min-width: 40px; padding: 0 10px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--ovl-0_06); font-size: 13px; font-weight: 700; color: var(--ink2); font-variant-numeric: tabular-nums; }
+      .mi-ph-btn { width: 40px; height: 34px; padding: 0; border: none; border-radius: 9px; background: var(--ovl-0_06); color: var(--ink); font-size: 17px; font-weight: 700; line-height: 1; font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      .mi-ph-btn:active { background: var(--ovl-0_12); }
       #page-clearance-induk #mi-split-wrap {
         display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr);
         gap: 0; padding: 8px 10px 10px; overflow: hidden; touch-action: pan-y;
@@ -224,7 +234,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
     </div>
 
     <div id="mi-metrics-strip">
-      <div class="mi-metric mi-metric-blue">
+      <div class="mi-metric mi-metric-blue mi-m-desk">
         <div class="mi-metric-icon"><i class="ti ti-package"></i></div>
         <div>
           <div class="m-label">Katalog Terdampak</div>
@@ -232,7 +242,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <div class="m-delta">SKU induk</div>
         </div>
       </div>
-      <div class="mi-metric mi-metric-amber">
+      <div class="mi-metric mi-metric-amber mi-m-desk">
         <div class="mi-metric-icon"><i class="ti ti-layers-intersect"></i></div>
         <div>
           <div class="m-label">Total Varian SKU</div>
@@ -248,14 +258,33 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <div class="m-delta">HPP × sisa (digabung)</div>
         </div>
       </div>
+      <!-- HP saja: minicard ke-2 = Qty (kiri) + SKU (kanan) -->
+      <div class="mi-metric mi-metric-amber mi-m-phone">
+        <div class="mi-duo">
+          <div class="mi-duo-c">
+            <div class="m-label">Total Qty</div>
+            <div class="m-value" id="mi-total-qty">—</div>
+            <div class="m-delta">pcs tersisa</div>
+          </div>
+          <div class="mi-duo-sep"></div>
+          <div class="mi-duo-c">
+            <div class="m-label">Total SKU</div>
+            <div class="m-value" id="mi-total-sku">—</div>
+            <div class="m-delta">varian SKU</div>
+          </div>
+        </div>
+      </div>
       <!-- dot penanda carousel minicard — cuma tampil di HP -->
-      <div id="mi-dots"><i class="on"></i><i></i><i></i></div>
+      <div id="mi-dots"><i class="on"></i><i></i></div>
     </div>
 
-    <!-- tab penanda panel swipe — cuma tampil di HP -->
-    <div id="mi-ptabs">
-      <button type="button" class="mi-ptab on" onclick="miPanelGo(0)"><b>Clearance</b><small>non-aktif · dead · zombie</small></button>
-      <button type="button" class="mi-ptab" onclick="miPanelGo(1)"><b>Flash Sale</b><small>kandidat · sisa ≥ 3 pcs</small></button>
+    <!-- HP saja: judul panel aktif + chip halaman + tombol pindah halaman -->
+    <div id="mi-phead">
+      <div class="mi-ph-l"><span class="mi-ph-t" id="mi-ph-t">Clearance — Modal Tertahan</span><span class="mi-ph-s" id="mi-ph-s">non-aktif · dead · zombie</span></div>
+      <div class="mi-ph-r">
+        <span class="mi-ph-pg" id="mi-ph-pg">1/2</span>
+        <button type="button" class="mi-ph-btn" onclick="miPanelToggle()" aria-label="Pindah halaman">↓↑</button>
+      </div>
     </div>
 
     <div id="mi-split-wrap">
@@ -502,16 +531,28 @@ function _miSwipe(vp, slideSel, onChange) {
 
 let _miCarMetrics = null, _miCarPanels = null;
 function miPanelGo(i) { if (_miCarPanels) _miCarPanels.goTo(i); }
+function miPanelToggle() { if (_miCarPanels) _miCarPanels.goTo(_miCarPanels.cur === 0 ? 1 : 0); }
+// judul + chip halaman ngikut panel aktif
+const _MI_PANELS = [
+  { t: 'Clearance — Modal Tertahan', s: 'non-aktif · dead · zombie' },
+  { t: 'Kandidat Flash Sale',        s: 'sisa ≥ 3 pcs' }
+];
+function _miPaintHead(cur) {
+  const t = document.getElementById('mi-ph-t'), s = document.getElementById('mi-ph-s'), pg = document.getElementById('mi-ph-pg');
+  if (t) t.textContent = _MI_PANELS[cur].t;
+  if (s) s.textContent = _MI_PANELS[cur].s;
+  if (pg) pg.textContent = (cur + 1) + '/' + _MI_PANELS.length;
+}
 
 function _miInitSwipe() {
   const strip = document.getElementById('mi-metrics-strip');
   const wrap  = document.getElementById('mi-split-wrap');
   if (!strip || !wrap || _miCarMetrics) return;
-  _miCarMetrics = _miSwipe(strip, '.mi-metric', cur => {
+  _miCarMetrics = _miSwipe(strip, '.mi-metric:not(.mi-m-desk)', cur => {
     document.querySelectorAll('#mi-dots i').forEach((d, i) => d.classList.toggle('on', i === cur));
   });
   _miCarPanels = _miSwipe(wrap, '.mi-col', cur => {
-    document.querySelectorAll('#mi-ptabs .mi-ptab').forEach((t, i) => t.classList.toggle('on', i === cur));
+    _miPaintHead(cur);
   });
   let rz;
   window.addEventListener('resize', () => {
@@ -595,6 +636,11 @@ function miUpdateMetrics() {
   elKat.textContent = groupList.length.toLocaleString('id-ID');
   elVar.textContent = flatList.length.toLocaleString('id-ID');
   elNil.textContent = _miFmtRp(flatList.reduce((s, r) => s + r.nilai, 0));
+  // minicard HP (Qty kiri + SKU kanan) — di laptop elemennya disembunyikan
+  const elQty = document.getElementById('mi-total-qty');
+  const elSku = document.getElementById('mi-total-sku');
+  if (elQty) elQty.textContent = flatList.reduce((s, r) => s + r.sisa, 0).toLocaleString('id-ID');
+  if (elSku) elSku.textContent = flatList.length.toLocaleString('id-ID');
 }
 
 // ─── Badge status velocity (dipakai di kolom Status Flash Sale) ──
