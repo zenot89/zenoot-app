@@ -239,6 +239,10 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
     .hs-bon-sub  { font-size:11.5px; color:var(--ink3); margin-top:3px; }
     .hs-bon-sisa { font-size:13px; font-weight:700; color:var(--danger); margin-top:2px; }
+    /* 3 Okt 2026: baris bawah kartu bon — Sisa di kiri, "N TRX · QTY M PCS" di kanan (bon otomatis dari penjualan) */
+    .hs-bon-bottom { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:2px; }
+    .hs-bon-bottom .hs-bon-sisa { margin-top:0; }
+    .hs-bon-trx { margin-left:auto; flex:none; font-size:12px; font-weight:800; color:var(--ink2); white-space:nowrap; letter-spacing:.02em; }
     .hs-empty { text-align:center; padding:40px 12px; color:var(--ink3); font-size:13px; }
 
     /* ── List Master Barang ── */
@@ -1896,7 +1900,12 @@ function hsRenderBonList() {
       '<div class="hs-bon-main">' +
         '<div class="hs-bon-top"><div class="hs-bon-nama-wrap"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div>' + (_hsBonIsOtomatis(b) ? '<span class="hs-bon-info" title="Otomatis dari penjualan" onclick="event.stopPropagation();hsBonInfoOtomatis(this)">?</span>' : '') + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
         '<div class="hs-bon-sub">' + _hsFmtTgl(b.tanggal) + _hsBonNotaLabel(b) + ' · Total ' + fmtRpFull(b.total) + '</div>' +
-        (st.sisa > 0 ? '<div class="hs-bon-sisa">Sisa ' + fmtRpFull(st.sisa) + '</div>' : '') +
+        (function() {
+          var ti = _hsBonIsOtomatis(b) ? _hsBonTrxInfo[b.no_nota] : null;
+          var sisaH = st.sisa > 0 ? '<div class="hs-bon-sisa">Sisa ' + fmtRpFull(st.sisa) + '</div>' : '';
+          if (!ti) return sisaH;
+          return '<div class="hs-bon-bottom">' + sisaH + '<div class="hs-bon-trx">' + ti.trx + ' TRX · QTY ' + ti.qty + ' PCS</div></div>';
+        })() +
         (warnN ? '<div class="hs-bon-sisa" style="color:var(--warn)">⚠ ' + warnN + ' barang belum ada harga — total belum lengkap</div>' : '') +
       '</div>' +
     '</div>';
@@ -2918,6 +2927,9 @@ async function hsHapusBon() {
 //   • Bon otomatis is_po = false → tidak memicu auto stock-in. Tidak ada jurnal akuntansi saat bon
 //     dibuat (sama dgn Tambah Bon manual); jurnal baru terbentuk saat bayar.
 //   • Penjualan sebelum _HS_DS_MULAI dianggap sudah lunas → tidak ditarik.
+//   • TRX (3 Okt 2026): 1 TRX = 1 baris jurnal_penjualan (sama dgn hitungan "trx" di tooltip grafik Jurnal Penjualan);
+//     1 baris berqty 2 = 1 TRX, QTY 2. Ditampilkan di kartu bon: "5 TRX · QTY 5 PCS". Dihitung ulang tiap sinkron
+//     (tidak disimpan di DB → tidak butuh ALTER TABLE) lewat _hsBonTrxInfo[no_nota].
 var _HS_DS_AUTO_SUPPLIERS = ['RH'];
 var _HS_DS_MULAI = '2026-09-27';
 var _HS_DS_MAX_HARI = 60;
@@ -2926,6 +2938,7 @@ var _hsDsPending = null, _hsDsTimer = null, _hsDsChain = Promise.resolve();
 var _hsDsLastCatchUp = 0;
 var _hsDsWarnings = {};     // sku → { alasan, qty }  (hasil sinkron terakhir)
 var _hsDsError = '';
+var _hsBonTrxInfo = {};     // no_nota → { trx, qty }  (3 Okt 2026: jumlah transaksi & total qty penjualan per bon dropship otomatis)
 var _hsBonTanpaHarga = {};  // bon_id → jumlah item berharga Rp0
 var _hsDsPlan = null;       // hasil "Lihat Hasil" di sheet manual
 var _hsDsManualBusy = false;
@@ -3075,7 +3088,8 @@ async function _hsDsBuildPlan(sup, dates, master) {
     var nama  = (hbMine && hbMine.katalog_produk) || p.katalog || sku;
     var varian = (hbMine && hbMine.varian_warna) || varianSku;
     var key = _hsDsItemKey(hbMine ? hbMine.id : null, nama, varian);
-    var day = byDate[tgl] = byDate[tgl] || { items: {}, skuSet: {} };
+    var day = byDate[tgl] = byDate[tgl] || { items: {}, skuSet: {}, trx: 0 };
+    day.trx++;
     var it = day.items[key];
     if (!it) {
       it = day.items[key] = {
@@ -3156,7 +3170,7 @@ async function _hsDsBuildPlan(sup, dates, master) {
     }
     plan.days.push({
       ymd: ymd, nota: nota, items: items, skuCount: day ? Object.keys(day.skuSet).length : 0,
-      totalQty: totalQty, total: total, tanpaHarga: tanpaHarga,
+      totalQty: totalQty, trx: day ? day.trx : 0, total: total, tanpaHarga: tanpaHarga,
       aksi: aksi, existing: ex, oldItems: oldItems, bayar: bayar, catatan: catatan,
     });
   });
@@ -3228,6 +3242,10 @@ async function _hsDsRun(dates, replaceWarnings, force) {
     var sup = master.dsSupMap[String(_HS_DS_AUTO_SUPPLIERS[i]).toUpperCase()];
     if (!sup || !sup.is_dropship || sup.is_produksi_sendiri) continue;
     var plan = await _hsDsBuildPlan(sup, dates, master);
+    plan.days.forEach(function(w) {
+      if (w.items.length) _hsBonTrxInfo[w.nota] = { trx: w.trx, qty: w.totalQty };
+      else delete _hsBonTrxInfo[w.nota];
+    });
     var r = await _hsDsTulis(plan);
     hasil.ok += r.ok; hasil.gagal = hasil.gagal.concat(r.gagal);
     Object.keys(plan.warnings).forEach(function(k) { hasil.warnings[k] = plan.warnings[k]; });
@@ -3264,7 +3282,7 @@ function _hsDsFlush() {
     try {
       var h = await _hsDsRun(dates, pend.all, false);
       if (h.ok > 0) _hsDsRefreshJikaTerbuka();
-      else _hsDsRenderBanner();
+      else { _hsDsRenderBanner(); hsRenderBonList(); }   // 3 Okt 2026: info TRX/QTY terbaru ikut tampil walau tidak ada bon yang ditulis
     } catch (e) {
       console.warn('[bon-dropship] sinkron gagal:', e && e.message);
       _hsDsError = (e && e.message) || String(e);
@@ -3381,7 +3399,7 @@ function _hsTarikRender() {
     if (w.aksi === 'kosong') return;   // hari tanpa penjualan & tanpa bon: tidak perlu ditampilkan
     tampil++;
     var bd = BADGE[w.aksi];
-    var sub = (w.items.length ? (w.skuCount + ' SKU · ' + w.totalQty + ' pcs') : '');
+    var sub = (w.items.length ? (w.trx + ' TRX · ' + w.skuCount + ' SKU · ' + w.totalQty + ' pcs') : '');
     if (w.aksi === 'update' && w.existing) sub += ' · sebelumnya ' + fmtRpFull(w.existing.total);
     if (w.bayar > 0) sub += ' · sudah dibayar ' + fmtRpFull(w.bayar);
     html += '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--ink4);border-radius:12px;margin-bottom:8px;background:var(--cream2)">' +
@@ -3432,6 +3450,10 @@ async function hsTarikTerapkan() {
   _hsDsPlan = null;
   _hsDsError = r.gagal.length ? r.gagal[0].msg : '';
   Object.keys(plan.warnings).forEach(function(k) { _hsDsWarnings[k] = plan.warnings[k]; });
+  plan.days.forEach(function(w) {
+    if (w.items.length) _hsBonTrxInfo[w.nota] = { trx: w.trx, qty: w.totalQty };
+    else delete _hsBonTrxInfo[w.nota];
+  });
   var hasilEl = document.getElementById('hs-tarik-hasil');
   var html = '';
   if (r.ok) html += '<div class="hs-item-hint" style="color:var(--ok);font-weight:700">' + r.ok + ' bon disinkronkan.</div>';
