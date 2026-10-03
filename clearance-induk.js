@@ -10,6 +10,12 @@
 //            dgn ringkasan besar di kanan: "6 varian · 40 pcs · Rp1.640.000"
 // Kedua kolom lebar sama (50/50), render lewat 1 fungsi (_miRenderSide) supaya
 // tampilannya gak bisa beda lagi.
+//
+// 3 Okt 2026 — TAMPILAN HP (<768px) dirombak, LAPTOP/TABLET TIDAK BERUBAH (request user):
+//   minicard = carousel swipe loop + dot; Clearance & Flash Sale = 2 panel swipe (+ tab penanda);
+//   tabel induk 3 kolom tanpa scroll horizontal; ketuk SKU induk → bottom-sheet variasi (tutup: tombol X).
+//   Semua CSS HP ada di @media (max-width:767px) di <style> atas; JS HP: blok "TAMPILAN HP" (_miIsPhone,
+//   miSheetOpen/Close, _miSwipe). Swipe engine di sini SENGAJA salinan sendiri (aturan: gak share fungsi antar modul).
 
 document.getElementById('page-clearance-induk').innerHTML = `
   <style>
@@ -95,6 +101,111 @@ document.getElementById('page-clearance-induk').innerHTML = `
       .mi-blk-induk { -webkit-flex: 1 1 45%; flex: 1 1 45%; border-right: none; border-bottom: 1px solid var(--ovl-0_06); }
       .mi-pane-var  { -webkit-flex: 1 1 55%; flex: 1 1 55%; }
     }
+
+    /* ════════════════════════════════════════════════════════════════
+       3 Okt 2026 — TAMPILAN HP (<768px) — request user. LAPTOP/TABLET (>=768px) TIDAK DISENTUH.
+       Konsep: semua serba SWIPE (sama kayak carousel dashboard & panel Gadag), tabel = murni
+       informasi (gak ada aksi) jadi aman dibuat bisa diketuk:
+         1) 3 minicard  → 1 kartu/halaman, swipe loop 1-2-3-1, 3 dot
+         2) 2 kolom (Clearance & Flash Sale) → 2 panel swipe + tab penanda di atasnya
+         3) tabel induk cuma 3 kolom (SKU Induk, Qty, Modal) — TANPA scroll horizontal
+         4) ketuk SKU induk → bottom-sheet ala komen Instagram berisi variasinya, tutup pakai tombol X
+       Slide non-aktif disembunyiin lewat visibility (bukan display) biar tinggi container tetap. ──── */
+    #mi-ptabs, #mi-dots { display: none; }
+
+    /* ── bottom-sheet variasi (fixed full-screen → CSS-nya GAK di-scope ke halaman, biar gak ketiban overflow:hidden) ── */
+    #mi-sheet-overlay {
+      display: none; position: fixed; inset: 0; z-index: 700; touch-action: none;
+      background: rgba(0,0,0,.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    }
+    #mi-sheet-overlay.open { display: block; }
+    #mi-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 701;
+      background: var(--cream2); border-radius: 20px 20px 0 0;
+      transform: translateY(100%); transition: transform .28s cubic-bezier(.4,0,.2,1);
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+      max-height: 82vh; display: none; flex-direction: column; overflow: hidden;
+    }
+    #mi-sheet.open { display: flex; transform: translateY(0); }
+    #mi-sheet-close {
+      position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+      border: none; background: var(--ovl-0_06); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      color: var(--ink3); font-size: 16px; z-index: 2; padding: 0;
+    }
+    .mi-sh-handle { width: 40px; height: 4px; background: var(--ovl-0_18); border-radius: 2px; margin: 12px auto 4px; flex: none; }
+    .mi-sh-title { text-align: center; font-size: 16px; font-weight: 700; color: var(--ink); padding: 8px 52px 2px; letter-spacing: -.2px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mi-sh-stats { text-align: center; font-size: 12px; color: var(--ink3); padding: 0 16px 10px; flex: none; border-bottom: 1px solid var(--ovl-0_06); }
+    .mi-sh-stats b { font-size: 15px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; margin: 0 2px 0 6px; }
+    .mi-sh-stats b:first-child { margin-left: 0; }
+    .mi-sh-stats b.mi-sh-rp { color: var(--warn); }
+    #mi-sh-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 0 12px 12px; }
+    .mi-sh-head, .mi-sh-row {
+      display: grid; grid-template-columns: minmax(0,1fr) 44px 98px; column-gap: 8px; align-items: center; padding: 10px 4px;
+    }
+    .mi-sh-head { position: sticky; top: 0; z-index: 1; background: var(--cream2); font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--ink3); border-bottom: 1px solid var(--ovl-0_06); }
+    .mi-sh-head span:nth-child(2) { text-align: center; }
+    .mi-sh-head span:nth-child(3) { text-align: right; }
+    .mi-sh-row { border-bottom: 1px solid var(--ovl-0_04); font-size: 14px; font-variant-numeric: tabular-nums; }
+    .mi-sh-sku { font-weight: 600; word-break: break-word; }
+    .mi-sh-sub { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--ink3); }
+    .mi-sh-vel { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: 10px; font-weight: 700; border: 1.5px solid; border-radius: 5px; line-height: 1.5; }
+    .mi-sh-q { text-align: center; font-weight: 700; }
+    .mi-sh-m { text-align: right; white-space: nowrap; color: var(--warn); }
+    .mi-sh-empty { padding: 22px 8px; text-align: center; color: var(--ink3); font-style: italic; font-size: 13px; }
+
+    @media (max-width: 767px) {
+      /* header: filter melar, tombol "Detail per SKU" gak kepotong lagi */
+      #page-clearance-induk .mi-header { padding: 10px 12px; }
+      #page-clearance-induk .mi-header-controls { width: 100%; }
+      #page-clearance-induk .mi-select-wrap { -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; }
+      #page-clearance-induk .mi-select-wrap select { width: 100%; min-width: 0; max-width: none; }
+      #page-clearance-induk .mi-header-controls .btn { -webkit-flex: 0 0 auto; flex: 0 0 auto; white-space: nowrap; }
+
+      /* 1) minicard → carousel: semua kartu ditumpuk di 1 sel grid, geser lewat transform */
+      #page-clearance-induk #mi-metrics-strip {
+        display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto;
+        gap: 0; padding: 10px 12px 4px; overflow: hidden; touch-action: pan-y;
+      }
+      #page-clearance-induk .mi-metric { grid-area: 1 / 1; -webkit-flex: none; flex: none; min-width: 0; width: auto; padding: 14px 16px; will-change: transform; }
+      #page-clearance-induk .mi-metric:not(.mi-sl-on) { visibility: hidden; pointer-events: none; }
+      #page-clearance-induk .mi-metric-icon { width: 42px; height: 42px; font-size: 20px; }
+      #page-clearance-induk #mi-metrics-strip .m-label { font-size: 11px; }
+      #page-clearance-induk #mi-metrics-strip .m-value { font-size: 26px; }
+      #page-clearance-induk #mi-metrics-strip .m-delta { font-size: 11px; }
+      #page-clearance-induk #mi-dots { grid-area: 2 / 1; display: flex; justify-content: center; gap: 6px; padding: 8px 0 2px; }
+      #mi-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink3); opacity: .35; transition: opacity .2s, width .2s; }
+      #mi-dots i.on { opacity: 1; background: var(--ink); width: 16px; border-radius: 3px; }
+
+      /* 2) dua kolom → dua panel swipe; tab di atas = penanda panel aktif (bisa diketuk juga) */
+      #page-clearance-induk #mi-ptabs { display: flex; -webkit-flex: 0 0 auto; flex: 0 0 auto; padding: 0 12px; background: var(--cream); border-bottom: 1px solid var(--ovl-0_06); }
+      .mi-ptab {
+        -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; padding: 9px 4px 8px; background: none; border: none;
+        border-bottom: 2px solid transparent; text-align: center; color: var(--ink3); font-family: inherit; cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .mi-ptab b { display: block; font-size: 14px; font-weight: 700; }
+      .mi-ptab small { display: block; margin-top: 1px; font-size: 11px; font-weight: 400; }
+      .mi-ptab.on { color: var(--ink); border-bottom-color: var(--accent); }
+      #page-clearance-induk #mi-split-wrap {
+        display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr);
+        gap: 0; padding: 8px 10px 10px; overflow: hidden; touch-action: pan-y;
+      }
+      #page-clearance-induk #mi-split-wrap > .mi-col { grid-area: 1 / 1; -webkit-flex: none; flex: none; height: auto; min-height: 0; will-change: transform; }
+      #page-clearance-induk #mi-split-wrap > .mi-col:not(.mi-sl-on) { visibility: hidden; pointer-events: none; }
+      #page-clearance-induk .mi-col-title { display: none; }
+
+      /* 3) tabel induk 3 kolom, full lebar, tanpa scroll horizontal; panel variasi dipindah ke bottom-sheet */
+      #page-clearance-induk .mi-pane-var { display: none; }
+      #page-clearance-induk .mi-blk-induk { -webkit-flex: 1 1 0; flex: 1 1 0; border: none; overflow-x: hidden; }
+      #page-clearance-induk .mi-blk-induk .tbl { table-layout: fixed; }
+      #page-clearance-induk .mi-col .tbl .c-qty { width: 52px; }
+      #page-clearance-induk .mi-col .tbl .c-mdl { width: 104px; }
+      #page-clearance-induk .mi-induk-row.mi-sel td { background: transparent; box-shadow: none; }
+      #page-clearance-induk .mi-induk-row:active td { background: var(--ovl-0_08); }
+      #page-clearance-induk .mi-induk-sub i { display: inline-block; white-space: nowrap; }  /* "3 Zombie" jangan kepotong di tengah */
+      #page-clearance-induk .mi-col-foot { text-align: center; }
+    }
   </style>
   <div class="card">
     <div class="card-title mi-header">
@@ -137,6 +248,14 @@ document.getElementById('page-clearance-induk').innerHTML = `
           <div class="m-delta">HPP × sisa (digabung)</div>
         </div>
       </div>
+      <!-- dot penanda carousel minicard — cuma tampil di HP -->
+      <div id="mi-dots"><i class="on"></i><i></i><i></i></div>
+    </div>
+
+    <!-- tab penanda panel swipe — cuma tampil di HP -->
+    <div id="mi-ptabs">
+      <button type="button" class="mi-ptab on" onclick="miPanelGo(0)"><b>Clearance</b><small>non-aktif · dead · zombie</small></button>
+      <button type="button" class="mi-ptab" onclick="miPanelGo(1)"><b>Flash Sale</b><small>kandidat · sisa ≥ 3 pcs</small></button>
     </div>
 
     <div id="mi-split-wrap">
@@ -206,6 +325,16 @@ document.getElementById('page-clearance-induk').innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- HP: bottom-sheet variasi dari SKU induk yang diketuk (ala komen Instagram). Tutup: tombol X / ketuk area gelap -->
+  <div id="mi-sheet-overlay" onclick="miSheetClose()"></div>
+  <div id="mi-sheet">
+    <button type="button" id="mi-sheet-close" onclick="miSheetClose()" aria-label="Tutup"><i class="ti ti-x"></i></button>
+    <div class="mi-sh-handle"></div>
+    <div class="mi-sh-title" id="mi-sh-title"></div>
+    <div class="mi-sh-stats" id="mi-sh-stats"></div>
+    <div id="mi-sh-list"></div>
+  </div>
 `;
 
 setTimeout(() => {
@@ -223,6 +352,178 @@ let _miSel         = { kiri: '', kanan: '' };   // SKU induk yang lagi dibuka di
 function _miEsc(t) { return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function _miEnc(t) { return encodeURIComponent(String(t == null ? '' : t)).replace(/'/g, '%27'); }
 const _miFmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
+
+// ═══════════════════════════════════════════════════════════════
+// TAMPILAN HP (<768px) — 3 Okt 2026. Semua fungsi di blok ini cuma aktif di HP;
+// laptop/tablet gak pernah masuk ke sini (cek _miIsPhone di tiap pintu masuk).
+// ═══════════════════════════════════════════════════════════════
+function _miIsPhone() { return window.innerWidth < 768; }
+
+// ─── BOTTOM-SHEET VARIASI ─────────────────────────────────────
+// Baris variasi dari SKU induk yang diketuk — aturan filter & urutan SAMA PERSIS dgn blok 2 desktop
+// (_miRenderSide): flash = sisa ≥ 3, ikut filter SKU header, urut ikut sort aktif.
+function _miSheetRows(side, katalog) {
+  const isFlash = side === 'kanan';
+  const src = isFlash ? _miFlashRows : _miFlatRows;
+  if (!src) return [];
+  const rows = src.filter(r => r.katalog === katalog && (!isFlash || r.sisa >= 3) && (!_miSkuFilter || r.katalog === _miSkuFilter));
+  const sortCol = _miSort.col || 'nilai';
+  const sortDir = _miSort.col ? _miSort.dir : 'desc';
+  return rows.sort((a, b) => {
+    const d = sortCol === 'sku' ? String(a.sku).localeCompare(String(b.sku)) : a[sortCol] - b[sortCol];
+    return sortDir === 'asc' ? d : -d;
+  });
+}
+
+function _miVelTag(vel) {
+  const map = { fast: ['Fast', '#00c896'], slow: ['Slow', '#c8a000'], dead: ['Dead', '#e05c00'], zombie: ['Zombie', 'var(--ink3)'] };
+  const m = map[vel];
+  const label = m ? m[0] : (vel ? vel.charAt(0).toUpperCase() + vel.slice(1) : '—');
+  const color = m ? m[1] : 'var(--ink3)';
+  return `<span class="mi-sh-vel" style="color:${color};border-color:${color}">${_miEsc(label)}</span>`;
+}
+
+function miSheetOpen(side, katalog) {
+  const rows = _miSheetRows(side, katalog);
+  const isFlash = side === 'kanan';
+  const pcs = rows.reduce((s, r) => s + r.sisa, 0);
+  const nilai = rows.reduce((s, r) => s + r.nilai, 0);
+  document.getElementById('mi-sh-title').textContent = katalog;
+  document.getElementById('mi-sh-stats').innerHTML =
+    `<b>${rows.length.toLocaleString('id-ID')}</b>varian · <b>${pcs.toLocaleString('id-ID')}</b>pcs · <b class="mi-sh-rp">${_miFmtRp(nilai)}</b>`;
+  const list = document.getElementById('mi-sh-list');
+  list.innerHTML = rows.length
+    ? '<div class="mi-sh-head"><span>SKU VARIASI</span><span>QTY</span><span>MODAL</span></div>' +
+      rows.map(r => `<div class="mi-sh-row">
+        <div><span class="mi-sh-sku">${_miEsc(r.sku)}</span><span class="mi-sh-sub">${_miEsc(r.boss)}${isFlash ? _miVelTag(r.vel) : ''}</span></div>
+        <div class="mi-sh-q">${r.sisa.toLocaleString('id-ID')}</div>
+        <div class="mi-sh-m">${_miFmtRp(r.nilai)}</div>
+      </div>`).join('')
+    : '<div class="mi-sh-empty">Tidak ada variasi.</div>';
+  list.scrollTop = 0;
+  document.getElementById('mi-sheet-overlay').classList.add('open');
+  document.getElementById('mi-sheet').classList.add('open');
+}
+
+function miSheetClose() {
+  const ov = document.getElementById('mi-sheet-overlay');
+  const sh = document.getElementById('mi-sheet');
+  if (ov) ov.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+
+// ─── ENGINE SWIPE (loop, ikut jari, 2+ slide) ─────────────────
+// Slide ditumpuk di 1 sel grid (CSS), yang aktif = class .mi-sl-on. Pas digeser: slide aktif + 1 tetangga
+// (kiri/kanan tergantung arah jari) ikut jari lewat transform; lepas → lanjut/balik dgn animasi.
+// Jadi loop jalan juga buat 2 slide (panel Clearance ↔ Flash Sale) & tanpa klon DOM.
+// Mirip carousel dashboard & panel Gadag: ambang 40px / flick, tepi layar 24px diabaikan
+// (jatah gesture back OS), swipe vertikal (scroll tabel) dibiarin lewat.
+function _miSwipe(vp, slideSel, onChange) {
+  const EDGE = 24;
+  let cur = 0, busy = false, tracking = false, isHoriz = null, sx = 0, sy = 0, st = 0, dx = 0, nbIdx = -1;
+  const slides = () => Array.prototype.filter.call(vp.children, el => el.matches(slideSel));
+
+  function mark() { slides().forEach((s, i) => s.classList.toggle('mi-sl-on', i === cur)); }
+  function wipe(s) { s.style.transition = ''; s.style.transform = ''; s.style.visibility = ''; }
+  function wipeAll() { slides().forEach(wipe); }
+  function setPos(s, x, anim) {
+    s.style.transition = anim ? 'transform .28s cubic-bezier(.4,0,.2,1)' : 'none';
+    s.style.transform = 'translateX(' + x + ')';
+  }
+  function finish(target) {
+    cur = target; nbIdx = -1; busy = false;
+    wipeAll(); mark();
+    if (onChange) onChange(cur);
+  }
+  // dir: +1 = isi geser ke kiri (slide berikutnya masuk dari kanan), -1 = sebaliknya
+  function settle(target, dir) {
+    const sl = slides(), a = sl[cur];
+    if (!a) return;
+    busy = true;
+    if (target !== cur) {
+      const b = sl[target];
+      b.style.visibility = 'visible';
+      if (b.style.transform === '') { setPos(b, (dir * 100) + '%', false); void b.offsetWidth; } // dipanggil dari tab, bukan drag
+      setPos(a, (-dir * 100) + '%', true);
+      setPos(b, '0px', true);
+    } else {
+      setPos(a, '0px', true);
+      if (nbIdx > -1 && sl[nbIdx]) setPos(sl[nbIdx], (dir * 100) + '%', true);
+    }
+    let done = false;
+    const fin = () => { if (done) return; done = true; finish(target); };
+    a.addEventListener('transitionend', e => { if (e.target === a) fin(); });
+    setTimeout(fin, 380);
+  }
+
+  vp.addEventListener('touchstart', e => {
+    if (!_miIsPhone() || busy || slides().length < 2) { tracking = false; return; }
+    const x = e.touches[0].clientX;
+    if (x < EDGE || x > window.innerWidth - EDGE) { tracking = false; return; }
+    sx = x; sy = e.touches[0].clientY; st = Date.now();
+    tracking = true; isHoriz = null; dx = 0; nbIdx = -1;
+  }, { passive: true });
+
+  vp.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (isHoriz === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) isHoriz = Math.abs(dx) > Math.abs(dy);
+    if (!isHoriz) return;
+    if (e.cancelable) e.preventDefault();
+    const sl = slides(), N = sl.length, w = vp.clientWidth || 1;
+    const idx = dx < 0 ? (cur + 1) % N : (cur - 1 + N) % N;
+    if (idx !== nbIdx) {
+      if (nbIdx > -1 && nbIdx !== cur && sl[nbIdx]) wipe(sl[nbIdx]);
+      nbIdx = idx; sl[idx].style.visibility = 'visible';
+    }
+    setPos(sl[cur], dx + 'px', false);
+    setPos(sl[idx], (dx + (dx < 0 ? w : -w)) + 'px', false);
+  }, { passive: false });
+
+  function end() {
+    if (!tracking) return;
+    tracking = false;
+    if (!isHoriz || nbIdx === -1) return;
+    const flick = Math.abs(dx) / Math.max(Date.now() - st, 1) > 0.3;
+    const dir = dx < 0 ? 1 : -1;
+    if (Math.abs(dx) > 40 || (flick && Math.abs(dx) > 20)) settle(nbIdx, dir); else settle(cur, dir);
+  }
+  vp.addEventListener('touchend', end, { passive: true });
+  vp.addEventListener('touchcancel', end, { passive: true });
+
+  mark();
+  return {
+    goTo(i) { if (busy || i === cur || i < 0 || i >= slides().length) return; settle(i, i > cur ? 1 : -1); },
+    refresh() { tracking = false; busy = false; nbIdx = -1; wipeAll(); mark(); },  // dipanggil pas ukuran layar berubah
+    get cur() { return cur; }
+  };
+}
+
+let _miCarMetrics = null, _miCarPanels = null;
+function miPanelGo(i) { if (_miCarPanels) _miCarPanels.goTo(i); }
+
+function _miInitSwipe() {
+  const strip = document.getElementById('mi-metrics-strip');
+  const wrap  = document.getElementById('mi-split-wrap');
+  if (!strip || !wrap || _miCarMetrics) return;
+  _miCarMetrics = _miSwipe(strip, '.mi-metric', cur => {
+    document.querySelectorAll('#mi-dots i').forEach((d, i) => d.classList.toggle('on', i === cur));
+  });
+  _miCarPanels = _miSwipe(wrap, '.mi-col', cur => {
+    document.querySelectorAll('#mi-ptabs .mi-ptab').forEach((t, i) => t.classList.toggle('on', i === cur));
+  });
+  let rz;
+  window.addEventListener('resize', () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => {
+      if (_miCarMetrics) _miCarMetrics.refresh();
+      if (_miCarPanels) _miCarPanels.refresh();
+      if (!_miIsPhone()) miSheetClose();
+    }, 200);
+  });
+}
+_miInitSwipe();
 
 function miPopulateSkuFilter() {
   const sel = document.getElementById('mi-filter-sku');
@@ -248,8 +549,12 @@ function miFilterBySku(val) {
 }
 
 // klik baris SKU induk → buka variasinya di blok 2 (kolom yang diklik saja)
+// HP (<768px): panel blok 2 disembunyiin → variasi tampil di bottom-sheet (miSheetOpen).
+// Laptop/tablet: perilaku lama, gak berubah.
 function miPick(side, enc) {
-  _miSel[side] = enc ? decodeURIComponent(enc) : '';
+  const name = enc ? decodeURIComponent(enc) : '';
+  if (_miIsPhone()) { miSheetOpen(side, name); return; }
+  _miSel[side] = name;
   _miRenderSide(side);
 }
 
@@ -522,5 +827,6 @@ document.addEventListener('zenot:page', function(e) {
   _miSkuFilter = '';
   _miSel = { kiri: '', kanan: '' };
   _miSort = { col: null, dir: null };
+  miSheetClose();   // HP: sheet variasi jangan nyangkut terbuka dari kunjungan sebelumnya
   loadModalInduk();
 });
