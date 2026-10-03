@@ -191,6 +191,12 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-bon-info:hover { border-color:var(--ink); color:var(--ink); }
     .hs-info-bubble { position:fixed; z-index:99999; background:var(--ink); color:var(--cream); font-size:12px; font-weight:600; padding:7px 11px; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; max-width:240px; }
     /* 3 Okt 2026: hari + tanggal tebal di rincian bon */
+    /* 3 Okt 2026: Rincian per ukuran/harga di atas daftar Barang */
+    .hs-rincian-row { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid var(--ink4); font-size:13px; }
+    .hs-rincian-lbl { color:var(--ink); font-weight:800; min-width:0; }
+    .hs-rincian-lbl small { display:block; color:var(--ink3); font-size:11px; font-weight:600; }
+    .hs-rincian-rumus { text-align:right; white-space:nowrap; color:var(--ink3); }
+    .hs-rincian-rumus b { color:var(--ink); font-weight:800; margin-left:4px; }
     .hs-detail-summary-tgl { font-size:17px; font-weight:800; color:var(--ink); margin-bottom:4px; letter-spacing:.1px; }
     .hs-bon-badge { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:10px; white-space:nowrap; }
     .hs-badge-belum { background:rgba(230,168,23,.15); color:var(--warn); }
@@ -687,6 +693,8 @@ document.getElementById('page-hutang-supplier').innerHTML = `
             <button class="hs-btn-pill hs-btn-primary" style="justify-content:center" onclick="hsOpenTerimaBarang()"><i class="ti ti-truck-delivery"></i> Barang Diterima</button>
           </div>
         </div>
+
+        <div id="hs-detail-rincian"></div>
 
         <div class="hs-detail-section-title">Barang</div>
         <div id="hs-detail-items"></div>
@@ -3426,6 +3434,59 @@ async function hsTarikTerapkan() {
   try { await loadHutangSupplier(); } catch (e6) {}
 }
 
+// ─── RINCIAN PER UKURAN / HARGA di rincian bon (3 Okt 2026) ────
+// Kelompokkan item bon per (nama barang + ukuran + harga per pcs) → "XXL: 2 pcs × Rp51.667 = Rp103.334".
+// Ukuran diambil dari bagian terakhir varian_warna (mis. COKLAT-XXL → XXL) HANYA kalau cocok pola ukuran;
+// kalau tidak (varian cuma warna) item dikelompokkan per harga saja. Harga per pcs = harga_satuan ÷ 12
+// (harga_satuan disimpan per lusin). Subtotal grup = jumlah subtotal item asli, jadi selalu cocok dgn Total bon.
+// Disembunyikan kalau item < 2 (isinya sama dgn daftar Barang).
+var _HS_UKURAN_RE = /^(XXS|XS|S|M|L|XL|XXL|XXXL|2XL|3XL|4XL|5XL|ALLSIZE|ALL|FREE|FS|\d{1,3})$/i;
+var _HS_UKURAN_URUT = ['XXS','XS','S','M','L','XL','XXL','XXXL','2XL','3XL','4XL','5XL'];
+function _hsUkuranDariVarian(v) {
+  var t = String(v || '').trim().toUpperCase();
+  if (!t) return '';
+  var parts = t.split(/[-\s]+/);
+  var last = parts[parts.length - 1];
+  return (parts.length > 1 && _HS_UKURAN_RE.test(last)) ? last : (_HS_UKURAN_RE.test(t) ? t : '');
+}
+function _hsRenderRincianBon(items) {
+  var el = document.getElementById('hs-detail-rincian');
+  if (!el) return;
+  if (!items || items.length < 2) { el.innerHTML = ''; return; }
+  var groups = {}, order = [], katSet = {};
+  items.forEach(function(it) {
+    var kat = String(it.nama_internal || '—');
+    var ukr = _hsUkuranDariVarian(it.varian_warna);
+    var lusin = Number(it.harga_satuan) || 0;
+    var key = kat + '|' + ukr + '|' + Math.round(lusin);
+    katSet[kat] = true;
+    var g = groups[key];
+    if (!g) { g = groups[key] = { kat: kat, ukr: ukr, lusin: lusin, qty: 0, sub: 0 }; order.push(key); }
+    g.qty += Number(it.qty) || 0;
+    g.sub += Number(it.subtotal) || 0;
+  });
+  var multiKat = Object.keys(katSet).length > 1;
+  var list = order.map(function(k) { return groups[k]; });
+  list.sort(function(a, b) {
+    if (a.kat !== b.kat) return a.kat.localeCompare(b.kat, 'id');
+    var ia = _HS_UKURAN_URUT.indexOf(a.ukr), ib = _HS_UKURAN_URUT.indexOf(b.ukr);
+    if (ia < 0) ia = 99; if (ib < 0) ib = 99;
+    return (ia - ib) || a.lusin - b.lusin;
+  });
+  var rows = list.map(function(g) {
+    var lbl = g.ukr ? ('Ukuran ' + _hsEsc(g.ukr)) : 'Semua varian';
+    var sub = multiKat ? '<small>' + _hsEsc(g.kat) + '</small>' : '';
+    var rumus;
+    if (!(g.lusin > 0)) {
+      rumus = g.qty + ' pcs · <span style="color:var(--warn)">⚠ harga belum ada</span>';
+    } else {
+      rumus = g.qty + ' pcs × ' + fmtRpFull(Math.round(g.lusin / 12)) + ' = <b>' + fmtRpFull(g.sub) + '</b>';
+    }
+    return '<div class="hs-rincian-row"><div class="hs-rincian-lbl">' + lbl + sub + '</div><div class="hs-rincian-rumus">' + rumus + '</div></div>';
+  }).join('');
+  el.innerHTML = '<div class="hs-detail-section-title">Rincian</div>' + rows;
+}
+
 // ─── DETAIL BON (item + bayar + riwayat) ───────────────────────
 function _hsPopulateAkunSelect(selectId, filterFn) {
   var sel = document.getElementById(selectId);
@@ -3486,10 +3547,12 @@ async function hsOpenDetailBon(bonId) {
   // riwayat, gak ada input pembayaran sama sekali.
 
   var itemsWrap = document.getElementById('hs-detail-items');
+  _hsRenderRincianBon([]);   // kosongkan rincian bon sebelumnya selama memuat
   itemsWrap.innerHTML = '<div class="hs-empty" style="padding:10px 0">Memuat...</div>';
   try {
     var items = await dbGet('hutang_bon_item', '&bon_id=eq.' + bonId + '&order=id.asc');
     _hsCurrentBonItems = items || [];
+    _hsRenderRincianBon(items || []);
     itemsWrap.innerHTML = (items && items.length) ? items.map(function(it) {
       var namaTampil = it.nama_internal || '—';
       var subNama = [];
@@ -3512,6 +3575,7 @@ async function hsOpenDetailBon(bonId) {
     }).join('') : '<div class="hs-empty" style="padding:10px 0">Tidak ada data barang.</div>';
   } catch(e) {
     _hsCurrentBonItems = [];
+    _hsRenderRincianBon([]);
     itemsWrap.innerHTML = '<div class="hs-empty">Gagal memuat barang.</div>';
   }
 
