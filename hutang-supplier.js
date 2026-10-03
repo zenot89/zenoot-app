@@ -514,8 +514,9 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <button class="hs-btn-pill hs-btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
       <div class="hs-toolbar" id="hs-bon-toolbar2">
-        <button class="hs-btn-pill hs-btn-ghost" onclick="hsOpenTarikPenjualan()"><i class="ti ti-download"></i> Tarik dari Penjualan</button>
+        <button class="hs-btn-pill hs-btn-ghost" onclick="hsOpenTarikPenjualan()"><i class="ti ti-refresh"></i> Cek Sinkron Penjualan</button>
       </div>
+      <div id="hs-ds-banner"></div>
       <div class="hs-divider"></div>
       <div id="hs-bon-list"></div>
     </div>
@@ -615,11 +616,11 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     <div class="hs-sheet-page">
       <div class="hs-sheet-handle"><span></span></div>
       <div class="hs-sheet-header">
-        <div class="hs-sheet-title">Tarik dari Penjualan</div>
+        <div class="hs-sheet-title">Cek Sinkron Penjualan</div>
         <button class="hs-sheet-close" onclick="hsCloseSheet('hs-sheet-tarik')"><i class="ti ti-x"></i></button>
       </div>
       <div class="hs-sheet-body">
-        <div class="hs-item-hint" style="margin-bottom:12px">Penjualan produk dropship dijumlahkan per SKU jadi <b>1 bon per minggu</b> (Minggu–Sabtu; penjualan Sabtu lewat jam <span id="hs-tarik-cutoff">19:30</span> masuk minggu berikutnya). Aman diulang: bon minggu yang sama diperbarui, bukan digandakan.</div>
+        <div class="hs-item-hint" style="margin-bottom:12px">Bon dropship <b>sudah otomatis</b> mengikuti penjualan (1 bon per tanggal, tiap ada penjualan baru/edit/hapus). Sheet ini untuk <b>mengecek</b> hasilnya dan memaksa sinkron ulang kalau perlu. Penjualan sebelum 27 Sep 2026 tidak ikut.</div>
         <div class="hs-form-group">
           <label>Supplier</label>
           <select id="hs-tarik-supplier" onchange="hsTarikInvalidate()"></select>
@@ -638,7 +639,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <div id="hs-tarik-hasil"></div>
       </div>
       <div class="hs-sheet-footer">
-        <button class="hs-btn-pill hs-btn-primary" id="hs-tarik-btn-simpan" style="width:100%;justify-content:center" disabled onclick="hsTarikTerapkan()">Simpan ke Bon</button>
+        <button class="hs-btn-pill hs-btn-primary" id="hs-tarik-btn-simpan" style="width:100%;justify-content:center" disabled onclick="hsTarikTerapkan()">Sinkron ke Bon</button>
       </div>
     </div>
   </div>
@@ -1006,6 +1007,7 @@ async function loadHutangSupplier() {
     hsRenderBonList();
     hsRenderPembayaranList();
     hsRenderMasterList();
+    _hsDsAfterLoad();   // 3 Okt 2026: penanda 'harga belum ada' + catch-up bon dropship otomatis (tidak di-await)
   } catch(e) {
     console.error('loadHutangSupplier error', e);
     var list = document.getElementById('hs-bon-list');
@@ -1861,6 +1863,9 @@ function hsRenderBonList() {
     else if (b.is_po) { badgeCls = 'hs-badge-po'; badgeTxt = st.bayar > 0 ? 'PO · DP' : 'PO'; }
     else if (st.bayar > 0) { badgeCls = 'hs-badge-cicil'; badgeTxt = 'Dicicil'; }
 
+    var warnN = _hsBonTanpaHarga[b.id] || 0;   // 3 Okt 2026: jumlah barang berharga Rp0 di bon ini
+    if (warnN && st.sisa <= 0 && b.status !== 'lunas') { badgeCls = 'hs-badge-belum'; badgeTxt = 'Harga belum ada'; }
+
     var donutColor = (badgeCls === 'hs-badge-lunas') ? 'var(--ok)' : (badgeCls === 'hs-badge-cicil' ? 'var(--warn)' : (badgeCls === 'hs-badge-po' ? 'var(--info)' : 'var(--danger)'));
 
     return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')">' +
@@ -1869,6 +1874,7 @@ function hsRenderBonList() {
         '<div class="hs-bon-top"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
         '<div class="hs-bon-sub">' + _hsFmtTgl(b.tanggal) + _hsBonNotaLabel(b) + ' · Total ' + fmtRpFull(b.total) + '</div>' +
         (st.sisa > 0 ? '<div class="hs-bon-sisa">Sisa ' + fmtRpFull(st.sisa) + '</div>' : '') +
+        (warnN ? '<div class="hs-bon-sisa" style="color:var(--warn)">⚠ ' + warnN + ' barang belum ada harga — total belum lengkap</div>' : '') +
       '</div>' +
     '</div>';
   }).join('');
@@ -2867,27 +2873,39 @@ async function hsHapusBon() {
   }
 }
 
-// ─── TARIK BON DROPSHIP DARI PENJUALAN (3 Okt 2026) ───────────
-// Penjualan produk dropship (mis. ZS_ milik RH) di Jurnal Penjualan otomatis jadi
-// hutang barang di tab Bon. Aturan (disepakati user):
-//   • 1 bon per MINGGU per supplier, Minggu s/d Sabtu. Penjualan hari Sabtu yang jamnya
-//     lewat cutoff (sama dgn "Minggu Ini" di Jurnal Penjualan: _JP_MINGGU_CUTOFF_H/_M,
-//     sekarang 19:30) masuk bon minggu BERIKUTNYA.
-//   • Tanggal bon = hari Sabtu minggu itu. No. nota = 'DS-<SUPPLIER>-<YYYYMMDD Minggu awal>',
-//     jadi kunci bon sekaligus penanda bon hasil tarikan.
-//   • Aman diulang: bon minggu yang sama DIPERBARUI (bukan digandakan), jadi penjualan
-//     yang dihapus/dibatalkan ikut hilang dari bon. Bon yang sudah ada pembayaran tidak
-//     dihitung ulang HARGA-nya (hanya qty); butuh konfirmasi kalau totalnya berubah.
-//   • Harga = hutang_barang.harga_per_lusin ÷ 12 (harga dropship), per SKU yang ter-link
-//     ke Master Barang supplier itu. SKU tanpa harga DILEWATI dan ditampilkan di preview
-//     (tidak ada harga tebakan). SKU yang punya stok masuk dianggap barang yang dipegang,
-//     bukan dropship (sama dgn zIsDropship di supabase.js).
-//   • Tidak ada jurnal akuntansi saat bon dibuat (sama dgn Tambah Bon manual); jurnal baru
-//     terbentuk saat bayar. Bon tarikan is_po = false → tidak memicu auto stock-in.
-var _HS_TARIK_MULAI_DEFAULT = '2026-09-27';   // Minggu pertama yang ditarik (permintaan user 3 Okt 2026)
-var _HS_BULAN_PENDEK = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-var _hsTarikPlan = null;
-var _hsTarikBusy = false;
+// ─── BON DROPSHIP OTOMATIS DARI PENJUALAN — PER HARI (3 Okt 2026) ─
+// Penjualan produk dropship milik RH di Jurnal Penjualan otomatis jadi hutang barang
+// di tab Bon. Aturan (disepakati user):
+//   • 1 bon per TANGGAL penjualan per supplier. Tanggal bon = tanggal penjualan,
+//     No. nota = 'DS-<SUPPLIER>-<YYYYMMDD>' → kunci bon sekaligus penanda bon otomatis.
+//   • Realtime: hsDropshipSyncSoon([tanggal...]) dipanggil setiap penjualan ditambah /
+//     diedit / dihapus (jurnal-penjualan.js, shopee-sync.js). Tanpa argumen = hitung ulang
+//     semua hari (_HS_DS_MULAI s/d hari ini, maks 60 hari terakhir) — dipakai juga sebagai
+//     pengaman otomatis tiap tab Bon dibuka, supaya sinkron yang gagal/terlewat terkoreksi.
+//   • Aman diulang & tidak pernah menggandakan: bon hari yang sama DIPERBARUI. Penjualan
+//     yang dihapus / CANCELLED ikut hilang dari bon.
+//   • Harga = hutang_barang.harga_per_lusin ÷ 12 (harga dropship). SKU yang BELUM ADA harga
+//     (belum ter-link ke Master Barang, atau harganya kosong) TIDAK dilewati: tetap masuk bon
+//     dengan harga Rp0 + peringatan (kartu bon, rincian bon, banner). Begitu harganya diisi,
+//     sinkron berikutnya otomatis menghitung ulang.
+//   • Pembayaran: ikut alur yang sudah ada (Bayar Utang). Satu-satunya aturan tambahan: bon yang
+//     sudah ada pembayarannya tidak dihitung ulang HARGA item yang sudah berharga (qty tetap ikut).
+//   • Hanya supplier di _HS_DS_AUTO_SUPPLIERS (RH). Supplier dropship lain (mis. yang bon-nya
+//     diinput manual lewat Tambah Bon) TIDAK disentuh supaya tidak dobel.
+//   • Bon otomatis is_po = false → tidak memicu auto stock-in. Tidak ada jurnal akuntansi saat bon
+//     dibuat (sama dgn Tambah Bon manual); jurnal baru terbentuk saat bayar.
+//   • Penjualan sebelum _HS_DS_MULAI dianggap sudah lunas → tidak ditarik.
+var _HS_DS_AUTO_SUPPLIERS = ['RH'];
+var _HS_DS_MULAI = '2026-09-27';
+var _HS_DS_MAX_HARI = 60;
+var _hsDsMasterCache = null, _hsDsMasterAt = 0;
+var _hsDsPending = null, _hsDsTimer = null, _hsDsChain = Promise.resolve();
+var _hsDsLastCatchUp = 0;
+var _hsDsWarnings = {};     // sku → { alasan, qty }  (hasil sinkron terakhir)
+var _hsDsError = '';
+var _hsBonTanpaHarga = {};  // bon_id → jumlah item berharga Rp0
+var _hsDsPlan = null;       // hasil "Lihat Hasil" di sheet manual
+var _hsDsManualBusy = false;
 
 function _hsYmd(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2901,80 +2919,57 @@ function _hsAddDays(s, n) {
   d.setDate(d.getDate() + n);
   return _hsYmd(d);
 }
-function _hsSundayOf(s) {
-  var d = _hsParseYmd(s);
-  d.setDate(d.getDate() - d.getDay());
-  return _hsYmd(d);
-}
-// Jam cutoff Sabtu 'HH:MM' — ikut konstanta Jurnal Penjualan kalau ada, fallback 19:30.
-function _hsTarikCutoffJam() {
-  var h = (typeof _JP_MINGGU_CUTOFF_H === 'number') ? _JP_MINGGU_CUTOFF_H : 19;
-  var m = (typeof _JP_MINGGU_CUTOFF_M === 'number') ? _JP_MINGGU_CUTOFF_M : 30;
-  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-}
-// Kunci minggu (tanggal Minggu awal) tempat 1 baris penjualan masuk.
-function _hsTarikMingguKey(tanggal, waktu) {
-  var t = String(tanggal || '').slice(0, 10);
-  var start = _hsSundayOf(t);
-  if (_hsParseYmd(t).getDay() === 6 && String(waktu || '00:00').slice(0, 5) > _hsTarikCutoffJam()) {
-    start = _hsAddDays(start, 7);
-  }
-  return start;
-}
-function _hsTarikRangeLabel(startKey) {
-  var a = _hsParseYmd(startKey), b = _hsParseYmd(_hsAddDays(startKey, 6));
-  var la = a.getDate() + ' ' + _HS_BULAN_PENDEK[a.getMonth()];
-  var lb = b.getDate() + ' ' + _HS_BULAN_PENDEK[b.getMonth()];
-  return (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear())
-    ? a.getDate() + '–' + lb
-    : la + ' – ' + lb;
-}
-function _hsTarikNota(supNama, startKey) {
+function _hsDsNota(supNama, ymd) {
   var slug = String(supNama || '').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'SUP';
-  return 'DS-' + slug + '-' + startKey.replace(/-/g, '');
+  return 'DS-' + slug + '-' + ymd.replace(/-/g, '');
 }
-// Label tampilan di kartu Bon untuk bon hasil tarikan (selain itu: no_nota apa adanya).
+// Label tambahan di kartu Bon untuk bon otomatis; selain itu no_nota apa adanya.
 function _hsBonNotaLabel(b) {
   if (!b || !b.no_nota) return '';
-  var m = /^DS-[A-Z0-9]+-(\d{4})(\d{2})(\d{2})$/.exec(b.no_nota);
-  if (m && b.mode_beli === 'dropship') return ' · Dropship ' + _hsTarikRangeLabel(m[1] + '-' + m[2] + '-' + m[3]);
+  if (b.mode_beli === 'dropship' && /^DS-[A-Z0-9]+-\d{8}$/.test(b.no_nota)) return ' · Otomatis dari penjualan';
   return ' · ' + _hsEsc(b.no_nota);
 }
-
-function hsOpenTarikPenjualan() {
-  var sel = document.getElementById('hs-tarik-supplier');
-  if (!sel) return;
-  var dsList = (_hsSupplierList || []).filter(function(s) { return s.is_dropship && !s.is_produksi_sendiri; });
-  if (!dsList.length) { alert('Belum ada supplier bertipe Dropship di Kelola Supplier.'); return; }
-  sel.innerHTML = dsList.map(function(s) { return '<option value="' + s.id + '">' + _hsEsc(s.nama) + '</option>'; }).join('');
-  // Prioritas: supplier yang sedang difilter di tab Bon → supplier bernama RH → yang pertama
-  var pick = dsList.find(function(s) { return s.id === _hsFilterSupplier; })
-          || dsList.find(function(s) { return String(s.nama || '').trim().toUpperCase() === 'RH'; })
-          || dsList[0];
-  sel.value = String(pick.id);
-  var now = new Date();
-  var hariIni = _hsYmd(now);
-  var jam = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-  var mingguIni = _hsTarikMingguKey(hariIni, jam);
-  document.getElementById('hs-tarik-dari').value   = _HS_TARIK_MULAI_DEFAULT;
-  document.getElementById('hs-tarik-sampai').value = _hsAddDays(mingguIni, 6);
-  var cj = document.getElementById('hs-tarik-cutoff');
-  if (cj) cj.textContent = _hsTarikCutoffJam();
-  hsTarikInvalidate();
-  hsOpenSheet('hs-sheet-tarik');
+// Daftar tanggal [dari..sampai] inklusif
+function _hsDsRentang(dari, sampai) {
+  var out = [];
+  for (var d = dari; d <= sampai && out.length < 400; d = _hsAddDays(d, 1)) out.push(d);
+  return out;
+}
+function _hsDsHariIni() { return _hsYmd(new Date()); }
+function _hsDsRentangCatchUp() {
+  var hariIni = _hsDsHariIni();
+  var dari = _hsAddDays(hariIni, -(_HS_DS_MAX_HARI - 1));
+  if (dari < _HS_DS_MULAI) dari = _HS_DS_MULAI;
+  return _hsDsRentang(dari, hariIni);
 }
 
-// Input berubah → hasil hitung lama tidak berlaku lagi.
-function hsTarikInvalidate() {
-  _hsTarikPlan = null;
-  var h = document.getElementById('hs-tarik-hasil');
-  if (h) h.innerHTML = '';
-  var b = document.getElementById('hs-tarik-btn-simpan');
-  if (b) { b.disabled = true; b.textContent = 'Simpan ke Bon'; }
+// Data master (produk, stok, Master Barang, peta supplier) — di-cache 30 dtk supaya sinkron beruntun murah.
+async function _hsDsMaster(force) {
+  var now = Date.now();
+  if (!force && _hsDsMasterCache && (now - _hsDsMasterAt) < 30000) return _hsDsMasterCache;
+  var r = await Promise.all([dbGet('produk'), dbGet('stok'), dbGet('hutang_barang'), zDsLoadSuppliers(!!force)]);
+  var produkBySku = {};
+  (r[0] || []).forEach(function(p) {
+    var k = String(p.sku_variasi || p.sku || '').trim().toUpperCase();
+    if (k) produkBySku[k] = p;
+  });
+  var masukMap = {};
+  (r[1] || []).forEach(function(s) {
+    var k = String(s.sku_variasi || '').trim().toUpperCase();
+    if (k) masukMap[k] = s.stok_masuk || 0;
+  });
+  var hbByProduk = {};
+  (r[2] || []).forEach(function(b) {
+    if (!b.produk_id) return;
+    (hbByProduk[b.produk_id] = hbByProduk[b.produk_id] || []).push(b);
+  });
+  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {} };
+  _hsDsMasterAt = now;
+  return _hsDsMasterCache;
 }
 
-// Ambil semua baris penjualan (paging 1000) pada rentang tanggal [dari, sampaiEksklusif).
-async function _hsTarikFetchPenjualan(dari, sampaiEksklusif) {
+// Ambil semua baris penjualan (paging 1000) pada [dari, sampaiEksklusif). Pola gte/lt tanpa jam = aman utk kolom DATE maupun TIMESTAMP.
+async function _hsDsFetchPenjualan(dari, sampaiEksklusif) {
   var out = [], off = 0, page = 1000;
   while (true) {
     var rows = await dbGet('jurnal_penjualan',
@@ -2984,13 +2979,313 @@ async function _hsTarikFetchPenjualan(dari, sampaiEksklusif) {
     out = out.concat(rows || []);
     if (!rows || rows.length < page) break;
     off += page;
-    if (off >= 100000) break;   // pengaman
+    if (off >= 100000) break;
   }
   return out;
 }
 
+function _hsDsItemKey(barangId, nama, varian) {
+  return barangId ? ('b' + barangId) : ('n:' + String(nama || '') + '|' + String(varian || ''));
+}
+
+// Hitung rencana bon harian untuk 1 supplier. dates = array 'YYYY-MM-DD' (terurut). TIDAK menulis apa-apa.
+async function _hsDsBuildPlan(sup, dates, master) {
+  var plan = { supplierId: sup.id, supNama: sup.nama, days: [], warnings: {}, skippedStok: {} };
+  if (!dates.length) return plan;
+  var min = dates[0], max = dates[dates.length - 1];
+  var rows = await _hsDsFetchPenjualan(min, _hsAddDays(max, 1));
+  var dateSet = {};
+  dates.forEach(function(d) { dateSet[d] = true; });
+  var supKey = String(sup.nama || '').trim().toUpperCase();
+
+  var byDate = {};
+  rows.forEach(function(r) {
+    var tgl = String(r.tanggal || '').slice(0, 10);
+    if (!dateSet[tgl]) return;
+    var sku = String(r.sku || '').trim().toUpperCase();
+    var qty = Number(r.qty) || 0;
+    if (!sku || qty <= 0) return;
+    var p = master.produkBySku[sku];
+    if (!p) return;
+
+    var hbs = master.hbByProduk[p.id] || [];
+    var hbMine = hbs.find(function(b) { return b.supplier_id === sup.id; }) || null;
+    var milik;
+    if (hbMine) milik = true;
+    else if (hbs.length) milik = false;   // sudah di-link ke supplier lain
+    else milik = (String(p.boss || '').trim().toUpperCase() === supKey);   // belum di-link: ikut Boss
+    if (!milik) return;
+
+    var pDs = { boss: sup.nama, dropship: p.dropship === true };
+    if (!zIsDropship(pDs, master.dsSupMap, master.masukMap[sku])) {
+      if (zIsDropship(pDs, master.dsSupMap, 0) && (master.masukMap[sku] || 0) > 0) plan.skippedStok[sku] = (plan.skippedStok[sku] || 0) + qty;
+      return;
+    }
+
+    var uIdx = sku.lastIndexOf('_');
+    var varianSku = uIdx >= 0 ? sku.slice(uIdx + 1) : sku;
+    var harga = hbMine && hbMine.harga_per_lusin > 0 ? Number(hbMine.harga_per_lusin) : 0;
+    var nama  = (hbMine && hbMine.katalog_produk) || p.katalog || sku;
+    var varian = (hbMine && hbMine.varian_warna) || varianSku;
+    var key = _hsDsItemKey(hbMine ? hbMine.id : null, nama, varian);
+    var day = byDate[tgl] = byDate[tgl] || { items: {}, skuSet: {} };
+    var it = day.items[key];
+    if (!it) {
+      it = day.items[key] = {
+        key: key, barang_id: hbMine ? hbMine.id : null,
+        nama_internal: nama, nama_supplier: hbMine ? (hbMine.nama_supplier || null) : null, varian_warna: varian,
+        harga_per_lusin: harga, qty: 0, sku: sku,
+      };
+    }
+    it.qty += qty;
+    day.skuSet[sku] = true;
+    if (!(harga > 0)) {
+      var w = plan.warnings[sku] = plan.warnings[sku] || { alasan: hbMine ? 'harga dropship kosong di Master Barang' : 'belum ter-link ke Master Barang', qty: 0 };
+      w.qty += qty;
+    }
+  });
+
+  // Bon yang sudah ada (1 query utk seluruh rentang) + pembayaran + item lamanya
+  var exBons = await dbGet('hutang_bon',
+    '&supplier_id=eq.' + sup.id + '&no_nota=like.' + encodeURIComponent('DS-*') +
+    '&tanggal=gte.' + min + '&tanggal=lte.' + max);
+  var exByNota = {};
+  (exBons || []).forEach(function(b) { if (b.no_nota && !exByNota[b.no_nota]) exByNota[b.no_nota] = b; });
+  var exIds = Object.keys(exByNota).map(function(k) { return exByNota[k].id; });
+  var bayarAll = [], oldItemsAll = [];
+  if (exIds.length) {
+    var rr = await Promise.all([
+      dbGet('hutang_pembayaran', '&bon_id=in.(' + exIds.join(',') + ')'),
+      dbGet('hutang_bon_item',   '&bon_id=in.(' + exIds.join(',') + ')'),
+    ]);
+    bayarAll = rr[0] || []; oldItemsAll = rr[1] || [];
+  }
+
+  dates.forEach(function(ymd) {
+    var nota = _hsDsNota(sup.nama, ymd);
+    var ex = exByNota[nota] || null;
+    var day = byDate[ymd];
+    var items = day ? Object.keys(day.items).map(function(k) { return day.items[k]; }) : [];
+    var oldItems = ex ? oldItemsAll.filter(function(i) { return i.bon_id === ex.id; }) : [];
+    var bayar = ex ? bayarAll.filter(function(p) { return p.bon_id === ex.id; }).reduce(function(s, p) { return s + (p.nominal || 0); }, 0) : 0;
+
+    // Bon yang sudah ada pembayarannya: harga item yang sudah berharga dikunci (cuma qty yang ikut penjualan)
+    if (ex && bayar > 0) {
+      items.forEach(function(it) {
+        var lama = oldItems.find(function(o) { return _hsDsItemKey(o.barang_id, o.nama_internal, o.varian_warna) === it.key; });
+        if (lama && Number(lama.harga_satuan) > 0) it.harga_per_lusin = Number(lama.harga_satuan);
+      });
+    }
+    var raw = 0, totalQty = 0, tanpaHarga = 0;
+    items.forEach(function(it) {
+      it.subtotal = Math.round(it.qty * it.harga_per_lusin / 12);
+      raw += it.qty * it.harga_per_lusin / 12;
+      totalQty += it.qty;
+      if (!(it.harga_per_lusin > 0)) tanpaHarga++;
+    });
+    var total = Math.round(raw);
+    items.sort(function(a, b) {
+      return String(a.nama_internal || '').localeCompare(String(b.nama_internal || ''), 'id') ||
+             String(a.varian_warna || '').localeCompare(String(b.varian_warna || ''), 'id');
+    });
+    var sigNew = items.map(function(i) { return i.key + ':' + i.qty + ':' + Math.round(i.harga_per_lusin); }).sort().join('|');
+    var sigOld = oldItems.map(function(i) { return _hsDsItemKey(i.barang_id, i.nama_internal, i.varian_warna) + ':' + i.qty + ':' + Math.round(i.harga_satuan || 0); }).sort().join('|');
+
+    var aksi, catatan = '';
+    if (ex && ex.mode_beli !== 'dropship') {
+      aksi = 'konflik'; catatan = 'No. nota ' + nota + ' sudah dipakai bon non-dropship — dilewati.';
+    } else if (!items.length) {
+      if (!ex)            aksi = 'kosong';
+      else if (bayar > 0) { aksi = 'kosong_dibayar'; catatan = 'Penjualan hari ini sudah tidak ada, tapi bon sudah ada pembayarannya — dibiarkan.'; }
+      else                aksi = 'hapus';
+    } else if (!ex) {
+      aksi = 'baru';
+    } else if (Math.round(ex.total || 0) === total && sigOld === sigNew) {
+      aksi = 'sama';
+    } else {
+      aksi = 'update';
+      if (bayar > total && total > 0) catatan = 'Kelebihan bayar ' + fmtRpFull(bayar - total) + ' (total bon turun di bawah yang sudah dibayar).';
+    }
+    plan.days.push({
+      ymd: ymd, nota: nota, items: items, skuCount: day ? Object.keys(day.skuSet).length : 0,
+      totalQty: totalQty, total: total, tanpaHarga: tanpaHarga,
+      aksi: aksi, existing: ex, oldItems: oldItems, bayar: bayar, catatan: catatan,
+    });
+  });
+  return plan;
+}
+
+// Tulis hasil rencana ke DB. Hanya hari berstatus baru/update/hapus yang disentuh.
+async function _hsDsTulis(plan) {
+  var ok = 0, gagal = [];
+  for (var i = 0; i < plan.days.length; i++) {
+    var w = plan.days[i];
+    if (w.aksi !== 'baru' && w.aksi !== 'update' && w.aksi !== 'hapus') continue;
+    try {
+      if (w.aksi === 'hapus') {
+        await dbDelete('hutang_bon', w.existing.id);   // cascade hapus item
+        ok++; continue;
+      }
+      var payload = w.items.map(function(it) {
+        return {
+          bon_id: null, barang_id: it.barang_id,
+          nama_internal: it.nama_internal || null, nama_supplier: it.nama_supplier || null,
+          varian_warna: it.varian_warna || null, qty: it.qty, satuan: 'pcs',
+          harga_satuan: it.harga_per_lusin, subtotal: it.subtotal,
+        };
+      });
+      if (w.aksi === 'baru') {
+        var bon = await dbInsert('hutang_bon', {
+          supplier_id: plan.supplierId, tanggal: w.ymd, no_nota: w.nota, total: w.total,
+          mode_beli: 'dropship', status: 'belum_lunas', is_po: false,
+        });
+        var bonId = bon[0].id;
+        try {
+          await dbInsert('hutang_bon_item', payload.map(function(p) { p.bon_id = bonId; return p; }));   // 1 request = atomik
+        } catch (e2) {
+          try { await dbDelete('hutang_bon', bonId); } catch (e3) {}
+          throw e2;
+        }
+      } else {
+        var ex = w.existing;
+        // Urutan aman: item baru masuk dulu (atomik) → item lama dihapus → total & status diperbarui
+        var baru = await dbInsert('hutang_bon_item', payload.map(function(p) { p.bon_id = ex.id; return p; }));
+        try {
+          for (var j = 0; j < w.oldItems.length; j++) await dbDelete('hutang_bon_item', w.oldItems[j].id);
+        } catch (e4) {
+          for (var k = 0; k < baru.length; k++) { try { await dbDelete('hutang_bon_item', baru[k].id); } catch (e5) {} }
+          throw e4;
+        }
+        // Lunas hanya kalau ada tagihan (total > 0) dan sudah terbayar penuh; total Rp0 (belum ada harga) tetap belum lunas.
+        await dbUpdate('hutang_bon', ex.id, { total: w.total, status: (w.total > 0 && w.bayar >= w.total) ? 'lunas' : 'belum_lunas' });
+      }
+      ok++;
+    } catch (e) {
+      console.error('[bon-dropship] gagal tulis ' + w.nota, e);
+      var msg = (e && e.message) || String(e);
+      if (/barang_id/i.test(msg) && /null|not-null|violates/i.test(msg)) {
+        msg = 'Kolom barang_id di hutang_bon_item belum boleh kosong, padahal ada SKU yang belum ter-link. Jalankan sekali di Supabase SQL Editor: ALTER TABLE hutang_bon_item ALTER COLUMN barang_id DROP NOT NULL;';
+      }
+      gagal.push({ nota: w.nota, msg: msg });
+    }
+  }
+  return { ok: ok, gagal: gagal };
+}
+
+// Jalankan sinkron untuk daftar tanggal. Return { ok, gagal, warnings }.
+async function _hsDsRun(dates, replaceWarnings, force) {
+  var master = await _hsDsMaster(force);
+  var hasil = { ok: 0, gagal: [], warnings: {} };
+  for (var i = 0; i < _HS_DS_AUTO_SUPPLIERS.length; i++) {
+    var sup = master.dsSupMap[String(_HS_DS_AUTO_SUPPLIERS[i]).toUpperCase()];
+    if (!sup || !sup.is_dropship || sup.is_produksi_sendiri) continue;
+    var plan = await _hsDsBuildPlan(sup, dates, master);
+    var r = await _hsDsTulis(plan);
+    hasil.ok += r.ok; hasil.gagal = hasil.gagal.concat(r.gagal);
+    Object.keys(plan.warnings).forEach(function(k) { hasil.warnings[k] = plan.warnings[k]; });
+  }
+  if (replaceWarnings) _hsDsWarnings = hasil.warnings;
+  else Object.keys(hasil.warnings).forEach(function(k) { _hsDsWarnings[k] = hasil.warnings[k]; });
+  _hsDsError = hasil.gagal.length ? hasil.gagal[0].msg : '';
+  return hasil;
+}
+
+// ── Titik masuk realtime ──
+// hsDropshipSyncSoon(['2026-10-03', ...]) — dipanggil setelah penjualan ditambah/diedit/dihapus.
+// hsDropshipSyncSoon() tanpa argumen — hitung ulang semua hari (catch-up). Digabung (debounce 1,2 dtk)
+// dan diantrekan satu-satu, tidak pernah melempar error ke pemanggil (simpan penjualan tidak boleh gagal gara-gara bon).
+function hsDropshipSyncSoon(dates) {
+  try {
+    if (!_hsDsPending) _hsDsPending = { all: false, set: {} };
+    if (!dates || !dates.length) _hsDsPending.all = true;
+    else dates.forEach(function(d) {
+      var y = String(d || '').slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(y) && y >= _HS_DS_MULAI && y <= _hsAddDays(_hsDsHariIni(), 1)) _hsDsPending.set[y] = true;
+    });
+    if (_hsDsTimer) clearTimeout(_hsDsTimer);
+    _hsDsTimer = setTimeout(_hsDsFlush, 1200);
+  } catch (e) { console.warn('[bon-dropship] jadwal sinkron gagal:', e && e.message); }
+}
+function _hsDsFlush() {
+  var pend = _hsDsPending;
+  _hsDsPending = null; _hsDsTimer = null;
+  if (!pend) return;
+  var dates = pend.all ? _hsDsRentangCatchUp() : Object.keys(pend.set).sort();
+  if (!dates.length) return;
+  _hsDsChain = _hsDsChain.then(async function() {
+    try {
+      var h = await _hsDsRun(dates, pend.all, false);
+      if (h.ok > 0) _hsDsRefreshJikaTerbuka();
+      else _hsDsRenderBanner();
+    } catch (e) {
+      console.warn('[bon-dropship] sinkron gagal:', e && e.message);
+      _hsDsError = (e && e.message) || String(e);
+      _hsDsRenderBanner();
+    }
+  });
+}
+// Kalau halaman Hutang/Bon sedang tampil, muat ulang supaya angkanya langsung terlihat.
+function _hsDsRefreshJikaTerbuka() {
+  var el = document.getElementById('hs-bon-list');
+  if (el && el.offsetParent !== null && typeof loadHutangSupplier === 'function') loadHutangSupplier();
+  else _hsDsRenderBanner();
+}
+
+// Dipanggil di akhir loadHutangSupplier: muat penanda "harga belum ada" lalu jadwalkan catch-up (maks 1x / 45 dtk).
+async function _hsDsAfterLoad() {
+  try {
+    var rows = await dbGet('hutang_bon_item', '&harga_satuan=eq.0&select=bon_id');
+    var m = {};
+    (rows || []).forEach(function(r) { m[r.bon_id] = (m[r.bon_id] || 0) + 1; });
+    _hsBonTanpaHarga = m;
+    hsRenderBonList();
+    _hsDsRenderBanner();
+  } catch (e) { console.warn('[bon-dropship] muat penanda harga gagal:', e && e.message); }
+  if (Date.now() - _hsDsLastCatchUp > 45000) {
+    _hsDsLastCatchUp = Date.now();
+    hsDropshipSyncSoon();
+  }
+}
+
+function _hsDsRenderBanner() {
+  var el = document.getElementById('hs-ds-banner');
+  if (!el) return;
+  var html = '';
+  if (_hsDsError) {
+    html += '<div class="hs-item-hint" style="color:var(--danger);margin:8px 0">Sinkron bon dropship gagal: ' + _hsEsc(_hsDsError) + '</div>';
+  }
+  var ks = Object.keys(_hsDsWarnings);
+  if (ks.length) {
+    html += '<div class="hs-item-hint" style="color:var(--warn);margin:8px 0"><b>⚠ ' + ks.length + ' SKU dropship belum ada harga</b> — tetap masuk bon dengan harga Rp0, jadi total bon belum lengkap: ' +
+      ks.slice(0, 8).map(function(k) { return _hsEsc(k) + ' (' + _hsEsc(_hsDsWarnings[k].alasan) + ', ×' + _hsDsWarnings[k].qty + ')'; }).join('; ') +
+      (ks.length > 8 ? '; +' + (ks.length - 8) + ' lainnya' : '') + '. Isi harga dropship per lusin di Master Barang, bon dihitung ulang otomatis.</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ─── Sheet manual "Tarik dari Penjualan" (alat cek / sinkron paksa) ───
+function hsOpenTarikPenjualan() {
+  var sel = document.getElementById('hs-tarik-supplier');
+  if (!sel) return;
+  var auto = (_hsSupplierList || []).filter(function(s) {
+    return _HS_DS_AUTO_SUPPLIERS.indexOf(String(s.nama || '').trim().toUpperCase()) !== -1 && s.is_dropship;
+  });
+  if (!auto.length) { alert('Supplier ' + _HS_DS_AUTO_SUPPLIERS.join(', ') + ' (tipe Dropship) belum ada di Kelola Supplier.'); return; }
+  sel.innerHTML = auto.map(function(s) { return '<option value="' + s.id + '">' + _hsEsc(s.nama) + '</option>'; }).join('');
+  document.getElementById('hs-tarik-dari').value   = _HS_DS_MULAI;
+  document.getElementById('hs-tarik-sampai').value = _hsDsHariIni();
+  hsTarikInvalidate();
+  hsOpenSheet('hs-sheet-tarik');
+}
+function hsTarikInvalidate() {
+  _hsDsPlan = null;
+  var h = document.getElementById('hs-tarik-hasil');
+  if (h) h.innerHTML = '';
+  var b = document.getElementById('hs-tarik-btn-simpan');
+  if (b) { b.disabled = true; b.textContent = 'Sinkron ke Bon'; }
+}
 async function hsTarikHitung() {
-  if (_hsTarikBusy) return;
+  if (_hsDsManualBusy) return;
   var supplierId = parseInt(document.getElementById('hs-tarik-supplier').value, 10);
   var dari   = document.getElementById('hs-tarik-dari').value;
   var sampai = document.getElementById('hs-tarik-sampai').value;
@@ -2999,159 +3294,29 @@ async function hsTarikHitung() {
   if (!sup)             { alert('Pilih supplier dulu.'); return; }
   if (!dari || !sampai) { alert('Isi tanggal dari & sampai.'); return; }
   if (dari > sampai)    { alert('Tanggal "Dari" harus sebelum "Sampai".'); return; }
-  var firstKey = _hsSundayOf(dari), lastKey = _hsSundayOf(sampai);
-  var jmlMinggu = Math.round((_hsParseYmd(lastKey) - _hsParseYmd(firstKey)) / (7 * 86400000)) + 1;
-  if (jmlMinggu > 60) { alert('Maksimal 60 minggu sekali tarik. Persempit rentangnya.'); return; }
+  if (dari < _HS_DS_MULAI) { dari = _HS_DS_MULAI; document.getElementById('hs-tarik-dari').value = dari; }
+  var dates = _hsDsRentang(dari, sampai);
+  if (dates.length > 90) { alert('Maksimal 90 hari sekali cek. Persempit rentangnya.'); return; }
 
-  _hsTarikBusy = true;
-  _hsTarikPlan = null;
-  var btnSimpan = document.getElementById('hs-tarik-btn-simpan');
-  if (btnSimpan) btnSimpan.disabled = true;
+  _hsDsManualBusy = true;
+  _hsDsPlan = null;
+  var btn = document.getElementById('hs-tarik-btn-simpan');
+  if (btn) btn.disabled = true;
   hasilEl.innerHTML = '<div class="hs-empty">Menghitung...</div>';
   try {
-    // Sabtu sebelum Minggu pertama ikut diambil: baris Sabtu lewat cutoff jatuh ke minggu pertama.
-    var fetchDari = _hsAddDays(firstKey, -1);
-    var fetchSampaiEks = _hsAddDays(lastKey, 7);   // s/d Sabtu minggu terakhir (inklusif)
-    var results = await Promise.all([
-      _hsTarikFetchPenjualan(fetchDari, fetchSampaiEks),
-      dbGet('produk'),
-      dbGet('stok'),
-      dbGet('hutang_barang'),
-      dbGet('hutang_bon', '&supplier_id=eq.' + supplierId),
-      dbGet('hutang_pembayaran'),
-      zDsLoadSuppliers(true),
-    ]);
-    var penjualan = results[0], produkAll = results[1], stokData = results[2],
-        barangAll = results[3], bonAll = results[4], bayarAll = results[5], dsSupMap = results[6];
-
-    var masukMap = {};
-    (stokData || []).forEach(function(s) {
-      var k = String(s.sku_variasi || '').trim().toUpperCase();
-      if (k) masukMap[k] = s.stok_masuk || 0;
-    });
-    var produkBySku = {};
-    (produkAll || []).forEach(function(p) {
-      var k = String(p.sku_variasi || p.sku || '').trim().toUpperCase();
-      if (k) produkBySku[k] = p;
-    });
-    // Link Master Barang: produk_id → daftar baris (semua supplier), buat bedain "milik supplier ini" vs "milik lain"
-    var hbByProduk = {};
-    (barangAll || []).forEach(function(b) {
-      if (!b.produk_id) return;
-      (hbByProduk[b.produk_id] = hbByProduk[b.produk_id] || []).push(b);
-    });
-    var supKey = String(sup.nama || '').trim().toUpperCase();
-
-    var weeks = {};   // key Minggu → { items: {barang_id: item}, ... }
-    var noPrice = {}, skippedStok = {};
-    (penjualan || []).forEach(function(r) {
-      var sku = String(r.sku || '').trim().toUpperCase();
-      var qty = Number(r.qty) || 0;
-      if (!sku || qty <= 0) return;
-      var key = _hsTarikMingguKey(r.tanggal, r.waktu);
-      if (key < firstKey || key > lastKey) return;
-      var p = produkBySku[sku];
-      if (!p) return;
-
-      var hbs = hbByProduk[p.id] || [];
-      var hbMine = hbs.find(function(b) { return b.supplier_id === supplierId; });
-      var milikSupplier;
-      if (hbMine) milikSupplier = true;
-      else if (hbs.length) milikSupplier = false;   // sudah di-link ke supplier lain
-      else milikSupplier = (String(p.boss || '').trim().toUpperCase() === supKey);   // belum di-link: ikut Boss
-      if (!milikSupplier) return;
-
-      var pDs = { boss: sup.nama, dropship: p.dropship === true };
-      if (!zIsDropship(pDs, dsSupMap, masukMap[sku])) {
-        // Dropship secara aturan tapi punya stok masuk → barang dipegang, tidak ditarik (dicatat buat info)
-        if (zIsDropship(pDs, dsSupMap, 0) && (masukMap[sku] || 0) > 0) skippedStok[sku] = (skippedStok[sku] || 0) + qty;
-        return;
-      }
-      if (!hbMine || !(hbMine.harga_per_lusin > 0)) { noPrice[sku] = (noPrice[sku] || 0) + qty; return; }
-
-      var w = weeks[key] = weeks[key] || { items: {}, skuSet: {} };
-      var it = w.items[hbMine.id];
-      if (!it) {
-        it = w.items[hbMine.id] = {
-          barang_id: hbMine.id,
-          katalog_produk: hbMine.katalog_produk || null,
-          nama_supplier: hbMine.nama_supplier || null,
-          varian_warna: hbMine.varian_warna || null,
-          harga_per_lusin: hbMine.harga_per_lusin,
-          qty: 0,
-        };
-      }
-      it.qty += qty;
-      w.skuSet[sku] = true;
-    });
-
-    // Item bon yang sudah ada (buat deteksi perubahan & kunci harga bon yang sudah dibayar)
-    var existingByNota = {};
-    (bonAll || []).forEach(function(b) { if (b.no_nota && !existingByNota[b.no_nota]) existingByNota[b.no_nota] = b; });
-    var oldItemsAll = [];
-    var existingIds = Object.keys(existingByNota).map(function(k) { return existingByNota[k].id; });
-    if (existingIds.length) oldItemsAll = await dbGet('hutang_bon_item', '&bon_id=in.(' + existingIds.join(',') + ')');
-
-    var plan = { supplierId: supplierId, supNama: sup.nama, weeks: [], noPrice: noPrice, skippedStok: skippedStok };
-    for (var key = firstKey; key <= lastKey; key = _hsAddDays(key, 7)) {
-      var nota = _hsTarikNota(sup.nama, key);
-      var ex = existingByNota[nota] || null;
-      var w = weeks[key];
-      var oldItems = ex ? oldItemsAll.filter(function(i) { return i.bon_id === ex.id; }) : [];
-      var bayar = ex ? (bayarAll || []).filter(function(p) { return p.bon_id === ex.id; }).reduce(function(s, p) { return s + (p.nominal || 0); }, 0) : 0;
-      var items = w ? Object.keys(w.items).map(function(k) { return w.items[k]; }) : [];
-
-      // Bon yang sudah dibayar: harga item lama dikunci, cuma qty yang ikut penjualan
-      if (ex && bayar > 0) {
-        items.forEach(function(it) {
-          var lama = oldItems.find(function(o) { return o.barang_id === it.barang_id; });
-          if (lama && lama.harga_satuan > 0) it.harga_per_lusin = lama.harga_satuan;
-        });
-      }
-      var raw = 0, totalQty = 0;
-      items.forEach(function(it) {
-        it.subtotal = Math.round(it.qty * it.harga_per_lusin / 12);
-        raw += it.qty * it.harga_per_lusin / 12;
-        totalQty += it.qty;
-      });
-      var total = Math.round(raw);
-      items.sort(function(a, b) { return String(a.katalog_produk || '').localeCompare(String(b.katalog_produk || ''), 'id') || String(a.varian_warna || '').localeCompare(String(b.varian_warna || ''), 'id'); });
-
-      var sig = function(arr, hargaKey) {
-        return arr.map(function(i) { return i.barang_id + ':' + i.qty + ':' + Math.round(i[hargaKey]); }).sort().join('|');
-      };
-      var aksi, catatan = '';
-      if (ex && ex.mode_beli !== 'dropship') {
-        aksi = 'konflik'; catatan = 'No. nota ' + nota + ' sudah dipakai bon non-dropship.';
-      } else if (!items.length) {
-        aksi = 'kosong';
-        if (ex) catatan = 'Tidak ada penjualan lagi, tapi bon ' + fmtRpFull(ex.total) + ' masih ada — dibiarkan (hapus manual kalau memang tidak perlu).';
-      } else if (!ex) {
-        aksi = 'baru';
-      } else if (Math.round(ex.total || 0) === total && sig(oldItems, 'harga_satuan') === sig(items, 'harga_per_lusin')) {
-        aksi = 'sama';
-      } else {
-        aksi = 'update';
-        if (bayar > 0 && bayar > total) catatan = 'Kelebihan bayar ' + fmtRpFull(bayar - total) + ' (total bon turun di bawah yang sudah dibayar).';
-      }
-      plan.weeks.push({
-        key: key, label: _hsTarikRangeLabel(key), tanggalBon: _hsAddDays(key, 6), nota: nota,
-        items: items, skuCount: w ? Object.keys(w.skuSet).length : 0, totalQty: totalQty, total: total,
-        aksi: aksi, existing: ex, oldItems: oldItems, bayar: bayar, catatan: catatan,
-      });
-    }
-    _hsTarikPlan = plan;
+    var master = await _hsDsMaster(true);
+    var supMap = master.dsSupMap[String(sup.nama || '').trim().toUpperCase()] || sup;
+    _hsDsPlan = await _hsDsBuildPlan(supMap, dates, master);
     _hsTarikRender();
   } catch (e) {
     console.error('hsTarikHitung error', e);
     hasilEl.innerHTML = '<div class="hs-empty">Gagal menghitung: ' + _hsEsc(e.message || e) + '</div>';
   } finally {
-    _hsTarikBusy = false;
+    _hsDsManualBusy = false;
   }
 }
-
 function _hsTarikRender() {
-  var plan = _hsTarikPlan;
+  var plan = _hsDsPlan;
   var hasilEl = document.getElementById('hs-tarik-hasil');
   var btn = document.getElementById('hs-tarik-btn-simpan');
   if (!plan || !hasilEl) return;
@@ -3159,112 +3324,67 @@ function _hsTarikRender() {
     baru:   ['Baru',          'var(--ok)'],
     update: ['Diperbarui',    'var(--warn)'],
     sama:   ['Tidak berubah', 'var(--ink3)'],
-    kosong: ['Tidak ada penjualan', 'var(--ink3)'],
+    hapus:  ['Dihapus (tak ada penjualan)', 'var(--warn)'],
+    kosong_dibayar: ['Dibiarkan', 'var(--ink3)'],
     konflik:['Konflik',       'var(--danger)'],
   };
-  var html = '';
-  plan.weeks.forEach(function(w) {
+  var html = '', tampil = 0;
+  plan.days.forEach(function(w) {
+    if (w.aksi === 'kosong') return;   // hari tanpa penjualan & tanpa bon: tidak perlu ditampilkan
+    tampil++;
     var bd = BADGE[w.aksi];
-    var sub = (w.aksi === 'kosong' || w.aksi === 'konflik') ? '' : (w.skuCount + ' SKU · ' + w.totalQty + ' pcs');
-    var total = (w.aksi === 'kosong' || w.aksi === 'konflik') ? '' : fmtRpFull(w.total);
+    var sub = (w.items.length ? (w.skuCount + ' SKU · ' + w.totalQty + ' pcs') : '');
     if (w.aksi === 'update' && w.existing) sub += ' · sebelumnya ' + fmtRpFull(w.existing.total);
-    if (w.bayar > 0 && w.aksi !== 'kosong') sub += ' · sudah dibayar ' + fmtRpFull(w.bayar);
+    if (w.bayar > 0) sub += ' · sudah dibayar ' + fmtRpFull(w.bayar);
     html += '<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--ink4);border-radius:12px;margin-bottom:8px;background:var(--cream2)">' +
-      '<div style="min-width:0"><div style="font-weight:700;font-size:14px">' + _hsEsc(w.label) + ' <span style="font-weight:600;font-size:11px;color:var(--ink3)">' + _hsEsc(String(w.key).slice(0, 4)) + '</span></div>' +
+      '<div style="min-width:0"><div style="font-weight:700;font-size:14px">' + _hsEsc(_hsFmtTgl(w.ymd)) + '</div>' +
         (sub ? '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + _hsEsc(sub) + '</div>' : '') +
+        (w.tanpaHarga ? '<div style="font-size:11.5px;color:var(--warn);margin-top:4px">⚠ ' + w.tanpaHarga + ' barang belum ada harga (Rp0)</div>' : '') +
         (w.catatan ? '<div style="font-size:11.5px;color:var(--danger);margin-top:4px">' + _hsEsc(w.catatan) + '</div>' : '') +
       '</div>' +
-      '<div style="text-align:right;flex:none"><div style="font-weight:700;font-size:14px">' + total + '</div>' +
+      '<div style="text-align:right;flex:none"><div style="font-weight:700;font-size:14px">' + (w.items.length ? fmtRpFull(w.total) : '') + '</div>' +
         '<div style="font-size:11px;font-weight:700;color:' + bd[1] + ';margin-top:2px">' + bd[0] + '</div></div>' +
     '</div>';
   });
-
-  var np = Object.keys(plan.noPrice);
-  if (np.length) {
-    html += '<div class="hs-item-hint" style="margin-top:10px;color:var(--danger)"><b>' + np.length + ' SKU dilewati — belum ada harga dropship di Master Barang ' + _hsEsc(plan.supNama) + ':</b> ' +
-      np.slice(0, 8).map(function(k) { return _hsEsc(k) + ' (×' + plan.noPrice[k] + ')'; }).join(', ') + (np.length > 8 ? ', +' + (np.length - 8) + ' lainnya' : '') +
-      '. Link/isi harganya di Master Barang lalu tarik lagi.</div>';
+  var wk = Object.keys(plan.warnings);
+  if (wk.length) {
+    html += '<div class="hs-item-hint" style="margin-top:10px;color:var(--warn)"><b>⚠ ' + wk.length + ' SKU belum ada harga di Master Barang ' + _hsEsc(plan.supNama) + '</b> (tetap masuk bon dengan harga Rp0): ' +
+      wk.slice(0, 10).map(function(k) { return _hsEsc(k) + ' (' + _hsEsc(plan.warnings[k].alasan) + ', ×' + plan.warnings[k].qty + ')'; }).join('; ') +
+      (wk.length > 10 ? '; +' + (wk.length - 10) + ' lainnya' : '') + '.</div>';
   }
   var sk = Object.keys(plan.skippedStok);
   if (sk.length) {
     html += '<div class="hs-item-hint" style="margin-top:10px">' + sk.length + ' SKU tidak ikut karena sudah punya stok masuk (barang dipegang): ' +
       sk.slice(0, 6).map(function(k) { return _hsEsc(k); }).join(', ') + (sk.length > 6 ? ', +' + (sk.length - 6) + ' lainnya' : '') + '.</div>';
   }
-
-  var jmlTulis = plan.weeks.filter(function(w) { return w.aksi === 'baru' || w.aksi === 'update'; }).length;
-  if (!jmlTulis && !np.length) html += '<div class="hs-item-hint" style="margin-top:10px">Tidak ada yang perlu ditulis ke Bon.</div>';
+  if (!tampil) html += '<div class="hs-item-hint" style="margin-top:10px">Tidak ada penjualan dropship pada rentang ini.</div>';
   hasilEl.innerHTML = html;
-  if (btn) {
-    btn.disabled = jmlTulis === 0;
-    btn.textContent = jmlTulis ? ('Simpan ' + jmlTulis + ' Bon') : 'Simpan ke Bon';
-  }
+  var jml = plan.days.filter(function(w) { return w.aksi === 'baru' || w.aksi === 'update' || w.aksi === 'hapus'; }).length;
+  if (btn) { btn.disabled = jml === 0; btn.textContent = jml ? ('Sinkron ' + jml + ' Bon') : 'Sinkron ke Bon'; }
 }
-
 async function hsTarikTerapkan() {
-  var plan = _hsTarikPlan;
-  if (!plan || _hsTarikBusy) return;
-  var tulis = plan.weeks.filter(function(w) { return w.aksi === 'baru' || w.aksi === 'update'; });
-  if (!tulis.length) return;
-
-  var berubahDibayar = tulis.filter(function(w) { return w.aksi === 'update' && w.bayar > 0; });
+  var plan = _hsDsPlan;
+  if (!plan || _hsDsManualBusy) return;
+  var berubahDibayar = plan.days.filter(function(w) { return (w.aksi === 'update' || w.aksi === 'hapus') && w.bayar > 0; });
   if (berubahDibayar.length) {
-    var daftar = berubahDibayar.map(function(w) { return '• ' + w.label + ': ' + fmtRpFull(w.existing.total) + ' → ' + fmtRpFull(w.total) + ' (sudah dibayar ' + fmtRpFull(w.bayar) + ')'; }).join('\n');
+    var daftar = berubahDibayar.map(function(w) { return '• ' + _hsFmtTgl(w.ymd) + ': ' + fmtRpFull(w.existing.total) + ' → ' + fmtRpFull(w.total) + ' (sudah dibayar ' + fmtRpFull(w.bayar) + ')'; }).join('\n');
     if (!(await zConfirm('Bon berikut sudah ada pembayarannya dan totalnya akan berubah:\n' + daftar + '\n\nLanjut perbarui?', { title: 'Total bon berubah', ok: 'Perbarui' }))) return;
   }
-
-  _hsTarikBusy = true;
+  _hsDsManualBusy = true;
   var btn = document.getElementById('hs-tarik-btn-simpan');
   if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
-  var ok = [], gagal = [];
-  for (var i = 0; i < tulis.length; i++) {
-    var w = tulis[i];
-    var itemPayload = w.items.map(function(it) {
-      return {
-        bon_id: null, barang_id: it.barang_id,
-        nama_internal: it.katalog_produk || null, nama_supplier: it.nama_supplier || null,
-        varian_warna: it.varian_warna || null, qty: it.qty, satuan: 'pcs',
-        harga_satuan: it.harga_per_lusin, subtotal: it.subtotal,
-      };
-    });
-    try {
-      if (w.aksi === 'baru') {
-        var bon = await dbInsert('hutang_bon', {
-          supplier_id: plan.supplierId, tanggal: w.tanggalBon, no_nota: w.nota, total: w.total,
-          mode_beli: 'dropship', status: 'belum_lunas', is_po: false,
-        });
-        var bonId = bon[0].id;
-        try {
-          await dbInsert('hutang_bon_item', itemPayload.map(function(p) { p.bon_id = bonId; return p; }));   // 1 request = atomik
-        } catch (e2) {
-          try { await dbDelete('hutang_bon', bonId); } catch (e3) { /* bon kosong tersisa; tarik ulang akan memperbaiki */ }
-          throw e2;
-        }
-      } else {
-        var ex = w.existing;
-        // Urutan aman: item baru masuk dulu (atomik) → item lama dihapus → total & status diperbarui
-        var baru = await dbInsert('hutang_bon_item', itemPayload.map(function(p) { p.bon_id = ex.id; return p; }));
-        try {
-          for (var j = 0; j < w.oldItems.length; j++) await dbDelete('hutang_bon_item', w.oldItems[j].id);
-        } catch (e4) {
-          for (var k = 0; k < baru.length; k++) { try { await dbDelete('hutang_bon_item', baru[k].id); } catch (e5) {} }
-          throw e4;
-        }
-        await dbUpdate('hutang_bon', ex.id, { total: w.total, status: (w.bayar >= w.total ? 'lunas' : 'belum_lunas') });
-      }
-      ok.push(w);
-    } catch (e) {
-      console.error('hsTarikTerapkan error', w.nota, e);
-      gagal.push({ w: w, msg: e.message || String(e) });
-    }
-  }
-  _hsTarikBusy = false;
-  _hsTarikPlan = null;
+  var r = { ok: 0, gagal: [] };
+  try { r = await _hsDsTulis(plan); } catch (e) { r.gagal.push({ nota: '-', msg: e.message || String(e) }); }
+  _hsDsManualBusy = false;
+  _hsDsPlan = null;
+  _hsDsError = r.gagal.length ? r.gagal[0].msg : '';
+  Object.keys(plan.warnings).forEach(function(k) { _hsDsWarnings[k] = plan.warnings[k]; });
   var hasilEl = document.getElementById('hs-tarik-hasil');
   var html = '';
-  if (ok.length) html += '<div class="hs-item-hint" style="color:var(--ok);font-weight:700">' + ok.length + ' bon tersimpan: ' + ok.map(function(w) { return _hsEsc(w.label) + ' (' + fmtRpFull(w.total) + ')'; }).join(', ') + '.</div>';
-  gagal.forEach(function(g) { html += '<div class="hs-item-hint" style="color:var(--danger)">Gagal ' + _hsEsc(g.w.label) + ': ' + _hsEsc(g.msg) + '. Tarik ulang untuk mencoba lagi.</div>'; });
+  if (r.ok) html += '<div class="hs-item-hint" style="color:var(--ok);font-weight:700">' + r.ok + ' bon disinkronkan.</div>';
+  r.gagal.forEach(function(g) { html += '<div class="hs-item-hint" style="color:var(--danger)">Gagal ' + _hsEsc(g.nota) + ': ' + _hsEsc(g.msg) + '</div>'; });
   if (hasilEl) hasilEl.innerHTML = html;
-  if (btn) { btn.disabled = true; btn.textContent = 'Simpan ke Bon'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sinkron ke Bon'; }
   try { await loadHutangSupplier(); } catch (e6) {}
 }
 
@@ -3347,7 +3467,7 @@ async function hsOpenDetailBon(bonId) {
         '<div><div class="hs-detail-item-nama">' + _hsEsc(namaTampil) + '</div>' +
         (subNama.length ? '<div class="hs-detail-item-nama-sup">' + _hsEsc(subNama.join(' · ')) + '</div>' : '') + '</div>' +
         '<div class="hs-detail-item-qty">' + qtyTxt + '</div>' +
-        '<div class="hs-detail-item-sub">' + fmtRpFull(it.subtotal) + '</div>' +
+        '<div class="hs-detail-item-sub">' + (Number(it.harga_satuan) === 0 ? '<span style="color:var(--warn)">⚠ harga belum ada</span>' : fmtRpFull(it.subtotal)) + '</div>' +
       '</div>';
     }).join('') : '<div class="hs-empty" style="padding:10px 0">Tidak ada data barang.</div>';
   } catch(e) {
