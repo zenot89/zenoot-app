@@ -14,6 +14,8 @@
 // 3 Okt 2026 — TAMPILAN HP (<768px) dirombak, LAPTOP/TABLET TIDAK BERUBAH (request user):
 //   minicard = carousel swipe loop + dot; Clearance & Flash Sale = 2 panel swipe (+ tab penanda);
 //   tabel induk 3 kolom tanpa scroll horizontal; ketuk SKU induk → bottom-sheet variasi (tutup: tombol X).
+//   REVISI HEADER HP (3 Okt 2026, request user): dropdown panjang "Semua SKU" + tombol Urutkan + tombol ↓↑ DIHAPUS →
+//   header HP = judul + [tombol Pilih SKU (bottom-sheet)] + [Detail per SKU]. Sort & pindah-panel-lewat-tombol = dead code.
 //   Semua CSS HP ada di @media (max-width:767px) di <style> atas; JS HP: blok "TAMPILAN HP" (_miIsPhone,
 //   miSheetOpen/Close, _miSwipe). Swipe engine di sini SENGAJA salinan sendiri (aturan: gak share fungsi antar modul).
 
@@ -111,7 +113,7 @@ document.getElementById('page-clearance-induk').innerHTML = `
          3) tabel induk cuma 3 kolom (SKU Induk, Qty, Modal) — TANPA scroll horizontal
          4) ketuk SKU induk → bottom-sheet ala komen Instagram berisi variasinya, tutup pakai tombol X
        Slide non-aktif disembunyiin lewat visibility (bukan display) biar tinggi container tetap. ──── */
-    #mi-phead, #mi-metrics-strip .mi-m-phone, .mi-cdots, #page-clearance-induk .mi-sort-btn { display: none; }
+    #mi-phead, #mi-metrics-strip .mi-m-phone, .mi-cdots, #page-clearance-induk .mi-sku-btn { display: none; }
 
     /* ── bottom-sheet variasi (fixed full-screen → CSS-nya GAK di-scope ke halaman, biar gak ketiban overflow:hidden) ── */
     #mi-sheet-overlay {
@@ -173,11 +175,12 @@ document.getElementById('page-clearance-induk').innerHTML = `
       }
       #page-clearance-induk .mi-header .mi-ibtn i { font-size: 19px; }
       #page-clearance-induk .mi-header .mi-ibtn .mi-btn-t { display: none; }
-      #page-clearance-induk .mi-sort-btn { order: 2; }
+      #page-clearance-induk .mi-sku-btn { order: 2; }
       #page-clearance-induk .mi-detail-btn { order: 3; }
-      #page-clearance-induk .mi-sort-btn.on::after { content: ''; position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger, #e05c4b); }
-      #page-clearance-induk .mi-select-wrap { order: 4; -webkit-flex: 1 1 100%; flex: 1 1 100%; min-width: 0; }
-      #page-clearance-induk .mi-select-wrap select { width: 100%; min-width: 0; max-width: none; }
+      #page-clearance-induk .mi-sku-btn.on::after { content: ''; position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger, #e05c4b); }
+      /* 3 Okt 2026: dropdown panjang "Semua SKU" DIHAPUS dari HP — diganti tombol ikon .mi-sku-btn (bottom-sheet pilih SKU).
+         Elemennya tetap ada di DOM karena laptop/tablet masih memakainya. */
+      #page-clearance-induk .mi-select-wrap { display: none; }
 
       /* 1) minicard → carousel: semua kartu ditumpuk di 1 sel grid, geser lewat transform */
       #page-clearance-induk #mi-metrics-strip {
@@ -248,8 +251,8 @@ document.getElementById('page-clearance-induk').innerHTML = `
             <option value="">Semua SKU</option>
           </select>
         </div>
-        <button class="btn btn-sm mi-sort-btn mi-ibtn" onclick="miSortOpen()" aria-label="Urutkan" title="Urutkan">
-          <i class="ti ti-arrows-sort"></i>
+        <button class="btn btn-sm mi-sku-btn mi-ibtn" onclick="miSkuOpen()" aria-label="Pilih SKU" title="Pilih SKU">
+          <i class="ti ti-filter"></i>
         </button>
         <button class="btn btn-sm mi-detail-btn mi-ibtn" onclick="gotoPage('clearance',null)" style="font-size:12px" aria-label="Detail per SKU" title="Detail per SKU">
           <i class="ti ti-list-details"></i> <span class="mi-btn-t">Detail per SKU</span>
@@ -307,7 +310,6 @@ document.getElementById('page-clearance-induk').innerHTML = `
       <div class="mi-ph-l"><span class="mi-ph-t" id="mi-ph-t">Clearance — Modal Tertahan</span><span class="mi-ph-s" id="mi-ph-s">non-aktif · dead · zombie</span></div>
       <div class="mi-ph-r">
         <span class="mi-ph-pg" id="mi-ph-pg">1/2</span>
-        <button type="button" class="mi-ph-btn" onclick="miPanelToggle()" aria-label="Pindah halaman">↓↑</button>
       </div>
     </div>
 
@@ -468,8 +470,36 @@ function miSheetClose() {
   setTimeout(() => { if (sh && !sh.classList.contains('open')) sh.classList.remove('mi-so'); }, 320);
 }
 
-// ─── URUTKAN (HP): tombol ikon di header → bottom-sheet yang sama dgn variasi ──
-// Mengganti klik header kolom (dimatikan di HP). Satu pilihan berlaku utk kedua panel & sheet variasi.
+// ─── PILIH SKU (HP) — 3 Okt 2026 ──────────────────────────────
+// Tombol ikon di header (di samping "Detail per SKU") → bottom-sheet ala komen Instagram yang sama
+// dgn sheet variasi/urutkan. Gantinya dropdown panjang "Semua SKU" + tombol Urutkan lama.
+// Pilihan = filter SKU induk yang SAMA dgn dropdown laptop (miFilterBySku), jadi 1 sumber kebenaran.
+let _miSkuList = [];
+function miSkuOpen() {
+  _miSkuList = _miGroupTotals ? Object.keys(_miGroupTotals).sort((a, b) => a.localeCompare(b)) : [];
+  const row = (i, label, on) =>
+    `<div class="mi-so-row${on ? ' on' : ''}" onclick="miSkuPick(${i})"><span>${_miEsc(label)}</span><span class="mi-so-ck">✓</span></div>`;
+  document.getElementById('mi-sh-title').textContent = 'Pilih SKU';
+  document.getElementById('mi-sh-stats').innerHTML = '';
+  document.getElementById('mi-sh-list').innerHTML =
+    row(-1, 'Semua SKU', !_miSkuFilter) + _miSkuList.map((k, i) => row(i, k, k === _miSkuFilter)).join('');
+  document.getElementById('mi-sh-list').scrollTop = 0;
+  document.getElementById('mi-sheet').classList.add('mi-so');
+  document.getElementById('mi-sheet-overlay').classList.add('open');
+  document.getElementById('mi-sheet').classList.add('open');
+}
+function miSkuPick(i) {
+  const val = i < 0 ? '' : (_miSkuList[i] || '');
+  const sel = document.getElementById('mi-filter-sku');
+  if (sel) sel.value = val;          // jaga dropdown laptop tetap sinkron kalau layar diputar/diubah
+  miSheetClose();
+  miFilterBySku(val);
+}
+
+// ─── URUTKAN (HP) — DEAD CODE sejak 3 Okt 2026 ────────────────
+// Tombol Urutkan di header HP dihapus (diganti Pilih SKU di atas). Fungsi di bawah dipertahankan apa adanya
+// (aturan RULES.md: dead code jangan dihapus) — urutan HP kini selalu default (modal terbesar).
+// Dulu: tombol ikon di header → bottom-sheet yang sama dgn variasi. Satu pilihan berlaku utk kedua panel & sheet variasi.
 const _MI_SORTS = [
   { col: 'nilai', dir: 'desc', label: 'Modal terbesar' },
   { col: 'nilai', dir: 'asc',  label: 'Modal terkecil' },
@@ -497,8 +527,10 @@ function miSortPick(i) {
   miRenderTable();
 }
 function miUpdateSortBtn() {
-  const b = document.querySelector('#page-clearance-induk .mi-sort-btn');
-  if (b) b.classList.toggle('on', !!_miSort.col);   // titik penanda: urutan bukan default
+  // 3 Okt 2026: tombol HP sekarang = pilih SKU → titik penanda nyala kalau ada 1 SKU yang dipilih
+  // (nama fungsi dipertahankan biar pemanggil di miRenderTable gak ikut berubah).
+  const b = document.querySelector('#page-clearance-induk .mi-sku-btn');
+  if (b) b.classList.toggle('on', !!_miSkuFilter);
 }
 
 // ─── ENGINE SWIPE (loop, ikut jari, 2+ slide) ─────────────────
@@ -591,6 +623,7 @@ function _miSwipe(vp, slideSel, onChange) {
 
 let _miCarMetrics = null, _miCarPanels = null;
 function miPanelGo(i) { if (_miCarPanels) _miCarPanels.goTo(i); }
+// DEAD CODE sejak 3 Okt 2026: tombol ↓↑ di header panel HP dihapus (pindah panel cukup lewat swipe). Dipertahankan.
 function miPanelToggle() { if (_miCarPanels) _miCarPanels.goTo(_miCarPanels.cur === 0 ? 1 : 0); }
 // judul + chip halaman ngikut panel aktif
 const _MI_PANELS = [
