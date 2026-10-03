@@ -2884,10 +2884,10 @@ async function hsHapusBon() {
 //     pengaman otomatis tiap tab Bon dibuka, supaya sinkron yang gagal/terlewat terkoreksi.
 //   • Aman diulang & tidak pernah menggandakan: bon hari yang sama DIPERBARUI. Penjualan
 //     yang dihapus / CANCELLED ikut hilang dari bon.
-//   • Harga = hutang_barang.harga_per_lusin ÷ 12 (harga dropship). SKU yang BELUM ADA harga
-//     (belum ter-link ke Master Barang, atau harganya kosong) TIDAK dilewati: tetap masuk bon
-//     dengan harga Rp0 + peringatan (kartu bon, rincian bon, banner). Begitu harganya diisi,
-//     sinkron berikutnya otomatis menghitung ulang.
+//   • Harga per pcs, urutan prioritas: (1) hutang_barang.harga_per_lusin ÷ 12 (Master Barang, harga dropship)
+//     → (2) kalau SKU belum ter-link / harganya kosong: produk.hpp (HPP di Kelola Produk, sudah per pcs;
+//     pola fallback sama dgn Re-Stock). Hanya kalau KEDUANYA kosong, SKU tetap masuk bon dengan harga Rp0 +
+//     peringatan (kartu bon, rincian bon, banner). Begitu harganya diisi, sinkron berikutnya otomatis menghitung ulang.
 //   • Pembayaran: ikut alur yang sudah ada (Bayar Utang). Satu-satunya aturan tambahan: bon yang
 //     sudah ada pembayarannya tidak dihitung ulang HARGA item yang sudah berharga (qty tetap ikut).
 //   • Hanya supplier di _HS_DS_AUTO_SUPPLIERS (RH). Supplier dropship lain (mis. yang bon-nya
@@ -2990,7 +2990,7 @@ function _hsDsItemKey(barangId, nama, varian) {
 
 // Hitung rencana bon harian untuk 1 supplier. dates = array 'YYYY-MM-DD' (terurut). TIDAK menulis apa-apa.
 async function _hsDsBuildPlan(sup, dates, master) {
-  var plan = { supplierId: sup.id, supNama: sup.nama, days: [], warnings: {}, skippedStok: {} };
+  var plan = { supplierId: sup.id, supNama: sup.nama, days: [], warnings: {}, skippedStok: {}, pakaiHpp: {} };
   if (!dates.length) return plan;
   var min = dates[0], max = dates[dates.length - 1];
   var rows = await _hsDsFetchPenjualan(min, _hsAddDays(max, 1));
@@ -3025,6 +3025,9 @@ async function _hsDsBuildPlan(sup, dates, master) {
     var uIdx = sku.lastIndexOf('_');
     var varianSku = uIdx >= 0 ? sku.slice(uIdx + 1) : sku;
     var harga = hbMine && hbMine.harga_per_lusin > 0 ? Number(hbMine.harga_per_lusin) : 0;
+    // Fallback: HPP Kelola Produk (per pcs) × 12 → disimpan setara "per lusin" biar rumus ÷12 di bawah tetap persis = HPP per pcs.
+    var dariHpp = false;
+    if (!(harga > 0) && Number(p.hpp) > 0) { harga = Number(p.hpp) * 12; dariHpp = true; }
     var nama  = (hbMine && hbMine.katalog_produk) || p.katalog || sku;
     var varian = (hbMine && hbMine.varian_warna) || varianSku;
     var key = _hsDsItemKey(hbMine ? hbMine.id : null, nama, varian);
@@ -3039,8 +3042,9 @@ async function _hsDsBuildPlan(sup, dates, master) {
     }
     it.qty += qty;
     day.skuSet[sku] = true;
+    if (dariHpp) plan.pakaiHpp[sku] = (plan.pakaiHpp[sku] || 0) + qty;
     if (!(harga > 0)) {
-      var w = plan.warnings[sku] = plan.warnings[sku] || { alasan: hbMine ? 'harga dropship kosong di Master Barang' : 'belum ter-link ke Master Barang', qty: 0 };
+      var w = plan.warnings[sku] = plan.warnings[sku] || { alasan: hbMine ? 'harga dropship kosong di Master Barang & HPP Kelola Produk kosong' : 'belum ter-link ke Master Barang & HPP Kelola Produk kosong', qty: 0 };
       w.qty += qty;
     }
   });
@@ -3258,7 +3262,7 @@ function _hsDsRenderBanner() {
   if (ks.length) {
     html += '<div class="hs-item-hint" style="color:var(--warn);margin:8px 0"><b>⚠ ' + ks.length + ' SKU dropship belum ada harga</b> — tetap masuk bon dengan harga Rp0, jadi total bon belum lengkap: ' +
       ks.slice(0, 8).map(function(k) { return _hsEsc(k) + ' (' + _hsEsc(_hsDsWarnings[k].alasan) + ', ×' + _hsDsWarnings[k].qty + ')'; }).join('; ') +
-      (ks.length > 8 ? '; +' + (ks.length - 8) + ' lainnya' : '') + '. Isi harga dropship per lusin di Master Barang, bon dihitung ulang otomatis.</div>';
+      (ks.length > 8 ? '; +' + (ks.length - 8) + ' lainnya' : '') + '. Isi HPP di Kelola Produk (atau harga dropship per lusin di Master Barang), bon dihitung ulang otomatis.</div>';
   }
   el.innerHTML = html;
 }
@@ -3348,9 +3352,14 @@ function _hsTarikRender() {
   });
   var wk = Object.keys(plan.warnings);
   if (wk.length) {
-    html += '<div class="hs-item-hint" style="margin-top:10px;color:var(--warn)"><b>⚠ ' + wk.length + ' SKU belum ada harga di Master Barang ' + _hsEsc(plan.supNama) + '</b> (tetap masuk bon dengan harga Rp0): ' +
+    html += '<div class="hs-item-hint" style="margin-top:10px;color:var(--warn)"><b>⚠ ' + wk.length + ' SKU belum ada harga sama sekali (Master Barang ' + _hsEsc(plan.supNama) + ' & HPP Kelola Produk kosong)</b> (tetap masuk bon dengan harga Rp0): ' +
       wk.slice(0, 10).map(function(k) { return _hsEsc(k) + ' (' + _hsEsc(plan.warnings[k].alasan) + ', ×' + plan.warnings[k].qty + ')'; }).join('; ') +
       (wk.length > 10 ? '; +' + (wk.length - 10) + ' lainnya' : '') + '.</div>';
+  }
+  var ph = Object.keys(plan.pakaiHpp || {});
+  if (ph.length) {
+    html += '<div class="hs-item-hint" style="margin-top:10px">' + ph.length + ' SKU memakai HPP dari Kelola Produk (belum ter-link / harga dropship kosong di Master Barang ' + _hsEsc(plan.supNama) + '): ' +
+      ph.slice(0, 6).map(function(k) { return _hsEsc(k); }).join(', ') + (ph.length > 6 ? ', +' + (ph.length - 6) + ' lainnya' : '') + '.</div>';
   }
   var sk = Object.keys(plan.skippedStok);
   if (sk.length) {
