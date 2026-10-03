@@ -2,24 +2,77 @@
 // Agregasi dari data yang sama dengan Clearance Monitor (clearance.js),
 // tapi digabung per KATALOG (SKU induk), bukan per SKU varian.
 // Dipicu dari tombol "Modal per SKU Induk" di header Clearance Monitor.
+//
+// 3 Okt 2026 — REDESIGN master-detail (request user): tiap kolom (Clearance &
+// Kandidat Flash Sale) sekarang punya 2 blok dgn tampilan IDENTIK:
+//   Blok 1 = daftar SKU INDUK (Qty & Modal digabung)
+//   Blok 2 = SKU VARIASI dari induk yang diklik (Qty, Modal, Supplier [+Status])
+//            dgn ringkasan besar di kanan: "6 varian · 40 pcs · Rp1.640.000"
+// Kedua kolom lebar sama (50/50), render lewat 1 fungsi (_miRenderSide) supaya
+// tampilannya gak bisa beda lagi.
 
 document.getElementById('page-clearance-induk').innerHTML = `
   <style>
-    /* 3 Okt 2026: drill-down SKU induk -> variasi (kedua tabel). Dipasang di sini biar cuma 1 file yang berubah. */
+    #mi-split-wrap > .mi-col {
+      -webkit-flex: 1 1 0; flex: 1 1 0; min-width: 0; min-height: 0;
+      display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+      background: var(--cream2); border-radius: 10px; box-shadow: var(--card-shadow); overflow: hidden;
+    }
+    .mi-col-title {
+      -webkit-flex-shrink: 0; flex-shrink: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      padding: 13px 16px 11px; font-weight: 700; font-size: 14px; color: var(--ink2);
+      border-bottom: 1px solid var(--ovl-0_06);
+    }
+    .mi-col-title .mi-col-sub { font-weight: 400; font-size: 12px; color: var(--ink3); white-space: nowrap; }
+    .mi-blk { min-height: 0; overflow: auto; overscroll-behavior: none; scrollbar-width: thin; scrollbar-color: var(--ink4) transparent; }
+    .mi-blk::-webkit-scrollbar { width: 7px; height: 7px; }
+    .mi-blk::-webkit-scrollbar-track { background: transparent; }
+    .mi-blk::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 4px; }
+    .mi-blk-induk { -webkit-flex: 1 1 42%; flex: 1 1 42%; }
+    .mi-blk-var   { -webkit-flex: 1 1 58%; flex: 1 1 58%; }
+    .mi-col .tbl { width: 100%; }
+    .mi-col .tbl th {
+      padding: 10px 16px; font-size: 11px; letter-spacing: .08em; color: var(--ink3);
+      position: sticky; top: 0; z-index: 3; background: var(--cream3); box-shadow: none;
+      border-bottom: 1px solid var(--ovl-0_06); border-radius: 0; white-space: nowrap;
+    }
+    .mi-col .tbl td {
+      padding: 10px 16px; font-size: 13.5px; font-variant-numeric: tabular-nums;
+      border-bottom: 1px solid var(--ovl-0_04); vertical-align: middle;
+    }
+    .mi-col .tbl .c-qty  { width: 74px;  text-align: center; }
+    .mi-col .tbl .c-mdl  { width: 124px; text-align: right; }
+    .mi-col .tbl .c-sup  { width: 96px; }
+    .mi-col .tbl .c-st   { width: 92px;  text-align: center; }
     .mi-induk-row { cursor: pointer; }
-    .mi-induk-row td { font-weight: 600; padding-top: 13px; padding-bottom: 13px; border-bottom: 1px solid var(--ovl-0_06); }
-    .mi-induk-row td:first-child { font-size: 14px; }
-    .mi-chev { font-size: 14px; color: var(--ink3); margin-right: 6px; vertical-align: -2px; }
-    .mi-back-row { cursor: pointer; }
-    .mi-back-row td { background: var(--ovl-0_05); padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--ovl-0_06); }
-    .mi-back-row .mi-back-btn { font-weight: 700; color: var(--accent); white-space: nowrap; }
-    .mi-back-row .mi-back-cur { font-weight: 700; margin-left: 4px; }
-    .mi-var-row.mi-flat td:first-child { padding-left: 16px; }
-    .mi-vmix { font-size: 11px; font-weight: 600; white-space: nowrap; }
-    .mi-vmix i { font-style: normal; margin-right: 8px; }
+    .mi-induk-row td { font-weight: 600; }
+    .mi-induk-row.mi-sel td { background: var(--ovl-0_06); box-shadow: inset 3px 0 0 var(--accent); }
+    .mi-induk-name { display: block; }
+    .mi-induk-sub { display: block; margin-top: 2px; font-weight: 400; font-size: 11.5px; color: var(--ink3); }
+    .mi-induk-sub i { font-style: normal; margin-right: 7px; font-weight: 600; }
+    .mi-modal { color: var(--warn); }
+    .mi-vhead {
+      -webkit-flex-shrink: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 12px 16px; background: var(--ovl-0_05);
+      border-top: 1px solid var(--ovl-0_06); border-bottom: 1px solid var(--ovl-0_06);
+    }
+    .mi-vhead-l { min-width: 0; }
+    .mi-vhead-t { display: block; font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mi-vhead-s { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 1px; }
+    .mi-vhead-r { display: flex; align-items: baseline; justify-content: flex-end; flex-wrap: wrap; gap: 4px 18px; text-align: right; }
+    .mi-big { font-size: 12px; color: var(--ink3); white-space: nowrap; }
+    .mi-big b { font-size: 21px; font-weight: 800; color: var(--ink); margin-right: 3px; font-variant-numeric: tabular-nums; }
+    .mi-big.mi-big-rp b { color: var(--warn); }
+    .mi-vhead-empty { font-size: 13px; color: var(--ink3); font-style: italic; }
+    .mi-col-foot { -webkit-flex-shrink: 0; flex-shrink: 0; padding: 8px 16px; font-size: 12px; color: var(--ink3); text-align: right; border-top: 1px solid var(--ovl-0_06); }
+    .mi-empty { color: var(--ink3); font-style: italic; padding: 18px 16px !important; }
     @media (hover: hover) and (pointer: fine) {
-      #mi-tbl-wrap .mi-induk-row:hover td, #mi-flash-wrap .mi-induk-row:hover td,
-      #mi-tbl-wrap .mi-back-row:hover td,  #mi-flash-wrap .mi-back-row:hover td { background: var(--ovl-0_04); }
+      .mi-col .mi-induk-row:hover td, .mi-col .mi-var-row:hover td { background: var(--ovl-0_04); }
+      .mi-col .mi-induk-row.mi-sel:hover td { background: var(--ovl-0_06); }
+    }
+    @media (max-width: 900px) {
+      #mi-split-wrap { overflow-y: auto; }
+      #mi-split-wrap > .mi-col { -webkit-flex: 0 0 auto; flex: 0 0 auto; height: 620px; }
     }
   </style>
   <div class="card">
@@ -66,44 +119,63 @@ document.getElementById('page-clearance-induk').innerHTML = `
     </div>
 
     <div id="mi-split-wrap">
-      <div id="mi-tbl-wrap">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none"><span id="mi-th-kiri">SKU Induk</span> <span id="mi-sort-sku">⇅</span></th>
-              <th onclick="miSort('sisa')" style="cursor:pointer;user-select:none;text-align:center">Qty <span id="mi-sort-sisa">⇅</span></th>
-              <th onclick="miSort('nilai')" style="cursor:pointer;user-select:none;text-align:right">Modal <span id="mi-sort-nilai">⇅</span></th>
-              <th>Supplier</th>
-            </tr>
-          </thead>
-          <tbody id="mi-tbody">
-            <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div id="mi-flash-wrap">
-        <div class="mi-flash-title">
-          <i class="ti ti-bolt"></i> Kandidat Flash Sale <span>(sisa ≥ 3 pcs)</span>
-        </div>
-        <div id="mi-flash-tbl-wrap">
+      <!-- KOLOM KIRI — Clearance -->
+      <div class="mi-col" id="mi-col-kiri">
+        <div class="mi-col-title"><span><i class="ti ti-stack-2"></i> Clearance — Modal Tertahan</span><span class="mi-col-sub">non-aktif · dead · zombie</span></div>
+        <div class="mi-blk mi-blk-induk">
           <table class="tbl">
-            <thead>
-              <tr>
-                <th id="mi-th-kanan">SKU Induk</th>
-                <th style="text-align:center">Sisa</th>
-                <th style="text-align:center">Status</th>
-              </tr>
-            </thead>
-            <tbody id="mi-flash-tbody">
-              <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>
-            </tbody>
+            <thead><tr>
+              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU Induk <span data-sort="sku">⇅</span></th>
+              <th class="c-qty" onclick="miSort('sisa')" style="cursor:pointer;user-select:none">Qty <span data-sort="sisa">⇅</span></th>
+              <th class="c-mdl" onclick="miSort('nilai')" style="cursor:pointer;user-select:none">Modal <span data-sort="nilai">⇅</span></th>
+            </tr></thead>
+            <tbody id="mi-tbody"><tr><td colspan="3" class="mi-empty">Memuat data...</td></tr></tbody>
           </table>
         </div>
-        <div id="mi-flash-footer" style="font-size:12px;color:var(--ink3);text-align:right;padding:10px 16px"></div>
+        <div class="mi-vhead" id="mi-vhead-kiri"><span class="mi-vhead-empty">Pilih SKU induk di atas</span></div>
+        <div class="mi-blk mi-blk-var">
+          <table class="tbl">
+            <thead><tr>
+              <th>SKU Variasi</th>
+              <th class="c-qty">Qty</th>
+              <th class="c-mdl">Modal</th>
+              <th class="c-sup">Supplier</th>
+            </tr></thead>
+            <tbody id="mi-vbody-kiri"></tbody>
+          </table>
+        </div>
+        <div class="mi-col-foot" id="mi-footer"></div>
+      </div>
+
+      <!-- KOLOM KANAN — Kandidat Flash Sale (tampilan identik) -->
+      <div class="mi-col" id="mi-col-kanan">
+        <div class="mi-col-title"><span><i class="ti ti-bolt"></i> Kandidat Flash Sale</span><span class="mi-col-sub">sisa ≥ 3 pcs</span></div>
+        <div class="mi-blk mi-blk-induk">
+          <table class="tbl">
+            <thead><tr>
+              <th onclick="miSort('sku')" style="cursor:pointer;user-select:none">SKU Induk <span data-sort="sku">⇅</span></th>
+              <th class="c-qty" onclick="miSort('sisa')" style="cursor:pointer;user-select:none">Qty <span data-sort="sisa">⇅</span></th>
+              <th class="c-mdl" onclick="miSort('nilai')" style="cursor:pointer;user-select:none">Modal <span data-sort="nilai">⇅</span></th>
+            </tr></thead>
+            <tbody id="mi-flash-tbody"><tr><td colspan="3" class="mi-empty">Memuat data...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="mi-vhead" id="mi-vhead-kanan"><span class="mi-vhead-empty">Pilih SKU induk di atas</span></div>
+        <div class="mi-blk mi-blk-var">
+          <table class="tbl">
+            <thead><tr>
+              <th>SKU Variasi</th>
+              <th class="c-qty">Qty</th>
+              <th class="c-mdl">Modal</th>
+              <th class="c-sup">Supplier</th>
+              <th class="c-st">Status</th>
+            </tr></thead>
+            <tbody id="mi-vbody-kanan"></tbody>
+          </table>
+        </div>
+        <div class="mi-col-foot" id="mi-flash-footer"></div>
       </div>
     </div>
-    <div id="mi-footer-wrap"><div id="mi-footer" style="font-size:12px;color:var(--ink3);text-align:right"></div></div>
   </div>
 `;
 
@@ -113,17 +185,15 @@ setTimeout(() => {
 
 // ─── STATE (cache biar sort gak perlu fetch ulang) ────────────
 let _miGroupTotals = null;  // { katalog: {katalog,varian,sisa,nilai} }
-let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}] — KHUSUS clearance (non-aktif/dead/zombie), buat tabel kiri
-let _miFlashRows   = null;  // [{katalog, sku, boss, sisa, hpp, nilai, vel}] — SEMUA SKU (semua velocity), buat panel Flash Sale
+let _miFlatRows    = null;  // [{katalog, sku, boss, sisa, hpp, nilai}] — KHUSUS clearance (non-aktif/dead/zombie), kolom kiri
+let _miFlashRows   = null;  // [{katalog, sku, boss, sisa, hpp, nilai, vel}] — SEMUA SKU (semua velocity), kolom kanan
 let _miSort        = { col: null, dir: null };  // null = netral (default: modal desc)
 let _miSkuFilter   = '';    // '' = semua SKU
-let _miDrillKiri   = '';    // 3 Okt 2026: SKU induk yang lagi dibuka (tabel kiri); '' = daftar SKU induk
-let _miDrillKanan  = '';    // idem untuk tabel Kandidat Flash Sale (state terpisah)
+let _miSel         = { kiri: '', kanan: '' };   // SKU induk yang lagi dibuka di blok 2 (per kolom)
 
 function _miEsc(t) { return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function _miEnc(t) { return encodeURIComponent(String(t == null ? '' : t)).replace(/'/g, '%27'); }
-function miDrillKiri(enc)  { _miDrillKiri  = enc ? decodeURIComponent(enc) : ''; miRenderTable(); }
-function miDrillKanan(enc) { _miDrillKanan = enc ? decodeURIComponent(enc) : ''; miRenderFlashSale(); }
+const _miFmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
 
 function miPopulateSkuFilter() {
   const sel = document.getElementById('mi-filter-sku');
@@ -131,7 +201,7 @@ function miPopulateSkuFilter() {
   const skus = Object.keys(_miGroupTotals).sort((a, b) => a.localeCompare(b));
   const prev = _miSkuFilter;
   sel.innerHTML = '<option value="">Semua SKU</option>' +
-    skus.map(k => `<option value="${k}">${k}</option>`).join('');
+    skus.map(k => `<option value="${_miEsc(k)}">${_miEsc(k)}</option>`).join('');
   // pertahankan pilihan sebelumnya kalau masih valid, kalau nggak reset ke "Semua SKU"
   if (prev && skus.includes(prev)) {
     sel.value = prev;
@@ -143,10 +213,15 @@ function miPopulateSkuFilter() {
 
 function miFilterBySku(val) {
   _miSkuFilter = val || '';
-  // pilih SKU di dropdown = langsung fokus ke variasinya di kedua tabel; "Semua SKU" = balik ke daftar induk
-  _miDrillKiri  = _miSkuFilter;
-  _miDrillKanan = _miSkuFilter;
+  // pilih SKU di dropdown = langsung fokus: variasinya kebuka di kedua kolom
+  if (_miSkuFilter) { _miSel.kiri = _miSkuFilter; _miSel.kanan = _miSkuFilter; }
   miRenderTable();
+}
+
+// klik baris SKU induk → buka variasinya di blok 2 (kolom yang diklik saja)
+function miPick(side, enc) {
+  _miSel[side] = enc ? decodeURIComponent(enc) : '';
+  _miRenderSide(side);
 }
 
 function miSort(col) {
@@ -166,9 +241,8 @@ function miSort(col) {
 }
 
 function miUpdateSortIcons() {
-  ['sku', 'sisa', 'nilai'].forEach(c => {
-    const el = document.getElementById('mi-sort-' + c);
-    if (!el) return;
+  document.querySelectorAll('#page-clearance-induk [data-sort]').forEach(el => {
+    const c = el.getAttribute('data-sort');
     el.textContent = _miSort.col === c ? (_miSort.dir === 'asc' ? '▲' : '▼') : '⇅';
     el.style.color = _miSort.col === c ? 'var(--accent)' : 'var(--ink3)';
   });
@@ -180,105 +254,13 @@ function miUpdateMetrics() {
   const elVar = document.getElementById('mi-total-varian');
   const elNil = document.getElementById('mi-total-nilai');
   if (!elKat || !_miGroupTotals || !_miFlatRows) return;
-  const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
 
   const groupList = Object.values(_miGroupTotals).filter(g => !_miSkuFilter || g.katalog === _miSkuFilter);
   const flatList  = _miFlatRows.filter(r => !_miSkuFilter || r.katalog === _miSkuFilter);
 
   elKat.textContent = groupList.length.toLocaleString('id-ID');
   elVar.textContent = flatList.length.toLocaleString('id-ID');
-  elNil.textContent = fmtRp(flatList.reduce((s, r) => s + r.nilai, 0));
-}
-
-// ─── RENDER (pakai data yang udah di-cache) ────────────────────
-function miRenderTable() {
-  const tbody = document.getElementById('mi-tbody');
-  if (!tbody || !_miGroupTotals || !_miFlatRows) return;
-  const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
-
-  miUpdateMetrics();
-  miUpdateSortIcons();
-
-  const sortCol = _miSort.col || 'nilai';
-  const sortDir = _miSort.col ? _miSort.dir : 'desc';
-  const groupList = Object.values(_miGroupTotals)
-    .filter(g => !_miSkuFilter || g.katalog === _miSkuFilter)
-    .sort((a, b) => {
-      let d;
-      if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
-      else d = a[sortCol] - b[sortCol];
-      return sortDir === 'asc' ? d : -d;
-    });
-  const groupRank = {};
-  groupList.forEach((g, i) => { groupRank[g.katalog] = i; });
-
-  const rows = _miFlatRows
-    .filter(r => !_miSkuFilter || r.katalog === _miSkuFilter)
-    .slice()
-    .sort((a, b) => {
-      const rk = groupRank[a.katalog] - groupRank[b.katalog];
-      if (rk !== 0) return rk;
-      return b.nilai - a.nilai;
-    });
-
-  const thKiri = document.getElementById('mi-th-kiri');
-  const footerEl = document.getElementById('mi-footer');
-
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic;padding:20px">Tidak ada modal tertahan saat ini.</td></tr>';
-    if (thKiri) thKiri.textContent = 'SKU Induk';
-    if (footerEl) footerEl.textContent = '';
-    miRenderFlashSale();
-    return;
-  }
-
-  // Drill yang sudah gak valid (data berubah / SKU habis) → balik ke daftar induk
-  if (_miDrillKiri && !_miGroupTotals[_miDrillKiri]) _miDrillKiri = '';
-
-  const htmlParts = [];
-  if (!_miDrillKiri) {
-    // ── MODE DAFTAR: 1 baris per SKU INDUK (klik → buka variasinya) ──
-    if (thKiri) thKiri.textContent = 'SKU Induk';
-    groupList.forEach(g => {
-      const bosses = Array.from(new Set(_miFlatRows.filter(r => r.katalog === g.katalog && r.boss && r.boss !== '—').map(r => r.boss)));
-      const supTxt = bosses.length === 0 ? '' : (bosses.length <= 2 ? bosses.join(', ') : bosses[0] + ' +' + (bosses.length - 1));
-      htmlParts.push(`<tr class="mi-induk-row" onclick="miDrillKiri('${_miEnc(g.katalog)}')">
-        <td><i class="ti ti-chevron-right mi-chev"></i>${_miEsc(g.katalog)} <span class="mi-grp-count">${g.varian} varian</span></td>
-        <td style="text-align:center">${g.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:right;color:var(--warn)">${fmtRp(g.nilai)}</td>
-        <td>${_miEsc(supTxt)}</td>
-      </tr>`);
-    });
-    tbody.innerHTML = htmlParts.join('');
-    if (footerEl) footerEl.textContent = `${groupList.length} SKU induk · ${rows.length} varian SKU`;
-  } else {
-    // ── MODE VARIASI: fokus ke 1 SKU induk ──
-    const g = _miGroupTotals[_miDrillKiri];
-    if (thKiri) thKiri.textContent = 'SKU Variasi';
-    const vRows = _miFlatRows.filter(r => r.katalog === _miDrillKiri).slice().sort((a, b) => {
-      let d;
-      if (sortCol === 'sku') d = a.sku.localeCompare(b.sku);
-      else d = a[sortCol] - b[sortCol];
-      return sortDir === 'asc' ? d : -d;
-    });
-    htmlParts.push(`<tr class="mi-back-row" onclick="miDrillKiri('')">
-      <td colspan="4"><span class="mi-back-btn"><i class="ti ti-arrow-left"></i> Semua SKU induk</span>
-        <span style="color:var(--ink3)">›</span><span class="mi-back-cur">${_miEsc(_miDrillKiri)}</span>
-        <span class="mi-grp-count">${g.varian} varian · ${g.sisa.toLocaleString('id-ID')} pcs · <span style="color:var(--warn)">${fmtRp(g.nilai)}</span></span></td>
-    </tr>`);
-    vRows.forEach(r => {
-      htmlParts.push(`<tr class="mi-var-row mi-flat">
-        <td>${_miEsc(r.sku)}</td>
-        <td style="text-align:center">${r.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:right;color:var(--warn)">${fmtRp(r.nilai)}</td>
-        <td>${_miEsc(r.boss)}</td>
-      </tr>`);
-    });
-    tbody.innerHTML = htmlParts.join('');
-    if (footerEl) footerEl.textContent = `${_miDrillKiri} · ${vRows.length} varian SKU`;
-  }
-
-  miRenderFlashSale();
+  elNil.textContent = _miFmtRp(flatList.reduce((s, r) => s + r.nilai, 0));
 }
 
 // ─── Badge status velocity (dipakai di kolom Status Flash Sale) ──
@@ -296,99 +278,105 @@ function _miStatusBadge(vel) {
   return `<span style="font-size:11px;font-weight:700;color:var(--ink3);padding:3px 10px;border:1.5px solid var(--ink3);border-radius:6px;white-space:nowrap">${label}</span>`;
 }
 
-// ─── TABEL KANAN — Kandidat Flash Sale (sisa >= 3 pcs, syarat minimal
-// Shopee). Sumber: _miFlashRows = SEMUA SKU semua velocity (lihat
-// catatan di loadModalInduk) — urutan grup dihitung dari total
-// masing-masing SKU induk sendiri (independen dari grup Clearance di
-// tabel kiri), biar SKU induk yang gak masuk kriteria Clearance sama
-// sekali (mis. full Fast-moving) tetap kehandle rankingnya. ──
-function miRenderFlashSale() {
-  const tbody = document.getElementById('mi-flash-tbody');
-  if (!tbody || !_miFlashRows) return;
+// ─── RENDER 1 KOLOM (kiri = Clearance, kanan = Flash Sale) ─────
+// Satu fungsi buat dua kolom → tampilan & perilaku dijamin sama.
+function _miRenderSide(side) {
+  const isFlash = side === 'kanan';
+  const bodyInduk = document.getElementById(isFlash ? 'mi-flash-tbody' : 'mi-tbody');
+  const bodyVar   = document.getElementById(isFlash ? 'mi-vbody-kanan' : 'mi-vbody-kiri');
+  const headEl    = document.getElementById(isFlash ? 'mi-vhead-kanan' : 'mi-vhead-kiri');
+  const footEl    = document.getElementById(isFlash ? 'mi-flash-footer' : 'mi-footer');
+  if (!bodyInduk || !bodyVar || !headEl) return;
+  const src = isFlash ? _miFlashRows : _miFlatRows;
+  if (!src) return;
+  const nCols = isFlash ? 5 : 4;
 
-  const flashFlat = _miFlashRows.filter(r => r.sisa >= 3 && (!_miSkuFilter || r.katalog === _miSkuFilter));
+  const flat = src.filter(r => (!isFlash || r.sisa >= 3) && (!_miSkuFilter || r.katalog === _miSkuFilter));
 
-  if (!flashFlat.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic;padding:14px">Belum ada SKU yang sisa-nya ≥ 3 pcs.</td></tr>';
-    document.getElementById('mi-flash-footer').textContent = '';
+  if (!flat.length) {
+    bodyInduk.innerHTML = `<tr><td colspan="3" class="mi-empty">${isFlash ? 'Belum ada SKU yang sisa-nya ≥ 3 pcs.' : 'Tidak ada modal tertahan saat ini.'}</td></tr>`;
+    bodyVar.innerHTML = '';
+    headEl.innerHTML = '<span class="mi-vhead-empty">Pilih SKU induk di atas</span>';
+    if (footEl) footEl.textContent = '';
+    _miSel[side] = '';
     return;
   }
 
-  // total per katalog dari data flash SENDIRI (bukan _miGroupTotals kiri)
-  const flashGroupTotals = {};
-  flashFlat.forEach(r => {
-    if (!flashGroupTotals[r.katalog]) flashGroupTotals[r.katalog] = { katalog: r.katalog, sisa: 0, nilai: 0 };
-    flashGroupTotals[r.katalog].sisa  += r.sisa;
-    flashGroupTotals[r.katalog].nilai += r.nilai;
+  // total per induk dari data kolom ini sendiri
+  const totals = {};
+  flat.forEach(r => {
+    const g = totals[r.katalog] || (totals[r.katalog] = { katalog: r.katalog, varian: 0, sisa: 0, nilai: 0, vel: {}, boss: [] });
+    g.varian += 1; g.sisa += r.sisa; g.nilai += r.nilai;
+    const v = ['fast','slow','dead','zombie'].includes(r.vel) ? r.vel : 'lain'; g.vel[v] = (g.vel[v] || 0) + 1;
+    if (r.boss && r.boss !== '—' && !g.boss.includes(r.boss)) g.boss.push(r.boss);
   });
 
   const sortCol = _miSort.col || 'nilai';
   const sortDir = _miSort.col ? _miSort.dir : 'desc';
-  const thKanan  = document.getElementById('mi-th-kanan');
-  const footerEl = document.getElementById('mi-flash-footer');
+  const cmp = (a, b, keyA, keyB) => {
+    const d = sortCol === 'sku' ? String(keyA).localeCompare(String(keyB)) : a[sortCol] - b[sortCol];
+    return sortDir === 'asc' ? d : -d;
+  };
+  const groups = Object.values(totals).sort((a, b) => cmp(a, b, a.katalog, b.katalog));
+
+  // pilihan induk: kalau belum ada / sudah gak valid → otomatis induk teratas
+  if (!_miSel[side] || !totals[_miSel[side]]) _miSel[side] = groups[0].katalog;
+  const sel = _miSel[side];
+
+  // ── Blok 1: daftar SKU induk ──
   const velColor = { fast: '#00c896', slow: '#c8a000', dead: '#e05c00', zombie: 'var(--ink3)' };
+  bodyInduk.innerHTML = groups.map(g => {
+    let sub;
+    if (isFlash) {
+      sub = ['fast', 'slow', 'dead', 'zombie', 'lain'].filter(k => g.vel[k])
+        .map(k => `<i style="color:${velColor[k] || 'var(--ink3)'}">${g.vel[k]} ${k === 'lain' ? 'Non-aktif' : k.charAt(0).toUpperCase() + k.slice(1)}</i>`).join('');
+    } else {
+      sub = g.boss.length ? `<i>${_miEsc(g.boss.length <= 2 ? g.boss.join(', ') : g.boss[0] + ' +' + (g.boss.length - 1))}</i>` : '';
+    }
+    return `<tr class="mi-induk-row${g.katalog === sel ? ' mi-sel' : ''}" onclick="miPick('${side}','${_miEnc(g.katalog)}')">
+      <td><span class="mi-induk-name">${_miEsc(g.katalog)} <span class="mi-grp-count">${g.varian} varian</span></span>${sub ? `<span class="mi-induk-sub">${sub}</span>` : ''}</td>
+      <td class="c-qty">${g.sisa.toLocaleString('id-ID')}</td>
+      <td class="c-mdl mi-modal">${_miFmtRp(g.nilai)}</td>
+    </tr>`;
+  }).join('');
 
-  // Drill yang sudah gak valid → balik ke daftar induk
-  if (_miDrillKanan && !flashGroupTotals[_miDrillKanan]) _miDrillKanan = '';
+  // ── Blok 2: variasi dari induk terpilih ──
+  const g = totals[sel];
+  const vRows = flat.filter(r => r.katalog === sel).slice().sort((a, b) => cmp(a, b, a.sku, b.sku));
+  headEl.innerHTML = `
+    <div class="mi-vhead-l"><span class="mi-vhead-s">Variasi</span><span class="mi-vhead-t">${_miEsc(sel)}</span></div>
+    <div class="mi-vhead-r">
+      <span class="mi-big"><b>${g.varian.toLocaleString('id-ID')}</b>varian</span>
+      <span class="mi-big"><b>${g.sisa.toLocaleString('id-ID')}</b>pcs</span>
+      <span class="mi-big mi-big-rp"><b>${_miFmtRp(g.nilai)}</b></span>
+    </div>`;
+  bodyVar.innerHTML = vRows.map(r => `<tr class="mi-var-row">
+      <td>${_miEsc(r.sku)}</td>
+      <td class="c-qty" style="font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
+      <td class="c-mdl mi-modal">${_miFmtRp(r.nilai)}</td>
+      <td class="c-sup">${_miEsc(r.boss)}</td>
+      ${isFlash ? `<td class="c-st">${_miStatusBadge(r.vel)}</td>` : ''}
+    </tr>`).join('');
 
-  const htmlParts = [];
-  if (!_miDrillKanan) {
-    // ── MODE DAFTAR: 1 baris per SKU INDUK (klik → buka variasinya) ──
-    if (thKanan) thKanan.textContent = 'SKU Induk';
-    const groupOrder = Object.values(flashGroupTotals).sort((a, b) => {
-      let d;
-      if (sortCol === 'sku') d = a.katalog.localeCompare(b.katalog);
-      else if (sortCol === 'sisa') d = a.sisa - b.sisa;
-      else d = a.nilai - b.nilai;
-      return sortDir === 'asc' ? d : -d;
-    });
-    groupOrder.forEach(g => {
-      const rowsG = flashFlat.filter(r => r.katalog === g.katalog);
-      const cnt = {};
-      rowsG.forEach(r => { const k = r.vel || 'lain'; cnt[k] = (cnt[k] || 0) + 1; });
-      const mix = ['fast', 'slow', 'dead', 'zombie', 'lain'].filter(k => cnt[k])
-        .map(k => `<i style="color:${velColor[k] || 'var(--ink3)'}">${cnt[k]} ${k === 'lain' ? 'lain' : k.charAt(0).toUpperCase() + k.slice(1)}</i>`).join('');
-      htmlParts.push(`<tr class="mi-induk-row" onclick="miDrillKanan('${_miEnc(g.katalog)}')">
-        <td><i class="ti ti-chevron-right mi-chev"></i>${_miEsc(g.katalog)} <span class="mi-grp-count">${rowsG.length} varian</span></td>
-        <td style="text-align:center">${g.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:center"><span class="mi-vmix">${mix}</span></td>
-      </tr>`);
-    });
-    tbody.innerHTML = htmlParts.join('');
-    if (footerEl) footerEl.textContent = `${groupOrder.length} SKU induk · ${flashFlat.length} varian siap flash sale`;
-  } else {
-    // ── MODE VARIASI: fokus ke 1 SKU induk ──
-    const g = flashGroupTotals[_miDrillKanan];
-    if (thKanan) thKanan.textContent = 'SKU Variasi';
-    const vRows = flashFlat.filter(r => r.katalog === _miDrillKanan).slice().sort((a, b) => {
-      let d;
-      if (sortCol === 'sku') d = a.sku.localeCompare(b.sku);
-      else if (sortCol === 'sisa') d = a.sisa - b.sisa;
-      else d = a.nilai - b.nilai;
-      return sortDir === 'asc' ? d : -d;
-    });
-    htmlParts.push(`<tr class="mi-back-row" onclick="miDrillKanan('')">
-      <td colspan="3"><span class="mi-back-btn"><i class="ti ti-arrow-left"></i> Semua SKU induk</span>
-        <span style="color:var(--ink3)">›</span><span class="mi-back-cur">${_miEsc(_miDrillKanan)}</span>
-        <span class="mi-grp-count">${vRows.length} varian · ${g.sisa.toLocaleString('id-ID')} pcs</span></td>
-    </tr>`);
-    vRows.forEach(r => {
-      htmlParts.push(`<tr class="mi-var-row mi-flat">
-        <td>${_miEsc(r.sku)}</td>
-        <td style="text-align:center;font-weight:700">${r.sisa.toLocaleString('id-ID')}</td>
-        <td style="text-align:center">${_miStatusBadge(r.vel)}</td>
-      </tr>`);
-    });
-    tbody.innerHTML = htmlParts.join('');
-    if (footerEl) footerEl.textContent = `${_miDrillKanan} · ${vRows.length} SKU siap flash sale`;
-  }
+  if (footEl) footEl.textContent = `${groups.length} SKU induk · ${flat.length} varian SKU`;
 }
+
+// ─── RENDER (pakai data yang udah di-cache) ────────────────────
+function miRenderTable() {
+  if (!_miGroupTotals || !_miFlatRows) return;
+  miUpdateMetrics();
+  miUpdateSortIcons();
+  _miRenderSide('kiri');
+  _miRenderSide('kanan');
+}
+// kompatibilitas nama lama
+function miRenderFlashSale() { _miRenderSide('kanan'); }
 
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadModalInduk() {
   const tbody = document.getElementById('mi-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="3" style="color:var(--ink3);font-style:italic"><i class="ti ti-loader"></i> Memuat data...</td></tr>';
 
   const fmtRp = v => 'Rp' + Number(v || 0).toLocaleString('id-ID');
 
@@ -503,8 +491,7 @@ document.addEventListener('zenot:page', function(e) {
   // 1 SKU" padahal itu efek filter lama yang nyangkut, bukan dari sort.
   // Reset total ke "Semua SKU" tiap kali halaman ini dibuka dari awal.
   _miSkuFilter = '';
-  _miDrillKiri = '';
-  _miDrillKanan = '';
+  _miSel = { kiri: '', kanan: '' };
   _miSort = { col: null, dir: null };
   loadModalInduk();
 });
