@@ -191,6 +191,13 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     .hs-bon-info:hover { border-color:var(--ink); color:var(--ink); }
     .hs-info-bubble { position:fixed; z-index:99999; background:var(--ink); color:var(--cream); font-size:12px; font-weight:600; padding:7px 11px; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; max-width:240px; }
     /* 3 Okt 2026: hari + tanggal tebal di rincian bon */
+    /* 3 Okt 2026: ukuran picker rincian bon TETAP (sheet sudah 85vh) — daftar Barang / Rincian / Riwayat
+       punya area scroll sendiri, jadi berapa pun jumlah barisnya (1 s/d 20+ pcs per hari) layout sheet
+       tidak melar & bagian lain (Total, Rincian, Riwayat) tidak terdorong keluar layar. scrollbar-gutter:stable
+       menjaga lebar kolom angka tetap sejajar baik scrollbar muncul maupun tidak. */
+    #hs-detail-items    { max-height:clamp(150px, 34vh, 300px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; padding-right:2px; }
+    #hs-detail-rincian-list { max-height:clamp(90px, 20vh, 170px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; padding-right:2px; }
+    #hs-detail-riwayat  { max-height:clamp(90px, 20vh, 180px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; padding-right:2px; }
     /* 3 Okt 2026: Rincian per ukuran/harga di atas daftar Barang */
     .hs-rincian-row { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid var(--ink4); font-size:13px; }
     .hs-rincian-lbl { color:var(--ink); font-weight:800; min-width:0; }
@@ -3484,7 +3491,7 @@ function _hsRenderRincianBon(items) {
     }
     return '<div class="hs-rincian-row"><div class="hs-rincian-lbl">' + lbl + sub + '</div><div class="hs-rincian-rumus">' + rumus + '</div></div>';
   }).join('');
-  el.innerHTML = '<div class="hs-detail-section-title">Rincian</div>' + rows;
+  el.innerHTML = '<div class="hs-detail-section-title">Rincian</div><div id="hs-detail-rincian-list">' + rows + '</div>';
 }
 
 // ─── DETAIL BON (item + bayar + riwayat) ───────────────────────
