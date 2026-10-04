@@ -886,31 +886,53 @@ function _jpMingguIniRange(now) {
   }
   return { start: start, cutoff: cutoff };
 }
-// Cek apakah 1 baris jurnal ada di HARI cutoff (Sabtu minggu ini) TAPI
-// jam-nya (kolom `waktu`, teks HH:MM terpisah dari `tanggal`) sudah lewat
-// jam cutoff — kalau iya, baris itu semestinya masuk hitungan minggu
-// BERIKUTNYA, bukan minggu ini. Dicek di CLIENT SIDE (bukan lewat query
-// gte/lt bertimestamp ke Supabase) — root cause bug 26 Sep 2026: query lama
-// pakai batas atas `tanggal=lt.<tanggal>T19:30:00`. Kalau kolom `tanggal`
-// di Supabase ternyata bertipe DATE (bukan TIMESTAMP/TIMESTAMPTZ — belum
-// dipastikan, tapi gejalanya cocok persis), Postgres motong bagian jam dari
-// nilai itu jadi cuma tanggalnya doang, sehingga filter berubah jadi
-// "tanggal < hari Sabtu itu sendiri" — otomatis nyingkirin SELURUH hari
-// Sabtu dari hasil query, termasuk entri pagi hari yang harusnya jelas
-// masuk. Ini match persis sama laporan user: entri Sabtu jam 09:00 gak
-// muncul di "Minggu Ini". Fix: query ke Supabase sekarang cuma pakai batas
-// TANGGAL PENUH (pola sama kayak mode lain yang udah terbukti aman —
-// gte/lt tanpa komponen jam), lalu potongan "sudah lewat jam cutoff hari
-// Sabtu" itu di-exclude di sini, di JS, biar gak gantung ke tipe kolom atau
-// asumsi timezone apapun di sisi Supabase.
-function _jpIsAfterMingguIniCutoff(row) {
-  var rng     = _jpMingguIniRange(new Date());
-  var rowTgl  = String(row.tanggal || '').slice(0, 10);
-  var cutoffTgl = _jpLocalDate(rng.cutoff);
-  if (rowTgl !== cutoffTgl) return false; // bukan hari Sabtu cutoff minggu ini, aman
-  var jam       = String(row.waktu || '00:00').slice(0, 5);
-  var cutoffJam = String(rng.cutoff.getHours()).padStart(2,'0') + ':' + String(rng.cutoff.getMinutes()).padStart(2,'0');
-  return jam > cutoffJam;
+// 3 Okt 2026 — DEFINISI MINGGU TUNGGAL (Minggu Ini & Minggu Lalu).
+// Aturan user: 1 minggu = dari Sabtu 19.30 (minggu sebelumnya, TIDAK termasuk) s/d Sabtu 19.30 (termasuk).
+// Entri Sabtu lewat 19.30 masuk minggu BERIKUTNYA. Dulu cuma sisi akhir yang diterapkan (Sabtu lewat cutoff
+// dibuang dari minggu yang tutup) sedangkan sisi awal tidak (minggu berikutnya query dari Minggu 00.00) →
+// entri Sabtu lewat cutoff tidak masuk minggu manapun. Minggu Lalu juga dulu pakai kalender biasa (tanpa cutoff)
+// sehingga selisih satu minggu begitu cutoff lewat. offset: 0 = Minggu Ini, -1 = Minggu Lalu.
+// Return: { start (Minggu 00.00, utk sumbu chart), cutoff (Sabtu 19.30 akhir minggu), prevCutoff (Sabtu 19.30 awal minggu) }
+function _jpMingguRange(now, offset) {
+  var base = _jpMingguIniRange(now);
+  var o = offset || 0;
+  var start      = new Date(base.start.getFullYear(),  base.start.getMonth(),  base.start.getDate()  + 7 * o, 0, 0, 0);
+  var cutoff     = new Date(base.cutoff.getFullYear(), base.cutoff.getMonth(), base.cutoff.getDate() + 7 * o, _JP_MINGGU_CUTOFF_H, _JP_MINGGU_CUTOFF_M, 0);
+  var prevCutoff = new Date(cutoff.getFullYear(),      cutoff.getMonth(),      cutoff.getDate() - 7,          _JP_MINGGU_CUTOFF_H, _JP_MINGGU_CUTOFF_M, 0);
+  return { start: start, cutoff: cutoff, prevCutoff: prevCutoff };
+}
+function _jpWeekOffsetOfMode(mode) { return mode === 'minggu-ini' ? 0 : (mode === 'minggu-lalu' ? -1 : null); }
+// Rentang minggu yang AKTIF. Disimpan saat data dimuat (_jpWeekRngAktif) supaya filter tabel, total, dan chart
+// memakai batas yang SAMA dgn query walau jam cutoff terlewati saat halaman terbuka.
+var _jpWeekRngAktif = null;   // { mode, rng }
+function _jpMingguRangeAktif(mode, now) {
+  var off = _jpWeekOffsetOfMode(mode);
+  if (off === null) return null;
+  if (_jpWeekRngAktif && _jpWeekRngAktif.mode === mode) return _jpWeekRngAktif.rng;
+  return _jpMingguRange(now || new Date(), off);
+}
+function _jpJamStr(d) { return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+// Apakah 1 baris jurnal masuk minggu ini? Dicek di CLIENT SIDE (bukan lewat query bertimestamp): root cause bug
+// 26 Sep 2026 — kolom `tanggal` di Supabase diduga bertipe DATE, jadi batas `T19:30` terpotong jadi tanggalnya saja dan
+// seluruh hari Sabtu ikut tersingkir. Query cuma pakai batas TANGGAL PENUH (aman utk tipe kolom apapun); pemotongan jam
+// cutoff dilakukan di sini dengan membandingkan "YYYY-MM-DDTHH:MM" (tanggal + kolom `waktu`).
+function _jpRowDalamMinggu(row, rng) {
+  var tgl = String(row.tanggal || '').slice(0, 10);
+  if (!tgl) return false;
+  var key = tgl + 'T' + String(row.waktu || '00:00').slice(0, 5);
+  var lo  = _jpLocalDate(rng.prevCutoff) + 'T' + _jpJamStr(rng.prevCutoff);
+  var hi  = _jpLocalDate(rng.cutoff)     + 'T' + _jpJamStr(rng.cutoff);
+  return key > lo && key <= hi;
+}
+// Tanggal kelompok utk sumbu chart: entri Sabtu (awal minggu) lewat cutoff dihitung ke hari Minggu berikutnya,
+// supaya total chart = total tabel (sumbu chart Minggu..Sabtu).
+function _jpTglChart(row, mode) {
+  var tgl = String(row.tanggal || '').slice(0, 10);
+  var rng = _jpMingguRangeAktif(mode);
+  if (rng && tgl === _jpLocalDate(rng.prevCutoff)) {
+    return _jpLocalDate(new Date(rng.prevCutoff.getFullYear(), rng.prevCutoff.getMonth(), rng.prevCutoff.getDate() + 1));
+  }
+  return tgl;
 }
 
 // 19 Sep 2026: dulu sumbu-X chart Tren Penjualan dibangun cuma dari tanggal
@@ -922,8 +944,8 @@ function _jpIsAfterMingguIniCutoff(row) {
 // sama kayak filter query di loadJurnalPenjualan(), per mode. Return null
 // buat 'semua' (gak ada batas pasti secara alami — tetap data-driven).
 function _jpChartDateRange(mode, now) {
-  if (mode === 'minggu-ini') {
-    var rng = _jpMingguIniRange(now);
+  if (mode === 'minggu-ini' || mode === 'minggu-lalu') {
+    var rng = _jpMingguRangeAktif(mode, now);
     var end = new Date(rng.start.getFullYear(), rng.start.getMonth(), rng.start.getDate() + 6);
     return { start: _jpLocalDate(rng.start), end: _jpLocalDate(end) };
   }
@@ -1421,16 +1443,14 @@ async function loadJurnalPenjualan() {
       const tgl   = _jpLocalDate(d);
       const today = _jpLocalDate(now); // hari ini = batas atas eksklusif utk kemarin
       filter = '&tanggal=gte.' + tgl + '&tanggal=lt.' + today;
-    } else if (mode === 'minggu-ini') {
-      // 26 Sep 2026 — FIX: dulu batas atas query pakai timestamp lengkap
-      // (termasuk jam cutoff). Sekarang query cuma minta rentang TANGGAL
-      // PENUH Minggu s/d Sabtu (aman ke tipe kolom apapun); potongan
-      // "setelah jam cutoff hari Sabtu" di-exclude belakangan di filterJP()
-      // lewat _jpIsAfterMingguIniCutoff(). Lihat komentar di
-      // _jpIsAfterMingguIniCutoff untuk root cause lengkap.
-      var rng = _jpMingguIniRange(now);
+    } else if (mode === 'minggu-ini' || mode === 'minggu-lalu') {
+      // 3 Okt 2026: query ambil TANGGAL PENUH dari Sabtu awal minggu (prevCutoff) s/d Sabtu akhir minggu (cutoff),
+      // supaya entri Sabtu-lewat-cutoff minggu sebelumnya ikut terambil. Potongan jam persisnya (> prevCutoff,
+      // <= cutoff) dilakukan di filterJP() lewat _jpRowDalamMinggu() — lihat komentar _jpMingguRange.
+      var rng = _jpMingguRange(now, _jpWeekOffsetOfMode(mode));
+      _jpWeekRngAktif = { mode: mode, rng: rng };
       var besokCutoff = new Date(rng.cutoff.getFullYear(), rng.cutoff.getMonth(), rng.cutoff.getDate() + 1);
-      filter = '&tanggal=gte.' + _jpLocalDate(rng.start) + '&tanggal=lt.' + _jpLocalDate(besokCutoff);
+      filter = '&tanggal=gte.' + _jpLocalDate(rng.prevCutoff) + '&tanggal=lt.' + _jpLocalDate(besokCutoff);
     } else if (mode === 'bulan-ini') {
       // 3 Okt 2026: Bulan Ini = tgl 1 bulan berjalan s/d akhir bulan (batas atas eksklusif = tgl 1 bulan depan)
       const awalBulan  = _jpLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -1622,6 +1642,7 @@ function jpUpdatePeriodeLabel() {
     'kemarin':    'Kemarin',
     '7hari':      '7 Hari',
     'minggu-ini': 'Minggu Ini',
+    'minggu-lalu': 'Minggu Lalu',
     'bulan-ini':  'Bulan Ini',
     'hari':       'Hari',
     'minggu':     'Minggu',
@@ -1925,7 +1946,7 @@ function _jpMingguLabelUpdate() {
 //      jp-filter-channel) lalu memanggil loadJurnalPenjualan() (kalau periode berubah)
 //      atau filterJP() (kalau cuma channel berubah).
 // Tutup tanpa Terapkan = draft dibuang, filter aktif tidak berubah.
-// Preset "Minggu Lalu / Bulan Lalu / 3 Bulan Terakhir" disimpan sebagai mode 'minggu'
+// Preset "Bulan Lalu / 3 Bulan Terakhir" disimpan sebagai mode 'minggu'
 // (rentang dari-sampai) supaya query & chart tidak perlu diubah; labelnya dikenali
 // lagi lewat _jpPerPresetOf().
 // Panel lama (#jp-periode-panel, #jp-channel-panel, jpTogglePeriode, jpToggleChannel,
@@ -1934,7 +1955,7 @@ function _jpMingguLabelUpdate() {
 // jp-filter-tahun, jp-filter-channel) masih dipakai sebagai penyimpan state aktif.
 var _JP_PER_ITEMS = [
   { k: 'minggu-ini',  l: 'Minggu Ini' },
-  { k: 'minggu-lalu', l: 'Minggu Lalu',       preset: true },
+  { k: 'minggu-lalu', l: 'Minggu Lalu' },   // 3 Okt 2026: mode sendiri (bukan preset rentang tanggal) supaya ikut cutoff Sabtu 19.30
   { k: 'bulan-ini',   l: 'Bulan Ini' },
   { k: 'bulan-lalu',  l: 'Bulan Lalu',        preset: true },
   { k: 'hari-ini',    l: 'Hari Ini' },
@@ -1947,8 +1968,8 @@ var _JP_PER_ITEMS = [
   { k: 'tahun',       l: 'Tahun',  sub: true },
   { k: 'semua',       l: 'Semua' }
 ];
-var _JP_PER_PRESET_KEYS = ['minggu-lalu', 'bulan-lalu', '3bulan'];
-var _JP_PER_SHORT = { 'hari-ini': 'Hari Ini', 'kemarin': 'Kemarin', '7hari': '7 Hari', 'minggu-ini': 'Minggu Ini', 'bulan-ini': 'Bulan Ini', 'hari': 'Hari', 'minggu': 'Minggu', 'bulan': 'Bulan', 'tahun': 'Tahun', 'semua': 'Semua' };
+var _JP_PER_PRESET_KEYS = ['bulan-lalu', '3bulan'];
+var _JP_PER_SHORT = { 'hari-ini': 'Hari Ini', 'kemarin': 'Kemarin', '7hari': '7 Hari', 'minggu-ini': 'Minggu Ini', 'minggu-lalu': 'Minggu Lalu', 'bulan-ini': 'Bulan Ini', 'hari': 'Hari', 'minggu': 'Minggu', 'bulan': 'Bulan', 'tahun': 'Tahun', 'semua': 'Semua' };
 var _JP_PER_TITLES = { list: 'Pilih Periode', channel: 'Pilih Channel', hari: 'Pilih Hari', minggu: 'Pilih Minggu', bulan: 'Pilih Bulan', tahun: 'Pilih Tahun' };
 var _JP_NAMA_BULAN_PANJANG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 var _JP_KAT_LABEL = { toko_utama: 'Toko Utama', reseller: 'Dropship', reseller_baru: 'Reseller', lazada: 'Lazada', tiktok: 'TikTok', offline: 'Offline' };   // sama dgn katConfig di loadChannelDropdownJP (key DB reseller = Dropship)
@@ -2012,14 +2033,10 @@ function _jpPerSummary(o) {
   return '';
 }
 
-// Rentang tanggal preset (relatif terhadap hari ini). Minggu = Minggu–Sabtu (sama dgn definisi minggu di app).
+// Rentang tanggal preset (relatif terhadap hari ini). Minggu Lalu BUKAN preset lagi (3 Okt 2026) — lihat _jpMingguRange.
 function _jpPerPresetRange(key) {
   var n = new Date(), s, e;
-  if (key === 'minggu-lalu') {
-    var ts = new Date(n.getFullYear(), n.getMonth(), n.getDate() - n.getDay());
-    s = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate() - 7);
-    e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
-  } else if (key === 'bulan-lalu') {
+  if (key === 'bulan-lalu') {
     s = new Date(n.getFullYear(), n.getMonth() - 1, 1);
     e = new Date(n.getFullYear(), n.getMonth(), 0);
   } else if (key === '3bulan') {
@@ -2557,7 +2574,7 @@ function _jpRenderChartTren(data, _retry, _token) {
       const dEnd = new Date(range.end + 'T00:00:00');
       while (dCur.getTime() <= dEnd.getTime()) {
         const dtKey = _jpLocalDate(dCur);
-        const rowsHari = data.filter(r => r.tanggal && String(r.tanggal).slice(0,10) === dtKey);
+        const rowsHari = data.filter(r => r.tanggal && _jpTglChart(r, mode) === dtKey);
         labels.push(String(dCur.getDate()).padStart(2,'0') + '/' + String(dCur.getMonth()+1).padStart(2,'0'));
         totals.push(rowsHari.reduce((s,r) => s + (Number(r.total)||0), 0));
         qtys.push(rowsHari.reduce((s,r) => s + (Number(r.qty)||0), 0));
@@ -2683,7 +2700,7 @@ function _jpRenderChartTren(data, _retry, _token) {
       });
       if (closest) {
         const txn = data.filter(r => {
-          if (!r.tanggal || String(r.tanggal).slice(0,10) !== closest.dateKey) return false;
+          if (!r.tanggal || _jpTglChart(r, mode) !== closest.dateKey) return false;
           if (!isHourly) return true;
           return String(r.waktu||'00:00').slice(0,2) === closest.label.slice(0,2);
         });
@@ -2959,11 +2976,11 @@ function filterJP() {
   const q   = '';
   const fcEl = document.getElementById('jp-filter-channel');
   const kat = fcEl ? fcEl.value : '';
+  // 3 Okt 2026: Minggu Ini / Minggu Lalu → hanya baris setelah Sabtu 19.30 sebelumnya s/d Sabtu 19.30 (termasuk). Lihat _jpMingguRange.
+  const _rngMinggu = _jpMingguRangeAktif(_jpWaktuMode);
   let hasil = _jpAllData.filter(r => {
     if (r.no_order) return false; // Shopee orders → Data Order, bukan Jurnal
-    // 26 Sep 2026: exclude entri Sabtu-lewat-cutoff dari "Minggu Ini" —
-    // lihat _jpIsAfterMingguIniCutoff()
-    if (_jpWaktuMode === 'minggu-ini' && _jpIsAfterMingguIniCutoff(r)) return false;
+    if (_rngMinggu && !_jpRowDalamMinggu(r, _rngMinggu)) return false;
     const ch = (_jpChannelMap[r.channel_id] ? _jpChannelMap[r.channel_id].nama : '').toLowerCase();
     const cocokQ  = !q || (r.sku||'').toLowerCase().includes(q) || ch.includes(q);
     const cocokCh = !kat || String(r.channel_id) === String(kat);
