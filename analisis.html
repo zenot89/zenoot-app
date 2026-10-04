@@ -5743,6 +5743,13 @@ function profitColorClass(rp, ratio){
   return 'good';
 }
 
+// [4 Okt 2026] Operasional RKS Overview = porsi omset BULAN SEBELUM bulan yang direkap (bulan dari periode file Income, bukan tanggal hari ini).
+// Cache belum siap / file Income belum ada -> pakai angka Setting seperti semula.
+function resolveOperasionalOverview(){
+  const per = currentMonthKeyAndLabel();
+  const r = per ? opsOperasionalBulan(per.key) : null;
+  return r ? r.value : (state.settings.operasionalToko || 0);
+}
 function computeHasilMetrics(){
   const hppCalc = computeHPPTotal();
   const basketCalc = computeAOVBasket(hppCalc.orderNumbers);
@@ -5750,7 +5757,8 @@ function computeHasilMetrics(){
   const pendapatan = state.manual.pendapatan;
   const penghasilan = state.manual.penghasilan;
   const hpp = hppCalc.total;
-  const operasional = state.settings.operasionalToko || 0;
+  // [4 Okt 2026] (perilaku lama) const operasional = state.settings.operasionalToko || 0;
+  const operasional = resolveOperasionalOverview();
   const iklan = state.manual.iklan;
   const ratioAdmin = state.manual.ratioAdminLayanan || 0;
 
@@ -6044,9 +6052,12 @@ function currentMonthKeyAndLabel(){
   const y = d.getUTCFullYear(), mo = d.getUTCMonth();
   return { key: y+'-'+String(mo+1).padStart(2,'0'), label: REKAP_BULAN_SHORT[mo]+' '+y };
 }
-document.getElementById('btnSimpanRekap').addEventListener('click', ()=>{
+// [4 Okt 2026] Operasional DIKUNCI ke snapshot saat Simpan -> pastikan porsi omset bulan acuan terbaru berhasil dimuat dulu (kalau gagal, jangan kunci angka basi).
+const OPS_SIAP_MSG = 'Data Operasional (porsi omset bulan sebelumnya) belum berhasil dimuat dari database, jadi angka Operasional belum bisa dikunci ke Rekap. Cek koneksi lalu coba simpan lagi.';
+document.getElementById('btnSimpanRekap').addEventListener('click', async ()=>{   // [4 Okt 2026] jadi async (sebelumnya sinkron) buat menunggu opsPastikanSiap
   if(hasilViewKey) return;   // lagi lihat bulan dari Rekap: gak ada yang perlu disimpen
   if(tokoActiveEntry().draft){ alert('Selesaikan setup toko dulu (Income, Order Completed 2 bulan dan Iklan), baru simpan ke Rekap.'); return; }
+  if(!(await opsPastikanSiap())){ alert(OPS_SIAP_MSG); return; }
   const M = computeHasilMetrics();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan) sebelum disimpan ke Rekap.'); return; }
   const per = currentMonthKeyAndLabel();
@@ -6058,9 +6069,12 @@ document.getElementById('btnSimpanRekap').addEventListener('click', ()=>{
   snapshot.biayaIsiSaldo = state.incomeFile ? state.incomeFile.biayaIsiSaldo : null;
   snapshot.orderCount = M.hppCalc.orderCount;
   snapshot.missingHpp = M.hppCalc.missingHpp||0; snapshot.unmatchedReleased = M.hppCalc.unmatchedReleased||0;
+  // [4 Okt 2026] catatan bulan acuan porsi omset yang dipakai (info saja; angka Operasional-nya sendiri sudah terkunci di snapshot.operasional)
+  { const oi = opsOperasionalBulan(key); if(oi){ snapshot.opsRefKey = oi.refKey; snapshot.opsRefLengkap = !!oi.complete; } }
   const doSave = ()=>{
     state.rekap[key] = snapshot;
     saveRekapToStorage();
+    opsInvalidateCache();   // [4 Okt 2026] Rekap bulanan berubah -> porsi omset (bulan berjalan di Setting) ikut berubah, hitung ulang di latar belakang
     rekapYear = parseInt(key.slice(0,4),10);
     hasilViewKey = key;   // [21 Sep 2026] habis Simpan -> tampilan pindah ke bulan yang barusan tersimpan
     try{ renderHasil(); }catch(e){}
@@ -6319,6 +6333,7 @@ function rekapDeleteKeys(keys){
   const items = {};
   keys.forEach(k=>{ if(state.rekap[k]){ items[k] = state.rekap[k]; delete state.rekap[k]; } });
   saveRekapToStorage();
+  opsInvalidateCache();   // [4 Okt 2026] porsi omset berubah
   rekapSelected.clear();
   rekapSelectMode = false;
   renderRekap();
@@ -6329,6 +6344,7 @@ function rekapDeleteKeys(keys){
     Object.assign(state.rekap, rekapUndoBuffer || {});
     rekapUndoBuffer = null;
     saveRekapToStorage();
+    opsInvalidateCache();   // [4 Okt 2026] porsi omset berubah
     renderRekap();
     renderCaRoasDisplay();
     renderProyeksiHargaBoth();
@@ -8337,6 +8353,88 @@ async function opsFetchAllRekap(tokoIds){
 const OPS_CACHE_MS = 120000;      // hasil hitung dipakai ulang maks 2 menit; lewat itu dihitung ulang dari database
 let _opsAutoCache = null;         // { ymKey, at, error, settingsOk, totalBeban, totalKewajiban, totalGabungan, totalOmsetGabungan, bebanList, kewajibanList, perToko:{id:{omset,share,operasional}} }
 let _opsSettingsSnap = {};        // pengaturan SEMUA toko dari database ({tokoId:{...}}) — zStore cuma memuat toko aktif, toko lain harus dibaca dari sini
+/* ================= PORSI OMSET BULAN ACUAN [4 Okt 2026] =================
+   Operasional Rekap bulan M dibagi memakai porsi omset bulan M-1 (September selalu memakai Agustus), BUKAN bulan sebelum "hari ini".
+   Jadi bulan yang sama selalu menghasilkan angka yang sama, mau disimpan tgl 4 atau tgl 9. Nilainya DIKUNCI ke snapshot saat "Simpan ke Rekap".
+   [REVISI 4 Okt 2026] TIDAK PERNAH MUNDUR. Acuan SELALU M-1. Toko yang tidak punya omset di bulan itu memang wajar (kadang 1 toko tidak dapat omset): dia kebagian Rp0
+   dan total dibagi ke toko yang punya omset. Versi pertama (mundur ke bulan "lengkap") dibatalkan karena toko tanpa omset bikin bulan itu tidak pernah "lengkap" -> salah acuan.
+   Catatan jujur: Beban (manual) & Cicilan (Hutang Aing) belum punya riwayat per bulan, jadi total yang dibagi = angka hari ini. */
+const OPS_REF_LOOKBACK = 12;   // DEAD CODE: hanya dipakai versi lama opsPickRefKey (dikomentari di bawah); tidak dipakai lagi sejak revisi "tidak mundur"
+function opsKeyShift(ymKey, delta){   // '2026-09', -1 -> '2026-08' (Date.UTC meluap otomatis ke tahun lain)
+  const d = new Date(Date.UTC(Number(ymKey.slice(0,4)), Number(ymKey.slice(5,7))-1+delta, 1));
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
+}
+function opsOmsetOf(rekapMap, ymKey){   // Total Pendapatan Rekap 1 toko di 1 bulan; null kalau belum ada
+  const s = (rekapMap || {})[ymKey];
+  const v = s ? Number(s.pendapatan) : NaN;
+  return isNaN(v) ? null : v;
+}
+// [REVISI 4 Okt 2026] Bulan acuan = startKey (M-1) APA ADANYA, tanpa mundur. complete = semua toko punya omset bulan itu (info saja); empty = tidak ada toko yang punya (semua Rp0).
+function opsPickRefKey(startKey, rekapByToko, tokoIds){
+  const have = tokoIds.filter(id=>opsOmsetOf(rekapByToko[id], startKey)!==null).length;
+  return { key:startKey, complete:(tokoIds.length>0 && have===tokoIds.length), steps:0, empty:(have===0) };
+}
+// DEAD CODE (versi pertama, dibatalkan): mundur ke bulan lengkap terakhir. Dipertahankan sesuai RULES.md, tidak dipanggil.
+// function opsPickRefKey(startKey, rekapByToko, tokoIds){
+//   let firstPartial = null;
+//   for(let i=0; i<=OPS_REF_LOOKBACK; i++){
+//     const k = opsKeyShift(startKey, -i);
+//     const have = tokoIds.filter(id=>opsOmsetOf(rekapByToko[id], k)!==null).length;
+//     if(tokoIds.length>0 && have===tokoIds.length) return { key:k, complete:true, steps:i, empty:false };
+//     if(have>0 && !firstPartial) firstPartial = { key:k, complete:false, steps:i, empty:false };
+//   }
+//   return firstPartial || { key:startKey, complete:false, steps:0, empty:true };
+// }
+// Pembagian EXACT (largest remainder): tiap toko dibulatkan ke bawah, sisa rupiah dibagikan ke toko dgn pecahan terbesar -> jumlah semua toko PERSIS = total.
+function opsAlokasi(totalGabungan, tokoIds, omsetMap){
+  let totalOmset = 0;
+  tokoIds.forEach(id=>{ const o = omsetMap[id]; if(o!==null && o!==undefined) totalOmset += o; });
+  const perToko = {};
+  tokoIds.forEach(id=>{
+    const omset = (omsetMap[id]===undefined) ? null : omsetMap[id];
+    const share = (omset!==null && totalOmset>0) ? omset/totalOmset : 0;
+    const exact = totalGabungan*share;
+    perToko[id] = { omset, share, exact, operasional: Math.floor(exact) };
+  });
+  if(totalOmset>0){
+    let left = Math.round(totalGabungan) - tokoIds.reduce((sum,id)=>sum+perToko[id].operasional, 0);
+    const order = tokoIds.filter(id=>perToko[id].share>0).sort((a,b)=>(perToko[b].exact-perToko[b].operasional)-(perToko[a].exact-perToko[a].operasional));
+    for(let i=0; left>0 && order.length; i=(i+1)%order.length, left--) perToko[order[i]].operasional += 1;
+  }
+  return { perToko, totalOmset };
+}
+// Operasional toko AKTIF untuk Rekap bulan `ymKey` (acuan = porsi omset ymKey-1, tidak pernah mundur). Sinkron, dari cache opsHitungSemua.
+// null = cache belum siap / gagal dimuat -> pemanggil memakai angka Setting (state.settings.operasionalToko) seperti semula.
+function opsOperasionalBulan(ymKey){
+  try{
+    const c = _opsAutoCache;   // bisa kena TDZ kalau dipanggil sebelum deklarasinya dieksekusi -> ditangkap catch
+    if(!c || c.error || !c.tokoIds || !c.tokoIds.length || !/^\d{4}-\d{2}$/.test(String(ymKey||''))) return null;
+    const rk = Object.assign({}, c.rekapByToko);
+    if(c.tokoIds.indexOf(TOKO_ACTIVE)>=0 && state.rekap) rk[TOKO_ACTIVE] = state.rekap;   // Rekap toko aktif selalu yang terbaru (cache bisa tertinggal <2 menit)
+    const startKey = opsKeyShift(ymKey, -1);
+    const ref = opsPickRefKey(startKey, rk, c.tokoIds);
+    const omsetMap = {};
+    c.tokoIds.forEach(id=>{ omsetMap[id] = opsOmsetOf(rk[id], ref.key); });
+    const a = opsAlokasi(c.totalGabungan, c.tokoIds, omsetMap).perToko[TOKO_ACTIVE];
+    return { value: a ? a.operasional : 0, refKey: ref.key, startKey: startKey, complete: ref.complete, mundur: ref.steps>0, empty: ref.empty, share: a ? a.share : 0 };
+  }catch(e){ return null; }
+}
+// Hitung ulang (paksa) sebelum Operasional DIKUNCI ke Rekap, supaya yang terkunci pakai data terbaru. false = gagal dimuat.
+async function opsPastikanSiap(){
+  try{ const r = await opsHitungSemua(true); return !!(r && !r.error); }
+  catch(e){ return false; }
+}
+// Dipanggil saat Rekap bulanan berubah (simpan/hapus/urungkan): porsi omset ikut berubah -> buang cache lalu hitung ulang di latar belakang (gagal = diam, dicoba lagi saat Setting dibuka/Simpan).
+function opsInvalidateCache(){
+  try{ _opsAutoCache = null; }catch(e){}
+  try{ opsHitungSemua(true).then(function(o){ opsSyncAndRefresh(o); }).catch(function(){}); }catch(e){}
+}
+let _opsDirtyRefresh = false;   // true = cache baru dibangun -> halaman yang memakai Operasional perlu dirender ulang walau angka Setting tidak berubah
+function opsSyncAndRefresh(ops){
+  const ch = opsSyncActive(ops);
+  if(ch || _opsDirtyRefresh){ _opsDirtyRefresh = false; opsRefreshDependents(); }
+  return ch;
+}
 // Ambil SEMUA baris tabel dengan paging. Supabase membatasi 1000 baris per request; dbGet biasa tanpa limit/urutan bisa terpotong diam-diam.
 async function opsFetchAll(table, filter){
   const out = [];
@@ -8422,7 +8520,7 @@ async function opsFetchTokoRows(tokoIds){
 }
 async function opsHitungSemua(force){
   if(_opsAutoCache && !force && (Date.now() - _opsAutoCache.at) < OPS_CACHE_MS) return _opsAutoCache;
-  const ymKey = opsPrevMonthKey();
+  // [4 Okt 2026] (perilaku lama, dipertahankan) const ymKey = opsPrevMonthKey();  -> sekarang bulan acuan dipilih SETELAH Rekap semua toko terbaca (opsPickRefKey, tanpa mundur)
   const tokoList = TOKO_REG.list.filter(t=>!t.draft);
   let beban = { total:0, list:[] }, kew = { total:0, list:[] }, rekapByToko = {}, settingsByToko = {}, error = null;
   try{
@@ -8433,34 +8531,25 @@ async function opsHitungSemua(force){
     error = (e && e.message) ? e.message : String(e);
   }
   if(!error) _opsSettingsSnap = settingsByToko;
+  // [4 Okt 2026] Rekap toko AKTIF selalu pakai versi di memori (terbaru): tulis ke database bisa tertinggal sesaat setelah Simpan ke Rekap.
+  if(!error && state.rekap && tokoList.some(t=>t.id===TOKO_ACTIVE)) rekapByToko[TOKO_ACTIVE] = state.rekap;
   const totalGabungan = beban.total + kew.total;
+  // [4 Okt 2026] Bulan acuan porsi omset untuk BULAN BERJALAN (Operasional di Setting & Proyeksi Harga) = bulan lalu dari hari ini, tanpa mundur (toko tanpa omset bulan itu = Rp0).
+  // (Rekap bulan M memakai M-1 lewat opsOperasionalBulan; keduanya lewat opsPickRefKey + opsAlokasi yang sama -> angkanya konsisten.)
+  const tokoIds = tokoList.map(t=>t.id);
+  const startKey = opsPrevMonthKey();
+  const ref = opsPickRefKey(startKey, rekapByToko, tokoIds);
+  const ymKey = ref.key;
   const omsetMap = {};
-  let totalOmsetGabungan = 0;
-  tokoList.forEach(t=>{
-    const snap = (rekapByToko[t.id] || {})[ymKey];
-    const v = snap ? Number(snap.pendapatan) : NaN;
-    const o = isNaN(v) ? null : v;
-    omsetMap[t.id] = o;
-    if(o!==null) totalOmsetGabungan += o;
-  });
-  // [24 Sep 2026] Pembagian EXACT: tiap toko dibulatkan ke bawah, sisa rupiah dibagikan ke toko dgn pecahan terbesar (largest remainder) —
+  tokoIds.forEach(id=>{ omsetMap[id] = opsOmsetOf(rekapByToko[id], ymKey); });
+  // [24 Sep 2026] Pembagian EXACT (largest remainder) — sekarang dikerjakan opsAlokasi (algoritma sama persis, dipindah supaya bisa dipakai per bulan).
   // jadi jumlah Operasional semua toko PERSIS sama dgn Total Dibagi (sebelumnya Math.round per toko bisa selisih 1-2 rupiah).
-  const perToko = {};
-  tokoList.forEach(t=>{
-    const omset = omsetMap[t.id];
-    const share = (omset!==null && totalOmsetGabungan>0) ? omset/totalOmsetGabungan : 0;
-    const exact = totalGabungan*share;
-    perToko[t.id] = { omset, share, exact, operasional: Math.floor(exact) };
-  });
-  if(totalOmsetGabungan>0){
-    let left = Math.round(totalGabungan) - tokoList.reduce((sum,t)=>sum+perToko[t.id].operasional, 0);
-    const order = tokoList.filter(t=>perToko[t.id].share>0).sort((a,b)=>(perToko[b.id].exact-perToko[b.id].operasional)-(perToko[a.id].exact-perToko[a.id].operasional));
-    for(let i=0; left>0 && order.length; i=(i+1)%order.length, left--) perToko[order[i].id].operasional += 1;
-  }
+  const al = opsAlokasi(totalGabungan, tokoIds, omsetMap);
+  const perToko = al.perToko, totalOmsetGabungan = al.totalOmset;
   // (versi lama, dipertahankan sbg komentar) operasional: Math.round(totalGabungan*share)
-  const res = { ymKey, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
-                bebanList:beban.list, kewajibanList:kew.list, perToko };
-  if(!error) _opsAutoCache = res;   // hasil gagal TIDAK di-cache & TIDAK boleh dipakai buat menimpa angka tersimpan
+  const res = { ymKey, startKey, refMundur: ref.steps>0, refLengkap: ref.complete, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
+                bebanList:beban.list, kewajibanList:kew.list, perToko, tokoIds, rekapByToko };
+  if(!error){ _opsAutoCache = res; _opsDirtyRefresh = true; }   // hasil gagal TIDAK di-cache & TIDAK boleh dipakai buat menimpa angka tersimpan
   return res;
 }
 // Tulis hasil hitung ke pengaturan toko AKTIF (yang dibaca RKS Overview/Mingguan/Proyeksi). Return true kalau nilainya berubah.
@@ -8614,7 +8703,9 @@ async function renderSetting(keepOps){
   // Sinkronkan nilai auto ke toko yang lagi aktif supaya halaman lain (RKS Overview, Proyeksi Harga)
   // yang baca state.settings.operasionalToko tetap ikut nilai terbaru tanpa perlu diubah satu-satu.
   // [24 Sep 2026] hanya kalau hitungan berhasil & nilainya berubah; halaman lain ikut dirender ulang supaya angkanya langsung sama.
-  if(opsSyncActive(ops)) opsRefreshDependents();
+  // [4 Okt 2026] (perilaku lama) if(opsSyncActive(ops)) opsRefreshDependents();  -> sekarang juga render ulang saat cache baru dibangun, karena RKS Overview/Mingguan/Proyeksi RKS
+  // membaca Operasional per bulan dari cache itu (opsOperasionalBulan), bukan hanya angka Setting.
+  opsSyncAndRefresh(ops);
 
   tokoList.forEach(t=>{
     SETTING_FIELDS.forEach(f=>{
@@ -8657,7 +8748,7 @@ async function renderSetting(keepOps){
   // Tampilan DATA OPERASIONAL (3 halaman) — diisi dari objek `ops` yang sama dengan minicard & kartu toko
   const opsBody = document.getElementById('settingOpsBody');
   const opsPeriod = document.getElementById('settingOpsPeriod');
-  if(opsPeriod) opsPeriod.textContent = 'Porsi omset '+opsBulanLabel(ops.ymKey);
+  if(opsPeriod) opsPeriod.textContent = 'Porsi omset '+opsBulanLabel(ops.ymKey)+(ops.refMundur && ops.startKey ? ' (mundur dari '+opsBulanLabel(ops.startKey)+', belum lengkap)' : '');   // [4 Okt 2026] tampilkan kalau mundur
   if(opsBody){
     const keepDot = Array.prototype.indexOf.call(opsBody.querySelectorAll('.st-dot'), opsBody.querySelector('.st-dot.active'));   // tetap di halaman yang sama setelah simpan
     opsBody.innerHTML = opsBuildOpsPagesHtml(ops, tokoList);
@@ -8823,8 +8914,9 @@ function opsBuildOpsPagesHtml(ops, tokoList){
   // Halaman 3 — Pembagian Toko (+ ikon (?) sebagai satu-satunya hint)
   const tipHtml = '<span class="info-tip rc-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">'+
     'Beban Operasional (nominal tetap yang kamu isi sendiri) + Cicilan Aktif (otomatis dari Hutang Aing) digabung, lalu dibagi sesuai porsi omset (Total Pendapatan Rekap '+bulan+') tiap toko.<br>'+
-    'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.'+
-    '</div></span>';
+    'Tabel hutang tidak punya kolom toko, jadi cicilan ikut dibagi dengan porsi yang sama. Toko tanpa Rekap bulan itu tidak ikut dibagi. Sisa pembulatan rupiah dibagi adil, jadi jumlah semua toko pas dengan total.<br>'+
+'Rekap bulan M selalu memakai porsi omset bulan M-1 (September memakai Agustus), dan angkanya dikunci saat Simpan ke Rekap. Toko yang tidak punya omset di bulan itu kebagian Rp0, sisanya dibagi proporsional.'+
+    '</div></span>';   // [4 Okt 2026] tambah penjelasan aturan bulan acuan
   let sumToko = 0;
   const rowsToko = tokoList.map(t=>{
     const a = ops.perToko[t.id] || { omset:null, share:0, operasional:0 };
@@ -8833,7 +8925,7 @@ function opsBuildOpsPagesHtml(ops, tokoList){
     const sub = a.omset===null ? 'belum ada Rekap '+bulan : 'omset '+fmtRp(a.omset)+' &middot; porsi '+pct(a.share);
     return row(tokoEsc(nm), sub, fmtRp(a.operasional), 'rc-toko');
   }).join('');
-  const p3 = card(title('Pembagian Toko'+tipHtml,'Porsi omset Rekap '+bulan),
+  const p3 = card(title('Pembagian Toko'+tipHtml,'Porsi omset Rekap '+bulan+(ops.refMundur && ops.startKey ? ' &middot; mundur dari '+tokoEsc(opsBulanLabel(ops.startKey)) : '')),
     fmtRp(ops.totalGabungan), 'BEBAN + CICILAN',
     row('Beban Operasional','',fmtRp(ops.totalBeban)) + row('Cicilan Aktif','',fmtRp(ops.totalKewajiban)) +
     '<div class="rc-sec"><span>Per toko</span><span class="rc-sec-val">'+tokoList.length+' toko</span></div>'+
@@ -9672,7 +9764,10 @@ try{
 }catch(e){ console.error('Gagal load/render sesi RKS Mingguan:', e); }
 
 function resolveOperasionalMingguan(){
-  return Math.round((state.settings.operasionalToko||0)/4);
+  // [4 Okt 2026] Operasional bulanan mengikuti BULAN minggu itu (dari file Income Mingguan): porsi omset bulan sebelumnya, ÷ 4. Tanpa info minggu / cache belum siap = angka Setting.
+  const wi = weekInfoFromIncome();
+  const r = wi ? opsOperasionalBulan(wi.y+'-'+String(wi.m+1).padStart(2,'0')) : null;
+  return Math.round((r ? r.value : (state.settings.operasionalToko||0))/4);
 }
 
 function computeHPPTotalM(){
@@ -9850,7 +9945,7 @@ function renderHasilM(){
       <div class="hrow highlight"><div class="lbl">TOTAL PENDAPATAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : 'Otomatis dari file Income minggu ini'}</span></div><div class="val">${fmtRp(pendapatan)}</div></div>
       <div class="hrow highlight"><div class="lbl">TOTAL PENGHASILAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : 'Otomatis dari file Income minggu ini'}</span></div><div class="val">${fmtRp(penghasilan)}</div></div>
       <div class="hrow highlight"><div class="lbl">HPP<span class="ket">${fromRekap ? (hppCalc.orderCount ? hppCalc.orderCount+' pesanan · tersimpan di Rekap Mingguan' : 'Tersimpan di Rekap Mingguan') : 'Otomatis: '+hppCalc.orderCount+' pesanan × harga HPP (yang dananya sudah dilepas)'}</span></div><div class="val">${fmtRp(hpp)}</div></div>
-      <div class="hrow highlight"><div class="lbl">OPERASIONAL<span class="ket">${fromRekap ? 'Nilai saat minggu ini disimpan ke Rekap Mingguan' : 'Otomatis: Operasional Toko bulanan di Setting ÷ 4'}</span></div><div class="val">${fmtRp(operasional)}</div></div>
+      <div class="hrow highlight"><div class="lbl">OPERASIONAL<span class="ket">${fromRekap ? 'Nilai saat minggu ini disimpan ke Rekap Mingguan' : 'Otomatis: Operasional Toko bulan itu (porsi omset bulan sebelumnya) ÷ 4'}</span></div><div class="val">${fmtRp(operasional)}</div></div>
       <div class="hrow highlight"><div class="lbl">IKLAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : state.mingguan.adsFile && state.mingguan.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'}</span></div><div class="val">${fmtRp(iklan)}</div></div>
       <div class="hrow"><div class="lbl">AOV AKTUAL<span class="ket">Rata-rata nilai per pesanan</span></div><div class="val">${fmtRp(basketCalc.aov)}</div></div>
       <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val">${roas ? roas.toFixed(2)+'x' : '-'}</div></div>
@@ -9875,6 +9970,7 @@ function renderHasilM(){
 
 document.getElementById('btnSimpanRekapM').addEventListener('click', async ()=>{
   if(hasilViewKeyM) return;   // lagi lihat minggu dari Rekap Mingguan: gak ada yang perlu disimpen
+  if(!(await opsPastikanSiap())){ alert(OPS_SIAP_MSG); return; }   // [4 Okt 2026] Operasional dikunci ke snapshot
   const M = computeHasilMetricsM();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan minggu ini) sebelum disimpan ke Rekap Mingguan.'); return; }
   { const w = hppSaveWarnText(M.hppCalc); if(w && !(await zConfirm(w, {title:'HPP belum lengkap', type:'warn', ok:'Tetap simpan'}))) return; }
@@ -10299,7 +10395,9 @@ function proyeksiInfoFromIncome(){
 function resolveOperasionalProyeksi(){
   const pi = proyeksiInfoFromIncome();
   if(!pi) return 0;
-  const bln = state.settings.operasionalToko || 0;
+  // [4 Okt 2026] bulan berjalan memakai porsi omset bulan lalunya (pi.key = bulan di file Income); cache belum siap = angka Setting seperti semula
+  const r = opsOperasionalBulan(pi.key);
+  const bln = r ? r.value : (state.settings.operasionalToko || 0);
   return Math.round(bln * Math.min(pi.span, pi.hariBulan) / pi.hariBulan);
 }
 // Perkiraan akhir bulan: metrik NOMINAL dikali faktor (hari bulan ÷ hari berjalan); rasio/AOV/basket/ROAS tetap.
@@ -10693,7 +10791,7 @@ function renderHasilP(){
       ${pvRow('TOTAL PENDAPATAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : 'Otomatis dari file Income bulan berjalan', fmtRp(pendapatan), est(E.pendapatan), 'highlight')}
       ${pvRow('TOTAL PENGHASILAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : 'Otomatis dari file Income bulan berjalan', fmtRp(penghasilan), est(E.penghasilan), 'highlight')}
       ${pvRow('HPP', fromRekap ? (hppCalc.orderCount ? hppCalc.orderCount+' pesanan · tersimpan di Rekap Proyeksi' : 'Tersimpan di Rekap Proyeksi') : 'Otomatis: '+hppCalc.orderCount+' pesanan × harga HPP (yang dananya sudah dilepas)', fmtRp(hpp), est(E.hpp), 'highlight')}
-      ${pvRow('OPERASIONAL', fromRekap ? 'Prorata saat bulan ini disimpan ke Rekap Proyeksi' : (pi ? 'Prorata: Operasional Toko bulanan di Setting × '+Math.min(pi.span,pi.hariBulan)+'/'+pi.hariBulan+' hari' : 'Prorata: butuh file Income buat tahu hari berjalan'), fmtRp(operasional), est(E.operasional), 'highlight')}
+      ${pvRow('OPERASIONAL', fromRekap ? 'Prorata saat bulan ini disimpan ke Rekap Proyeksi' : (pi ? 'Prorata: Operasional Toko bulan itu (porsi omset bulan sebelumnya) × '+Math.min(pi.span,pi.hariBulan)+'/'+pi.hariBulan+' hari' : 'Prorata: butuh file Income buat tahu hari berjalan'), fmtRp(operasional), est(E.operasional), 'highlight')}
       ${pvRow('IKLAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : (state.proyeksi.adsFile && state.proyeksi.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'), fmtRp(iklan), est(E.iklan), 'highlight')}
       ${pvRow('AOV AKTUAL', 'Rata-rata nilai per pesanan', fmtRp(basketCalc.aov), fmtRp(basketCalc.aov))}
       ${pvRow('ROAS AKTUAL', 'Pendapatan ÷ Iklan', roas ? roas.toFixed(2)+'x' : '-', roas ? roas.toFixed(2)+'x' : '-')}
@@ -10720,6 +10818,7 @@ function renderHasilP(){
 
 document.getElementById('btnSimpanRekapP').addEventListener('click', async ()=>{
   if(hasilViewKeyP) return;   // lagi lihat bulan dari Rekap Proyeksi: gak ada yang perlu disimpen
+  if(!(await opsPastikanSiap())){ alert(OPS_SIAP_MSG); return; }   // [4 Okt 2026] Operasional dikunci ke snapshot
   const M = computeHasilMetricsP();
   if(!M.canCompute){ alert('Lengkapi dulu Total Pendapatan, Total Penghasilan & Iklan (upload file Income/Tagihan Iklan bulan berjalan) sebelum disimpan ke Rekap Proyeksi.'); return; }
   { const w = hppSaveWarnText(M.hppCalc); if(w && !(await zConfirm(w, {title:'HPP belum lengkap', type:'warn', ok:'Tetap simpan'}))) return; }
@@ -10985,7 +11084,7 @@ try{
 setTimeout(function(){
   try{
     if(!TOKO_REG.list.some(function(t){ return !t.draft; })) return;
-    opsHitungSemua().then(function(ops){ if(opsSyncActive(ops)) opsRefreshDependents(); })
+    opsHitungSemua().then(function(ops){ opsSyncAndRefresh(ops); })   // [4 Okt 2026] sebelumnya: if(opsSyncActive(ops)) opsRefreshDependents();
       .catch(function(e){ console.error('Sinkron Operasional (startup) gagal:', e); });
   }catch(e){ console.error('Sinkron Operasional (startup) gagal:', e); }
 }, 1500);

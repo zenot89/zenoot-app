@@ -58,6 +58,7 @@
 // (35) [30 Sep 2026] Data Operasional: LAPTOP isi Beban Operasional & Cicilan Aktif jadi 3 kolom per baris (Akun|Kode·%|Nominal, Nama|Sisa|Cicilan), font diperbesar; HP susunan tetap, font nominal diperbesar — CSS di analisis.html; file INI cuma diberi catatan supaya APP_BUILD berubah.
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
+// (36) [4 Okt 2026] Operasional Toko: Rekap bulan M memakai porsi omset bulan M-1 (September selalu Agustus), BUKAN bulan sebelum tanggal hari ini, dan TIDAK PERNAH mundur ke bulan lain (toko yang tidak punya omset bulan M-1 kebagian Rp0, sisanya dibagi proporsional). Angka Operasional DIKUNCI ke snapshot saat Simpan ke Rekap (Overview/Mingguan/Proyeksi RKS) — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;
