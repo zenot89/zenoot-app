@@ -3,15 +3,299 @@ const SUPABASE_URL = 'https://hkhntwgurticesuwcmyz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhraG50d2d1cnRpY2VzdXdjbXl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NzE1NjIsImV4cCI6MjA5NDA0NzU2Mn0.DSw0s6ik7ghdl947eEROgCQ00Qc6hA-h7sl3_RihcWc';
 
 // ─── AUTH ─────────────────────────────────────────────────────
-// Anonymous signup Supabase tidak diaktifkan → selalu 422.
-// Pakai anon key langsung — cukup untuk semua operasi DB yang dibutuhkan app.
-// _ensureAuth() dipertahankan agar semua caller tidak perlu diubah.
-async function _ensureAuth() { return null; }
+// 4 Okt 2026 — LOGIN (Supabase Auth, email + password, 1 akun pemilik).
+//
+// Dulu: tidak ada login, semua request pakai anon key yang tertulis di file ini + policy RLS
+// allow_all_temp → siapa pun yang punya URL project + anon key bisa baca/ubah/hapus SEMUA tabel.
+// Sekarang:
+//  1. Layar login (overlay) muncul kalau belum ada sesi. Sesi disimpan di localStorage
+//     ('zenoot_auth_v1'), jadi analisis.html / iframe embed (same-origin) ikut sesi yang sama.
+//  2. window.fetch dibungkus: SEMUA request ke SUPABASE_URL (REST, RPC, edge function shopee-proxy)
+//     otomatis memakai access token user (bukan anon key) — modul lain TIDAK perlu diubah, termasuk
+//     yang menulis 'Authorization: Bearer ' + SUPABASE_KEY langsung. Tanpa sesi, request DITAHAN
+//     (tidak dikirim, tidak ada data bocor/ter-render) sampai login berhasil → halaman reload.
+//  3. Token di-refresh otomatis (refresh token berputar; pakai Web Locks supaya 2 tab/iframe tidak
+//     saling rebutan). Gagal refresh karena OFFLINE ≠ logout; ditolak server = minta login ulang.
+//  4. Pengamanan sebenarnya ada di DATABASE (RLS hanya untuk email pemilik) — lihat zenoot-lock-db.sql.
+//     Layar login ini cuma pintu depan; tanpa SQL itu data tetap terbuka lewat API.
+var _Z_SESS_KEY  = 'zenoot_auth_v1';
+var _zSess       = null;
+var _zRefreshing = null;
+var _zNativeFetch = window.fetch.bind(window);
+window._zNativeFetch = _zNativeFetch;
+var _zIsEmbed = /[?&]embed=1/.test(location.search);
+
+function _zNow() { return Math.floor(Date.now() / 1000); }
+
+function _zReadSess() {
+  try {
+    var raw = localStorage.getItem(_Z_SESS_KEY);
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    if (o && o.access_token && o.refresh_token && o.expires_at) return o;
+  } catch (e) {}
+  return null;
+}
+function _zWriteSess(o) {
+  _zSess = o || null;
+  try {
+    if (o) localStorage.setItem(_Z_SESS_KEY, JSON.stringify(o));
+    else localStorage.removeItem(_Z_SESS_KEY);
+  } catch (e) {}
+}
+_zSess = _zReadSess();
+
+function _zFromAuth(j, prev) {
+  return {
+    access_token:  j.access_token,
+    refresh_token: j.refresh_token,
+    expires_at:    j.expires_at || (_zNow() + (j.expires_in || 3600)),
+    email:         (j.user && j.user.email) || (prev && prev.email) || ''
+  };
+}
+
+async function _zAuthCall(path, body) {
+  var res  = await _zNativeFetch(SUPABASE_URL + path, {
+    method:  'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body)
+  });
+  var data = {};
+  try { data = await res.json(); } catch (e) {}
+  return { ok: res.ok, status: res.status, data: data };
+}
+
+async function zAuthSignIn(email, password) {
+  var r;
+  try { r = await _zAuthCall('/auth/v1/token?grant_type=password', { email: email, password: password }); }
+  catch (e) { throw new Error('Tidak bisa terhubung. Cek koneksi internet.'); }
+  if (!r.ok) {
+    if (r.status === 429) throw new Error('Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.');
+    if (r.status === 400 || r.status === 401 || r.status === 422) throw new Error('Email atau password salah.');
+    throw new Error((r.data && (r.data.msg || r.data.error_description || r.data.message)) || ('Gagal masuk (' + r.status + ')'));
+  }
+  _zWriteSess(_zFromAuth(r.data, null));
+  return _zSess;
+}
+
+// staleToken = access token yang barusan dipakai/hampir habis. Kalau konteks lain (tab/iframe) sudah
+// refresh duluan, pakai hasilnya — jangan refresh lagi (refresh token sekali pakai).
+// Lempar 'NO_SESSION' kalau server menolak refresh token (harus login ulang), 'NETWORK' kalau gagal sementara.
+function _zRefresh(staleToken) {
+  if (_zRefreshing) return _zRefreshing;
+  var job = async function() {
+    var latest = _zReadSess() || _zSess;
+    if (!latest) throw new Error('NO_SESSION');
+    if (latest.access_token !== staleToken && latest.expires_at - _zNow() > 60) { _zSess = latest; return _zSess; }
+    var r;
+    try { r = await _zAuthCall('/auth/v1/token?grant_type=refresh_token', { refresh_token: latest.refresh_token }); }
+    catch (e) { throw new Error('NETWORK'); }
+    if (!r.ok) {
+      if (r.status === 400 || r.status === 401 || r.status === 403) {
+        var again = _zReadSess();
+        if (again && again.refresh_token !== latest.refresh_token) { _zSess = again; return _zSess; }  // sudah di-refresh konteks lain
+        _zWriteSess(null);
+        throw new Error('NO_SESSION');
+      }
+      throw new Error('NETWORK');
+    }
+    var ns = _zFromAuth(r.data, latest);
+    _zWriteSess(ns);
+    return ns;
+  };
+  var run = (navigator.locks && navigator.locks.request) ? navigator.locks.request('zenoot-auth-refresh', job) : job();
+  _zRefreshing = Promise.resolve(run).then(
+    function(v) { _zRefreshing = null; return v; },
+    function(e) { _zRefreshing = null; throw e; }
+  );
+  return _zRefreshing;
+}
+
+function _zNeedLogin() {
+  _zShowLogin();
+  return new Promise(function() {});   // sengaja tidak pernah resolve — halaman reload setelah login berhasil
+}
+
+async function _zGetToken() {
+  if (!_zSess) { var st = _zReadSess(); if (st) _zSess = st; }
+  if (!_zSess) return _zNeedLogin();
+  if (_zSess.expires_at - _zNow() > 60) return _zSess.access_token;
+  try {
+    var s = await _zRefresh(_zSess.access_token);
+    return s.access_token;
+  } catch (e) {
+    if (e && e.message === 'NO_SESSION') return _zNeedLogin();
+    return _zSess.access_token;   // offline/gangguan sementara: pakai token lama, biar request gagal sendiri kalau memang sudah kedaluwarsa
+  }
+}
+
+function _zSend(input, init, token) {
+  var req = (typeof input === 'string') ? input : input.clone();
+  var base = (init && init.headers) || (typeof req !== 'string' ? req.headers : null) || {};
+  var h = new Headers(base);
+  h.set('apikey', SUPABASE_KEY);
+  h.set('Authorization', 'Bearer ' + token);
+  return _zNativeFetch(req, Object.assign({}, init || {}, { headers: h }));
+}
+
+window.fetch = async function(input, init) {
+  var url = (typeof input === 'string') ? input : ((input && input.url) || String(input));
+  if (url.indexOf(SUPABASE_URL) !== 0 || url.indexOf('/auth/v1/') !== -1) return _zNativeFetch(input, init);
+  var token = await _zGetToken();
+  var res = await _zSend(input, init, token);
+  if (res.status === 401) {                       // JWT kedaluwarsa/ditolak → refresh sekali lalu ulang
+    try {
+      var s = await _zRefresh(token);
+      if (s && s.access_token !== token) return _zSend(input, init, s.access_token);
+    } catch (e) {
+      if (e && e.message === 'NO_SESSION') return _zNeedLogin();
+    }
+  }
+  return res;
+};
+
+async function zAuthSignOut() {
+  var tok = _zSess && _zSess.access_token;
+  try {
+    if (tok) await _zNativeFetch(SUPABASE_URL + '/auth/v1/logout?scope=local', {
+      method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + tok }
+    });
+  } catch (e) {}
+  _zWriteSess(null);
+  location.reload();   // bersihkan semua data yang sudah ter-render di layar
+}
+function zAuthConfirmSignOut() {
+  if (typeof zConfirm === 'function') {
+    Promise.resolve(zConfirm('Keluar dari zenOt? Kamu perlu login lagi untuk membuka data.', { ok: 'Keluar' }))
+      .then(function(ok) { if (ok) zAuthSignOut(); });
+  } else if (window._nativeConfirm ? window._nativeConfirm('Keluar dari zenOt?') : confirm('Keluar dari zenOt?')) {
+    zAuthSignOut();
+  }
+}
+function zAuthEmail() { return (_zSess && _zSess.email) || ''; }
+
+// Login/logout/refresh di tab lain → ikut sinkron
+window.addEventListener('storage', function(e) {
+  if (e.key !== _Z_SESS_KEY) return;
+  var s = _zReadSess();
+  if (s) { var had = !!_zSess; _zSess = s; if (!had) location.reload(); }
+  else   { _zSess = null; location.reload(); }
+});
+
+// Refresh proaktif (≤ 5 menit sebelum habis) + saat app dibuka lagi dari background
+function _zTick() {
+  if (!_zSess || document.hidden) return;
+  if (_zSess.expires_at - _zNow() < 300) {
+    _zRefresh(_zSess.access_token).catch(function(e) { if (e && e.message === 'NO_SESSION') _zShowLogin(); });
+  }
+}
+setInterval(_zTick, 60000);
+document.addEventListener('visibilitychange', _zTick);
+
+// ── Layar login ───────────────────────────────────────────────
+var _zLoginEl = null;
+function _zShowLogin() {
+  if (_zIsEmbed || _zLoginEl) return;   // iframe embed: tunggu parent login (storage event di atas → reload)
+  if (!document.body) { document.addEventListener('DOMContentLoaded', _zShowLogin, { once: true }); return; }
+  if (!document.getElementById('zenoot-login-css')) {
+    var st = document.createElement('style');
+    st.id = 'zenoot-login-css';
+    st.textContent =
+      '#zenoot-login{position:fixed;inset:0;z-index:2147483000;background:#F0EFEB;display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;-webkit-text-size-adjust:100%}' +
+      '#zenoot-login .zl-card{width:100%;max-width:360px;background:#fff;border:1.5px solid #E3E1DA;border-radius:18px;padding:28px 24px 24px;box-shadow:0 8px 30px rgba(0,0,0,.06)}' +
+      '#zenoot-login .zl-logo{display:block;width:56px;height:56px;object-fit:contain;margin:0 auto 10px}' +
+      '#zenoot-login .zl-title{text-align:center;font-size:22px;font-weight:800;letter-spacing:-.3px}' +
+      '#zenoot-login .zl-sub{text-align:center;font-size:13px;color:#8A8580;margin:2px 0 20px}' +
+      '#zenoot-login .zl-lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;color:#8A8580;margin:12px 0 5px}' +
+      '#zenoot-login input{width:100%;box-sizing:border-box;height:44px;padding:0 12px;font-size:16px;font-family:inherit;color:#2B2B2B;background:#F0EFEB;border:1.5px solid #E3E1DA;border-radius:10px;outline:none}' +
+      '#zenoot-login input:focus{border-color:#2B2B2B;background:#fff}' +
+      '#zenoot-login .zl-pw{position:relative}#zenoot-login .zl-pw input{padding-right:78px}' +
+      '#zenoot-login .zl-eye{position:absolute;right:6px;top:6px;height:32px;padding:0 10px;border:none;background:transparent;font-size:12px;font-weight:700;color:#8A8580;cursor:pointer;font-family:inherit}' +
+      '#zenoot-login .zl-err{min-height:18px;margin:12px 0 4px;font-size:12.5px;font-weight:600;color:#e05c4b;text-align:center}' +
+      '#zenoot-login .zl-btn{width:100%;height:46px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}' +
+      '#zenoot-login .zl-btn:disabled{opacity:.6;cursor:default}';
+    document.head.appendChild(st);
+  }
+  var ov = document.createElement('div');
+  ov.id = 'zenoot-login';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.innerHTML =
+    '<form class="zl-card" id="zl-form" novalidate>' +
+      '<img class="zl-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
+      '<div class="zl-title">zenOt</div>' +
+      '<div class="zl-sub">Masuk untuk melanjutkan</div>' +
+      '<label class="zl-lbl" for="zl-email">EMAIL</label>' +
+      '<input id="zl-email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">' +
+      '<label class="zl-lbl" for="zl-pass">PASSWORD</label>' +
+      '<div class="zl-pw"><input id="zl-pass" name="password" type="password" autocomplete="current-password">' +
+      '<button type="button" class="zl-eye" id="zl-eye" aria-label="Tampilkan password">Lihat</button></div>' +
+      '<div class="zl-err" id="zl-err" role="alert"></div>' +
+      '<button type="submit" class="zl-btn" id="zl-btn">Masuk</button>' +
+    '</form>';
+  document.body.appendChild(ov);
+  _zLoginEl = ov;
+  var emailEl = ov.querySelector('#zl-email'), passEl = ov.querySelector('#zl-pass');
+  var errEl = ov.querySelector('#zl-err'), btn = ov.querySelector('#zl-btn'), eye = ov.querySelector('#zl-eye');
+  eye.addEventListener('click', function() {
+    var show = passEl.type === 'password';
+    passEl.type = show ? 'text' : 'password';
+    eye.textContent = show ? 'Sembunyi' : 'Lihat';
+  });
+  ov.querySelector('#zl-form').addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    var em = (emailEl.value || '').trim(), pw = passEl.value || '';
+    if (!em || !pw) { errEl.textContent = 'Isi email dan password.'; return; }
+    errEl.textContent = '';
+    btn.disabled = true; btn.textContent = 'Memproses…';
+    try {
+      await zAuthSignIn(em, pw);
+      btn.textContent = 'Berhasil…';
+      location.reload();
+    } catch (e) {
+      errEl.textContent = e.message || 'Gagal masuk.';
+      btn.disabled = false; btn.textContent = 'Masuk';
+      passEl.value = ''; passEl.focus();
+    }
+  });
+  setTimeout(function() { try { emailEl.focus(); } catch (e) {} }, 60);
+}
+// Belum ada sesi → langsung tampilkan layar login (jangan nunggu request pertama)
+if (!_zSess) _zShowLogin();
+// Tombol "Keluar" di sidebar: tampilkan email yang sedang login di tooltip
+document.addEventListener('DOMContentLoaded', function() {
+  var b = document.getElementById('btn-logout');
+  if (b && zAuthEmail()) b.title = 'Keluar (' + zAuthEmail() + ')';
+});
+
+// Kunci ke-dua (self-test) — jalankan di console setelah SQL pengunci database dijalankan:  zAuthSelfTest()
+// Mencoba baca tiap tabel pakai anon key SAJA (tanpa login). Hasil yang benar: 0 tabel terbuka.
+async function zAuthSelfTest() {
+  var tabel = ['beban_operasional','channel_beban','channel_harga','channel_kategori_harga','channel_produk','channel_rekap','channels','cost_jurnal','cost_rate','cost_tukang','gadag_anggaran','gadag_pendapatan','gadag_sku','hpp','hutang','hutang_barang','hutang_bayar','hutang_bon','hutang_bon_item','hutang_pembayaran','hutang_supplier','jurnal','jurnal_penjualan','kas_akun','kas_anggaran','master_bahan','penutupan_periode','produk','restock_supplier','shopee_finance_cache','shopee_tokens','stok','stok_masuk_jurnal'];
+  var terbuka = [], aman = [], lain = [];
+  for (var i = 0; i < tabel.length; i++) {
+    try {
+      var r = await _zNativeFetch(SUPABASE_URL + '/rest/v1/' + tabel[i] + '?select=*&limit=1', { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+      var j = []; try { j = await r.json(); } catch (e) {}
+      if (r.ok && Array.isArray(j) && j.length > 0) terbuka.push(tabel[i]);
+      else if (r.ok) lain.push(tabel[i] + ' (kosong/terblokir RLS)');
+      else aman.push(tabel[i] + ' [' + r.status + ']');
+    } catch (e) { lain.push(tabel[i] + ' (error jaringan)'); }
+  }
+  console.log(terbuka.length === 0 ? '✅ AMAN: 0 tabel bisa dibaca tanpa login.' : '❌ BOCOR: ' + terbuka.length + ' tabel masih bisa dibaca tanpa login → ' + terbuka.join(', '));
+  console.log('Ditolak server:', aman.length, '| Kosong/terblokir:', lain.length);
+  return { terbuka: terbuka, ditolak: aman, lain: lain };
+}
+
+// _ensureAuth() dipertahankan (dead code, tidak ada pemanggil) — sekarang mengembalikan access token user.
+async function _ensureAuth() { return _zGetToken(); }
 
 function _headers(extra) {
   const h = {
     'apikey':        SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    // Token user kalau sudah login. (Interceptor fetch di atas tetap mengganti/menyegarkan token ini
+    // saat request dikirim, jadi aman walau token di sini sudah hampir kedaluwarsa.)
+    'Authorization': 'Bearer ' + ((_zSess && _zSess.access_token) || SUPABASE_KEY),
     'Content-Type':  'application/json'
   };
   if (extra) Object.assign(h, extra);
