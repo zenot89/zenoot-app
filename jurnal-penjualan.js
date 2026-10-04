@@ -1187,6 +1187,7 @@ async function _jpOnChannelChosen(id) {
         idrSet('jp-total', 0);
         var bt = document.getElementById('jp-btn-tambah-sku');
         if (bt) bt.style.display = 'none';
+        _jpRenderPending();
       }
     }
   }
@@ -1356,6 +1357,7 @@ async function jpPilihKatalog(katalog) {
   // Reset label picker variasi
   var lbl = document.getElementById('jp-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  _jpRenderPending();   // pilihan variasi lama terhapus -> baris live hilang sampai variasi baru dipilih
 
   if (varList.length === 1) {
     sel.selectedIndex = 1;
@@ -1387,13 +1389,13 @@ async function _jpGetHargaFromPriceList(hpp) {
 function jpOnPilihVariasi() {
   const sel = document.getElementById('jp-sku-variasi');
   const opt = sel.options[sel.selectedIndex];
-  if (!opt || !opt.dataset.hpp) return;
+  if (!opt || !opt.dataset.hpp) { _jpRenderPending(); return; }
   const hpp = parseInt(opt.dataset.hpp) || 0;
-  if (!hpp) return;
+  if (!hpp) { _jpRenderPending(); return; }
   const hargaEl = document.getElementById('jp-harga');
   // [30 Sep 2026] Harga Satuan = HPP dari Kelola Produk (bukan lagi HPP x (1+Beban+NPM) dari channel_beban). _jpGetHargaFromPriceList dibiarkan (tidak dipakai).
   hargaEl.value = hpp;
-  hitungTotalJP();
+  hitungTotalJP();   // hitungTotalJP sudah me-render daftar "Akan Disimpan" (baris live)
 }
 
 function jpTutupDropdownSKU() {
@@ -1416,6 +1418,7 @@ function hitungTotalJP() {
   const qty   = parseInt(document.getElementById('jp-qty').value)   || 0;
   const harga = idrVal('jp-harga');
   idrSet('jp-total', qty * harga > 0 ? qty * harga : 0);
+  _jpRenderPending();   // 4 Okt 2026: baris live di daftar "Akan Disimpan" ikut berubah
 }
 
 // ─── LOAD DATA ───────────────────────────────────────────────
@@ -3251,6 +3254,7 @@ function showTambahJP() {
   _jpChProdukCache = { chId: null, set: null };   // selalu baca ulang channel_produk (bisa berubah di menu Channel)
   loadProdukListJP();
   if (chVal) _jpLoadChProduk(chVal);
+  _jpRenderPending();
   document.getElementById('modal-jp').classList.add('open');
   setTimeout(() => { document.getElementById('jp-channel').focus(); }, 80);
 }
@@ -3401,22 +3405,43 @@ async function simpanJP() {
 var _jpPendingItems = []; // [{sku, qty, harga, total, channel_id, tgl, waktu, skuLabel}]
 var _jpIsSaving = false; // true selama dbInsert/dbUpdate JP berjalan — cegah Batal/X/overlay menutup modal di tengah proses simpan
 
+// 4 Okt 2026: baris "live" — begitu SKU Variasi dipilih (mode Tambah), isi form saat ini langsung
+// tampil sebagai baris terakhir di daftar "Akan Disimpan" (ikut berubah saat Qty/Harga diedit),
+// jadi jumlah baris di daftar = persis jumlah yang akan tersimpan saat klik SIMPAN.
+// Tidak ada perubahan di simpanJP(): item form tetap ikut ke batch seperti sebelumnya.
+function _jpLiveItem() {
+  var idEl = document.getElementById('jp-id');
+  if (!idEl || idEl.value) return null;                 // mode Edit: 1 transaksi saja, tanpa daftar
+  var vEl = document.getElementById('jp-sku-variasi');
+  var skuV = vEl ? vEl.value : '';
+  if (!skuV) return null;
+  var qty   = parseInt(document.getElementById('jp-qty').value) || 0;
+  var harga = idrVal('jp-harga');
+  var total = idrVal('jp-total') || qty * harga;
+  return { sku: skuV.toUpperCase(), skuLabel: skuV, qty: qty, harga: harga, total: total, live: true };
+}
+
 function _jpRenderPending() {
   var list  = document.getElementById('jp-pending-list');
   var tbody = document.getElementById('jp-pending-tbody');
   var count = document.getElementById('jp-pending-count');
   if (!list || !tbody) return;
-  if (_jpPendingItems.length === 0) { list.style.display = 'none'; return; }
+  var rows = _jpPendingItems.map(function(it, i) { return { item: it, idx: i, live: false }; });
+  var live = _jpLiveItem();
+  if (live) rows.push({ item: live, idx: -1, live: true });
+  if (rows.length === 0) { list.style.display = 'none'; return; }
   list.style.display = 'block';
-  if (count) count.textContent = _jpPendingItems.length;
-  tbody.innerHTML = _jpPendingItems.map(function(item, idx) {
-    return '<tr style="border-bottom:1px solid var(--cream4)">' +
+  if (count) count.textContent = rows.length;
+  tbody.innerHTML = rows.map(function(r) {
+    var item = r.item;
+    var rm = r.live ? '_jpClearLive()' : '_jpRemovePending(' + r.idx + ')';
+    return '<tr style="border-bottom:1px solid var(--cream4)' + (r.live ? ';background:var(--cream2)' : '') + '">' +
       '<td style="padding:4px 4px;font-weight:600">' + item.skuLabel + '</td>' +
       '<td style="text-align:right;padding:4px 4px">' + item.qty + '</td>' +
       '<td style="text-align:right;padding:4px 4px;color:var(--ink3)">' + (item.harga ? 'Rp'+item.harga.toLocaleString('id-ID') : '—') + '</td>' +
       '<td style="text-align:right;padding:4px 4px;color:var(--ok);font-weight:700">Rp' + (item.total||0).toLocaleString('id-ID') + '</td>' +
       '<td style="text-align:center;padding:4px 2px">' +
-        '<button onclick="_jpRemovePending(' + idx + ')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px">×</button>' +
+        '<button onclick="' + rm + '" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px">×</button>' +
       '</td>' +
     '</tr>';
   }).join('');
@@ -3424,6 +3449,21 @@ function _jpRenderPending() {
 
 function _jpRemovePending(idx) {
   _jpPendingItems.splice(idx, 1);
+  _jpRenderPending();
+}
+
+// × pada baris live = batalkan pilihan SKU di form (baris pending lain tidak tersentuh)
+function _jpClearLive() {
+  document.getElementById('jp-sku-induk').value = '';
+  _jpSetIndukLabel(null);
+  document.getElementById('jp-sku-variasi').innerHTML = '<option value="">— Pilih Variasi —</option>';
+  var lblV = document.getElementById('jp-picker-variasi-label');
+  if (lblV) { lblV.textContent = '— Pilih Variasi —'; lblV.style.color = 'var(--ink3)'; }
+  document.getElementById('jp-qty').value = '1';
+  idrSet('jp-harga', 0);
+  idrSet('jp-total', 0);
+  var btn = document.getElementById('jp-btn-tambah-sku');
+  if (btn) btn.style.display = 'none';
   _jpRenderPending();
 }
 
@@ -3463,6 +3503,7 @@ function jpSimpanDanTambah() {
 
   var btn = document.getElementById('jp-btn-tambah-sku');
   if (btn) btn.style.display = 'none';
+  _jpRenderPending();   // form sudah dikosongkan -> baris live hilang, item barusan tinggal sebagai baris tetap
 
   // Buka lagi picker SKU Induk buat lanjut input SKU berikutnya
   setTimeout(function() { jpSkuSheetOpen('induk'); }, 150);

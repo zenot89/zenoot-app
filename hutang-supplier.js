@@ -181,6 +181,15 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
     /* ── List bon ── */
     #hs-bon-list { display:flex; flex-direction:column; gap:8px; }
+    /* 4 Okt 2026: scrollbar HANYA di area data (daftar kartu bon). Dulu seluruh panel Bon (#hs-panel-bon)
+       yang scroll (overflow-y:auto dari .hs-panel.active), jadi garis scrollbar ikut membentang di
+       bagian atas (switcher supplier, tombol, Cek Sinkron, pemisah). Sekarang bagian atas diam di
+       tempat & cuma #hs-bon-list yang punya scroll sendiri. */
+    #hs-panel-bon.active { overflow-y:hidden; }
+    #hs-panel-bon > *:not(#hs-bon-list) { flex:none; }
+    #hs-panel-bon > #hs-bon-list { flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding-right:2px; }
+    /* 4 Okt 2026: nama hari setelah nama supplier di kartu bon (sebelum ikon ?) */
+    .hs-bon-hari { flex:none; font-size:12px; font-weight:600; color:var(--ink3); white-space:nowrap; }
     .hs-bon-card { display:flex; align-items:center; gap:12px; background:var(--cream2); border:1px solid var(--ink4); border-radius:12px; padding:12px 14px; cursor:pointer; }
     .hs-bon-main { flex:1; min-width:0; }
     .hs-bon-top  { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
@@ -1898,7 +1907,7 @@ function hsRenderBonList() {
     return '<div class="hs-bon-card" data-id="' + b.id + '" onclick="hsOpenDetailBon(' + b.id + ')">' +
       '<div class="hs-donut" style="--pct:' + pct + ';--donut-color:' + donutColor + '"><span>' + pct + '%</span></div>' +
       '<div class="hs-bon-main">' +
-        '<div class="hs-bon-top"><div class="hs-bon-nama-wrap"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div>' + (_hsBonIsOtomatis(b) ? '<span class="hs-bon-info" title="Otomatis dari penjualan" onclick="event.stopPropagation();hsBonInfoOtomatis(this)">?</span>' : '') + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
+        '<div class="hs-bon-top"><div class="hs-bon-nama-wrap"><div class="hs-bon-nama">' + _hsEsc(namaSup) + '</div>' + (_hsNamaHari(b.tanggal) ? '<span class="hs-bon-hari">' + _hsNamaHari(b.tanggal) + '</span>' : '') + (_hsBonIsOtomatis(b) ? '<span class="hs-bon-info" title="Otomatis dari penjualan" onclick="event.stopPropagation();hsBonInfoOtomatis(this)">?</span>' : '') + '</div><div class="hs-bon-badge ' + badgeCls + '">' + badgeTxt + '</div></div>' +
         '<div class="hs-bon-sub">' + _hsFmtTgl(b.tanggal) + _hsBonNotaLabel(b) + ' · Total ' + fmtRpFull(b.total) + '</div>' +
         (function() {
           var ti = _hsBonIsOtomatis(b) ? _hsBonTrxInfo[b.no_nota] : null;
@@ -4720,6 +4729,13 @@ function _hsFmtTglPanjang(iso) {
   var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   var bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   return hari[d.getDay()] + ', ' + d.getDate() + ' ' + bln[d.getMonth()] + ' ' + d.getFullYear();
+}
+// 4 Okt 2026: nama hari saja ("Sabtu") — dipakai di kartu daftar bon, setelah nama supplier
+function _hsNamaHari(iso) {
+  if (!iso) return '';
+  var d = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  return ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
 }
 function _hsFmtTgl(iso) {
   if (!iso) return '—';
