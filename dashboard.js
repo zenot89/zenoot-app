@@ -8,6 +8,23 @@ document.getElementById('page-dashboard').innerHTML = `
   <!-- ═══ ALERT STRIP ════════════════════════════════════════ -->
   <div id="dash-alerts-wrap"></div>
 
+  <!-- AKSI CEPAT (5 Okt 2026): pintasan ke form yang paling sering dipakai (lihat zQuick di app.js) -->
+  <style>
+    .zq-bar{display:flex;gap:8px;margin:0 0 12px}
+    .zq-btn{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:11px 6px;background:#fff;border:1.5px solid var(--cream4,#E3E1DA);border-radius:12px;color:var(--ink,#2B2B2B);font-family:inherit;font-size:12px;font-weight:700;line-height:1.2;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s ease,background .12s ease}
+    .zq-btn i{font-size:20px}
+    .zq-btn:active{transform:scale(.97);background:var(--cream2,#F0EFEB)}
+    .zq-out i{color:var(--danger,#e05c4b)}
+    .zq-gdg i{color:var(--ok,#3ecf6a)}
+    .zq-jp i{color:var(--ink,#2B2B2B)}
+    @media (min-width:768px){.zq-bar{max-width:560px}.zq-btn{flex-direction:row;justify-content:center;gap:8px;font-size:13px;padding:11px 12px}}
+  </style>
+  <div class="zq-bar" id="zq-bar">
+    <button type="button" class="zq-btn zq-out" onclick="zQuick('kas-keluar')"><i class="ti ti-arrow-up-right"></i><span>Uang Keluar</span></button>
+    <button type="button" class="zq-btn zq-gdg" onclick="zQuick('gadag-pendapatan')"><i class="ti ti-coin"></i><span>Pendapatan Gadag</span></button>
+    <button type="button" class="zq-btn zq-jp" onclick="zQuick('penjualan')"><i class="ti ti-shopping-cart-plus"></i><span>Tambah Penjualan</span></button>
+  </div>
+
   <!-- ═══ TAB BAR DASHBOARD (gaya Xero: underline tab) ═══════════ -->
   <div class="zd-tabbar" id="zd-tabbar" role="tablist">
     <div class="zd-tabbar-left">

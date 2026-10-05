@@ -1267,3 +1267,71 @@ function zHistTop(key, n) {
       .slice(0, n || 5);
   } catch(e) { return []; }
 }
+
+// ─── AKSI CEPAT / SHORTCUT (5 Okt 2026) ──────────────────────────
+// Satu pintu untuk: (1) tombol "Aksi Cepat" di Dashboard, (2) menu tekan-lama ikon app di Android
+// (manifest.json → shortcuts → "./?aksi=..."). zQuick(aksi) pindah ke halaman tujuan, MENUNGGU modulnya
+// siap (script dimuat berurutan + data tiap halaman diambil dari Supabase), lalu membuka form-nya.
+// Aksi yang tersedia: 'kas-keluar' (Kas → Uang Keluar), 'gadag-pendapatan' (Gadag → catat pendapatan),
+// 'penjualan' (Jurnal Penjualan → Tambah Penjualan). Mau menambah aksi: cukup tambah satu entri di ZQ_ACTIONS.
+var ZQ_ACTIONS = {
+  'kas-keluar': {
+    page: 'kas',
+    ready: function() { return typeof kasShowForm === 'function' && typeof kasBrimoSelectTipe === 'function' && typeof _kasInjectSheets === 'function'; },
+    open: function() {
+      if (window.innerWidth >= 768) { kasShowForm(); }                 // desktop: modal Tambah Transaksi (default Uang Keluar)
+      else { _kasInjectSheets(); kasBrimoSelectTipe('keluar'); }       // HP: alur BRImo, lewati sheet pilih tipe → langsung nominal
+    }
+  },
+  'gadag-pendapatan': {
+    page: 'gadag',
+    ready: function() { return typeof gdgShowPendapatanModal === 'function' && typeof _gdgSkuList !== 'undefined' && _gdgSkuList.length > 0; },
+    open: function() { gdgShowPendapatanModal(); }
+  },
+  'penjualan': {
+    page: 'jurnal-penjualan',
+    ready: function() { return typeof showTambahJP === 'function' && !!document.getElementById('modal-jp'); },
+    open: function() { showTambahJP(); }
+  }
+};
+var _ZQ_PENDING_KEY = 'zenoot_pending_aksi';
+
+function zQuick(aksi) {
+  var a = ZQ_ACTIONS[aksi];
+  if (!a) return;
+  if (document.body.dataset.page !== a.page && typeof gotoPage === 'function') {
+    var nb = null;
+    try { nb = document.querySelector('.nav-item[onclick*="gotoPage(\'' + a.page + '\'"]'); } catch (e) {}
+    gotoPage(a.page, nb);
+  }
+  var tries = 0;
+  (function wait() {
+    var ok = false;
+    try { ok = a.ready(); } catch (e) {}
+    var locked = (typeof _zLocked !== 'undefined' && _zLocked);   // layar kunci biometrik tampil → data memang belum diambil, jangan dianggap gagal
+    if (!ok && (locked || ++tries <= 80)) { setTimeout(wait, 250); return; }   // maks ±20 detik
+    try { sessionStorage.removeItem(_ZQ_PENDING_KEY); } catch (e) {}
+    try { a.open(); }   // kalau data belum ada, form-nya sendiri yang memberi pesan (mis. "Belum ada SKU")
+    catch (e) { console.error('[zQuick]', aksi, e); alert('Halaman belum siap. Coba lagi sebentar lagi.'); }
+  })();
+}
+
+// Deep link dari shortcut ikon app: /?aksi=kas-keluar  → simpan sebagai "pending" (tahan reload otomatis
+// service worker), bersihkan dari URL, jalankan setelah semua script selesai dimuat.
+(function() {
+  try {
+    var m = /[?&]aksi=([a-z-]+)/.exec(location.search);
+    if (m && ZQ_ACTIONS[m[1]]) {
+      sessionStorage.setItem(_ZQ_PENDING_KEY, m[1]);
+      var q = location.search.replace(/([?&])aksi=[^&]*&?/, '$1').replace(/[?&]$/, '');
+      history.replaceState(null, '', location.pathname + q + location.hash);
+    }
+  } catch (e) {}
+  function run() {
+    var a = null;
+    try { a = sessionStorage.getItem(_ZQ_PENDING_KEY); } catch (e) {}
+    if (a && ZQ_ACTIONS[a]) zQuick(a);
+  }
+  if (document.readyState === 'complete') setTimeout(run, 300);
+  else window.addEventListener('load', function() { setTimeout(run, 300); });
+})();

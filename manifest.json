@@ -32,5 +32,46 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Uang Keluar",
+      "short_name": "Uang Keluar",
+      "description": "Catat uang keluar di Kas",
+      "url": "./?aksi=kas-keluar",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pendapatan Gadag",
+      "short_name": "Gadag",
+      "description": "Catat pendapatan Gadag",
+      "url": "./?aksi=gadag-pendapatan",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Tambah Penjualan",
+      "short_name": "Penjualan",
+      "description": "Tambah penjualan di Jurnal Penjualan",
+      "url": "./?aksi=penjualan",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
