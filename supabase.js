@@ -142,7 +142,6 @@ function _zSend(input, init, token) {
 window.fetch = async function(input, init) {
   var url = (typeof input === 'string') ? input : ((input && input.url) || String(input));
   if (url.indexOf(SUPABASE_URL) !== 0 || url.indexOf('/auth/v1/') !== -1) return _zNativeFetch(input, init);
-  if (_zLocked) await _zWaitUnlocked();   // layar kunci Face ID: data baru diambil setelah terbuka
   var token = await _zGetToken();
   var res = await _zSend(input, init, token);
   if (res.status === 401) {                       // JWT kedaluwarsa/ditolak → refresh sekali lalu ulang
@@ -278,7 +277,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // memegang HP yang sedang terbuka membuka datanya. Aturan:
 //  - Aktif per perangkat (tombol "Face ID" di sidebar). Kredensial disimpan di localStorage.
 //  - Diminta saat app dibuka dari nol, dan saat kembali dari background > 60 detik.
-//  - Selama terkunci: layar tertutup + semua request ke Supabase DITAHAN (data belum diambil).
+//  - Selama terkunci: layar tertutup penuh (opaque). Data tetap dimuat di belakang layar kunci supaya
+//    begitu lolos langsung tampil (tanpa loading). Pengaman datanya tetap login + RLS; kunci ini hanya pintu layar.
 //  - Gagal/tidak bisa Face ID → tombol "Masuk dengan password" (keluar → login ulang → langsung masuk).
 var _Z_LOCK_KEY   = 'zenoot_lock_v1';
 var _Z_ACTIVE_KEY = 'zenoot_active_at';   // sessionStorage: terakhir app aktif (heartbeat)
@@ -409,7 +409,7 @@ function _zShowLockScreen() {
     st.id = 'zenoot-lock-css';
     st.textContent =
       '#zenoot-lock{position:fixed;inset:0;z-index:2147483100;background:#F0EFEB;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;-webkit-text-size-adjust:100%;overflow:hidden}' +
-      '#zenoot-lock .zk-wrap{height:100%;max-width:520px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 34px) 22px calc(env(safe-area-inset-bottom,0px) + 22px)}' +
+      '#zenoot-lock .zk-wrap{height:100%;max-width:520px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 34px) 22px calc(env(safe-area-inset-bottom,0px) + 34px)}' +
       '#zenoot-lock .zk-top{display:flex;align-items:center;gap:12px}' +
       '#zenoot-lock .zk-logo{width:48px;height:48px;object-fit:contain;flex:none}' +
       '#zenoot-lock .zk-title{font-size:20px;font-weight:800;letter-spacing:-.3px;line-height:1.1}' +
@@ -417,7 +417,7 @@ function _zShowLockScreen() {
       '#zenoot-lock .zk-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 10px}' +
       '#zenoot-lock .zk-hint{font-size:13px;color:#8A8580}' +
       '#zenoot-lock .zk-err{min-height:18px;font-size:12.5px;font-weight:600;color:#e05c4b}' +
-      '#zenoot-lock .zk-bottom{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:22px}' +
+      '#zenoot-lock .zk-bottom{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}' +
       '#zenoot-lock .zk-bottom.zk-solo{justify-content:center}' +
       '#zenoot-lock .zk-pill{flex:1;min-width:0;height:76px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-around;gap:2px;background:#fff;border:1.5px solid #E3E1DA;border-radius:999px;padding:0 12px}' +
       '#zenoot-lock .zk-q{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;border:none;background:none;font-family:inherit;font-size:10.5px;font-weight:700;line-height:1.15;color:#2B2B2B;cursor:pointer;padding:4px 2px;-webkit-tap-highlight-color:transparent}' +
@@ -429,7 +429,7 @@ function _zShowLockScreen() {
       '#zenoot-lock .zk-btn:active{transform:scale(.96)}' +
       '#zenoot-lock .zk-btn:disabled{opacity:.55;cursor:default}' +
       '#zenoot-lock .zk-lbl{font-size:13px;font-weight:600}' +
-      '#zenoot-lock .zk-link{align-self:center;margin-top:18px;border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
+      '#zenoot-lock .zk-link{margin-top:10px;border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
     document.head.appendChild(st);
   }
   var ua = (navigator && navigator.userAgent) || '';
@@ -445,7 +445,7 @@ function _zShowLockScreen() {
         '<img class="zk-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
         '<div><div class="zk-title">zenOt</div><div class="zk-sub">Terkunci</div></div>' +
       '</div>' +
-      '<div class="zk-mid"><div class="zk-hint">Ketuk tombol untuk membuka</div><div class="zk-err" id="zk-err" role="alert"></div></div>' +
+      '<div class="zk-mid"><div class="zk-hint">Ketuk tombol untuk membuka</div><div class="zk-err" id="zk-err" role="alert"></div><button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button></div>' +
       '<div class="zk-bottom' + (showQ ? '' : ' zk-solo') + '">' +
         (showQ ?
           '<div class="zk-pill">' +
@@ -455,7 +455,6 @@ function _zShowLockScreen() {
           '</div>' : '') +
         '<div class="zk-main"><button type="button" class="zk-btn" id="zk-btn" aria-label="Buka kunci">' + (isApple ? _Z_SVG_FACE : _Z_SVG_FINGER) + '</button><div class="zk-lbl">Buka</div></div>' +
       '</div>' +
-      '<button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button>' +
     '</div>';
   document.body.appendChild(ov);
   _zLockEl = ov;
