@@ -392,6 +392,15 @@ function _zLock() {
   _zLocked = true;
   _zShowLockScreen();
 }
+function _zRunAksi(aksi) {
+  if (!aksi) return;
+  if (typeof zQuick === 'function') setTimeout(function() { zQuick(aksi); }, 150);
+  else { try { sessionStorage.setItem('zenoot_pending_aksi', aksi); } catch (e) {} }   // app.js belum selesai dimuat → dijalankan saat load
+}
+// Ikon biometrik: Face ID (iPhone/iPad) atau sidik jari (lainnya) — SVG sendiri supaya tidak bergantung font ikon
+var _Z_SVG_FACE = '<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2-2v-2"/><path d="M9 10v1"/><path d="M15 10v1"/><path d="M12 10v3h-.8"/><path d="M9.5 15.5a3.5 3.5 0 0 0 5 0"/></svg>';
+var _Z_SVG_FINGER = '<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3"/><path d="M8 11a4 4 0 0 1 8 0v1a10 10 0 0 0 2 6"/><path d="M12 11v2a14 14 0 0 0 2.5 8"/><path d="M8 15a18 18 0 0 0 1.8 6"/><path d="M4.9 19a22 22 0 0 1-.9-7v-1a8 8 0 0 1 12-6.95"/></svg>';
+
 function _zShowLockScreen() {
   if (_zLockEl) return;
   if (!document.body) { document.addEventListener('DOMContentLoaded', _zShowLockScreen, { once: true }); return; }
@@ -399,53 +408,83 @@ function _zShowLockScreen() {
     var st = document.createElement('style');
     st.id = 'zenoot-lock-css';
     st.textContent =
-      '#zenoot-lock{position:fixed;inset:0;z-index:2147483100;background:#F0EFEB;display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;-webkit-text-size-adjust:100%}' +
-      '#zenoot-lock .zk-card{width:100%;max-width:340px;text-align:center}' +
-      '#zenoot-lock .zk-logo{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}' +
-      '#zenoot-lock .zk-title{font-size:22px;font-weight:800;letter-spacing:-.3px}' +
-      '#zenoot-lock .zk-sub{font-size:13px;color:#8A8580;margin:4px 0 22px}' +
-      '#zenoot-lock .zk-err{min-height:18px;margin:0 0 12px;font-size:12.5px;font-weight:600;color:#e05c4b}' +
-      '#zenoot-lock .zk-btn{width:100%;height:48px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}' +
-      '#zenoot-lock .zk-btn:disabled{opacity:.6;cursor:default}' +
-      '#zenoot-lock .zk-link{margin-top:14px;border:none;background:none;color:#8A8580;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
+      '#zenoot-lock{position:fixed;inset:0;z-index:2147483100;background:#F0EFEB;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;-webkit-text-size-adjust:100%;overflow:hidden}' +
+      '#zenoot-lock .zk-wrap{height:100%;max-width:520px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 34px) 22px calc(env(safe-area-inset-bottom,0px) + 22px)}' +
+      '#zenoot-lock .zk-top{display:flex;align-items:center;gap:12px}' +
+      '#zenoot-lock .zk-logo{width:48px;height:48px;object-fit:contain;flex:none}' +
+      '#zenoot-lock .zk-title{font-size:20px;font-weight:800;letter-spacing:-.3px;line-height:1.1}' +
+      '#zenoot-lock .zk-sub{font-size:13px;color:#8A8580;margin-top:2px}' +
+      '#zenoot-lock .zk-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:0 10px}' +
+      '#zenoot-lock .zk-hint{font-size:13px;color:#8A8580}' +
+      '#zenoot-lock .zk-err{min-height:18px;font-size:12.5px;font-weight:600;color:#e05c4b}' +
+      '#zenoot-lock .zk-bottom{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding-bottom:22px}' +
+      '#zenoot-lock .zk-bottom.zk-solo{justify-content:center}' +
+      '#zenoot-lock .zk-pill{flex:1;min-width:0;height:76px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-around;gap:2px;background:#fff;border:1.5px solid #E3E1DA;border-radius:999px;padding:0 12px}' +
+      '#zenoot-lock .zk-q{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;border:none;background:none;font-family:inherit;font-size:10.5px;font-weight:700;line-height:1.15;color:#2B2B2B;cursor:pointer;padding:4px 2px;-webkit-tap-highlight-color:transparent}' +
+      '#zenoot-lock .zk-q:active{opacity:.55}' +
+      '#zenoot-lock .zk-q i{font-size:26px}' +
+      '#zenoot-lock .zk-q-out i{color:#e05c4b}#zenoot-lock .zk-q-gdg i{color:#3ecf6a}' +
+      '#zenoot-lock .zk-main{display:flex;flex-direction:column;align-items:center;gap:7px;flex:none}' +
+      '#zenoot-lock .zk-btn{width:76px;height:76px;border:none;border-radius:50%;background:#2B2B2B;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+      '#zenoot-lock .zk-btn:active{transform:scale(.96)}' +
+      '#zenoot-lock .zk-btn:disabled{opacity:.55;cursor:default}' +
+      '#zenoot-lock .zk-lbl{font-size:13px;font-weight:600}' +
+      '#zenoot-lock .zk-link{align-self:center;margin-top:18px;border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
     document.head.appendChild(st);
   }
+  var ua = (navigator && navigator.userAgent) || '';
+  var isApple = /iPad|iPhone|iPod/.test(ua) || (navigator && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var showQ = !!document.getElementById('page-dashboard');   // pintasan hanya di halaman utama app (bukan analisis.html)
   var ov = document.createElement('div');
   ov.id = 'zenoot-lock';
   ov.setAttribute('role', 'dialog');
   ov.setAttribute('aria-modal', 'true');
   ov.innerHTML =
-    '<div class="zk-card">' +
-      '<img class="zk-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
-      '<div class="zk-title">zenOt terkunci</div>' +
-      '<div class="zk-sub">Buka dengan Face ID / sidik jari untuk melanjutkan</div>' +
-      '<div class="zk-err" id="zk-err" role="alert"></div>' +
-      '<button type="button" class="zk-btn" id="zk-btn">Buka kunci</button>' +
+    '<div class="zk-wrap">' +
+      '<div class="zk-top">' +
+        '<img class="zk-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
+        '<div><div class="zk-title">zenOt</div><div class="zk-sub">Terkunci</div></div>' +
+      '</div>' +
+      '<div class="zk-mid"><div class="zk-hint">Ketuk tombol untuk membuka</div><div class="zk-err" id="zk-err" role="alert"></div></div>' +
+      '<div class="zk-bottom' + (showQ ? '' : ' zk-solo') + '">' +
+        (showQ ?
+          '<div class="zk-pill">' +
+            '<button type="button" class="zk-q zk-q-jp" data-aksi="penjualan"><i class="ti ti-shopping-cart-plus"></i><span>Penjualan</span></button>' +
+            '<button type="button" class="zk-q zk-q-out" data-aksi="kas-keluar"><i class="ti ti-arrow-up-right"></i><span>Uang Keluar</span></button>' +
+            '<button type="button" class="zk-q zk-q-gdg" data-aksi="gadag-pendapatan"><i class="ti ti-coin"></i><span>Gadag</span></button>' +
+          '</div>' : '') +
+        '<div class="zk-main"><button type="button" class="zk-btn" id="zk-btn" aria-label="Buka kunci">' + (isApple ? _Z_SVG_FACE : _Z_SVG_FINGER) + '</button><div class="zk-lbl">Buka</div></div>' +
+      '</div>' +
       '<button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button>' +
     '</div>';
   document.body.appendChild(ov);
   _zLockEl = ov;
   var btn = ov.querySelector('#zk-btn'), errEl = ov.querySelector('#zk-err'), pw = ov.querySelector('#zk-pw');
   var busy = false;
-  async function attempt(auto) {
+  // aksi (opsional) = pintasan yang diketuk: Face ID dulu, setelah lolos langsung buka formnya
+  async function attempt(auto, aksi) {
     if (busy) return;
     busy = true; btn.disabled = true; errEl.textContent = '';
     try {
       var ok = await zLockVerify();
-      if (ok) { _zUnlock(); return; }
+      if (ok) { _zUnlock(); _zRunAksi(aksi); return; }
       if (!auto) errEl.textContent = 'Verifikasi gagal. Coba lagi.';
     } catch (e) {
       if (!auto) errEl.textContent = _zLockErr(e);
     }
     busy = false; btn.disabled = false;
   }
-  btn.addEventListener('click', function() { attempt(false); });
+  btn.addEventListener('click', function() { attempt(false, null); });
+  var qs = ov.querySelectorAll ? ov.querySelectorAll('.zk-q') : [];
+  for (var qi = 0; qi < qs.length; qi++) {
+    (function(el) { el.addEventListener('click', function() { attempt(false, el.getAttribute('data-aksi')); }); })(qs[qi]);
+  }
   pw.addEventListener('click', function() {
     var go = function() { zAuthSignOut(); };   // keluar → layar login → setelah masuk langsung terbuka (flag zenoot_pw_unlock)
     if (typeof zConfirm === 'function') Promise.resolve(zConfirm('Keluar lalu masuk dengan password?', { ok: 'Lanjut' })).then(function(ok) { if (ok) go(); });
     else go();
   });
-  setTimeout(function() { attempt(true); }, 250);   // coba otomatis (Safari bisa menolak tanpa ketukan; tombol tetap ada)
+  setTimeout(function() { attempt(true, null); }, 250);   // coba otomatis (Safari bisa menolak tanpa ketukan; tombol tetap ada)
 }
 
 // Saat load: kunci jika aktif, kecuali baru saja aktif di sesi ini (reload) atau baru masuk lewat password
