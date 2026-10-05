@@ -130,6 +130,8 @@
 
   <div class="sidebar-footer">
     <!-- 4 Okt 2026: tombol Keluar (login Supabase Auth, lihat supabase.js) -->
+    <!-- 5 Okt 2026: kunci biometrik Face ID/sidik jari (lihat supabase.js) -->
+    <button class="nav-item" id="btn-lock" onclick="zLockToggle()" title="Kunci biometrik"><span class="ni-icon"><i class="ti ti-lock"></i></span><span class="ni-label">Biometrik: Mati</span></button>
     <button class="nav-item" id="btn-logout" onclick="zAuthConfirmSignOut()" title="Keluar"><span class="ni-icon"><i class="ti ti-logout"></i></span><span class="ni-label">Keluar</span></button>
     <span class="footer-by">conceptualized by</span>
     <span class="footer-name">burhanmology</span>
@@ -222,7 +224,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261004-c9680e54285a';
+  window.APP_BUILD = '20261004-f5c8cfe83dd5';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible

@@ -24,6 +24,7 @@ var _zRefreshing = null;
 var _zNativeFetch = window.fetch.bind(window);
 window._zNativeFetch = _zNativeFetch;
 var _zIsEmbed = /[?&]embed=1/.test(location.search);
+var _zLocked = false;   // true = layar kunci Face ID sedang tampil (lihat modul KUNCI FACE ID di bawah)
 
 function _zNow() { return Math.floor(Date.now() / 1000); }
 
@@ -141,6 +142,7 @@ function _zSend(input, init, token) {
 window.fetch = async function(input, init) {
   var url = (typeof input === 'string') ? input : ((input && input.url) || String(input));
   if (url.indexOf(SUPABASE_URL) !== 0 || url.indexOf('/auth/v1/') !== -1) return _zNativeFetch(input, init);
+  if (_zLocked) await _zWaitUnlocked();   // layar kunci Face ID: data baru diambil setelah terbuka
   var token = await _zGetToken();
   var res = await _zSend(input, init, token);
   if (res.status === 401) {                       // JWT kedaluwarsa/ditolak → refresh sekali lalu ulang
@@ -251,6 +253,7 @@ function _zShowLogin() {
     try {
       await zAuthSignIn(em, pw);
       btn.textContent = 'Berhasil…';
+      try { sessionStorage.setItem('zenoot_pw_unlock', '1'); } catch (e) {}   // sudah verifikasi password → jangan minta Face ID lagi
       location.reload();
     } catch (e) {
       errEl.textContent = e.message || 'Gagal masuk.';
@@ -267,6 +270,205 @@ document.addEventListener('DOMContentLoaded', function() {
   var b = document.getElementById('btn-logout');
   if (b && zAuthEmail()) b.title = 'Keluar (' + zAuthEmail() + ')';
 });
+
+// ─── KUNCI BIOMETRIK (Face ID / sidik jari / kunci layar) (5 Okt 2026) ─────────────────────
+// Kunci APP lokal di perangkat ini (WebAuthn, authenticator bawaan: Face ID iPhone, sidik jari/wajah Android, Windows Hello/Touch ID).
+// Android: kalau biometrik gagal, Android menawarkan PIN/pola kunci layar (userVerification 'required').
+// BUKAN pengganti login: pengaman data tetap login Supabase + RLS. Ini mencegah orang yang
+// memegang HP yang sedang terbuka membuka datanya. Aturan:
+//  - Aktif per perangkat (tombol "Face ID" di sidebar). Kredensial disimpan di localStorage.
+//  - Diminta saat app dibuka dari nol, dan saat kembali dari background > 60 detik.
+//  - Selama terkunci: layar tertutup + semua request ke Supabase DITAHAN (data belum diambil).
+//  - Gagal/tidak bisa Face ID → tombol "Masuk dengan password" (keluar → login ulang → langsung masuk).
+var _Z_LOCK_KEY   = 'zenoot_lock_v1';
+var _Z_ACTIVE_KEY = 'zenoot_active_at';   // sessionStorage: terakhir app aktif (heartbeat)
+var _Z_LOCK_GRACE = 60000;
+var _zLockWaiters = [];
+var _zLockEl = null;
+
+function _zB64u(buf) {
+  var b = new Uint8Array(buf), s = '';
+  for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function _zFromB64u(str) {
+  str = String(str).replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  var bin = atob(str), out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+function _zRand(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return a; }
+
+function _zLockCfg() {
+  try { var o = JSON.parse(localStorage.getItem(_Z_LOCK_KEY) || 'null'); if (o && o.credId) return o; } catch (e) {}
+  return null;
+}
+function zLockEnabled() { return !!_zLockCfg(); }
+function _zTouchActive() { try { sessionStorage.setItem(_Z_ACTIVE_KEY, String(Date.now())); } catch (e) {} }
+function _zActiveAge() {
+  try { var v = Number(sessionStorage.getItem(_Z_ACTIVE_KEY)); return v ? Date.now() - v : Infinity; } catch (e) { return Infinity; }
+}
+function _zWaitUnlocked() {
+  return _zLocked ? new Promise(function(r) { _zLockWaiters.push(r); }) : Promise.resolve();
+}
+function _zLockErr(e) {
+  var n = e && e.name;
+  if (n === 'NotAllowedError') return 'Dibatalkan atau waktu habis. Coba lagi.';
+  if (n === 'InvalidStateError') return 'Biometrik untuk app ini sudah terdaftar di perangkat ini.';
+  if (n === 'NotSupportedError' || n === 'SecurityError') return 'Browser/perangkat ini tidak mendukung kunci biometrik untuk app ini.';
+  return (e && e.message) || 'Gagal memakai biometrik.';
+}
+
+// Verifikasi Face ID (harus dipanggil dari ketukan tombol — aturan Safari)
+async function zLockVerify() {
+  var cfg = _zLockCfg();
+  if (!cfg) return true;
+  var cred = await navigator.credentials.get({ publicKey: {
+    challenge: _zRand(32),
+    allowCredentials: [{ type: 'public-key', id: _zFromB64u(cfg.credId), transports: ['internal'] }],
+    userVerification: 'required',
+    timeout: 60000
+  } });
+  return !!cred;
+}
+
+async function zLockEnable() {
+  if (!window.PublicKeyCredential || !navigator.credentials) throw new Error('Browser ini belum mendukung kunci biometrik.');
+  var avail = false;
+  try { avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) {}
+  if (!avail) throw new Error('Biometrik (Face ID / sidik jari) atau kunci layar belum aktif di perangkat ini. Aktifkan dulu di Pengaturan HP, lalu coba lagi.');
+  var email = zAuthEmail() || 'zenoot';
+  var cred = await navigator.credentials.create({ publicKey: {
+    challenge: _zRand(32),
+    rp: { name: 'zenOt' },
+    user: { id: _zRand(16), name: email, displayName: email },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+    timeout: 60000,
+    attestation: 'none'
+  } });
+  localStorage.setItem(_Z_LOCK_KEY, JSON.stringify({ credId: _zB64u(cred.rawId), at: Date.now() }));
+  _zTouchActive();
+}
+
+function _zDlg(msg) {
+  if (typeof zAlert === 'function') return Promise.resolve(zAlert(msg));
+  alert(msg); return Promise.resolve();
+}
+function _zLockRefreshBtn() {
+  var b = document.getElementById('btn-lock');
+  if (!b) return;
+  if (!window.PublicKeyCredential) { b.style.display = 'none'; return; }
+  var l = b.querySelector('.ni-label');
+  if (l) l.textContent = 'Biometrik: ' + (zLockEnabled() ? 'Aktif' : 'Mati');
+}
+async function zLockToggle() {
+  try {
+    if (zLockEnabled()) {
+      var ok = (typeof zConfirm === 'function') ? await zConfirm('Matikan kunci biometrik di perangkat ini?', { ok: 'Matikan' }) : confirm('Matikan kunci biometrik?');
+      if (!ok) return;
+      localStorage.removeItem(_Z_LOCK_KEY);
+      _zLockRefreshBtn();
+      await _zDlg('Kunci biometrik dimatikan.');
+    } else {
+      await zLockEnable();
+      _zLockRefreshBtn();
+      await _zDlg('Kunci biometrik aktif. App akan meminta Face ID / sidik jari saat dibuka, dan setelah ditinggal lebih dari 1 menit.');
+    }
+  } catch (e) { await _zDlg(_zLockErr(e)); }
+}
+
+function _zUnlock() {
+  _zLocked = false;
+  _zTouchActive();
+  if (_zLockEl && _zLockEl.parentNode) _zLockEl.parentNode.removeChild(_zLockEl);
+  _zLockEl = null;
+  var w = _zLockWaiters; _zLockWaiters = [];
+  w.forEach(function(f) { try { f(); } catch (e) {} });
+}
+function _zLock() {
+  if (_zLocked || _zIsEmbed) return;
+  _zLocked = true;
+  _zShowLockScreen();
+}
+function _zShowLockScreen() {
+  if (_zLockEl) return;
+  if (!document.body) { document.addEventListener('DOMContentLoaded', _zShowLockScreen, { once: true }); return; }
+  if (!document.getElementById('zenoot-lock-css')) {
+    var st = document.createElement('style');
+    st.id = 'zenoot-lock-css';
+    st.textContent =
+      '#zenoot-lock{position:fixed;inset:0;z-index:2147483100;background:#F0EFEB;display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;-webkit-text-size-adjust:100%}' +
+      '#zenoot-lock .zk-card{width:100%;max-width:340px;text-align:center}' +
+      '#zenoot-lock .zk-logo{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 12px}' +
+      '#zenoot-lock .zk-title{font-size:22px;font-weight:800;letter-spacing:-.3px}' +
+      '#zenoot-lock .zk-sub{font-size:13px;color:#8A8580;margin:4px 0 22px}' +
+      '#zenoot-lock .zk-err{min-height:18px;margin:0 0 12px;font-size:12.5px;font-weight:600;color:#e05c4b}' +
+      '#zenoot-lock .zk-btn{width:100%;height:48px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}' +
+      '#zenoot-lock .zk-btn:disabled{opacity:.6;cursor:default}' +
+      '#zenoot-lock .zk-link{margin-top:14px;border:none;background:none;color:#8A8580;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
+    document.head.appendChild(st);
+  }
+  var ov = document.createElement('div');
+  ov.id = 'zenoot-lock';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.innerHTML =
+    '<div class="zk-card">' +
+      '<img class="zk-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
+      '<div class="zk-title">zenOt terkunci</div>' +
+      '<div class="zk-sub">Buka dengan Face ID / sidik jari untuk melanjutkan</div>' +
+      '<div class="zk-err" id="zk-err" role="alert"></div>' +
+      '<button type="button" class="zk-btn" id="zk-btn">Buka kunci</button>' +
+      '<button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+  _zLockEl = ov;
+  var btn = ov.querySelector('#zk-btn'), errEl = ov.querySelector('#zk-err'), pw = ov.querySelector('#zk-pw');
+  var busy = false;
+  async function attempt(auto) {
+    if (busy) return;
+    busy = true; btn.disabled = true; errEl.textContent = '';
+    try {
+      var ok = await zLockVerify();
+      if (ok) { _zUnlock(); return; }
+      if (!auto) errEl.textContent = 'Verifikasi gagal. Coba lagi.';
+    } catch (e) {
+      if (!auto) errEl.textContent = _zLockErr(e);
+    }
+    busy = false; btn.disabled = false;
+  }
+  btn.addEventListener('click', function() { attempt(false); });
+  pw.addEventListener('click', function() {
+    var go = function() { zAuthSignOut(); };   // keluar → layar login → setelah masuk langsung terbuka (flag zenoot_pw_unlock)
+    if (typeof zConfirm === 'function') Promise.resolve(zConfirm('Keluar lalu masuk dengan password?', { ok: 'Lanjut' })).then(function(ok) { if (ok) go(); });
+    else go();
+  });
+  setTimeout(function() { attempt(true); }, 250);   // coba otomatis (Safari bisa menolak tanpa ketukan; tombol tetap ada)
+}
+
+// Saat load: kunci jika aktif, kecuali baru saja aktif di sesi ini (reload) atau baru masuk lewat password
+function _zLockInit() {
+  var pwFlag = false;
+  try { pwFlag = sessionStorage.getItem('zenoot_pw_unlock') === '1'; sessionStorage.removeItem('zenoot_pw_unlock'); } catch (e) {}
+  if (_zIsEmbed || !_zSess || !zLockEnabled()) return;
+  if (pwFlag || _zActiveAge() < _Z_LOCK_GRACE) { _zTouchActive(); return; }
+  _zLock();
+}
+function _zLockOnReturn() {
+  if (_zIsEmbed || !_zSess || _zLocked || !zLockEnabled()) return;
+  if (_zActiveAge() > _Z_LOCK_GRACE) _zLock();
+}
+setInterval(function() { if (!_zLocked && !document.hidden && _zSess && zLockEnabled()) _zTouchActive(); }, 20000);
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) { if (!_zLocked && zLockEnabled()) _zTouchActive(); }
+  else _zLockOnReturn();
+});
+window.addEventListener('pageshow', function(e) { if (e && e.persisted) _zLockOnReturn(); });
+document.addEventListener('DOMContentLoaded', _zLockRefreshBtn);
+if (document.readyState !== 'loading') _zLockRefreshBtn();   // script dimuat belakangan: DOM sudah siap
+_zLockInit();
 
 // Kunci ke-dua (self-test) — jalankan di console setelah SQL pengunci database dijalankan:  zAuthSelfTest()
 // Mencoba baca tiap tabel pakai anon key SAJA (tanpa login). Hasil yang benar: 0 tabel terbuka.
