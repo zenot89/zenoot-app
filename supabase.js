@@ -304,7 +304,8 @@ function _zLockCfg() {
   try { var o = JSON.parse(localStorage.getItem(_Z_LOCK_KEY) || 'null'); if (o && o.credId) return o; } catch (e) {}
   return null;
 }
-function zLockEnabled() { return !!_zLockCfg(); }
+function zFaceEnabled() { return !!_zLockCfg(); }
+function zLockEnabled() { return zFaceEnabled() || zPinEnabled(); }   // kunci aktif bila salah satu (Face ID / PIN) aktif
 function _zTouchActive() { try { sessionStorage.setItem(_Z_ACTIVE_KEY, String(Date.now())); } catch (e) {} }
 function _zActiveAge() {
   try { var v = Number(sessionStorage.getItem(_Z_ACTIVE_KEY)); return v ? Date.now() - v : Infinity; } catch (e) { return Infinity; }
@@ -359,28 +360,86 @@ function _zDlg(msg) {
 function _zLockRefreshBtn() {
   var b = document.getElementById('btn-lock');
   if (!b) return;
-  if (!window.PublicKeyCredential) { b.style.display = 'none'; return; }
   var l = b.querySelector('.ni-label');
-  if (l) l.textContent = 'Biometrik: ' + (zLockEnabled() ? 'Aktif' : 'Mati');
+  var f = zFaceEnabled(), p = zPinEnabled();
+  if (l) l.textContent = 'Kunci: ' + (f && p ? 'Biometrik + PIN' : f ? 'Biometrik' : p ? 'PIN' : 'Mati');
 }
-async function zLockToggle() {
-  try {
-    if (zLockEnabled()) {
-      var ok = (typeof zConfirm === 'function') ? await zConfirm('Matikan kunci biometrik di perangkat ini?', { ok: 'Matikan' }) : confirm('Matikan kunci biometrik?');
-      if (!ok) return;
-      localStorage.removeItem(_Z_LOCK_KEY);
-      _zLockRefreshBtn();
-      await _zDlg('Kunci biometrik dimatikan.');
-    } else {
-      await zLockEnable();
-      _zLockRefreshBtn();
-      await _zDlg('Kunci biometrik aktif. App akan meminta Face ID / sidik jari saat dibuka, dan setelah ditinggal lebih dari 1 menit.');
+
+// Menu "Kunci App": pilih Face ID/sidik jari, PIN, atau keduanya
+function zLockMenu() {
+  if (document.getElementById('zenoot-lockmenu') || _zIsEmbed) return;
+  if (!document.getElementById('zenoot-lockmenu-css')) {
+    var st = document.createElement('style');
+    st.id = 'zenoot-lockmenu-css';
+    st.textContent =
+      '#zenoot-lockmenu{position:fixed;inset:0;z-index:2147482900;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif)}' +
+      '#zenoot-lockmenu .zm-sheet{width:100%;max-width:480px;box-sizing:border-box;background:#F0EFEB;color:#2B2B2B;border-radius:20px 20px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}' +
+      '#zenoot-lockmenu .zm-title{font-size:18px;font-weight:800}' +
+      '#zenoot-lockmenu .zm-sub{font-size:12.5px;color:#8A8580;margin:4px 0 14px;line-height:1.4}' +
+      '#zenoot-lockmenu .zm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1.5px solid #E3E1DA;border-radius:14px;padding:12px 14px;margin-bottom:10px}' +
+      '#zenoot-lockmenu .zm-name{font-size:14px;font-weight:700}' +
+      '#zenoot-lockmenu .zm-st{display:block;font-size:12px;color:#8A8580;margin-top:2px}' +
+      '#zenoot-lockmenu .zm-st.on{color:#1f9d55}' +
+      '#zenoot-lockmenu .zm-btns{display:flex;gap:6px;flex:none}' +
+      '#zenoot-lockmenu .zm-b{border:1.5px solid #E3E1DA;background:#F0EFEB;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;color:#2B2B2B;cursor:pointer}' +
+      '#zenoot-lockmenu .zm-b.dark{background:#2B2B2B;border-color:#2B2B2B;color:#fff}' +
+      '#zenoot-lockmenu .zm-msg{min-height:18px;font-size:12.5px;font-weight:600;color:#1f9d55;margin:2px 2px 8px}' +
+      '#zenoot-lockmenu .zm-msg.err{color:#e05c4b}' +
+      '#zenoot-lockmenu .zm-done{width:100%;height:46px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}';
+    document.head.appendChild(st);
+  }
+  var el = document.createElement('div');
+  el.id = 'zenoot-lockmenu';
+  el.innerHTML =
+    '<div class="zm-sheet">' +
+      '<div class="zm-title">Kunci App</div>' +
+      '<div class="zm-sub">Pilih cara membuka app di perangkat ini. Boleh aktif keduanya, lalu pilih saat membuka.</div>' +
+      '<div class="zm-row"><div><span class="zm-name">Face ID / sidik jari</span><span class="zm-st" id="zm-face-st"></span></div>' +
+        '<div class="zm-btns"><button type="button" class="zm-b dark" id="zm-face"></button></div></div>' +
+      '<div class="zm-row"><div><span class="zm-name">PIN 6 digit</span><span class="zm-st" id="zm-pin-st"></span></div>' +
+        '<div class="zm-btns"><button type="button" class="zm-b dark" id="zm-pin"></button><button type="button" class="zm-b" id="zm-pin-off">Matikan</button></div></div>' +
+      '<div class="zm-msg" id="zm-msg"></div>' +
+      '<button type="button" class="zm-done" id="zm-done">Selesai</button>' +
+    '</div>';
+  document.body.appendChild(el);
+  var q = function(id) { return el.querySelector(id); };
+  var stFace = q('#zm-face-st'), stPin = q('#zm-pin-st'), bFace = q('#zm-face'), bPin = q('#zm-pin'), bPinOff = q('#zm-pin-off'), msg = q('#zm-msg');
+  var armFace = false, armPin = false;
+  function say(t, err) { msg.textContent = t || ''; msg.className = 'zm-msg' + (err ? ' err' : ''); }
+  function refresh() {
+    var f = zFaceEnabled(), p = zPinEnabled();
+    stFace.textContent = f ? 'Aktif' : 'Mati'; stFace.className = 'zm-st' + (f ? ' on' : '');
+    stPin.textContent = p ? 'Aktif' : 'Mati';  stPin.className = 'zm-st' + (p ? ' on' : '');
+    bFace.textContent = armFace ? 'Yakin matikan?' : (f ? 'Matikan' : 'Aktifkan');
+    bPin.textContent = p ? 'Ubah PIN' : 'Buat PIN';
+    bPinOff.textContent = armPin ? 'Yakin?' : 'Matikan';
+    bPinOff.style.display = p ? '' : 'none';
+    _zLockRefreshBtn();
+  }
+  bFace.addEventListener('click', async function() {
+    if (zFaceEnabled()) {
+      if (!armFace) { armFace = true; refresh(); setTimeout(function() { armFace = false; refresh(); }, 3000); return; }
+      armFace = false; localStorage.removeItem(_Z_LOCK_KEY); say('Face ID / sidik jari dimatikan.'); refresh(); return;
     }
-  } catch (e) { await _zDlg(_zLockErr(e)); }
+    try { await zLockEnable(); say('Face ID / sidik jari aktif.'); } catch (e) { say(_zLockErr(e), true); }
+    refresh();
+  });
+  bPin.addEventListener('click', function() {
+    _zPinSetup(function(ok) { if (ok) { _zTouchActive(); say('PIN aktif.'); } refresh(); });
+  });
+  bPinOff.addEventListener('click', function() {
+    if (!armPin) { armPin = true; refresh(); setTimeout(function() { armPin = false; refresh(); }, 3000); return; }
+    armPin = false; try { localStorage.removeItem(_Z_PIN_KEY); localStorage.removeItem(_Z_PINFAIL_KEY); } catch (e) {}
+    say('PIN dimatikan.'); refresh();
+  });
+  q('#zm-done').addEventListener('click', function() { if (el.parentNode) el.parentNode.removeChild(el); _zLockRefreshBtn(); });
+  refresh();
 }
+function zLockToggle() { zLockMenu(); }   // dipanggil tombol sidebar (index.html)
 
 function _zUnlock() {
   _zLocked = false;
+  _zPinClose();
   _zTouchActive();
   if (_zLockEl && _zLockEl.parentNode) _zLockEl.parentNode.removeChild(_zLockEl);
   _zLockEl = null;
@@ -397,10 +456,171 @@ function _zRunAksi(aksi) {
   if (typeof zQuick === 'function') setTimeout(function() { zQuick(aksi); }, 150);
   else { try { sessionStorage.setItem('zenoot_pending_aksi', aksi); } catch (e) {} }   // app.js belum selesai dimuat → dijalankan saat load
 }
-// Ikon biometrik: Face ID (iPhone/iPad) atau sidik jari (lainnya) — SVG sendiri supaya tidak bergantung font ikon
+// Ikon: Face ID (iPhone/iPad), sidik jari (lainnya), keypad PIN — SVG sendiri supaya tidak bergantung font ikon
 var _Z_SVG_FACE = '<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2-2v-2"/><path d="M9 10v1"/><path d="M15 10v1"/><path d="M12 10v3h-.8"/><path d="M9.5 15.5a3.5 3.5 0 0 0 5 0"/></svg>';
 var _Z_SVG_FINGER = '<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3"/><path d="M8 11a4 4 0 0 1 8 0v1a10 10 0 0 0 2 6"/><path d="M12 11v2a14 14 0 0 0 2.5 8"/><path d="M8 15a18 18 0 0 0 1.8 6"/><path d="M4.9 19a22 22 0 0 1-.9-7v-1a8 8 0 0 1 12-6.95"/></svg>';
+var _Z_SVG_PIN = '<svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="1.7"/><circle cx="12" cy="6" r="1.7"/><circle cx="18" cy="6" r="1.7"/><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/><circle cx="6" cy="18" r="1.7"/><circle cx="12" cy="18" r="1.7"/><circle cx="18" cy="18" r="1.7"/></svg>';
+var _Z_SVG_DEL = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="M12 10l4 4"/><path d="M16 10l-4 4"/></svg>';
+function _zIsApple() {
+  var ua = (navigator && navigator.userAgent) || '';
+  return /iPad|iPhone|iPod/.test(ua) || (navigator && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function _zIconSize(svg, n) { return svg.replace('width="38" height="38"', 'width="' + n + '" height="' + n + '"'); }
 
+// ── PIN 6 digit ───────────────────────────────────────────────
+// Disimpan sebagai hash PBKDF2-SHA256 + salt acak (bukan PIN-nya). Salah 5x berturut-turut → jeda 30 dtk,
+// 60 dtk, 2 mnt, dst. (maks ±16 mnt). Sama seperti Face ID: ini kunci pintu layar di perangkat ini, bukan pengaman data.
+var _Z_PIN_KEY = 'zenoot_pin_v1', _Z_PINFAIL_KEY = 'zenoot_pinfail_v1', _Z_PIN_LEN = 6;
+function _zPinCfg() {
+  try { var o = JSON.parse(localStorage.getItem(_Z_PIN_KEY) || 'null'); if (o && o.hash && o.salt) return o; } catch (e) {}
+  return null;
+}
+function zPinEnabled() { return !!_zPinCfg(); }
+async function _zPinDerive(pin, salt, iter) {
+  var km = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  var bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: iter, hash: 'SHA-256' }, km, 256);
+  return _zB64u(bits);
+}
+async function zPinSet(pin) {
+  var salt = _zRand(16), iter = 120000;
+  var hash = await _zPinDerive(pin, salt, iter);
+  localStorage.setItem(_Z_PIN_KEY, JSON.stringify({ salt: _zB64u(salt.buffer), hash: hash, iter: iter, at: Date.now() }));
+  try { localStorage.removeItem(_Z_PINFAIL_KEY); } catch (e) {}
+}
+async function zPinCheck(pin) {
+  var c = _zPinCfg();
+  if (!c) return true;
+  var h = await _zPinDerive(pin, new Uint8Array(_zFromB64u(c.salt)), c.iter || 120000);
+  return h === c.hash;
+}
+function _zPinWeak(pin) { return /^(\d)\1+$/.test(pin) || pin === '123456' || pin === '654321' || pin === '012345'; }
+function _zPinFailState() { try { return JSON.parse(localStorage.getItem(_Z_PINFAIL_KEY) || 'null') || { n: 0, until: 0 }; } catch (e) { return { n: 0, until: 0 }; } }
+function _zPinWait() { var f = _zPinFailState(); return Math.max(0, Math.ceil(((f.until || 0) - Date.now()) / 1000)); }
+function _zPinRecordFail() {
+  var f = _zPinFailState();
+  f.n = (f.n || 0) + 1;
+  if (f.n % 5 === 0) f.until = Date.now() + 30000 * Math.pow(2, Math.min(f.n / 5, 6) - 1);
+  try { localStorage.setItem(_Z_PINFAIL_KEY, JSON.stringify(f)); } catch (e) {}
+  return f;
+}
+// Satu percobaan PIN lengkap dengan pembatasan percobaan. → { ok, msg }
+async function _zPinTry(pin) {
+  var w = _zPinWait();
+  if (w > 0) return { ok: false, msg: 'Terlalu banyak percobaan. Coba lagi dalam ' + w + ' detik.' };
+  if (await zPinCheck(pin)) { try { localStorage.removeItem(_Z_PINFAIL_KEY); } catch (e) {} return { ok: true }; }
+  var f = _zPinRecordFail(), w2 = _zPinWait();
+  return { ok: false, msg: w2 > 0 ? 'PIN salah. Coba lagi dalam ' + w2 + ' detik.' : 'PIN salah. Sisa percobaan: ' + (5 - (f.n % 5)) };
+}
+
+// Layar keypad PIN (dipakai untuk buka kunci dan untuk membuat PIN)
+var _zPinCtl = null;
+function _zPinClose() {
+  if (!_zPinCtl) return;
+  var c = _zPinCtl; _zPinCtl = null;
+  if (c.el && c.el.parentNode) c.el.parentNode.removeChild(c.el);
+  if (c.kd && document.removeEventListener) document.removeEventListener('keydown', c.kd);
+}
+function _zPinScreen(o) {
+  _zPinClose();
+  if (!document.getElementById('zenoot-pin-css')) {
+    var st = document.createElement('style');
+    st.id = 'zenoot-pin-css';
+    st.textContent =
+      '#zenoot-pin{position:fixed;inset:0;z-index:2147483200;background:#F0EFEB;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif);color:#2B2B2B;overflow:hidden;-webkit-text-size-adjust:100%}' +
+      '#zenoot-pin .zp-wrap{height:100%;max-width:420px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 30px) 24px calc(env(safe-area-inset-bottom,0px) + 26px)}' +
+      '#zenoot-pin .zp-top{display:flex;align-items:center;gap:12px}' +
+      '#zenoot-pin .zp-logo{width:44px;height:44px;object-fit:contain;flex:none}' +
+      '#zenoot-pin .zp-title{font-size:20px;font-weight:800;letter-spacing:-.3px;line-height:1.1}' +
+      '#zenoot-pin .zp-sub{font-size:13px;color:#8A8580;margin-top:2px}' +
+      '#zenoot-pin .zp-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;min-height:110px}' +
+      '#zenoot-pin .zp-dots{display:flex;gap:14px}' +
+      '#zenoot-pin .zp-dot{width:14px;height:14px;border-radius:50%;border:2px solid #2B2B2B;box-sizing:border-box}' +
+      '#zenoot-pin .zp-dot.on{background:#2B2B2B}' +
+      '#zenoot-pin .zp-dots.shake{animation:zpshake .35s}' +
+      '@keyframes zpshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}' +
+      '#zenoot-pin .zp-msg{min-height:18px;font-size:12.5px;font-weight:600;color:#e05c4b;padding:0 8px}' +
+      '#zenoot-pin .zp-link{border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}' +
+      '#zenoot-pin .zp-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 18px;justify-items:center}' +
+      '#zenoot-pin .zp-k{width:72px;height:72px;padding:0;border-radius:50%;border:1.5px solid #E3E1DA;background:#fff;font-size:26px;font-weight:600;font-family:inherit;color:#2B2B2B;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+      '#zenoot-pin .zp-k:active{background:#E3E1DA}' +
+      '#zenoot-pin .zp-k.zp-ghost{background:none;border-color:transparent;font-size:13px;font-weight:700}' +
+      '#zenoot-pin .zp-k.zp-empty{visibility:hidden}';
+    document.head.appendChild(st);
+  }
+  var el = document.createElement('div');
+  el.id = 'zenoot-pin';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  var dots = '', i;
+  for (i = 0; i < _Z_PIN_LEN; i++) dots += '<span class="zp-dot"></span>';
+  var keys = '';
+  for (i = 1; i <= 9; i++) keys += '<button type="button" class="zp-k" data-k="' + i + '">' + i + '</button>';
+  keys += o.onFace ? '<button type="button" class="zp-k zp-ghost" data-k="face" aria-label="Pakai biometrik">' + _zIconSize(_zIsApple() ? _Z_SVG_FACE : _Z_SVG_FINGER, 30) + '</button>'
+        : o.onCancel ? '<button type="button" class="zp-k zp-ghost" data-k="cancel">Batal</button>'
+        : '<span class="zp-k zp-empty"></span>';
+  keys += '<button type="button" class="zp-k" data-k="0">0</button>' +
+          '<button type="button" class="zp-k zp-ghost" data-k="del" aria-label="Hapus">' + _Z_SVG_DEL + '</button>';
+  el.innerHTML =
+    '<div class="zp-wrap">' +
+      '<div class="zp-top"><img class="zp-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'"><div><div class="zp-title">' + (o.title || 'Masukkan PIN') + '</div><div class="zp-sub">' + (o.sub || '') + '</div></div></div>' +
+      '<div class="zp-mid"><div class="zp-dots" id="zp-dots">' + dots + '</div><div class="zp-msg" id="zp-msg" role="alert"></div>' +
+        (o.forgot ? '<button type="button" class="zp-link" id="zp-forgot">Lupa PIN? Masuk dengan password</button>' : '') + '</div>' +
+      '<div class="zp-pad">' + keys + '</div>' +
+    '</div>';
+  document.body.appendChild(el);
+  var dotEls = el.querySelectorAll('.zp-dot'), msgEl = el.querySelector('#zp-msg'), box = el.querySelector('#zp-dots');
+  var pin = '', busy = false;
+  function render() { for (var j = 0; j < _Z_PIN_LEN; j++) if (dotEls[j]) dotEls[j].className = 'zp-dot' + (j < pin.length ? ' on' : ''); }
+  function setMsg(t) { msgEl.textContent = t || ''; }
+  async function press(k) {
+    if (busy) return;
+    if (k === 'del') { pin = pin.slice(0, -1); render(); return; }
+    if (k === 'face') { if (o.onFace) o.onFace(); return; }
+    if (k === 'cancel') { if (o.onCancel) o.onCancel(); return; }
+    if (!/^\d$/.test(k) || pin.length >= _Z_PIN_LEN) return;
+    setMsg(''); pin += k; render();
+    if (pin.length < _Z_PIN_LEN) return;
+    busy = true;
+    var res;
+    try { res = await o.onComplete(pin); } catch (e) { res = { ok: false, msg: 'Terjadi kesalahan. Coba lagi.' }; }
+    busy = false;
+    if (res && res.ok) return;           // pemanggil yang menutup layar ini
+    pin = ''; render(); setMsg(res && res.msg);
+    if (box) { box.className = 'zp-dots shake'; setTimeout(function() { box.className = 'zp-dots'; }, 400); }
+  }
+  var btns = el.querySelectorAll('.zp-k');
+  for (i = 0; i < btns.length; i++) (function(b) { b.addEventListener('click', function() { press(b.getAttribute('data-k')); }); })(btns[i]);
+  if (o.forgot) el.querySelector('#zp-forgot').addEventListener('click', o.forgot);
+  var kd = function(e) { if (/^\d$/.test(e.key)) press(e.key); else if (e.key === 'Backspace') press('del'); };
+  document.addEventListener('keydown', kd);
+  _zPinCtl = { el: el, press: press, kd: kd, setMsg: setMsg };
+  return _zPinCtl;
+}
+
+// Membuat / mengubah PIN: ketik 2x. done(true) bila tersimpan, done(false) bila dibatalkan.
+function _zPinSetup(done) {
+  var first = null;
+  function stage1(msg) {
+    var c = _zPinScreen({ title: 'Buat PIN', sub: '6 digit angka',
+      onCancel: function() { _zPinClose(); done(false); },
+      onComplete: async function(pin) {
+        if (_zPinWeak(pin)) return { ok: false, msg: 'PIN terlalu mudah ditebak. Pilih yang lain.' };
+        first = pin; _zPinClose(); stage2(); return { ok: true };
+      } });
+    if (msg) c.setMsg(msg);
+  }
+  function stage2() {
+    _zPinScreen({ title: 'Ulangi PIN', sub: 'Masukkan PIN yang sama',
+      onCancel: function() { _zPinClose(); done(false); },
+      onComplete: async function(pin) {
+        if (pin !== first) { _zPinClose(); stage1('PIN tidak sama. Ulangi dari awal.'); return { ok: true }; }
+        await zPinSet(pin); _zPinClose(); done(true); return { ok: true };
+      } });
+  }
+  stage1();
+}
+
+// ── Layar kunci ───────────────────────────────────────────────
 function _zShowLockScreen() {
   if (_zLockEl) return;
   if (!document.body) { document.addEventListener('DOMContentLoaded', _zShowLockScreen, { once: true }); return; }
@@ -429,11 +649,11 @@ function _zShowLockScreen() {
       '#zenoot-lock .zk-btn:active{transform:scale(.96)}' +
       '#zenoot-lock .zk-btn:disabled{opacity:.55;cursor:default}' +
       '#zenoot-lock .zk-lbl{font-size:13px;font-weight:600}' +
-      '#zenoot-lock .zk-link{margin-top:10px;border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}';
+      '#zenoot-lock .zk-link{margin-top:10px;border:none;background:none;color:#B5B1AA;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;text-decoration:underline}' +
+      '#zenoot-lock .zk-link.zk-alt{color:#2B2B2B;font-size:13px}';
     document.head.appendChild(st);
   }
-  var ua = (navigator && navigator.userAgent) || '';
-  var isApple = /iPad|iPhone|iPod/.test(ua) || (navigator && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var face = zFaceEnabled(), pinOn = zPinEnabled();
   var showQ = !!document.getElementById('page-dashboard');   // pintasan hanya di halaman utama app (bukan analisis.html)
   var ov = document.createElement('div');
   ov.id = 'zenoot-lock';
@@ -445,7 +665,9 @@ function _zShowLockScreen() {
         '<img class="zk-logo" src="logo.png" alt="zenOt" onerror="this.style.display=\'none\'">' +
         '<div><div class="zk-title">zenOt</div><div class="zk-sub">Terkunci</div></div>' +
       '</div>' +
-      '<div class="zk-mid"><div class="zk-hint">Ketuk tombol untuk membuka</div><div class="zk-err" id="zk-err" role="alert"></div><button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button></div>' +
+      '<div class="zk-mid"><div class="zk-hint">' + (face ? 'Ketuk tombol untuk membuka' : 'Ketuk tombol untuk memasukkan PIN') + '</div><div class="zk-err" id="zk-err" role="alert"></div>' +
+        (face && pinOn ? '<button type="button" class="zk-link zk-alt" id="zk-usepin">Pakai PIN</button>' : '') +
+        '<button type="button" class="zk-link" id="zk-pw">Masuk dengan password</button></div>' +
       '<div class="zk-bottom' + (showQ ? '' : ' zk-solo') + '">' +
         (showQ ?
           '<div class="zk-pill">' +
@@ -453,15 +675,31 @@ function _zShowLockScreen() {
             '<button type="button" class="zk-q zk-q-out" data-aksi="kas-keluar"><i class="ti ti-arrow-up-right"></i><span>Uang Keluar</span></button>' +
             '<button type="button" class="zk-q zk-q-gdg" data-aksi="gadag-pendapatan"><i class="ti ti-coin"></i><span>Gadag</span></button>' +
           '</div>' : '') +
-        '<div class="zk-main"><button type="button" class="zk-btn" id="zk-btn" aria-label="Buka kunci">' + (isApple ? _Z_SVG_FACE : _Z_SVG_FINGER) + '</button><div class="zk-lbl">Buka</div></div>' +
+        '<div class="zk-main"><button type="button" class="zk-btn" id="zk-btn" aria-label="Buka kunci">' + (face ? (_zIsApple() ? _Z_SVG_FACE : _Z_SVG_FINGER) : _Z_SVG_PIN) + '</button><div class="zk-lbl">Buka</div></div>' +
       '</div>' +
     '</div>';
   document.body.appendChild(ov);
   _zLockEl = ov;
   var btn = ov.querySelector('#zk-btn'), errEl = ov.querySelector('#zk-err'), pw = ov.querySelector('#zk-pw');
   var busy = false;
-  // aksi (opsional) = pintasan yang diketuk: Face ID dulu, setelah lolos langsung buka formnya
+  function goPassword() {
+    var go = function() { zAuthSignOut(); };   // keluar → layar login → setelah masuk langsung terbuka (flag zenoot_pw_unlock)
+    if (typeof zConfirm === 'function') Promise.resolve(zConfirm('Keluar lalu masuk dengan password?', { ok: 'Lanjut' })).then(function(ok) { if (ok) go(); });
+    else go();
+  }
+  // aksi (opsional) = pintasan yang diketuk: buka kunci dulu, setelah lolos langsung buka formnya
+  function openPin(aksi) {
+    _zPinScreen({ title: 'Masukkan PIN', sub: 'zenOt terkunci',
+      onFace: face ? function() { _zPinClose(); attempt(false, aksi); } : null,
+      forgot: goPassword,
+      onComplete: async function(pin) {
+        var r = await _zPinTry(pin);
+        if (r.ok) { _zPinClose(); _zUnlock(); _zRunAksi(aksi); }
+        return r;
+      } });
+  }
   async function attempt(auto, aksi) {
+    if (!face) { if (!auto || !_zPinCtl) openPin(aksi); return; }   // hanya PIN: langsung keypad
     if (busy) return;
     busy = true; btn.disabled = true; errEl.textContent = '';
     try {
@@ -478,12 +716,9 @@ function _zShowLockScreen() {
   for (var qi = 0; qi < qs.length; qi++) {
     (function(el) { el.addEventListener('click', function() { attempt(false, el.getAttribute('data-aksi')); }); })(qs[qi]);
   }
-  pw.addEventListener('click', function() {
-    var go = function() { zAuthSignOut(); };   // keluar → layar login → setelah masuk langsung terbuka (flag zenoot_pw_unlock)
-    if (typeof zConfirm === 'function') Promise.resolve(zConfirm('Keluar lalu masuk dengan password?', { ok: 'Lanjut' })).then(function(ok) { if (ok) go(); });
-    else go();
-  });
-  setTimeout(function() { attempt(true, null); }, 250);   // coba otomatis (Safari bisa menolak tanpa ketukan; tombol tetap ada)
+  if (face && pinOn) ov.querySelector('#zk-usepin').addEventListener('click', function() { openPin(null); });
+  pw.addEventListener('click', goPassword);
+  setTimeout(function() { attempt(true, null); }, 250);   // Face ID: coba otomatis (Safari bisa menolak tanpa ketukan; tombol tetap ada). Hanya PIN: keypad langsung terbuka.
 }
 
 // Saat load: kunci jika aktif, kecuali baru saja aktif di sesi ini (reload) atau baru masuk lewat password
