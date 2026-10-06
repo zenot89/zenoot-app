@@ -366,30 +366,38 @@ function _zLockRefreshBtn() {
 }
 
 // Menu "Kunci App": pilih Face ID/sidik jari, PIN, atau keduanya
-function zLockMenu() {
-  if (document.getElementById('zenoot-lockmenu') || _zIsEmbed) return;
+function _zEnsureMenuCss() {
   if (!document.getElementById('zenoot-lockmenu-css')) {
     var st = document.createElement('style');
     st.id = 'zenoot-lockmenu-css';
     st.textContent =
-      '#zenoot-lockmenu{position:fixed;inset:0;z-index:2147482900;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif)}' +
-      '#zenoot-lockmenu .zm-sheet{width:100%;max-width:480px;box-sizing:border-box;background:#F0EFEB;color:#2B2B2B;border-radius:20px 20px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}' +
-      '#zenoot-lockmenu .zm-title{font-size:18px;font-weight:800}' +
-      '#zenoot-lockmenu .zm-sub{font-size:12.5px;color:#8A8580;margin:4px 0 14px;line-height:1.4}' +
-      '#zenoot-lockmenu .zm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1.5px solid #E3E1DA;border-radius:14px;padding:12px 14px;margin-bottom:10px}' +
-      '#zenoot-lockmenu .zm-name{font-size:14px;font-weight:700}' +
-      '#zenoot-lockmenu .zm-st{display:block;font-size:12px;color:#8A8580;margin-top:2px}' +
-      '#zenoot-lockmenu .zm-st.on{color:#1f9d55}' +
-      '#zenoot-lockmenu .zm-btns{display:flex;gap:6px;flex:none}' +
-      '#zenoot-lockmenu .zm-b{border:1.5px solid #E3E1DA;background:#F0EFEB;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;color:#2B2B2B;cursor:pointer}' +
-      '#zenoot-lockmenu .zm-b.dark{background:#2B2B2B;border-color:#2B2B2B;color:#fff}' +
-      '#zenoot-lockmenu .zm-msg{min-height:18px;font-size:12.5px;font-weight:600;color:#1f9d55;margin:2px 2px 8px}' +
-      '#zenoot-lockmenu .zm-msg.err{color:#e05c4b}' +
-      '#zenoot-lockmenu .zm-done{width:100%;height:46px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}';
+      '.zm-over{position:fixed;inset:0;z-index:2147482900;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;font-family:var(--f,-apple-system,"Inter",system-ui,sans-serif)}' +
+      '.zm-over .zm-sheet{width:100%;max-width:480px;box-sizing:border-box;background:#F0EFEB;color:#2B2B2B;border-radius:20px 20px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}' +
+      '.zm-over .zm-title{font-size:18px;font-weight:800}' +
+      '.zm-over .zm-sub{font-size:12.5px;color:#8A8580;margin:4px 0 14px;line-height:1.4}' +
+      '.zm-over .zm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1.5px solid #E3E1DA;border-radius:14px;padding:12px 14px;margin-bottom:10px}' +
+      '.zm-over .zm-name{font-size:14px;font-weight:700}' +
+      '.zm-over .zm-st{display:block;font-size:12px;color:#8A8580;margin-top:2px}' +
+      '.zm-over .zm-st.on{color:#1f9d55}' +
+      '.zm-over .zm-btns{display:flex;gap:6px;flex:none}' +
+      '.zm-over .zm-b{border:1.5px solid #E3E1DA;background:#F0EFEB;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;font-family:inherit;color:#2B2B2B;cursor:pointer}' +
+      '.zm-over .zm-b.dark{background:#2B2B2B;border-color:#2B2B2B;color:#fff}' +
+      '.zm-over .zm-msg{min-height:18px;font-size:12.5px;font-weight:600;color:#1f9d55;margin:2px 2px 8px}' +
+      '.zm-over .zm-msg.err{color:#e05c4b}' +
+      '.zm-over .zm-in{width:100%;height:44px;box-sizing:border-box;border:1.5px solid #E3E1DA;border-radius:10px;padding:0 12px;font-size:16px;font-family:inherit;color:#2B2B2B;background:#fff;margin-bottom:8px;outline:none}' +
+      '.zm-over .zm-danger{color:#e05c4b}' +
+      '.zm-over .zm-wide{width:100%;margin-bottom:8px;padding:11px 12px}' +
+      '.zm-over .zm-done{width:100%;height:46px;border:none;border-radius:12px;background:#2B2B2B;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}';
     document.head.appendChild(st);
   }
+}
+
+function zLockMenu() {
+  if (document.getElementById('zenoot-lockmenu') || _zIsEmbed) return;
+  _zEnsureMenuCss();
   var el = document.createElement('div');
   el.id = 'zenoot-lockmenu';
+  el.className = 'zm-over';
   el.innerHTML =
     '<div class="zm-sheet">' +
       '<div class="zm-title">Kunci App</div>' +
@@ -436,6 +444,76 @@ function zLockMenu() {
   refresh();
 }
 function zLockToggle() { zLockMenu(); }   // dipanggil tombol sidebar (index.html)
+
+// ── Akun Login (sidebar → Setting → Akun Login) ───────────────
+async function zAuthChangePassword(pw) {
+  var tok = await _zGetToken();
+  var res;
+  try {
+    res = await _zNativeFetch(SUPABASE_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+  } catch (e) { throw new Error('Tidak bisa terhubung. Cek koneksi internet.'); }
+  if (res.ok) return true;
+  var data = {}; try { data = await res.json(); } catch (e) {}
+  var m = String(data.msg || data.message || data.error_description || '');
+  if (/reauth|recent/i.test(m)) throw new Error('Untuk keamanan, keluar lalu login ulang dulu, baru ganti password.');
+  if (/same|different/i.test(m)) throw new Error('Password baru harus berbeda dari yang lama.');
+  if (/weak|short|least|character/i.test(m)) throw new Error('Password terlalu lemah. Pakai minimal 8 karakter, campuran huruf dan angka.');
+  throw new Error(m || ('Gagal mengganti password (' + res.status + ')'));
+}
+
+function zAkunMenu() {
+  if (document.getElementById('zenoot-akunmenu') || _zIsEmbed) return;
+  _zEnsureMenuCss();
+  var el = document.createElement('div');
+  el.id = 'zenoot-akunmenu';
+  el.className = 'zm-over';
+  el.innerHTML =
+    '<div class="zm-sheet">' +
+      '<div class="zm-title">Akun Login</div>' +
+      '<div class="zm-sub" id="za-email"></div>' +
+      '<div class="zm-row"><div><span class="zm-name">Password</span><span class="zm-st">Ganti password untuk login</span></div>' +
+        '<div class="zm-btns"><button type="button" class="zm-b dark" id="za-pw">Ganti</button></div></div>' +
+      '<div id="za-box" style="display:none">' +
+        '<input class="zm-in" id="za-p1" type="password" autocomplete="new-password" placeholder="Password baru (min. 8 karakter)">' +
+        '<input class="zm-in" id="za-p2" type="password" autocomplete="new-password" placeholder="Ulangi password baru">' +
+        '<button type="button" class="zm-b dark zm-wide" id="za-save">Simpan password</button>' +
+      '</div>' +
+      '<div class="zm-msg" id="za-msg"></div>' +
+      '<button type="button" class="zm-b zm-danger zm-wide" id="za-out">Keluar</button>' +
+      '<button type="button" class="zm-done" id="za-close">Tutup</button>' +
+    '</div>';
+  document.body.appendChild(el);
+  var q = function(id) { return el.querySelector(id); };
+  var msg = q('#za-msg'), box = q('#za-box'), p1 = q('#za-p1'), p2 = q('#za-p2'), save = q('#za-save');
+  q('#za-email').textContent = zAuthEmail() || '(email tidak diketahui)';
+  function say(t, err) { msg.textContent = t || ''; msg.className = 'zm-msg' + (err ? ' err' : ''); }
+  function close() { if (el.parentNode) el.parentNode.removeChild(el); }
+  var boxOpen = false;
+  q('#za-pw').addEventListener('click', function() {
+    boxOpen = !boxOpen;
+    box.style.display = boxOpen ? '' : 'none';
+    say('');
+  });
+  save.addEventListener('click', async function() {
+    var a = p1.value || '', b = p2.value || '';
+    if (a.length < 8) { say('Password minimal 8 karakter.', true); return; }
+    if (a !== b) { say('Password baru dan ulangannya tidak sama.', true); return; }
+    save.disabled = true; say('Menyimpan…');
+    try {
+      await zAuthChangePassword(a);
+      p1.value = ''; p2.value = ''; boxOpen = false; box.style.display = 'none';
+      say('Password berhasil diganti.');
+    } catch (e) { say(e.message || 'Gagal mengganti password.', true); }
+    save.disabled = false;
+  });
+  q('#za-out').addEventListener('click', function() { close(); zAuthConfirmSignOut(); });   // tutup dulu supaya dialog konfirmasi tidak tertutup lembar ini
+  q('#za-close').addEventListener('click', close);
+}
+
 
 function _zUnlock() {
   _zLocked = false;

@@ -120,19 +120,26 @@
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('produk',this)"><span class="ni-icon"><i class="ti ti-box"></i></span><span class="ni-label">Kelola Produk</span></button>
       <button class="nav-item" onclick="gotoPage('channel',this)"><span class="ni-icon"><i class="ti ti-antenna"></i></span><span class="ni-label">Channel</span></button>
-      <button class="nav-item" onclick="gotoPage('shopee-auth',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Shopee Connect</span></button>
 
     </div>
   </div>
 
+  <!-- SETTING (5 Okt 2026): Shopee Connect, Akun Login, Kunci App -->
+  <div class="nav-group" id="group-setting">
+    <div class="nav-group-header" onclick="toggleNavGroup('group-setting')">
+      <span class="nav-group-label"><i class="ti ti-adjustments"></i> Setting</span>
+      <span class="nav-group-arrow">&#9662;</span>
+    </div>
+    <div class="nav-group-body">
+      <button class="nav-item" onclick="gotoPage('shopee-auth',this)"><span class="ni-icon"><i class="ti ti-brand-shopee"></i></span><span class="ni-label">Shopee Connect</span></button>
+      <button class="nav-item" id="btn-akun" onclick="closeSidebar();zAkunMenu()"><span class="ni-icon"><i class="ti ti-user-circle"></i></span><span class="ni-label">Akun Login</span></button>
+      <button class="nav-item" id="btn-lock" onclick="closeSidebar();zLockToggle()" title="Kunci App (Face ID / sidik jari / PIN)"><span class="ni-icon"><i class="ti ti-lock"></i></span><span class="ni-label">Kunci: Mati</span></button>
+    </div>
+  </div>
 
   </div><!-- end sidebar-nav-scroll -->
 
   <div class="sidebar-footer">
-    <!-- 4 Okt 2026: tombol Keluar (login Supabase Auth, lihat supabase.js) -->
-    <!-- 5 Okt 2026: kunci biometrik Face ID/sidik jari (lihat supabase.js) -->
-    <button class="nav-item" id="btn-lock" onclick="zLockToggle()" title="Kunci App (Face ID / sidik jari / PIN)"><span class="ni-icon"><i class="ti ti-lock"></i></span><span class="ni-label">Kunci: Mati</span></button>
-    <button class="nav-item" id="btn-logout" onclick="zAuthConfirmSignOut()" title="Keluar"><span class="ni-icon"><i class="ti ti-logout"></i></span><span class="ni-label">Keluar</span></button>
     <span class="footer-by">conceptualized by</span>
     <span class="footer-name">burhanmology</span>
   </div>
@@ -224,7 +231,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261006-f59a4b3737bc';
+  window.APP_BUILD = '20261004-f5c8cfe83dd5';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
