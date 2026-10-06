@@ -80,16 +80,14 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 3 -->
 
-      <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — id elemen sama, JS _zdKasPaint tidak berubah -->
+      <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — status = teks besar di slot angka, alasan di ikon (?) -->
       <div class="nw-swipe-slide" id="zd-kas-card">
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Income</span></div>
-        <!-- Header: ungu -->
+        <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-            <div class="nw-slide-label" style="margin-bottom:0"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS</div>
-            <span class="zdk-badge" id="zd-kas-badge"><span class="zdk-dot"></span>Memuat...</span>
-          </div>
-          <div class="zdk-reason" id="zd-kas-reason">Menghitung kewajiban supplier dan batch reseller...</div>
+          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
+          <div class="nw-slide-value zdk-status" id="zd-kas-badge">Memuat...</div>
+          <div class="nw-slide-sub" id="zd-kas-sub">&nbsp;</div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data">
@@ -2915,6 +2913,21 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 // (saldo kas) yang SUDAH dibangun loadDashboard. TIDAK ada tabel/kolom baru.
 // Sengaja TIDAK menulis ke database sama sekali (read-only).
 //
+// ── REVISI 7 Okt 2026 (rumus Kecepatan Kas jadi perbandingan kas vs SEMUA kebutuhan) ──
+//   Kas      = saldo Kas & Bank SAJA. Escrow Shopee TIDAK dihitung (dana di jalan,
+//              bisa batal/retur) — hanya ditampilkan sebagai info.
+//   Kebutuhan 14 hari = supplier (dropship + PO) + cicilan hutang yang jatuh tempo
+//              ≤14 hari dan belum dibayar + sisa anggaran Beban Operasional bulan ini
+//              yang belum terealisasi.
+//   Cicilan  : tabel `hutang` (cicilan_per_bulan/cicilan_nominal, tgl_cicilan, bln_cicilan
+//              utk tahunan, akun_kwj_id). Sudah dibayar = debit ke akun kewajiban itu di
+//              jurnal bulan berjalan (hutang_bayar TIDAK dipakai: kode sekarang tidak
+//              mengisinya). Cicilan dibatasi saldo kewajiban akunnya (saldo ≤0 = lunas).
+//   Operasional : kas_anggaran bulan ini (fallback bulan terakhir yang ada, sama dgn
+//              Dashboard) per akun beban, sub_kelompok HPP/Beban Produksi dikecualikan
+//              (sama dgn Beban Operasional Dashboard); sisa = max(0, anggaran − realisasi
+//              jurnal bulan ini). Akun kewajiban di anggaran TIDAK dihitung di sini
+//              (sudah lewat cicilan hutang, supaya tidak dobel).
 // Sengaja belum ada: angka "hari dana tertahan di Shopee" (escrow ÷ omset
 // harian) — shopee_finance_cache cuma 1 baris terakhir (1 toko) sedangkan
 // omset dari semua channel, jadi angkanya menyesatkan. Escrow tetap ikut
@@ -2995,6 +3008,72 @@ function _zdKasTargetBatch(hari) {
   return C.targetPct * Math.min(h, C.targetHari) / C.targetHari;
 }
 
+// Cicilan hutang yang jatuh tempo ≤ horizon & belum dibayar. Return { items, tanpaTgl, tanpaAkun }.
+function _zdKasCicilan(hutangRows, akunMap, jr, today, horizon) {
+  var out = { items: [], tanpaTgl: 0, tanpaAkun: 0 };
+  var saldo = {}, bayarBln = {};
+  jr.forEach(function(r) {
+    var aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
+    if (aD && aD.kelompok === 'kewajiban') {
+      var nd = Number(r.nominal || r.debit || 0);
+      saldo[aD.id] = (saldo[aD.id] || 0) - nd;
+      var kd = aD.id + '|' + String(r.tanggal || '').slice(0, 7);
+      bayarBln[kd] = (bayarBln[kd] || 0) + nd;
+    }
+    if (aK && aK.kelompok === 'kewajiban') saldo[aK.id] = (saldo[aK.id] || 0) + Number(r.nominal || r.kredit || 0);
+  });
+  var tY = Number(today.slice(0, 4)), tM = Number(today.slice(5, 7));
+  (hutangRows || []).forEach(function(h) {
+    var tahunan = h.frekuensi === 'tahunan';
+    var nominal = tahunan ? (Number(h.cicilan_nominal) || 0) : (Number(h.cicilan_per_bulan) || 0);
+    if (!(nominal > 0)) return;
+    var tgl = parseInt(h.tgl_cicilan, 10);
+    var bln = parseInt(h.bln_cicilan, 10);
+    if (!tgl || (tahunan && !bln)) { out.tanpaTgl++; return; }
+    var akun = (h.akun_kwj_id != null && akunMap[h.akun_kwj_id]) ? akunMap[h.akun_kwj_id] : null;
+    var adaItem = false;
+    if (akun && (saldo[akun.id] || 0) <= 0) return;                 // saldo kewajiban ≤ 0 → sudah lunas
+    var left = akun ? saldo[akun.id] : Infinity;
+    for (var off = 0; off <= 1; off++) {
+      var base = new Date(tY, tM - 1 + off, 1, 12, 0, 0);
+      if (tahunan && (base.getMonth() + 1) !== bln) continue;
+      var hari = Math.min(tgl, new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate());
+      var ymStr = _localDateStr(base).slice(0, 7);
+      var due = ymStr + '-' + String(hari).padStart(2, '0');
+      if (due > horizon) continue;                                    // hanya yang jatuh tempo dalam jendela
+      var paid = akun ? (bayarBln[akun.id + '|' + ymStr] || 0) : 0;
+      var need = Math.min(Math.max(0, nominal - paid), left);
+      if (!(need > 0)) continue;
+      left -= need;
+      if (akun) saldo[akun.id] = left;
+      out.items.push({ tgl: due, amt: need, sup: String(h.kreditur || 'HUTANG').toUpperCase(), bonId: null, jenis: 'cicilan',
+        label: 'Cicilan · tgl ' + hari });
+      adaItem = true;
+    }
+    if (!akun && adaItem) out.tanpaAkun++;                              // hanya dilaporkan kalau memang ikut terhitung
+  });
+  return out;
+}
+
+// Sisa anggaran Beban Operasional bulan ini yang belum terealisasi.
+function _zdKasOperasional(anggaranRows, akunMap, jr, ym) {
+  var real = {};
+  jr.forEach(function(r) {
+    if (String(r.tanggal || '').slice(0, 7) !== ym) return;
+    var aD = akunMap[r.akun_debit_id];
+    if (aD && aD.kelompok === 'beban') real[aD.id] = (real[aD.id] || 0) + Number(r.nominal || r.debit || 0);
+  });
+  var sisa = 0, anggaran = 0;
+  (anggaranRows || []).forEach(function(a) {
+    var ak = akunMap[a.akun_id];
+    if (!ak || ak.kelompok !== 'beban' || ak.sub_kelompok === 'HPP' || ak.sub_kelompok === 'Beban Produksi') return;
+    var ang = Number(a.nominal) || 0;
+    anggaran += ang;
+    sisa += Math.max(0, ang - (real[ak.id] || 0));
+  });
+  return { sisa: sisa, anggaran: anggaran };
+}
+
 async function _zdKasHitung() {
   var C       = ZD_KAS_CFG;
   var today   = _localDateStr();
@@ -3010,10 +3089,22 @@ async function _zdKasHitung() {
     dbGet('hutang_barang', ''),
     dbGet('produk', '&select=id,sku_variasi'),
     fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1', { headers: _headers() })
-      .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+      .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
+    dbGet('hutang', '').catch(function() { return []; }),
+    dbGet('kas_anggaran', '&bulan=eq.' + today.slice(0, 7)).catch(function() { return []; })
   ]);
   var supRows = base[0] || [], barangRows = base[3] || [], produkRows = base[4] || [];
   var shopeeRows = base[5];
+  var hutangRows = base[6] || [];
+  var anggaranRows = base[7] || [];
+  var anggaranBulan = today.slice(0, 7);
+  if (!anggaranRows.length) {          // sama dgn Dashboard: bulan ini belum ada anggaran → pakai bulan terakhir yang ada
+    var angAll = await dbGet('kas_anggaran', '&order=bulan.desc').catch(function() { return []; });
+    if (angAll && angAll.length) {
+      anggaranBulan = angAll[0].bulan;
+      anggaranRows = angAll.filter(function(a) { return a.bulan === anggaranBulan; });
+    }
+  }
 
   var bonMap = {};
   (base[1] || []).forEach(function(b) { bonMap[b.id] = b; });
@@ -3045,7 +3136,7 @@ async function _zdKasHitung() {
   var saldoKas = kMasuk - kKeluar;
   var escrow   = (shopeeRows && shopeeRows.length) ? (Number(shopeeRows[0].escrow_transit) || 0) : 0;
   var escrowLive = !!(shopeeRows && shopeeRows.length);
-  var kasTotal = Math.max(0, saldoKas) + escrow;
+  var kasTotal = Math.max(0, saldoKas);   // 7 Okt 2026: escrow TIDAK dihitung (dana di jalan, bisa batal) — hanya info
 
   // ── 4) Kewajiban per bon ──
   var obligations = [];     // {tgl, amt, sup, bonId, jenis, label}
@@ -3102,6 +3193,13 @@ async function _zdKasHitung() {
     }
   });
 
+  // ── 4b) Cicilan hutang + sisa operasional (7 Okt 2026) ──
+  var cic = _zdKasCicilan(hutangRows, akunMap, jr, today, horizon);
+  cic.items.forEach(function(o) { obligations.push(o); });
+  var ops = _zdKasOperasional(anggaranRows, akunMap, jr, today.slice(0, 7));
+  if (ops.sisa > 0) obligations.push({ tgl: today, amt: ops.sisa, sup: 'OPERASIONAL', bonId: null, jenis: 'operasional',
+    label: 'Sisa anggaran bulan ini' });
+
   var due14 = obligations.filter(function(o) { return o.tgl && o.tgl <= horizon; });
   var butuh14   = due14.reduce(function(s, o) { return s + o.amt; }, 0);
   var terlambat = due14.filter(function(o) { return o.tgl < today; }).reduce(function(s, o) { return s + o.amt; }, 0);
@@ -3111,11 +3209,17 @@ async function _zdKasHitung() {
   // dropship (bayar Sabtu) vs PO reseller (DP saat barang jadi + sisa tempo 14 hari).
   function _sumJ(arr) { return arr.reduce(function(s, o) { return s + o.amt; }, 0); }
   var isDrop     = function(o) { return o.jenis === 'dropship'; };
+  var isPo       = function(o) { return o.jenis === 'dp' || o.jenis === 'sisa'; };
+  var isCic      = function(o) { return o.jenis === 'cicilan'; };
+  var isOps      = function(o) { return o.jenis === 'operasional'; };
   var isLate     = function(o) { return o.tgl < today; };
   var butuhDrop14 = _sumJ(due14.filter(isDrop));
-  var butuhPo14   = butuh14 - butuhDrop14;
+  var butuhPo14   = _sumJ(due14.filter(isPo));
+  var butuhCic14  = _sumJ(due14.filter(isCic));
+  var butuhOps14  = _sumJ(due14.filter(isOps));
   var lateDrop    = _sumJ(due14.filter(function(o) { return isDrop(o) && isLate(o); }));
-  var latePo      = terlambat - lateDrop;
+  var latePo      = _sumJ(due14.filter(function(o) { return isPo(o) && isLate(o); }));
+  var lateCic     = _sumJ(due14.filter(function(o) { return isCic(o) && isLate(o); }));
   var lateNames   = [];
   due14.filter(isLate).forEach(function(o) { if (lateNames.indexOf(o.sup) < 0) lateNames.push(o.sup); });
 
@@ -3180,8 +3284,9 @@ async function _zdKasHitung() {
   // ── 6) Status gabungan: terburuk menang + alasan ──
   var signals = [];
   if (rasio != null && covStatus !== 'hijau') {
-    signals.push({ st: covStatus, txt: 'Kas + escrow ' + _fmtRp(kasTotal) + ' baru ' + (Math.round(rasio * 10) / 10).toString().replace('.', ',') +
-      '× tagihan supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' });
+    signals.push({ st: covStatus, txt: 'Kas ' + _fmtRp(kasTotal) + ' baru ' + (Math.round(rasio * 10) / 10).toString().replace('.', ',') +
+      '× kebutuhan ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ': supplier ' + _fmtRp(butuhDrop14 + butuhPo14) +
+      ' · cicilan ' + _fmtRp(butuhCic14) + ' · operasional ' + _fmtRp(butuhOps14) + ')' });
   }
   tracker.forEach(function(t) {
     if (t.status === 'hijau') return;
@@ -3198,8 +3303,9 @@ async function _zdKasHitung() {
   var reason;
   if (status === 'hijau') {
     reason = butuh14 > 0
-      ? 'Kas + escrow ' + _fmtRp(kasTotal) + ' cukup menutup tagihan supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
-      : 'Tidak ada kewajiban supplier yang jatuh tempo ' + C.horizonHari + ' hari ke depan.';
+      ? 'Kas ' + _fmtRp(kasTotal) + ' cukup menutup kebutuhan ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ': supplier ' + _fmtRp(butuhDrop14 + butuhPo14) +
+        ' · cicilan ' + _fmtRp(butuhCic14) + ' · operasional ' + _fmtRp(butuhOps14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
+      : 'Tidak ada kewajiban supplier, cicilan, maupun sisa anggaran operasional untuk ' + C.horizonHari + ' hari ke depan.';
   } else {
     // Semua sinyal dengan status terburuk ditulis satu per baris (maks 3) — dulu "(+1 lainnya)"
     // tidak menyebut apa lainnya itu. Baris dipisah \n, ditampilkan lewat white-space:pre-line.
@@ -3211,7 +3317,9 @@ async function _zdKasHitung() {
     today: today, horizon: horizon, sabtuIni: sabtuIni, status: status, covStatus: covStatus, reason: reason,
     saldoKas: saldoKas, escrow: escrow, escrowLive: escrowLive, kasTotal: kasTotal,
     butuh14: butuh14, terlambat: terlambat, butuhSabtu: butuhSabtu, rasio: rasio,
-    butuhDrop14: butuhDrop14, butuhPo14: butuhPo14, lateDrop: lateDrop, latePo: latePo, lateNames: lateNames,
+    butuhDrop14: butuhDrop14, butuhPo14: butuhPo14, butuhCic14: butuhCic14, butuhOps14: butuhOps14,
+    lateDrop: lateDrop, latePo: latePo, lateCic: lateCic, lateNames: lateNames,
+    cicTanpaTgl: cic.tanpaTgl, cicTanpaAkun: cic.tanpaAkun, anggaranBulan: anggaranBulan, opsAnggaran: ops.anggaran,
     obligations: obligations, due14: due14, tracker: tracker,
     poBelumJadi: poBelumJadi, diLuarAturan: diLuarAturan, fallbackTgl: fallbackTgl,
     kasOk: !!(window._dashKasAkunMap && window._dashJurnalAllData)
@@ -3222,28 +3330,31 @@ function _zdKasPaint(d) {
   var badge = document.getElementById('zd-kas-badge');
   if (!badge) return;
   var lbl = { hijau: 'Cepat', kuning: 'Sedang', merah: 'Lambat' };
-  badge.className = 'zdk-badge ' + d.status;
-  badge.innerHTML = '<span class="zdk-dot"></span>' + lbl[d.status];
-  var rs = document.getElementById('zd-kas-reason');
-  if (rs) rs.textContent = d.reason;
+  badge.className = 'nw-slide-value zdk-status ' + d.status;      // teks besar di slot angka, warna ikut status
+  badge.textContent = lbl[d.status];
+  _zdKasSetReason(d.reason);                                      // alasan lewat ikon (?)
 
   var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
+  var subEl = document.getElementById('zd-kas-sub');
+  if (subEl) subEl.textContent = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
+    : 'Kecukupan kas ' + covTxt + ' · aman ≥ ' + String(ZD_KAS_CFG.covHijau).replace('.', ',') + '×';
   // Setiap angka diberi keterangan jenisnya (dropship / PO reseller) + siapa yang lewat tempo
   var lateJenis = [];
   if (d.lateDrop > 0) lateJenis.push('dropship');
   if (d.latePo   > 0) lateJenis.push('PO reseller');
+  if (d.lateCic  > 0) lateJenis.push('cicilan');
   var lateNm = (d.lateNames || []).slice(0, 3).join(', ') + ((d.lateNames || []).length > 3 ? ' +' + (d.lateNames.length - 3) : '');
   var tiles = [
     { l: 'Kecukupan ' + ZD_KAS_CFG.horizonHari + ' hari', v: covTxt, c: d.rasio == null ? '' : d.covStatus,
       s: d.rasio == null ? 'tidak ada tagihan' : '' },
-    { l: 'Tagihan ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
-      s: 'dropship ' + _fmtRp(d.butuhDrop14) + ' · PO ' + _fmtRp(d.butuhPo14) }
+    { l: 'Kebutuhan ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
+      s: 'supplier ' + _fmtRp(d.butuhDrop14 + d.butuhPo14) + ' · cicilan ' + _fmtRp(d.butuhCic14) + ' · operasional ' + _fmtRp(d.butuhOps14) }
   ];
   if (d.terlambat > 0) tiles.push({ l: 'Sudah lewat tempo', v: _fmtRp(d.terlambat), c: 'merah',
     s: lateJenis.join(' + ') + ' belum dibayar' + (lateNm ? ' · ' + lateNm : '') });
   tiles.push(
-    { l: 'Kas + escrow', v: _fmtRp(d.kasTotal), c: '',
-      s: 'kas ' + _fmtRp(Math.max(0, d.saldoKas)) + (d.escrowLive ? ' + escrow ' + _fmtRp(d.escrow) : ' · Shopee offline') },
+    { l: 'Saldo kas', v: _fmtRp(d.kasTotal), c: '',
+      s: d.escrowLive ? 'escrow ' + _fmtRp(d.escrow) + ' belum dihitung' : '' },
     { l: 'Bayar Sabtu ' + _zdKasTglPendek(d.sabtuIni), v: _fmtRp(d.butuhSabtu), c: '',
       s: d.lateDrop > 0 ? 'dropship + tunggakan ' + _fmtRp(d.lateDrop) : 'dropship minggu ini' }
   );
@@ -3260,6 +3371,9 @@ function _zdKasPaint(d) {
     if (!d.kasOk) w.push('Saldo kas belum terbaca, hasil bisa terlalu rendah.');
     if (d.poBelumJadi && d.poBelumJadi.n > 0) w.push('PO belum diterima: ' + d.poBelumJadi.n + ' bon (' + _fmtRp(d.poBelumJadi.sisa) + '), belum masuk tagihan.');
     if (d.fallbackTgl > 0) w.push(d.fallbackTgl + ' bon reseller tidak punya tanggal diterima, dipakai tanggal bon.');
+    if (d.cicTanpaTgl > 0) w.push(d.cicTanpaTgl + ' hutang tidak punya tanggal cicilan, tidak dihitung.');
+    if (d.cicTanpaAkun > 0) w.push(d.cicTanpaAkun + ' hutang belum terhubung ke akun kewajiban, dianggap belum dibayar.');
+    if (d.anggaranBulan && d.anggaranBulan !== d.today.slice(0, 7)) w.push('Anggaran bulan ini belum ada, memakai anggaran ' + d.anggaranBulan + '.');
     warn.innerHTML = w.map(function(x) { return '<div>' + _zdKasEsc(x) + '</div>'; }).join('');
     warn.style.display = w.length ? '' : 'none';
   }
@@ -3314,11 +3428,46 @@ function _zdKasPaint(d) {
   }
 }
 
+// Alasan status disimpan di ikon (?) dan ditampilkan sebagai bubble saat diketuk.
+// Bubble TETAP sampai diketuk lagi / ketuk di luar / scroll (alasannya bisa 3 baris).
+function _zdKasSetReason(txt) {
+  var h = document.getElementById('zd-kas-help');
+  if (h) h.setAttribute('data-reason', txt || '');
+  var b = document.getElementById('zd-kas-bubble');
+  if (b) b.textContent = txt || '';
+}
+function zdKasHint(el) {
+  var lama = document.getElementById('zd-kas-bubble');
+  if (lama) { lama.remove(); return; }                      // ketuk (?) lagi = tutup
+  var b = document.createElement('div');
+  b.id = 'zd-kas-bubble'; b.className = 'zdk-bubble';
+  b.textContent = el.getAttribute('data-reason') || '';
+  document.body.appendChild(b);
+  var r = el.getBoundingClientRect();
+  var w = b.offsetWidth;
+  b.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  b.style.top = (r.bottom + 8) + 'px';
+  var tutup = function(ev) {
+    if (ev && ev.target && ev.target.closest && ev.target.closest('#zd-kas-help')) return;   // toggle ditangani onclick (?)
+    var x = document.getElementById('zd-kas-bubble'); if (x) x.remove();
+    document.removeEventListener('click', tutup, true);
+    window.removeEventListener('scroll', tutup, true);
+    window.removeEventListener('resize', tutup, true);
+  };
+  setTimeout(function() {
+    document.addEventListener('click', tutup, true);
+    window.addEventListener('scroll', tutup, true);
+    window.addEventListener('resize', tutup, true);
+  }, 0);
+}
+window.zdKasHint = zdKasHint;
+
 function _zdKasPaintError(e) {
   var badge = document.getElementById('zd-kas-badge');
-  if (badge) { badge.className = 'zdk-badge'; badge.innerHTML = '<span class="zdk-dot"></span>Tidak tersedia'; }
-  var rs = document.getElementById('zd-kas-reason');
-  if (rs) rs.textContent = 'Gagal menghitung kecepatan kas: ' + (e && e.message ? e.message : e) + '. Tekan Refresh untuk mencoba lagi.';
+  if (badge) { badge.className = 'nw-slide-value zdk-status'; badge.textContent = 'Tidak tersedia'; }
+  var subEl = document.getElementById('zd-kas-sub');
+  if (subEl) subEl.textContent = 'gagal dihitung';
+  _zdKasSetReason('Gagal menghitung kecepatan kas: ' + (e && e.message ? e.message : e) + '. Tekan Refresh untuk mencoba lagi.');
 }
 
 async function zdKasRender() {
@@ -3375,7 +3524,14 @@ window.zdKasRender = zdKasRender;
     '.zdk-bar-fill.kuning{background:var(--warn)}.zdk-bar-fill.merah{background:var(--danger)}',
     '.zdk-bar-tgt{position:absolute;top:-3px;width:2px;height:13px;background:var(--ink)}',
     '.zdk-late{color:var(--danger);font-weight:700}',
-    '.zdk-note{font-size:11px;color:var(--ink3);margin-top:8px}'
+    '.zdk-note{font-size:11px;color:var(--ink3);margin-top:8px}',
+    '#nw-swipe-container .zdk-status{color:var(--ink3)}',
+    '#nw-swipe-container .zdk-status.hijau{color:var(--ok)}',
+    '#nw-swipe-container .zdk-status.kuning{color:var(--warn)}',
+    '#nw-swipe-container .zdk-status.merah{color:var(--danger)}',
+    '.zdk-help{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--ink4);background:transparent;color:var(--ink3);font-size:10px;font-weight:700;line-height:1;padding:0;cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0;flex-shrink:0}',
+    '.zdk-help:hover{color:var(--ink);border-color:var(--ink3)}',
+    '.zdk-bubble{position:fixed;z-index:9999;max-width:min(300px,calc(100vw - 16px));background:#2b2b2b;color:#fff;font-size:12px;line-height:1.45;font-weight:500;padding:9px 12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:pre-line;text-transform:none;letter-spacing:0}'
   ].join('\n');
   document.head.appendChild(s);
 })();
