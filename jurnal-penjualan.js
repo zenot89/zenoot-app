@@ -631,6 +631,14 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
       </div>
 
+      <!-- KIRIM VIA RH (6 Okt 2026): muncul hanya untuk SKU XL yang punya padanan RH (dropship). Dicatat sebagai SKU RH. -->
+      <div id="jp-via-rh-wrap" style="display:none;margin:2px 0 12px;padding:10px 12px;border:2px solid var(--cream4);border-radius:8px;background:var(--cream2)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink)">
+          <input type="checkbox" id="jp-via-rh" onchange="jpToggleViaRh()" style="width:18px;height:18px;margin:0;flex:none">
+          <span>Kirim via RH (dropship)</span>
+        </label>
+        <div id="jp-via-rh-info" style="margin-top:5px;font-size:12px;color:var(--ink3);line-height:1.45"></div>
+      </div>
       <!-- ── PICKER BOTTOM SHEET (ala BRImo): dipakai gantian buat SKU Induk
            & SKU Variasi (mode via _jpSkuSheetMode) — konsisten sama picker
            akun di Kas & Jurnal / supplier di Hutang Barang. ── -->
@@ -3339,7 +3347,7 @@ async function simpanJP() {
     if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
     if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
     // ── Resolve SKU: normalize dan validasi vs produk list ──
-    const resolved = _jpResolveSku(sku);
+    const resolved = _jpResolveSku(_jpViaRhApply(sku));   // 6 Okt 2026: "Kirim via RH" mencatat SKU RH-nya
     if (!resolved.ok) {
       const lanjut = await zConfirm(
         'SKU "' + sku + '" tidak ditemukan di master produk.\n' +
@@ -3418,10 +3426,76 @@ function _jpLiveItem() {
   var qty   = parseInt(document.getElementById('jp-qty').value) || 0;
   var harga = idrVal('jp-harga');
   var total = idrVal('jp-total') || qty * harga;
-  return { sku: skuV.toUpperCase(), skuLabel: skuV, qty: qty, harga: harga, total: total, live: true };
+  var viaRh = !!(_jpViaRh && _jpViaRh.from === skuV.toUpperCase());
+  return { sku: _jpViaRhApply(skuV), skuLabel: viaRh ? (_jpViaRh.label + ' (via RH)') : skuV, qty: qty, harga: harga, total: total, live: true };
+}
+
+// ─── KIRIM VIA RH (6 Okt 2026) ───────────────────────────────────
+// Kasus: Turtleneck DIMI (ukuran M maupun XL) punya padanan di RH (All Size ~ XL, dropship). Kalau stok DIMI belum jadi dan batas
+// kirim mepet, penjualan dicatat sebagai SKU RH-nya: stok DIMI tidak berkurang, bon RH terbentuk otomatis lewat
+// mekanisme dropship yang sudah ada, dan harga satuan = HPP RH. Tidak ada kolom/tabel baru; modul lain tidak berubah.
+// Padanan dicari lewat nama (spasi/underscore/huruf besar-kecil diabaikan): Turtleneck_HITAM-XL / -M  ->  Turtleneck_Hitam,
+// dan hanya kalau SKU RH itu memang berstatus dropship (_jpDsMap) supaya tidak jadi SKU bertumpuk stok minus.
+var _jpViaRh = null;   // { from, to, label, hpp } saat dicentang
+function _jpNormSku(s) { return String(s || '').replace(/[\s_]+/g, '_').toLowerCase(); }
+function _jpRhPair(sku) {
+  var s0 = String(sku || '').trim();
+  var m = /^(.*?)\s*-\s*(XXL|XL|L|M|S|XS)$/i.exec(s0);   // ukuran apa pun: RH hanya All Size, dikirim apa adanya
+  if (!m) return null;
+  var base = _jpNormSku(m[1]);
+  if (!base) return null;
+  if (_jpDsMap[s0.toUpperCase()]) return null;   // SKU ini sendiri sudah dropship
+  for (var i = 0; i < _jpProdukList.length; i++) {
+    var k = _jpGetSku(_jpProdukList[i]);
+    if (!k || _jpNormSku(k) !== base) continue;
+    if (!_jpDsMap[String(k).toUpperCase()]) continue;
+    return { sku: String(k).toUpperCase(), label: k, hpp: Number(_jpGetHpp(_jpProdukList[i])) || 0, size: m[2].toUpperCase() };
+  }
+  return null;
+}
+function _jpViaRhApply(sku) {   // SKU yang benar-benar dicatat: SKU RH kalau "via RH" aktif untuk SKU ini
+  var u = String(sku || '').trim().toUpperCase();
+  return (_jpViaRh && _jpViaRh.from === u) ? _jpViaRh.to : u;
+}
+function _jpRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
+function _jpViaRhRefresh() {
+  var wrap = document.getElementById('jp-via-rh-wrap');
+  if (!wrap) return;
+  var cb = document.getElementById('jp-via-rh'), info = document.getElementById('jp-via-rh-info');
+  var idEl = document.getElementById('jp-id'), vEl = document.getElementById('jp-sku-variasi');
+  var skuV = vEl ? String(vEl.value || '') : '';
+  var pair = (idEl && idEl.value) ? null : _jpRhPair(skuV);   // mode edit: tanpa pilihan ini
+  if (!pair) { _jpViaRh = null; if (cb) cb.checked = false; wrap.style.display = 'none'; return; }
+  if (_jpViaRh && _jpViaRh.from !== skuV.toUpperCase()) { _jpViaRh = null; if (cb) cb.checked = false; }
+  wrap.style.display = 'block';
+  if (!info) return;
+  var sisa = _jpSisakMap[skuV.toUpperCase()];
+  var catatan = (pair.size !== 'XL') ? ' <b>Ukuran yang dikirim RH: All Size (setara XL).</b>' : '';
+  if (_jpViaRh) info.innerHTML = 'Dicatat sebagai <b>' + pair.label + '</b> &middot; harga RH ' + _jpRp(pair.hpp) + '. Stok DIMI tidak berkurang, masuk bon RH.' + catatan;
+  else if (sisa !== undefined && sisa <= 0) info.innerHTML = '<span style="color:var(--danger);font-weight:700">Stok DIMI habis.</span> Centang untuk kirim via RH (' + pair.label + ', ' + _jpRp(pair.hpp) + ').';
+  else info.innerHTML = 'Padanan di RH: ' + pair.label + ' &middot; ' + _jpRp(pair.hpp) + '.' + catatan;
+}
+function jpToggleViaRh() {
+  var cb = document.getElementById('jp-via-rh');
+  var sel = document.getElementById('jp-sku-variasi');
+  var skuV = sel ? String(sel.value || '') : '';
+  var pair = _jpRhPair(skuV);
+  var hargaEl = document.getElementById('jp-harga');
+  if (!cb || !pair || !hargaEl) return;
+  if (cb.checked) {
+    _jpViaRh = { from: skuV.toUpperCase(), to: pair.sku, label: pair.label, hpp: pair.hpp };
+    if (pair.hpp > 0) hargaEl.value = pair.hpp;
+  } else {
+    _jpViaRh = null;
+    var opt = sel.options[sel.selectedIndex];
+    var h = (opt && parseInt(opt.dataset.hpp)) || 0;
+    if (h > 0) hargaEl.value = h;   // kembali ke HPP DIMI
+  }
+  hitungTotalJP();
 }
 
 function _jpRenderPending() {
+  _jpViaRhRefresh();   // pilihan "Kirim via RH" ikut SKU yang sedang dipilih
   var list  = document.getElementById('jp-pending-list');
   var tbody = document.getElementById('jp-pending-tbody');
   var count = document.getElementById('jp-pending-count');
@@ -3476,8 +3550,9 @@ function jpSimpanDanTambah() {
   const chId    = chIdRaw ? chIdRaw : null;
   const skuV  = document.getElementById('jp-sku-variasi').value;
   const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
-  const sku   = (skuV || skuI).trim().toUpperCase();
-  const skuLabel = skuV || sku;
+  const sku0  = (skuV || skuI).trim().toUpperCase();
+  const sku   = _jpViaRhApply(sku0);   // 6 Okt 2026: "Kirim via RH" mencatat SKU RH-nya
+  const skuLabel = (sku !== sku0 && _jpViaRh) ? (_jpViaRh.label + ' (via RH)') : (skuV || sku0);
   const tgl   = document.getElementById('jp-tgl').value;
   const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
 
