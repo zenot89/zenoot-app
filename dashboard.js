@@ -28,7 +28,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 1: Net Worth -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
         <!-- Header: biru -->
         <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
@@ -52,7 +52,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 2: Beban Operasional -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
@@ -67,7 +67,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 3: FCF + Jurnal Income -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Beban Operasional</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Beban &nbsp;·&nbsp; geser → Kas</span></div>
         <!-- Header: abu tua, nilai utama = FCF -->
         <div class="nw-slide-header nw-slide-s3">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
@@ -80,23 +80,30 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 3 -->
 
+      <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — id elemen sama, JS _zdKasPaint tidak berubah -->
+      <div class="nw-swipe-slide" id="zd-kas-card">
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Income</span></div>
+        <!-- Header: ungu -->
+        <div class="nw-slide-header nw-slide-s4">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+            <div class="nw-slide-label" style="margin-bottom:0"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS</div>
+            <span class="zdk-badge" id="zd-kas-badge"><span class="zdk-dot"></span>Memuat...</span>
+          </div>
+          <div class="zdk-reason" id="zd-kas-reason">Menghitung kewajiban supplier dan batch reseller...</div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data">
+          <div class="zdk-stats" id="zd-kas-stats"></div>
+          <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
+          <div class="zdk-links">
+            <button class="zdk-link" onclick="zdDashTab('stok')">Rincian batch</button>
+            <button class="zdk-link" onclick="zdDashTab('keuangan')">Rincian supplier</button>
+          </div>
+        </div>
+      </div><!-- /slide 4 -->
+
     </div><!-- /nw-swipe-track -->
   </div><!-- /nw-swipe-container -->
-
-  <!-- ═══ KECEPATAN KAS — badge Lambat / Sedang / Cepat (7 Okt 2026) ═══ -->
-  <div class="card dash-widget" id="zd-kas-card" style="margin:0 0 12px 0">
-    <div class="zdk-head">
-      <div class="card-title" style="margin:0"><i class="ti ti-gauge"></i> Kecepatan Kas</div>
-      <span class="zdk-badge" id="zd-kas-badge"><span class="zdk-dot"></span>Memuat...</span>
-    </div>
-    <div class="zdk-reason" id="zd-kas-reason">Menghitung kewajiban supplier dan batch reseller...</div>
-    <div class="zdk-stats" id="zd-kas-stats"></div>
-    <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
-    <div class="zdk-links">
-      <button class="zdk-link" onclick="zdDashTab('stok')">Rincian batch reseller</button>
-      <button class="zdk-link" onclick="zdDashTab('keuangan')">Rincian kewajiban supplier</button>
-    </div>
-  </div>
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
@@ -2864,7 +2871,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       pair._swipeInited = true;
       initSwipePair(pair);
     });
-    // Init nw-swipe-container (Net Worth + Beban + Income)
+    // Init nw-swipe-container (Net Worth + Beban + Income + Kecepatan Kas)
     var nwCont = document.getElementById('nw-swipe-container');
     if (nwCont && !nwCont._swipeInited) {
       nwCont._swipeInited = true;
