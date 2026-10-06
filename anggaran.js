@@ -199,6 +199,16 @@ document.getElementById('page-anggaran').innerHTML = `
     backface-visibility: hidden;
   }
 
+  /* Baris bisa ditahan (semua layar, 8 Okt 2026) → menu Edit/Hapus; kolom Aksi dihapus */
+  #ang-tbl-wrap .ang-data-row { cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #ang-tbl-wrap .ang-data-row.ang-row-pressing { background: var(--cream2); opacity: .7; }
+  #ang-row-menu { position: fixed; z-index: 10000; display: none; min-width: 150px; padding: 6px; border-radius: 12px; background: #FFFFFF; border: 1px solid var(--ovl-0_1, rgba(0,0,0,.1)); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+  #ang-row-menu.open { display: block; }
+  #ang-row-menu .ang-rm-title { font-size: 11px; font-weight: 700; color: var(--ink3); padding: 6px 10px 4px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #ang-row-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+  #ang-row-menu button:hover, #ang-row-menu button:active { background: var(--cream2); }
+  #ang-row-menu button.ang-rm-del { color: var(--danger); }
+
   /* ── MOBILE ONLY (≤900px, breakpoint standar app — RULES.md §5.7):
      ringkas tabel jadi 2 kolom doang (Akun Beban + bar progres, Anggaran)
      biar gak perlu scroll ke kiri-kanan lagi di HP. Kolom lain (Kategori,
@@ -210,10 +220,7 @@ document.getElementById('page-anggaran').innerHTML = `
     #ang-tbl-wrap .ang-col-kategori,
     #ang-tbl-wrap .ang-col-realisasi,
     #ang-tbl-wrap .ang-col-selisih,
-    #ang-tbl-wrap .ang-col-pct,
-    #ang-tbl-wrap .ang-col-aksi { display: none !important; }
-    #ang-tbl-wrap .ang-data-row { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    #ang-tbl-wrap .ang-data-row.ang-row-pressing { background: var(--cream2); opacity: .7; }
+    #ang-tbl-wrap .ang-col-pct { display: none !important; }
 
     /* Tombol "Jurnal Harian" & "+ Anggaran" dipisah ke ujung kiri-kanan
        (7 Sep 2026) — dulu ke-cluster nempel kiri pas wrap ke baris sendiri
@@ -297,11 +304,10 @@ document.getElementById('page-anggaran').innerHTML = `
           <th class="ang-col-realisasi" style="text-align:right">Realisasi</th>
           <th class="ang-col-selisih" style="text-align:right">Selisih</th>
           <th class="ang-col-pct" style="text-align:right">%</th>
-          <th class="ang-col-aksi">Aksi</th>
         </tr>
       </thead>
       <tbody id="ang-tbody">
-        <tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+        <tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
   </div>
@@ -492,7 +498,7 @@ let _angJurnalAkunIdMap = {};
 
 async function angLoad() {
   document.getElementById('ang-tbody').innerHTML =
-    '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
+    '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>';
   try {
     const bulan = _angBulanAktif;
     // Auto-carry-forward (per 7 Sep 2026, GANTI tombol manual "Salin Bulan
@@ -532,7 +538,7 @@ async function angLoad() {
     _angCarryNote(bulan, angAll || [], prevAll || []);
   } catch(e) {
     document.getElementById('ang-tbody').innerHTML =
-      `<tr><td colspan="7" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+      `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
@@ -620,12 +626,6 @@ function angRowHtml(akun, ang, kategoriLabel) {
     <td class="ang-col-realisasi" style="text-align:right">${reaStr}</td>
     <td class="ang-col-selisih" style="text-align:right">${selStr}</td>
     <td class="ang-col-pct" style="text-align:right">${pctStr}</td>
-    <td class="ang-col-aksi">
-      <button class="btn btn-sm"
-        onclick="angShowEdit('${akun.id}','${safeNama}','${ang ? ang.id : ''}',${nomAng})"
-        title="Set Anggaran"><i class="ti ti-edit"></i></button>
-      ${ang ? `<button class="btn btn-sm btn-danger" onclick="angHapus('${ang.id}')" style="margin-left:4px" title="Hapus"><i class="ti ti-trash"></i></button>` : ''}
-    </td>
   </tr>`;
 
   return { html, nomAng, nomRea };
@@ -655,7 +655,7 @@ function angRender() {
   _angAnggaran.forEach(a => { angMap[String(a.akun_id)] = a; });
 
   if (!_angAkunBeban.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun beban. Tambah via Kas & Jurnal → Kelola Akun.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada akun beban. Tambah via Kas & Jurnal → Kelola Akun.</td></tr>';
     angUpdateMetrics(0, 0);
     return;
   }
@@ -690,7 +690,7 @@ function angRender() {
     lainnyaAkun.forEach(akun => {
       const label = angGroupLabel(akun);
       if (label !== lastLabel) {
-        lainnyaRows.push(`<tr class="ang-group-divider"><td colspan="7">${label}</td></tr>`);
+        lainnyaRows.push(`<tr class="ang-group-divider"><td colspan="6">${label}</td></tr>`);
         lastLabel = label;
       }
       lainnyaRows.push(angRowHtml(akun, angMap[String(akun.id)]).html);
@@ -698,7 +698,7 @@ function angRender() {
   }
 
   if (!mainRows.length && !lainnyaRows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada anggaran diset bulan ini. Klik + Anggaran.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada anggaran diset bulan ini. Klik + Anggaran.</td></tr>';
     angUpdateMetrics(0, 0);
     return;
   }
@@ -1080,68 +1080,96 @@ document.addEventListener('zenot:page', function(e) {
   });
 })();
 
-// ─── TAP/LONG-PRESS baris tabel (HP doang, ≤900px) ───────────────────────
-// Ganti tombol Aksi yang disembunyikan di layar sempit (CSS .ang-col-aksi,
-// lihat blok <style> di atas) — pola SAMA kayak "Long-press buat edit" yang
-// udah dipakai di modul lain (RULES.md §8, mis. Hutang Barang), biar konsisten
-// satu app. Tap singkat = angShowEdit (buka form, isi ulang kalau udah ada
-// nominal). Tahan ~500ms = angHapus (masih lewat confirmDelete bawaannya,
-// jadi aman dari ke-trigger gak sengaja). 1 listener delegated di #ang-tbody
-// (bukan per-baris) — otomatis kepasang lagi tiap angRender() ganti innerHTML
-// karena yang di-listen elemen tbody-nya sendiri, bukan baris di dalamnya.
+// ─── TAHAN (long-press) baris tabel → menu Edit / Hapus (semua layar) ─────
+// 8 Okt 2026: kolom Aksi dihapus total. Tahan ~500ms di baris (jari ATAU
+// mouse) → muncul menu kecil Edit / Hapus. Ketuk singkat tidak melakukan
+// apa-apa. Hapus tetap lewat confirmDelete (angHapus). 1 listener delegated
+// di #ang-tbody, jadi tetap hidup walau angRender() ganti innerHTML.
 (function() {
   const LONG_PRESS_MS  = 500;
   const MOVE_CANCEL_PX = 10;
-  let pressTimer = null, pressRow = null, startX = 0, startY = 0, longFired = false;
+  let pressTimer = null, pressRow = null, startX = 0, startY = 0, menuOpenedAt = 0;
 
   function clearPress() {
     if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
     if (pressRow) pressRow.classList.remove('ang-row-pressing');
     pressRow = null;
   }
-  function onStart(e) {
-    if (!window.matchMedia('(max-width:900px)').matches) return; // desktop: skip total, tombol Aksi tetep dipake
+  function menuEl() {
+    let m = document.getElementById('ang-row-menu');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'ang-row-menu';
+    document.body.appendChild(m);
+    return m;
+  }
+  function closeMenu() {
+    const m = document.getElementById('ang-row-menu');
+    if (m) m.classList.remove('open');
+  }
+  function openMenu(row, x, y) {
+    const akunId = row.dataset.akunId, nama = row.dataset.akunNama || '';
+    const angId = row.dataset.angId, nomAng = Number(row.dataset.nomAng) || 0;
+    const m = menuEl();
+    m.innerHTML = '';
+    const t = document.createElement('div');
+    t.className = 'ang-rm-title'; t.textContent = nama;
+    m.appendChild(t);
+    const bEdit = document.createElement('button');
+    bEdit.type = 'button'; bEdit.innerHTML = '<i class="ti ti-edit"></i> Edit';
+    bEdit.onclick = function() { closeMenu(); angShowEdit(akunId, nama, angId, nomAng); };
+    m.appendChild(bEdit);
+    if (angId) {
+      const bDel = document.createElement('button');
+      bDel.type = 'button'; bDel.className = 'ang-rm-del'; bDel.innerHTML = '<i class="ti ti-trash"></i> Hapus';
+      bDel.onclick = function() { closeMenu(); angHapus(angId); };
+      m.appendChild(bDel);
+    }
+    m.classList.add('open');
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(x, window.innerWidth  - w - 8)) + 'px';
+    m.style.top  = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
+    menuOpenedAt = Date.now();
+  }
+  function onDown(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     const row = e.target.closest('.ang-data-row');
     if (!row) return;
-    const pt = e.touches ? e.touches[0] : e;
-    startX = pt.clientX; startY = pt.clientY;
-    longFired = false;
+    startX = e.clientX; startY = e.clientY;
     pressRow = row;
     row.classList.add('ang-row-pressing');
     pressTimer = setTimeout(function() {
-      longFired = true;
-      row.classList.remove('ang-row-pressing');
-      const angId = row.dataset.angId;
-      if (angId) angHapus(angId); // kosong (belum diset) = gak ada apa-apa buat dihapus
+      const r = pressRow;
+      clearPress();
+      if (r) openMenu(r, startX, startY);
     }, LONG_PRESS_MS);
   }
   function onMove(e) {
     if (!pressRow) return;
-    const pt = e.touches ? e.touches[0] : e;
-    if (Math.abs(pt.clientX - startX) > MOVE_CANCEL_PX || Math.abs(pt.clientY - startY) > MOVE_CANCEL_PX) clearPress();
-  }
-  function onEnd() {
-    if (!pressRow) { clearPress(); return; }
-    const row = pressRow;
-    clearPress();
-    if (longFired) return; // udah ditangani di onStart timeout
-    const akunId = row.dataset.akunId;
-    if (!akunId) return;
-    angShowEdit(akunId, row.dataset.akunNama, row.dataset.angId, Number(row.dataset.nomAng) || 0);
+    if (Math.abs(e.clientX - startX) > MOVE_CANCEL_PX || Math.abs(e.clientY - startY) > MOVE_CANCEL_PX) clearPress();
   }
   function initTapHandler() {
     const tbody = document.getElementById('ang-tbody');
     if (!tbody || tbody._angTapInited) return;
     tbody._angTapInited = true;
-    tbody.addEventListener('touchstart', onStart, { passive: true });
-    tbody.addEventListener('touchmove',  onMove,  { passive: true });
-    tbody.addEventListener('touchend',   onEnd);
-    tbody.addEventListener('touchcancel', clearPress);
+    tbody.addEventListener('pointerdown', onDown);
+    tbody.addEventListener('pointermove', onMove);
+    tbody.addEventListener('pointerup', clearPress);
+    tbody.addEventListener('pointercancel', clearPress);
+    tbody.addEventListener('pointerleave', clearPress);
+    tbody.addEventListener('contextmenu', function(e) { if (e.target.closest('.ang-data-row')) e.preventDefault(); });
   }
+  // tutup menu kalau tekan di luar / scroll / Esc
+  document.addEventListener('pointerdown', function(e) {
+    const m = document.getElementById('ang-row-menu');
+    if (m && m.classList.contains('open') && !m.contains(e.target) && Date.now() - menuOpenedAt > 350) closeMenu();
+  }, true);
+  document.addEventListener('scroll', closeMenu, true);
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMenu(); });
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'anggaran') return;
+    closeMenu();
     setTimeout(initTapHandler, 80);
   });
   setTimeout(initTapHandler, 300);
 })();
-

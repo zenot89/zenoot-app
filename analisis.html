@@ -8492,17 +8492,31 @@ async function opsHitungKewajibanRinci(){
    CICILAN AKTIF tetap OTOMATIS dari Hutang Aing (opsHitungKewajibanRinci) seperti semula. opsHitungBebanRinci (dari Jurnal) tidak dipanggil lagi. */
 const OPS_TABLE = 'ops_item';
 async function opsFetchBebanManual(){
-  const [akunAll, rows] = await Promise.all([ opsFetchAll('kas_akun', '&order=id.asc'), opsFetchAll(OPS_TABLE, '&order=id.asc') ]);
-  const bRows = rows.filter(r=>r.jenis==='beban');
-  const norm = v=>String(v||'').trim().toLowerCase();
-  const list = akunAll.filter(opsAkunOperasional).map(a=>{
-    const r = bRows.find(x=>x.akun_id!==null && x.akun_id!==undefined && String(x.akun_id)===String(a.id)) ||
-              bRows.find(x=>(x.akun_id===null || x.akun_id===undefined) && norm(x.nama)===norm(a.nama));   // baris lama tanpa akun_id: cocokkan lewat nama
-    return { id:a.id, kode:a.kode||'', nama:a.nama||'-', total:r ? (Number(r.nominal)||0) : 0, rowId:r ? r.id : null };
-  });
+  // [8 Okt 2026] SATU SUMBER DATA: nominal Beban Operasional sekarang ditarik dari Anggaran di Kas & Jurnal (tabel kas_anggaran),
+  // BUKAN lagi ops_item (tabel ops_item dibiarkan utuh, tidak dibaca lagi untuk beban). Bulan acuan = bulan berjalan; kalau bulan itu
+  // belum punya anggaran, dipakai bulan terdekat SEBELUMNYA yang punya data (anggaran "dilanjutkan" selama tidak diubah di Kas).
+  // Hanya akun sub_kelompok Beban Operasional yang punya anggaran > 0 — akun yang tidak diset di Kas tidak tampil (sama seperti halaman Anggaran).
+  // Anggaran kelompok Kewajiban (Pelunasan Hutang) TIDAK ikut, supaya tidak dobel dengan Cicilan Aktif.
+  const d = new Date();
+  const ymNow = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  const [akunAll, angRows] = await Promise.all([
+    opsFetchAll('kas_akun', '&order=id.asc'),
+    dbGet('kas_anggaran', '&bulan=lte.'+ymNow+'&order=bulan.desc,akun_id.asc&limit=500')
+  ]);
+  const bulan = (angRows && angRows.length) ? angRows[0].bulan : ymNow;
+  const angMap = {};
+  (angRows||[]).filter(r=>r.bulan===bulan).forEach(r=>{ angMap[String(r.akun_id)] = Number(r.nominal)||0; });
+  const list = akunAll.filter(opsAkunOperasional).map(a=>({ id:a.id, kode:a.kode||'', nama:a.nama||'-', total:angMap[String(a.id)]||0, rowId:null }))
+    .filter(x=>x.total>0);
   list.sort((x,y)=> (y.total-x.total) || String(x.kode).localeCompare(String(y.kode)));
-  return { total:list.reduce((t,x)=>t+x.total,0), list:list };
+  return { total:list.reduce((t,x)=>t+x.total,0), list:list, bulan:bulan };
 }
+// (versi lama sebelum 8 Okt 2026, dipertahankan sbg komentar — baca ops_item manual)
+// async function opsFetchBebanManual(){
+//   const [akunAll, rows] = await Promise.all([ opsFetchAll('kas_akun', '&order=id.asc'), opsFetchAll(OPS_TABLE, '&order=id.asc') ]);
+//   const bRows = rows.filter(r=>r.jenis==='beban');
+//   ... (cocokkan per akun_id / nama, total = ops_item.nominal, semua akun Beban Operasional tampil walau Rp0)
+// }
 // Rekap bulanan + Pengaturan SEMUA toko langsung dari Supabase (zStore.loadRows), tanpa ganti toko aktif.
 async function opsFetchTokoRows(tokoIds){
   const rekap = {}, settings = {};
@@ -8547,7 +8561,7 @@ async function opsHitungSemua(force){
   const al = opsAlokasi(totalGabungan, tokoIds, omsetMap);
   const perToko = al.perToko, totalOmsetGabungan = al.totalOmset;
   // (versi lama, dipertahankan sbg komentar) operasional: Math.round(totalGabungan*share)
-  const res = { ymKey, startKey, refMundur: ref.steps>0, refLengkap: ref.complete, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
+  const res = { bebanBulan: beban.bulan || null, ymKey, startKey, refMundur: ref.steps>0, refLengkap: ref.complete, at:Date.now(), error, settingsOk:!error, totalBeban:beban.total, totalKewajiban:kew.total, totalGabungan, totalOmsetGabungan,
                 bebanList:beban.list, kewajibanList:kew.list, perToko, tokoIds, rekapByToko };
   if(!error){ _opsAutoCache = res; _opsDirtyRefresh = true; }   // hasil gagal TIDAK di-cache & TIDAK boleh dipakai buat menimpa angka tersimpan
   return res;
@@ -8892,15 +8906,16 @@ function opsBuildOpsPagesHtml(ops, tokoList){
   }
 
   // [30 Sep 2026] Halaman 1 = Beban Operasional MANUAL (nominal saja; akun otomatis dari Kas): tombol Edit di kepala kartu, ketuk baris untuk ubah nominal.
-  const editBtn = '<button type="button" class="setting-edit-btn ops-edit-toggle'+(_opsEditOn?' is-editing':'')+'">'+(_opsEditOn?'Selesai':'Edit')+'</button>';
-  const rowM = (id, l, sub, v)=> '<div class="rc-row ops-row" data-oid="'+tokoEsc(String(id))+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'<span class="ops-pen" aria-hidden="true">&#9998;</span></div></div>';
+  // [8 Okt 2026] Tombol Edit dihapus: nominal Beban Operasional ditarik dari Anggaran di Kas & Jurnal (ubah di sana). Kode edit lama dibiarkan (dead code).
+  const editBtn = '';
+  const rowM = (id, l, sub, v)=> '<div class="rc-row ops-row" data-oid="'+tokoEsc(String(id))+'"><div class="rc-l">'+l+(sub?'<small>'+sub+'</small>':'')+'</div><div class="rc-v">'+v+'</div></div>';
 
   // Halaman 1 — Beban Operasional
-  const p1 = card(title('Beban Operasional','Tetap tiap bulan &middot; nominal diisi manual')+editBtn,
+  const p1 = card(title('Beban Operasional', ops.bebanBulan ? 'Dari Anggaran Kas &middot; '+tokoEsc(opsBulanLabel(ops.bebanBulan)) : 'Dari Anggaran Kas')+editBtn,
     fmtRp(ops.totalBeban), 'TOTAL &middot; '+ops.bebanList.length+' AKUN',
     ops.bebanList.length
       ? ops.bebanList.map(a=>rowM(a.id, tokoEsc(a.nama), (a.kode?tokoEsc(a.kode):'')+(ops.totalBeban>0?' &middot; '+pct(a.total/ops.totalBeban):''), fmtRp(a.total))).join('')
-      : '<div class="rc-empty">Belum ada akun Beban Operasional di Kas.</div>',
+      : '<div class="rc-empty">Belum ada anggaran Beban Operasional di Kas &amp; Jurnal.</div>',
     'rc-cols', ' style="--rc-rows:'+Math.max(1,Math.ceil(ops.bebanList.length/3))+'"');
 
   // Halaman 2 — Cicilan Aktif (OTOMATIS dari Hutang Aing, seperti semula)
