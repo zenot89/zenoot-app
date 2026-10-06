@@ -286,6 +286,7 @@ document.getElementById('page-anggaran').innerHTML = `
       </button>
     </div>
   </div>
+  <div id="ang-carry-note" style="display:none;font-size:12px;color:var(--ink3);padding:0 2px 10px"></div>
   <div class="tbl-wrap" id="ang-tbl-wrap" style="overflow-y:auto;overflow-x:auto;overscroll-behavior:none;touch-action:pan-y pan-x;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;will-change:scroll-position">
     <table class="tbl">
       <thead>
@@ -506,7 +507,7 @@ async function angLoad() {
     // lagi tiap reload.
     if (bulan) await angAutoCarryForward(bulan);
 
-    const [akunAll, akunAllFull, angAll, jurnalAll] = await Promise.all([
+    const [akunAll, akunAllFull, angAll, jurnalAll, prevAll] = await Promise.all([
       dbGet('kas_akun', '&kelompok=eq.beban&sub_kelompok=eq.Beban Operasional&order=kode.asc'),
       dbGet('kas_akun', '&order=kode.asc'),
       bulan
@@ -514,6 +515,10 @@ async function angLoad() {
         : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),
       bulan
         ? dbGet('jurnal', '&tanggal=gte.' + bulan + '-01&tanggal=lte.' + bulan + '-' + new Date(bulan.split('-')[0], bulan.split('-')[1], 0).getDate() + '&order=tanggal.asc')
+        : [],
+      // Buat keterangan "lanjutan dari bulan X" — cuma dibaca, gak ngubah data
+      bulan
+        ? dbGet('kas_anggaran', '&bulan=lt.' + bulan + '&order=bulan.desc,akun_id.asc&limit=200')
         : [],
     ]);
     _angJurnalAkunIdMap = {};
@@ -524,10 +529,35 @@ async function angLoad() {
     _angAnggaran  = angAll   || [];
     _angJurnal    = jurnalAll || [];
     angRender();
+    _angCarryNote(bulan, angAll || [], prevAll || []);
   } catch(e) {
     document.getElementById('ang-tbody').innerHTML =
       `<tr><td colspan="7" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
+}
+
+// ─── KETERANGAN "ANGGARAN LANJUTAN DARI BULAN X" ──────────────
+// Murni tampilan (8 Okt 2026): bandingkan row kas_anggaran bulan aktif dengan
+// bulan terdekat sebelumnya yang punya data. Nominal sama = masih lanjutan;
+// beda / akun baru = dihitung "diubah". Gak ada kolom/tabel baru, gak nulis data.
+function _angCarryNote(bulan, curRows, prevRows) {
+  const el = document.getElementById('ang-carry-note');
+  if (!el) return;
+  if (!bulan || !curRows.length || !prevRows.length) { el.style.display = 'none'; return; }
+  const srcBulan = prevRows[0].bulan;
+  const prevMap = {};
+  prevRows.filter(r => r.bulan === srcBulan).forEach(r => { prevMap[String(r.akun_id)] = Number(r.nominal) || 0; });
+  let diubah = 0;
+  curRows.forEach(r => {
+    const k = String(r.akun_id);
+    if (!(k in prevMap) || prevMap[k] !== (Number(r.nominal) || 0)) diubah++;
+  });
+  const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const [y, m] = String(srcBulan).split('-');
+  const lbl = (bln[parseInt(m, 10) - 1] || srcBulan) + ' ' + y;
+  el.innerHTML = '<i class="ti ti-corner-down-right" style="margin-right:4px"></i>Anggaran lanjutan dari <b>' + lbl + '</b> — ' +
+    (diubah === 0 ? 'belum ada perubahan' : diubah + ' item diubah/ditambah');
+  el.style.display = '';
 }
 
 // ─── HITUNG REALISASI ─────────────────────────────────────────
@@ -632,11 +662,16 @@ function angRender() {
 
   let totalAng = 0, totalRea = 0;
 
-  const mainRows = _angAkunBeban.map(akun => {
+  // Akun yang belum diset anggarannya DAN belum ada realisasi gak ditampilkan
+  // (8 Okt 2026, biar bersih) — tetap bisa di-set lewat tombol "+ Anggaran".
+  // Kalau udah ada realisasi tanpa anggaran, tetap tampil biar gak ketutup.
+  const mainRows = [];
+  _angAkunBeban.forEach(akun => {
     const r = angRowHtml(akun, angMap[String(akun.id)]);
+    if (r.nomAng === 0 && r.nomRea === 0) return;
     totalAng += r.nomAng;
     totalRea += r.nomRea;
-    return r.html;
+    mainRows.push(r.html);
   });
 
   // Akun kandidatnya _angAkunAllBK (Beban+Kewajiban SEMUA sub_kelompok,
@@ -662,6 +697,11 @@ function angRender() {
     });
   }
 
+  if (!mainRows.length && !lainnyaRows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada anggaran diset bulan ini. Klik + Anggaran.</td></tr>';
+    angUpdateMetrics(0, 0);
+    return;
+  }
   tbody.innerHTML = mainRows.join('') + lainnyaRows.join('');
   angUpdateMetrics(totalAng, totalRea);
 }

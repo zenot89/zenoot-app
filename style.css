@@ -5377,11 +5377,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (min-width: 768px){
   #nw-swipe-container .nw-swipe-track{ align-items:stretch; }
   #nw-swipe-container .nw-swipe-slide{
-    height:370px; min-height:0;   /* 310→370: Kecepatan Kas butuh 5 baris keterangan jelas */
+    height:320px; min-height:0;   /* 370→320 (8 Okt 2026): 370 bikin Net Worth/Beban/Income kosong di bawah; 320 pas buat Kecepatan Kas (terpanjang), sisanya scroll di dalam box */
     display:flex; flex-direction:column;
   }
   #nw-swipe-container .nw-slide-header{ flex:0 0 auto; min-height:100px; box-sizing:border-box; }
   #nw-swipe-container .nw-slide-data{ flex:1 1 auto; min-height:0; }
+  /* Net Worth selalu 4 baris: renggangkan merata biar gak kosong di bawah */
+  #nw-swipe-container #nw-widget + .nw-slide-data{ display:flex; flex-direction:column; justify-content:space-between; }
 }
 
 /* =================================================================
