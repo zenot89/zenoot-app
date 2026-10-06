@@ -83,6 +83,21 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /nw-swipe-track -->
   </div><!-- /nw-swipe-container -->
 
+  <!-- ═══ KECEPATAN KAS — badge Lambat / Sedang / Cepat (7 Okt 2026) ═══ -->
+  <div class="card dash-widget" id="zd-kas-card" style="margin:0 0 12px 0">
+    <div class="zdk-head">
+      <div class="card-title" style="margin:0"><i class="ti ti-gauge"></i> Kecepatan Kas</div>
+      <span class="zdk-badge" id="zd-kas-badge"><span class="zdk-dot"></span>Memuat...</span>
+    </div>
+    <div class="zdk-reason" id="zd-kas-reason">Menghitung kewajiban supplier dan batch reseller...</div>
+    <div class="zdk-stats" id="zd-kas-stats"></div>
+    <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
+    <div class="zdk-links">
+      <button class="zdk-link" onclick="zdDashTab('stok')">Rincian batch reseller</button>
+      <button class="zdk-link" onclick="zdDashTab('keuangan')">Rincian kewajiban supplier</button>
+    </div>
+  </div>
+
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->
   <!-- Baris 1: UANG HARI INI vs AKTIVITAS | Baris 2: PENJUALAN vs TARGET | Baris 3: UNTUNG vs BEBAN | Baris 4: STOK -->
@@ -386,6 +401,13 @@ document.getElementById('page-dashboard').innerHTML = `
       <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
     </div>
   </div>
+  <!-- ═══ TRACKER BATCH RESELLER (aturan hari ke-9) ═══ -->
+  <div class="card dash-widget" id="zd-kas-batch-card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-title"><i class="ti ti-timeline"></i> Tracker Batch Reseller · Hari ke-9</div>
+    <div id="zd-kas-batch-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
   </div><!-- /zd-tab-stok -->
 
   <div class="zd-tab-panel" id="zd-tab-keuangan">
@@ -452,6 +474,13 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="card dash-widget" id="dash-kegiatan-card" style="margin-top:12px;margin-bottom:0">
     <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang · Cicilan</div>
     <div id="dash-kegiatan-list">
+      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+    </div>
+  </div>
+  <!-- ═══ KEWAJIBAN SUPPLIER 14 HARI ═══ -->
+  <div class="card dash-widget" id="zd-kas-due-card" style="margin-top:12px;margin-bottom:0">
+    <div class="card-title"><i class="ti ti-calendar-dollar"></i> Kewajiban Supplier · 14 Hari</div>
+    <div id="zd-kas-due-list">
       <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
     </div>
   </div>
@@ -2196,6 +2225,9 @@ async function loadDashboard() {
     // ─ Aktivitas feed — hari ini saja, max 5
     _renderAktivitas(jpHariIniSell, (jurnalData||[]).filter(r => (r.tanggal||'').startsWith(today)));
 
+    // ─ Kecepatan Kas (badge + tracker batch + kewajiban supplier) — read-only, tidak di-await
+    if (typeof zdKasRender === 'function') zdKasRender();
+
     // ─ Timestamp
     const tsEl = document.getElementById('dash-last-refresh');
     if (tsEl) tsEl.textContent = 'Terakhir diperbarui: '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
@@ -2849,4 +2881,468 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     setTimeout(initAllSwipes, 200);
   });
   window.dbSwipeInit = initAllSwipes;
+})();
+
+// ═══════════════════════════════════════════════════════════
+// KECEPATAN KAS (7 Okt 2026) — badge Lambat / Sedang / Cepat di Dashboard
+// tab Ringkasan + rincian di tab Stok & Supplier (tracker batch reseller)
+// dan tab Keuangan (kewajiban supplier 14 hari).
+//
+// Aturan yang disepakati: "terburuk menang" — badge ngikutin indikator
+// terburuk, dan alasannya ditampilkan.
+//   Indikator 1 — Kecukupan kas 14 hari:
+//       (saldo Kas & Bank + escrow Shopee) ÷ kewajiban supplier yang jatuh
+//       tempo ≤ 14 hari ke depan (yang sudah lewat tempo ikut dihitung).
+//   Indikator 2 — Tracker batch reseller (aturan hari ke-9):
+//       tiap bon PO yang barangnya sudah diterima & masih ada sisa hutang,
+//       minimal 50% modalnya sudah laku di hari ke-9 sejak barang jadi.
+//
+// Aturan tempo (dari user): Dropship = bayar tiap hari Sabtu. Reseller (PO) =
+// bayar 50% saat barang jadi (diterima), sisanya tempo 14 hari. Aturan ini
+// dianggap sama untuk SEMUA supplier reseller (H SOLAH, MAGRA, dst) sampai
+// ada pengecualian — isi ZD_KAS_CFG.supplierTempo bila ada yang beda.
+//
+// Sumber data: hutang_supplier, hutang_bon, hutang_pembayaran,
+// hutang_bon_item, hutang_barang, produk, shopee_finance_cache, plus
+// _dashStokData (sisa stok) & window._dashKasAkunMap/_dashJurnalAllData
+// (saldo kas) yang SUDAH dibangun loadDashboard. TIDAK ada tabel/kolom baru.
+// Sengaja TIDAK menulis ke database sama sekali (read-only).
+//
+// Sengaja belum ada: angka "hari dana tertahan di Shopee" (escrow ÷ omset
+// harian) — shopee_finance_cache cuma 1 baris terakhir (1 toko) sedangkan
+// omset dari semua channel, jadi angkanya menyesatkan. Escrow tetap ikut
+// dihitung sebagai kas yang akan masuk di indikator 1.
+// ═══════════════════════════════════════════════════════════
+var ZD_KAS_CFG = {
+  horizonHari:     14,    // jendela kewajiban yang dihitung
+  resellerTempo:   14,    // hari tempo sisa pembayaran reseller (sejak barang diterima)
+  resellerDpPct:   0.5,   // porsi yang dibayar saat barang jadi
+  supplierTempo:   {},    // override per nama supplier UPPERCASE, mis. { 'MAGRA': { tempo: 7, dpPct: 0.5 } }
+  covHijau:        1.5,   // kecukupan kas ≥ ini = hijau
+  covKuning:       1.0,   // ≥ ini = kuning, di bawahnya merah
+  targetHari:      9,     // titik cek tracker batch (14 hari tempo − 5 hari dana Shopee cair)
+  targetPct:       0.5,   // minimal porsi modal batch yang sudah laku di hari target
+  graceHari:       3,     // 3 hari pertama batch tidak pernah merah
+  trackerWindow:   60     // bon diterima > N hari lalu hanya dihitung kalau masih ada sisa hutang
+};
+
+var _zdKasRunning = false;
+var _zdKasPending = false;
+var _zdKasData    = null;
+
+function _zdKasEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _zdKasParse(s) {
+  var p = String(s || '').slice(0, 10).split('-');
+  if (p.length < 3) return null;
+  var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12, 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+function _zdKasAddDays(s, n) {
+  var d = _zdKasParse(s);
+  if (!d) return null;
+  d.setDate(d.getDate() + n);
+  return _localDateStr(d);
+}
+function _zdKasDiffDays(a, b) {   // b − a (hari)
+  var da = _zdKasParse(a), db = _zdKasParse(b);
+  if (!da || !db) return 0;
+  return Math.round((db.getTime() - da.getTime()) / 86400000);
+}
+function _zdKasSabtuOnOrAfter(s) {   // Sabtu pertama pada/setelah tanggal s
+  var d = _zdKasParse(s);
+  if (!d) return null;
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7));
+  return _localDateStr(d);
+}
+function _zdKasTglPendek(s) {
+  var d = _zdKasParse(s);
+  if (!d) return '—';
+  var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return d.getDate() + ' ' + bln[d.getMonth()];
+}
+function _zdKasPctTxt(x) { return Math.round((x || 0) * 100) + '%'; }
+function _zdKasRank(st) { return st === 'merah' ? 2 : st === 'kuning' ? 1 : 0; }
+function _zdKasWorst(a, b) { return _zdKasRank(b) > _zdKasRank(a) ? b : a; }
+
+// Status 1 batch: di hari target minimal targetPct; sebelum itu dibandingkan
+// target linear (targetPct × hari/targetHari). Hari awal (grace) tidak pernah merah.
+function _zdKasStatusBatch(hari, pct) {
+  var C = ZD_KAS_CFG;
+  var h = Math.max(0, hari);
+  if (h >= C.targetHari) {
+    if (pct >= C.targetPct) return 'hijau';
+    if (pct >= C.targetPct * 0.7) return 'kuning';
+    return 'merah';
+  }
+  var need = C.targetPct * h / C.targetHari;
+  if (pct >= need) return 'hijau';
+  if (h < C.graceHari) return 'kuning';
+  if (pct >= need * 0.6) return 'kuning';
+  return 'merah';
+}
+function _zdKasTargetBatch(hari) {
+  var C = ZD_KAS_CFG;
+  var h = Math.max(0, hari);
+  return C.targetPct * Math.min(h, C.targetHari) / C.targetHari;
+}
+
+async function _zdKasHitung() {
+  var C       = ZD_KAS_CFG;
+  var today   = _localDateStr();
+  var horizon = _zdKasAddDays(today, C.horizonHari);
+  var winFrom = _zdKasAddDays(today, -C.trackerWindow);
+  var sabtuIni = _zdKasSabtuOnOrAfter(today);
+
+  // ── 1) Data dasar (semua kecil; bon dibatasi yang masih relevan) ──
+  var base = await Promise.all([
+    dbGet('hutang_supplier', ''),
+    dbGet('hutang_bon', '&or=(status.is.null,status.neq.lunas)'),
+    dbGet('hutang_bon', '&mode_beli=eq.po&is_po=eq.false&tgl_diterima=gte.' + winFrom).catch(function() { return []; }),
+    dbGet('hutang_barang', ''),
+    dbGet('produk', '&select=id,sku_variasi'),
+    fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1', { headers: _headers() })
+      .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+  ]);
+  var supRows = base[0] || [], barangRows = base[3] || [], produkRows = base[4] || [];
+  var shopeeRows = base[5];
+
+  var bonMap = {};
+  (base[1] || []).forEach(function(b) { bonMap[b.id] = b; });
+  (base[2] || []).forEach(function(b) { if (!bonMap[b.id]) bonMap[b.id] = b; });
+  var bons = Object.keys(bonMap).map(function(k) { return bonMap[k]; });
+  var ids  = bons.map(function(b) { return b.id; });
+
+  // ── 2) Pembayaran per bon ──
+  var payMap = {};
+  if (ids.length) {
+    var pays = await dbGet('hutang_pembayaran', '&bon_id=in.(' + ids.join(',') + ')');
+    (pays || []).forEach(function(p) { payMap[p.bon_id] = (payMap[p.bon_id] || 0) + (Number(p.nominal) || 0); });
+  }
+
+  var supMap = {};
+  supRows.forEach(function(s) { supMap[s.id] = s; });
+
+  // ── 3) Kas: saldo Kas & Bank (rumus sama dgn kartu Saldo Kas) + escrow Shopee ──
+  var akunMap = window._dashKasAkunMap || {};
+  var jr      = window._dashJurnalAllData || [];
+  var kMasuk = 0, kKeluar = 0;
+  jr.forEach(function(r) {
+    var aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
+    var isD = aD && aD.kelompok === 'aset' && String(aD.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    var isK = aK && aK.kelompok === 'aset' && String(aK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    if (isD) kMasuk  += Number(r.nominal || r.debit  || 0);
+    if (isK) kKeluar += Number(r.nominal || r.kredit || 0);
+  });
+  var saldoKas = kMasuk - kKeluar;
+  var escrow   = (shopeeRows && shopeeRows.length) ? (Number(shopeeRows[0].escrow_transit) || 0) : 0;
+  var escrowLive = !!(shopeeRows && shopeeRows.length);
+  var kasTotal = Math.max(0, saldoKas) + escrow;
+
+  // ── 4) Kewajiban per bon ──
+  var obligations = [];     // {tgl, amt, sup, bonId, jenis, label}
+  var poBelumJadi = { n: 0, sisa: 0 };
+  var diLuarAturan = { n: 0, sisa: 0 };
+  var fallbackTgl = 0;
+  var batches = [];          // PO reseller sudah diterima (kandidat tracker)
+
+  bons.forEach(function(b) {
+    var sup    = supMap[b.supplier_id] || null;
+    var nama   = sup ? String(sup.nama || '').toUpperCase() : ('SUPPLIER #' + b.supplier_id);
+    var total  = Number(b.total) || 0;
+    var bayar  = payMap[b.id] || 0;
+    var sisa   = Math.max(0, total - bayar);
+    // mode_beli kosong (bon lama): supplier reseller murni dianggap PO, selain itu dropship
+    var mode   = b.mode_beli === 'po' ? 'po'
+               : (b.mode_beli === 'dropship' ? 'dropship'
+               : ((sup && sup.is_reseller && !sup.is_dropship) ? 'po' : 'dropship'));
+    var ov     = C.supplierTempo[nama] || {};
+    var tempo  = ov.tempo != null ? ov.tempo : C.resellerTempo;
+    var dpPct  = ov.dpPct != null ? ov.dpPct : C.resellerDpPct;
+
+    if (sup && sup.is_produksi_sendiri) {
+      if (sisa > 0) { diLuarAturan.n++; diLuarAturan.sisa += sisa; }
+      return;
+    }
+
+    if (mode === 'po') {
+      if (b.is_po === true) {                       // barang belum jadi → belum ada uang keluar
+        if (sisa > 0) { poBelumJadi.n++; poBelumJadi.sisa += sisa; }
+        return;
+      }
+      var tgl = b.tgl_diterima || null;
+      if (!tgl) { tgl = String(b.tanggal || '').slice(0, 10); fallbackTgl++; }
+      tgl = String(tgl).slice(0, 10);
+      if (sisa > 0) {
+        var dpNeed = Math.min(sisa, Math.max(0, Math.round(total * dpPct) - bayar));
+        var rest   = sisa - dpNeed;
+        if (dpNeed > 0) obligations.push({ tgl: tgl, amt: dpNeed, sup: nama, bonId: b.id, jenis: 'dp',
+          label: 'DP ' + Math.round(dpPct * 100) + '% · barang jadi ' + _zdKasTglPendek(tgl) });
+        if (rest > 0)   obligations.push({ tgl: _zdKasAddDays(tgl, tempo), amt: rest, sup: nama, bonId: b.id, jenis: 'sisa',
+          label: 'Sisa · tempo ' + tempo + ' hari' });
+      }
+      batches.push({ bon: b, sup: nama, tgl: tgl, sisaHutang: sisa, tempoTgl: _zdKasAddDays(tgl, tempo) });
+      return;
+    }
+
+    // dropship → dibayar tiap Sabtu (Sabtu pertama pada/setelah tanggal bon)
+    if (sisa > 0) {
+      var sab = _zdKasSabtuOnOrAfter(String(b.tanggal || '').slice(0, 10));
+      if (!sab) { diLuarAturan.n++; diLuarAturan.sisa += sisa; return; }
+      obligations.push({ tgl: sab, amt: sisa, sup: nama, bonId: b.id, jenis: 'dropship',
+        label: 'Dropship · bayar Sabtu ' + _zdKasTglPendek(sab) });
+    }
+  });
+
+  var due14 = obligations.filter(function(o) { return o.tgl && o.tgl <= horizon; });
+  var butuh14   = due14.reduce(function(s, o) { return s + o.amt; }, 0);
+  var terlambat = due14.filter(function(o) { return o.tgl < today; }).reduce(function(s, o) { return s + o.amt; }, 0);
+  var butuhSabtu = obligations.filter(function(o) { return o.jenis === 'dropship' && o.tgl <= sabtuIni; })
+    .reduce(function(s, o) { return s + o.amt; }, 0);
+
+  var rasio = butuh14 > 0 ? kasTotal / butuh14 : null;
+  var covStatus = rasio == null ? 'hijau' : (rasio >= C.covHijau ? 'hijau' : (rasio >= C.covKuning ? 'kuning' : 'merah'));
+
+  // ── 5) Tracker batch reseller (alokasi sisa stok: barang terbaru yang masih ada) ──
+  var batchIds = batches.map(function(x) { return x.bon.id; });
+  var itemRows = batchIds.length ? await dbGet('hutang_bon_item', '&bon_id=in.(' + batchIds.join(',') + ')') : [];
+  var itemsByBon = {};
+  (itemRows || []).forEach(function(it) { (itemsByBon[it.bon_id] = itemsByBon[it.bon_id] || []).push(it); });
+
+  var barangMap = {}; barangRows.forEach(function(x) { barangMap[x.id] = x; });
+  var produkMap = {}; produkRows.forEach(function(x) { produkMap[x.id] = x; });
+  var sisaMap = {};
+  (typeof _dashStokData !== 'undefined' ? _dashStokData : []).forEach(function(r) {
+    var k = String(r.sku_variasi || '').toUpperCase();
+    if (k) sisaMap[k] = Number(r.sisa) || 0;
+  });
+
+  var perSku = {};
+  batches.forEach(function(bt) {
+    bt.items = []; bt.untracked = 0;
+    (itemsByBon[bt.bon.id] || []).forEach(function(it) {
+      var qty  = it.qty_diterima != null ? Number(it.qty_diterima) : Number(it.qty);
+      var cost = (Number(it.harga_satuan) || 0) / 12;     // harga_satuan tersimpan per LUSIN
+      var br = barangMap[it.barang_id];
+      var pr = br && br.produk_id ? produkMap[br.produk_id] : null;
+      var sku = pr && pr.sku_variasi ? String(pr.sku_variasi).toUpperCase() : '';
+      if (!(qty > 0)) return;
+      if (!sku || sisaMap[sku] === undefined) { bt.untracked++; return; }
+      var row = { sku: sku, qty: qty, cost: cost, remain: qty };
+      bt.items.push(row);
+      (perSku[sku] = perSku[sku] || []).push({ bt: bt, it: row });
+    });
+  });
+  Object.keys(perSku).forEach(function(sku) {
+    var arr = perSku[sku].slice().sort(function(x, y) {
+      if (y.bt.tgl !== x.bt.tgl) return y.bt.tgl > x.bt.tgl ? 1 : -1;
+      return y.bt.bon.id - x.bt.bon.id;
+    });
+    var R = Math.max(0, sisaMap[sku]);
+    arr.forEach(function(e) { var rem = Math.min(R, e.it.qty); e.it.remain = rem; R -= rem; });
+  });
+
+  var tracker = [];
+  batches.forEach(function(bt) {
+    if (bt.sisaHutang <= 0) return;                      // sudah lunas → tidak ada tekanan kas
+    var recv = 0, laku = 0;
+    bt.items.forEach(function(it) { recv += it.qty * it.cost; laku += (it.qty - it.remain) * it.cost; });
+    var hari = Math.max(0, _zdKasDiffDays(bt.tgl, today));
+    var pct  = recv > 0 ? laku / recv : null;
+    var status = pct == null ? 'kuning' : _zdKasStatusBatch(hari, pct);
+    tracker.push({
+      bonId: bt.bon.id, sup: bt.sup, tgl: bt.tgl, hari: hari, pct: pct, target: _zdKasTargetBatch(hari),
+      status: status, sisaHutang: bt.sisaHutang, tempoTgl: bt.tempoTgl, modalRecv: recv,
+      untracked: bt.untracked, tanpaData: pct == null
+    });
+  });
+  tracker.sort(function(a, b) { return _zdKasRank(b.status) - _zdKasRank(a.status) || (a.tgl < b.tgl ? -1 : 1); });
+
+  // ── 6) Status gabungan: terburuk menang + alasan ──
+  var signals = [];
+  if (rasio != null && covStatus !== 'hijau') {
+    signals.push({ st: covStatus, txt: 'Kas + escrow ' + _fmtRp(kasTotal) + ' baru ' + (Math.round(rasio * 10) / 10).toString().replace('.', ',') +
+      '× kewajiban supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' });
+  }
+  tracker.forEach(function(t) {
+    if (t.status === 'hijau') return;
+    if (t.tanpaData) {
+      signals.push({ st: 'kuning', txt: t.sup + ' ' + _zdKasTglPendek(t.tgl) + ': barang belum ter-link ke produk, sell-through tidak bisa dihitung' });
+      return;
+    }
+    signals.push({ st: t.status, txt: t.sup + ' ' + _zdKasTglPendek(t.tgl) + ': hari ke-' + t.hari + ' baru ' + _zdKasPctTxt(t.pct) +
+      ' modal laku (target ≥' + _zdKasPctTxt(t.hari >= C.targetHari ? C.targetPct : t.target) + ')' });
+  });
+  var status = covStatus;
+  tracker.forEach(function(t) { status = _zdKasWorst(status, t.status); });
+  var top = signals.filter(function(s) { return s.st === status; });
+  var reason;
+  if (status === 'hijau') {
+    reason = butuh14 > 0
+      ? 'Kas + escrow ' + _fmtRp(kasTotal) + ' cukup menutup kewajiban supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
+      : 'Tidak ada kewajiban supplier yang jatuh tempo ' + C.horizonHari + ' hari ke depan.';
+  } else {
+    reason = top[0].txt + (top.length > 1 ? ' (+' + (top.length - 1) + ' lainnya)' : '') + '.';
+  }
+
+  return {
+    today: today, horizon: horizon, sabtuIni: sabtuIni, status: status, covStatus: covStatus, reason: reason,
+    saldoKas: saldoKas, escrow: escrow, escrowLive: escrowLive, kasTotal: kasTotal,
+    butuh14: butuh14, terlambat: terlambat, butuhSabtu: butuhSabtu, rasio: rasio,
+    obligations: obligations, due14: due14, tracker: tracker,
+    poBelumJadi: poBelumJadi, diLuarAturan: diLuarAturan, fallbackTgl: fallbackTgl,
+    kasOk: !!(window._dashKasAkunMap && window._dashJurnalAllData)
+  };
+}
+
+function _zdKasPaint(d) {
+  var badge = document.getElementById('zd-kas-badge');
+  if (!badge) return;
+  var lbl = { hijau: 'Cepat', kuning: 'Sedang', merah: 'Lambat' };
+  badge.className = 'zdk-badge ' + d.status;
+  badge.innerHTML = '<span class="zdk-dot"></span>' + lbl[d.status];
+  var rs = document.getElementById('zd-kas-reason');
+  if (rs) rs.textContent = d.reason;
+
+  var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
+  var tiles = [
+    { l: 'Kecukupan ' + ZD_KAS_CFG.horizonHari + ' hari', v: covTxt, c: d.rasio == null ? '' : d.covStatus,
+      s: d.rasio == null ? 'tidak ada tagihan' : 'kas ÷ kewajiban' },
+    { l: 'Kewajiban ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
+      s: d.terlambat > 0 ? 'termasuk lewat tempo ' + _fmtRp(d.terlambat) : 'supplier jatuh tempo' },
+    { l: 'Kas + escrow', v: _fmtRp(d.kasTotal), c: '',
+      s: 'kas ' + _fmtRp(Math.max(0, d.saldoKas)) + (d.escrowLive ? ' + escrow ' + _fmtRp(d.escrow) : ' · Shopee offline') },
+    { l: 'Bayar Sabtu ' + _zdKasTglPendek(d.sabtuIni), v: _fmtRp(d.butuhSabtu), c: '', s: 'dropship' }
+  ];
+  var grid = document.getElementById('zd-kas-stats');
+  if (grid) grid.innerHTML = tiles.map(function(t) {
+    return '<div class="zdk-tile"><div class="zdk-tile-l">' + _zdKasEsc(t.l) + '</div>' +
+      '<div class="zdk-tile-v ' + t.c + '">' + _zdKasEsc(t.v) + '</div>' +
+      '<div class="zdk-tile-s">' + _zdKasEsc(t.s) + '</div></div>';
+  }).join('');
+
+  var warn = document.getElementById('zd-kas-warn');
+  if (warn) {
+    var w = [];
+    if (!d.kasOk) w.push('Saldo kas belum terbaca, hasil bisa terlalu rendah.');
+    if (d.fallbackTgl > 0) w.push(d.fallbackTgl + ' bon reseller tidak punya tanggal diterima, dipakai tanggal bon.');
+    warn.innerHTML = w.map(function(x) { return '<div>' + _zdKasEsc(x) + '</div>'; }).join('');
+    warn.style.display = w.length ? '' : 'none';
+  }
+
+  // ── Tab Stok & Supplier: tracker batch ──
+  var bl = document.getElementById('zd-kas-batch-list');
+  if (bl) {
+    if (!d.tracker.length) {
+      bl.innerHTML = '<div class="dash-kg-empty">Tidak ada batch reseller yang masih punya sisa hutang.</div>';
+    } else {
+      bl.innerHTML = d.tracker.map(function(t) {
+        var pctW = t.pct == null ? 0 : Math.min(100, Math.round(t.pct * 100));
+        var tgtW = Math.min(100, Math.round((t.hari >= ZD_KAS_CFG.targetHari ? ZD_KAS_CFG.targetPct : t.target) * 100));
+        return '<div class="zdk-row">' +
+          '<div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(t.sup) + ' · barang jadi ' + _zdKasTglPendek(t.tgl) +
+          '<span class="zdk-row-sub"> · hari ke-' + t.hari + '</span></div>' +
+          '<span class="zdk-chip ' + t.status + '">' + (t.status === 'hijau' ? 'Aman' : t.status === 'kuning' ? 'Waspada' : 'Bahaya') + '</span></div>' +
+          (t.tanpaData
+            ? '<div class="zdk-row-sub">Barang di bon ini belum ter-link ke produk — sell-through tidak bisa dihitung.</div>'
+            : '<div class="zdk-bar"><div class="zdk-bar-fill ' + t.status + '" style="width:' + pctW + '%"></div><div class="zdk-bar-tgt" style="left:' + tgtW + '%"></div></div>' +
+              '<div class="zdk-row-sub">' + _zdKasPctTxt(t.pct) + ' modal laku · target ' + _zdKasPctTxt(t.hari >= ZD_KAS_CFG.targetHari ? ZD_KAS_CFG.targetPct : t.target) +
+              (t.hari >= ZD_KAS_CFG.targetHari ? '' : ' hari ini (' + _zdKasPctTxt(ZD_KAS_CFG.targetPct) + ' di hari ke-' + ZD_KAS_CFG.targetHari + ')') + '</div>') +
+          '<div class="zdk-row-sub">Sisa hutang ' + _fmtRp(t.sisaHutang) + ' · jatuh tempo ' + _zdKasTglPendek(t.tempoTgl) +
+          (t.untracked > 0 ? ' · ' + t.untracked + ' item belum ter-link' : '') + '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // ── Tab Keuangan: kewajiban supplier ──
+  var dl = document.getElementById('zd-kas-due-list');
+  if (dl) {
+    var rows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    var html = '';
+    if (!rows.length) {
+      html += '<div class="dash-kg-empty">Tidak ada kewajiban supplier yang jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
+    } else {
+      html += rows.slice(0, 12).map(function(o) {
+        var late = o.tgl < d.today;
+        return '<div class="zdk-row"><div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(o.sup) +
+          '<span class="zdk-row-sub"> · ' + _zdKasEsc(o.label) + '</span></div>' +
+          '<div class="zdk-row-amt">' + _fmtRp(o.amt) + '</div></div>' +
+          '<div class="zdk-row-sub">' + (late ? '<span class="zdk-late">Lewat tempo</span> · ' : '') + 'jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>';
+      }).join('');
+      if (rows.length > 12) html += '<div class="zdk-row-sub" style="padding-top:6px">+' + (rows.length - 12) + ' kewajiban lain</div>';
+    }
+    var notes = [];
+    if (d.poBelumJadi.n > 0) notes.push('PO belum jadi: ' + d.poBelumJadi.n + ' bon (' + _fmtRp(d.poBelumJadi.sisa) + '). DP baru jatuh tempo saat barang jadi, belum dihitung.');
+    if (d.diLuarAturan.n > 0) notes.push('Di luar aturan tempo: ' + d.diLuarAturan.n + ' bon (' + _fmtRp(d.diLuarAturan.sisa) + '), tidak dihitung.');
+    html += notes.map(function(x) { return '<div class="zdk-note">' + _zdKasEsc(x) + '</div>'; }).join('');
+    dl.innerHTML = html;
+  }
+}
+
+function _zdKasPaintError(e) {
+  var badge = document.getElementById('zd-kas-badge');
+  if (badge) { badge.className = 'zdk-badge'; badge.innerHTML = '<span class="zdk-dot"></span>Tidak tersedia'; }
+  var rs = document.getElementById('zd-kas-reason');
+  if (rs) rs.textContent = 'Gagal menghitung kecepatan kas: ' + (e && e.message ? e.message : e) + '. Tekan Refresh untuk mencoba lagi.';
+}
+
+async function zdKasRender() {
+  if (_zdKasRunning) { _zdKasPending = true; return; }
+  _zdKasRunning = true;
+  try {
+    var d = await _zdKasHitung();
+    _zdKasData = d;
+    _zdKasPaint(d);
+  } catch (e) {
+    console.warn('[KecepatanKas]', e);
+    _zdKasPaintError(e);
+  } finally {
+    _zdKasRunning = false;
+    if (_zdKasPending) { _zdKasPending = false; zdKasRender(); }
+  }
+}
+window.zdKasRender = zdKasRender;
+
+(function() {
+  if (document.getElementById('zd-kas-style')) return;
+  var s = document.createElement('style');
+  s.id = 'zd-kas-style';
+  s.textContent = [
+    '.zdk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}',
+    '.zdk-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 14px;border-radius:20px;font-weight:700;font-size:15px;background:var(--cream2);color:var(--ink3)}',
+    '.zdk-badge.hijau{background:rgba(76,175,80,.16);color:var(--ok)}',
+    '.zdk-badge.kuning{background:rgba(255,193,7,.18);color:var(--warn)}',
+    '.zdk-badge.merah{background:rgba(224,82,82,.16);color:var(--danger)}',
+    '.zdk-dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex-shrink:0}',
+    '.zdk-reason{font-size:13px;color:var(--ink2);line-height:1.45;margin-bottom:10px}',
+    '.zdk-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}',
+    '@media (max-width:760px){.zdk-stats{grid-template-columns:repeat(2,1fr)}}',
+    '.zdk-tile{background:var(--cream2);border-radius:8px;padding:8px 10px;min-width:0}',
+    '.zdk-tile-l{font-size:11px;color:var(--ink3)}',
+    '.zdk-tile-v{font-size:16px;font-weight:700;margin:2px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}',
+    '.zdk-tile-v.hijau{color:var(--ok)}.zdk-tile-v.kuning{color:var(--warn)}.zdk-tile-v.merah{color:var(--danger)}',
+    '.zdk-tile-s{font-size:11px;color:var(--ink3)}',
+    '.zdk-warn{font-size:11px;color:var(--warn);margin-top:8px}',
+    '.zdk-link{font-size:12px;color:var(--ink3);cursor:pointer;text-decoration:underline dashed;background:none;border:none;padding:0;font-family:inherit}',
+    '.zdk-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}',
+    '.zdk-row{padding:8px 0;border-bottom:1px dashed var(--ink4)}',
+    '.zdk-row:last-child{border-bottom:none}',
+    '.zdk-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px}',
+    '.zdk-row-nm{font-size:13px;font-weight:700;min-width:0}',
+    '.zdk-row-amt{font-size:13px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}',
+    '.zdk-row-sub{font-size:11px;color:var(--ink3);font-weight:400;margin-top:2px}',
+    '.zdk-chip{font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;white-space:nowrap}',
+    '.zdk-chip.hijau{background:rgba(76,175,80,.16);color:var(--ok)}',
+    '.zdk-chip.kuning{background:rgba(255,193,7,.18);color:var(--warn)}',
+    '.zdk-chip.merah{background:rgba(224,82,82,.16);color:var(--danger)}',
+    '.zdk-bar{position:relative;height:7px;background:var(--cream4);border-radius:4px;margin:6px 0 2px;overflow:visible}',
+    '.zdk-bar-fill{height:100%;border-radius:4px;background:var(--ok)}',
+    '.zdk-bar-fill.kuning{background:var(--warn)}.zdk-bar-fill.merah{background:var(--danger)}',
+    '.zdk-bar-tgt{position:absolute;top:-3px;width:2px;height:13px;background:var(--ink)}',
+    '.zdk-late{color:var(--danger);font-weight:700}',
+    '.zdk-note{font-size:11px;color:var(--ink3);margin-top:8px}'
+  ].join('\n');
+  document.head.appendChild(s);
 })();
