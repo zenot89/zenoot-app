@@ -202,12 +202,6 @@ document.getElementById('page-anggaran').innerHTML = `
   /* Baris bisa ditahan (semua layar, 8 Okt 2026) → menu Edit/Hapus; kolom Aksi dihapus */
   #ang-tbl-wrap .ang-data-row { cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   #ang-tbl-wrap .ang-data-row.ang-row-pressing { background: var(--cream2); opacity: .7; }
-  #ang-row-menu { position: fixed; z-index: 10000; display: none; min-width: 150px; padding: 6px; border-radius: 12px; background: #FFFFFF; border: 1px solid var(--ovl-0_1, rgba(0,0,0,.1)); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
-  #ang-row-menu.open { display: block; }
-  #ang-row-menu .ang-rm-title { font-size: 11px; font-weight: 700; color: var(--ink3); padding: 6px 10px 4px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #ang-row-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
-  #ang-row-menu button:hover, #ang-row-menu button:active { background: var(--cream2); }
-  #ang-row-menu button.ang-rm-del { color: var(--danger); }
 
   /* ── MOBILE ONLY (≤900px, breakpoint standar app — RULES.md §5.7):
      ringkas tabel jadi 2 kolom doang (Akun Beban + bar progres, Anggaran)
@@ -318,8 +312,8 @@ document.getElementById('page-anggaran').innerHTML = `
   <div class="modal" style="max-width:400px;width:100%;padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;
                 margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px">
-        <i class="ti ti-edit"></i> Set Anggaran
+      <div class="modal-title" id="ang-modal-title" style="margin:0;border:none;padding:0;font-size:18px">
+        <i class="ti ti-edit"></i> Edit Anggaran
       </div>
       <button onclick="angCloseModal()"
         style="background:none;border:none;font-size:22px;cursor:pointer;
@@ -359,11 +353,20 @@ document.getElementById('page-anggaran').innerHTML = `
         style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;
                border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="angCloseModal()">Batal</button>
-      <button class="btn btn-primary" onclick="angSimpan()">
-        <i class="ti ti-check"></i> Simpan
+    <div class="modal-actions"
+      style="border-top:1.5px dashed var(--ink3);padding-top:12px;display:flex;align-items:center;justify-content:space-between">
+      <button class="btn btn-sm btn-danger" onclick="angHapusDariModal()" id="ang-btn-hapus" style="display:none;flex:0 0 auto">
+        <i class="ti ti-trash"></i> Hapus
       </button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
+        <button class="btn btn-sm" onclick="angCloseModal()" style="min-width:80px">
+          <i class="ti ti-x"></i> Batal
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="angSimpan()"
+          style="font-weight:700;font-size:14px;padding:8px 16px">
+          <i class="ti ti-device-floppy"></i> SIMPAN
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -746,7 +749,23 @@ function angShowEdit(akunId, nama, angId, nomAng) {
   document.getElementById('ang-akun-picker').style.display = 'none';
   document.getElementById('ang-edit-bulan').value    = _angBulanAktif || '';
   document.getElementById('ang-edit-nominal').value  = nomAng > 0 ? Number(nomAng).toLocaleString('id-ID') : '';
+  _angModalMode('<i class="ti ti-edit"></i> Edit Anggaran', !!angId);
   document.getElementById('modal-anggaran').classList.add('open');
+}
+
+// Judul modal + tombol Hapus (di dalam modal, kiri bawah — pola sama #jp-btn-hapus di Jurnal Penjualan).
+// Hapus cuma tampil kalau akun itu SUDAH punya anggaran di bulan yang dibuka.
+function _angModalMode(titleHtml, bisaHapus) {
+  const t = document.getElementById('ang-modal-title');
+  if (t) t.innerHTML = titleHtml;
+  const b = document.getElementById('ang-btn-hapus');
+  if (b) b.style.display = bisaHapus ? '' : 'none';
+}
+function angHapusDariModal() {
+  const id = document.getElementById('ang-edit-id').value;
+  if (!id) return;
+  angCloseModal();
+  angHapus(id);
 }
 
 // Tombol [+ Anggaran] di header — beda dari angShowEdit (yg selalu dari
@@ -775,6 +794,7 @@ function angShowAddNew() {
   pickerLbl.style.color = 'var(--ink3)';
   document.getElementById('ang-edit-bulan').value   = _angBulanAktif || '';
   document.getElementById('ang-edit-nominal').value = '';
+  _angModalMode('<i class="ti ti-plus"></i> Tambah Anggaran', false);
   document.getElementById('modal-anggaran').classList.add('open');
 }
 
@@ -787,6 +807,8 @@ function angAkunSelectChange() {
   const existing = _angAnggaran.find(a => String(a.akun_id) === String(akunId) && a.bulan === bulan);
   document.getElementById('ang-edit-id').value      = existing ? existing.id : '';
   document.getElementById('ang-edit-nominal').value = existing ? Number(existing.nominal).toLocaleString('id-ID') : '';
+  const _hb = document.getElementById('ang-btn-hapus');
+  if (_hb) _hb.style.display = existing ? '' : 'none';
 }
 
 function angFormatNominal(el) {
@@ -1080,56 +1102,21 @@ document.addEventListener('zenot:page', function(e) {
   });
 })();
 
-// ─── TAHAN (long-press) baris tabel → menu Edit / Hapus (semua layar) ─────
-// 8 Okt 2026: kolom Aksi dihapus total. Tahan ~500ms di baris (jari ATAU
-// mouse) → muncul menu kecil Edit / Hapus. Ketuk singkat tidak melakukan
-// apa-apa. Hapus tetap lewat confirmDelete (angHapus). 1 listener delegated
-// di #ang-tbody, jadi tetap hidup walau angRender() ganti innerHTML.
+// ─── TAHAN (long-press) baris tabel → langsung buka modal Edit (semua layar) ───
+// 8 Okt 2026: kolom Aksi dihapus total. Pola SAMA dengan _jpInitLongPress di
+// Jurnal Penjualan: tahan ~500ms di baris (jari ATAU mouse) → modal Edit Anggaran
+// langsung kebuka; tombol Hapus ada DI DALAM modal (hanya kalau akun sudah punya
+// anggaran, lewat confirmDelete). Ketuk singkat tidak melakukan apa-apa.
+// 1 listener delegated di #ang-tbody, jadi tetap hidup walau angRender() ganti innerHTML.
 (function() {
   const LONG_PRESS_MS  = 500;
   const MOVE_CANCEL_PX = 10;
-  let pressTimer = null, pressRow = null, startX = 0, startY = 0, menuOpenedAt = 0;
+  let pressTimer = null, pressRow = null, startX = 0, startY = 0;
 
   function clearPress() {
     if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
     if (pressRow) pressRow.classList.remove('ang-row-pressing');
     pressRow = null;
-  }
-  function menuEl() {
-    let m = document.getElementById('ang-row-menu');
-    if (m) return m;
-    m = document.createElement('div');
-    m.id = 'ang-row-menu';
-    document.body.appendChild(m);
-    return m;
-  }
-  function closeMenu() {
-    const m = document.getElementById('ang-row-menu');
-    if (m) m.classList.remove('open');
-  }
-  function openMenu(row, x, y) {
-    const akunId = row.dataset.akunId, nama = row.dataset.akunNama || '';
-    const angId = row.dataset.angId, nomAng = Number(row.dataset.nomAng) || 0;
-    const m = menuEl();
-    m.innerHTML = '';
-    const t = document.createElement('div');
-    t.className = 'ang-rm-title'; t.textContent = nama;
-    m.appendChild(t);
-    const bEdit = document.createElement('button');
-    bEdit.type = 'button'; bEdit.innerHTML = '<i class="ti ti-edit"></i> Edit';
-    bEdit.onclick = function() { closeMenu(); angShowEdit(akunId, nama, angId, nomAng); };
-    m.appendChild(bEdit);
-    if (angId) {
-      const bDel = document.createElement('button');
-      bDel.type = 'button'; bDel.className = 'ang-rm-del'; bDel.innerHTML = '<i class="ti ti-trash"></i> Hapus';
-      bDel.onclick = function() { closeMenu(); angHapus(angId); };
-      m.appendChild(bDel);
-    }
-    m.classList.add('open');
-    const w = m.offsetWidth, h = m.offsetHeight;
-    m.style.left = Math.max(8, Math.min(x, window.innerWidth  - w - 8)) + 'px';
-    m.style.top  = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
-    menuOpenedAt = Date.now();
   }
   function onDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -1141,7 +1128,9 @@ document.addEventListener('zenot:page', function(e) {
     pressTimer = setTimeout(function() {
       const r = pressRow;
       clearPress();
-      if (r) openMenu(r, startX, startY);
+      if (!r) return;
+      if (navigator.vibrate) navigator.vibrate(15); // getar halus, konfirmasi tekan lama kena
+      angShowEdit(r.dataset.akunId, r.dataset.akunNama || '', r.dataset.angId, Number(r.dataset.nomAng) || 0);
     }, LONG_PRESS_MS);
   }
   function onMove(e) {
@@ -1159,16 +1148,8 @@ document.addEventListener('zenot:page', function(e) {
     tbody.addEventListener('pointerleave', clearPress);
     tbody.addEventListener('contextmenu', function(e) { if (e.target.closest('.ang-data-row')) e.preventDefault(); });
   }
-  // tutup menu kalau tekan di luar / scroll / Esc
-  document.addEventListener('pointerdown', function(e) {
-    const m = document.getElementById('ang-row-menu');
-    if (m && m.classList.contains('open') && !m.contains(e.target) && Date.now() - menuOpenedAt > 350) closeMenu();
-  }, true);
-  document.addEventListener('scroll', closeMenu, true);
-  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMenu(); });
   document.addEventListener('zenot:page', function(e) {
     if (e.detail.page !== 'anggaran') return;
-    closeMenu();
     setTimeout(initTapHandler, 80);
   });
   setTimeout(initTapHandler, 300);

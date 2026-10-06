@@ -918,49 +918,76 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
   const segeraBlock = '';
   const naikBlock   = '';
 
-  const _renderSegeraList = () => segera.length ? `
+  // ── 8 Okt 2026: daftar Order Sekarang & Lagi Naik ditampilkan per SKU INDUK (katalog) ──
+  // Satu baris = satu SKU Induk (+ supplier-nya). Klik → bottom-sheet ala komen Instagram
+  // berisi SKU variasi yang harus di-restock (rsSheetOpen). Urutan group = kemunculan pertama
+  // di list yang sudah diurut urgensi, jadi induk paling mendesak tetap di atas.
+  const _rsGroupBy = (list) => {
+    const map = new Map();
+    list.forEach(r => {
+      const k = (r.katalog || '—') + '|' + r._boss;
+      if (!map.has(k)) map.set(k, { katalog: r.katalog || '—', boss: r._boss, items: [] });
+      map.get(k).items.push(r);
+    });
+    return Array.from(map.values());
+  };
+  const _isHabis = r => r.sisa_stok !== null && r.sisa_stok <= 0;
+  const segeraGroups = _rsGroupBy(segera);
+  const naikGroups   = _rsGroupBy(skuNaik);
+  window._rsGroups = { segera: segeraGroups, naik: naikGroups };
+
+  const _renderSegeraList = () => segeraGroups.length ? `
     <div style="display:flex;flex-direction:column;gap:5px">
-      ${segera.map(r => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+      ${segeraGroups.map((g, i) => {
+        const habisN = g.items.filter(_isHabis).length;
+        const qty    = g.items.reduce((sm, r) => sm + (r.qty_order || 0), 0);
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:6px;cursor:pointer" onclick="rsSheetOpen('segera', ${i})">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
-            <div style="font-size:11px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_rsEsc(g.katalog)}</div>
+            <div style="font-size:11px;color:var(--ink3)"><b>${_rsEsc(g.boss)}</b></div>
           </div>
           <div style="text-align:right;flex-shrink:0;line-height:1.4">
-            <div style="font-size:10px;color:var(--ink3)">sisa · habis · order</div>
+            <div style="font-size:10px;color:var(--ink3)">sku · habis · order</div>
             <div style="font-size:12px;font-weight:700">
-              <span style="color:${r.sisa_stok <= 0 ? 'var(--danger)' : r.sisa_stok <= 3 ? 'var(--danger)' : 'var(--warn)'}">${r.sisa_stok !== null ? r.sisa_stok : '—'}</span>
+              <span style="color:var(--ink)">${g.items.length}</span>
               <span style="color:var(--ink3)"> · </span>
-              <span style="color:var(--danger)">${r.dos !== null ? r.dos+'hr' : '—'}</span>
+              <span style="color:${habisN > 0 ? 'var(--danger)' : 'var(--ink3)'}">${habisN}</span>
               <span style="color:var(--ink3)"> · </span>
-              <span style="color:var(--warn)">${r.qty_order}pcs</span>
+              <span style="color:var(--warn)">${qty}pcs</span>
             </div>
           </div>
           <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Semua stok aman 👌</div>';
 
-  const _renderNaikList = () => skuNaik.length ? `
+  const _renderNaikList = () => naikGroups.length ? `
     <div style="display:flex;flex-direction:column;gap:5px">
-      ${skuNaik.map(r => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer" onclick="restockSwitchTab('${r._boss}')">
+      ${naikGroups.map((g, i) => {
+        const qty = g.items.reduce((sm, r) => sm + (r.qty_order || 0), 0);
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(46,204,122,0.06);border:1px solid rgba(46,204,122,0.2);border-radius:6px;cursor:pointer" onclick="rsSheetOpen('naik', ${i})">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.sku}</div>
-            <div style="font-size:11px;color:var(--ink3)">${r.katalog} · <b>${r._boss}</b></div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_rsEsc(g.katalog)}</div>
+            <div style="font-size:11px;color:var(--ink3)"><b>${_rsEsc(g.boss)}</b></div>
           </div>
           <div style="text-align:right;flex-shrink:0;line-height:1.4">
-            <div style="font-size:10px;color:var(--ink3)">tren · order</div>
+            <div style="font-size:10px;color:var(--ink3)">sku · order</div>
             <div style="font-size:12px;font-weight:700">
-              <span style="color:var(--ok)">${r.tren === 'baru' ? '★ baru' : '↑ naik'}</span>
+              <span style="color:var(--ok)">${g.items.length}</span>
               <span style="color:var(--ink3)"> · </span>
-              <span style="color:var(--warn)">${r.qty_order}pcs</span>
+              <span style="color:var(--warn)">${qty}pcs</span>
             </div>
           </div>
           <i class="ti ti-chevron-right" style="color:var(--ink3);flex-shrink:0;font-size:13px"></i>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>';
+
+  // (versi lama sebelum 8 Okt 2026, dipertahankan sbg komentar — 1 baris per SKU VARIASI, klik = pindah ke tab supplier)
+  // const _renderSegeraList = () => segera.length ? `... segera.map(r => <div onclick="restockSwitchTab('${r._boss}')"> ${r.sku} · ${r.katalog} · ${r._boss} · sisa/habis/order ...`
+  // const _renderNaikList   = () => skuNaik.length ? `... skuNaik.map(r => ... ${r.sku} ... tren · order ...`
 
   // Pre-render list HTML — harus sebelum template string return
   const _segeraHtml = _renderSegeraList();
@@ -1116,6 +1143,102 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       ${clearanceBlock}
       ${zombieBlock}
     </div>`;
+}
+
+// ── BOTTOM-SHEET VARIASI (ala komen Instagram) — 8 Okt 2026 ──
+// Pola dari mi-sheet di clearance-induk.js (salinan sendiri, id/class sendiri: rs-*). Elemen dibuat lewat JS
+// & ditempel ke <body> (position:fixed, jadi gak ketiban overflow/transform halaman). HP: penuh di bawah;
+// laptop: selebar maks 480px di tengah bawah. Ketuk variasi → tutup sheet & buka tab supplier-nya.
+function _rsEsc(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _rsEnsureSheet() {
+  if (document.getElementById('rs-sheet')) return;
+  const st = document.createElement('style');
+  st.id = 'rs-sheet-style';
+  st.textContent = `
+    #rs-sheet-overlay { display:none; position:fixed; inset:0; z-index:700; touch-action:none; background:rgba(0,0,0,.55); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+    #rs-sheet-overlay.open { display:block; }
+    #rs-sheet { position:fixed; left:0; right:0; bottom:0; margin:0 auto; max-width:480px; z-index:701; background:var(--cream2); border-radius:20px 20px 0 0;
+      transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); padding-bottom:env(safe-area-inset-bottom,16px);
+      max-height:82vh; display:none; flex-direction:column; overflow:hidden; }
+    #rs-sheet.open { display:flex; transform:translateY(0); }
+    #rs-sheet-close { position:absolute; top:10px; right:10px; width:32px; height:32px; border:none; background:var(--ovl-0_06); border-radius:50%;
+      display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink3); font-size:16px; z-index:2; padding:0; }
+    .rs-sh-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:12px auto 4px; flex:none; }
+    .rs-sh-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 52px 2px; letter-spacing:-.2px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rs-sh-stats { text-align:center; font-size:12px; color:var(--ink3); padding:0 16px 10px; flex:none; border-bottom:1px solid var(--ovl-0_06); }
+    .rs-sh-stats b { font-size:15px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; margin:0 2px 0 6px; }
+    .rs-sh-stats b:first-child { margin-left:0; }
+    .rs-sh-stats b.rs-sh-pcs { color:var(--warn); }
+    #rs-sh-list { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:0 12px 12px; }
+    .rs-sh-head, .rs-sh-row { display:grid; column-gap:8px; align-items:center; padding:10px 4px; }
+    .rs-sh-seg  { grid-template-columns:minmax(0,1fr) 40px 44px 62px; }
+    .rs-sh-naik { grid-template-columns:minmax(0,1fr) 64px 62px; }
+    .rs-sh-head { position:sticky; top:0; z-index:1; background:var(--cream2); font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--ink3); border-bottom:1px solid var(--ovl-0_06); }
+    .rs-sh-head span:not(:first-child), .rs-sh-row > div:not(:first-child) { text-align:center; }
+    .rs-sh-head span:last-child, .rs-sh-row > div:last-child { text-align:right; }
+    .rs-sh-row { border-bottom:1px solid var(--ovl-0_04); font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; }
+    .rs-sh-row:active { background:var(--ovl-0_08); }
+    .rs-sh-sku { font-weight:600; word-break:break-word; }
+    .rs-sh-n { font-weight:700; }
+    .rs-sh-empty { padding:22px 8px; text-align:center; color:var(--ink3); font-style:italic; font-size:13px; }
+  `;
+  document.head.appendChild(st);
+  const ov = document.createElement('div');
+  ov.id = 'rs-sheet-overlay';
+  ov.onclick = rsSheetClose;
+  const sh = document.createElement('div');
+  sh.id = 'rs-sheet';
+  sh.innerHTML = '<button type="button" id="rs-sheet-close" aria-label="Tutup"><i class="ti ti-x"></i></button>' +
+    '<div class="rs-sh-handle"></div><div class="rs-sh-title" id="rs-sh-title"></div>' +
+    '<div class="rs-sh-stats" id="rs-sh-stats"></div><div id="rs-sh-list"></div>';
+  document.body.appendChild(ov);
+  document.body.appendChild(sh);
+  document.getElementById('rs-sheet-close').onclick = rsSheetClose;
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') rsSheetClose(); });
+}
+function rsSheetOpen(mode, idx) {
+  const g = window._rsGroups && window._rsGroups[mode] && window._rsGroups[mode][idx];
+  if (!g) return;
+  _rsEnsureSheet();
+  const isSeg = mode === 'segera';
+  const qty = g.items.reduce((sm, r) => sm + (r.qty_order || 0), 0);
+  document.getElementById('rs-sh-title').textContent = g.katalog;
+  document.getElementById('rs-sh-stats').innerHTML =
+    '<b>' + g.items.length + '</b>varian · <b class="rs-sh-pcs">' + qty + '</b>pcs order · <b>' + _rsEsc(g.boss) + '</b>';
+  const bossAttr = _rsEsc(g.boss);
+  const rows = g.items.map(r => {
+    if (isSeg) {
+      const sisaCol = (r.sisa_stok !== null && r.sisa_stok <= 3) ? 'var(--danger)' : 'var(--warn)';
+      return '<div class="rs-sh-row rs-sh-seg" data-boss="' + bossAttr + '" onclick="rsSheetGo(this.dataset.boss)">' +
+        '<div class="rs-sh-sku">' + _rsEsc(r.sku) + '</div>' +
+        '<div class="rs-sh-n" style="color:' + sisaCol + '">' + (r.sisa_stok !== null ? r.sisa_stok : '—') + '</div>' +
+        '<div class="rs-sh-n" style="color:var(--danger)">' + (r.dos !== null ? r.dos + 'hr' : '—') + '</div>' +
+        '<div class="rs-sh-n" style="color:var(--warn)">' + r.qty_order + 'pcs</div></div>';
+    }
+    return '<div class="rs-sh-row rs-sh-naik" data-boss="' + bossAttr + '" onclick="rsSheetGo(this.dataset.boss)">' +
+      '<div class="rs-sh-sku">' + _rsEsc(r.sku) + '</div>' +
+      '<div class="rs-sh-n" style="color:var(--ok)">' + (r.tren === 'baru' ? '★ baru' : '↑ naik') + '</div>' +
+      '<div class="rs-sh-n" style="color:var(--warn)">' + r.qty_order + 'pcs</div></div>';
+  }).join('');
+  const head = isSeg
+    ? '<div class="rs-sh-head rs-sh-seg"><span>SKU VARIASI</span><span>SISA</span><span>HABIS</span><span>ORDER</span></div>'
+    : '<div class="rs-sh-head rs-sh-naik"><span>SKU VARIASI</span><span>TREN</span><span>ORDER</span></div>';
+  const list = document.getElementById('rs-sh-list');
+  list.innerHTML = rows ? head + rows : '<div class="rs-sh-empty">Tidak ada variasi.</div>';
+  list.scrollTop = 0;
+  document.getElementById('rs-sheet-overlay').classList.add('open');
+  document.getElementById('rs-sheet').classList.add('open');
+}
+function rsSheetClose() {
+  const ov = document.getElementById('rs-sheet-overlay'), sh = document.getElementById('rs-sheet');
+  if (ov) ov.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+function rsSheetGo(boss) {
+  rsSheetClose();
+  restockSwitchTab(boss);
 }
 
 // ── Tampilan full 1 supplier (tab individual) ──
