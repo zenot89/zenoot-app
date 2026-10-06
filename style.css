@@ -5377,7 +5377,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (min-width: 768px){
   #nw-swipe-container .nw-swipe-track{ align-items:stretch; }
   #nw-swipe-container .nw-swipe-slide{
-    height:310px; min-height:0;
+    height:370px; min-height:0;   /* 310→370: Kecepatan Kas butuh 5 baris keterangan jelas */
     display:flex; flex-direction:column;
   }
   #nw-swipe-container .nw-slide-header{ flex:0 0 auto; min-height:100px; box-sizing:border-box; }
@@ -5511,22 +5511,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   border-bottom:1px dashed var(--ovl-0_1);
 }
 #nw-swipe-container .zdk-tile:last-child{ border-bottom:none; }
-#nw-swipe-container .zdk-tile-l{ grid-area:l; font-size:12px; color:var(--ink); }
+#nw-swipe-container .zdk-tile-l{ grid-area:l; font-size:12px; color:var(--ink); line-height:1.25; }
 #nw-swipe-container .zdk-tile-v{
-  grid-area:v; margin:0; text-align:right; font-size:14px;
+  grid-area:v; margin:0; text-align:right; font-size:13px;
   font-family:var(--mono,'IBM Plex Mono',monospace); white-space:nowrap;
 }
-#nw-swipe-container .zdk-tile-s{ grid-area:s; font-size:10px; color:var(--ink3); overflow-wrap:anywhere; }
+#nw-swipe-container .zdk-tile-s:empty{ display:none; }
+#nw-swipe-container .zdk-tile-s{ grid-area:s; font-size:10px; line-height:1.25; color:var(--ink3); overflow-wrap:anywhere; }
+/* lepas batas max-height 218px aturan lama untuk keempat kartu, supaya box rincian ikut setinggi kartu (tinggi sama rata) */
+@media (min-width: 768px){ #nw-swipe-container .nw-slide-data{ max-height:none; } }
 #nw-swipe-container .zdk-links{ margin-top:6px; gap:4px 16px; }
 /* HP: tinggi box tetap 160px seperti slide lain (biar container tidak melar & tidak ada
    ruang kosong di slide 1-3); baris dirapatkan supaya 4 tile muat, link rincian di-scroll */
 @media (max-width: 767px){
-  #nw-swipe-container #zd-kas-card .nw-slide-data{ padding-top:6px; }
+  #nw-swipe-container #zd-kas-card .nw-slide-data{ padding-top:6px; height:200px; }
 }
 
-/* Laptop sempit / tablet (768–1199px): 4 kolom terlalu sempit untuk angka Rupiah
+/* Laptop sempit / tablet (768–1279px): 4 kolom terlalu sempit untuk angka Rupiah
    → 2×2. HP (<768px) tidak kena, tetap swipe 1 slide per layar. */
-@media (min-width: 768px) and (max-width: 1199px){
+@media (min-width: 768px) and (max-width: 1279px){
   #nw-swipe-container .nw-swipe-track{ flex-wrap:wrap; row-gap:12px; }
   #nw-swipe-container .nw-swipe-slide{ width:calc(50% - 6px); }
 }

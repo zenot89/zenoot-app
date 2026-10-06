@@ -3107,6 +3107,17 @@ async function _zdKasHitung() {
   var terlambat = due14.filter(function(o) { return o.tgl < today; }).reduce(function(s, o) { return s + o.amt; }, 0);
   var butuhSabtu = obligations.filter(function(o) { return o.jenis === 'dropship' && o.tgl <= sabtuIni; })
     .reduce(function(s, o) { return s + o.amt; }, 0);
+  // Rincian per jenis (8 Okt 2026): dashboard harus jelas ANGKA ITU PUNYA SIAPA —
+  // dropship (bayar Sabtu) vs PO reseller (DP saat barang jadi + sisa tempo 14 hari).
+  function _sumJ(arr) { return arr.reduce(function(s, o) { return s + o.amt; }, 0); }
+  var isDrop     = function(o) { return o.jenis === 'dropship'; };
+  var isLate     = function(o) { return o.tgl < today; };
+  var butuhDrop14 = _sumJ(due14.filter(isDrop));
+  var butuhPo14   = butuh14 - butuhDrop14;
+  var lateDrop    = _sumJ(due14.filter(function(o) { return isDrop(o) && isLate(o); }));
+  var latePo      = terlambat - lateDrop;
+  var lateNames   = [];
+  due14.filter(isLate).forEach(function(o) { if (lateNames.indexOf(o.sup) < 0) lateNames.push(o.sup); });
 
   var rasio = butuh14 > 0 ? kasTotal / butuh14 : null;
   var covStatus = rasio == null ? 'hijau' : (rasio >= C.covHijau ? 'hijau' : (rasio >= C.covKuning ? 'kuning' : 'merah'));
@@ -3170,7 +3181,7 @@ async function _zdKasHitung() {
   var signals = [];
   if (rasio != null && covStatus !== 'hijau') {
     signals.push({ st: covStatus, txt: 'Kas + escrow ' + _fmtRp(kasTotal) + ' baru ' + (Math.round(rasio * 10) / 10).toString().replace('.', ',') +
-      '× kewajiban supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' });
+      '× tagihan supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' });
   }
   tracker.forEach(function(t) {
     if (t.status === 'hijau') return;
@@ -3187,7 +3198,7 @@ async function _zdKasHitung() {
   var reason;
   if (status === 'hijau') {
     reason = butuh14 > 0
-      ? 'Kas + escrow ' + _fmtRp(kasTotal) + ' cukup menutup kewajiban supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
+      ? 'Kas + escrow ' + _fmtRp(kasTotal) + ' cukup menutup tagihan supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
       : 'Tidak ada kewajiban supplier yang jatuh tempo ' + C.horizonHari + ' hari ke depan.';
   } else {
     reason = top[0].txt + (top.length > 1 ? ' (+' + (top.length - 1) + ' lainnya)' : '') + '.';
@@ -3197,6 +3208,7 @@ async function _zdKasHitung() {
     today: today, horizon: horizon, sabtuIni: sabtuIni, status: status, covStatus: covStatus, reason: reason,
     saldoKas: saldoKas, escrow: escrow, escrowLive: escrowLive, kasTotal: kasTotal,
     butuh14: butuh14, terlambat: terlambat, butuhSabtu: butuhSabtu, rasio: rasio,
+    butuhDrop14: butuhDrop14, butuhPo14: butuhPo14, lateDrop: lateDrop, latePo: latePo, lateNames: lateNames,
     obligations: obligations, due14: due14, tracker: tracker,
     poBelumJadi: poBelumJadi, diLuarAturan: diLuarAturan, fallbackTgl: fallbackTgl,
     kasOk: !!(window._dashKasAkunMap && window._dashJurnalAllData)
@@ -3213,15 +3225,25 @@ function _zdKasPaint(d) {
   if (rs) rs.textContent = d.reason;
 
   var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
+  // Setiap angka diberi keterangan jenisnya (dropship / PO reseller) + siapa yang lewat tempo
+  var lateJenis = [];
+  if (d.lateDrop > 0) lateJenis.push('dropship');
+  if (d.latePo   > 0) lateJenis.push('PO reseller');
+  var lateNm = (d.lateNames || []).slice(0, 3).join(', ') + ((d.lateNames || []).length > 3 ? ' +' + (d.lateNames.length - 3) : '');
   var tiles = [
     { l: 'Kecukupan ' + ZD_KAS_CFG.horizonHari + ' hari', v: covTxt, c: d.rasio == null ? '' : d.covStatus,
-      s: d.rasio == null ? 'tidak ada tagihan' : 'kas ÷ kewajiban' },
-    { l: 'Kewajiban ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
-      s: d.terlambat > 0 ? 'termasuk lewat tempo ' + _fmtRp(d.terlambat) : 'supplier jatuh tempo' },
+      s: d.rasio == null ? 'tidak ada tagihan' : '' },
+    { l: 'Tagihan ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
+      s: 'dropship ' + _fmtRp(d.butuhDrop14) + ' · PO ' + _fmtRp(d.butuhPo14) }
+  ];
+  if (d.terlambat > 0) tiles.push({ l: 'Sudah lewat tempo', v: _fmtRp(d.terlambat), c: 'merah',
+    s: lateJenis.join(' + ') + ' belum dibayar' + (lateNm ? ' · ' + lateNm : '') });
+  tiles.push(
     { l: 'Kas + escrow', v: _fmtRp(d.kasTotal), c: '',
       s: 'kas ' + _fmtRp(Math.max(0, d.saldoKas)) + (d.escrowLive ? ' + escrow ' + _fmtRp(d.escrow) : ' · Shopee offline') },
-    { l: 'Bayar Sabtu ' + _zdKasTglPendek(d.sabtuIni), v: _fmtRp(d.butuhSabtu), c: '', s: 'dropship' }
-  ];
+    { l: 'Bayar Sabtu ' + _zdKasTglPendek(d.sabtuIni), v: _fmtRp(d.butuhSabtu), c: '',
+      s: d.lateDrop > 0 ? 'dropship + tunggakan ' + _fmtRp(d.lateDrop) : 'dropship minggu ini' }
+  );
   var grid = document.getElementById('zd-kas-stats');
   if (grid) grid.innerHTML = tiles.map(function(t) {
     return '<div class="zdk-tile"><div class="zdk-tile-l">' + _zdKasEsc(t.l) + '</div>' +
@@ -3233,6 +3255,7 @@ function _zdKasPaint(d) {
   if (warn) {
     var w = [];
     if (!d.kasOk) w.push('Saldo kas belum terbaca, hasil bisa terlalu rendah.');
+    if (d.poBelumJadi && d.poBelumJadi.n > 0) w.push('PO belum diterima: ' + d.poBelumJadi.n + ' bon (' + _fmtRp(d.poBelumJadi.sisa) + '), belum masuk tagihan.');
     if (d.fallbackTgl > 0) w.push(d.fallbackTgl + ' bon reseller tidak punya tanggal diterima, dipakai tanggal bon.');
     warn.innerHTML = w.map(function(x) { return '<div>' + _zdKasEsc(x) + '</div>'; }).join('');
     warn.style.display = w.length ? '' : 'none';
