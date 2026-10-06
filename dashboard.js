@@ -3201,7 +3201,10 @@ async function _zdKasHitung() {
       ? 'Kas + escrow ' + _fmtRp(kasTotal) + ' cukup menutup tagihan supplier ' + C.horizonHari + ' hari (' + _fmtRp(butuh14) + ')' + (tracker.length ? ', batch reseller sesuai target.' : '.')
       : 'Tidak ada kewajiban supplier yang jatuh tempo ' + C.horizonHari + ' hari ke depan.';
   } else {
-    reason = top[0].txt + (top.length > 1 ? ' (+' + (top.length - 1) + ' lainnya)' : '') + '.';
+    // Semua sinyal dengan status terburuk ditulis satu per baris (maks 3) — dulu "(+1 lainnya)"
+    // tidak menyebut apa lainnya itu. Baris dipisah \n, ditampilkan lewat white-space:pre-line.
+    reason = top.slice(0, 3).map(function(x) { return x.txt + '.'; }).join('\n') +
+      (top.length > 3 ? '\n+' + (top.length - 3) + ' sinyal lain, lihat tab Stok & Supplier.' : '');
   }
 
   return {

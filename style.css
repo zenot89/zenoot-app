@@ -5500,7 +5500,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    ================================================================= */
 #nw-swipe-container .zdk-badge{ font-size:13px; padding:2px 11px; gap:6px; flex-shrink:0; }
 #nw-swipe-container .zdk-dot{ width:8px; height:8px; }
-#nw-swipe-container .zdk-reason{ font-size:11px; line-height:1.4; margin:0; color:var(--ink3); }
+#nw-swipe-container .zdk-reason{ font-size:11px; line-height:1.4; margin:0; color:var(--ink3); white-space:pre-line; }
 /* tile: 4 baris label-kiri / nilai-kanan, gaya .nw-row */
 #nw-swipe-container .zdk-stats{ display:block; }
 #nw-swipe-container .zdk-tile{
