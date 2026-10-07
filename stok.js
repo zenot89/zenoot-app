@@ -582,7 +582,7 @@ function renderStok(data) {
     const hpp   = row.hpp   ? `Rp${row.hpp.toLocaleString('id-ID')}` : 'Rp—';
     const nilai = row.nilai_stok > 0 ? `Rp${row.nilai_stok.toLocaleString('id-ID')}` : '—';
     const vel = _stokVelocity(row.sales7, row.sales30, row.sales90);
-    return `<tr>
+    return `<tr${row.dropship ? '' : ' data-sku="' + _stokEsc(row.sku_variasi || '') + '"'}>
       <td>${row.katalog || '—'}</td>
       <td><b>${row.sku_variasi || '—'}</b></td>
       <td style="text-align:center">${row.dropship ? '<b style="color:var(--info)" title="Dropship — tidak nyetok">DS</b>' : '<b>' + row.sisa + '</b>'}</td>
@@ -867,6 +867,47 @@ document.getElementById('page-stok').addEventListener('click', function(e) {
     editStok(btn.dataset.sku);
   }
 });
+
+// 7 Okt 2026: TEKAN-TAHAN baris tabel = edit stok 1 SKU VARIASI saja (mis. Turtleneck_HITAM-M),
+// langsung buka form "Set Sisa Menjadi" lewat editStok() yang sama dengan jalur lama.
+// Tombol "Edit Stock" (edit massal per SKU induk/katalog) TIDAK diubah. Baris Dropship dilewati (tidak nyetok).
+// Pakai pointer events (jalan di HP & mouse); batal kalau jari/kursor geser >8px (lagi scroll/swipe)
+// atau dilepas sebelum 550ms. Khusus modul ini — tidak berbagi fungsi dengan modul lain.
+(function() {
+  var tbody = document.getElementById('stok-tbody');
+  if (!tbody || tbody._stokLpInit) return;
+  tbody._stokLpInit = true;
+  var timer = null, startX = 0, startY = 0, pressedTr = null;
+  function clear() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (pressedTr) { pressedTr.style.background = ''; pressedTr = null; }
+  }
+  tbody.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var tr = e.target.closest('tr[data-sku]');
+    if (!tr) return;
+    clear();
+    startX = e.clientX; startY = e.clientY;
+    pressedTr = tr;
+    tr.style.background = 'rgba(0,0,0,.08)';
+    timer = setTimeout(function() {
+      var sku = tr.getAttribute('data-sku');
+      clear();
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) {} }
+      if (sku) editStok(sku);
+    }, 550);
+  });
+  tbody.addEventListener('pointermove', function(e) {
+    if (!timer) return;
+    if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) clear();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(ev) { tbody.addEventListener(ev, clear); });
+  // Android/desktop: tekan-tahan memunculkan menu konteks & seleksi teks -> dimatikan di area tabel ini
+  tbody.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  tbody.style.userSelect = 'none';
+  tbody.style.webkitUserSelect = 'none';
+  tbody.style.webkitTouchCallout = 'none';
+})();
 
 // ─── FORM TAMBAH/EDIT — konsep JP ────────────────────────────
 
