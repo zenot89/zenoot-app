@@ -561,6 +561,9 @@
   #proyeksiView-input .rks-shell > .rks-main, #byqtyView-input .rks-shell > .rks-main{ grid-area:main; min-width:0; }
   #proyeksiInputPanel, #byqtyInputPanel{ grid-area:input; }
   #proyeksiPriceWrap, #byqtyPriceWrap{ grid-area:price; min-width:0; }
+  /* jarak Price List dari kartu hasil: cuma kalau hasilnya ada (sebelum produk dipilih area hasil kosong, Price List sejajar atas dengan panel Input). HP tetap pakai margin-top bawaan. */
+  html:not(.zan-phone) #proyeksiPriceWrap, html:not(.zan-phone) #byqtyPriceWrap{ margin-top:0 !important; }
+  html:not(.zan-phone) #proyeksiDetail:not(:empty), html:not(.zan-phone) #byqtyDetail:not(:empty){ margin-bottom:16px; }
   .pr-cols{ flex:1; min-height:470px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,2fr) minmax(0,1fr); gap:16px; align-items:stretch; }   /* baris 1: Nilai (IDR) | Rasio — baris 2: Spend Budget Iklan | Cost Produk */
   .pr-card{ display:flex; flex-direction:column; padding:16px 24px 10px; margin-bottom:0; }
   .pr-card h3{ margin:0 0 10px; font-size:clamp(15px,1.9vh,19px); }
@@ -1528,16 +1531,14 @@
   <section class="page" id="page-proyeksi">
     <!-- [7 Okt 2026] By Operasional jadi SATU halaman seperti By Target Qty: hasil (kiri) + Price List & Potongan di bawahnya (kiri) + panel Input (kanan, sejajar).
          View "list" lama (kartu Price List + tombol Input) & tombol Price List lama dibiarkan sebagai dead markup tersembunyi — id tombolnya masih dipakai addEventListener di bawah.
-         Tombol "Salin dari HPP" tetap ada (sumber Price List By Operasional = state.priceList, tidak diubah), pindah ke baris atas halaman. -->
+         Tombol "Salin dari HPP" DIHAPUS dari tampilan (Price List sekarang live dari Kelola Produk, sama dengan By Target Qty) — dead markup tersembunyi, id masih dipakai addEventListener. -->
     <div class="subview" id="proyeksiView-list">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <button class="btn btn-switch" id="btnProyeksiCopy">Salin dari HPP</button>
         <button class="btn btn-switch" id="btnProyeksiNext">Input</button>
       </div>
     </div>
     <div class="subview active" id="proyeksiView-input">
-      <div style="display:flex;justify-content:flex-start;align-items:center;margin-bottom:14px;">
-        <button class="btn btn-switch" id="btnProyeksiCopy">Salin dari HPP</button>
-      </div>
       <div style="display:none;">
         <button class="btn btn-switch" id="btnProyeksiBack">Price List</button>
       </div>
@@ -6611,14 +6612,22 @@ function syncPriceListFromHpp(){
   return added;
 }
 
+var _proyeksiPlLoadTs = 0;   // var (bukan let): aman kalau renderPriceListCard kepanggil sebelum baris ini dieksekusi
 function renderPriceListCard(containerId, tabKey){
   // [7 Okt 2026] By Target Qty: Price List sekarang LIVE dari Kelola Produk (renderByqtyPriceListCard). Cabang lama di bawah (state.priceList / "Salin dari HPP")
-  // tetap dipakai By Operasional; untuk tabKey 'byqty' jadi tidak terpakai lagi (dead code, dipertahankan sesuai aturan kerja).
+  // dulu dipakai By Operasional; sejak 7 Okt 2026 By Operasional juga LIVE dari Kelola Produk (lihat bysupportRows di bawah) — snapshot state.priceList tidak dibaca lagi untuk tabel ini.
   if(tabKey==='byqty') return renderByqtyPriceListCard();
   const card = document.getElementById(containerId);
   const adminBpp = resolveAdminBpp();
   const roasInfo = resolvePriceListRoas();
-  const rows = state.priceList.map((row,idx)=>{
+  // [7 Okt 2026] By Operasional: baris Price List sekarang LIVE dari Kelola Produk (bysupportRows: 1 baris per Katalog, dipecah per size kalau HPP beda) —
+  // SAMA dengan By Target Qty & By Support. Sebelumnya state.priceList (snapshot "Salin dari HPP" dari riwayat Order Completed): `state.priceList.map((row,idx)=>{` (dead, dipertahankan).
+  // Kelola Produk bisa berubah di app utama sesudah iframe dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang kartu ini saja.
+  if(tabKey==='proyeksi' && Date.now()-_proyeksiPlLoadTs > 5000){
+    _proyeksiPlLoadTs = Date.now();
+    zProdukLoad().then(()=>renderPriceListCard(containerId,tabKey)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
+  }
+  const rows = bysupportRows().map((row,idx)=>{
     const net = calcNetPrice(row);
     return `<tr>
       <td>${row.sku}</td>
@@ -6654,7 +6663,7 @@ function renderPriceListCard(containerId, tabKey){
     <div class="pricelist-scroll">
       <table class="ca-table">
         <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="4" style="color:var(--ink-soft);">Belum ada data — klik "Salin dari HPP".</td></tr>'}</tbody>
+        <tbody>${rows || '<tr><td colspan="4" style="color:var(--ink-soft);">Belum ada produk ber-HPP di Kelola Produk.</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -7048,7 +7057,8 @@ function renderProyeksiResult(){
   const statsEl = document.getElementById('proyeksiStats');    // minicard: full-width, gak ikut kegeser panel Input
   const detailEl = document.getElementById('proyeksiDetail');  // Potongan & Rincian: sejajar sama panel Input di kanan
   const row = state.priceList.find(r=>r.sku===proyeksiSelectedSku);
-  if(!row){ statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Pilih produk dulu buat lihat hasil proyeksi.</div></div>'; detailEl.innerHTML=''; return; }
+  // [7 Okt 2026] bar abu "Pilih produk dulu buat lihat hasil proyeksi." DIHAPUS (tidak berguna, cuma memenuhi halaman) — sebelum produk dipilih area hasil dikosongkan.
+  if(!row){ statsEl.innerHTML = ''; detailEl.innerHTML=''; return; }
   const { roas } = resolveProyeksiRoas();   // sumber ROAS pilihan panel Input (default Rekap Mingguan)
   const net = calcNetPrice(row, roas);
   const { adminPct, bpp } = resolveAdminBpp();
@@ -7237,7 +7247,8 @@ function renderByQtyResult(){
   const detailEl = document.getElementById('byqtyDetail');
   const row = state.priceList.find(r=>r.sku===byqtySelectedSku);
   const qtyHarian = parseNum(document.getElementById('byqtyQtyHarian').value)||0;
-  if(!row){ statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Pilih produk dulu buat lihat hasil.</div></div>'; detailEl.innerHTML=''; return; }
+  // [7 Okt 2026] bar abu "Pilih produk dulu buat lihat hasil." DIHAPUS (tidak berguna, cuma memenuhi halaman) — sebelum produk dipilih area hasil dikosongkan.
+  if(!row){ statsEl.innerHTML = ''; detailEl.innerHTML=''; return; }
   const { roas } = resolveByqtyRoas();   // sumber ROAS pilihan panel Input (default Rekap Mingguan)
   const net = calcNetPrice(row, roas);
   const { adminPct, bpp } = resolveAdminBpp();
