@@ -3736,6 +3736,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .rs-dot.active { background: var(--ink); opacity: 1; transform: scale(1.25); }
 .rs-swipe-hint { font-size: 10px; color: var(--ink3); margin-left: 4px; }
 
+/* ── Panel warna daftar Order Sekarang (merah) & Lagi Naik (hijau) — memanjang sampai dasar area list, laptop (3 kolom) & HP (#sum-dual-list) ── */
+.rs-col-fill { -webkit-flex: 1 0 auto; flex: 1 0 auto; box-sizing: border-box; padding: 8px; border-radius: 8px; }
+.rs-col-red   { background: rgba(224,82,82,0.04);  border: 1px solid rgba(224,82,82,0.18); }
+.rs-col-green { background: rgba(46,204,122,0.04); border: 1px solid rgba(46,204,122,0.18); }
+
 /* ── Summary split layout: portrait vs laptop ── */
 /* Portrait (≤767px): toggle mode — split hidden */
 @media (max-width: 767px) {

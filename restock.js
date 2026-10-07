@@ -780,6 +780,8 @@ function sumTabSwitch(mode) {
   const hintEl = document.getElementById('rs-swipe-hint');
   if (hintEl) hintEl.innerHTML = _sumSwipeHints[idx] || '';
 
+  // 8 Okt 2026: panel berwarna memanjang sampai bawah — merah (Order), hijau (Naik), tanpa panel (Supplier)
+  list.className = mode === 'segera' ? 'rs-col-fill rs-col-red' : mode === 'naik' ? 'rs-col-fill rs-col-green' : '';
   list.innerHTML = cfg[mode];
   if (zone) zone.scrollTop = 0; // reset scroll biar slide baru mulai dari atas
 }
@@ -1124,15 +1126,16 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     </div>
     <!-- Portrait: single list dengan 3-tab switcher -->
     <div id="sum-list-zone" class="sum-list-portrait" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
-      <div id="sum-dual-list">${_segeraHtml}</div>
+      <div id="sum-dual-list" class="rs-col-fill rs-col-red">${_segeraHtml}</div>
     </div>
     <!-- Laptop: tiga kolom side-by-side (Order Sekarang · Lagi Naik · Nilai Stok per Supplier) -->
     <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06)">
-        ${_segeraHtml}
+      <!-- 8 Okt 2026: kolom Order Sekarang & Lagi Naik dibungkus panel berwarna (rs-col-fill) yang memanjang sampai dasar kolom, biar gak ada ruang kosong di bawah baris -->
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06);display:flex;flex-direction:column">
+        <div class="rs-col-fill rs-col-red">${_segeraHtml}</div>
       </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06)">
-        ${_naikHtml}
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06);display:flex;flex-direction:column">
+        <div class="rs-col-fill rs-col-green">${_naikHtml}</div>
       </div>
       <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
         ${modalSupplierBlock.replace('margin-top:16px;', '')}
