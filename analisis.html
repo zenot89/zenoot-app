@@ -235,26 +235,7 @@
     padding:8px 16px 8px 12px; font-size:16px; font-weight:800; letter-spacing:0;
   }
   html:not(.zan-phone) #storeTopbar .store-title-wrap > .btn:hover{ background:var(--panel-alt); color:var(--ink); }
-  /* [7 Okt 2026] Check Admin (LAPTOP saja): 6 minicard Overview (GPM, Admin+Layanan, ACOS, Buffer, NPM, Net Income) pindah ke topbar, di samping kotak judul "Check Admin",
-     supaya halaman gak perlu scroll. Kotak "Overview" + hint di badan halaman disembunyikan di laptop; HP tidak diubah (tetap kartu Overview di badan halaman). */
-  #caTopOverview{ display:none; }
-  html:not(.zan-phone) #storeTopbar.ca-on .store-title-wrap{ flex:1; min-width:0; margin-right:14px; }
-  /* topbar Check Admin sedikit lebih tinggi + jarak ke konten, supaya minicard gak mepet tab bar & kartu di bawahnya (laptop saja) */
-  html:not(.zan-phone) #storeTopbar.ca-on{ height:78px; margin-bottom:16px; }
-  html:not(.zan-phone) #storeTopbar.ca-on #caTopOverview{
-    display:grid; grid-template-columns:1fr 1.15fr 1fr 1.2fr 1fr 1.7fr; gap:8px; flex:1; min-width:0; margin-left:6px;
-  }
-  .ca-ov-mini{ min-width:0; padding:5px 10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
-  .ca-ov-mini .l{ font-size:9px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ca-ov-mini .v{ font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.05vw,16px); font-weight:700; line-height:1.15; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ca-ov-mini .s{ font-size:9px; color:var(--ink-soft); line-height:1.25; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:11px; }
-  .ca-ov-mini.accent{ background:var(--accent-soft); border-color:#B0B0B0; }
-  .ca-ov-mini.accent .v{ color:var(--accent-dark); }
-  .ca-ov-mini.good{ background:var(--good-soft); border-color:#bfe6d0; }
-  .ca-ov-mini.good .v{ color:var(--good); }
-  .ca-ov-mini.bad .v{ color:var(--bad); }
-  html:not(.zan-phone) #page-checkadmin .ca-ov-card{ display:none; }
-  html.zan-phone #page-checkadmin .ca-note-lap{ display:none; }
+  html.zan-phone [data-goto-profit]{ display:none !important; }   /* [7 Okt 2026] Profit Pesanan: laptop saja */
   .page{ display:none; }
   .page.active{ display:block; }
   .subview{ display:none; }
@@ -1459,6 +1440,7 @@
         <button data-page="hpp"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L3 3v6.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></span> HPP Produk</button>
         <button data-page="hasil"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Overview</button>
         <button data-page="rekap" class="active"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap</button>
+        <button data-page="profit"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Profit Pesanan</button>
       </div>
     </div>
     <button data-page="checkadmin"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Check Admin</button>
@@ -1487,7 +1469,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span><div id="caTopOverview"></div></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1688,6 +1670,7 @@
       <div class="toolbar">
         <button class="btn secondary" id="btnToggleDataTokoPanel">Data Toko</button>
         <button class="btn secondary" data-goto-hpp>HPP Produk</button>
+        <button class="btn secondary" data-goto-profit>Profit Pesanan</button>
       </div>
       <div class="toolbar">
         <button class="btn ghost" id="btnHasilMonth" type="button" data-mp-trigger title="Pilih bulan yang sudah tersimpan di Rekap"><span id="hasilMonthLabel">Pilih bulan</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
@@ -1762,6 +1745,16 @@
     </div>
     <div id="rekapWrap"></div>
     <div class="rekap-selectbar" id="rekapSelectBar"></div>
+  </section>
+
+  <!-- ============ PAGE: PROFIT PER PESANAN (dibuka dari tombol "Profit Pesanan" di RKS Overview) ============ -->
+  <section class="page" id="page-profit">
+    <div class="page-head">
+      <div class="toolbar">
+        <button class="btn secondary" id="btnProfitBack" type="button">&larr; RKS Overview</button>
+      </div>
+    </div>
+    <div id="profitWrap"></div>
   </section>
 
   <!-- ============ PAGE: PROYEKSI HARGA > RKS MINGGUAN (data/upload terpisah dari RKS Overview bulanan) ============ -->
@@ -2839,6 +2832,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
     try{
       if(btn.dataset.page==='hpp') renderHPP();
       if(btn.dataset.page==='hasil') renderHasil();
+      if(btn.dataset.page==='profit') renderProfit();
       if(btn.dataset.page==='rekap') renderRekap();
       if(btn.dataset.page==='setting') renderSetting();
       if(btn.dataset.page==='proyeksi') renderProyeksi();
@@ -4213,6 +4207,7 @@ function byhargaSetHal(h){
 }
 const PAGE_TITLES = {
   hasil: 'RKS Overview',
+  profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
   proyeksi: 'By Operasional',
@@ -4230,14 +4225,13 @@ const PAGE_TITLES = {
 let currentPage = 'rekap';
 // [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
 // sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
-const PAGE_TITLE_HIDDEN = { hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1 };
+const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
     el.textContent = (pageKey==='hpp') ? 'HPP Produk' : (PAGE_TITLES[pageKey] || '');   // nama toko udah diwakili badge toko aktif di kanan atas
     el.style.display = PAGE_TITLE_HIDDEN[pageKey] ? 'none' : '';
   }
-  const stb = document.getElementById('storeTopbar'); if(stb) stb.classList.toggle('ca-on', pageKey==='checkadmin');   // [7 Okt 2026] minicard Overview Check Admin tampil di topbar
   const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
   const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
@@ -4370,7 +4364,7 @@ setupDrop('dropIncome','inputIncome', files=>{
   const reader = new FileReader();
   reader.onload = ev=>{
     const wb = XLSX.read(ev.target.result, {type:'array'});
-    let totalPendapatan=null, totalDilepasRaw=null, biayaIsiSaldo=0, biayaAdminLayanan=0, namaToko=null, periodeDari=null, periodeKe=null, released=new Set();
+    let totalPendapatan=null, totalDilepasRaw=null, biayaIsiSaldo=0, biayaAdminLayanan=0, namaToko=null, periodeDari=null, periodeKe=null, released=new Set(), incomeOrders=[];
     const adminLayananBreakdown = {};
 
     // Baris kategori (mis. "1. Total Pendapatan", "Biaya Platform") ada di kolom A (idx0), nilainya di kolom D (idx3).
@@ -4421,6 +4415,8 @@ setupDrop('dropIncome','inputIncome', files=>{
           const v = rows[i][colNoPesanan];
           if(v) released.add(v.toString().trim());
         }
+        // [7 Okt 2026] Data PER PESANAN (halaman Profit per Pesanan). Lihat incomeParseOrders().
+        try{ incomeOrders = incomeParseOrders(rows, headerRowIdx); }catch(err){ console.error('Gagal baca data per pesanan Income:', err); incomeOrders = []; }
       }
     }
     // Total Penghasilan dipakai di RKS Overview = "3. Total yang Dilepas" DIKURANGI Biaya Isi Saldo Otomatis
@@ -4437,7 +4433,7 @@ setupDrop('dropIncome','inputIncome', files=>{
 
     // Pengaman salah toko: username di file harus cocok sama toko aktif (lihat tokoGuardIncome)
     tokoGuardIncome(namaToko, ()=>{
-      state.incomeFile = {name:f.name, totalPendapatan, totalDilepasRaw, biayaIsiSaldo, totalPenghasilan, totalPotonganReal, biayaAdminLayanan, adminLayananBreakdown, ratioAdminLayanan, periodeDari, periodeKe, releasedOrderNumbers:released};
+      state.incomeFile = {name:f.name, totalPendapatan, totalDilepasRaw, biayaIsiSaldo, totalPenghasilan, totalPotonganReal, biayaAdminLayanan, adminLayananBreakdown, ratioAdminLayanan, periodeDari, periodeKe, releasedOrderNumbers:released, orders:incomeOrders};
       if(totalPendapatan!==null) state.manual.pendapatan = totalPendapatan;
       if(totalPenghasilan!==null) state.manual.penghasilan = totalPenghasilan;
       if(ratioAdminLayanan!==null) state.manual.ratioAdminLayanan = Math.abs(ratioAdminLayanan);
@@ -4448,6 +4444,155 @@ setupDrop('dropIncome','inputIncome', files=>{
   };
   reader.readAsArrayBuffer(f);
 });
+/* ================= PROFIT PER PESANAN [7 Okt 2026] =================
+   Sumber: sheet "Penghasilan" file Income (1 pesanan = 1 baris "Order" berisi total & semua biaya + 1..n baris "Sku" yang cuma berisi ID/nama produk;
+   biaya di baris Sku itu SALINAN baris Order, jadi yang dipakai HANYA baris Order supaya tidak dobel). Variasi & qty TIDAK ada di Income ->
+   diambil dari file Order Completed lewat No. Pesanan (logika HPP sama dengan computeHPPTotal: HPP x (Jumlah - Returned quantity)).
+   Definisi (disamakan dengan RKS Overview / Check Admin, sudah dicek cocok ke Summary file Income):
+     Harga Jual   = Harga Produk + Jumlah Pengembalian Dana (Subtotal Pesanan)
+     Voucher      = jumlah Voucher/Cashback/Diskon (negatif)
+     Pendapatan   = Harga Jual + Voucher                      (= "Total Pendapatan" Summary)
+     Penghasilan  = Total Penghasilan - Biaya Isi Saldo Otomatis (isi saldo = top-up iklan, bukan biaya hilang; sudah masuk Iklan)
+     Admin+Layanan= Pendapatan - Penghasilan
+   Iklan per pesanan = total Iklan periode (state.manual.iklan, sudah + PPN) dibagi rata: PER PCS (x qty pesanan) atau PER PESANAN (cost per purchase).
+   Ops & Buffer = % Setting x Harga Jual (sama dengan Check Admin). Profit = Penghasilan - HPP - Iklan - Ops - Buffer; Net Income = Profit + Ops. */
+function incomeParseOrders(rows, hi){
+  const H = rows[hi];
+  const ix = {}; H.forEach((h,i)=>{ if(h!=='' && ix[h]===undefined) ix[h]=i; });
+  const num = v=>{ const x = Number(v); return isNaN(x) ? 0 : x; };
+  const col = name=> ix[name];
+  const sum = (r,names)=> names.reduce((a,n)=> a + (col(n)===undefined ? 0 : num(r[col(n)])), 0);
+  const VCH = ['Voucher disponsor oleh Penjual','Cashback Koin disponsori Penjual','Diskon Produk dari Shopee','Voucher co-fund disponsor oleh Penjual','Cashback Koin Co-fund disponsori Penjual'];
+  const cNo = col('No. Pesanan'), cMode = col('Lihat berdasarkan');
+  if(cNo===undefined || cMode===undefined) return [];
+  const orders = {}, order = [], prod = {};
+  for(let i=hi+1;i<rows.length;i++){
+    const r = rows[i];
+    const no = (r[cNo]||'').toString().trim(); if(!no) continue;
+    const mode = (r[cMode]||'').toString().trim();
+    if(mode==='Sku'){
+      if(!prod[no]) prod[no] = {id:(r[col('ID Produk')]||'').toString().trim(), nama:(r[col('Nama Produk')]||'').toString().trim()};
+      continue;
+    }
+    if(mode!=='Order' || orders[no]) continue;
+    const harga = num(r[col('Harga Produk')]) + num(r[col('Jumlah Pengembalian Dana ke Pembeli')]);
+    const voucher = sum(r, VCH);
+    const isiSaldo = num(r[col('Biaya Isi Saldo Otomatis (dari Penghasilan)')]);   // negatif
+    const penghasilan = num(r[col('Total Penghasilan')]) - isiSaldo;
+    orders[no] = { no, tgl:(r[col('Waktu Pesanan Dibuat')]||'').toString().trim(), hargaJual:harga, voucher, pendapatan:harga+voucher, penghasilan,
+                   refund:num(r[col('Jumlah Pengembalian Dana ke Pembeli')]) };
+    order.push(no);
+  }
+  return order.map(no=>({...orders[no], produkId:(prod[no]||{}).id||'', produkNama:(prod[no]||{}).nama||''}));
+}
+
+var profitUi = { mode:'pcs', sort:'new' };   // mode: 'pcs' | 'order'
+function profitCompute(){
+  const inc = state.incomeFile;
+  if(!inc) return {status:'noincome'};
+  if(!Array.isArray(inc.orders) || !inc.orders.length) return {status:'oldincome'};
+  const rows = dedupedOrderRows();
+  const byNo = {};
+  rows.forEach(r=>{ const no=(r['No. Pesanan']||'').toString().trim(); if(no) (byNo[no]=byNo[no]||[]).push(r); });
+  const iklan = state.manual.iklan;
+  const iklanOk = iklan!==null && iklan!==undefined;
+  const opsPct = (state.settings.rasioOpsPercent!==null && state.settings.rasioOpsPercent!==undefined) ? state.settings.rasioOpsPercent/100 : 0;
+  const bufPct = (state.settings.lainnyaPct||0)/100;
+  const list = inc.orders.map(o=>{
+    const lines = byNo[o.no] || [];
+    let hpp = 0, qty = 0, qtyNet = 0, missing = false;
+    const names = [];
+    lines.forEach(r=>{
+      const key = makeKey(resolveOrderRowSkuInduk(r), r['Nomor Referensi SKU'], r['Nama Variasi']);
+      const h = state.hppMaster[key];
+      const jml = Number(r['Jumlah'])||0, ret = Number(r['Returned quantity'])||0;
+      qty += jml; qtyNet += (jml-ret);
+      if(h===undefined || h===null) missing = true; else hpp += h*(jml-ret);
+      const nm = (r['Nomor Referensi SKU']||'').toString().trim();
+      if(nm && !names.includes(nm)) names.push(nm);
+    });
+    return {...o, hpp, qty, qtyNet, matched:lines.length>0, hppMissing:(lines.length===0 || missing), skuText:(names.join(', ') || o.produkNama || '-')};
+  });
+  // pembagi iklan: per pcs = total qty (pesanan tanpa data Order Completed dianggap 1 pcs), per pesanan = jumlah pesanan
+  const totalQty = list.reduce((a,o)=> a + (o.matched ? o.qty : 1), 0);
+  const perPcs = (iklanOk && totalQty) ? iklan/totalQty : 0;
+  const perOrder = (iklanOk && list.length) ? iklan/list.length : 0;
+  list.forEach(o=>{
+    o.iklan = profitUi.mode==='pcs' ? perPcs*(o.matched ? o.qty : 1) : perOrder;
+    o.ops = opsPct*o.hargaJual;
+    o.buffer = bufPct*o.hargaJual;
+    o.profit = o.penghasilan - o.hpp - o.iklan - o.ops - o.buffer;
+    o.netIncome = o.profit + o.ops;
+    o.admin = o.pendapatan - o.penghasilan;
+    o.npm = o.hargaJual ? o.profit/o.hargaJual : null;
+  });
+  return {status:'ok', list, iklan:iklanOk?iklan:null, perPcs, perOrder, totalQty, opsPct, bufPct,
+          opsSet:(state.settings.rasioOpsPercent!==null && state.settings.rasioOpsPercent!==undefined)};
+}
+function renderProfit(){
+  const wrap = document.getElementById('profitWrap'); if(!wrap) return;
+  const R = profitCompute();
+  const msg = t=>{ wrap.innerHTML = `<div class="card"><h3>Profit per Pesanan</h3><div style="padding:26px 0;text-align:center;color:var(--ink-soft);">${t}</div></div>`; };
+  if(R.status==='noincome') return msg('Belum ada file Income. Upload dulu lewat tombol Data Toko di RKS Overview.');
+  if(R.status==='oldincome') return msg('File Income yang tersimpan belum menyimpan data per pesanan. Upload ulang file Income lewat Data Toko di RKS Overview, lalu buka halaman ini lagi.');
+  const L = R.list.slice();
+  // pesanan yang HPP-nya belum lengkap TIDAK dihitung profitnya (HPP Rp0 bikin profit kelihatan palsu besar) -> tampil '-', tidak ikut total, selalu di bawah
+  const okL = L.filter(o=>!o.hppMissing), badL = L.filter(o=>o.hppMissing);
+  if(profitUi.sort==='low') okL.sort((a,b)=>a.profit-b.profit);
+  else if(profitUi.sort==='high') okL.sort((a,b)=>b.profit-a.profit);
+  else okL.sort((a,b)=> (b.tgl>a.tgl?1:(b.tgl<a.tgl?-1:0)));
+  badL.sort((a,b)=> (b.tgl>a.tgl?1:(b.tgl<a.tgl?-1:0)));
+  const ALL = okL.concat(badL);
+  const totProfit = okL.reduce((a,o)=>a+o.profit,0), totHarga = okL.reduce((a,o)=>a+o.hargaJual,0);
+  const rugi = okL.filter(o=>o.profit<0).length, noHpp = badL.length;
+  const cls = v=> v<0 ? ' style="color:var(--bad);font-weight:700;"' : '';
+  const seg = (grp,val,label)=>`<button type="button" class="btn small ${profitUi[grp]===val?'':'ghost'}" data-pf="${grp}:${val}">${label}</button>`;
+  const rowsHtml = ALL.map(o=>`<tr${(!o.hppMissing && o.profit<0)?' style="background:var(--bad-soft,#fdecea);"':''}>
+      <td style="white-space:nowrap;">${o.no}${o.refund?' <span class="ca-badge warn">refund</span>':''}</td>
+      <td>${(o.tgl||'').slice(0,10)}</td>
+      <td title="${(o.produkNama||'').replace(/"/g,'&quot;')}" style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${o.skuText}${o.hppMissing?' <span class="ca-badge warn">'+(o.matched?'HPP kosong':'belum match')+'</span>':''}</td>
+      <td class="num">${o.matched?o.qty:'-'}</td>
+      <td class="num">${fmtRp(o.hargaJual)}</td>
+      <td class="num">${fmtRp(o.voucher)}</td>
+      <td class="num">${fmtRp(o.admin)}</td>
+      <td class="num">${o.hppMissing?'-':fmtRp(o.hpp)}</td>
+      <td class="num">${fmtRp(o.iklan)}</td>
+      <td class="num">${fmtRp(o.ops)}</td>
+      <td class="num">${fmtRp(o.buffer)}</td>
+      <td class="num"${o.hppMissing?'':cls(o.profit)}>${o.hppMissing?'-':fmtRp(o.profit)}</td>
+      <td class="num"${o.hppMissing?'':cls(o.profit)}>${o.hppMissing?'-':fmtPct(o.npm)}</td>
+      <td class="num"${o.hppMissing?'':cls(o.netIncome)}>${o.hppMissing?'-':fmtRp(o.netIncome)}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `
+    <div class="stat-grid stat-grid-5">
+      <div class="stat-card"><div class="stat-label">Jumlah Pesanan</div><div class="stat-value">${ALL.length}</div><div class="stat-sub">unik, dari file Income${noHpp?(' · '+okL.length+' dihitung'):''}</div></div>
+      <div class="stat-card ${totProfit<0?'bad':'good'}"><div class="stat-label">Total Profit</div><div class="stat-value">${fmtRp(totProfit)}</div><div class="stat-sub">${fmtPct(totHarga?totProfit/totHarga:null)} dari Harga Jual</div></div>
+      <div class="stat-card"><div class="stat-label">Rata-rata / Pesanan</div><div class="stat-value">${fmtRp(okL.length?totProfit/okL.length:null)}</div></div>
+      <div class="stat-card ${rugi?'bad':''}"><div class="stat-label">Pesanan Rugi</div><div class="stat-value">${rugi}</div><div class="stat-sub">${okL.length?fmtPct(rugi/okL.length):'-'} dari pesanan yang dihitung</div></div>
+      <div class="stat-card"><div class="stat-label">Iklan ${profitUi.mode==='pcs'?'per Pcs':'per Pesanan'}</div><div class="stat-value">${R.iklan===null?'-':fmtRp(profitUi.mode==='pcs'?R.perPcs:R.perOrder)}</div><div class="stat-sub">${R.iklan===null?'iklan belum diisi':(fmtRp(R.iklan)+' ÷ '+(profitUi.mode==='pcs'?(R.totalQty+' pcs'):(ALL.length+' pesanan')))}</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <h3 style="margin:0;">Profit per Pesanan</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:4px;align-items:center;"><span class="hint" style="margin:0;">Iklan dibagi</span>${seg('mode','pcs','Per Pcs')}${seg('mode','order','Per Pesanan')}</div>
+          <div style="display:flex;gap:4px;align-items:center;"><span class="hint" style="margin:0;">Urut</span>${seg('sort','new','Terbaru')}${seg('sort','low','Profit terendah')}${seg('sort','high','Profit tertinggi')}</div>
+        </div>
+      </div>
+      <div style="overflow:auto;max-height:calc(100vh - 360px);">
+        <table class="ca-table" style="min-width:1100px;">
+          <thead><tr><th>No. Pesanan</th><th>Tanggal</th><th>Produk</th><th>Qty</th><th>Harga Jual</th><th>Voucher</th><th>Admin+Layanan</th><th>HPP</th><th>Iklan</th><th>Ops</th><th>Buffer</th><th>Profit</th><th>NPM</th><th>Net Income</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      ${noHpp?`<footer class="note status-warn">⚠ ${noHpp} pesanan HPP-nya belum lengkap (tidak ada di Order Completed yang ter-upload / HPP kosong) — profitnya tidak dihitung dan tidak masuk total. Upload Order Completed bulan lalu + bulan ini lewat Data Toko.</footer>`:`<footer class="note status-ok">✓ Semua pesanan sudah match HPP.</footer>`}
+      <footer class="note">Profit = Penghasilan − HPP − Iklan − Ops − Buffer. Admin+Layanan sudah termasuk di Penghasilan (tanpa Biaya Isi Saldo, itu top-up iklan). Ops ${fmtPct(R.opsPct)} ${R.opsSet?'':'(belum diisi di Setting)'} &amp; Buffer ${fmtPct(R.bufPct)} dari Harga Jual, Iklan = estimasi rata dari total iklan periode — angka per pesanan adalah estimasi.</footer>
+    </div>`;
+  wrap.querySelectorAll('[data-pf]').forEach(b=>b.addEventListener('click', ()=>{
+    const [g,v] = b.dataset.pf.split(':'); profitUi[g] = v; renderProfit();
+  }));
+}
+
 /* ---------- Tanggal DATA (bukan nama file) di kartu Income & Tagihan Iklan ---------- */
 // Nama file export Shopee cuma tanggal download, jadi periode diambil dari ISI data:
 // Income = baris "Dari"/"ke" di sheet Summary; Tagihan Iklan CSV = kolom "Waktu".
@@ -4616,6 +4761,12 @@ document.getElementById('btnToggleDataTokoPanel').addEventListener('click', ()=>
 document.querySelectorAll('[data-goto-hpp]').forEach(b=>b.addEventListener('click', ()=>{
   const nb = document.querySelector('nav.menu button[data-page="hpp"]'); if(nb) nb.click();
 }));
+
+// [7 Okt 2026] Tombol "Profit Pesanan" (RKS Overview) -> halaman Profit per Pesanan; tombol kembali -> RKS Overview
+document.querySelectorAll('[data-goto-profit]').forEach(b=>b.addEventListener('click', ()=>{
+  const nb = document.querySelector('nav.menu button[data-page="profit"]'); if(nb) nb.click();
+}));
+(function(){ const b = document.getElementById('btnProfitBack'); if(b) b.addEventListener('click', ()=>{ const nb = document.querySelector('nav.menu button[data-page="hasil"]'); if(nb) nb.click(); }); })();
 
 /* ================= PAGE 2: HPP ================= */
 function uniqueProductList(){
@@ -5241,10 +5392,6 @@ function buildFeeCardsHtml(parsed, hargaJual){
   return { feeCardsHtml, feeExtrasHtml };
 }
 
-function caSetTopOverview(cells){
-  const el = document.getElementById('caTopOverview'); if(!el) return;
-  el.innerHTML = cells.map(c=>`<div class="ca-ov-mini ${c.cls||''}" title="${(c.l+': '+c.v+(c.s?(' — '+c.s):'')).replace(/"/g,'&quot;')}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="s">${c.s||''}</div></div>`).join('');
-}
 function renderCheckAdminResult(parsed, manualOverrides){
   const wrap = document.getElementById('checkAdminResult');
   let hppTotal = 0, hasUnresolved = false;
@@ -5354,16 +5501,10 @@ function renderCheckAdminResult(parsed, manualOverrides){
         <thead><tr><th>No</th><th>Produk</th><th>Harga Satuan</th><th>Jumlah</th><th>Subtotal</th><th>HPP/unit</th><th>Total HPP</th></tr></thead>
         <tbody>${itemRows}</tbody>
       </table>
-      ${hasUnresolved ? `<footer class="note status-warn ca-note-lap">⚠ Ada item yang HPP-nya belum match — angka Overview belum akurat, pilih HPP manual dulu di tabel produk.</footer>` : `<footer class="note status-ok ca-note-lap">✓ Semua item sudah match HPP.</footer>`}
     </div>
-    <div class="card ca-ov-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-        <div>
-          <h3 style="margin-bottom:8px;">Overview</h3>
-          <div class="hint zq-h" style="margin-bottom:0;">NPM = GPM − Admin+Layanan − ACOS − Rasio Ops − Buffer (semua dalam %). Net Income = IDR NPM + IDR Rasio Ops.</div>
-        </div>
-      </div>
-      <div class="stat-grid stat-grid-6" style="margin-top:14px;">
+    <div class="card">
+      <!-- [7 Okt 2026] judul kotak "Overview" + hint rumus (?) dihapus atas permintaan user; posisi minicard TIDAK dipindah. Rumus: NPM = GPM − Admin+Layanan − ACOS − Rasio Ops − Buffer; Net Income = IDR NPM + IDR Rasio Ops. -->
+      <div class="stat-grid stat-grid-6" style="margin-top:0;">
         <div class="stat-card accent">
           <div class="stat-label">GPM</div>
           <div class="stat-value">${fmtPct(gpm)}</div>
@@ -5435,16 +5576,6 @@ function renderCheckAdminResult(parsed, manualOverrides){
       <div class="fee-card-grid">${feeCards}</div>
     </div>
   `;
-
-  // [7 Okt 2026] isi minicard Overview di topbar (laptop). Angkanya SAMA persis dgn kartu Overview di badan halaman (HP) — cuma tempatnya beda.
-  caSetTopOverview([
-    {l:'GPM', v:fmtPct(gpm), cls:'accent'},
-    {l:'Admin + Layanan', v:fmtPct(adminLayananRatio), s:'excl. saldo iklan & vchr'},
-    {l:'ACOS', v:(acos!==null ? fmtPct(acos) : '-'), s:(roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi di Setting')},
-    {l:'Buffer', v:fmtPct(buffer), s:'Setting — Buffer (Lainnya)'},
-    {l:'NPM', v:fmtPct(npm), s:(rasioOps!==null ? ('Rasio Ops '+fmtPct(rasioOps)) : 'isi Rasio Ops di Setting'), cls:(npm!==null && npm<0 ? 'bad' : 'good')},
-    {l:'Net Income', v:fmtRp(netIncome), s:fmtRp(npmRp)+' (NPM) + '+fmtRp(Math.abs(opsRpSigned))+' (Ops)', cls:(netIncome!==null && netIncome<0 ? 'bad' : 'good')}
-  ]);
 
   caLastParsed = parsed; caLastOverrides = manualOverrides;
 
@@ -5589,7 +5720,6 @@ function saveAddSkuSheet(){
 function renderCheckAdminEmptyState(){
   const extrasWrap = document.getElementById('checkAdminExtras');
   if(extrasWrap) extrasWrap.innerHTML = '';
-  caSetTopOverview([{l:'GPM',v:'-',cls:'accent'},{l:'Admin + Layanan',v:'-'},{l:'ACOS',v:'-'},{l:'Buffer',v:'-'},{l:'NPM',v:'-'},{l:'Net Income',v:'-'}]);
   const wrap = document.getElementById('checkAdminResult');
   wrap.innerHTML = `
     <div class="card">
@@ -5599,8 +5729,7 @@ function renderCheckAdminEmptyState(){
         <tbody><tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:26px 0;">Belum ada data — paste di kolom kanan, terus klik Parse &amp; Hitung.</td></tr></tbody>
       </table>
     </div>
-    <div class="card ca-ov-card">
-      <h3>Overview</h3>
+    <div class="card">
       <div class="stat-grid stat-grid-5">
         <div class="stat-card accent"><div class="stat-label">GPM</div><div class="stat-value">-</div></div>
         <div class="stat-card"><div class="stat-label">Admin + Layanan</div><div class="stat-value">-</div></div>
