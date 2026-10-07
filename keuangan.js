@@ -493,9 +493,6 @@ document.getElementById('page-keuangan').innerHTML = `
             <button class="keu-nav-arr" onclick="keuSlideNav(1)">▶</button>
           </span>
         </div>
-        <div style="margin-bottom:8px;padding:8px 10px;background:var(--cream2);border:1.5px dashed var(--ink3);border-radius:4px;font-size:12px;color:var(--ink3)">
-          <i class="ti ti-info-circle"></i> Input hutang via <b>Kas &amp; Jurnal</b> → tipe <b>Pinjaman</b>
-        </div>
         <div id="keu-riwayat-summary-body" style="padding:4px 0"></div>
         <div style="text-align:center;padding:8px 0 2px;font-size:11px;color:var(--ink3)">← geser kembali ke riwayat</div>
       </div>

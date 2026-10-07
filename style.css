@@ -4163,11 +4163,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
-/* ─── HUTANG PANEL: scroll zone di laptop / landscape (>600px) — 8 Okt 2026 ───────────
-   Akar masalah: _keuEnsureFlexLayout() jalan di SEMUA lebar & mengunci .content, #page-keuangan,
-   #keu-panels-wrap dan panel aktif jadi overflow:hidden (tinggi = sisa layar). Aturan "scroll zone"
-   Hutang di atas cuma ada di max-width:600px, jadi >600px isi daftar terpotong & tidak bisa di-scroll.
-   Di sini rantai yang sama dibuat untuk >600px: panel flex column → collapsible (natural) → scroll zone (flex:1, scroll). */
+/* ─── HUTANG PANEL: laptop / landscape (>600px) — 8 Okt 2026 ───────────────────────
+   Akar masalah "tidak bisa scroll": _keuEnsureFlexLayout() jalan di SEMUA lebar & mengunci .content,
+   #page-keuangan, #keu-panels-wrap dan panel aktif jadi overflow:hidden (tinggi = sisa layar), sedangkan
+   aturan scroll Hutang cuma ada di max-width:600px.
+   Pola di sini SAMA dengan versi HP: yang beku = Refresh + 3 minicard + judul kartu (nav slide);
+   yang scroll HANYA daftar di bawah judul (.tbl-wrap / #keu-riwayat-summary-body) — scrollbar cuma di kolom itu. */
 @media (min-width: 601px) {
   #page-keuangan .keu-panel-hutang.active {
     display: -webkit-flex !important;
@@ -4176,21 +4177,40 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     flex-direction: column;
     overflow: hidden !important;
   }
-  #keu-hutang-collapsible {
-    -webkit-flex-shrink: 0;
-    flex-shrink: 0;
-  }
+  #keu-hutang-collapsible { -webkit-flex-shrink: 0; flex-shrink: 0; }
   #keu-hutang-scroll-zone {
     -webkit-flex: 1 1 0;
     flex: 1 1 0;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    padding-bottom: 24px;
+    overflow: hidden;            /* zona TIDAK scroll — scroll pindah ke daftar di dalam kartu */
+    padding-bottom: 12px;
+    box-sizing: border-box;
   }
-  #keu-hutang-scroll-zone::-webkit-scrollbar { width: 5px; }
-  #keu-hutang-scroll-zone::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 3px; }
+  .keu-hutang-slide { height: 100%; box-sizing: border-box; }
+  .keu-hutang-slide > .card {
+    height: 100%;
+    box-sizing: border-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+  .keu-hutang-slide > .card > .card-title { -webkit-flex-shrink: 0; flex-shrink: 0; }
+  .keu-hutang-slide > .card > div:not(.tbl-wrap):not(#keu-riwayat-summary-body) { -webkit-flex-shrink: 0; flex-shrink: 0; }
+  /* Kolom yang scroll: tabel (Daftar Hutang / Riwayat Cicilan) & daftar kreditur (Ringkasan) */
+  .keu-hutang-slide > .card > .tbl-wrap,
+  #keu-slide-2 .card > #keu-riwayat-summary-body {
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .keu-hutang-slide > .card > .tbl-wrap::-webkit-scrollbar,
+  #keu-slide-2 .card > #keu-riwayat-summary-body::-webkit-scrollbar { width: 5px; }
+  .keu-hutang-slide > .card > .tbl-wrap::-webkit-scrollbar-thumb,
+  #keu-slide-2 .card > #keu-riwayat-summary-body::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 3px; }
 }
 
 /* ─── HUTANG SWIPE — dot indicator ───────────────────────────── */
