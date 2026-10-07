@@ -4163,6 +4163,36 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ─── HUTANG PANEL: scroll zone di laptop / landscape (>600px) — 8 Okt 2026 ───────────
+   Akar masalah: _keuEnsureFlexLayout() jalan di SEMUA lebar & mengunci .content, #page-keuangan,
+   #keu-panels-wrap dan panel aktif jadi overflow:hidden (tinggi = sisa layar). Aturan "scroll zone"
+   Hutang di atas cuma ada di max-width:600px, jadi >600px isi daftar terpotong & tidak bisa di-scroll.
+   Di sini rantai yang sama dibuat untuk >600px: panel flex column → collapsible (natural) → scroll zone (flex:1, scroll). */
+@media (min-width: 601px) {
+  #page-keuangan .keu-panel-hutang.active {
+    display: -webkit-flex !important;
+    display: flex !important;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    overflow: hidden !important;
+  }
+  #keu-hutang-collapsible {
+    -webkit-flex-shrink: 0;
+    flex-shrink: 0;
+  }
+  #keu-hutang-scroll-zone {
+    -webkit-flex: 1 1 0;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding-bottom: 24px;
+  }
+  #keu-hutang-scroll-zone::-webkit-scrollbar { width: 5px; }
+  #keu-hutang-scroll-zone::-webkit-scrollbar-thumb { background: var(--ink4); border-radius: 3px; }
+}
+
 /* ─── HUTANG SWIPE — dot indicator ───────────────────────────── */
 .keu-hdot {
   width: 6px;
