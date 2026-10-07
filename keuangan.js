@@ -1415,7 +1415,37 @@ function initKeuNeracaScrollCollapse() { /* deprecated */ }
     var collapseEl = document.getElementById('keu-hutang-collapsible');
     if (!zone || !collapseEl) return;
     _hutangSwipeCollapseInited = true;
-    initSwipeCollapse(zone,       collapseEl, 50, 'keu-hutang-collapsed');
+    // 8 Okt 2026: di area DAFTAR (zone) swipe ke ATAS = collapse minicard, tapi swipe ke BAWAH TIDAK
+    // lagi langsung expand (dulu initSwipeCollapse: 1x swipe bawah >=50px = expand → tiap scroll balik
+    // ke atas minicard ikut turun, bikin pusing). Expand sekarang butuh USAP CEPAT 2X KE BAWAH
+    // (tiap usapan <250ms & >=35px, jeda antar usapan <500ms) — pola SAMA dengan Anggaran (anggaran.js).
+    // Area minicard sendiri tetap pakai initSwipeCollapse (kalau minicard masih ada tinggi).
+    var _sY = 0, _sX = 0, _sT = 0, _lastQuick = 0, _trk = false;
+    zone.addEventListener('touchstart', function(e) {
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+      _sY = e.touches[0].clientY; _sX = e.touches[0].clientX; _sT = Date.now(); _trk = true;
+    }, { passive: true });
+    zone.addEventListener('touchend', function(e) {
+      if (!_trk) return;
+      _trk = false;
+      var dy = e.changedTouches[0].clientY - _sY;
+      var dx = e.changedTouches[0].clientX - _sX;
+      var dt = Date.now() - _sT;
+      if (Math.abs(dx) > Math.abs(dy)) return;               // geser horizontal = ganti slide, bukan collapse/expand
+      if (dy <= -50) {                                       // swipe ATAS → collapse
+        collapseEl.classList.add('keu-hutang-collapsed');
+        _lastQuick = 0;
+      } else if (dy > 35 && dt < 250) {                      // swipe BAWAH cepat → hitung, harus 2x
+        if (!collapseEl.classList.contains('keu-hutang-collapsed')) { _lastQuick = 0; return; }
+        var now = Date.now();
+        if (now - _lastQuick < 500) {
+          collapseEl.classList.remove('keu-hutang-collapsed');
+          _lastQuick = 0;
+        } else {
+          _lastQuick = now;
+        }
+      }
+    }, { passive: true });
     initSwipeCollapse(collapseEl, collapseEl, 50, 'keu-hutang-collapsed');
   }
 
