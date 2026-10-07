@@ -235,6 +235,24 @@
     padding:8px 16px 8px 12px; font-size:16px; font-weight:800; letter-spacing:0;
   }
   html:not(.zan-phone) #storeTopbar .store-title-wrap > .btn:hover{ background:var(--panel-alt); color:var(--ink); }
+  /* [7 Okt 2026] Check Admin (LAPTOP saja): 6 minicard Overview (GPM, Admin+Layanan, ACOS, Buffer, NPM, Net Income) pindah ke topbar, di samping kotak judul "Check Admin",
+     supaya halaman gak perlu scroll. Kotak "Overview" + hint di badan halaman disembunyikan di laptop; HP tidak diubah (tetap kartu Overview di badan halaman). */
+  #caTopOverview{ display:none; }
+  html:not(.zan-phone) #storeTopbar.ca-on .store-title-wrap{ flex:1; min-width:0; margin-right:14px; }
+  html:not(.zan-phone) #storeTopbar.ca-on #caTopOverview{
+    display:grid; grid-template-columns:1fr 1.15fr 1fr 1.2fr 1fr 1.7fr; gap:8px; flex:1; min-width:0; margin-left:6px;
+  }
+  .ca-ov-mini{ min-width:0; padding:5px 10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+  .ca-ov-mini .l{ font-size:9px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ca-ov-mini .v{ font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.05vw,16px); font-weight:700; line-height:1.15; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ca-ov-mini .s{ font-size:9px; color:var(--ink-soft); line-height:1.25; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:11px; }
+  .ca-ov-mini.accent{ background:var(--accent-soft); border-color:#B0B0B0; }
+  .ca-ov-mini.accent .v{ color:var(--accent-dark); }
+  .ca-ov-mini.good{ background:var(--good-soft); border-color:#bfe6d0; }
+  .ca-ov-mini.good .v{ color:var(--good); }
+  .ca-ov-mini.bad .v{ color:var(--bad); }
+  html:not(.zan-phone) #page-checkadmin .ca-ov-card{ display:none; }
+  html.zan-phone #page-checkadmin .ca-note-lap{ display:none; }
   .page{ display:none; }
   .page.active{ display:block; }
   .subview{ display:none; }
@@ -1467,7 +1485,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span><div id="caTopOverview"></div></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -4217,6 +4235,7 @@ function updatePageTitleBar(pageKey){
     el.textContent = (pageKey==='hpp') ? 'HPP Produk' : (PAGE_TITLES[pageKey] || '');   // nama toko udah diwakili badge toko aktif di kanan atas
     el.style.display = PAGE_TITLE_HIDDEN[pageKey] ? 'none' : '';
   }
+  const stb = document.getElementById('storeTopbar'); if(stb) stb.classList.toggle('ca-on', pageKey==='checkadmin');   // [7 Okt 2026] minicard Overview Check Admin tampil di topbar
   const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
   const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
@@ -5220,6 +5239,10 @@ function buildFeeCardsHtml(parsed, hargaJual){
   return { feeCardsHtml, feeExtrasHtml };
 }
 
+function caSetTopOverview(cells){
+  const el = document.getElementById('caTopOverview'); if(!el) return;
+  el.innerHTML = cells.map(c=>`<div class="ca-ov-mini ${c.cls||''}" title="${(c.l+': '+c.v+(c.s?(' — '+c.s):'')).replace(/"/g,'&quot;')}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="s">${c.s||''}</div></div>`).join('');
+}
 function renderCheckAdminResult(parsed, manualOverrides){
   const wrap = document.getElementById('checkAdminResult');
   let hppTotal = 0, hasUnresolved = false;
@@ -5329,8 +5352,9 @@ function renderCheckAdminResult(parsed, manualOverrides){
         <thead><tr><th>No</th><th>Produk</th><th>Harga Satuan</th><th>Jumlah</th><th>Subtotal</th><th>HPP/unit</th><th>Total HPP</th></tr></thead>
         <tbody>${itemRows}</tbody>
       </table>
+      ${hasUnresolved ? `<footer class="note status-warn ca-note-lap">⚠ Ada item yang HPP-nya belum match — angka Overview belum akurat, pilih HPP manual dulu di tabel produk.</footer>` : `<footer class="note status-ok ca-note-lap">✓ Semua item sudah match HPP.</footer>`}
     </div>
-    <div class="card">
+    <div class="card ca-ov-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
           <h3 style="margin-bottom:8px;">Overview</h3>
@@ -5409,6 +5433,16 @@ function renderCheckAdminResult(parsed, manualOverrides){
       <div class="fee-card-grid">${feeCards}</div>
     </div>
   `;
+
+  // [7 Okt 2026] isi minicard Overview di topbar (laptop). Angkanya SAMA persis dgn kartu Overview di badan halaman (HP) — cuma tempatnya beda.
+  caSetTopOverview([
+    {l:'GPM', v:fmtPct(gpm), cls:'accent'},
+    {l:'Admin + Layanan', v:fmtPct(adminLayananRatio), s:'excl. saldo iklan & vchr'},
+    {l:'ACOS', v:(acos!==null ? fmtPct(acos) : '-'), s:(roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi di Setting')},
+    {l:'Buffer', v:fmtPct(buffer), s:'Setting — Buffer (Lainnya)'},
+    {l:'NPM', v:fmtPct(npm), s:(rasioOps!==null ? ('Rasio Ops '+fmtPct(rasioOps)) : 'isi Rasio Ops di Setting'), cls:(npm!==null && npm<0 ? 'bad' : 'good')},
+    {l:'Net Income', v:fmtRp(netIncome), s:fmtRp(npmRp)+' (NPM) + '+fmtRp(Math.abs(opsRpSigned))+' (Ops)', cls:(netIncome!==null && netIncome<0 ? 'bad' : 'good')}
+  ]);
 
   caLastParsed = parsed; caLastOverrides = manualOverrides;
 
@@ -5553,6 +5587,7 @@ function saveAddSkuSheet(){
 function renderCheckAdminEmptyState(){
   const extrasWrap = document.getElementById('checkAdminExtras');
   if(extrasWrap) extrasWrap.innerHTML = '';
+  caSetTopOverview([{l:'GPM',v:'-',cls:'accent'},{l:'Admin + Layanan',v:'-'},{l:'ACOS',v:'-'},{l:'Buffer',v:'-'},{l:'NPM',v:'-'},{l:'Net Income',v:'-'}]);
   const wrap = document.getElementById('checkAdminResult');
   wrap.innerHTML = `
     <div class="card">
@@ -5562,7 +5597,7 @@ function renderCheckAdminEmptyState(){
         <tbody><tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:26px 0;">Belum ada data — paste di kolom kanan, terus klik Parse &amp; Hitung.</td></tr></tbody>
       </table>
     </div>
-    <div class="card">
+    <div class="card ca-ov-card">
       <h3>Overview</h3>
       <div class="stat-grid stat-grid-5">
         <div class="stat-card accent"><div class="stat-label">GPM</div><div class="stat-value">-</div></div>
