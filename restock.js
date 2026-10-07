@@ -647,12 +647,16 @@ function restockDropdownClose() {
 }
 
 // ── Poin 1: Scroll list ke atas → collapse cards + banner ──
-// ── Poin 2: 2x swipe down di sticky header → expand ──
+// ── Poin 2: USAP CEPAT 2X KE BAWAH di AREA DAFTAR (kolom data) → expand ──
+// 8 Okt 2026: area usap dipindah dari sticky header (atas, susah dijangkau jempol) ke #sum-list-zone
+// (daftar data, di bawah). Tiap usapan harus cepat (<250ms) & >=35px, jeda antar usapan <500ms —
+// pola SAMA dengan Anggaran & Hutang. Usapan pelan / 1x tidak ngapa-ngapain, jadi scroll biasa aman.
+// Listener di #sum-list-zone (elemen baru tiap renderSummary), bukan di header yang persisten →
+// listener juga tidak numpuk tiap render.
 function initSumCardsScrollCollapse() {
   var listZone = document.getElementById('sum-list-zone');
   var cardsWrap = document.getElementById('sum-cards-wrap');
-  var stickyHeader = document.getElementById('restock-sticky-header');
-  if (!listZone || !cardsWrap || !stickyHeader) return;
+  if (!listZone || !cardsWrap) return;
 
   // Poin 1: scroll list ke atas → collapse
   listZone.addEventListener('scroll', function() {
@@ -663,49 +667,35 @@ function initSumCardsScrollCollapse() {
     }
   }, { passive: true });
 
-  // Poin 2: 2x swipe down di sticky header → expand
-  var _swipe1Time = 0;
-  var _swipe1Done = false;
-  var _startY = 0;
-  var _startX = 0;
+  // Poin 2: usap cepat 2x ke bawah di daftar → expand
+  var _startY = 0, _startX = 0, _startT = 0, _lastQuick = 0, _trk = false;
 
-  stickyHeader.addEventListener('touchstart', function(e) {
-    if (e.target.closest('button') || e.target.closest('.restock-dropdown-item')) return;
+  listZone.addEventListener('touchstart', function(e) {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+    if (!cardsWrap.classList.contains('sum-cards-collapsed')) return; // minicard sudah terbuka, tidak perlu
     _startY = e.touches[0].clientY;
     _startX = e.touches[0].clientX;
+    _startT = Date.now();
+    _trk = true;
   }, { passive: true });
 
-  stickyHeader.addEventListener('touchend', function(e) {
+  listZone.addEventListener('touchend', function(e) {
+    if (!_trk) return;
+    _trk = false;
+    if (!cardsWrap.classList.contains('sum-cards-collapsed')) return;
     var dy = e.changedTouches[0].clientY - _startY;
     var dx = e.changedTouches[0].clientX - _startX;
-    // Harus dominan vertikal ke bawah, min 30px
-    if (Math.abs(dx) > Math.abs(dy)) return;
-    if (dy < 30) return;
-    // Hanya aktif saat cards sedang collapsed
-    if (!cardsWrap.classList.contains('sum-cards-collapsed')) return;
-
-    var now = Date.now();
-    if (!_swipe1Done) {
-      // Swipe pertama — catat waktu, tidak ada visual
-      _swipe1Done = true;
-      _swipe1Time = now;
-    } else {
-      // Swipe kedua — cek window 600ms
-      if (now - _swipe1Time <= 600) {
-        // Expand!
+    var dt = Date.now() - _startT;
+    if (Math.abs(dx) > Math.abs(dy)) return;      // geser horizontal = ganti slide Supplier/Order/Naik
+    if (dy > 35 && dt < 250) {                    // usap bawah & cepat
+      var now = Date.now();
+      if (now - _lastQuick < 500) {
         cardsWrap.classList.remove('sum-cards-collapsed');
         listZone.scrollTop = 0;
+        _lastQuick = 0;
+      } else {
+        _lastQuick = now;
       }
-      _swipe1Done = false;
-      _swipe1Time = 0;
-    }
-  }, { passive: true });
-
-  // Reset state jika timeout 600ms
-  stickyHeader.addEventListener('touchstart', function() {
-    if (_swipe1Done && Date.now() - _swipe1Time > 600) {
-      _swipe1Done = false;
-      _swipe1Time = 0;
     }
   }, { passive: true });
 }
