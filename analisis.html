@@ -236,6 +236,16 @@
   }
   html:not(.zan-phone) #storeTopbar .store-title-wrap > .btn:hover{ background:var(--panel-alt); color:var(--ink); }
   html.zan-phone [data-goto-profit]{ display:none !important; }   /* [7 Okt 2026] Profit Pesanan: laptop saja */
+  /* [7 Okt 2026] Profit per Pesanan: tombol "← RKS Overview" pindah ke topbar (sejajar badge toko) -> page-head kosong disembunyiin.
+     Halaman dibuat pas 1 layar: kartu ngisi sisa tinggi, HANYA isi tabel yang scroll; header kolom (No. Pesanan, Tanggal, dst) sticky/freeze. */
+  #page-profit .page-head{ display:none; }
+  #page-profit.active{ display:flex; flex-direction:column; height:calc(100vh - 130px); min-height:420px; }
+  #profitWrap{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  #profitWrap > .stat-grid{ flex:0 0 auto; }
+  #profitWrap > .card.pf-card{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
+  #profitWrap .pf-scroll{ flex:1 1 auto; min-height:0; overflow:auto; }
+  #profitWrap .pf-scroll .ca-table{ margin-bottom:0; border-collapse:separate; border-spacing:0; }
+  #profitWrap .pf-scroll .ca-table thead th{ position:sticky; top:0; z-index:2; background:var(--title-bg); border-bottom:2px solid var(--ink); white-space:nowrap; }
   .page{ display:none; }
   .page.active{ display:block; }
   .subview{ display:none; }
@@ -1469,7 +1479,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1749,11 +1759,6 @@
 
   <!-- ============ PAGE: PROFIT PER PESANAN (dibuka dari tombol "Profit Pesanan" di RKS Overview) ============ -->
   <section class="page" id="page-profit">
-    <div class="page-head">
-      <div class="toolbar">
-        <button class="btn secondary" id="btnProfitBack" type="button">&larr; RKS Overview</button>
-      </div>
-    </div>
     <div id="profitWrap"></div>
   </section>
 
@@ -4235,6 +4240,7 @@ function updatePageTitleBar(pageKey){
   const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
   const bo = document.getElementById('btnBackOverview'); if(bo)  bo.style.display  = (pageKey==='rekap')  ? '' : 'none';
+  const boPf = document.getElementById('btnBackOverviewPf'); if(boPf) boPf.style.display = (pageKey==='profit') ? '' : 'none';   // [7 Okt 2026] dari halaman Profit per Pesanan
   const boM = document.getElementById('btnBackOverviewM'); if(boM) boM.style.display = (pageKey==='rekapM') ? '' : 'none';
   const grP = document.getElementById('btnGotoRekapP');  if(grP) grP.style.display = (pageKey==='hasilP') ? '' : 'none';
   const boP = document.getElementById('btnBackOverviewP'); if(boP) boP.style.display = (pageKey==='rekapP') ? '' : 'none';
@@ -4248,7 +4254,7 @@ function updatePageTitleBar(pageKey){
   if(b) b.addEventListener('click', function(){ byhargaSetHal('kalk'); });
 })();
 (function(){
-  const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewM:'hasilM', btnGotoRekapP:'rekapP', btnBackOverviewP:'hasilP' };
+  const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewPf:'hasil', btnBackOverviewM:'hasilM', btnGotoRekapP:'rekapP', btnBackOverviewP:'hasilP' };
   Object.keys(map).forEach(function(id){
     const b = document.getElementById(id);
     if(b) b.addEventListener('click', function(){
@@ -4571,15 +4577,15 @@ function renderProfit(){
       <div class="stat-card ${rugi?'bad':''}"><div class="stat-label">Pesanan Rugi</div><div class="stat-value">${rugi}</div><div class="stat-sub">${okL.length?fmtPct(rugi/okL.length):'-'} dari pesanan yang dihitung</div></div>
       <div class="stat-card"><div class="stat-label">Iklan ${profitUi.mode==='pcs'?'per Pcs':'per Pesanan'}</div><div class="stat-value">${R.iklan===null?'-':fmtRp(profitUi.mode==='pcs'?R.perPcs:R.perOrder)}</div><div class="stat-sub">${R.iklan===null?'iklan belum diisi':(fmtRp(R.iklan)+' ÷ '+(profitUi.mode==='pcs'?(R.totalQty+' pcs'):(ALL.length+' pesanan')))}</div></div>
     </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+    <div class="card pf-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;flex:0 0 auto;">
         <h3 style="margin:0;">Profit per Pesanan</h3>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
           <div style="display:flex;gap:4px;align-items:center;"><span class="hint" style="margin:0;">Iklan dibagi</span>${seg('mode','pcs','Per Pcs')}${seg('mode','order','Per Pesanan')}</div>
           <div style="display:flex;gap:4px;align-items:center;"><span class="hint" style="margin:0;">Urut</span>${seg('sort','new','Terbaru')}${seg('sort','low','Profit terendah')}${seg('sort','high','Profit tertinggi')}</div>
         </div>
       </div>
-      <div style="overflow:auto;max-height:calc(100vh - 360px);">
+      <div class="pf-scroll">
         <table class="ca-table" style="min-width:1100px;">
           <thead><tr><th>No. Pesanan</th><th>Tanggal</th><th>Produk</th><th>Qty</th><th>Harga Jual</th><th>Voucher</th><th>Admin+Layanan</th><th>HPP</th><th>Iklan</th><th>Ops</th><th>Buffer</th><th>Profit</th><th>NPM</th><th>Net Income</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
@@ -4762,11 +4768,10 @@ document.querySelectorAll('[data-goto-hpp]').forEach(b=>b.addEventListener('clic
   const nb = document.querySelector('nav.menu button[data-page="hpp"]'); if(nb) nb.click();
 }));
 
-// [7 Okt 2026] Tombol "Profit Pesanan" (RKS Overview) -> halaman Profit per Pesanan; tombol kembali -> RKS Overview
+// [7 Okt 2026] Tombol "Profit Pesanan" (RKS Overview) -> halaman Profit per Pesanan; tombol kembali -> RKS Overview (sekarang di topbar: #btnBackOverviewPf)
 document.querySelectorAll('[data-goto-profit]').forEach(b=>b.addEventListener('click', ()=>{
   const nb = document.querySelector('nav.menu button[data-page="profit"]'); if(nb) nb.click();
 }));
-(function(){ const b = document.getElementById('btnProfitBack'); if(b) b.addEventListener('click', ()=>{ const nb = document.querySelector('nav.menu button[data-page="hasil"]'); if(nb) nb.click(); }); })();
 
 /* ================= PAGE 2: HPP ================= */
 function uniqueProductList(){
