@@ -59,6 +59,7 @@
 // yang membaca DOM iframe (boleh, karena same-origin): tombol nav Analisis yang punya class "active" = halaman yang sedang tampil.
 // Jadi kalau halaman berpindah dari DALAM iframe (link ke HPP, resume halaman setelah ganti toko, dll) tab & sidebar ikut nyala benar.
 // (36) [4 Okt 2026] Operasional Toko: Rekap bulan M memakai porsi omset bulan M-1 (September selalu Agustus), BUKAN bulan sebelum tanggal hari ini, dan TIDAK PERNAH mundur ke bulan lain (toko yang tidak punya omset bulan M-1 kebagian Rp0, sisanya dibagi proporsional). Angka Operasional DIKUNCI ke snapshot saat Simpan ke Rekap (Overview/Mingguan/Proyeksi RKS) — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
+// (37) [7 Okt 2026] Proyeksi Harga (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah, lihat catatan 11): (a) Check Admin: Buffer (Lainnya) dari Setting ikut dikurangkan dari NPM + minicard Buffer baru; (b) By Harga Jual: kartu baru Net Income Toko (target NPM + Operasional) jadi acuan hasil MASUK / TIDAK MASUK; (c) By Target Qty: Input + Price List jadi SATU halaman, daftar SKU Price List diambil live dari Kelola Produk (klik baris = pilih SKU).
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;

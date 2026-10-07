@@ -1561,15 +1561,17 @@
 
   <!-- ============ PAGE: PROYEKSI HARGA > BY TARGET QTY ============ -->
   <section class="page" id="page-byqty">
-    <div class="subview active" id="byqtyView-list">
+    <!-- [7 Okt 2026] By Target Qty jadi SATU halaman: Input (panel kanan, posisi tetap) + hasil + Price List & Potongan di bawahnya.
+         View "list" lama (tombol Salin dari HPP / Input + kartu Price List) dibiarkan sebagai dead markup yang disembunyikan — id tombolnya masih dipakai addEventListener di bawah.
+         Kartu Price List (#priceListCard-byqty) pindah ke #byqtyPriceWrap di bawah .rks-shell. -->
+    <div class="subview" id="byqtyView-list">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <button class="btn btn-switch" id="btnByqtyCopy">Salin dari HPP</button>
         <button class="btn btn-switch" id="btnByqtyNext">Input</button>
       </div>
-      <div class="card" id="priceListCard-byqty"></div>
     </div>
-    <div class="subview" id="byqtyView-input">
-      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:14px;">
+    <div class="subview active" id="byqtyView-input">
+      <div style="display:none;">
         <button class="btn btn-switch" id="btnByqtyBack">Price List</button>
       </div>
       <div id="byqtyStats"></div>
@@ -1597,6 +1599,7 @@
           </div>
         </div>
       </div>
+      <div id="byqtyPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-byqty"></div></div>
     </div>
   </section>
 
@@ -5292,7 +5295,12 @@ function renderCheckAdminResult(parsed, manualOverrides){
   const opsPercent = state.settings.rasioOpsPercent;
   const rasioOps = (opsPercent!==null && opsPercent!==undefined) ? opsPercent/100 : null;
   const adminLayananRatio = ratioPotonganReal; // udah excl. biaya isi saldo otomatis & voucher toko ditanggung penjual
-  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - (acos||0) - (rasioOps||0) : null; // NPM = Net Profit Margin, udah termasuk Rasio Ops
+  // [7 Okt 2026] BUFFER (LAINNYA) dari Setting ikut dikurangkan. Alasan (user): rasio keuangan (RKS) diambil dari data BULANAN, bukan cuma data per pesanan,
+  // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang sudah dipakai By Operasional/By Target Qty/By Harga Jual/By Support.
+  const bufferPct = state.settings.lainnyaPct;
+  const buffer = (bufferPct!==null && bufferPct!==undefined && !isNaN(bufferPct)) ? bufferPct/100 : 0;
+  // (rumus lama sebelum buffer, dipertahankan sbg referensi: npm = gpm - admin - acos - rasioOps)
+  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Rasio Ops & Buffer
   const npmRp = (npm!==null && hargaJual!==null) ? npm*hargaJual : null;
   // Net Income = total uang IDR dari NPM (final, sama persis dgn NPM % di card sebelah) + IDR Rasio Ops (dijumlah, bukan dikurangi — Ops tetep masuk kantong sendiri)
   const opsRpSigned = (rasioOps!==null && hargaJual!==null) ? (rasioOps*hargaJual) : 0;
@@ -5314,10 +5322,10 @@ function renderCheckAdminResult(parsed, manualOverrides){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
           <h3 style="margin-bottom:8px;">Overview</h3>
-          <div class="hint zq-h" style="margin-bottom:0;">NPM = GPM − Admin+Layanan − ACOS − Rasio Ops (semua dalam %). Net Income = IDR NPM + IDR Rasio Ops.</div>
+          <div class="hint zq-h" style="margin-bottom:0;">NPM = GPM − Admin+Layanan − ACOS − Rasio Ops − Buffer (semua dalam %). Net Income = IDR NPM + IDR Rasio Ops.</div>
         </div>
       </div>
-      <div class="stat-grid stat-grid-5" style="margin-top:14px;">
+      <div class="stat-grid stat-grid-6" style="margin-top:14px;">
         <div class="stat-card accent">
           <div class="stat-label">GPM</div>
           <div class="stat-value">${fmtPct(gpm)}</div>
@@ -5331,6 +5339,11 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-label">ACOS</div>
           <div class="stat-value">${acos!==null ? fmtPct(acos) : '-'}</div>
           <div class="stat-sub">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Buffer</div>
+          <div class="stat-value">${fmtPct(buffer)}</div>
+          <div class="stat-sub">Setting — Buffer (Lainnya)</div>
         </div>
         <div class="stat-card ${npm!==null && npm<0 ? 'bad' : 'good'}">
           <div class="stat-label">NPM</div>
@@ -5416,7 +5429,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
     hargaJual, totalPenghasilan: parsed.totalPenghasilan,
     hppTotal, gpm,
     totalPotonganReal, ratioPotonganReal,
-    roas, acos, opsPercent, rasioOps, npm, npmRp, netIncome
+    roas, acos, opsPercent, rasioOps, buffer, npm, npmRp, netIncome
   };
 }
 
@@ -5634,7 +5647,7 @@ function pushCheckAdminHistory(rawPaste, r){
     hargaJual: r.hargaJual, totalPenghasilan: r.totalPenghasilan,
     hppTotal: r.hppTotal, gpm: r.gpm,
     totalPotonganReal: r.totalPotonganReal, ratioPotonganReal: r.ratioPotonganReal,
-    roas: r.roas, acos: r.acos, opsPercent: r.opsPercent, rasioOps: r.rasioOps,
+    roas: r.roas, acos: r.acos, opsPercent: r.opsPercent, rasioOps: r.rasioOps, buffer: r.buffer,
     npm: r.npm, npmRp: r.npmRp, netIncome: r.netIncome,
     rawPaste
   });
@@ -6588,6 +6601,9 @@ function syncPriceListFromHpp(){
 }
 
 function renderPriceListCard(containerId, tabKey){
+  // [7 Okt 2026] By Target Qty: Price List sekarang LIVE dari Kelola Produk (renderByqtyPriceListCard). Cabang lama di bawah (state.priceList / "Salin dari HPP")
+  // tetap dipakai By Operasional; untuk tabKey 'byqty' jadi tidak terpakai lagi (dead code, dipertahankan sesuai aturan kerja).
+  if(tabKey==='byqty') return renderByqtyPriceListCard();
   const card = document.getElementById(containerId);
   const adminBpp = resolveAdminBpp();
   const roasInfo = resolvePriceListRoas();
@@ -7097,6 +7113,100 @@ function renderProyeksiResult(){
 }
 
 let byqtySelectedSku = null;
+/* ================= [7 Okt 2026] By Target Qty — Price List & Potongan LIVE dari Kelola Produk =================
+   Dulu tabel ini = state.priceList (snapshot di localStorage toko, diisi tombol "Salin dari HPP" dari riwayat Order Completed) -> SKU dobel/usang
+   (mis. Turtleneck & TURTLENECK, SKU yang sudah dihapus dari Kelola Produk). Sekarang baris = bysupportRows() (zKatalogGroups, live): 1 baris per Katalog,
+   dipecah per size kalau HPP beda antar varian (HPP per size = yang tertinggi) — aturan yang SAMA dengan By Support. NET dihitung ulang tiap render (calcNetPrice).
+   Klik baris = pilih SKU itu sebagai produk simulasi (sama seperti pilih lewat tombol Pilih Produk). state.priceList tetap dipakai By Operasional & hasil simulasi. */
+var _byqtyLoadTs = 0;   // var (bukan let): aman kalau renderByQty kepanggil sebelum baris ini dieksekusi
+var _byqtyQuery = '';
+function byqtyPriceBodyHtml(){
+  const q = _byqtyQuery.trim().toLowerCase();
+  const all = bysupportRows();
+  const list = q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all;
+  if(!list.length){
+    return `<tr><td colspan="4" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
+  }
+  return list.map((row,i)=>{
+    const net = calcNetPrice(row);
+    const on = row.sku===byqtySelectedSku;
+    return `<tr class="byq-pl-row${on?' on':''}" data-i="${i}" data-sku="${byhEsc(row.sku)}" data-hpp="${row.hpp}" style="cursor:pointer;${on?'outline:2px solid var(--accent-dark);outline-offset:-2px;':''}">
+      <td>${byhEsc(row.sku)}</td>
+      <td class="num" style="font-weight:700;">${net===null?'-':fmtRp(net)}</td>
+      <td class="num">${fmtNum(row.hpp)}</td>
+      <td class="num">${plOpsPct()} %</td>
+    </tr>`;
+  }).join('');
+}
+function byqtyBindPriceRows(){
+  const body = document.getElementById('byqtyPriceBody');
+  if(!body) return;
+  body.querySelectorAll('tr.byq-pl-row').forEach(tr=>tr.addEventListener('click', ()=>{
+    const hpp = Number(tr.dataset.hpp)||0;
+    plApplyPickedSku('byqty', { sku: tr.dataset.sku, hpp });
+  }));
+}
+function byqtyOnSearch(v){
+  _byqtyQuery = v||'';
+  const body = document.getElementById('byqtyPriceBody');
+  if(body){ body.innerHTML = byqtyPriceBodyHtml(); byqtyBindPriceRows(); }
+}
+function renderByqtyPriceListCard(fromLoad){
+  const card = document.getElementById('priceListCard-byqty');
+  if(!card) return;
+  // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang kartu ini saja
+  if(!fromLoad && Date.now()-_byqtyLoadTs > 5000){
+    _byqtyLoadTs = Date.now();
+    zProdukLoad().then(()=>renderByqtyPriceListCard(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
+  }
+  const adminBpp = resolveAdminBpp();
+  const roasInfo = resolvePriceListRoas();
+  const bufPct = state.settings.lainnyaPct||0;
+  const prev = document.getElementById('byqtySearch');
+  const hadFocus = prev && document.activeElement===prev;
+  const selS = hadFocus ? prev.selectionStart : null, selE = hadFocus ? prev.selectionEnd : null;
+  card.innerHTML = `
+    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <span>Price List &amp; Potongan</span>
+      <input type="search" id="byqtySearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_byqtyQuery)}" oninput="byqtyOnSearch(this.value)"
+        style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
+    </h3>
+    <div class="stat-grid stat-grid-6" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-label">Admin %<span class="ket" style="display:block;font-weight:400;">${adminBpp.adminSource==='rekapM'?`Rekap Mingguan ${adminBpp.adminLabel}`:adminBpp.adminSource==='rekapB'?`Rekap Bulanan ${adminBpp.adminLabel}`:'fallback Setting'}</span></div>
+        <div class="stat-value">${fmtPct(adminBpp.adminPct/100)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">BPP (Rp)<span class="ket" style="display:block;font-weight:400;">${adminBpp.bppSource==='rekap'?`Rekap ${adminBpp.bppLabel}`:'fallback Setting'}</span></div>
+        <div class="stat-value">${fmtRp(adminBpp.bpp)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Operasional %<span class="ket" style="display:block;font-weight:400;">rasio operasional di Setting</span></div>
+        <div class="stat-value">${fmtPct(plOpsPct()/100)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACOS (1÷ROAS)<span class="ket" style="display:block;font-weight:400;">${roasInfo.source==='rekapM'?`Rekap Mingguan ${roasInfo.label}`:(roasInfo.source==='setting'?'ROAS toko di Setting':'isi ROAS toko di Setting')}</span></div>
+        <div class="stat-value">${(roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Buffer %<span class="ket" style="display:block;font-weight:400;">Setting — Buffer (Lainnya)</span></div>
+        <div class="stat-value">${fmtPct(bufPct/100)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Profit Target (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
+        <div class="stat-value">${fmtRp(state.settings.minNpmRp||0)}</div>
+      </div>
+    </div>
+    <div class="hint" style="margin:0 0 10px;">Produk &amp; HPP langsung dari Kelola Produk. Klik baris untuk memilih SKU sebagai produk simulasi di panel Input.</div>
+    <div class="pricelist-scroll">
+      <table class="ca-table">
+        <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
+        <tbody id="byqtyPriceBody">${byqtyPriceBodyHtml()}</tbody>
+      </table>
+    </div>`;
+  byqtyBindPriceRows();
+  if(hadFocus){ const el = document.getElementById('byqtySearch'); if(el){ el.focus(); try{ el.setSelectionRange(selS, selE); }catch(e){} } }
+}
 function renderByQty(){
   renderPriceListCard('priceListCard-byqty','byqty');
   renderByqtyRoasControl();
@@ -7488,6 +7598,12 @@ function byhargaCompute(row, harga, voucher, roas){
       r.roasImpas = aImpas>0 ? 1/aImpas : null;         // ROAS minimal supaya income >= 0
       r.rasioIncome = income/B;
       r.incomeTanpaVoucher = harga*denom - hpp - bppV;
+      // [7 Okt 2026] NET INCOME TOKO = TARGET dari NPM + Operasional, ditotal: Minimum Profit Toko (Setting, Rp/pcs) + IDR Operasional (Ops% × harga efektif).
+      // NET INCOME (aktual) = Profit/pcs + IDR Operasional (rumus yang sama dgn Check Admin & RKS). Selisihnya = Profit − Minimum Profit (Ops saling meniadakan),
+      // jadi MASUK/TIDAK MASUK (r.masuk di atas) tetap sama persis; yang berubah hanya acuan yang ditampilkan: Net Income vs Net Income Toko.
+      r.opsRp = B*ops;
+      r.netIncome = income + r.opsRp;
+      r.netIncomeTarget = T + r.opsRp;
     } else { r.masuk = false; r.invalid = 'voucher'; }
   }
   return r;
@@ -7586,7 +7702,8 @@ function renderByHargaResult(){
   if(has){
     cVerdict = c.masuk ? (c.ruang<BYHARGA_TIPIS ? 'warn' : 'good') : 'bad';
     vVerdict = c.masuk ? 'MASUK' : 'TIDAK MASUK';
-    sVerdict = 'Profit '+fmtRp(c.incomeR)+(c.masuk?' ≥ ':' < ')+'target '+fmtRp(T);
+    // [7 Okt 2026] acuan hasil = Net Income vs Net Income Toko (target NPM + Operasional). Dulu: 'Profit ... target Minimum Profit'.
+    sVerdict = 'Net Income '+fmtRp(Math.round(c.netIncome))+(c.masuk?' ≥ ':' < ')+'Net Income Toko '+fmtRp(Math.round(c.netIncomeTarget));
   } else if(c.invalid){ cVerdict='bad'; vVerdict='TIDAK MASUK'; }
   const ruangTxt = has ? ((c.ruang>=0?'+':'−')+Math.abs(c.ruang*100).toFixed(1)+' poin') : '—';
   const ruangSub = has ? (c.ruang>=0 ? 'potongan boleh naik segini sebelum di bawah target' : 'potongan harus turun segini supaya masuk target') : '';
@@ -7628,6 +7745,15 @@ function renderByHargaResult(){
       ${hr('PROFIT / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
       ${hr('NET INCOME'+(has?pct(netInc/B):''), has?fmtRp(netInc):'-', true)}
       <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = PROFIT / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
+    </div>
+    <div class="card byh-card"><h3>Net Income Toko</h3>
+      ${hr('TARGET NPM'+(has?pct(T/B):''), fmtRp(T))}
+      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(c.opsRp):'-')}
+      ${hr('NET INCOME TOKO'+(has?pct(c.netIncomeTarget/B):''), has?fmtRp(Math.round(c.netIncomeTarget)):'-', true)}
+      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(Math.round(c.netIncome)):'-')}
+      ${hr('SELISIH', has?sgnRp(c.netIncome-c.netIncomeTarget):'-')}
+      ${hr('HASIL', has?'<span style="font-weight:700;color:var(--'+(c.masuk?'good':'bad')+');">'+(c.masuk?'MASUK':'TIDAK MASUK')+'</span>':(c.invalid?'<span style="font-weight:700;color:var(--bad);">TIDAK MASUK</span>':'-'), true)}
+      <div class="byh-note">Net Income Toko = target NPM (Minimum Profit Toko ${fmtRp(T)} di Setting) + IDR Operasional (${fmtPct(c.ops)} × harga efektif). Net Income di bawah target = TIDAK MASUK. Acuan hasil MASUK / TIDAK MASUK di kartu atas.</div>
     </div>
     </div>`;
   const right = `
@@ -7672,7 +7798,8 @@ function renderByHargaResult(){
       + row3('Harga efektif', has?fmtRp(c.B):'-', cw.invalid?'-':fmtRp(cw.B), has&&!cw.invalid?sgnRp(cw.B-c.B):'-')
       + row3('Profit / pcs', has?fmtRp(c.incomeR):'-', cw.invalid?'-':fmtRp(cw.incomeR), has&&!cw.invalid?d(c.incomeR,cw.incomeR):'-')
       + row3('Net income', netN===null?'-':fmtRp(netN), netW===null?'-':fmtRp(netW), d(netN,netW))
-      + row3('Hasil vs target '+fmtRp(T), has?(okN?'MASUK':'TIDAK MASUK'):'-', cw.invalid?'TIDAK MASUK':(okW?'MASUK':'TIDAK MASUK'), '', [has?(okN?'good':'bad'):'', cw.invalid?'bad':(okW?'good':'bad')])
+      + row3('Net Income Toko (target)', has?fmtRp(Math.round(c.netIncomeTarget)):'-', cw.invalid?'-':fmtRp(Math.round(cw.netIncomeTarget)), (has&&!cw.invalid)?d(Math.round(c.netIncomeTarget),Math.round(cw.netIncomeTarget)):'-')
+      + row3('Hasil vs Net Income Toko', has?(okN?'MASUK':'TIDAK MASUK'):'-', cw.invalid?'TIDAK MASUK':(okW?'MASUK':'TIDAK MASUK'), '', [has?(okN?'good':'bad'):'', cw.invalid?'bad':(okW?'good':'bad')])
       + row3('Harga jual minimum', c.hargaMin===null?'-':fmtRp(c.hargaMin), cw.hargaMin===null?'-':fmtRp(cw.hargaMin), (c.hargaMin===null||cw.hargaMin===null)?'-':sgnRp(cw.hargaMin-c.hargaMin))
       + '</tbody></table>'
       + '<div class="byh-note">Rumus sama persis dengan hasil di atas, cuma voucher diganti. Harga jual minimum = NET + voucher: harga pasang terendah supaya profit tetap ≥ target di tiap skenario.'+(cw.invalid?' Voucher weekend ≥ harga jual, jadi harga efektif tidak valid.':'')+'</div></div>';
