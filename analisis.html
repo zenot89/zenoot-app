@@ -555,6 +555,12 @@
   #proyeksiView-input .rks-shell, #byqtyView-input .rks-shell{ flex:1; min-height:0; align-items:stretch; }
   #proyeksiView-input .rks-main, #byqtyView-input .rks-main{ display:flex; flex-direction:column; }
   #proyeksiDetail, #byqtyDetail{ flex:1; min-height:0; display:flex; flex-direction:column; }
+  /* [7 Okt 2026] By Operasional & By Target Qty: Price List & Potongan SEJAJAR panel Input (pola halaman Check Admin: kiri = hasil + Price List, kanan = kolom Input penuh ke bawah).
+     3 anak langsung .rks-shell (main, Input, Price List) ditata grid di laptop; di HP rule 'display:block' di analisis.js menang (spesifisitas lebih tinggi) -> urutan tumpuk tetap hasil, Input, Price List. */
+  #proyeksiView-input .rks-shell, #byqtyView-input .rks-shell{ display:grid; grid-template-columns:minmax(0,1fr) 340px; grid-template-areas:"main input" "price input"; grid-template-rows:auto auto; align-content:start; column-gap:16px; row-gap:0; }
+  #proyeksiView-input .rks-shell > .rks-main, #byqtyView-input .rks-shell > .rks-main{ grid-area:main; min-width:0; }
+  #proyeksiInputPanel, #byqtyInputPanel{ grid-area:input; }
+  #proyeksiPriceWrap, #byqtyPriceWrap{ grid-area:price; min-width:0; }
   .pr-cols{ flex:1; min-height:470px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,2fr) minmax(0,1fr); gap:16px; align-items:stretch; }   /* baris 1: Nilai (IDR) | Rasio — baris 2: Spend Budget Iklan | Cost Produk */
   .pr-card{ display:flex; flex-direction:column; padding:16px 24px 10px; margin-bottom:0; }
   .pr-card h3{ margin:0 0 10px; font-size:clamp(15px,1.9vh,19px); }
@@ -1520,15 +1526,19 @@
 
   <!-- ============ PAGE: PROYEKSI HARGA > PROYEKSI ============ -->
   <section class="page" id="page-proyeksi">
-    <div class="subview active" id="proyeksiView-list">
+    <!-- [7 Okt 2026] By Operasional jadi SATU halaman seperti By Target Qty: hasil (kiri) + Price List & Potongan di bawahnya (kiri) + panel Input (kanan, sejajar).
+         View "list" lama (kartu Price List + tombol Input) & tombol Price List lama dibiarkan sebagai dead markup tersembunyi — id tombolnya masih dipakai addEventListener di bawah.
+         Tombol "Salin dari HPP" tetap ada (sumber Price List By Operasional = state.priceList, tidak diubah), pindah ke baris atas halaman. -->
+    <div class="subview" id="proyeksiView-list">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <button class="btn btn-switch" id="btnProyeksiCopy">Salin dari HPP</button>
         <button class="btn btn-switch" id="btnProyeksiNext">Input</button>
       </div>
-      <div class="card" id="priceListCard-proyeksi"></div>
     </div>
-    <div class="subview" id="proyeksiView-input">
-      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:14px;">
+    <div class="subview active" id="proyeksiView-input">
+      <div style="display:flex;justify-content:flex-start;align-items:center;margin-bottom:14px;">
+        <button class="btn btn-switch" id="btnProyeksiCopy">Salin dari HPP</button>
+      </div>
+      <div style="display:none;">
         <button class="btn btn-switch" id="btnProyeksiBack">Price List</button>
       </div>
       <div id="proyeksiStats"></div>
@@ -1555,6 +1565,7 @@
             </div>
           </div>
         </div>
+        <div id="proyeksiPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-proyeksi"></div></div>
       </div>
     </div>
   </section>
@@ -1598,8 +1609,8 @@
             </div>
           </div>
         </div>
+        <div id="byqtyPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-byqty"></div></div>
       </div>
-      <div id="byqtyPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-byqty"></div></div>
     </div>
   </section>
 
