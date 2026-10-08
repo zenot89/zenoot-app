@@ -3275,9 +3275,13 @@ function _jpLoadPrev(mode, now) {
     _jpRenderDelta();
   }).catch(function() { /* gagal ambil pembanding → badge tetap tersembunyi, fitur lain tidak terganggu */ });
 }
-function _jpDeltaHtml(cur, prev, label, fmtPrev) {
+function _jpFmtWin(d) { return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + _jpJamStr(d).replace(':', '.'); }
+function _jpDeltaHtml(cur, prev, info, fmtPrev) {
   if (!prev && !cur) return '';
-  var tip = 'vs ' + label + ' (rentang waktu sepadan): ' + fmtPrev(prev);
+  var label = info.label;
+  // [8 Okt 2026] angka periode pembanding ditampilkan LANGSUNG di teks kecil (bukan cuma tooltip) + rentang persisnya di tooltip,
+  // supaya "– 0%" / "▽ 17%" bisa dicek mata: ada angka pembandingnya, dan jelas sampai hari & jam berapa dihitung.
+  var tip = 'Pembanding (' + label + '): ' + fmtPrev(prev) + '  |  rentang: ' + _jpFmtWin(info.lo) + ' s/d ' + _jpFmtWin(info.hi) + ' (hari & jam sepadan)';
   var base = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;';
   var col, txt;
   if (!prev) { col = 'var(--ok)'; txt = '△ baru'; }
@@ -3292,7 +3296,7 @@ function _jpDeltaHtml(cur, prev, label, fmtPrev) {
   }
   var bg = 'background:color-mix(in srgb, ' + col + ' 13%, transparent);';
   return '<span title="' + tip + '" style="' + base + bg + 'color:' + col + '">' + txt + '</span>'
-    + '<span style="display:block;text-align:right;font-family:var(--f);font-size:10px;font-weight:400;color:var(--ink3);margin-top:1px">vs ' + label + '</span>';
+    + '<span title="' + tip + '" style="display:block;text-align:right;font-family:var(--f);font-size:10px;font-weight:400;color:var(--ink3);margin-top:1px">vs ' + label + ' · ' + fmtPrev(prev) + '</span>';
 }
 function _jpRenderDelta(curRows) {
   var ids = ['jp-delta-penjualan', 'jp-delta-penjualan2', 'jp-delta-item', 'jp-delta-item2'];
@@ -3314,8 +3318,8 @@ function _jpRenderDelta(curRows) {
   var sum = function(rows, k) { return rows.reduce(function(a, r) { return a + (r[k] || 0); }, 0); };
   var pT = sum(prev, 'total'), pQ = sum(prev, 'qty'), cT = sum(cur, 'total'), cQ = sum(cur, 'qty');
   var put = function(idList, html) { idList.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.innerHTML = html; e.style.display = html ? 'block' : 'none'; }); };
-  put(['jp-delta-penjualan', 'jp-delta-penjualan2'], _jpDeltaHtml(cT, pT, info.label, function(v) { return 'Rp' + v.toLocaleString('id-ID'); }));
-  put(['jp-delta-item', 'jp-delta-item2'],           _jpDeltaHtml(cQ, pQ, info.label, function(v) { return v.toLocaleString('id-ID') + ' item'; }));
+  put(['jp-delta-penjualan', 'jp-delta-penjualan2'], _jpDeltaHtml(cT, pT, info, function(v) { return 'Rp' + v.toLocaleString('id-ID'); }));
+  put(['jp-delta-item', 'jp-delta-item2'],           _jpDeltaHtml(cQ, pQ, info, function(v) { return v.toLocaleString('id-ID') + ' item'; }));
 }
 
 // ─── LAST CHANNEL MEMORY — reset jam 00.00 ───────────────────
