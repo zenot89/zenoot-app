@@ -59,12 +59,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div class="metrics" style="flex-shrink:0">
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
-        <div class="m-value" id="jp-total-penjualan2">—</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan2">—</div><span class="jp-delta" id="jp-delta-penjualan2" style="display:none"></span></div>
         <div class="m-delta">semua transaksi</div>
       </div>
       <div class="metric">
         <div class="m-label">Total Item Terjual</div>
-        <div class="m-value" id="jp-total-item2">—</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item2">—</div><span class="jp-delta" id="jp-delta-item2" style="display:none"></span></div>
         <div class="m-delta">qty keseluruhan</div>
       </div>
     </div>
@@ -718,12 +718,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <div class="metrics" style="margin:10px 0 8px">
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
-      <div class="m-value" id="jp-total-penjualan">—</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan">—</div><span class="jp-delta" id="jp-delta-penjualan" style="display:none"></span></div>
       <div class="m-delta">semua transaksi</div>
     </div>
     <div class="metric">
       <div class="m-label">Total Item Terjual</div>
-      <div class="m-value" id="jp-total-item">—</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item">—</div><span class="jp-delta" id="jp-delta-item" style="display:none"></span></div>
       <div class="m-delta">qty keseluruhan</div>
     </div>
   </div>
@@ -1507,6 +1507,7 @@ async function loadJurnalPenjualan() {
     const data = await dbGet('jurnal_penjualan', filter + '&order=tanggal.desc,id.desc');
     _jpAllData = data || [];
     filterJP();
+    _jpLoadPrev(mode, now); // [8 Okt 2026] periode pembanding untuk badge △/▽ (async, tidak menahan tabel)
     jpLoadTargetHarian(); // progress bar target harian
     _jpRefreshSisakMap(); // refresh sisa stok all-time untuk picker (async, non-blocking)
     // Re-apply flex layout setelah data selesai — pastikan portrait juga flat seperti landscape
@@ -3005,6 +3006,7 @@ function filterJP() {
   var el3 = document.getElementById('jp-total-item2');
   if (el2) el2.textContent = document.getElementById('jp-total-penjualan').textContent;
   if (el3) el3.textContent = document.getElementById('jp-total-item').textContent;
+  _jpRenderDelta(hasil);
   // Render bestseller + channel + chart hanya kalau Tab Tren aktif
   if (_jpActiveTab === 'tren') {
     _jpRenderBestSeller(hasil, _jpBsSortBy);
@@ -3204,6 +3206,116 @@ function updateMetricsJP(data) {
   const item = data.reduce((s,r) => s+(r.qty||0), 0);
   document.getElementById('jp-total-penjualan').textContent = 'Rp' + tot.toLocaleString('id-ID');
   document.getElementById('jp-total-item').textContent      = item.toLocaleString('id-ID') + ' item';
+}
+
+// ─── PERBANDINGAN △/▽ vs PERIODE SEBELUMNYA (8 Okt 2026) ─────
+// Badge di minicard Total Penjualan & Total Item Terjual: △ naik / ▽ turun terhadap periode pembanding.
+// Aturan: SEPADAN, bukan periode penuh — kalau periode aktif belum selesai (Minggu Ini baru jalan 3 hari), pembandingnya
+// juga cuma sepanjang waktu yang sudah berjalan (Minggu Ini s/d Kamis 10.31 vs Minggu Lalu s/d Kamis 10.31). Kalau dibandingkan
+// dengan minggu penuh, hasilnya hampir selalu ▽ dan menyesatkan. Periode pembanding: Hari Ini→kemarin, Kemarin/Hari→hari sebelumnya,
+// Minggu Ini→minggu lalu (pakai cutoff Sabtu yang sama), Minggu Lalu→minggu sebelumnya, Bulan Ini→bulan lalu, Bulan/Tahun pilihan→
+// bulan/tahun sebelumnya, 7 Hari & rentang tanggal (termasuk Bulan Lalu/3 Bulan)→rentang sama panjang tepat sebelumnya. 'Semua'→tidak ada badge.
+// Mengikuti filter channel yang aktif. Data pembanding diambil lewat query terpisah (_jpPrevRows) supaya tabel/chart tidak tersentuh.
+var _jpPrevRows = null;   // baris mentah periode pembanding (null = belum/tidak ada)
+var _jpPrevInfo = null;   // { label, lo, hi, week }
+var _jpPrevTok  = 0;      // penanda permintaan terakhir (abaikan balasan lama kalau periode keburu diganti)
+function _jpKeyDT(d) { return _jpLocalDate(d) + 'T' + _jpJamStr(d); }
+function _jpPrevPeriod(mode, now) {
+  var y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  var D = function(yy, mm, dd) { return new Date(yy, mm, dd, 0, 0, 0); };
+  var cs, ce, ps, label, week = false;   // cs/ce = awal/akhir periode aktif, ps = awal periode pembanding
+  function parseYmd(str) { var q = String(str || '').split('-'); return q.length === 3 ? D(+q[0], +q[1] - 1, +q[2]) : null; }
+  if (mode === 'hari-ini')      { cs = D(y, m, d);     ce = D(y, m, d + 1); ps = D(y, m, d - 1); label = 'kemarin'; }
+  else if (mode === 'kemarin')  { cs = D(y, m, d - 1); ce = D(y, m, d);     ps = D(y, m, d - 2); label = 'hari sebelumnya'; }
+  else if (mode === 'hari') {
+    cs = parseYmd((document.getElementById('jp-filter-hari') || {}).value || _jpLocalDate(now));
+    if (!cs) return null;
+    ce = D(cs.getFullYear(), cs.getMonth(), cs.getDate() + 1); ps = D(cs.getFullYear(), cs.getMonth(), cs.getDate() - 1); label = 'hari sebelumnya';
+  }
+  else if (mode === 'minggu-ini' || mode === 'minggu-lalu') {
+    var rng = _jpMingguRangeAktif(mode, now);
+    cs = rng.prevCutoff; ce = rng.cutoff; week = true;
+    ps = new Date(cs.getFullYear(), cs.getMonth(), cs.getDate() - 7, cs.getHours(), cs.getMinutes(), 0);
+    label = mode === 'minggu-ini' ? 'minggu lalu' : 'minggu sebelumnya';
+  }
+  else if (mode === 'bulan-ini') { cs = D(y, m, 1); ce = D(y, m + 1, 1); ps = D(y, m - 1, 1); label = 'bulan lalu'; }
+  else if (mode === 'bulan') {
+    var fb = String((document.getElementById('jp-filter-bulan') || {}).value || '').split('-');
+    if (fb.length < 2 || !fb[0] || !fb[1]) return null;
+    cs = D(+fb[0], +fb[1] - 1, 1); ce = D(+fb[0], +fb[1], 1); ps = D(+fb[0], +fb[1] - 2, 1); label = 'bulan sebelumnya';
+  }
+  else if (mode === 'tahun') {
+    var ft = parseInt((document.getElementById('jp-filter-tahun') || {}).value, 10);
+    if (!ft) return null;
+    cs = D(ft, 0, 1); ce = D(ft + 1, 0, 1); ps = D(ft - 1, 0, 1); label = 'tahun sebelumnya';
+  }
+  else if (mode === '7hari') { cs = D(y, m, d - 7); ce = D(y, m, d + 1); ps = new Date(cs.getTime() - (ce.getTime() - cs.getTime())); label = '7 hari sebelumnya'; }
+  else if (mode === 'minggu') {
+    var a = parseYmd((document.getElementById('jp-filter-minggu-dari') || {}).value);
+    var b = parseYmd((document.getElementById('jp-filter-minggu-sampai') || {}).value);
+    if (!a || !b) return null;
+    cs = a; ce = D(b.getFullYear(), b.getMonth(), b.getDate() + 1); ps = new Date(cs.getTime() - (ce.getTime() - cs.getTime())); label = 'periode sebelumnya';
+  }
+  else return null;
+  if (isNaN(cs.getTime()) || isNaN(ps.getTime())) return null;
+  var elapsed = Math.max(0, Math.min(now.getTime(), ce.getTime()) - cs.getTime());      // yang sudah berjalan di periode aktif
+  var hi = new Date(Math.min(ps.getTime() + elapsed, cs.getTime()));                      // pembanding sepanjang itu, tidak boleh masuk periode aktif
+  return { label: label, lo: ps, hi: hi, week: week };
+}
+function _jpLoadPrev(mode, now) {
+  var info = _jpPrevPeriod(mode, now);
+  _jpPrevInfo = info; _jpPrevRows = null;
+  var tok = ++_jpPrevTok;
+  _jpRenderDelta();   // sembunyikan badge lama dulu
+  if (!info) return;
+  var f = '&tanggal=gte.' + _jpLocalDate(info.lo) + '&tanggal=lt.' + _jpAddDays(_jpLocalDate(info.hi), 1);
+  dbGet('jurnal_penjualan', f + '&order=tanggal.desc,id.desc').then(function(rows) {
+    if (tok !== _jpPrevTok) return;
+    _jpPrevRows = rows || [];
+    _jpRenderDelta();
+  }).catch(function() { /* gagal ambil pembanding → badge tetap tersembunyi, fitur lain tidak terganggu */ });
+}
+function _jpDeltaHtml(cur, prev, label, fmtPrev) {
+  if (!prev && !cur) return '';
+  var tip = 'vs ' + label + ' (rentang waktu sepadan): ' + fmtPrev(prev);
+  var base = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;';
+  var col, txt;
+  if (!prev) { col = 'var(--ok)'; txt = '△ baru'; }
+  else {
+    var pct = (cur - prev) / prev * 100;
+    var r = Math.round(pct);
+    var shown = String(Math.abs(r));
+    if (r === 0 && pct !== 0) shown = (Math.round(Math.abs(pct) * 10) / 10).toLocaleString('id-ID');
+    if (pct === 0)      { col = 'var(--ink3)';   txt = '– 0%'; }
+    else if (pct > 0)   { col = 'var(--ok)';     txt = '△ ' + shown + '%'; }
+    else                { col = 'var(--danger)'; txt = '▽ ' + shown + '%'; }
+  }
+  var bg = 'background:color-mix(in srgb, ' + col + ' 13%, transparent);';
+  return '<span title="' + tip + '" style="' + base + bg + 'color:' + col + '">' + txt + '</span>'
+    + '<span style="display:block;text-align:right;font-family:var(--f);font-size:10px;font-weight:400;color:var(--ink3);margin-top:1px">vs ' + label + '</span>';
+}
+function _jpRenderDelta(curRows) {
+  var ids = ['jp-delta-penjualan', 'jp-delta-penjualan2', 'jp-delta-item', 'jp-delta-item2'];
+  var hide = function() { ids.forEach(function(id) { var e = document.getElementById(id); if (e) { e.style.display = 'none'; e.innerHTML = ''; } }); };
+  var info = _jpPrevInfo;
+  if (!info || !_jpPrevRows) { hide(); return; }
+  var cur = curRows || _jpLastFilterData || [];
+  var fc = document.getElementById('jp-filter-channel');
+  var kat = fc ? fc.value : '';
+  var lo = _jpKeyDT(info.lo), hi = _jpKeyDT(info.hi);
+  var prev = _jpPrevRows.filter(function(r) {
+    if (r.no_order) return false;                                        // Shopee → Data Order, sama dengan filterJP
+    if (kat && String(r.channel_id) !== String(kat)) return false;
+    var tgl = String(r.tanggal || '').slice(0, 10);
+    if (!tgl) return false;
+    var key = tgl + 'T' + String(r.waktu || '00:00').slice(0, 5);
+    return info.week ? (key > lo && key <= hi) : (key >= lo && key < hi);   // minggu: (Sabtu cutoff, Sabtu cutoff] seperti _jpRowDalamMinggu
+  });
+  var sum = function(rows, k) { return rows.reduce(function(a, r) { return a + (r[k] || 0); }, 0); };
+  var pT = sum(prev, 'total'), pQ = sum(prev, 'qty'), cT = sum(cur, 'total'), cQ = sum(cur, 'qty');
+  var put = function(idList, html) { idList.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.innerHTML = html; e.style.display = html ? 'block' : 'none'; }); };
+  put(['jp-delta-penjualan', 'jp-delta-penjualan2'], _jpDeltaHtml(cT, pT, info.label, function(v) { return 'Rp' + v.toLocaleString('id-ID'); }));
+  put(['jp-delta-item', 'jp-delta-item2'],           _jpDeltaHtml(cQ, pQ, info.label, function(v) { return v.toLocaleString('id-ID') + ' item'; }));
 }
 
 // ─── LAST CHANNEL MEMORY — reset jam 00.00 ───────────────────
