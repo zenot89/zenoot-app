@@ -5323,7 +5323,20 @@ function matchItemToHpp(item){
     const induk = row ? (row.katalog||'').toString().trim() : '';
     return { product: { skuInduk: induk || item.kodeVariasi.trim(), namaProduk: item.namaProduk||'', nomorRef: item.kodeVariasi.trim(), variasi: item.variasi||'' }, tier: 'kelola' };
   }
-  return null;
+  // Tier 5 'katalog' [8 Okt 2026]: Kode Variasi = SKU INDUK (Katalog di Kelola Produk), mis. RH_Zipper-salur, dgn size di Nama Variasi ("Navi,M").
+  // Tier 1-4 cuma nemu kalau varian itu SUDAH pernah muncul di Order Completed yang ke-load, jadi aturan naik/turun size (RH_Zipper-salur M->L, XL->XXL; Turtleneck S->M, L->XL)
+  // gak pernah dijalankan buat order yang variannya belum ada di data. Lapis ini langsung nanya Kelola Produk lewat zProdukHppBy (aturan size yang sama dgn jalur lain).
+  // Cuma jalan kalau SEMUA tier di atas gagal, jadi hasil yang sudah match TIDAK berubah.
+  return kelolaProductByInduk(item.kodeVariasi, item);
+}
+// Produk sementara dari Kelola Produk untuk SKU Induk (Katalog) + size di Nama Variasi; null kalau induknya gak ada di Kelola Produk / HPP-nya gak ketemu.
+function kelolaProductByInduk(induk, item){
+  const ik = zProdukNorm(induk);
+  if(!ik || !item) return null;
+  const row = (zProdukRows||[]).find(r=>zProdukNorm(r.katalog)===ik);
+  if(!row) return null;
+  if(zProdukHppBy(row.katalog, '', item.variasi||'') === undefined) return null;
+  return { product: { skuInduk: (row.katalog||'').toString().trim(), namaProduk: item.namaProduk||'', nomorRef: '', variasi: item.variasi||'' }, tier: 'katalog' };
 }
 
 function extractSizeToken(variasiText){
@@ -5537,7 +5550,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
     if(overrideKey){
       if(overrideKey.startsWith('INDUK::')){
         const chosenInduk = overrideKey.slice('INDUK::'.length);
-        matched = matchBySize(chosenInduk, extractSizeToken(item.variasi)) || null;
+        matched = matchBySize(chosenInduk, extractSizeToken(item.variasi)) || ((kelolaProductByInduk(chosenInduk, item)||{}).product) || null;   // [8 Okt 2026] fallback Kelola Produk kalau varian belum ada di Order Completed
       } else {
         matched = list.find(p=>makeKey(p.skuInduk,p.nomorRef,p.variasi)===overrideKey) || null;
       }
