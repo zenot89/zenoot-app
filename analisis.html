@@ -1274,6 +1274,12 @@
   .stat-card .stat-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:700; margin-bottom:8px; }
   .stat-card .stat-value{ font-family:'JetBrains Mono',monospace; font-size:21px; font-weight:700; line-height:1.1; }
   .stat-card .stat-sub{ font-size:11px; color:var(--ink-soft); margin-top:6px; line-height:1.4; }
+  /* [8 Okt 2026] Minicard 2 nilai (Check Admin: ACOS|CPP, Ops|IDR, NPM|IDR): persen di kiri, IDR di kanan, font & ukuran angka sama (ikut .stat-value) */
+  .stat-card.stat-dual{ display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; align-items:start; }
+  .stat-card.stat-dual > .stat-label{ margin-bottom:8px; }
+  .stat-card.stat-dual > .stat-label.r{ text-align:right; }
+  .stat-card.stat-dual > .stat-value.r{ text-align:right; white-space:nowrap; }
+  .stat-card.stat-dual > .stat-sub{ grid-column:1 / -1; }
   .stat-card.accent{ background:var(--accent-soft); border-color:#B0B0B0; }
   .stat-card.accent .stat-value{ color:var(--accent-dark); }
   .stat-card.bad .stat-value{ color:var(--bad); }
@@ -5634,6 +5640,8 @@ function renderCheckAdminResult(parsed, manualOverrides){
   // (rumus lama sebelum buffer, dipertahankan sbg referensi: npm = gpm - admin - acos - rasioOps)
   const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Rasio Ops & Buffer
   const npmRp = (npm!==null && hargaJual!==null) ? npm*hargaJual : null;
+  // CPP (Cost Per Purchase) = biaya iklan per pesanan = ACOS × Harga Jual (Subtotal Pesanan) — basis yang sama dengan IDR NPM & IDR Ops.
+  const cppRp = (acos!==null && hargaJual!==null) ? acos*hargaJual : null;
   // Net Income = total uang IDR dari NPM (final, sama persis dgn NPM % di card sebelah) + IDR Rasio Ops (dijumlah, bukan dikurangi — Ops tetep masuk kantong sendiri)
   const opsRpSigned = (rasioOps!==null && hargaJual!==null) ? (rasioOps*hargaJual) : 0;
   const netIncome = (npmRp!==null) ? npmRp + opsRpSigned : null;
@@ -5662,19 +5670,25 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-value">${fmtPct((adminLayananRatio||0) + buffer)}</div>
           ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio, buffer)}
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-dual">
           <div class="stat-label">ACOS</div>
+          <div class="stat-label r">CPP</div>
           <div class="stat-value">${acos!==null ? fmtPct(acos) : '-'}</div>
-          <div class="stat-sub zq-h">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
+          <div class="stat-value r">${cppRp!==null ? fmtRp(cppRp) : '-'}</div>
+          <div class="stat-sub zq-h">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)+' · CPP (Cost Per Purchase) = ACOS × Harga Jual = biaya iklan per pesanan') : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-dual">
           <div class="stat-label">Ops</div>
+          <div class="stat-label r">IDR</div>
           <div class="stat-value">${rasioOps!==null ? fmtPct(rasioOps) : '-'}</div>
+          <div class="stat-value r">${rasioOps!==null && hargaJual!==null ? fmtRp(opsRpSigned) : '-'}</div>
           <div class="stat-sub zq-h">${rasioOps!==null ? 'Rasio Operasional — Setting Analisis' : 'isi Rasio Operasional di Setting'}</div>
         </div>
-        <div class="stat-card ${npm!==null && npm<0 ? 'bad' : 'good'}">
+        <div class="stat-card stat-dual ${npm!==null && npm<0 ? 'bad' : 'good'}">
           <div class="stat-label">NPM</div>
+          <div class="stat-label r">IDR</div>
           <div class="stat-value">${fmtPct(npm)}</div>
+          <div class="stat-value r">${fmtRp(npmRp)}</div>
           <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − ACOS − Ops</div>
         </div>
         <div class="stat-card ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
