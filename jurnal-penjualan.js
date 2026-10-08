@@ -4033,7 +4033,14 @@ function _jpSkuSheetRenderVariasi(q) {
     if (!q) {
       var bySku = {};
       items.forEach(function(p) { bySku[_jpGetSku(p).toUpperCase()] = p; });
-      var top = zHistTop('jp_variasi', 5).map(function(k) { return bySku[k]; }).filter(Boolean);
+      // [8 Okt 2026] Riwayat variasi sekarang PER KATALOG ('jp_variasi_<KATALOG>'). Dulu: top-5 GLOBAL ('jp_variasi', semua katalog, maks 20 entri) baru
+      // difilter ke katalog yang lagi dibuka -> kalau 5 teratas milik katalog lain (atau variasi katalog ini sudah tergeser dari 20 entri), section "Sering & Terakhir"
+      // kosong walau katalog ini sudah sering dipakai. Riwayat global lama tetap dibaca sebagai cadangan (setelah riwayat katalog), jadi data lama tidak hilang.
+      var _seenH = {}, _topKeys = [];
+      zHistTop('jp_variasi_' + String(katalog).toUpperCase(), 20).concat(zHistTop('jp_variasi', 20)).forEach(function(k) {
+        if (bySku[k] && !_seenH[k]) { _seenH[k] = 1; _topKeys.push(k); }
+      });
+      var top = _topKeys.slice(0, 5).map(function(k) { return bySku[k]; });
       if (top.length) {
         html += '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>';
         top.forEach(function(p) { html += _varRowHtml(p); });
@@ -4061,6 +4068,8 @@ function jpSkuSheetSelectInduk(katalog) {
 
 function jpSkuSheetSelectVariasi(sku, hpp) {
   zHistPush('jp_variasi', sku.toUpperCase()); // riwayat sering/terakhir dipakai
+  var _katH = (document.getElementById('jp-sku-induk') || {}).value;   // [8 Okt 2026] + riwayat per katalog (lihat _jpSkuSheetRenderVariasi)
+  if (_katH) zHistPush('jp_variasi_' + String(_katH).toUpperCase(), sku.toUpperCase());
   var sel = document.getElementById('jp-sku-variasi');
   if (sel) {
     sel.value = sku;
