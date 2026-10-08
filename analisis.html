@@ -705,6 +705,13 @@
            background:var(--ink); color:#fff; font-size:12px; font-weight:400; line-height:1.5; text-transform:none; letter-spacing:0; white-space:normal; overflow-wrap:anywhere;
            box-shadow:0 6px 20px rgba(20,20,20,.25); pointer-events:none; }
   .zq-pop div + div{ margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.2); }
+  /* [8 Okt 2026] Popup rinci (mis. Admin + Layanan): baris pakai <span> (bukan div) supaya tidak kena garis pemisah .zq-pop div + div */
+  .zq-pop .zq-rich-c{ display:block; min-width:210px; }
+  .zq-pop .zq-rich-c .zq-rt{ display:flex; justify-content:space-between; gap:14px; font-weight:700; }
+  .zq-pop .zq-rich-c .zq-rn{ display:block; opacity:.75; font-size:11px; margin-top:2px; }
+  .zq-pop .zq-rich-c .zq-rg{ display:flex; justify-content:space-between; gap:14px; font-weight:700; margin-top:8px; padding-top:6px; border-top:1px solid rgba(255,255,255,.2); }
+  .zq-pop .zq-rich-c .zq-rr{ display:flex; justify-content:space-between; gap:14px; padding-left:8px; margin-top:2px; opacity:.92; }
+  .zq-pop .zq-rich-c .zq-rv{ font-family:'JetBrains Mono',monospace; white-space:nowrap; }
   @media (max-width:900px){ .byh-cols{ grid-template-columns:1fr; } }
   .rekap-selectbar{
     position:fixed; left:50%; bottom:22px; transform:translate(-50%, 16px);
@@ -2526,6 +2533,8 @@ function zHppView(){
     var p = s.parentElement;
     if(!p) return null;
     if(p.classList.contains('lbl') || p.classList.contains('stat-label')) return p;
+    if(p.classList.contains('stat-card')) return p.querySelector('.stat-label');            // [8 Okt 2026] sub-teks minicard -> (?) di label minicard-nya
+    if(p.classList.contains('stat-split-col')) return p.querySelector('.stat-split-head');  // minicard Harga Jual/Harga Real (split)
     if(p.classList.contains('hrow') || p.classList.contains('roas-block')){
       for(var i = 0; i < p.children.length; i++){ if(p.children[i].classList.contains('lbl')) return p.children[i]; }
       return null;
@@ -2533,10 +2542,24 @@ function zHppView(){
     var c = s.closest ? s.closest('.card') : null;
     return c ? c.querySelector('h3') : null;
   }
+  // [8 Okt 2026] Sumber berkelas .zq-rich (rincian bertingkat + persen) disalin utuh ke popover; sumber biasa tetap lewat textContent.
+  function srcs(key){
+    var out = [], seen = {}, els = document.querySelectorAll('[data-zq="' + key + '"]');
+    for(var i = 0; i < els.length; i++){ var t = txt(els[i]); if(t && !seen[t]){ seen[t] = 1; out.push(els[i]); } }
+    return out;
+  }
   function fill(q){
-    var list = texts(q.getAttribute('data-zq-for'));
+    var list = srcs(q.getAttribute('data-zq-for'));
     pop.textContent = '';
-    for(var i = 0; i < list.length; i++){ var d = document.createElement('div'); d.textContent = list[i]; pop.appendChild(d); }
+    for(var i = 0; i < list.length; i++){
+      var d = document.createElement('div');
+      if(list[i].classList.contains('zq-rich')){
+        var c = list[i].cloneNode(true);
+        c.className = 'zq-rich-c'; c.removeAttribute('data-zq'); c.removeAttribute('hidden');
+        d.appendChild(c);
+      } else d.textContent = txt(list[i]);
+      pop.appendChild(d);
+    }
     return list.length;
   }
   function place(q){
@@ -2626,7 +2649,9 @@ function zHppView(){
   window.addEventListener('resize', function(){ if(cur) hide(); });
 
   if(typeof MutationObserver !== 'undefined'){
-    new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(function(ms){
+      for(var i = 0; i < ms.length; i++){ if(pop && pop.contains(ms[i].target)) continue; schedule(); return; }   // gambar ulang popover sendiri tidak memicu pass lagi
+    }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   }
   pass();
 })();
@@ -5429,6 +5454,23 @@ function buildFeeCardsHtml(parsed, hargaJual){
   return { feeCardsHtml, feeExtrasHtml };
 }
 
+// [8 Okt 2026] Rincian "Admin + Layanan" untuk popup (?) di minicard: semua potongan Shopee per pesanan KECUALI Biaya Isi Saldo Otomatis & Voucher toko
+// (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Jual (Subtotal Pesanan) — jadi jumlah barisnya = angka di minicard.
+function buildAdminLayananPopHtml(parsed, hargaJual, ratio){
+  const e = v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let body = '', shown = 0, sumRp = 0;
+  parsed.groups.forEach(g=>{
+    const rows = g.children.filter(c=> !isExcludedFee(c.label) && !/^Voucher/i.test(c.label||'') && Math.abs(c.value||0)>=0.5);
+    if(!rows.length) return;
+    const sub = rows.reduce((a,c)=>a+(c.value||0),0);
+    sumRp += sub; shown += rows.length;
+    body += `<span class="zq-g"><span>${e(g.label)}</span><span class="zq-rv">${hargaJual ? fmtPct(Math.abs(sub/hargaJual)) : '-'}</span></span>`;
+    rows.forEach(c=>{ body += `<span class="zq-rr"><span>${e(c.label)}</span><span class="zq-rv">${hargaJual ? fmtPct(Math.abs((c.value||0)/hargaJual)) : '-'}</span></span>`; });
+  });
+  if(!shown) body = `<span class="zq-rr" style="padding-left:0;">Belum ada potongan admin/layanan di pesanan ini.</span>`;
+  return `<span class="stat-sub zq-h zq-rich"><span class="zq-rt"><span>Admin + Layanan</span><span class="zq-rv">${fmtPct(ratio)}</span></span><span class="zq-rn">Tidak termasuk saldo iklan &amp; voucher toko · % dari Harga Jual</span>${body}</span>`;
+}
+
 function renderCheckAdminResult(parsed, manualOverrides){
   const wrap = document.getElementById('checkAdminResult');
   let hppTotal = 0, hasUnresolved = false;
@@ -5549,27 +5591,27 @@ function renderCheckAdminResult(parsed, manualOverrides){
         <div class="stat-card">
           <div class="stat-label">Admin + Layanan</div>
           <div class="stat-value">${fmtPct(adminLayananRatio)}</div>
-          <div class="stat-sub">excl. saldo iklan & vchr</div>
+          ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio)}
         </div>
         <div class="stat-card">
           <div class="stat-label">ACOS</div>
           <div class="stat-value">${acos!==null ? fmtPct(acos) : '-'}</div>
-          <div class="stat-sub">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
+          <div class="stat-sub zq-h">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Buffer</div>
           <div class="stat-value">${fmtPct(buffer)}</div>
-          <div class="stat-sub">Setting — Buffer (Lainnya)</div>
+          <div class="stat-sub zq-h">Setting — Buffer (Lainnya)</div>
         </div>
         <div class="stat-card ${npm!==null && npm<0 ? 'bad' : 'good'}">
           <div class="stat-label">NPM</div>
           <div class="stat-value">${fmtPct(npm)}</div>
-          <div class="stat-sub">${rasioOps!==null ? ('Rasio Ops '+fmtPct(rasioOps)) : 'isi Rasio Operasional di Setting'}</div>
+          <div class="stat-sub zq-h">${rasioOps!==null ? ('Rasio Ops '+fmtPct(rasioOps)) : 'isi Rasio Operasional di Setting'}</div>
         </div>
         <div class="stat-card ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
           <div class="stat-label">Net Income</div>
           <div class="stat-value">${fmtRp(netIncome)}</div>
-          <div class="stat-sub">${fmtRp(npmRp)} (NPM) + ${fmtRp(Math.abs(opsRpSigned))} (Ops)</div>
+          <div class="stat-sub zq-h">${fmtRp(npmRp)} (NPM) + ${fmtRp(Math.abs(opsRpSigned))} (Ops)</div>
         </div>
       </div>
       ${hasUnresolved ? `<footer class="note status-warn">⚠ Ada item yang HPP-nya belum match — angka di atas belum akurat, pilih HPP manual dulu di tabel produk.</footer>` : `<footer class="note status-ok">✓ Semua item sudah match HPP.</footer>`}
@@ -5582,32 +5624,32 @@ function renderCheckAdminResult(parsed, manualOverrides){
             <div class="stat-split-col">
               <div class="stat-split-label stat-split-head">Harga Jual</div>
               <div class="stat-split-value">${fmtRp(hargaJual)}</div>
-              <div class="stat-split-label">Subtotal Pesanan</div>
+              <div class="stat-split-label zq-h">Subtotal Pesanan</div>
             </div>
             <div class="stat-split-divider"></div>
             <div class="stat-split-col">
               <div class="stat-split-label stat-split-head">Harga Real</div>
               <div class="stat-split-value">${fmtRp(hargaJualReal)}</div>
-              <div class="stat-split-label">Setelah vchr</div>
+              <div class="stat-split-label zq-h">Setelah vchr</div>
             </div>
           </div>` : `<div class="stat-label">Harga Jual</div>
           <div class="stat-value">${fmtRp(hargaJual)}</div>
-          <div class="stat-sub">Subtotal Pesanan</div>`}
+          <div class="stat-sub zq-h">Subtotal Pesanan</div>`}
         </div>
         <div class="stat-card bad">
           <div class="stat-label">Total Potongan (Real)</div>
           <div class="stat-value">${fmtRp(totalPotonganReal)}</div>
-          <div class="stat-sub">${fmtPct(ratioPotonganReal)} dari Harga Jual · excl. saldo iklan & vchr</div>
+          <div class="stat-sub zq-h">${fmtPct(ratioPotonganReal)} dari Harga Jual · excl. saldo iklan & vchr</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Total Potongan (Laporan Shopee)</div>
           <div class="stat-value">${fmtRp(totalPotonganMentah)}</div>
-          <div class="stat-sub">${fmtPct(ratioPotonganMentah)} dari Harga Jual · termasuk ${fmtRp(biayaSaldoIklan)} saldo iklan</div>
+          <div class="stat-sub zq-h">${fmtPct(ratioPotonganMentah)} dari Harga Jual · termasuk ${fmtRp(biayaSaldoIklan)} saldo iklan</div>
         </div>
         <div class="stat-card accent">
           <div class="stat-label">Total Penghasilan</div>
           <div class="stat-value">${fmtRp(parsed.totalPenghasilan)}</div>
-          <div class="stat-sub">Uang net masuk (versi Shopee)</div>
+          <div class="stat-sub zq-h">Uang net masuk (versi Shopee)</div>
         </div>
       </div>
       <div class="fee-card-grid">${feeCards}</div>
