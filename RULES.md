@@ -91,6 +91,8 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 - Tiga tombol Simpan ke Rekap memanggil `await opsPastikanSiap()` dulu (hitung ulang paksa); gagal = batal simpan, supaya tidak mengunci angka basi. Rekap bulanan berubah (simpan/hapus/urungkan) -> `opsInvalidateCache()`. Rekap toko aktif di cache selalu ditimpa `state.rekap` (memori, terbaru).
 - Batasan: Beban (manual `ops_item`) & Cicilan (Hutang Aing) belum punya riwayat per bulan, jadi total yang dibagi = angka hari ini; yang terkunci hanya hasil per Rekap.
 
+**analisis.html — (?) minicard Check Admin (8 Okt 2026)**: label minicard di hasil Check Admin dibuat 1 baris (flex, nowrap) supaya ikon (?) segaris & tidak turun ke baris baru (dulu (?) NET INCOME turun dan menggeser nilainya). Ikon (?) diperkecil 15→12px (margin kiri 6→4px) lewat CSS di blok `#page-checkadmin`, KECUALI minicard Adm+Lyn+Bfr (dikenali `:has(.zq-rich)` — punya dialog rinci sendiri, ukuran tetap). Halaman lain (RKS, Proyeksi, dst) tidak disentuh. Tanpa perubahan JS/rumus.
+
 ## Belum kelar / open issue
 
 - Sistem Re-Stock ada 2 versi gak sinkron: restock.js (baca produk.boss langsung, semua supplier) vs hutang-supplier.js tab Re Stock (filter Reseller/PO doang, prioritas link hutang_barang). SKU sama bisa beda status/boss di 2 tempat. User minta di-skip dulu, dipikirin ulang arahnya (satuin sistem / bikin gate keliatan di UI).

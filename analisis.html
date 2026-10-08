@@ -1336,6 +1336,13 @@
   #page-checkadmin .stat-card{ padding:12px 14px; }
   #page-checkadmin .stat-card .stat-value{ font-size:17px; }
   #page-checkadmin .stat-split-value{ font-size:18px; }
+  /* [8 Okt 2026] (?) di minicard hasil Check Admin disejajarkan: label = 1 baris (nowrap, ikon segaris teks), TIDAK ada baris tambahan (dulu (?) Net Income turun ke baris 2 & menggeser nilainya).
+     Ikon diperkecil 15->12px KECUALI minicard Adm+Lyn+Bfr (punya dialog rinci sendiri, ukuran tetap). */
+  #page-checkadmin .stat-card .stat-label{ display:flex; align-items:center; }
+  #page-checkadmin .stat-card .stat-label.r{ justify-content:flex-end; }
+  #page-checkadmin .stat-card.stat-dual > .stat-label{ white-space:nowrap; }
+  #page-checkadmin .stat-card .stat-split-head{ white-space:nowrap; }
+  #page-checkadmin .stat-card:not(:has(.zq-rich)) .zq{ width:12px; height:12px; margin-left:4px; font-size:8.5px; border-width:1.2px; }
   #page-checkadmin .fee-card-grid{ gap:10px; }
   #page-checkadmin .fee-card{ padding:12px 14px; }
   #page-checkadmin .fee-child{ padding:5px 0; }
