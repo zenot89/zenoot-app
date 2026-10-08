@@ -68,6 +68,7 @@
 // (42) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): popup Admin + Layanan jadi dialog tengah layar tema kream; pencocokan HPP dapat tier terakhir 'katalog' (Kode Variasi = SKU Induk + size di Nama Variasi langsung ke Kelola Produk), jadi aturan naik size RH_Zipper-salur (M->L, XL->XXL) jalan walau varian itu belum ada di Order Completed.
 // (43) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): urutan minicard jadi GPM | Admin + Layanan + Buffer | ACOS | Ops | NPM | Net Income; minicard Buffer dihapus (tetap dihitung, sumber tetap Setting Analisis) dan Buffer ditampilkan + dijumlahkan di popup Admin + Layanan.
 // (44) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): minicard ACOS | CPP, Ops | IDR, NPM | IDR (persen kiri, nominal kanan, font sama); CPP = ACOS x Harga Jual.
+// (45) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): label minicard jadi ADM+LYN+BFR (sejajar ikon (?)); Net Income ditambah persen (Net Income ÷ Harga Jual = NPM + Ops) di kiri, IDR di kanan.
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;

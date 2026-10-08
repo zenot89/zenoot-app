@@ -5666,7 +5666,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-value">${fmtPct(gpm)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Admin + Layanan + Buffer</div>
+          <div class="stat-label">Adm+Lyn+Bfr</div>
           <div class="stat-value">${fmtPct((adminLayananRatio||0) + buffer)}</div>
           ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio, buffer)}
         </div>
@@ -5691,9 +5691,11 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-value r">${fmtRp(npmRp)}</div>
           <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − ACOS − Ops</div>
         </div>
-        <div class="stat-card ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
+        <div class="stat-card stat-dual ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
           <div class="stat-label">Net Income</div>
-          <div class="stat-value">${fmtRp(netIncome)}</div>
+          <div class="stat-label r">IDR</div>
+          <div class="stat-value">${(netIncome!==null && hargaJual) ? fmtPct(netIncome/hargaJual) : '-'}</div>
+          <div class="stat-value r">${fmtRp(netIncome)}</div>
           <div class="stat-sub zq-h">${fmtRp(npmRp)} (NPM) + ${fmtRp(Math.abs(opsRpSigned))} (Ops)</div>
         </div>
       </div>
