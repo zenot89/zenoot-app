@@ -70,6 +70,7 @@
 // (44) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): minicard ACOS | CPP, Ops | IDR, NPM | IDR (persen kiri, nominal kanan, font sama); CPP = ACOS x Harga Jual.
 // (45) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): label minicard jadi ADM+LYN+BFR (sejajar ikon (?)); Net Income ditambah persen (Net Income ÷ Harga Jual = NPM + Ops) di kiri, IDR di kanan.
 // (46) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): ikon (?) di minicard hasil disejajarkan (label 1 baris, tanpa baris tambahan) & diperkecil 12px, kecuali minicard Adm+Lyn+Bfr (ukuran tetap, punya dialog rinci).
+// (47) [8 Okt 2026] Setting: Minimum Profit Toko diganti NET INCOME TOKO (satu acuan MASUK/TIDAK MASUK + dasar Harga Minimum di semua tab Proyeksi Harga; Ops tidak ikut penyebut) — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;

@@ -1183,7 +1183,7 @@
   @media (max-width:767px){
     #page-setting .st-swipe-dots{ top:-2px; }
     #page-setting .setting-toko-card{ padding-top:24px; }   /* titik ●●● nempel di pojok kanan-atas kartu — jangan nabrak tombol Edit */
-    #page-setting .hrow .lbl{ font-size:clamp(13px, 1.85vh, 15px); white-space:nowrap; }   /* "MINIMUM PROFIT TOKO" harus 1 baris di layar 375px */
+    #page-setting .hrow .lbl{ font-size:clamp(13px, 1.85vh, 15px); white-space:nowrap; }   /* label Setting terpanjang harus 1 baris di layar 375px */
     #page-setting{ --st-pad:8px; }
     #page-setting .hrow .val, #page-setting .hrow.editable .val input{ font-size:clamp(14px, 2vh, 15.5px); }
     #page-setting .hrow.editable .val input{ width:clamp(104px, 30vw, 140px); }   /* muat angka Rp 9 karakter (mis. 5.000.000) */
@@ -2732,7 +2732,7 @@ const state = {
   adsFile: null,
   hppMaster: zHppView(),   // baca-saja: HPP dari Kelola Produk zenOt (zHppView di zStore)
   manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
-  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, minNpmRp:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null },
+  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null },
   priceList: [], // [{sku, hpp, ops}] — dasar Proyeksi Harga (Proyeksi & By Target Qty); income target sekarang global dari Setting
   rekap: {},
   customHppProducts: [], // [{skuInduk, nomorRef, variasi, namaProduk}] — SKU yang didaftarin manual (bukan dari Order Completed), mis. dari tombol "Tambah SKU ke HPP" di Check Admin
@@ -6875,15 +6875,15 @@ document.getElementById('btnRekapSelect').addEventListener('click', ()=>{
 function plOpsPct(){ const v = state.settings.rasioOpsPercent; return (v===null||v===undefined||isNaN(v)) ? 0 : v; }
 function calcNetPrice(row, roasOverride){
   if(!row) return null;
-  const hpp = row.hpp||0, income = state.settings.minNpmRp||0, ops = plOpsPct();
+  const hpp = row.hpp||0, income = state.settings.netIncomeToko||0;
   const { adminPct, bpp } = resolveAdminBpp();
   const admin = (adminPct||0)/100;
   // roasOverride cuma dipakai simulasi By Operasional & By Target Qty; caller lain (Price List) gak ngirim -> tetap ROAS asli
   const roas = (roasOverride!==undefined && roasOverride!==null) ? roasOverride : resolvePriceListRoas().roas;
   const acos = (roas && roas>0) ? 1/roas : 0;
   const lainnya = (state.settings.lainnyaPct||0)/100;
-  const opsFrac = ops/100;
-  const denom = 1 - admin - acos - lainnya - opsFrac;
+  // [8 Okt 2026] Acuan = NET INCOME TOKO (Setting). Net Income = Profit + Operasional (Ops masuk kantong sendiri), jadi Ops saling meniadakan dan TIDAK ikut di penyebut.
+  const denom = 1 - admin - acos - lainnya;
   if(denom<=0) return null;
   return Math.round((hpp+(bpp||0)+income)/denom);
 }
@@ -6993,8 +6993,8 @@ function renderPriceListCard(containerId, tabKey){
         <div class="stat-value">${(roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-'}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Profit Target (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
-        <div class="stat-value">${fmtRp(state.settings.minNpmRp||0)}</div>
+        <div class="stat-label">Net Income Toko (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
+        <div class="stat-value">${fmtRp(state.settings.netIncomeToko||0)}</div>
       </div>
     </div>
     <div class="pricelist-scroll">
@@ -7431,7 +7431,7 @@ function renderProyeksiResult(){
   const opsBudget = resolveProyeksiOps();   // [24 Sep 2026] sebelumnya state.settings.operasionalToko langsung
   const opsFrac = plOpsPct()/100;
   if(net===null || opsFrac<=0){
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek Ops% (harus &gt;0) &amp; total potongan (ADMIN+ACOS+LAINNYA+OPS harus &lt;100%).</div></div>';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek Ops% (harus &gt;0) &amp; total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
     detailEl.innerHTML = '';
     return;
   }
@@ -7443,10 +7443,10 @@ function renderProyeksiResult(){
   const spendIklanHarian = Math.round(targetOmsetHarian*acos);
   const costProdukBulanan = Math.round(targetOrderBulanan*(row.hpp||0));
   const costProdukHarian = Math.round(targetOrderHarian*(row.hpp||0));
-  const rasioIncome = net ? (state.settings.minNpmRp||0)/net : null;
+  const rasioIncome = net ? (state.settings.netIncomeToko||0)/net : null;
   const oprasionalBulanan = Math.round(targetOmsetBulanan*opsFrac);
-  const incomeBulanan = Math.round(targetOrderBulanan*(state.settings.minNpmRp||0));
-  const netIncome = incomeBulanan+oprasionalBulanan;
+  const netIncome = Math.round(targetOrderBulanan*(state.settings.netIncomeToko||0));   // Net Income = Net Income Toko × order
+  const incomeBulanan = netIncome-oprasionalBulanan;                                    // NPM = Net Income − Operasional
   const totalSpendBulanan = spendIklanBulanan+costProdukBulanan;
   const totalSpendHarian = spendIklanHarian+costProdukHarian;
 
@@ -7456,8 +7456,8 @@ function renderProyeksiResult(){
       ${statCard('Target Order Bulanan', targetOrderBulanan.toLocaleString('id-ID'), targetOrderHarian.toLocaleString('id-ID')+' /hari')}
       ${statCard('Target Omset Bulanan', fmtRp(targetOmsetBulanan), fmtRp(targetOmsetHarian)+' /hari')}
       ${statCard('Operasional', fmtRp(oprasionalBulanan), fmtPct(opsFrac)+' × omset bulanan')}
-      ${statCard('NPM', fmtRp(incomeBulanan), fmtRp(state.settings.minNpmRp||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order')}
-      ${statCard('NET Income', fmtRp(netIncome), 'NPM + Operasional', 'accent')}
+      ${statCard('NPM', fmtRp(incomeBulanan), 'NET Income − Operasional')}
+      ${statCard('NET Income', fmtRp(netIncome), fmtRp(state.settings.netIncomeToko||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order', 'accent')}
     </div>`;
   detailEl.innerHTML = `
     <div class="pr-cols">
@@ -7466,7 +7466,7 @@ function renderProyeksiResult(){
         <div class="pr-rows">
           <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
           <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">PROFIT TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
+          <div class="hrow"><div class="lbl">NET INCOME TRGT</div><div class="val">${fmtRp(state.settings.netIncomeToko||0)}</div></div>
           <div class="hrow"><div class="lbl">OPRASIONAL (Budget Bulanan)</div><div class="val">${fmtRp(opsBudget)}</div></div>
           <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
         </div>
@@ -7477,7 +7477,7 @@ function renderProyeksiResult(){
           <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
           <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
           <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO PROFIT</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
+          <div class="hrow highlight"><div class="lbl">RASIO NET INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
         </div>
       </div>
       <div class="card pr-card">
@@ -7566,7 +7566,7 @@ function renderByqtyPriceListCard(fromLoad){
       ${statCard('Operasional %', fmtPct(plOpsPct()/100), 'rasio operasional di Setting')}
       ${statCard('ACOS (1÷ROAS)', (roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-', acosSub)}
       ${statCard('Buffer %', fmtPct(bufPct/100), 'Setting — Buffer (Lainnya)')}
-      ${statCard('Profit Target (Rp)', fmtRp(state.settings.minNpmRp||0), 'diatur di Setting')}
+      ${statCard('Net Income Toko (Rp)', fmtRp(state.settings.netIncomeToko||0), 'diatur di Setting')}
     </div>`);
   if(!document.getElementById('byqtySearch')){
     card.innerHTML = `
@@ -7614,7 +7614,7 @@ function renderByQtyResult(){
   const opsFrac = plOpsPct()/100;
   if(net===null){
     detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA+OPS harus &lt;100%).</div></div>';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
     return;
   }
   const targetOrderHarian = qtyHarian;
@@ -7622,16 +7622,15 @@ function renderByQtyResult(){
   const targetOmsetBulanan = Math.round(targetOrderBulanan*net);
   const targetOmsetHarian = Math.round(targetOrderHarian*net);
   const oprasionalBulanan = Math.round(targetOmsetBulanan*opsFrac);
-  const incomeHarian = Math.round(targetOrderHarian*(state.settings.minNpmRp||0));
-  const incomeBulanan = Math.round(targetOrderBulanan*(state.settings.minNpmRp||0));
-  const netIncome = incomeBulanan+oprasionalBulanan;
+  const netIncome = Math.round(targetOrderBulanan*(state.settings.netIncomeToko||0));   // Net Income = Net Income Toko × order
+  const incomeBulanan = netIncome-oprasionalBulanan;                                    // NPM = Net Income − Operasional
   const spendIklanBulanan = Math.round(targetOmsetBulanan*acos);
   const spendIklanHarian = Math.round(targetOmsetHarian*acos);
   const costProdukBulanan = Math.round(targetOrderBulanan*(row.hpp||0));
   const costProdukHarian = Math.round(targetOrderHarian*(row.hpp||0));
   const totalSpendBulanan = spendIklanBulanan+costProdukBulanan;
   const totalSpendHarian = spendIklanHarian+costProdukHarian;
-  const rasioIncome = net ? (state.settings.minNpmRp||0)/net : null;
+  const rasioIncome = net ? (state.settings.netIncomeToko||0)/net : null;
 
   patchHtml(statsEl, `
     <div class="stat-grid stat-grid-6">
@@ -7639,8 +7638,8 @@ function renderByQtyResult(){
       ${statCard('Target Order Bulanan', targetOrderBulanan.toLocaleString('id-ID'), targetOrderHarian.toLocaleString('id-ID')+' /hari')}
       ${statCard('Target Omset Bulanan', fmtRp(targetOmsetBulanan), fmtRp(targetOmsetHarian)+' /hari')}
       ${statCard('Operasional', fmtRp(oprasionalBulanan), fmtPct(opsFrac)+' × omset bulanan')}
-      ${statCard('NPM', fmtRp(incomeBulanan), fmtRp(state.settings.minNpmRp||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order')}
-      ${statCard('NET Income', fmtRp(netIncome), 'NPM + Operasional', 'accent')}
+      ${statCard('NPM', fmtRp(incomeBulanan), 'NET Income − Operasional')}
+      ${statCard('NET Income', fmtRp(netIncome), fmtRp(state.settings.netIncomeToko||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order', 'accent')}
     </div>`);
   patchHtml(detailEl, `
     <div class="pr-cols">
@@ -7649,7 +7648,7 @@ function renderByQtyResult(){
         <div class="pr-rows">
           <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
           <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">PROFIT TRGT</div><div class="val">${fmtRp(state.settings.minNpmRp||0)}</div></div>
+          <div class="hrow"><div class="lbl">NET INCOME TRGT</div><div class="val">${fmtRp(state.settings.netIncomeToko||0)}</div></div>
           <div class="hrow"><div class="lbl">OPRASIONAL (Bulanan)</div><div class="val">${fmtRp(oprasionalBulanan)}</div></div>
           <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
         </div>
@@ -7661,7 +7660,7 @@ function renderByQtyResult(){
           <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
           <div class="hrow"><div class="lbl">OPERASIONAL</div><div class="val">${fmtPct(opsFrac)}</div></div>
           <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO PROFIT</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
+          <div class="hrow highlight"><div class="lbl">RASIO NET INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
         </div>
       </div>
       <div class="card pr-card">
@@ -7749,7 +7748,7 @@ function bysupportParams(){
   const src = bysupportSources();
   const ops = plOpsPct()/100, buffer = (state.settings.lainnyaPct||0)/100;
   const nRaw = state.settings.targetRasioLaba;
-  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting (bukan MINIMUM PROFIT Rp)
+  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting (bukan NET INCOME TOKO Rp)
   const gpm = src.admin.value + src.acos.value + ops + buffer + npm;                         // GPM TOKO = penjumlahan, berdiri sendiri
   return { src, ops, buffer, npm, gpm };
 }
@@ -7851,7 +7850,7 @@ function renderBySupport(fromLoad){
 
 /* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
 /* [21 Sep 2026] Konsep ketiga di Proyeksi Harga. By Operasional & By Target Qty MENGHITUNG harga jual (NET) dari target income;
-   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke minimum target profit (Setting: Profit Target)?"
+   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke Net Income Toko (Setting)?"
      Harga efektif (B) = Harga jual − Voucher penjual
      Income/pcs        = B × (1 − Admin% − ACOS − Buffer% − Ops%) − HPP − BPP      (kebalikan persis rumus NET di calcNetPrice)
      Harga minimum     = NET + Voucher  (NET = calcNetPrice, sama persis dengan tab lain)
@@ -7959,8 +7958,9 @@ function byhargaCompute(row, harga, voucher, roas){
   const acos = (roas && roas>0) ? 1/roas : 0;
   const lainnya = (state.settings.lainnyaPct||0)/100;
   const ops = plOpsPct()/100;
-  const denom = 1 - admin - acos - lainnya - ops;
-  const hpp = row.hpp||0, bppV = bpp||0, T = state.settings.minNpmRp||0;
+  // [8 Okt 2026] Acuan = NET INCOME TOKO (Setting). Net Income = Profit + Operasional, jadi Ops saling meniadakan: tidak ikut di penyebut (sama dgn calcNetPrice).
+  const denom = 1 - admin - acos - lainnya;
+  const hpp = row.hpp||0, bppV = bpp||0, T = state.settings.netIncomeToko||0;
   if(denom<=0) return { ok:false, reason:'denom' };
   const net = calcNetPrice(row, roas);
   const r = { ok:true, admin, acos, lainnya, ops, denom, hpp, bpp:bppV, T, net, roas, voucher,
@@ -7969,23 +7969,19 @@ function byhargaCompute(row, harga, voucher, roas){
     const B = harga - voucher;
     r.hasPrice = true; r.harga = harga; r.B = B;
     if(B>0){
-      const income = B*denom - hpp - bppV;
-      const base = 1 - admin - lainnya - ops;
-      const aTarget = base - (hpp+bppV+T)/B, aImpas = base - (hpp+bppV)/B;
-      r.income = income; r.incomeR = Math.round(income);
-      r.masuk = r.incomeR >= T;
-      r.diff = r.incomeR - T;
-      r.ruang = (income - T)/B;                        // berapa poin (fraksi B) potongan boleh naik sebelum income < target
-      r.roasMin = aTarget>0 ? 1/aTarget : null;         // ROAS minimal supaya tetap masuk target
-      r.roasImpas = aImpas>0 ? 1/aImpas : null;         // ROAS minimal supaya income >= 0
-      r.rasioIncome = income/B;
-      r.incomeTanpaVoucher = harga*denom - hpp - bppV;
-      // [7 Okt 2026] NET INCOME TOKO = TARGET dari NPM + Operasional, ditotal: Minimum Profit Toko (Setting, Rp/pcs) + IDR Operasional (Ops% × harga efektif).
-      // NET INCOME (aktual) = Profit/pcs + IDR Operasional (rumus yang sama dgn Check Admin & RKS). Selisihnya = Profit − Minimum Profit (Ops saling meniadakan),
-      // jadi MASUK/TIDAK MASUK (r.masuk di atas) tetap sama persis; yang berubah hanya acuan yang ditampilkan: Net Income vs Net Income Toko.
+      const netIncome = B*denom - hpp - bppV;           // NET INCOME/pcs (acuan MASUK/TIDAK MASUK) — sama dgn Check Admin & RKS (Profit + Operasional)
+      const base = 1 - admin - lainnya;
+      const aTarget = base - (hpp+bppV+T)/B, aImpas = (base - ops) - (hpp+bppV)/B;
+      r.netIncome = netIncome; r.netIncomeR = Math.round(netIncome);
       r.opsRp = B*ops;
-      r.netIncome = income + r.opsRp;
-      r.netIncomeTarget = T + r.opsRp;
+      r.income = netIncome - r.opsRp; r.incomeR = Math.round(r.income);   // Profit/pcs = Net Income − Operasional (rincian saja, bukan acuan)
+      r.masuk = r.netIncomeR >= T;
+      r.diff = r.netIncomeR - T;
+      r.ruang = (netIncome - T)/B;                       // berapa poin (fraksi B) potongan boleh naik sebelum Net Income < Net Income Toko
+      r.roasMin = aTarget>0 ? 1/aTarget : null;         // ROAS minimal supaya Net Income tetap >= Net Income Toko
+      r.roasImpas = aImpas>0 ? 1/aImpas : null;         // ROAS minimal supaya Profit/pcs >= 0
+      r.rasioIncome = netIncome/B;
+      r.incomeTanpaVoucher = harga*denom - hpp - bppV;  // Net Income/pcs kalau tanpa voucher
     } else { r.masuk = false; r.invalid = 'voucher'; }
   }
   return r;
@@ -8070,7 +8066,7 @@ function renderByHargaResult(){
   const c = byhargaCompute(row, P, V, roas);
   if(!c.ok){
     detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA+OPS harus &lt;100%).</div></div>';
+    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
     return;
   }
   const T = c.T;
@@ -8084,8 +8080,8 @@ function renderByHargaResult(){
   if(has){
     cVerdict = c.masuk ? (c.ruang<BYHARGA_TIPIS ? 'warn' : 'good') : 'bad';
     vVerdict = c.masuk ? 'MASUK' : 'TIDAK MASUK';
-    // [7 Okt 2026] acuan hasil = Net Income vs Net Income Toko (target NPM + Operasional). Dulu: 'Profit ... target Minimum Profit'.
-    sVerdict = 'Net Income '+fmtRp(Math.round(c.netIncome))+(c.masuk?' ≥ ':' < ')+'Net Income Toko '+fmtRp(Math.round(c.netIncomeTarget));
+    // [8 Okt 2026] acuan hasil = Net Income vs Net Income Toko (satu angka di Setting).
+    sVerdict = 'Net Income '+fmtRp(c.netIncomeR)+(c.masuk?' ≥ ':' < ')+'Net Income Toko '+fmtRp(T);
   } else if(c.invalid){ cVerdict='bad'; vVerdict='TIDAK MASUK'; }
   const ruangTxt = has ? ((c.ruang>=0?'+':'−')+Math.abs(c.ruang*100).toFixed(1)+' poin') : '—';
   const ruangSub = has ? (c.ruang>=0 ? 'potongan boleh naik segini sebelum di bawah target' : 'potongan harus turun segini supaya masuk target') : '';
@@ -8093,7 +8089,7 @@ function renderByHargaResult(){
   statsEl.innerHTML = `
     <div class="stat-grid stat-grid-6">
       ${statCard('Hasil', vVerdict, sVerdict, cVerdict)}
-      ${statCard('Profit / Pcs', has?fmtRp(c.incomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.incomeR<0?'bad':''):'')}
+      ${statCard('Net Income / Pcs', has?fmtRp(c.netIncomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.netIncomeR<0?'bad':''):'')}
       ${statCard('Harga Efektif', has?fmtRp(c.B):'—', has?(fmtRp(P)+' − voucher '+fmtRp(V)):'harga jual − voucher')}
       ${statCard('Harga Minimum', c.hargaMin===null?'—':fmtRp(c.hargaMin), 'NET '+fmtRp(c.net)+' + voucher '+fmtRp(V), 'accent')}
       ${statCard('Ruang Aman', ruangTxt, ruangSub, has?(c.masuk?(c.ruang<BYHARGA_TIPIS?'warn':''):'bad'):'')}
@@ -8110,8 +8106,6 @@ function renderByHargaResult(){
   const gpmJual = (c.hasPrice && P>0) ? (P - c.hpp)/P : null;
   const gpmEfektif = has ? (B - c.hpp)/B : null;
   const gpmTag = (x, ref)=> (x===null) ? '' : '<span class="byh-pct'+(ref?' byh-ref':'')+'">GPM '+fmtPct(x)+'</span>';
-  // NET INCOME = Income/pcs + Operasional (Ops tetap masuk kantong sendiri) — rumus yang sama dengan Check Admin, RKS & By Operasional (NPM + Operasional)
-  const netInc = has ? c.income + B*c.ops : null;
   const left = `
     <div class="byh-col">
     <div class="card byh-card"><h3>Perhitungan per pcs</h3>
@@ -8125,17 +8119,15 @@ function renderByHargaResult(){
       ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(B*c.ops):'-')}
       ${hr('HPP', has?fmtRp(c.hpp):'-')}
       ${hr('PROFIT / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
-      ${hr('NET INCOME'+(has?pct(netInc/B):''), has?fmtRp(netInc):'-', true)}
+      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(c.netIncome):'-', true)}
       <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = PROFIT / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
     </div>
     <div class="card byh-card"><h3>Net Income Toko</h3>
-      ${hr('TARGET NPM'+(has?pct(T/B):''), fmtRp(T))}
-      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(c.opsRp):'-')}
-      ${hr('NET INCOME TOKO'+(has?pct(c.netIncomeTarget/B):''), has?fmtRp(Math.round(c.netIncomeTarget)):'-', true)}
-      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(Math.round(c.netIncome)):'-')}
-      ${hr('SELISIH', has?sgnRp(c.netIncome-c.netIncomeTarget):'-')}
+      ${hr('NET INCOME TOKO'+(has?pct(T/B):''), fmtRp(T), true)}
+      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(c.netIncomeR):'-')}
+      ${hr('SELISIH', has?sgnRp(c.diff):'-')}
       ${hr('HASIL', has?'<span style="font-weight:700;color:var(--'+(c.masuk?'good':'bad')+');">'+(c.masuk?'MASUK':'TIDAK MASUK')+'</span>':(c.invalid?'<span style="font-weight:700;color:var(--bad);">TIDAK MASUK</span>':'-'), true)}
-      <div class="byh-note">Net Income Toko = target NPM (Minimum Profit Toko ${fmtRp(T)} di Setting) + IDR Operasional (${fmtPct(c.ops)} × harga efektif). Net Income di bawah target = TIDAK MASUK. Acuan hasil MASUK / TIDAK MASUK di kartu atas.</div>
+      <div class="byh-note">Net Income Toko = target Net Income per pcs (${fmtRp(T)}) di Setting. Net Income = Harga Efektif × (1 − Admin − ACOS − Buffer) − HPP − BPP; Operasional tidak dikurangkan karena masuk kantong sendiri. Net Income di bawah target = TIDAK MASUK. Acuan hasil MASUK / TIDAK MASUK di kartu atas.</div>
     </div>
     </div>`;
   const right = `
@@ -8144,19 +8136,19 @@ function renderByHargaResult(){
         ${hr('HARGA MINIMUM', c.hargaMin===null?'-':fmtRp(c.hargaMin), true)}
         ${hr('SELISIH HARGA', (has&&c.hargaMin!==null)?sgnRp(P-c.hargaMin):'-')}
         ${hr('ROAS MINIMUM (TARGET)', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'-')}
-        ${hr('ROAS IMPAS (INCOME 0)', (has&&c.roasImpas)?c.roasImpas.toFixed(2)+'x':'-')}
-        ${hr('RASIO PROFIT', has?fmtPct(c.rasioIncome):'-')}
-        <div class="byh-note">Harga minimum = NET (dari Profit Target ${fmtRp(T)}) + voucher. Rasio &amp; ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
+        ${hr('ROAS IMPAS (PROFIT 0)', (has&&c.roasImpas)?c.roasImpas.toFixed(2)+'x':'-')}
+        ${hr('RASIO NET INCOME', has?fmtPct(c.rasioIncome):'-')}
+        <div class="byh-note">Harga minimum = NET (dari Net Income Toko ${fmtRp(T)}) + voucher. Rasio &amp; ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
       </div>
       <div class="card byh-card"><h3>Voucher penjual</h3>
         ${hr('DIPAKAI'+(vc.isManual?'<span class="byh-pct">manual</span>':'<span class="byh-pct">otomatis</span>'), fmtRp(V))}
         ${hr('NOMINAL PALING SERING'+(vc.stats.status==='ok'&&vc.stats.mode>0?'<span class="byh-pct">di '+Math.round(vc.stats.modeShare*100)+'% order</span>':''), vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
         ${hr('ORDER BER-VOUCHER (APA PUN)', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
         ${hr('VOUCHER RATA-RATA / ORDER', vc.stats.status==='ok'?fmtRp(vc.stats.avgAll):'-')}
-        ${hr('PROFIT TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
-        ${hr('PROFIT RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
+        ${hr('NET INCOME TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
+        ${hr('NET INCOME RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
         <div class="byh-note">${vc.stats.status==='ok'
-          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Profit rata-rata memperhitungkan seberapa sering voucher dipakai.')
+          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Net Income rata-rata memperhitungkan seberapa sering voucher dipakai.')
           : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
       </div>
     </div>`;
@@ -8170,8 +8162,8 @@ function renderByHargaResult(){
   } else {
     const cw = byhargaCompute(row, P, Vw, roas);
     const okN = has && c.masuk, okW = !cw.invalid && cw.masuk;
-    const netN = has ? c.income + c.B*c.ops : null;
-    const netW = (!cw.invalid) ? cw.income + cw.B*cw.ops : null;
+    const netN = has ? c.netIncome : null;
+    const netW = (!cw.invalid) ? cw.netIncome : null;
     const d = (a,b)=> (a===null||b===null) ? '-' : sgnRp(b-a);
     const row3 = (lbl, a, b, dl, cls)=>'<tr><td>'+lbl+'</td><td'+(cls&&cls[0]?' class="'+cls[0]+'"':'')+'>'+a+'</td><td'+(cls&&cls[1]?' class="'+cls[1]+'"':'')+'>'+b+'</td><td>'+dl+'</td></tr>';
     weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3>'
@@ -8180,11 +8172,11 @@ function renderByHargaResult(){
       + row3('Harga efektif', has?fmtRp(c.B):'-', cw.invalid?'-':fmtRp(cw.B), has&&!cw.invalid?sgnRp(cw.B-c.B):'-')
       + row3('Profit / pcs', has?fmtRp(c.incomeR):'-', cw.invalid?'-':fmtRp(cw.incomeR), has&&!cw.invalid?d(c.incomeR,cw.incomeR):'-')
       + row3('Net income', netN===null?'-':fmtRp(netN), netW===null?'-':fmtRp(netW), d(netN,netW))
-      + row3('Net Income Toko (target)', has?fmtRp(Math.round(c.netIncomeTarget)):'-', cw.invalid?'-':fmtRp(Math.round(cw.netIncomeTarget)), (has&&!cw.invalid)?d(Math.round(c.netIncomeTarget),Math.round(cw.netIncomeTarget)):'-')
+      + row3('Net Income Toko (target)', fmtRp(T), fmtRp(T), '')
       + row3('Hasil vs Net Income Toko', has?(okN?'MASUK':'TIDAK MASUK'):'-', cw.invalid?'TIDAK MASUK':(okW?'MASUK':'TIDAK MASUK'), '', [has?(okN?'good':'bad'):'', cw.invalid?'bad':(okW?'good':'bad')])
       + row3('Harga jual minimum', c.hargaMin===null?'-':fmtRp(c.hargaMin), cw.hargaMin===null?'-':fmtRp(cw.hargaMin), (c.hargaMin===null||cw.hargaMin===null)?'-':sgnRp(cw.hargaMin-c.hargaMin))
       + '</tbody></table>'
-      + '<div class="byh-note">Rumus sama persis dengan hasil di atas, cuma voucher diganti. Harga jual minimum = NET + voucher: harga pasang terendah supaya profit tetap ≥ target di tiap skenario.'+(cw.invalid?' Voucher weekend ≥ harga jual, jadi harga efektif tidak valid.':'')+'</div></div>';
+      + '<div class="byh-note">Rumus sama persis dengan hasil di atas, cuma voucher diganti. Harga jual minimum = NET + voucher: harga pasang terendah supaya Net Income tetap ≥ Net Income Toko di tiap skenario.'+(cw.invalid?' Voucher weekend ≥ harga jual, jadi harga efektif tidak valid.':'')+'</div></div>';
   }
   detailEl.innerHTML = '<div class="byh-cols">'+left+right+'</div>'+weekendCard;
 }
@@ -8585,13 +8577,13 @@ function byhPosisi(rows){
   const best = c.best || null, from = best ? Math.max(best.min||0, Hm) : 0, to = (best && best.max>0) ? best.max : 0;
   const out = list.map(x=>{
     const p = x.p, r = rows.find(z=> byhInBin(rows, rows.indexOf(z), p)) || null, cc = calc(p);
-    const o = { n:x.n, p, s:x.s, mo:x.mo, r, ocean:(c.oceanOf && r) ? c.oceanOf(r) : null, income:cc?cc.income:null, T:cc?cc.T:null, buffer:Hm>0 ? p-Hm : null, Hm, best, rec:null };
+    const o = { n:x.n, p, s:x.s, mo:x.mo, r, ocean:(c.oceanOf && r) ? c.oceanOf(r) : null, netIncome:cc?cc.netIncome:null, T:cc?cc.T:null, buffer:Hm>0 ? p-Hm : null, Hm, best, rec:null };
     if(best){
       if(p < from-0.5) o.rec = { type:'naik', target:from };
       else if(to>0 && p > to+0.5) o.rec = { type:'turun', target:to };
       else o.rec = { type:'tahan', target:p };
     } else if(Hm>0 && p<Hm-0.5) o.rec = { type:'naik', target:Hm };
-    if(o.rec){ const t = calc(o.rec.target); o.rec.income = t ? t.income : null; }
+    if(o.rec){ const t = calc(o.rec.target); o.rec.netIncome = t ? t.netIncome : null; }
     o.line = 'Harga kamu '+fmtRp(p)+' ada di kolam '+(r ? byhRg(r) : 'di luar semua range')+(o.ocean ? ' ('+ON[o.ocean]+')' : '')+'.'
       + (o.rec ? ' Saran: '+(o.rec.type==='naik' ? 'NAIK ke '+fmtRp(o.rec.target) : (o.rec.type==='turun' ? 'TURUN ke maksimal '+fmtRp(o.rec.target) : 'TAHAN di kolam ini'))+'.' : '');
     return o;
@@ -8607,16 +8599,16 @@ function byhOwnHtml(rows){
     let h = '<p><b>'+byhEsc(String(o.n).slice(0,48))+'</b>: <b>'+fmtRp(o.p)+'</b>'+(o.s!=null ? ', '+Math.round(o.s).toLocaleString('id-ID')+' terjual'+(o.mo>0 ? ' (sekitar '+Math.round(o.s/Math.max(3,o.mo))+'/bulan)' : '') : '')+'.</p>';
     const r = o.r, tot = rows.reduce((a,z)=>a+z.sold,0);
     h += '<p>Kolam kamu: <b>'+(r ? byhRg(r) : 'di luar semua range')+'</b>'+(o.ocean ? ' ('+ON[o.ocean]+')' : '')+(r ? ', '+Math.round(r.prod)+' pesaing'+(tot>0 ? ', '+pc(r.sold/tot)+' penjualan pasar' : '') : '')+(r && o.Hm>0 && r.max>0 && r.max<o.Hm ? ', <b>seluruhnya di bawah harga minimum</b>' : '')+'.</p>';
-    if(o.income!==null && o.T!==null){
-      const d = Math.round(o.income - o.T);
-      h += '<p>Profit di harga ini: <b>'+sg(o.income)+'</b>/unit, target '+fmtRp(o.T)+': '+(d>=0 ? '<b>masuk target</b> (lebih '+rp(d)+')' : '<b>di bawah target</b> (kurang '+rp(d)+')')+'.</p>';
+    if(o.netIncome!==null && o.T!==null){
+      const d = Math.round(o.netIncome - o.T);
+      h += '<p>Net Income di harga ini: <b>'+sg(o.netIncome)+'</b>/unit, target '+fmtRp(o.T)+': '+(d>=0 ? '<b>masuk target</b> (lebih '+rp(d)+')' : '<b>di bawah target</b> (kurang '+rp(d)+')')+'.</p>';
     }
-    if(o.Hm>0) h += '<p>'+(o.buffer>=0 ? 'Buffer ke harga minimum '+fmtRp(o.Hm)+': <b>'+rp(o.buffer)+'</b> ('+pc(o.buffer/o.p)+' dari harga), jadi masih bisa turun sampai titik itu tanpa keluar dari target.' : 'Di bawah harga minimum '+fmtRp(o.Hm)+' sebesar <b>'+rp(o.buffer)+'</b>, profit tidak mencapai target.')+'</p>';
+    if(o.Hm>0) h += '<p>'+(o.buffer>=0 ? 'Buffer ke harga minimum '+fmtRp(o.Hm)+': <b>'+rp(o.buffer)+'</b> ('+pc(o.buffer/o.p)+' dari harga), jadi masih bisa turun sampai titik itu tanpa keluar dari target.' : 'Di bawah harga minimum '+fmtRp(o.Hm)+' sebesar <b>'+rp(o.buffer)+'</b>, Net Income tidak mencapai target.')+'</p>';
     if(o.rec){
-      const t = o.rec.target, dd = t-o.p, inc = o.rec.income;
+      const t = o.rec.target, dd = t-o.p, inc = o.rec.netIncome;
       let s = '';
-      if(o.rec.type==='naik') s = '<b>Saran: NAIK</b> ke kolam '+byhRg(o.best||{min:t,max:0})+', mulai <b>'+fmtRp(t)+'</b> (+'+rp(dd)+', +'+pc(dd/o.p)+').'+(inc!=null ? ' Profit di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masuk target.' : ', masih di bawah target.') : '.') : '');
-      else if(o.rec.type==='turun') s = '<b>Saran: TURUN</b> ke maksimal <b>'+fmtRp(t)+'</b> ('+sg(dd)+', '+pc(dd/o.p)+') untuk masuk kolam saran '+byhRg(o.best)+'.'+(inc!=null ? ' Profit di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masih masuk target.' : ', di bawah target.') : '.') : '')+(o.buffer>=0 ? ' Buffer turun dari harga sekarang '+rp(o.buffer)+'.' : '');
+      if(o.rec.type==='naik') s = '<b>Saran: NAIK</b> ke kolam '+byhRg(o.best||{min:t,max:0})+', mulai <b>'+fmtRp(t)+'</b> (+'+rp(dd)+', +'+pc(dd/o.p)+').'+(inc!=null ? ' Net Income di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masuk target.' : ', masih di bawah target.') : '.') : '');
+      else if(o.rec.type==='turun') s = '<b>Saran: TURUN</b> ke maksimal <b>'+fmtRp(t)+'</b> ('+sg(dd)+', '+pc(dd/o.p)+') untuk masuk kolam saran '+byhRg(o.best)+'.'+(inc!=null ? ' Net Income di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masih masuk target.' : ', di bawah target.') : '.') : '')+(o.buffer>=0 ? ' Buffer turun dari harga sekarang '+rp(o.buffer)+'.' : '');
       else s = '<b>Saran: TAHAN</b>, kamu sudah di kolam saran '+byhRg(o.best)+'.'+(o.buffer>=0 ? ' Masih ada buffer turun '+rp(o.buffer)+' sampai harga minimum.' : '');
       h += '<div class="go"><p>'+s+'</p></div>';
     } else h += '<p class="sub">Belum ada saran kolam yang bisa dipercaya untuk perbandingan ini.</p>';
@@ -9137,7 +9129,7 @@ const SETTING_FIELDS = [
   {key:'bpp', label:'BPP (fallback, Rp)', ket:'Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 1250', type:'rupiah'},
   {key:'rasioOpsPercent', label:'RASIO OPERASIONAL', ket:'Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order', ph:'mis. 10', type:'decimal'},
   {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di rumus harga NET (Proyeksi Harga & By Target Qty), buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
-  {key:'minNpmRp', label:'MINIMUM PROFIT TOKO', ket:'Target profit per SKU (Rp) — manual. Dipakai sebagai Profit Target di Proyeksi Harga (khususnya By Harga Jual); %-nya adalah hasil, dilihat di halaman Proyeksi', ph:'0', type:'rupiah'},
+  {key:'netIncomeToko', label:'NET INCOME TOKO', ket:'Target Net Income per SKU (Rp) — manual. Satu-satunya acuan MASUK / TIDAK MASUK harga di By Harga Jual dan dasar Harga Minimum di semua tab Proyeksi Harga. Net Income = NPM + Operasional, sama seperti Check Admin', ph:'0', type:'rupiah'},
   {key:'targetRasioLaba', label:'TARGET RASIO LABA', ket:'Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo', ph:'mis. 15', type:'decimal'}
 ];
 // [24 Sep 2026] zStore.init() cuma memuat toko AKTIF, jadi zLS.getItem() untuk toko LAIN selalu kosong -> kartu Setting toko lain
@@ -9526,7 +9518,7 @@ function rksInsights(c){
   const cNoAds=(pengh-hpp)/P;            // sisa per Rp1 omset setelah HPP & admin, sebelum iklan
   const cNoOps=(pengh-hpp-iklan)/P;      // sisa per Rp1 omset setelah HPP, admin & iklan, sebelum operasional
   const tRoas=rksPosNum(S.targetRoas), tLaba=(rksPosNum(S.targetRasioLaba)!==null)?Number(S.targetRasioLaba)/100:null;
-  const tOps=(rksPosNum(S.rasioOpsPercent)!==null)?Number(S.rasioOpsPercent)/100:null, minNpm=rksPosNum(S.minNpmRp);
+  const tOps=(rksPosNum(S.rasioOpsPercent)!==null)?Number(S.rasioOpsPercent)/100:null, netIncT=rksPosNum(S.netIncomeToko);
   const add=(level,title,body,action)=>out.push({level,title,body,action});
 
   // 0) Kualitas data
@@ -9609,25 +9601,18 @@ function rksInsights(c){
     }
   }
 
-  // 4) NPM per pesanan vs minimum (bedakan: masalah harga/HPP atau masalah operasional yang kebagian terlalu sedikit pesanan)
-  if(minNpm && orders>0 && M.npmRp!==null && M.npmRp!==undefined){
-    const per=M.npmRp/orders, perBeforeOps=(M.npmRp+ops)/orders, opsPer=ops/orders;
-    if(per<minNpm){
-      const gap=minNpm-per;
-      if(ops>0 && perBeforeOps>minNpm){
-        const need=Math.ceil(ops/(perBeforeOps-minNpm));
-        add('warn','NPM per pesanan '+rksRp(per)+' di bawah minimum '+rksRp(minNpm),
-          'Sebelum operasional, tiap pesanan sebenarnya menyisakan '+rksRp(perBeforeOps)+' (di atas minimum). Yang menggerus adalah operasional '+rksRp(opsPer)+' per pesanan, karena hanya '+orders+' pesanan yang menanggung operasional '+rksRp(ops)+'.',
-          'Harga tidak perlu dinaikkan untuk masalah ini. Dengan margin per pesanan seperti sekarang, dibutuhkan sekitar '+need+' pesanan per '+U+' (sekarang '+orders+') agar NPM per pesanan mencapai minimum. Alternatif: tekan operasional. Cek simulasinya di Target Qty.');
-      } else {
-        const dHarga=gap/Math.max(0.05,1-(M.ratioAdmin||0)-acos);
-        add('warn','NPM per pesanan '+rksRp(per)+' di bawah minimum '+rksRp(minNpm),
-          'Selisih '+rksRp(gap)+' per pesanan x '+orders+' pesanan = '+rksRp(gap*orders)+' per '+U+'. Margin per pesanan sebelum operasional pun ('+rksRp(perBeforeOps)+') belum mencapai minimum.',
-          'Naikkan harga jual rata-rata sekitar '+rksRp(dHarga)+' per pesanan (sudah memperhitungkan potongan admin dan iklan), atau turunkan HPP/biaya. Cek harga baru lewat Proyeksi Harga.');
-      }
+  // 4) Net Income per pesanan vs Net Income Toko (Setting). Net Income = NPM + Operasional (Ops masuk kantong sendiri), sama dengan Check Admin.
+  if(netIncT && orders>0 && M.npmRp!==null && M.npmRp!==undefined){
+    const per=(M.npmRp+ops)/orders;
+    if(per<netIncT){
+      const gap=netIncT-per;
+      const dHarga=gap/Math.max(0.05,1-(M.ratioAdmin||0)-acos);
+      add('warn','Net Income per pesanan '+rksRp(per)+' di bawah Net Income Toko '+rksRp(netIncT),
+        'Selisih '+rksRp(gap)+' per pesanan x '+orders+' pesanan = '+rksRp(gap*orders)+' per '+U+'.',
+        'Naikkan harga jual rata-rata sekitar '+rksRp(dHarga)+' per pesanan (sudah memperhitungkan potongan admin dan iklan), atau turunkan HPP/biaya. Cek harga baru lewat Proyeksi Harga.');
     } else {
-      add('good','NPM per pesanan '+rksRp(per)+' sudah memenuhi minimum '+rksRp(minNpm),
-        'Tiap pesanan menyisakan margin bersih di atas batas minimum yang Anda tetapkan.',
+      add('good','Net Income per pesanan '+rksRp(per)+' sudah memenuhi Net Income Toko '+rksRp(netIncT),
+        'Tiap pesanan menyisakan Net Income di atas target yang Anda tetapkan.',
         'Pertahankan harga dan HPP saat ini; fokus tambah jumlah pesanan.');
     }
   }
