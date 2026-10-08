@@ -705,13 +705,32 @@
            background:var(--ink); color:#fff; font-size:12px; font-weight:400; line-height:1.5; text-transform:none; letter-spacing:0; white-space:normal; overflow-wrap:anywhere;
            box-shadow:0 6px 20px rgba(20,20,20,.25); pointer-events:none; }
   .zq-pop div + div{ margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.2); }
-  /* [8 Okt 2026] Popup rinci (mis. Admin + Layanan): baris pakai <span> (bukan div) supaya tidak kena garis pemisah .zq-pop div + div */
-  .zq-pop .zq-rich-c{ display:block; min-width:210px; }
-  .zq-pop .zq-rich-c .zq-rt{ display:flex; justify-content:space-between; gap:14px; font-weight:700; }
-  .zq-pop .zq-rich-c .zq-rn{ display:block; opacity:.75; font-size:11px; margin-top:2px; }
-  .zq-pop .zq-rich-c .zq-rg{ display:flex; justify-content:space-between; gap:14px; font-weight:700; margin-top:8px; padding-top:6px; border-top:1px solid rgba(255,255,255,.2); }
-  .zq-pop .zq-rich-c .zq-rr{ display:flex; justify-content:space-between; gap:14px; padding-left:8px; margin-top:2px; opacity:.92; }
-  .zq-pop .zq-rich-c .zq-rv{ font-family:'JetBrains Mono',monospace; white-space:nowrap; }
+  /* [8 Okt 2026] Popup rinci (Admin + Layanan): dialog mengambang di tengah layar, konsep dialog Shopee, warna kream zenOt.
+     Desktop: muncul saat kursor di (?) (tidak menghalangi klik); klik/ketuk = terkunci, ada tombol X & Tutup, klik area gelap / Esc menutup. */
+  .zqm{ display:none; position:fixed; inset:0; z-index:100001; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; background:rgba(43,40,34,.42); pointer-events:none; }
+  .zqm.open{ display:flex; }
+  .zqm.pin{ pointer-events:auto; }
+  .zqm-card{ width:min(500px,100%); max-height:min(78vh,640px); display:flex; flex-direction:column; box-sizing:border-box; background:#FBFAF7; color:#2B2B2B; border-radius:10px;
+             box-shadow:0 18px 50px rgba(30,28,22,.30); padding:18px 20px 16px; font-family:inherit; text-transform:none; letter-spacing:0; }
+  .zqm-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .zqm-title{ font-size:16px; font-weight:700; line-height:1.3; }
+  .zqm-x{ all:unset; cursor:pointer; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; color:#8A8580; font-size:20px; line-height:1; flex:0 0 auto; }
+  .zqm-x:hover{ background:#E8E6E0; color:#2B2B2B; }
+  .zqm-note{ margin:6px 0 12px; font-size:12px; color:#6b675f; line-height:1.45; }
+  .zqm-tbl{ border:1px solid #E3E1DA; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; min-height:0; background:#FFFFFF; }
+  .zqm-th, .zqm-tbl .zq-row{ display:grid; grid-template-columns:minmax(0,1fr) auto 64px; column-gap:14px; align-items:center; padding:9px 12px; font-size:12.5px; }
+  .zqm-th{ background:#E8E6E0; color:#6b675f; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  .zqm-th span + span, .zqm-tbl .zq-row > span + span{ text-align:right; }
+  .zqm-body{ overflow:auto; min-height:0; }
+  .zqm-tbl .zq-row{ border-top:1px solid #EFEDE7; }
+  .zqm-tbl .zq-g{ background:#F5F3EE; font-weight:700; }
+  .zqm-tbl .zq-rr > span:first-child{ padding-left:14px; color:#4a463f; }
+  .zqm-tbl .zq-rv{ font-family:'JetBrains Mono',monospace; white-space:nowrap; }
+  .zqm-tbl .zq-rt{ background:#E8E6E0; font-weight:700; border-top:1px solid #D6D3CA; }
+  .zqm-foot{ display:flex; justify-content:flex-end; margin-top:14px; }
+  .zqm-btn{ all:unset; cursor:pointer; background:#2B2B2B; color:#fff; font-size:13px; font-weight:700; padding:9px 22px; border-radius:6px; }
+  .zqm-btn:hover{ background:#4a463f; }
+  .zqm-empty{ padding:14px 12px; font-size:12.5px; color:#6b675f; }
   @media (max-width:900px){ .byh-cols{ grid-template-columns:1fr; } }
   .rekap-selectbar{
     position:fixed; left:50%; bottom:22px; transform:translate(-50%, 16px);
@@ -2520,7 +2539,7 @@ function zHppView(){
    Desktop: hover + klik (kunci). HP: ketuk. Esc / klik di luar / scroll = tutup. Pesan status & peringatan (.byh-hint, footer.note, kartu kosong) sengaja TIDAK ikut. */
 (function(){
   var SEL = '.ket, .roas-note, .byh-note, .zq-h';
-  var seq = 0, pop = null, cur = null, pinned = false, timer = 0;
+  var seq = 0, pop = null, cur = null, pinned = false, timer = 0, zqm = null;
   var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
 
   function txt(el){ return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
@@ -2554,14 +2573,38 @@ function zHppView(){
     for(var i = 0; i < list.length; i++){
       var d = document.createElement('div');
       if(list[i].classList.contains('zq-rich')){
-        var c = list[i].cloneNode(true);
-        c.className = 'zq-rich-c'; c.removeAttribute('data-zq'); c.removeAttribute('hidden');
-        d.appendChild(c);
+        richSrc = list[i];   // dialog tengah layar (lihat showModal), bukan tooltip kecil
       } else d.textContent = txt(list[i]);
       pop.appendChild(d);
     }
     return list.length;
   }
+  var richSrc = null;
+  function ensureModal(){
+    if(zqm) return;
+    zqm = document.createElement('div'); zqm.className = 'zqm'; zqm.setAttribute('role', 'dialog'); zqm.setAttribute('aria-modal', 'true');
+    zqm.innerHTML = '<div class="zqm-card"><div class="zqm-head"><div class="zqm-title"></div><button type="button" class="zqm-x" data-zqm-close aria-label="Tutup">&times;</button></div>'
+      + '<div class="zqm-note"></div><div class="zqm-tbl"><div class="zqm-th"><span>Komponen</span><span>Nominal</span><span>% Harga Jual</span></div><div class="zqm-body"></div></div>'
+      + '<div class="zqm-foot"><button type="button" class="zqm-btn" data-zqm-close>Tutup</button></div></div>';
+    document.body.appendChild(zqm);
+  }
+  function showModal(src){
+    ensureModal();
+    var q = function(sel){ return zqm.querySelector(sel); };
+    q('.zqm-title').textContent = src.getAttribute('data-zq-title') || 'Rincian';
+    var n = src.querySelector('.zq-rn'); q('.zqm-note').textContent = n ? txt(n) : '';
+    var body = q('.zqm-body'); body.textContent = '';
+    var rows = src.querySelectorAll('.zq-row'), tot = null, i;
+    for(i = 0; i < rows.length; i++){
+      if(rows[i].classList.contains('zq-rt')){ tot = rows[i]; continue; }
+      body.appendChild(rows[i].cloneNode(true));
+    }
+    if(!body.firstChild){ var em = document.createElement('div'); em.className = 'zqm-empty'; em.textContent = 'Belum ada potongan admin/layanan di pesanan ini.'; body.appendChild(em); }
+    var old = q('.zqm-tbl > .zq-rt'); if(old) old.parentNode.removeChild(old);
+    if(tot) q('.zqm-tbl').appendChild(tot.cloneNode(true));
+    zqm.classList.add('open');
+  }
+  function applyPin(){ if(zqm) zqm.classList.toggle('pin', !!pinned); }
   function place(q){
     var r = q.getBoundingClientRect(), root = document.documentElement;
     var vw = root.clientWidth, vh = root.clientHeight;
@@ -2576,6 +2619,7 @@ function zHppView(){
     if(cur) cur.classList.remove('on');
     cur = null; pinned = false;
     if(pop) pop.style.display = 'none';
+    if(zqm){ zqm.classList.remove('open'); zqm.classList.remove('pin'); }
   }
   function show(q){
     if(!pop){
@@ -2583,8 +2627,10 @@ function zHppView(){
       document.body.appendChild(pop);
     }
     if(cur && cur !== q) cur.classList.remove('on');
+    richSrc = null;
     if(!fill(q)){ hide(); return; }
-    cur = q; q.classList.add('on'); place(q);
+    cur = q; q.classList.add('on');
+    if(richSrc){ pop.style.display = 'none'; showModal(richSrc); } else { if(zqm) zqm.classList.remove('open'); place(q); }
   }
 
   // Pasang ikon untuk sumber baru + sinkronkan status tampil/sembunyi. Aman dipanggil berulang: cuma menulis DOM kalau memang ada yang berubah.
@@ -2614,7 +2660,7 @@ function zHppView(){
     }
     if(cur){
       if(!cur.isConnected || cur.hidden) hide();
-      else if(pop && pop.style.display === 'block'){ fill(cur); place(cur); }
+      else if(pop && pop.style.display === 'block'){ richSrc = null; fill(cur); place(cur); }
     }
   }
   function schedule(){ if(!timer) timer = setTimeout(pass, 40); }
@@ -2624,7 +2670,11 @@ function zHppView(){
     var q = qOf(e);
     if(q){
       e.preventDefault(); e.stopPropagation();
-      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; }
+      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; applyPin(); }
+      return;
+    }
+    if(zqm && zqm.classList.contains('open') && zqm.contains(e.target)){   // klik di dalam dialog: tutup hanya lewat X / Tutup / area gelap
+      if(e.target === zqm || (e.target.closest && e.target.closest('[data-zqm-close]'))) hide();
       return;
     }
     if(cur) hide();
@@ -2642,15 +2692,15 @@ function zHppView(){
     if((e.key === 'Enter' || e.key === ' ') && qOf(e)){
       e.preventDefault();
       var q = qOf(e);
-      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; }
+      if(cur === q && pinned) hide(); else { show(q); if(cur === q) pinned = true; applyPin(); }
     }
   }, true);
-  window.addEventListener('scroll', function(){ if(cur) hide(); }, true);
+  window.addEventListener('scroll', function(e){ if(zqm && e.target && zqm.contains(e.target)) return; if(cur) hide(); }, true);   // scroll di dalam dialog tidak menutupnya
   window.addEventListener('resize', function(){ if(cur) hide(); });
 
   if(typeof MutationObserver !== 'undefined'){
     new MutationObserver(function(ms){
-      for(var i = 0; i < ms.length; i++){ if(pop && pop.contains(ms[i].target)) continue; schedule(); return; }   // gambar ulang popover sendiri tidak memicu pass lagi
+      for(var i = 0; i < ms.length; i++){ if((pop && pop.contains(ms[i].target)) || (zqm && zqm.contains(ms[i].target))) continue; schedule(); return; }   // gambar ulang popover sendiri tidak memicu pass lagi
     }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   }
   pass();
@@ -5458,17 +5508,19 @@ function buildFeeCardsHtml(parsed, hargaJual){
 // (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Jual (Subtotal Pesanan) — jadi jumlah barisnya = angka di minicard.
 function buildAdminLayananPopHtml(parsed, hargaJual, ratio){
   const e = v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  let body = '', shown = 0, sumRp = 0;
+  const pc = rp => hargaJual ? fmtPct(Math.abs(rp/hargaJual)) : '-';
+  const row = (cls, label, rp) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pc(rp)}</span></span>`;
+  let body = '', sumRp = 0;
   parsed.groups.forEach(g=>{
     const rows = g.children.filter(c=> !isExcludedFee(c.label) && !/^Voucher/i.test(c.label||'') && Math.abs(c.value||0)>=0.5);
     if(!rows.length) return;
     const sub = rows.reduce((a,c)=>a+(c.value||0),0);
-    sumRp += sub; shown += rows.length;
-    body += `<span class="zq-g"><span>${e(g.label)}</span><span class="zq-rv">${hargaJual ? fmtPct(Math.abs(sub/hargaJual)) : '-'}</span></span>`;
-    rows.forEach(c=>{ body += `<span class="zq-rr"><span>${e(c.label)}</span><span class="zq-rv">${hargaJual ? fmtPct(Math.abs((c.value||0)/hargaJual)) : '-'}</span></span>`; });
+    sumRp += sub;
+    body += row('zq-g', g.label, sub);
+    rows.forEach(c=>{ body += row('zq-rr', c.label, c.value||0); });
   });
-  if(!shown) body = `<span class="zq-rr" style="padding-left:0;">Belum ada potongan admin/layanan di pesanan ini.</span>`;
-  return `<span class="stat-sub zq-h zq-rich"><span class="zq-rt"><span>Admin + Layanan</span><span class="zq-rv">${fmtPct(ratio)}</span></span><span class="zq-rn">Tidak termasuk saldo iklan &amp; voucher toko · % dari Harga Jual</span>${body}</span>`;
+  const total = (hargaJual && ratio!==null && ratio!==undefined) ? ratio*hargaJual : sumRp;
+  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan"><span class="zq-rn">Total potongan Shopee per pesanan, tidak termasuk saldo iklan &amp; voucher toko. Persentase dari Harga Jual (Subtotal Pesanan).</span>${body}${row('zq-rt', 'Total Admin + Layanan', total)}</span>`;
 }
 
 function renderCheckAdminResult(parsed, manualOverrides){
