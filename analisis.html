@@ -5519,7 +5519,7 @@ function buildFeeCardsHtml(parsed, hargaJual){
 
 // [8 Okt 2026] Rincian "Admin + Layanan" untuk popup (?) di minicard: semua potongan Shopee per pesanan KECUALI Biaya Isi Saldo Otomatis & Voucher toko
 // (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Jual (Subtotal Pesanan) — jadi jumlah barisnya = angka di minicard.
-function buildAdminLayananPopHtml(parsed, hargaJual, ratio){
+function buildAdminLayananPopHtml(parsed, hargaJual, ratio, buffer){
   const e = v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const pc = rp => hargaJual ? fmtPct(Math.abs(rp/hargaJual)) : '-';
   const row = (cls, label, rp) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pc(rp)}</span></span>`;
@@ -5532,8 +5532,12 @@ function buildAdminLayananPopHtml(parsed, hargaJual, ratio){
     body += row('zq-g', g.label, sub);
     rows.forEach(c=>{ body += row('zq-rr', c.label, c.value||0); });
   });
-  const total = (hargaJual && ratio!==null && ratio!==undefined) ? ratio*hargaJual : sumRp;
-  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan"><span class="zq-rn">Total potongan Shopee per pesanan, tidak termasuk saldo iklan &amp; voucher toko. Persentase dari Harga Jual (Subtotal Pesanan).</span>${body}${row('zq-rt', 'Total Admin + Layanan', total)}</span>`;
+  // [8 Okt 2026] Buffer (Lainnya) dari Setting Analisis ikut di baris & total (sumber angkanya tidak berubah: state.settings.lainnyaPct); minicard-nya sendiri sudah dihapus.
+  const bufRp = (hargaJual && buffer>0) ? buffer*hargaJual : 0;
+  if(bufRp>0) body += row('zq-g', 'Buffer (Lainnya) — Setting Analisis', bufRp);
+  const base = (hargaJual && ratio!==null && ratio!==undefined) ? ratio*hargaJual : sumRp;
+  const total = Math.abs(base) + bufRp;
+  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan + Buffer"><span class="zq-rn">Potongan Shopee per pesanan (tanpa saldo iklan &amp; voucher toko) ditambah Buffer dari Setting Analisis. Persentase dari Harga Jual (Subtotal Pesanan).</span>${body}${row('zq-rt', 'Total Admin + Layanan + Buffer', total)}</span>`;
 }
 
 function renderCheckAdminResult(parsed, manualOverrides){
@@ -5654,9 +5658,9 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-value">${fmtPct(gpm)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Admin + Layanan</div>
-          <div class="stat-value">${fmtPct(adminLayananRatio)}</div>
-          ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio)}
+          <div class="stat-label">Admin + Layanan + Buffer</div>
+          <div class="stat-value">${fmtPct((adminLayananRatio||0) + buffer)}</div>
+          ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio, buffer)}
         </div>
         <div class="stat-card">
           <div class="stat-label">ACOS</div>
@@ -5664,14 +5668,14 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-sub zq-h">${roas ? ('1 ÷ ROAS '+roas.toFixed(2)) : 'ROAS belum ada — isi Target ROAS Toko di Setting'}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Buffer</div>
-          <div class="stat-value">${fmtPct(buffer)}</div>
-          <div class="stat-sub zq-h">Setting — Buffer (Lainnya)</div>
+          <div class="stat-label">Ops</div>
+          <div class="stat-value">${rasioOps!==null ? fmtPct(rasioOps) : '-'}</div>
+          <div class="stat-sub zq-h">${rasioOps!==null ? 'Rasio Operasional — Setting Analisis' : 'isi Rasio Operasional di Setting'}</div>
         </div>
         <div class="stat-card ${npm!==null && npm<0 ? 'bad' : 'good'}">
           <div class="stat-label">NPM</div>
           <div class="stat-value">${fmtPct(npm)}</div>
-          <div class="stat-sub zq-h">${rasioOps!==null ? ('Rasio Ops '+fmtPct(rasioOps)) : 'isi Rasio Operasional di Setting'}</div>
+          <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − ACOS − Ops</div>
         </div>
         <div class="stat-card ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
           <div class="stat-label">Net Income</div>
