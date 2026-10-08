@@ -575,6 +575,28 @@
   /* jarak Price List dari kartu hasil: cuma kalau hasilnya ada (sebelum produk dipilih area hasil kosong, Price List sejajar atas dengan panel Input). HP tetap pakai margin-top bawaan. */
   html:not(.zan-phone) #proyeksiPriceWrap, html:not(.zan-phone) #byqtyPriceWrap{ margin-top:0 !important; }
   html:not(.zan-phone) #proyeksiDetail:not(:empty), html:not(.zan-phone) #byqtyDetail:not(:empty){ margin-bottom:16px; }
+  /* ===== [7 Okt 2026] Price List dipisah dari By Target Qty ===== */
+  /* By Target Qty: 2 kolom saja (hasil kiri | Input kanan). Kalau hasil sudah tampil, panel Input ditarik setinggi blok kiri (atas & bawah sejajar) — sebelum produk dipilih tetap setinggi isinya. */
+  #byqtyView-input .rks-shell{ grid-template-areas:"main input"; grid-template-rows:minmax(min-content,1fr); align-content:stretch; }
+  html:not(.zan-phone) #byqtyDetail:not(:empty){ margin-bottom:0; }
+  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel{ align-self:stretch; }
+  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel .rks-datatoko-panel-inner{ height:100%; }
+  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel .rks-datatoko-panel-inner > .card{ height:100%; box-sizing:border-box; margin-bottom:0; }
+  /* Price List = halaman sendiri: minicard Potongan di atas, tabel full-width mengisi sisa tinggi layar (header beku, scroll cuma di baris data) */
+  #page-pricelist.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
+  #priceListCard-pricelist{ flex:1; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
+  #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
+  #priceListCard-pricelist tr.byq-pl-row{ transition:background-color .12s ease; }
+  #priceListCard-pricelist tr.byq-pl-row:hover td{ background:var(--accent-soft) !important; }
+  /* Perpindahan antar halaman Proyeksi Harga: fade pendek (opacity saja, tanpa transform supaya posisi bottom-sheet/sticky tidak ikut terpengaruh) */
+  @keyframes zanPageIn{ from{ opacity:0; } to{ opacity:1; } }
+  #page-pricelist.active, #page-checkadmin.active, #page-proyeksi.active, #page-byqty.active, #page-byharga.active, #page-bysupport.active{ animation:zanPageIn .16s ease-out; }
+  /* angka yang berubah diperbarui di tempat (patchHtml) lalu berkedip halus — kartu tidak digambar ulang */
+  @keyframes zanTick{ from{ opacity:.3; } to{ opacity:1; } }
+  .zan-tick{ animation:zanTick .24s ease-out; }
+  @media (prefers-reduced-motion:reduce){
+    #page-pricelist.active, #page-checkadmin.active, #page-proyeksi.active, #page-byqty.active, #page-byharga.active, #page-bysupport.active, .zan-tick{ animation:none; }
+  }
   .pr-cols{ flex:1; min-height:470px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,2fr) minmax(0,1fr); gap:16px; align-items:stretch; }   /* baris 1: Nilai (IDR) | Rasio — baris 2: Spend Budget Iklan | Cost Produk */
   .pr-card{ display:flex; flex-direction:column; padding:16px 24px 10px; margin-bottom:0; }
   .pr-card h3{ margin:0 0 10px; font-size:clamp(15px,1.9vh,19px); }
@@ -1460,6 +1482,7 @@
         <button type="button" class="nav-chevron" id="navChevronProyeksiHarga" aria-label="Buka/tutup submenu Proyeksi Harga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
       <div class="nav-submenu">
+        <button data-page="pricelist"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Price List</button>
         <button data-page="proyeksi"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> By Operasional</button>
         <button data-page="byqty"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> By Target Qty</button>
         <button data-page="byharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Harga Jual</button>
@@ -1583,6 +1606,14 @@
     </div>
   </section>
 
+  <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (halaman utama grup, [7 Okt 2026]) ============
+       Dipisah dari By Target Qty. Isinya = kartu Price List & Potongan yang dulu ada di bawah By Target Qty (renderByqtyPriceListCard, LIVE dari Kelola Produk):
+       minicard Potongan di atas (#pricelistStats), tabel full-width di bawahnya (#priceListCard-pricelist). Klik baris = pilih SKU lalu loncat ke By Target Qty. -->
+  <section class="page" id="page-pricelist">
+    <div id="pricelistStats"></div>
+    <div class="card" id="priceListCard-pricelist"></div>
+  </section>
+
   <!-- ============ PAGE: PROYEKSI HARGA > BY TARGET QTY ============ -->
   <section class="page" id="page-byqty">
     <!-- [7 Okt 2026] By Target Qty jadi SATU halaman: Input (panel kanan, posisi tetap) + hasil + Price List & Potongan di bawahnya.
@@ -1622,7 +1653,6 @@
             </div>
           </div>
         </div>
-        <div id="byqtyPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-byqty"></div></div>
       </div>
     </div>
   </section>
@@ -2840,6 +2870,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='rekap') renderRekap();
       if(btn.dataset.page==='setting') renderSetting();
       if(btn.dataset.page==='proyeksi') renderProyeksi();
+      if(btn.dataset.page==='pricelist') renderPricelistPage();
       if(btn.dataset.page==='byqty') renderByQty();
       if(btn.dataset.page==='byharga') renderByHarga();
       if(btn.dataset.page==='bysupport') renderBySupport();
@@ -4214,6 +4245,7 @@ const PAGE_TITLES = {
   profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
+  pricelist: 'Price List',
   proyeksi: 'By Operasional',
   byqty: 'By Target Qty',
   byharga: 'By Harga Jual',
@@ -7087,7 +7119,6 @@ function plApplyPickedSku(ctx, picked){
   } else if(ctx==='byqty'){
     byqtySelectedSku = picked.sku;
     plSyncProdukBtn('byqtyProdukBtn', picked.sku);
-    renderPriceListCard('priceListCard-byqty','byqty');
     renderByQtyResult();
   } else if(ctx==='byharga'){
     byhargaSelectedSku = picked.sku;
@@ -7097,6 +7128,35 @@ function plApplyPickedSku(ctx, picked){
   }
 }
 
+/* [7 Okt 2026] patchHtml(el, html): ganti isi el dengan html TANPA menggambar ulang kalau kerangkanya sama — cuma teks yang berubah yang diperbarui di tempat
+   (lalu berkedip halus lewat .zan-tick). Dipakai minicard & kartu hasil By Target Qty + minicard Price List, supaya ganti produk/ROAS/qty tidak bikin kartu
+   hilang-muncul. Kerangka beda / struktur tidak cocok / isi el diubah dari luar -> otomatis jatuh ke innerHTML biasa (hasil akhir selalu sama dengan innerHTML). */
+function patchHtml(el, html){
+  const sig = h=>h.replace(/>[^<]*</g,'><').replace(/\s+/g,' ');
+  const full = ()=>{ el.innerHTML = html; el.__pSig = sig(html); el.__pOut = el.innerHTML; };
+  if(!el.firstElementChild || el.__pSig!==sig(html) || el.__pOut!==el.innerHTML){ full(); return; }
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  const walk = (a,b)=>{
+    if(a.childNodes.length!==b.childNodes.length) return false;
+    for(let i=0;i<a.childNodes.length;i++){
+      const x=a.childNodes[i], y=b.childNodes[i];
+      if(x.nodeType!==y.nodeType) return false;
+      if(x.nodeType===3){
+        if(x.nodeValue!==y.nodeValue){
+          x.nodeValue = y.nodeValue;
+          const pe = x.parentElement;
+          if(pe && y.nodeValue.trim()){ pe.classList.remove('zan-tick'); void pe.offsetWidth; pe.classList.add('zan-tick'); }
+        }
+      } else if(x.nodeType===1){
+        if(x.tagName!==y.tagName || !walk(x,y)) return false;
+      }
+    }
+    return true;
+  };
+  if(!walk(el, tpl.content)){ full(); return; }
+  el.__pOut = el.innerHTML;
+}
 function statCard(label, value, sub, cls){
   return `<div class="stat-card ${cls||''}"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>${sub?`<div class="stat-sub">${sub}</div>`:''}</div>`;
 }
@@ -7336,6 +7396,9 @@ function byqtyBindPriceRows(){
   body.querySelectorAll('tr.byq-pl-row').forEach(tr=>tr.addEventListener('click', ()=>{
     const hpp = Number(tr.dataset.hpp)||0;
     plApplyPickedSku('byqty', { sku: tr.dataset.sku, hpp });
+    // [7 Okt 2026] Price List sudah halaman sendiri -> setelah SKU dipilih langsung loncat ke By Target Qty (SKU sudah terisi di panel Input)
+    const nb = document.querySelector('nav.menu button[data-page="byqty"]');
+    if(nb) nb.click();
   }));
 }
 function byqtyOnSearch(v){
@@ -7343,10 +7406,14 @@ function byqtyOnSearch(v){
   const body = document.getElementById('byqtyPriceBody');
   if(body){ body.innerHTML = byqtyPriceBodyHtml(); byqtyBindPriceRows(); }
 }
+/* [7 Okt 2026] Price List = halaman sendiri (#page-pricelist), bukan lagi bagian bawah By Target Qty. Nama fungsi/ID tabel (byqty*) dipertahankan supaya
+   pemanggil lama (renderPriceListCard(..,'byqty')) tetap jalan. Minicard Potongan -> #pricelistStats; tabel -> #priceListCard-pricelist.
+   Kerangka kartu (judul + kolom cari) digambar SEKALI; render berikutnya cuma memperbarui minicard & isi tabel (angka diganti di tempat, kolom cari tidak kehilangan fokus). */
+function renderPricelistPage(){ renderByqtyPriceListCard(); }
 function renderByqtyPriceListCard(fromLoad){
-  const card = document.getElementById('priceListCard-byqty');
+  const card = document.getElementById('priceListCard-pricelist');
   if(!card) return;
-  // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang kartu ini saja
+  // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang halaman ini saja
   if(!fromLoad && Date.now()-_byqtyLoadTs > 5000){
     _byqtyLoadTs = Date.now();
     zProdukLoad().then(()=>renderByqtyPriceListCard(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
@@ -7354,53 +7421,39 @@ function renderByqtyPriceListCard(fromLoad){
   const adminBpp = resolveAdminBpp();
   const roasInfo = resolvePriceListRoas();
   const bufPct = state.settings.lainnyaPct||0;
-  const prev = document.getElementById('byqtySearch');
-  const hadFocus = prev && document.activeElement===prev;
-  const selS = hadFocus ? prev.selectionStart : null, selE = hadFocus ? prev.selectionEnd : null;
-  card.innerHTML = `
-    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <span>Price List &amp; Potongan</span>
-      <input type="search" id="byqtySearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_byqtyQuery)}" oninput="byqtyOnSearch(this.value)"
-        style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
-    </h3>
-    <div class="stat-grid stat-grid-6" style="margin-bottom:16px;">
-      <div class="stat-card">
-        <div class="stat-label">Admin %<span class="ket" style="display:block;font-weight:400;">${adminBpp.adminSource==='rekapM'?`Rekap Mingguan ${adminBpp.adminLabel}`:adminBpp.adminSource==='rekapB'?`Rekap Bulanan ${adminBpp.adminLabel}`:'fallback Setting'}</span></div>
-        <div class="stat-value">${fmtPct(adminBpp.adminPct/100)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">BPP (Rp)<span class="ket" style="display:block;font-weight:400;">${adminBpp.bppSource==='rekap'?`Rekap ${adminBpp.bppLabel}`:'fallback Setting'}</span></div>
-        <div class="stat-value">${fmtRp(adminBpp.bpp)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Operasional %<span class="ket" style="display:block;font-weight:400;">rasio operasional di Setting</span></div>
-        <div class="stat-value">${fmtPct(plOpsPct()/100)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">ACOS (1÷ROAS)<span class="ket" style="display:block;font-weight:400;">${roasInfo.source==='rekapM'?`Rekap Mingguan ${roasInfo.label}`:(roasInfo.source==='setting'?'ROAS toko di Setting':'isi ROAS toko di Setting')}</span></div>
-        <div class="stat-value">${(roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Buffer %<span class="ket" style="display:block;font-weight:400;">Setting — Buffer (Lainnya)</span></div>
-        <div class="stat-value">${fmtPct(bufPct/100)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Profit Target (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
-        <div class="stat-value">${fmtRp(state.settings.minNpmRp||0)}</div>
-      </div>
-    </div>
-    <div class="hint" style="margin:0 0 10px;">Produk &amp; HPP langsung dari Kelola Produk. Klik baris untuk memilih SKU sebagai produk simulasi di panel Input.</div>
-    <div class="pricelist-scroll">
-      <table class="ca-table">
-        <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
-        <tbody id="byqtyPriceBody">${byqtyPriceBodyHtml()}</tbody>
-      </table>
-    </div>`;
-  byqtyBindPriceRows();
-  if(hadFocus){ const el = document.getElementById('byqtySearch'); if(el){ el.focus(); try{ el.setSelectionRange(selS, selE); }catch(e){} } }
+  const adminSub = adminBpp.adminSource==='rekapM' ? `Rekap Mingguan ${adminBpp.adminLabel}` : adminBpp.adminSource==='rekapB' ? `Rekap Bulanan ${adminBpp.adminLabel}` : 'fallback Setting';
+  const bppSub = adminBpp.bppSource==='rekap' ? `Rekap ${adminBpp.bppLabel}` : 'fallback Setting';
+  const acosSub = roasInfo.source==='rekapM' ? `Rekap Mingguan ${roasInfo.label}` : (roasInfo.source==='setting' ? 'ROAS toko di Setting' : 'isi ROAS toko di Setting');
+  const statsEl = document.getElementById('pricelistStats');
+  if(statsEl) patchHtml(statsEl, `
+    <div class="stat-grid stat-grid-6">
+      ${statCard('Admin %', fmtPct(adminBpp.adminPct/100), adminSub)}
+      ${statCard('BPP (Rp)', fmtRp(adminBpp.bpp), bppSub)}
+      ${statCard('Operasional %', fmtPct(plOpsPct()/100), 'rasio operasional di Setting')}
+      ${statCard('ACOS (1÷ROAS)', (roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-', acosSub)}
+      ${statCard('Buffer %', fmtPct(bufPct/100), 'Setting — Buffer (Lainnya)')}
+      ${statCard('Profit Target (Rp)', fmtRp(state.settings.minNpmRp||0), 'diatur di Setting')}
+    </div>`);
+  if(!document.getElementById('byqtySearch')){
+    card.innerHTML = `
+      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span>Price List</span>
+        <input type="search" id="byqtySearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_byqtyQuery)}" oninput="byqtyOnSearch(this.value)"
+          style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
+      </h3>
+      <div class="hint" style="margin:0 0 10px;">Produk &amp; HPP langsung dari Kelola Produk. Klik baris untuk menghitung SKU itu di By Target Qty.</div>
+      <div class="pricelist-scroll">
+        <table class="ca-table">
+          <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
+          <tbody id="byqtyPriceBody"></tbody>
+        </table>
+      </div>`;
+  }
+  const body = document.getElementById('byqtyPriceBody');
+  if(body){ body.innerHTML = byqtyPriceBodyHtml(); byqtyBindPriceRows(); }
 }
 function renderByQty(){
-  renderPriceListCard('priceListCard-byqty','byqty');
+  // [7 Okt 2026] Price List dipisah ke halaman sendiri (renderPricelistPage) — tidak lagi dirender di sini
   renderByqtyRoasControl();
   const qtyEl = document.getElementById('byqtyQtyHarian');
   if(!qtyEl.dataset.bound){
@@ -7446,7 +7499,7 @@ function renderByQtyResult(){
   const totalSpendHarian = spendIklanHarian+costProdukHarian;
   const rasioIncome = net ? (state.settings.minNpmRp||0)/net : null;
 
-  statsEl.innerHTML = `
+  patchHtml(statsEl, `
     <div class="stat-grid stat-grid-6">
       ${statCard('Total Spend Bulanan', fmtRp(totalSpendBulanan), fmtRp(totalSpendHarian)+' /hari')}
       ${statCard('Target Order Bulanan', targetOrderBulanan.toLocaleString('id-ID'), targetOrderHarian.toLocaleString('id-ID')+' /hari')}
@@ -7454,8 +7507,8 @@ function renderByQtyResult(){
       ${statCard('Operasional', fmtRp(oprasionalBulanan), fmtPct(opsFrac)+' × omset bulanan')}
       ${statCard('NPM', fmtRp(incomeBulanan), fmtRp(state.settings.minNpmRp||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order')}
       ${statCard('NET Income', fmtRp(netIncome), 'NPM + Operasional', 'accent')}
-    </div>`;
-  detailEl.innerHTML = `
+    </div>`);
+  patchHtml(detailEl, `
     <div class="pr-cols">
       <div class="card pr-card">
         <h3>Nilai (IDR)</h3>
@@ -7472,6 +7525,7 @@ function renderByQtyResult(){
         <div class="pr-rows">
           <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
           <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
+          <div class="hrow"><div class="lbl">OPERASIONAL</div><div class="val">${fmtPct(opsFrac)}</div></div>
           <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
           <div class="hrow highlight"><div class="lbl">RASIO PROFIT</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
         </div>
@@ -7491,10 +7545,11 @@ function renderByQtyResult(){
         </div>
       </div>
     </div>
-  `;
+  `);
 }
 
 function renderProyeksiHargaBoth(){
+  if(document.getElementById('page-pricelist')) renderPricelistPage();
   if(document.getElementById('page-proyeksi')) renderProyeksi();
   if(document.getElementById('page-byqty')) renderByQty();
   if(document.getElementById('page-byharga')) renderByHarga();

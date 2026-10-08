@@ -63,6 +63,7 @@
 // (37) [7 Okt 2026] Proyeksi Harga (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah, lihat catatan 11): (a) Check Admin: Buffer (Lainnya) dari Setting ikut dikurangkan dari NPM + minicard Buffer baru; (b) By Harga Jual: kartu baru Net Income Toko (target NPM + Operasional) jadi acuan hasil MASUK / TIDAK MASUK; (c) By Target Qty: Input + Price List jadi SATU halaman, daftar SKU Price List diambil live dari Kelola Produk (klik baris = pilih SKU).
 // (38) [7 Okt 2026] Proyeksi Harga (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): (a) By Target Qty: kartu Price List & Potongan dipindah dari bawah panel Input ke kolom kiri (di bawah kartu hasil), sejajar panel Input di kanan (pola Check Admin); (b) By Operasional: tidak lagi 2 halaman (Price List | Input) — jadi SATU halaman seperti By Target Qty; sumber Price List By Operasional tetap state.priceList, tombol Salin dari HPP tetap ada (pindah ke baris atas halaman). HP: urutan tumpuk tetap hasil, Input, Price List.
 // (39) [7 Okt 2026] Proyeksi Harga (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): (a) By Target Qty & By Operasional: bar abu "Pilih produk dulu buat lihat hasil..." dihapus (area hasil kosong sebelum produk dipilih); (b) By Operasional: baris Price List sekarang LIVE dari Kelola Produk (bysupportRows), sama dengan By Target Qty — bukan lagi state.priceList; tombol Salin dari HPP dihapus dari tampilan (dead markup tersembunyi).
+// (40) [7 Okt 2026] Proyeksi Harga: halaman baru Price List (pricelist) jadi tab PERTAMA & landing grup (dipisah dari By Target Qty; isi & hitungan di analisis.html, file INI cuma daftar tab/PHONE_PAGES/CSS HP + catatan supaya hash APP_BUILD berubah). By Target Qty: kartu hasil & panel Input sejajar atas-bawah, minicard/kartu diperbarui di tempat (patchHtml) bukan digambar ulang, fade antar halaman.
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;
@@ -74,11 +75,11 @@
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['profit', 'Profit Pesanan', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual'], ['bysupport', 'By Support']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual'], ['bysupport', 'By Support']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
   var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
-  var lastTab = { tokocompare: 'tokocompare', rasio: 'hasil', proyeksi: 'checkadmin', setting: 'setting' };  // tab terakhir per sub-menu
+  var lastTab = { tokocompare: 'tokocompare', rasio: 'hasil', proyeksi: 'pricelist', setting: 'setting' };  // tab terakhir per sub-menu
   var curGroup = null;   // sub-menu yang sedang tampil
   var curPage = null;    // halaman Analisis yang sedang tampil (kunci data-page)
 
@@ -88,7 +89,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'proyeksi', 'byqty', 'byharga', 'bysupport', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'proyeksi', 'byqty', 'byharga', 'bysupport', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -389,6 +390,12 @@
     //   html.zan-phone #byhargaView-input .rks-shell{display:block;} | html.zan-phone #byhargaInputPanel{width:100%;flex:none;margin-top:10px;} | html.zan-phone .byh-cols{grid-template-columns:1fr;gap:10px;} | html.zan-phone .byh-col{gap:10px;}
     byhCss(),
     'html.zan-phone .pricelist-scroll{max-height:none;}',
+    // [7 Okt 2026] Price List (halaman sendiri): HP mengalir biasa; tabel 3 kolom (SKU, NET, HPP) pas layar tanpa scroll samping — kolom Operasional (nilainya sama di semua baris, sudah ada di minicard) disembunyikan
+    'html.zan-phone #page-pricelist.active{display:block;flex:none;min-height:0;}',
+    'html.zan-phone #priceListCard-pricelist{display:block;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table{display:table;table-layout:fixed;width:100%;overflow:visible;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table th:nth-child(4),html.zan-phone #priceListCard-pricelist .ca-table td:nth-child(4){display:none;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table th,html.zan-phone #priceListCard-pricelist .ca-table td{padding:10px 8px;font-size:13px;overflow-wrap:anywhere;}',
     'html.zan-phone #proyeksiView-list > div:first-child,html.zan-phone #byqtyView-list > div:first-child{gap:8px;}',
     'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',
 
