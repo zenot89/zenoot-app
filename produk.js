@@ -273,6 +273,8 @@ function produkSelectAll() {
 //   supplier Produksi Sendiri → "Produksi Sendiri" | Dropship murni → "Dropship" | Reseller murni → "Reseller"
 //   supplier Dropship + Reseller (mis. RH) → ditentukan per SKU lewat produk.dropship (toggle di Edit Supplier)
 function _produkSistemOf(row) {
+  // 10 Okt 2026: override per SKU didahulukan (produk.sistem_override); kosong = ikut supplier.
+  if (row && (row.sistem_override === 'dropship' || row.sistem_override === 'reseller' || row.sistem_override === 'produksi')) return row.sistem_override;
   var s = _produkSupMap()[String((row && row.boss) || '').trim().toUpperCase()];
   if (!s) return '';
   if (s.is_produksi_sendiri) return 'produksi';
@@ -335,6 +337,130 @@ function _produkSistemKatalogCell(rows) {
   }).join(' · ');
   return '<div style="line-height:1.2"><span style="display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:4px;border:1px solid var(--ink3);color:var(--ink2,var(--ink));white-space:nowrap">Campuran</span>' +
          '<div style="font-size:10px;color:var(--ink3);margin-top:3px">' + detail + '</div></div>';
+}
+
+// ── Sistem per SKU varian (10 Okt 2026): tombol → sheet gaya komentar Instagram ──
+var _PRODUK_SISTEM_OPSI = [
+  { k: 'dropship', l: 'Dropship',         d: 'Tidak disetok. Bon dropship dicatat ke supplier.' },
+  { k: 'reseller', l: 'Reseller',         d: 'Dibeli sebagai PO dari supplier.' },
+  { k: 'produksi', l: 'Produksi Sendiri', d: 'Disetok sendiri. Stok dilacak.' },
+  { k: null,       l: 'Ikuti supplier',   d: 'Pakai sistem dari pengaturan supplier.' }
+];
+var _pkSisId = null;
+
+function _pkEsc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _produkSistemBtn(row) {
+  var key = _produkSistemOf(row);
+  var m   = _PRODUK_SISTEM_META[key];
+  var lbl = m ? m.label : 'Belum diatur';
+  var col = m ? m.color : 'var(--ink3)';
+  var ov  = row.sistem_override ? ' title="Diatur khusus untuk SKU ini"' : ' title="Ikut sistem supplier"';
+  return '<button type="button" class="pk-sis-btn" style="color:' + col + ';border-color:' + col + '"' + ov
+    + ' onclick="event.stopPropagation();produkSistemSheetOpen(' + row.id + ')">'
+    + lbl + (row.sistem_override ? ' <span class="pk-sis-dot"></span>' : '')
+    + ' <i class="ti ti-chevron-down"></i></button>';
+}
+
+(function() {
+  if (document.getElementById('pk-sis-style')) return;
+  var st = document.createElement('style');
+  st.id = 'pk-sis-style';
+  st.textContent = [
+    '.pk-sis-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;border:1.5px solid;background:var(--cream2);cursor:pointer;white-space:nowrap;transition:background .15s,transform .1s}',
+    '.pk-sis-btn:hover{background:var(--ovl-0_04)}',
+    '.pk-sis-btn:active{transform:scale(.97)}',
+    '.pk-sis-btn i{font-size:12px}',
+    '.pk-sis-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;vertical-align:middle}',
+    '#pk-sis-overlay{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s ease}',
+    '#pk-sis-overlay.open{display:block}',
+    '#pk-sis-overlay.show{opacity:1}',
+    '#pk-sis-sheet{position:fixed;left:0;right:0;bottom:0;z-index:701;background:var(--cream2);border-radius:16px 16px 0 0;padding:6px 0 calc(10px + env(safe-area-inset-bottom,0px));max-height:82vh;overflow:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}',
+    '#pk-sis-sheet.show{transform:translateY(0)}',
+    '#pk-sis-sheet .pk-sis-handle{width:40px;height:4px;background:var(--ovl-0_18);border-radius:2px;margin:8px auto 6px}',
+    '#pk-sis-sheet .pk-sis-title{text-align:center;font-size:15px;font-weight:700;color:var(--ink);padding:4px 18px 2px}',
+    '#pk-sis-sheet .pk-sis-sub{text-align:center;font-size:12px;color:var(--ink3);padding:0 18px 10px;border-bottom:1px solid var(--ovl-0_06)}',
+    '#pk-sis-sheet .pk-sis-sub b{color:var(--ink)}',
+    '.pk-sis-row{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;border-bottom:1px solid var(--ovl-0_04);transition:background .12s}',
+    '.pk-sis-row:hover{background:var(--ovl-0_04)}',
+    '.pk-sis-row:active{background:var(--ovl-0_06)}',
+    '.pk-sis-rtxt{flex:1;min-width:0}',
+    '.pk-sis-rl{font-size:15px;font-weight:600;color:var(--ink)}',
+    '.pk-sis-rd{font-size:11.5px;color:var(--ink3);margin-top:2px}',
+    '.pk-sis-tk{visibility:hidden;color:var(--ink);font-size:18px}',
+    '.pk-sis-row.on .pk-sis-tk{visibility:visible}',
+    '@media (min-width:768px){',
+    '  #pk-sis-sheet{left:50%;right:auto;bottom:auto;top:50%;width:380px;max-width:92vw;border-radius:14px;transform:translate(-50%,-46%) scale(.96);opacity:0;transition:transform .2s ease,opacity .2s ease}',
+    '  #pk-sis-sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1}',
+    '  #pk-sis-sheet .pk-sis-handle{display:none}',
+    '}'
+  ].join('\n');
+  document.head.appendChild(st);
+
+  var ov = document.createElement('div');
+  ov.id = 'pk-sis-overlay';
+  ov.addEventListener('click', produkSistemSheetClose);
+  var sh = document.createElement('div');
+  sh.id = 'pk-sis-sheet';
+  sh.setAttribute('role', 'dialog');
+  sh.setAttribute('aria-label', 'Pilih sistem SKU');
+  document.body.appendChild(ov);
+  document.body.appendChild(sh);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sh.classList.contains('show')) produkSistemSheetClose();
+  });
+})();
+
+function produkSistemSheetOpen(id) {
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(id); });
+  if (!row) return;
+  _pkSisId = row.id;
+  var cur = row.sistem_override || null;
+  var eff = _produkSistemOf(row);
+  var effM = _PRODUK_SISTEM_META[eff];
+  var boss = row.boss || '—';
+  var rows = _PRODUK_SISTEM_OPSI.map(function(o, i) {
+    var on = (cur === o.k);
+    var desc = o.k === 'dropship' ? 'Tidak disetok. Bon dropship dicatat ke supplier ' + _pkEsc(boss) + '.' : o.d;
+    return '<div class="pk-sis-row' + (on ? ' on' : '') + '" onclick="produkSistemPick(' + i + ')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + o.l + '</div><div class="pk-sis-rd">' + desc + '</div></div>'
+      + '<i class="ti ti-check pk-sis-tk"></i></div>';
+  }).join('');
+  var sh = document.getElementById('pk-sis-sheet');
+  sh.innerHTML = '<div class="pk-sis-handle"></div>'
+    + '<div class="pk-sis-title">' + _pkEsc(row.sku_variasi) + '</div>'
+    + '<div class="pk-sis-sub">Sekarang: <b>' + (effM ? effM.label : 'Belum diatur') + '</b> · Supplier: ' + _pkEsc(boss) + '</div>'
+    + rows;
+  var ovEl = document.getElementById('pk-sis-overlay');
+  ovEl.classList.add('open');
+  sh.classList.add('show'); // transisi berjalan karena overlay sudah display:block di frame yang sama
+  requestAnimationFrame(function() { ovEl.classList.add('show'); });
+}
+
+function produkSistemSheetClose() {
+  var ovEl = document.getElementById('pk-sis-overlay');
+  var sh   = document.getElementById('pk-sis-sheet');
+  if (sh) sh.classList.remove('show');
+  if (ovEl) ovEl.classList.remove('show');
+  setTimeout(function() { if (ovEl) ovEl.classList.remove('open'); }, 200);
+  _pkSisId = null;
+}
+
+async function produkSistemPick(i) {
+  var o = _PRODUK_SISTEM_OPSI[i];
+  if (!o || _pkSisId == null) return;
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  if (!row) { produkSistemSheetClose(); return; }
+  var val = o.k;   // null = ikut supplier
+  if ((row.sistem_override || null) === val) { produkSistemSheetClose(); return; }
+  try {
+    await dbUpdate('produk', row.id, { sistem_override: val });
+    row.sistem_override = val;
+    produkSistemSheetClose();
+    renderProduk(_produkData);
+  } catch (e) {
+    alert('Gagal simpan sistem: ' + e.message);
+  }
 }
 
 function renderProduk(data) {
@@ -416,7 +542,7 @@ function renderProduk(data) {
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
             <td>${row.boss || '—'}</td>
-            <td>${_produkSistemPill(_produkSistemOf(row))}</td>
+            <td>${_produkSistemBtn(row)}</td>
           </tr>`;
         } else {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
@@ -425,7 +551,7 @@ function renderProduk(data) {
             </td>
             <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
             <td>${row.boss || '—'}</td>
-            <td>${_produkSistemPill(_produkSistemOf(row))}</td>
+            <td>${_produkSistemBtn(row)}</td>
           </tr>`;
         }
       });

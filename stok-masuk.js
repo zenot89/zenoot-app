@@ -163,7 +163,7 @@ async function loadStokMasuk() {
   try {
     var res = await Promise.all([
       dbGet('stok_masuk_jurnal', '&order=tanggal.desc,id.desc'),
-      dbGet('produk', '&select=id,katalog,sku_variasi,boss&order=katalog.asc,sku_variasi.asc'),
+      dbGet('produk', '&select=id,katalog,sku_variasi,boss,sistem_override&order=katalog.asc,sku_variasi.asc'),
       zDsLoadSuppliers(true),   // peta supplier (NAMA → baris hutang_supplier), supabase.js
     ]);
     _smData   = res[0] || [];
@@ -171,7 +171,9 @@ async function loadStokMasuk() {
     var supMap = res[2] || {};
     // 3 Okt 2026: Tambah (Produksi Sendiri) CUMA nampilin produk yang Boss-nya
     // supplier ber-sistem Produksi Sendiri (hutang_supplier.is_produksi_sendiri).
+    // 10 Okt 2026: sistem efektif per SKU — override dulu, kalau kosong ikut supplier.
     _smProdukPS = _smProduk.filter(function(p) {
+      if (p.sistem_override) return p.sistem_override === 'produksi';
       var sup = supMap[String(p.boss || '').trim().toUpperCase()];
       return !!(sup && sup.is_produksi_sendiri);
     });

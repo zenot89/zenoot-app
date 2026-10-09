@@ -952,6 +952,9 @@ async function zDsLoadSuppliers(force) {
 function zIsDropship(p, supMap, masuk) {
   if (!p) return false;
   if ((Number(masuk) || 0) > 0) return false;
+  // 10 Okt 2026: override per SKU (produk.sistem_override) didahulukan dari sistem supplier.
+  if (p.sistem_override === 'dropship') return true;
+  if (p.sistem_override === 'reseller' || p.sistem_override === 'produksi') return false;
   var s = (supMap || {})[String(p.boss || '').trim().toUpperCase()];
   if (!s) return false;
   if (s.is_produksi_sendiri) return false;

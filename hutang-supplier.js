@@ -1216,7 +1216,7 @@ async function hsLoadRestockPO() {
       if (!isReseller) return; // cuma supplier Reseller/PO yang masuk
       // 30 Sep 2026: produk dropship (mis. ZS_ dari RH yang Dropship + Reseller) tidak disetok → tidak pernah di-PO.
       // Pakai supplier hasil link Master Barang (bossKey) supaya konsisten dengan penentuan PO di atas.
-      if (zIsDropship({ boss: bossKey, dropship: p.dropship === true }, dsSupMap, masukMap[sku])) return;
+      if (zIsDropship({ boss: bossKey, dropship: p.dropship === true, sistem_override: p.sistem_override }, dsSupMap, masukMap[sku])) return;
 
       // ── Filter fast-move: harus ada penjualan dalam 7 hari terakhir.
       // SKU yg cuma kejual di hari ke-8..14 (gak gerak minggu ini) TIDAK
@@ -3105,7 +3105,7 @@ async function _hsDsBuildPlan(sup, dates, master) {
     else milik = (String(p.boss || '').trim().toUpperCase() === supKey);   // belum di-link: ikut Boss
     if (!milik) return;
 
-    var pDs = { boss: sup.nama, dropship: p.dropship === true };
+    var pDs = { boss: sup.nama, dropship: p.dropship === true, sistem_override: p.sistem_override };
     if (!zIsDropship(pDs, master.dsSupMap, master.masukMap[sku])) {
       if (zIsDropship(pDs, master.dsSupMap, 0) && (master.masukMap[sku] || 0) > 0) plan.skippedStok[sku] = (plan.skippedStok[sku] || 0) + qty;
       return;
@@ -3267,12 +3267,29 @@ async function _hsDsTulis(plan) {
 }
 
 // Jalankan sinkron untuk daftar tanggal. Return { ok, gagal, warnings }.
+// 10 Okt 2026: kandidat supplier bon otomatis = supplier auto (RH) ∪ boss dari SKU yang di-override ke Dropship.
+// Sistem efektif per SKU tetap diputuskan zIsDropship (supabase.js), jadi supplier yang tidak punya SKU dropship
+// pada hari itu tidak menghasilkan item (dan bon DS- yang sudah ada akan dihitung ulang seperti biasa).
+function _hsDsKandidatNama(master) {
+  var set = {};
+  _HS_DS_AUTO_SUPPLIERS.forEach(function(n) { set[String(n).trim().toUpperCase()] = true; });
+  Object.keys(master.produkBySku || {}).forEach(function(k) {
+    var p = master.produkBySku[k];
+    if (p && p.sistem_override === 'dropship') {
+      var b = String(p.boss || '').trim().toUpperCase();
+      if (b) set[b] = true;
+    }
+  });
+  return Object.keys(set);
+}
+
 async function _hsDsRun(dates, replaceWarnings, force) {
   var master = await _hsDsMaster(force);
   var hasil = { ok: 0, gagal: [], warnings: {} };
-  for (var i = 0; i < _HS_DS_AUTO_SUPPLIERS.length; i++) {
-    var sup = master.dsSupMap[String(_HS_DS_AUTO_SUPPLIERS[i]).toUpperCase()];
-    if (!sup || !sup.is_dropship || sup.is_produksi_sendiri) continue;
+  var kandidat = _hsDsKandidatNama(master);
+  for (var i = 0; i < kandidat.length; i++) {
+    var sup = master.dsSupMap[kandidat[i]];
+    if (!sup) continue;   // sistem efektif per SKU ditentukan zIsDropship, bukan per supplier
     var plan = await _hsDsBuildPlan(sup, dates, master);
     plan.days.forEach(function(w) {
       if (w.items.length) _hsBonTrxInfo[w.nota] = { trx: w.trx, qty: w.totalQty };
