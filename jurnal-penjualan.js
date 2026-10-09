@@ -1300,13 +1300,13 @@ var _JP_NAMA_BULAN_PENDEK = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Se
 // lagi lewat _jpPerPresetOf().
 // State aktif disimpan di hidden input #jp-filter-state (dibuat IIFE "STATE FILTER AKTIF").
 var _JP_PER_ITEMS = [
+  { k: 'hari-ini',    l: 'Hari Ini' },
+  { k: 'kemarin',     l: 'Kemarin' },
+  { k: '7hari',       l: '7 Hari Terakhir' },
   { k: 'minggu-ini',  l: 'Minggu Ini' },
   { k: 'minggu-lalu', l: 'Minggu Lalu' },   // 3 Okt 2026: mode sendiri (bukan preset rentang tanggal) supaya ikut cutoff Sabtu 19.30
   { k: 'bulan-ini',   l: 'Bulan Ini' },
   { k: 'bulan-lalu',  l: 'Bulan Lalu',        preset: true },
-  { k: 'hari-ini',    l: 'Hari Ini' },
-  { k: 'kemarin',     l: 'Kemarin' },
-  { k: '7hari',       l: '7 Hari Terakhir' },
   { k: '3bulan',      l: '3 Bulan Terakhir',  preset: true },
   { k: 'hari',        l: 'Hari',   sub: true },
   { k: 'minggu',      l: 'Minggu', sub: true },
