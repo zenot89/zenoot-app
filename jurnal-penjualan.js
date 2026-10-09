@@ -1733,9 +1733,30 @@ function _jpPerOnTap(act, val) {
   document.getElementById('jp-per-close').addEventListener('click', jpPerSheetClose);
   // 1 listener untuk seluruh sheet (tab, isi, footer) lewat atribut data-per
   sh.addEventListener('click', function(e) {
+    // 4 Okt 2026 (desktop): klik kedua dari double-click diabaikan — yang menerapkan adalah dblclick di bawah
+    if (e.detail >= 2 && modeDialog()) return;
     var t = e.target.closest ? e.target.closest('[data-per]') : null;
     if (!t || t.disabled) return;
     _jpPerOnTap(t.getAttribute('data-per'), t.getAttribute('data-val'));
+  });
+  // 4 Okt 2026 (desktop saja): double-click = langsung terapkan, tanpa tombol Terapkan.
+  //   - Item periode/channel: klik 1 memilih, double-click menerapkan.
+  //   - Kalender rentang: klik 1 = tanggal awal, double-click di tanggal akhir = terapkan rentang.
+  //   - Sub-menu (Hari/Minggu/Bulan/Tahun) tidak menerapkan; masuk ke sub-menu dulu.
+  //   HP tidak berubah: handler ini tidak jalan di bawah breakpoint dialog.
+  sh.addEventListener('dblclick', function(e) {
+    if (!modeDialog()) return;
+    var t = e.target.closest ? e.target.closest('[data-per]') : null;
+    var act = t ? t.getAttribute('data-per') : '';
+    if (_jpPer.view === 'minggu') {
+      if (act !== 'day' || !_jpPer.rStart) return;
+      _jpPerOnTap('rangeok', null);
+      jpFilterApply();
+      return;
+    }
+    if (_jpPer.view === 'list' && _jpDraft && _jpDraft.mode && ['tab', 'reset', 'go', 'calnav', 'bulannav', 'sub'].indexOf(act) < 0) {
+      jpFilterApply();
+    }
   });
   // Esc menutup (berguna di laptop)
   document.addEventListener('keydown', function(e) {
