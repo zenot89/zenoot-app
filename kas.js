@@ -1834,6 +1834,7 @@ let _kasFilteredData = [];
 function kasRenderJurnalTabel(data) {
   _kasFilteredData = data;
   const tbody   = document.getElementById('kas-jurnal-tbody');
+  _kasInitLongPress();
   const totalPg = Math.max(1, Math.ceil(data.length / _KAS_PAGE_SIZE));
   if (_kasCurrentPage > totalPg) _kasCurrentPage = totalPg;
   const start   = (_kasCurrentPage - 1) * _KAS_PAGE_SIZE;
@@ -1999,88 +2000,60 @@ async function kasHapusDariModal() {
   });
 }
 
-// Long press pada row tabel jurnal → hapus
-// ─── Tekan & tahan row jurnal → buka modal Edit (bukan langsung hapus) ─────
-// Pola persis gadag: HOLD_MS=500, MOVE_LIMIT=10px, vibrate(15), cancel on move/scroll.
-// Tombol [HAPUS] merah muncul di dalam modal edit — ada konfirmasi sebelum eksekusi.
-(function() {
+// ─── LONG-PRESS baris jurnal → buka modal Edit Transaksi ─────
+// Pola PERSIS _jpInitLongPress (jurnal-penjualan.js), yang sudah lancar:
+// listener cuma di tbody, init dipanggil tiap tabel dirender (idempotent),
+// tahan 500ms → getar + buka modal edit, batal kalau geser (touch) atau lepas.
+// Tombol Hapus ada di dalam modal (kasHapusDariModal → confirm → hapus).
+function _kasInitLongPress() {
+  var tbody = document.getElementById('kas-jurnal-tbody');
+  if (!tbody || tbody._kasLongPressInited) return;
+  tbody._kasLongPressInited = true;
   var HOLD_MS    = 500;
   var MOVE_LIMIT = 10;
   var _timer = null, _startX = 0, _startY = 0, _row = null;
 
-  function _cancel() {
+  function cancel() {
     if (_timer) { clearTimeout(_timer); _timer = null; }
-    if (_row) { _row.classList.remove('kas-row-pressing'); }
+    if (_row) _row.classList.remove('kas-row-pressing');
     _row = null;
   }
-
-  var tbody = document.getElementById('kas-jurnal-tbody');
-
-  // Cek STATE global (bukan closest() dari target) buat tau ada sheet/picker/modal
-  // yang lagi kebuka. Kenapa nggak pakai closest() ke elemen: sheet & picker naik
-  // pakai CSS transform (translateY) yang beranimasi 0.28s — pas lagi transisi,
-  // sebagian Android suka salah hit-test elemen yang lagi di-transform, jadi tap
-  // yang niatnya ke item picker bisa "nyasar" dan closest()-nya nggak ketangkep.
-  // Cek langsung ke class .open tiap overlay itu jauh lebih pasti: nggak peduli
-  // elemen apa yang ke-hit-test, kalau ada overlay yang KEBUKA, longpress WAJIB
-  // diem — titik.
-  function _kasAnyOverlayOpen() {
-    var ids = ['kas-brimo-overlay', 'kas-akun-picker-overlay'];
-    for (var i = 0; i < ids.length; i++) {
-      var el = document.getElementById(ids[i]);
-      if (el && el.classList.contains('open')) return true;
-    }
-    if (document.querySelector('.modal-overlay.open')) return true;
-    return false;
+  function fire() {
+    if (navigator.vibrate) navigator.vibrate(15);
+    var r = _row;
+    cancel();
+    if (r) kasEditJurnal(r.getAttribute('data-id'));
   }
 
-  // Delegasi ke document — tbody di-re-render tiap load, delegate ke document biar
-  // tidak perlu re-attach setiap render (sama pola kayak event delegation lainnya).
-  document.addEventListener('touchstart', function(e) {
-    var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
+  tbody.addEventListener('touchstart', function(e) {
+    var tr = e.target.closest('tr[data-id]');
     if (!tr) return;
-    // Jangan start timer kalau ADA sheet/picker/modal yang lagi kebuka — state-based,
-    // bukan target-based, biar nggak ketipu miss-hit pas sheet lagi animasi.
-    if (_kasAnyOverlayOpen()) return;
     _row    = tr;
     _startX = e.touches[0].clientX;
     _startY = e.touches[0].clientY;
     _row.classList.add('kas-row-pressing');
-    _timer  = setTimeout(function() {
-      if (!_row) return;
-      var id = _row.getAttribute('data-id');
-      _cancel();
-      if (navigator.vibrate) navigator.vibrate(15);
-      kasEditJurnal(id); // buka modal edit — tombol Hapus muncul di sana
-    }, HOLD_MS);
+    _timer  = setTimeout(fire, HOLD_MS);
   }, { passive: true });
-
-  document.addEventListener('touchmove', function(e) {
+  tbody.addEventListener('touchmove', function(e) {
     if (!_timer) return;
     var dx = Math.abs(e.touches[0].clientX - _startX);
     var dy = Math.abs(e.touches[0].clientY - _startY);
-    if (dx > MOVE_LIMIT || dy > MOVE_LIMIT) _cancel();
+    if (dx > MOVE_LIMIT || dy > MOVE_LIMIT) cancel();
   }, { passive: true });
+  tbody.addEventListener('touchend',    cancel, { passive: true });
+  tbody.addEventListener('touchcancel', cancel, { passive: true });
 
-  document.addEventListener('touchend',    _cancel, { passive: true });
-  document.addEventListener('touchcancel', _cancel, { passive: true });
-
-  // Desktop: mousedown + hold juga bisa trigger (buat testing di laptop)
-  document.addEventListener('mousedown', function(e) {
-    var tr = e.target.closest('#kas-jurnal-tbody tr[data-id]');
+  // Desktop/laptop: mouse click-and-hold juga didukung (mousedown/mouseup)
+  tbody.addEventListener('mousedown', function(e) {
+    var tr = e.target.closest('tr[data-id]');
     if (!tr) return;
     _row = tr;
     _row.classList.add('kas-row-pressing');
-    _timer = setTimeout(function() {
-      if (!_row) return;
-      var id = _row.getAttribute('data-id');
-      _cancel();
-      kasEditJurnal(id);
-    }, HOLD_MS);
+    _timer = setTimeout(fire, HOLD_MS);
   });
-  document.addEventListener('mouseup',    _cancel);
-  document.addEventListener('mouseleave', _cancel);
-})();
+  tbody.addEventListener('mouseup',    cancel);
+  tbody.addEventListener('mouseleave', cancel);
+}
 
 
 // ─── LAPORAN ─────────────────────────────────────────────────
