@@ -1100,7 +1100,6 @@ function kasShowForm() {
   }
 }
 
-function kasCancelForm() { kasBrimoClose(); hideModal('modal-kas-transaksi'); }
 
 // ── Picker delegation: setup SEKALI per modal ─────────────────
 // Hindari inline ontouchstart/onmousedown yang tidak reliable di Android
@@ -1813,7 +1812,6 @@ function kasApplyFilter() {
   kasUpdateCashflow(filtered, bulan);
 }
 
-function kasResetFilter() { document.getElementById('kas-filter-bulan').value = ''; kasApplyFilter(); }
 
 // Default filter ke bulan berjalan — biar Kas Masuk/Keluar gak nunjukin
 // akumulasi total dari awal ("ngeri" puluhan juta). Dulu cuma nge-set
@@ -1905,8 +1903,6 @@ function _kasRenderPagination(totalPg, totalData) {
   el.innerHTML = '<div style="font-size:12px;color:var(--ink3);text-align:right">Menampilkan <b style="color:var(--ink2)">'+totalData+'</b> transaksi</div>';
 }
 
-function kasGoPage(pg) { /* tidak dipakai, semua data tampil */ 
-}
 
 function kasUpdateCashflow(data, bulan) {
   let cfMasuk = 0, cfKeluar = 0;
@@ -2097,17 +2093,6 @@ async function kasHapusDariModal() {
   document.addEventListener('mouseleave', _cancel);
 })();
 
-function kasExportCSV() {
-  const bulan = document.getElementById('kas-filter-bulan').value;
-  const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
-  if (!data.length) { alert('Belum ada data'); return; }
-  const headers = ['Tanggal','Referensi','Keterangan','Tipe','Akun Debit','Akun Kredit','Nominal'];
-  const rows = data.map(r => {
-    const aD = _kasAkunMap[r.akun_debit_id]; const aK = _kasAkunMap[r.akun_kredit_id];
-    return [r.tanggal, r.referensi||'', r.keterangan||'', r.tipe||'', aD?aD.nama:'', aK?aK.nama:'', r.nominal||r.debit||0];
-  });
-  exportCSV('zenoot-kas-jurnal.csv', headers, rows);
-}
 
 // ─── LAPORAN ─────────────────────────────────────────────────
 var _kasLapTipeCfg = {
@@ -2932,23 +2917,6 @@ function kasPopulatePickerList(listId, akunData) {
   list.innerHTML = html;
 }
 
-function _kasReturnListToWrap(list) {
-  // Kembalikan list ke .kas-akun-wrap asalnya setelah di-float ke body
-  if (!list || !list.dataset.floated) return;
-  var wrap = document.querySelector('.kas-akun-wrap #' + list.id.replace('-list',''));
-  if (!wrap) {
-    // Cari wrap berdasarkan data-target
-    var picker = document.querySelector('[id="' + list.id.replace('-list','') + '"]');
-    if (picker && picker.parentNode) picker.parentNode.appendChild(list);
-  }
-  list.style.display = 'none';
-  list.style.position = '';
-  list.style.top = '';
-  list.style.left = '';
-  list.style.width = '';
-  list.style.zIndex = '';
-  delete list.dataset.floated;
-}
 
 function kasClosePicker(list) {
   if (!list) return;
@@ -3424,186 +3392,16 @@ function kasAkunPickerSelectItem(item) {
 // diproses, jadi selection langsung sukses di 1 tap. Sama pola dengan
 // trigger picker (lihat _kasPickerDelegateInit).
 
-var _kasFloatPickerId  = null; // id picker yang lagi buka dropdown-nya
-var _kasFloatVpHandler = null;
-
-function _kasEnsureFloat() {
-  if (document.getElementById('kas-akun-float')) return;
-
-  // Catcher transparan full-screen — buat deteksi "tap di luar dropdown"
-  // TANPA nge-dim/nutupin form di belakangnya (beda dari sheet lama).
-  var catcher = document.createElement('div');
-  catcher.id = 'kas-akun-float-catcher';
-  catcher.style.cssText = 'display:none;position:fixed;inset:0;z-index:99998;background:transparent;';
-  document.body.appendChild(catcher);
-  catcher.addEventListener('pointerdown', function() { _kasFloatClose(); });
-
-  var panel = document.createElement('div');
-  panel.id = 'kas-akun-float';
-  panel.style.cssText = [
-    'display:none','position:fixed','z-index:99999',
-    'background:var(--cream2)','border:1px solid var(--ovl-0_12)',
-    'border-radius:10px','box-shadow:0 10px 28px rgba(0,0,0,.55)',
-    'flex-direction:column','overflow:hidden',
-  ].join(';');
-
-  panel.innerHTML = [
-    '<div style="padding:8px;flex:none;border-bottom:1px solid var(--ovl-0_08)">',
-    '  <div style="display:flex;align-items:center;gap:8px;',
-    '              background:var(--ovl-0_06);',
-    '              border:1px solid var(--ovl-0_12);',
-    '              border-radius:6px;padding:7px 10px;">',
-    '    <span style="font-size:13px;color:var(--ink3);flex:none">&#128269;</span>',
-    '    <input id="kas-akun-float-search" type="text" placeholder="Cari..."',
-    '           autocomplete="off" autocorrect="off"',
-    '           autocapitalize="none" spellcheck="false"',
-    '           style="border:none;background:transparent;flex:1;',
-    '                  font-family:var(--f);font-size:14px;',
-    '                  color:var(--ink);outline:none;min-width:0;',
-    '                  -webkit-appearance:none;">',
-    '  </div>',
-    '</div>',
-    '<div id="kas-akun-float-list"',
-    '  style="overflow-y:auto;flex:1;',
-    '         -webkit-overflow-scrolling:touch;',
-    '         overscroll-behavior:contain;">',
-    '</div>',
-  ].join('');
-
-  document.body.appendChild(panel);
-
-  // Cegah tap DI DALAM panel (termasuk search box) ke-treat sebagai tap-outside
-  panel.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
-
-  var searchEl = panel.querySelector('#kas-akun-float-search');
-  searchEl.addEventListener('input', function() { _kasFloatFilter(this.value); });
-  searchEl.addEventListener('touchend', function(e) { e.stopPropagation(); }, { passive: true });
-
-  if (window.visualViewport) {
-    _kasFloatVpHandler = function() { _kasFloatReposition(); };
-    window.visualViewport.addEventListener('resize', _kasFloatVpHandler);
-  }
-}
 
 // Baris grouped (ASET/KEWAJIBAN/dst) — ditampilkan saat search kosong.
-function _kasFloatGroupedHtml(akunList, currentVal) {
-  var order   = ['aset','kewajiban','modal','pendapatan','beban'];
-  var grouped = {}; order.forEach(function(k){ grouped[k] = []; });
-  akunList.forEach(function(a){ if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
-  order.forEach(function(k){ grouped[k].sort(function(a,b){ return (a.kode||'').localeCompare(b.kode||''); }); });
 
-  var saldoMap = _kasGetSaldoMap();
-  var html = '<div class="kas-akun-item" data-val="" style="color:var(--ink3)">— Pilih Akun —</div>';
-  order.forEach(function(k) {
-    if (!grouped[k].length) return;
-    html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
-    grouped[k].forEach(function(a) { html += _kasFloatItemHtml(a, saldoMap, currentVal); });
-  });
-  return html;
-}
-
-function _kasFloatItemHtml(a, saldoMap, currentVal) {
-  var label     = (a.kode ? a.kode + ' · ' : '') + a.nama;
-  var isActive  = String(a.id) === String(currentVal);
-  var saldoHtml = '';
-  var isKasBank = (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-  if (isKasBank) {
-    var s     = saldoMap[a.id] || {d:0,k:0};
-    var saldo = s.d - s.k;
-    var col   = saldo > 0 ? 'var(--ok)' : saldo < 0 ? 'var(--danger)' : 'var(--ink3)';
-    var fmt   = (saldo < 0 ? '(' : '') + 'Rp' + Math.abs(saldo).toLocaleString('id-ID') + (saldo < 0 ? ')' : '');
-    saldoHtml = '<span class="kas-akun-saldo" style="color:' + col + '">' + fmt + '</span>';
-  }
-  return '<div class="kas-akun-item' + (isActive ? ' active' : '') + '" data-val="' + a.id + '">' +
-         '<span class="kas-akun-nama">' + label + '</span>' + saldoHtml + '</div>';
-}
 
 // Attach pointerdown select handler ke setiap item yang lagi tampil di list.
 // Dipanggil ulang tiap kali innerHTML list di-render (buka pertama & tiap filter).
-function _kasFloatBindItems(listEl, pickerId) {
-  var evName = window.PointerEvent ? 'pointerdown' : 'touchstart';
-  listEl.querySelectorAll('.kas-akun-item').forEach(function(el) {
-    var picked = false;
-    el.addEventListener(evName, function(e) {
-      if (picked) return; // cegah double-fire (pointerdown + fallback click)
-      picked = true;
-      e.preventDefault();
-      e.stopPropagation();
-      _kasFloatSelect(pickerId, el.dataset.val || '');
-    }, evName === 'touchstart' ? { passive: false } : true);
-  });
-}
 
-function _kasFloatOpen(pickerId) {
-  _kasEnsureFloat();
-  _kasFloatPickerId = pickerId;
-
-  var picker   = document.getElementById(pickerId);
-  var targetId = picker ? picker.dataset.target : null;
-  var sel      = targetId ? document.getElementById(targetId) : null;
-  var currentVal = sel ? sel.value : '';
-
-  // Generate list FRESH dari _kasAkunMap tiap kali dibuka — bukan clone DOM
-  // lama, supaya saldo selalu mencerminkan transaksi terakhir yang tersimpan.
-  var listEl   = document.getElementById('kas-akun-float-list');
-  var akunList = Object.values(_kasAkunMap || {});
-  listEl.innerHTML = _kasFloatGroupedHtml(akunList, currentVal);
-  _kasFloatBindItems(listEl, pickerId);
-
-  var search = document.getElementById('kas-akun-float-search');
-  if (search) search.value = '';
-
-  var panel   = document.getElementById('kas-akun-float');
-  var catcher = document.getElementById('kas-akun-float-catcher');
-  panel.dataset.pickerId  = pickerId;
-  catcher.style.display   = 'block';
-  panel.style.display     = 'flex';
-  _kasFloatReposition();
-
-  // Fokus search — keyboard boleh nongol, dropdown TETAP di posisi (di atas
-  // trigger / di atas keyboard), jadi ga akan ketutup keyboard atau geser-geser.
-  if (search) search.focus({ preventScroll: true });
-
-  // Retry reposition beberapa kali selama animasi keyboard berjalan
-  // (~250-300ms). visualViewport 'resize' seharusnya cukup, tapi di
-  // beberapa browser/keyboard pihak-3 event-nya telat atau tidak akurat
-  // di frame pertama — retry ini jaring pengaman supaya dropdown tidak
-  // pernah "nyangkut" di posisi lama yang ketutup keyboard.
-  [50, 150, 300, 450].forEach(function(ms) {
-    setTimeout(_kasFloatReposition, ms);
-  });
-}
 
 // Filter live saat ngetik. Search kosong → grouped view (semua akun).
 // Search terisi → flat, MAKSIMAL 5 hasil paling cocok, tanpa header grup.
-function _kasFloatFilter(q) {
-  var listEl = document.getElementById('kas-akun-float-list');
-  var panel  = document.getElementById('kas-akun-float');
-  if (!listEl || !panel) return;
-  var pickerId = panel.dataset.pickerId;
-  var picker   = pickerId && document.getElementById(pickerId);
-  var targetId = picker ? picker.dataset.target : null;
-  var sel      = targetId ? document.getElementById(targetId) : null;
-  var currentVal = sel ? sel.value : '';
-
-  q = (q || '').toLowerCase().trim();
-  var akunList = Object.values(_kasAkunMap || {});
-
-  if (!q) {
-    listEl.innerHTML = _kasFloatGroupedHtml(akunList, currentVal);
-  } else {
-    var saldoMap = _kasGetSaldoMap();
-    var matches = akunList.filter(function(a) {
-      var label = ((a.kode ? a.kode + ' ' : '') + a.nama).toLowerCase();
-      return label.indexOf(q) !== -1;
-    }).slice(0, 5);
-    listEl.innerHTML = matches.length
-      ? matches.map(function(a) { return _kasFloatItemHtml(a, saldoMap, currentVal); }).join('')
-      : '<div class="kas-akun-empty">Tidak ditemukan</div>';
-  }
-  _kasFloatBindItems(listEl, pickerId);
-  _kasFloatReposition();
-}
 
 // Hitung ulang posisi & tinggi panel — SELALU di atas trigger picker, DAN
 // SELALU di dalam batas viewport yang benar-benar keliatan (di atas keyboard).
@@ -3619,122 +3417,10 @@ function _kasFloatFilter(q) {
 // Fix: docking bottom-edge panel ke MIN(posisi di atas trigger, batas atas
 // keyboard) — jadi dropdown gak akan PERNAH melewati/ketutup keyboard, apa
 // pun posisi triggernya.
-function _kasFloatReposition() {
-  var panel = document.getElementById('kas-akun-float');
-  var pickerId = panel && panel.dataset.pickerId;
-  var picker   = pickerId && document.getElementById(pickerId);
-  if (!panel || !picker || panel.style.display === 'none') return;
 
-  var rect   = picker.getBoundingClientRect();
-  var vp     = window.visualViewport;
-  var vpTop  = vp ? vp.offsetTop : 0;
-  var vpH    = vp ? vp.height : window.innerHeight;
-  var minTop = _kasGetSafeTop() + 6;
 
-  // Buffer ekstra buat toolbar keyboard pihak ke-3 (Gboard dll) yang kadang
-  // nggak sepenuhnya kehitung di visualViewport.height.
-  var kbBuffer = 12;
-  var visibleBottom = vpTop + vpH - kbBuffer;
 
-  var listEl     = document.getElementById('kas-akun-float-list');
-  var rowCount   = listEl ? listEl.querySelectorAll('.kas-akun-item, .kas-akun-empty').length : 1;
-  var groupCount = listEl ? listEl.querySelectorAll('.kas-akun-group').length : 0;
-  var rowH = 42, groupH = 30, searchH = 54, pad = 8;
-  var desiredH = searchH + pad + Math.min(rowCount, 5) * rowH + groupCount * groupH;
 
-  // Bottom-edge panel = SELALU pilih yang lebih tinggi (angka lebih kecil)
-  // antara "tepat di atas trigger" vs "tepat di atas keyboard" — jadi tidak
-  // pernah nembus/ketutup keyboard walaupun trigger sendiri posisinya rendah.
-  var bottom = Math.min(rect.top - 8, visibleBottom);
-  var h      = Math.max(140, Math.min(desiredH, bottom - minTop));
-  var top    = bottom - h;
-
-  panel.style.width     = rect.width + 'px';
-  panel.style.left      = rect.left + 'px';
-  panel.style.maxHeight = h + 'px';
-  panel.style.top       = top + 'px';
-  panel.style.bottom    = '';
-}
-
-function _kasFloatSelect(pickerId, val) {
-  // Sync ke hidden select asli (source of truth logic lama)
-  var picker   = document.getElementById(pickerId);
-  var targetId = picker ? picker.dataset.target : null;
-  var sel      = targetId ? document.getElementById(targetId) : null;
-  if (sel) {
-    sel.value = val;
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  // Update label di tombol picker
-  var labelEl = document.getElementById(pickerId + '-label');
-  if (labelEl) {
-    var item = document.querySelector('#kas-akun-float-list .kas-akun-item[data-val="' + val + '"]');
-    if (item) {
-      var nama = item.querySelector('.kas-akun-nama');
-      labelEl.textContent = nama ? nama.textContent : item.textContent.trim();
-      labelEl.style.color = '';
-    } else {
-      labelEl.textContent = '— Pilih Akun —';
-      labelEl.style.color = 'var(--ink3)';
-    }
-  }
-  _kasFloatClose();
-}
-
-function _kasFloatClose() {
-  var panel   = document.getElementById('kas-akun-float');
-  var catcher = document.getElementById('kas-akun-float-catcher');
-  if (panel)   panel.style.display   = 'none';
-  if (catcher) catcher.style.display = 'none';
-  var search = document.getElementById('kas-akun-float-search');
-  if (search) search.blur();
-  _kasFloatPickerId = null;
-}
-
-function kasTogglePicker(pickerId) {
-  // Jika dropdown ini sudah buka, tutup (toggle)
-  if (_kasFloatPickerId === pickerId) { _kasFloatClose(); return; }
-  // Tutup picker lain yang masih pakai list lama (jaga kompatibilitas)
-  document.querySelectorAll('.kas-akun-list').forEach(function(el) { kasClosePicker(el); });
-  _kasFloatOpen(pickerId);
-}
-
-function kasPickerFilter(inp) {
-  var list  = inp.closest('.kas-akun-list');
-  if (!list) return;
-  var q     = inp.value.toLowerCase().trim();
-  var items = list.querySelectorAll('.kas-akun-item');
-  var groups = list.querySelectorAll('.kas-akun-group');
-  var anyVisible = false;
-
-  // Filter item
-  items.forEach(function(item) {
-    var match = item.textContent.toLowerCase().indexOf(q) !== -1;
-    item.style.display = match ? '' : 'none';
-    if (match) anyVisible = true;
-  });
-
-  // Sembunyikan group header jika semua item di bawahnya hidden
-  groups.forEach(function(grp) {
-    var next = grp.nextElementSibling;
-    var hasVisible = false;
-    while (next && !next.classList.contains('kas-akun-group')) {
-      if (next.classList.contains('kas-akun-item') && next.style.display !== 'none') hasVisible = true;
-      next = next.nextElementSibling;
-    }
-    grp.style.display = hasVisible ? '' : 'none';
-  });
-
-  // Tampilkan pesan kosong jika tidak ada hasil
-  var emp = list.querySelector('.kas-akun-empty');
-  if (!emp) {
-    emp = document.createElement('div');
-    emp.className = 'kas-akun-empty';
-    emp.textContent = 'Tidak ditemukan';
-    list.appendChild(emp);
-  }
-  emp.style.display = anyVisible ? 'none' : '';
-}
 
 function kasPickerSelect(item) {
   if (event) { event.stopPropagation(); event.preventDefault(); }
@@ -3792,7 +3478,6 @@ function kasPjmAutoJatuhTempo(prefix) {
   var tglMulaiId  = (prefix === 'kas-pjm') ? 'kas-jrn-tgl' : 'kas-edit-tgl';
   var tenorId     = prefix + '-tenor';
   var tglCicilanId= prefix + '-tgl-cicilan';
-  var blnCicilanId= prefix + '-bln-cicilan';
   var frekuensiId = prefix + '-frekuensi';
   var jatuhTempoId= prefix + '-jatuh-tempo';
 

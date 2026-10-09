@@ -91,13 +91,9 @@
     </div>
   </div>
 
-  <!-- ANALISIS TOKO: blok sidebar (Analisis Shopee + Proyeksi Harga) DIHAPUS 20 Sep 2026.
-       shopee-dashboard.js, proyeksi-harga.js, div page-shopee-dashboard/page-proyeksi-harga, PAGE_META & phGoto di app.js
-       sengaja DIPERTAHANIN sebagai dead code (belum ada jalan masuk dari sidebar). -->
-
   <!-- ZENOOT ANALISIS: 3 sub-menu (Rasio Keuangan / Proyeksi Harga / Setting Analisis). Halaman-halamannya tampil sebagai TAB di atas iframe
        (dirender analisis.js, gaya tab Gadag) — isi halaman tetap dibuka di dalam analisis.html lewat page-analisis.
-       Sebelumnya (sampai 20 Sep 2026): daftar flat 9 tombol analisisGoto(...); analisisGoto masih ada di analisis.js buat kompatibilitas. -->
+       Sebelumnya (sampai 20 Sep 2026): daftar flat 9 tombol analisisGoto(...). -->
   <div class="nav-group" id="group-zanalisis">
     <div class="nav-group-header" onclick="toggleNavGroup('group-zanalisis')">
       <span class="nav-group-label"><i class="ti ti-chart-histogram"></i> Zenoot Analisis</span>
@@ -170,7 +166,6 @@
     <div id="page-produk-terjual" class="page"></div>
     <div id="page-produk" class="page"></div>
     <div id="page-channel" class="page"></div>
-    <div id="page-beban-operasional" class="page"></div>
     <div id="page-anggaran" class="page"></div>
     <div id="page-keuangan" class="page"></div>
     <div id="page-hutang-supplier" class="page"></div>
@@ -181,8 +176,6 @@
     <div id="page-clearance-induk" class="page"></div>
     <div id="page-hpp" class="page"></div>
     <div id="page-shopee-auth" class="page"></div>
-    <div id="page-shopee-dashboard" class="page"></div>
-    <div id="page-proyeksi-harga" class="page"></div>
     <div id="page-analisis" class="page"></div>
   </div>
 </div>
@@ -231,7 +224,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261008-e70b3754782d';
+  window.APP_BUILD = '20261008-02cec15b4512';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -244,7 +237,7 @@
       'jurnal-penjualan.js','produk-terjual.js',
       'channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',
-      'beban-operasional.js','anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','clearance-induk.js','hpp.js','notif.js','shopee-dashboard.js','proyeksi-harga.js','analisis.js','autocomplete.js'
+      'anggaran.js','keuangan.js','hutang-supplier.js','cost-produksi.js','penutupan-periode.js','clearance.js','clearance-induk.js','hpp.js','notif.js','analisis.js','autocomplete.js'
     ];
     var i = 0;
     var _timer = null;
@@ -282,10 +275,6 @@
     window.addEventListener('load', _runNotifInit);
   }
 
-function showUpdateBanner() {
-    var banner = document.getElementById('update-banner');
-    if (banner) banner.style.display = 'flex';
-  }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {

@@ -16,7 +16,6 @@
 // read-only. Net Income disimpan di kolom net_income (channel_harga & channel_kategori_harga), jadi
 // kalau HPP berubah, harga jual ikut (Net Income tetap). harga_jual di DB = snapshot (NOT NULL), tidak
 // dipakai untuk hitung. Baris LAMA (net_income NULL) tetap dianggap harga tetap = harga_jual.
-// 30 Sep 2026 (malam, revisi 3): tombol "Isi dari rumus lama" DIHAPUS dari UI (chpSeed dipertahankan sbg dead code).
 // Picker untuk Offline/Reseller/Dropship jadi TAMBAH-SAJA: katalog yang sudah ada di Price List tidak ditawarkan lagi.
 // Melepas produk dilakukan dari tabel (mode Edit → ikon tempat sampah per baris). Shopee/Lazada/TikTok (tanpa Price List)
 // tetap pakai picker centang/uncentang karena tidak punya tabel untuk melepas.
@@ -34,20 +33,7 @@
 
 document.getElementById('page-channel').innerHTML = `
   <style>
-    /* Dipinjam dari pola hutang-supplier.js — dipakai checkbox Sistem
-       (Dropship/Reseller/Produksi Sendiri) di modal Tambah/Edit Supplier. */
-    .hs-jenis-radio {
-      flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
-      padding:9px 10px; border-radius:8px; border:1.5px solid var(--ink4); cursor:pointer;
-      font-size:13px; font-weight:700; color:var(--ink2); background:var(--cream2);
-      transition:background .15s ease, color .15s ease, border-color .15s ease;
-    }
-    .hs-jenis-radio input { accent-color:var(--ink); }
-    .hs-jenis-radio:has(input:checked) { border-color:var(--ink); color:var(--cream); background:var(--ink); }
-    .hs-jenis-radio:has(input:checked) input { accent-color:var(--cream); }
-
-    /* [30 Sep 2026] Sistem supplier = 3 baris toggle (gaya Shopee) menggantikan 3 tombol .hs-jenis-radio di atas
-       (class lama dibiarkan, tidak dipakai lagi). Elemen tetap <input type=checkbox> dgn id & onchange yang sama,
+    /* [30 Sep 2026] Sistem supplier = 3 baris toggle (gaya Shopee). Elemen tetap <input type=checkbox> dgn id & onchange yang sama,
        jadi logika simpan/edit/eksklusif Produksi Sendiri tidak berubah — hanya tampilannya jadi switch. */
     #modal-supplier-rop .ch-sw-wrap { border:2px solid var(--ink); background:var(--cream); }
     #modal-supplier-rop .ch-sw-row { display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--ink4); margin:0; text-transform:none; letter-spacing:0; }
@@ -510,15 +496,6 @@ async function loadChannelByKategori(kat) {
     }
     tbody.innerHTML = data.map((row, _idx) => {
       const safeNama = (row.nama||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-      const beban    = _chBebanMap[row.id];
-      const bPct     = beban ? (beban.beban_persen || 0) : null;
-      const nPct     = beban ? (beban.npm_persen   || 0) : null;
-      const bLabel   = bPct !== null
-        ? '<span style="color:var(--danger);font-weight:600">' + bPct.toFixed(1) + '%</span>'
-        : '<span style="color:var(--ink3);font-style:italic">—</span>';
-      const nLabel   = nPct !== null
-        ? '<span style="color:var(--ok);font-weight:600">' + nPct.toFixed(1) + '%</span>'
-        : '<span style="color:var(--ink3);font-style:italic">—</span>';
       const isPL     = _CHP_KATS.indexOf(kat) !== -1;
       const selCls   = (String(row.id) === (isPL ? _chpSelId : _chsSelId)) ? ' class="ch-row-sel"' : '';
       // Price List hanya untuk Reseller & Offline (harga tetap). Shopee/Lazada/TikTok harganya bergerak → tidak dipakai.
@@ -526,27 +503,11 @@ async function loadChannelByKategori(kat) {
       const trAttr   = isPL
         ? ' data-action="pilih-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls
         : ' data-action="pilih-chs" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '"' + selCls;
-      // [30 Sep 2026] SEMUA kategori (Shopee/Lazada/TikTok/Offline/Reseller/Dropship): kolom Beban/NPM & tombol Aksi dihapus
-      // (Beban/NPM sudah diisi manual). Aksi pindah ke menu tekan-tahan baris (data-lp → chLpOpen). Return di bawah blok ini
-      // (baris lama dengan tombol produk/setting/edit/hapus) sekarang DEAD CODE, sengaja dipertahankan; begitu juga
-      // showEditKategori/#modal-edit-kategori (tombol Edit Kategori sudah dihapus dari semua kartu).
-      {
-        return '<tr' + trAttr + ' data-lp="1">' +
-          '<td style="text-align:center;color:var(--ink3)">' + (_idx + 1) + '</td>' +
-          '<td style="font-weight:600">' + row.nama + '</td>' +
-          '<td style="text-align:center;font-weight:600">' + _chProdukCount(row.id) + '</td>' +
-        '</tr>';
-      }
-      return '<tr' + trAttr + '>' +
+      // [30 Sep 2026] SEMUA kategori: tabel = No | Nama | Produk; aksi lewat menu tekan-tahan baris (data-lp → chLpOpen).
+      return '<tr' + trAttr + ' data-lp="1">' +
+        '<td style="text-align:center;color:var(--ink3)">' + (_idx + 1) + '</td>' +
         '<td style="font-weight:600">' + row.nama + '</td>' +
-        '<td style="text-align:center">' + bLabel + '</td>' +
-        '<td style="text-align:center">' + nLabel + '</td>' +
-        '<td style="white-space:nowrap">' +
-          '<button class="btn btn-sm" data-action="produk-ch" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Pilih produk yang dijual di channel ini"><i class="ti ti-package"></i> ' + _chProdukCount(row.id) + '</button>' +
-          '<button class="btn btn-sm" data-action="setting-beban" data-id="' + row.id + '" data-nama="' + safeNama + '" data-kat="' + kat + '" style="margin-right:4px" title="Setting Beban &amp; NPM"><i class="ti ti-settings"></i></button>' +
-          '<button class="btn btn-sm" data-action="edit-ch" data-id="' + row.id + '" data-kat="' + kat + '" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
-          '<button class="btn btn-sm btn-danger" data-action="hapus-ch" data-id="' + row.id + '" data-kat="' + kat + '" data-nama="' + safeNama + '"><i class="ti ti-trash"></i></button>' +
-        '</td>' +
+        '<td style="text-align:center;font-weight:600">' + _chProdukCount(row.id) + '</td>' +
       '</tr>';
     }).join('');
 
@@ -614,58 +575,6 @@ async function hapusChannel(id, nama, kat) {
   });
 }
 
-// ─── SETTING BEBAN PER CHANNEL ───────────────────────────────
-async function showSettingBeban(channelId, channelNama) {
-  document.getElementById('cb-channel-id').value    = channelId;
-  document.getElementById('cb-channel-nama').textContent = channelNama;
-  // Load existing
-  const existing = _chBebanMap[channelId];
-  document.getElementById('cb-beban').value = existing ? (existing.beban_persen || 0) : 0;
-  document.getElementById('cb-npm').value   = existing ? (existing.npm_persen   || 0) : 0;
-  cbUpdatePreview();
-  showModal('modal-channel-beban');
-}
-
-function cbUpdatePreview() {
-  const b = parseFloat(document.getElementById('cb-beban').value) || 0;
-  const n = parseFloat(document.getElementById('cb-npm').value)   || 0;
-  document.getElementById('cb-preview').innerHTML =
-    'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-    'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>' +
-    '<br><span style="color:var(--ink3)">Price List ada di tab Channel Lainnya (Offline, Reseller, Dropship).</span>';
-}
-
-async function simpanChannelBeban() {
-  const channelId  = document.getElementById('cb-channel-id').value;
-  const bebanPct   = parseFloat(document.getElementById('cb-beban').value) || 0;
-  const npmPct     = parseFloat(document.getElementById('cb-npm').value)   || 0;
-
-  try {
-    const existing = _chBebanMap[channelId];
-    if (existing && existing.id) {
-      await dbUpdate('channel_beban', existing.id, { beban_persen: bebanPct, npm_persen: npmPct });
-    } else {
-      await dbInsert('channel_beban', { channel_id: channelId, beban_persen: bebanPct, npm_persen: npmPct });
-    }
-    // Reload cache beban
-    const bebanData = await dbGet('channel_beban', '');
-    _chBebanMap = {};
-    (bebanData || []).forEach(b => { _chBebanMap[b.channel_id] = b; });
-
-    hideModal('modal-channel-beban');
-    // Re-render semua kategori agar angka update
-    await Promise.all([
-      loadChannelByKategori('toko_utama'),
-      loadChannelByKategori('reseller'),
-      loadChannelByKategori('lazada'),
-      loadChannelByKategori('tiktok'),
-      loadChannelByKategori('offline'),
-    loadChannelByKategori('reseller_baru'),
-    ]);
-    if (_chpSelId) chpRender();
-  } catch(err) { alert('Gagal simpan beban: ' + err.message); }
-}
-
 // ─── EVENT DELEGATION ────────────────────────────────────────
 document.getElementById('page-channel').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]');
@@ -673,15 +582,7 @@ document.getElementById('page-channel').addEventListener('click', function(e) {
   const action = btn.dataset.action;
   const id     = btn.dataset.id;
   const kat    = btn.dataset.kat;
-  if (action === 'edit-ch') {
-    editChannel(id, kat);
-  } else if (action === 'hapus-ch') {
-    hapusChannel(id, btn.dataset.nama, kat);
-  } else if (action === 'setting-beban') {
-    showSettingBeban(id, btn.dataset.nama);
-  } else if (action === 'produk-ch') {
-    showPilihProduk(id, btn.dataset.nama, kat);
-  } else if (action === 'pilih-ch') {
+  if (action === 'pilih-ch') {
     chpPilih(id, btn.dataset.nama, kat);
   } else if (action === 'pilih-chs') {
     chsPilih(id, btn.dataset.nama, kat);
@@ -792,88 +693,6 @@ document.body.insertAdjacentHTML('beforeend', `
   <button type="button" class="ch-lp-item danger" onclick="chLpAksi('hapus')"><i class="ti ti-trash"></i> Hapus</button>
   <button type="button" class="ch-lp-item batal" onclick="chLpClose()">Batal</button>
 </div>`);
-
-// ─── EDIT BEBAN PER KATEGORI (bulk set semua channel dalam 1 kategori) ──
-async function showEditKategori(kat, label) {
-  document.getElementById('ek-kat').value              = kat;
-  document.getElementById('ek-label').textContent      = label;
-  document.getElementById('ek-beban').value            = '';
-  document.getElementById('ek-npm').value              = '';
-  document.getElementById('ek-preview').textContent    = '';
-  document.getElementById('ek-count').textContent      = '...';
-
-  // Hitung berapa channel dalam kategori ini
-  try {
-    const list = await dbGet('channels', '&kategori=eq.' + kat);
-    document.getElementById('ek-count').textContent = list ? list.length : 0;
-  } catch(e) { document.getElementById('ek-count').textContent = '?'; }
-
-  showModal('modal-edit-kategori');
-}
-
-function ekUpdatePreview() {
-  var b = parseFloat(document.getElementById('ek-beban').value) || 0;
-  var n = parseFloat(document.getElementById('ek-npm').value)   || 0;
-  document.getElementById('ek-preview').innerHTML =
-    'Beban: <b style="color:var(--danger)">' + b.toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-    'NPM: <b style="color:var(--ok)">' + n.toFixed(1) + '%</b>';
-}
-
-async function simpanKategoriBeban() {
-  var kat   = document.getElementById('ek-kat').value;
-  var label = document.getElementById('ek-label').textContent;
-  var bVal  = document.getElementById('ek-beban').value;
-  var nVal  = document.getElementById('ek-npm').value;
-
-  if (bVal === '' && nVal === '') {
-    alert('Isi minimal salah satu nilai (Beban atau NPM)');
-    return;
-  }
-
-  var bebanPct = parseFloat(bVal) || 0;
-  var npmPct   = parseFloat(nVal) || 0;
-  var btn      = document.querySelector('#modal-edit-kategori .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
-
-  try {
-    const list = await dbGet('channels', '&kategori=eq.' + kat);
-    if (!list || list.length === 0) {
-      alert('Tidak ada channel dalam kategori ' + label);
-      return;
-    }
-
-    // Upsert channel_beban untuk semua channel dalam kategori
-    // Reload cache beban dulu
-    const existingBeban = await dbGet('channel_beban', '');
-    const bebanById = {};
-    (existingBeban || []).forEach(b => { bebanById[b.channel_id] = b; });
-
-    await Promise.all(list.map(async function(ch) {
-      const existing = bebanById[ch.id];
-      if (existing && existing.id) {
-        await dbUpdate('channel_beban', existing.id, { beban_persen: bebanPct, npm_persen: npmPct });
-      } else {
-        await dbInsert('channel_beban', { channel_id: ch.id, beban_persen: bebanPct, npm_persen: npmPct });
-      }
-    }));
-
-    // Reload cache global
-    const bebanData = await dbGet('channel_beban', '');
-    _chBebanMap = {};
-    (bebanData || []).forEach(b => { _chBebanMap[b.channel_id] = b; });
-
-    hideModal('modal-edit-kategori');
-    loadChannelByKategori(kat);
-
-    // Refresh price list juga jika sedang terbuka
-    if (typeof chpRender === 'function') chpRender();
-
-  } catch(err) {
-    alert('Gagal simpan: ' + err.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Semua'; }
-  }
-}
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -1406,33 +1225,6 @@ async function chpBulkTerapkan() {
   }
 }
 
-// Isi SEMUA katalog yang masih otomatis dengan harga rumus lama (sekali jalan)
-// DEAD CODE (30 Sep 2026): tombol "Isi dari rumus lama" dihapus dari UI — tidak terpakai lagi. Fungsi dibiarkan (minim blast radius).
-async function chpSeed() {
-  if (!_chpSelId) return;
-  var chId = _chpSelId;
-  var m = _chpBeban();
-  var mult = 1 + (m.beban + m.npm) / 100;
-  var todo = _chpKatalogList().filter(function(k) { return !_chpHarga[k.katalog] && !_chpKatHarga[k.katalog] && k.hpp > 0; });
-  if (!todo.length) { alert('Semua katalog sudah punya harga (toko / kategori).'); return; }
-  var ok = await zConfirm(
-    todo.length + ' katalog yang masih otomatis akan diisi dengan harga dari rumus lama (HPP × ' + mult.toFixed(3) + '). Harga manual yang sudah ada tidak diubah.',
-    { title: 'Isi dari rumus lama?', ok: 'Isi' }
-  );
-  if (!ok) return;
-  try {
-    var payload = todo.map(function(k) {
-      var h = Math.ceil(k.hpp * mult);
-      return { channel_id: chId, katalog: k.katalog, harga_jual: h, net_income: h - k.hpp };
-    });
-    var ins = await dbInsert('channel_harga', payload);
-    (ins || []).forEach(function(r) { _chpHarga[r.katalog] = r; });
-    if (chId === _chpSelId) chpRender();
-  } catch (err) {
-    alert('Gagal mengisi harga: ' + err.message);
-  }
-}
-
 // Channel dihapus → hapus juga harga manualnya (tabel channel_harga tanpa FK)
 async function chpHapusHargaChannel(id) {
   try {
@@ -1783,64 +1575,6 @@ document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanChannelModal()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-channel')"><i class="ti ti-x"></i> Batal</button>
-    </div>
-  </div>
-</div>`);
-
-// ─── MODAL EDIT KATEGORI (bulk) ──────────────────────────────
-document.body.insertAdjacentHTML('beforeend', `
-<div class="modal-overlay" id="modal-edit-kategori" onclick="if(event.target===this)hideModal('modal-edit-kategori')">
-  <div class="modal" style="max-width:420px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px">
-        <i class="ti ti-adjustments"></i> Edit Kategori — <span id="ek-label" style="color:var(--accent)"></span>
-      </div>
-      <button onclick="hideModal('modal-edit-kategori')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="ek-kat">
-    <div style="padding:8px 12px;background:var(--cream2);border:1px dashed var(--ink3);border-radius:4px;font-size:12px;color:var(--ink2);margin-bottom:14px">
-      Akan mengubah <b><span id="ek-count">...</span> channel</b> sekaligus dalam kategori ini.<br>
-      Channel yang sudah punya setting sendiri akan di-<i>override</i>.
-    </div>
-    <div style="display:flex;gap:12px;margin-bottom:12px">
-      <div class="form-group" style="flex:1">
-        <label>Beban Ops (%)</label>
-        <input type="number" id="ek-beban" placeholder="mis: 10" step="0.1" min="0" max="100" oninput="ekUpdatePreview()" style="font-size:16px">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>Target NPM (%)</label>
-        <input type="number" id="ek-npm" placeholder="mis: 8" step="0.1" min="0" max="100" oninput="ekUpdatePreview()" style="font-size:16px">
-      </div>
-    </div>
-    <div id="ek-preview" style="padding:8px 12px;background:var(--cream2);border:1px dashed var(--ink3);border-radius:4px;font-size:12px;color:var(--ink2);margin-bottom:14px;min-height:28px;line-height:1.8"></div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="simpanKategoriBeban()"><i class="ti ti-device-floppy"></i> Simpan Semua</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-edit-kategori')"><i class="ti ti-x"></i> Batal</button>
-    </div>
-  </div>
-</div>`);
-document.body.insertAdjacentHTML('beforeend', `
-<div class="modal-overlay" id="modal-channel-beban" onclick="if(event.target===this)hideModal('modal-channel-beban')">
-  <div class="modal" style="max-width:400px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-settings"></i> Setting Beban &amp; NPM — <span id="cb-channel-nama" style="color:var(--accent)"></span></div>
-      <button onclick="hideModal('modal-channel-beban')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="cb-channel-id">
-    <div style="display:flex;gap:12px;margin-bottom:12px">
-      <div class="form-group" style="flex:1">
-        <label>Beban Ops (%)</label>
-        <input type="number" id="cb-beban" placeholder="0" step="0.1" min="0" max="100" oninput="cbUpdatePreview()" style="font-size:16px">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>Target NPM (%)</label>
-        <input type="number" id="cb-npm" placeholder="0" step="0.1" min="0" max="100" oninput="cbUpdatePreview()" style="font-size:16px">
-      </div>
-    </div>
-    <div id="cb-preview" style="padding:8px 12px;background:var(--cream2);border:1px dashed var(--ink3);border-radius:4px;font-size:12px;color:var(--ink2);margin-bottom:14px;line-height:1.8"></div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-sm" onclick="simpanChannelBeban()"><i class="ti ti-device-floppy"></i> Simpan</button>
-      <button class="btn btn-sm" onclick="hideModal('modal-channel-beban')"><i class="ti ti-x"></i> Batal</button>
     </div>
   </div>
 </div>`);

@@ -899,11 +899,6 @@
     }
   }
 
-  function currentProduct(){
-    const s = currentStore();
-    if(!s) return null;
-    return s.products.find(p => p.id === state.productId) || null;
-  }
 
   /* ---------- RENDER: stores ---------- */
   function renderStores(){
@@ -1558,7 +1553,6 @@
     const v = parsed.values;
     const subtotal = v.subtotalPesanan;
     const totalPenghasilan = v.totalPenghasilan;
-    const totalBiaya = subtotal - totalPenghasilan;
     // FYI-only: nilai subsidi Shopee asli dari sisi Pembayaran Pembeli (kalau ada datanya).
     // Murni informasi buat tau besaran subsidi Shopee ke buyer. TIDAK dipakai di Cost Ratio/NPM/Profit Aktual manapun.
     const pembayaranVals = (store.lastParsedPembayaran && store.lastParsedPembayaran.values) ? store.lastParsedPembayaran.values : null;
@@ -1603,14 +1597,6 @@
     const rasioAdminLayananSum = rasioAdminLayananRows.reduce((sum, [, val]) => sum + val, 0);
     const rasioAdminLayananPct = subtotal ? (rasioAdminLayananSum / subtotal) * 100 : null;
 
-    const rincianRows = [
-      ['Voucher & Subsidi Shopee', v.voucherSubsidiShopee],
-      ['Voucher Toko', v.voucherToko],
-      ['Biaya Administrasi', v.biayaAdministrasi],
-      ['Biaya Layanan', v.biayaLayanan],
-      ['Biaya Proses Pesanan', v.biayaProsesPesanan],
-      ['Biaya Isi Saldo Otomatis', v.biayaIsiSaldo]
-    ].filter(r => r[1] !== null);
 
     const rowPct = (val) => subtotal ? pct((val / subtotal) * 100) : '–';
 
@@ -1759,7 +1745,6 @@
     // Kalau belum ada data Rincian Penghasilan yang di-parse, fallback ke Adm%+ACOS% manual.
     const usingRealData = realCostRatioPct !== null && realCostRatioPct !== undefined && !isNaN(realCostRatioPct);
     const effectivePct = usingRealData ? (realCostRatioPct / 100) : totalPct;
-    const effectivePctLabel = usingRealData ? pct(realCostRatioPct) : pct(adm + acos);
 
     // Kelompokkan produk per SKU Induk (parentSku). HPP diasumsikan sama
     // untuk semua variasi dalam 1 SKU Induk, jadi cukup 1 baris per grup.

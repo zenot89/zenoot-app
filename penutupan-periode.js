@@ -219,7 +219,7 @@ var _ppFullSeries    = [];               // semua periode bulanan (histori asc +
 var _ppChartSeries   = [];               // seri yang lagi ditampilkan di grafik (hasil olahan sesuai mode aktif)
 var _ppLiveDataCache = null;             // hasil fetch live bulan berjalan, di-cache biar mode bulan_ini gak fetch ulang
 var _ppChartKriteria = new Set(['net_worth', 'laba_rugi']); // default kriteria dicentang
-var _ppPeriodMode    = 'per_bulan';      // minggu_ini | minggu_lalu | bulan_ini | bulan_lalu | per_bulan | per_tahun
+var _ppPeriodMode    = 'per_bulan';      // bulan_ini | bulan_lalu | per_bulan | per_tahun
 
 // ─── DEFINISI BARIS KRITERIA UNTUK TABEL PERBANDINGAN & GRAFIK ─
 var _ppKriteriaDefs = [
@@ -569,18 +569,6 @@ function _ppLoadSpecificYear(yr) {
   _ppRenderChart();
 }
 
-// Hitung rentang tanggal 1 minggu (Minggu–Sabtu, offset 0 = minggu ini, -1 = minggu lalu, dst)
-function _ppWeekRange(offset) {
-  var now = new Date();
-  var day = now.getDay(); // 0 = Minggu
-  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + (offset * 7));
-  var end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (end > today) end = today; // minggu berjalan: jangan proyeksi ke depan
-  var toStr = function(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
-  var fmtShort = function(d) { return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]; };
-  return { start: toStr(start), end: toStr(end), label: fmtShort(start) + '–' + fmtShort(end) };
-}
 
 // ─── LOAD SESUAI MODE DROPDOWN, LALU RENDER GRAFIK ────────────
 async function _ppLoadPeriodMode(mode) {
@@ -594,22 +582,6 @@ async function _ppLoadPeriodMode(mode) {
       _ppChartSeries = _ppFullSeries;
     } else if (mode === 'per_tahun') {
       _ppChartSeries = _ppBuildYearlySeries();
-    } else if (mode === 'minggu_ini' || mode === 'minggu_lalu') {
-      // DEAD CODE per permintaan user (12 Sep 2026): item menu "Minggu Ini/Minggu
-      // Lalu" dihapus dari dropdown karena buat GRAFIK garis, datanya kurang
-      // relevan (kolom posisi net_worth/kas/stok/escrow/hutang selalu SAMA di
-      // 2 titik minggu karena gak ada snapshot mingguan — cuma pendapatan/beban/
-      // laba-rugi yang valid dibandingkan per minggu). Logic-nya dipertahanin,
-      // gak dihapus, buat kalau ke depan mau dipakai lagi sbg TABEL data
-      // (bukan grafik) — ide dari user sendiri.
-      var offA = (mode === 'minggu_ini') ? -1 : -2;
-      var offB = (mode === 'minggu_ini') ?  0 : -1;
-      var rgA = _ppWeekRange(offA), rgB = _ppWeekRange(offB);
-      var [dA, dB] = await Promise.all([_ppFetchDataRange(rgA.start, rgA.end), _ppFetchDataRange(rgB.start, rgB.end)]);
-      _ppChartSeries = [
-        { periode: rgA.start, label: rgA.label, data: dA },
-        { periode: rgB.start, label: rgB.label, data: dB },
-      ];
     } else if (mode === 'bulan_ini' || mode === 'bulan_lalu') {
       // Reuse data yang udah ke-fetch di ppLoadUtama (hindari fetch ulang)
       var now = new Date();
@@ -834,21 +806,16 @@ function _ppRenderChart() {
 // dateStart–dateEnd yang dikasih. Tapi net_worth/total_kas/nilai_stok/escrow_shopee/
 // total_kewajiban itu POSISI SAAT INI (dihitung dari semua data s.d. sekarang, bukan
 // posisi historis di tanggal itu) — makanya utk histori BULANAN, angka posisi diambil
-// dari snapshot tersimpan (penutupan_periode), bukan dari fungsi ini. Utk mode
-// Minggu Ini/Minggu Lalu (gak ada snapshot mingguan), kolom posisi ini akan SAMA
-// nilainya di kedua titik (karena emang belum ada histori mingguan) — cuma
-// Pendapatan/Beban/Laba-Rugi yang beneran valid dibandingkan per minggu.
+// dari snapshot tersimpan (penutupan_periode), bukan dari fungsi ini.
 async function _ppFetchDataRange(dateStart, dateEnd) {
   try {
-    var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, hutang, bayar, shopeeRaw] = await Promise.all([
+    var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, shopeeRaw] = await Promise.all([
       dbGet('kas_akun', '').catch(function() { return []; }),
       dbGet('jurnal', '').catch(function() { return []; }),
       dbGet('jurnal', '&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
       dbGet('produk', '').catch(function() { return []; }),
       dbGet('stok', '').catch(function() { return []; }),
       dbGet('jurnal_penjualan', '&select=sku,qty').catch(function() { return []; }),
-      dbGet('hutang', '').catch(function() { return []; }),
-      dbGet('hutang_bayar', '').catch(function() { return []; }),
       fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } })
         .then(function(r) { return r.json(); }).catch(function() { return []; }),
@@ -889,8 +856,7 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
     // Hutang = saldo akun kelompok 'kewajiban' di jurnal (kredit - debit, per akun,
     // yang negatif diabaikan) — PERSIS _getTotalHutang() di networth.js (sumber
     // Dashboard). 3 Okt 2026: dulu dihitung dari tabel `hutang` pokok - `hutang_bayar`,
-    // sumber beda dgn Dashboard -> Net Worth Oktober selisih Rp841.600. Query
-    // hutang/hutang_bayar di atas dibiarkan (dead, tidak dipakai lagi).
+    // sumber beda dgn Dashboard -> Net Worth Oktober selisih Rp841.600.
     var totalHutang = Object.values(akunMap)
       .filter(function(a) { return a.kelompok === 'kewajiban'; })
       .reduce(function(s, a) { var saldo = a.sK - a.sD; return s + (saldo > 0 ? saldo : 0); }, 0);

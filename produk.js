@@ -407,7 +407,6 @@ function renderProduk(data) {
     // Baris varian (hanya tampil jika expanded)
     if (expanded) {
       _produkSortWarnaSize(rows).forEach(row => {
-        const safeSku = (row.sku_variasi||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         const checked = _produkSelected[row.id] ? 'checked' : '';
         if (_produkEditMode) {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
@@ -461,10 +460,6 @@ function produkToggleKatalog(kat, checked) {
   renderProduk(_produkData);
 }
 
-function produkClearSelect() {
-  _produkSelected = {};
-  produkExitEditMode();
-}
 
 function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
@@ -863,31 +858,14 @@ function produkBatchSupplier() {
 // [30 Sep 2026] Toggle Sistem (Dropship / Reseller) di modal Edit Supplier — HANYA muncul kalau supplier terpilih
 // berjenis Dropship + Reseller (mis. RH). Supplier lain sistemnya sudah pasti dari pengaturan Supplier & ROP.
 // [30 Sep 2026] Peralihan ke Produksi Sendiri BOLEH DICICIL per varian (keputusan user, menggantikan aturan "harus total per
-// katalog"). _produkProduksiViolations/_produkProduksiMsg di bawah jadi DEAD CODE (tidak dipanggil lagi), sengaja dipertahankan
-// kalau aturan total mau dihidupkan lagi. _produkIsProduksiBoss masih dipakai (HPP wajib saat pindah ke Produksi Sendiri).
+// katalog"). _produkIsProduksiBoss dipakai (HPP wajib saat pindah ke Produksi Sendiri).
 function _produkIsProduksiBoss(boss) {
   var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
   return !!(s && s.is_produksi_sendiri);
 }
 
 // Kembalikan daftar katalog yang belum total: [{katalog, total, miss}]; kosong = aman.
-function _produkProduksiViolations(boss, selIds) {
-  if (!_produkIsProduksiBoss(boss)) return [];
-  var sel = {}; selIds.forEach(function(id) { sel[id] = true; });
-  var kats = {};
-  _produkData.forEach(function(r) { if (sel[r.id]) kats[r.katalog || '—'] = true; });
-  var out = [];
-  Object.keys(kats).forEach(function(k) {
-    var all  = _produkData.filter(function(r) { return (r.katalog || '—') === k; });
-    var miss = all.filter(function(r) { return !sel[r.id] && !_produkIsProduksiBoss(r.boss); });
-    if (miss.length) out.push({ katalog: k, total: all.length, miss: miss.length });
-  });
-  return out;
-}
 
-function _produkProduksiMsg(v) {
-  return v.map(function(x) { return x.katalog + ': ' + x.miss + ' dari ' + x.total + ' varian belum ikut'; }).join('\n');
-}
 
 function produkBatchSupSyncSistem() {
   // Pindah ke supplier Produksi Sendiri → wajib isi HPP baru (HPP produksi beda dengan harga beli reseller/dropship)
@@ -981,80 +959,11 @@ document.body.insertAdjacentHTML('beforeend', `
   </div>
 </div>`);
 
-// [30 Sep 2026] DEAD CODE: tombol "Dropship" di toolbar sudah dihapus — fungsi & modal di bawah ini (produkBatchDropship,
-// simpanBatchDropship, #modal-batch-ds) tidak dipanggil lagi. Fungsinya digantikan toggle Sistem di modal Edit Supplier
-// (produkBatchSupSyncSistem / simpanBatchSupplier). Sengaja dipertahankan; _produkIsDualBoss masih dipakai toggle baru.
-// ── BATCH: Tandai Dropship (30 Sep 2026) ──────────────────────
-// Penanda produk.dropship HANYA berlaku untuk supplier Dropship + Reseller (mis. RH). Supplier lain status dropship-nya
-// otomatis dari sistem supplier (Supplier & ROP), jadi SKU terpilih yang Boss-nya bukan dual dilewati (tidak disimpan).
-// Pilih katalog (centang baris katalog) = semua varian ikut; atau centang varian tertentu saja.
+// Supplier dual = Dropship + Reseller (mis. RH), bukan Produksi Sendiri. Hanya Boss dual yang punya toggle Sistem di modal Edit Supplier.
 function _produkIsDualBoss(boss) {
   var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
   return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri);
 }
-
-function produkBatchDropship() {
-  const ids = Object.keys(_produkSelected).map(Number);
-  if (!ids.length) return;
-  const rows  = _produkData.filter(r => ids.includes(r.id));
-  const dual  = rows.filter(r => _produkIsDualBoss(r.boss));
-  const skip  = rows.length - dual.length;
-  document.getElementById('batch-ds-count').textContent = rows.length + ' SKU terpilih';
-  const info = document.getElementById('batch-ds-info');
-  if (!dual.length) {
-    info.innerHTML = '<span style="color:var(--danger)">Tidak ada SKU terpilih yang Boss-nya Dropship + Reseller (mis. RH).</span> Untuk supplier lain, status dropship otomatis mengikuti sistem supplier di Supplier &amp; ROP, jadi tidak perlu ditandai di sini.';
-  } else {
-    info.innerHTML = '<b>' + dual.length + ' SKU</b> akan diubah (Boss Dropship + Reseller).' +
-      (skip ? ' <span style="color:var(--ink3)">' + skip + ' SKU dilewati karena Boss-nya bukan Dropship + Reseller.</span>' : '');
-  }
-  const allDs = dual.length > 0 && dual.every(r => r.dropship === true);
-  document.getElementById('batch-ds-on').checked  = !allDs;
-  document.getElementById('batch-ds-off').checked = allDs;
-  document.getElementById('batch-ds-save').disabled = !dual.length;
-  document.getElementById('batch-ds-save').style.opacity = dual.length ? '1' : '.4';
-  showModal('modal-batch-ds');
-}
-
-async function simpanBatchDropship() {
-  const ids  = Object.keys(_produkSelected).map(Number);
-  const rows = _produkData.filter(r => ids.includes(r.id) && _produkIsDualBoss(r.boss));
-  if (!rows.length) { hideModal('modal-batch-ds'); return; }
-  const nilai = !!document.getElementById('batch-ds-on').checked;
-  try {
-    for (const r of rows) { await dbUpdate('produk', r.id, { dropship: nilai }); }
-    hideModal('modal-batch-ds');
-    produkExitEditMode();
-    loadProduk();
-  } catch(err) {
-    const msg = String(err && err.message || err);
-    alert('Gagal: ' + msg + (/dropship/i.test(msg) ? '\n\nKolom produk.dropship belum ada — jalankan dropship_hpp.sql di Supabase dulu.' : ''));
-  }
-}
-
-// ── MODAL: Batch Dropship ─────────────────────────────────────
-document.body.insertAdjacentHTML('beforeend', `
-<div class="modal-overlay" id="modal-batch-ds" onclick="if(event.target===this)hideModal('modal-batch-ds')">
-  <div class="modal" style="max-width:400px;width:100%">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-truck-delivery"></i> Tandai Dropship</div>
-      <button onclick="hideModal('modal-batch-ds')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <p id="batch-ds-count" style="font-size:12px;color:var(--ink3);margin-bottom:6px">0 SKU terpilih</p>
-    <p id="batch-ds-info" style="font-size:12px;margin-bottom:12px;line-height:1.5"></p>
-    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;margin-bottom:8px">
-      <input type="radio" name="batch-ds-mode" id="batch-ds-on" style="margin-top:3px">
-      <span><b>Dropship (tidak nyetok)</b><br><span style="color:var(--ink3);font-size:11px;line-height:1.5">Sisa Stok tampil "DS", tidak dihitung kritis / restock / nilai stok.</span></span>
-    </label>
-    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;margin-bottom:14px">
-      <input type="radio" name="batch-ds-mode" id="batch-ds-off" style="margin-top:3px">
-      <span><b>Bukan dropship (stok dilacak)</b><br><span style="color:var(--ink3);font-size:11px;line-height:1.5">Dialihkan ke produksi sendiri? Cukup ganti Boss ke DIMI lewat Edit Supplier.</span></span>
-    </label>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-sm" onclick="hideModal('modal-batch-ds')">Batal</button>
-      <button class="btn btn-sm btn-primary" id="batch-ds-save" onclick="simpanBatchDropship()"><i class="ti ti-check"></i> Simpan</button>
-    </div>
-  </div>
-</div>`);
 
 // ── MODAL: Batch Supplier ─────────────────────────────────────
 document.body.insertAdjacentHTML('beforeend', `

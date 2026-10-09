@@ -299,8 +299,6 @@ document.getElementById('page-dashboard').innerHTML = `
           </button>
         </div>
       </div>
-      <!-- id="trench-ch-wrap" dipertahankan kosong (tidak dipakai lagi tapi referensi JS lama aman) -->
-      <div id="trench-ch-wrap" style="display:none"></div>
       <div style="position:relative;height:170px;width:100%">
         <canvas id="dash-chart-penjualan" style="width:100%;height:100%;display:block"></canvas>
         <div id="dash-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--ink3);font-style:italic;font-size:13px">
@@ -633,11 +631,6 @@ function simpanTarget() {
   closeModal('modal-target');
   loadDashboard();
 }
-function openTargetModal() {
-  idrSet('inp-target-omset', _getTarget() || 0);
-  document.getElementById('modal-target').classList.add('open');
-  setTimeout(() => { if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('modal-target')); }, 50);
-}
 
 // ─── TREN FILTER — 2 tombol terpisah: Periode & Channel ────────────
 var _trenchPeriod   = 30; // default 30 Hari Terakhir
@@ -824,7 +817,6 @@ document.addEventListener('click', function(e) {
   if (wC && !wC.contains(e.target)) { var d=document.getElementById('trench-dd-channel'); if(d) d.style.display='none'; }
 });
 
-function trenchBuildChannelList() { /* deprecated */ }
 function trenchReset() {
   _trenchPeriod   = 30;
   _trenchChannels = [];
@@ -866,15 +858,6 @@ async function trenchApply() {
 }
 
 // Reset filter — handled by trenchReset() above
-function _trenchResetAll() {
-  _trenchPeriod   = 30;
-  _trenchChannels = [];
-  _dashPeriod     = 30;
-  _trenchJPData   = _dashJPData;
-  trenchCloseAll();
-  _trenchRenderChart();
-  trenchUpdateBadge();
-}
 
 // Render chart dengan data yang sudah difilter (lokal, tidak sentuh _dashJPData asli)
 function _trenchRenderChart() {
@@ -911,14 +894,6 @@ function trenchUpdateBadge() {
   var resetBtn = document.getElementById('trench-reset-btn');
   var filterAktif = (_trenchPeriod !== 30) || (_trenchChannels.length > 0);
   if (resetBtn) resetBtn.style.display = filterAktif ? 'inline-flex' : 'none';
-}
-
-// ─── PERIOD TOGGLE (LAMA — dipertahankan agar tidak break referensi lain) ──
-function dashTogglePeriodMenu() { /* intentionally disabled — pakai trenchTogglePanel() */ }
-function setDashPeriod(days, label) {
-  _dashPeriod = days;
-  _trenchPeriod = days;
-  _renderChartPenjualan(_dashJPData);
 }
 
 // ─── ALERTS ──────────────────────────────────────────────────
@@ -1246,7 +1221,6 @@ function _renderChartPenjualan(jpData) {
     canvas.onmousemove = function(e) {
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
       let closest = null, minDist = 30;
       _dashChartPoints.forEach(pt => {
         const dist = Math.abs(mx - pt.x);
@@ -2210,7 +2184,6 @@ async function loadDashboard() {
     }).join('');
 
     // ─ Render semua chart & widget
-    const _jpForChart  = _dashJPData;
     const _jpForRender = jpBulan.length>0 ? jpBulan : _dashJPData;
     const _stokForBoss = _dashStokData;
     setTimeout(() => {

@@ -350,94 +350,6 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       #jp-sku-sheet.open { transform: translate(-50%, 50%) scale(1); opacity: 1; }
     }
 
-    /* ── 26 Sep 2026: pill trigger + calendar range picker buat "Minggu",
-       dan pill+dropdown grid bulan buat "Bulan" — ganti <input type=date>/
-       <input type=month> polos (native, "norak") jadi custom sesuai
-       permintaan user, pola visual sama kayak kas-btn-pill/dd-item di
-       kas.js & anggaran.js. ── */
-    .jp-btn-pill {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 16px;
-      font-family: var(--f); font-size: 12.5px; font-weight: 600;
-      cursor: pointer; border: 1.5px solid var(--ink3); background: var(--cream);
-      color: var(--ink2); width: 100%; box-sizing: border-box;
-    }
-    .jp-btn-pill:hover { background: var(--cream2); color: var(--ink); }
-
-    #jp-bulan-dropdown {
-      position: fixed; background: var(--cream2); border: 1px solid var(--ink3);
-      border-radius: 14px; min-width: 200px; padding: 6px; z-index: 100000; display: none;
-      box-shadow: 0 8px 28px rgba(0,0,0,.3);
-    }
-    #jp-bulan-dropdown.open { display: block; }
-    #jp-bulan-dropdown .jp-bd-nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 6px 6px; font-size: 12.5px; font-weight: 700; color: var(--ink);
-    }
-    #jp-bulan-dropdown .jp-bd-nav button {
-      border: none; background: none; cursor: pointer; font-size: 15px; color: var(--ink3); padding: 2px 8px;
-    }
-    #jp-bulan-dropdown .jp-bd-nav button:hover { color: var(--ink); }
-    #jp-bulan-dropdown .jp-bd-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 2px 4px 4px; }
-    #jp-bulan-dropdown .jp-bd-item {
-      padding: 8px 4px; border-radius: 8px; font-size: 12px; font-weight: 600;
-      color: var(--ink2); cursor: pointer; border: none; background: none;
-      text-align: center; font-family: var(--f);
-    }
-    #jp-bulan-dropdown .jp-bd-item:hover { background: var(--cream); color: var(--ink); }
-    #jp-bulan-dropdown .jp-bd-item.active { background: var(--ink); color: var(--cream); }
-
-    #jp-range-panel {
-      position: fixed; z-index: 100000; display: none;
-      background: var(--cream2); border: 1px solid var(--ink3);
-      border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.15);
-      overflow: hidden;
-    }
-    #jp-range-panel.open { display: flex; }
-    #jp-range-presets {
-      display: flex; flex-direction: column; gap: 2px;
-      padding: 10px 8px; border-right: 1px solid var(--ink4);
-      min-width: 132px; flex-shrink: 0;
-    }
-    #jp-range-presets .jp-rp-item {
-      padding: 8px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
-      color: var(--ink2); cursor: pointer; border: none; background: none;
-      text-align: left; font-family: var(--f); white-space: nowrap;
-    }
-    #jp-range-presets .jp-rp-item:hover { background: var(--cream); color: var(--ink); }
-    #jp-range-body { padding: 10px 12px; }
-    #jp-range-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    #jp-range-nav .jp-rn-btn {
-      border: none; background: none; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--ink3); padding: 2px 8px;
-    }
-    #jp-range-nav .jp-rn-btn:hover { color: var(--ink); }
-    #jp-range-months { display: flex; gap: 16px; }
-    .jp-rc-month { min-width: 200px; }
-    .jp-rc-month-title { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .jp-rc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-    .jp-rc-dow { font-size: 10px; color: var(--ink3); text-align: center; font-weight: 700; padding-bottom: 3px; }
-    .jp-rc-day {
-      font-size: 12px; text-align: center; padding: 5px 0; border-radius: 6px; cursor: pointer;
-      color: var(--ink2); font-family: var(--f);
-    }
-    .jp-rc-day:hover { background: var(--cream); }
-    .jp-rc-day.in-range { background: var(--ovl-0_08); border-radius: 0; }
-    .jp-rc-day.range-start, .jp-rc-day.range-end { background: var(--ink); color: var(--cream); font-weight: 700; }
-    .jp-rc-day.range-start { border-radius: 6px 0 0 6px; }
-    .jp-rc-day.range-end   { border-radius: 0 6px 6px 0; }
-    .jp-rc-day.range-start.range-end { border-radius: 6px; }
-    .jp-rc-day.today { box-shadow: inset 0 0 0 1.5px var(--ink3); }
-    #jp-range-footer {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--ink4); flex-wrap: wrap;
-    }
-    #jp-range-footer .jp-rf-label { font-size: 11.5px; color: var(--ink3); }
-    @media (max-width: 640px) {
-      #jp-range-panel.open { display: block; max-height: 80vh; overflow-y: auto; }
-      #jp-range-presets { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--ink4); min-width: 0; }
-      #jp-range-months { flex-direction: column; gap: 10px; }
-    }
-
     /* ── 3 Okt 2026: PICKER PERIODE HP — bottom sheet ala komentar Instagram ──
        Sejak 3 Okt 2026 dipakai tombol gabungan Periode+Channel di HP DAN laptop
        (#jp-filter-btn / #jp-filter-btn-laptop). Layer 600/601 = sama dgn sheet Kas/Stok (di atas nav). ── */
@@ -847,8 +759,7 @@ let _jpAllData    = [];
 let _jpChannelMap = {};
 let _jpChartPoints = []; // titik chart Tren Penjualan, untuk tooltip hover
 let _jpProdukList = [];
-let _jpSkuIndex   = -1;
-let _jpDdMode     = 'bulan'; // default: bulan ini
+ // default: bulan ini
 let _jpSisakMap   = {}; // stok sisa per SKU (uppercase), diisi saat render tabel
 let _jpDsMap      = {}; // SKU (uppercase) → true kalau produk dropship (tidak nyetok → Sisa Stok tampil "DS", bukan angka minus). Aturannya di zIsDropship() (supabase.js)
 let _jpChartRenderToken = 0; // token untuk cancel render chart lama sebelum render baru
@@ -872,9 +783,6 @@ function _jpAddDays(dateStr, n) {
 // Format timestamp lokal presisi jam:menit:detik — dibutuhkan buat filter
 // "Minggu Ini" yang batas atasnya bukan pas ganti hari (00:00) tapi jam
 // 19:30 Sabtu (bukan tengah malam kayak mode lain).
-function _jpLocalDateTime(d) {
-  return _jpLocalDate(d) + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
-}
 // Hitung rentang "Minggu Ini": Minggu 00:00 s/d Sabtu jam CUTOFF (lihat
 // _JP_MINGGU_CUTOFF_H/_M di bawah). Kalau waktu sekarang udah lewat cutoff
 // Sabtu minggu berjalan, otomatis geser ke minggu berikutnya (Minggu depan
@@ -1061,52 +969,8 @@ async function loadChannelDropdownJP() {
     });
 
     document.getElementById('jp-channel').innerHTML        = fHtml;
-    // Render ke picker channel (modal form JP)
-    var pickerChList = document.getElementById('jp-picker-channel-list');
-    if (pickerChList) {
-      var pickerHtml = '<div class="kas-akun-item" data-val="" onclick="jpPickerChannelSelect(this)"><span style="color:var(--ink3)">— Pilih Channel —</span></div>';
-      Object.entries(grouped).forEach(function([kat, items]) {
-        var cfg = katConfig[kat] || { label: kat, icon: 'default' };
-        pickerHtml += '<div class="kas-akun-group">── ' + cfg.label + ' ──</div>';
-        items.forEach(function(ch) {
-          pickerHtml += '<div class="kas-akun-item" data-val="' + ch.id + '" onclick="jpPickerChannelSelect(this)">' + ch.nama + '</div>';
-        });
-      });
-      pickerChList.innerHTML = pickerHtml;
-    }
-    // Custom div dropdown channel (bukan select) untuk hover effect
     var fcEl = document.getElementById('jp-filter-channel');
     if (fcEl) fcEl.value = ''; // reset hidden input
-    var listEl = document.getElementById('jp-channel-list');
-    if (listEl) {
-      var listHtml = '';
-      // "Channel" item
-      listHtml += _jpChItem('', 'Channel', null, '');
-      // Per group
-      Object.entries(grouped).forEach(function([kat, items]) {
-        var cfg = katConfig[kat] || { label: kat, icon: 'default' };
-        listHtml += '<div style="font-size:10px;font-weight:700;color:var(--ink3);padding:6px 10px 2px;letter-spacing:.5px">── ' + cfg.label + ' ──</div>';
-        items.forEach(function(ch) {
-          listHtml += _jpChItem(ch.id, ch.nama, null, '');
-        });
-      });
-      listEl.innerHTML = listHtml;
-      // Attach click events
-      listEl.querySelectorAll('[data-ch-id]').forEach(function(el) {
-        el.addEventListener('click', function() {
-          var val = el.getAttribute('data-ch-id');
-          var fcEl2 = document.getElementById('jp-filter-channel');
-          if (fcEl2) fcEl2.value = val;
-          // Update active state semua item
-          listEl.querySelectorAll('[data-ch-id]').forEach(function(e2) {
-            var isActive = e2.getAttribute('data-ch-id') === val;
-            e2.style.background = isActive ? 'var(--ink)' : '';
-            e2.style.color      = isActive ? 'var(--cream)' : '';
-          });
-          filterJP(); jpUpdateBadge(); jpUpdateChannelLabel(); jpCloseChannelPanel();
-        });
-      });
-    }
 
     _jpFilterBtnSync();
     _jpPerRefreshIfOpen();   // kalau sheet filter sedang terbuka, gambar ulang tab Channel
@@ -1242,105 +1106,11 @@ function _jpResolveSku(raw) {
 }
 function _jpGetHpp(p)     { return p.hpp || p.harga_pokok || p.cost || 0; }
 
-function _jpRenderDropdown(katalogs, katalogMap) {
-  const dd  = document.getElementById('jp-sku-dropdown');
-  const inp = document.getElementById('jp-sku-induk');
-  if (!katalogs.length) {
-    dd.style.display = 'none';
-    if (_jpProdukList.length === 0) {
-      _jpPositionDropdown();
-      dd.innerHTML = '<div style="padding:10px 12px;color:var(--ink3);font-size:13px;font-style:italic">Produk belum ada — tambah di Kelola Produk</div>';
-      dd.style.display = 'block';
-    }
-    return;
-  }
-  _jpSkuIndex = -1;
-  dd.innerHTML = katalogs.map((kat, i) => {
-    const safe = kat.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    return '<div class="jp-dd-item" data-katalog="' + safe + '" data-idx="' + i + '"'
-      + ' style="padding:10px 12px;cursor:pointer;font-size:14px;'
-      + 'border-bottom:1px dashed var(--ink4);display:flex;justify-content:space-between;align-items:center;background:var(--cream)"'
-      + ' onmouseenter="jpHighlightItem(this)"'
-      + ' onclick="jpPilihKatalog(this.dataset.katalog)">'
-      + '<span style="font-weight:600">' + kat + '</span>'
-      + '<span style="font-size:11px;color:var(--ink3);margin-left:8px">' + katalogMap[kat] + ' var</span>'
-      + '</div>';
-  }).join('');
-  _jpPositionDropdown();
-  dd.style.display = 'block';
-}
 
-function _jpPositionDropdown() {
-  const inp = document.getElementById('jp-sku-induk');
-  const dd  = document.getElementById('jp-sku-dropdown');
-  if (!inp || !dd) return;
-  const rect = inp.getBoundingClientRect();
-  dd.style.top   = (rect.bottom + 2) + 'px';
-  dd.style.left  = rect.left + 'px';
-  dd.style.width = (rect.width + 44) + 'px'; // +44 supaya cover tombol ▼ juga
-}
 
-function jpSugestKatalog() {
-  _jpDdMode = 'suggest';
-  _jpPositionDropdown();
-  const q = (document.getElementById('jp-sku-induk').value || '').trim().toLowerCase();
-  const katalogMap = {};
-  _jpProdukList.forEach(p => {
-    const kat = _jpGetKatalog(p);
-    if (!kat) return;
-    if (q && !kat.toLowerCase().includes(q)) return;
-    katalogMap[kat] = (katalogMap[kat] || 0) + 1;
-  });
-  _jpRenderDropdown(Object.keys(katalogMap), katalogMap);
-}
 
-function jpToggleKatalogFull() {
-  const dd = document.getElementById('jp-sku-dropdown');
-  if (dd.style.display !== 'none' && _jpDdMode === 'full') {
-    jpTutupDropdownSKU(); return;
-  }
-  _jpDdMode = 'full';
-  _jpPositionDropdown();
-  document.getElementById('jp-sku-induk').value = '';
-  const katalogMap = {};
-  _jpProdukList.forEach(p => {
-    const kat = _jpGetKatalog(p);
-    if (!kat) return;
-    katalogMap[kat] = (katalogMap[kat] || 0) + 1;
-  });
-  _jpRenderDropdown(Object.keys(katalogMap), katalogMap);
-  document.getElementById('jp-sku-induk').focus();
-}
 
-function jpHighlightItem(el) {
-  document.getElementById('jp-sku-dropdown')
-    .querySelectorAll('.jp-dd-item')
-    .forEach(x => x.style.background = '');
-  el.style.background = 'var(--cream2)';
-  _jpSkuIndex = parseInt(el.dataset.idx);
-}
 
-function jpKatalogKeyNav(e) {
-  const dd = document.getElementById('jp-sku-dropdown');
-  if (!dd || dd.style.display === 'none') return;
-  const items = dd.querySelectorAll('.jp-dd-item');
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    _jpSkuIndex = Math.min(_jpSkuIndex + 1, items.length - 1);
-    items.forEach((x, i) => x.style.background = i === _jpSkuIndex ? 'var(--cream2)' : '');
-    if (items[_jpSkuIndex]) items[_jpSkuIndex].scrollIntoView({block:'nearest'});
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    _jpSkuIndex = Math.max(_jpSkuIndex - 1, 0);
-    items.forEach((x, i) => x.style.background = i === _jpSkuIndex ? 'var(--cream2)' : '');
-    if (items[_jpSkuIndex]) items[_jpSkuIndex].scrollIntoView({block:'nearest'});
-  } else if (e.key === 'Enter' && _jpSkuIndex >= 0 && items[_jpSkuIndex]) {
-    e.preventDefault();
-    jpPilihKatalog(items[_jpSkuIndex].dataset.katalog);
-  } else if (e.key === 'Escape') {
-    jpTutupDropdownSKU();
-  }
-}
 
 // (Renderer list variasi lama dicabut 4 Sep 2026 — diganti _jpSkuSheetRenderVariasi
 // yang render ke sheet BRImo baru, bukan floating dropdown .kas-akun-list.)
@@ -1378,22 +1148,6 @@ async function jpPilihKatalog(katalog) {
   }
 }
 
-// ─── HARGA DARI PRICE LIST (pakai channel_beban per channel) ──
-async function _jpGetHargaFromPriceList(hpp) {
-  if (!hpp || hpp <= 0) return 0;
-  const chId = document.getElementById('jp-channel').value;
-  if (!chId) return hpp;
-  try {
-    const bebanArr = await dbGet('channel_beban', '&channel_id=eq.' + chId);
-    const beban    = bebanArr && bebanArr[0];
-    if (!beban) return hpp; // belum ada setting beban → kembalikan HPP
-    const mult = 1 + ((beban.beban_persen || 0) + (beban.npm_persen || 0)) / 100;
-    return Math.ceil(hpp * mult);
-  } catch(e) {
-    return hpp;
-  }
-}
-
 function jpOnPilihVariasi() {
   const sel = document.getElementById('jp-sku-variasi');
   const opt = sel.options[sel.selectedIndex];
@@ -1401,7 +1155,7 @@ function jpOnPilihVariasi() {
   const hpp = parseInt(opt.dataset.hpp) || 0;
   if (!hpp) { _jpRenderPending(); return; }
   const hargaEl = document.getElementById('jp-harga');
-  // [30 Sep 2026] Harga Satuan = HPP dari Kelola Produk (bukan lagi HPP x (1+Beban+NPM) dari channel_beban). _jpGetHargaFromPriceList dibiarkan (tidak dipakai).
+  // [30 Sep 2026] Harga Satuan = HPP dari Kelola Produk (bukan lagi HPP x (1+Beban+NPM) dari channel_beban).
   hargaEl.value = hpp;
   hitungTotalJP();   // hitungTotalJP sudah me-render daftar "Akan Disimpan" (baris live)
 }
@@ -1521,427 +1275,10 @@ async function loadJurnalPenjualan() {
 // ─── FILTER WAKTU BERGAYA SHOPEE ─────────────────────────────
 var _jpWaktuMode = 'minggu-ini'; // default: Minggu Ini (18 Sep 2026, permintaan user — sebelumnya 7hari)
 
-function jpSetWaktu(mode) {
-  _jpWaktuMode = mode;
-  // Show/hide sub-input
-  var bulanWrap  = document.getElementById('jp-bulan-wrap');
-  var mingguWrap = document.getElementById('jp-minggu-wrap');
-  var tahunWrap  = document.getElementById('jp-tahun-wrap');
-  if (bulanWrap)  bulanWrap.style.display  = mode === 'bulan'  ? 'block' : 'none';
-  if (mingguWrap) mingguWrap.style.display = mode === 'minggu' ? 'flex'  : 'none';
-  if (tahunWrap)  tahunWrap.style.display  = mode === 'tahun'  ? 'block' : 'none';
-  jpUpdatePeriodeLabel();
-  jpUpdateBadge();
-  if (mode !== 'bulan' && mode !== 'minggu' && mode !== 'tahun') {
-    loadJurnalPenjualan();
-    // Tutup panel periode setelah pilih (kecuali mode yang butuh sub-input: bulan/minggu/tahun)
-    var panel = document.getElementById('jp-periode-panel');
-    if (panel) panel.style.display = 'none';
-    document.removeEventListener('click', jpClosePeriodeOutside);
-  }
-}
 
 // ─── HELPER: posisikan panel tepat di bawah tombol (fixed) ───
-function _jpPositionPanel(btnId, panelId) {
-  var btn   = document.getElementById(btnId);
-  var panel = document.getElementById(panelId);
-  if (!btn || !panel) return;
-  var rect = btn.getBoundingClientRect();
-  panel.style.top  = (rect.bottom + 4) + 'px';
-  panel.style.left = rect.left + 'px';
-}
 
-// ─── DEAD CODE (3 Okt 2026) ──────────────────────────────────
-// jpTogglePeriode / jpToggleChannel / panel radio & panel channel lama tidak lagi dipanggil
-// tombol manapun (diganti 1 tombol gabungan → jpPerSheetOpen). Dipertahankan apa adanya
-// (minim blast radius); hidden input di dalam panel-nya tetap dipakai sebagai state filter aktif.
-// ─── FILTER PANEL: PERIODE ───────────────────────────────────
-function jpTogglePeriode() {
-  var panel = document.getElementById('jp-periode-panel');
-  var chPanel = document.getElementById('jp-channel-panel');
-  if (!panel) return;
-  if (chPanel) { chPanel.style.display = 'none'; document.removeEventListener('click', jpCloseChannelOutside); }
-  var isOpen = panel.style.display !== 'none';
-  var activeBtn = window.innerWidth > 520 ? 'jp-periode-btn-laptop' : 'jp-periode-btn';
-  if (isOpen) {
-    panel.style.display = 'none';
-    document.removeEventListener('click', jpClosePeriodeOutside);
-  } else {
-    _jpPositionPanel(activeBtn, 'jp-periode-panel');
-    panel.style.display = 'block';
-    document.removeEventListener('click', jpClosePeriodeOutside); // jaga-jaga: pastikan nggak dobel sebelum pasang baru
-    setTimeout(function() {
-      document.addEventListener('click', jpClosePeriodeOutside);
-    }, 50);
-  }
-}
-function jpClosePeriodeOutside(e) {
-  var panel    = document.getElementById('jp-periode-panel');
-  var btnLap   = document.getElementById('jp-periode-btn-laptop');
-  var btnMob   = document.getElementById('jp-periode-btn');
-  var diDalamTombol = (btnLap && btnLap.contains(e.target)) || (btnMob && btnMob.contains(e.target));
-  if (panel && !panel.contains(e.target) && !diDalamTombol) {
-    panel.style.display = 'none';
-    document.removeEventListener('click', jpClosePeriodeOutside);
-  }
-}
-function jpResetPeriode() {
-  _jpWaktuMode = 'minggu-ini';
-  var radios = document.querySelectorAll('input[name="jp-waktu"]');
-  radios.forEach(function(r) { r.checked = r.value === 'minggu-ini'; });
-  var bulanWrap = document.getElementById('jp-bulan-wrap');
-  if (bulanWrap) bulanWrap.style.display = 'none';
-  var mingguWrap = document.getElementById('jp-minggu-wrap');
-  if (mingguWrap) mingguWrap.style.display = 'none';
-  var tahunWrap = document.getElementById('jp-tahun-wrap');
-  if (tahunWrap) tahunWrap.style.display = 'none';
-  jpUpdateBadge();
-  jpUpdatePeriodeLabel();
-  loadJurnalPenjualan();
-  var panel = document.getElementById('jp-periode-panel');
-  if (panel) panel.style.display = 'none';
-}
-
-// ─── FILTER PANEL: CHANNEL ───────────────────────────────────
-function jpToggleChannel() {
-  var panel = document.getElementById('jp-channel-panel');
-  var perPanel = document.getElementById('jp-periode-panel');
-  if (!panel) return;
-  if (perPanel) { perPanel.style.display = 'none'; document.removeEventListener('click', jpClosePeriodeOutside); }
-  var isOpen = panel.style.display !== 'none';
-  var activeCh = window.innerWidth > 520 ? 'jp-channel-btn-laptop' : 'jp-channel-btn';
-  if (isOpen) {
-    panel.style.display = 'none';
-    document.removeEventListener('click', jpCloseChannelOutside);
-  } else {
-    _jpPositionPanel(activeCh, 'jp-channel-panel');
-    panel.style.display = 'block';
-    document.removeEventListener('click', jpCloseChannelOutside); // jaga-jaga: pastikan nggak dobel sebelum pasang baru
-    setTimeout(function() {
-      document.addEventListener('click', jpCloseChannelOutside);
-    }, 50);
-  }
-}
-function jpCloseChannelOutside(e) {
-  var panel    = document.getElementById('jp-channel-panel');
-  var btnLap   = document.getElementById('jp-channel-btn-laptop');
-  var btnMob   = document.getElementById('jp-channel-btn');
-  var diDalamTombol = (btnLap && btnLap.contains(e.target)) || (btnMob && btnMob.contains(e.target));
-  if (panel && !panel.contains(e.target) && !diDalamTombol) {
-    panel.style.display = 'none';
-    document.removeEventListener('click', jpCloseChannelOutside);
-  }
-}
-function jpCloseChannelPanel() {
-  var panel = document.getElementById('jp-channel-panel');
-  if (panel) panel.style.display = 'none';
-  document.removeEventListener('click', jpCloseChannelOutside);
-}
-function jpResetChannel() {
-  var ch = document.getElementById('jp-filter-channel');
-  if (ch) ch.value = '';
-  jpUpdateBadge();
-  jpUpdateChannelLabel();
-  filterJP();
-  var panel = document.getElementById('jp-channel-panel');
-  if (panel) panel.style.display = 'none';
-}
-
-// ─── UPDATE LABEL TOMBOL ─────────────────────────────────────
-function jpUpdatePeriodeLabel() {
-  var map = {
-    'hari-ini':   'Hari Ini',
-    'kemarin':    'Kemarin',
-    '7hari':      '7 Hari',
-    'minggu-ini': 'Minggu Ini',
-    'minggu-lalu': 'Minggu Lalu',
-    'bulan-ini':  'Bulan Ini',
-    'hari':       'Hari',
-    'minggu':     'Minggu',
-    'bulan':      'Bulan',
-    'tahun':      'Tahun',
-    'semua':      'Semua'
-  };
-  var el = document.getElementById('jp-periode-label');
-  if (el) el.textContent = map[_jpWaktuMode] || 'Hari Ini';
-  // 3 Okt 2026 (HP saja): untuk Hari/Minggu/Bulan/Tahun tombol HP menampilkan pilihan
-  // sebenarnya (mis. "30 Sep"), bukan cuma kata "Hari". Label laptop di bawah tidak diubah.
-  if (el) { var _det = _jpPerSummary(); if (_det) el.textContent = _det; }
-  // sync laptop label
-  document.querySelectorAll('.jp-periode-label-sync').forEach(function(e){ e.textContent = map[_jpWaktuMode] || 'Hari Ini'; });
-}
-function jpUpdateChannelLabel() {
-  var inp = document.getElementById('jp-filter-channel');
-  var el  = document.getElementById('jp-channel-label');
-  if (!inp || !el) return;
-  var val = inp.value;
-  var label = !val ? 'Channel' : (_jpChannelMap[val] ? _jpChannelMap[val].nama : 'Channel');
-  el.textContent = label;
-  // sync laptop label
-  document.querySelectorAll('.jp-channel-label-sync').forEach(function(e){ e.textContent = label; });
-}
-
-function jpToggleFilter() {} // legacy stub — sudah diganti 2 panel
-function jpUpdateBadge() {
-  var mode    = _jpWaktuMode || 'minggu-ini';
-  var channel = (document.getElementById('jp-filter-channel') || {}).value || '';
-  // Badge Periode (titik indikator kalau filter bukan default)
-  var pBadge = document.getElementById('jp-periode-badge');
-  if (pBadge) pBadge.style.display = mode !== 'minggu-ini' ? 'inline' : 'none';
-  // Badge Channel
-  var cBadge = document.getElementById('jp-channel-badge');
-  if (cBadge) cBadge.style.display = channel ? 'inline' : 'none';
-  // Update label
-  jpUpdatePeriodeLabel();
-  jpUpdateChannelLabel();
-  _jpFilterBtnSync();   // 3 Okt 2026: label + titik indikator tombol gabungan
-}
-function jpResetFilter() {
-  jpResetPeriode();
-  jpResetChannel();
-}
-
-// ─── PILL DROPDOWN "BULAN" (26 Sep 2026) ─────────────────────
-// Ganti <input type="month"> native (bawaan OS, "norak" kata user) jadi
-// pill trigger + grid 12 bulan + nav tahun, pola sama kayak
-// _angEnsureBulanDD/angToggleBulanDD di anggaran.js (cuma beda: itu list
-// 12 bulan TERAKHIR gulir ke bawah, ini grid 3x4 per tahun + panah tahun —
-// lebih pas buat kebutuhan pilih bulan bebas lintas tahun).
-var _jpBulanDDYear = null;
 var _JP_NAMA_BULAN_PENDEK = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-
-function _jpBulanUpdateLabel() {
-  var val = (document.getElementById('jp-filter-bulan') || {}).value || '';
-  var lbl = document.getElementById('jp-bulan-label');
-  if (!lbl) return;
-  lbl.textContent = val ? new Date(val + '-01T00:00:00').toLocaleDateString('id-ID', {month:'long', year:'numeric'}) : 'Pilih bulan';
-}
-function _jpEnsureBulanDD() {
-  if (document.getElementById('jp-bulan-dropdown')) return;
-  var dd = document.createElement('div');
-  dd.id = 'jp-bulan-dropdown';
-  document.body.appendChild(dd);
-}
-function _jpRenderBulanDD() {
-  var dd = document.getElementById('jp-bulan-dropdown');
-  if (!dd) return;
-  var curVal = (document.getElementById('jp-filter-bulan') || {}).value || '';
-  var year = _jpBulanDDYear || (curVal ? parseInt(curVal.split('-')[0], 10) : new Date().getFullYear());
-  _jpBulanDDYear = year;
-  var html = '<div class="jp-bd-nav"><button type="button" onclick="_jpBulanDDNav(-1)">&#8249;</button>'
-    + '<span>' + year + '</span><button type="button" onclick="_jpBulanDDNav(1)">&#8250;</button></div>'
-    + '<div class="jp-bd-grid">';
-  for (var m = 0; m < 12; m++) {
-    var val = year + '-' + String(m + 1).padStart(2, '0');
-    html += '<button type="button" class="jp-bd-item' + (curVal === val ? ' active' : '') + '" onclick="jpSetBulanFromDD(&quot;' + val + '&quot;)">' + _JP_NAMA_BULAN_PENDEK[m] + '</button>';
-  }
-  html += '</div>';
-  dd.innerHTML = html;
-}
-function _jpBulanDDNav(dir) {
-  _jpBulanDDYear = (_jpBulanDDYear || new Date().getFullYear()) + dir;
-  _jpRenderBulanDD();
-}
-function jpToggleBulanDD(e) {
-  if (e) e.stopPropagation();
-  _jpEnsureBulanDD();
-  _jpRenderBulanDD();
-  var dd  = document.getElementById('jp-bulan-dropdown');
-  var btn = document.getElementById('jp-bulan-trigger');
-  if (!dd || !btn) return;
-  var isOpen = dd.classList.contains('open');
-  document.removeEventListener('click', _jpBulanDDOutside);
-  if (isOpen) { dd.classList.remove('open'); return; }
-  var rect = btn.getBoundingClientRect();
-  dd.style.top  = (rect.bottom + 6) + 'px';
-  dd.style.left = rect.left + 'px';
-  dd.classList.add('open');
-  setTimeout(function() { document.addEventListener('click', _jpBulanDDOutside); }, 50);
-}
-function _jpBulanDDOutside(e) {
-  var dd  = document.getElementById('jp-bulan-dropdown');
-  var btn = document.getElementById('jp-bulan-trigger');
-  if (dd && !dd.contains(e.target) && btn && !btn.contains(e.target)) {
-    dd.classList.remove('open');
-    document.removeEventListener('click', _jpBulanDDOutside);
-  }
-}
-function jpSetBulanFromDD(val) {
-  var inp = document.getElementById('jp-filter-bulan');
-  if (inp) inp.value = val;
-  _jpBulanUpdateLabel();
-  var dd = document.getElementById('jp-bulan-dropdown');
-  if (dd) dd.classList.remove('open');
-  document.removeEventListener('click', _jpBulanDDOutside);
-  loadJurnalPenjualan();
-  jpUpdateBadge();
-}
-
-// ─── KALENDER RANGE PICKER "MINGGU" (26 Sep 2026) ────────────
-// Ganti 2 <input type="date"> native jadi kalender dobel-bulan + shortcut
-// preset di kiri (pola tampilan mengikuti referensi user) — hasil pilihan
-// tetap ditulis ke #jp-filter-minggu-dari/#jp-filter-minggu-sampai (sekarang
-// hidden input) biar logic query di loadJurnalPenjualan() (mode 'minggu')
-// gak perlu diubah sama sekali.
-var _jpRangeState = { viewYear: 0, viewMonth: 0, start: null, end: null };
-var _JP_RANGE_PRESETS = [
-  ['hari-ini',    'Hari Ini'],
-  ['kemarin',     'Kemarin'],
-  ['7hari',       '7 Hari Terakhir'],
-  ['minggu-ini',  'Minggu Ini'],
-  ['minggu-lalu', 'Minggu Lalu'],
-  ['bulan-ini',   'Bulan Ini'],
-  ['bulan-lalu',  'Bulan Lalu'],
-  ['3bulan',      '3 Bulan Terakhir']
-];
-function _jpEnsureRangePanel() {
-  if (document.getElementById('jp-range-panel')) return;
-  var p = document.createElement('div');
-  p.id = 'jp-range-panel';
-  document.body.appendChild(p);
-}
-function _jpRangeMonthHtml(year, month) {
-  var namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  var dowLabels = ['M','S','S','R','K','J','S'];
-  var first     = new Date(year, month, 1);
-  var startDow  = first.getDay();
-  var daysInMonth = new Date(year, month + 1, 0).getDate();
-  var todayStr  = _jpLocalDate(new Date());
-  var st = _jpRangeState.start, en = _jpRangeState.end;
-  var html = '<div class="jp-rc-month"><div class="jp-rc-month-title">' + namaBulan[month] + ' ' + year + '</div><div class="jp-rc-grid">';
-  dowLabels.forEach(function(d) { html += '<div class="jp-rc-dow">' + d + '</div>'; });
-  for (var i = 0; i < startDow; i++) html += '<div></div>';
-  for (var d = 1; d <= daysInMonth; d++) {
-    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var cls = 'jp-rc-day';
-    if (dateStr === todayStr) cls += ' today';
-    if (st && dateStr === st) cls += ' range-start';
-    if (en && dateStr === en) cls += ' range-end';
-    if (st && !en && dateStr === st) cls += ' range-end';
-    if (st && en && dateStr > st && dateStr < en) cls += ' in-range';
-    html += '<div class="' + cls + '" onclick="_jpRangePick(&quot;' + dateStr + '&quot;)">' + d + '</div>';
-  }
-  html += '</div></div>';
-  return html;
-}
-function _jpRangeRender() {
-  var panel = document.getElementById('jp-range-panel');
-  if (!panel) return;
-  var y = _jpRangeState.viewYear, m = _jpRangeState.viewMonth;
-  var nextM = m === 11 ? 0 : m + 1, nextY = m === 11 ? y + 1 : y;
-  var presetsHtml = _JP_RANGE_PRESETS.map(function(p) {
-    return '<button type="button" class="jp-rp-item" onclick="_jpRangePreset(&quot;' + p[0] + '&quot;)">' + p[1] + '</button>';
-  }).join('');
-  var fmtLbl = function(s) { return s ? new Date(s + 'T00:00:00').toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'}) : '—'; };
-  var labelRange = fmtLbl(_jpRangeState.start) + '  →  ' + (fmtLbl(_jpRangeState.end) !== '—' ? fmtLbl(_jpRangeState.end) : fmtLbl(_jpRangeState.start));
-  panel.innerHTML = '<div id="jp-range-presets">' + presetsHtml + '</div>'
-    + '<div id="jp-range-body">'
-    +   '<div id="jp-range-nav">'
-    +     '<button type="button" class="jp-rn-btn" onclick="_jpRangeNav(-1)">&#8249; Sebelumnya</button>'
-    +     '<button type="button" class="jp-rn-btn" onclick="_jpRangeNav(1)">Berikutnya &#8250;</button>'
-    +   '</div>'
-    +   '<div id="jp-range-months">' + _jpRangeMonthHtml(y, m) + _jpRangeMonthHtml(nextY, nextM) + '</div>'
-    +   '<div id="jp-range-footer">'
-    +     '<span class="jp-rf-label">' + labelRange + '</span>'
-    +     '<span style="display:flex;gap:6px">'
-    +       '<button type="button" class="btn btn-sm" onclick="_jpRangeCancel()">Batal</button>'
-    +       '<button type="button" class="btn btn-sm btn-primary" onclick="_jpRangeApply()">Terapkan</button>'
-    +     '</span>'
-    +   '</div>'
-    + '</div>';
-}
-function _jpRangeNav(dir) {
-  var m = _jpRangeState.viewMonth + dir, y = _jpRangeState.viewYear;
-  if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
-  _jpRangeState.viewMonth = m; _jpRangeState.viewYear = y;
-  _jpRangeRender();
-}
-function _jpRangePick(dateStr) {
-  var st = _jpRangeState.start, en = _jpRangeState.end;
-  if (!st || (st && en)) {
-    _jpRangeState.start = dateStr;
-    _jpRangeState.end   = null;
-  } else if (dateStr < st) {
-    _jpRangeState.end   = st;
-    _jpRangeState.start = dateStr;
-  } else {
-    _jpRangeState.end = dateStr;
-  }
-  _jpRangeRender();
-}
-function _jpRangePreset(key) {
-  var now = new Date(), s, e;
-  if (key === 'hari-ini') { s = e = now; }
-  else if (key === 'kemarin') { s = e = new Date(now.getTime() - 86400000); }
-  else if (key === '7hari') { s = new Date(now.getTime() - 6 * 86400000); e = now; }
-  else if (key === 'minggu-ini') { s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()); e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6); }
-  else if (key === 'minggu-lalu') { var ts = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()); s = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate() - 7); e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6); }
-  else if (key === 'bulan-ini') { s = new Date(now.getFullYear(), now.getMonth(), 1); e = new Date(now.getFullYear(), now.getMonth() + 1, 0); }
-  else if (key === 'bulan-lalu') { s = new Date(now.getFullYear(), now.getMonth() - 1, 1); e = new Date(now.getFullYear(), now.getMonth(), 0); }
-  else if (key === '3bulan') { s = new Date(now.getFullYear(), now.getMonth() - 2, 1); e = now; }
-  else return;
-  _jpRangeState.start = _jpLocalDate(s);
-  _jpRangeState.end   = _jpLocalDate(e);
-  _jpRangeState.viewYear  = s.getFullYear();
-  _jpRangeState.viewMonth = s.getMonth();
-  _jpRangeRender();
-}
-function jpOpenRangePicker(e) {
-  if (e) e.stopPropagation();
-  _jpEnsureRangePanel();
-  var dari   = (document.getElementById('jp-filter-minggu-dari') || {}).value || '';
-  var sampai = (document.getElementById('jp-filter-minggu-sampai') || {}).value || '';
-  var anchor = dari ? new Date(dari + 'T00:00:00') : new Date();
-  _jpRangeState.start     = dari || null;
-  _jpRangeState.end       = sampai || null;
-  _jpRangeState.viewYear  = anchor.getFullYear();
-  _jpRangeState.viewMonth = anchor.getMonth();
-  _jpRangeRender();
-  var panel = document.getElementById('jp-range-panel');
-  var btn   = document.getElementById('jp-minggu-trigger');
-  if (!panel || !btn) return;
-  var rect = btn.getBoundingClientRect();
-  panel.style.top  = (rect.bottom + 6) + 'px';
-  panel.style.left = rect.left + 'px';
-  document.removeEventListener('click', _jpRangeOutside);
-  panel.classList.add('open');
-  setTimeout(function() { document.addEventListener('click', _jpRangeOutside); }, 50);
-}
-function _jpRangeOutside(e) {
-  var panel = document.getElementById('jp-range-panel');
-  var btn   = document.getElementById('jp-minggu-trigger');
-  if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
-    panel.classList.remove('open');
-    document.removeEventListener('click', _jpRangeOutside);
-  }
-}
-function _jpRangeCancel() {
-  var panel = document.getElementById('jp-range-panel');
-  if (panel) panel.classList.remove('open');
-  document.removeEventListener('click', _jpRangeOutside);
-}
-function _jpRangeApply() {
-  if (!_jpRangeState.start) { alert('Pilih tanggal dulu'); return; }
-  var s = _jpRangeState.start, e = _jpRangeState.end || _jpRangeState.start;
-  if (e < s) { var t = s; s = e; e = t; }
-  document.getElementById('jp-filter-minggu-dari').value   = s;
-  document.getElementById('jp-filter-minggu-sampai').value = e;
-  _jpMingguLabelUpdate();
-  var panel = document.getElementById('jp-range-panel');
-  if (panel) panel.classList.remove('open');
-  document.removeEventListener('click', _jpRangeOutside);
-  loadJurnalPenjualan();
-  jpUpdateBadge();
-}
-function _jpMingguLabelUpdate() {
-  var dari   = (document.getElementById('jp-filter-minggu-dari') || {}).value || '';
-  var sampai = (document.getElementById('jp-filter-minggu-sampai') || {}).value || '';
-  var lbl    = document.getElementById('jp-minggu-range-label');
-  if (!lbl) return;
-  if (!dari) { lbl.textContent = 'Pilih tanggal'; return; }
-  var fmt = function(s) { var d = new Date(s + 'T00:00:00'); return d.toLocaleDateString('id-ID', {day:'2-digit', month:'short'}); };
-  lbl.textContent = (sampai && sampai !== dari) ? (fmt(dari) + ' – ' + fmt(sampai)) : fmt(dari);
-}
 
 // ═══ PICKER FILTER (PERIODE + CHANNEL) — 1 SHEET UNTUK HP & LAPTOP (3 Okt 2026) ═══
 // Menggantikan 2 tombol terpisah (Periode & Channel) dan 2 sistem picker
@@ -1961,10 +1298,7 @@ function _jpMingguLabelUpdate() {
 // Preset "Bulan Lalu / 3 Bulan Terakhir" disimpan sebagai mode 'minggu'
 // (rentang dari-sampai) supaya query & chart tidak perlu diubah; labelnya dikenali
 // lagi lewat _jpPerPresetOf().
-// Panel lama (#jp-periode-panel, #jp-channel-panel, jpTogglePeriode, jpToggleChannel,
-// range picker 2 bulan) TIDAK dihapus: sekarang tidak dipanggil tombol manapun (dead
-// code), tapi hidden input di dalamnya (jp-filter-minggu-*, jp-filter-bulan,
-// jp-filter-tahun, jp-filter-channel) masih dipakai sebagai penyimpan state aktif.
+// State aktif disimpan di hidden input #jp-filter-state (dibuat IIFE "STATE FILTER AKTIF").
 var _JP_PER_ITEMS = [
   { k: 'minggu-ini',  l: 'Minggu Ini' },
   { k: 'minggu-lalu', l: 'Minggu Lalu' },   // 3 Okt 2026: mode sendiri (bukan preset rentang tanggal) supaya ikut cutoff Sabtu 19.30
@@ -2099,13 +1433,6 @@ function jpPerSheetOpen() {
   var ov = document.getElementById('jp-per-overlay');
   var sh = document.getElementById('jp-per-sheet');
   if (!ov || !sh) return;
-  // Tutup panel lama (periode & channel) kalau kebetulan masih terbuka
-  var pp = document.getElementById('jp-periode-panel');
-  if (pp) pp.style.display = 'none';
-  document.removeEventListener('click', jpClosePeriodeOutside);
-  var cp = document.getElementById('jp-channel-panel');
-  if (cp) cp.style.display = 'none';
-  document.removeEventListener('click', jpCloseChannelOutside);
   _jpDraft = _jpPerCommitted();
   _jpPer.view = 'list';
   _jpPer.tab  = 'periode';
@@ -2285,15 +1612,6 @@ function _jpPerOpenSub(k) {
 }
 
 // Sinkronkan state panel lama (radio + sub-input) biar tetap konsisten dengan filter aktif.
-function _jpPerSyncDesktopPanel(mode) {
-  document.querySelectorAll('input[name="jp-waktu"]').forEach(function(r) { r.checked = (r.value === mode); });
-  var bw = document.getElementById('jp-bulan-wrap');
-  var mw = document.getElementById('jp-minggu-wrap');
-  var tw = document.getElementById('jp-tahun-wrap');
-  if (bw) bw.style.display = mode === 'bulan'  ? 'block' : 'none';
-  if (mw) mw.style.display = mode === 'minggu' ? 'flex'  : 'none';
-  if (tw) tw.style.display = mode === 'tahun'  ? 'block' : 'none';
-}
 function _jpPerSetVal(id, val) {
   var el = document.getElementById(id);
   if (el) el.value = val;
@@ -2313,11 +1631,8 @@ function jpFilterApply() {
   _jpPerSetVal('jp-filter-bulan', d.bulan);
   _jpPerSetVal('jp-filter-tahun', d.tahun);
   _jpPerSetVal('jp-filter-channel', d.ch || '');
-  _jpMingguLabelUpdate();
-  _jpBulanUpdateLabel();
-  _jpPerSyncDesktopPanel(d.mode);
   jpPerSheetClose();
-  jpUpdateBadge();          // sekaligus memperbarui label tombol gabungan (_jpFilterBtnSync)
+  _jpFilterBtnSync();       // perbarui label + titik indikator tombol gabungan
   if (periodeBerubah)      loadJurnalPenjualan();   // fetch ulang, filterJP() dipanggil di dalamnya
   else if (channelBerubah) filterJP();              // data periode sama, cukup saring ulang
 }
@@ -2519,16 +1834,6 @@ async function jpLoadTargetHarian() {
 }
 
 // Helper: buat item channel custom dropdown
-function _jpChItem(id, label, _unused, _unused2) {
-  var curVal = (document.getElementById('jp-filter-channel') || {}).value || '';
-  var active = String(id) === String(curVal) || (id === '' && curVal === '');
-  return '<div data-ch-id="' + id + '" style="padding:8px 12px;cursor:pointer;font-size:13px;font-weight:' + (active?'700':'500') + ';border-radius:6px;margin:1px 4px;'
-    + 'background:' + (active ? 'var(--ink)' : 'transparent') + ';'
-    + 'color:' + (active ? 'var(--cream)' : 'var(--ink)') + ';transition:background .1s,color .1s"'
-    + ' onmouseover="if(this.getAttribute(\'data-active\')!==\'1\'){this.style.background=\'var(--cream3)\';this.style.color=\'var(--ink)\'}"'
-    + ' onmouseout="if(this.getAttribute(\'data-active\')!==\'1\'){this.style.background=\'transparent\'}">'
-    + label + '</div>';
-}
 
 // ─── CHART TREN PENJUALAN (gaya Shopee) ───────────────────────
 // Granularitas otomatis: hari-ini/kemarin → per jam (00:00-23:00),
@@ -2609,7 +1914,6 @@ function _jpRenderChartTren(data, _retry, _token) {
     }
   }
 
-  const totalAll = totals.reduce((a,b) => a+b, 0);
   // 19 Sep 2026: ringkasan performa tertinggi — MOBILE ONLY, isi ruang
   // kosong di kartu Tren Penjualan setelah Best Seller/Channel dipindah
   // jadi swipe-pair sendiri. Aman dipanggil di sini walau div-nya
@@ -3364,16 +2668,6 @@ function showTambahJP() {
   document.getElementById('jp-channel').value = chVal;
   var lblC = document.getElementById('jp-picker-channel-label');
   if (lblC) { lblC.textContent = chLabel; lblC.style.color = chVal ? 'var(--ink)' : 'var(--ink3)'; }
-  // Tandai aktif di picker list
-  setTimeout(function() {
-    var list = document.getElementById('jp-picker-channel-list');
-    if (list && chVal) {
-      list.querySelectorAll('.kas-akun-item').forEach(function(el) {
-        el.classList.toggle('active', el.dataset.val === chVal);
-      });
-    }
-  }, 200);
-
   jpTutupDropdownSKU();
   _jpChProdukCache = { chId: null, set: null };   // selalu baca ulang channel_produk (bisa berubah di menu Channel)
   loadProdukListJP();
@@ -3724,75 +3018,21 @@ function jpHapusDariModal() {
 }
 
 // ─── EXPORT ──────────────────────────────────────────────────
-async function exportJurnalPenjualan() {
-  try {
-    const data = await dbGet('jurnal_penjualan', '&order=tanggal.asc');
-    if (!data || !data.length) { alert('Belum ada data penjualan'); return; }
-    const headers = ['Tanggal','Waktu','Channel','SKU','Qty','Harga Satuan','Total'];
-    const rows = data.map(r => {
-      const ch = _jpChannelMap[r.channel_id];
-      return [r.tanggal, r.waktu||'', ch?ch.nama:'', r.sku, r.qty, r.harga_satuan, r.total];
-    });
-    exportCSV('zenoot-jurnal-penjualan.csv', headers, rows);
-  } catch(err) { alert('Gagal export: ' + err.message); }
-}
 
-// ─── INJECT PANEL PERIODE & CHANNEL KE BODY (sama seperti jp-sku-dropdown) ───
-// Alasan: .content punya overflow-y:scroll → position:fixed di dalamnya
-// tidak bekerja benar di semua browser. Solusi: mount ke body langsung.
+// ─── STATE FILTER AKTIF (hidden input) ───────────────────────
+// Penyimpan nilai filter periode & channel yang dibaca loadJurnalPenjualan()/filterJP().
+// Ditulis oleh sheet filter (jpFilterApply). Di-mount ke body supaya tidak tergantung layout halaman.
 (function() {
-  // Panel Periode
-  if (!document.getElementById('jp-periode-panel')) {
-    var pp = document.createElement('div');
-    pp.id = 'jp-periode-panel';
-    pp.style.cssText = 'display:none;position:fixed;top:0;left:0;z-index:99999;'
-      + 'background:var(--cream);border:2px solid var(--ink);min-width:210px;'
-      + 'box-shadow:3px 4px 0 rgba(0,0,0,0.13)';
-    pp.innerHTML = '<div style="padding:10px 12px">'
-      + '<div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:7px;letter-spacing:.5px">Pilih Periode</div>'
-      + '<div id="jp-waktu-opts" style="display:flex;flex-direction:column;gap:3px">'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="hari-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Hari Ini</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="kemarin" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Kemarin</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="7hari" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> 7 Hari Terakhir</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu-ini" checked onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu Ini</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan-ini" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan Ini</label>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="minggu" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Minggu</label>'
-      + '<div id="jp-minggu-wrap" style="display:none;padding-left:20px;margin-top:2px">'
-      + '<button type="button" class="jp-btn-pill" id="jp-minggu-trigger" onclick="jpOpenRangePicker(event)">'
-      + '<i class="ti ti-calendar"></i><span id="jp-minggu-range-label">Pilih tanggal</span></button>'
-      + '<input type="hidden" id="jp-filter-minggu-dari">'
-      + '<input type="hidden" id="jp-filter-minggu-sampai">'
-      + '</div>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="bulan" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Bulan</label>'
-      + '<div id="jp-bulan-wrap" style="display:none;padding-left:20px;margin-top:2px">'
-      + '<button type="button" class="jp-btn-pill" id="jp-bulan-trigger" onclick="jpToggleBulanDD(event)">'
-      + '<i class="ti ti-calendar"></i><span id="jp-bulan-label">Pilih bulan</span></button>'
-      + '<input type="hidden" id="jp-filter-bulan">'
-      + '</div>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="tahun" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Tahun</label>'
-      + '<div id="jp-tahun-wrap" style="display:none;padding-left:20px;margin-top:2px">'
-      + '<input type="number" id="jp-filter-tahun" min="2015" max="2100" step="1" style="font-family:var(--f);font-size:12px;padding:3px 6px;border:1.5px solid var(--ink3);background:var(--cream);width:100%;box-sizing:border-box" oninput="loadJurnalPenjualan();jpUpdateBadge()">'
-      + '</div>'
-      + '<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="radio" name="jp-waktu" value="semua" onchange="jpSetWaktu(this.value)" style="cursor:pointer"> Semua</label>'
-      + '</div>'
-      + '</div>';
-    document.body.appendChild(pp);
-  }
-
-  // Panel Channel
-  if (!document.getElementById('jp-channel-panel')) {
-    var cp = document.createElement('div');
-    cp.id = 'jp-channel-panel';
-    cp.style.cssText = 'display:none;position:fixed;top:0;left:0;z-index:99999;'
-      + 'background:var(--cream2);border:none;min-width:200px;border-radius:10px;'
-      + 'box-shadow:0 8px 32px rgba(0,0,0,0.6),0 2px 8px rgba(0,0,0,0.4)';
-    cp.innerHTML = '<div style="padding:8px 6px">'
-      + '<div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px;padding:0 8px">Pilih Channel</div>'
-      + '<div id="jp-channel-list" style="max-height:260px;overflow-y:auto"></div>'
-      + '<input type="hidden" id="jp-filter-channel" value="">'
-      + '</div>';
-    document.body.appendChild(cp);
-  }
+  if (document.getElementById('jp-filter-state')) return;
+  var st = document.createElement('div');
+  st.id = 'jp-filter-state';
+  st.style.display = 'none';
+  st.innerHTML = '<input type="hidden" id="jp-filter-minggu-dari">'
+    + '<input type="hidden" id="jp-filter-minggu-sampai">'
+    + '<input type="hidden" id="jp-filter-bulan">'
+    + '<input type="hidden" id="jp-filter-tahun">'
+    + '<input type="hidden" id="jp-filter-channel" value="">';
+  document.body.appendChild(st);
 })();
 (function() {
   if (document.getElementById('jp-sku-dropdown')) return;
@@ -3826,9 +3066,7 @@ _jpWaktuMode = 'minggu-ini';
     var lastWeekEnd    = new Date(lastWeekStart.getFullYear(), lastWeekStart.getMonth(), lastWeekStart.getDate() + 6);
     mDariEl.value   = _jpLocalDate(lastWeekStart);
     mSampaiEl.value = _jpLocalDate(lastWeekEnd);
-    _jpMingguLabelUpdate();
   }
-  _jpBulanUpdateLabel();
   // Sedikit delay agar DOM inject selesai di semua engine (terutama iOS WebKit)
   setTimeout(function() {
     Promise.all([
@@ -3901,81 +3139,6 @@ document.addEventListener('zenot:page', function(e) {
 
 // ─── JP CUSTOM PICKER ENGINE ─────────────────────────────────
 
-function jpTogglePicker(pickerId) {
-  var picker = document.getElementById(pickerId);
-  var list   = document.getElementById(pickerId + '-list');
-  if (!picker || !list) return;
-  // Tutup semua picker jp lain
-  document.querySelectorAll('.kas-akun-list').forEach(function(el) {
-    if (el.id !== pickerId + '-list') jpClosePicker(el);
-  });
-  if (list.style.display === 'block') { jpClosePicker(list); return; }
-
-  // Inject search box jika belum ada
-  if (!list.querySelector('.kas-akun-search-wrap')) {
-    var wrap = document.createElement('div');
-    wrap.className = 'kas-akun-search-wrap';
-
-    var searchIcon = document.createElement('span');
-    searchIcon.className = 'kas-akun-search-icon';
-    searchIcon.textContent = '🔍';
-
-    var searchInp = document.createElement('input');
-    searchInp.className = 'kas-akun-search';
-    searchInp.type = 'text';
-    searchInp.placeholder = 'Cari...';
-    searchInp.autocomplete = 'off';
-    searchInp.setAttribute('autocorrect', 'off');
-    searchInp.setAttribute('autocapitalize', 'none');
-    searchInp.setAttribute('spellcheck', 'false');
-
-    function _stopProp(ev) { ev.stopPropagation(); }
-    searchInp.addEventListener('mousedown',   _stopProp);
-    searchInp.addEventListener('touchstart',  _stopProp, { passive: true });
-    searchInp.addEventListener('pointerdown', _stopProp);
-    searchInp.addEventListener('input', function() { kasPickerFilter(searchInp); });
-
-    searchInp.addEventListener('touchend', function(ev) {
-      ev.stopPropagation();
-      setTimeout(function() { searchInp.focus(); }, 50);
-    }, { passive: false });
-
-    wrap.appendChild(searchIcon);
-    wrap.appendChild(searchInp);
-    list.insertBefore(wrap, list.firstChild);
-  }
-
-  // Reset search & tampilkan semua item
-  var inp = list.querySelector('.kas-akun-search');
-  if (inp) inp.value = '';
-  list.querySelectorAll('.kas-akun-item,.kas-akun-group,.kas-akun-empty').forEach(function(el) { el.style.display = ''; });
-  var emp = list.querySelector('.kas-akun-empty');
-  if (emp) emp.style.display = 'none';
-
-  // Tandai baru dibuka — cegah unified outside handler (app.js) langsung
-  // nutup ulang saat browser auto-scroll modal untuk bring search input
-  // yang baru di-focus ke viewport (root cause: harus klik 2x sebelum
-  // field "Cari..." kepakai — klik pertama kebuka lalu langsung ke-close
-  // oleh scroll listener karena guard ini sebelumnya tidak dipanggil di sini,
-  // beda dengan kasTogglePicker/keuTogglePicker yang sudah pasang guard ini).
-  if (typeof window._kasPickerJustOpened === 'function') window._kasPickerJustOpened();
-
-  // Float ke body agar tidak terpotong overflow modal
-  var rect = picker.getBoundingClientRect();
-  list.style.position  = 'fixed';
-  list.style.top       = (rect.bottom + 2) + 'px';
-  list.style.left      = rect.left + 'px';
-  list.style.width     = rect.width + 'px';
-  list.style.maxWidth  = '360px';
-  list.style.zIndex    = '99999';
-  list.dataset.floated = '1';
-  list.style.display   = 'block';
-  if (list.parentNode !== document.body) document.body.appendChild(list);
-
-  // Auto-focus search — skip iOS Safari
-  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (inp && !_isIOS) setTimeout(function() { inp.focus(); }, 80);
-}
 
 function jpClosePicker(list) {
   if (!list) return;
@@ -3994,9 +3157,6 @@ function jpClosePicker(list) {
   }
   list.style.display = 'none';
 }
-
-// (jpPickerChannelSelect lama dicabut 4 Sep 2026 — diganti jpSkuSheetSelectChannel
-// yang pakai sheet BRImo baru, sama pola kayak SKU Induk/Variasi.)
 
 
 // ─── PICKER BOTTOM SHEET (BRImo-style): SKU Induk & SKU Variasi ──
@@ -4306,7 +3466,6 @@ function jpSkuSheetSelectChannel(id) {
 }
 
 // Reset label picker variasi saat katalog/modal reset
-var _jpOrigCloseModal = window.closeModalJP;
 if (typeof closeModalJP === 'function') {
   var _jpOrigClose2 = closeModalJP;
   window.closeModalJP = function() {

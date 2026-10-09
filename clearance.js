@@ -75,7 +75,6 @@ document.getElementById('page-clearance').innerHTML = `
 `;
 
 // Submenu panels — mount ke body saat pertama dibuka
-let _clSubPanels = {};
 
 setTimeout(() => {
   if (typeof rerenderUI === 'function') rerenderUI(document.getElementById('page-clearance'));

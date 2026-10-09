@@ -71,6 +71,7 @@
 // (45) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): label minicard jadi ADM+LYN+BFR (sejajar ikon (?)); Net Income ditambah persen (Net Income ÷ Harga Jual = NPM + Ops) di kiri, IDR di kanan.
 // (46) [8 Okt 2026] Check Admin (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): ikon (?) di minicard hasil disejajarkan (label 1 baris, tanpa baris tambahan) & diperkecil 12px, kecuali minicard Adm+Lyn+Bfr (ukuran tetap, punya dialog rinci).
 // (47) [8 Okt 2026] Setting: Minimum Profit Toko diganti NET INCOME TOKO (satu acuan MASUK/TIDAK MASUK + dasar Harga Minimum di semua tab Proyeksi Harga; Ops tidak ikut penyebut) — semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah (lihat catatan 12).
+// (48) [9 Okt 2026] Sweep dead code (aturan baru: dilarang ada dead code). Di analisis.html: fungsi/markup/blok komentar mati dihapus; di file ini: CSS mati dihapus. Catatan ini hanya supaya hash build (APP_BUILD) berubah.
 (function () {
   var pageEl = document.getElementById('page-analisis');
   if (!pageEl) return;
@@ -258,8 +259,6 @@
     'html.zan-phone #btnHasilPeriodM #hasilPeriodLabelM{min-width:0;overflow:hidden;text-overflow:ellipsis;}',
     'html.zan-phone #btnHasilPeriodM .hp-full{display:none;}',
     'html.zan-phone #btnHasilPeriodM .hp-short{display:inline;}',
-    // [21 Sep 2026] DINONAKTIFKAN (tombol PDF Mingguan pindah ke sejajar kartu Net Income). Rule lama dipertahankan di sini biar gampang balik:
-    //   #btnExportPDFM{position:fixed;top:8px;right:12px;width:48px;height:40px;...;font-size:0;} + #btnExportPDFM::after{content:"PDF";...}
     // [21 Sep 2026] margin-right badge toko 56px -> 0 (tombol PDF sudah tidak ada di header)
     // [23 Sep 2026] ikut proporsi tombol periode baru: margin-left 35% (30% lebar tombol + 5% jarak), badge sisanya 65%
     'html.zan-phone[data-zan-page="hasilM"] #storeTopbar .store-badge{margin-left:calc((100vw - 24px) * .28);margin-right:0;}',
@@ -360,10 +359,6 @@
     'html.zan-phone #hasilWrapP .stat-card > :nth-child(n+3){font-size:11px !important;margin-top:1px !important;}',
 
     // ══ Teks yang menunjuk tombol/kolom khusus laptop → diganti kalimat yang masuk akal di HP (teks aslinya disembunyikan lewat font-size:0) ══
-    // [23 Sep 2026] DEAD CODE: <p> penjelasan HPP Produk di analisis.html sudah diganti jadi ikon (?) info-tip (sebelah tombol "Belum Diisi"),
-    // jadi selector di bawah ini sekarang tidak match apapun (aman, tidak berefek). Dipertahankan apa adanya — minim blast radius.
-    'html.zan-phone #page-hpp .page-head p{font-size:0;}',
-    'html.zan-phone #page-hpp .page-head p::after{content:"HPP dibaca langsung dari Kelola Produk zenOt (SKU Variasi = Nomor Referensi SKU) \\2014  tidak bisa diubah di sini. Ubah atau tambah HPP di Kelola Produk, lalu klik \u201CMuat ulang HPP\u201D. Upload data dilakukan dari laptop.";display:block;font-size:13px;line-height:1.5;}',
     // [23 Sep 2026] HPP Produk di HP: tabel dipadatkan jadi 3 kolom (SKU Induk, Nama Variasi, HPP) — Nama Produk & Nomor Referensi SKU
     // disembunyikan (kepanjangan buat layar sempit, isinya juga sudah terwakili SKU Induk+Variasi). Kelasnya ditambahkan di renderHPP() (analisis.html).
     'html.zan-phone #page-hpp .hpp-col-namaproduk,html.zan-phone #page-hpp .hpp-col-nomorref{display:none;}',
@@ -393,8 +388,7 @@
     'html.zan-phone #proyeksiView-input .rks-shell,html.zan-phone #byqtyView-input .rks-shell{display:block;}',
     'html.zan-phone #proyeksiInputPanel,html.zan-phone #byqtyInputPanel{width:100%;flex:none;margin-top:10px;}',
     // [21 Sep 2026] By Harga Jual: sama seperti By Target Qty — hasil di atas, panel Input di bawah, satu kolom
-    // [22 Sep 2026] By Harga Jual di HP = SWIPE 4 halaman dengan indikator ●●●● (lihat byhCss). Rule lama (satu kolom, panel Input di bawah hasil) dipertahankan di sini biar gampang balik:
-    //   html.zan-phone #byhargaView-input .rks-shell{display:block;} | html.zan-phone #byhargaInputPanel{width:100%;flex:none;margin-top:10px;} | html.zan-phone .byh-cols{grid-template-columns:1fr;gap:10px;} | html.zan-phone .byh-col{gap:10px;}
+    // [22 Sep 2026] By Harga Jual di HP = SWIPE 4 halaman dengan indikator ●●●● (lihat byhCss).
     byhCss(),
     'html.zan-phone .pricelist-scroll{max-height:none;}',
     // [7 Okt 2026] Price List (halaman sendiri): HP mengalir biasa; tabel 3 kolom (SKU, NET, HPP) pas layar tanpa scroll samping — kolom Operasional (nilainya sama di semua baris, sudah ada di minicard) disembunyikan
@@ -738,7 +732,7 @@
     if (e.detail && e.detail.page === 'analisis') { ensureFrame(); sendGoto(); }
   });
 
-  // Pindah ke halaman Analisis tertentu (kunci data-page) — dipakai internal & dipertahankan buat kompatibilitas
+  // Pindah ke halaman Analisis tertentu (kunci data-page) — dipakai internal
   window.analisisGoto = function (sub, btn) {
     if (isPhone() && !phoneOk(sub)) sub = PHONE_HOME;   // HP: halaman yang belum punya konsep HP dialihkan ke RKS Overview
     pendingPage = sub;

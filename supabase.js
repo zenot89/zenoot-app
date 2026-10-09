@@ -310,9 +310,6 @@ function _zTouchActive() { try { sessionStorage.setItem(_Z_ACTIVE_KEY, String(Da
 function _zActiveAge() {
   try { var v = Number(sessionStorage.getItem(_Z_ACTIVE_KEY)); return v ? Date.now() - v : Infinity; } catch (e) { return Infinity; }
 }
-function _zWaitUnlocked() {
-  return _zLocked ? new Promise(function(r) { _zLockWaiters.push(r); }) : Promise.resolve();
-}
 function _zLockErr(e) {
   var n = e && e.name;
   if (n === 'NotAllowedError') return 'Dibatalkan atau waktu habis. Coba lagi.';
@@ -353,10 +350,6 @@ async function zLockEnable() {
   _zTouchActive();
 }
 
-function _zDlg(msg) {
-  if (typeof zAlert === 'function') return Promise.resolve(zAlert(msg));
-  alert(msg); return Promise.resolve();
-}
 function _zLockRefreshBtn() {
   var b = document.getElementById('btn-lock');
   if (!b) return;
@@ -840,9 +833,6 @@ async function zAuthSelfTest() {
   return { terbuka: terbuka, ditolak: aman, lain: lain };
 }
 
-// _ensureAuth() dipertahankan (dead code, tidak ada pemanggil) — sekarang mengembalikan access token user.
-async function _ensureAuth() { return _zGetToken(); }
-
 function _headers(extra) {
   const h = {
     'apikey':        SUPABASE_KEY,
@@ -855,9 +845,6 @@ function _headers(extra) {
   return h;
 }
 
-async function _headersAsync(extra) {
-  return _headers(extra);
-}
 
 // ─── DB FUNCTIONS ─────────────────────────────────────────────
 async function dbGet(table, filter) {

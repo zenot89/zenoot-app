@@ -885,7 +885,7 @@ document.getElementById('page-gadag').innerHTML = `
 <!-- MODAL: SKU (bottom-sheet, keyboard-safe via visualViewport — disamain
      sama pola "Catatan Pendapatan", 6 Sep 2026. Sengaja DIDUPLIKASI jadi
      fungsi sendiri, bukan digeneralisir/parameterized, ngikutin konvensi
-     yang udah ada di file ini (lihat komentar di gdgAngOpenSheet) biar kode
+     yang udah ada di file ini biar kode
      Pendapatan yang udah proven-stable ga ikut kesenggol. -->
 <div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-sku" onclick="gdgOverlayClose(event,'modal-gdg-sku', gdgCloseSkuModal)">
   <div class="modal gdg-sheet" id="gdg-sku-sheet" style="max-width:400px;width:100%;padding:0">
@@ -965,8 +965,7 @@ document.getElementById('page-gadag').innerHTML = `
 
 <!-- SHEET BARU (7 Sep 2026): Pilih Akun buat Variable Anggaran Gadag —
      checkbox multi-select dari SEMUA akun Beban/Kewajiban Kas, GANTIIN
-     modal single-add lama (modal-gdg-ang2 di bawah, sekarang dead code,
-     gak dipanggil dari sini lagi). Nominal per baris CUMA info (live dari
+     modal single-add lama. Nominal per baris CUMA info (live dari
      kas_anggaran / _gdgKasAnggaranByNama, read-only) — checkbox nentuin
      SELEKSI doang, nominal gak bisa diedit di sini (ubahnya di halaman
      Anggaran Kas). Centang/uncentang lalu [Simpan] → di-diff ke
@@ -992,67 +991,6 @@ document.getElementById('page-gadag').innerHTML = `
         <button class="btn" onclick="gdgAngPilihAkunClose()">Batal</button>
         <button class="btn btn-primary" onclick="gdgAngPilihAkunSimpan()"><i class="ti ti-check"></i> Simpan</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: VARIABLE ANGGARAN (bottom-sheet, konsisten sama Catatan Pendapatan —
-     bukan modal "mengambang" di tengah lagi) -->
-<!-- [DEAD CODE per 7 Sep 2026 — GAK DIPANGGIL dari mana pun lagi (gdgAngShowAdd/
-     gdgAngShowEdit/gdgAngHistPilihAkun semua udah dialihin ke sheet checkbox
-     "Pilih Akun" di atas). Dipertahanin apa adanya (bukan dihapus) buat minim
-     blast radius — modal ini + gdgAngSimpan/gdgAngHapusDariModal/dst masih
-     tersambung satu sama lain, aman kalau ada yang kelewat manggil.] -->
-<div class="modal-overlay gdg-sheet-overlay" id="modal-gdg-ang2" onclick="gdgOverlayClose(event,'modal-gdg-ang2', gdgAngCloseModal)">
-  <div class="modal gdg-sheet" id="gdg-ang2-sheet" style="max-width:420px;width:100%;padding:0">
-    <div id="gdg-ang2-sheet-handle" class="gdg-sheet-handle"><span></span></div>
-    <div class="gdg-sheet-body" style="padding:0 16px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px" id="gdg-ang2-modal-title">
-        <i class="ti ti-plus"></i> Tambah Variable
-      </div>
-      <button onclick="gdgAngCloseModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-    </div>
-    <input type="hidden" id="gdg-ang2-edit-id">
-    <div class="form-group" style="margin-bottom:8px;position:relative">
-      <label>Nama (dari Daftar Akun)</label>
-      <input type="text" id="gdg-ang2-nama-input" readonly placeholder="— pilih akun —"
-        onclick="gdgAngAkunPickerOpen()"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box;cursor:pointer">
-    </div>
-    <div class="form-group" style="margin-bottom:8px">
-      <label>Nominal Bulanan (Rp)</label>
-      <input type="text" inputmode="numeric" id="gdg-ang2-nominal-input" placeholder="contoh: 800.000"
-        oninput="gdgFormatRibuan(this)"
-        style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-      <div style="font-size:11px;color:var(--ink3);margin-top:4px">Ini nominal per bulan. Di tampilan Mingguan otomatis dibagi 4, gak perlu diisi terpisah.</div>
-    </div>
-    <!-- Jatuh Tempo — OPSIONAL, default OFF, buat tagihan kayak Kontrakan/WiFi.
-         Cuma buat DITAMPILIN (badge "tgl X"), BUKAN penggerak status Lunas —
-         realisasi/progress tetep dihitung sama rata (bulan kalender berjalan)
-         buat semua akun, ada Tempo atau nggak. -->
-    <div class="form-group" style="margin-bottom:8px">
-      <div class="gdg-ang-periode-toggle" style="width:fit-content">
-        <button type="button" id="gdg-ang2-tempo-toggle" class="gdg-ang-periode-btn" onclick="gdgAngModalToggleTempo()"><i class="ti ti-calendar-due"></i> Jatuh Tempo</button>
-      </div>
-    </div>
-    <input type="hidden" id="gdg-ang2-tempo-aktif" value="0">
-    <div id="gdg-ang2-bulanan-fields" style="display:none">
-      <div class="form-group" style="margin-bottom:16px">
-        <label>Jatuh tempo tanggal berapa</label>
-        <input type="number" min="1" max="28" id="gdg-ang2-tempo-input" placeholder="contoh: 20"
-          style="width:100%;font-family:var(--f);font-size:14px;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);box-sizing:border-box">
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <button id="gdg-ang2-modal-hapus" class="btn btn-sm btn-danger" onclick="gdgAngHapusDariModal()" style="display:none">
-        <i class="ti ti-trash"></i> Hapus
-      </button>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-left:auto">
-        <button class="btn" onclick="gdgAngCloseModal()">Batal</button>
-        <button class="btn btn-primary" onclick="gdgAngSimpan()"><i class="ti ti-check"></i> Simpan</button>
-      </div>
-    </div>
     </div>
   </div>
 </div>
@@ -1634,49 +1572,6 @@ function gdgWSetMode(mode) {
 }
 
 // Prev/Next — perilaku tergantung mode
-function gdgWPrev() {
-  if (_gdgWMode === 'minggu-ini') return; // minggu ini = fixed, prev ga ngapa-ngapain
-  if (_gdgWMode === 'per-minggu') {
-    _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() - 7);
-  } else if (_gdgWMode === 'bulan-ini') {
-    return; // bulan ini = fixed ke bulan berjalan
-  } else if (_gdgWMode === 'per-bulan') {
-    _gdgWBulanRef.setMonth(_gdgWBulanRef.getMonth() - 1);
-  } else if (_gdgWMode === 'custom') {
-    // Geser range custom sebesar durasi range itu sendiri
-    if (_gdgWCustomDari && _gdgWCustomSampai) {
-      const dur = Math.round((_gdgWCustomSampai - _gdgWCustomDari) / 86400000) + 1;
-      _gdgWCustomDari.setDate(_gdgWCustomDari.getDate() - dur);
-      _gdgWCustomSampai.setDate(_gdgWCustomSampai.getDate() - dur);
-      const dariEl   = document.getElementById('gdgw-custom-dari');
-      const sampaiEl = document.getElementById('gdgw-custom-sampai');
-      if (dariEl)   dariEl.value   = gdgWToISO(_gdgWCustomDari);
-      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgWCustomSampai);
-    }
-  }
-  gdgWRenderWeek();
-}
-function gdgWNext() {
-  if (_gdgWMode === 'minggu-ini') return;
-  if (_gdgWMode === 'per-minggu') {
-    _gdgWWeekStart.setDate(_gdgWWeekStart.getDate() + 7);
-  } else if (_gdgWMode === 'bulan-ini') {
-    return;
-  } else if (_gdgWMode === 'per-bulan') {
-    _gdgWBulanRef.setMonth(_gdgWBulanRef.getMonth() + 1);
-  } else if (_gdgWMode === 'custom') {
-    if (_gdgWCustomDari && _gdgWCustomSampai) {
-      const dur = Math.round((_gdgWCustomSampai - _gdgWCustomDari) / 86400000) + 1;
-      _gdgWCustomDari.setDate(_gdgWCustomDari.getDate() + dur);
-      _gdgWCustomSampai.setDate(_gdgWCustomSampai.getDate() + dur);
-      const dariEl   = document.getElementById('gdgw-custom-dari');
-      const sampaiEl = document.getElementById('gdgw-custom-sampai');
-      if (dariEl)   dariEl.value   = gdgWToISO(_gdgWCustomDari);
-      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgWCustomSampai);
-    }
-  }
-  gdgWRenderWeek();
-}
 
 // Dipanggil saat input tanggal custom berubah
 function gdgWCustomApply() {
@@ -1723,7 +1618,6 @@ function gdgWGetRange() {
 }
 
 // Compat: gdgWThisWeek masih dipakai gdgWInit
-function gdgWThisWeek() { gdgWSetMode('minggu-ini'); }
 
 async function gdgWInit() {
   _gdgWMode      = 'minggu-ini';
@@ -1806,8 +1700,8 @@ async function gdgWRenderWeek() {
 
   // Akun beban: HARUS sama persis kayak sumber Card Cost/Penyerapan (Variable
   // Anggaran Mingguan) — BUKAN lagi filter kode prefix 5-xxx. Dulu filternya
-  // "5-xxx kecuali 5-001", tapi itu udah dibuang dari gdgAngHitungRealisasi/
-  // gdgAngPopulateAkunSelect pas fitur Variable Anggaran per-nama-akun masuk;
+  // "5-xxx kecuali 5-001", tapi itu udah dibuang dari gdgAngHitungRealisasi
+  // pas fitur Variable Anggaran per-nama-akun masuk;
   // tabel breakdown harian ini kelewat, jadi masih nyapu SEMUA akun beban
   // (termasuk punya usaha lain kayak alat-alat) — bikin Total di sini beda jauh
   // sama Card Cost di atas yang udah bener (apple-to-apple ke Anggaran
@@ -2071,9 +1965,7 @@ function _gdgWDrawDailyChart() {
 // Tambah/hapus SEKARANG lewat checkbox picker (gdgAngPilihAkunOpen) —
 // nampilin SEMUA akun Beban/Kewajiban Kas + centang mana yg udah kepilih,
 // user tinggal centang/uncentang terus Simpan (diff-nya di-insert/delete
-// ke gadag_anggaran). Modal single-add lama (modal-gdg-ang2) TETEP ADA di
-// HTML/kode (gdgAngSimpan dst) tapi UDAH GAK DIPANGGIL dari mana pun lagi
-// — dead code, dipertahanin apa adanya (minim blast radius).
+// ke gadag_anggaran).
 //
 // Tabel gadag_anggaran LAMA (row-row dari SEBELUM 7 Sep 2026, yang masih
 // nyimpen `target` beneran) TETEP DIBIARIN APA ADANYA buat History bulan-
@@ -2260,29 +2152,6 @@ async function gdgAngAutoCarryForward(bulanIniISO) {
   }
 }
 
-// [DEAD CODE per 7 Sep 2026 — gdgAngCopyForwardIfEmpty di bawah ini GAK
-// DIPANGGIL lagi dari mana pun, digantiin gdgAngAutoCarryForward di atas
-// yang cocok sama semantik baru (target selalu 0, sumber data kas_anggaran).
-// Dibiarin apa adanya, bukan dihapus, biar minim blast radius.]
-async function gdgAngCopyForwardIfEmpty(bulanIniISO) {
-  try {
-    const prevRows = await dbGet('gadag_anggaran', '&periode=eq.bulanan&minggu_mulai=lt.' + bulanIniISO + '&order=minggu_mulai.desc,id.asc&limit=50');
-    if (!prevRows || !prevRows.length) return [];
-    const bulanTerakhir = prevRows[0].minggu_mulai;
-    const sumber = prevRows.filter(r => r.minggu_mulai === bulanTerakhir);
-    const inserted = [];
-    for (const src of sumber) {
-      const payload = { periode: 'bulanan', nama: src.nama, target: src.target, tgl_jatuh_tempo: src.tgl_jatuh_tempo || null, minggu_mulai: bulanIniISO, tgl_reset: null };
-      const row = await dbInsert('gadag_anggaran', payload);
-      inserted.push(Array.isArray(row) ? row[0] : (row || payload));
-    }
-    return inserted;
-  } catch(e) {
-    console.error('Gagal copy-forward anggaran bulan baru:', e.message);
-    return [];
-  }
-}
-
 function gdgAngNetTotal() {
   return _gdgAnggaranList.reduce((s, r) => s + (Number(r.target) || 0), 0);
 }
@@ -2416,7 +2285,7 @@ function gdgAngRenderActiveList() {
 // bulanan dibandingin per bulan) — BUKAN dua-duanya dipaksa ke bulan kalender.
 let _gdgAngHistMode = 0;              // 0 = periode ini, 1 = periode lalu
 let _gdgAngHistOpenFrom = 'mingguan'; // target periode pas "Pilih akun" — ngikutin dari mana History ini dibuka
-let _gdgAngHistPilihActive = false;   // flag: picker akun berikutnya lagi dipicu dari tombol [Pilih] History (bukan dari + Tambah biasa)
+   // flag: picker akun berikutnya lagi dipicu dari tombol [Pilih] History (bukan dari + Tambah biasa)
 let _gdgAngHistWeeksBack = 0;         // dipakai CUMA pas openFrom==='mingguan': 0=minggu ini, 1=minggu lalu (default), 2+ = dipilih dari dropdown "minggu sebelumnya"
 
 function gdgAngHistMonthRange(monthsAgo) {
@@ -2597,8 +2466,7 @@ async function gdgAngHistRender() {
 
 // Tombol [Pilih] di header History — per 7 Sep 2026 dialihin ke sheet
 // checkbox "Pilih Akun" yang sama kayak tombol [Pilih Akun] di panel
-// Anggaran biasa (dulu reuse modal single-add modal-gdg-ang2, sekarang
-// modal itu dead code — lihat gdgAngPilihAkunOpen).
+// Anggaran biasa (lihat gdgAngPilihAkunOpen).
 async function gdgAngHistPilihAkun() {
   gdgAngPilihAkunOpen();
 }
@@ -2704,8 +2572,7 @@ function gdgAngRenderList() {
 
 // Realisasi = total nominal jurnal minggu berjalan pada akun (Beban ATAU
 // Kewajiban) yang nama-nya cocok (case-insensitive) dengan nama variable
-// anggaran. Gak ada filter kode prefix lagi — samain sama sumber picker di
-// gdgAngPopulateAkunSelect.
+// anggaran. Gak ada filter kode prefix lagi.
 function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
   const target = String(namaVariable || '').trim().toLowerCase();
   if (!target) return 0;
@@ -2731,261 +2598,33 @@ function gdgAngHitungRealisasi(namaVariable, isoStart, isoEnd) {
 // bukan whitelist/toggle di sistem).
 // selectedNama: kalau ada & ga ketemu di daftar akun (mis. akun udah dihapus/
 // diganti nama), tetep dianggep valid biar data lama ga ilang dari tampilan.
-let _gdgAngAkunCache = [];
-function gdgAngPopulateAkunSelect(selectedNama) {
-  const inp = document.getElementById('gdg-ang2-nama-input');
-  if (!inp) return;
-  _gdgAngAkunCache = _gdgWAkunAll
-    .filter(a => a.kelompok === 'beban' || a.kelompok === 'kewajiban')
-    .sort((a, b) => (a.kode || '').localeCompare(b.kode || ''));
-  inp.value = selectedNama || '';
-}
 
 // ─── PICKER AKUN — bottom-sheet full (pola sama kayak kasAkunPickerOpen di
 // kas.js): di-append ke document.body sendiri, overlay+sheet z-index di atas
 // modal Tambah Variable (z:300), search auto-fokus, list di-grouping per
 // kelompok (Kewajiban / Beban). Ganti dropdown absolute lama yang kehalang
 // field Nominal di bawahnya pas sheet Tambah Variable-nya sendiri kepotong.
-var _gdgAkunPickerVpHandler = null;
 
-function _gdgAkunPickerInject() {
-  if (document.getElementById('gdg-akunpicker-overlay')) return;
-  document.body.insertAdjacentHTML('beforeend', `
-<div id="gdg-akunpicker-overlay" class="gdg-akunpicker-overlay" onclick="if(event.target===this)gdgAngAkunPickerClose()"></div>
-<div id="gdg-akunpicker-sheet" class="gdg-akunpicker-sheet">
-  <div class="gdg-akunpicker-handle"><span></span></div>
-  <div class="gdg-akunpicker-titlebar">
-    <div class="gdg-akunpicker-title">Pilih Akun</div>
-    <button type="button" class="gdg-akunpicker-close" onclick="gdgAngAkunPickerClose()" title="Batal">&#10005;</button>
-  </div>
-  <div class="gdg-akunpicker-search-wrap">
-    <input type="text" id="gdg-akunpicker-search" class="gdg-akunpicker-search"
-      placeholder="Cari akun..." oninput="gdgAngAkunPickerRender(this.value)">
-  </div>
-  <div id="gdg-akunpicker-list" class="gdg-akunpicker-list"></div>
-</div>`);
-  if (!document.getElementById('gdg-akunpicker-style')) {
-    const st = document.createElement('style');
-    st.id = 'gdg-akunpicker-style';
-    st.textContent = `
-      .gdg-akunpicker-overlay{display:none;position:fixed;inset:0;z-index:850;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-      .gdg-akunpicker-overlay.open{display:block}
-      .gdg-akunpicker-sheet{position:fixed;left:0;right:0;bottom:0;z-index:851;background:var(--gdg-paper,#f2ede1);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1),bottom .15s ease;padding-bottom:env(safe-area-inset-bottom,16px);max-height:75vh;display:none;flex-direction:column;overflow:hidden}
-      .gdg-akunpicker-sheet.open{display:flex;transform:translateY(0)}
-      .gdg-akunpicker-handle{flex:none;display:flex;justify-content:center;padding:10px 0 6px}
-      .gdg-akunpicker-handle span{width:40px;height:5px;border-radius:3px;background:var(--gdg-ink,#262220);opacity:.35}
-      .gdg-akunpicker-title{flex:none;padding:0 16px 8px;font-weight:800;font-size:15px;color:var(--gdg-ink,#262220)}
-      .gdg-akunpicker-titlebar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:8px}
-      .gdg-akunpicker-titlebar .gdg-akunpicker-title{padding-bottom:8px}
-      .gdg-akunpicker-close{flex:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--gdg-ink3,#7a746c);line-height:1;padding:4px 8px}
-      .gdg-akunpicker-search-wrap{flex:none;padding:0 16px 10px}
-      .gdg-akunpicker-search{width:100%;box-sizing:border-box;border:2px solid var(--gdg-ink,#262220);border-radius:10px;padding:9px 12px;font-family:var(--f);font-size:14px;background:#fff;color:var(--gdg-ink,#262220);outline:none}
-      .gdg-akunpicker-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 10px 12px}
-      .gdg-akunpicker-group{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gdg-ink3,#7a746c);padding:10px 8px 4px}
-      .gdg-akunpicker-item{padding:11px 10px;font-size:14px;border-radius:8px;cursor:pointer;color:var(--gdg-ink,#262220)}
-      .gdg-akunpicker-item:active,.gdg-akunpicker-item.active{background:var(--gdg-paper2,#e9e2d3)}
-      .gdg-akunpicker-item-disabled{opacity:.5;cursor:default;pointer-events:none}
-      .gdg-akunpicker-empty{padding:16px 10px;color:var(--gdg-ink3,#7a746c);font-style:italic;font-size:13px}
-      @media (min-width:900px){
-        .gdg-akunpicker-sheet{left:50%;right:auto;bottom:50%;transform:translate(-50%,50%) scale(.96);width:100%;max-width:380px;border-radius:16px;max-height:70vh;opacity:0;transition:transform .2s ease,opacity .2s ease}
-        .gdg-akunpicker-sheet.open{transform:translate(-50%,50%) scale(1);opacity:1}
-      }`;
-    document.head.appendChild(st);
-  }
-}
 
-function gdgAngAkunPickerOpen() {
-  _gdgAkunPickerInject();
-  const searchEl = document.getElementById('gdg-akunpicker-search');
-  if (searchEl) searchEl.value = '';
-  gdgAngAkunPickerRender('');
 
-  const overlay = document.getElementById('gdg-akunpicker-overlay');
-  const sheet   = document.getElementById('gdg-akunpicker-sheet');
-  if (overlay) overlay.classList.add('open');
-  if (sheet)   sheet.classList.add('open');
 
-  if (window.visualViewport) {
-    _gdgAkunPickerVpHandler = _gdgAkunPickerReposition;
-    window.visualViewport.addEventListener('resize', _gdgAkunPickerVpHandler);
-  }
-  _gdgAkunPickerReposition();
-
-  setTimeout(function() {
-    if (searchEl) searchEl.focus({ preventScroll: true });
-    _gdgAkunPickerReposition();
-  }, 280);
-}
-
-function gdgAngAkunPickerClose() {
-  const overlay = document.getElementById('gdg-akunpicker-overlay');
-  const sheet   = document.getElementById('gdg-akunpicker-sheet');
-  if (sheet)   sheet.classList.remove('open');
-  if (overlay) overlay.classList.remove('open');
-  const searchEl = document.getElementById('gdg-akunpicker-search');
-  if (searchEl) searchEl.blur();
-  if (sheet) sheet.style.bottom = '';
-  if (_gdgAkunPickerVpHandler && window.visualViewport) {
-    window.visualViewport.removeEventListener('resize', _gdgAkunPickerVpHandler);
-    _gdgAkunPickerVpHandler = null;
-  }
-}
-
-function _gdgAkunPickerReposition() {
-  const sheet = document.getElementById('gdg-akunpicker-sheet');
-  if (!sheet || !sheet.classList.contains('open') || !window.visualViewport) return;
-  if (window.matchMedia && window.matchMedia('(min-width: 900px)').matches) return;
-  const vp  = window.visualViewport;
-  const kbH = Math.max(0, window.innerHeight - vp.height - vp.offsetTop);
-  const TOP_GAP = 90; // jarak aman dari status bar (jam/wifi/baterai/signal) — jangan nempel/ketutup
-  sheet.style.bottom    = kbH + 'px';
-  sheet.style.maxHeight = Math.max(240, vp.height - TOP_GAP) + 'px';
-}
 
 // ─── Terakhir digunakan — akun Anggaran Gadag, disimpan di localStorage per
 // NAMA (bukan id — konsisten sama data model gadag_anggaran yg link by nama),
 // diurutkan paling SERING dipakai duluan (pola sama kayak _kasRecentAkun* di
 // kas.js). [22 Sep 2026]
-function _gdgAngAkunRecentMap() {
-  let raw;
-  try { raw = JSON.parse(localStorage.getItem('gdg_recent_akun_anggaran') || 'null'); } catch(e) { raw = null; }
-  return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
-}
-function _gdgAngAkunRecentGet() {
-  const map = _gdgAngAkunRecentMap();
-  return Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t)).slice(0, 4);
-}
-function _gdgAngAkunRecentPush(nama) {
-  const key = String(nama||'').trim().toLowerCase();
-  if (!key) return;
-  try {
-    const map = _gdgAngAkunRecentMap();
-    const cur = map[key] || { n:0, t:0 };
-    map[key] = { n: cur.n+1, t: Date.now() };
-    const keys = Object.keys(map).sort((a,b) => (map[b].n-map[a].n) || (map[b].t-map[a].t));
-    let pruned = map;
-    if (keys.length > 20) { pruned = {}; keys.slice(0,20).forEach(kk => pruned[kk]=map[kk]); }
-    localStorage.setItem('gdg_recent_akun_anggaran', JSON.stringify(pruned));
-  } catch(e) {}
-}
-function gdgAngAkunPickerRender(q) {
-  const listEl = document.getElementById('gdg-akunpicker-list');
-  if (!listEl) return;
-  const inp = document.getElementById('gdg-ang2-nama-input');
-  const currentVal = inp ? inp.value.trim().toLowerCase() : '';
 
-  // Akun yang UDAH ada di Variable Anggaran bulan berjalan — di-disable di
-  // picker, biar gak bisa milih dobel (row yang lagi diedit dikecualiin,
-  // biar akun sendiri gak ke-disable pas mode Edit).
-  const editId   = (document.getElementById('gdg-ang2-edit-id') || {}).value.trim();
-  const aktifSet = {};
-  _gdgAnggaranList.forEach(r => { if (String(r.id) !== editId) aktifSet[String(r.nama || '').trim().toLowerCase()] = true; });
-
-  const byNama = {};
-  _gdgAngAkunCache.forEach(a => { byNama[String(a.nama||'').trim().toLowerCase()] = a; });
-
-  function _itemHtml(a) {
-    const nama    = String(a.nama || '');
-    const esc     = nama.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    const escAttr = esc.replace(/'/g,"\\'");
-    const key     = nama.trim().toLowerCase();
-    const isActive = key === currentVal;
-    const sudahAktif = aktifSet[key];
-    if (sudahAktif) {
-      return `<div class="gdg-akunpicker-item gdg-akunpicker-item-disabled">${esc} <span style="color:var(--gdg-ink3,#7a746c);font-weight:400">· sudah aktif</span></div>`;
-    }
-    return `<div class="gdg-akunpicker-item${isActive ? ' active' : ''}" onclick="gdgAngAkunPickerSelect('${escAttr}')">${esc}</div>`;
-  }
-
-  q = (q || '').toLowerCase().trim();
-  let akunList = _gdgAngAkunCache.slice();
-  if (q) akunList = akunList.filter(a => String(a.nama || '').toLowerCase().indexOf(q) !== -1);
-
-  let html = '';
-
-  // "Terakhir Digunakan" — cuma pas search kosong, sama pola kayak kas.js.
-  if (!q) {
-    const recentAkun = _gdgAngAkunRecentGet().map(k => byNama[k]).filter(Boolean);
-    if (recentAkun.length) {
-      html += '<div class="zhist-sec"><div class="gdg-akunpicker-group"><i class="ti ti-clock" style="font-size:11px"></i> Terakhir Digunakan</div>';
-      recentAkun.forEach(a => { html += _itemHtml(a); });
-      html += '</div>';
-    }
-  }
-
-  const order = ['kewajiban', 'beban'];
-  const label = { kewajiban: 'Kewajiban', beban: 'Beban' };
-  const grouped = {}; order.forEach(k => grouped[k] = []);
-  akunList.forEach(a => { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
-
-  order.forEach(k => {
-    if (!grouped[k].length) return;
-    html += '<div class="gdg-akunpicker-group">' + label[k] + '</div>';
-    grouped[k].forEach(a => { html += _itemHtml(a); });
-  });
-  listEl.innerHTML = html || '<div class="gdg-akunpicker-empty">Belum ada akun Beban/Kewajiban</div>';
-}
-
-async function gdgAngAkunPickerSelect(nama) {
-  _gdgAngAkunRecentPush(nama);
-  const inp = document.getElementById('gdg-ang2-nama-input');
-  if (inp) inp.value = nama;
-  gdgAngAkunPickerClose();
-
-  // Dipicu dari tombol [Pilih] History — auto-isi Nominal (& Jatuh Tempo
-  // kalau ada) dari row TERAKHIR akun ini di gadag_anggaran, biar user
-  // tinggal review/edit, bukan mulai dari kosong. Cuma jalan pas Tambah baru
-  // (edit-id kosong) — pas Edit row yang udah ada, nominalnya emang udah
-  // keisi dari row itu sendiri, jangan ketiban.
-  if (_gdgAngHistPilihActive) {
-    _gdgAngHistPilihActive = false;
-    const editId = document.getElementById('gdg-ang2-edit-id').value.trim();
-    if (!editId) {
-      try {
-        const rows = await dbGet('gadag_anggaran', '&nama=eq.' + encodeURIComponent(nama) + '&order=id.desc&limit=1');
-        const last = rows && rows[0];
-        if (last) {
-          const nomEl = document.getElementById('gdg-ang2-nominal-input');
-          if (nomEl && Number(last.target) > 0) nomEl.value = Number(last.target).toLocaleString('id-ID');
-          if (last.tgl_jatuh_tempo) {
-            gdgAngModalToggleTempo(true);
-            const tempoEl = document.getElementById('gdg-ang2-tempo-input');
-            if (tempoEl) tempoEl.value = last.tgl_jatuh_tempo;
-          }
-        }
-      } catch(e) { console.error('Gagal ambil nominal sebelumnya:', e.message); }
-    }
-  }
-}
 
 // ─── MODAL: tambah baru ─────────────────────────────────────────
 // Toggle "Jatuh Tempo" — OPSIONAL, default OFF. force (opsional): true/false
 // buat set eksplisit (dipakai auto-fill History), kalau gak dikasih ya
 // nge-toggle dari state sekarang (dipanggil dari klik tombol).
-function gdgAngModalToggleTempo(force) {
-  const btn = document.getElementById('gdg-ang2-tempo-toggle');
-  const aktifEl = document.getElementById('gdg-ang2-tempo-aktif');
-  const fieldsEl = document.getElementById('gdg-ang2-bulanan-fields');
-  const aktif = typeof force === 'boolean' ? force : aktifEl.value !== '1';
-  aktifEl.value = aktif ? '1' : '0';
-  if (btn) btn.classList.toggle('active', aktif);
-  if (fieldsEl) fieldsEl.style.display = aktif ? 'block' : 'none';
-  if (!aktif) {
-    const tempoEl = document.getElementById('gdg-ang2-tempo-input');
-    if (tempoEl) tempoEl.value = '';
-  }
-}
 
-// Per 7 Sep 2026 (revisi): gdgAngShowAdd() gak dipanggil lagi (tombol udah
-// dialihin ke gdgAngPilihAkunOpen), dipertahanin sebagai fallback info doang.
-// gdgAngShowEdit() (dipanggil dari tekan-tahan row, IIFE di bawah) sekarang
+// Per 7 Sep 2026 (revisi): gdgAngShowEdit() (dipanggil dari tekan-tahan row, IIFE di bawah) sekarang
 // nawarin HAPUS DARI SELEKSI (unselect dari Variable Anggaran Gadag —
 // bukan hapus row kas_anggaran, budget aslinya di Kas TETAP UTUH) — ini
 // satu-satunya hal yang emang bisa Gadag kontrol sendiri sekarang; edit
 // nominalnya tetep harus di halaman Anggaran (Kas).
-async function gdgAngShowAdd() {
-  gdgAngPilihAkunOpen();
-}
 
 // Dipanggil dari tekan-tahan row (IIFE di bawah)
 async function gdgAngShowEdit(row) {
@@ -3002,75 +2641,8 @@ async function gdgAngShowEdit(row) {
   }
 }
 
-function gdgAngCloseModal() {
-  gdgAngAkunPickerClose();
-  const overlay = document.getElementById('modal-gdg-ang2');
-  const sheet   = document.getElementById('gdg-ang2-sheet');
-  if (!overlay) return;
-  if (sheet && window.matchMedia('(max-width:900px)').matches) {
-    overlay.classList.remove('gdg-sheet-in');
-    sheet.style.transform = '';
-    setTimeout(function() {
-      overlay.classList.remove('open');
-      overlay.style.height    = '';
-      overlay.style.transform = '';
-    }, 260);
-  } else {
-    overlay.classList.remove('open');
-  }
-}
 
-async function gdgAngSimpan() {
-  const id      = document.getElementById('gdg-ang2-edit-id').value.trim();
-  const nama    = document.getElementById('gdg-ang2-nama-input').value.trim();
-  const rawNom  = (document.getElementById('gdg-ang2-nominal-input').value || '').replace(/\D/g,'');
-  const nominal = parseInt(rawNom, 10) || 0;
-  const tempoAktif = document.getElementById('gdg-ang2-tempo-aktif').value === '1';
 
-  if (!nama)                     { alert('Pilih akun dulu.'); return; }
-  if (!nominal || nominal <= 0)  { alert('Nominal harus lebih dari 0.'); return; }
-
-  let tempoDay = null;
-  if (tempoAktif) {
-    tempoDay = parseInt(document.getElementById('gdg-ang2-tempo-input').value, 10);
-    if (!tempoDay || tempoDay < 1 || tempoDay > 28) { alert('Jatuh Tempo diaktifkan tapi tanggalnya belum diisi (1-28).'); return; }
-  }
-
-  // Cegah 2 Variable dengan nama akun yang SAMA nyangkut bareng — kalau
-  // kejadian, realisasi (dihitung by NAMA akun, bukan by id) bakal
-  // ke-double-count buat kedua row itu, dan totalnya (Net Anggaran/
-  // Penyerapan) jadi salah. id yang lagi diedit dikecualiin dari pengecekan.
-  const dup = _gdgAnggaranList.some(r => String(r.id) !== String(id) && String(r.nama||'').trim().toLowerCase() === nama.trim().toLowerCase());
-  if (dup) { alert('"' + nama + '" udah ada di daftar Variable Anggaran. Tekan & tahan row yang udah ada buat edit nominalnya.'); return; }
-
-  const bulanIni = gdgAngMonthStartISO(new Date());
-  const payload = { periode: 'bulanan', nama, target: nominal, tgl_jatuh_tempo: tempoDay, minggu_mulai: bulanIni, tgl_reset: null };
-
-  try {
-    if (id) {
-      await dbUpdate('gadag_anggaran', id, payload);
-    } else {
-      await dbInsert('gadag_anggaran', payload);
-    }
-    gdgAngCloseModal();
-    gdgLoadAnggaran();
-  } catch(e) {
-    alert('Gagal simpan: ' + e.message);
-  }
-}
-
-function gdgAngHapusDariModal() {
-  const id = document.getElementById('gdg-ang2-edit-id').value.trim();
-  if (!id) return;
-  const nama = document.getElementById('gdg-ang2-nama-input').value || 'variable ini';
-  confirmDelete('Hapus "' + nama + '" dari anggaran bulan ini?', async () => {
-    try {
-      await dbDelete('gadag_anggaran', id);
-      gdgAngCloseModal();
-      gdgLoadAnggaran();
-    } catch(e) { alert('Gagal hapus: ' + e.message); }
-  });
-}
 
 // ─── Tekan & tahan row di list → masuk mode edit (bukan kolom Aksi) ──
 // Sengaja bukan onclick biasa: tap sekali TIDAK ngapa-ngapain (sesuai
@@ -3752,48 +3324,6 @@ function gdgHistSetMode(mode) {
   gdgHistRenderWeek();
 }
 
-function gdgHistPrevWeek() {
-  if (_gdgHistMode === 'minggu-ini') return;
-  if (_gdgHistMode === 'per-minggu') {
-    _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() - 7);
-  } else if (_gdgHistMode === 'bulan-ini') {
-    return;
-  } else if (_gdgHistMode === 'per-bulan') {
-    _gdgHistBulanRef.setMonth(_gdgHistBulanRef.getMonth() - 1);
-  } else if (_gdgHistMode === 'custom') {
-    if (_gdgHistCustomDari && _gdgHistCustomSampai) {
-      const dur = Math.round((_gdgHistCustomSampai - _gdgHistCustomDari) / 86400000) + 1;
-      _gdgHistCustomDari.setDate(_gdgHistCustomDari.getDate() - dur);
-      _gdgHistCustomSampai.setDate(_gdgHistCustomSampai.getDate() - dur);
-      const dariEl   = document.getElementById('gdghist-custom-dari');
-      const sampaiEl = document.getElementById('gdghist-custom-sampai');
-      if (dariEl)   dariEl.value   = gdgWToISO(_gdgHistCustomDari);
-      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgHistCustomSampai);
-    }
-  }
-  gdgHistRenderWeek();
-}
-function gdgHistNextWeek() {
-  if (_gdgHistMode === 'minggu-ini') return;
-  if (_gdgHistMode === 'per-minggu') {
-    _gdgHistWeekStart.setDate(_gdgHistWeekStart.getDate() + 7);
-  } else if (_gdgHistMode === 'bulan-ini') {
-    return;
-  } else if (_gdgHistMode === 'per-bulan') {
-    _gdgHistBulanRef.setMonth(_gdgHistBulanRef.getMonth() + 1);
-  } else if (_gdgHistMode === 'custom') {
-    if (_gdgHistCustomDari && _gdgHistCustomSampai) {
-      const dur = Math.round((_gdgHistCustomSampai - _gdgHistCustomDari) / 86400000) + 1;
-      _gdgHistCustomDari.setDate(_gdgHistCustomDari.getDate() + dur);
-      _gdgHistCustomSampai.setDate(_gdgHistCustomSampai.getDate() + dur);
-      const dariEl   = document.getElementById('gdghist-custom-dari');
-      const sampaiEl = document.getElementById('gdghist-custom-sampai');
-      if (dariEl)   dariEl.value   = gdgWToISO(_gdgHistCustomDari);
-      if (sampaiEl) sampaiEl.value = gdgWToISO(_gdgHistCustomSampai);
-    }
-  }
-  gdgHistRenderWeek();
-}
 
 function gdgHistCustomApply() {
   const dariVal   = document.getElementById('gdghist-custom-dari').value;
@@ -4219,84 +3749,14 @@ function gdgClosePendapatanModal() {
 // modal Anggaran (Tambah Variable). Pola identik dengan gdgOpenPendSheet di
 // atas, sengaja dipisah (bukan digeneralisir/parameterized) biar kode
 // Pendapatan yang udah proven-stable ga ikut kesenggol. ──
-function gdgAngOpenSheet() {
-  const overlay = document.getElementById('modal-gdg-ang2');
-  const sheet   = document.getElementById('gdg-ang2-sheet');
-  if (!overlay || !sheet) return;
-  sheet.style.transform = '';
-  void overlay.offsetHeight;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    overlay.classList.add('gdg-sheet-in');
-  }));
-  _gdgAngSyncViewport();
-  if (window.visualViewport && !overlay._gdgVVInited) {
-    overlay._gdgVVInited = true;
-    window.visualViewport.addEventListener('resize', _gdgAngSyncViewport);
-    window.visualViewport.addEventListener('scroll', _gdgAngSyncViewport);
-  }
-  _gdgAngInitDragToClose();
-  _gdgAngInitFocusScroll();
-}
 
 // Field yg lagi difokus (misal Nominal) wajib keliatan di atas keyboard —
 // sheet ini sebelumnya CUMA nyusut tingginya (_gdgAngSyncViewport) tapi ga
 // nge-scroll field yg difokus ke area yg masih keliatan, jadi field yg posisinya
 // di bawah bisa ketutup keyboard / "mental" keluar layar. Pola identik
 // _gdgInitSheetFocusScroll di modal Pendapatan (yg udah proven-stable).
-function _gdgAngInitFocusScroll() {
-  const overlay = document.getElementById('modal-gdg-ang2');
-  if (!overlay || overlay._gdgFocusScrollInited) return;
-  overlay._gdgFocusScrollInited = true;
-  overlay.addEventListener('focusin', function(e) {
-    const t = e.target;
-    if (!(t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-    setTimeout(function() {
-      _gdgAngSyncViewport();
-      t.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 320);
-  });
-}
 
-function _gdgAngSyncViewport() {
-  const overlay = document.getElementById('modal-gdg-ang2');
-  const sheet   = document.getElementById('gdg-ang2-sheet');
-  if (!overlay || !overlay.classList.contains('open')) return;
-  if (!window.matchMedia('(max-width:900px)').matches) return;
-  const vv = window.visualViewport;
-  if (!vv) return;
-  overlay.style.height    = vv.height + 'px';
-  overlay.style.transform = 'translateY(' + vv.offsetTop + 'px)';
-  if (sheet) sheet.style.maxHeight = Math.max(240, vv.height - 12) + 'px';
-}
 
-function _gdgAngInitDragToClose() {
-  const handle = document.getElementById('gdg-ang2-sheet-handle');
-  const sheet  = document.getElementById('gdg-ang2-sheet');
-  if (!handle || !sheet || handle._gdgDragInited) return;
-  handle._gdgDragInited = true;
-  var _startY = 0, _dragging = false, _dy = 0;
-  handle.addEventListener('touchstart', function(e) {
-    _startY   = e.touches[0].clientY;
-    _dragging = true;
-    sheet.style.transition = 'none';
-  }, { passive: true });
-  handle.addEventListener('touchmove', function(e) {
-    if (!_dragging) return;
-    _dy = Math.max(0, e.touches[0].clientY - _startY);
-    sheet.style.transform = 'translateY(' + _dy + 'px)';
-  }, { passive: true });
-  handle.addEventListener('touchend', function() {
-    if (!_dragging) return;
-    _dragging = false;
-    sheet.style.transition = '';
-    if (_dy > 90) {
-      gdgAngCloseModal();
-    } else {
-      sheet.style.transform = '';
-    }
-    _dy = 0;
-  }, { passive: true });
-}
 
 // ─── CUSTOM SKU PICKER ────────────────────────────────────────
 let _gdgSkuPickerQuery = '';
@@ -4493,12 +3953,6 @@ async function gdgSimpanPendapatan() {
 
 // Dipakai tombol Hapus di panel Riwayat (tabel itu masih punya kolom Aksi,
 // ga kepengaruh sama perubahan poin 2 yg cuma nyasar ke panel Catatan).
-function gdgHapusPendapatan(id) {
-  confirmDelete('Hapus catatan pendapatan ini?', async () => {
-    try { await dbDelete('gadag_pendapatan', id); gdgLoad(); }
-    catch(e) { alert('Gagal hapus: ' + e.message); }
-  });
-}
 
 // Dipanggil dari tombol "Hapus" di dalam modal edit (bukan dari tabel lagi,
 // karena kolom Aksi udah dihapus — akses hapus sekarang lewat tekan-lama).

@@ -32,10 +32,10 @@ var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
   'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
   'produk-terjual.js',
-  'channel-master.js', 'beban-operasional.js',
+  'channel-master.js',
   'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
   'shopee-auth.js', 'shopee-sync.js', 'networth.js',
-  'rough-ui.js', 'dialog.js', 'style.css', 'shopee-dashboard.js', 'proyeksi-harga.js', 'analisis.js', 'autocomplete.js',
+  'rough-ui.js', 'dialog.js', 'style.css', 'analisis.js', 'autocomplete.js',
 ];
 // index.html selalu dari network agar versi SW terbaru langsung aktif
 // index.html: tidak di-cache (selalu fresh)
@@ -48,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20261008-e70b3754782d'; // Price List dipindah ke halaman Channel (harga manual per channel) — price-list.js dihapus
+var JS_CACHE = 'zenot-js-20261008-02cec15b4512'; // Price List dipindah ke halaman Channel (harga manual per channel) — price-list.js dihapus
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {

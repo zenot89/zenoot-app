@@ -3,24 +3,10 @@
 //      guard duplikasi ketat, konten HTML selalu tampil di atas canvas.
 
 (function() {
-  const INK   = '#e8eaf0';
-  const CREAM = '#0f1117';
-  const BASE  = { roughness:2.1, bowing:1.6, strokeWidth:1.7, stroke:INK };
 
   // ── Helper: hapus canvas lama, buat baru, INSERT SEBAGAI FIRST CHILD
   // ── Ini kunci utama fix: canvas rough harus jadi sibling PERTAMA
   // ── agar semua konten HTML setelahnya menang di stacking context
-  function _makeRoughCanvas(el, className, w, h) {
-    el.querySelectorAll('canvas.' + className).forEach(c => c.remove());
-    const cvs = document.createElement('canvas');
-    cvs.className = className;
-    cvs.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:0;';
-    cvs.width  = w;
-    cvs.height = h;
-    // insertBefore(newNode, firstChild) = prepend — canvas jadi lapisan paling bawah
-    el.insertBefore(cvs, el.firstChild);
-    return cvs;
-  }
 
   // ── 1. NAV ITEM
   function sketchNavItem(el) {

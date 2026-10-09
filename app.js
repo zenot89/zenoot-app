@@ -139,7 +139,6 @@ var pageMap = {
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
   'produk':             { title:'Kelola Produk',       sub:'master SKU, HPP, dan boss'      },
   'channel':            { title:'Channel',             sub:'master data channel toko'       },
-  'beban-operasional':  { title:'Beban Operasional',   sub:'acuan % beban & target NPM'     },
   'anggaran':           { title:'Anggaran Beban',      sub:'target & realisasi beban bulanan' },
   'keuangan':           { title:'Hutang Aing', sub:'hutang, neraca, rasio & valuasi' },
   'hutang-supplier':    { title:'Hutang Barang',        sub:'utang aktif & pembayaran per supplier' },
@@ -149,8 +148,6 @@ var pageMap = {
   'clearance':          { title:'Detail per SKU',       sub:'SKU non-aktif yang masih ada stok' },
   'clearance-induk':    { title:'Clearance Monitor',    sub:'total modal tertahan digabung per katalog/induk produk' },
   'shopee-auth':        { title:'Shopee Connect',        sub:'koneksi & sinkronisasi toko Shopee' },
-  'shopee-dashboard':   { title:'Analisis Shopee',        sub:'performa & insight toko Shopee'     },
-  'proyeksi-harga':     { title:'Proyeksi Harga',         sub:'pricing engine & kalkulasi margin'  },
   'analisis':           { title:'Zenoot Analisis',        sub:'rasio keuangan, rekap & proyeksi harga per toko' },
 };
 
@@ -253,46 +250,6 @@ function gotoPage(page, btn) {
   }
 }
 
-// ─── PROYEKSI HARGA NAV ──────────────────────────────────────
-function phGoto(section, btn) {
-  // Toggle sub-list visibility
-  var subList = $id('ni-proyeksi-sub');
-  var group   = $id('ni-proyeksi-harga-group');
-  if (subList) {
-    var isOpen = subList.classList.contains('ni-sub-open');
-    // Jika klik parent (proyeksi-ringkasan) dan sub sudah open → toggle tutup, kecuali klik sub-item
-    if (btn && btn.classList.contains('nav-item-parent')) {
-      subList.classList.toggle('ni-sub-open');
-      group && group.classList.toggle('ni-sub-active', subList.classList.contains('ni-sub-open'));
-    } else {
-      subList.classList.add('ni-sub-open');
-      group && group.classList.add('ni-sub-active');
-    }
-  }
-  // Navigate ke page proyeksi-harga
-  gotoPage('proyeksi-harga', $id('ni-proyeksi-harga-group'));
-  // Auto-expand sub-menu saat landing ke proyeksi-harga
-  var subList2 = $id('ni-proyeksi-sub');
-  var group2   = $id('ni-proyeksi-harga-group');
-  if (subList2) { subList2.classList.add('ni-sub-open'); group2 && group2.classList.add('ni-sub-active'); }
-  // Switch section di dalam proyeksi-harga
-  if (typeof switchPhSection === 'function') {
-    switchPhSection(section);
-  } else {
-    // Tunggu sampai page ready lalu switch
-    var tries = 0;
-    var poll = setInterval(function() {
-      tries++;
-      if (typeof switchPhSection === 'function') { clearInterval(poll); switchPhSection(section); }
-      else if (tries > 20) clearInterval(poll);
-    }, 100);
-  }
-  // Active state untuk sub-items
-  $all('.ni-sub').forEach(function(b) { b.classList.remove('ni-sub-active-item'); });
-  if (btn && btn.classList.contains('ni-sub')) btn.classList.add('ni-sub-active-item');
-}
-
-// ─── MODAL ───────────────────────────────────────────────────
 function closeModal(id) {
   var el = $id(id);
   if (el) el.classList.remove('open');
@@ -852,7 +809,7 @@ function initSwipeCollapse(swipeZoneEl, collapseEl, threshold, className) {
 // Replace semua input[type=date] dengan custom kalender
 // Konsisten di Android, iPhone, laptop
 (function() {
-  var _dp = null; // overlay aktif
+ // overlay aktif
   var _dpTarget = null; // input yg sedang di-edit
 
   // Nama hari dan bulan Indonesia

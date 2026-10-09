@@ -1355,10 +1355,6 @@ var _HS_VIEW_ORDER = ['overview', 'restock', 'bon', 'pembayaran', 'master'];
 // Jenis supplier: 'dropship' = suplier yang kirim langsung hari itu juga
 // (gak perlu PO). 'reseller' = harus PO dulu + (opsional) uang muka, baru
 // jalan setelah barang jadi (lead time bisa berminggu-minggu).
-var _HS_JENIS_LABEL = {
-  dropship: { label: 'Dropship', icon: 'ti-truck-delivery' },
-  reseller: { label: 'Reseller', icon: 'ti-file-invoice'   },
-};
 
 function hsSwitchView(view) {
   _hsView = view;
@@ -4123,20 +4119,6 @@ async function hsSimpanBayarGabungan() {
   } catch(e) {
     alert('Gagal simpan pembayaran: ' + e.message);
   }
-}
-
-// DEAD CODE (7 Sep 2026): dulu dipanggil hsOpenTambahBarang/hsOpenEditBarang
-// buat isi dropdown "SKU Induk (Katalog Produk)" yang sekarang DIHAPUS,
-// diganti picker "Pilih SKU Variasi" (hsBrgSkuPickerOpen, base data langsung
-// dari _hsProdukAll). _hsKatalogList sendiri MASIH DIPAKAI di Paste Massal
-// Master Barang (buat validasi katalog dikenal/nggak) — cuma select ini yang
-// udah gak ada pemanggilnya lagi. Dipertahankan apa adanya, minim blast radius.
-function _hsPopulateKatalogSelect() {
-  var sel = document.getElementById('hs-brg-katalog');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Pilih SKU Induk...</option>' + _hsKatalogList.map(function(k) {
-    return '<option value="' + _hsEscAttr(k) + '">' + _hsEsc(k) + '</option>';
-  }).join('');
 }
 
 // Harga Dropship cuma relevan/wajib buat barang di bawah supplier yang

@@ -8,7 +8,7 @@
 
 const SHOPEE_PARTNER_ID  = 2035455;           // ← LIVE
 const SHOPEE_REDIRECT    = 'https://zenot89.github.io/zenoot-app/';
-const SHOPEE_API_BASE    = 'https://partner.shopeemobile.com'; // ← LIVE (bukan test-stable)
+ // ← LIVE (bukan test-stable)
 
 // ─── RENDER HALAMAN ─────────────────────────────────────────
 document.addEventListener('zenot:page', async function(e) {

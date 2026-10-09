@@ -1,6 +1,5 @@
 // ─── KEUANGAN.JS — Hutang, Neraca, Rasio, Net Worth, Valuasi ─
 
-let _keuHutangAll = [];
 let _keuKasAkun   = [];
 let _keuKasJurnal = [];
 var _keuCicSheetMode  = null; // 'hutang' | 'akun'
@@ -1236,11 +1235,6 @@ function keuNeracaApplyView(asetCount, kwjCount) {
   if (zone) zone.scrollTop = 0;
 }
 
-function keuNeracaToggle(view) {
-  // legacy — tidak dipakai lagi tapi dijaga agar tidak error
-  _keuNeracaView = view;
-  keuNeracaApplyView();
-}
 
 function keuNeracaExpandHeader() {
   const header = document.getElementById('keu-sticky-header');
@@ -1325,7 +1319,6 @@ function keuNeracaExpandHeader() {
   });
 })();
 
-function initKeuNeracaScrollCollapse() { /* deprecated */ }
 
 // ─── HUTANG: hide-on-scroll (collapsible) + riwayat swipe ────────────────────
 (function() {
@@ -1871,7 +1864,6 @@ async function keuRenderNeraca() {
   _keuNeracaView = _keuNeracaView || 'aset';
   keuNeracaApplyView(asetItemCount, kwjItemCount);
 
-  initKeuNeracaScrollCollapse();
 }
 
 // ─── RASIO & NET WORTH ────────────────────────────────────────
@@ -1979,7 +1971,6 @@ document.getElementById('page-keuangan').addEventListener('click', function(e) {
 
 // ─── INIT ─────────────────────────────────────────────────────
 // Load saat page keuangan pertama dibuka
-const _keuOrigGotoPage = typeof gotoPage === 'function' ? gotoPage : null;
 document.addEventListener('DOMContentLoaded', () => {});
 
 // Patch gotoPage agar load data saat buka halaman keuangan
@@ -2133,25 +2124,6 @@ function keuCicSheetSelectAkun(id) {
   keuCicSheetClose();
 }
 
-function keuSyncPickerLabel(pickerId, selectId, placeholder) {
-  var sel    = document.getElementById(selectId);
-  var lbl    = document.getElementById(pickerId + '-label');
-  var list   = document.getElementById(pickerId + '-list');
-  if (!sel || !lbl) return;
-  var val = sel.value;
-  if (list) {
-    list.querySelectorAll('.kas-akun-item').forEach(function(el) { el.classList.remove('active'); });
-    var match = list.querySelector('.kas-akun-item[data-val="' + val + '"]');
-    if (match) {
-      match.classList.add('active');
-      lbl.textContent  = match.textContent.trim();
-      lbl.style.color  = 'var(--ink)';
-    } else {
-      lbl.textContent  = placeholder || '— Pilih —';
-      lbl.style.color  = 'var(--ink3)';
-    }
-  }
-}
 
 // Tutup picker saat klik di luar
 // close listener: handled by unified handler in app.js
@@ -2160,7 +2132,6 @@ function keuSyncPickerLabel(pickerId, selectId, placeholder) {
 // Guard: mencegah double-render / jitter saat tab dibuka berulang
 var _keuArusKasLoading = false;
 var _keuArusKasPending = false;
-var _keuArusKasHasData = false;
 
 async function keuRenderArusKas() {
   if (_keuArusKasLoading) { _keuArusKasPending = true; return; }
@@ -2368,16 +2339,6 @@ async function keuPopulateAkunBayar() {
 // _keuAutoJatuhTempo dan listener keu-htg-* dihapus — modal tambah hutang tidak ada lagi.
 
 // ─── MODAL CATAT CICILAN ─────────────────────────────────────
-function keuOpenCicilan() {
-  var today = new Date().toISOString().slice(0,10);
-  var tglEl = document.getElementById('keu-bayar-tgl');
-  if (tglEl && !tglEl.value) tglEl.value = today;
-  document.getElementById('keu-bayar-ket').value = '';
-  if (typeof idrSet === 'function') idrSet('keu-bayar-nominal', 0);
-  if (typeof idrInputAll === 'function') setTimeout(idrInputAll, 50);
-  document.getElementById('modal-keu-cicilan').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
 
 // keuBayarHutangChange tidak relevan lagi (tidak ada cicilan_nominal di akun kewajiban)
 function keuBayarHutangChange() {}

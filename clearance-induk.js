@@ -15,7 +15,7 @@
 //   minicard = carousel swipe loop + dot; Clearance & Flash Sale = 2 panel swipe (+ tab penanda);
 //   tabel induk 3 kolom tanpa scroll horizontal; ketuk SKU induk → bottom-sheet variasi (tutup: tombol X).
 //   REVISI HEADER HP (3 Okt 2026, request user): dropdown panjang "Semua SKU" + tombol Urutkan + tombol ↓↑ DIHAPUS →
-//   header HP = judul + [tombol Pilih SKU (bottom-sheet)] + [Detail per SKU]. Sort & pindah-panel-lewat-tombol = dead code.
+//   header HP = judul + [tombol Pilih SKU (bottom-sheet)] + [Detail per SKU].
 //   Semua CSS HP ada di @media (max-width:767px) di <style> atas; JS HP: blok "TAMPILAN HP" (_miIsPhone,
 //   miSheetOpen/Close, _miSwipe). Swipe engine di sini SENGAJA salinan sendiri (aturan: gak share fungsi antar modul).
 
@@ -496,39 +496,9 @@ function miSkuPick(i) {
   miFilterBySku(val);
 }
 
-// ─── URUTKAN (HP) — DEAD CODE sejak 3 Okt 2026 ────────────────
-// Tombol Urutkan di header HP dihapus (diganti Pilih SKU di atas). Fungsi di bawah dipertahankan apa adanya
-// (aturan RULES.md: dead code jangan dihapus) — urutan HP kini selalu default (modal terbesar).
-// Dulu: tombol ikon di header → bottom-sheet yang sama dgn variasi. Satu pilihan berlaku utk kedua panel & sheet variasi.
-const _MI_SORTS = [
-  { col: 'nilai', dir: 'desc', label: 'Modal terbesar' },
-  { col: 'nilai', dir: 'asc',  label: 'Modal terkecil' },
-  { col: 'sisa',  dir: 'desc', label: 'Qty terbanyak' },
-  { col: 'sisa',  dir: 'asc',  label: 'Qty tersedikit' },
-  { col: 'sku',   dir: 'asc',  label: 'SKU A → Z' },
-  { col: 'sku',   dir: 'desc', label: 'SKU Z → A' }
-];
-function miSortOpen() {
-  const curCol = _miSort.col || 'nilai', curDir = _miSort.col ? _miSort.dir : 'desc';  // netral = modal terbesar
-  document.getElementById('mi-sh-title').textContent = 'Urutkan';
-  document.getElementById('mi-sh-stats').innerHTML = '';
-  document.getElementById('mi-sh-list').innerHTML = _MI_SORTS.map((o, i) =>
-    `<div class="mi-so-row${o.col === curCol && o.dir === curDir ? ' on' : ''}" onclick="miSortPick(${i})"><span>${o.label}</span><span class="mi-so-ck">✓</span></div>`).join('');
-  document.getElementById('mi-sh-list').scrollTop = 0;
-  document.getElementById('mi-sheet').classList.add('mi-so');
-  document.getElementById('mi-sheet-overlay').classList.add('open');
-  document.getElementById('mi-sheet').classList.add('open');
-}
-function miSortPick(i) {
-  const o = _MI_SORTS[i];
-  if (!o) return;
-  _miSort = (o.col === 'nilai' && o.dir === 'desc') ? { col: null, dir: null } : { col: o.col, dir: o.dir };
-  miSheetClose();
-  miRenderTable();
-}
+// ─── TOMBOL PILIH SKU (HP) ────────────────────────────────────
 function miUpdateSortBtn() {
   // 3 Okt 2026: tombol HP sekarang = pilih SKU → titik penanda nyala kalau ada 1 SKU yang dipilih
-  // (nama fungsi dipertahankan biar pemanggil di miRenderTable gak ikut berubah).
   const b = document.querySelector('#page-clearance-induk .mi-sku-btn');
   if (b) b.classList.toggle('on', !!_miSkuFilter);
 }
@@ -622,9 +592,6 @@ function _miSwipe(vp, slideSel, onChange) {
 }
 
 let _miCarMetrics = null, _miCarPanels = null;
-function miPanelGo(i) { if (_miCarPanels) _miCarPanels.goTo(i); }
-// DEAD CODE sejak 3 Okt 2026: tombol ↓↑ di header panel HP dihapus (pindah panel cukup lewat swipe). Dipertahankan.
-function miPanelToggle() { if (_miCarPanels) _miCarPanels.goTo(_miCarPanels.cur === 0 ? 1 : 0); }
 // judul + chip halaman ngikut panel aktif
 const _MI_PANELS = [
   { t: 'Clearance — Modal Tertahan', s: 'non-aktif · dead · zombie' },
@@ -760,7 +727,6 @@ function _miRenderSide(side) {
   if (!bodyInduk || !bodyVar || !headEl) return;
   const src = isFlash ? _miFlashRows : _miFlatRows;
   if (!src) return;
-  const nCols = isFlash ? 5 : 4;
 
   const flat = src.filter(r => (!isFlash || r.sisa >= 3) && (!_miSkuFilter || r.katalog === _miSkuFilter));
 
@@ -842,7 +808,6 @@ function miRenderTable() {
   _miRenderSide('kanan');
 }
 // kompatibilitas nama lama
-function miRenderFlashSale() { _miRenderSide('kanan'); }
 
 // ─── LOAD DATA ───────────────────────────────────────────────
 async function loadModalInduk() {

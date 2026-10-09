@@ -559,7 +559,6 @@ function renderRestockTabs() {
     _sumDualMode = 'segera';
     // Init swipe-to-collapse minicard — identik dengan kas.js (3 zona swipe)
     (function() {
-      var topZone  = document.getElementById('sum-top-zone');
       var cardsEl  = document.getElementById('sum-cards-wrap');
       var listZone = document.getElementById('sum-list-zone');
       var header   = document.getElementById('sum-dual-header');
@@ -708,12 +707,6 @@ function trenIcon(tren) {
   return '<span style="color:var(--ink3);font-size:11px">→</span>';
 }
 
-function coverHariStyle(cover, lead_time) {
-  if (cover === null) return 'color:var(--ink3)';
-  if (cover <= lead_time + 3)  return 'color:var(--danger);font-weight:700';
-  if (cover <= lead_time + 10) return 'color:var(--warn);font-weight:600';
-  return 'color:var(--ok)';
-}
 
 function sisaBadge(sisa) {
   if (sisa === null)  return '<span style="color:var(--ink3);font-size:10px">—</span>';
@@ -725,22 +718,6 @@ function sisaBadge(sisa) {
 
 // ── Summary dual toggle: Order Sekarang ↔ Naik Daun ──
 // ── Minicard collapse toggle ──
-var _sumCardsCollapsed = false;
-function sumCardsToggle() {
-  _sumCardsCollapsed = !_sumCardsCollapsed;
-  const inner   = document.getElementById('sum-cards-inner');
-  const chevron = document.getElementById('sum-cards-chevron');
-  if (!inner || !chevron) return;
-  if (_sumCardsCollapsed) {
-    inner.style.maxHeight = '0';
-    inner.style.opacity   = '0';
-    chevron.style.transform = 'rotate(180deg)';
-  } else {
-    inner.style.maxHeight = '300px';
-    inner.style.opacity   = '1';
-    chevron.style.transform = 'rotate(0deg)';
-  }
-}
 
 var _sumDualMode = 'segera'; // 'segera' | 'naik' | 'supplier'
 var _sumSwipeOrder = ['supplier', 'segera', 'naik']; // urutan slide: 1.Supplier 2.Order 3.Naik
@@ -907,8 +884,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     </div>`;
 
   // ── SKU SEGERA + Naik Daun — toggle, default Order Sekarang ──
-  const segeraBlock = '';
-  const naikBlock   = '';
 
   // ── 8 Okt 2026: daftar Order Sekarang & Lagi Naik ditampilkan per SKU INDUK (katalog) ──
   // Satu baris = satu SKU Induk (+ supplier-nya). Klik → bottom-sheet ala komen Instagram
@@ -977,17 +952,12 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       }).join('')}
     </div>` : '<div style="color:var(--ink3);font-size:13px;padding:10px 0">Belum ada tren naik</div>';
 
-  // (versi lama sebelum 8 Okt 2026, dipertahankan sbg komentar — 1 baris per SKU VARIASI, klik = pindah ke tab supplier)
-  // const _renderSegeraList = () => segera.length ? `... segera.map(r => <div onclick="restockSwitchTab('${r._boss}')"> ${r.sku} · ${r.katalog} · ${r._boss} · sisa/habis/order ...`
-  // const _renderNaikList   = () => skuNaik.length ? `... skuNaik.map(r => ... ${r.sku} ... tren · order ...`
-
   // Pre-render list HTML — harus sebelum template string return
   const _segeraHtml = _renderSegeraList();
   const _naikHtml   = _renderNaikList();
   window._sumSegeraHtml = _segeraHtml;
   window._sumNaikHtml   = _naikHtml;
 
-  const dualBlock = '';
 
   // ── Tabel per supplier (ringkas) ──
   const rows = bossSorted.map(boss => {
@@ -1025,14 +995,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
       </tr>`;
   }).join('');
 
-  const totalRow = `
-    <tr style="font-weight:700;border-top:2px solid var(--ink3)">
-      <td style="color:var(--ink2)">TOTAL — ${bossSorted.length} supplier</td>
-      <td style="text-align:center;font-size:12px;color:var(--ink3)">${grandSKU} SKU aktif</td>
-      <td style="text-align:center;font-size:18px;color:var(--warn)">${grandQty} pcs</td>
-      <td style="text-align:right;font-size:15px;color:var(--ok)">${fmtRp(grandBudget)}</td>
-      <td colspan="2"></td>
-    </tr>`;
 
   // ── Nilai Stok per Supplier — total + breakdown berapa % yang mandeg ──
   const grandNilaiSemuaSupplier = (modalPerSupplier || []).reduce((s, m) => s + m.nilai, 0);

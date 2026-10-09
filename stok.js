@@ -851,23 +851,6 @@ function filterStok() {
   renderStok(filtered);
 }
 
-// ─── EVENT DELEGATION ─────────────────────────────────────────
-// 26 Sep 2026: dead code SENGAJA dipertahanin — dulu nangkep klik pencil
-// "Edit Stok" per-baris (data-action="edit-stok"), tapi pencil-nya udah
-// dihapus dari tabel (diganti tombol "Edit Stock" di toolbar, lihat
-// stokBukaEditPicker() → tetep manggil editStok() di ujungnya, cuma beda
-// jalan masuknya). Listener ini gak pernah ke-trigger lagi karena gak ada
-// lagi elemen dengan data-action itu, tapi dibiarin (bukan dihapus) —
-// gak ganggu apa-apa dan gampang di-restore kalau suatu saat pencil
-// per-baris mau dipasang lagi.
-document.getElementById('page-stok').addEventListener('click', function(e) {
-  const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  if (btn.dataset.action === 'edit-stok') {
-    editStok(btn.dataset.sku);
-  }
-});
-
 // 7 Okt 2026: TEKAN-TAHAN baris tabel = edit stok 1 SKU VARIASI saja (mis. Turtleneck_HITAM-M),
 // langsung buka form "Set Sisa Menjadi" lewat editStok() yang sama dengan jalur lama.
 // Tombol "Edit Stock" (edit massal per SKU induk/katalog) TIDAK diubah. Baris Dropship dilewati (tidak nyetok).

@@ -452,47 +452,6 @@ document.getElementById('page-cost-produksi').innerHTML = `
     </div>
   </div>
 
-  <!-- ═══ MODAL: Tambah/Edit Rate — 1 SKU, semua divisi jadi kolom input ═══ -->
-  <div class="modal-overlay" id="modal-cp-rate" onclick="if(event.target===this)hideModal('modal-cp-rate')">
-    <div class="modal" style="max-width:460px;width:100%">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-        <div class="modal-title" id="cp-rate-form-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-list-details"></i> Tambah Rate</div>
-        <button onclick="hideModal('modal-cp-rate')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-      </div>
-      <input type="hidden" id="cp-rate-edit-sku">
-      <input type="hidden" id="cp-rate-edit-variasi">
-      <div class="form-group">
-        <label>SKU Induk</label>
-        <div class="cp-picker-trigger" id="cp-rate-sku-trigger" onclick="cpOpenSkuSheetForRate()">
-          <span id="cp-rate-sku-label" class="cp-placeholder">— Pilih SKU (Boss: DIMI) —</span>
-          <i class="ti ti-chevron-down"></i>
-        </div>
-        <input type="hidden" id="cp-rate-sku">
-      </div>
-      <div class="form-group">
-        <label>SKU Variasi</label>
-        <div class="cp-picker-trigger" id="cp-rate-variasi-trigger" onclick="cpOpenVarianSheetForRate()">
-          <span id="cp-rate-variasi-label" class="cp-placeholder">— Pilih SKU Induk dulu —</span>
-          <i class="ti ti-chevron-down"></i>
-        </div>
-        <input type="hidden" id="cp-rate-variasi">
-      </div>
-      <div id="cp-rate-fields"></div>
-      <div class="form-group">
-        <label>Divisi Lain (opsional, kalau ada divisi baru di luar 6 di atas)</label>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="cp-rate-extra-divisi" placeholder="nama divisi baru" style="flex:1">
-          <input type="text" inputmode="numeric" id="cp-rate-extra-ongkos" placeholder="Rp/lusin" style="flex:1">
-        </div>
-      </div>
-      <div class="modal-actions" style="margin-top:16px">
-        <button class="btn btn-danger" id="cp-rate-del-btn" style="display:none" onclick="cpDeleteRate()"><i class="ti ti-trash"></i> Hapus Varian Ini</button>
-        <button class="btn" onclick="hideModal('modal-cp-rate')">Batal</button>
-        <button class="btn btn-primary" onclick="cpSaveRate()"><i class="ti ti-check"></i> Simpan</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ═══ MODAL: Bulk Edit Rate — per SKU (semua varian sekaligus) atau
        per Variant (checklist, pilih semua/satuan) ═══ -->
   <div class="modal-overlay" id="modal-cp-rate-bulk" onclick="if(event.target===this)hideModal('modal-cp-rate-bulk')">
@@ -614,34 +573,6 @@ document.getElementById('page-cost-produksi').innerHTML = `
     </div>
   </div>
 
-  <!-- ═══ MODAL: Set Bahan, Berat, Buffer & Montir per SKU Variasi (16 Sep
-       2026, diperluas 18 Sep 2026) — dipicu dari kolom BAHAN/BERAT/BUFFER/
-       MONTIR di Master Ongkos. Nyimpen ke produk.bahan_id, berat_gram,
-       buffer_per_lusin, montir_per_lusin (bukan ke cost_rate — semuanya
-       properti SKU Variasi, bukan properti per-divisi, jadi 1 sumber
-       kebenaran di tabel produk). ═══ -->
-  <div class="modal-overlay" id="modal-cp-bb" onclick="if(event.target===this)hideModal('modal-cp-bb')">
-    <div class="modal" style="max-width:380px;width:100%">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-        <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-scale"></i> Bahan, Buffer &amp; Montir</div>
-        <button onclick="hideModal('modal-cp-bb')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
-      </div>
-      <input type="hidden" id="cp-bb-produk-id">
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:10px" id="cp-bb-sku-label"></div>
-      <div class="form-group">
-        <label>Jenis Bahan</label>
-        <select id="cp-bb-bahan-id"><option value="">— Pilih Bahan —</option></select>
-      </div>
-      <div class="form-group"><label>Berat per Lusin (gram)</label><input type="number" id="cp-bb-berat" placeholder="0"></div>
-      <div class="form-group"><label>Buffer (Rp/lusin)</label><input type="text" inputmode="numeric" id="cp-bb-buffer" placeholder="mis. 30.000"></div>
-      <div class="form-group"><label>Montir (Rp/lusin)</label><input type="text" inputmode="numeric" id="cp-bb-montir" placeholder="0"></div>
-      <div class="modal-actions" style="margin-top:16px">
-        <button class="btn" onclick="hideModal('modal-cp-bb')">Batal</button>
-        <button class="btn btn-primary" onclick="cpSaveBahanBerat()"><i class="ti ti-check"></i> Simpan</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ═══ PICKER SHEET generik — konsep sama kayak sheet Uang Keluar
        (kas.js) & sheet Pilih Akun: slide dari bawah, search di atas,
        list scroll di bawahnya, tap = pilih & sheet nutup sendiri.
@@ -698,13 +629,7 @@ function cpEsc(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
-function cpEscJs(s) { return cpEsc(s).replace(/'/g, "\\'"); }
 
-function cpFmtTgl(s) {
-  if (!s) return '—';
-  var p = String(s).split('-');
-  return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0].slice(2)) : s;
-}
 
 var CP_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 function cpFmtHari(s) {
@@ -1043,12 +968,8 @@ function cpRenderRate() {
     var totalCostLusin = totalOngkos + biayaBahanLusin + bufferLusin + montirLusin;
     var hppPcs = totalCostLusin / 12;
 
-    // 18 Sep 2026: baris/kolom Master Ongkos DIBIKIN NON-KLIK (disetujui
-    // user) — dulu klik baris buka cpOpenRateForm (edit 1 SKU+Variasi) &
-    // klik sel Bahan/Berat/Buffer/Montir buka cpOpenBahanBerat, sekarang
-    // tabel murni tampilan. Semua edit HARUS lewat tombol toolbar (Edit
-    // per SKU/Variant/Divisi, Master Bahan) — cpOpenRateForm & modal-cp-bb
-    // masih ada di kode tapi jadi gak kepanggil dari sini lagi.
+    // 18 Sep 2026: baris/kolom Master Ongkos NON-KLIK (tabel murni tampilan).
+    // Semua edit lewat tombol toolbar (Edit per SKU/Variant/Divisi, Master Bahan).
     return '<tr>' +
       '<td>' + cpEsc(g.sku) + '</td>' +
       '<td>' + (g.variasi ? cpEsc(g.variasi) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
@@ -1582,173 +1503,8 @@ function _cpDoExportJurnalPDFInner(nama) {
   cpSafeSavePdf(doc, fileName);
 }
 
-// ─── FORM: Master Ongkos (1 SKU + 1 Variasi, semua divisi jadi kolom input) ──
-function cpOpenRateForm(sku, variasi) {
-  document.getElementById('cp-rate-edit-sku').value = sku || '';
-  document.getElementById('cp-rate-edit-variasi').value = variasi || '';
-  document.getElementById('cp-rate-form-title').innerHTML = sku
-    ? '<i class="ti ti-edit"></i> Edit Rate — ' + cpEsc(sku) + (variasi ? ' — ' + cpEsc(variasi) : '')
-    : '<i class="ti ti-list-details"></i> Tambah Rate';
-  document.getElementById('cp-rate-del-btn').style.display = sku ? '' : 'none';
-
-  document.getElementById('cp-rate-sku').value = sku || '';
-  var skuTrigger = document.getElementById('cp-rate-sku-trigger');
-  var skuLabel = document.getElementById('cp-rate-sku-label');
-  document.getElementById('cp-rate-variasi').value = variasi || '';
-  var varTrigger = document.getElementById('cp-rate-variasi-trigger');
-  var varLabel = document.getElementById('cp-rate-variasi-label');
-
-  if (sku) {
-    skuLabel.textContent = sku;
-    skuLabel.classList.remove('cp-placeholder');
-    skuTrigger.style.opacity = '.6';
-    skuTrigger.style.pointerEvents = 'none'; // hindari rename SKU/Variasi pas edit (biar gak numpuk baris nyasar)
-    varLabel.textContent = variasi || '—';
-    varLabel.classList.remove('cp-placeholder');
-    varTrigger.style.opacity = '.6';
-    varTrigger.style.pointerEvents = 'none';
-  } else {
-    skuLabel.textContent = '— Pilih SKU (Boss: DIMI) —';
-    skuLabel.classList.add('cp-placeholder');
-    skuTrigger.style.opacity = '';
-    skuTrigger.style.pointerEvents = '';
-    varLabel.textContent = '— Pilih SKU Induk dulu —';
-    varLabel.classList.add('cp-placeholder');
-    varTrigger.style.opacity = '';
-    varTrigger.style.pointerEvents = '';
-  }
-
-  var cols = cpDivisiColumns();
-  var byDivisiLower = {};
-  if (sku && variasi) {
-    _cpRate.filter(function(r) { return r.sku === sku && r.sku_variasi === variasi; }).forEach(function(r) {
-      byDivisiLower[r.divisi.toLowerCase()] = r;
-    });
-  }
-
-  document.getElementById('cp-rate-fields').innerHTML = cols.map(function(c) {
-    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
-    return '<div class="form-group"><label>' + cpEsc(c) + ' (Rp/lusin)</label>' +
-      '<input type="text" inputmode="numeric" id="' + fid + '" placeholder="0"></div>';
-  }).join('');
-  cols.forEach(function(c) {
-    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
-    idrInput(fid);
-    var row = byDivisiLower[c.toLowerCase()];
-    idrSet(fid, row ? row.ongkos_per_lusin : 0);
-  });
-
-  document.getElementById('cp-rate-extra-divisi').value = '';
-  document.getElementById('cp-rate-extra-ongkos').value = '';
-  idrInput('cp-rate-extra-ongkos');
-
-  showModal('modal-cp-rate');
-}
-
-// SKU induk picker — ditarik dari Kelola Produk (tabel `produk`), CUMA
-// katalog yang Boss/Supplier-nya DIMI.
-function cpOpenSkuSheetForRate() {
-  if (!_cpProdukDimi.length) {
-    alert('Belum ada produk dengan Boss = DIMI di Kelola Produk.');
-    return;
-  }
-  var byKatalog = {};
-  _cpProdukDimi.forEach(function(p) {
-    if (!p.katalog) return;
-    byKatalog[p.katalog] = (byKatalog[p.katalog] || 0) + 1;
-  });
-  var opts = Object.keys(byKatalog).sort().map(function(k) {
-    return { label: k, sub: byKatalog[k] + ' varian', key: k, raw: k };
-  });
-  var currentSku = document.getElementById('cp-rate-sku').value;
-  cpPickerSheetOpen('Pilih SKU Induk (Boss: DIMI)', opts, currentSku, function(katalog) {
-    document.getElementById('cp-rate-sku').value = katalog;
-    var skuLabel = document.getElementById('cp-rate-sku-label');
-    skuLabel.textContent = katalog;
-    skuLabel.classList.remove('cp-placeholder');
-    // ganti SKU induk → reset Variasi yang mungkin udah kepilih sebelumnya
-    document.getElementById('cp-rate-variasi').value = '';
-    var varLabel = document.getElementById('cp-rate-variasi-label');
-    varLabel.textContent = '— Pilih Variasi —';
-    varLabel.classList.add('cp-placeholder');
-  });
-}
-
-// Variasi picker — daftar sku_variasi dari SKU induk yang lagi dipilih,
-// tetap dari Kelola Produk (boss DIMI). Karena ongkos bisa beda per
-// ukuran (M vs LX dst.), tiap kombinasi SKU+Variasi punya rate sendiri.
-function cpOpenVarianSheetForRate() {
-  var sku = document.getElementById('cp-rate-sku').value;
-  if (!sku) { alert('Pilih SKU Induk dulu.'); return; }
-  var rows = _cpProdukDimi.filter(function(p) { return p.katalog === sku && p.sku_variasi; });
-  if (!rows.length) { alert('SKU ini belum punya data varian di Kelola Produk.'); return; }
-  var opts = rows.map(function(p) { return { label: p.sku_variasi, sub: null, key: p.sku_variasi, raw: p.sku_variasi }; });
-  var currentVar = document.getElementById('cp-rate-variasi').value;
-  cpPickerSheetOpen('Pilih Variasi', opts, currentVar, function(variasi) {
-    document.getElementById('cp-rate-variasi').value = variasi;
-    var varLabel = document.getElementById('cp-rate-variasi-label');
-    varLabel.textContent = variasi;
-    varLabel.classList.remove('cp-placeholder');
-  });
-}
-
-async function cpSaveRate() {
-  var sku = document.getElementById('cp-rate-sku').value.trim();
-  var variasi = document.getElementById('cp-rate-variasi').value.trim();
-  if (!sku) return alert('SKU Induk wajib diisi.');
-  if (!variasi) return alert('SKU Variasi wajib diisi.');
-
-  var cols = cpDivisiColumns();
-  var jobs = [];
-
-  cols.forEach(function(c) {
-    var fid = 'cp-rate-f-' + c.replace(/[^a-z0-9]/gi, '_');
-    var val = idrVal(fid);
-    var existing = _cpRate.find(function(r) { return r.sku === sku && r.sku_variasi === variasi && r.divisi.toLowerCase() === c.toLowerCase(); });
-    if (val > 0) {
-      jobs.push(existing
-        ? dbUpdate('cost_rate', existing.id, { ongkos_per_lusin: val })
-        : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: c, ongkos_per_lusin: val }));
-    } else if (existing) {
-      jobs.push(dbDelete('cost_rate', existing.id));
-    }
-  });
-
-  var extraDivisi = document.getElementById('cp-rate-extra-divisi').value.trim();
-  var extraVal = idrVal('cp-rate-extra-ongkos');
-  if (extraDivisi && extraVal > 0) {
-    var existingExtra = _cpRate.find(function(r) { return r.sku === sku && r.sku_variasi === variasi && r.divisi.toLowerCase() === extraDivisi.toLowerCase(); });
-    jobs.push(existingExtra
-      ? dbUpdate('cost_rate', existingExtra.id, { ongkos_per_lusin: extraVal })
-      : dbInsert('cost_rate', { sku: sku, sku_variasi: variasi, divisi: extraDivisi, ongkos_per_lusin: extraVal }));
-  }
-
-  try {
-    await Promise.all(jobs);
-  } catch (e) {
-    var msg = /duplicate|unique/i.test(e.message) ? 'Kombinasi SKU + Variasi + Divisi ini udah ada.' : e.message;
-    return alert('Gagal simpan: ' + msg);
-  }
-  hideModal('modal-cp-rate');
-  cpLoadAll();
-}
-
-async function cpDeleteRate() {
-  var sku = document.getElementById('cp-rate-edit-sku').value;
-  var variasi = document.getElementById('cp-rate-edit-variasi').value;
-  if (!sku) return;
-  if (!(await zConfirm('Hapus semua rate buat "' + sku + ' — ' + variasi + '" (semua divisi)? Jurnal yang udah kepake gak ikut kehapus (rate_snapshot udah tersimpan sendiri).', {title: 'Hapus semua rate?', ok: 'Hapus'}))) return;
-  var rows = _cpRate.filter(function(r) { return r.sku === sku && r.sku_variasi === variasi; });
-  try {
-    await Promise.all(rows.map(function(r) { return dbDelete('cost_rate', r.id); }));
-  } catch (e) { return alert('Gagal hapus: ' + e.message); }
-  hideModal('modal-cp-rate');
-  cpLoadAll();
-}
-
 // ─── BULK EDIT RATE — "Edit per SKU" (semua varian sekaligus) & "Edit per
-// Variant" (checklist, pilih semua/satuan). Beda dari cpOpenRateForm (yang
-// edit 1 SKU+Variasi doang) — ini buat isi banyak baris sekali Simpan,
+// Variant" (checklist, pilih semua/satuan). Isi banyak baris sekali Simpan,
 // biar cepet pas rate-nya emang sama buat banyak varian. 28 Agu 2026. ──
 var _cpBulkMode = 'sku'; // 'sku' | 'variant'
 var _cpBulkSelected = {}; // { sku_variasi: true }
@@ -2202,35 +1958,4 @@ async function cpDeleteBahan() {
 
 // ─── Set Bahan & Berat per SKU Variasi (dipicu dari kolom BAHAN/BERAT
 // di Master Ongkos) — nyimpen ke produk.bahan_id & produk.berat_gram. ──
-function cpOpenBahanBerat(produkId, sku, variasi) {
-  document.getElementById('cp-bb-produk-id').value = produkId;
-  document.getElementById('cp-bb-sku-label').textContent = sku + (variasi ? ' — ' + variasi : '');
-  var sel = document.getElementById('cp-bb-bahan-id');
-  sel.innerHTML = '<option value="">— Pilih Bahan —</option>' + _cpBahan.map(function(b) {
-    return '<option value="' + b.id + '">' + cpEsc(b.nama_bahan) + ' (Rp' + Number(b.harga_per_kg).toLocaleString('id-ID') + '/kg)</option>';
-  }).join('');
-  var row = _cpProdukDimi.find(function(p) { return p.id == produkId; });
-  sel.value = (row && row.bahan_id) ? row.bahan_id : '';
-  document.getElementById('cp-bb-berat').value = (row && row.berat_gram != null) ? row.berat_gram : '';
-  idrInput('cp-bb-buffer');
-  idrInput('cp-bb-montir');
-  idrSet('cp-bb-buffer', (row && row.buffer_per_lusin != null) ? row.buffer_per_lusin : 0);
-  idrSet('cp-bb-montir', (row && row.montir_per_lusin != null) ? row.montir_per_lusin : 0);
-  showModal('modal-cp-bb');
-}
 
-async function cpSaveBahanBerat() {
-  var id = document.getElementById('cp-bb-produk-id').value;
-  var bahanId = document.getElementById('cp-bb-bahan-id').value || null;
-  var berat = document.getElementById('cp-bb-berat').value;
-  var bufferRaw = document.getElementById('cp-bb-buffer').value.trim();
-  var montirRaw = document.getElementById('cp-bb-montir').value.trim();
-  berat = berat === '' ? null : Number(berat);
-  var buffer = bufferRaw === '' ? null : idrVal('cp-bb-buffer');
-  var montir = montirRaw === '' ? null : idrVal('cp-bb-montir');
-  try {
-    await dbUpdate('produk', id, { bahan_id: bahanId, berat_gram: berat, buffer_per_lusin: buffer, montir_per_lusin: montir });
-  } catch (e) { return alert('Gagal simpan: ' + e.message); }
-  hideModal('modal-cp-bb');
-  cpLoadAll();
-}

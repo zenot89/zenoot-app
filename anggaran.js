@@ -326,7 +326,7 @@ document.getElementById('page-anggaran').innerHTML = `
       <div id="ang-edit-nama" style="font-weight:700;font-size:15px;padding:6px 0;color:var(--ink)">—</div>
       <!-- <select> sekarang CUMA penyimpan value (persis pola kas-jrn-akun-debit
            di kas.js) — gak pernah ditampilin lagi, diganti trigger + sheet di
-           bawah. Tetep dipertahanin biar angSimpan()/angAkunSelectChange() gak
+           bawah. Dipakai angSimpan()/angAkunSelectChange() jadi gak
            perlu ditulis ulang. -->
       <select id="ang-edit-akun-select" onchange="angAkunSelectChange()"
         style="display:none;pointer-events:none;position:absolute;width:0;height:0;opacity:0"
@@ -401,20 +401,6 @@ function angInit() {
 
 function angOnBulanChange() {
   _angBulanAktif = document.getElementById('ang-filter-bulan').value || '';
-  _angUpdateBulanLabel();
-  angLoad();
-}
-
-// DEAD CODE (7 Sep 2026, revisi ke-2): dulu dipanggil tombol "Bulan Ini"
-// yang sekarang DIHAPUS (diganti pill dropdown #ang-bulan-trigger — lihat
-// _angEnsureBulanDD di bawah, bulan berjalan otomatis di urutan teratas list
-// jadi fungsinya udah kepenuhi dari situ). Dipertahankan apa adanya, minim
-// blast radius, kalau suatu saat perlu reset-cepat-ke-bulan-ini lagi.
-function angResetBulan() {
-  const now = new Date();
-  const b   = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  _angBulanAktif = b;
-  document.getElementById('ang-filter-bulan').value = b;
   _angUpdateBulanLabel();
   angLoad();
 }
