@@ -822,6 +822,8 @@ input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
   padding:16px;
 }
 .modal-overlay.open{display:-webkit-flex;display:flex}
+/* Konfirmasi hapus harus di atas modal lain (mis. modal Edit Transaksi yang dibuat belakangan di DOM) */
+#modal-confirm{z-index:100000}
 .modal{
   background:var(--cream2);border:none;padding:20px;border-radius:10px;
   width:100%;max-width:380px;box-shadow:var(--card-shadow);

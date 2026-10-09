@@ -155,8 +155,7 @@ document.getElementById('page-kas').innerHTML = `
     #kas-jurnal-tbl-wrap .kas-col-akund,
     #kas-jurnal-tbl-wrap .kas-col-akunk,
     #kas-jurnal-tbl-wrap .kas-col-debit,
-    #kas-jurnal-tbl-wrap .kas-col-kredit,
-    #kas-jurnal-tbl-wrap .kas-col-aksi { display:none !important; }
+    #kas-jurnal-tbl-wrap .kas-col-kredit { display:none !important; }
     #kas-jurnal-tbl-wrap .kas-col-portrait { display:table-cell !important; }
     #kas-jurnal-tbl-wrap table { min-width:unset; width:100%; }
   }
@@ -226,9 +225,8 @@ document.getElementById('page-kas').innerHTML = `
           <th class="kas-col-kredit" style="text-align:right">Kredit</th>
           <th class="kas-col-portrait">Akun</th>
           <th class="kas-col-portrait" style="text-align:right">Nominal</th>
-          <th class="kas-col-aksi">Aksi</th>
         </tr></thead>
-        <tbody id="kas-jurnal-tbody"><tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <tbody id="kas-jurnal-tbody"><tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
       <div id="kas-jurnal-footer" style="font-size:12px;color:var(--ink3);padding:8px 10px;text-align:right"></div>
     </div>
@@ -1779,7 +1777,7 @@ async function kasUpdateJurnal() {
 
 // ─── LOAD JURNAL ─────────────────────────────────────────────
 async function loadKasJurnal() {
-  document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>`;
+  document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>`;
   try {
     const [jurnal, akun] = await Promise.all([
       dbGet('jurnal', '&order=tanggal.desc,created_at.desc'),
@@ -1793,7 +1791,7 @@ async function loadKasJurnal() {
     // Re-apply flex layout setelah data selesai — pastikan portrait flat seperti landscape
     _kasEnsureFlexLayout();
   } catch(e) {
-    document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    document.getElementById('kas-jurnal-tbody').innerHTML = `<tr><td colspan="9" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
@@ -1842,7 +1840,7 @@ function kasRenderJurnalTabel(data) {
   const slice   = data.slice(start, start + _KAS_PAGE_SIZE);
 
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--ink3);font-style:italic">Belum ada transaksi</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada transaksi</td></tr>';
     _kasRenderPagination(0, 0);
     return;
   }
@@ -1854,7 +1852,6 @@ function kasRenderJurnalTabel(data) {
     const akunK = _kasAkunMap[r.akun_kredit_id];
     const nmD   = akunD ? '<span class="akun-badge akun-'+akunD.kelompok+'">'+akunD.nama+'</span>' : '—';
     const nmK   = akunK ? '<span class="akun-badge akun-'+akunK.kelompok+'">'+akunK.nama+'</span>' : '—';
-    const safeKet = (r.keterangan||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     // Portrait: deteksi masuk/keluar dari kelompok akun
     // Uang MASUK: akun kredit = pendapatan/modal (uang dari luar masuk ke kas)
     // Uang KELUAR: akun debit = beban/kewajiban (uang keluar dari kas)
@@ -1882,10 +1879,7 @@ function kasRenderJurnalTabel(data) {
       '<td class="kas-col-kredit" style="text-align:right;color:var(--danger);font-weight:600">'+fmtRp(r.kredit)+'</td>' +
       '<td class="kas-col-portrait">'+akunPort+'</td>' +
       '<td class="kas-col-portrait" style="text-align:right">'+nominalPort+'</td>' +
-      '<td class="kas-col-aksi">' +
-        '<button class="btn btn-sm" data-action="edit-kas" data-id="'+r.id+'" style="margin-right:4px"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn btn-sm btn-danger" data-action="hapus-kas" data-id="'+r.id+'" data-ket="'+safeKet+'"><i class="ti ti-trash"></i></button>' +
-      '</td></tr>';
+      '</tr>';
   }).join('');
   _kasRenderPagination(totalPg, data.length);
 }
@@ -1991,11 +1985,6 @@ async function kasEditJurnal(id) {
   showModal('modal-kas-transaksi');
 }
 
-async function kasHapusJurnal(id, ket) {
-  confirmDelete(`Hapus transaksi "${ket}"?`, async () => {
-    try { await dbDelete('jurnal', id); loadKasJurnal(); } catch(e) { alert('Gagal hapus: ' + e.message); }
-  });
-}
 
 // Hapus dari dalam modal edit — konfirmasi "YAKIN HAPUS TRANSAKSI INI?"
 async function kasHapusDariModal() {
@@ -2495,8 +2484,6 @@ function arusGoPage(pg) {
 document.getElementById('page-kas').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const id = btn.dataset.id, action = btn.dataset.action;
-  if (action === 'edit-kas')   kasEditJurnal(id);
-  if (action === 'hapus-kas')  kasHapusJurnal(id, btn.dataset.ket);
   if (action === 'edit-akun')  kasEditAkun(id);
   if (action === 'hapus-akun') kasHapusAkun(id, btn.dataset.nama);
 });
