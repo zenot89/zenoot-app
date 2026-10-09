@@ -542,6 +542,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
     </div>
 
     <div id="hs-panel-bon" class="hs-panel">
+      <div id="hs-bon-topbar">
       <div id="hs-bon-switcher" class="hs-bon-switcher"></div>
       <div id="hs-bon-kas-cards"></div>
       <div class="hs-toolbar" id="hs-bon-toolbar">
@@ -549,9 +550,7 @@ document.getElementById('page-hutang-supplier').innerHTML = `
         <button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>
         <button class="btn btn-sm btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
-      <div class="hs-toolbar" id="hs-bon-toolbar2">
-        <button class="hs-btn-pill hs-btn-ghost" onclick="hsOpenTarikPenjualan()"><i class="ti ti-refresh"></i> Cek Sinkron Penjualan</button>
-      </div>
+      </div><!-- /hs-bon-topbar. Cek Sinkron Penjualan dihapus (10 Okt 2026): sinkron bon dropship sudah otomatis (_hsDsAfterLoad + hsDropshipSyncSoon) -->
       <div id="hs-ds-banner"></div>
       <div class="hs-divider"></div>
       <div id="hs-bon-list"></div>
@@ -1513,30 +1512,34 @@ function hsRenderSupplierCards() {
 // Ganti hs-supplier-row (mini-card) khusus buat tab ini: 1 kotak total +
 // 1 kotak nama supplier yg bisa di-swipe (kiri/kanan) atau di-tap (buka
 // dropdown list semua supplier). Urutan cycle: [Semua Supplier, ...supplier].
-// ─── MINICARD CASH AKTUAL vs TOTAL UTANG (10 Okt 2026) ────────────────────
-// Cash Aktual = saldo akun aset sub_kelompok 'KAS & BANK' (definisi sama dgn Dashboard → Kecepatan Kas).
-// Escrow Shopee TIDAK dihitung (dana di jalan). Selisih = Cash Aktual − total utang aktif (semua supplier).
+// ─── BARIS ATAS TAB BON (10 Okt 2026) ────────────────────────────────────
+// Satu baris: [Total utang] [Selisih] [Cash Aktual] ........ [Pilih Supplier] [Bayar Utang] [Tambah Bon]
+// Cash Aktual = saldo akun aset sub_kelompok 'KAS & BANK' (sama dgn Dashboard → Kecepatan Kas), tanpa escrow Shopee.
+// Selisih = Cash Aktual − total utang aktif (semua supplier, tidak ikut filter).
 (function() {
   if (document.getElementById('hs-kc-style')) return;
   var st = document.createElement('style');
   st.id = 'hs-kc-style';
   st.textContent = [
-    '#hs-bon-kas-cards{margin:0 0 10px}',
-    '.hs-kc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
-    '.hs-kc{border:1.5px solid;border-radius:8px;padding:12px 14px;min-width:0}',
-    '.hs-kc-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-style:italic;display:flex;align-items:center;gap:5px;white-space:nowrap}',
-    '.hs-kc-v{font-size:22px;font-weight:700;font-style:italic;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.hs-kc-s{font-size:11px;font-style:italic;color:var(--ink3);margin-top:3px}',
-    '@media (max-width:480px){.hs-kc-v{font-size:18px}.hs-kc{padding:10px 12px}}'
+    '#hs-bon-topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}',
+    '#hs-bon-kas-cards,#hs-bon-kas-cards .hs-kc-grid,#hs-bon-topbar #hs-bon-switcher{display:contents}',
+    '#hs-bon-topbar .hs-bon-switcher-total{order:1;flex:0 0 auto;min-width:150px}',
+    '#hs-bon-topbar .hs-kc-sel{order:2}',
+    '#hs-bon-topbar .hs-kc-cash{order:3}',
+    '#hs-bon-topbar .hs-bon-switcher-sup{order:4;flex:0 0 auto;min-width:200px}',
+    '#hs-bon-topbar #hs-bon-toolbar{order:5;margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:nowrap}',
+    '#hs-bon-topbar .hs-kc{flex:0 0 auto;min-width:140px;padding:6px 12px;border:1.5px solid;border-radius:8px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}',
+    '#hs-bon-topbar .hs-kc-t{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-style:italic;display:flex;align-items:center;gap:4px;white-space:nowrap}',
+    '#hs-bon-topbar .hs-kc-v{font-size:17px;font-weight:700;font-style:italic;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}',
+    '@media (max-width:640px){#hs-bon-topbar .hs-bon-switcher-sup{flex:1 1 100%;min-width:0}#hs-bon-topbar #hs-bon-toolbar{width:100%;justify-content:flex-end}}'
   ].join('\n');
   document.head.appendChild(st);
 })();
 
-function _hsKcCard(color, bg, icon, title, value, sub) {
-  return '<div class="hs-kc" style="border-color:' + color + ';background:' + bg + '">'
+function _hsKcCard(cls, color, bg, icon, title, value, tip) {
+  return '<div class="hs-kc ' + cls + '" title="' + tip + '" style="border-color:' + color + ';background:' + bg + '">'
     + '<div class="hs-kc-t" style="color:' + color + '"><i class="ti ' + icon + '"></i>' + title + '</div>'
     + '<div class="hs-kc-v" style="color:' + color + '">' + value + '</div>'
-    + '<div class="hs-kc-s">' + sub + '</div>'
     + '</div>';
 }
 
@@ -1551,17 +1554,16 @@ function hsRenderBonKasCards() {
     .reduce(function(s, b) { return s + _hsSisaBon(b).sisa; }, 0);
   var selisih = cash - totalUtang;
   var kurang  = selisih < 0;
-  var warn    = 'var(--danger)', ok = 'var(--ok)';
-  var selColor = kurang ? warn : ok;
-  var selBg    = kurang ? 'rgba(224,82,82,0.08)' : 'rgba(46,204,122,0.08)';
-  el.innerHTML = '<div class="hs-kc-grid">'
-    + _hsKcCard(ok, 'rgba(46,204,122,0.08)', 'ti-wallet', 'Cash Aktual', fmtRpFull(cash),
-        'saldo Kas & Bank · tanpa escrow Shopee')
-    + _hsKcCard(selColor, selBg, kurang ? 'ti-alert-triangle' : 'ti-circle-check',
-        kurang ? 'Selisih · Kurang' : 'Selisih · Lebih',
-        (kurang ? '-' : '+') + fmtRpFull(Math.abs(selisih)),
-        kurang ? 'belum cukup untuk bayar semua utang aktif' : 'cukup untuk bayar semua utang aktif')
-    + '</div>';
+  var okC = 'var(--ok)', badC = 'var(--danger)';
+  var selC  = kurang ? badC : okC;
+  var selBg = kurang ? 'rgba(224,82,82,0.08)' : 'rgba(46,204,122,0.08)';
+  el.innerHTML =
+    _hsKcCard('hs-kc-sel', selC, selBg, kurang ? 'ti-alert-triangle' : 'ti-circle-check',
+      kurang ? 'Selisih · Kurang' : 'Selisih · Lebih',
+      (kurang ? '-' : '+') + fmtRpFull(Math.abs(selisih)),
+      kurang ? 'Belum cukup untuk bayar semua utang aktif' : 'Cukup untuk bayar semua utang aktif')
+    + _hsKcCard('hs-kc-cash', okC, 'rgba(46,204,122,0.08)', 'ti-wallet', 'Cash Aktual', fmtRpFull(cash),
+      'Saldo Kas & Bank · tanpa escrow Shopee');
 }
 
 function hsRenderBonSwitcher() {
