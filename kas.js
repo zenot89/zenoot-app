@@ -1992,8 +1992,8 @@ async function kasHapusDariModal() {
   if (!id) return;
   confirmDelete('YAKIN HAPUS TRANSAKSI INI?', async () => {
     try {
+      await dbDelete('jurnal', id, true);   // true = error kalau 0 baris terhapus (lihat dbDelete)
       hideModal('modal-kas-transaksi');
-      await dbDelete('jurnal', id);
       loadKasJurnal();
     } catch(e) { alert('Gagal hapus: ' + e.message); }
   });

@@ -897,15 +897,26 @@ async function dbUpdateWhere(table, filterQuery, payload) {
   return data;
 }
 
-async function dbDelete(table, id) {
+// pastikan=true → minta baris yang terhapus dikembalikan; kalau 0 baris, LEMPAR error.
+// Kenapa perlu: PostgREST balas 2xx walau DELETE tidak menghapus apa-apa (diblokir RLS / id tidak ada),
+// jadi tanpa ini kegagalan terlihat seperti sukses ("Hapus tidak jalan" tanpa pesan apa pun).
+// Default false → perilaku 35 pemanggil lain tidak berubah.
+async function dbDelete(table, id, pastikan) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?id=eq.' + id, {
     method:  'DELETE',
-    headers: _headers()
+    headers: _headers(pastikan ? { 'Prefer': 'return=representation' } : null)
   });
   if (!res.ok) {
     let msg = 'DELETE ' + table + ' error ' + res.status;
     try { const d = await res.json(); msg = d.message || d.hint || msg; } catch(e) {}
     throw new Error(msg);
+  }
+  if (pastikan) {
+    let rows = [];
+    try { rows = await res.json(); } catch(e) {}
+    if (!Array.isArray(rows) || !rows.length) {
+      throw new Error('Tidak ada baris yang terhapus di tabel ' + table + ' (id ' + id + '). Kemungkinan: diblokir izin/RLS database, atau data sudah tidak ada.');
+    }
   }
 }
 
