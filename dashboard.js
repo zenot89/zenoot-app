@@ -1620,7 +1620,8 @@ function _renderBeban(bebanData, omsetBln) {
   const rows = bebanData.map(r => {
     const nominal = Number(r.nominal || r.jumlah || 0);
     totalNominal += nominal;
-    return { nama: r.nama_beban || r.nama || '—', nominal, persen: Number(r.beban_persen||0) };
+    // Persen per kategori = nominal ÷ omset bulan ini (dasar yang sama dengan "x% dari omset bulan ini" di header)
+    return { nama: r.nama_beban || r.nama || '—', nominal, persen: omsetBln>0 ? (nominal/omsetBln*100) : Number(r.beban_persen||0) };
   });
 
   const pctDariOmset = omsetBln>0 ? (totalNominal/omsetBln*100).toFixed(1) : null;
@@ -1634,7 +1635,7 @@ function _renderBeban(bebanData, omsetBln) {
     '<div class="beban-row">' +
       '<span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
-        (r.persen>0 ? '<span style="font-size:11px;color:var(--ink3)">'+r.persen+'%</span>' : '') +
+        (r.persen>0 ? '<span style="font-size:11px;color:var(--ink3);min-width:44px;text-align:right;font-variant-numeric:tabular-nums">'+Number(r.persen).toFixed(1)+'%</span>' : '') +
         '<span style="font-size:13px;font-weight:700;color:var(--danger)">' + _fmtRp(r.nominal) + '</span>' +
       '</div>' +
     '</div>'
