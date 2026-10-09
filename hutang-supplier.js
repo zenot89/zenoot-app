@@ -1005,6 +1005,7 @@ var _hsBarangMaster     = [];     // semua hutang_barang (master katalog per sup
 var _hsKatalogList      = [];     // distinct produk.katalog, dipakai Paste Massal Master Barang (belum diubah)
 var _hsProdukAll        = [];     // SEMUA baris produk {id, katalog, sku_variasi} (7 Sep 2026) — base data buat picker "Pilih SKU Variasi" di Tambah/Edit Barang manual, gantiin dropdown SKU Induk + ketik Varian Warna
 var _hsAkunKas          = [];     // kas_akun, buat select debit/kredit pembayaran
+var _hsAkunSaldo        = {};     // { akun_id: saldo (debit - kredit, semua periode) } — tampil di picker "Bayar dari"
 var _hsFilterSupplier   = null;   // null = semua (dipakai bareng di tab Bon & Master)
 var _hsItemRows         = [];     // baris item form Tambah/Edit Bon
 var _hsCurrentBonId     = null;   // bon yg lagi dibuka di sheet detail
@@ -1017,7 +1018,7 @@ var _hsBayarGabBonIds = null; // array bon id spesifik (dari drill-in checkbox p
 // ─── LOAD ───────────────────────────────────────────────────────
 async function loadHutangSupplier() {
   try {
-    const [supplier, bon, pembayaran, barang, akun, produk] = await Promise.all([
+    const [supplier, bon, pembayaran, barang, akun, produk, jurnal] = await Promise.all([
       dbGet('hutang_supplier', '&order=nama.asc'),
       dbGet('hutang_bon',      '&order=tanggal.desc,created_at.desc'),
       dbGet('hutang_pembayaran', '&order=tanggal.desc'),
@@ -1026,12 +1027,19 @@ async function loadHutangSupplier() {
       // 26 Sep 2026: select diperlebar (+boss,hpp) buat kebutuhan auto
       // stock-in dari "Barang Diterima" — lihat _hsAutoStockInFromBon().
       dbGet('produk',          '&select=id,katalog,sku_variasi,boss,hpp&order=katalog.asc,sku_variasi.asc'),
+      dbGet('jurnal',          '&select=akun_debit_id,akun_kredit_id,nominal,debit'),
     ]);
     _hsSupplierList  = supplier || [];
     _hsBonList       = bon || [];
     _hsPembayaranAll = pembayaran || [];
     _hsBarangMaster  = barang || [];
     _hsAkunKas       = akun || [];
+    _hsAkunSaldo     = {};
+    (jurnal || []).forEach(function(r) {
+      var n = r.nominal || r.debit || 0;
+      if (r.akun_debit_id)  _hsAkunSaldo[r.akun_debit_id]  = (_hsAkunSaldo[r.akun_debit_id]  || 0) + n;
+      if (r.akun_kredit_id) _hsAkunSaldo[r.akun_kredit_id] = (_hsAkunSaldo[r.akun_kredit_id] || 0) - n;
+    });
     _hsProdukAll     = produk || [];
 
     var katSet = {};
@@ -2205,7 +2213,23 @@ var _hsSupPickerCtx = null; // { selectId, triggerLabelId }
 
 // ─── "Sering & Terakhir Digunakan" buat picker Hutang Barang (riwayat: zHistTop/zHistPush di app.js).
 // Cuma pas search kosong; item yg sama tetep muncul lagi di list lengkap di bawahnya. [24 Sep 2026]
-function _hsAppendHistSection(listEl, q, key, items, idOf, labelOf, onPick, currentVal) {
+// Isi 1 baris picker: label kiri + (opsional) teks kanan berwarna, mis. saldo akun.
+function _hsFillPickerItem(it, label, right) {
+  if (!right) { it.textContent = label; return; }
+  it.style.display = 'flex'; it.style.justifyContent = 'space-between'; it.style.alignItems = 'center'; it.style.gap = '12px';
+  var l = document.createElement('span'); l.textContent = label;
+  var r = document.createElement('span');
+  r.textContent = right.text; r.style.color = right.color; r.style.fontWeight = '700'; r.style.fontSize = '13px'; r.style.whiteSpace = 'nowrap';
+  it.appendChild(l); it.appendChild(r);
+}
+
+// Saldo akun Kas/Bank untuk picker "Bayar dari": hijau = ada uang, merah = minus, abu = kosong.
+function _hsAkunSaldoRight(a) {
+  var v = _hsAkunSaldo[a.id] || 0;
+  return { text: (v < 0 ? '(' : '') + fmtRpFull(Math.abs(v)) + (v < 0 ? ')' : ''), color: v > 0 ? 'var(--ok)' : (v < 0 ? 'var(--danger)' : 'var(--ink3)') };
+}
+
+function _hsAppendHistSection(listEl, q, key, items, idOf, labelOf, onPick, currentVal, rightOf) {
   if (q) return;
   var byId = {};
   items.forEach(function(x) { byId[String(idOf(x))] = x; });
@@ -2219,7 +2243,7 @@ function _hsAppendHistSection(listEl, q, key, items, idOf, labelOf, onPick, curr
     var x = byId[id];
     var it = document.createElement('div');
     it.className = 'hs-picker-item' + (String(id) === String(currentVal) ? ' active' : '');
-    it.textContent = labelOf(x);
+    _hsFillPickerItem(it, labelOf(x), rightOf ? rightOf(x) : null);
     it.onclick = function() { onPick(x); };
     listEl.appendChild(it);
   });
@@ -2422,13 +2446,16 @@ function _hsAkunPickerRender(q, currentVal) {
     if (q && label.toLowerCase().indexOf(q) === -1) return;
     if (grouped[a.kelompok]) grouped[a.kelompok].push(a);
   });
+  var _kasMode = _hsAkunPickerCtx.posisi !== 'debit';   // "Bayar dari (Kas/Bank)": tampilkan saldo, akun yang ada uangnya di atas
+  if (_kasMode) grouped.aset.sort(function(a, b) { return ((_hsAkunSaldo[b.id] || 0) - (_hsAkunSaldo[a.id] || 0)) || String(a.kode || '').localeCompare(String(b.kode || '')); });
+  var _rightOf = _kasMode ? _hsAkunSaldoRight : null;
   listEl.innerHTML = '';
   var totalCount = 0;
   var _flatAkun = [];
   order.forEach(function(k) { grouped[k].forEach(function(a) { _flatAkun.push(a); }); });
   _hsAppendHistSection(listEl, q, 'hs_akun_' + _hsAkunPickerCtx.posisi, _flatAkun,
     function(a) { return a.id; }, function(a) { return (a.kode ? a.kode + ' · ' : '') + a.nama; },
-    function(a) { hsAkunPickerSelect(a.id, (a.kode ? a.kode + ' · ' : '') + a.nama); }, currentVal);
+    function(a) { hsAkunPickerSelect(a.id, (a.kode ? a.kode + ' · ' : '') + a.nama); }, currentVal, _rightOf);
   order.forEach(function(k) {
     if (!grouped[k].length) return;
     totalCount += grouped[k].length;
@@ -2440,7 +2467,7 @@ function _hsAkunPickerRender(q, currentVal) {
       var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
       var it = document.createElement('div');
       it.className = 'hs-picker-item' + (String(a.id) === String(currentVal) ? ' active' : '');
-      it.textContent = label;
+      _hsFillPickerItem(it, label, _rightOf ? _rightOf(a) : null);
       it.onclick = function() { hsAkunPickerSelect(a.id, label); };
       listEl.appendChild(it);
     });
