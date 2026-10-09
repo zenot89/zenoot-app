@@ -56,8 +56,12 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
-          <div class="nw-slide-value" id="dash-beban-total">Rp —</div>
-          <div class="nw-slide-sub" id="dash-beban-pct">bulan ini</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1.5px solid var(--ink);border-radius:8px;padding:8px 14px;margin-top:6px">
+            <div class="nw-slide-value" id="dash-beban-total" style="margin:0">Rp —</div>
+            <div style="display:flex;align-items:baseline;gap:6px;white-space:nowrap">
+              <span id="dash-beban-pct" style="font-size:20px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">—</span>
+            </div>
+          </div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data" id="dash-beban-wrap">
@@ -1611,7 +1615,7 @@ function _renderBeban(bebanData, omsetBln) {
   if (!el) return;
   if (!bebanData || !bebanData.length) {
     if (elTot) elTot.textContent = 'Rp0';
-    if (elPct) elPct.textContent = 'belum ada beban bulan ini';
+    if (elPct) elPct.textContent = '—';
     el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada beban bulan ini. Catat via Kas &amp; Jurnal → pilih akun kelompok Beban.</div>';
     return;
   }
@@ -1627,7 +1631,7 @@ function _renderBeban(bebanData, omsetBln) {
 
   // Update header
   if (elTot) elTot.textContent = _fmtRp(totalNominal);
-  if (elPct) elPct.textContent = pctDariOmset ? pctDariOmset + '% dari omset bulan ini' : 'bulan ini';
+  if (elPct) elPct.textContent = pctDariOmset ? pctDariOmset + '%' : '—';
 
   // Data box: nama kiri · [% dari total beban] [IDR] kanan. % = porsi kategori dari TOTAL beban
   // (jumlah semua baris = 100%). Header "x% dari omset" tetap, itu rasio beban terhadap omset.
@@ -1635,9 +1639,8 @@ function _renderBeban(bebanData, omsetBln) {
     const pctBeban = totalNominal>0 ? (r.nominal/totalNominal*100) : 0;
     return '<div class="beban-row">' +
       '<span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
-      '<div style="display:inline-flex;align-items:center;gap:10px;background:var(--cream2);border:1px solid var(--ink4);border-radius:8px;padding:3px 10px">' +
-        '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;font-variant-numeric:tabular-nums">' + pctBeban.toFixed(1) + '%</span>' +
-        '<span style="width:1px;height:14px;background:var(--ink4)"></span>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pctBeban.toFixed(1) + '%</span>' +
         '<span style="font-size:13px;font-weight:700;color:var(--danger);font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
       '</div>' +
     '</div>';
