@@ -1521,17 +1521,28 @@ function hsRenderSupplierCards() {
   var st = document.createElement('style');
   st.id = 'hs-kc-style';
   st.textContent = [
-    '#hs-bon-topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}',
-    '#hs-bon-kas-cards,#hs-bon-kas-cards .hs-kc-grid,#hs-bon-topbar #hs-bon-switcher{display:contents}',
-    '#hs-bon-topbar .hs-bon-switcher-total{order:1;flex:0 0 auto;min-width:150px}',
-    '#hs-bon-topbar .hs-kc-sel{order:2}',
-    '#hs-bon-topbar .hs-kc-cash{order:3}',
-    '#hs-bon-topbar .hs-bon-switcher-sup{order:4;flex:0 0 auto;min-width:200px}',
-    '#hs-bon-topbar #hs-bon-toolbar{order:5;margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:nowrap}',
-    '#hs-bon-topbar .hs-kc{flex:0 0 auto;min-width:140px;padding:6px 12px;border:1.5px solid;border-radius:8px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}',
-    '#hs-bon-topbar .hs-kc-t{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-style:italic;display:flex;align-items:center;gap:4px;white-space:nowrap}',
-    '#hs-bon-topbar .hs-kc-v{font-size:17px;font-weight:700;font-style:italic;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}',
-    '@media (max-width:640px){#hs-bon-topbar .hs-bon-switcher-sup{flex:1 1 100%;min-width:0}#hs-bon-topbar #hs-bon-toolbar{width:100%;justify-content:flex-end}}'
+    /* Baris 1 = 3 minicard sama ukuran (Total · Selisih · Cash). Baris 2 = Pilih Supplier (kiri) · Bayar & Tambah (kanan). */
+    '#hs-bon-topbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"tot sel cash" "sup act act";gap:12px;margin:0 0 12px}',
+    '#hs-bon-topbar #hs-bon-switcher,#hs-bon-topbar #hs-bon-kas-cards{display:contents}',
+    /* semua minicard: tinggi & gaya sama */
+    '#hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:66px;box-sizing:border-box;min-width:0;padding:8px 12px;border:1.5px solid;border-radius:10px;display:flex;flex-direction:column;justify-content:center;background:var(--cream2)}',
+    '#hs-bon-topbar .hs-bon-switcher-total{grid-area:tot;border-color:var(--ink4)}',
+    '#hs-bon-topbar .hs-kc-sel{grid-area:sel}',
+    '#hs-bon-topbar .hs-kc-cash{grid-area:cash}',
+    '#hs-bon-topbar .hs-kc-t{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-style:italic;display:flex;align-items:center;gap:4px;white-space:nowrap;color:var(--ink3)}',
+    '#hs-bon-topbar .hs-bon-switcher-total .hs-kc-v{font-size:18px;font-weight:700;font-style:italic;line-height:1.15;margin-top:3px;color:var(--danger);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '#hs-bon-topbar .hs-kc-v{font-size:18px;font-weight:700;font-style:italic;line-height:1.15;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    /* baris 2 */
+    '#hs-bon-topbar .hs-bon-switcher-sup{grid-area:sup;height:40px;box-sizing:border-box;align-self:center}',
+    '#hs-bon-topbar #hs-bon-toolbar{grid-area:act;justify-self:end;align-self:center;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}',
+    '#hs-bon-topbar #hs-bon-toolbar .btn-sm{height:40px;padding:0 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
+    '#hs-bon-topbar #hs-bon-toolbar .hs-btn-icon-only{height:40px;width:40px;padding:0;border-radius:10px}',
+    '@media (max-width:640px){',
+    '  #hs-bon-topbar{grid-template-areas:"tot sel cash" "sup sup sup" "act act act"}',
+    '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
+    '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
+    '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:flex-end;width:100%}',
+    '}'
   ].join('\n');
   document.head.appendChild(st);
 })();
@@ -1581,7 +1592,8 @@ function hsRenderBonSwitcher() {
     .reduce(function(s,b){ return s + _hsSisaBon(b).sisa; }, 0);
 
   el.innerHTML =
-    '<div class="hs-bon-switcher-total">' + fmtRpFull(totalAktif) + '</div>' +
+    '<div class="hs-bon-switcher-total"><span class="hs-kc-t"><i class="ti ti-file-invoice"></i>Total Utang</span>' +
+      '<span class="hs-kc-v">' + fmtRpFull(totalAktif) + '</span></div>' +
     '<div class="hs-bon-switcher-sup" id="hs-bon-switcher-sup" onclick="hsToggleSupplierDropdown(event)">' +
       '<span>' + _hsEsc(label) + '</span><i class="ti ti-chevron-down"></i>' +
       '<div class="hs-bon-switcher-dropdown" id="hs-bon-switcher-dropdown">' +
