@@ -810,6 +810,130 @@ function dosBadge(dos, lead_time) {
 }
 
 // ── Tab Summary ──
+// ─── RE-STOCK LAPTOP: master-detail (pola Clearance Monitor) ──────────────
+// 10 Okt 2026: Order Sekarang & Lagi Naik di laptop pakai pola yang SAMA dengan
+// Clearance Monitor: kiri = daftar SKU induk (katalog), klik → kanan = SKU variasi
+// (SISA · HABIS · ORDER). Bukan bottom-sheet/picker lagi. Mobile tetap list & sheet lama.
+var _rsMdSel = { segera: 0, naik: 0 };   // index induk yang sedang dibuka per kolom
+
+(function() {
+  if (document.getElementById('rsm-style')) return;
+  var st = document.createElement('style');
+  st.id = 'rsm-style';
+  st.textContent = [
+    '#sum-split-zone{gap:14px;padding:0 14px 14px}',
+    '#sum-top-zone .sum-header-laptop{display:none !important}',
+    '.rsm-col{-webkit-flex:1 1 0;flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column;border:1.5px solid var(--ovl-0_06);border-radius:8px;background:var(--cream2);overflow:hidden}',
+    '.rsm-title{-webkit-flex-shrink:0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--ovl-0_06)}',
+    '.rsm-title i{margin-right:6px}',
+    '.rsm-sub{font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--ink3);white-space:nowrap}',
+    '.rsm-wrap{-webkit-flex:1 1 0;flex:1 1 0;min-height:0;display:flex;flex-direction:row}',
+    '.rsm-induk{-webkit-flex:0 0 46%;flex:0 0 46%;min-width:0;min-height:0;overflow-y:auto;border-right:1px solid var(--ovl-0_06);scrollbar-width:thin}',
+    '.rsm-detail{-webkit-flex:1 1 0;flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column}',
+    '.rsm-dhead{-webkit-flex-shrink:0;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--ovl-0_06);background:var(--ovl-0_04)}',
+    '.rsm-dtitle{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}',
+    '.rsm-dmetric{font-size:12px;color:var(--ink3);white-space:nowrap}',
+    '.rsm-dmetric b{font-size:18px;font-weight:800;color:var(--ink);margin:0 3px 0 6px;font-variant-numeric:tabular-nums}',
+    '.rsm-dbody{-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto}',
+    '.rsm-tbl{width:100%;border-collapse:collapse;font-size:13px}',
+    '.rsm-tbl th{position:sticky;top:0;z-index:1;background:var(--cream2);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:7px 10px;border-bottom:1px solid var(--ovl-0_06)}',
+    '.rsm-tbl td{padding:8px 10px;border-bottom:1px solid var(--ovl-0_04);vertical-align:top}',
+    '.rsm-tbl .c-n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}',
+    '.rsm-induk-row{cursor:pointer}',
+    '.rsm-induk-row:hover td{background:var(--ovl-0_04)}',
+    '.rsm-induk-row.rsm-sel td{background:var(--ovl-0_06)}',
+    '.rsm-induk-row.rsm-sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}',
+    '.rsm-induk-name{display:block;font-weight:700;color:var(--ink)}',
+    '.rsm-induk-sub{display:block;margin-top:2px;font-size:11px;color:var(--ink3)}',
+    '.rsm-empty{padding:18px 14px;font-size:13px;color:var(--ink3);font-style:italic}',
+    '.rsm-foot{-webkit-flex-shrink:0;flex-shrink:0;padding:7px 14px;font-size:12px;color:var(--ink3);text-align:right;border-top:1px solid var(--ovl-0_06)}'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+function _rsMdIsHabis(r) { return r.sisa_stok !== null && r.sisa_stok <= 0; }
+
+// Satu kolom (Order Sekarang / Lagi Naik) = master (kiri) + detail (kanan)
+function _rsMdColHtml(side, groups) {
+  var isSegera = side === 'segera';
+  var accent   = isSegera ? 'var(--danger)' : 'var(--ok)';
+  var titleTxt = isSegera
+    ? '<span style="color:' + accent + '"><i class="ti ti-urgent"></i>Order Sekarang</span>'
+    : '<span style="color:' + accent + '"><i class="ti ti-trending-up"></i>Lagi Naik</span>';
+  var totalSku = groups.reduce(function(s, g) { return s + g.items.length; }, 0);
+  var head = '<div class="rsm-title">' + titleTxt
+    + '<span class="rsm-sub">' + totalSku + ' SKU</span></div>';
+  var idAttr = ' id="rsm-col-' + side + '"';
+
+  if (!groups.length) {
+    return '<div class="rsm-col"' + idAttr + '>' + head
+      + '<div class="rsm-empty">' + (isSegera ? 'Semua stok aman 👌' : 'Belum ada tren naik') + '</div></div>';
+  }
+
+  var sel = Math.min(Math.max(0, _rsMdSel[side] || 0), groups.length - 1);
+  _rsMdSel[side] = sel;
+  var g = groups[sel];
+
+  // ── Master: SKU induk ──
+  var indukHead = isSegera
+    ? '<tr><th>Katalog</th><th class="c-n">SKU</th><th class="c-n">Habis</th><th class="c-n">Order</th></tr>'
+    : '<tr><th>Katalog</th><th class="c-n">SKU</th><th class="c-n">Order</th></tr>';
+  var indukRows = groups.map(function(gr, i) {
+    var qty = gr.items.reduce(function(sm, r) { return sm + (r.qty_order || 0); }, 0);
+    var habisN = gr.items.filter(_rsMdIsHabis).length;
+    var cells = isSegera
+      ? '<td class="c-n">' + gr.items.length + '</td>'
+        + '<td class="c-n" style="color:' + (habisN > 0 ? 'var(--danger)' : 'var(--ink3)') + '">' + habisN + '</td>'
+        + '<td class="c-n" style="color:var(--warn);font-weight:700">' + qty + ' pcs</td>'
+      : '<td class="c-n">' + gr.items.length + '</td>'
+        + '<td class="c-n" style="color:var(--warn);font-weight:700">' + qty + ' pcs</td>';
+    return '<tr class="rsm-induk-row' + (i === sel ? ' rsm-sel' : '') + '" onclick="rsMdPick(\'' + side + '\',' + i + ')">'
+      + '<td><span class="rsm-induk-name">' + _rsEsc(gr.katalog) + '</span>'
+      + '<span class="rsm-induk-sub">' + _rsEsc(gr.boss) + '</span></td>'
+      + cells + '</tr>';
+  }).join('');
+
+  // ── Detail: SKU variasi dari induk terpilih ──
+  var qtySel = g.items.reduce(function(sm, r) { return sm + (r.qty_order || 0); }, 0);
+  var habisSel = g.items.filter(_rsMdIsHabis).length;
+  var varHead = '<tr><th>SKU variasi</th><th class="c-n">Sisa</th><th class="c-n">Habis</th><th class="c-n">Order</th></tr>';
+  var varRows = g.items.map(function(r) {
+    var habisTxt = r.dos !== null && r.dos !== undefined ? r.dos + ' hr' : '—';
+    var habisCol = (r.dos !== null && r.dos !== undefined && r.dos <= 7) ? 'var(--danger)' : 'var(--ink3)';
+    return '<tr>'
+      + '<td>' + _rsEsc(r.sku) + '</td>'
+      + '<td class="c-n" style="color:' + (_rsMdIsHabis(r) ? 'var(--danger)' : 'var(--ink)') + ';font-weight:700">' + (r.sisa_stok === null ? '—' : r.sisa_stok) + '</td>'
+      + '<td class="c-n" style="color:' + habisCol + '">' + habisTxt + '</td>'
+      + '<td class="c-n" style="color:var(--warn);font-weight:700">' + (r.qty_order || 0) + ' pcs</td>'
+      + '</tr>';
+  }).join('');
+
+  var detailHead = '<div class="rsm-dhead">'
+    + '<div class="rsm-dtitle">' + _rsEsc(g.katalog) + '</div>'
+    + '<div class="rsm-dmetric"><b>' + g.items.length + '</b>varian'
+    + '<b>' + qtySel + '</b>pcs order'
+    + (isSegera ? '<b style="color:var(--danger)">' + habisSel + '</b>habis' : '') + '</div>'
+    + '</div>';
+
+  return '<div class="rsm-col"' + idAttr + '>' + head
+    + '<div class="rsm-wrap">'
+    +   '<div class="rsm-induk"><table class="rsm-tbl"><thead>' + indukHead + '</thead><tbody>' + indukRows + '</tbody></table></div>'
+    +   '<div class="rsm-detail">' + detailHead
+    +     '<div class="rsm-dbody"><table class="rsm-tbl"><thead>' + varHead + '</thead><tbody>' + varRows + '</tbody></table></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="rsm-foot">' + groups.length + ' SKU induk · ' + totalSku + ' varian SKU</div>'
+    + '</div>';
+}
+
+// Klik induk di kiri → ganti isi panel kanan kolom itu saja
+function rsMdPick(side, i) {
+  _rsMdSel[side] = i;
+  var groups = (window._rsGroups && window._rsGroups[side]) || [];
+  var col = document.getElementById('rsm-col-' + side);
+  if (col && groups.length) col.outerHTML = _rsMdColHtml(side, groups);
+}
+
 function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis, zombieList, modalPerSupplier) {
   const grandBudget = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.nilai, 0), 0);
   const grandQty    = bossSorted.reduce((s,b) => s + bossList[b].items.reduce((ss,r) => ss + r.qty_order, 0), 0);
@@ -1079,13 +1203,8 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     </div>
     <!-- Laptop: dua kolom side-by-side (Order Sekarang · Lagi Naik). Nilai Stok per Supplier pindah ke Stok Produk (10 Okt 2026). -->
     <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
-      <!-- 8 Okt 2026: kolom Order Sekarang & Lagi Naik dibungkus panel berwarna (rs-col-fill) yang memanjang sampai dasar kolom, biar gak ada ruang kosong di bawah baris -->
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06);display:flex;flex-direction:column">
-        <div class="rs-col-fill rs-col-red">${_segeraHtml}</div>
-      </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;display:flex;flex-direction:column">
-        <div class="rs-col-fill rs-col-green">${_naikHtml}</div>
-      </div>
+      ${_rsMdColHtml('segera', segeraGroups)}
+      ${_rsMdColHtml('naik', naikGroups)}
     </div>
     <!-- Clearance + Zombie monitor — di luar scroll zone, padding bawah -->
     <div style="padding:0 14px 16px;flex-shrink:0">
