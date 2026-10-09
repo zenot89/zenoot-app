@@ -1533,13 +1533,15 @@ function hsRenderSupplierCards() {
     '#hs-bon-topbar .hs-bon-switcher-total .hs-kc-v{font-size:18px;font-weight:700;font-style:italic;line-height:1.15;margin-top:3px;color:var(--danger);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '#hs-bon-topbar .hs-kc-v{font-size:18px;font-weight:700;font-style:italic;line-height:1.15;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     /* baris 2 */
-    '#hs-bon-topbar .hs-bon-switcher-sup{grid-area:sup;height:40px;box-sizing:border-box;align-self:center}',
+    /* position:relative WAJIB — dropdown (.hs-bon-switcher-dropdown) position:absolute, induknya dulu .hs-bon-switcher yang sekarang display:contents */
+    '#hs-bon-topbar .hs-bon-switcher-sup{grid-area:sup;position:relative;justify-self:start;align-self:center;flex:none;width:auto;min-width:200px;max-width:240px;height:40px;box-sizing:border-box;padding:0 14px;font-size:13px;border-radius:10px}',
     '#hs-bon-topbar #hs-bon-toolbar{grid-area:act;justify-self:end;align-self:center;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}',
     '#hs-bon-topbar #hs-bon-toolbar .btn-sm{height:40px;padding:0 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
     '#hs-bon-topbar #hs-bon-toolbar .hs-btn-icon-only{height:40px;width:40px;padding:0;border-radius:10px}',
     '@media (max-width:640px){',
     '  #hs-bon-topbar{grid-template-areas:"tot sel cash" "sup sup sup" "act act act"}',
     '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
+    '  #hs-bon-topbar .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:100%}',
     '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
     '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:flex-end;width:100%}',
     '}'
