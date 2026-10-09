@@ -5535,3 +5535,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container .nw-swipe-track{ flex-wrap:wrap; row-gap:12px; }
   #nw-swipe-container .nw-swipe-slide{ width:calc(50% - 6px); }
 }
+
+/* ── HP (<768px): semua slide swipe Dashboard setinggi Kecepatan Kas (slide terpanjang).
+   Sebelumnya track align-items:flex-start → tiap slide setinggi isinya sendiri, jadi
+   Net Worth / Beban / Income kosong di bawah. Laptop (≥768px) tidak disentuh. ── */
+@media (max-width: 767px) {
+  #nw-swipe-container .nw-swipe-track{ align-items:stretch; }
+  #nw-swipe-container .nw-swipe-slide{ height:auto; }
+  #nw-swipe-container .nw-slide-data{ flex:1 1 auto; height:auto; min-height:160px; }
+}
