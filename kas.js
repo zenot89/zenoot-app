@@ -3432,6 +3432,10 @@ function kasPickerSelect(item) {
   list.style.display = 'none';
 }
 
+// Label diambil dari _kasAkunMap (format sama dgn sheet picker: "kode · nama"), BUKAN dari elemen
+// `<pickerId>-list`: picker di modal Edit tidak punya -list (pakai sheet), jadi dulu labelnya
+// nyangkut "— Pilih Akun —" padahal select sudah terisi. -list (kalau ada, mis. picker BRImo)
+// cuma dipakai buat menandai item aktif.
 function kasSyncPickerLabel(pickerId, selectId) {
   var sel = document.getElementById(selectId);
   var picker = document.getElementById(pickerId);
@@ -3440,15 +3444,14 @@ function kasSyncPickerLabel(pickerId, selectId) {
   var list = document.getElementById(pickerId + '-list');
   var lbl  = document.getElementById(pickerId + '-label');
   if (list) {
-    list.querySelectorAll('.kas-akun-item').forEach(function(el){ el.classList.remove('active'); });
-    var match = list.querySelector('.kas-akun-item[data-val="' + val + '"]');
-    if (match) {
-      match.classList.add('active');
-      if (lbl) { lbl.textContent = match.textContent.trim(); lbl.style.color = ''; }
-    } else {
-      if (lbl) { lbl.textContent = '— Pilih Akun —'; lbl.style.color = 'var(--ink3)'; }
-    }
+    list.querySelectorAll('.kas-akun-item').forEach(function(el){
+      el.classList.toggle('active', !!val && el.dataset.val === val);
+    });
   }
+  if (!lbl) return;
+  var a = val ? _kasAkunMap[val] : null;
+  if (a) { lbl.textContent = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama; lbl.style.color = ''; }
+  else   { lbl.textContent = '\u2014 Pilih Akun \u2014'; lbl.style.color = 'var(--ink3)'; }
 }
 
 // ── Frekuensi cicilan show/hide bln_cicilan ──────────────────────────────────
