@@ -569,7 +569,7 @@ if ('serviceWorker' in navigator) {
     if (e.data.type === 'SW_UPDATED') {
       // PWA standalone (tidak ada browser UI) → auto reload aman, user tidak kehilangan konteks
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-        window.location.reload();
+        window.zReloadSetelahIdle();
         return;
       }
       // Browser biasa → tampil banner, biarkan user yang reload
@@ -603,8 +603,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (_reloadOnController) return; // cegah double reload
     _reloadOnController = true;
-    // Auto reload saat SW baru take control — standalone maupun browser biasa
-    window.location.reload();
+    // Auto reload saat SW baru take control — standalone maupun browser biasa (ditunda kalau user lagi di modal/isian)
+    window.zReloadSetelahIdle();
   });
 }
 

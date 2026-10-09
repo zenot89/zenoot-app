@@ -224,7 +224,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261009-dbecbded48d4';
+  window.APP_BUILD = '20261009-4a35bd706a78';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -276,6 +276,26 @@
   }
 
 
+  // Reload karena deploy baru TIDAK BOLEH memotong user yang lagi mengisi/mengonfirmasi sesuatu.
+  // Dulu: SW baru ambil alih -> location.reload() langsung -> modal Edit / konfirmasi Hapus yang lagi terbuka
+  // lenyap ("Hapus nggak jalan", kadang-kadang: hanya kejadian tepat setelah ada deploy). Sekarang reload
+  // ditunda sampai tidak ada modal/sheet/dialog terbuka dan tidak ada kolom isian yang lagi difokus.
+  // Dipakai SEMUA jalur reload otomatis karena update SW (index.html + app.js). Reload yang diminta user
+  // sendiri (tombol Reload, SW_DO_RELOAD) tetap langsung.
+  window.zReloadSetelahIdle = function() {
+    if (window._zReloadMenunggu) return;
+    window._zReloadMenunggu = true;
+    function sibuk() {
+      if (document.querySelector('.modal-overlay.open, .zdlg-ov, [class*="overlay"].open, [class*="sheet"].open, [id$="-overlay"].open')) return true;
+      var a = document.activeElement;
+      return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+    }
+    (function cek() {
+      if (sibuk()) { setTimeout(cek, 1500); return; }
+      window.location.reload();
+    })();
+  };
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {
 
@@ -319,7 +339,7 @@
     navigator.serviceWorker.addEventListener('controllerchange', function() {
       if (!_reloading) {
         _reloading = true;
-        window.location.reload();
+        window.zReloadSetelahIdle();
       }
     });
   }
