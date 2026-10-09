@@ -438,6 +438,7 @@ document.getElementById('page-channel').innerHTML = `
         <input type="text" id="supplier-catatan" placeholder="cth: bayar transfer, dp dulu, dll">
       </div>
       <div class="modal-actions">
+        <button class="btn btn-sm btn-danger" id="supplier-btn-hapus" onclick="hapusSupplierDariModal()" style="display:none;margin-right:auto"><i class="ti ti-trash"></i> Hapus</button>
         <button class="btn btn-primary btn-sm" onclick="simpanSupplier()"><i class="ti ti-device-floppy"></i> Simpan</button>
         <button class="btn btn-sm" onclick="hideModal('modal-supplier-rop')"><i class="ti ti-x"></i> Batal</button>
       </div>
@@ -1645,9 +1646,61 @@ async function loadSupplierROP() {
   }
 }
 
+// ─── TEKAN-TAHAN baris supplier → buka modal Edit (pola Jurnal Penjualan / Kas) ───
+// Listener dipasang di container tabel (wrap), bukan di tbody, karena tabel di-render ulang
+// lewat innerHTML. Idempotent: cukup sekali per container.
+function _chSupInitLongPress(wrap) {
+  if (!wrap || wrap._chSupLpInited) return;
+  wrap._chSupLpInited = true;
+  var HOLD_MS = 500, MOVE_LIMIT = 10;
+  var _timer = null, _sx = 0, _sy = 0, _row = null;
+  function cancel() {
+    if (_timer) { clearTimeout(_timer); _timer = null; }
+    if (_row) _row.classList.remove('ch-sup-pressing');
+    _row = null;
+  }
+  function fire() {
+    if (navigator.vibrate) navigator.vibrate(15);
+    var r = _row;
+    cancel();
+    if (r) editSupplier(parseInt(r.getAttribute('data-id'), 10));
+  }
+  wrap.addEventListener('touchstart', function(e) {
+    var tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row = tr; _sx = e.touches[0].clientX; _sy = e.touches[0].clientY;
+    tr.classList.add('ch-sup-pressing');
+    _timer = setTimeout(fire, HOLD_MS);
+  }, { passive: true });
+  wrap.addEventListener('touchmove', function(e) {
+    if (!_timer) return;
+    if (Math.abs(e.touches[0].clientX - _sx) > MOVE_LIMIT || Math.abs(e.touches[0].clientY - _sy) > MOVE_LIMIT) cancel();
+  }, { passive: true });
+  wrap.addEventListener('touchend', cancel, { passive: true });
+  wrap.addEventListener('touchcancel', cancel, { passive: true });
+  wrap.addEventListener('mousedown', function(e) {
+    var tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    _row = tr;
+    tr.classList.add('ch-sup-pressing');
+    _timer = setTimeout(fire, HOLD_MS);
+  });
+  wrap.addEventListener('mouseup', cancel);
+  wrap.addEventListener('mouseleave', cancel);
+
+  if (!document.getElementById('ch-sup-lp-style')) {
+    var st = document.createElement('style');
+    st.id = 'ch-sup-lp-style';
+    st.textContent = '#supplier-rop-list tr.ch-sup-row{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}'
+      + '#supplier-rop-list tr.ch-sup-row.ch-sup-pressing td{background:var(--cream2);opacity:.7;transition:opacity .1s}';
+    document.head.appendChild(st);
+  }
+}
+
 function renderSupplierROP() {
   const wrap = document.getElementById('supplier-rop-list');
   if (!wrap) return;
+  _chSupInitLongPress(wrap);
   const fmtRp = v => v ? 'Rp' + Number(v).toLocaleString('id-ID') : '—';
 
   if (!_supplierData.length) {
@@ -1666,7 +1719,6 @@ function renderSupplierROP() {
           <th style="text-align:center">Kelipatan</th>
           <th style="text-align:right">Budget</th>
           <th>Catatan</th>
-          <th style="text-align:center">Aksi</th>
         </tr>
       </thead>
       <tbody>
@@ -1676,7 +1728,7 @@ function renderSupplierROP() {
           if (s.is_dropship) badges += ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(120,120,120,0.1);color:var(--ink2);border:1px solid var(--ink3);white-space:nowrap"><i class="ti ti-truck-delivery"></i> Dropship</span>';
           if (s.is_reseller) badges += ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(200,90,60,0.1);color:#c85a3c;border:1px solid #c85a3c;white-space:nowrap"><i class="ti ti-file-invoice"></i> Reseller</span>';
           return `
-          <tr>
+          <tr class="ch-sup-row" data-id="${s.id}">
             <td><b style="color:var(--ink)">${s.nama || '—'}</b></td>
             <td>${badges || '—'}</td>
             <td style="text-align:center">${s.lead_time || 7} hari</td>
@@ -1686,14 +1738,6 @@ function renderSupplierROP() {
               ${s.budget ? fmtRp(s.budget) : 'Tidak dibatasi'}
             </td>
             <td style="color:var(--ink3);font-size:12px">${s.catatan || '—'}</td>
-            <td style="text-align:center;white-space:nowrap">
-              <button class="btn btn-sm" onclick="editSupplier(${s.id})" style="margin-right:4px">
-                <i class="ti ti-edit"></i>
-              </button>
-              <button class="btn btn-sm btn-danger" onclick="hapusSupplier(${s.id},'${(s.nama||'').replace(/'/g,"\\'")}')">
-                <i class="ti ti-trash"></i>
-              </button>
-            </td>
           </tr>
         `; }).join('')}
       </tbody>
@@ -1739,6 +1783,7 @@ function chSupplierJenisToggle(which) {
 
 function showModalSupplier() {
   document.getElementById('supplier-modal-title').textContent = 'Tambah Supplier';
+  document.getElementById('supplier-btn-hapus').style.display = 'none';
   document.getElementById('supplier-id').value       = '';
   document.getElementById('supplier-nama').value     = '';
   document.getElementById('supplier-leadtime').value = '7';
@@ -1757,6 +1802,7 @@ function editSupplier(id) {
   const s = _supplierData.find(x => x.id === id);
   if (!s) return;
   document.getElementById('supplier-modal-title').textContent = 'Edit Supplier';
+  document.getElementById('supplier-btn-hapus').style.display = '';
   document.getElementById('supplier-id').value        = s.id;
   document.getElementById('supplier-nama').value      = s.nama || '';
   document.getElementById('supplier-leadtime').value  = s.lead_time || 7;
@@ -1769,6 +1815,15 @@ function editSupplier(id) {
   document.getElementById('supplier-produksi').checked = !!s.is_produksi_sendiri;
   showModal('modal-supplier-rop');
   _chAttachBossAutocomplete();
+}
+
+// Hapus dari dalam modal Edit (tombol Hapus cuma muncul pada mode edit).
+function hapusSupplierDariModal() {
+  const id = parseInt(document.getElementById('supplier-id').value, 10);
+  if (!id) return;
+  const s = _supplierData.find(x => x.id === id);
+  hideModal('modal-supplier-rop');
+  hapusSupplier(id, s ? s.nama : '');
 }
 
 async function simpanSupplier() {

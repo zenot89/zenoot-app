@@ -387,8 +387,10 @@ function _produkSistemBtn(row) {
     '.pk-sis-rtxt{flex:1;min-width:0}',
     '.pk-sis-rl{font-size:15px;font-weight:600;color:var(--ink)}',
     '.pk-sis-rd{font-size:11.5px;color:var(--ink3);margin-top:2px}',
-    '.pk-sis-tk{visibility:hidden;color:var(--ink);font-size:18px}',
-    '.pk-sis-row.on .pk-sis-tk{visibility:visible}',
+    '.pk-sis-tg{position:relative;width:46px;height:26px;border-radius:999px;background:var(--ovl-0_18);flex-shrink:0;transition:background .2s ease}',
+    '.pk-sis-tg::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s ease}',
+    '.pk-sis-row.on .pk-sis-tg{background:#4cd080}',
+    '.pk-sis-row.on .pk-sis-tg::after{transform:translateX(20px)}',
     '@media (min-width:768px){',
     '  #pk-sis-sheet{left:50%;right:auto;bottom:auto;top:50%;width:380px;max-width:92vw;border-radius:14px;transform:translate(-50%,-46%) scale(.96);opacity:0;transition:transform .2s ease,opacity .2s ease}',
     '  #pk-sis-sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1}',
@@ -424,7 +426,7 @@ function produkSistemSheetOpen(id) {
     var desc = o.k === 'dropship' ? 'Tidak disetok. Bon dropship dicatat ke supplier ' + _pkEsc(boss) + '.' : o.d;
     return '<div class="pk-sis-row' + (on ? ' on' : '') + '" onclick="produkSistemPick(' + i + ')">'
       + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + o.l + '</div><div class="pk-sis-rd">' + desc + '</div></div>'
-      + '<i class="ti ti-check pk-sis-tk"></i></div>';
+      + '<span class="pk-sis-tg"></span></div>';
   }).join('');
   var sh = document.getElementById('pk-sis-sheet');
   sh.innerHTML = '<div class="pk-sis-handle"></div>'
