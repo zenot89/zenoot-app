@@ -423,7 +423,7 @@ document.getElementById('page-stok').innerHTML = `
       <button class="stok-tab-btn" data-tab="habis"  onclick="stokTabStatus('habis')">💀 Habis</button>
     </div>
 
-    <div id="stok-tbl-wrap"><table class="tbl">
+    <div id="stok-main-row"><div id="stok-tbl-wrap"><table class="tbl">
       <thead><tr>
         <th>Katalog</th><th>SKU Variasi</th>
         <th onclick="stokToggleSort('sisa')" style="cursor:pointer;user-select:none;white-space:nowrap">Sisa <span id="sort-icon-sisa">⇅</span></th>
@@ -437,6 +437,8 @@ document.getElementById('page-stok').innerHTML = `
         <tr><td colspan="9" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
       </tbody>
     </table>
+    </div>
+    <aside id="stok-sup-panel" aria-label="Nilai stok per supplier"></aside>
     </div>
   </div>
 `;
@@ -558,7 +560,97 @@ async function loadStok() {
 }
 
 // ─── RENDER ───────────────────────────────────────────────────
+// ─── PANEL NILAI STOK PER SUPPLIER (laptop, di samping tabel SKU) ──────────
+// 10 Okt 2026: dipindah total dari Re-Stock (restock.js). Dihitung dari
+// _stokAllData (bukan data reorder), pakai definisi velocity Stok Produk
+// (_stokVelocity). Klik supplier = filter boss (stokSetFilter), sama seperti
+// chip supplier di toolbar. Hanya tampil di layar lebar (lihat CSS di bawah).
+(function() {
+  if (document.getElementById('stok-sup-panel-style')) return;
+  var st = document.createElement('style');
+  st.id = 'stok-sup-panel-style';
+  st.textContent = [
+    '#stok-main-row{-webkit-flex:1 1 0;flex:1 1 0;min-height:0;display:flex;flex-direction:row;align-items:stretch;gap:0}',
+    '#stok-main-row > #stok-tbl-wrap{-webkit-flex:1 1 0;flex:1 1 0;min-width:0;height:auto}',
+    '#stok-sup-panel{display:none}',
+    '@media (min-width:1100px) and (hover:hover) and (pointer:fine){',
+    '  #stok-sup-panel{display:flex;flex-direction:column;-webkit-flex:0 0 320px;flex:0 0 320px;width:320px;min-height:0;margin-left:14px;border:1.5px solid var(--ovl-0_06);background:var(--cream2);border-radius:6px;overflow:hidden}',
+    '  #stok-sup-panel .ssp-head{padding:12px 14px 4px;font-size:12px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px}',
+    '  #stok-sup-panel .ssp-total{padding:0 14px 10px;font-size:12px;color:var(--ink3);border-bottom:1px solid var(--ovl-0_06)}',
+    '  #stok-sup-panel .ssp-list{-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:none;padding:6px 0}',
+    '  #stok-sup-panel .ssp-row{padding:9px 14px 10px;cursor:pointer;border-bottom:1px solid var(--ovl-0_04)}',
+    '  #stok-sup-panel .ssp-row:hover{background:var(--ovl-0_04)}',
+    '  #stok-sup-panel .ssp-row.active{background:var(--ovl-0_06);box-shadow:inset 3px 0 0 var(--accent)}',
+    '  #stok-sup-panel .ssp-top{display:flex;align-items:center;gap:8px}',
+    '  #stok-sup-panel .ssp-no{width:16px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--ink3)}',
+    '  #stok-sup-panel .ssp-name{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '  #stok-sup-panel .ssp-nilai{font-size:13px;font-weight:700;color:#5ba3e0;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}',
+    '  #stok-sup-panel .ssp-sub{font-size:11px;color:var(--ink3);margin:2px 0 0 24px}',
+    '  #stok-sup-panel .ssp-bar{display:flex;height:5px;border-radius:2px;overflow:hidden;background:rgba(46,204,122,0.15);margin:7px 0 4px 24px}',
+    '  #stok-sup-panel .ssp-mandeg{font-size:10px;color:var(--warn);margin-left:24px}',
+    '  #stok-sup-panel .ssp-empty{padding:18px 14px;font-size:13px;color:var(--ink3);font-style:italic}',
+    '}'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+function _sspEsc(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function _stokRenderSupplierPanel() {
+  var panel = document.getElementById('stok-sup-panel');
+  if (!panel || !_stokAllData) return;
+  var map = {}, total = 0;
+  _stokAllData.forEach(function(r) {
+    if (r.dropship) return;                       // dropship tidak punya stok → tidak ikut
+    var sisa = r.sisa || 0;
+    if (sisa <= 0) return;
+    var key   = (r.boss || '').trim() || '—';
+    var nilai = sisa * (r.hpp || 0);
+    var vel   = _stokVelocity(r.sales7, r.sales30, r.sales90);
+    var mandeg = (vel === 'dead' || vel === 'zombie');
+    if (!map[key]) map[key] = { boss: key, nilai: 0, nilaiMandeg: 0, sku: 0, pcs: 0 };
+    map[key].nilai += nilai;
+    if (mandeg) map[key].nilaiMandeg += nilai;
+    map[key].sku += 1;
+    map[key].pcs += sisa;
+    total += nilai;
+  });
+  var list = Object.values(map).sort(function(a, z) { return z.nilai - a.nilai; });
+  var fmt  = function(v) { return 'Rp' + Math.round(v).toLocaleString('id-ID'); };
+
+  var rows = list.map(function(m, i) {
+    var pctTotal  = total > 0 ? Math.round(m.nilai / total * 100) : 0;
+    var pctMandeg = m.nilai > 0 ? Math.round(m.nilaiMandeg / m.nilai * 100) : 0;
+    var active    = _filterBoss === m.boss;
+    return '<div class="ssp-row' + (active ? ' active' : '') + '" data-boss="' + _sspEsc(m.boss) + '">'
+      + '<div class="ssp-top"><span class="ssp-no">' + (i + 1) + '</span>'
+      +   '<span class="ssp-name">' + _sspEsc(m.boss) + '</span>'
+      +   '<span class="ssp-nilai">' + fmt(m.nilai) + '</span></div>'
+      + '<div class="ssp-sub">' + m.sku + ' SKU · ' + m.pcs + ' pcs · ' + pctTotal + '% dari total</div>'
+      + '<div class="ssp-bar"><div style="width:' + (100 - pctMandeg) + '%;background:var(--ok)"></div>'
+      +   '<div style="width:' + pctMandeg + '%;background:var(--warn)"></div></div>'
+      + (pctMandeg > 0 ? '<div class="ssp-mandeg">⚠️ ' + pctMandeg + '% (' + fmt(m.nilaiMandeg) + ') mandeg — dead/zombie</div>' : '')
+      + '</div>';
+  }).join('');
+
+  panel.innerHTML =
+    '<div class="ssp-head"><i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier</div>'
+    + '<div class="ssp-total">Total: <b>' + fmt(total) + '</b></div>'
+    + '<div class="ssp-list">' + (rows || '<div class="ssp-empty">Belum ada stok</div>') + '</div>';
+
+  panel.querySelectorAll('.ssp-row').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var b = el.getAttribute('data-boss');
+      if (!b || b === '—') return;
+      stokSetFilter('boss', b === _filterBoss ? null : b);
+    });
+  });
+}
+
 function renderStok(data) {
+  _stokRenderSupplierPanel();
   const tbody = document.getElementById('stok-tbody');
   if (!data || data.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';

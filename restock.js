@@ -1070,9 +1070,6 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
           <div style="flex:1;font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid var(--ovl-0_06)">
             <i class="ti ti-trending-up"></i> Lagi Naik — ${skuNaik.length} SKU
           </div>
-          <div style="flex:1;font-size:12px;font-weight:700;color:#5ba3e0;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid var(--ovl-0_06)">
-            <i class="ti ti-building-warehouse"></i> Nilai Stok per Supplier
-          </div>
         </div>
       </div>` : ''}
     </div>
@@ -1080,17 +1077,14 @@ function renderSummary(bossList, bossSorted, fmtRp, clearanceList, bannerKritis,
     <div id="sum-list-zone" class="sum-list-portrait" style="-webkit-flex:1 1 0;flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch;padding:0 14px 16px">
       <div id="sum-dual-list" class="rs-col-fill rs-col-red">${_segeraHtml}</div>
     </div>
-    <!-- Laptop: tiga kolom side-by-side (Order Sekarang · Lagi Naik · Nilai Stok per Supplier) -->
+    <!-- Laptop: dua kolom side-by-side (Order Sekarang · Lagi Naik). Nilai Stok per Supplier pindah ke Stok Produk (10 Okt 2026). -->
     <div id="sum-split-zone" class="sum-list-laptop" style="display:none;-webkit-flex:1 1 0;flex:1 1 0;min-height:0;">
       <!-- 8 Okt 2026: kolom Order Sekarang & Lagi Naik dibungkus panel berwarna (rs-col-fill) yang memanjang sampai dasar kolom, biar gak ada ruang kosong di bawah baris -->
       <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06);display:flex;flex-direction:column">
         <div class="rs-col-fill rs-col-red">${_segeraHtml}</div>
       </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;border-right:1px solid var(--ovl-0_06);display:flex;flex-direction:column">
+      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px;display:flex;flex-direction:column">
         <div class="rs-col-fill rs-col-green">${_naikHtml}</div>
-      </div>
-      <div style="flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;padding:0 14px 16px">
-        ${modalSupplierBlock.replace('margin-top:16px;', '')}
       </div>
     </div>
     <!-- Clearance + Zombie monitor — di luar scroll zone, padding bawah -->
