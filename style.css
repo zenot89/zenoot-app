@@ -5639,7 +5639,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Kecepatan Kas — header 2 kolom (gaya mockup): kiri judul+ikon+(?) lalu 0,1×; kanan Saldo Kas lalu nilainya; garis tebal di bawah. */
 #zd-kas-card .zd-kas-hdr{
   display:grid; grid-template-columns:1fr 1fr; column-gap:12px; row-gap:4px; align-items:end;
-  padding-bottom:8px; border-bottom:3px solid var(--ink);
+  padding-bottom:0;
 }
 #zd-kas-card .zd-kas-l1{ align-self:end; }
 #zd-kas-card .zd-kas-r1{ justify-self:end; text-align:right; }
@@ -5669,3 +5669,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #zd-kas-card .zdk-stats, #zd-kas-card #zdk-due-list { flex:none; }
 /* Dot lama di kartu kecil (Target Omset, Saldo Kas, dst.) dihapus — indikator swipe kini di luar kartu */
 @media (max-width: 767px) { .zd-car-dots { display:none !important; } }
+
+/* Kecepatan Kas: garis tebal dipindah ke bawah baris "Kebutuhan 14 hari" (tile pertama) */
+#nw-swipe-container #zd-kas-card #zd-kas-stats .zdk-tile:first-child{
+  border-bottom:3px solid var(--ink) !important; padding-bottom:8px;
+}
+
+/* Indikator swipe untuk SEMUA baris kartu (atas & statistik): di luar kartu, di bawah baris, gaya sama.
+   Dot di kartu statistik (.zd-car-dots) ditampilkan lagi sebagai baris statis (HP). Laptop: tidak tampil. */
+@media (max-width: 767px) {
+  .zd-car-dots{
+    display:flex !important; position:static !important; top:auto !important; right:auto !important; bottom:auto !important;
+    justify-content:flex-end; align-items:center; gap:6px; padding:6px 6px 0; margin:0; z-index:auto;
+  }
+  .zd-car-dots i{ width:6px; height:6px; border-radius:50%; background:var(--ink4); display:inline-block; }
+  .zd-car-dots i.on{ width:16px; border-radius:3px; background:var(--ink); }
+}
+@media (min-width: 768px) { .zd-car-dots{ display:none !important; } }
