@@ -5617,10 +5617,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container #dash-income-total { align-self:center; }
 }
 
-/* Mini-card Dashboard: garis tebal di bawah judul (gaya Setting Analisis).
-   Pakai pseudo-element absolut → tidak menambah tinggi kartu, tidak ada scroll baru. */
-#page-dashboard .metric.zd-m .m-label{ position:relative; }
-#page-dashboard .metric.zd-m .m-label::after{
-  content:""; position:absolute; left:-16px; right:-16px; bottom:-8px;
-  height:3px; background:var(--ink); border-radius:2px; pointer-events:none;
+/* Mini-card Dashboard: nilai utama di atas, garis tebal di bawahnya (gaya Setting Analisis).
+   Garis selalu di posisi yang sama di tiap kartu → rata antar kartu. Tanpa menambah tinggi. */
+#page-dashboard .metric.zd-m > .m-value{
+  margin:2px 0 8px; padding-bottom:8px;
+  border-bottom:3px solid var(--ink);
 }

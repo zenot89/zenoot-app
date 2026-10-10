@@ -2867,7 +2867,21 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
   var _zdCarRz;
   window.addEventListener('resize', function() { clearTimeout(_zdCarRz); _zdCarRz = setTimeout(zdCarAll, 200); });
 
+  // Nilai utama (.m-value) kartu kecil dipindah naik ke atas garis (tepat di bawah judul).
+  // Garis tebal lalu ada di bawah nilai → garis rata antar kartu. Idempotent (flag per kartu).
+  function _zdHoistValues() {
+    document.querySelectorAll('#dash-metrics .metric.zd-m').forEach(function(card) {
+      if (card.dataset.zdHoisted) return;
+      var side = card.querySelector('.zd-m-side');
+      var body = card.querySelector('.zd-m-body');
+      var mv   = side && side.querySelector(':scope > .m-value');
+      if (!mv || !body) return;
+      body.parentNode.insertBefore(mv, body);
+      card.dataset.zdHoisted = '1';
+    });
+  }
   function initAllSwipes() {
+    _zdHoistValues();
     zdCarAll();
     if (window.innerWidth >= 768) return;
     // Init db-swipe-pair — guard: skip kalau sudah pernah di-init
