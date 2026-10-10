@@ -5656,3 +5656,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .zdk-due-amt{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
 .zdk-due-ket{ font-size:11px; font-weight:700; color:var(--ink3); }
 .zdk-due-ket.zdk-due-hot{ color:var(--danger); }
+
+/* HP: indikator swipe 4 kartu atas — di LUAR kotak kartu (satu baris di bawah container). Laptop: tidak tampil. */
+.nw-dots-out{ display:none; }
+@media (max-width: 767px) {
+  .nw-dots-out{ display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:6px 6px 0; }
+  .nw-dots-out .nw-dot{ width:6px; height:6px; border-radius:50%; background:var(--ink4); display:inline-block; }
+  .nw-dots-out .nw-dot.active{ width:16px; border-radius:3px; background:var(--ink); }
+}
