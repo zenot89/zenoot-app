@@ -3485,6 +3485,42 @@ function _zdKasPaint(d) {
     }
   }
 }
+// Alasan status disimpan di atribut tombol (?) dan ditampilkan sebagai bubble saat diketuk.
+// Bubble tetap sampai diketuk lagi atau diketuk di luar.
+function _zdKasSetReason(txt) {
+  var btn = document.getElementById('zd-kas-help');
+  if (btn) btn.setAttribute('data-reason', txt || '');
+}
+function _zdKasHintOut(e) {
+  var b = document.getElementById('zdk-bubble');
+  if (!b) return;
+  if (e.target && e.target.closest && e.target.closest('#zd-kas-help')) return;
+  if (b.contains(e.target)) return;
+  b.remove();
+}
+function zdKasHint(btn) {
+  var old = document.getElementById('zdk-bubble');
+  if (old) {
+    var same = old._owner === btn;
+    old.remove();
+    if (same) return;
+  }
+  var b = document.createElement('div');
+  b.id = 'zdk-bubble';
+  b.className = 'zdk-bubble';
+  b._owner = btn;
+  b.textContent = btn.getAttribute('data-reason') || '';
+  b.style.cssText = 'position:fixed;z-index:9000;max-width:280px;padding:10px 12px;border-radius:10px;' +
+    'background:var(--ink);color:var(--cream);font-size:12px;line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.2)';
+  document.body.appendChild(b);
+  var r = btn.getBoundingClientRect();
+  b.style.left = Math.max(8, Math.min(window.innerWidth - 288, r.left - 8)) + 'px';
+  b.style.top  = (r.bottom + 6) + 'px';
+  if (!window._zdKasHintBound) {
+    document.addEventListener('click', _zdKasHintOut);
+    window._zdKasHintBound = true;
+  }
+}
 window.zdKasHint = zdKasHint;
 
 function _zdKasPaintError(e) {
