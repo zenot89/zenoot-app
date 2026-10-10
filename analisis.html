@@ -8714,6 +8714,32 @@ async function opsFetchAll(table, filter){
 const OPS_SUB_KELOMPOK = 'BEBAN OPERASIONAL';
 const opsAkunOperasional = a => a && a.kelompok==='beban' && String(a.sub_kelompok||'').trim().toUpperCase()===OPS_SUB_KELOMPOK;
 // Cicilan hutang aktif (sisa = pokok - total hutang_bayar > 0 -> jumlahkan cicilan_per_bulan) — rumus sama persis dgn totalCicilan keuangan.js.
+// Tanggal jatuh tempo berikutnya: tgl_cicilan tiap bulan (dibatasi panjang bulan), kalau kosong pakai jatuh_tempo.
+// Mengembalikan Date (00:00 lokal) atau null.
+function opsNextDueDate(tglCicilan, jatuhTempo){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = parseInt(tglCicilan,10);
+  if(d>=1 && d<=31){
+    const at = (y,m)=> new Date(y, m, Math.min(d, new Date(y, m+1, 0).getDate()));
+    let due = at(today.getFullYear(), today.getMonth());
+    if(due < today) due = at(today.getFullYear(), today.getMonth()+1);
+    return due;
+  }
+  if(jatuhTempo){
+    const dt = new Date(String(jatuhTempo).slice(0,10)+'T00:00:00');
+    return isNaN(dt) ? null : dt;
+  }
+  return null;
+}
+// Teks baris cicilan: "jatuh tempo 10 Nov 2026 · 31 hari lagi"
+function opsDueText(due){
+  if(!due) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const hari = Math.round((due - today) / 86400000);
+  const tgl = due.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+  const sisaHari = hari===0 ? 'hari ini' : (hari===1 ? 'besok' : hari+' hari lagi');
+  return 'jatuh tempo '+tgl+' · '+sisaHari;
+}
 async function opsHitungKewajibanRinci(){
   const [hutangAll, bayarAll] = await Promise.all([
     opsFetchAll('hutang', '&order=id.asc'),
@@ -8724,7 +8750,8 @@ async function opsHitungKewajibanRinci(){
   const list = [];
   hutangAll.forEach(h=>{
     const sisa = (Number(h.pokok)||0) - (bayarBy[String(h.id)]||0);
-    if(sisa > 0) list.push({ id:h.id, nama:h.kreditur||'-', cicilan:Number(h.cicilan_per_bulan)||0, sisa:sisa });
+    if(sisa > 0) list.push({ id:h.id, nama:h.kreditur||'-', cicilan:Number(h.cicilan_per_bulan)||0, sisa:sisa,
+      due: opsNextDueDate(h.tgl_cicilan, h.jatuh_tempo) });
   });
   list.sort((a,b)=>b.cicilan-a.cicilan);
   return { total: list.reduce((s,x)=>s+x.cicilan, 0), list };
@@ -9086,7 +9113,7 @@ function opsBuildOpsPagesHtml(ops, tokoList){
   const p2 = card(title('Cicilan Aktif','Hutang yang belum lunas per hari ini'),
     fmtRp(ops.totalKewajiban), 'TOTAL PER BULAN &middot; '+ops.kewajibanList.length+' HUTANG',
     ops.kewajibanList.length
-      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), 'sisa '+fmtRp(x.sisa), fmtRp(x.cicilan)+'/bln')).join('')
+      ? ops.kewajibanList.map(x=>row(tokoEsc(x.nama), opsDueText(x.due), fmtRp(x.cicilan))).join('')
       : '<div class="rc-empty">Tidak ada hutang aktif.</div>',
     'rc-cols', ' style="--rc-rows:'+Math.max(1,Math.ceil(ops.kewajibanList.length/3))+'"');
 
