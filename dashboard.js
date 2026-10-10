@@ -2754,21 +2754,22 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
   // Tanpa klon (ID canvas tetap unik): DOM diputar — kartu aktif selalu di posisi ke-2
   // [kiri, AKTIF, kanan, sisa]; selesai animasi, node paling depan/belakang dipindah lalu
   // transform di-reset diam-diam ke -100%.
-  function zdCarSetup(car) {
-    var track = car.querySelector('.zd-car-track');
+  function zdCarSetup(car, o) {
+    o = o || {};
+    var track = car.querySelector(o.track || '.zd-car-track');
     if (!track || car._zdOn) return;
     car._zdOn = true;
     var cards = Array.prototype.slice.call(track.children);
     var n = cards.length, cur = 0, busy = false;
-    var pdir = 1;   // arah gulir bolak-balik: 1-2-3-4-3-2-1 (samakan dengan swipe atas)
-    var dots = car.querySelectorAll('.zd-car-dots i');
+    var dots = car.querySelectorAll(o.dot || '.zd-car-dots i');
+    var dotCls = o.cls || 'on';
     var startX = 0, startY = 0, startT = 0, dragging = false, isHoriz = null, dx = 0;
     track.insertBefore(track.lastElementChild, track.firstElementChild); // aktif = kartu #1 di posisi ke-2
     track.classList.add('zd-nodrag-anim');
     track.style.transform = 'translateX(-100%)';
     void track.offsetWidth;
     track.classList.remove('zd-nodrag-anim');
-    function paintDots() { dots.forEach(function(d, i) { d.classList.toggle('on', i === cur); }); }
+    function paintDots() { dots.forEach(function(d, k) { d.classList.toggle(dotCls, (k % n) === cur); }); }
     function snap(anim) {
       track.classList.toggle('zd-nodrag-anim', !anim);
       track.style.transform = 'translateX(-100%)';
@@ -2815,11 +2816,8 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       if (!isHoriz) return;
       var moved = e.changedTouches ? e.changedTouches[0].clientX - startX : dx;
       var flick = Math.abs(moved) / Math.max(Date.now() - startT, 1) > 0.3;
-      if (moved < -40 || (flick && moved < 0) || moved > 40 || (flick && moved > 0)) {
-        var nxt = cur + pdir;
-        if (nxt < 0 || nxt >= n) pdir = -pdir;   // balik arah di ujung, tidak stuck
-        step(pdir);
-      }
+      if (moved < -40 || (flick && moved < 0)) step(1);
+      else if (moved > 40 || (flick && moved > 0)) step(-1);
       else snap(true);
     }
     track.addEventListener('touchend', endDrag, { passive: true });
@@ -2863,7 +2861,11 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     var nwCont = document.getElementById('nw-swipe-container');
     if (nwCont && !nwCont._swipeInited) {
       nwCont._swipeInited = true;
-      initSwipePairNw(nwCont);
+      if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+        zdCarSetup(nwCont, { track: '.nw-swipe-track', dot: '.nw-dot', cls: 'active' });
+      } else {
+        initSwipePairNw(nwCont);
+      }
     }
   }
 

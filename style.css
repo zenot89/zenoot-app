@@ -5562,3 +5562,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 767px) {
   .zd-car-dots { position:absolute !important; top:16px; right:58px; left:auto; bottom:auto; padding:0 !important; margin:0; justify-content:flex-end !important; z-index:2; }
 }
+
+/* ── HP: minicard 1 (Net Worth → Kecepatan Kas) pakai mekanisme gesek yang sama dengan 2 & 3 ── */
+@media (max-width: 767px) {
+  #nw-swipe-container .nw-swipe-track:not(.zd-nodrag-anim) { transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  #nw-swipe-container .nw-swipe-track.zd-nodrag-anim { transition: none; }
+}
