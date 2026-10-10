@@ -52,7 +52,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
-          <div class="nw-slide-value" id="dash-beban-total">Rp —</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px"><div class="nw-slide-value" id="dash-beban-total" style="margin:0;font-size:22px;line-height:1.1">Rp —</div><div id="dash-beban-pct" style="font-size:22px;line-height:1.1;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap">—</div></div>
           <div class="nw-slide-sub">bulan ini</div>
         </div>
         <!-- Data box -->
