@@ -5631,3 +5631,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Mini-card Dashboard: ikon dihilangkan (makan tempat); judul card diperbesar & dipertebal, ukuran kotak tetap. */
 #page-dashboard .zd-m-left .doodle{ display:none !important; }
 #page-dashboard .zd-m-left .m-label{ font-size:12px; font-weight:800; letter-spacing:.05em; color:var(--ink2, var(--ink)); }
+
+/* Ikon 4 kartu besar Dashboard: gaya sidebar (outline polos, tanpa bubble berwarna). */
+.nw-slide-ic{ background:none !important; color:var(--ink2, var(--ink)) !important; width:auto !important; height:auto !important; padding:0 !important; }
+.nw-slide-ic i{ font-size:17px; }

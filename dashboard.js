@@ -32,7 +32,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: abu tua, nilai utama = FCF -->
         <div class="nw-slide-header nw-slide-s3">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-            <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
+            <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-cash"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
             <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);white-space:nowrap">Total Income</div>
           </div>
           <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:6px">
@@ -53,7 +53,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-            <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
+            <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-chart-donut"></i></span> BEBAN OPERASIONAL</div>
             <span style="font-size:11px;color:var(--ink3);font-style:italic;white-space:nowrap">bulan ini</span>
           </div>
           <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:6px"><div class="nw-slide-value" id="dash-beban-total" style="margin:0;font-size:26px;line-height:1.1">Rp —</div><div id="dash-beban-pct" style="font-size:26px;line-height:1.1;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap">—</div></div>
@@ -71,7 +71,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: biru -->
         <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-            <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-blue"><i class="ti ti-chart-pie"></i></span> NET WORTH AKTUAL</div>
+            <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-chart-pie"></i></span> NET WORTH AKTUAL</div>
             <div style="display:flex;align-items:center;gap:6px">
               <span id="nw-status-badge" class="nw-badge nw-badge-loading">⏳ Memuat...</span>
               <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
@@ -95,7 +95,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span></div>
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
-          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
+          <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
           <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div id="zd-kas-cov" style="font-size:26px;line-height:1.1;font-weight:700;font-variant-numeric:tabular-nums">—</div><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0;font-size:26px;line-height:1.1">Memuat...</div></div>
           <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
         </div>
