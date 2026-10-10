@@ -1681,7 +1681,7 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   if (elFcf) {
     const fcfColor = cashOps >= 0 ? 'var(--ok)' : 'var(--danger)';
     elFcf.style.color = fcfColor;
-    elFcf.textContent = (cashOps>=0?'+':'\u2212') + _fmtRp(Math.abs(cashOps));
+    elFcf.textContent = (cashOps<0?'\u2212':'') + _fmtRp(Math.abs(cashOps));   // tanpa tanda +; minus hanya kalau negatif
   }
 
   // Filter: akun kredit kelompok pendapatan
