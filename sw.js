@@ -48,7 +48,7 @@ var NO_CACHE_PATTERNS = ['index.html'];
 // 2. Copy hasilnya ke baris JS_CACHE di bawah.
 // 3. Upload sw.js → browser deteksi SW berubah → auto update tanpa Ctrl+Shift+R.
 // ─────────────────────────────────────────────────────────────
-var JS_CACHE = 'zenot-js-20261010-12f985a7b5b0'; // Price List dipindah ke halaman Channel (harga manual per channel) — price-list.js dihapus
+var JS_CACHE = 'zenot-js-20261010-35a2e6603f7b'; // Price List dipindah ke halaman Channel (harga manual per channel) — price-list.js dihapus
 
 // ─── SKIP WAITING ────────────────────────────────────────────
 self.addEventListener('message', function(e) {
