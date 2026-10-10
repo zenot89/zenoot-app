@@ -5599,3 +5599,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-data-box .nw-row-label{ font-size:17px; }
   #nw-data-box .nw-row-val{ font-size:17px; }
 }
+
+/* HP: Beban Operasional — font baris disamakan dengan kartu lain (17px); daftar kategori bisa di-scroll di dalam kotak
+   (kalau nanti ada kategori baru, tinggi kartu tetap). Laptop tidak disentuh. */
+@media (max-width: 767px) {
+  #dash-beban-wrap{ overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  #dash-beban-wrap .beban-row{ padding:5px 0; }
+  #dash-beban-wrap .beban-row span{ font-size:17px !important; }
+}
