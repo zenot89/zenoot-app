@@ -5544,3 +5544,15 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container .nw-swipe-slide{ height:auto; }
   #nw-swipe-container .nw-slide-data{ flex:1 1 auto; height:auto; min-height:160px; }
 }
+
+/* ── HP (<768px) Dashboard: indikator geser seragam ──
+   - Dot aktif = pill lebar (sama dengan Target Omset / Saldo Kas)
+   - Semua baris dot rata kanan, tanpa hint teks
+   Laptop (≥768px) tidak disentuh. ── */
+@media (max-width: 767px) {
+  #nw-swipe-container .nw-swipe-dot-label,
+  .db-swipe-dot-label { justify-content: flex-end; }
+  #nw-swipe-container .nw-dot { transition: width .2s ease, opacity .2s ease, background .2s ease; }
+  #nw-swipe-container .nw-dot.active { width: 16px; border-radius: 3px; }
+  .zd-car-dots { justify-content: flex-end !important; }
+}

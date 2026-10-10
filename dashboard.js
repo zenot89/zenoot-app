@@ -28,7 +28,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 1: Net Worth -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">geser → Beban</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
         <!-- Header: biru -->
         <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
@@ -52,7 +52,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 2: Beban Operasional -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Net Worth &nbsp;·&nbsp; geser → Income</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
         <!-- Header: oranye -->
         <div class="nw-slide-header nw-slide-s2">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
@@ -71,7 +71,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 3: FCF + Jurnal Income -->
       <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-swipe-hint">← Beban &nbsp;·&nbsp; geser → Kas</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span></div>
         <!-- Header: abu tua, nilai utama = FCF -->
         <div class="nw-slide-header nw-slide-s3">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
@@ -86,7 +86,7 @@ document.getElementById('page-dashboard').innerHTML = `
 
       <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — status = teks besar di slot angka, alasan di ikon (?) -->
       <div class="nw-swipe-slide" id="zd-kas-card">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-swipe-hint">← Income</span></div>
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span></div>
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
@@ -247,7 +247,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair zd-wide-21" id="swipe-pair-1">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Top SKU</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card" style="overflow:visible;margin:0">
           <div class="card-title" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;overflow:visible;z-index:9000;position:relative">
         <span style="flex-shrink:0"><i class="ti ti-chart-line"></i> Tren Penjualan</span>
@@ -315,7 +315,7 @@ document.getElementById('page-dashboard').innerHTML = `
     </div>
       </div><!-- /db-swipe-slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Tren Penjualan</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-trophy"></i> Top 5 SKU Terlaris</div>
           <div id="dash-top-sku">
@@ -330,7 +330,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair" id="swipe-pair-3">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Omset Katalog</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-building-store"></i> Performa per Channel / Toko</div>
           <div class="dash-donut-wrap" style="margin-bottom:10px">
@@ -346,7 +346,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Channel</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-chart-bar"></i> Omset per Katalog / SKU Induk</div>
           <div style="position:relative;height:280px;width:100%">
@@ -366,7 +366,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair" id="swipe-pair-2">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Supplier</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card card-lined" style="margin:0">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
             <span><i class="ti ti-package"></i> Status Stok</span>
@@ -384,7 +384,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Status Stok</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-users"></i> Performa Supplier</div>
           <div class="dash-donut-wrap" style="margin-bottom:10px">
@@ -423,7 +423,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair" id="swipe-pair-4">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Beban Perusahaan</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card dash-widget" style="margin:0">
           <div class="card-title"><i class="ti ti-chart-donut"></i> Laba/Rugi Bulan Ini</div>
           <div class="dash-donut-wrap">
@@ -436,7 +436,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Laba/Rugi</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card dash-widget" style="margin:0">
           <div class="card-title"><i class="ti ti-report-money"></i> Beban Perusahaan</div>
           <div class="dash-donut-wrap">
@@ -455,7 +455,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair" id="swipe-pair-5">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-swipe-hint">geser → Aktivitas</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
           <div class="tbl-wrap" style="max-height:260px;overflow-y:auto"><table class="tbl">
@@ -467,7 +467,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-swipe-hint">← Jurnal Terakhir</span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px">hari ini</span></div>
           <div id="dash-aktivitas-feed" style="display:flex;flex-direction:column;gap:0;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch">
@@ -2643,6 +2643,14 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     var slides = pairEl.querySelectorAll('.nw-swipe-slide');
     var current = 0;
     var startX = 0, startY = 0, startT = 0, isDragging = false, isHoriz = null;
+    var dir = 1;   // +1 maju, -1 mundur. Dibalik otomatis di ujung → gulir 1-2-3-4-3-2-1, tidak stuck
+    function step() {
+      var n = slides.length;
+      if (n < 2) return;
+      var nxt = current + dir;
+      if (nxt < 0 || nxt >= n) { dir = -dir; nxt = current + dir; }
+      goTo(nxt);
+    }
     function goTo(idx) {
       if (idx < 0 || idx >= slides.length) return;
       current = idx;
@@ -2677,8 +2685,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       var dt = Date.now() - startT;
       // Threshold: 40px atau velocity > 0.3px/ms
       var isFlick = Math.abs(dx) / Math.max(dt, 1) > 0.3;
-      if ((dx < -40 || (isFlick && dx < 0)) && current < slides.length - 1) goTo(current + 1);
-      else if ((dx > 40 || (isFlick && dx > 0)) && current > 0) goTo(current - 1);
+      if (dx < -40 || (isFlick && dx < 0) || dx > 40 || (isFlick && dx > 0)) step();
     }, { passive: true });
     track.addEventListener('touchcancel', function() { isDragging = false; isHoriz = null; }, { passive: true });
   }
