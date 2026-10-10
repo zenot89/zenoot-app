@@ -33,10 +33,10 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-slide-header nw-slide-s3">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
           <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
-            <div class="nw-slide-value" id="dash-fcf-val" style="margin:0">Rp —</div>
+            <div class="nw-slide-value" id="dash-fcf-val" style="margin:0;font-size:22px;line-height:1.1">Rp —</div>
             <div style="text-align:right;white-space:nowrap">
               <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Total Income</div>
-              <div id="dash-income-total" style="font-size:18px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">—</div>
+              <div id="dash-income-total" style="font-size:22px;line-height:1.1;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">—</div>
             </div>
           </div>
         </div>
