@@ -5575,3 +5575,16 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #nw-swipe-container .zdk-tile:not(:last-child) {
   border-bottom: 1px solid var(--ink4) !important;
 }
+
+/* ── Dashboard: tombol Rincian batch / supplier (Kecepatan Kas) pakai gaya tombol tema ── */
+#nw-swipe-container .zdk-links{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+#nw-swipe-container .zdk-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:34px; padding:0 10px; border-radius:8px;
+  border:1px solid var(--ink4); background:var(--cream2); color:var(--ink);
+  font-size:12px; font-weight:700; font-family:inherit; cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,0.08); white-space:nowrap;
+}
+#nw-swipe-container .zdk-btn:active{ transform:scale(.98); }
+/* Net Worth: jarak antar baris dirapatkan (sama dengan kartu lain) */
+#nw-swipe-container .nw-slide-data .nw-row{ padding:5px 0; }

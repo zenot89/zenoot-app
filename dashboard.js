@@ -82,10 +82,10 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
         <!-- Data box: rincian Net Worth -->
         <div class="nw-slide-data">
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Asset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-credit-card-off"></i> Total Hutang</span><span style="display:flex;align-items:center;gap:10px"><span id="nw-hutang-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span style="display:flex;align-items:center;gap:10px"><span id="nw-escrow-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></span></div>
-          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span style="display:flex;align-items:center;gap:10px"><span id="nw-laba-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val" id="nw-laba">—</span></span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-credit-card-off"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -103,8 +103,8 @@ document.getElementById('page-dashboard').innerHTML = `
           <div class="zdk-stats" id="zd-kas-stats"></div>
           <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
           <div class="zdk-links">
-            <button class="zdk-link" onclick="zdDashTab('stok')">Rincian batch</button>
-            <button class="zdk-link" onclick="zdDashTab('keuangan')">Rincian supplier</button>
+            <button class="zdk-btn" onclick="zdDashTab('stok')">Rincian batch</button>
+            <button class="zdk-btn" onclick="zdDashTab('keuangan')">Rincian supplier</button>
           </div>
         </div>
       </div><!-- /slide 4 -->
