@@ -3236,8 +3236,12 @@ async function _zdKasHitung() {
   var cic = _zdKasCicilan(hutangRows, akunMap, jr, today, horizon);
   cic.items.forEach(function(o) { obligations.push(o); });
   var ops = _zdKasOperasional(anggaranRows, akunMap, jr, today.slice(0, 7));
-  if (ops.sisa > 0) obligations.push({ tgl: today, amt: ops.sisa, sup: 'OPERASIONAL', bonId: null, jenis: 'operasional',
-    label: 'Sisa anggaran bulan ini' });
+  // Operasional 14 hari = sisa anggaran ÷ sisa hari bulan (termasuk hari ini) × 14 hari, tidak lebih dari sisa anggaran.
+  var _td = new Date(today + 'T00:00:00');
+  var sisaHariBulan = new Date(_td.getFullYear(), _td.getMonth() + 1, 0).getDate() - _td.getDate() + 1;
+  var opsProrata = ops.sisa > 0 ? Math.min(ops.sisa, Math.round(ops.sisa / sisaHariBulan * C.horizonHari)) : 0;
+  if (opsProrata > 0) obligations.push({ tgl: today, amt: opsProrata, sup: 'OPERASIONAL', bonId: null, jenis: 'operasional',
+    label: 'Operasional ' + C.horizonHari + ' hari (sisa anggaran ÷ ' + sisaHariBulan + ' hari × ' + C.horizonHari + ')' });
 
   var due14 = obligations.filter(function(o) { return o.tgl && o.tgl <= horizon; });
   var butuh14   = due14.reduce(function(s, o) { return s + o.amt; }, 0);
@@ -3354,7 +3358,7 @@ async function _zdKasHitung() {
 
   return {
     today: today, horizon: horizon, sabtuIni: sabtuIni, status: status, covStatus: covStatus, reason: reason,
-    saldoKas: saldoKas, escrow: escrow, escrowLive: escrowLive, kasTotal: kasTotal,
+    saldoKas: saldoKas, escrow: escrow, escrowLive: escrowLive, kasTotal: kasTotal, sisaKas: kasTotal - butuh14, opsProrata: opsProrata, sisaHariBulan: sisaHariBulan,
     butuh14: butuh14, terlambat: terlambat, butuhSabtu: butuhSabtu, rasio: rasio,
     butuhDrop14: butuhDrop14, butuhPo14: butuhPo14, butuhCic14: butuhCic14, butuhOps14: butuhOps14,
     lateDrop: lateDrop, latePo: latePo, lateCic: lateCic, lateNames: lateNames,
@@ -3376,7 +3380,11 @@ function _zdKasPaint(d) {
   var covEl = document.getElementById('zd-kas-cov');
   if (covEl) { covEl.textContent = covTxt; covEl.className = 'zd-kas-l2 zdk-status ' + d.status; }
   var salEl = document.getElementById('zd-kas-saldo');
-  if (salEl) salEl.textContent = _fmtRp(d.kasTotal || 0);
+  if (salEl) {   // header: sisa kas = saldo − kebutuhan 14 hari (negatif = merah)
+    var sisaK = d.sisaKas || 0;
+    salEl.textContent = (sisaK < 0 ? '\u2212' : '') + _fmtRp(Math.abs(sisaK));
+    salEl.style.color = sisaK < 0 ? 'var(--danger)' : 'var(--ok)';
+  }
   var subEl = document.getElementById('zd-kas-sub');
   var amanTxt = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
     : 'Kecukupan kas ' + covTxt + ' · aman ≥ ' + String(ZD_KAS_CFG.covHijau).replace('.', ',') + '×';
