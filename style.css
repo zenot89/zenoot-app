@@ -5617,9 +5617,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container #dash-income-total { align-self:center; }
 }
 
-/* Mini-card Dashboard: nilai utama di atas, garis tebal di bawahnya (gaya Setting Analisis).
-   Garis selalu di posisi yang sama di tiap kartu → rata antar kartu. Tanpa menambah tinggi. */
-#page-dashboard .metric.zd-m > .m-value{
-  margin:2px 0 8px; padding-bottom:8px;
-  border-bottom:3px solid var(--ink);
+/* Mini-card Dashboard: header = [ikon + judul] kiri · [nilai IDR] kanan, garis tebal di bawah header (gaya Setting Analisis). */
+#page-dashboard .metric.zd-m > .zd-m-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding-bottom:8px; margin-bottom:8px; border-bottom:3px solid var(--ink);
 }
+#page-dashboard .zd-m-left{ display:flex; align-items:center; gap:8px; min-width:0; }
+#page-dashboard .zd-m-left .m-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#page-dashboard .zd-m-left .doodle{ position:static !important; top:auto !important; right:auto !important; bottom:auto !important; transform:none !important; flex-shrink:0; }
+#page-dashboard .zd-m-val{ margin-left:auto; min-width:0; text-align:right; display:flex; align-items:baseline; justify-content:flex-end; gap:6px; flex-shrink:0; }
+#page-dashboard .zd-m-val .m-value{ font-size:20px; line-height:1.1; margin:0; white-space:nowrap; }

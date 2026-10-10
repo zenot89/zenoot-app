@@ -202,8 +202,6 @@ document.getElementById('page-dashboard').innerHTML = `
           <div style="font-size:11px;color:var(--ink3);font-weight:400;line-height:1">pcs</div>
           <div class="m-value" id="d-order-omset" style="margin:0;color:var(--ok)">—</div>
         </div>
-        <div class="m-delta" id="d-order-hari-delta">belum ada order hari ini</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:3px">Omset bulan: <span id="d-omset-abu">—</span></div>
         <div class="zd-mrows" id="zd-viz-order-rows"></div>
       </div></div>
       <div class="doodle"><i class="ti ti-shopping-bag"></i></div>
@@ -2494,7 +2492,8 @@ function _zdRenderMetricViz(d) {
       thr ? ctr(Math.round(hp) + '%', 'target harian', hcol) : ctr('—', 'target harian'));
     _zdRows('order', [
       {l: 'Transaksi hari ini', v: d.trxHariIni, c: B},
-      {l: 'AOV bulan ini', v: d.aov > 0 ? _fmtRp(d.aov) : '—', c: Y}
+      {l: 'AOV bulan ini', v: d.aov > 0 ? _fmtRp(d.aov) : '—', c: Y},
+      {l: 'Omset bulan ini', v: _fmtRp(d.omsetBln || 0), c: 'var(--ink3)'}
     ]);
 
     // 7. Nilai Stok — komposisi nilai per Boss (top 3 + lainnya)
@@ -2867,16 +2866,27 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
   var _zdCarRz;
   window.addEventListener('resize', function() { clearTimeout(_zdCarRz); _zdCarRz = setTimeout(zdCarAll, 200); });
 
-  // Nilai utama (.m-value) kartu kecil dipindah naik ke atas garis (tepat di bawah judul).
-  // Garis tebal lalu ada di bawah nilai → garis rata antar kartu. Idempotent (flag per kartu).
+  // Header kartu kecil: [ikon + judul] di kiri · [nilai IDR] di kanan · garis tebal di bawah header.
+  // Grup nilai = pembungkus flex bila ada (mis. Order: qty + pcs + omset), kalau tidak ya .m-value itu sendiri.
   function _zdHoistValues() {
     document.querySelectorAll('#dash-metrics .metric.zd-m').forEach(function(card) {
       if (card.dataset.zdHoisted) return;
       var side = card.querySelector('.zd-m-side');
       var body = card.querySelector('.zd-m-body');
-      var mv   = side && side.querySelector(':scope > .m-value');
+      var mv   = side && side.querySelector('.m-value');
       if (!mv || !body) return;
-      body.parentNode.insertBefore(mv, body);
+      var grp = (mv.parentElement && mv.parentElement !== side) ? mv.parentElement : mv;
+      var head  = document.createElement('div'); head.className = 'zd-m-head';
+      var left  = document.createElement('div'); left.className = 'zd-m-left';
+      var right = document.createElement('div'); right.className = 'zd-m-val';
+      var label = card.querySelector(':scope > .m-label');
+      var doodle = card.querySelector(':scope > .doodle');
+      if (label)  left.appendChild(label);
+      if (doodle) left.appendChild(doodle);
+      right.appendChild(grp);
+      head.appendChild(left);
+      head.appendChild(right);
+      card.insertBefore(head, body);
       card.dataset.zdHoisted = '1';
     });
   }
