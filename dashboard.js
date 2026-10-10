@@ -1638,6 +1638,14 @@ function _renderBeban(bebanData, omsetBln) {
   // Update header
   if (elTot) elTot.textContent = _fmtRp(totalNominal);
   if (elPct) elPct.textContent = pctDariOmset ? pctDariOmset + '%' : '—';
+  // Skema rasio operasional terhadap omset: 0–10% hijau · >10–20% kuning · >20% merah
+  if (elPct) {
+    const rasio = omsetBln > 0 ? (totalNominal / omsetBln * 100) : null;
+    elPct.style.color = rasio === null ? 'var(--ink3)'
+      : rasio <= 10 ? 'var(--ok)'
+      : rasio <= 20 ? 'var(--warn)'
+      : 'var(--danger)';
+  }
 
   // Data box: nama kiri · [% dari total beban] [IDR] kanan. % = porsi kategori dari TOTAL beban
   // (jumlah semua baris = 100%). Header "x% dari omset" tetap, itu rasio beban terhadap omset.
