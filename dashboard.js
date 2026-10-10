@@ -95,19 +95,21 @@ document.getElementById('page-dashboard').innerHTML = `
         <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span></div>
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
-          <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
-          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div id="zd-kas-cov" style="font-size:26px;line-height:1.1;font-weight:700;font-variant-numeric:tabular-nums">—</div><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0;font-size:26px;line-height:1.1">Memuat...</div></div>
+          <div class="zd-kas-hdr"><div class="nw-slide-label zd-kas-l1"><span class="nw-slide-ic"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
+          <div class="nw-slide-label zd-kas-r1">Saldo Kas</div>
+          <div id="zd-kas-cov" class="zd-kas-l2">—</div>
+          <div id="zd-kas-saldo" class="zd-kas-r2">—</div>
+          <div id="zd-kas-badge" style="display:none">Memuat...</div>
+        </div>
           <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data">
           <div class="zdk-stats" id="zd-kas-stats"></div>
           <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
-          <div class="zdk-links">
-            <button class="zdk-btn" onclick="zdDashTab('stok')">Rincian batch</button>
-            <button class="zdk-btn" onclick="zdDashTab('keuangan')">Rincian supplier</button>
+          <div class="zdk-due-t">Rincian kewajiban · 14 hari</div>
+          <div id="zdk-due-list"></div>
           </div>
-        </div>
       </div><!-- /slide 4 -->
 
     </div><!-- /nw-swipe-track -->
@@ -3372,7 +3374,9 @@ function _zdKasPaint(d) {
 
   var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
   var covEl = document.getElementById('zd-kas-cov');
-  if (covEl) { covEl.textContent = covTxt; covEl.className = 'zdk-status ' + d.status; }
+  if (covEl) { covEl.textContent = covTxt; covEl.className = 'zd-kas-l2 zdk-status ' + d.status; }
+  var salEl = document.getElementById('zd-kas-saldo');
+  if (salEl) salEl.textContent = _fmtRp(d.kasTotal || 0);
   var subEl = document.getElementById('zd-kas-sub');
   var amanTxt = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
     : 'Kecukupan kas ' + covTxt + ' · aman ≥ ' + String(ZD_KAS_CFG.covHijau).replace('.', ',') + '×';
@@ -3463,6 +3467,27 @@ function _zdKasPaint(d) {
     if (d.diLuarAturan.n > 0) notes.push('Di luar aturan tempo: ' + d.diLuarAturan.n + ' bon (' + _fmtRp(d.diLuarAturan.sisa) + '), tidak dihitung.');
     html += notes.map(function(x) { return '<div class="zdk-note">' + _zdKasEsc(x) + '</div>'; }).join('');
     dl.innerHTML = html;
+  }
+
+  // ── Kecepatan Kas: rincian kewajiban 14 hari (sumber sama dengan tab Keuangan) ──
+  var zl = document.getElementById('zdk-due-list');
+  if (zl) {
+    var zRows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    var zMax = 4;
+    if (!zRows.length) {
+      zl.innerHTML = '<div class="dash-kg-empty">Tidak ada kewajiban jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
+    } else {
+      zl.innerHTML = zRows.slice(0, zMax).map(function(o) {
+        var hari = Math.round((new Date(o.tgl + 'T00:00:00') - new Date(d.today + 'T00:00:00')) / 86400000);
+        var ket  = hari < 0 ? 'lewat tempo' : hari === 0 ? 'hari ini' : hari === 1 ? 'besok' : hari + ' hari lagi';
+        var kcls = hari <= 0 ? 'zdk-due-hot' : '';
+        return '<div class="zdk-due-row">' +
+          '<div class="zdk-due-l"><div class="zdk-due-nm">' + _zdKasEsc(o.sup) + '</div>' +
+          '<div class="zdk-due-sub">' + _zdKasEsc(o.label) + ' · jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>' +
+          '<div class="zdk-due-r"><div class="zdk-due-amt">' + _fmtRp(o.amt) + '</div>' +
+          '<div class="zdk-due-ket ' + kcls + '">' + ket + '</div></div></div>';
+      }).join('') + (zRows.length > zMax ? '<div class="zdk-due-sub" style="padding-top:4px">+' + (zRows.length - zMax) + ' kewajiban lain (lihat tab Keuangan)</div>' : '');
+    }
   }
 }
 

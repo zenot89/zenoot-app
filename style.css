@@ -5635,3 +5635,24 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Ikon 4 kartu besar Dashboard: gaya sidebar (outline polos, tanpa bubble berwarna). */
 .nw-slide-ic{ background:none !important; color:var(--ink2, var(--ink)) !important; width:auto !important; height:auto !important; padding:0 !important; }
 .nw-slide-ic i{ font-size:17px; }
+
+/* Kecepatan Kas — header 2 kolom (gaya mockup): kiri judul+ikon+(?) lalu 0,1×; kanan Saldo Kas lalu nilainya; garis tebal di bawah. */
+#zd-kas-card .zd-kas-hdr{
+  display:grid; grid-template-columns:1fr 1fr; column-gap:12px; row-gap:4px; align-items:end;
+  padding-bottom:8px; border-bottom:3px solid var(--ink);
+}
+#zd-kas-card .zd-kas-l1{ align-self:end; }
+#zd-kas-card .zd-kas-r1{ justify-self:end; text-align:right; }
+#zd-kas-card .zd-kas-l2,
+#zd-kas-card .zd-kas-r2{ font-size:26px; line-height:1.1; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#zd-kas-card .zd-kas-r2{ justify-self:end; text-align:right; color:var(--ok); }
+/* Rincian kewajiban (Kecepatan Kas) */
+.zdk-due-t{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink3); margin:10px 0 4px; }
+.zdk-due-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--ink4); }
+.zdk-due-l{ min-width:0; }
+.zdk-due-nm{ font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.zdk-due-sub{ font-size:11px; color:var(--ink3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.zdk-due-r{ text-align:right; flex-shrink:0; }
+.zdk-due-amt{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
+.zdk-due-ket{ font-size:11px; font-weight:700; color:var(--ink3); }
+.zdk-due-ket.zdk-due-hot{ color:var(--danger); }
