@@ -263,6 +263,11 @@
       _set('nw-aset',   '+' + _rp(totalAset));
       _set('nw-hutang', totalHutang > 0 ? '-' + _rp(totalHutang) : _rp(0));
       _set('nw-escrow', '+' + _rp(escrow));
+      // Rasio terhadap Total Asset (sama seperti rasio income terhadap total income di FCF)
+      const _pctAset = v => totalAset > 0 ? (v / totalAset * 100).toFixed(1) + '%' : '—';
+      _set('nw-hutang-pct', _pctAset(totalHutang));
+      _set('nw-escrow-pct', _pctAset(escrow));
+      _set('nw-laba-pct',   _pctAset(labaRugi.laba));
       const labaEl = document.getElementById('nw-laba');
       if (labaEl) {
         labaEl.textContent = (labaRugi.laba >= 0 ? '+' : '-') + _rp(labaRugi.laba);

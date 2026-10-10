@@ -83,9 +83,9 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Data box: rincian Net Worth -->
         <div class="nw-slide-data">
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Asset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-credit-card-off"></i> Total Hutang</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></div>
-          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
-          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-credit-card-off"></i> Total Hutang</span><span style="display:flex;align-items:center;gap:10px"><span id="nw-hutang-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val nw-neg" id="nw-hutang">—</span></span></div>
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span style="display:flex;align-items:center;gap:10px"><span id="nw-escrow-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></span></div>
+          <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span style="display:flex;align-items:center;gap:10px"><span id="nw-laba-pct" style="font-size:13px;font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums">—</span><span class="nw-row-val" id="nw-laba">—</span></span></div>
         </div>
       </div><!-- /slide 1 -->
 
@@ -95,7 +95,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
-          <div style="display:flex;justify-content:flex-end"><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0">Memuat...</div></div>
+          <div style="display:flex;justify-content:flex-end;align-items:baseline;gap:10px"><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0">Memuat...</div><div id="zd-kas-cov" style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">—</div></div>
           <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
         </div>
         <!-- Data box -->
@@ -3336,6 +3336,8 @@ function _zdKasPaint(d) {
   badge.textContent = lbl[d.status];
 
   var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
+  var covEl = document.getElementById('zd-kas-cov');
+  if (covEl) { covEl.textContent = covTxt; covEl.className = 'zdk-status ' + d.status; }
   var subEl = document.getElementById('zd-kas-sub');
   var amanTxt = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
     : 'Kecukupan kas ' + covTxt + ' · aman ≥ ' + String(ZD_KAS_CFG.covHijau).replace('.', ',') + '×';
@@ -3348,8 +3350,6 @@ function _zdKasPaint(d) {
   if (d.lateCic  > 0) lateJenis.push('cicilan');
   var lateNm = (d.lateNames || []).slice(0, 3).join(', ') + ((d.lateNames || []).length > 3 ? ' +' + (d.lateNames.length - 3) : '');
   var tiles = [
-    { l: 'Kecukupan ' + ZD_KAS_CFG.horizonHari + ' hari', v: covTxt, c: d.rasio == null ? '' : d.covStatus,
-      s: d.rasio == null ? 'tidak ada tagihan' : '' },
     { l: 'Kebutuhan ' + ZD_KAS_CFG.horizonHari + ' hari', v: _fmtRp(d.butuh14), c: '',
       s: 'supplier ' + _fmtRp(d.butuhDrop14 + d.butuhPo14) + ' · cicilan ' + _fmtRp(d.butuhCic14) + ' · operasional ' + _fmtRp(d.butuhOps14) }
   ];
