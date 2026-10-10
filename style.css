@@ -5588,3 +5588,6 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 #nw-swipe-container .zdk-btn:active{ transform:scale(.98); }
 /* Net Worth: jarak antar baris dirapatkan (sama dengan kartu lain) */
 #nw-swipe-container .nw-slide-data .nw-row{ padding:5px 0; }
+/* Kecepatan Kas: tombol Rincian diturunkan ke dasar kotak (tetap ada jarak tipis dari tepi) */
+#zd-kas-card .nw-slide-data{ display:flex; flex-direction:column; }
+#nw-swipe-container .zdk-links{ margin-top:auto; padding-bottom:4px; }

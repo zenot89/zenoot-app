@@ -82,6 +82,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
         <!-- Data box: rincian Net Worth -->
         <div class="nw-slide-data">
+          <div class="nw-row"><span class="nw-row-label"><i class="ti ti-wallet"></i> Saldo Kas</span><span class="nw-row-val" id="nw-saldokas">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Asset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-truck-delivery"></i> Escrow Shopee <span id="nw-escrow-badge" class="nw-shopee-badge"></span></span><span class="nw-row-val nw-pos" id="nw-escrow">—</span></div>
@@ -3139,6 +3140,8 @@ async function _zdKasHitung() {
   var escrow   = (shopeeRows && shopeeRows.length) ? (Number(shopeeRows[0].escrow_transit) || 0) : 0;
   var escrowLive = !!(shopeeRows && shopeeRows.length);
   var kasTotal = Math.max(0, saldoKas);   // 7 Okt 2026: escrow TIDAK dihitung (dana di jalan, bisa batal) — hanya info
+  var _nwKas = document.getElementById('nw-saldokas');
+  if (_nwKas) _nwKas.textContent = _fmtRp(kasTotal);   // Saldo Kas di Net Worth = nilai yang sama dgn Kecepatan Kas
 
   // ── 4) Kewajiban per bon ──
   var obligations = [];     // {tgl, amt, sup, bonId, jenis, label}
