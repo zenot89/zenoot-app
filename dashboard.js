@@ -23,6 +23,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="zd-tab-panel zd-tab-active" id="zd-tab-ringkasan">
 
   <!-- ═══ NET WORTH + BEBAN + INCOME SWIPE (portrait) / full width (laptop) ══ -->
+  <div class="nw-dots-out" id="nw-dots-out"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
   <div class="nw-swipe-pair" id="nw-swipe-container">
     <div class="nw-swipe-track">
 
@@ -110,7 +111,6 @@ document.getElementById('page-dashboard').innerHTML = `
 
     </div><!-- /nw-swipe-track -->
   </div><!-- /nw-swipe-container -->
-  <div class="nw-dots-out" id="nw-dots-out"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
 
   <!-- ═══ ROW 1: 4 METRIC CARDS ════════════════════════════════ -->
   <!-- ═══ METRICS — 2 BARIS × 4 CARD (laptop/landscape) | 4 BARIS × 2 CARD (HP portrait) ═══ -->

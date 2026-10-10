@@ -5686,3 +5686,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .zd-car-dots i.on{ width:16px; border-radius:3px; background:var(--ink); }
 }
 @media (min-width: 768px) { .zd-car-dots{ display:none !important; } }
+
+/* ── Indikator swipe: SELALU di kanan atas tiap baris kartu (di luar kotak), gaya seragam ── */
+@media (max-width: 767px) {
+  /* container 4 kartu atas: dot di atas container, rata kanan */
+  .nw-dots-out{ display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:0 6px 4px; }
+  /* baris kartu statistik: dot di atas track (alur normal, tidak terpotong overflow) */
+  .zd-car{ display:flex; flex-direction:column; }
+  .zd-car-dots{ order:-1; display:flex !important; position:static !important; justify-content:flex-end; gap:6px; padding:0 6px 4px; margin:0; }
+}
