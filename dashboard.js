@@ -81,7 +81,7 @@ document.getElementById('page-dashboard').innerHTML = `
           <div class="nw-slide-sub" id="nw-update-time" style="display:none">menghitung...</div>
         </div>
         <!-- Data box: rincian Net Worth -->
-        <div class="nw-slide-data">
+        <div class="nw-slide-data" id="nw-data-box">
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-wallet"></i> Saldo Kas</span><span class="nw-row-val" id="nw-saldokas">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
           <div class="nw-row"><span class="nw-row-label"><i class="ti ti-building-bank"></i> Total Asset</span><span class="nw-row-val nw-pos" id="nw-aset">—</span></div>

@@ -5591,3 +5591,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Kecepatan Kas: tombol Rincian diturunkan ke dasar kotak (tetap ada jarak tipis dari tepi) */
 #zd-kas-card .nw-slide-data{ display:flex; flex-direction:column; }
 #nw-swipe-container .zdk-links{ margin-top:auto; padding-bottom:4px; }
+
+/* HP: kotak Net Worth — baris mengisi tinggi kotak (tidak ada ruang kosong di bawah), font baris dinaikkan. Laptop tidak disentuh. */
+@media (max-width: 767px) {
+  #nw-data-box{ display:flex; flex-direction:column; }
+  #nw-data-box .nw-row{ flex:1 1 0; align-items:center; font-size:17px; padding:4px 0; }
+  #nw-data-box .nw-row-label{ font-size:17px; }
+  #nw-data-box .nw-row-val{ font-size:17px; }
+}
