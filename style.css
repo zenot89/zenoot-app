@@ -5556,3 +5556,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container .nw-dot.active { width: 16px; border-radius: 3px; }
   .zd-car-dots { justify-content: flex-end !important; }
 }
+
+/* ── HP (<768px): dot indikator Cash Flow / Saldo Kas pindah ke kanan atas kartu.
+   Ditaruh sedikit ke kiri dari ikon lingkaran supaya tidak menumpuk. Laptop tidak disentuh. ── */
+@media (max-width: 767px) {
+  .zd-car-dots { position:absolute !important; top:16px; right:58px; left:auto; bottom:auto; padding:0 !important; margin:0; justify-content:flex-end !important; z-index:2; }
+}

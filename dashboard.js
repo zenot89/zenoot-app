@@ -2760,6 +2760,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     car._zdOn = true;
     var cards = Array.prototype.slice.call(track.children);
     var n = cards.length, cur = 0, busy = false;
+    var pdir = 1;   // arah gulir bolak-balik: 1-2-3-4-3-2-1 (samakan dengan swipe atas)
     var dots = car.querySelectorAll('.zd-car-dots i');
     var startX = 0, startY = 0, startT = 0, dragging = false, isHoriz = null, dx = 0;
     track.insertBefore(track.lastElementChild, track.firstElementChild); // aktif = kartu #1 di posisi ke-2
@@ -2814,8 +2815,11 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       if (!isHoriz) return;
       var moved = e.changedTouches ? e.changedTouches[0].clientX - startX : dx;
       var flick = Math.abs(moved) / Math.max(Date.now() - startT, 1) > 0.3;
-      if (moved < -40 || (flick && moved < 0)) step(1);
-      else if (moved > 40 || (flick && moved > 0)) step(-1);
+      if (moved < -40 || (flick && moved < 0) || moved > 40 || (flick && moved > 0)) {
+        var nxt = cur + pdir;
+        if (nxt < 0 || nxt >= n) pdir = -pdir;   // balik arah di ujung, tidak stuck
+        step(pdir);
+      }
       else snap(true);
     }
     track.addEventListener('touchend', endDrag, { passive: true });
