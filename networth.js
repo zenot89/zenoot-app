@@ -257,6 +257,7 @@
       const netWorth = totalAset - totalHutang + escrow;
 
       _set('nw-total', (netWorth < 0 ? '-' : '+') + _rp(netWorth));
+      _set('nw-total-pct', totalAset > 0 ? (netWorth / totalAset * 100).toFixed(1) + '%' : '—');   // rasio NW ÷ total aset
       const totalEl = document.getElementById('nw-total');
       if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#2ecc7a)' : 'var(--danger,#c98f8f)';
 

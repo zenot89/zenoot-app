@@ -77,7 +77,7 @@ document.getElementById('page-dashboard').innerHTML = `
               <button class="nw-refresh-btn" onclick="nwRefresh()" title="Refresh sekarang"><i class="ti ti-refresh" id="nw-refresh-icon"></i></button>
             </div>
           </div>
-          <div class="nw-slide-value" id="nw-total">Rp —</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px"><div class="nw-slide-value" id="nw-total" style="margin:0;font-size:26px;line-height:1.1">Rp —</div><div id="nw-total-pct" style="font-size:26px;line-height:1.1;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap">—</div></div>
           <div class="nw-slide-sub" id="nw-update-time" style="display:none">menghitung...</div>
         </div>
         <!-- Data box: rincian Net Worth -->
@@ -95,7 +95,7 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
-          <div style="display:flex;justify-content:flex-end;align-items:baseline;gap:10px"><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0">Memuat...</div><div id="zd-kas-cov" style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">—</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div id="zd-kas-cov" style="font-size:26px;line-height:1.1;font-weight:700;font-variant-numeric:tabular-nums">—</div><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0;font-size:26px;line-height:1.1">Memuat...</div></div>
           <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
         </div>
         <!-- Data box -->
