@@ -5526,7 +5526,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* HP: tinggi box tetap 160px seperti slide lain (biar container tidak melar & tidak ada
    ruang kosong di slide 1-3); baris dirapatkan supaya 4 tile muat, link rincian di-scroll */
 @media (max-width: 767px){
-  #nw-swipe-container #zd-kas-card .nw-slide-data{ padding-top:6px; height:auto; min-height:200px; }
+  #nw-swipe-container #zd-kas-card .nw-slide-data{ padding-top:6px; height:200px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 }
 
 /* Laptop sempit / tablet (768–1279px): 4 kolom terlalu sempit untuk angka Rupiah
