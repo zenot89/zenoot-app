@@ -258,6 +258,8 @@
 
       _set('nw-total', (netWorth < 0 ? '-' : '+') + _rp(netWorth));
       _set('nw-total-pct', totalAset > 0 ? (netWorth / totalAset * 100).toFixed(1) + '%' : '—');   // rasio NW ÷ total aset
+      const pctEl = document.getElementById('nw-total-pct');   // warna ikut skema: negatif = merah, positif = hijau
+      if (pctEl) pctEl.style.color = netWorth >= 0 ? 'var(--ok,#2ecc7a)' : 'var(--danger,#c98f8f)';
       const totalEl = document.getElementById('nw-total');
       if (totalEl) totalEl.style.color = netWorth >= 0 ? 'var(--ok,#2ecc7a)' : 'var(--danger,#c98f8f)';
 
