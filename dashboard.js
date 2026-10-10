@@ -3401,7 +3401,89 @@ function _zdKasPaint(d) {
     s: lateJenis.join(' + ') + ' belum dibayar' + (lateNm ? ' · ' + lateNm : '') });
   tiles.push(
     { l: 'Saldo kas', v: _fmtRp(d.kasTotal), c: '',
-      s: d.escrowLive ? 'escrow ' + _fmtRp(d.escrow) + ' belum dihitung' : '' }, 0);
+      s: d.escrowLive ? 'escrow ' + _fmtRp(d.escrow) + ' belum dihitung' : '' }
+  );
+
+  // ── Statistik (tile) Kecepatan Kas ──
+  var stEl = document.getElementById('zd-kas-stats');
+  if (stEl) {
+    stEl.innerHTML = tiles.map(function(t) {
+      var vc = t.c === 'merah' ? 'var(--danger)' : t.c === 'hijau' ? 'var(--ok)' : 'var(--ink)';
+      return '<div class="zdk-tile"><div class="zdk-tile-l">' + t.l + '</div>' +
+        '<div class="zdk-tile-v" style="color:' + vc + '">' + t.v + '</div>' +
+        (t.s ? '<div class="zdk-tile-s">' + _zdKasEsc(t.s) + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
+  // ── Tracker batch reseller ──
+  var bl = document.getElementById('zd-kas-batch-list');
+  if (bl) {
+    if (!d.tracker.length) {
+      bl.innerHTML = '<div class="dash-kg-empty">Tidak ada batch reseller yang masih punya sisa hutang.</div>';
+    } else {
+      bl.innerHTML = d.tracker.map(function(t) {
+        var pctW = t.pct == null ? 0 : Math.min(100, Math.round(t.pct * 100));
+        var tgtW = Math.min(100, Math.round((t.hari >= ZD_KAS_CFG.targetHari ? ZD_KAS_CFG.targetPct : t.target) * 100));
+        return '<div class="zdk-row">' +
+          '<div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(t.sup) + ' · barang jadi ' + _zdKasTglPendek(t.tgl) +
+          '<span class="zdk-row-sub"> · hari ke-' + t.hari + '</span></div>' +
+          '<span class="zdk-chip ' + t.status + '">' + (t.status === 'hijau' ? 'Aman' : t.status === 'kuning' ? 'Waspada' : 'Bahaya') + '</span></div>' +
+          (t.tanpaData
+            ? '<div class="zdk-row-sub">Barang di bon ini belum ter-link ke produk — sell-through tidak bisa dihitung.</div>'
+            : '<div class="zdk-bar"><div class="zdk-bar-fill ' + t.status + '" style="width:' + pctW + '%"></div><div class="zdk-bar-tgt" style="left:' + tgtW + '%"></div></div>' +
+              '<div class="zdk-row-sub">' + _zdKasPctTxt(t.pct) + ' modal laku · target ' + _zdKasPctTxt(t.hari >= ZD_KAS_CFG.targetHari ? ZD_KAS_CFG.targetPct : t.target) +
+              (t.hari >= ZD_KAS_CFG.targetHari ? '' : ' hari ini (' + _zdKasPctTxt(ZD_KAS_CFG.targetPct) + ' di hari ke-' + ZD_KAS_CFG.targetHari + ')') + '</div>') +
+          '<div class="zdk-row-sub">Sisa hutang ' + _fmtRp(t.sisaHutang) + ' · jatuh tempo ' + _zdKasTglPendek(t.tempoTgl) +
+          (t.untracked > 0 ? ' · ' + t.untracked + ' item belum ter-link' : '') + '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // ── Tab Keuangan: kewajiban supplier ──
+  var dl = document.getElementById('zd-kas-due-list');
+  if (dl) {
+    var rows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    var html = '';
+    if (!rows.length) {
+      html += '<div class="dash-kg-empty">Tidak ada kewajiban supplier yang jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
+    } else {
+      html += rows.slice(0, 12).map(function(o) {
+        var late = o.tgl < d.today;
+        return '<div class="zdk-row"><div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(o.sup) +
+          '<span class="zdk-row-sub"> · ' + _zdKasEsc(o.label) + '</span></div>' +
+          '<div class="zdk-row-amt">' + _fmtRp(o.amt) + '</div></div>' +
+          '<div class="zdk-row-sub">' + (late ? '<span class="zdk-late">Lewat tempo</span> · ' : '') + 'jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>';
+      }).join('');
+      if (rows.length > 12) html += '<div class="zdk-row-sub" style="padding-top:6px">+' + (rows.length - 12) + ' kewajiban lain</div>';
+    }
+    var notes = [];
+    if (d.poBelumJadi.n > 0) notes.push('PO belum jadi: ' + d.poBelumJadi.n + ' bon (' + _fmtRp(d.poBelumJadi.sisa) + '). DP baru jatuh tempo saat barang jadi, belum dihitung.');
+    if (d.diLuarAturan.n > 0) notes.push('Di luar aturan tempo: ' + d.diLuarAturan.n + ' bon (' + _fmtRp(d.diLuarAturan.sisa) + '), tidak dihitung.');
+    html += notes.map(function(x) { return '<div class="zdk-note">' + _zdKasEsc(x) + '</div>'; }).join('');
+    dl.innerHTML = html;
+  }
+
+  // ── Kecepatan Kas: rincian kewajiban 14 hari (sumber sama dengan tab Keuangan) ──
+  var zl = document.getElementById('zdk-due-list');
+  if (zl) {
+    var zRows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    var zMax = 4;
+    if (!zRows.length) {
+      zl.innerHTML = '<div class="dash-kg-empty">Tidak ada kewajiban jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
+    } else {
+      zl.innerHTML = zRows.slice(0, zMax).map(function(o) {
+        var hari = Math.round((new Date(o.tgl + 'T00:00:00') - new Date(d.today + 'T00:00:00')) / 86400000);
+        var ket  = hari < 0 ? 'lewat tempo' : hari === 0 ? 'hari ini' : hari === 1 ? 'besok' : hari + ' hari lagi';
+        var kcls = hari <= 0 ? 'zdk-due-hot' : '';
+        return '<div class="zdk-due-row">' +
+          '<div class="zdk-due-l"><div class="zdk-due-nm">' + _zdKasEsc(o.sup) + '</div>' +
+          '<div class="zdk-due-sub">' + _zdKasEsc(o.label) + ' · jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>' +
+          '<div class="zdk-due-r"><div class="zdk-due-amt">' + _fmtRp(o.amt) + '</div>' +
+          '<div class="zdk-due-ket ' + kcls + '">' + ket + '</div></div></div>';
+      }).join('') + (zRows.length > zMax ? '<div class="zdk-due-sub" style="padding-top:4px">+' + (zRows.length - zMax) + ' kewajiban lain (lihat tab Keuangan)</div>' : '');
+    }
+  }
 }
 window.zdKasHint = zdKasHint;
 
