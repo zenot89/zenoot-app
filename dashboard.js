@@ -26,9 +26,44 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="nw-swipe-pair" id="nw-swipe-container">
     <div class="nw-swipe-track">
 
-      <!-- Slide 1: Net Worth -->
+      <!-- Slide 3: FCF + Jurnal Income -->
       <div class="nw-swipe-slide">
         <div class="nw-swipe-dot-label"><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
+        <!-- Header: abu tua, nilai utama = FCF -->
+        <div class="nw-slide-header nw-slide-s3">
+          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+            <div class="nw-slide-value" id="dash-fcf-val" style="margin:0">Rp —</div>
+            <div style="text-align:right;white-space:nowrap">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Total Income</div>
+              <div id="dash-income-total" style="font-size:18px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">—</div>
+            </div>
+          </div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data" id="dash-income-wrap">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+        </div>
+      </div><!-- /slide 3 -->
+
+      <!-- Slide 2: Beban Operasional -->
+      <div class="nw-swipe-slide">
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
+        <!-- Header: oranye -->
+        <div class="nw-slide-header nw-slide-s2">
+          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
+          <div class="nw-slide-value" id="dash-beban-total">Rp —</div>
+          <div class="nw-slide-sub">bulan ini</div>
+        </div>
+        <!-- Data box -->
+        <div class="nw-slide-data" id="dash-beban-wrap">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+        </div>
+      </div><!-- /slide 2 -->
+
+      <!-- Slide 1: Net Worth -->
+      <div class="nw-swipe-slide">
+        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span></div>
         <!-- Header: biru -->
         <div class="nw-slide-header nw-slide-s1" id="nw-widget" style="margin:0">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
@@ -49,40 +84,6 @@ document.getElementById('page-dashboard').innerHTML = `
           <div class="nw-row" style="border-top:1px dashed var(--ovl-0_1);margin-top:4px;padding-top:8px"><span class="nw-row-label"><i class="ti ti-chart-line"></i> Laba / Rugi</span><span class="nw-row-val" id="nw-laba">—</span></div>
         </div>
       </div><!-- /slide 1 -->
-
-      <!-- Slide 2: Beban Operasional -->
-      <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span><span class="nw-dot"></span></div>
-        <!-- Header: oranye -->
-        <div class="nw-slide-header nw-slide-s2">
-          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-orange"><i class="ti ti-report-money"></i></span> BEBAN OPERASIONAL</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border:1.5px solid var(--ink);border-radius:8px;padding:8px 14px;margin-top:6px">
-            <div class="nw-slide-value" id="dash-beban-total" style="margin:0">Rp —</div>
-            <div style="display:flex;align-items:baseline;gap:6px;white-space:nowrap">
-              <span id="dash-beban-pct" style="font-size:20px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums">—</span>
-            </div>
-          </div>
-        </div>
-        <!-- Data box -->
-        <div class="nw-slide-data" id="dash-beban-wrap">
-          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-        </div>
-      </div><!-- /slide 2 -->
-
-      <!-- Slide 3: FCF + Jurnal Income -->
-      <div class="nw-swipe-slide">
-        <div class="nw-swipe-dot-label"><span class="nw-dot"></span><span class="nw-dot"></span><span class="nw-dot active"></span><span class="nw-dot"></span></div>
-        <!-- Header: abu tua, nilai utama = FCF -->
-        <div class="nw-slide-header nw-slide-s3">
-          <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-green"><i class="ti ti-trending-up"></i></span> FREE CASH FLOW <span id="dash-income-bulan" style="font-size:10px;font-weight:400;opacity:0.55;margin-left:4px;text-transform:none;letter-spacing:0"></span></div>
-          <div class="nw-slide-value" id="dash-fcf-val">Rp —</div>
-          <div class="nw-slide-sub">Total Income: <span id="dash-income-total" style="color:#001012;font-weight:700">—</span></div>
-        </div>
-        <!-- Data box -->
-        <div class="nw-slide-data" id="dash-income-wrap">
-          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-        </div>
-      </div><!-- /slide 3 -->
 
       <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — status = teks besar di slot angka, alasan di ikon (?) -->
       <div class="nw-swipe-slide" id="zd-kas-card">
@@ -1700,12 +1701,17 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   }
 
   // Data box: hanya rows detail, tanpa total row
-  el.innerHTML = rows.map(([nama, val]) =>
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ovl-0_07);font-size:15px">' +
+  // Rasio tiap income terhadap total income (jumlah semua baris = 100%)
+  el.innerHTML = rows.map(([nama, val]) => {
+    const pct = total>0 ? (val/total*100) : 0;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ovl-0_07);font-size:15px">' +
       '<span style="color:var(--ink2);font-weight:700">' + nama + '</span>' +
-      '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
-    '</div>'
-  ).join('');
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pct.toFixed(1) + '%</span>' +
+        '<span style="color:var(--ok);font-weight:700">' + _fmtRp(val) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function _renderAktivitas(jpData, jurnalData) {
