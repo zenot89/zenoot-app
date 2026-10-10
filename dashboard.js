@@ -567,7 +567,7 @@ window.zdDashTab = zdDashTab;
     .target-link{font-size:11px;color:var(--ink4);cursor:pointer;text-decoration:underline dashed;margin-left:4px}
     .target-link:hover{color:var(--ink2)}
     .dist-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:2px solid var(--ink);font-size:11px;font-weight:700;font-family:var(--f)}
-    .beban-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--ink4);font-size:15px}
+    .beban-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--ink4);font-size:15px}
     .beban-row:last-child{border-bottom:none}
   `;
   document.head.appendChild(s);
@@ -1708,7 +1708,7 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   // Rasio tiap income terhadap total income (jumlah semua baris = 100%)
   el.innerHTML = rows.map(([nama, val]) => {
     const pct = total>0 ? (val/total*100) : 0;
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ovl-0_07);font-size:15px">' +
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--ink4);font-size:15px">' +
       '<span style="color:var(--ink2);font-weight:700">' + nama + '</span>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
         '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pct.toFixed(1) + '%</span>' +

@@ -5568,3 +5568,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #nw-swipe-container .nw-swipe-track:not(.zd-nodrag-anim) { transition: transform .3s cubic-bezier(.2,.8,.2,1); }
   #nw-swipe-container .nw-swipe-track.zd-nodrag-anim { transition: none; }
 }
+
+/* ── Garis pemisah baris di kartu Dashboard (HP & laptop): dibuat lebih jelas — solid, warna lebih gelap ── */
+.nw-slide-data .nw-row:not(:last-child),
+.nw-slide-data .beban-row:not(:last-child),
+#nw-swipe-container .zdk-tile:not(:last-child) {
+  border-bottom: 1px solid var(--ink4) !important;
+}
