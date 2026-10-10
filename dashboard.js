@@ -78,7 +78,7 @@ document.getElementById('page-dashboard').innerHTML = `
             </div>
           </div>
           <div class="nw-slide-value" id="nw-total">Rp —</div>
-          <div class="nw-slide-sub" id="nw-update-time">menghitung...</div>
+          <div class="nw-slide-sub" id="nw-update-time" style="display:none">menghitung...</div>
         </div>
         <!-- Data box: rincian Net Worth -->
         <div class="nw-slide-data">
@@ -95,8 +95,8 @@ document.getElementById('page-dashboard').innerHTML = `
         <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
         <div class="nw-slide-header nw-slide-s4">
           <div class="nw-slide-label"><span class="nw-slide-ic nw-slide-ic-purple"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
-          <div class="nw-slide-value zdk-status" id="zd-kas-badge">Memuat...</div>
-          <div class="nw-slide-sub" id="zd-kas-sub">&nbsp;</div>
+          <div style="display:flex;justify-content:flex-end"><div class="nw-slide-value zdk-status" id="zd-kas-badge" style="margin:0">Memuat...</div></div>
+          <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
         </div>
         <!-- Data box -->
         <div class="nw-slide-data">
@@ -3334,12 +3334,13 @@ function _zdKasPaint(d) {
   var lbl = { hijau: 'Cepat', kuning: 'Sedang', merah: 'Lambat' };
   badge.className = 'nw-slide-value zdk-status ' + d.status;      // teks besar di slot angka, warna ikut status
   badge.textContent = lbl[d.status];
-  _zdKasSetReason(d.reason);                                      // alasan lewat ikon (?)
 
   var covTxt = d.rasio == null ? '—' : (Math.round(d.rasio * 10) / 10).toString().replace('.', ',') + '×';
   var subEl = document.getElementById('zd-kas-sub');
-  if (subEl) subEl.textContent = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
+  var amanTxt = d.rasio == null ? 'tidak ada kebutuhan kas ' + ZD_KAS_CFG.horizonHari + ' hari'
     : 'Kecukupan kas ' + covTxt + ' · aman ≥ ' + String(ZD_KAS_CFG.covHijau).replace('.', ',') + '×';
+  if (subEl) subEl.textContent = amanTxt;                         // sub-line disembunyikan; isinya tampil di bubble (?)
+  _zdKasSetReason((d.reason ? d.reason + '\n' : '') + amanTxt);   // alasan + aman lewat ikon (?)
   // Setiap angka diberi keterangan jenisnya (dropship / PO reseller) + siapa yang lewat tempo
   var lateJenis = [];
   if (d.lateDrop > 0) lateJenis.push('dropship');
@@ -3505,7 +3506,7 @@ window.zdKasRender = zdKasRender;
     '@media (max-width:760px){.zdk-stats{grid-template-columns:repeat(2,1fr)}}',
     '.zdk-tile{background:var(--cream2);border-radius:8px;padding:8px 10px;min-width:0}',
     '.zdk-tile-l{font-size:11px;color:var(--ink3)}',
-    '.zdk-tile-v{font-size:16px;font-weight:700;margin:2px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}',
+    '.zdk-tile-v{font-size:18px;font-weight:700;margin:2px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}',
     '.zdk-tile-v.hijau{color:var(--ok)}.zdk-tile-v.kuning{color:var(--warn)}.zdk-tile-v.merah{color:var(--danger)}',
     '.zdk-tile-s{font-size:11px;color:var(--ink3)}',
     '.zdk-warn{font-size:11px;color:var(--warn);margin-top:8px}',
@@ -3533,6 +3534,7 @@ window.zdKasRender = zdKasRender;
     '#nw-swipe-container .zdk-status.merah{color:var(--danger)}',
     '.zdk-help{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--ink4);background:transparent;color:var(--ink3);font-size:10px;font-weight:700;line-height:1;padding:0;cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0;flex-shrink:0}',
     '.zdk-help:hover{color:var(--ink);border-color:var(--ink3)}',
+    '.zdk-bubble{white-space:pre-line}',
     '.zdk-bubble{position:fixed;z-index:9999;max-width:min(300px,calc(100vw - 16px));background:#2b2b2b;color:#fff;font-size:12px;line-height:1.45;font-weight:500;padding:9px 12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:pre-line;text-transform:none;letter-spacing:0}'
   ].join('\n');
   document.head.appendChild(s);
