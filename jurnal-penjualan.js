@@ -2939,7 +2939,9 @@ function updateMetricsJP(data) {
     hariA = Math.max(0, Math.min(nowA.getTime(), bA.ce.getTime()) - bA.cs.getTime()) / 86400000;
     hariA = Math.max(1, Math.ceil(hariA));
   }
-  var okAvg = !!pbA && hariA >= 2 && _jpWaktuMode !== 'hari-ini' && _jpWaktuMode !== 'kemarin';
+  // 11 Okt 2026: batas minimal turun dari 2 hari ke 1 hari (permintaan user: Minggu Ini baru jalan 1 hari → pembagi 1, bukan '—').
+  // Tampilan 1 hari penuh (Hari Ini / Kemarin / Per Hari) tetap '—' karena rata-rata per hari = totalnya sendiri.
+  var okAvg = !!pbA && hariA >= 1 && _jpWaktuMode !== 'hari-ini' && _jpWaktuMode !== 'kemarin' && _jpWaktuMode !== 'hari';
   var avgOmset = okAvg ? tot / hariA : 0;
   var avgQty   = okAvg ? item / hariA : 0;
   _jpAvgCur = { ok: okAvg, hari: hariA, omset: avgOmset, qty: avgQty };
