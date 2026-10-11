@@ -2141,6 +2141,9 @@ function _jpSkuInduk(sku) {
   var s = sku.toUpperCase();
   // Hapus suffix ukuran (-M, -L, -XL, -XLL, -XXL)
   var noSize = s.replace(/[-_](XXL|XLL|XL|L|M|S)\s*$/i, '');
+  // 10 Okt 2026: penulisan SKU kadang pakai "-" (ZS-PUTIH-L) bukan "_" (ZS_PUTIH-L).
+  // Kalau tidak ada "_" sama sekali, "-" pertama dianggap pemisah induk → ZS-PUTIH jadi ZS.
+  if (noSize.indexOf('_') < 0 && noSize.indexOf('-') > 0) noSize = noSize.replace('-', '_');
   // Hapus suffix warna (kata terakhir setelah _ jika > 1 segment)
   var parts = noSize.split('_');
   if (parts.length >= 3) return parts.slice(0, parts.length - 1).join('_');
