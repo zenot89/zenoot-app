@@ -265,22 +265,7 @@ document.getElementById('page-dashboard').innerHTML = `
               <span id="trench-lbl-periode">30 Hari</span>
               <i class="ti ti-chevron-down" style="font-size:10px"></i>
             </button>
-            <div id="trench-dd-periode" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:99999;
-              min-width:175px;background:var(--cream);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink4);padding:8px 10px;pointer-events:auto"
-              onclick="event.stopPropagation()">
-              <div style="font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">
-                <i class="ti ti-clock" style="font-size:11px"></i> Pilih Periode
-              </div>
-              <div style="display:flex;flex-direction:column;gap:2px" id="trench-waktu-chips">
-                <div class="trench-sub-item trench-chip-w" data-w="bulan"   onclick="trenchSelWaktu(this)">📅 Bulan Ini</div>
-                <div class="trench-sub-item trench-chip-w" data-w="1"       onclick="trenchSelWaktu(this)">Hari Ini</div>
-                <div class="trench-sub-item trench-chip-w" data-w="kemarin" onclick="trenchSelWaktu(this)">Kemarin</div>
-                <div class="trench-sub-item trench-chip-w" data-w="7"       onclick="trenchSelWaktu(this)">7 Hari Terakhir</div>
-                <div class="trench-sub-item trench-chip-w" data-w="14"      onclick="trenchSelWaktu(this)">14 Hari Terakhir</div>
-                <div class="trench-sub-item trench-chip-w" data-w="30"      onclick="trenchSelWaktu(this)">30 Hari Terakhir (default)</div>
-              </div>
-
-            </div>
+            <div id="trench-dd-periode" style="display:none"></div>
           </div>
 
           <!-- Tombol Channel -->
@@ -643,67 +628,535 @@ function simpanTarget() {
 var _trenchPeriod   = 30; // default 30 Hari Terakhir
 var _trenchChannels = [];
 
-// Periode dropdown
+// ─── PICKER PERIODE TREN PENJUALAN — GAYA SHOPEE (11 Okt 2026) ─────────────
+// Konsep sama dengan filter periode Jurnal Penjualan: kiri = pilihan, kanan = isi pilihan yang disorot kursor
+// (awalnya kosong). Laptop = popover di bawah tombol; HP = bottom sheet (daftar → sub-halaman).
+// Nilai periode (_trenchPeriod / _dashPeriod): lama = 1, 7, 14, 30, 'kemarin', 'bulan'; baru =
+//   'minggu-ini' | 'minggu-lalu' | 'minggu-w:-N' | 'hari:YYYY-MM-DD' | 'bln:YYYY-MM' | 'thn:YYYY' | 'rng:AAAA-MM-DD~AAAA-MM-DD'
+// Minggu memakai DEFINISI MINGGU yang sama dgn Jurnal Penjualan (Sabtu 19.30 s/d Sabtu 19.30).
+var _TP_ITEMS = [
+  { k: '1',          l: 'Hari Ini' },
+  { k: 'kemarin',    l: 'Kemarin' },
+  { k: 'minggu-ini', l: 'Minggu Ini' },
+  { k: '7',          l: '7 Hari Terakhir' },
+  { k: '14',         l: '14 Hari Terakhir' },
+  { k: '30',         l: '30 Hari Terakhir (default)' },
+  { k: 'g-hari',     l: 'Per Hari',        sub: true, sep: true },
+  { k: 'g-minggu',   l: 'Per Minggu',      sub: true },
+  { k: 'g-bulan',    l: 'Per Bulan',       sub: true },
+  { k: 'g-tahun',    l: 'Per Tahun',       sub: true },
+  { k: 'g-rentang',  l: 'Rentang Tanggal', sub: true }
+];
+var _TP_TITLES = { list: 'Pilih Periode', 'g-hari': 'Pilih Hari', 'g-minggu': 'Pilih Minggu', 'g-bulan': 'Pilih Bulan', 'g-tahun': 'Pilih Tahun', 'g-rentang': 'Pilih Rentang' };
+var _TP_BLN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+var _TP_BLN_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var _tp = { open: false, view: 'list', hov: null, calY: 0, calM: 0, bYear: 0, rStart: null, rEnd: null };
+
+function _tpP2(n) { return String(n).padStart(2, '0'); }
+function _tpAddDays(ds, n) { var q = String(ds).split('-'); return _localDateStr(new Date(+q[0], +q[1] - 1, +q[2] + n)); }
+function _tpFmt(ds) {                       // 'YYYY-MM-DD' → '5 Okt' (+tahun kalau bukan tahun ini)
+  var q = String(ds).split('-');
+  if (q.length < 3) return '';
+  var o = parseInt(q[2], 10) + ' ' + _TP_BLN[parseInt(q[1], 10) - 1];
+  if (parseInt(q[0], 10) !== new Date().getFullYear()) o += ' ' + q[0];
+  return o;
+}
+function _tpNum(d) { return _tpP2(d.getDate()) + '-' + _tpP2(d.getMonth() + 1) + '-' + d.getFullYear(); }   // 11-10-2026 (format Shopee)
+function _tpEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function _tpIsPop() { return !!(window.matchMedia && window.matchMedia('(min-width: 768px) and (min-height: 521px)').matches); }
+
+// ── definisi minggu (salinan setia dari jurnal-penjualan.js; jam cutoff ikut konstanta di sana kalau ada) ──
+function _tpCut() {
+  return [ (typeof _JP_MINGGU_CUTOFF_H !== 'undefined') ? _JP_MINGGU_CUTOFF_H : 19,
+           (typeof _JP_MINGGU_CUTOFF_M !== 'undefined') ? _JP_MINGGU_CUTOFF_M : 30 ];
+}
+function _tpMingguIni(now) {
+  var c = _tpCut();
+  var start  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 0, 0, 0);
+  var cutoff = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, c[0], c[1], 0);
+  if (now.getTime() > cutoff.getTime()) {
+    start  = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7, 0, 0, 0);
+    cutoff = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate() + 7, c[0], c[1], 0);
+  }
+  return { start: start, cutoff: cutoff };
+}
+function _tpWeek(off) {
+  var c = _tpCut(), base = _tpMingguIni(new Date()), o = off || 0;
+  var start  = new Date(base.start.getFullYear(), base.start.getMonth(), base.start.getDate() + 7 * o, 0, 0, 0);
+  var cutoff = new Date(base.cutoff.getFullYear(), base.cutoff.getMonth(), base.cutoff.getDate() + 7 * o, c[0], c[1], 0);
+  var prev   = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate() - 7, c[0], c[1], 0);
+  return { start: start, cutoff: cutoff, prevCutoff: prev };
+}
+function _tpHHMM(d) { return _tpP2(d.getHours()) + ':' + _tpP2(d.getMinutes()); }
+function _tpRowInWeek(r, w) {
+  var tgl = String(r.tanggal || '').slice(0, 10);
+  if (!tgl) return false;
+  var key = tgl + 'T' + String(r.waktu || '00:00').slice(0, 5);
+  return key > (_localDateStr(w.prevCutoff) + 'T' + _tpHHMM(w.prevCutoff)) && key <= (_localDateStr(w.cutoff) + 'T' + _tpHHMM(w.cutoff));
+}
+function _tpTglChart(r, R) {
+  var tgl = String(r.tanggal || '').slice(0, 10);
+  if (R.week && tgl === _localDateStr(R.week.prevCutoff)) return _tpAddDays(tgl, 1);   // Sabtu lewat cutoff → hari Minggu berikutnya
+  return tgl;
+}
+function _tpWeekOff(p) {
+  var s = String(p), m;
+  if (s === 'minggu-ini') return 0;
+  if (s === 'minggu-lalu') return -1;
+  m = /^minggu-w:(-?\d+)$/.exec(s);
+  return m ? parseInt(m[1], 10) : null;
+}
+function _tpIsNew(p) { return typeof p === 'string' && /^(minggu-ini|minggu-lalu|minggu-w:|hari:|bln:|thn:|rng:)/.test(p); }
+
+// Rentang tanggal (inklusif) utk mode baru; null utk mode lama (1/7/14/30/kemarin/bulan).
+function _tpRange(p) {
+  var s = String(p), m, off = _tpWeekOff(p);
+  if (off !== null) {
+    var w = _tpWeek(off);
+    var a = _localDateStr(w.start), b = _localDateStr(new Date(w.start.getFullYear(), w.start.getMonth(), w.start.getDate() + 6));
+    return { start: a, end: b, week: w, qStart: _localDateStr(w.prevCutoff), qEnd: _localDateStr(w.cutoff) };
+  }
+  if ((m = /^hari:(\d{4}-\d{2}-\d{2})$/.exec(s))) return { start: m[1], end: m[1], hourly: true, qStart: m[1], qEnd: m[1] };
+  if ((m = /^bln:(\d{4})-(\d{2})$/.exec(s))) {
+    var y = +m[1], mo = +m[2];
+    var a2 = m[1] + '-' + m[2] + '-01', b2 = _localDateStr(new Date(y, mo, 0));
+    return { start: a2, end: b2, qStart: a2, qEnd: b2 };
+  }
+  if ((m = /^thn:(\d{4})$/.exec(s))) return { start: m[1] + '-01-01', end: m[1] + '-12-31', qStart: m[1] + '-01-01', qEnd: m[1] + '-12-31' };
+  if ((m = /^rng:(\d{4}-\d{2}-\d{2})~(\d{4}-\d{2}-\d{2})$/.exec(s))) return { start: m[1], end: m[2], qStart: m[1], qEnd: m[2] };
+  return null;
+}
+
+// Label pendek utk tombol / legenda / pesan kosong.
+function _trenchLabel(p) {
+  var legacy = { 1: 'Hari Ini', kemarin: 'Kemarin', 7: '7 Hari', 14: '14 Hari', 30: '30 Hari', bulan: 'Bulan Ini' };
+  if (legacy[p] !== undefined) return legacy[p];
+  var s = String(p), m, off = _tpWeekOff(p);
+  if (s === 'minggu-ini') return 'Minggu Ini';
+  if (s === 'minggu-lalu') return 'Minggu Lalu';
+  var R = _tpRange(p);
+  if (!R) return s + ' Hari';
+  if (off !== null || /^rng:/.test(s)) {
+    var pa = R.start.split('-'), pb = R.end.split('-');
+    if (R.start === R.end) return _tpFmt(R.start);
+    return (pa[0] === pb[0] && pa[1] === pb[1]) ? (parseInt(pa[2], 10) + '–' + _tpFmt(R.end)) : (_tpFmt(R.start) + '–' + _tpFmt(R.end));
+  }
+  if (/^hari:/.test(s)) return _tpFmt(R.start);
+  if ((m = /^bln:(\d{4})-(\d{2})$/.exec(s))) return _TP_BLN[parseInt(m[2], 10) - 1] + ' ' + m[1];
+  if ((m = /^thn:(\d{4})$/.exec(s))) return m[1];
+  return s;
+}
+function _tpWeekText(off) {
+  var w = _tpWeek(off), a = _localDateStr(w.start), b = _localDateStr(new Date(w.start.getFullYear(), w.start.getMonth(), w.start.getDate() + 6));
+  var pa = a.split('-'), pb = b.split('-');
+  return (pa[0] === pb[0] && pa[1] === pb[1]) ? (parseInt(pa[2], 10) + '–' + _tpFmt(b)) : (_tpFmt(a) + '–' + _tpFmt(b));
+}
+
+// ── status aktif item kiri ──
+function _tpLeftActive(k) {
+  var p = _trenchPeriod, s = String(p), off = _tpWeekOff(p);
+  if (k === 'g-hari')    return /^hari:/.test(s);
+  if (k === 'g-minggu')  return off !== null && s !== 'minggu-ini';
+  if (k === 'g-bulan')   return s === 'bulan' || /^bln:/.test(s) || (/^rng:/.test(s) && s === _tpPresetTiga());
+  if (k === 'g-tahun')   return /^thn:/.test(s);
+  if (k === 'g-rentang') return /^rng:/.test(s) && s !== _tpPresetTiga();
+  return s === k;
+}
+function _tpPresetBulanLalu() { var n = new Date(); var d = new Date(n.getFullYear(), n.getMonth() - 1, 1); return 'bln:' + d.getFullYear() + '-' + _tpP2(d.getMonth() + 1); }
+function _tpPresetTiga() { var n = new Date(); return 'rng:' + _localDateStr(new Date(n.getFullYear(), n.getMonth() - 2, 1)) + '~' + _localDateStr(n); }
+function _tpVal(k) { return (k !== '' && !isNaN(k)) ? Number(k) : k; }
+
+function _tpLeftHtml() {
+  var html = '';
+  _TP_ITEMS.forEach(function(it) {
+    var act = _tpLeftActive(it.k);
+    var right = it.sub ? '<i class="ti ti-chevron-right"></i>' : (act ? '<i class="ti ti-check tp-check"></i>' : '');
+    html += (it.sep ? '<div class="tp-sep"></div>' : '')
+      + '<button type="button" class="tp-item' + (act ? ' active' : '') + (_tp.hov === it.k ? ' hov' : '') + '" data-act="' + (it.sub ? 'sub' : 'pick') + '" data-val="' + it.k + '" data-hov="' + it.k + '">'
+      + '<span>' + it.l + '</span><span class="tp-r">' + right + '</span></button>';
+  });
+  return html;
+}
+function _tpInfoRow(val, text) {
+  var on = String(_trenchPeriod) === String(val);
+  return '<button type="button" class="tp-info' + (on ? ' active' : '') + '" data-act="pick" data-val="' + _tpEsc(val) + '">' + text + '</button>';
+}
+function _tpPresetRow(val, label, sum) {
+  var on = String(_trenchPeriod) === String(val);
+  return '<button type="button" class="tp-item' + (on ? ' active' : '') + '" data-act="pick" data-val="' + _tpEsc(val) + '"><span>' + label + '</span>'
+    + '<span class="tp-r">' + (sum ? '<span class="tp-sum">' + sum + '</span>' : '') + (on ? '<i class="ti ti-check tp-check"></i>' : '') + '</span></button>';
+}
+function _tpRightHtml(k) {
+  if (!k) return '';
+  var now = new Date();
+  var D = function(n) { return new Date(now.getFullYear(), now.getMonth(), now.getDate() - n); };
+  if (k === '1')       return _tpInfoRow('1', _tpNum(now));
+  if (k === 'kemarin') return _tpInfoRow('kemarin', _tpNum(D(1)));
+  if (k === 'minggu-ini') {
+    var w = _tpWeek(0);
+    return _tpInfoRow('minggu-ini', _tpNum(w.start) + ' – ' + _tpNum(new Date(w.start.getFullYear(), w.start.getMonth(), w.start.getDate() + 6)));
+  }
+  if (k === '7' || k === '14' || k === '30') { var n = Number(k); return _tpInfoRow(k, _tpNum(D(n - 1)) + ' – ' + _tpNum(now)); }   // = n titik di grafik, berakhir hari ini
+  if (k === 'g-hari')    return _tpCalHtml('hari');
+  if (k === 'g-minggu')  return _tpPresetRow('minggu-ini', 'Minggu Ini', _tpWeekText(0)) + _tpPresetRow('minggu-lalu', 'Minggu Lalu', _tpWeekText(-1)) + _tpCalHtml('minggu');
+  if (k === 'g-rentang') return _tpCalHtml('rentang');
+  if (k === 'g-bulan')   return _tpPresetRow('bulan', 'Bulan Ini', '') + _tpPresetRow(_tpPresetBulanLalu(), 'Bulan Lalu', '') + _tpPresetRow(_tpPresetTiga(), '3 Bulan Terakhir', '') + _tpBulanHtml();
+  if (k === 'g-tahun')   return _tpTahunHtml();
+  return '';
+}
+
+function _tpCalHtml(kind) {
+  var now = new Date(), y = _tp.calY, m = _tp.calM;
+  if (!y) { y = now.getFullYear(); m = now.getMonth(); _tp.calY = y; _tp.calM = m; }
+  var startDow = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate();
+  var todayStr = _localDateStr(now), isWeek = (kind === 'minggu'), isRange = (kind === 'rentang');
+  var s = String(_trenchPeriod);
+  var selHari = /^hari:/.test(s) ? s.slice(5) : '';
+  var st = _tp.rStart, en = _tp.rEnd;
+  var html = '<div class="tp-nav"><span class="tp-navg">'
+    + '<button type="button" data-act="calnav" data-val="-12" aria-label="Tahun sebelumnya"><i class="ti ti-chevrons-left"></i></button>'
+    + '<button type="button" data-act="calnav" data-val="-1" aria-label="Bulan sebelumnya"><i class="ti ti-chevron-left"></i></button></span>'
+    + '<div class="tp-month">' + _TP_BLN_FULL[m] + ' ' + y + '</div><span class="tp-navg">'
+    + '<button type="button" data-act="calnav" data-val="1" aria-label="Bulan berikutnya"><i class="ti ti-chevron-right"></i></button>'
+    + '<button type="button" data-act="calnav" data-val="12" aria-label="Tahun berikutnya"><i class="ti ti-chevrons-right"></i></button></span></div><div class="tp-grid">';
+  ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function(n) { html += '<div class="tp-dow">' + n + '</div>'; });
+  if (isWeek) {
+    var base = _tpMingguIni(now).start, selOff = _tpWeekOff(_trenchPeriod);
+    var total = Math.ceil((startDow + dim) / 7) * 7;
+    for (var i = 0; i < total; i++) {
+      var dt = new Date(y, m, 1 - startDow + i), ds = _localDateStr(dt), dow = dt.getDay();
+      var wsd = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() - dow), ws = _localDateStr(wsd);
+      var off = Math.round((wsd.getTime() - base.getTime()) / 86400000 / 7);
+      var c = 'tp-day wk' + (dt.getMonth() !== m ? ' out' : '') + (ds === todayStr ? ' today' : '') + (off > 0 ? ' dis' : '')
+            + (selOff !== null && off === selOff ? ' sel-wk' : '') + (dow === 0 ? ' wk-first' : '') + (dow === 6 ? ' wk-last' : '');
+      html += '<button type="button" class="' + c + '" data-act="week" data-val="' + ws + '" data-wk="' + ws + '"' + (off > 0 ? ' disabled' : '') + '>' + dt.getDate() + '</button>';
+    }
+    return html + '</div>';
+  }
+  for (var b = 0; b < startDow; b++) html += '<div></div>';
+  for (var d = 1; d <= dim; d++) {
+    var dstr = y + '-' + _tpP2(m + 1) + '-' + _tpP2(d);
+    var future = (!isRange && dstr > todayStr);
+    var cl = 'tp-day' + (dstr === todayStr ? ' today' : '') + (future ? ' dis' : '');
+    if (!isRange) { if (dstr === selHari) cl += ' sel'; }
+    else if ((st && dstr === st) || (en && dstr === en)) cl += ' sel';
+    else if (st && en && dstr > st && dstr < en) cl += ' in-range';
+    html += '<button type="button" class="' + cl + '" data-act="day" data-val="' + dstr + '"' + (future ? ' disabled' : '') + '>' + d + '</button>';
+  }
+  html += '</div>';
+  if (isRange) html += '<div class="tp-foot">' + (st ? (_tpFmt(st) + ' – ' + (en ? _tpFmt(en) : '…')) : 'Ketuk tanggal awal, lalu tanggal akhir') + '</div>';
+  return html;
+}
+function _tpBulanHtml() {
+  var y = _tp.bYear || new Date().getFullYear(), n = new Date();
+  var thisVal = n.getFullYear() + '-' + _tpP2(n.getMonth() + 1);
+  var s = String(_trenchPeriod), cur = /^bln:/.test(s) ? s.slice(4) : '';
+  var html = '<div class="tp-nav"><button type="button" data-act="bulannav" data-val="-1" aria-label="Tahun sebelumnya"><i class="ti ti-chevrons-left"></i></button>'
+    + '<div class="tp-month">' + y + '</div><button type="button" data-act="bulannav" data-val="1" aria-label="Tahun berikutnya"><i class="ti ti-chevrons-right"></i></button></div><div class="tp-pg">';
+  for (var m = 0; m < 12; m++) {
+    var val = y + '-' + _tpP2(m + 1), fut = val > thisVal;
+    html += '<button type="button" class="tp-pgi' + (val === cur ? ' sel' : '') + (val === thisVal ? ' today' : '') + (fut ? ' dis' : '') + '" data-act="bulan" data-val="' + val + '"' + (fut ? ' disabled' : '') + '>' + _TP_BLN[m] + '</button>';
+  }
+  return html + '</div>';
+}
+function _tpTahunHtml() {
+  var s = String(_trenchPeriod), cur = /^thn:/.test(s) ? s.slice(4) : '', thisY = new Date().getFullYear();
+  var html = '<div class="tp-pg">';
+  for (var y = thisY; y >= 2015; y--) html += '<button type="button" class="tp-pgi' + (String(y) === cur ? ' sel' : '') + (y === thisY ? ' today' : '') + '" data-act="tahun" data-val="' + y + '">' + y + '</button>';
+  return html + '</div>';
+}
+
+function _tpInit(k) {
+  var now = new Date(), anchor = now, s = String(_trenchPeriod), off = _tpWeekOff(_trenchPeriod), m;
+  if (k === 'g-hari' && /^hari:/.test(s)) anchor = new Date(s.slice(5) + 'T00:00:00');
+  else if (k === 'g-minggu' && off !== null) { var b = _tpMingguIni(now).start; anchor = new Date(b.getFullYear(), b.getMonth(), b.getDate() + 7 * off); }
+  else if (k === 'g-rentang') {
+    m = /^rng:(\d{4}-\d{2}-\d{2})~(\d{4}-\d{2}-\d{2})$/.exec(s);
+    _tp.rStart = m ? m[1] : null; _tp.rEnd = m ? m[2] : null;
+    if (m) anchor = new Date(m[1] + 'T00:00:00');
+  } else if (k === 'g-bulan') {
+    m = /^bln:(\d{4})/.exec(s);
+    _tp.bYear = m ? parseInt(m[1], 10) : now.getFullYear();
+  }
+  _tp.calY = anchor.getFullYear(); _tp.calM = anchor.getMonth();
+}
+
+function _tpRender() {
+  var pop = document.getElementById('tp-pop'), body = document.getElementById('tp-body'), title = document.getElementById('tp-title');
+  if (!pop || !body) return;
+  var isPop = _tpIsPop();
+  pop.classList.toggle('pop', isPop);
+  pop.classList.toggle('sheet', !isPop);
+  if (isPop) {
+    pop.classList.remove('sub');
+    body.innerHTML = '<div class="tp-left">' + _tpLeftHtml() + '</div><div class="tp-right" id="tp-right">' + _tpRightHtml(_tp.hov) + '</div>';
+    return;
+  }
+  var v = _tp.view;
+  pop.classList.toggle('sub', v !== 'list');
+  if (title) title.textContent = _TP_TITLES[v] || _TP_TITLES.list;
+  body.innerHTML = (v === 'list') ? _tpLeftHtml() : _tpRightHtml(v);
+  body.scrollTop = 0;
+}
+function _tpRenderRight() {
+  var r = document.getElementById('tp-right');
+  if (!r) return;
+  r.innerHTML = _tpRightHtml(_tp.hov);
+  var items = document.querySelectorAll('#tp-body .tp-left [data-hov]');
+  for (var i = 0; i < items.length; i++) items[i].classList.toggle('hov', items[i].getAttribute('data-hov') === _tp.hov);
+}
+function _tpRefresh() { if (_tpIsPop()) _tpRenderRight(); else { var st = (document.getElementById('tp-body') || {}).scrollTop || 0; _tpRender(); var b = document.getElementById('tp-body'); if (b) b.scrollTop = st; } }
+
+function _tpOpen(anchor) {
+  var pop = document.getElementById('tp-pop'), ov = document.getElementById('tp-ov');
+  if (!pop || !ov) return;
+  var n = new Date();
+  _tp.view = 'list'; _tp.hov = null; _tp.calY = n.getFullYear(); _tp.calM = n.getMonth(); _tp.bYear = n.getFullYear();
+  _tpRender();
+  if (_tpIsPop()) {
+    var vw = window.innerWidth, vh = window.innerHeight, w = Math.min(560, vw - 24), left = 90, top = 90;
+    if (anchor && anchor.getBoundingClientRect) { var r = anchor.getBoundingClientRect(); left = Math.max(12, Math.min(r.left, vw - w - 12)); top = Math.round(r.bottom + 6); }
+    pop.style.left = left + 'px'; pop.style.top = top + 'px'; pop.style.bottom = ''; pop.style.right = '';
+    pop.style.maxHeight = Math.max(260, vh - top - 12) + 'px';
+    ov.classList.remove('dim');
+  } else {
+    pop.style.left = ''; pop.style.top = ''; pop.style.maxHeight = '';
+    ov.classList.add('dim');
+  }
+  ov.classList.add('open'); pop.classList.add('open'); _tp.open = true;
+}
+function _tpClose() {
+  var pop = document.getElementById('tp-pop'), ov = document.getElementById('tp-ov');
+  if (pop) pop.classList.remove('open');
+  if (ov) ov.classList.remove('open');
+  _tp.open = false;
+}
+function _tpSyncBtn() {
+  var lbl = document.getElementById('trench-lbl-periode');
+  if (lbl) lbl.textContent = _trenchLabel(_trenchPeriod);
+  var btn = document.getElementById('trench-btn-periode');
+  if (btn) { btn.style.background = 'var(--ink)'; btn.style.color = 'var(--cream)'; btn.style.borderColor = 'var(--ink)'; }
+}
+function _tpApply(val) {
+  _trenchPeriod = _tpVal(val);
+  _tpClose();
+  _tpSyncBtn();
+  trenchApply();
+}
+function _tpOnTap(act, val) {
+  if (act === 'pick') { _tpApply(val); return; }
+  if (act === 'sub') {
+    if (_tpIsPop()) { _tp.hov = val; _tpInit(val); _tpRenderRight(); }
+    else { _tpInit(val); _tp.view = val; _tpRender(); }
+    return;
+  }
+  if (act === 'back') { _tp.view = 'list'; _tpRender(); return; }
+  if (act === 'calnav') { var dt = new Date(_tp.calY, _tp.calM + parseInt(val, 10), 1); _tp.calY = dt.getFullYear(); _tp.calM = dt.getMonth(); _tpRefresh(); return; }
+  if (act === 'bulannav') { _tp.bYear += parseInt(val, 10); _tpRefresh(); return; }
+  if (act === 'week') {
+    var wd = new Date(val + 'T00:00:00'), base = _tpMingguIni(new Date()).start;
+    var off = Math.round((wd.getTime() - base.getTime()) / 86400000 / 7);
+    if (isNaN(off) || off > 0) return;
+    _tpApply(off === 0 ? 'minggu-ini' : (off === -1 ? 'minggu-lalu' : 'minggu-w:' + off));
+    return;
+  }
+  if (act === 'day') {
+    var cv = _tpIsPop() ? _tp.hov : _tp.view;
+    if (cv === 'g-hari') { _tpApply('hari:' + val); return; }
+    var st = _tp.rStart, en = _tp.rEnd;
+    if (!st || (st && en)) { _tp.rStart = val; _tp.rEnd = null; }
+    else if (val < st)     { _tp.rEnd = st; _tp.rStart = val; }
+    else                   { _tp.rEnd = val; }
+    if (_tp.rStart && _tp.rEnd) { _tpApply('rng:' + _tp.rStart + '~' + _tp.rEnd); return; }
+    _tpRefresh();
+    return;
+  }
+  if (act === 'bulan') { _tpApply('bln:' + val); return; }
+  if (act === 'tahun') { _tpApply('thn:' + val); return; }
+}
+
+(function _tpInject() {
+  if (document.getElementById('tp-pop')) return;
+  var css = document.createElement('style');
+  css.id = 'tp-style';
+  css.textContent = [
+    '#tp-ov{position:fixed;inset:0;z-index:99990;background:transparent;display:none}',
+    '#tp-ov.open{display:block}#tp-ov.dim{background:rgba(0,0,0,.5)}',
+    '#tp-pop{position:fixed;z-index:99991;background:var(--cream2);color:var(--ink);display:none;box-sizing:border-box;font-family:var(--f)}',
+    '#tp-pop.open{display:flex;flex-direction:column}',
+    '#tp-pop.sheet{left:0;right:0;bottom:0;max-height:88vh;border-radius:20px 20px 0 0;box-shadow:0 -8px 32px rgba(0,0,0,.25);padding-bottom:env(safe-area-inset-bottom,12px)}',
+    '#tp-head{position:relative;flex:none}',
+    '#tp-title{text-align:center;font-size:16px;font-weight:700;padding:14px 52px 12px}',
+    '#tp-back,#tp-close{position:absolute;top:10px;width:32px;height:32px;border:none;padding:0;border-radius:50%;background:var(--ovl-0_06);color:var(--ink3);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}',
+    '#tp-close{right:12px}#tp-back{left:12px;display:none}#tp-pop.sub #tp-back{display:flex}',
+    '#tp-body{flex:1;min-height:0;overflow-y:auto;padding:0 10px 10px;overscroll-behavior:contain}',
+    '#tp-pop.pop{width:560px;max-width:calc(100vw - 24px);border-radius:10px;border:1px solid var(--ink4);box-shadow:0 8px 28px rgba(0,0,0,.3)}',
+    '#tp-pop.pop #tp-head{display:none}',
+    '#tp-pop.pop #tp-body{display:flex;padding:0;overflow:hidden;flex:0 1 380px;height:380px;max-height:100%}',
+    '.tp-left{flex:0 0 190px;border-right:1px solid var(--ink4);overflow-y:auto;padding:8px 6px 10px;box-sizing:border-box}',
+    '.tp-right{flex:1 1 auto;min-width:0;overflow-y:auto;padding:8px 10px 10px;box-sizing:border-box}',
+    '.tp-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;padding:13px 12px;border:none;background:none;border-radius:10px;font-family:var(--f);font-size:15px;font-weight:500;color:var(--ink);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '#tp-pop.pop .tp-item{font-size:13.5px;padding:9px 10px;border-radius:6px}',
+    '.tp-item.active{font-weight:700}#tp-pop.pop .tp-left .tp-item.active,#tp-pop.pop .tp-right .tp-item.active{color:var(--accent)}',
+    '.tp-item:active,.tp-item.hov{background:var(--ovl-0_08)}',
+    '@media (hover:hover){.tp-item:hover{background:var(--ovl-0_06)}.tp-info:hover{background:var(--ovl-0_06)}}',
+    '.tp-r{display:flex;align-items:center;gap:6px;color:var(--ink4);font-size:16px}',
+    '.tp-sum{font-size:12px;font-weight:600;color:var(--ink3)}.tp-check{color:var(--accent);font-size:18px}',
+    '.tp-sep{height:1px;background:var(--ovl-0_08);margin:6px 4px}',
+    '.tp-info{display:block;width:100%;box-sizing:border-box;text-align:left;padding:10px 12px;border:none;background:none;border-radius:6px;font-family:var(--f);font-size:14px;font-weight:500;color:var(--ink);cursor:pointer}',
+    '.tp-info.active{color:var(--accent);font-weight:700}',
+    '.tp-nav{display:flex;align-items:center;justify-content:space-between;padding:2px 0 6px}',
+    '.tp-nav button{width:30px;height:30px;border:none;padding:0;background:none;border-radius:6px;color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}',
+    '.tp-nav button:hover{background:var(--ovl-0_06)}.tp-navg{display:flex;gap:2px}',
+    '.tp-month{font-size:14px;font-weight:700;color:var(--ink)}',
+    '.tp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0;padding:0 2px}',
+    '.tp-dow{text-align:center;font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0}',
+    '.tp-day{height:36px;display:flex;align-items:center;justify-content:center;padding:0;border:none;background:none;border-radius:8px;font-family:var(--f);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}',
+    '.tp-day.today{box-shadow:inset 0 0 0 1.5px var(--ink4)}.tp-day.in-range{background:var(--ovl-0_08);border-radius:0}',
+    '.tp-day.sel{background:var(--ink);color:var(--cream)}',
+    '.tp-day.out{color:var(--ink4);font-weight:500}.tp-day.dis,.tp-day[disabled]{color:var(--ink4);opacity:.5;cursor:default}',
+    '.tp-day.wk{border-radius:0}.tp-day.wk-first{border-radius:8px 0 0 8px}.tp-day.wk-last{border-radius:0 8px 8px 0}',
+    '.tp-day.wk.today{box-shadow:none;text-decoration:underline}.tp-day.wk-hov{background:var(--ovl-0_08)}',
+    '.tp-day.sel-wk{background:var(--ink);color:var(--cream);opacity:1}.tp-day.sel-wk.out{opacity:.75}',
+    '.tp-foot{padding:8px 4px 0;font-size:12px;font-weight:600;color:var(--ink3)}',
+    '.tp-pg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px}',
+    '.tp-pgi{padding:13px 4px;border:none;border-radius:10px;background:var(--ovl-0_06);color:var(--ink);font-family:var(--f);font-size:14px;font-weight:600;cursor:pointer}',
+    '.tp-pgi.today{box-shadow:inset 0 0 0 1.5px var(--ink4)}.tp-pgi.sel{background:var(--ink);color:var(--cream)}',
+    '.tp-pgi.dis,.tp-pgi[disabled]{opacity:.35;cursor:default}'
+  ].join('\n');
+  document.head.appendChild(css);
+  var ov = document.createElement('div'); ov.id = 'tp-ov'; ov.addEventListener('click', _tpClose);
+  var pop = document.createElement('div'); pop.id = 'tp-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Pilih periode');
+  pop.innerHTML = '<div id="tp-head"><button type="button" id="tp-back" data-act="back" aria-label="Kembali"><i class="ti ti-chevron-left"></i></button>'
+    + '<div id="tp-title">Pilih Periode</div><button type="button" id="tp-close" aria-label="Tutup"><i class="ti ti-x"></i></button></div><div id="tp-body"></div>';
+  document.body.appendChild(ov); document.body.appendChild(pop);
+  pop.querySelector('#tp-close').addEventListener('click', _tpClose);
+  pop.addEventListener('click', function(e) {
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!t || t.disabled) return;
+    e.stopPropagation();
+    _tpOnTap(t.getAttribute('data-act'), t.getAttribute('data-val'));
+  });
+  function wkHover(ws) {
+    var old = pop.querySelectorAll('.tp-day.wk-hov');
+    for (var i = 0; i < old.length; i++) old[i].classList.remove('wk-hov');
+    if (!ws) return;
+    var cells = pop.querySelectorAll('.tp-day[data-wk="' + ws + '"]');
+    for (var j = 0; j < cells.length; j++) if (!cells[j].disabled) cells[j].classList.add('wk-hov');
+  }
+  pop.addEventListener('mouseover', function(e) {
+    if (!_tpIsPop() || !e.target.closest) return;
+    var li = e.target.closest('.tp-left [data-hov]');
+    if (li) { var k = li.getAttribute('data-hov'); if (k !== _tp.hov) { _tp.hov = k; _tpInit(k); _tpRenderRight(); } return; }
+    var c = e.target.closest('.tp-day[data-wk]');
+    wkHover(c ? c.getAttribute('data-wk') : '');
+  });
+  pop.addEventListener('mouseleave', function() { wkHover(''); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && _tp.open) _tpClose(); });
+  window.addEventListener('resize', function() { if (_tp.open) _tpClose(); });
+})();
+
+// Periode dropdown (tombol di header Tren Penjualan)
 function trenchTogglePeriode(e) {
   if (e) e.stopPropagation();
-  var dd = document.getElementById('trench-dd-periode');
   var ddC = document.getElementById('trench-dd-channel');
   if (ddC) ddC.style.display = 'none';
-  if (!dd) return;
-  var open = dd.style.display === 'block';
-  dd.style.display = open ? 'none' : 'block';
-  if (!open) trenchRefreshPeriodeChips();
-}
-
-function trenchRefreshPeriodeChips() {
-  var wrap = document.getElementById('trench-waktu-chips');
-  if (!wrap) return;
-  Array.from(wrap.children).forEach(function(c) {
-    var rawW = c.dataset.w;
-    var wVal = (!isNaN(rawW) && rawW !== '') ? Number(rawW) : rawW;
-    var isAct = String(wVal) === String(_trenchPeriod);
-    c.style.background = isAct ? 'var(--ink)' : 'var(--cream)';
-    c.style.color      = isAct ? 'var(--cream)' : 'var(--ink)';
-    c.style.fontWeight = isAct ? '700' : '';
-    // Ensure touchend handler is attached (idempotent via flag)
-    if (!c._trenchTouch) {
-      c._trenchTouch = true;
-      c.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        trenchSelWaktu(c);
-      });
-    }
-  });
-}
-
-function trenchSelWaktu(el) {
-  var w = el.dataset.w;
-  _trenchPeriod = isNaN(w) ? w : Number(w);
-  trenchRefreshPeriodeChips();
-  var wm = {bulan:'Bulan Ini', 1:'Hari Ini', kemarin:'Kemarin', 7:'7 Hari', 14:'14 Hari', 30:'30 Hari'};
-  var lbl = document.getElementById('trench-lbl-periode');
-  if (lbl) lbl.textContent = wm[_trenchPeriod] || 'Periode';
-  var btn = document.getElementById('trench-btn-periode');
-  if (btn) {
-    btn.style.background = 'var(--ink)';
-    btn.style.color = 'var(--cream)';
-    btn.style.borderColor = 'var(--ink)';
-  }
-  // Auto-apply + tutup panel
-  var dd = document.getElementById('trench-dd-periode');
-  if (dd) dd.style.display = 'none';
-  trenchApply();
+  if (_tp.open) { _tpClose(); return; }
+  _tpOpen(document.getElementById('trench-btn-periode'));
 }
 
 function trenchResetPeriode() {
   _trenchPeriod = 30;
-  trenchRefreshPeriodeChips();
-  var lbl = document.getElementById('trench-lbl-periode');
-  if (lbl) lbl.textContent = '30 Hari';
-  var btn = document.getElementById('trench-btn-periode');
-  if (btn) { btn.style.background = 'var(--ink)'; btn.style.color = 'var(--cream)'; btn.style.borderColor = 'var(--ink)'; }
-  document.getElementById('trench-dd-periode').style.display = 'none';
+  _tpClose();
+  _tpSyncBtn();
+}
+
+// ── Grafik utk periode baru (minggu / hari tertentu / bulan / tahun / rentang) ──
+// Harian: 1 titik per hari (hari setelah hari ini tidak digambar). Satu hari tertentu: per jam 00–23.
+function _tpRenderChart(jpData, canvas, tooltip) {
+  var p = _dashPeriod, R = _tpRange(p);
+  if (!R) return false;
+  var emptyEl = document.getElementById('dash-chart-empty'), leg = document.getElementById('dash-chart-legend');
+  var rows = (jpData || []).filter(function(r) { return r && r.tanggal; });
+  var keys = [], labels = [], keyOf;
+  if (R.week) rows = rows.filter(function(r) { return _tpRowInWeek(r, R.week); });
+  if (R.hourly) {
+    rows = rows.filter(function(r) { return String(r.tanggal).slice(0, 10) === R.start; });
+    for (var h = 0; h < 24; h++) { keys.push(_tpP2(h)); labels.push(_tpP2(h) + ':00'); }
+    keyOf = function(r) { return String(r.waktu || '00:00').slice(0, 2); };
+  } else {
+    var today = _localDateStr(), end = R.end > today ? today : R.end;
+    for (var d = R.start; d <= end && keys.length < 400; d = _tpAddDays(d, 1)) { keys.push(d); labels.push(d.slice(8, 10) + '/' + d.slice(5, 7)); }
+    keyOf = function(r) { return _tpTglChart(r, R); };
+  }
+  var tot = {}, qty = {}, trx = {};
+  keys.forEach(function(k) { tot[k] = 0; qty[k] = 0; trx[k] = 0; });
+  rows.forEach(function(r) { var k = keyOf(r); if (tot[k] === undefined) return; tot[k] += Number(r.total) || 0; qty[k] += Number(r.qty) || 0; trx[k]++; });
+  var totals = keys.map(function(k) { return tot[k]; });
+  var total = totals.reduce(function(a, b) { return a + b; }, 0);
+  var lblP = _trenchLabel(p);
+  if (total === 0) {
+    canvas.style.display = 'none';
+    if (emptyEl) { emptyEl.textContent = 'Belum ada data penjualan (' + lblP + ')'; emptyEl.style.display = 'flex'; }
+    if (leg) leg.innerHTML = '';
+    return true;
+  }
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (!canvas.offsetWidth || canvas.offsetWidth < 10) {
+    if (canvas.offsetParent === null) return true;
+    setTimeout(function() { _tpRenderChart(jpData, canvas, tooltip); }, 80);
+    return true;
+  }
+  var dpr = window.devicePixelRatio || 1, W = canvas.offsetWidth, H = canvas.offsetHeight || 160;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  var padL = 44, padR = 36, padT = 14, padB = 34, cW = W - padL - padR, cH = H - padT - padB;
+  var maxVal = Math.max.apply(null, totals.concat([1]));
+  var colLine = '#3ddb6b', colFill = 'rgba(61,219,107,0.07)', colGrid = 'var(--ovl-0_06)', colLabel = '#909090';
+  ctx.clearRect(0, 0, W, H);
+  for (var i = 0; i <= 4; i++) {
+    var gy = padT + cH - cH * i / 4;
+    ctx.strokeStyle = colGrid; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + cW, gy); ctx.stroke();
+    ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(_fmtRpShort(maxVal * i / 4), padL - 4, gy + 3);
+  }
+  var step = cW / Math.max(keys.length - 1, 1);
+  var X = function(i) { return padL + i * step; }, Y = function(v) { return padT + cH - (v / maxVal) * cH; };
+  ctx.beginPath(); ctx.moveTo(X(0), padT + cH);
+  totals.forEach(function(v, i) { ctx.lineTo(X(i), Y(v)); });
+  ctx.lineTo(X(totals.length - 1), padT + cH); ctx.closePath(); ctx.fillStyle = colFill; ctx.fill();
+  ctx.beginPath(); ctx.strokeStyle = colLine; ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  totals.forEach(function(v, i) { if (i === 0) ctx.moveTo(X(i), Y(v)); else ctx.lineTo(X(i), Y(v)); });
+  ctx.stroke();
+  var skip = R.hourly ? 3 : Math.ceil(labels.length / 7), pts = [];
+  totals.forEach(function(v, i) {
+    var x = X(i), y = Y(v);
+    pts.push({ x: x, y: y, key: keys[i], label: R.hourly ? (labels[i] + ' · ' + _tpFmt(R.start)) : labels[i], val: v });
+    if (keys.length <= 62) { ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fillStyle = v > 0 ? colLine : colGrid; ctx.fill(); }
+    if (i % skip === 0 || i === keys.length - 1) { ctx.fillStyle = colLabel; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(labels[i], x, H - padB + 14); }
+  });
+  if (tooltip) {
+    canvas.onmousemove = function(e) {
+      var rect = canvas.getBoundingClientRect(), mx = e.clientX - rect.left, best = null, min = 30;
+      pts.forEach(function(pt) { var dd = Math.abs(mx - pt.x); if (dd < min) { min = dd; best = pt; } });
+      if (best) {
+        tooltip.innerHTML = '<b>' + best.label + '</b>  ' + _fmtRp(best.val) + '  ·  ' + qty[best.key] + ' pcs  ·  ' + trx[best.key] + ' trx';
+        tooltip.style.left = Math.min(best.x + 10, W - 170) + 'px'; tooltip.style.top = Math.max(best.y - 36, 0) + 'px'; tooltip.style.display = 'block';
+      } else tooltip.style.display = 'none';
+    };
+    canvas.onmouseleave = function() { tooltip.style.display = 'none'; };
+  }
+  if (leg) {
+    var dStr = '', dCol = 'var(--ok)';
+    if (!R.hourly && totals.length >= 4) {
+      var half = Math.floor(totals.length / 2);
+      var prev = totals.slice(0, half).reduce(function(a, b) { return a + b; }, 0), curr = totals.slice(half).reduce(function(a, b) { return a + b; }, 0);
+      if (prev > 0) { var dl = ((curr - prev) / prev * 100).toFixed(0); dStr = (dl >= 0 ? '▲ +' : '▼ ') + dl + '% vs paruh pertama'; dCol = dl >= 0 ? 'var(--ok)' : 'var(--danger)'; }
+    }
+    leg.innerHTML = '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:3px;background:' + colLine + ';display:inline-block;border-radius:2px"></span>' + lblP + ': ' + _fmtRp(total) + '</span>'
+      + (dStr ? '<span style="color:' + dCol + ';font-weight:700">' + dStr + '</span>' : '');
+  }
+  return true;
 }
 
 // Channel dropdown
@@ -810,6 +1263,7 @@ function trenchResetChannel() {
 }
 
 function trenchCloseAll() {
+  if (typeof _tpClose === 'function') _tpClose();
   var ddP = document.getElementById('trench-dd-periode');
   var ddC = document.getElementById('trench-dd-channel');
   if (ddP) ddP.style.display = 'none';
@@ -841,7 +1295,11 @@ async function trenchApply() {
   _dashPeriod = _trenchPeriod;
 
   var filter = '&order=tanggal.desc';
-  if (_trenchPeriod === 1) {
+  var _R = _tpRange(_trenchPeriod);
+  if (_R) {
+    // mode baru: batas bawah gte + batas atas lt (hari berikutnya) — aman utk kolom bertipe date maupun timestamp
+    filter = '&tanggal=gte.' + _R.qStart + '&tanggal=lt.' + _tpAddDays(_R.qEnd, 1) + '&order=tanggal.desc';
+  } else if (_trenchPeriod === 1) {
     filter = '&tanggal=gte.' + _localDateStr() + '&order=tanggal.desc';
   } else if (_trenchPeriod === 'kemarin') {
     var y = new Date(); y.setDate(y.getDate()-1);
@@ -883,7 +1341,7 @@ function trenchUpdateBadge() {
   var waktuMap = { 1:'Hari Ini', kemarin:'Kemarin', 7:'7 Hari', 14:'14 Hari', 30:'30 Hari', bulan:'Bulan Ini' };
 
   var parts = [];
-  if (_trenchPeriod !== 30) parts.push(waktuMap[_trenchPeriod] || String(_trenchPeriod)+' Hari');
+  if (_trenchPeriod !== 30) parts.push(_trenchLabel(_trenchPeriod));
   if (_trenchChannels.length > 0) parts.push(_trenchChannels.length + ' channel');
 
   // Chip badge di header (mis. pill merah "Kemarin") DICABUT 4 Sep 2026 —
@@ -1102,6 +1560,9 @@ function _renderChartPenjualan(jpData) {
   const tooltip = document.getElementById('dash-chart-tooltip');
   if (!canvas) return;
 
+  // 11 Okt 2026: mode baru dari picker gaya Shopee (minggu / hari tertentu / bulan / tahun / rentang)
+  if (_tpIsNew(_dashPeriod) && _tpRenderChart(jpData, canvas, tooltip)) return;
+
   // Mode Hari Ini: tampil per jam 00-23
   if (_dashPeriod === 1) {
     _renderChartHariIni(jpData, canvas, tooltip);
@@ -1147,8 +1608,7 @@ function _renderChartPenjualan(jpData) {
   if (!hasData) {
     canvas.style.display = 'none';
     if (emptyEl) {
-      const wm = { 1:'Hari Ini', kemarin:'Kemarin', 7:'7 Hari', 14:'14 Hari', 30:'30 Hari', bulan:'Bulan Ini' };
-      const lbl = wm[_dashPeriod] || (_dashPeriod + ' Hari');
+      const lbl = _trenchLabel(_dashPeriod);
       emptyEl.textContent = 'Belum ada data penjualan (' + lbl + ')';
       emptyEl.style.display = 'flex';
     }
@@ -1258,8 +1718,7 @@ function _renderChartPenjualan(jpData) {
     const delta = prev>0 ? ((curr-prev)/prev*100).toFixed(0) : null;
     const dStr  = delta!==null ? (delta>=0?'▲ +':'▼ ') + delta + '% vs paruh pertama' : '';
     const dCol  = delta>=0?'var(--ok)':'var(--danger)';
-    const _wm={1:'Hari Ini',kemarin:'Kemarin',7:'7 Hari',14:'14 Hari',30:'30 Hari',bulan:'Bulan Ini'};
-    const _pl=_wm[_dashPeriod]||(_dashPeriod+' hari');
+    const _pl=_trenchLabel(_dashPeriod);
     leg.innerHTML =
       '<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:3px;background:'+colLine+';display:inline-block;border-radius:2px"></span>'+_pl+': '+_fmtRp(total)+'</span>' +
       (dStr ? '<span style="color:'+dCol+';font-weight:700">'+dStr+'</span>' : '');
