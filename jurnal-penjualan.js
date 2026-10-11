@@ -41,6 +41,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span class="jp-filter-badge" style="display:none;flex-shrink:0;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px;flex-shrink:0">&#9662;</span>
       </button>
+      <button class="btn btn-sm jp-filter-btn" id="jp-ch-btn" onclick="jpChSheetOpen()"
+        style="display:flex;align-items:center;gap:3px;font-size:11px;min-width:0;flex:0 1 auto">
+        <i class="ti ti-building-store" style="flex-shrink:0"></i>
+        <span id="jp-ch-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Semua Channel</span>
+        <span style="font-size:10px;flex-shrink:0">&#9662;</span>
+      </button>
       <button class="btn btn-sm" id="jp-tab-toggle-mob" onclick="jpToggleTab()"
         style="display:flex;align-items:center;gap:3px;font-size:11px;margin-left:auto;flex-shrink:0">
         <i class="ti ti-chart-line" id="jp-tab-toggle-icon-mob"></i>
@@ -894,6 +900,9 @@ function _jpChartDateRange(mode, now) {
   if (mode === '7hari') {
     return { start: _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000)), end: _jpLocalDate(now) };
   }
+  if (mode === '30hari') {
+    return { start: _jpLocalDate(new Date(now.getTime() - 30*24*60*60*1000)), end: _jpLocalDate(now) };
+  }
   if (mode === 'bulan-ini') {
     // 3 Okt 2026: tanggal 1 s/d hari terakhir bulan berjalan (sama persis dgn query-nya)
     return {
@@ -1251,6 +1260,10 @@ async function loadJurnalPenjualan() {
       const since = _jpLocalDate(new Date(now.getTime() - 7*24*60*60*1000));
       const besok = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
       filter = '&tanggal=gte.' + since + '&tanggal=lt.' + besok;
+    } else if (mode === '30hari') {
+      const since30 = _jpLocalDate(new Date(now.getTime() - 30*24*60*60*1000));
+      const besok30 = _jpLocalDate(new Date(now.getTime() + 24*60*60*1000));
+      filter = '&tanggal=gte.' + since30 + '&tanggal=lt.' + besok30;
     } else if (mode === 'minggu') {
       const dari   = (document.getElementById('jp-filter-minggu-dari')||{}).value || '';
       const sampai = (document.getElementById('jp-filter-minggu-sampai')||{}).value || '';
@@ -1326,22 +1339,26 @@ var _JP_NAMA_BULAN_PENDEK = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Se
 // lagi lewat _jpPerPresetOf().
 // State aktif disimpan di hidden input #jp-filter-state (dibuat IIFE "STATE FILTER AKTIF").
 var _JP_PER_ITEMS = [
-  { k: 'hari-ini',    l: 'Hari Ini' },
-  { k: 'kemarin',     l: 'Kemarin' },
-  { k: '7hari',       l: '7 Hari Terakhir' },
-  { k: 'minggu-ini',  l: 'Minggu Ini' },
-  { k: 'minggu-lalu', l: 'Minggu Lalu' },   // 3 Okt 2026: mode sendiri (bukan preset rentang tanggal) supaya ikut cutoff Sabtu 19.30
-  { k: 'bulan-ini',   l: 'Bulan Ini' },
-  { k: 'bulan-lalu',  l: 'Bulan Lalu',        preset: true },
-  { k: '3bulan',      l: '3 Bulan Terakhir',  preset: true },
-  { k: 'hari',        l: 'Hari',   sub: true },
-  { k: 'minggu',      l: 'Minggu', sub: true },
-  { k: 'bulan',       l: 'Bulan',  sub: true },
-  { k: 'tahun',       l: 'Tahun',  sub: true },
-  { k: 'semua',       l: 'Semua' }
+  { k: 'hari-ini',  l: 'Hari Ini' },
+  { k: 'kemarin',   l: 'Kemarin' },
+  { k: '7hari',     l: '7 Hari Terakhir' },
+  { k: '30hari',    l: '30 Hari Terakhir' },
+  { k: 'hari',      l: 'Hari',   sub: true },
+  { k: 'minggu',    l: 'Minggu', sub: true },
+  { k: 'bulan',     l: 'Bulan',  sub: true },
+  { k: 'tahun',     l: 'Tahun',  sub: true }
+];
+// Preset yang sekarang ada di dalam submenu (Minggu / Bulan / Tahun). Tetap bisa dipilih & dilabeli.
+var _JP_PER_SUBPRESET = [
+  { k: 'minggu-ini',  l: 'Minggu Ini',       view: 'minggu' },
+  { k: 'minggu-lalu', l: 'Minggu Lalu',      view: 'minggu' },
+  { k: 'bulan-ini',   l: 'Bulan Ini',        view: 'bulan' },
+  { k: 'bulan-lalu',  l: 'Bulan Lalu',       view: 'bulan', preset: true },
+  { k: '3bulan',      l: '3 Bulan Terakhir', view: 'bulan', preset: true },
+  { k: 'semua',       l: 'Semua',            view: 'tahun' }
 ];
 var _JP_PER_PRESET_KEYS = ['bulan-lalu', '3bulan'];
-var _JP_PER_SHORT = { 'hari-ini': 'Hari Ini', 'kemarin': 'Kemarin', '7hari': '7 Hari', 'minggu-ini': 'Minggu Ini', 'minggu-lalu': 'Minggu Lalu', 'bulan-ini': 'Bulan Ini', 'hari': 'Hari', 'minggu': 'Minggu', 'bulan': 'Bulan', 'tahun': 'Tahun', 'semua': 'Semua' };
+var _JP_PER_SHORT = { 'hari-ini': 'Hari Ini', 'kemarin': 'Kemarin', '7hari': '7 Hari', '30hari': '30 Hari', 'minggu-ini': 'Minggu Ini', 'minggu-lalu': 'Minggu Lalu', 'bulan-ini': 'Bulan Ini', 'hari': 'Hari', 'minggu': 'Minggu', 'bulan': 'Bulan', 'tahun': 'Tahun', 'semua': 'Semua' };
 var _JP_PER_TITLES = { list: 'Pilih Periode', channel: 'Pilih Channel', hari: 'Pilih Hari', minggu: 'Pilih Minggu', bulan: 'Pilih Bulan', tahun: 'Pilih Tahun' };
 var _JP_NAMA_BULAN_PANJANG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 var _JP_KAT_LABEL = { toko_utama: 'Toko Utama', reseller: 'Dropship', reseller_baru: 'Reseller', lazada: 'Lazada', tiktok: 'TikTok', offline: 'Offline' };   // sama dgn katConfig di loadChannelDropdownJP (key DB reseller = Dropship)
@@ -1428,6 +1445,7 @@ function _jpPerPresetOf(dari, sampai) {
 }
 function _jpPerPresetLabel(key) {
   for (var i = 0; i < _JP_PER_ITEMS.length; i++) if (_JP_PER_ITEMS[i].k === key) return _JP_PER_ITEMS[i].l;
+  for (var j = 0; j < _JP_PER_SUBPRESET.length; j++) if (_JP_PER_SUBPRESET[j].k === key) return _JP_PER_SUBPRESET[j].l;
   return key;
 }
 
@@ -1462,6 +1480,7 @@ function jpPerSheetOpen() {
   _jpDraft = _jpPerCommitted();
   _jpPer.view = 'list';
   _jpPer.tab  = 'periode';
+  _jpPer.only = 'periode';
   _jpPerRender(false);
   sh.style.transition = '';
   sh.style.transform = '';
@@ -1474,6 +1493,21 @@ function jpPerSheetClose() {
   if (ov) ov.classList.remove('open');
   if (sh) sh.classList.remove('open');
 }
+// Tombol Channel (di luar sheet periode): buka sheet langsung di tab channel.
+function jpChSheetOpen() {
+  jpPerSheetOpen();
+  _jpPer.only = 'channel';
+  _jpPer.tab  = 'channel';
+  _jpPerRender(false);
+}
+// Label tombol Channel = nama channel yang aktif (atau 'Semua Channel').
+function _jpUpdateChLabel() {
+  var el = document.getElementById('jp-ch-label');
+  if (!el) return;
+  var id = String(_jpPerCommitted().ch || '');
+  var nm = (id && _jpChannelMap && _jpChannelMap[id]) ? _jpChannelMap[id].nama : '';
+  el.textContent = nm || 'Semua Channel';
+}
 function jpPerBack() {
   _jpPer.view = 'list';
   _jpPerRender(false);
@@ -1482,6 +1516,20 @@ function jpPerBack() {
 function _jpPerRefreshIfOpen() {
   var sh = document.getElementById('jp-per-sheet');
   if (sh && sh.classList.contains('open') && _jpDraft) _jpPerRender(true);
+}
+
+// Preset di atas submenu (Minggu / Bulan / Tahun). Pola baris sama dengan daftar utama.
+function _jpPerSubPresetHtml(view) {
+  var d = _jpDraft;
+  if (!d) return '';
+  var presetKey = _jpPerPresetOf(d.dari, d.sampai);
+  var html = '';
+  _JP_PER_SUBPRESET.forEach(function(p) {
+    if (p.view !== view) return;
+    var active = p.preset ? (d.mode === 'minggu' && presetKey === p.k) : (d.mode === p.k);
+    html += '<button type="button" class="jp-pl-item' + (active ? ' active' : '') + '" data-per="' + (p.preset ? 'preset' : 'pick') + '" data-val="' + p.k + '"><span>' + p.l + '</span>' + (active ? '<i class="ti ti-check jp-pl-check"></i>' : '') + '</button>';
+  });
+  return html;
 }
 
 function _jpPerRender(keepScroll) {
@@ -1499,9 +1547,13 @@ function _jpPerRender(keepScroll) {
     tc.classList.toggle('active', _jpPer.tab === 'channel');
     tc.textContent = 'Channel' + (_jpDraft.ch ? ' ●' : '');
   }
-  if (v === 'hari' || v === 'minggu') body.innerHTML = _jpPerCalHtml(v);
-  else if (v === 'bulan')             body.innerHTML = _jpPerBulanHtml();
-  else if (v === 'tahun')             body.innerHTML = _jpPerTahunHtml();
+  // Sheet periode & sheet channel dipisah: masing-masing hanya menampilkan tab miliknya
+  if (tp) tp.style.display = (_jpPer.only === 'channel') ? 'none' : '';
+  if (tc) tc.style.display = (_jpPer.only === 'periode') ? 'none' : '';
+  if (v === 'hari')        body.innerHTML = _jpPerCalHtml(v);
+  else if (v === 'minggu') body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerCalHtml(v);
+  else if (v === 'bulan')  body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerBulanHtml();
+  else if (v === 'tahun')  body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerTahunHtml();
   else if (_jpPer.tab === 'channel')  body.innerHTML = _jpPerChannelHtml();
   else                                body.innerHTML = _jpPerListHtml();
   body.scrollTop = keepScroll ? st : 0;
@@ -1651,6 +1703,7 @@ function jpFilterApply() {
   var periodeBerubah = (_jpPerKey(lama) !== _jpPerKey(d));
   var channelBerubah = (String(lama.ch || '') !== String(d.ch || ''));
   _jpWaktuMode = d.mode;
+  _jpUpdateChLabel();
   _jpPerSetVal('jp-filter-hari', d.hari);
   _jpPerSetVal('jp-filter-minggu-dari', d.dari);
   _jpPerSetVal('jp-filter-minggu-sampai', d.sampai);
@@ -2631,6 +2684,7 @@ function _jpPrevPeriod(mode, now) {
     cs = D(ft, 0, 1); ce = D(ft + 1, 0, 1); ps = D(ft - 1, 0, 1); label = 'tahun sebelumnya';
   }
   else if (mode === '7hari') { cs = D(y, m, d - 7); ce = D(y, m, d + 1); ps = new Date(cs.getTime() - (ce.getTime() - cs.getTime())); label = '7 hari sebelumnya'; }
+  else if (mode === '30hari') { cs = D(y, m, d - 30); ce = D(y, m, d + 1); ps = new Date(cs.getTime() - (ce.getTime() - cs.getTime())); label = '30 hari sebelumnya'; }
   else if (mode === 'minggu') {
     var a = parseYmd((document.getElementById('jp-filter-minggu-dari') || {}).value);
     var b = parseYmd((document.getElementById('jp-filter-minggu-sampai') || {}).value);
