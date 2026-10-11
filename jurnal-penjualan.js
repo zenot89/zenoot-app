@@ -2689,8 +2689,8 @@ function _jpTrendHtml(pct) {
   var glyph = stabil ? '▬' : (pct > 0 ? '▲' : '▼');
   var shown = Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
   return '<span style="display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;color:' + col + '">'
-    + '<span style="font-size:16px;font-weight:700">' + glyph + '</span>'
-    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700">' + shown + '</span></span>';
+    + '<span style="font-size:26px;font-weight:700">' + glyph + '</span>'
+    + '<span style="font-family:var(--mono);font-size:26px;font-weight:700">' + shown + '</span></span>';
 }
 // Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
 function _jpRenderAvgTrend() {
