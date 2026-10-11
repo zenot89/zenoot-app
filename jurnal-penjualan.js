@@ -18,6 +18,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <span class="jp-filter-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:700">●</span>
         <span style="font-size:10px">&#9662;</span>
       </button>
+      <button class="btn btn-sm jp-filter-btn" id="jp-ch-btn-laptop" onclick="jpChSheetOpen()"
+        style="display:flex;align-items:center;gap:4px;font-size:12px;max-width:260px;min-width:0">
+        <i class="ti ti-building-store"></i>
+        <span id="jp-ch-label-laptop" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">Semua Channel</span>
+        <span style="font-size:10px">&#9662;</span>
+      </button>
       <!-- 19 Sep 2026: 2 tombol Jurnal/Tren digabung jadi 1 toggle (permintaan
            user) — safe karena id lama (jp-tab-jurnal/tren + versi -mob) cuma
            dipakai internal di jpSwitchTab(), gak ada referensi lain di file
@@ -470,7 +476,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       #jp-per-overlay { touch-action: auto; }
       #jp-per-sheet {
         left: 50%; right: auto; top: 50%; bottom: auto; margin: 0;
-        width: 440px; max-width: calc(100vw - 32px); max-height: 80vh;
+        width: 640px; max-width: calc(100vw - 32px); max-height: 80vh;
         border-radius: 16px; padding-bottom: 6px; opacity: 0;
         transform: translate(-50%, -46%) scale(.98);
         transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
@@ -1502,11 +1508,12 @@ function jpChSheetOpen() {
 }
 // Label tombol Channel = nama channel yang aktif (atau 'Semua Channel').
 function _jpUpdateChLabel() {
-  var el = document.getElementById('jp-ch-label');
-  if (!el) return;
   var id = String(_jpPerCommitted().ch || '');
   var nm = (id && _jpChannelMap && _jpChannelMap[id]) ? _jpChannelMap[id].nama : '';
-  el.textContent = nm || 'Semua Channel';
+  ['jp-ch-label', 'jp-ch-label-laptop'].forEach(function(lid) {
+    var el = document.getElementById(lid);
+    if (el) el.textContent = nm || 'Semua Channel';
+  });
 }
 function jpPerBack() {
   _jpPer.view = 'list';
@@ -1532,6 +1539,13 @@ function _jpPerSubPresetHtml(view) {
   return html;
 }
 
+// Isi panel kanan (laptop, gaya Shopee): preset + kalender/bulan/tahun sesuai submenu.
+function _jpPerSubContentHtml(view) {
+  if (view === 'hari' || view === 'minggu') return _jpPerSubPresetHtml(view) + _jpPerCalHtml(view);
+  if (view === 'bulan') return _jpPerSubPresetHtml(view) + _jpPerBulanHtml();
+  return _jpPerSubPresetHtml(view) + _jpPerTahunHtml();
+}
+
 function _jpPerRender(keepScroll) {
   var sh    = document.getElementById('jp-per-sheet');
   var body  = document.getElementById('jp-per-body');
@@ -1550,7 +1564,17 @@ function _jpPerRender(keepScroll) {
   // Sheet periode & sheet channel dipisah: masing-masing hanya menampilkan tab miliknya
   if (tp) tp.style.display = (_jpPer.only === 'channel') ? 'none' : '';
   if (tc) tc.style.display = (_jpPer.only === 'periode') ? 'none' : '';
-  if (v === 'hari')        body.innerHTML = _jpPerCalHtml(v);
+  var dlgPP = (window.innerWidth >= 768 && window.innerHeight >= 521) && _jpPer.tab === 'periode';
+  body.classList.toggle('jp-pp', dlgPP);
+  if (dlgPP) {
+    var subV = (['hari', 'minggu', 'bulan', 'tahun'].indexOf(v) >= 0) ? v
+             : (['hari', 'minggu', 'bulan', 'tahun'].indexOf(_jpDraft.mode) >= 0 ? _jpDraft.mode : 'minggu');
+    _jpPer.view = subV;
+    sh.classList.remove('sub');
+    if (title) title.textContent = _JP_PER_TITLES.list;
+    body.innerHTML = '<div class="jp-pp-left">' + _jpPerListHtml() + '</div><div class="jp-pp-right">' + _jpPerSubContentHtml(subV) + '</div>';
+  }
+  else if (v === 'hari')   body.innerHTML = _jpPerCalHtml(v);
   else if (v === 'minggu') body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerCalHtml(v);
   else if (v === 'bulan')  body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerBulanHtml();
   else if (v === 'tahun')  body.innerHTML = _jpPerSubPresetHtml(v) + _jpPerTahunHtml();

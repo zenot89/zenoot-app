@@ -5712,3 +5712,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* Minicard Jurnal: container & track selebar baris (.metrics itu flex-wrap, track tanpa lebar = menyusut ke isi) */
 .jp-mswipe{ width:100%; box-sizing:border-box; flex:0 0 auto; height:auto; align-self:stretch; }
 .jp-mswipe .jp-mtrack{ width:100%; box-sizing:border-box; align-items:start; }
+
+/* Sheet periode laptop (gaya Shopee): kiri = daftar periode, kanan = kalender/preset. HP tidak terpengaruh. */
+@media (min-width: 768px) and (min-height: 521px) {
+  #jp-per-body.jp-pp { display: flex; padding: 0; overflow: hidden; }
+  #jp-per-body.jp-pp .jp-pp-left { flex: 0 0 210px; border-right: 1px solid var(--ink4); overflow-y: auto; padding: 6px 8px 10px; box-sizing: border-box; }
+  #jp-per-body.jp-pp .jp-pp-right { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 6px 12px 10px; box-sizing: border-box; }
+  #jp-per-sheet .jp-pp-left .jp-pl-item { font-size: 14px; padding: 11px 10px; }
+}
