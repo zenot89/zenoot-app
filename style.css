@@ -5710,5 +5710,5 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 /* Minicard Jurnal: container & track selebar baris (.metrics itu flex-wrap, track tanpa lebar = menyusut ke isi) */
-.jp-mswipe{ width:100%; box-sizing:border-box; flex:1 1 100%; }
-.jp-mswipe .jp-mtrack{ width:100%; box-sizing:border-box; }
+.jp-mswipe{ width:100%; box-sizing:border-box; flex:0 0 auto; height:auto; align-self:stretch; }
+.jp-mswipe .jp-mtrack{ width:100%; box-sizing:border-box; align-items:start; }
