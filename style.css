@@ -5708,3 +5708,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   .jp-mdots i{ width:6px; height:6px; border-radius:50%; background:var(--ink4); display:inline-block; }
   .jp-mdots i.on{ width:16px; border-radius:3px; background:var(--ink); }
 }
+
+/* Minicard Jurnal: container & track selebar baris (.metrics itu flex-wrap, track tanpa lebar = menyusut ke isi) */
+.jp-mswipe{ width:100%; box-sizing:border-box; flex:1 1 100%; }
+.jp-mswipe .jp-mtrack{ width:100%; box-sizing:border-box; }
