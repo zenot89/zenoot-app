@@ -58,11 +58,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <!-- MINI CARDS -->
     <div class="metrics" style="flex-shrink:0">
       <div class="metric" id="jp-avg-card2">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-          <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan2">—</div><div id="jp-avg-trend2" style="margin-top:4px"></div></div>
-          <div style="text-align:right;min-width:0"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty2">—</div><div id="jp-avg-trend-q2" style="margin-top:4px"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div></div>
+          <div style="min-width:0;padding-left:16px"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div></div>
         </div>
-        <div class="m-delta" id="jp-avg-delta2">pilih rentang minimal 2 hari</div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px"><span id="jp-avg-trend2"></span><span id="jp-avg-trend-q2"></span></div>
       </div>
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
@@ -636,11 +636,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <!-- MINI METRICS TAB 1 -->
   <div class="metrics" style="margin:10px 0 8px">
     <div class="metric" id="jp-avg-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-        <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan">—</div><div id="jp-avg-trend" style="margin-top:4px"></div></div>
-        <div style="text-align:right;min-width:0"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty">—</div><div id="jp-avg-trend-q" style="margin-top:4px"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div></div>
+        <div style="min-width:0;padding-left:16px"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div></div>
       </div>
-      <div class="m-delta" id="jp-avg-delta">pilih rentang minimal 2 hari</div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px"><span id="jp-avg-trend"></span><span id="jp-avg-trend-q"></span></div>
     </div>
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
