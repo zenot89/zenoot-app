@@ -5703,7 +5703,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 767px) {
   .jp-mswipe{ overflow:hidden; }
   .jp-mswipe .jp-mtrack{ display:flex; gap:0; transition:transform .3s ease; }
-  .jp-mswipe .jp-mtrack > .metric{ flex:0 0 calc(50% - 6px); margin-right:12px; box-sizing:border-box; min-width:0; }
+  .jp-mswipe .jp-mtrack > .metric{ flex:0 0 100%; margin-right:12px; box-sizing:border-box; min-width:0; }
   .jp-mdots{ display:flex; justify-content:flex-end; gap:6px; padding:4px 6px 0; }
   .jp-mdots i{ width:6px; height:6px; border-radius:50%; background:var(--ink4); display:inline-block; }
   .jp-mdots i.on{ width:16px; border-radius:3px; background:var(--ink); }
