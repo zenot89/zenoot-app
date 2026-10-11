@@ -57,6 +57,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
     <!-- MINI CARDS -->
     <div class="metrics" style="flex-shrink:0">
+      <div class="metric" id="jp-avg-card2">
+        <div class="m-label">Average</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-avg-penjualan2">—</div><span id="jp-avg-qty2" style="font-size:12px;font-weight:700;color:var(--ink3);white-space:nowrap">—</span></div>
+        <div class="m-delta" id="jp-avg-delta2">pilih rentang minimal 2 hari</div>
+      </div>
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan2">—</div><span class="jp-delta" id="jp-delta-penjualan2" style="display:none"></span></div>
@@ -628,10 +633,10 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
   <!-- MINI METRICS TAB 1 -->
   <div class="metrics" style="margin:10px 0 8px">
-    <div class="metric" id="jp-avg-card" style="display:none">
+    <div class="metric" id="jp-avg-card">
       <div class="m-label">Average</div>
-      <div class="m-value" id="jp-avg-penjualan">—</div>
-      <div class="m-delta" id="jp-avg-delta">per hari</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-avg-penjualan">—</div><span id="jp-avg-qty" style="font-size:12px;font-weight:700;color:var(--ink3);white-space:nowrap">—</span></div>
+      <div class="m-delta" id="jp-avg-delta">pilih rentang minimal 2 hari</div>
     </div>
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
@@ -2539,26 +2544,28 @@ function updateMetricsJP(data) {
   const item = data.reduce((s,r) => s+(r.qty||0), 0);
   document.getElementById('jp-total-penjualan').textContent = 'Rp' + tot.toLocaleString('id-ID');
   document.getElementById('jp-total-item').textContent      = item.toLocaleString('id-ID') + ' item';
-  // Average per hari (rentang aktif yang sudah berjalan). Disembunyikan kalau rentang < 2 hari
-  // (Hari Ini / Kemarin / 1 hari pilihan) atau tanpa rentang (Semua) — tidak ada pembanding.
-  var avgCard = document.getElementById('jp-avg-card');
-  if (avgCard) {
-    var nowA = new Date();
-    var pbA  = (_jpWaktuMode && _jpWaktuMode !== 'semua') ? _jpPrevPeriod(_jpWaktuMode, nowA) : null;
-    var bA   = _jpCurBounds;
-    var hariA = 0;
-    if (pbA && bA && bA.cs && bA.ce) {
-      hariA = Math.max(0, Math.min(nowA.getTime(), bA.ce.getTime()) - bA.cs.getTime()) / 86400000;
-      hariA = Math.max(1, Math.ceil(hariA));
-    }
-    if (!pbA || hariA < 2 || _jpWaktuMode === 'hari-ini' || _jpWaktuMode === 'kemarin') {
-      avgCard.style.display = 'none';
-    } else {
-      avgCard.style.display = '';
-      document.getElementById('jp-avg-penjualan').textContent = 'Rp' + Math.round(tot / hariA).toLocaleString('id-ID');
-      document.getElementById('jp-avg-delta').textContent = 'per hari · ' + hariA + ' hari';
-    }
+  // Average (rentang aktif yang sudah berjalan). Kartu SELALU tampil; nilai '—' kalau tidak ada rentang
+  // yang bisa dibagi (Hari Ini / Kemarin / 1 hari / Semua). Ditulis ke dua tab (id tanpa & dengan suffix 2).
+  var nowA = new Date();
+  var pbA  = (_jpWaktuMode && _jpWaktuMode !== 'semua') ? _jpPrevPeriod(_jpWaktuMode, nowA) : null;
+  var bA   = _jpCurBounds;
+  var hariA = 0;
+  if (pbA && bA && bA.cs && bA.ce) {
+    hariA = Math.max(0, Math.min(nowA.getTime(), bA.ce.getTime()) - bA.cs.getTime()) / 86400000;
+    hariA = Math.max(1, Math.ceil(hariA));
   }
+  var okAvg = !!pbA && hariA >= 2 && _jpWaktuMode !== 'hari-ini' && _jpWaktuMode !== 'kemarin';
+  var avgRp  = okAvg ? 'Rp' + Math.round(tot / hariA).toLocaleString('id-ID') : '—';
+  var avgQty = okAvg ? (item / hariA).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' pcs/hari' : '—';
+  var avgDl  = okAvg ? 'per hari · ' + hariA + ' hari' : 'pilih rentang minimal 2 hari';
+  ['', '2'].forEach(function(suf) {
+    var v = document.getElementById('jp-avg-penjualan' + suf);
+    var q = document.getElementById('jp-avg-qty' + suf);
+    var d = document.getElementById('jp-avg-delta' + suf);
+    if (v) v.textContent = avgRp;
+    if (q) q.textContent = avgQty;
+    if (d) d.textContent = avgDl;
+  });
 }
 
 // ─── PERBANDINGAN △/▽ vs PERIODE SEBELUMNYA (8 Okt 2026) ─────
