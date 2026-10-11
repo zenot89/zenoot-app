@@ -1749,12 +1749,12 @@ function _jpPerOnTap(act, val) {
     _jpPerRender(false);
     return;
   }
-  if (act === 'pick')   { d.mode = val; _jpPerRender(true); return; }
+  if (act === 'pick')   { d.mode = val; jpFilterApply(); return; }
   if (act === 'preset') {
     var r = _jpPerPresetRange(val);
     if (!r) return;
     d.mode = 'minggu'; d.dari = r.s; d.sampai = r.e;
-    _jpPerRender(true);
+    jpFilterApply();
     return;
   }
   if (act === 'sub')  { _jpPerOpenSub(val); return; }
@@ -1773,14 +1773,14 @@ function _jpPerOnTap(act, val) {
   if (act === 'day') {
     if (_jpPer.view === 'hari') {
       d.mode = 'hari'; d.hari = val;
-      _jpPer.view = 'list';
-      _jpPerRender(false);
+      jpFilterApply();
     } else {
       // rentang: ketuk 1 = awal, ketuk 2 = akhir (kalau lebih awal dari awal → ditukar), ketuk 3 = mulai lagi
       var st = _jpPer.rStart, en = _jpPer.rEnd;
       if (!st || (st && en)) { _jpPer.rStart = val; _jpPer.rEnd = null; }
       else if (val < st)     { _jpPer.rEnd = st; _jpPer.rStart = val; }
       else                   { _jpPer.rEnd = val; }
+      if (_jpPer.rStart && _jpPer.rEnd) { _jpPerOnTap('rangeok', null); return; }
       _jpPerRender(true);
     }
     return;
@@ -1791,13 +1791,12 @@ function _jpPerOnTap(act, val) {
     var e = _jpPer.rEnd || s;
     if (e < s) { var t = s; s = e; e = t; }
     d.mode = 'minggu'; d.dari = s; d.sampai = e;
-    _jpPer.view = 'list';
-    _jpPerRender(false);
+    jpFilterApply();
     return;
   }
-  if (act === 'bulan') { d.mode = 'bulan'; d.bulan = val; _jpPer.view = 'list'; _jpPerRender(false); return; }
-  if (act === 'tahun') { d.mode = 'tahun'; d.tahun = String(val); _jpPer.view = 'list'; _jpPerRender(false); return; }
-  if (act === 'ch')    { d.ch = String(val || ''); _jpPerRender(true); return; }
+  if (act === 'bulan') { d.mode = 'bulan'; d.bulan = val; jpFilterApply(); return; }
+  if (act === 'tahun') { d.mode = 'tahun'; d.tahun = String(val); jpFilterApply(); return; }
+  if (act === 'ch')    { d.ch = String(val || ''); jpFilterApply(); return; }
   if (act === 'reset') { d.mode = 'minggu-ini'; d.ch = ''; _jpPerRender(true); return; }   // reset DRAFT saja; berlaku setelah Terapkan
   if (act === 'go')    { jpFilterApply(); return; }
 }
@@ -1824,10 +1823,6 @@ function _jpPerOnTap(act, val) {
     +   '<button type="button" class="jp-pt" id="jp-pt-channel" data-per="tab" data-val="channel">Channel</button>'
     + '</div>'
     + '<div id="jp-per-body"></div>'
-    + '<div id="jp-per-foot">'
-    +   '<button type="button" class="jp-pf-reset" data-per="reset">Reset</button>'
-    +   '<button type="button" class="jp-pc-apply" data-per="go">Terapkan</button>'
-    + '</div>'
     + '<input type="hidden" id="jp-filter-hari">';
   document.body.appendChild(ov);
   document.body.appendChild(sh);
@@ -1851,15 +1846,7 @@ function _jpPerOnTap(act, val) {
     if (!modeDialog()) return;
     var t = e.target.closest ? e.target.closest('[data-per]') : null;
     var act = t ? t.getAttribute('data-per') : '';
-    if (_jpPer.view === 'minggu') {
-      if (act !== 'day' || !_jpPer.rStart) return;
-      _jpPerOnTap('rangeok', null);
-      jpFilterApply();
-      return;
-    }
-    if (_jpPer.view === 'list' && _jpDraft && _jpDraft.mode && ['tab', 'reset', 'go', 'calnav', 'bulannav', 'sub'].indexOf(act) < 0) {
-      jpFilterApply();
-    }
+    // Sheet menerapkan langsung saat memilih, jadi double-click tidak perlu aksi tambahan.
   });
   // Esc menutup (berguna di laptop)
   document.addEventListener('keydown', function(e) {
