@@ -628,6 +628,11 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
 
   <!-- MINI METRICS TAB 1 -->
   <div class="metrics" style="margin:10px 0 8px">
+    <div class="metric" id="jp-avg-card" style="display:none">
+      <div class="m-label">Average</div>
+      <div class="m-value" id="jp-avg-penjualan">—</div>
+      <div class="m-delta" id="jp-avg-delta">per hari</div>
+    </div>
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan">—</div><span class="jp-delta" id="jp-delta-penjualan" style="display:none"></span></div>
@@ -2534,6 +2539,26 @@ function updateMetricsJP(data) {
   const item = data.reduce((s,r) => s+(r.qty||0), 0);
   document.getElementById('jp-total-penjualan').textContent = 'Rp' + tot.toLocaleString('id-ID');
   document.getElementById('jp-total-item').textContent      = item.toLocaleString('id-ID') + ' item';
+  // Average per hari (rentang aktif yang sudah berjalan). Disembunyikan kalau rentang < 2 hari
+  // (Hari Ini / Kemarin / 1 hari pilihan) atau tanpa rentang (Semua) — tidak ada pembanding.
+  var avgCard = document.getElementById('jp-avg-card');
+  if (avgCard) {
+    var nowA = new Date();
+    var pbA  = (_jpWaktuMode && _jpWaktuMode !== 'semua') ? _jpPrevPeriod(_jpWaktuMode, nowA) : null;
+    var bA   = _jpCurBounds;
+    var hariA = 0;
+    if (pbA && bA && bA.cs && bA.ce) {
+      hariA = Math.max(0, Math.min(nowA.getTime(), bA.ce.getTime()) - bA.cs.getTime()) / 86400000;
+      hariA = Math.max(1, Math.ceil(hariA));
+    }
+    if (!pbA || hariA < 2 || _jpWaktuMode === 'hari-ini' || _jpWaktuMode === 'kemarin') {
+      avgCard.style.display = 'none';
+    } else {
+      avgCard.style.display = '';
+      document.getElementById('jp-avg-penjualan').textContent = 'Rp' + Math.round(tot / hariA).toLocaleString('id-ID');
+      document.getElementById('jp-avg-delta').textContent = 'per hari · ' + hariA + ' hari';
+    }
+  }
 }
 
 // ─── PERBANDINGAN △/▽ vs PERIODE SEBELUMNYA (8 Okt 2026) ─────
@@ -2546,6 +2571,7 @@ function updateMetricsJP(data) {
 // Mengikuti filter channel yang aktif. Data pembanding diambil lewat query terpisah (_jpPrevRows) supaya tabel/chart tidak tersentuh.
 var _jpPrevRows = null;   // baris mentah periode pembanding (null = belum/tidak ada)
 var _jpPrevInfo = null;   // { label, lo, hi, week }
+var _jpCurBounds = null; // { cs, ce } awal/akhir periode aktif (diisi _jpPrevPeriod) — dipakai kartu Average
 var _jpPrevTok  = 0;      // penanda permintaan terakhir (abaikan balasan lama kalau periode keburu diganti)
 function _jpKeyDT(d) { return _jpLocalDate(d) + 'T' + _jpJamStr(d); }
 function _jpPrevPeriod(mode, now) {
@@ -2588,6 +2614,7 @@ function _jpPrevPeriod(mode, now) {
   if (isNaN(cs.getTime()) || isNaN(ps.getTime())) return null;
   var elapsed = Math.max(0, Math.min(now.getTime(), ce.getTime()) - cs.getTime());      // yang sudah berjalan di periode aktif
   var hi = new Date(Math.min(ps.getTime() + elapsed, cs.getTime()));                      // pembanding sepanjang itu, tidak boleh masuk periode aktif
+  _jpCurBounds = { cs: cs, ce: ce };
   return { label: label, lo: ps, hi: hi, week: week };
 }
 function _jpLoadPrev(mode, now) {
