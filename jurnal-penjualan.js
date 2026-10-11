@@ -71,12 +71,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan2">—</div><span class="jp-delta" id="jp-delta-penjualan2" style="display:none"></span></div>
-        <div class="m-delta">semua transaksi</div>
+        <div class="m-delta" id="jp-hint-penjualan2">semua transaksi</div>
       </div>
       <div class="metric">
         <div class="m-label">Total Item Terjual</div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item2">—</div><span class="jp-delta" id="jp-delta-item2" style="display:none"></span></div>
-        <div class="m-delta">qty keseluruhan</div>
+        <div class="m-delta" id="jp-hint-item2">qty keseluruhan</div>
       </div>
       </div>
       <div class="jp-mdots"></div>
@@ -655,12 +655,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-penjualan">—</div><span class="jp-delta" id="jp-delta-penjualan" style="display:none"></span></div>
-      <div class="m-delta">semua transaksi</div>
+      <div class="m-delta" id="jp-hint-penjualan">semua transaksi</div>
     </div>
     <div class="metric">
       <div class="m-label">Total Item Terjual</div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item">—</div><span class="jp-delta" id="jp-delta-item" style="display:none"></span></div>
-      <div class="m-delta">qty keseluruhan</div>
+      <div class="m-delta" id="jp-hint-item">qty keseluruhan</div>
     </div>
     </div>
     <div class="jp-mdots"></div>
@@ -2766,12 +2766,19 @@ function _jpInitMSwipe() {
 }
 if (!window._jpMSwipeRz) { window._jpMSwipeRz = 1; window.addEventListener('resize', function() { _jpInitMSwipe(); }); }
 function _jpRenderDelta(curRows) {
-  var ids = ['jp-delta-penjualan', 'jp-delta-penjualan2', 'jp-delta-item', 'jp-delta-item2'];
-  var hide = function() { ids.forEach(function(id) { var e = document.getElementById(id); if (e) { e.style.display = 'none'; e.innerHTML = ''; } }); };
+  var indIds  = { penj: ['jp-delta-penjualan', 'jp-delta-penjualan2'], item: ['jp-delta-item', 'jp-delta-item2'] };
+  var hintIds = { penj: ['jp-hint-penjualan', 'jp-hint-penjualan2'],   item: ['jp-hint-item', 'jp-hint-item2'] };
+  var defHint = { penj: 'semua transaksi', item: 'qty keseluruhan' };
+  var setInd  = function(ids, html) { ids.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.innerHTML = html; e.style.display = html ? 'inline-flex' : 'none'; }); };
+  var setHint = function(ids, txt, tip) { ids.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.textContent = txt; e.title = tip || ''; }); };
+  var resetAll = function() {
+    setInd(indIds.penj.concat(indIds.item), '');
+    setHint(hintIds.penj, defHint.penj); setHint(hintIds.item, defHint.item);
+  };
   var info = _jpPrevInfo;
-  if (!info || !_jpPrevRows) { hide(); return; }
+  if (!info || !_jpPrevRows) { resetAll(); return; }
   var cur = curRows || _jpLastFilterData || [];
-  var fc = document.getElementById('jp-filter-channel');
+  var fc  = document.getElementById('jp-filter-channel');
   var kat = fc ? fc.value : '';
   var lo = _jpKeyDT(info.lo), hi = _jpKeyDT(info.hi);
   var prev = _jpPrevRows.filter(function(r) {
@@ -2784,12 +2791,16 @@ function _jpRenderDelta(curRows) {
   });
   var sum = function(rows, k) { return rows.reduce(function(a, r) { return a + (r[k] || 0); }, 0); };
   var pT = sum(prev, 'total'), pQ = sum(prev, 'qty'), cT = sum(cur, 'total'), cQ = sum(cur, 'qty');
-  var put = function(idList, html) { idList.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.innerHTML = html; e.style.display = html ? 'block' : 'none'; }); };
-  put(['jp-delta-penjualan', 'jp-delta-penjualan2'], _jpDeltaHtml(cT, pT, info, function(v) { return 'Rp' + v.toLocaleString('id-ID'); }));
-  put(['jp-delta-item', 'jp-delta-item2'],           _jpDeltaHtml(cQ, pQ, info, function(v) { return v.toLocaleString('id-ID') + ' item'; }));
+  var lbl = info.label.replace(' sebelumnya', ' lalu');
+  var tip = 'Rentang pembanding: ' + _jpFmtWin(info.lo) + ' s/d ' + _jpFmtWin(info.hi);
+  var pctT = pT > 0 ? (cT - pT) / pT * 100 : null;
+  var pctQ = pQ > 0 ? (cQ - pQ) / pQ * 100 : null;
+  setInd(indIds.penj, pctT === null ? '' : _jpTrendHtml(pctT));
+  setInd(indIds.item, pctQ === null ? '' : _jpTrendHtml(pctQ));
+  setHint(hintIds.penj, 'vs ' + lbl + ' · Rp' + pT.toLocaleString('id-ID'), tip);
+  setHint(hintIds.item, 'vs ' + lbl + ' · ' + pQ.toLocaleString('id-ID') + ' item', tip);
   _jpRenderAvgTrend();
 }
-
 // ─── LAST CHANNEL MEMORY — reset jam 00.00 ───────────────────
 function _jpGetLastChannel() {
   try {
