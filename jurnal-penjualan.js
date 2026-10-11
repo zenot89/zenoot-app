@@ -59,10 +59,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div class="metrics" style="flex-shrink:0">
       <div class="metric" id="jp-avg-card2">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div></div>
-          <div style="min-width:0;padding-left:16px"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div></div>
+          <div style="min-width:0"><div class="m-label">Omset Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div><span id="jp-avg-trend2"></span></div></div>
+          <div style="min-width:0;padding-left:24px"><div class="m-label">Qty Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div><span id="jp-avg-trend-q2"></span></div></div>
         </div>
-        <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px"><span id="jp-avg-trend2"></span><span id="jp-avg-trend-q2"></span></div>
       </div>
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
@@ -637,10 +636,9 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <div class="metrics" style="margin:10px 0 8px">
     <div class="metric" id="jp-avg-card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div></div>
-        <div style="min-width:0;padding-left:16px"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div></div>
+        <div style="min-width:0"><div class="m-label">Omset Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div><span id="jp-avg-trend"></span></div></div>
+        <div style="min-width:0;padding-left:24px"><div class="m-label">Qty Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div><span id="jp-avg-trend-q"></span></div></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px"><span id="jp-avg-trend"></span><span id="jp-avg-trend-q"></span></div>
     </div>
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
@@ -2643,6 +2641,8 @@ function _jpLoadPrev(mode, now) {
   dbGet('jurnal_penjualan', f + '&order=tanggal.desc,id.desc').then(function(rows) {
     if (tok !== _jpPrevTok) return;
     _jpPrevRows = rows || [];
+    // Indikator tren rata-rata dulu (berdiri sendiri, tidak ikut gagal kalau badge total bermasalah)
+    try { _jpRenderAvgTrend(); } catch (e) { console.warn('[jp] avg trend', e); }
     _jpRenderDelta();
   }).catch(function() { /* gagal ambil pembanding → badge tetap tersembunyi, fitur lain tidak terganggu */ });
 }
@@ -2675,7 +2675,9 @@ function _jpTrendHtml(pct) {
   var col   = stabil ? 'var(--ink3)' : (pct > 0 ? 'var(--ok)' : 'var(--danger)');
   var glyph = stabil ? '▬' : (pct > 0 ? '▲' : '▼');
   var shown = Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
-  return '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + col + ' 13%, transparent);color:' + col + '">' + glyph + ' ' + shown + '</span>';
+  return '<span style="display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;color:' + col + '">'
+    + '<span style="font-size:13px;font-weight:700">' + glyph + '</span>'
+    + '<span style="font-family:var(--mono);font-size:11px;font-weight:700">' + shown + '</span></span>';
 }
 // Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
 function _jpRenderAvgTrend() {
