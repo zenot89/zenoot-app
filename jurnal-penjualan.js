@@ -1408,6 +1408,7 @@ var _JP_NAMA_BULAN_PENDEK = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Se
 var _JP_PER_ITEMS = [
   { k: 'hari-ini',  l: 'Hari Ini' },
   { k: 'kemarin',   l: 'Kemarin' },
+  { k: 'minggu-ini', l: 'Minggu Ini' },
   { k: '7hari',     l: '7 Hari Terakhir' },
   { k: '30hari',    l: '30 Hari Terakhir' },
   { k: 'hari',      l: 'Per Hari',        sub: true, sep: true },
@@ -1678,7 +1679,7 @@ function _jpPerLeftActive(k, d) {
   var cur = d.mode || 'minggu-ini';
   var pk = (cur === 'minggu') ? _jpPerPresetOf(d.dari, d.sampai) : '';
   if (k === 'hari')    return cur === 'hari';
-  if (k === 'minggu')  return _jpIsWeekMode(cur);
+  if (k === 'minggu')  return _jpIsWeekMode(cur) && cur !== 'minggu-ini';   // Minggu Ini punya item sendiri di daftar
   if (k === 'bulan')   return cur === 'bulan' || cur === 'bulan-ini' || (cur === 'minggu' && !!pk);
   if (k === 'tahun')   return cur === 'tahun' || cur === 'semua';
   if (k === 'rentang') return cur === 'minggu' && !pk;
@@ -1688,7 +1689,7 @@ function _jpPerLeftSum(k, d) {
   var cur = d.mode || 'minggu-ini';
   var pk = (cur === 'minggu') ? _jpPerPresetOf(d.dari, d.sampai) : '';
   if (k === 'hari')    return cur === 'hari' ? _jpPerSummary(d) : '';
-  if (k === 'minggu')  return cur === 'minggu-ini' ? 'Minggu Ini' : (cur === 'minggu-lalu' ? 'Minggu Lalu' : (_jpIsWeekMode(cur) ? _jpPerSummary(d) : ''));
+  if (k === 'minggu')  return cur === 'minggu-lalu' ? 'Minggu Lalu' : ((_jpIsWeekMode(cur) && cur !== 'minggu-ini') ? _jpPerSummary(d) : '');
   if (k === 'bulan')   return cur === 'bulan' ? _jpPerSummary(d) : (cur === 'bulan-ini' ? 'Bulan Ini' : (pk ? _jpPerPresetLabel(pk) : ''));
   if (k === 'tahun')   return cur === 'tahun' ? _jpPerSummary(d) : (cur === 'semua' ? 'Semua' : '');
   if (k === 'rentang') return (cur === 'minggu' && !pk) ? _jpPerSummary(d) : '';
@@ -1723,6 +1724,10 @@ function _jpPerRightHtml(k) {
   var D = function(n) { return new Date(now.getFullYear(), now.getMonth(), now.getDate() - n); };
   if (k === 'hari-ini') return _jpPerInfoRow(k, _jpPerNumDate(now));
   if (k === 'kemarin')  return _jpPerInfoRow(k, _jpPerNumDate(D(1)));
+  if (k === 'minggu-ini') {   // rentang Minggu–Sabtu dari definisi minggu yang sama dgn query (ikut cutoff Sabtu 19.30)
+    var wr = _jpMingguRange(now, 0);
+    return _jpPerInfoRow(k, _jpPerNumDate(wr.start) + ' – ' + _jpPerNumDate(new Date(wr.start.getFullYear(), wr.start.getMonth(), wr.start.getDate() + 6)));
+  }
   if (k === '7hari')    return _jpPerInfoRow(k, _jpPerNumDate(D(7)) + ' – ' + _jpPerNumDate(now));    // sama persis dgn rentang query 7 Hari
   if (k === '30hari')   return _jpPerInfoRow(k, _jpPerNumDate(D(30)) + ' – ' + _jpPerNumDate(now));   // sama persis dgn rentang query 30 Hari
   if (k === 'hari')     return _jpPerCalHtml('hari');
