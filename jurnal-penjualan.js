@@ -58,8 +58,10 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <!-- MINI CARDS -->
     <div class="metrics" style="flex-shrink:0">
       <div class="metric" id="jp-avg-card2">
-        <div class="m-label">Average</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-avg-penjualan2">—</div><span id="jp-avg-qty2" style="font-size:12px;font-weight:700;color:var(--ink3);white-space:nowrap">—</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan2">—</div><div id="jp-avg-trend2" style="margin-top:4px"></div></div>
+          <div style="text-align:right;min-width:0"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty2">—</div><div id="jp-avg-trend-q2" style="margin-top:4px"></div></div>
+        </div>
         <div class="m-delta" id="jp-avg-delta2">pilih rentang minimal 2 hari</div>
       </div>
       <div class="metric">
@@ -634,8 +636,10 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <!-- MINI METRICS TAB 1 -->
   <div class="metrics" style="margin:10px 0 8px">
     <div class="metric" id="jp-avg-card">
-      <div class="m-label">Average</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-avg-penjualan">—</div><span id="jp-avg-qty" style="font-size:12px;font-weight:700;color:var(--ink3);white-space:nowrap">—</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div style="min-width:0"><div class="m-label">Omset Avg</div><div class="m-value" id="jp-avg-penjualan">—</div><div id="jp-avg-trend" style="margin-top:4px"></div></div>
+        <div style="text-align:right;min-width:0"><div class="m-label">Qty Avg</div><div class="m-value" id="jp-avg-qty">—</div><div id="jp-avg-trend-q" style="margin-top:4px"></div></div>
+      </div>
       <div class="m-delta" id="jp-avg-delta">pilih rentang minimal 2 hari</div>
     </div>
     <div class="metric">
@@ -2555,17 +2559,21 @@ function updateMetricsJP(data) {
     hariA = Math.max(1, Math.ceil(hariA));
   }
   var okAvg = !!pbA && hariA >= 2 && _jpWaktuMode !== 'hari-ini' && _jpWaktuMode !== 'kemarin';
-  var avgRp  = okAvg ? 'Rp' + Math.round(tot / hariA).toLocaleString('id-ID') : '—';
-  var avgQty = okAvg ? (item / hariA).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' pcs/hari' : '—';
+  var avgOmset = okAvg ? tot / hariA : 0;
+  var avgQty   = okAvg ? item / hariA : 0;
+  _jpAvgCur = { ok: okAvg, hari: hariA, omset: avgOmset, qty: avgQty };
+  var avgRp  = okAvg ? Math.round(avgOmset).toLocaleString('id-ID') : '—';
+  var avgQtyTxt = okAvg ? avgQty.toLocaleString('id-ID', { maximumFractionDigits: 1 }) : '—';
   var avgDl  = okAvg ? 'per hari · ' + hariA + ' hari' : 'pilih rentang minimal 2 hari';
   ['', '2'].forEach(function(suf) {
     var v = document.getElementById('jp-avg-penjualan' + suf);
     var q = document.getElementById('jp-avg-qty' + suf);
     var d = document.getElementById('jp-avg-delta' + suf);
     if (v) v.textContent = avgRp;
-    if (q) q.textContent = avgQty;
+    if (q) q.textContent = avgQtyTxt;
     if (d) d.textContent = avgDl;
   });
+  _jpRenderAvgTrend();
 }
 
 // ─── PERBANDINGAN △/▽ vs PERIODE SEBELUMNYA (8 Okt 2026) ─────
@@ -2579,6 +2587,7 @@ function updateMetricsJP(data) {
 var _jpPrevRows = null;   // baris mentah periode pembanding (null = belum/tidak ada)
 var _jpPrevInfo = null;   // { label, lo, hi, week }
 var _jpCurBounds = null; // { cs, ce } awal/akhir periode aktif (diisi _jpPrevPeriod) — dipakai kartu Average
+var _jpAvgCur = null;   // { ok, hari, omset, qty } rata-rata per hari periode aktif (diisi updateMetricsJP)
 var _jpPrevTok  = 0;      // penanda permintaan terakhir (abaikan balasan lama kalau periode keburu diganti)
 function _jpKeyDT(d) { return _jpLocalDate(d) + 'T' + _jpJamStr(d); }
 function _jpPrevPeriod(mode, now) {
@@ -2660,6 +2669,42 @@ function _jpDeltaHtml(cur, prev, info, fmtPrev) {
   return '<span title="' + tip + '" style="' + base + bg + 'color:' + col + '">' + txt + '</span>'
     + '<span title="' + tip + '" style="display:block;text-align:right;font-family:var(--f);font-size:10px;font-weight:400;color:var(--ink3);margin-top:1px">vs ' + label + ' · ' + fmtPrev(prev) + '</span>';
 }
+// Indikator tren rata-rata: ▲ naik (hijau) · ▼ turun (merah) · ▬ stabil (abu, selisih < 2%).
+function _jpTrendHtml(pct) {
+  var stabil = Math.abs(pct) < 2;
+  var col   = stabil ? 'var(--ink3)' : (pct > 0 ? 'var(--ok)' : 'var(--danger)');
+  var glyph = stabil ? '▬' : (pct > 0 ? '▲' : '▼');
+  var shown = Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
+  return '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;white-space:nowrap;background:color-mix(in srgb, ' + col + ' 13%, transparent);color:' + col + '">' + glyph + ' ' + shown + '</span>';
+}
+// Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
+function _jpRenderAvgTrend() {
+  var pairs = [['jp-avg-trend', 'jp-avg-trend-q'], ['jp-avg-trend2', 'jp-avg-trend-q2']];
+  var clear = function() { pairs.forEach(function(p) { p.forEach(function(id) { var e = document.getElementById(id); if (e) e.innerHTML = ''; }); }); };
+  var info = _jpPrevInfo, cur = _jpAvgCur;
+  if (!cur || !cur.ok || !cur.hari || !info || !_jpPrevRows) { clear(); return; }
+  var fc  = document.getElementById('jp-filter-channel');
+  var kat = fc ? fc.value : '';
+  var lo = _jpKeyDT(info.lo), hi = _jpKeyDT(info.hi);
+  var prev = _jpPrevRows.filter(function(r) {
+    if (r.no_order) return false;
+    if (kat && String(r.channel_id) !== String(kat)) return false;
+    var tgl = String(r.tanggal || '').slice(0, 10);
+    if (!tgl) return false;
+    var key = tgl + 'T' + String(r.waktu || '00:00').slice(0, 5);
+    return info.week ? (key > lo && key <= hi) : (key >= lo && key < hi);
+  });
+  var pT = prev.reduce(function(a, r) { return a + (r.total || 0); }, 0);
+  var pQ = prev.reduce(function(a, r) { return a + (r.qty || 0); }, 0);
+  var pO = pT / cur.hari, pQa = pQ / cur.hari;
+  var pctO = pO > 0 ? (cur.omset - pO) / pO * 100 : null;
+  var pctQ = pQa > 0 ? (cur.qty - pQa) / pQa * 100 : null;
+  pairs.forEach(function(p) {
+    var eo = document.getElementById(p[0]), eq = document.getElementById(p[1]);
+    if (eo) eo.innerHTML = pctO === null ? '' : _jpTrendHtml(pctO);
+    if (eq) eq.innerHTML = pctQ === null ? '' : _jpTrendHtml(pctQ);
+  });
+}
 function _jpRenderDelta(curRows) {
   var ids = ['jp-delta-penjualan', 'jp-delta-penjualan2', 'jp-delta-item', 'jp-delta-item2'];
   var hide = function() { ids.forEach(function(id) { var e = document.getElementById(id); if (e) { e.style.display = 'none'; e.innerHTML = ''; } }); };
@@ -2682,6 +2727,7 @@ function _jpRenderDelta(curRows) {
   var put = function(idList, html) { idList.forEach(function(id) { var e = document.getElementById(id); if (!e) return; e.innerHTML = html; e.style.display = html ? 'block' : 'none'; }); };
   put(['jp-delta-penjualan', 'jp-delta-penjualan2'], _jpDeltaHtml(cT, pT, info, function(v) { return 'Rp' + v.toLocaleString('id-ID'); }));
   put(['jp-delta-item', 'jp-delta-item2'],           _jpDeltaHtml(cQ, pQ, info, function(v) { return v.toLocaleString('id-ID') + ' item'; }));
+  _jpRenderAvgTrend();
 }
 
 // ─── LAST CHANNEL MEMORY — reset jam 00.00 ───────────────────
