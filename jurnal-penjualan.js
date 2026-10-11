@@ -56,12 +56,17 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div id="jp-tren-sticky">
 
     <!-- MINI CARDS -->
-    <div class="metrics" style="flex-shrink:0">
-      <div class="metric" id="jp-avg-card2">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div style="min-width:0"><div class="m-label">Omset Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div><span id="jp-avg-trend2"></span></div></div>
-          <div style="min-width:0;padding-left:24px"><div class="m-label">Qty Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div><span id="jp-avg-trend-q2"></span></div></div>
-        </div>
+    <div class="jp-mswipe metrics" style="flex-shrink:0">
+      <div class="jp-mtrack">
+      <div class="metric" id="jp-avg-omset-card2">
+        <div class="m-label">Omset Avg</div>
+        <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div><span id="jp-avg-trend2"></span></div>
+        <div class="m-delta" id="jp-avg-sub-o2">rata-rata per hari</div>
+      </div>
+      <div class="metric" id="jp-avg-qty-card2">
+        <div class="m-label">Qty Avg</div>
+        <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div><span id="jp-avg-trend-q2"></span></div>
+        <div class="m-delta" id="jp-avg-sub-q2">rata-rata per hari</div>
       </div>
       <div class="metric">
         <div class="m-label">Total Penjualan</div>
@@ -73,6 +78,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item2">—</div><span class="jp-delta" id="jp-delta-item2" style="display:none"></span></div>
         <div class="m-delta">qty keseluruhan</div>
       </div>
+      </div>
+      <div class="jp-mdots"></div>
     </div>
 
     <!-- TREN PENJUALAN CHART -->
@@ -633,12 +640,17 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
   <div id="jp-pane-jurnal" style="display:flex;flex-direction:column;flex:1;min-height:0">
 
   <!-- MINI METRICS TAB 1 -->
-  <div class="metrics" style="margin:10px 0 8px">
-    <div class="metric" id="jp-avg-card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="min-width:0"><div class="m-label">Omset Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div><span id="jp-avg-trend"></span></div></div>
-        <div style="min-width:0;padding-left:24px"><div class="m-label">Qty Avg</div><div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div><span id="jp-avg-trend-q"></span></div></div>
-      </div>
+  <div class="jp-mswipe metrics" style="margin:10px 0 8px">
+    <div class="jp-mtrack">
+    <div class="metric" id="jp-avg-omset-card">
+      <div class="m-label">Omset Avg</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div><span id="jp-avg-trend"></span></div>
+      <div class="m-delta" id="jp-avg-sub-o">rata-rata per hari</div>
+    </div>
+    <div class="metric" id="jp-avg-qty-card">
+      <div class="m-label">Qty Avg</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div><span id="jp-avg-trend-q"></span></div>
+      <div class="m-delta" id="jp-avg-sub-q">rata-rata per hari</div>
     </div>
     <div class="metric">
       <div class="m-label">Total Penjualan</div>
@@ -650,6 +662,8 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><div class="m-value" id="jp-total-item">—</div><span class="jp-delta" id="jp-delta-item" style="display:none"></span></div>
       <div class="m-delta">qty keseluruhan</div>
     </div>
+    </div>
+    <div class="jp-mdots"></div>
   </div>
 
   <!-- TABEL -->
@@ -2566,12 +2580,11 @@ function updateMetricsJP(data) {
   ['', '2'].forEach(function(suf) {
     var v = document.getElementById('jp-avg-penjualan' + suf);
     var q = document.getElementById('jp-avg-qty' + suf);
-    var d = document.getElementById('jp-avg-delta' + suf);
     if (v) v.textContent = avgRp;
     if (q) q.textContent = avgQtyTxt;
-    if (d) d.textContent = avgDl;
   });
   _jpRenderAvgTrend();
+  _jpInitMSwipe();
 }
 
 // ─── PERBANDINGAN △/▽ vs PERIODE SEBELUMNYA (8 Okt 2026) ─────
@@ -2682,7 +2695,10 @@ function _jpTrendHtml(pct) {
 // Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
 function _jpRenderAvgTrend() {
   var pairs = [['jp-avg-trend', 'jp-avg-trend-q'], ['jp-avg-trend2', 'jp-avg-trend-q2']];
-  var clear = function() { pairs.forEach(function(p) { p.forEach(function(id) { var e = document.getElementById(id); if (e) e.innerHTML = ''; }); }); };
+  var clear = function() {
+    pairs.forEach(function(p) { p.forEach(function(id) { var e = document.getElementById(id); if (e) e.innerHTML = ''; }); });
+    ['jp-avg-sub-o', 'jp-avg-sub-o2', 'jp-avg-sub-q', 'jp-avg-sub-q2'].forEach(function(id) { var e = document.getElementById(id); if (e) e.textContent = 'rata-rata per hari'; });
+  };
   var info = _jpPrevInfo, cur = _jpAvgCur;
   if (!cur || !cur.ok || !cur.hari || !info || !_jpPrevRows) { clear(); return; }
   var fc  = document.getElementById('jp-filter-channel');
@@ -2706,7 +2722,49 @@ function _jpRenderAvgTrend() {
     if (eo) eo.innerHTML = pctO === null ? '' : _jpTrendHtml(pctO);
     if (eq) eq.innerHTML = pctQ === null ? '' : _jpTrendHtml(pctQ);
   });
+  var subO = 'vs ' + info.label + ' · Rp' + Math.round(pO).toLocaleString('id-ID');
+  var subQ = 'vs ' + info.label + ' · ' + pQa.toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' pcs/hari';
+  [['jp-avg-sub-o', subO], ['jp-avg-sub-o2', subO], ['jp-avg-sub-q', subQ], ['jp-avg-sub-q2', subQ]].forEach(function(p) {
+    var e = document.getElementById(p[0]); if (e) e.textContent = p[1];
+  });
 }
+// Minicard Jurnal: HP = satu baris swipe (2 kartu terlihat, indikator di kanan atas di luar kartu).
+// Laptop = 4 kartu sejajar (CSS). Pane yang tersembunyi dilewati; dipanggil ulang tiap data berubah & saat resize.
+function _jpInitMSwipe() {
+  document.querySelectorAll('.jp-mswipe').forEach(function(box) {
+    var track = box.querySelector('.jp-mtrack');
+    var dots  = box.querySelector('.jp-mdots');
+    if (!track || !box.clientWidth) return;
+    if (window.innerWidth >= 768) { track.style.transform = ''; box._msIdx = 0; if (dots) dots.innerHTML = ''; return; }
+    var step = track.children[0].offsetWidth + 12;
+    var vis  = Math.max(1, Math.round(box.clientWidth / step));
+    var maxIdx = Math.max(0, track.children.length - vis);
+    var idx = Math.min(box._msIdx || 0, maxIdx);
+    box._msIdx = idx;
+    track.style.transform = 'translateX(' + (-idx * step) + 'px)';
+    if (dots) {
+      var h = '';
+      for (var i = 0; i <= maxIdx; i++) h += '<i' + (i === idx ? ' class="on"' : '') + '></i>';
+      dots.innerHTML = h;
+    }
+    if (box._msBound) return;
+    box._msBound = true;
+    var sx = 0, sy = 0, down = false;
+    box.addEventListener('touchstart', function(e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; down = true; }, { passive: true });
+    box.addEventListener('touchend', function(e) {
+      if (!down) return; down = false;
+      var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+      var tr = box.querySelector('.jp-mtrack');
+      var st = tr.children[0].offsetWidth + 12;
+      var mx = Math.max(0, tr.children.length - Math.max(1, Math.round(box.clientWidth / st)));
+      var cur = box._msIdx || 0;
+      box._msIdx = dx < 0 ? Math.min(cur + 1, mx) : Math.max(cur - 1, 0);
+      _jpInitMSwipe();
+    }, { passive: true });
+  });
+}
+if (!window._jpMSwipeRz) { window._jpMSwipeRz = 1; window.addEventListener('resize', function() { _jpInitMSwipe(); }); }
 function _jpRenderDelta(curRows) {
   var ids = ['jp-delta-penjualan', 'jp-delta-penjualan2', 'jp-delta-item', 'jp-delta-item2'];
   var hide = function() { ids.forEach(function(id) { var e = document.getElementById(id); if (e) { e.style.display = 'none'; e.innerHTML = ''; } }); };
