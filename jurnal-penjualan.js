@@ -60,12 +60,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <div class="jp-mtrack">
       <div class="metric" id="jp-avg-omset-card2">
         <div class="m-label">Omset Avg</div>
-        <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div><span id="jp-avg-trend2"></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><div class="m-value" id="jp-avg-penjualan2" style="font-size:26px">—</div><span id="jp-avg-trend2"></span></div>
         <div class="m-delta" id="jp-avg-sub-o2">rata-rata per hari</div>
       </div>
       <div class="metric" id="jp-avg-qty-card2">
         <div class="m-label">Qty Avg</div>
-        <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div><span id="jp-avg-trend-q2"></span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><div class="m-value" id="jp-avg-qty2" style="font-size:26px">—</div><span id="jp-avg-trend-q2"></span></div>
         <div class="m-delta" id="jp-avg-sub-q2">rata-rata per hari</div>
       </div>
       <div class="metric">
@@ -644,12 +644,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     <div class="jp-mtrack">
     <div class="metric" id="jp-avg-omset-card">
       <div class="m-label">Omset Avg</div>
-      <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div><span id="jp-avg-trend"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><div class="m-value" id="jp-avg-penjualan" style="font-size:26px">—</div><span id="jp-avg-trend"></span></div>
       <div class="m-delta" id="jp-avg-sub-o">rata-rata per hari</div>
     </div>
     <div class="metric" id="jp-avg-qty-card">
       <div class="m-label">Qty Avg</div>
-      <div style="display:flex;align-items:center;gap:6px"><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div><span id="jp-avg-trend-q"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><div class="m-value" id="jp-avg-qty" style="font-size:26px">—</div><span id="jp-avg-trend-q"></span></div>
       <div class="m-delta" id="jp-avg-sub-q">rata-rata per hari</div>
     </div>
     <div class="metric">
@@ -2689,8 +2689,8 @@ function _jpTrendHtml(pct) {
   var glyph = stabil ? '▬' : (pct > 0 ? '▲' : '▼');
   var shown = Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
   return '<span style="display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;color:' + col + '">'
-    + '<span style="font-size:13px;font-weight:700">' + glyph + '</span>'
-    + '<span style="font-family:var(--mono);font-size:11px;font-weight:700">' + shown + '</span></span>';
+    + '<span style="font-size:16px;font-weight:700">' + glyph + '</span>'
+    + '<span style="font-family:var(--mono);font-size:13px;font-weight:700">' + shown + '</span></span>';
 }
 // Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
 function _jpRenderAvgTrend() {
@@ -2722,8 +2722,8 @@ function _jpRenderAvgTrend() {
     if (eo) eo.innerHTML = pctO === null ? '' : _jpTrendHtml(pctO);
     if (eq) eq.innerHTML = pctQ === null ? '' : _jpTrendHtml(pctQ);
   });
-  var subO = 'vs ' + info.label + ' · Rp' + Math.round(pO).toLocaleString('id-ID');
-  var subQ = 'vs ' + info.label + ' · ' + pQa.toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' pcs/hari';
+  var subO = 'vs ' + info.label.replace(' sebelumnya', ' lalu') + ' · Rp' + Math.round(pO).toLocaleString('id-ID');
+  var subQ = 'vs ' + info.label.replace(' sebelumnya', ' lalu') + ' · ' + pQa.toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' pcs/hari';
   [['jp-avg-sub-o', subO], ['jp-avg-sub-o2', subO], ['jp-avg-sub-q', subQ], ['jp-avg-sub-q2', subQ]].forEach(function(p) {
     var e = document.getElementById(p[0]); if (e) e.textContent = p[1];
   });
