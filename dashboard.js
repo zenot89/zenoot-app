@@ -2086,8 +2086,10 @@ function _renderBeban(bebanData, omsetBln) {
   const rows = bebanData.map(r => {
     const nominal = Number(r.nominal || r.jumlah || 0);
     totalNominal += nominal;
-    return { nama: r.nama_beban || r.nama || '—', nominal };
+    return { nama: r.nama_beban || r.nama || '—', nominal, anggaran: Number(r.anggaran || 0), kode: String(r.kode || '') };
   });
+  // urut: realisasi terbesar dulu, lalu anggaran terbesar, lalu kode akun
+  rows.sort((a, b) => (b.nominal - a.nominal) || (b.anggaran - a.anggaran) || a.kode.localeCompare(b.kode));
 
   const pctDariOmset = omsetBln>0 ? (totalNominal/omsetBln*100).toFixed(1) : null;
 
@@ -2108,10 +2110,11 @@ function _renderBeban(bebanData, omsetBln) {
   el.innerHTML = rows.map(r => {
     const pctBeban = totalNominal>0 ? (r.nominal/totalNominal*100) : 0;
     return '<div class="beban-row">' +
-      '<span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
+      '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
+        (r.anggaran > 0 ? '<small style="font-size:11px;font-weight:600;color:var(--ink3)">anggaran ' + _fmtRp(r.anggaran) + '</small>' : '') + '</div>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
         '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pctBeban.toFixed(1) + '%</span>' +
-        '<span style="font-size:13px;font-weight:700;color:var(--danger);font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
+        '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -2687,7 +2690,15 @@ async function loadDashboard() {
       _renderBoss(_jpForRender, _stokForBoss);
       _renderChannel(_jpForRender);           // BARU
       _renderKatalog(_jpForRender, _dashStokData); // BARU
-      _renderBeban(Object.entries(bebanDetailMap).map(([nama,nominal])=>({nama_beban:nama,nominal})), omsetBln);
+      // 12 Okt 2026: kartu Beban Operasional menampilkan SEMUA akun beban operasional (Kontrakan, WiFi, Listrik & Air, dst) walau belum
+      // ada transaksi bulan ini (Rp0) — supaya kelihatan mana yang belum dibayar. Aturan akun sama dgn realisasi di atas
+      // (bukan HPP/Beban Produksi/Biaya Sehari-hari). Anggaran bulan ini (kalau ada) tampil kecil di bawah nama akun.
+      const _anggPerAkun = {};
+      (anggaranBulanIni || []).forEach(a => { _anggPerAkun[a.akun_id] = (_anggPerAkun[a.akun_id] || 0) + Number(a.nominal || 0); });
+      const _bebanRows = Object.entries(kasAkunMap || {})
+        .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
+        .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
+      _renderBeban(_bebanRows, omsetBln);
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, biayaHarianNominal); // BARU v5
       _renderDonutBeban(bebanDetailMap);                                    // BARU v5
