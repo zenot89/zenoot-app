@@ -320,6 +320,21 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- PANEL: KELOLA AKUN -->
 <div id="kas-panel-akun" class="kas-panel">
+  <style>
+    /* 12 Okt 2026: HP — kolom Sub Kelompok dipindah ke bawah nama akun, kolom dipadatkan: Kode | Nama | Kelompok | Aksi muat 1 layar */
+    .akun-sub-m { display: none; }
+    @media (max-width: 700px) {
+      #kas-panel-akun .kas-akun-tbl th:nth-child(4),
+      #kas-panel-akun .kas-akun-tbl td:nth-child(4) { display: none; }
+      #kas-panel-akun .kas-akun-tbl th,
+      #kas-panel-akun .kas-akun-tbl td { padding-left: 6px; padding-right: 6px; }
+      #kas-panel-akun .kas-akun-tbl th { font-size: 11px; letter-spacing: .04em; }
+      #kas-panel-akun .kas-akun-tbl td:nth-child(2) { white-space: normal; min-width: 96px; }
+      #kas-panel-akun .kas-akun-tbl td:last-child { white-space: nowrap; }
+      #kas-panel-akun .kas-akun-tbl td:last-child .btn { padding: 6px 8px; margin-right: 2px !important; }
+      .akun-sub-m { display: block; font-size: 11px; color: var(--ink3); margin-top: 2px; }
+    }
+  </style>
   <div style="margin-bottom:10px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);font-size:13px;color:var(--ink2);line-height:1.7">
     <b>Chart of Accounts</b> — daftar akun keuangan bisnis kamu.<br>
     Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban) — tambah akun baru di dalam kelompok yang sesuai.
@@ -953,12 +968,18 @@ function kasGotoTab(tab) {
   if (tab === 'cashflow') kasRenderCashflowTab();
 }
 
+// 12 Okt 2026: DULU tinggi = window.innerHeight − tinggi top-bar − tinggi tab bar, dihitung SEKALI saat ganti tab. Dua cacat:
+//  (1) tidak menghitung header halaman ("Kas & Jurnal") di atas panel → panel kelebihan tinggi, baris paling bawah terpotong di bawah layar (laptop);
+//  (2) top-bar bisa collapse/expand (swipe di HP) tapi tinggi tidak dihitung ulang → panel tetap kecil, sisa layar kosong di bawah kartu (HP).
+// Sekarang: tinggi = tinggi viewport − posisi atas panel yang SEBENARNYA (pola sama dgn _kasSetCardHeight di tab Jurnal),
+// dihitung ulang tiap top-bar selesai collapse/expand, resize, ganti orientasi, dan setelah daftar akun dimuat.
 function _kasLockPanelHeight(panel) {
-  var topBar = document.getElementById('kas-top-bar');
-  var tabsEl = document.querySelector('#page-kas > .kas-tabs');
-  var topH   = topBar ? topBar.getBoundingClientRect().height : 0;
-  var tabH   = tabsEl ? tabsEl.getBoundingClientRect().height : 0;
-  var avail  = window.innerHeight - topH - tabH;
+  if (!panel) return;
+  panel.style.height    = '';       // reset dulu supaya posisi atas terukur apa adanya
+  panel.style.maxHeight = '';
+  var top  = panel.getBoundingClientRect().top;
+  var winH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  var avail = Math.floor(winH - top);
   if (avail > 100) {
     panel.style.height    = avail + 'px';
     panel.style.maxHeight = avail + 'px';
@@ -966,6 +987,10 @@ function _kasLockPanelHeight(panel) {
     panel.style.minHeight = '0';
     panel.style.overflowY = 'auto';
   }
+}
+function _kasRelockAkun() {
+  var p = document.getElementById('kas-panel-akun');
+  if (p && p.classList.contains('active')) requestAnimationFrame(function() { _kasLockPanelHeight(p); });
 }
 
 // ─── LOAD AKUN ───────────────────────────────────────────────
@@ -976,6 +1001,7 @@ async function kasLoadAkun() {
     (data || []).forEach(a => { _kasAkunMap[a.id] = a; });
     kasRenderAkunTabel(data || []);
     kasPopulateAkunDropdown(data || []);
+    _kasRelockAkun();
   } catch(e) {
     document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
@@ -994,7 +1020,7 @@ function kasRenderAkunTabel(data) {
     const safeNama = (a.nama||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return `<tr>
       <td style="font-weight:700;font-family:monospace">${a.kode||'—'}</td>
-      <td>${a.nama||'—'}</td>
+      <td>${a.nama||'—'}${a.sub_kelompok ? `<div class="akun-sub-m">${a.sub_kelompok}</div>` : ''}</td>
       <td><span class="akun-badge akun-${a.kelompok}">${kasKelompokLabel(a.kelompok)}</span></td>
       <td style="color:var(--ink3);font-size:12px">${a.sub_kelompok||'—'}</td>
       <td>
@@ -3623,6 +3649,7 @@ function _kasSetCardHeight() {
     if (e.propertyName === 'max-height') {
       // Tunggu satu frame lagi agar DOM settle
       setTimeout(_kasSetCardHeight, 16);
+      setTimeout(_kasRelockAkun, 16);      // 12 Okt 2026: tab Kelola Akun ikut dihitung ulang
     }
   });
 })();
@@ -3635,6 +3662,7 @@ window.addEventListener('orientationchange', function() {
   var pg = document.getElementById('page-kas');
   if (!pg || !pg.classList.contains('active')) return;
   setTimeout(_kasEnsureFlexLayout, 300);
+  setTimeout(_kasRelockAkun, 320);
 });
 
 // ─── HOOK zenot:page ─────────────────────────────────────────
