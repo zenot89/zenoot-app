@@ -2070,7 +2070,7 @@ function _turnoverLabel(masuk, keluar) {
 }
 
 // ─── RINGKASAN BEBAN OPERASIONAL — BARU ──────────────────────
-function _renderBeban(bebanData, omsetBln) {
+function _renderBeban(bebanData, omsetBln, hutangRows) {
   const el    = document.getElementById('dash-beban-wrap');
   const elTot = document.getElementById('dash-beban-total');
   const elPct = document.getElementById('dash-beban-pct');
@@ -2117,7 +2117,32 @@ function _renderBeban(bebanData, omsetBln) {
         '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
       '</div>' +
     '</div>';
+  }).join('') + _bebanHutangHtml(hutangRows);
+}
+
+// Grup KEWAJIBAN · CICILAN HUTANG di bawah daftar akun beban (tidak ikut total Beban Operasional).
+// Pakai <small> (bukan <span>) utk teks kecil: CSS HP memaksa semua span di .beban-row jadi 17px.
+function _bebanHutangHtml(hutangRows) {
+  if (!hutangRows || !hutangRows.length) return '';
+  const totC = hutangRows.reduce((s, h) => s + h.cicilan, 0);
+  const totP = hutangRows.reduce((s, h) => s + h.paid, 0);
+  let html = '<div class="beban-row" style="border-top:2px solid var(--ink);margin-top:4px;padding-top:6px">' +
+    '<small style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink3)">KEWAJIBAN · CICILAN HUTANG</small>' +
+    '<small style="font-size:11px;font-weight:700;color:var(--ink3)">' + _fmtRp(totP) + ' / ' + _fmtRp(totC) + '</small></div>';
+  html += hutangRows.map(h => {
+    const lunas = h.paid >= h.cicilan, sebagian = h.paid > 0 && !lunas;
+    const stTxt = lunas ? 'lunas' : (sebagian ? 'sebagian' : 'belum');
+    const stCol = lunas ? 'var(--ok)' : (sebagian ? 'var(--warn)' : 'var(--ink3)');
+    const sub = 'cicilan ' + _fmtRp(h.cicilan) + (h.tgl ? ' · tgl ' + h.tgl : '') + (h.tahunan ? ' · tahunan' : '') + (h.taut ? '' : ' · akun belum ditautkan');
+    return '<div class="beban-row">' +
+      '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + h.nama + '</span>' +
+        '<small style="font-size:11px;font-weight:600;color:var(--ink3)">' + sub + '</small></div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;font-weight:700;color:' + stCol + ';text-align:right;min-width:52px">' + stTxt + '</span>' +
+        '<span style="font-size:13px;font-weight:700;color:' + (h.paid > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(h.paid) + '</span>' +
+      '</div></div>';
   }).join('');
+  return html;
 }
 
 // ─── AKTIVITAS FEED ───────────────────────────────────────────
@@ -2680,6 +2705,38 @@ async function loadDashboard() {
       '</tr>';
     }).join('');
 
+    // 12 Okt 2026: rincian kartu juga memuat KEWAJIBAN · CICILAN HUTANG (tabel `hutang`) sebagai grup terpisah di bawah akun beban.
+    // BUKAN bagian total Beban Operasional (pokok cicilan bukan beban usaha); dibayar bulan ini = debit ke akun kewajiban hutang itu
+    // di jurnal bulan ini (aturan sama dgn Kecepatan Kas, hutang_bayar tidak dipakai). Hutang lunas tanpa pembayaran bulan ini disembunyikan.
+    const _hutangRows = [];
+    try {
+      const hutangRaw = await dbGet('hutang', '').catch(() => []);
+      const saldoAkun = {}, paidAkun = {};
+      (jurnalAllData || []).forEach(j => {
+        const aD = kasAkunMap[j.akun_debit_id], aK = kasAkunMap[j.akun_kredit_id];
+        if (aD && aD.kelompok === 'kewajiban') {
+          const nd = Number(j.nominal || j.debit || 0);
+          saldoAkun[aD.id] = (saldoAkun[aD.id] || 0) - nd;
+          if ((j.tanggal || '').slice(0, 7) === bulanIniStr) paidAkun[aD.id] = (paidAkun[aD.id] || 0) + nd;
+        }
+        if (aK && aK.kelompok === 'kewajiban') saldoAkun[aK.id] = (saldoAkun[aK.id] || 0) + Number(j.nominal || j.kredit || 0);
+      });
+      const curM = parseInt(bulanIniStr.slice(5, 7), 10);
+      const pool = Object.assign({}, paidAkun);   // bagi pembayaran per akun kalau 1 akun dipakai >1 hutang
+      (hutangRaw || []).slice().sort((a, b) => (parseInt(a.tgl_cicilan, 10) || 99) - (parseInt(b.tgl_cicilan, 10) || 99)).forEach(h => {
+        const tahunan = h.frekuensi === 'tahunan';
+        const nominal = tahunan ? (Number(h.cicilan_nominal) || 0) : (Number(h.cicilan_per_bulan) || 0);
+        if (!(nominal > 0)) return;
+        const akun = (h.akun_kwj_id != null && kasAkunMap[h.akun_kwj_id]) ? kasAkunMap[h.akun_kwj_id] : null;
+        const avail = akun ? (pool[akun.id] || 0) : 0;
+        const paid = Math.min(nominal, avail);
+        if (akun) pool[akun.id] = avail - paid;
+        if (akun && (saldoAkun[akun.id] || 0) <= 0 && paid <= 0) return;                    // sudah lunas
+        if (tahunan && parseInt(h.bln_cicilan, 10) !== curM && paid <= 0) return;           // tahunan: hanya di bulan jatuh tempo
+        _hutangRows.push({ nama: h.kreditur || 'Hutang', cicilan: nominal, paid, tgl: parseInt(h.tgl_cicilan, 10) || 0, tahunan, taut: !!akun });
+      });
+    } catch (e) { console.warn('[dashboard] rincian hutang:', e); }
+
     // ─ Render semua chart & widget
     const _jpForRender = jpBulan.length>0 ? jpBulan : _dashJPData;
     const _stokForBoss = _dashStokData;
@@ -2698,7 +2755,7 @@ async function loadDashboard() {
       const _bebanRows = Object.entries(kasAkunMap || {})
         .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
         .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
-      _renderBeban(_bebanRows, omsetBln);
+      _renderBeban(_bebanRows, omsetBln, _hutangRows);
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, biayaHarianNominal); // BARU v5
       _renderDonutBeban(bebanDetailMap);                                    // BARU v5
