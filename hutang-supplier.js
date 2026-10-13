@@ -547,7 +547,6 @@ document.getElementById('page-hutang-supplier').innerHTML = `
       <div id="hs-bon-kas-cards"></div>
       <div class="hs-toolbar" id="hs-bon-toolbar">
         <button class="btn btn-sm" onclick="hsOpenBayarUtang()"><i class="ti ti-cash"></i> Bayar Utang</button>
-        <button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:none" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>
         <button class="btn btn-sm btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
       </div>
       </div><!-- /hs-bon-topbar. Cek Sinkron Penjualan dihapus (10 Okt 2026): sinkron bon dropship sudah otomatis (_hsDsAfterLoad + hsDropshipSyncSoon) -->
@@ -1535,13 +1534,17 @@ function hsRenderSupplierCards() {
     /* baris 2 */
     /* position:relative WAJIB — dropdown (.hs-bon-switcher-dropdown) position:absolute, induknya dulu .hs-bon-switcher yang sekarang display:contents */
     '#hs-bon-topbar .hs-bon-switcher-sup{grid-area:sup;position:relative;justify-self:start;align-self:center;flex:none;width:auto;min-width:200px;max-width:240px;height:40px;box-sizing:border-box;padding:0 14px;font-size:13px;border-radius:10px}',
+    '#hs-bon-topbar .hs-bon-supgrp{grid-area:sup;justify-self:start;align-self:center;display:flex;align-items:center;gap:10px;min-width:0}',
+    '#hs-bon-topbar .hs-bon-supgrp .hs-btn-icon-only{flex:none;width:40px;height:40px;padding:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--cream2);border:1.5px solid var(--ink4);color:var(--ink);font-size:17px}',
+    '#hs-bon-topbar .hs-bon-supgrp .hs-btn-icon-only:active{background:var(--ink4)}',
     '#hs-bon-topbar #hs-bon-toolbar{grid-area:act;justify-self:end;align-self:center;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}',
     '#hs-bon-topbar #hs-bon-toolbar .btn-sm{height:40px;padding:0 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
     '#hs-bon-topbar #hs-bon-toolbar .hs-btn-icon-only{height:40px;width:40px;padding:0;border-radius:10px}',
     '@media (max-width:640px){',
     '  #hs-bon-topbar{grid-template-areas:"tot sel cash" "sup sup sup" "act act act"}',
     '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
-    '  #hs-bon-topbar .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:100%}',
+    '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%}',
+    '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:auto;flex:1}',
     '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
     '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:flex-end;width:100%}',
     '}'
@@ -1596,14 +1599,18 @@ function hsRenderBonSwitcher() {
   el.innerHTML =
     '<div class="hs-bon-switcher-total"><span class="hs-kc-t"><i class="ti ti-file-invoice"></i>Total Utang</span>' +
       '<span class="hs-kc-v">' + fmtRpFull(totalAktif) + '</span></div>' +
-    '<div class="hs-bon-switcher-sup" id="hs-bon-switcher-sup" onclick="hsToggleSupplierDropdown(event)">' +
-      '<span>' + _hsEsc(label) + '</span><i class="ti ti-chevron-down"></i>' +
-      '<div class="hs-bon-switcher-dropdown" id="hs-bon-switcher-dropdown">' +
-        '<button class="' + (_hsFilterSupplier===null?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(null);hsCloseSupplierDropdown()">Semua Supplier</button>' +
-        _hsSupplierList.map(function(s) {
-          return '<button class="' + (_hsFilterSupplier===s.id?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(' + s.id + ');hsCloseSupplierDropdown()">' + _hsEsc(s.nama) + '</button>';
-        }).join('') +
+    // 13 Okt 2026: tombol Export PDF dipindah ke SEBELAH KANAN dropdown supplier (dulu di toolbar kanan, di antara Bayar Utang & Tambah Bon).
+    '<div class="hs-bon-supgrp">' +
+      '<div class="hs-bon-switcher-sup" id="hs-bon-switcher-sup" onclick="hsToggleSupplierDropdown(event)">' +
+        '<span>' + _hsEsc(label) + '</span><i class="ti ti-chevron-down"></i>' +
+        '<div class="hs-bon-switcher-dropdown" id="hs-bon-switcher-dropdown">' +
+          '<button class="' + (_hsFilterSupplier===null?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(null);hsCloseSupplierDropdown()">Semua Supplier</button>' +
+          _hsSupplierList.map(function(s) {
+            return '<button class="' + (_hsFilterSupplier===s.id?'active':'') + '" onclick="event.stopPropagation();hsSelectSupplierFilter(' + s.id + ');hsCloseSupplierDropdown()">' + _hsEsc(s.nama) + '</button>';
+          }).join('') +
+        '</div>' +
       '</div>' +
+      '<button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:' + (sup ? '' : 'none') + '" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>' +
     '</div>';
 
   var exportBtn = document.getElementById('hs-bon-export-btn');
@@ -1774,7 +1781,9 @@ var HS_PDF_ABU_TUA = [92, 88, 82];
 
 async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   var sup = _hsSupplierList.find(function(s){ return s.id === supplierId; });
-  var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId; })
+  // 13 Okt 2026: PDF HANYA memuat bon yang TAMPIL di layar Jurnal Re-Stock (supplier terpilih & belum lunas) — filter sama persis dgn
+  // hsRenderBonList. Dulu semua bon supplier itu ikut (termasuk yang sudah lunas) sehingga tidak relevan dgn yang sedang dilihat.
+  var list = _hsBonList.filter(function(b){ return b.supplier_id === supplierId && b.status !== 'lunas'; })
     .slice().sort(function(a,b){ return new Date(a.tanggal) - new Date(b.tanggal); });
 
   // ── Ambil rincian barang (hutang_bon_item) tiap bon ──
@@ -1843,7 +1852,7 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     }
   });
   if (!body.length) {
-    body = [['\u2014', 'Belum ada bon.', '', '', '', '']];
+    body = [['\u2014', 'Tidak ada bon yang belum lunas.', '', '', '', '']];
     _bodyMeta.push('data');
   }
 
@@ -1872,7 +1881,7 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(130, 126, 120);
-  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon', textX, 51);
+  doc.text(hariExport + ', ' + tglExportStr + '  \u00b7  ' + list.length + ' bon belum lunas', textX, 51);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(17);
