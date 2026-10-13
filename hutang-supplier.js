@@ -1546,7 +1546,7 @@ function hsRenderSupplierCards() {
     '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%}',
     '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:auto;flex:1}',
     '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
-    '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:flex-end;width:100%}',
+    '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:space-between;width:100%}',   /* 13 Okt 2026: Bayar Utang rata kiri, Tambah Bon tetap di kanan */
     '}'
   ].join('\n');
   document.head.appendChild(st);
@@ -1817,7 +1817,7 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   // kolom kanan = TOTAL HUTANG BERJALAN (kumulatif, ditulis minus seperti di buku), kolom Harga = harga barang itu (qty × harga/pcs).
   var modeBuku = !!(sup && String(sup.nama || '').trim().toUpperCase() === 'RH');
   var running = 0;
-  var totalSemua = 0, rowNo = 1;
+  var totalSemua = 0, totalBayar = 0, totalSisa = 0, rowNo = 1;   // 13 Okt 2026: + dibayar & sisa (pakai _hsSisaBon, sama dgn kartu di layar)
   var body = [];
   // ── Tag setiap baris sebagai 'header_tgl' atau 'data' untuk willDrawCell ──
   // jsPDF autoTable tidak punya built-in "group header" row,
@@ -1826,11 +1826,14 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
 
   list.forEach(function(b) {
     totalSemua += b.total || 0;
+    var stBon = _hsSisaBon(b);
+    totalBayar += stBon.bayar; totalSisa += stBon.sisa;
 
     // ── Baris header tanggal per bon ──
     // Format: "Senin, 22 Agu 2026  ·  INV-0021" (no_nota opsional)
     var tglLabel = _fmtTglHeader(b.tanggal);
     if (b.no_nota) tglLabel += '  \u00b7  ' + b.no_nota;
+    if (stBon.bayar > 0) tglLabel += '  \u00b7  dibayar ' + fmtRpFull(stBon.bayar) + '  \u00b7  sisa ' + fmtRpFull(stBon.sisa);
     body.push([{ content: tglLabel, colSpan: 6,
       styles: { fontStyle: 'bold', fontSize: 10, textColor: [60, 56, 50] }
     }]);
@@ -1909,6 +1912,11 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
   var footRows = modeBuku
     ? [[ { content: 'TOTAL HUTANG', colSpan: 5, styles: { halign: 'right' } }, '-' + fmtRpFull(running) ]]
     : [[ { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } }, fmtRpFull(totalSemua) ]];
+  if (totalBayar > 0) {   // ada pembayaran → tampilkan juga yang sudah dibayar & SISA utang (angka yang sama dgn "Sisa" di layar)
+    // RH (format buku): hutang ditulis minus → pembayaran plus, sisa minus. Supplier lain: dibayar minus, sisa plus.
+    footRows.push([ { content: 'DIBAYAR', colSpan: 5, styles: { halign: 'right' } }, (modeBuku ? '+' : '-') + fmtRpFull(totalBayar) ]);
+    footRows.push([ { content: 'SISA UTANG', colSpan: 5, styles: { halign: 'right' } }, (modeBuku ? '-' : '') + fmtRpFull(totalSisa) ]);
+  }
   doc.autoTable({
     startY: 76,
     head: [modeBuku ? ['No', 'SKU', 'Varian', 'Qty', 'Harga', 'Total Hutang'] : ['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
