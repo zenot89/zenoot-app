@@ -2077,7 +2077,7 @@ function _turnoverLabel(masuk, keluar) {
   var st = document.createElement('style');
   st.id = 'dash-hp-box-fix';
   st.textContent = '@media (max-width: 767px) {' +
-    ' #nw-swipe-container .nw-swipe-slide .nw-slide-data { height: 200px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +
+    ' #nw-swipe-container .nw-swipe-slide .nw-slide-data { height: 232px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +   /* 14 Okt 2026: 200→232 — 4 baris income (nama bisa 2 baris) muat utuh, tidak terpotong; kartu lain ikut tinggi sama */
     '}';
   document.head.appendChild(st);
   if (!document.getElementById('dash-beban-grup-css')) {
