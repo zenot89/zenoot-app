@@ -1860,6 +1860,12 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
         var subtotal = (it.subtotal != null) ? it.subtotal : Math.round(qtyPcs * (hargaLsn / 12));
         var skuSup = it.nama_supplier || it.nama_internal || '\u2014';
         var varian = it.varian_warna || '\u2014';
+        // 14 Okt 2026: ambil WARNA-nya saja (buang awalan SKU induk toko sebelum "_", mis. "MAYRA_ COFFEE" → "COFFEE") supaya kolom Varian
+        // ramping & ada ruang utk rincian pembayaran. RH (format buku) tidak berubah; varian tanpa "_" juga tidak berubah.
+        if (!modeBuku && varian.indexOf('_') > 0) {
+          var _warna = varian.slice(varian.indexOf('_') + 1).trim();
+          if (_warna) varian = _warna;
+        }
         if (modeBuku) {
           running += subtotal;
           body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(subtotal), '-' + fmtRpFull(running)]);
@@ -1940,6 +1946,44 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
       }
     },
   });
+
+  // ── 14 Okt 2026: RINCIAN PEMBAYARAN (cicilan) di bawah data pesanan — tgl pemesanan, tgl pembayaran, nominal, sisa setelah bayar ──
+  // Hanya muncul kalau ada bon (yang ikut di PDF) yang pernah dibayar. Sisa dihitung per bon: total bon − pembayaran kumulatif.
+  var payRows = [];
+  list.forEach(function(b) {
+    var pays = (_hsPembayaranAll || []).filter(function(p) { return p.bon_id === b.id; })
+      .slice().sort(function(a, c) { return String(a.tanggal || '').localeCompare(String(c.tanggal || '')) || ((a.id || 0) - (c.id || 0)); });
+    var cum = 0;
+    pays.forEach(function(p) {
+      var nom = Number(p.nominal) || 0;
+      cum += nom;
+      var sisaB = Math.max(0, (b.total || 0) - cum);
+      payRows.push([
+        String(payRows.length + 1),
+        _fmtTglHeader(b.tanggal),
+        _fmtTglHeader(String(p.tanggal || '').slice(0, 10)),
+        (modeBuku ? '+' : '') + fmtRpFull(nom),
+        (modeBuku ? '-' : '') + fmtRpFull(sisaB)
+      ]);
+    });
+  });
+  if (payRows.length) {
+    var yPay = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY : 76;
+    var pageH = doc.internal.pageSize.getHeight ? doc.internal.pageSize.getHeight() : 842;
+    if (yPay > pageH - 150) { doc.addPage(); yPay = 20; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(60, 56, 50);
+    doc.text('RINCIAN PEMBAYARAN', 40, yPay + 28);
+    doc.autoTable({
+      startY: yPay + 36,
+      head: [['No', 'Tgl Pemesanan', 'Tgl Pembayaran', 'Dibayar', 'Sisa']],
+      body: payRows,
+      styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20, 20, 20] },
+      headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
+      columnStyles: { 0: { cellWidth: 36 }, 3: { halign: 'right' }, 4: { halign: 'right' } },
+      foot: [[ { content: 'TOTAL DIBAYAR', colSpan: 3, styles: { halign: 'right' } }, (modeBuku ? '+' : '') + fmtRpFull(totalBayar), (modeBuku ? '-' : '') + fmtRpFull(totalSisa) ]],
+      footStyles: { fillColor: [244, 238, 227], textColor: [20, 20, 20], fontStyle: 'bold', fontSize: 11 }
+    });
+  }
 
   var safeNama = namaSup.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   var fileName = 'jurnal-restock-' + safeNama + '-' + tglExportStr + '.pdf';
