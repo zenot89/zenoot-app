@@ -2069,8 +2069,21 @@ function _turnoverLabel(masuk, keluar) {
   return '<span style="color:var(--ink4)">💤 Stagnan</span>';
 }
 
+// 13 Okt 2026 (HP): kotak data semua minicard Dashboard dikunci setinggi Kecepatan Kas (200px) & isi yang lebih panjang di-scroll DI DALAM kotak.
+// Sebelumnya hanya Kecepatan Kas yang terkunci; kartu Beban Operasional (daftar akun + grup) memanjang tanpa batas dan menarik tinggi seluruh
+// slide (Net Worth ikut melar, baris-barisnya renggang). Laptop (≥768px) tidak disentuh.
+(function _dashHpBoxFix() {
+  if (document.getElementById('dash-hp-box-fix')) return;
+  var st = document.createElement('style');
+  st.id = 'dash-hp-box-fix';
+  st.textContent = '@media (max-width: 767px) {' +
+    ' #nw-swipe-container .nw-swipe-slide .nw-slide-data { height: 200px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +
+    '}';
+  document.head.appendChild(st);
+})();
+
 // ─── RINGKASAN BEBAN OPERASIONAL — BARU ──────────────────────
-function _renderBeban(bebanData, omsetBln, hutangRows) {
+function _renderBeban(bebanData, omsetBln, grup) {
   const el    = document.getElementById('dash-beban-wrap');
   const elTot = document.getElementById('dash-beban-total');
   const elPct = document.getElementById('dash-beban-pct');
@@ -2117,7 +2130,47 @@ function _renderBeban(bebanData, omsetBln, hutangRows) {
         '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
       '</div>' +
     '</div>';
-  }).join('') + _bebanHutangHtml(hutangRows);
+  }).join('') + _bebanProduksiHtml(grup && grup.produksi) + _bebanSupplierHtml(grup && grup.supplier) + _bebanHutangHtml(grup && (Array.isArray(grup) ? grup : grup.hutang));
+}
+
+// Kepala grup di bawah daftar akun beban (tidak ikut total Beban Operasional). <small> dipakai karena CSS HP memaksa span di .beban-row jadi 17px.
+function _bebanGrupHdr(judul, kanan) {
+  return '<div class="beban-row" style="border-top:2px solid var(--ink);margin-top:4px;padding-top:6px">' +
+    '<small style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink3)">' + judul + '</small>' +
+    '<small style="font-size:11px;font-weight:700;color:var(--ink3)">' + kanan + '</small></div>';
+}
+// COST PRODUKSI: akun Beban Produksi (bahan baku, packaging, re-stock, penyusutan) — realisasi bulan ini + anggaran.
+function _bebanProduksiHtml(rows) {
+  if (!rows || !rows.length) return '';
+  const tot = rows.reduce((a, r) => a + r.nominal, 0), totA = rows.reduce((a, r) => a + r.anggaran, 0);
+  return _bebanGrupHdr('COST PRODUKSI', _fmtRp(tot) + (totA > 0 ? ' / ' + _fmtRp(totA) : '')) + rows.map(r => {
+    const pct = tot > 0 ? (r.nominal / tot * 100) : 0;
+    return '<div class="beban-row">' +
+      '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
+        (r.anggaran > 0 ? '<small style="font-size:11px;font-weight:600;color:var(--ink3)">anggaran ' + _fmtRp(r.anggaran) + '</small>' : '') + '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pct.toFixed(1) + '%</span>' +
+        '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
+      '</div></div>';
+  }).join('');
+}
+// BAYAR SUPPLIER: per supplier — dibayar bulan ini (angka kanan) + sisa tagihan yang barangnya sudah ada.
+function _bebanSupplierHtml(rows) {
+  if (!rows || !rows.length) return '';
+  const totP = rows.reduce((a, r) => a + r.paid, 0), totS = rows.reduce((a, r) => a + r.sisa, 0);
+  return _bebanGrupHdr('BAYAR SUPPLIER', _fmtRp(totP) + ' / ' + _fmtRp(totP + totS)) + rows.map(r => {
+    const lunas = r.sisa <= 0, sebagian = r.paid > 0 && !lunas;
+    const stTxt = lunas ? 'lunas' : (sebagian ? 'sebagian' : 'belum');
+    const stCol = lunas ? 'var(--ok)' : (sebagian ? 'var(--warn)' : 'var(--ink3)');
+    const sub = r.sisa > 0 ? ('sisa tagihan ' + _fmtRp(r.sisa) + ' · ' + r.n + ' bon') : 'tidak ada sisa tagihan';
+    return '<div class="beban-row">' +
+      '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
+        '<small style="font-size:11px;font-weight:600;color:var(--ink3)">' + sub + '</small></div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:13px;font-weight:700;color:' + stCol + ';text-align:right;min-width:52px">' + stTxt + '</span>' +
+        '<span style="font-size:13px;font-weight:700;color:' + (r.paid > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.paid) + '</span>' +
+      '</div></div>';
+  }).join('');
 }
 
 // Grup KEWAJIBAN · CICILAN HUTANG di bawah daftar akun beban (tidak ikut total Beban Operasional).
@@ -2737,6 +2790,65 @@ async function loadDashboard() {
       });
     } catch (e) { console.warn('[dashboard] rincian hutang:', e); }
 
+    // 13 Okt 2026: grup BAYAR SUPPLIER — dibayar bulan ini = tabel hutang_pembayaran (tanggal bulan ini) per supplier; sisa tagihan = bon belum
+    // lunas yang sudah ada barangnya (aturan sama dgn Kecepatan Kas: PO yang barangnya belum jadi & supplier produksi sendiri TIDAK dihitung).
+    const _supplierRows = [];
+    try {
+      const nextStart = _localDateStr(new Date(Number(bulanIniStr.slice(0, 4)), Number(bulanIniStr.slice(5, 7)), 1));
+      const [supRows2, bonOpen, payBulan] = await Promise.all([
+        dbGet('hutang_supplier', '').catch(() => []),
+        dbGet('hutang_bon', '&or=(status.is.null,status.neq.lunas)').catch(() => []),
+        dbGet('hutang_pembayaran', '&tanggal=gte.' + bulanIniStr + '-01&tanggal=lt.' + nextStart).catch(() => [])
+      ]);
+      const supMap2 = {}; (supRows2 || []).forEach(x => { supMap2[x.id] = x; });
+      const bonMap2 = {}; (bonOpen || []).forEach(b => { bonMap2[b.id] = b; });
+      const butuhBon = [...new Set((payBulan || []).map(x => x.bon_id))].filter(id => id != null && !bonMap2[id]);
+      if (butuhBon.length) {
+        const extraBon = await dbGet('hutang_bon', '&id=in.(' + butuhBon.join(',') + ')').catch(() => []);
+        (extraBon || []).forEach(b => { bonMap2[b.id] = b; });
+      }
+      const openIds = (bonOpen || []).map(b => b.id);
+      const payAll = {};
+      if (openIds.length) {
+        const pa = await dbGet('hutang_pembayaran', '&bon_id=in.(' + openIds.join(',') + ')').catch(() => []);
+        (pa || []).forEach(x => { payAll[x.bon_id] = (payAll[x.bon_id] || 0) + (Number(x.nominal) || 0); });
+      }
+      const per = {};
+      const slot = id => (per[id] = per[id] || { paid: 0, sisa: 0, n: 0 });
+      (payBulan || []).forEach(x => { const b = bonMap2[x.bon_id]; if (b) slot(b.supplier_id).paid += Number(x.nominal) || 0; });
+      (bonOpen || []).forEach(b => {
+        const sup = supMap2[b.supplier_id] || null;
+        if (sup && sup.is_produksi_sendiri) return;
+        const mode = b.mode_beli === 'po' ? 'po' : (b.mode_beli === 'dropship' ? 'dropship' : ((sup && sup.is_reseller && !sup.is_dropship) ? 'po' : 'dropship'));
+        if (mode === 'po' && b.is_po === true) return;
+        const sisa = Math.max(0, (Number(b.total) || 0) - (payAll[b.id] || 0));
+        if (sisa > 0) { const e = slot(b.supplier_id); e.sisa += sisa; e.n++; }
+      });
+      Object.keys(per).forEach(id => {
+        const e = per[id];
+        if (e.paid <= 0 && e.sisa <= 0) return;
+        const sup = supMap2[id];
+        _supplierRows.push({ nama: sup ? String(sup.nama || '').toUpperCase() : ('SUPPLIER #' + id), paid: e.paid, sisa: e.sisa, n: e.n });
+      });
+      _supplierRows.sort((a, b) => (b.paid + b.sisa) - (a.paid + a.sisa));
+    } catch (e) { console.warn('[dashboard] rincian supplier:', e); }
+
+    // 13 Okt 2026: grup COST PRODUKSI — akun sub_kelompok 'Beban Produksi' (realisasi = debit jurnal bulan ini, + anggaran bulan ini).
+    const _produksiRows = [];
+    {
+      const real = {}, ang = {};
+      kasJurnalBulanIni.forEach(j => {
+        const aD = kasAkunMap[j.akun_debit_id];
+        if (aD && aD.kelompok === 'beban' && aD.sub_kelompok === 'Beban Produksi') real[aD.id] = (real[aD.id] || 0) + Number(j.nominal || j.debit || 0);
+      });
+      (anggaranBulanIni || []).forEach(a => { ang[a.akun_id] = (ang[a.akun_id] || 0) + Number(a.nominal || 0); });
+      Object.entries(kasAkunMap || {}).forEach(([id, ak]) => {
+        if (ak && ak.kelompok === 'beban' && ak.sub_kelompok === 'Beban Produksi')
+          _produksiRows.push({ nama: ak.nama || 'Produksi', nominal: real[id] || 0, anggaran: ang[id] || 0, kode: String(ak.kode || '') });
+      });
+      _produksiRows.sort((a, b) => (b.nominal - a.nominal) || (b.anggaran - a.anggaran) || a.kode.localeCompare(b.kode));
+    }
+
     // ─ Render semua chart & widget
     const _jpForRender = jpBulan.length>0 ? jpBulan : _dashJPData;
     const _stokForBoss = _dashStokData;
@@ -2755,7 +2867,7 @@ async function loadDashboard() {
       const _bebanRows = Object.entries(kasAkunMap || {})
         .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
         .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
-      _renderBeban(_bebanRows, omsetBln, _hutangRows);
+      _renderBeban(_bebanRows, omsetBln, { produksi: _produksiRows, supplier: _supplierRows, hutang: _hutangRows });
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, biayaHarianNominal); // BARU v5
       _renderDonutBeban(bebanDetailMap);                                    // BARU v5
