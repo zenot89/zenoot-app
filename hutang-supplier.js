@@ -1833,7 +1833,6 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     // Format: "Senin, 22 Agu 2026  ·  INV-0021" (no_nota opsional)
     var tglLabel = _fmtTglHeader(b.tanggal);
     if (b.no_nota) tglLabel += '  \u00b7  ' + b.no_nota;
-    if (stBon.bayar > 0) tglLabel += '  \u00b7  dibayar ' + fmtRpFull(stBon.bayar) + '  \u00b7  sisa ' + fmtRpFull(stBon.sisa);
     body.push([{ content: tglLabel, colSpan: 6,
       styles: { fontStyle: 'bold', fontSize: 10, textColor: [60, 56, 50] }
     }]);
@@ -1915,14 +1914,11 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
 
   doc.setTextColor(0, 0, 0);
 
+  // 14 Okt 2026: footer tabel pesanan HANYA total pesanan. Dibayar & sisa utang tidak diulang di sini — dibaca berurutan di tabel
+  // "RINCIAN PEMBAYARAN" di bawahnya (pesanan → pembayaran → sisa) supaya alurnya satu arah, tidak loncat-loncat.
   var footRows = modeBuku
     ? [[ { content: 'TOTAL HUTANG', colSpan: 5, styles: { halign: 'right' } }, '-' + fmtRpFull(running) ]]
-    : [[ { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } }, fmtRpFull(totalSemua) ]];
-  if (totalBayar > 0) {   // ada pembayaran → tampilkan juga yang sudah dibayar & SISA utang (angka yang sama dgn "Sisa" di layar)
-    // RH (format buku): hutang ditulis minus → pembayaran plus, sisa minus. Supplier lain: dibayar minus, sisa plus.
-    footRows.push([ { content: 'DIBAYAR', colSpan: 5, styles: { halign: 'right' } }, (modeBuku ? '+' : '-') + fmtRpFull(totalBayar) ]);
-    footRows.push([ { content: 'SISA UTANG', colSpan: 5, styles: { halign: 'right' } }, (modeBuku ? '-' : '') + fmtRpFull(totalSisa) ]);
-  }
+    : [[ { content: (totalBayar > 0 ? 'TOTAL PESANAN' : 'TOTAL'), colSpan: 5, styles: { halign: 'right' } }, fmtRpFull(totalSemua) ]];
   doc.autoTable({
     startY: 76,
     head: [modeBuku ? ['No', 'SKU', 'Varian', 'Qty', 'Harga', 'Total Hutang'] : ['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
@@ -1947,27 +1943,27 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     },
   });
 
-  // ── 14 Okt 2026: RINCIAN PEMBAYARAN (cicilan) di bawah data pesanan — tgl pemesanan, tgl pembayaran, nominal, sisa setelah bayar ──
-  // Hanya muncul kalau ada bon (yang ikut di PDF) yang pernah dibayar. Sisa dihitung per bon: total bon − pembayaran kumulatif.
-  var payRows = [];
+  // ── 14 Okt 2026: RINCIAN PEMBAYARAN = KARTU HUTANG kronologis ──
+  // Dibaca dari atas ke bawah seperti cerita: Pesanan (utang naik) → Pembayaran (utang turun) → … → SISA UTANG.
+  // Satu kolom "Sisa Utang" berjalan; angka akhir = SISA UTANG (sama dgn "Sisa" di kartu layar). Hanya muncul kalau ada pembayaran.
+  var ev = [], adaBayar = false;
   list.forEach(function(b) {
-    var pays = (_hsPembayaranAll || []).filter(function(p) { return p.bon_id === b.id; })
-      .slice().sort(function(a, c) { return String(a.tanggal || '').localeCompare(String(c.tanggal || '')) || ((a.id || 0) - (c.id || 0)); });
-    var cum = 0;
-    pays.forEach(function(p) {
-      var nom = Number(p.nominal) || 0;
-      cum += nom;
-      var sisaB = Math.max(0, (b.total || 0) - cum);
-      payRows.push([
-        String(payRows.length + 1),
-        _fmtTglHeader(b.tanggal),
-        _fmtTglHeader(String(p.tanggal || '').slice(0, 10)),
-        (modeBuku ? '+' : '') + fmtRpFull(nom),
-        (modeBuku ? '-' : '') + fmtRpFull(sisaB)
-      ]);
+    ev.push({ tgl: String(b.tanggal || '').slice(0, 10), ord: 0, id: b.id || 0, ket: 'Pesanan' + (b.no_nota ? '  \u00b7  ' + b.no_nota : ''), amt: (b.total || 0) });
+    (_hsPembayaranAll || []).filter(function(p) { return p.bon_id === b.id; }).forEach(function(p) {
+      adaBayar = true;
+      ev.push({ tgl: String(p.tanggal || '').slice(0, 10), ord: 1, id: p.id || 0, ket: 'Pembayaran', amt: -(Number(p.nominal) || 0) });
     });
   });
-  if (payRows.length) {
+  if (adaBayar) {
+    ev.sort(function(a, c) { return a.tgl.localeCompare(c.tgl) || (a.ord - c.ord) || (a.id - c.id); });
+    // Tanda: supplier biasa → pembayaran "-", sisa positif. RH (format buku) → pesanan "-", pembayaran "+", sisa "-".
+    var fmtJml = function(amt) { return (modeBuku ? (amt > 0 ? '-' : '+') : (amt < 0 ? '-' : '')) + fmtRpFull(Math.abs(amt)); };
+    var fmtSisa = function(v) { return (modeBuku && v > 0 ? '-' : '') + fmtRpFull(Math.max(0, v)); };
+    var runSisa = 0, nomorBayar = 0;
+    var payRows = ev.map(function(e) {
+      runSisa += e.amt;
+      return [ e.ord === 1 ? String(++nomorBayar) : '', _fmtTglHeader(e.tgl), e.ket, fmtJml(e.amt), fmtSisa(runSisa) ];
+    });
     var yPay = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY : 76;
     var pageH = doc.internal.pageSize.getHeight ? doc.internal.pageSize.getHeight() : 842;
     if (yPay > pageH - 150) { doc.addPage(); yPay = 20; }
@@ -1975,12 +1971,12 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     doc.text('RINCIAN PEMBAYARAN', 40, yPay + 28);
     doc.autoTable({
       startY: yPay + 36,
-      head: [['No', 'Tgl Pemesanan', 'Tgl Pembayaran', 'Dibayar', 'Sisa']],
+      head: [['No', 'Tanggal', 'Keterangan', 'Jumlah', 'Sisa Utang']],
       body: payRows,
       styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20, 20, 20] },
       headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
       columnStyles: { 0: { cellWidth: 36 }, 3: { halign: 'right' }, 4: { halign: 'right' } },
-      foot: [[ { content: 'TOTAL DIBAYAR', colSpan: 3, styles: { halign: 'right' } }, (modeBuku ? '+' : '') + fmtRpFull(totalBayar), (modeBuku ? '-' : '') + fmtRpFull(totalSisa) ]],
+      foot: [[ { content: 'SISA UTANG', colSpan: 4, styles: { halign: 'right' } }, fmtSisa(totalSisa) ]],
       footStyles: { fillColor: [244, 238, 227], textColor: [20, 20, 20], fontStyle: 'bold', fontSize: 11 }
     });
   }
