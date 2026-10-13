@@ -2080,6 +2080,16 @@ function _turnoverLabel(masuk, keluar) {
     ' #nw-swipe-container .nw-swipe-slide .nw-slide-data { height: 200px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +
     '}';
   document.head.appendChild(st);
+  if (!document.getElementById('dash-beban-grup-css')) {
+    var g = document.createElement('style');
+    g.id = 'dash-beban-grup-css';
+    g.textContent =
+      '#dash-beban-wrap .beban-grup { flex: none; margin-top: 12px; border: 1px solid var(--gc); border-radius: 10px; background: var(--gc10); overflow: hidden; }' +
+      '#dash-beban-wrap .beban-grup-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 12px; background: var(--gc); }' +
+      '#dash-beban-wrap .beban-grup-hdr small { color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .05em; }' +
+      '#dash-beban-wrap .beban-grup .beban-row { flex: none; padding: 6px 12px; border-color: var(--gc10); }';
+    document.head.appendChild(g);
+  }
 })();
 
 // ─── RINGKASAN BEBAN OPERASIONAL — BARU ──────────────────────
@@ -2134,16 +2144,17 @@ function _renderBeban(bebanData, omsetBln, grup) {
 }
 
 // Kepala grup di bawah daftar akun beban (tidak ikut total Beban Operasional). <small> dipakai karena CSS HP memaksa span di .beban-row jadi 17px.
-function _bebanGrupHdr(judul, kanan) {
-  return '<div class="beban-row" style="border-top:2px solid var(--ink);margin-top:4px;padding-top:6px">' +
-    '<small style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink3)">' + judul + '</small>' +
-    '<small style="font-size:11px;font-weight:700;color:var(--ink3)">' + kanan + '</small></div>';
+// 13 Okt 2026: tiap grup = KOTAK berwarna sendiri (pita judul warna penuh + latar tipis + jarak antar kotak) supaya perpindahan section jelas.
+// Fungsi ini MEMBUKA kotak; fungsi pemanggil menutupnya dengan '</div>'. warna = nama var --dash-<warna> (purple/blue/red/...).
+function _bebanGrupHdr(judul, kanan, warna) {
+  return '<div class="beban-grup" style="--gc:var(--dash-' + warna + ');--gc10:var(--dash-' + warna + '-10)">' +
+    '<div class="beban-grup-hdr"><small>' + judul + '</small><small>' + kanan + '</small></div>';
 }
 // COST PRODUKSI: akun Beban Produksi (bahan baku, packaging, re-stock, penyusutan) — realisasi bulan ini + anggaran.
 function _bebanProduksiHtml(rows) {
   if (!rows || !rows.length) return '';
   const tot = rows.reduce((a, r) => a + r.nominal, 0), totA = rows.reduce((a, r) => a + r.anggaran, 0);
-  return _bebanGrupHdr('COST PRODUKSI', _fmtRp(tot) + (totA > 0 ? ' / ' + _fmtRp(totA) : '')) + rows.map(r => {
+  return _bebanGrupHdr('COST PRODUKSI', _fmtRp(tot) + (totA > 0 ? ' / ' + _fmtRp(totA) : ''), 'purple') + rows.map(r => {
     const pct = tot > 0 ? (r.nominal / tot * 100) : 0;
     return '<div class="beban-row">' +
       '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + r.nama + '</span>' +
@@ -2152,13 +2163,13 @@ function _bebanProduksiHtml(rows) {
         '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pct.toFixed(1) + '%</span>' +
         '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
       '</div></div>';
-  }).join('');
+  }).join('') + '</div>';
 }
 // BAYAR SUPPLIER: per supplier — dibayar bulan ini (angka kanan) + sisa tagihan yang barangnya sudah ada.
 function _bebanSupplierHtml(rows) {
   if (!rows || !rows.length) return '';
   const totP = rows.reduce((a, r) => a + r.paid, 0), totS = rows.reduce((a, r) => a + r.sisa, 0);
-  return _bebanGrupHdr('BAYAR SUPPLIER', _fmtRp(totP) + ' / ' + _fmtRp(totP + totS)) + rows.map(r => {
+  return _bebanGrupHdr('BAYAR SUPPLIER', _fmtRp(totP) + ' / ' + _fmtRp(totP + totS), 'blue') + rows.map(r => {
     const lunas = r.sisa <= 0, sebagian = r.paid > 0 && !lunas;
     const stTxt = lunas ? 'lunas' : (sebagian ? 'sebagian' : 'belum');
     const stCol = lunas ? 'var(--ok)' : (sebagian ? 'var(--warn)' : 'var(--ink3)');
@@ -2170,7 +2181,7 @@ function _bebanSupplierHtml(rows) {
         '<span style="font-size:13px;font-weight:700;color:' + stCol + ';text-align:right;min-width:52px">' + stTxt + '</span>' +
         '<span style="font-size:13px;font-weight:700;color:' + (r.paid > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.paid) + '</span>' +
       '</div></div>';
-  }).join('');
+  }).join('') + '</div>';
 }
 
 // Grup KEWAJIBAN · CICILAN HUTANG di bawah daftar akun beban (tidak ikut total Beban Operasional).
@@ -2179,9 +2190,7 @@ function _bebanHutangHtml(hutangRows) {
   if (!hutangRows || !hutangRows.length) return '';
   const totC = hutangRows.reduce((s, h) => s + h.cicilan, 0);
   const totP = hutangRows.reduce((s, h) => s + h.paid, 0);
-  let html = '<div class="beban-row" style="border-top:2px solid var(--ink);margin-top:4px;padding-top:6px">' +
-    '<small style="font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink3)">KEWAJIBAN · CICILAN HUTANG</small>' +
-    '<small style="font-size:11px;font-weight:700;color:var(--ink3)">' + _fmtRp(totP) + ' / ' + _fmtRp(totC) + '</small></div>';
+  let html = _bebanGrupHdr('KEWAJIBAN · CICILAN HUTANG', _fmtRp(totP) + ' / ' + _fmtRp(totC), 'red');
   html += hutangRows.map(h => {
     const lunas = h.paid >= h.cicilan, sebagian = h.paid > 0 && !lunas;
     const stTxt = lunas ? 'lunas' : (sebagian ? 'sebagian' : 'belum');
@@ -2195,7 +2204,7 @@ function _bebanHutangHtml(hutangRows) {
         '<span style="font-size:13px;font-weight:700;color:' + (h.paid > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(h.paid) + '</span>' +
       '</div></div>';
   }).join('');
-  return html;
+  return html + '</div>';
 }
 
 // ─── AKTIVITAS FEED ───────────────────────────────────────────
