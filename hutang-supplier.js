@@ -1813,6 +1813,10 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
       String(d.getDate()).padStart(2,'0') + ' ' + bln[d.getMonth()] + ' ' + d.getFullYear();
   }
 
+  // 13 Okt 2026 — KHUSUS supplier RH (supplier lain TIDAK berubah): format PDF meniru buku catatan user — tanpa kolom Harga/Lsn,
+  // kolom kanan = TOTAL HUTANG BERJALAN (kumulatif, ditulis minus seperti di buku), kolom Harga = harga barang itu (qty × harga/pcs).
+  var modeBuku = !!(sup && String(sup.nama || '').trim().toUpperCase() === 'RH');
+  var running = 0;
   var totalSemua = 0, rowNo = 1;
   var body = [];
   // ── Tag setiap baris sebagai 'header_tgl' atau 'data' untuk willDrawCell ──
@@ -1833,7 +1837,14 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
     _bodyMeta.push('header_tgl');
 
     var items = itemsByBon[b.id] || [];
-    if (!items.length) {
+    if (!items.length && modeBuku) {
+      running += (b.total || 0);
+      body.push([{
+        content: '\u2014 belum ada rincian barang \u2014', colSpan: 4,
+        styles: { textColor: [150, 146, 140], fontStyle: 'italic', fontSize: 10 }
+      }, fmtRpFull(b.total || 0), '-' + fmtRpFull(running)]);
+      _bodyMeta.push('data');
+    } else if (!items.length) {
       body.push([{
         content: '\u2014 belum ada rincian barang \u2014', colSpan: 6,
         styles: { textColor: [150, 146, 140], fontStyle: 'italic', fontSize: 10 }
@@ -1846,7 +1857,12 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
         var subtotal = (it.subtotal != null) ? it.subtotal : Math.round(qtyPcs * (hargaLsn / 12));
         var skuSup = it.nama_supplier || it.nama_internal || '\u2014';
         var varian = it.varian_warna || '\u2014';
-        body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(hargaLsn), fmtRpFull(subtotal)]);
+        if (modeBuku) {
+          running += subtotal;
+          body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(subtotal), '-' + fmtRpFull(running)]);
+        } else {
+          body.push([String(rowNo++), skuSup, varian, String(qtyPcs), fmtRpFull(hargaLsn), fmtRpFull(subtotal)]);
+        }
         _bodyMeta.push('data');
       });
     }
@@ -1890,18 +1906,17 @@ async function hsBuildAndDeliverBonPDF(supplierId, logoDataUrl) {
 
   doc.setTextColor(0, 0, 0);
 
-  var footRows = [[
-    { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } },
-    fmtRpFull(totalSemua)
-  ]];
+  var footRows = modeBuku
+    ? [[ { content: 'TOTAL HUTANG', colSpan: 5, styles: { halign: 'right' } }, '-' + fmtRpFull(running) ]]
+    : [[ { content: 'TOTAL', colSpan: 5, styles: { halign: 'right' } }, fmtRpFull(totalSemua) ]];
   doc.autoTable({
     startY: 76,
-    head: [['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
+    head: [modeBuku ? ['No', 'SKU', 'Varian', 'Qty', 'Harga', 'Total Hutang'] : ['No', 'SKU', 'Varian', 'Qty', 'Harga/Lsn', 'Total']],
     body: body,
     styles: { font: 'helvetica', fontSize: 11, cellPadding: 8, textColor: [20,20,20] },
     headStyles: { fillColor: HS_PDF_ABU_TUA, textColor: 255, fontStyle: 'bold', fontSize: 11 },
     columnStyles: {
-      0: { cellWidth: 28 },
+      0: { cellWidth: modeBuku ? 36 : 28 },   // RH: lebar kolom No dilebarkan supaya header "No" tidak patah jadi N/o
       3: { halign: 'right', cellWidth: 44 },
       4: { halign: 'right' },
       5: { halign: 'right' }
