@@ -1739,6 +1739,7 @@
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
             <button class="btn ghost small" id="btnEditHitung">Edit file</button>
+            <button class="btn ghost small" id="btnPilihSemua" style="display:none">Pilih semua</button>
             <button class="btn danger small" id="btnHapusData" style="display:none" disabled>Hapus</button>
             <button class="btn small" id="btnHitung" style="margin-left:auto" disabled>Hitung</button>
           </div>
@@ -1825,6 +1826,7 @@
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
             <button class="btn ghost small" id="btnEditHitungM">Edit file</button>
+            <button class="btn ghost small" id="btnPilihSemuaM" style="display:none">Pilih semua</button>
             <button class="btn danger small" id="btnHapusDataM" style="display:none" disabled>Hapus</button>
             <button class="btn small" id="btnHitungM" style="margin-left:auto" disabled>Hitung</button>
           </div>
@@ -1897,28 +1899,21 @@
         <div class="rks-datatoko-panel-inner">
           <div class="toolbar rks-dt-bar" style="margin-bottom:10px;gap:8px;">
             <button class="btn ghost small" id="btnEditHitungP">Edit file</button>
+            <button class="btn ghost small" id="btnPilihSemuaP" style="display:none">Pilih semua</button>
             <button class="btn danger small" id="btnHapusDataP" style="display:none" disabled>Hapus</button>
             <button class="btn small" id="btnHitungP" style="margin-left:auto" disabled>Hitung</button>
           </div>
           <div class="card">
-            <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(bulan lalu + bulan ini)</span></h3>
-            <div class="hint zq-h">"Pesanan Selesai" (.xlsx), Bulan lalu + Bulan ini. Rentang tanggalnya boleh lebih panjang — yang dihitung cuma pesanan yang dananya dilepas di file Income Proyeksi (tanggal 1 bulan ini s/d hari ini).</div>
+            <h3>Order Completed <span style="font-weight:400;color:var(--ink-soft);">(30 hari terakhir)</span></h3>
+            <div class="hint zq-h">"Pesanan Selesai" (.xlsx) download 30 hari terakhir dari Shopee — 1 file cukup. Yang dihitung cuma pesanan yang dananya dilepas di file Income Proyeksi (tanggal 1 bulan ini s/d hari ini).</div>
             <div class="order-slots">
               <div>
                 <div class="drop" id="dropOrder1P">
-                  <div class="lbl">Bulan lalu</div>
+                  <div class="lbl">Order Completed 30 hari</div>
                   <div class="sub">Klik atau drop .xlsx</div>
                   <input type="file" id="inputOrder1P" accept=".xlsx,.xls">
                 </div>
                 <div class="filelist" id="listOrder1P"></div>
-              </div>
-              <div>
-                <div class="drop" id="dropOrder2P">
-                  <div class="lbl">Bulan ini</div>
-                  <div class="sub">Klik atau drop .xlsx</div>
-                  <input type="file" id="inputOrder2P" accept=".xlsx,.xls">
-                </div>
-                <div class="filelist" id="listOrder2P"></div>
               </div>
             </div>
             <div class="hint" id="orderCombinedSummaryP" style="margin-top:10px;margin-bottom:0;"></div>
@@ -2727,7 +2722,7 @@ const state = {
   },
   // [29 Sep 2026] Proyeksi RKS: struktur sama dengan mingguan (tanggal 1 bulan berjalan s/d tanggal aktual)
   proyeksi: {
-    orderSlots: [null, null],   // [Bulan lalu, Bulan ini]
+    orderSlots: [null],   // [14 Okt 2026] 1 file Order Completed 30 hari terakhir (download Shopee)
     orderHeaders: [],
     incomeFile: null,
     adsFile: null,
@@ -2756,7 +2751,7 @@ function rksHas(scope, key){
   if(key==='ads') return !!b.adsFile;
   return !!b.orderSlots[+key.slice(5)];
 }
-function rksNeedOrders(scope){ return scope==='m' ? 1 : 2; }
+function rksNeedOrders(scope){ return (scope==='m' || scope==='p') ? 1 : 2; }
 function rksComplete(scope){
   const b = rksBag(scope);
   const inc = !!b.incomeFile && b.incomeFile.totalPendapatan!==null && b.incomeFile.totalPendapatan!==undefined && b.incomeFile.totalPenghasilan!==null && b.incomeFile.totalPenghasilan!==undefined;
@@ -2781,6 +2776,9 @@ function rksSyncButtons(scope){
   if(hapus){ hapus.style.display = on ? '' : 'none'; hapus.disabled = RKS_SEL[scope].size===0; hapus.title = RKS_SEL[scope].size ? '' : 'Centang file yang mau dihapus dulu'; }
   // [29 Sep 2026] Hitung SELALU tampil di kanan (bukan cuma saat Edit file): upload selesai != langsung dihitung, user cek dulu kartu file, baru klik Hitung.
   if(hitung){ hitung.style.display = ''; hitung.disabled = !ok; hitung.title = ok ? 'Hitung dari file yang sudah diupload' : 'Lengkapi file Order Completed, Income & Iklan dulu'; }
+  // [14 Okt 2026] Pilih semua: centang semua kartu file sekaligus (toggle; label berubah jadi Batal pilih kalau sudah semua)
+  const pilih = document.getElementById('btnPilihSemua'+suf);
+  if(pilih){ const all = rksAllKeys(scope); pilih.style.display = on ? '' : 'none'; pilih.disabled = !all.length; pilih.textContent = (all.length && all.every(k=>RKS_SEL[scope].has(k))) ? 'Batal pilih' : 'Pilih semua'; }
   if(edit){ edit.textContent = on ? 'Selesai' : 'Edit file'; }
 }
 function rksFileCardHtml(scope, key, tag, body){
@@ -2790,7 +2788,7 @@ function rksFileCardHtml(scope, key, tag, body){
 function rksRenderOrders(scope){
   const b = rksBag(scope), suf = RKS_SUF[scope];
   const n = b.orderSlots.length;
-  const labels = scope==='m' ? [''] : ['Bulan lalu','Bulan ini'];
+  const labels = (scope==='m' || scope==='p') ? [''] : ['Bulan lalu','Bulan ini'];
   for(let i=0;i<n;i++){
     const drop = document.getElementById('dropOrder'+(i+1)+suf), el = document.getElementById('listOrder'+(i+1)+suf);
     if(!drop || !el) continue;
@@ -2802,7 +2800,7 @@ function rksRenderOrders(scope){
   if(summaryEl){
     const filled = b.orderSlots.filter(Boolean);
     const totalRows = filled.reduce((a,f)=>a+f.rows.length,0);
-    if(scope==='m' || !filled.length) summaryEl.innerHTML = '';
+    if(scope==='m' || scope==='p' || !filled.length) summaryEl.innerHTML = '';
     else if(filled.length===1) summaryEl.innerHTML = `<span class="status-warn">⚠ Baru 1 dari 2 file keisi (${totalRows} baris) — isi juga slot ${b.orderSlots[0] ? 'Bulan ini' : 'Bulan lalu'} biar datanya lengkap.</span>`;
     else summaryEl.innerHTML = `Total gabungan: <b>${totalRows}</b> baris dari 2 file. <span class="status-ok">✓ siap dipakai</span>`;
   }
@@ -2839,6 +2837,20 @@ document.addEventListener('click', e=>{
   if(RKS_SEL[scope].has(key)) RKS_SEL[scope].delete(key); else RKS_SEL[scope].add(key);
   rksRerender(scope);
 });
+function rksAllKeys(scope){
+  const b = rksBag(scope), k = [];
+  if(b.incomeFile) k.push('income');
+  if(b.adsFile) k.push('ads');
+  b.orderSlots.forEach((f,i)=>{ if(f) k.push('order'+i); });
+  return k;
+}
+function rksSelectAll(scope){
+  const all = rksAllKeys(scope);
+  const allOn = all.length && all.every(k=>RKS_SEL[scope].has(k));
+  RKS_SEL[scope].clear();
+  if(!allOn) all.forEach(k=>RKS_SEL[scope].add(k));
+  rksRerender(scope);
+}
 function rksToggleEdit(scope){
   rksEditSet(scope, !rksEditGet(scope));
   RKS_SEL[scope].clear();
@@ -4824,6 +4836,7 @@ function renderAdsList(){ rksRenderAds('ov'); }
 document.getElementById('btnHapusData').addEventListener('click', ()=> rksDeleteSelected('ov'));
 document.getElementById('btnHitung').addEventListener('click', ()=> rksHitung('ov'));
 document.getElementById('btnEditHitung').addEventListener('click', ()=> rksToggleEdit('ov'));
+document.getElementById('btnPilihSemua').addEventListener('click', ()=> rksSelectAll('ov'));
 document.getElementById('btnToggleDataTokoPanel').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanel').classList.toggle('open');
 });
@@ -9951,6 +9964,7 @@ function renderAdsListM(){ rksRenderAds('m'); }
 document.getElementById('btnHapusDataM').addEventListener('click', ()=> rksDeleteSelected('m'));
 document.getElementById('btnHitungM').addEventListener('click', ()=> rksHitung('m'));
 document.getElementById('btnEditHitungM').addEventListener('click', ()=> rksToggleEdit('m'));
+document.getElementById('btnPilihSemuaM').addEventListener('click', ()=> rksSelectAll('m'));
 document.getElementById('btnToggleDataTokoPanelM').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanelM').classList.toggle('open');
 });
@@ -10553,8 +10567,9 @@ function loadSessionProyeksiFromStorage(){
     const payload = JSON.parse(raw);
     if(payload.orderSlots){
       const os = payload.orderSlots;
-      if(os.length>=2) state.proyeksi.orderSlots = [os[0]||null, os[1]||null];      // format baru: [Bulan lalu, Bulan ini]
-      else state.proyeksi.orderSlots = [null, os.filter(Boolean)[0]||null];        // format lama (1 slot) -> jadi "Bulan ini"; Bulan lalu upload menyusul
+      // [14 Okt 2026] Proyeksi = 1 file. Sesi lama (2 slot Bulan lalu + Bulan ini) digabung jadi 1 slot: rows-nya tetap, jadi hitungan tidak berubah.
+      const _pf = os.filter(Boolean);
+      state.proyeksi.orderSlots = _pf.length ? [{ name: _pf.map(function(f){ return f.name; }).join(' + '), rows: _pf.flatMap(function(f){ return f.rows; }) }] : [null];
     }
     if(payload.incomeFile) state.proyeksi.incomeFile = {...payload.incomeFile, releasedOrderNumbers:new Set(payload.incomeFile.releasedOrderNumbers)};
     if(payload.adsFile) state.proyeksi.adsFile = payload.adsFile;
@@ -10631,14 +10646,13 @@ function loadOrderSlotP(slotIndex, file){
     const ws = wb.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
     if(rows.length){ state.proyeksi.orderHeaders = Object.keys(rows[0]); }
-    state.proyeksi.orderSlots[slotIndex] = {name:file.name, rows};
+    state.proyeksi.orderSlots = [{name:file.name, rows}];   // [14 Okt 2026] 1 file: upload baru menggantikan yang lama
     saveSessionProyeksiToStorage();
     renderOrderListP();
   };
   reader.readAsArrayBuffer(file);
 }
 setupDrop('dropOrder1P','inputOrder1P', files=> loadOrderSlotP(0, files[0]));
-setupDrop('dropOrder2P','inputOrder2P', files=> loadOrderSlotP(1, files[0]));
 
 setupDrop('dropIncomeP','inputIncomeP', files=>{
   const f = files[0]; if(!f) return;
@@ -10775,6 +10789,7 @@ function renderAdsListP(){ rksRenderAds('p'); }
 document.getElementById('btnHapusDataP').addEventListener('click', ()=> rksDeleteSelected('p'));
 document.getElementById('btnHitungP').addEventListener('click', ()=> rksHitung('p'));
 document.getElementById('btnEditHitungP').addEventListener('click', ()=> rksToggleEdit('p'));
+document.getElementById('btnPilihSemuaP').addEventListener('click', ()=> rksSelectAll('p'));
 document.getElementById('btnToggleDataTokoPanelP').addEventListener('click', ()=>{
   document.getElementById('rksDataTokoPanelP').classList.toggle('open');
 });

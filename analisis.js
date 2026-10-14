@@ -749,3 +749,4 @@
     window.analisisGoto(target, btn);
   };
 })();
+// (43) [14 Okt 2026] Panel upload RKS: tombol "Pilih semua" di mode Edit file (Overview, Mingguan, Proyeksi) + Proyeksi Order Completed jadi 1 file (30 hari). Perubahan utama di analisis.html; file ini hanya catatan supaya APP_BUILD berubah.
