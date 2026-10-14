@@ -1563,8 +1563,8 @@ function hsRenderSupplierCards() {
     '  #hs-bon-topbar #hs-kpi-dots span.active{width:18px;background:var(--ink3)}',
     '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
     '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%;display:grid;grid-template-columns:20% minmax(0,1fr) 65%;gap:0;align-items:stretch}',
-    '  #hs-bon-topbar .hs-bon-supgrp #hs-bon-export-btn{order:-1;width:100%;height:40px;min-width:0}',
-    '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{order:0;grid-column:3;width:100%;min-width:0;max-width:none}',
+    '  #hs-bon-topbar .hs-bon-supgrp #hs-bon-export-btn{grid-row:1;grid-column:1;width:100%;height:40px;min-width:0}',
+    '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{grid-row:1;grid-column:3;width:100%;min-width:0;max-width:none}',
     '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:auto;flex:1}',
     '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
     '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:space-between;width:100%}',   /* 13 Okt 2026: Bayar Utang rata kiri, Tambah Bon tetap di kanan */
