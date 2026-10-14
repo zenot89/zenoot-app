@@ -1562,7 +1562,9 @@ function hsRenderSupplierCards() {
     '  #hs-bon-topbar #hs-kpi-dots span{width:6px;height:6px;border-radius:3px;background:var(--ink4);cursor:pointer;transition:width .2s,background .2s}',
     '  #hs-bon-topbar #hs-kpi-dots span.active{width:18px;background:var(--ink3)}',
     '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
-    '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%}',
+    '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%;display:grid;grid-template-columns:20% minmax(0,1fr) 65%;gap:0;align-items:stretch}',
+    '  #hs-bon-topbar .hs-bon-supgrp #hs-bon-export-btn{order:-1;width:100%;height:40px;min-width:0}',
+    '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{order:0;grid-column:3;width:100%;min-width:0;max-width:none}',
     '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:auto;flex:1}',
     '  #hs-bon-topbar .hs-bon-switcher-total .hs-kc-v,#hs-bon-topbar .hs-kc-v{font-size:14px}',
     '  #hs-bon-topbar #hs-bon-toolbar{justify-self:stretch;justify-content:space-between;width:100%}',   /* 13 Okt 2026: Bayar Utang rata kiri, Tambah Bon tetap di kanan */
@@ -1629,7 +1631,7 @@ function hsRenderBonSwitcher() {
           }).join('') +
         '</div>' +
       '</div>' +
-      '<button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:' + (sup ? '' : 'none') + '" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>' +
+      '<button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:' + '' + '" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>' +
     '</div>';
 
   // 14 Okt 2026: dropdown supplier + Export PDF dipindah ke #hs-bon-supgrp-host (di luar track swipe KPI)
@@ -1637,7 +1639,7 @@ function hsRenderBonSwitcher() {
   var _sgEl = el.querySelector('.hs-bon-supgrp');
   if (_sgHost && _sgEl) { _sgHost.innerHTML = ''; _sgHost.appendChild(_sgEl); }
   var exportBtn = document.getElementById('hs-bon-export-btn');
-  if (exportBtn) exportBtn.style.display = sup ? '' : 'none';
+  if (exportBtn) exportBtn.style.display = '';
   hsRenderBonKasCards();
 }
 
@@ -1802,6 +1804,7 @@ function hsSelectSupplierFilter(id) {
 // gak pernah buka context baru sama sekali: doc.save() cuma trigger
 // download Blob di halaman yang sama, aman di semua Android/iOS.
 function hsExportSupplierBonPDF(supplierId) {
+  if (supplierId == null) return hsExportAllSupplierBonPDF();
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
     return;
@@ -1815,6 +1818,27 @@ function hsExportSupplierBonPDF(supplierId) {
     return hsBuildAndDeliverBonPDF(supplierId, logoDataUrl);
   }).catch(function(err) {
     console.error('Export PDF gagal:', err);
+    alert('Gagal export PDF: ' + (err && err.message ? err.message : 'coba lagi.'));
+  });
+}
+
+// 14 Okt 2026: EXPORT SEMUA SUPPLIER — satu PDF per supplier yang punya bon belum lunas, diproses berurutan (tiap PDF = share sheet / download sendiri).
+function hsExportAllSupplierBonPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Modul PDF belum siap (mungkin lagi offline pertama kali). Coba lagi sebentar.');
+    return;
+  }
+  var ids = [];
+  (_hsBonList || []).forEach(function(b) {
+    if (b.status !== 'lunas' && ids.indexOf(b.supplier_id) < 0) ids.push(b.supplier_id);
+  });
+  if (!ids.length) { alert('Tidak ada bon yang belum lunas.'); return; }
+  _hsLogoReady.then(async function(logoDataUrl) {
+    for (var i = 0; i < ids.length; i++) {
+      await hsBuildAndDeliverBonPDF(ids[i], logoDataUrl);
+    }
+  }).catch(function(err) {
+    console.error('Export PDF semua supplier gagal:', err);
     alert('Gagal export PDF: ' + (err && err.message ? err.message : 'coba lagi.'));
   });
 }
