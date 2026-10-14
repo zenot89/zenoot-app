@@ -543,8 +543,12 @@ document.getElementById('page-hutang-supplier').innerHTML = `
 
     <div id="hs-panel-bon" class="hs-panel">
       <div id="hs-bon-topbar">
+      <div id="hs-kpi-track">
       <div id="hs-bon-switcher" class="hs-bon-switcher"></div>
       <div id="hs-bon-kas-cards"></div>
+      </div>
+      <div id="hs-kpi-dots"><span class="active" onclick="hsKpiGo(0)"></span><span onclick="hsKpiGo(1)"></span><span onclick="hsKpiGo(2)"></span></div>
+      <div id="hs-bon-supgrp-host"></div>
       <div class="hs-toolbar" id="hs-bon-toolbar">
         <button class="btn btn-sm" onclick="hsOpenBayarUtang()"><i class="ti ti-cash"></i> Bayar Utang</button>
         <button class="btn btn-sm btn-primary" onclick="hsOpenTambahBon()"><i class="ti ti-plus"></i> Tambah Bon</button>
@@ -1523,6 +1527,8 @@ function hsRenderSupplierCards() {
     /* Baris 1 = 3 minicard sama ukuran (Total · Selisih · Cash). Baris 2 = Pilih Supplier (kiri) · Bayar & Tambah (kanan). */
     '#hs-bon-topbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"tot sel cash" "sup act act";gap:12px;margin:0 0 12px}',
     '#hs-bon-topbar #hs-bon-switcher,#hs-bon-topbar #hs-bon-kas-cards{display:contents}',
+    '#hs-bon-topbar #hs-kpi-track,#hs-bon-topbar #hs-bon-supgrp-host{display:contents}',
+    '#hs-bon-topbar #hs-kpi-dots{display:none}',
     /* semua minicard: tinggi & gaya sama */
     '#hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:66px;box-sizing:border-box;min-width:0;padding:8px 12px;border:1.5px solid;border-radius:10px;display:flex;flex-direction:column;justify-content:center;background:var(--cream2)}',
     '#hs-bon-topbar .hs-bon-switcher-total{grid-area:tot;border-color:var(--ink4)}',
@@ -1541,7 +1547,13 @@ function hsRenderSupplierCards() {
     '#hs-bon-topbar #hs-bon-toolbar .btn-sm{height:40px;padding:0 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
     '#hs-bon-topbar #hs-bon-toolbar .hs-btn-icon-only{height:40px;width:40px;padding:0;border-radius:10px}',
     '@media (max-width:640px){',
-    '  #hs-bon-topbar{grid-template-areas:"tot sel cash" "sup sup sup" "act act act"}',
+    '  #hs-bon-topbar{grid-template-areas:\"kpi kpi kpi\" \"dots dots dots\" \"sup sup sup\" \"act act act\";gap:8px}',
+    '  #hs-bon-topbar #hs-kpi-track{grid-area:kpi;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}',
+    '  #hs-bon-topbar #hs-kpi-track::-webkit-scrollbar{display:none}',
+    '  #hs-bon-topbar #hs-kpi-track .hs-bon-switcher-total,#hs-bon-topbar #hs-kpi-track .hs-kc{flex:0 0 100%;width:100%;scroll-snap-align:start;height:60px}',
+    '  #hs-bon-topbar #hs-kpi-dots{grid-area:dots;display:flex;justify-content:center;align-items:center;gap:6px;margin-top:-2px}',
+    '  #hs-bon-topbar #hs-kpi-dots span{width:6px;height:6px;border-radius:3px;background:var(--ink4);cursor:pointer;transition:width .2s,background .2s}',
+    '  #hs-bon-topbar #hs-kpi-dots span.active{width:18px;background:var(--ink3)}',
     '  #hs-bon-topbar .hs-bon-switcher-total,#hs-bon-topbar .hs-kc{height:60px;padding:6px 8px}',
     '  #hs-bon-topbar .hs-bon-supgrp{justify-self:stretch;width:100%}',
     '  #hs-bon-topbar .hs-bon-supgrp .hs-bon-switcher-sup{justify-self:stretch;max-width:none;min-width:0;width:auto;flex:1}',
@@ -1613,6 +1625,10 @@ function hsRenderBonSwitcher() {
       '<button id="hs-bon-export-btn" class="hs-btn-pill hs-btn-ghost hs-btn-icon-only" style="display:' + (sup ? '' : 'none') + '" onclick="hsExportSupplierBonPDF(_hsFilterSupplier)" title="Export PDF"><i class="ti ti-file-download"></i></button>' +
     '</div>';
 
+  // 14 Okt 2026: dropdown supplier + Export PDF dipindah ke #hs-bon-supgrp-host (di luar track swipe KPI)
+  var _sgHost = document.getElementById('hs-bon-supgrp-host');
+  var _sgEl = el.querySelector('.hs-bon-supgrp');
+  if (_sgHost && _sgEl) { _sgHost.innerHTML = ''; _sgHost.appendChild(_sgEl); }
   var exportBtn = document.getElementById('hs-bon-export-btn');
   if (exportBtn) exportBtn.style.display = sup ? '' : 'none';
   hsRenderBonKasCards();
@@ -1692,7 +1708,7 @@ function hsCycleSupplierFilter(dir) {
 // begitu propagation diputus di titik ini, listener swipe global gak akan pernah
 // tau ada sentuhan sama sekali (dia baru mulai "tracking" dari touchstart-nya sendiri).
 function _hsInitSwitcherSwipe(prefix) {
-  var parent = document.getElementById('hs-' + prefix + '-switcher');
+  var parent = document.getElementById(prefix === 'bon' ? 'hs-bon-supgrp-host' : 'hs-' + prefix + '-switcher');
   if (!parent) return;
   var boxSel = '#hs-' + prefix + '-switcher-sup';
   var startX = 0, startY = 0, startT = 0, tracking = false, isHoriz = null, swiped = false;
@@ -1739,6 +1755,27 @@ function _hsInitSwitcherSwipe(prefix) {
 }
 _hsInitSwitcherSwipe('bon');
 _hsInitSwitcherSwipe('master');
+
+// 14 Okt 2026: swipe 1x1 minicard KPI (HP). Scroll native + scroll-snap; dots ikut posisi.
+function hsKpiGo(i) {
+  var t = document.getElementById('hs-kpi-track');
+  if (!t) return;
+  t.scrollTo({ left: i * t.clientWidth, behavior: 'smooth' });
+}
+document.addEventListener('scroll', function(e) {
+  var t = e.target;
+  if (!t || t.id !== 'hs-kpi-track') return;
+  var i = Math.round(t.scrollLeft / Math.max(t.clientWidth, 1));
+  document.querySelectorAll('#hs-kpi-dots span').forEach(function(d, k) { d.classList.toggle('active', k === i); });
+}, true);
+(function() {
+  var t = document.getElementById('hs-kpi-track');
+  if (!t) return;
+  // swipe horizontal di track ini jangan ikut dianggap swipe pindah-panel/tab global
+  ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function(ev) {
+    t.addEventListener(ev, function(e) { e.stopPropagation(); }, { passive: true });
+  });
+})();
 
 function hsSelectSupplierFilter(id) {
   _hsFilterSupplier = id;
