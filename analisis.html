@@ -878,8 +878,6 @@
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
   .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
-  /* [15 Okt 2026] Proyeksi: kolom Kriteria ke-2 (desktop) di antara ANUAL/AVERAGE/SUM dan kolom toko, tidak sticky */
-  .tc-table th.tc-kr2, .tc-table td.tc-kr2{ position:static; min-width:170px; }
   /* [15 Okt 2026] Overview/Mingguan/Proyeksi (laptop): tabel dipaskan ke 1 layar tanpa scroll — padding vertikal sel dikecilkan oleh tcFitTable() lewat --tc-py */
   .tc-table-card.tc-fit .tc-table th, .tc-table-card.tc-fit .tc-table td{ padding-top:var(--tc-py,10px); padding-bottom:var(--tc-py,10px); }
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
@@ -936,7 +934,6 @@
     .tc-kriteria-grid{ display:none; }
     .tc-table th[data-col], .tc-table td[data-col]{ display:none; }
     .tc-table th[data-col].tc-mobile-active, .tc-table td[data-col].tc-mobile-active{ display:table-cell; }
-    .tc-table th.tc-kr2, .tc-table td.tc-kr2{ display:none; }   /* HP: 1 kolom kriteria saja */
     /* [23 Sep 2026] 3 tombol Data Periode/Bulanan/nilai periode dipaksa 1 baris (sebelumnya kepotong
        jadi 2 baris karena flex-wrap + label kepanjangan) — cuma efektif di layar ≤600px, desktop gak kepengaruh */
     .tc-control-row{ flex-wrap:nowrap; gap:6px; width:100%; }
@@ -3601,8 +3598,8 @@ let TC_DATA = null;                 // { [tokoId]: { bulan:{key:snap}, minggu:{k
 let TC_MODE = 'bulan';              // 'bulan' (1 periode, side-by-side) | 'tren' (grafik garis per kriteria)
 let TC_GRAN = 'bulanan';            // 'bulanan' | 'mingguan'
 const TC_KR_MAX = 13;   // [14 Okt 2026] batas kriteria yang bisa dicentang (pas di layar). Mau nambah → uncentang dulu.
-let TC_KRITERIA = new Set(['netIncome','pendapatan','hpp','operasional','iklan','labaRugi','ratioAdmin','rasioOperasional','rasioMargin','npm','rasioLaba','acos','roas']);   // [15 Okt 2026] default 13 kriteria: Penghasilan, AOV & Basket Size tidak dicentang
-let TC_SWAP = false;   // ⇄ di header tabel: false = ANUAL/AVERAGE/SUM di kiri, true = kolom toko di kiri (kriteria dekat data)
+let TC_KRITERIA = new Set(['netIncome','penghasilan','hpp','operasional','iklan','labaRugi','ratioAdmin','rasioOperasional','rasioMargin','npm','rasioLaba','acos','roas']);   // [15 Okt 2026] default 13 kriteria: Total Pendapatan, AOV & Basket Size tidak dicentang (Total Penghasilan dicentang)
+let TC_SWAP = false;   // ⇄ di header tabel: menukar isi blok 2 (bisa digeser) dan blok 3 (diam) — false = ANUAL/AVERAGE/SUM di blok 2, true = kolom toko di blok 2
 function tcKrTryAdd(k){
   if(TC_KRITERIA.has(k)) return true;
   if(TC_KRITERIA.size >= TC_KR_MAX) return false;
@@ -4305,7 +4302,7 @@ function tcRenderTable(wrap, tokoList){
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys.filter(k=>k<TC_BULAN_PICK).pop() : null;   // periode terakhir sebelum yang dipilih (Proyeksi: bulan berjalan belum tentu ada di keys)
   const isProy = TC_GRAN==='proyeksi';
-  const swapOn = showBiz && !isProy && TC_SWAP;   // Proyeksi: tombol ⇄ dihapus, kolom Kriteria ke-2 sebagai gantinya
+  const swapOn = showBiz && TC_SWAP;   // ⇄ menukar isi blok 2 & blok 3 (Overview dan Proyeksi)
   // [23 Sep 2026, poin 1] Judul kolom SUM sekarang ikut label rentang (3/6/12 Bulan) — ANUAL/AVERAGE tetap kayak sebelumnya.
   const sumRangeLabel = TC_RANGE==='3bulan' ? '3 Bulan' : TC_RANGE==='12bulan' ? '1 Tahun' : '6 Bulan';
   const bizHead = showBiz
@@ -4314,8 +4311,8 @@ function tcRenderTable(wrap, tokoList){
   const gapTd = showBiz ? '<td class="tc-gap"></td>' : '';   // celah antar blok kolom (cuma ada kalau ada 2 blok: kolom bisnis | kolom toko)
   const gapTh = showBiz ? '<th class="tc-gap"></th>' : '';
   const gapkTd = '<td class="tc-gap tc-gapk"></td>', gapkTh = '<th class="tc-gap tc-gapk"></th>';   // celah sticky antara blok Kriteria dan blok data (laptop)
-  const fillTd = isProy ? '' : '<td class="tc-fill"></td>'.repeat(3);   // 3 kolom kosong di ujung kanan blok 2 (laptop): ruang geser supaya kolom terakhir blok 2 bisa nempel di sisi Kriteria
-  const fillTh = isProy ? '' : '<th class="tc-fill"></th>'.repeat(3);
+  const fillTd = '<td class="tc-fill"></td>'.repeat(3);   // 3 kolom kosong di ujung kanan blok 2 (laptop): ruang geser supaya kolom terakhir blok 2 bisa nempel di sisi Kriteria
+  const fillTh = '<th class="tc-fill"></th>'.repeat(3);
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
@@ -4342,13 +4339,11 @@ function tcRenderTable(wrap, tokoList){
     const k = `<td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}`;
     // Blok 2 (bisa digeser) = kolom setelah Kriteria + 3 kolom kosong; blok 3 (diam) = sisanya. Mingguan: cuma blok 2.
     return !showBiz ? `<tr>${k}${cells}${fillTd}</tr>`
-      : isProy ? `<tr>${k}${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}</tr>`
       : swapOn ? `<tr>${k}${cells}${fillTd}${gapTd}${bizCells}</tr>`
       : `<tr>${k}${bizCells}${fillTd}${gapTd}${cells}</tr>`;
   }).join('');
-  const swapBtn = (showBiz && !isProy) ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar isi blok 2 (bisa digeser) dengan blok 3 (diam)">⇄</button>` : '';
+  const swapBtn = showBiz ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar isi blok 2 (bisa digeser) dengan blok 3 (diam)">⇄</button>` : '';
   const headCols = !showBiz ? tokoHead + fillTh
-    : isProy ? bizHead + gapTh + '<th class="tc-kriteria tc-kr2">Kriteria</th>' + tokoHead
     : swapOn ? tokoHead + fillTh + gapTh + bizHead
     : bizHead + fillTh + gapTh + tokoHead;
   wrap.innerHTML = `<div class="card tc-table-card tc-cbar"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${gapkTh}${headCols}</tr></thead><tbody>${rows}</tbody></table></div><div class="tc-hbar"><div class="tc-hbar-thumb"></div></div></div>`;
