@@ -856,8 +856,6 @@
   .tc-tab{ background:none; border:0; padding:10px 0 9px; font-size:14px; font-weight:500; color:var(--ink-soft); cursor:pointer; font-family:inherit; white-space:nowrap; border-bottom:3px solid transparent; margin-bottom:-1px; }
   .tc-tab.active{ color:#EE4D2D; font-weight:700; border-bottom-color:#EE4D2D; }
   .tc-tab-note{ font-size:11.5px; color:var(--ink-soft); margin:0 0 10px; }
-  .tc-kr-head{ display:inline-flex; align-items:center; gap:8px; }
-  .tc-swap-btn{ border:1px solid var(--line); background:#fff; border-radius:6px; padding:1px 7px; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink); }
   .tc-mode-btn.active, .tc-gran-btn.active{ background:var(--ink); color:#fff; }
   .tc-period{ display:flex; flex-direction:column; gap:8px; }
   .tc-range-btns{ display:flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
@@ -875,7 +873,8 @@
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
   .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
-  .tc-table th.tc-biz:last-of-type, .tc-table td.tc-biz:last-of-type{ border-right:2px solid var(--line); }
+  /* [15 Okt 2026] Kolom Kriteria ke-2 (desktop): di antara ANUAL/AVERAGE/SUM dan kolom toko, tidak sticky */
+  .tc-table th.tc-kr2, .tc-table td.tc-kr2{ position:static; min-width:170px; border-left:2px solid var(--line); }
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
   .tc-chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
   .tc-chart-card{ padding:12px 14px; }
@@ -902,6 +901,7 @@
     .tc-kriteria-grid{ display:none; }
     .tc-table th[data-col], .tc-table td[data-col]{ display:none; }
     .tc-table th[data-col].tc-mobile-active, .tc-table td[data-col].tc-mobile-active{ display:table-cell; }
+    .tc-table th.tc-kr2, .tc-table td.tc-kr2{ display:none; }   /* HP: 1 kolom kriteria saja */
     /* [23 Sep 2026] 3 tombol Data Periode/Bulanan/nilai periode dipaksa 1 baris (sebelumnya kepotong
        jadi 2 baris karena flex-wrap + label kepanjangan) — cuma efektif di layar ≤600px, desktop gak kepengaruh */
     .tc-control-row{ flex-wrap:nowrap; gap:6px; width:100%; }
@@ -3567,7 +3567,6 @@ let TC_MODE = 'bulan';              // 'bulan' (1 periode, side-by-side) | 'tren
 let TC_GRAN = 'bulanan';            // 'bulanan' | 'mingguan'
 const TC_KR_MAX = 13;   // [14 Okt 2026] batas kriteria yang bisa dicentang (pas di layar). Mau nambah → uncentang dulu.
 let TC_KRITERIA = new Set(['netIncome','pendapatan','hpp','operasional','iklan','labaRugi','aov','rasioMargin','npm','rasioLaba','acos','roas','basket']);   // default 13 kriteria (paling relevan buat scale up)
-let TC_SWAP = false;   // ⇄ di header tabel: false = ANUAL/AVERAGE/SUM di kiri, true = kolom toko di kiri (kriteria dekat data)
 function tcKrTryAdd(k){
   if(TC_KRITERIA.has(k)) return true;
   if(TC_KRITERIA.size >= TC_KR_MAX) return false;
@@ -3605,23 +3604,6 @@ function tcDictOf(t){ return (TC_DATA && TC_DATA[t.id] ? tcDictFor(TC_DATA[t.id]
 function tcBizDictOf(t){
   if(TC_GRAN==='proyeksi') return (TC_DATA && TC_DATA[t.id] && TC_DATA[t.id].proyeksiProj) || {};
   return tcDictOf(t);
-}
-// [14 Okt 2026] Snapshot Proyeksi cuma sebagian bulan (1 s/d hari terakhir).
-// toFullMonth=false → nominal per hari (untuk kolom per toko, biar sebanding).
-// toFullMonth=true  → perkiraan sampai akhir bulan = per hari × jumlah hari bulan (untuk ANUAL/AVERAGE/SUM).
-function tcScaleProyeksi(dict, toFullMonth){
-  const out = {};
-  Object.keys(dict || {}).forEach(k=>{
-    const snap = dict[k]; if(!snap) return;
-    const hari = Number(snap.hari) || 0;
-    if(!hari){ out[k] = snap; return; }
-    const hb = Number(snap.hariBulan) || new Date(parseInt(k.slice(0,4),10), parseInt(k.slice(5,7),10), 0).getDate();
-    const f = toFullMonth ? hb/hari : 1/hari;
-    const c = Object.assign({}, snap);
-    REKAP_METRICS.forEach(m=>{ if(m.fmt==='rp' && m.key!=='aov' && typeof c[m.key]==='number') c[m.key] = c[m.key]*f; });
-    out[k] = c;
-  });
-  return out;
 }
 function tcAllPeriodKeys(dataByToko, gran){
   const set = new Set();
@@ -3845,8 +3827,8 @@ function tcUpdatePeriodValBtnLabel(){
 // pintas langsung di bawah baris tombol. "Custom" sengaja TIDAK diduplikasi ke sini (butuh 2 input
 // tanggal, gak muat jadi 1 tombol pintas) — tetap cuma lewat dropdown tcPeriodValBtn seperti biasa.
 // [23 Sep 2026, poin 1] Sekarang juga tampil di mode Data Periode + granularitas Bulanan (HP) — dipakai
-// buat nentuin rentang kolom SUM (lihat tcRangeSumForMetric), BUKAN buat AVERAGE/ANUAL (tetap 1 periode/histori
-// penuh seperti sebelumnya, sesuai request user).
+// buat nentuin rentang kolom SUM (lihat tcRangeSumForMetric), BUKAN buat AVERAGE/ANUAL (tetap 1 periode,
+// yaitu bulan yang dipilih).
 function tcRenderTrenQuickRange(){
   const wrap = document.getElementById('tcTrenQuickRangeWrap');
   const el = document.getElementById('tcTrenQuickRange');
@@ -4164,50 +4146,35 @@ function tcRenderContent(){
   if(!TC_KRITERIA.size){ wrap.innerHTML = '<div class="card tc-empty">Centang minimal 1 kriteria dulu.</div>'; if(colRow) colRow.innerHTML=''; return; }
   if(TC_MODE==='bulan') tcRenderTable(wrap, tokoList); else { if(colRow) colRow.innerHTML=''; renderStoreTopbar(); tcRenderCharts(wrap, tokoList); }
 }
-// [23 Sep 2026] Kolom gabungan SELURUH toko jadi satu ("bisnis gua"), bukan per-toko.
-// Nominal (Rp, kecuali AOV — sama kayak isNominal di rekapAggForMetric) digabung pakai SUM
-// antar toko per bulan; rasio/AOV/dll digabung pakai AVERAGE antar toko per bulan (gak ada
-// cara "jumlah" yang valid buat rasio). Dipakai sebagai bahan seri histori buat ANUAL.
-function tcBusinessValueAt(m, key, tokoList){
-  const dictOf = t => tcBizDictOf(t);
-  const vals = tokoList.map(t=>{
-    const snap = dictOf(t)[key];
-    const v = snap ? snap[m.key] : null;
-    return (v===null||v===undefined||isNaN(v)) ? null : v;
-  }).filter(v=>v!==null);
-  if(!vals.length) return null;
+// [15 Okt 2026] Kolom gabungan SELURUH toko jadi satu ("bisnis gua"). Nominal Rp (kecuali AOV) = dijumlah antar toko.
+// Rasio/AOV/Basket = rata-rata BERBOBOT (bukan rata-rata biasa), karena toko omzet besar harus lebih berpengaruh:
+// rasio-ke-pendapatan (margin, NPM, laba, ACOS, admin, operasional) dibobot Pendapatan; ROAS dibobot Iklan
+// (= total Pendapatan ÷ total Iklan); AOV & Basket dibobot jumlah pesanan. Bobot hilang/0 di salah satu toko → rata-rata biasa.
+const TC_WEIGHT_KEY = { ratioAdmin:'pendapatan', rasioOperasional:'pendapatan', rasioMargin:'pendapatan', npm:'pendapatan', rasioLaba:'pendapatan', acos:'pendapatan', roas:'iklan', aov:'orderCount', basket:'orderCount' };
+function tcCombineSnaps(m, snaps){
+  const pairs = snaps.filter(Boolean).map(s=>({ s, v:s[m.key] })).filter(p=>typeof p.v==='number' && !isNaN(p.v));
+  if(!pairs.length) return null;
   const isNominal = m.fmt==='rp' && m.key!=='aov';
-  const sumVal = vals.reduce((a,b)=>a+b,0);
-  return isNominal ? sumVal : sumVal/vals.length;
+  if(isNominal) return { val: pairs.reduce((a,p)=>a+p.v,0), n: pairs.length };
+  const wk = TC_WEIGHT_KEY[m.key];
+  const w = pairs.map(p=>Number(wk ? p.s[wk] : 0)||0);
+  const wTot = w.reduce((a,b)=>a+b,0);
+  if(wk && w.every(x=>x>0)) return { val: pairs.reduce((a,p,i)=>a+p.v*w[i],0)/wTot, n: pairs.length };
+  return { val: pairs.reduce((a,p)=>a+p.v,0)/pairs.length, n: pairs.length };
 }
-// [23 Sep 2026] ANUAL = proyeksi dari SELURUH histori data toko (average bulanan gabungan × 12) —
-// beda dari AVERAGE/SUM di bawah yang cuma dari 1 bulan yang lagi dipilih.
-function tcAnualForMetric(m, tokoList, keys){
-  const isNominal = m.fmt==='rp' && m.key!=='aov';
-  if(!isNominal) return null;
-  const series = keys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
-  if(!series.length) return null;
-  const avg = series.reduce((a,b)=>a+b,0)/series.length;
-  return avg*12;
-}
-// [23 Sep 2026] AVERAGE & SUM = gabungan 3 toko buat BULAN YANG DIPILIH aja (TC_BULAN_PICK) —
-// SUM = total 3 toko (cuma masuk akal buat nominal Rp), AVERAGE = rata-rata 3 toko (semua tipe metrik).
+// ANUAL & SUM(proyeksi) = nilai gabungan toko di bulan yang dipilih (TC_BULAN_PICK); AVERAGE = rata-rata per toko (nominal)
+// atau nilai gabungan berbobot (rasio). Cuma toko yang punya data di bulan itu yang ikut.
 function tcSelectedMonthAgg(m, tokoList){
-  const dictOf = t => tcBizDictOf(t);
-  const vals = tokoList.map(t=>{
-    const snap = dictOf(t)[TC_BULAN_PICK];
-    const v = snap ? snap[m.key] : null;
-    return (v===null||v===undefined||isNaN(v)) ? null : v;
-  }).filter(v=>v!==null);
-  if(!vals.length) return { avg:null, sum:null };
+  const snaps = tokoList.map(t=>tcBizDictOf(t)[TC_BULAN_PICK]);
+  const c = tcCombineSnaps(m, snaps);
+  if(!c) return { avg:null, sum:null };
   const isNominal = m.fmt==='rp' && m.key!=='aov';
-  const sumVal = vals.reduce((a,b)=>a+b,0);
-  return { avg: sumVal/vals.length, sum: isNominal ? sumVal : null };
+  return { avg: isNominal ? c.val/c.n : c.val, sum: isNominal ? c.val : null };
 }
 // [23 Sep 2026, poin 1] SUM sekarang bisa gabungan beberapa bulan (TC_RANGE: 3/6/12 bulan), bukan cuma
 // bulan yang dipilih — dihitung dari bulan TC_BULAN_PICK mundur ke belakang sebanyak N bulan (N dari
 // TC_RANGE). Custom TIDAK didukung di sini (quick-range di mode Data cuma nampilin 3/6/12, gak ada Custom).
-// Cuma buat metrik nominal (Rp, bukan AOV) — sama kayak sel.sum yang digantikannya.
+// Cuma buat metrik nominal (Rp, bukan AOV).
 function tcRangeSumForMetric(m, tokoList, keys){
   const isNominal = m.fmt==='rp' && m.key!=='aov';
   if(!isNominal) return null;
@@ -4215,7 +4182,7 @@ function tcRangeSumForMetric(m, tokoList, keys){
   if(endIdx<0) return null;
   const n = TC_RANGE==='3bulan' ? 3 : TC_RANGE==='12bulan' ? 12 : 6;
   const rangeKeys = keys.slice(Math.max(0, endIdx-n+1), endIdx+1);
-  const vals = rangeKeys.map(k=>tcBusinessValueAt(m,k,tokoList)).filter(v=>v!==null);
+  const vals = rangeKeys.map(k=>tcCombineSnaps(m, tokoList.map(t=>tcBizDictOf(t)[k]))).filter(c=>c!==null).map(c=>c.val);
   if(!vals.length) return null;
   return vals.reduce((a,b)=>a+b,0);
 }
@@ -4231,19 +4198,17 @@ function tcRenderTable(wrap, tokoList){
   const showBiz = (TC_GRAN==='bulanan' || TC_GRAN==='proyeksi');
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
-  const swapOn = showBiz && TC_SWAP;
   // [23 Sep 2026, poin 1] Judul kolom SUM sekarang ikut label rentang (3/6/12 Bulan) — ANUAL/AVERAGE tetap kayak sebelumnya.
   const sumRangeLabel = TC_RANGE==='3bulan' ? '3 Bulan' : TC_RANGE==='12bulan' ? '1 Tahun' : '6 Bulan';
   const bizHead = showBiz
-    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${TC_GRAN==='proyeksi' ? tokoEsc(tcPeriodLabel(TC_BULAN_PICK, TC_GRAN)) : sumRangeLabel})</th>`
+    ? `<th class="tc-biz" data-col="anual" title="Nilai bulan yang dipilih, gabungan toko yang punya data">ANUAL</th><th class="tc-biz" data-col="average" title="Nominal: rata-rata per toko yang punya data. Rasio: gabungan berbobot (bukan rata-rata biasa)">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total toko yang punya data, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${TC_GRAN==='proyeksi' ? tokoEsc(tcPeriodLabel(TC_BULAN_PICK, TC_GRAN)) : sumRangeLabel})</th>`
     : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
-      const anual = tcAnualForMetric(m, tokoList, keys);
       const sel = tcSelectedMonthAgg(m, tokoList);
       const rangeSum = tcRangeSumForMetric(m, tokoList, keys);
-      const anualCell = anual===null ? '-' : fmtRekapVal(anual, m.fmt);
+      const anualCell = sel.sum===null ? '-' : fmtRekapVal(sel.sum, m.fmt);   // ANUAL = nilai bulan yang dipilih
       const avgCell = sel.avg===null ? '-' : fmtRekapVal(sel.avg, m.fmt);
       const sumVal = TC_GRAN==='proyeksi' ? sel.sum : rangeSum;   // Proyeksi: SUM = total toko yang punya data di bulan yang dipilih
       const sumCell = sumVal===null ? '-' : fmtRekapVal(sumVal, m.fmt);
@@ -4260,14 +4225,11 @@ function tcRenderTable(wrap, tokoList){
       }
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
-    return swapOn
-      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`
-      : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
+    return showBiz
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}</tr>`
+      : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}</tr>`;
   }).join('');
-  const swapBtn = showBiz ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${swapOn ? tokoHead + bizHead : bizHead + tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  const swapEl = document.getElementById('btnTcSwap');
-  if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria">Kriteria</th>${showBiz ? bizHead + '<th class="tc-kriteria tc-kr2">Kriteria</th>' + tokoHead : tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
   renderStoreTopbar();
   tcApplyMobileColumnVisibility();
