@@ -843,6 +843,9 @@
   .tc-period-btn-label{ font-size:11px; color:var(--ink-soft); font-weight:600; }
   .tc-period-btn-value{ font-size:13px; color:var(--ink); font-weight:700; }
   .tc-period-btn-caret{ font-size:10px; color:var(--ink-soft); }
+  /* [15 Okt 2026] Proyeksi: tombol bulan = label bulan berjalan saja (tanpa panah, tidak bisa diklik) */
+  .tc-period-btn.tc-period-btn-static{ cursor:default; pointer-events:none; }
+  .tc-period-btn.tc-period-btn-static .tc-period-btn-caret{ display:none; }
   .tc-period-dd{ position:fixed; z-index:60; width:320px; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:14px; }
   .tc-pd-section{ margin-bottom:12px; }
   .tc-pd-section:last-child{ margin-bottom:0; }
@@ -875,17 +878,30 @@
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
   .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
-  .tc-table th.tc-biz:last-of-type, .tc-table td.tc-biz:last-of-type{ border-right:2px solid var(--line); }
   /* [15 Okt 2026] Proyeksi: kolom Kriteria ke-2 (desktop) di antara ANUAL/AVERAGE/SUM dan kolom toko, tidak sticky */
   .tc-table th.tc-kr2, .tc-table td.tc-kr2{ position:static; min-width:170px; }
-  /* [15 Okt 2026] Proyeksi: blok ANUAL/AVERAGE/SUM tampil sebagai kartu abu-abu membulat, dipisah jarak (warna latar halaman) dari Kriteria & kolom toko */
-  .tc-table.tc-proy{ border-collapse:separate; border-spacing:0; }
-  .tc-table th.tc-gap, .tc-table tbody tr:nth-child(n) td.tc-gap{ width:14px; min-width:14px; max-width:14px; padding:0; background:var(--bg); border-bottom:0; }
-  .tc-table.tc-proy th.tc-biz[data-col="anual"]{ border-top-left-radius:12px; }
-  .tc-table.tc-proy th.tc-biz[data-col="sum"]{ border-top-right-radius:12px; }
-  .tc-table.tc-proy tbody tr:last-child td.tc-biz[data-col="anual"]{ border-bottom-left-radius:12px; }
-  .tc-table.tc-proy tbody tr:last-child td.tc-biz[data-col="sum"]{ border-bottom-right-radius:12px; }
+  /* [15 Okt 2026] Overview/Mingguan/Proyeksi (laptop): tabel dipaskan ke 1 layar tanpa scroll — padding vertikal sel dikecilkan oleh tcFitTable() lewat --tc-py */
+  .tc-table-card.tc-fit .tc-table th, .tc-table-card.tc-fit .tc-table td{ padding-top:var(--tc-py,10px); padding-bottom:var(--tc-py,10px); }
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
+  /* [15 Okt 2026] Laptop (Overview, Mingguan, Proyeksi): kelompok kolom dipisah jadi blok sendiri-sendiri — ada celah (kolom .tc-gap) di antara
+     blok, tiap blok punya bingkai & sudut bulat sendiri, antar kolom ada garis tegak tipis. Celah dibuat renderer (tcRenderTable); di HP disembunyikan. */
+  .tc-table th.tc-gap, .tc-table td.tc-gap, .tc-table th.tc-fill, .tc-table td.tc-fill{ display:none; }
+  /* [15 Okt 2026] 3 kolom kosong (.tc-fill) di ujung kanan tabel Overview/Mingguan (laptop): bikin tabel bisa digeser ke kanan sampai
+     kolom toko terakhir nempel di sisi Kriteria (yang sticky). Lebar totalnya dihitung tcSizeFillers() dari lebar layar. */
+  @media (min-width:601px){
+    .tc-table{ width:max-content; min-width:100%; }
+    .tc-table th.tc-fill, .tc-table td.tc-fill{ display:table-cell; padding:0; border:0 !important; background:transparent !important; }
+    .tc-table-card{ background:transparent; border:0; box-shadow:none; overflow:visible; }
+    .tc-table{ border-collapse:separate; border-spacing:0; }
+    .tc-table th.tc-gap, .tc-table td.tc-gap{ display:table-cell; width:14px; min-width:14px; padding:0; border:0; background:transparent !important; }
+    .tc-table th:not(.tc-gap,.tc-fill), .tc-table td:not(.tc-gap,.tc-fill){ border-left:1px solid var(--line); }
+    .tc-table :is(th,td):not(.tc-gap,.tc-fill):last-child, .tc-table :is(th,td):not(.tc-gap,.tc-fill):has(+ :is(.tc-gap,.tc-fill)){ border-right:1px solid var(--line); }
+    .tc-table thead th:not(.tc-gap,.tc-fill){ border-top:1px solid var(--line); }
+    .tc-table thead th:not(.tc-gap,.tc-fill):first-child, .tc-table thead th.tc-gap + th{ border-top-left-radius:10px; }
+    .tc-table thead th:not(.tc-gap,.tc-fill):last-child, .tc-table thead th:has(+ :is(.tc-gap,.tc-fill)){ border-top-right-radius:10px; }
+    .tc-table tbody tr:last-child td:not(.tc-gap,.tc-fill):first-child, .tc-table tbody tr:last-child td.tc-gap + td{ border-bottom-left-radius:10px; }
+    .tc-table tbody tr:last-child td:not(.tc-gap,.tc-fill):last-child, .tc-table tbody tr:last-child td:has(+ :is(.tc-gap,.tc-fill)){ border-bottom-right-radius:10px; }
+  }
   .tc-chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
   .tc-chart-card{ padding:12px 14px; }
   .tc-chart-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
@@ -911,7 +927,7 @@
     .tc-kriteria-grid{ display:none; }
     .tc-table th[data-col], .tc-table td[data-col]{ display:none; }
     .tc-table th[data-col].tc-mobile-active, .tc-table td[data-col].tc-mobile-active{ display:table-cell; }
-    .tc-table th.tc-kr2, .tc-table td.tc-kr2, .tc-table th.tc-gap, .tc-table td.tc-gap{ display:none; }   /* HP: 1 kolom kriteria saja, tanpa jarak */
+    .tc-table th.tc-kr2, .tc-table td.tc-kr2{ display:none; }   /* HP: 1 kolom kriteria saja */
     /* [23 Sep 2026] 3 tombol Data Periode/Bulanan/nilai periode dipaksa 1 baris (sebelumnya kepotong
        jadi 2 baris karena flex-wrap + label kepanjangan) — cuma efektif di layar ≤600px, desktop gak kepengaruh */
     .tc-control-row{ flex-wrap:nowrap; gap:6px; width:100%; }
@@ -1979,7 +1995,7 @@
           <button type="button" class="tc-tab" data-gran="mingguan">Mingguan</button>
           <button type="button" class="tc-tab" data-gran="proyeksi">Proyeksi</button>
         </div>
-        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: nilai persis seperti yang tersimpan di Rekap Proyeksi (1 sampai tanggal terakhir yang disimpan).</div>
+        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: selalu bulan berjalan, nilai persis seperti yang tersimpan di Rekap Proyeksi (1 sampai tanggal terakhir yang disimpan).</div>
         <div class="tc-control-row">
           <button type="button" class="tc-period-btn" id="tcModeBtn"><span class="tc-period-btn-value" id="tcModeBtnValue">Data Periode</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcGranBtn" style="display:none"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
@@ -3576,7 +3592,7 @@ let TC_DATA = null;                 // { [tokoId]: { bulan:{key:snap}, minggu:{k
 let TC_MODE = 'bulan';              // 'bulan' (1 periode, side-by-side) | 'tren' (grafik garis per kriteria)
 let TC_GRAN = 'bulanan';            // 'bulanan' | 'mingguan'
 const TC_KR_MAX = 13;   // [14 Okt 2026] batas kriteria yang bisa dicentang (pas di layar). Mau nambah → uncentang dulu.
-let TC_KRITERIA = new Set(['netIncome','pendapatan','hpp','operasional','iklan','labaRugi','aov','rasioMargin','npm','rasioLaba','acos','roas','basket']);   // default 13 kriteria (paling relevan buat scale up)
+let TC_KRITERIA = new Set(['netIncome','pendapatan','hpp','operasional','iklan','labaRugi','ratioAdmin','rasioOperasional','rasioMargin','npm','rasioLaba','acos','roas']);   // [15 Okt 2026] default 13 kriteria: Penghasilan, AOV & Basket Size tidak dicentang
 let TC_SWAP = false;   // ⇄ di header tabel: false = ANUAL/AVERAGE/SUM di kiri, true = kolom toko di kiri (kriteria dekat data)
 function tcKrTryAdd(k){
   if(TC_KRITERIA.has(k)) return true;
@@ -3658,7 +3674,13 @@ function tcPeriodLabel(key, gran){
   const endLbl = ep[2]+'/'+ep[1]+'/'+ep[0].slice(2);
   return startLbl+' – '+endLbl;
 }
+// [15 Okt 2026] Proyeksi = SELALU bulan berjalan (tidak ada pilihan bulan). Key 'YYYY-MM' dari tanggal hari ini.
+function tcCurrentMonthKey(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
 function tcSyncBulanPickDefault(){
+  if(TC_GRAN==='proyeksi'){ TC_BULAN_PICK = tcCurrentMonthKey(); return; }
   // [23 Sep 2026] Dipanggil tiap TC_DATA/TC_GRAN berubah — TC_BULAN_PICK gak boleh
   // nunggu dropdown periode dibuka dulu buat ke-set, biar pas halaman baru dibuka
   // langsung ada data (default = periode terakhir yang ADA datanya, bukan hardcode bulan tertentu).
@@ -3849,6 +3871,8 @@ function tcUpdatePeriodValBtnLabel(){
   el.textContent = TC_MODE==='bulan'
     ? (TC_BULAN_PICK ? tcPeriodLabel(TC_BULAN_PICK, TC_GRAN) : 'Belum ada data')
     : tcRangeLabel();
+  const btn = document.getElementById('tcPeriodValBtn');
+  if(btn) btn.classList.toggle('tc-period-btn-static', TC_GRAN==='proyeksi' && TC_MODE==='bulan');   // Proyeksi: bulan berjalan, bukan pilihan
 }
 // [23 Sep 2026] Shortcut rentang cepat (3 Bulan/6 Bulan/1 Tahun) di HP, mode Tren — request user:
 // jangan cuma bisa ganti rentang lewat dropdown tombol nilai-periode (2x tap), tapi ada juga jalan
@@ -4008,6 +4032,7 @@ function tcPeriodValDDOutside(e){
 }
 function tcPeriodValDDEsc(e){ if(e.key==='Escape') tcClosePeriodValDropdown(); }
 function tcTogglePeriodValDropdown(){
+  if(TC_GRAN==='proyeksi' && TC_MODE==='bulan') return;   // [15 Okt 2026] Proyeksi: bulan berjalan, tidak ada pilihan bulan
   // [23 Sep 2026] Mode Data Periode + Bulanan = 1 klik langsung buka kalender
   // pilih bulan (gaya date-picker Shopee, sama kayak Rekap) — gak lewat dd+<select> lagi.
   if(TC_MODE==='bulan' && TC_GRAN==='bulanan'){
@@ -4133,6 +4158,7 @@ function tcSetGran(g){
 function tcSyncGranTabs(){
   document.querySelectorAll('#tcGranTabs .tc-tab').forEach(b=>b.classList.toggle('active', b.dataset.gran===TC_GRAN));
   const n = document.getElementById('tcProyeksiNote'); if(n) n.style.display = TC_GRAN==='proyeksi' ? '' : 'none';
+  tcUpdatePeriodValBtnLabel();
 }
 function tcBuildChartSvg(periods, seriesList, fmt){
   const allVals = [];
@@ -4268,7 +4294,7 @@ function tcRenderTable(wrap, tokoList){
   // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Anual)
   const showBiz = (TC_GRAN==='bulanan' || TC_GRAN==='proyeksi');
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
-  const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
+  const prevKey = showBiz ? keys.filter(k=>k<TC_BULAN_PICK).pop() : null;   // periode terakhir sebelum yang dipilih (Proyeksi: bulan berjalan belum tentu ada di keys)
   const isProy = TC_GRAN==='proyeksi';
   const swapOn = showBiz && !isProy && TC_SWAP;   // Proyeksi: tombol ⇄ dihapus, kolom Kriteria ke-2 sebagai gantinya
   // [23 Sep 2026, poin 1] Judul kolom SUM sekarang ikut label rentang (3/6/12 Bulan) — ANUAL/AVERAGE tetap kayak sebelumnya.
@@ -4276,6 +4302,10 @@ function tcRenderTable(wrap, tokoList){
   const bizHead = showBiz
     ? `<th class="tc-biz" data-col="anual" title="${isProy ? 'Perkiraan nilai bulan ini sampai akhir bulan: data tersimpan × hari bulan ÷ hari berjalan, gabungan toko yang punya data' : 'Proyeksi setahun dari seluruh histori data, gabungan semua toko'}">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${TC_GRAN==='proyeksi' ? tokoEsc(tcPeriodLabel(TC_BULAN_PICK, TC_GRAN)) : sumRangeLabel})</th>`
     : '';
+  const gapTd = showBiz ? '<td class="tc-gap"></td>' : '';   // celah antar blok kolom (cuma ada kalau ada 2 blok: kolom bisnis | kolom toko)
+  const gapTh = showBiz ? '<th class="tc-gap"></th>' : '';
+  const fillTd = isProy ? '' : '<td class="tc-fill"></td>'.repeat(3);   // 3 kolom kosong di ujung kanan (laptop): ruang geser supaya toko terakhir bisa nempel di sisi Kriteria
+  const fillTh = isProy ? '' : '<th class="tc-fill"></th>'.repeat(3);
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
@@ -4300,19 +4330,63 @@ function tcRenderTable(wrap, tokoList){
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
     return swapOn
-      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${gapTd}${bizCells}${fillTd}</tr>`
       : isProy
-        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td><td class="tc-gap"></td>${bizCells}<td class="tc-gap"></td><td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}</tr>`
-        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
+        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}${fillTd}</tr>`
+        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}${cells}${fillTd}</tr>`;
   }).join('');
   const swapBtn = (showBiz && !isProy) ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table${isProy ? ' tc-proy' : ''}"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${swapOn ? tokoHead + bizHead : isProy ? '<th class="tc-gap"></th>' + bizHead + '<th class="tc-gap"></th><th class="tc-kriteria tc-kr2">Kriteria</th>' + tokoHead : bizHead + tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${(swapOn ? tokoHead + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead) + fillTh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   const swapEl = document.getElementById('btnTcSwap');
   if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
   renderStoreTopbar();
   tcApplyMobileColumnVisibility();
+  tcLayoutTable();
 }
+// [15 Okt 2026] Urutan wajib: ukur lebar kolom kosong dulu (menentukan ada/tidaknya scrollbar horizontal), baru paskan tinggi baris.
+function tcLayoutTable(){ tcSizeFillers(); tcFitTable(); }
+// [15 Okt 2026] Lebar 3 kolom kosong (.tc-fill) = sisa lebar yang dibutuhkan supaya kolom toko TERAKHIR bisa digeser sampai nempel di sisi
+// Kriteria: F = lebar area tabel - Kriteria - toko terakhir - kolom yang ada setelahnya (lebar alami). Kalau sudah cukup lebar sendiri, F = 0.
+function tcSizeFillers(){
+  const table = document.querySelector('#tcContent .tc-table'); if(!table) return;
+  const fills = table.querySelectorAll('th.tc-fill, td.tc-fill');
+  fills.forEach(c=>{ c.style.width = ''; c.style.minWidth = ''; });
+  if(!fills.length || window.innerWidth<=600 || currentPage!=='tokocompare') return;
+  const scroller = table.parentElement;
+  const prevW = table.style.width, prevMin = table.style.minWidth;
+  table.style.width = 'max-content'; table.style.minWidth = '0';   // lebar alami (tanpa ditarik 100%)
+  const ths = Array.from(table.querySelectorAll('thead th')).filter(th=>!th.classList.contains('tc-fill'));
+  const isToko = th=>!!th.dataset.col && th.dataset.col.indexOf('toko:')===0;
+  let lastIdx = -1; ths.forEach((th,i)=>{ if(isToko(th)) lastIdx = i; });
+  let used = 0, lastToko = 0;   // used = Kriteria + semua kolom yang berada SETELAH toko terakhir (celah + kolom bisnis kalau ditukar ke kanan)
+  ths.forEach((th,i)=>{
+    const w = th.getBoundingClientRect().width;
+    if(i===lastIdx) lastToko = w;
+    else if(th.classList.contains('tc-kriteria') && !th.classList.contains('tc-kr2')) used += w;
+    else if(i>lastIdx) used += w;
+  });
+  table.style.width = prevW; table.style.minWidth = prevMin;
+  const need = Math.max(0, scroller.clientWidth - used - lastToko);
+  const per = Math.ceil(need/3);
+  fills.forEach(c=>{ c.style.width = per+'px'; c.style.minWidth = per+'px'; });
+}
+// [15 Okt 2026] Overview, Mingguan & Proyeksi (laptop, mode Data Periode): tabel harus muat 1 layar, tanpa scroll halaman. Padding vertikal sel dikecilkan bertahap
+// (10px -> 2px) sampai seluruh halaman muat tinggi layar; layar yang lega tetap 10px seperti biasa. HP tidak disentuh (sudah flat sendiri).
+function tcFitTable(){
+  const card = document.querySelector('#tcContent > .tc-table-card'); if(!card) return;
+  const fit = (TC_MODE==='bulan' && window.innerWidth>600 && currentPage==='tokocompare');
+  card.classList.toggle('tc-fit', fit);
+  card.style.removeProperty('--tc-py');
+  if(!fit) return;
+  const root = document.documentElement;
+  for(let py=10; py>=2; py--){
+    card.style.setProperty('--tc-py', py+'px');
+    if(root.scrollHeight <= window.innerHeight) break;   // tinggi seluruh halaman (termasuk padding & margin bawah) sudah muat layar
+  }
+}
+window.addEventListener('resize', tcLayoutTable);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(tcLayoutTable);
 function tcRenderCharts(wrap, tokoList){
   const dictOf = t => tcDictOf(t);
   const periods = tcRangeKeys(tcAllPeriodKeys(TC_DATA, TC_GRAN));
