@@ -878,12 +878,26 @@
   .tc-table thead th.tc-kriteria{ background:var(--title-bg); }
   .tc-table tbody tr:nth-child(even) td:not(.tc-kriteria){ background:#FAFBFD; }
   .tc-table th.tc-biz, .tc-table td.tc-biz{ background:var(--panel-alt); font-weight:700; }
-  .tc-table th.tc-biz:last-of-type, .tc-table td.tc-biz:last-of-type{ border-right:2px solid var(--line); }
   /* [15 Okt 2026] Proyeksi: kolom Kriteria ke-2 (desktop) di antara ANUAL/AVERAGE/SUM dan kolom toko, tidak sticky */
   .tc-table th.tc-kr2, .tc-table td.tc-kr2{ position:static; min-width:170px; }
-  /* [15 Okt 2026] Proyeksi (laptop): tabel dipaskan ke 1 layar tanpa scroll — padding vertikal sel dikecilkan oleh tcFitTable() lewat --tc-py */
+  /* [15 Okt 2026] Overview/Mingguan/Proyeksi (laptop): tabel dipaskan ke 1 layar tanpa scroll — padding vertikal sel dikecilkan oleh tcFitTable() lewat --tc-py */
   .tc-table-card.tc-fit .tc-table th, .tc-table-card.tc-fit .tc-table td{ padding-top:var(--tc-py,10px); padding-bottom:var(--tc-py,10px); }
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
+  /* [15 Okt 2026] Laptop (Overview, Mingguan, Proyeksi): kelompok kolom dipisah jadi blok sendiri-sendiri — ada celah (kolom .tc-gap) di antara
+     blok, tiap blok punya bingkai & sudut bulat sendiri, antar kolom ada garis tegak tipis. Celah dibuat renderer (tcRenderTable); di HP disembunyikan. */
+  .tc-table th.tc-gap, .tc-table td.tc-gap{ display:none; }
+  @media (min-width:601px){
+    .tc-table-card{ background:transparent; border:0; box-shadow:none; overflow:visible; }
+    .tc-table{ border-collapse:separate; border-spacing:0; }
+    .tc-table th.tc-gap, .tc-table td.tc-gap{ display:table-cell; width:14px; min-width:14px; padding:0; border:0; background:transparent !important; }
+    .tc-table th:not(.tc-gap), .tc-table td:not(.tc-gap){ border-left:1px solid var(--line); }
+    .tc-table :is(th,td):not(.tc-gap):last-child, .tc-table :is(th,td):not(.tc-gap):has(+ .tc-gap){ border-right:1px solid var(--line); }
+    .tc-table thead th:not(.tc-gap){ border-top:1px solid var(--line); }
+    .tc-table thead th:not(.tc-gap):first-child, .tc-table thead th.tc-gap + th{ border-top-left-radius:10px; }
+    .tc-table thead th:not(.tc-gap):last-child, .tc-table thead th:has(+ .tc-gap){ border-top-right-radius:10px; }
+    .tc-table tbody tr:last-child td:not(.tc-gap):first-child, .tc-table tbody tr:last-child td.tc-gap + td{ border-bottom-left-radius:10px; }
+    .tc-table tbody tr:last-child td:not(.tc-gap):last-child, .tc-table tbody tr:last-child td:has(+ .tc-gap){ border-bottom-right-radius:10px; }
+  }
   .tc-chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
   .tc-chart-card{ padding:12px 14px; }
   .tc-chart-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
@@ -4284,6 +4298,8 @@ function tcRenderTable(wrap, tokoList){
   const bizHead = showBiz
     ? `<th class="tc-biz" data-col="anual" title="${isProy ? 'Perkiraan nilai bulan ini sampai akhir bulan: data tersimpan × hari bulan ÷ hari berjalan, gabungan toko yang punya data' : 'Proyeksi setahun dari seluruh histori data, gabungan semua toko'}">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${TC_GRAN==='proyeksi' ? tokoEsc(tcPeriodLabel(TC_BULAN_PICK, TC_GRAN)) : sumRangeLabel})</th>`
     : '';
+  const gapTd = showBiz ? '<td class="tc-gap"></td>' : '';   // celah antar blok kolom (cuma ada kalau ada 2 blok: kolom bisnis | kolom toko)
+  const gapTh = showBiz ? '<th class="tc-gap"></th>' : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
     if(showBiz){
@@ -4308,13 +4324,13 @@ function tcRenderTable(wrap, tokoList){
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
     return swapOn
-      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${gapTd}${bizCells}</tr>`
       : isProy
-        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}</tr>`
-        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
+        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}</tr>`
+        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}${cells}</tr>`;
   }).join('');
   const swapBtn = (showBiz && !isProy) ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${swapOn ? tokoHead + bizHead : bizHead + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${swapOn ? tokoHead + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   const swapEl = document.getElementById('btnTcSwap');
   if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
@@ -4322,11 +4338,11 @@ function tcRenderTable(wrap, tokoList){
   tcApplyMobileColumnVisibility();
   tcFitTable();
 }
-// [15 Okt 2026] Proyeksi (laptop): tabel harus muat 1 layar, tanpa scroll halaman. Padding vertikal sel dikecilkan bertahap
+// [15 Okt 2026] Overview, Mingguan & Proyeksi (laptop, mode Data Periode): tabel harus muat 1 layar, tanpa scroll halaman. Padding vertikal sel dikecilkan bertahap
 // (10px -> 2px) sampai seluruh halaman muat tinggi layar; layar yang lega tetap 10px seperti biasa. HP tidak disentuh (sudah flat sendiri).
 function tcFitTable(){
   const card = document.querySelector('#tcContent > .tc-table-card'); if(!card) return;
-  const fit = (TC_GRAN==='proyeksi' && TC_MODE==='bulan' && window.innerWidth>600 && currentPage==='tokocompare');
+  const fit = (TC_MODE==='bulan' && window.innerWidth>600 && currentPage==='tokocompare');
   card.classList.toggle('tc-fit', fit);
   card.style.removeProperty('--tc-py');
   if(!fit) return;
