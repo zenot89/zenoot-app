@@ -1969,7 +1969,7 @@
           <button type="button" class="tc-tab" data-gran="mingguan">Mingguan</button>
           <button type="button" class="tc-tab" data-gran="proyeksi">Proyeksi</button>
         </div>
-        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: data dari 1 sampai tanggal terakhir yang disimpan. Kolom toko = nominal per hari. ANUAL/AVERAGE/SUM = perkiraan sampai akhir bulan.</div>
+        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: nilai persis seperti yang tersimpan di Rekap Proyeksi (1 sampai tanggal terakhir yang disimpan).</div>
         <div class="tc-control-row">
           <button type="button" class="tc-period-btn" id="tcModeBtn"><span class="tc-period-btn-value" id="tcModeBtnValue">Data Periode</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcGranBtn" style="display:none"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
@@ -3595,7 +3595,7 @@ async function tcFetchAllRekap(tokoIds){
     if(b){ try{ bulan = JSON.parse(b.value) || {}; }catch(e){} }
     if(m){ try{ minggu = JSON.parse(m.value) || {}; }catch(e){} }
     if(pj){ try{ proyeksi = JSON.parse(pj.value) || {}; }catch(e){} }
-    out[id] = { bulan, minggu, proyeksi: tcScaleProyeksi(proyeksi, false), proyeksiProj: tcScaleProyeksi(proyeksi, true) };
+    out[id] = { bulan, minggu, proyeksi: proyeksi, proyeksiProj: proyeksi };
   });
   return out;
 }
