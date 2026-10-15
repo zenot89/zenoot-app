@@ -1969,7 +1969,7 @@
           <button type="button" class="tc-tab" data-gran="mingguan">Mingguan</button>
           <button type="button" class="tc-tab" data-gran="proyeksi">Proyeksi</button>
         </div>
-        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: data dari 1 sampai tanggal terakhir yang disimpan. Kolom toko = nominal per hari. ANUAL/AVERAGE/SUM = total bulanan asli.</div>
+        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: data dari 1 sampai tanggal terakhir yang disimpan. Kolom toko = nominal per hari. ANUAL/AVERAGE/SUM = perkiraan sampai akhir bulan.</div>
         <div class="tc-control-row">
           <button type="button" class="tc-period-btn" id="tcModeBtn"><span class="tc-period-btn-value" id="tcModeBtnValue">Data Periode</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcGranBtn" style="display:none"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
@@ -3567,7 +3567,7 @@ let TC_MODE = 'bulan';              // 'bulan' (1 periode, side-by-side) | 'tren
 let TC_GRAN = 'bulanan';            // 'bulanan' | 'mingguan'
 const TC_KR_MAX = 13;   // [14 Okt 2026] batas kriteria yang bisa dicentang (pas di layar). Mau nambah → uncentang dulu.
 let TC_KRITERIA = new Set(['netIncome','pendapatan','hpp','operasional','iklan','labaRugi','aov','rasioMargin','npm','rasioLaba','acos','roas','basket']);   // default 13 kriteria (paling relevan buat scale up)
-let TC_SWAP = false;   // ⇄ di header tabel: false = ANUAL/AVERAGE/SUM, true = 3 periode terakhir (terbaru dulu)
+let TC_SWAP = false;   // ⇄ di header tabel: false = ANUAL/AVERAGE/SUM di kiri, true = kolom toko di kiri (kriteria dekat data)
 function tcKrTryAdd(k){
   if(TC_KRITERIA.has(k)) return true;
   if(TC_KRITERIA.size >= TC_KR_MAX) return false;
@@ -3595,7 +3595,7 @@ async function tcFetchAllRekap(tokoIds){
     if(b){ try{ bulan = JSON.parse(b.value) || {}; }catch(e){} }
     if(m){ try{ minggu = JSON.parse(m.value) || {}; }catch(e){} }
     if(pj){ try{ proyeksi = JSON.parse(pj.value) || {}; }catch(e){} }
-    out[id] = { bulan, minggu, proyeksi: tcNormProyeksi(proyeksi), proyeksiRaw: proyeksi };
+    out[id] = { bulan, minggu, proyeksi: tcScaleProyeksi(proyeksi, false), proyeksiProj: tcScaleProyeksi(proyeksi, true) };
   });
   return out;
 }
@@ -3603,18 +3603,22 @@ function tcDictFor(d, gran){ return gran==='mingguan' ? d.minggu : gran==='proye
 function tcDictOf(t){ return (TC_DATA && TC_DATA[t.id] ? tcDictFor(TC_DATA[t.id], TC_GRAN) : null) || {}; }
 // Kolom ANUAL/AVERAGE/SUM (gabungan toko): proyeksi pakai total bulanan asli (bukan per hari)
 function tcBizDictOf(t){
-  if(TC_GRAN==='proyeksi') return (TC_DATA && TC_DATA[t.id] && TC_DATA[t.id].proyeksiRaw) || {};
+  if(TC_GRAN==='proyeksi') return (TC_DATA && TC_DATA[t.id] && TC_DATA[t.id].proyeksiProj) || {};
   return tcDictOf(t);
 }
-// [14 Okt 2026] Snapshot Proyeksi cuma sebagian bulan (1 s/d hari terakhir): nominal dibagi jumlah hari biar sebanding antar toko/periode.
-function tcNormProyeksi(dict){
+// [14 Okt 2026] Snapshot Proyeksi cuma sebagian bulan (1 s/d hari terakhir).
+// toFullMonth=false → nominal per hari (untuk kolom per toko, biar sebanding).
+// toFullMonth=true  → perkiraan sampai akhir bulan = per hari × jumlah hari bulan (untuk ANUAL/AVERAGE/SUM).
+function tcScaleProyeksi(dict, toFullMonth){
   const out = {};
   Object.keys(dict || {}).forEach(k=>{
     const snap = dict[k]; if(!snap) return;
     const hari = Number(snap.hari) || 0;
     if(!hari){ out[k] = snap; return; }
+    const hb = Number(snap.hariBulan) || new Date(parseInt(k.slice(0,4),10), parseInt(k.slice(5,7),10), 0).getDate();
+    const f = toFullMonth ? hb/hari : 1/hari;
     const c = Object.assign({}, snap);
-    REKAP_METRICS.forEach(m=>{ if(m.fmt==='rp' && m.key!=='aov' && typeof c[m.key]==='number') c[m.key] = c[m.key]/hari; });
+    REKAP_METRICS.forEach(m=>{ if(m.fmt==='rp' && m.key!=='aov' && typeof c[m.key]==='number') c[m.key] = c[m.key]*f; });
     out[k] = c;
   });
   return out;
@@ -4228,24 +4232,21 @@ function tcRenderTable(wrap, tokoList){
   const keys = showBiz ? tcAllPeriodKeys(TC_DATA, TC_GRAN) : [];
   const prevKey = showBiz ? keys[keys.indexOf(TC_BULAN_PICK)-1] : null;
   const swapOn = showBiz && TC_SWAP;
-  const swapPeriods = swapOn ? keys.slice(-3).reverse() : [];
   // [23 Sep 2026, poin 1] Judul kolom SUM sekarang ikut label rentang (3/6/12 Bulan) — ANUAL/AVERAGE tetap kayak sebelumnya.
   const sumRangeLabel = TC_RANGE==='3bulan' ? '3 Bulan' : TC_RANGE==='12bulan' ? '1 Tahun' : '6 Bulan';
-  const bizHeadSwap = swapPeriods.map(k=>`<th class="tc-biz" data-col="p:${k}">${tokoEsc(tcPeriodLabel(k, TC_GRAN))}</th>`).join('');
-  const bizHead = swapOn ? bizHeadSwap : showBiz
-    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${sumRangeLabel})</th>`
+  const bizHead = showBiz
+    ? `<th class="tc-biz" data-col="anual" title="Proyeksi setahun dari seluruh histori data, gabungan semua toko">ANUAL</th><th class="tc-biz" data-col="average" title="Rata-rata 3 toko di bulan yang dipilih">AVERAGE</th><th class="tc-biz" data-col="sum" title="Total 3 toko, ${sumRangeLabel} terakhir s.d. bulan yang dipilih">SUM (${TC_GRAN==='proyeksi' ? tokoEsc(tcPeriodLabel(TC_BULAN_PICK, TC_GRAN)) : sumRangeLabel})</th>`
     : '';
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
     let bizCells = '';
-    if(swapOn){
-      bizCells = swapPeriods.map(k=>{ const v = tcBusinessValueAt(m, k, tokoList); return `<td class="tc-biz" data-col="p:${k}">${v===null ? '-' : fmtRekapVal(v, m.fmt)}</td>`; }).join('');
-    } else if(showBiz){
+    if(showBiz){
       const anual = tcAnualForMetric(m, tokoList, keys);
       const sel = tcSelectedMonthAgg(m, tokoList);
       const rangeSum = tcRangeSumForMetric(m, tokoList, keys);
       const anualCell = anual===null ? '-' : fmtRekapVal(anual, m.fmt);
       const avgCell = sel.avg===null ? '-' : fmtRekapVal(sel.avg, m.fmt);
-      const sumCell = rangeSum===null ? '-' : fmtRekapVal(rangeSum, m.fmt);
+      const sumVal = TC_GRAN==='proyeksi' ? sel.sum : rangeSum;   // Proyeksi: SUM = total toko yang punya data di bulan yang dipilih
+      const sumCell = sumVal===null ? '-' : fmtRekapVal(sumVal, m.fmt);
       bizCells = `<td class="tc-biz" data-col="anual">${anualCell}</td><td class="tc-biz" data-col="average">${avgCell}</td><td class="tc-biz" data-col="sum">${sumCell}</td>`;
     }
     const cells = tokoList.map(t=>{
@@ -4259,10 +4260,12 @@ function tcRenderTable(wrap, tokoList){
       }
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
-    return `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
+    return swapOn
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${bizCells}</tr>`
+      : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${cells}</tr>`;
   }).join('');
-  const swapBtn = showBiz ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar ANUAL/AVERAGE/SUM dengan 3 periode terakhir">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${bizHead}${tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  const swapBtn = showBiz ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${swapOn ? tokoHead + bizHead : bizHead + tokoHead}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   const swapEl = document.getElementById('btnTcSwap');
   if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
