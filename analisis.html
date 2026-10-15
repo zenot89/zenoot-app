@@ -886,14 +886,16 @@
   /* [15 Okt 2026] Laptop (Overview, Mingguan, Proyeksi): kelompok kolom dipisah jadi blok sendiri-sendiri — ada celah (kolom .tc-gap) di antara
      blok, tiap blok punya bingkai & sudut bulat sendiri, antar kolom ada garis tegak tipis. Celah dibuat renderer (tcRenderTable); di HP disembunyikan. */
   .tc-table th.tc-gap, .tc-table td.tc-gap, .tc-table th.tc-fill, .tc-table td.tc-fill{ display:none; }
-  /* [15 Okt 2026] 3 kolom kosong (.tc-fill) di ujung kanan tabel Overview/Mingguan (laptop): bikin tabel bisa digeser ke kanan sampai
-     kolom toko terakhir nempel di sisi Kriteria (yang sticky). Lebar totalnya dihitung tcSizeFillers() dari lebar layar. */
+  /* [15 Okt 2026] Laptop: 3 BLOK — (1) Kriteria (kolom sticky, selalu terlihat) | (2) data yang sedang dilihat (toko / ANUAL-AVERAGE-SUM, ini yang digeser
+     kiri-kanan) | (3) 3 kolom kosong (.tc-fill) di ujung kanan: baru kelihatan setelah data digeser mentok ke ujung, supaya kolom terakhir bisa
+     nempel di sisi Kriteria. Celah antara blok 1 dan 2 = .tc-gapk (sticky, warna latar halaman, data lewat di bawahnya). Semua lebar kolom dihitung tcSizeColumns(). */
   @media (min-width:601px){
-    .tc-table{ width:max-content; min-width:100%; }
     .tc-table th.tc-fill, .tc-table td.tc-fill{ display:table-cell; padding:0; border:0 !important; background:transparent !important; }
     .tc-table-card{ background:transparent; border:0; box-shadow:none; overflow:visible; }
     .tc-table{ border-collapse:separate; border-spacing:0; }
     .tc-table th.tc-gap, .tc-table td.tc-gap{ display:table-cell; width:14px; min-width:14px; padding:0; border:0; background:transparent !important; }
+    .tc-table th.tc-gap.tc-gapk, .tc-table td.tc-gap.tc-gapk{ position:sticky; left:var(--tc-kw,0px); z-index:2; background:var(--bg) !important; }
+    .tc-table td.tc-kriteria, .tc-table th.tc-kriteria{ z-index:2; }
     .tc-table th:not(.tc-gap,.tc-fill), .tc-table td:not(.tc-gap,.tc-fill){ border-left:1px solid var(--line); }
     .tc-table :is(th,td):not(.tc-gap,.tc-fill):last-child, .tc-table :is(th,td):not(.tc-gap,.tc-fill):has(+ :is(.tc-gap,.tc-fill)){ border-right:1px solid var(--line); }
     .tc-table thead th:not(.tc-gap,.tc-fill){ border-top:1px solid var(--line); }
@@ -4304,6 +4306,7 @@ function tcRenderTable(wrap, tokoList){
     : '';
   const gapTd = showBiz ? '<td class="tc-gap"></td>' : '';   // celah antar blok kolom (cuma ada kalau ada 2 blok: kolom bisnis | kolom toko)
   const gapTh = showBiz ? '<th class="tc-gap"></th>' : '';
+  const gapkTd = '<td class="tc-gap tc-gapk"></td>', gapkTh = '<th class="tc-gap tc-gapk"></th>';   // celah sticky antara blok Kriteria dan blok data (laptop)
   const fillTd = isProy ? '' : '<td class="tc-fill"></td>'.repeat(3);   // 3 kolom kosong di ujung kanan (laptop): ruang geser supaya toko terakhir bisa nempel di sisi Kriteria
   const fillTh = isProy ? '' : '<th class="tc-fill"></th>'.repeat(3);
   const rows = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key)).map(m=>{
@@ -4330,13 +4333,13 @@ function tcRenderTable(wrap, tokoList){
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
     return swapOn
-      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${cells}${gapTd}${bizCells}${fillTd}</tr>`
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${cells}${gapTd}${bizCells}${fillTd}</tr>`
       : isProy
-        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}${fillTd}</tr>`
-        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${bizCells}${gapTd}${cells}${fillTd}</tr>`;
+        ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}${fillTd}</tr>`
+        : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${bizCells}${gapTd}${cells}${fillTd}</tr>`;
   }).join('');
   const swapBtn = (showBiz && !isProy) ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${(swapOn ? tokoHead + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead) + fillTh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${gapkTh}${(swapOn ? tokoHead + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead) + fillTh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   const swapEl = document.getElementById('btnTcSwap');
   if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
@@ -4345,31 +4348,44 @@ function tcRenderTable(wrap, tokoList){
   tcLayoutTable();
 }
 // [15 Okt 2026] Urutan wajib: ukur lebar kolom kosong dulu (menentukan ada/tidaknya scrollbar horizontal), baru paskan tinggi baris.
-function tcLayoutTable(){ tcSizeFillers(); tcFitTable(); }
-// [15 Okt 2026] Lebar 3 kolom kosong (.tc-fill) = sisa lebar yang dibutuhkan supaya kolom toko TERAKHIR bisa digeser sampai nempel di sisi
-// Kriteria: F = lebar area tabel - Kriteria - toko terakhir - kolom yang ada setelahnya (lebar alami). Kalau sudah cukup lebar sendiri, F = 0.
-function tcSizeFillers(){
+function tcLayoutTable(){ tcSizeColumns(); tcFitTable(); }
+// [15 Okt 2026] Laptop: hitung lebar SEMUA kolom (px, table-layout fixed lewat <colgroup>) supaya 3 blok jalan:
+// Kriteria (sticky) | data (lebar alami; kalau lebih sempit dari sisa layar, ditarik melebar sampai pas, jadi blok kosong TIDAK kelihatan di posisi awal) |
+// 3 kolom kosong (.tc-fill) = F, yaitu selisih yang dibutuhkan supaya kolom toko TERAKHIR bisa digeser sampai nempel di sisi Kriteria. Proyeksi tidak punya .tc-fill.
+function tcSizeColumns(){
   const table = document.querySelector('#tcContent .tc-table'); if(!table) return;
-  const fills = table.querySelectorAll('th.tc-fill, td.tc-fill');
-  fills.forEach(c=>{ c.style.width = ''; c.style.minWidth = ''; });
-  if(!fills.length || window.innerWidth<=600 || currentPage!=='tokocompare') return;
+  const oldCg = table.querySelector('colgroup'); if(oldCg) oldCg.remove();
+  table.style.tableLayout = ''; table.style.width = ''; table.style.minWidth = ''; table.style.removeProperty('--tc-kw');
+  if(window.innerWidth<=600 || currentPage!=='tokocompare') return;
   const scroller = table.parentElement;
-  const prevW = table.style.width, prevMin = table.style.minWidth;
-  table.style.width = 'max-content'; table.style.minWidth = '0';   // lebar alami (tanpa ditarik 100%)
-  const ths = Array.from(table.querySelectorAll('thead th')).filter(th=>!th.classList.contains('tc-fill'));
-  const isToko = th=>!!th.dataset.col && th.dataset.col.indexOf('toko:')===0;
-  let lastIdx = -1; ths.forEach((th,i)=>{ if(isToko(th)) lastIdx = i; });
-  let used = 0, lastToko = 0;   // used = Kriteria + semua kolom yang berada SETELAH toko terakhir (celah + kolom bisnis kalau ditukar ke kanan)
-  ths.forEach((th,i)=>{
-    const w = th.getBoundingClientRect().width;
-    if(i===lastIdx) lastToko = w;
-    else if(th.classList.contains('tc-kriteria') && !th.classList.contains('tc-kr2')) used += w;
-    else if(i>lastIdx) used += w;
-  });
-  table.style.width = prevW; table.style.minWidth = prevMin;
-  const need = Math.max(0, scroller.clientWidth - used - lastToko);
-  const per = Math.ceil(need/3);
-  fills.forEach(c=>{ c.style.width = per+'px'; c.style.minWidth = per+'px'; });
+  const ths = Array.from(table.querySelectorAll('thead th'));
+  table.style.width = 'max-content'; table.style.minWidth = '0';   // ukur lebar alami
+  const w = ths.map(th=>th.getBoundingClientRect().width);
+  table.style.width = ''; table.style.minWidth = '';
+  const gk = ths.findIndex(th=>th.classList.contains('tc-gapk')); if(gk<0) return;
+  const isFill = i=>ths[i].classList.contains('tc-fill'), isGap = i=>ths[i].classList.contains('tc-gap');
+  const idx = ths.map((_,i)=>i);
+  const dataIdx = idx.filter(i=>i>gk && !isFill(i));
+  const fillIdx = idx.filter(isFill);
+  const viewW = scroller.clientWidth - w[0] - w[gk];   // lebar jendela blok data
+  let dataW = dataIdx.reduce((a,i)=>a+w[i],0);
+  if(dataW < viewW){
+    const grow = dataIdx.filter(i=>!isGap(i));
+    const base = grow.reduce((a,i)=>a+w[i],0) || 1;
+    const extra = viewW - dataW;
+    grow.forEach(i=>{ w[i] += extra * w[i] / base; });
+    dataW = viewW;
+  }
+  if(fillIdx.length){
+    let lastToko = -1; ths.forEach((th,i)=>{ if(th.dataset.col && th.dataset.col.indexOf('toko:')===0) lastToko = i; });
+    const offsetLast = dataIdx.filter(i=>i<lastToko).reduce((a,i)=>a+w[i],0);   // jarak toko terakhir dari tepi kiri blok data
+    const F = Math.max(0, offsetLast - (dataW - viewW));
+    fillIdx.forEach(i=>{ w[i] = F / fillIdx.length; });
+  }
+  const total = w.reduce((a,b)=>a+b,0);
+  table.insertAdjacentHTML('afterbegin', '<colgroup>'+w.map(x=>'<col style="width:'+x+'px">').join('')+'</colgroup>');
+  table.style.tableLayout = 'fixed'; table.style.width = total+'px'; table.style.minWidth = '0';
+  table.style.setProperty('--tc-kw', w[0]+'px');
 }
 // [15 Okt 2026] Overview, Mingguan & Proyeksi (laptop, mode Data Periode): tabel harus muat 1 layar, tanpa scroll halaman. Padding vertikal sel dikecilkan bertahap
 // (10px -> 2px) sampai seluruh halaman muat tinggi layar; layar yang lega tetap 10px seperti biasa. HP tidak disentuh (sudah flat sendiri).
