@@ -850,6 +850,12 @@
   .tc-mode-switch, .tc-gran-switch{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
   .tc-mode-btn, .tc-gran-btn{ flex:1; border:0; background:#fff; color:var(--ink-soft); padding:7px 10px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; border-left:1px solid var(--line); }
   .tc-mode-btn:first-child, .tc-gran-btn:first-child{ border-left:0; }
+  /* [14 Okt 2026] Pilihan mode Perbandingan Toko: tab teks gaya Shopee (underline oranye di yang aktif) */
+  .tc-tabs{ display:flex; gap:22px; border-bottom:1px solid var(--line); margin:0 0 10px; overflow-x:auto; scrollbar-width:none; }
+  .tc-tabs::-webkit-scrollbar{ display:none; }
+  .tc-tab{ background:none; border:0; padding:10px 0 9px; font-size:14px; font-weight:500; color:var(--ink-soft); cursor:pointer; font-family:inherit; white-space:nowrap; border-bottom:3px solid transparent; margin-bottom:-1px; }
+  .tc-tab.active{ color:#EE4D2D; font-weight:700; border-bottom-color:#EE4D2D; }
+  .tc-tab-note{ font-size:11.5px; color:var(--ink-soft); margin:0 0 10px; }
   .tc-mode-btn.active, .tc-gran-btn.active{ background:var(--ink); color:#fff; }
   .tc-period{ display:flex; flex-direction:column; gap:8px; }
   .tc-range-btns{ display:flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
@@ -1956,9 +1962,15 @@
   <section class="page" id="page-tokocompare">
     <div class="card tc-kriteria-card">
       <div class="tc-kriteria-head">
+        <div class="tc-tabs" id="tcGranTabs">
+          <button type="button" class="tc-tab active" data-gran="bulanan">Overview</button>
+          <button type="button" class="tc-tab" data-gran="mingguan">Mingguan</button>
+          <button type="button" class="tc-tab" data-gran="proyeksi">Proyeksi</button>
+        </div>
+        <div class="tc-tab-note" id="tcProyeksiNote" style="display:none">Mode Proyeksi: data dari 1 sampai tanggal terakhir yang disimpan. Nominal ditampilkan per hari, rasio tetap.</div>
         <div class="tc-control-row">
           <button type="button" class="tc-period-btn" id="tcModeBtn"><span class="tc-period-btn-value" id="tcModeBtnValue">Data Periode</span><span class="tc-period-btn-caret">▾</span></button>
-          <button type="button" class="tc-period-btn" id="tcGranBtn"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
+          <button type="button" class="tc-period-btn" id="tcGranBtn" style="display:none"><span class="tc-period-btn-value" id="tcGranBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
           <button type="button" class="tc-period-btn" id="tcPeriodValBtn"><span class="tc-period-btn-value" id="tcPeriodValBtnValue">—</span><span class="tc-period-btn-caret">▾</span></button>
         </div>
         <span class="tc-kriteria-count" id="tcKriteriaCount"></span>
@@ -3567,17 +3579,34 @@ async function tcFetchAllRekap(tokoIds){
   tokoIds.forEach(id=>{
     const b = rows[id+'\u0000zenootAnalisis.rekap'];
     const m = rows[id+'\u0000zenootAnalisis.rekapMingguan'];
-    let bulan = {}, minggu = {};
+    const pj = rows[id+'\u0000zenootAnalisis.rekapProyeksi'];
+    let bulan = {}, minggu = {}, proyeksi = {};
     if(b){ try{ bulan = JSON.parse(b.value) || {}; }catch(e){} }
     if(m){ try{ minggu = JSON.parse(m.value) || {}; }catch(e){} }
-    out[id] = { bulan, minggu };
+    if(pj){ try{ proyeksi = JSON.parse(pj.value) || {}; }catch(e){} }
+    out[id] = { bulan, minggu, proyeksi: tcNormProyeksi(proyeksi) };
+  });
+  return out;
+}
+function tcDictFor(d, gran){ return gran==='mingguan' ? d.minggu : gran==='proyeksi' ? d.proyeksi : d.bulan; }
+function tcDictOf(t){ return (TC_DATA && TC_DATA[t.id] ? tcDictFor(TC_DATA[t.id], TC_GRAN) : null) || {}; }
+// [14 Okt 2026] Snapshot Proyeksi cuma sebagian bulan (1 s/d hari terakhir): nominal dibagi jumlah hari biar sebanding antar toko/periode.
+function tcNormProyeksi(dict){
+  const out = {};
+  Object.keys(dict || {}).forEach(k=>{
+    const snap = dict[k]; if(!snap) return;
+    const hari = Number(snap.hari) || 0;
+    if(!hari){ out[k] = snap; return; }
+    const c = Object.assign({}, snap);
+    REKAP_METRICS.forEach(m=>{ if(m.fmt==='rp' && m.key!=='aov' && typeof c[m.key]==='number') c[m.key] = c[m.key]/hari; });
+    out[k] = c;
   });
   return out;
 }
 function tcAllPeriodKeys(dataByToko, gran){
   const set = new Set();
   Object.values(dataByToko).forEach(d=>{
-    Object.keys((gran==='mingguan' ? d.minggu : d.bulan) || {}).forEach(k=>set.add(k));
+    Object.keys(tcDictFor(d, gran) || {}).forEach(k=>set.add(k));
   });
   return Array.from(set).sort();
 }
@@ -3587,7 +3616,7 @@ function tcAddDays(key, days){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function tcPeriodLabel(key, gran){
-  if(gran==='bulanan'){
+  if(gran==='bulanan' || gran==='proyeksi'){
     const y = key.slice(0,4), m = parseInt(key.slice(5,7),10)-1;
     return (REKAP_BULAN_SHORT[m]||'?')+' '+y;
   }
@@ -4063,7 +4092,18 @@ function tcRenderPeriodValDropdownContent(){
   if(gb) gb.addEventListener('click', tcToggleGranDropdown);
   const pb = document.getElementById('tcPeriodValBtn');
   if(pb) pb.addEventListener('click', tcTogglePeriodValDropdown);
+  document.querySelectorAll('#tcGranTabs .tc-tab').forEach(b=>b.addEventListener('click', ()=>tcSetGran(b.dataset.gran)));
+  tcSyncGranTabs();
 })();
+function tcSetGran(g){
+  if(g===TC_GRAN) return;
+  TC_GRAN = g;
+  tcSyncBulanPickDefault(); tcSyncGranTabs(); tcUpdateGranBtnLabel(); tcUpdatePeriodValBtnLabel(); tcRenderContent();
+}
+function tcSyncGranTabs(){
+  document.querySelectorAll('#tcGranTabs .tc-tab').forEach(b=>b.classList.toggle('active', b.dataset.gran===TC_GRAN));
+  const n = document.getElementById('tcProyeksiNote'); if(n) n.style.display = TC_GRAN==='proyeksi' ? '' : 'none';
+}
 function tcBuildChartSvg(periods, seriesList, fmt){
   const allVals = [];
   seriesList.forEach(s=>s.values.forEach(v=>{ if(v!==null && v!==undefined && !isNaN(v)) allVals.push(v); }));
@@ -4109,7 +4149,7 @@ function tcRenderContent(){
 // antar toko per bulan; rasio/AOV/dll digabung pakai AVERAGE antar toko per bulan (gak ada
 // cara "jumlah" yang valid buat rasio). Dipakai sebagai bahan seri histori buat ANUAL.
 function tcBusinessValueAt(m, key, tokoList){
-  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const dictOf = t => tcDictOf(t);
   const vals = tokoList.map(t=>{
     const snap = dictOf(t)[key];
     const v = snap ? snap[m.key] : null;
@@ -4133,7 +4173,7 @@ function tcAnualForMetric(m, tokoList, keys){
 // [23 Sep 2026] AVERAGE & SUM = gabungan 3 toko buat BULAN YANG DIPILIH aja (TC_BULAN_PICK) —
 // SUM = total 3 toko (cuma masuk akal buat nominal Rp), AVERAGE = rata-rata 3 toko (semua tipe metrik).
 function tcSelectedMonthAgg(m, tokoList){
-  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const dictOf = t => tcDictOf(t);
   const vals = tokoList.map(t=>{
     const snap = dictOf(t)[TC_BULAN_PICK];
     const v = snap ? snap[m.key] : null;
@@ -4165,7 +4205,7 @@ function tcRangeSumForMetric(m, tokoList, keys){
 // dipilih lewat picker bottom-sheet, lihat tcApplyMobileColumnVisibility).
 function tcRenderTable(wrap, tokoList){
   if(!TC_BULAN_PICK){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan.</div>'; return; }
-  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const dictOf = t => tcDictOf(t);
   const tokoHead = tokoList.map(t=>`<th data-col="toko:${t.id}">${tokoEsc(t.nama)}</th>`).join('');
   // Kolom bisnis gabungan cuma masuk akal buat data Bulanan (perlu histori bulan buat Anual)
   const showBiz = (TC_GRAN==='bulanan');
@@ -4206,7 +4246,7 @@ function tcRenderTable(wrap, tokoList){
   tcApplyMobileColumnVisibility();
 }
 function tcRenderCharts(wrap, tokoList){
-  const dictOf = t => (TC_GRAN==='mingguan' ? TC_DATA[t.id].minggu : TC_DATA[t.id].bulan) || {};
+  const dictOf = t => tcDictOf(t);
   const periods = tcRangeKeys(tcAllPeriodKeys(TC_DATA, TC_GRAN));
   if(!periods.length){ wrap.innerHTML = '<div class="card tc-empty">Belum ada data Rekap tersimpan buat periode ini.</div>'; return; }
   const metrics = REKAP_METRICS.filter(m=>TC_KRITERIA.has(m.key));
