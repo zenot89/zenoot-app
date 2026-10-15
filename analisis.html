@@ -885,17 +885,23 @@
   .tc-table tbody tr:nth-child(even) td.tc-biz{ background:var(--panel-alt); }
   /* [15 Okt 2026] Laptop (Overview, Mingguan, Proyeksi): kelompok kolom dipisah jadi blok sendiri-sendiri — ada celah (kolom .tc-gap) di antara
      blok, tiap blok punya bingkai & sudut bulat sendiri, antar kolom ada garis tegak tipis. Celah dibuat renderer (tcRenderTable); di HP disembunyikan. */
-  .tc-table th.tc-gap, .tc-table td.tc-gap, .tc-table th.tc-fill, .tc-table td.tc-fill{ display:none; }
-  /* [15 Okt 2026] Laptop: 3 BLOK — (1) Kriteria (kolom sticky, selalu terlihat) | (2) data yang sedang dilihat (toko / ANUAL-AVERAGE-SUM, ini yang digeser
-     kiri-kanan) | (3) 3 kolom kosong (.tc-fill) di ujung kanan: baru kelihatan setelah data digeser mentok ke ujung, supaya kolom terakhir bisa
-     nempel di sisi Kriteria. Celah antara blok 1 dan 2 = .tc-gapk (sticky, warna latar halaman, data lewat di bawahnya). Semua lebar kolom dihitung tcSizeColumns(). */
+  .tc-table th.tc-gap, .tc-table td.tc-gap, .tc-table th.tc-fill, .tc-table td.tc-fill, .tc-hbar{ display:none; }
+  /* [15 Okt 2026] Laptop, Overview & Mingguan: 3 BLOK — (1) Kriteria (diam) | (2) kolom TOKO, satu-satunya yang digeser kiri-kanan; di ujung kanannya ada
+     3 kolom kosong (.tc-fill) yang baru kelihatan setelah toko digeser mentok, supaya toko terakhir bisa nempel di sisi Kriteria | (3) ANUAL/AVERAGE/SUM (diam, tidak
+     ikut geser; posisinya kiri/kanan mengikuti tombol ⇄). Celah (.tc-gap) di sebelah blok yang diam ikut diam (.tc-pin). Lebar kolom + posisi diam dihitung tcSizeColumns(). */
   @media (min-width:601px){
     .tc-table th.tc-fill, .tc-table td.tc-fill{ display:table-cell; padding:0; border:0 !important; background:transparent !important; }
     .tc-table-card{ background:transparent; border:0; box-shadow:none; overflow:visible; }
     .tc-table{ border-collapse:separate; border-spacing:0; }
     .tc-table th.tc-gap, .tc-table td.tc-gap{ display:table-cell; width:14px; min-width:14px; padding:0; border:0; background:transparent !important; }
-    .tc-table th.tc-gap.tc-gapk, .tc-table td.tc-gap.tc-gapk{ position:sticky; left:var(--tc-kw,0px); z-index:2; background:var(--bg) !important; }
+    .tc-table .tc-pin{ position:sticky; z-index:2; }   /* kolom yang diam saat blok data digeser (left/right dipasang tcSizeColumns) */
+    .tc-table th.tc-gap.tc-pin, .tc-table td.tc-gap.tc-pin{ background:var(--bg) !important; }   /* celah ikut diam & menutupi data yang lewat di bawahnya */
     .tc-table td.tc-kriteria, .tc-table th.tc-kriteria{ z-index:2; }
+    /* scrollbar bawaan disembunyikan; diganti .tc-hbar yang lebarnya SAMA dengan blok data saja (digambar & disinkronkan tcUpdateHbar) */
+    .tc-table-card.tc-cbar .tc-table-scroll{ scrollbar-width:none; }
+    .tc-table-card.tc-cbar .tc-table-scroll::-webkit-scrollbar{ display:none; }
+    .tc-hbar{ display:block; position:relative; height:10px; margin-top:6px; border-radius:5px; background:var(--line); }
+    .tc-hbar-thumb{ position:absolute; top:0; bottom:0; left:0; border-radius:5px; background:var(--ink-soft); cursor:grab; touch-action:none; }
     .tc-table th:not(.tc-gap,.tc-fill), .tc-table td:not(.tc-gap,.tc-fill){ border-left:1px solid var(--line); }
     .tc-table :is(th,td):not(.tc-gap,.tc-fill):last-child, .tc-table :is(th,td):not(.tc-gap,.tc-fill):has(+ :is(.tc-gap,.tc-fill)){ border-right:1px solid var(--line); }
     .tc-table thead th:not(.tc-gap,.tc-fill){ border-top:1px solid var(--line); }
@@ -4333,13 +4339,13 @@ function tcRenderTable(wrap, tokoList){
       return `<td data-col="toko:${t.id}">${fmtRekapVal(v, m.fmt)}${trend}</td>`;
     }).join('');
     return swapOn
-      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${cells}${gapTd}${bizCells}${fillTd}</tr>`
+      ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${cells}${fillTd}${gapTd}${bizCells}</tr>`
       : isProy
         ? `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${bizCells}${gapTd}<td class="tc-kriteria tc-kr2">${tokoEsc(m.label)}</td>${cells}${fillTd}</tr>`
         : `<tr><td class="tc-kriteria">${tokoEsc(m.label)}</td>${gapkTd}${bizCells}${gapTd}${cells}${fillTd}</tr>`;
   }).join('');
   const swapBtn = (showBiz && !isProy) ? `<button type="button" class="tc-swap-btn" id="btnTcSwap" title="Tukar posisi: kolom toko didekatkan ke kriteria">⇄</button>` : '';
-  wrap.innerHTML = `<div class="card tc-table-card"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${gapkTh}${(swapOn ? tokoHead + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead) + fillTh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  wrap.innerHTML = `<div class="card tc-table-card${isProy ? '' : ' tc-cbar'}"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th class="tc-kriteria"><span class="tc-kr-head">Kriteria${swapBtn}</span></th>${gapkTh}${swapOn ? tokoHead + fillTh + gapTh + bizHead : bizHead + gapTh + (isProy ? '<th class="tc-kriteria tc-kr2">Kriteria</th>' : '') + tokoHead + fillTh}</tr></thead><tbody>${rows}</tbody></table></div>${isProy ? '' : '<div class="tc-hbar"><div class="tc-hbar-thumb"></div></div>'}</div>`;
   const swapEl = document.getElementById('btnTcSwap');
   if(swapEl) swapEl.addEventListener('click', ()=>{ TC_SWAP = !TC_SWAP; tcRenderContent(); });
   tcSyncMobileColDefault(tokoList);   // [23 Sep 2026] gak lewat tcRenderMobileColButton lagi (row-nya udah dihapus)
@@ -4349,13 +4355,18 @@ function tcRenderTable(wrap, tokoList){
 }
 // [15 Okt 2026] Urutan wajib: ukur lebar kolom kosong dulu (menentukan ada/tidaknya scrollbar horizontal), baru paskan tinggi baris.
 function tcLayoutTable(){ tcSizeColumns(); tcFitTable(); }
-// [15 Okt 2026] Laptop: hitung lebar SEMUA kolom (px, table-layout fixed lewat <colgroup>) supaya 3 blok jalan:
-// Kriteria (sticky) | data (lebar alami; kalau lebih sempit dari sisa layar, ditarik melebar sampai pas, jadi blok kosong TIDAK kelihatan di posisi awal) |
-// 3 kolom kosong (.tc-fill) = F, yaitu selisih yang dibutuhkan supaya kolom toko TERAKHIR bisa digeser sampai nempel di sisi Kriteria. Proyeksi tidak punya .tc-fill.
+// [15 Okt 2026] Laptop: hitung lebar SEMUA kolom (px, table-layout fixed lewat <colgroup>) + tentukan kolom mana yang DIAM (sticky) saat blok toko digeser.
+// Overview/Mingguan (ada .tc-fill): diam kiri = semua kolom sebelum toko pertama (Kriteria, celah, + ANUAL/AVERAGE/SUM kalau di kiri); diam kanan = semua kolom setelah
+// kolom kosong terakhir (celah + ANUAL/AVERAGE/SUM kalau ditukar ke kanan). Yang bergeser cuma kolom toko + 3 kolom kosong. Toko ditarik melebar kalau lebih sempit dari
+// jendelanya (jadi blok kosong TIDAK kelihatan di posisi awal); F = lebar total 3 kolom kosong supaya toko TERAKHIR bisa digeser sampai nempel di sisi blok diam kiri.
+// Proyeksi (tanpa .tc-fill): cuma Kriteria + celah yang diam, sisanya satu blok seperti biasa.
 function tcSizeColumns(){
   const table = document.querySelector('#tcContent .tc-table'); if(!table) return;
   const oldCg = table.querySelector('colgroup'); if(oldCg) oldCg.remove();
-  table.style.tableLayout = ''; table.style.width = ''; table.style.minWidth = ''; table.style.removeProperty('--tc-kw');
+  table.style.tableLayout = ''; table.style.width = ''; table.style.minWidth = '';
+  table.querySelectorAll('.tc-pin').forEach(c=>{ c.classList.remove('tc-pin'); c.style.left = ''; c.style.right = ''; });
+  const bar = document.querySelector('#tcContent .tc-hbar');
+  if(bar){ bar.style.marginLeft = ''; bar.style.width = ''; }
   if(window.innerWidth<=600 || currentPage!=='tokocompare') return;
   const scroller = table.parentElement;
   const ths = Array.from(table.querySelectorAll('thead th'));
@@ -4363,30 +4374,74 @@ function tcSizeColumns(){
   const w = ths.map(th=>th.getBoundingClientRect().width);
   table.style.width = ''; table.style.minWidth = '';
   const gk = ths.findIndex(th=>th.classList.contains('tc-gapk')); if(gk<0) return;
-  const isFill = i=>ths[i].classList.contains('tc-fill'), isGap = i=>ths[i].classList.contains('tc-gap');
   const idx = ths.map((_,i)=>i);
-  const dataIdx = idx.filter(i=>i>gk && !isFill(i));
-  const fillIdx = idx.filter(isFill);
-  const viewW = scroller.clientWidth - w[0] - w[gk];   // lebar jendela blok data
-  let dataW = dataIdx.reduce((a,i)=>a+w[i],0);
-  if(dataW < viewW){
-    const grow = dataIdx.filter(i=>!isGap(i));
-    const base = grow.reduce((a,i)=>a+w[i],0) || 1;
-    const extra = viewW - dataW;
-    grow.forEach(i=>{ w[i] += extra * w[i] / base; });
-    dataW = viewW;
-  }
-  if(fillIdx.length){
-    let lastToko = -1; ths.forEach((th,i)=>{ if(th.dataset.col && th.dataset.col.indexOf('toko:')===0) lastToko = i; });
-    const offsetLast = dataIdx.filter(i=>i<lastToko).reduce((a,i)=>a+w[i],0);   // jarak toko terakhir dari tepi kiri blok data
-    const F = Math.max(0, offsetLast - (dataW - viewW));
+  const isFill = i=>ths[i].classList.contains('tc-fill');
+  const isGap = i=>ths[i].classList.contains('tc-gap');
+  const isToko = i=>!!ths[i].dataset.col && ths[i].dataset.col.indexOf('toko:')===0;
+  const sum = a=>a.reduce((x,i)=>x+w[i],0);
+  const fillIdx = idx.filter(isFill), tokoIdx = idx.filter(isToko);
+  const C = scroller.clientWidth;
+  let pinL, pinR = [];
+  if(fillIdx.length && tokoIdx.length){
+    pinL = idx.filter(i=>i<tokoIdx[0]);
+    pinR = idx.filter(i=>i>fillIdx[fillIdx.length-1]);
+    const viewW = Math.max(120, C - sum(pinL) - sum(pinR));   // lebar jendela blok toko
+    let tokoW = sum(tokoIdx);
+    if(tokoW < viewW){ const extra = viewW - tokoW; tokoIdx.forEach(i=>{ w[i] += extra * w[i] / tokoW; }); tokoW = viewW; }
+    const offsetLast = sum(tokoIdx.slice(0,-1));   // jarak toko terakhir dari tepi kiri blok toko
+    const F = Math.max(0, offsetLast - (tokoW - viewW));
     fillIdx.forEach(i=>{ w[i] = F / fillIdx.length; });
+    if(bar){ bar.style.marginLeft = sum(pinL)+'px'; bar.style.width = viewW+'px'; }
+  } else {
+    pinL = idx.filter(i=>i<=gk);
+    const dataIdx = idx.filter(i=>i>gk && !isFill(i));
+    const viewW = C - sum(pinL);
+    const dataW = sum(dataIdx);
+    if(dataW < viewW){
+      const grow = dataIdx.filter(i=>!isGap(i)), base = sum(grow) || 1, extra = viewW - dataW;
+      grow.forEach(i=>{ w[i] += extra * w[i] / base; });
+    }
   }
-  const total = w.reduce((a,b)=>a+b,0);
   table.insertAdjacentHTML('afterbegin', '<colgroup>'+w.map(x=>'<col style="width:'+x+'px">').join('')+'</colgroup>');
-  table.style.tableLayout = 'fixed'; table.style.width = total+'px'; table.style.minWidth = '0';
-  table.style.setProperty('--tc-kw', w[0]+'px');
+  table.style.tableLayout = 'fixed'; table.style.width = sum(idx)+'px'; table.style.minWidth = '0';
+  const left = i=>sum(idx.filter(j=>j<i)), right = i=>sum(idx.filter(j=>j>i));
+  Array.from(table.rows).forEach(tr=>{
+    pinL.forEach(i=>{ const c = tr.cells[i]; if(c){ c.classList.add('tc-pin'); c.style.left = left(i)+'px'; } });
+    pinR.forEach(i=>{ const c = tr.cells[i]; if(c){ c.classList.add('tc-pin'); c.style.right = right(i)+'px'; } });
+  });
+  tcUpdateHbar();
 }
+// [15 Okt 2026] Scrollbar kustom di bawah blok toko (lebarnya = lebar jendela blok toko, bukan seluruh tabel). Thumb disinkronkan ke scrollLeft tabel.
+function tcUpdateHbar(){
+  const scroller = document.querySelector('#tcContent .tc-table-scroll');
+  const bar = document.querySelector('#tcContent .tc-hbar'); if(!scroller || !bar) return;
+  const thumb = bar.firstElementChild;
+  const max = scroller.scrollWidth - scroller.clientWidth;
+  if(window.innerWidth<=600 || max<=1 || !bar.style.width){ bar.style.visibility = 'hidden'; return; }
+  bar.style.visibility = '';
+  const track = bar.clientWidth;
+  const thumbW = Math.max(28, track * track / (track + max));
+  thumb.style.width = thumbW+'px';
+  thumb.style.left = (scroller.scrollLeft / max * (track - thumbW))+'px';
+}
+(function(){
+  let drag = null;
+  document.addEventListener('scroll', e=>{ if(e.target && e.target.classList && e.target.classList.contains('tc-table-scroll')) tcUpdateHbar(); }, true);
+  document.addEventListener('pointerdown', e=>{
+    const bar = e.target.closest && e.target.closest('.tc-hbar'); if(!bar) return;
+    const scroller = document.querySelector('#tcContent .tc-table-scroll'); if(!scroller) return;
+    const thumb = bar.firstElementChild, max = scroller.scrollWidth - scroller.clientWidth;
+    const track = bar.clientWidth, thumbW = thumb.offsetWidth, room = Math.max(1, track - thumbW);
+    if(e.target!==thumb){   // klik di trek: loncat, thumb jadi di tengah titik klik
+      const x = e.clientX - bar.getBoundingClientRect().left - thumbW/2;
+      scroller.scrollLeft = Math.min(1, Math.max(0, x/room)) * max;
+    }
+    drag = { x:e.clientX, start:scroller.scrollLeft, ratio:max/room, scroller };
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e=>{ if(drag) drag.scroller.scrollLeft = drag.start + (e.clientX - drag.x) * drag.ratio; });
+  document.addEventListener('pointerup', ()=>{ drag = null; });
+})();
 // [15 Okt 2026] Overview, Mingguan & Proyeksi (laptop, mode Data Periode): tabel harus muat 1 layar, tanpa scroll halaman. Padding vertikal sel dikecilkan bertahap
 // (10px -> 2px) sampai seluruh halaman muat tinggi layar; layar yang lega tetap 10px seperti biasa. HP tidak disentuh (sudah flat sendiri).
 function tcFitTable(){
