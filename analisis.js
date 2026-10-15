@@ -752,3 +752,4 @@
 // (43) [14 Okt 2026] Panel upload RKS: tombol "Pilih semua" di mode Edit file (Overview, Mingguan, Proyeksi) + Proyeksi Order Completed jadi 1 file (30 hari). Perubahan utama di analisis.html; file ini hanya catatan supaya APP_BUILD berubah.
 // (44) [14 Okt 2026] PDF RKS Overview: tabel "Perbandingan dengan …" nominal (Pendapatan, Net Income, Laba) dibandingkan per hari, bukan total periode. Perubahan utama di analisis.html; file ini hanya catatan supaya APP_BUILD berubah.
 // (45) [14 Okt 2026] Perbandingan Toko: pilihan mode jadi tab Overview / Mingguan / Proyeksi (Proyeksi = snapshot rekapProyeksi, nominal per hari). Perubahan utama di analisis.html; file ini hanya catatan supaya APP_BUILD berubah.
+// (46) [14 Okt 2026] Perbandingan Toko: Proyeksi punya ANUAL/AVERAGE/SUM (total asli) + tombol ⇄ tukar ke 3 periode terakhir; default 13 kriteria dan maksimal 13. Perubahan utama di analisis.html; file ini hanya catatan supaya APP_BUILD berubah.
