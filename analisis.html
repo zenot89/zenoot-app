@@ -542,6 +542,31 @@
     border-radius:0 6px 6px 0;
     box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset -1px 0 0 var(--ink);
   }
+  /* [16 Okt 2026] Rekap & Rekap Mingguan (laptop): 3 BLOK rasio 15% : 50% : 35% — Kriteria (diam) | bulan/minggu (satu-satunya yang digeser) | Anual/Average/Sum atau 3 bulan hasil ⇄ (diam kanan).
+     Kelas .z-3b dipasang JS (rekapApplyBlocks) HANYA di laptop; HP tidak kena. Celah .z-gap & kolom diam .z-pin: lihat zSizeBlocks(). Scrollbar horizontal bawaan disembunyikan, diganti .z-hbar di bawah blok 2. */
+  .z-hbar{ display:none; }
+  :is(#rekapWrap,#rekapWrapM) > .rekap-card.z-3bc{ background:transparent; border:0; box-shadow:none; padding:0; }
+  .rekap-scroll.z-3bs::-webkit-scrollbar{ width:10px; height:0; }
+  .rekap-scroll.z-3bs::-webkit-scrollbar-thumb{ background:#C9CCD3; border-radius:6px; border:2px solid transparent; background-clip:content-box; }
+  .rekap-card.z-3bc .z-hbar{ display:block; flex:0 0 auto; position:relative; height:10px; margin-top:6px; border-radius:5px; background:var(--line); }
+  .z-hbar-thumb{ position:absolute; top:0; bottom:0; left:0; border-radius:5px; background:var(--ink-soft); cursor:grab; touch-action:none; }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b :is(th,td).z-pin{ position:sticky; z-index:2; }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b thead th.z-pin{ z-index:6; }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b :is(th,td).z-gap{ padding:0; border:0 !important; background:var(--bg) !important; box-shadow:none !important; }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b td:is(:not(.z-gap):first-child, .z-gap + td){ border-left:1px solid var(--line); }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b td:is(:not(.z-gap):last-child, :has(+ .z-gap)){ border-right:1px solid var(--line); }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b td.rekap-agg:last-of-type{ border-right:1px solid var(--line); }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b thead th:is(:first-child, .z-gap + th){
+    border-radius:6px 0 0 6px; box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset 1px 0 0 var(--ink);
+  }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b thead th:is(:last-child, :has(+ .z-gap)){
+    border-radius:0 6px 6px 0; box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset -1px 0 0 var(--ink);
+  }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b thead th.rekap-kriteria{
+    border-radius:6px; box-shadow:inset 0 1px 0 var(--ink), inset 0 -1px 0 var(--ink), inset 1px 0 0 var(--ink), inset -1px 0 0 var(--ink);
+  }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b tbody tr:last-child td:is(:not(.z-gap):first-child, .z-gap + td){ border-bottom-left-radius:10px; }
+  :is(#page-rekap,#page-rekapM) .rekap-table.z-3b tbody tr:last-child td:is(:not(.z-gap):last-child, :has(+ .z-gap)){ border-bottom-right-radius:10px; }
   /* Keterangan (?) ala Shopee — gantiin paragraf penjelasan biar gak makan tempat */
   .info-tip{ position:relative; display:inline-flex; outline:none; }
   .info-q{ width:24px; height:24px; border-radius:50%; border:1.5px solid var(--ink-soft); color:var(--ink-soft); background:#fff;
@@ -6620,7 +6645,7 @@ function rekapCellCls(k){
 // Lebar kolom Rekap DIKUNCI lewat <colgroup> (dipakai bareng table-layout:fixed) supaya posisi kolom sama persis
 // di tampilan default (rincian Admin ditutup) maupun dibuka. Satuan em = ikut ukuran font tabel (font tabel ngikut tinggi layar).
 // Angka acuan: teks terpanjang di rincian Admin, mis. "(Rp5.216.380) (-11.4%)" & badge tren "(Rp722.228) ▼ 1187.8%", plus cadangan buat angka yang lebih besar.
-const REKAP_COL_W = { aggSwap:'15em', kriteria:'20em', agg:'13em', filled:'13em', emptyMonth:'4.2em', emptyWeek:'7.5em' };
+const REKAP_COL_W = { aggSwap:'13em', kriteria:'20em', agg:'10.8em', filled:'13em', emptyMonth:'4.2em', emptyWeek:'7.5em' };
 function rekapColgroupHtml(filledFlags, emptyW, aggW){
   const c = w => `<col style="width:${w}">`;
   return '<colgroup>' + c(REKAP_COL_W.kriteria) + (aggW==='none' ? '' : c(aggW || REKAP_COL_W.agg).repeat(3))
@@ -6898,6 +6923,121 @@ function renderRekapYearNav(){
   }
 }
 
+// [16 Okt 2026] 3 BLOK di Rekap & Rekap Mingguan (laptop) — konsep sama dengan Perbandingan Toko, tapi rasio 15% : 50% : 35%:
+//   blok 1 = Kriteria (diam kiri) | blok 2 = kolom bulan/minggu (SATU-SATUNYA yang digeser) | blok 3 = Anual/Average/Sum atau 3 bulan/minggu hasil ⇄ (diam kanan).
+// DOM laptop: Kriteria | celah | data... | celah | agg...  (HP tetap urutan lama: Kriteria | agg | data — dipilih rekapIsPhone()).
+// Penyusunan ulang sel dilakukan SETELAH baris dirender (rekapApplyBlocks), jadi semua pembuat baris (termasuk rincian Admin) tidak perlu diubah.
+// Lebar kolom: 'natural' tiap kolom disimpan di data-w pada <col> (em = ikut font tabel), zSizeBlocks() menghitung lebar akhir dari rasio.
+const REKAP_RATIO = [0.15, 0.50, 0.35];
+function rekapIsPhone(){ return window.innerWidth<=600 || document.documentElement.classList.contains('zan-phone'); }
+function rekapApplyBlocks(wrap){
+  const table = wrap.querySelector('.rekap-table'), scroller = wrap.querySelector('.rekap-scroll');
+  if(!table || !scroller || rekapIsPhone()) return;
+  const nAgg = table.querySelectorAll('thead th.rekap-agg').length;
+  const widths = Array.from(table.querySelectorAll('colgroup col')).map(c=>c.style.width);
+  const ord = [widths[0], '14px'].concat(widths.slice(1+nAgg), nAgg ? ['14px'].concat(widths.slice(1, 1+nAgg)) : []);
+  const oldCg = table.querySelector('colgroup'); if(oldCg) oldCg.remove();
+  table.insertAdjacentHTML('afterbegin', '<colgroup>'+ord.map(x=>'<col data-w="'+x+'" style="width:'+x+'">').join('')+'</colgroup>');
+  Array.from(table.rows).forEach(tr=>{
+    const cells = Array.from(tr.cells), isTh = cells[0].tagName==='TH';
+    const gap = ()=>{ const c = document.createElement(isTh?'th':'td'); c.className = 'z-gap'; return c; };
+    const agg = cells.slice(1, 1+nAgg), data = cells.slice(1+nAgg);
+    tr.textContent = '';
+    tr.append(cells[0], gap(), ...data, ...(nAgg ? [gap(), ...agg] : []));
+  });
+  table.classList.add('z-3b'); scroller.classList.add('z-3bs');
+  const card = wrap.querySelector('.rekap-card'); if(card) card.classList.add('z-3bc');
+  scroller.insertAdjacentHTML('afterend', '<div class="z-hbar"><div class="z-hbar-thumb"></div></div>');
+  rekapLayout(wrap.id);
+}
+function rekapLayout(id, again){
+  const wrap = document.getElementById(id); if(!wrap) return;
+  const table = wrap.querySelector('.rekap-table.z-3b'), scroller = wrap.querySelector('.rekap-scroll'), bar = wrap.querySelector('.z-hbar');
+  if(!table || !scroller || scroller.clientWidth<=0) return;   // halaman belum tampil: diukur ulang saat dibuka / resize
+  const cols = Array.from(table.querySelectorAll('colgroup col'));
+  const fs = parseFloat(getComputedStyle(table).fontSize) || 15;
+  const toPx = s => /em$/.test(s) ? parseFloat(s)*fs : parseFloat(s);
+  const w = cols.map(c=>toPx(c.dataset.w));
+  table.querySelectorAll('.z-pin').forEach(c=>{ c.classList.remove('z-pin'); c.style.left = ''; c.style.right = ''; });
+  // lebar alami Kriteria = teks terpanjang di kolomnya (kolom dipaksa 1px, isi meluber, ukur scrollWidth)
+  cols.forEach((c,i)=>{ c.style.width = (i===0 ? 1 : w[i])+'px'; });
+  table.style.tableLayout = 'fixed'; table.style.minWidth = '0'; table.style.width = (w.slice(1).reduce((a,b)=>a+b,0)+1)+'px';
+  let kNat = 120;
+  Array.from(table.rows).forEach(tr=>{ const c = tr.cells[0]; kNat = Math.max(kNat, c.scrollWidth + parseFloat(getComputedStyle(c).paddingRight)); });
+  w[0] = Math.ceil(kNat);
+  const ths = Array.from(table.tHead.rows[0].cells);
+  const gap2 = ths.findIndex((th,i)=>i>1 && th.classList.contains('z-gap'));
+  const C0 = scroller.clientWidth;
+  zSizeBlocks({ table, scroller, bar, w, cols, gapK:1, gap2, fill:[], ratio:REKAP_RATIO });
+  if(!again && scroller.clientWidth!==C0) rekapLayout(id, true);   // scrollbar vertikal muncul/hilang -> ukur sekali lagi
+}
+// Penghitung lebar 3 blok (dipakai Rekap & Rekap Mingguan): w = lebar alami tiap kolom (px), gapK/gap2 = indeks kolom celah (gap2 -1 = tak ada blok 3).
+// Kriteria & blok 3 kebagian rasio dari lebar tersedia, tapi tak pernah lebih sempit dari lebar alaminya; blok 2 = sisanya (min 120px).
+// Isi yang lebih sempit dari jatahnya ditarik melebar; yang lebih lebar = digeser (hanya blok 2).
+function zSizeBlocks(o){
+  const { table, scroller, bar, cols, gapK, gap2, fill, ratio } = o, w = o.w.slice();
+  const idx = w.map((_,i)=>i), sum = a=>a.reduce((x,i)=>x+w[i],0);
+  const b2 = idx.filter(i=>i>gapK && (gap2<0 || i<gap2)), b3 = gap2<0 ? [] : idx.filter(i=>i>gap2);
+  const b2data = b2.filter(i=>!fill.includes(i)), fillIdx = b2.filter(i=>fill.includes(i));
+  const avail = scroller.clientWidth - w[gapK] - (gap2<0 ? 0 : w[gap2]);
+  const kW = Math.max(avail*ratio[0], w[0]);
+  const b3Nat = sum(b3);
+  const b3W = b3.length ? Math.max((avail-kW)*ratio[2]/(ratio[1]+ratio[2]), b3Nat) : 0;
+  const viewW = Math.max(120, avail-kW-b3W);
+  w[0] = kW;
+  if(b3.length && b3W>b3Nat) b3.forEach(i=>{ w[i] += (b3W-b3Nat)*w[i]/b3Nat; });
+  let dataW = sum(b2data);
+  if(dataW<viewW && dataW>0){ const extra = viewW-dataW; b2data.forEach(i=>{ w[i] += extra*w[i]/dataW; }); dataW = viewW; }
+  if(fillIdx.length){ const F = Math.max(0, sum(b2data.slice(0,-1)) - (dataW-viewW)); fillIdx.forEach(i=>{ w[i] = F/fillIdx.length; }); }
+  cols.forEach((c,i)=>{ c.style.width = w[i]+'px'; });
+  table.style.tableLayout = 'fixed'; table.style.minWidth = '0'; table.style.width = sum(idx)+'px';
+  if(bar){ bar.style.marginLeft = (w[0]+w[gapK])+'px'; bar.style.width = viewW+'px'; }
+  const pinL = idx.filter(i=>i<=gapK), pinR = gap2<0 ? [] : idx.filter(i=>i>=gap2);
+  const left = i=>sum(idx.filter(j=>j<i)), right = i=>sum(idx.filter(j=>j>i));
+  Array.from(table.rows).forEach(tr=>{
+    pinL.forEach(i=>{ const c = tr.cells[i]; if(c){ c.classList.add('z-pin'); c.style.left = left(i)+'px'; } });
+    pinR.forEach(i=>{ const c = tr.cells[i]; if(c){ c.classList.add('z-pin'); c.style.left = 'auto'; c.style.right = right(i)+'px'; } });
+  });
+  zHbarUpdate(scroller, bar);
+}
+// Scrollbar kustom di bawah blok 2 (thumb disinkronkan ke scrollLeft; lebarnya = lebar jendela blok 2).
+function zHbarUpdate(scroller, bar){
+  if(!scroller || !bar) return;
+  const thumb = bar.firstElementChild, max = scroller.scrollWidth - scroller.clientWidth;
+  if(max<=1 || !bar.style.width){ bar.style.visibility = 'hidden'; return; }
+  bar.style.visibility = '';
+  const track = bar.clientWidth, thumbW = Math.max(28, track*track/(track+max));
+  thumb.style.width = thumbW+'px';
+  thumb.style.left = (scroller.scrollLeft/max*(track-thumbW))+'px';
+}
+(function(){
+  let drag = null;
+  document.addEventListener('scroll', e=>{ const t = e.target; if(t && t.classList && t.classList.contains('z-3bs')) zHbarUpdate(t, t.nextElementSibling); }, true);
+  document.addEventListener('pointerdown', e=>{
+    const bar = e.target.closest && e.target.closest('.z-hbar'); if(!bar) return;
+    const scroller = bar.previousElementSibling; if(!scroller) return;
+    const thumb = bar.firstElementChild, max = scroller.scrollWidth - scroller.clientWidth;
+    const track = bar.clientWidth, thumbW = thumb.offsetWidth, room = Math.max(1, track-thumbW);
+    if(e.target!==thumb){ const x = e.clientX - bar.getBoundingClientRect().left - thumbW/2; scroller.scrollLeft = Math.min(1, Math.max(0, x/room))*max; }
+    drag = { x:e.clientX, start:scroller.scrollLeft, ratio:max/room, scroller };
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e=>{ if(drag) drag.scroller.scrollLeft = drag.start + (e.clientX-drag.x)*drag.ratio; });
+  document.addEventListener('pointerup', ()=>{ drag = null; });
+})();
+// Layar berubah (resize / class zan-phone di <html> diganti): kalau mode DOM (laptop vs HP) tidak cocok lagi -> render ulang, kalau cocok -> ukur ulang saja.
+function rekapRelayout(){
+  [['rekapWrap', ()=>renderRekap()], ['rekapWrapM', ()=>renderRekapM()]].forEach(([id, rerender])=>{
+    const wrap = document.getElementById(id), t = wrap && wrap.querySelector('.rekap-table'); if(!t) return;
+    const is3b = t.classList.contains('z-3b');
+    if(is3b===rekapIsPhone()){ try{ rerender(); }catch(e){ console.error('Gagal render ulang Rekap:', e); } }
+    else if(is3b) rekapLayout(id);
+  });
+}
+window.addEventListener('resize', rekapRelayout);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(rekapRelayout);
+if(window.MutationObserver) new MutationObserver(rekapRelayout).observe(document.documentElement, { attributes:true, attributeFilter:['class'] });
+
 function renderRekap(){
   const wrap = document.getElementById('rekapWrap');
   if(!wrap) return;
@@ -6962,6 +7102,7 @@ function renderRekap(){
       <tbody>${rows}</tbody>
     </table>
   </div></div>`;
+  rekapApplyBlocks(wrap);
   { const _sc = wrap.querySelector('.rekap-scroll'); if(_sc){ _sc.scrollLeft = _sl; _sc.scrollTop = _st; } }
 
   const swapBtn = wrap.querySelector('#btnRekapSwap');
@@ -10728,6 +10869,7 @@ function renderRekapM(){
       <tbody>${rows}</tbody>
     </table>
   </div></div>`;
+  rekapApplyBlocks(wrap);
   { const _sc = wrap.querySelector('.rekap-scroll'); if(_sc){ _sc.scrollLeft = _sl; _sc.scrollTop = _st; } }
 
   const swapBtnM = wrap.querySelector('#btnRekapSwapM');
