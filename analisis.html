@@ -5545,7 +5545,10 @@ function computeFeeGroups(parsed){
   // pilih, bukan potongan yang dipaksa Shopee) — jadi angkanya representasi biaya platform murni.
   const voucherTotal = getVoucherTotal(parsed); // negatif
   const totalPotonganReal = totalPotonganMentah - biayaSaldoIklan - voucherTotal;
-  const ratioPotonganReal = hargaJual ? Math.abs(totalPotonganReal/hargaJual) : null;
+  // [21 Okt 2026] Rasio potongan Shopee dibagi HARGA REAL (Subtotal Pesanan + voucher toko), karena Shopee menghitung Biaya Administrasi (8,25%), Layanan & Gratis Ongkir XTRA
+  // dari harga setelah voucher (cek: 8,25% x 102.000 = 8.415 persis, bukan x 132.000). Nominal Rp tidak berubah.
+  const hargaReal = hargaJual ? hargaJual + voucherTotal : null;
+  const ratioPotonganReal = hargaReal ? Math.abs(totalPotonganReal/hargaReal) : null;
   const ratioPotonganMentah = hargaJual ? Math.abs(totalPotonganMentah/hargaJual) : null;
   return { totalPotonganMentah, biayaSaldoIklan, voucherTotal, totalPotonganReal, ratioPotonganReal, ratioPotonganMentah };
 }
@@ -5638,12 +5641,18 @@ function buildFeeCardsHtml(parsed, hargaJual){
   // ini murni buat "tau-tau-an" / evaluasi cepat, BUKAN sumber angka Total Potongan (Real)/NPM.
   // Logika Total Potongan (Real vs Laporan Shopee) & NPM tetep pakai realValue di computeFeeGroups, gak disentuh.
   const maxAbsGroup = Math.max(...parsed.groups.map(g=>Math.abs(g.value||0)), 1);
+  // [21 Okt 2026] Biaya Shopee (Platform, Gratis Ongkir XTRA, Layanan) = % dari HARGA REAL (setelah voucher) seperti tarif Shopee; Voucher & Biaya Isi Saldo tetap % dari Harga Jual.
+  const hargaReal = hargaJual ? hargaJual + getVoucherTotal(parsed) : null;
+  const isPlainFee = c => !isExcludedFee(c.label) && !/^Voucher/i.test(c.label||'');
+  const baseOf = c => isPlainFee(c) ? hargaReal : hargaJual;
   const feeCardsHtml = parsed.groups.map(g=>{
-    const pct = hargaJual ? Math.abs(g.value/hargaJual) : null;
+    const gBase = g.children.every(isPlainFee) ? hargaReal : hargaJual;
+    const pct = gBase ? Math.abs(g.value/gBase) : null;
     const barPct = Math.min(100, Math.round(Math.abs(g.value)/maxAbsGroup*100));
     const childrenHtml = g.children.map(c=>{
       const excluded = isExcludedFee(c.label);
-      const childPct = hargaJual ? Math.abs((c.value||0)/hargaJual) : null;
+      const cBase = baseOf(c);
+      const childPct = cBase ? Math.abs((c.value||0)/cBase) : null;
       return `<div class="fee-child ${excluded?'excluded':''}">
         <div class="fee-child-label">${c.label}</div>
         <div class="fee-child-val">${fmtRp(c.value)}${childPct!==null?` <span class="fee-child-pct">(${fmtPct(childPct)})</span>`:''}</div>
@@ -5674,11 +5683,12 @@ function buildFeeCardsHtml(parsed, hargaJual){
 }
 
 // [8 Okt 2026] Rincian "Admin + Layanan" untuk popup (?) di minicard: semua potongan Shopee per pesanan KECUALI Biaya Isi Saldo Otomatis & Voucher toko
-// (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Jual (Subtotal Pesanan) — jadi jumlah barisnya = angka di minicard.
+// (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Real (setelah voucher) — jadi jumlah barisnya = angka di minicard.
 function buildAdminLayananPopHtml(parsed, hargaJual, ratio, buffer){
   const e = v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const pc = rp => hargaJual ? fmtPct(Math.abs(rp/hargaJual)) : '-';
-  const row = (cls, label, rp) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pc(rp)}</span></span>`;
+  const hargaReal = hargaJual ? hargaJual + getVoucherTotal(parsed) : null;
+  const pc = rp => hargaReal ? fmtPct(Math.abs(rp/hargaReal)) : '-';
+  const row = (cls, label, rp, pctText) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pctText || pc(rp)}</span></span>`;
   let body = '', sumRp = 0;
   parsed.groups.forEach(g=>{
     const rows = g.children.filter(c=> !isExcludedFee(c.label) && !/^Voucher/i.test(c.label||'') && Math.abs(c.value||0)>=0.5);
@@ -5690,10 +5700,10 @@ function buildAdminLayananPopHtml(parsed, hargaJual, ratio, buffer){
   });
   // [8 Okt 2026] Buffer (Lainnya) dari Setting Analisis ikut di baris & total (sumber angkanya tidak berubah: state.settings.lainnyaPct); minicard-nya sendiri sudah dihapus.
   const bufRp = (hargaJual && buffer>0) ? buffer*hargaJual : 0;
-  if(bufRp>0) body += row('zq-g', 'Buffer (Lainnya) — Setting Analisis', bufRp);
-  const base = (hargaJual && ratio!==null && ratio!==undefined) ? ratio*hargaJual : sumRp;
+  if(bufRp>0) body += row('zq-g', 'Buffer (Lainnya) — Setting Analisis', bufRp, fmtPct(buffer));
+  const base = (hargaReal && ratio!==null && ratio!==undefined) ? ratio*hargaReal : sumRp;
   const total = Math.abs(base) + bufRp;
-  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan + Buffer"><span class="zq-rn">Potongan Shopee per pesanan (tanpa saldo iklan &amp; voucher toko) ditambah Buffer dari Setting Analisis. Persentase dari Harga Jual (Subtotal Pesanan).</span>${body}${row('zq-rt', 'Total Admin + Layanan + Buffer', total)}</span>`;
+  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan + Buffer"><span class="zq-rn">Potongan Shopee per pesanan (tanpa saldo iklan &amp; voucher toko) ditambah Buffer dari Setting Analisis. Persentase dari Harga Real (setelah voucher), sama seperti hitungan Shopee.</span>${body}${row('zq-rt', 'Total Admin + Layanan + Buffer', total, fmtPct((ratio||0) + buffer))}</span>`;
 }
 
 function renderCheckAdminResult(parsed, manualOverrides){
@@ -5782,7 +5792,8 @@ function renderCheckAdminResult(parsed, manualOverrides){
   const acos = (roas && roas>0) ? 1/roas : null;
   const opsPercent = state.settings.rasioOpsPercent;
   const rasioOps = (opsPercent!==null && opsPercent!==undefined) ? opsPercent/100 : null;
-  const adminLayananRatio = ratioPotonganReal; // udah excl. biaya isi saldo otomatis & voucher toko ditanggung penjual
+  const adminLayananRatio = ratioPotonganReal; // % dari HARGA REAL (basis Shopee), udah excl. biaya isi saldo otomatis & voucher toko ditanggung penjual
+  const adminLayananRatioJual = hargaJual ? Math.abs(totalPotonganReal)/hargaJual : 0; // basis Harga Jual, khusus rantai NPM (semua komponen NPM % dari Harga Jual)
   // [7 Okt 2026] BUFFER (LAINNYA) dari Setting ikut dikurangkan. Alasan (user): rasio keuangan (RKS) diambil dari data BULANAN, bukan cuma data per pesanan,
   // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang sudah dipakai By Operasional/By Target Qty/By Harga Jual/By Support.
   const bufferPct = state.settings.lainnyaPct;
@@ -5790,7 +5801,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
   // [20 Okt 2026] VOUCHER TOKO yang ditanggung penjual ikut dikurangkan dari NPM (permintaan user). Sebelumnya NPM/Net Income mengabaikan voucher, padahal itu uang yang benar-benar hilang dari penjual
   // (GPM dihitung dari Harga Jual sebelum voucher). Basis sama dgn komponen lain: % dari Harga Jual (Subtotal Pesanan), jadi IDR-nya = nilai voucher persis.
   const voucherRatio = hargaJual ? Math.abs(voucherTotal)/hargaJual : 0;
-  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - voucherRatio - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Voucher, Rasio Ops & Buffer
+  const npm = (gpm!==null) ? gpm - adminLayananRatioJual - voucherRatio - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Voucher, Rasio Ops & Buffer
   const npmRp = (npm!==null && hargaJual!==null) ? npm*hargaJual : null;
   // CPP (Cost Per Purchase) = biaya iklan per pesanan = ACOS × Harga Jual (Subtotal Pesanan) — basis yang sama dengan IDR NPM & IDR Ops.
   const cppRp = (acos!==null && hargaJual!==null) ? acos*hargaJual : null;
@@ -5876,7 +5887,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
         <div class="stat-card bad">
           <div class="stat-label">Total Potongan (Real)</div>
           <div class="stat-value">${fmtRp(totalPotonganReal)}</div>
-          <div class="stat-sub zq-h">${fmtPct(ratioPotonganReal)} dari Harga Jual · excl. saldo iklan & vchr</div>
+          <div class="stat-sub zq-h">${fmtPct(ratioPotonganReal)} dari Harga Real · excl. saldo iklan & vchr</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Total Potongan (Laporan Shopee)</div>
