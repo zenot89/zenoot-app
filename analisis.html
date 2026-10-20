@@ -5787,7 +5787,10 @@ function renderCheckAdminResult(parsed, manualOverrides){
   // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang sudah dipakai By Operasional/By Target Qty/By Harga Jual/By Support.
   const bufferPct = state.settings.lainnyaPct;
   const buffer = (bufferPct!==null && bufferPct!==undefined && !isNaN(bufferPct)) ? bufferPct/100 : 0;
-  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Rasio Ops & Buffer
+  // [20 Okt 2026] VOUCHER TOKO yang ditanggung penjual ikut dikurangkan dari NPM (permintaan user). Sebelumnya NPM/Net Income mengabaikan voucher, padahal itu uang yang benar-benar hilang dari penjual
+  // (GPM dihitung dari Harga Jual sebelum voucher). Basis sama dgn komponen lain: % dari Harga Jual (Subtotal Pesanan), jadi IDR-nya = nilai voucher persis.
+  const voucherRatio = hargaJual ? Math.abs(voucherTotal)/hargaJual : 0;
+  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - voucherRatio - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Voucher, Rasio Ops & Buffer
   const npmRp = (npm!==null && hargaJual!==null) ? npm*hargaJual : null;
   // CPP (Cost Per Purchase) = biaya iklan per pesanan = ACOS × Harga Jual (Subtotal Pesanan) — basis yang sama dengan IDR NPM & IDR Ops.
   const cppRp = (acos!==null && hargaJual!==null) ? acos*hargaJual : null;
@@ -5808,7 +5811,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
       </table>
     </div>
     <div class="card">
-      <!-- [7 Okt 2026] judul kotak "Overview" + hint rumus (?) dihapus atas permintaan user; posisi minicard TIDAK dipindah. Rumus: NPM = GPM − Admin+Layanan − ACOS − Rasio Ops − Buffer; Net Income = IDR NPM + IDR Rasio Ops. -->
+      <!-- [7 Okt 2026] judul kotak "Overview" + hint rumus (?) dihapus atas permintaan user; posisi minicard TIDAK dipindah. Rumus: NPM = GPM − Admin+Layanan − Voucher Toko − ACOS − Rasio Ops − Buffer; Net Income = IDR NPM + IDR Rasio Ops. -->
       <div class="stat-grid stat-grid-6" style="margin-top:0;">
         <div class="stat-card accent">
           <div class="stat-label">GPM</div>
@@ -5838,7 +5841,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-label r">IDR</div>
           <div class="stat-value">${fmtPct(npm)}</div>
           <div class="stat-value r">${fmtRp(npmRp)}</div>
-          <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − ACOS − Ops</div>
+          <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − Voucher Toko${voucherTotal ? ' ('+fmtRp(Math.abs(voucherTotal))+')' : ''} − ACOS − Ops</div>
         </div>
         <div class="stat-card stat-dual ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
           <div class="stat-label">Net Income</div>
