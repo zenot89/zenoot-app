@@ -4712,6 +4712,7 @@ setupDrop('dropIncome','inputIncome', files=>{
       'Biaya Administrasi',
       'Biaya Proses Pesanan',
       'Biaya Layanan Promo XTRA',
+      'Biaya Transaksi',
       'Biaya Gratis Ongkir XTRA',
       'Biaya Komisi AMS',
       'Biaya Kampanye',
@@ -5520,6 +5521,8 @@ function findSkuIndukInMaster(kodeVariasi){
 }
 
 function isExcludedFee(label){ return /Biaya Isi Saldo Otomatis/i.test(label); }
+// [21 Okt 2026] "Biaya Transaksi" di laporan Shopee = biaya program SPayLater Xtra 0% (2% dari harga setelah voucher, hanya kalau pembeli bayar SPayLater) — ditampilkan dengan nama yang jelas.
+function feeDisplayLabel(label){ return /^Biaya Transaksi/i.test(label||'') ? 'Biaya Program SPayLater Xtra 0%' : label; }
 
 // Cuma buat info tambahan di minicard "Harga Jual" (bukan dipake di perhitungan GPM/NPM/dll) —
 // total voucher toko yang ditanggung penjual, biar keliatan berapa harga jual "real" abis voucher.
@@ -5654,7 +5657,7 @@ function buildFeeCardsHtml(parsed, hargaJual){
       const cBase = baseOf(c);
       const childPct = cBase ? Math.abs((c.value||0)/cBase) : null;
       return `<div class="fee-child ${excluded?'excluded':''}">
-        <div class="fee-child-label">${c.label}</div>
+        <div class="fee-child-label">${feeDisplayLabel(c.label)}</div>
         <div class="fee-child-val">${fmtRp(c.value)}${childPct!==null?` <span class="fee-child-pct">(${fmtPct(childPct)})</span>`:''}</div>
       </div>`;
     }).join('');
@@ -5695,7 +5698,7 @@ function buildAdminLayananPopHtml(parsed, hargaReal, ratio, buffer){
     const sub = rows.reduce((a,c)=>a+(c.value||0),0);
     sumRp += sub;
     body += row('zq-g', g.label, sub);
-    rows.forEach(c=>{ body += row('zq-rr', c.label, c.value||0); });
+    rows.forEach(c=>{ body += row('zq-rr', feeDisplayLabel(c.label), c.value||0); });
   });
   // [8 Okt 2026] Buffer (Lainnya) dari Setting Analisis ikut di baris & total (sumber angkanya tidak berubah: state.settings.lainnyaPct); minicard-nya sendiri sudah dihapus.
   const bufRp = (hargaReal && buffer>0) ? buffer*hargaReal : 0;
@@ -6495,6 +6498,7 @@ const ADMIN_LAYANAN_BREAKDOWN_ORDER = [
   {key:'Biaya Proses Pesanan', label:'Biaya Proses Pesanan'},
   {key:'Biaya Gratis Ongkir XTRA', label:'Biaya Gratis Ongkir XTRA'},
   {key:'Biaya Layanan Promo XTRA', label:'Biaya Layanan Promo XTRA+'},
+  {key:'Biaya Transaksi', label:'Biaya Program SPayLater Xtra 0%'},
   {key:'Biaya Komisi AMS', label:'Biaya Komisi AMS'},
   {key:'Biaya Kampanye', label:'Biaya Kampanye'},
   {key:'Biaya Program Hemat Biaya Kirim', label:'Biaya Program Hemat Biaya Kirim'},
@@ -10113,7 +10117,7 @@ setupDrop('dropIncomeM','inputIncomeM', files=>{
     let totalPendapatan=null, totalDilepasRaw=null, biayaIsiSaldo=0, biayaAdminLayanan=0, namaToko=null, periodeDari=null, periodeKe=null, released=new Set();
     const adminLayananBreakdown = {};
     const ADMIN_LAYANAN_LABELS = [
-      'Biaya Administrasi','Biaya Proses Pesanan','Biaya Layanan Promo XTRA','Biaya Gratis Ongkir XTRA',
+      'Biaya Administrasi','Biaya Proses Pesanan','Biaya Layanan Promo XTRA','Biaya Transaksi','Biaya Gratis Ongkir XTRA',
       'Biaya Komisi AMS','Biaya Kampanye','Biaya Program Hemat Biaya Kirim','Premi'
     ];
     ADMIN_LAYANAN_LABELS.forEach(l=>{ adminLayananBreakdown[l]=0; });
@@ -10938,7 +10942,7 @@ setupDrop('dropIncomeP','inputIncomeP', files=>{
     let totalPendapatan=null, totalDilepasRaw=null, biayaIsiSaldo=0, biayaAdminLayanan=0, namaToko=null, periodeDari=null, periodeKe=null, released=new Set();
     const adminLayananBreakdown = {};
     const ADMIN_LAYANAN_LABELS = [
-      'Biaya Administrasi','Biaya Proses Pesanan','Biaya Layanan Promo XTRA','Biaya Gratis Ongkir XTRA',
+      'Biaya Administrasi','Biaya Proses Pesanan','Biaya Layanan Promo XTRA','Biaya Transaksi','Biaya Gratis Ongkir XTRA',
       'Biaya Komisi AMS','Biaya Kampanye','Biaya Program Hemat Biaya Kirim','Premi'
     ];
     ADMIN_LAYANAN_LABELS.forEach(l=>{ adminLayananBreakdown[l]=0; });
