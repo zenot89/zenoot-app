@@ -4793,7 +4793,7 @@ setupDrop('dropIncome','inputIncome', files=>{
      Penghasilan  = Total Penghasilan - Biaya Isi Saldo Otomatis (isi saldo = top-up iklan, bukan biaya hilang; sudah masuk Iklan)
      Admin+Layanan= Pendapatan - Penghasilan
    Iklan per pesanan = total Iklan periode (state.manual.iklan, sudah + PPN) dibagi rata: PER PCS (x qty pesanan) atau PER PESANAN (cost per purchase).
-   Ops & Buffer = % Setting x Harga Jual (sama dengan Check Admin). Profit = Penghasilan - HPP - Iklan - Ops - Buffer; Net Income = Profit + Ops. */
+   Ops & Buffer = % Setting x Harga Real/Pendapatan (setelah voucher; sama dengan Check Admin & RKS), NPM = Profit ÷ Pendapatan. Profit = Penghasilan - HPP - Iklan - Ops - Buffer; Net Income = Profit + Ops. */
 function incomeParseOrders(rows, hi){
   const H = rows[hi];
   const ix = {}; H.forEach((h,i)=>{ if(h!=='' && ix[h]===undefined) ix[h]=i; });
@@ -4857,12 +4857,12 @@ function profitCompute(){
   const perOrder = (iklanOk && list.length) ? iklan/list.length : 0;
   list.forEach(o=>{
     o.iklan = profitUi.mode==='pcs' ? perPcs*(o.matched ? o.qty : 1) : perOrder;
-    o.ops = opsPct*o.hargaJual;
-    o.buffer = bufPct*o.hargaJual;
+    o.ops = opsPct*o.pendapatan;
+    o.buffer = bufPct*o.pendapatan;
     o.profit = o.penghasilan - o.hpp - o.iklan - o.ops - o.buffer;
     o.netIncome = o.profit + o.ops;
     o.admin = o.pendapatan - o.penghasilan;
-    o.npm = o.hargaJual ? o.profit/o.hargaJual : null;
+    o.npm = o.pendapatan ? o.profit/o.pendapatan : null;
   });
   return {status:'ok', list, iklan:iklanOk?iklan:null, perPcs, perOrder, totalQty, opsPct, bufPct,
           opsSet:(state.settings.rasioOpsPercent!==null && state.settings.rasioOpsPercent!==undefined)};
@@ -4881,7 +4881,7 @@ function renderProfit(){
   else okL.sort((a,b)=> (b.tgl>a.tgl?1:(b.tgl<a.tgl?-1:0)));
   badL.sort((a,b)=> (b.tgl>a.tgl?1:(b.tgl<a.tgl?-1:0)));
   const ALL = okL.concat(badL);
-  const totProfit = okL.reduce((a,o)=>a+o.profit,0), totHarga = okL.reduce((a,o)=>a+o.hargaJual,0);
+  const totProfit = okL.reduce((a,o)=>a+o.profit,0), totHarga = okL.reduce((a,o)=>a+o.pendapatan,0);
   const rugi = okL.filter(o=>o.profit<0).length, noHpp = badL.length;
   const cls = v=> v<0 ? ' style="color:var(--bad);font-weight:700;"' : '';
   const seg = (grp,val,label)=>`<button type="button" class="btn small ${profitUi[grp]===val?'':'ghost'}" data-pf="${grp}:${val}">${label}</button>`;
@@ -4904,7 +4904,7 @@ function renderProfit(){
   wrap.innerHTML = `
     <div class="stat-grid stat-grid-5">
       <div class="stat-card"><div class="stat-label">Jumlah Pesanan</div><div class="stat-value">${ALL.length}</div><div class="stat-sub">unik, dari file Income${noHpp?(' · '+okL.length+' dihitung'):''}</div></div>
-      <div class="stat-card ${totProfit<0?'bad':'good'}"><div class="stat-label">Total Profit</div><div class="stat-value">${fmtRp(totProfit)}</div><div class="stat-sub">${fmtPct(totHarga?totProfit/totHarga:null)} dari Harga Jual</div></div>
+      <div class="stat-card ${totProfit<0?'bad':'good'}"><div class="stat-label">Total Profit</div><div class="stat-value">${fmtRp(totProfit)}</div><div class="stat-sub">${fmtPct(totHarga?totProfit/totHarga:null)} dari Harga Real</div></div>
       <div class="stat-card"><div class="stat-label">Rata-rata / Pesanan</div><div class="stat-value">${fmtRp(okL.length?totProfit/okL.length:null)}</div></div>
       <div class="stat-card ${rugi?'bad':''}"><div class="stat-label">Pesanan Rugi</div><div class="stat-value">${rugi}</div><div class="stat-sub">${okL.length?fmtPct(rugi/okL.length):'-'} dari pesanan yang dihitung</div></div>
       <div class="stat-card"><div class="stat-label">Iklan ${profitUi.mode==='pcs'?'per Pcs':'per Pesanan'}</div><div class="stat-value">${R.iklan===null?'-':fmtRp(profitUi.mode==='pcs'?R.perPcs:R.perOrder)}</div><div class="stat-sub">${R.iklan===null?'iklan belum diisi':(fmtRp(R.iklan)+' ÷ '+(profitUi.mode==='pcs'?(R.totalQty+' pcs'):(ALL.length+' pesanan')))}</div></div>
@@ -4924,7 +4924,7 @@ function renderProfit(){
         </table>
       </div>
       ${noHpp?`<footer class="note status-warn">⚠ ${noHpp} pesanan HPP-nya belum lengkap (tidak ada di Order Completed yang ter-upload / HPP kosong) — profitnya tidak dihitung dan tidak masuk total. Upload Order Completed bulan lalu + bulan ini lewat Data Toko.</footer>`:`<footer class="note status-ok">✓ Semua pesanan sudah match HPP.</footer>`}
-      <footer class="note">Profit = Penghasilan − HPP − Iklan − Ops − Buffer. Admin+Layanan sudah termasuk di Penghasilan (tanpa Biaya Isi Saldo, itu top-up iklan). Ops ${fmtPct(R.opsPct)} ${R.opsSet?'':'(belum diisi di Setting)'} &amp; Buffer ${fmtPct(R.bufPct)} dari Harga Jual, Iklan = estimasi rata dari total iklan periode — angka per pesanan adalah estimasi.</footer>
+      <footer class="note">Profit = Penghasilan − HPP − Iklan − Ops − Buffer. Admin+Layanan sudah termasuk di Penghasilan (tanpa Biaya Isi Saldo, itu top-up iklan). Ops ${fmtPct(R.opsPct)} ${R.opsSet?'':'(belum diisi di Setting)'} &amp; Buffer ${fmtPct(R.bufPct)} dari Harga Real (setelah voucher), Iklan = estimasi rata dari total iklan periode — angka per pesanan adalah estimasi.</footer>
     </div>`;
   wrap.querySelectorAll('[data-pf]').forEach(b=>b.addEventListener('click', ()=>{
     const [g,v] = b.dataset.pf.split(':'); profitUi[g] = v; renderProfit();
@@ -5684,11 +5684,10 @@ function buildFeeCardsHtml(parsed, hargaJual){
 
 // [8 Okt 2026] Rincian "Admin + Layanan" untuk popup (?) di minicard: semua potongan Shopee per pesanan KECUALI Biaya Isi Saldo Otomatis & Voucher toko
 // (persis definisi ratioPotonganReal di computeFeeGroups), % dari Harga Real (setelah voucher) — jadi jumlah barisnya = angka di minicard.
-function buildAdminLayananPopHtml(parsed, hargaJual, ratio, buffer){
+function buildAdminLayananPopHtml(parsed, hargaReal, ratio, buffer){
   const e = v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const hargaReal = hargaJual ? hargaJual + getVoucherTotal(parsed) : null;
   const pc = rp => hargaReal ? fmtPct(Math.abs(rp/hargaReal)) : '-';
-  const row = (cls, label, rp, pctText) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pctText || pc(rp)}</span></span>`;
+  const row = (cls, label, rp) => `<span class="zq-row ${cls}"><span>${e(label)}</span><span class="zq-rv">${fmtRp(Math.abs(rp))}</span><span class="zq-rv">${pc(rp)}</span></span>`;
   let body = '', sumRp = 0;
   parsed.groups.forEach(g=>{
     const rows = g.children.filter(c=> !isExcludedFee(c.label) && !/^Voucher/i.test(c.label||'') && Math.abs(c.value||0)>=0.5);
@@ -5699,11 +5698,11 @@ function buildAdminLayananPopHtml(parsed, hargaJual, ratio, buffer){
     rows.forEach(c=>{ body += row('zq-rr', c.label, c.value||0); });
   });
   // [8 Okt 2026] Buffer (Lainnya) dari Setting Analisis ikut di baris & total (sumber angkanya tidak berubah: state.settings.lainnyaPct); minicard-nya sendiri sudah dihapus.
-  const bufRp = (hargaJual && buffer>0) ? buffer*hargaJual : 0;
-  if(bufRp>0) body += row('zq-g', 'Buffer (Lainnya) — Setting Analisis', bufRp, fmtPct(buffer));
+  const bufRp = (hargaReal && buffer>0) ? buffer*hargaReal : 0;
+  if(bufRp>0) body += row('zq-g', 'Buffer (Lainnya) — Setting Analisis', bufRp);
   const base = (hargaReal && ratio!==null && ratio!==undefined) ? ratio*hargaReal : sumRp;
   const total = Math.abs(base) + bufRp;
-  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan + Buffer"><span class="zq-rn">Potongan Shopee per pesanan (tanpa saldo iklan &amp; voucher toko) ditambah Buffer dari Setting Analisis. Persentase dari Harga Real (setelah voucher), sama seperti hitungan Shopee.</span>${body}${row('zq-rt', 'Total Admin + Layanan + Buffer', total, fmtPct((ratio||0) + buffer))}</span>`;
+  return `<span class="stat-sub zq-h zq-rich" data-zq-title="Rincian Admin + Layanan + Buffer"><span class="zq-rn">Potongan Shopee per pesanan (tanpa saldo iklan &amp; voucher toko) ditambah Buffer dari Setting Analisis. Persentase dari Harga Real (setelah voucher), sama seperti hitungan Shopee.</span>${body}${row('zq-rt', 'Total Admin + Layanan + Buffer', total)}</span>`;
 }
 
 function renderCheckAdminResult(parsed, manualOverrides){
@@ -5777,15 +5776,17 @@ function renderCheckAdminResult(parsed, manualOverrides){
     </tr>`;
   }).join('');
 
-  // GPM = (Harga Jual - HPP) / Harga Jual, dengan Harga Jual = Subtotal Pesanan
+  // [21 Okt 2026] SEMUA rasio Check Admin (GPM, Admin+Layanan, ACOS, Ops, Buffer, NPM, Net Income) dihitung dari HARGA REAL = Subtotal Pesanan + Voucher Toko (harga setelah diskon & voucher),
+  // sama dengan RKS (Pendapatan = setelah voucher) dan hitungan Shopee. Karena voucher sudah ada di dasar harga, TIDAK dikurangkan lagi di rantai NPM.
+  // GPM = (Harga Real - HPP) / Harga Real
   const hargaJual = parsed.subtotalPesanan;
-
-  const grossProfit = (hargaJual!==null) ? hargaJual - hppTotal : null;
-  const gpm = (grossProfit!==null && hargaJual) ? grossProfit/hargaJual : null;
-
-  // Total potongan: versi asli dari Shopee vs versi "real" (exclude Biaya Isi Saldo Otomatis, krn itu balik ke saldo iklan = aset, bukan biaya hilang)
   const { totalPotonganMentah, biayaSaldoIklan, voucherTotal, totalPotonganReal, ratioPotonganReal, ratioPotonganMentah } = computeFeeGroups(parsed);
   const hargaJualReal = (hargaJual!==null) ? hargaJual + voucherTotal : null;
+
+  const grossProfit = (hargaJualReal!==null) ? hargaJualReal - hppTotal : null;
+  const gpm = (grossProfit!==null && hargaJualReal) ? grossProfit/hargaJualReal : null;
+
+  // Total potongan: versi asli dari Shopee vs versi "real" (exclude Biaya Isi Saldo Otomatis, krn itu balik ke saldo iklan = aset, bukan biaya hilang)
 
   const roasInfo = resolveCaRoas();   // sumber ROAS pilihan panel (default Rekap Mingguan, fallback Setting)
   const roas = roasInfo.roas;
@@ -5793,20 +5794,17 @@ function renderCheckAdminResult(parsed, manualOverrides){
   const opsPercent = state.settings.rasioOpsPercent;
   const rasioOps = (opsPercent!==null && opsPercent!==undefined) ? opsPercent/100 : null;
   const adminLayananRatio = ratioPotonganReal; // % dari HARGA REAL (basis Shopee), udah excl. biaya isi saldo otomatis & voucher toko ditanggung penjual
-  const adminLayananRatioJual = hargaJual ? Math.abs(totalPotonganReal)/hargaJual : 0; // basis Harga Jual, khusus rantai NPM (semua komponen NPM % dari Harga Jual)
   // [7 Okt 2026] BUFFER (LAINNYA) dari Setting ikut dikurangkan. Alasan (user): rasio keuangan (RKS) diambil dari data BULANAN, bukan cuma data per pesanan,
   // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang sudah dipakai By Operasional/By Target Qty/By Harga Jual/By Support.
   const bufferPct = state.settings.lainnyaPct;
   const buffer = (bufferPct!==null && bufferPct!==undefined && !isNaN(bufferPct)) ? bufferPct/100 : 0;
-  // [20 Okt 2026] VOUCHER TOKO yang ditanggung penjual ikut dikurangkan dari NPM (permintaan user). Sebelumnya NPM/Net Income mengabaikan voucher, padahal itu uang yang benar-benar hilang dari penjual
-  // (GPM dihitung dari Harga Jual sebelum voucher). Basis sama dgn komponen lain: % dari Harga Jual (Subtotal Pesanan), jadi IDR-nya = nilai voucher persis.
-  const voucherRatio = hargaJual ? Math.abs(voucherTotal)/hargaJual : 0;
-  const npm = (gpm!==null) ? gpm - adminLayananRatioJual - voucherRatio - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, udah termasuk Voucher, Rasio Ops & Buffer
-  const npmRp = (npm!==null && hargaJual!==null) ? npm*hargaJual : null;
-  // CPP (Cost Per Purchase) = biaya iklan per pesanan = ACOS × Harga Jual (Subtotal Pesanan) — basis yang sama dengan IDR NPM & IDR Ops.
-  const cppRp = (acos!==null && hargaJual!==null) ? acos*hargaJual : null;
+  // [21 Okt 2026] Voucher toko sudah termasuk di Harga Real (dasar GPM), jadi tidak ada pengurang voucher lagi di NPM (menggantikan catatan 20 Okt).
+  const npm = (gpm!==null) ? gpm - (adminLayananRatio||0) - (acos||0) - (rasioOps||0) - buffer : null; // NPM = Net Profit Margin, semua komponen % dari Harga Real
+  const npmRp = (npm!==null && hargaJualReal!==null) ? npm*hargaJualReal : null;
+  // CPP (Cost Per Purchase) = biaya iklan per pesanan = ACOS × Harga Real — basis yang sama dengan IDR NPM & IDR Ops (ROAS Shopee Ads dihitung dari harga setelah voucher, seperti RKS).
+  const cppRp = (acos!==null && hargaJualReal!==null) ? acos*hargaJualReal : null;
   // Net Income = total uang IDR dari NPM (final, sama persis dgn NPM % di card sebelah) + IDR Rasio Ops (dijumlah, bukan dikurangi — Ops tetep masuk kantong sendiri)
-  const opsRpSigned = (rasioOps!==null && hargaJual!==null) ? (rasioOps*hargaJual) : 0;
+  const opsRpSigned = (rasioOps!==null && hargaJualReal!==null) ? (rasioOps*hargaJualReal) : 0;
   const netIncome = (npmRp!==null) ? npmRp + opsRpSigned : null;
 
   const { feeCardsHtml: feeCards, feeExtrasHtml: feeExtras } = buildFeeCardsHtml(parsed, hargaJual);
@@ -5822,7 +5820,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
       </table>
     </div>
     <div class="card">
-      <!-- [7 Okt 2026] judul kotak "Overview" + hint rumus (?) dihapus atas permintaan user; posisi minicard TIDAK dipindah. Rumus: NPM = GPM − Admin+Layanan − Voucher Toko − ACOS − Rasio Ops − Buffer; Net Income = IDR NPM + IDR Rasio Ops. -->
+      <!-- [7 Okt 2026] judul kotak "Overview" + hint rumus (?) dihapus atas permintaan user; posisi minicard TIDAK dipindah. Rumus (semua % dari Harga Real): NPM = GPM − Admin+Layanan − ACOS − Rasio Ops − Buffer; Net Income = IDR NPM + IDR Rasio Ops. -->
       <div class="stat-grid stat-grid-6" style="margin-top:0;">
         <div class="stat-card accent">
           <div class="stat-label">GPM</div>
@@ -5831,7 +5829,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
         <div class="stat-card">
           <div class="stat-label">Adm+Lyn+Bfr</div>
           <div class="stat-value">${fmtPct((adminLayananRatio||0) + buffer)}</div>
-          ${buildAdminLayananPopHtml(parsed, hargaJual, adminLayananRatio, buffer)}
+          ${buildAdminLayananPopHtml(parsed, hargaJualReal, adminLayananRatio, buffer)}
         </div>
         <div class="stat-card stat-dual">
           <div class="stat-label">ACOS</div>
@@ -5844,7 +5842,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-label">Ops</div>
           <div class="stat-label r">IDR</div>
           <div class="stat-value">${rasioOps!==null ? fmtPct(rasioOps) : '-'}</div>
-          <div class="stat-value r">${rasioOps!==null && hargaJual!==null ? fmtRp(opsRpSigned) : '-'}</div>
+          <div class="stat-value r">${rasioOps!==null && hargaJualReal!==null ? fmtRp(opsRpSigned) : '-'}</div>
           <div class="stat-sub zq-h">${rasioOps!==null ? 'Rasio Operasional — Setting Analisis' : 'isi Rasio Operasional di Setting'}</div>
         </div>
         <div class="stat-card stat-dual ${npm!==null && npm<0 ? 'bad' : 'good'}">
@@ -5852,12 +5850,12 @@ function renderCheckAdminResult(parsed, manualOverrides){
           <div class="stat-label r">IDR</div>
           <div class="stat-value">${fmtPct(npm)}</div>
           <div class="stat-value r">${fmtRp(npmRp)}</div>
-          <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − Voucher Toko${voucherTotal ? ' ('+fmtRp(Math.abs(voucherTotal))+')' : ''} − ACOS − Ops</div>
+          <div class="stat-sub zq-h">GPM − (Admin + Layanan + Buffer) − ACOS − Ops · semua % dari Harga Real</div>
         </div>
         <div class="stat-card stat-dual ${netIncome!==null && netIncome<0 ? 'bad' : 'good'}">
           <div class="stat-label">Net Income</div>
           <div class="stat-label r">IDR</div>
-          <div class="stat-value">${(netIncome!==null && hargaJual) ? fmtPct(netIncome/hargaJual) : '-'}</div>
+          <div class="stat-value">${(netIncome!==null && hargaJualReal) ? fmtPct(netIncome/hargaJualReal) : '-'}</div>
           <div class="stat-value r">${fmtRp(netIncome)}</div>
           <div class="stat-sub zq-h">${fmtRp(npmRp)} (NPM) + ${fmtRp(Math.abs(opsRpSigned))} (Ops)</div>
         </div>
