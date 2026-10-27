@@ -83,7 +83,7 @@
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['profit', 'Profit Pesanan', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['checkadmin', 'Check Admin'], ['proyeksi', 'By Operasional'], ['byqty', 'By Target Qty'], ['byharga', 'By Harga Jual'], ['bysupport', 'By Support']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['checkadmin', 'Check Admin']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
   var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
@@ -97,7 +97,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'proyeksi', 'byqty', 'byharga', 'bysupport', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -175,49 +175,6 @@
   // [30 Sep 2026] + Proyeksi RKS (#hasilWrapP/#page-hasilP): aturan yang sama otomatis berlaku juga di halaman Proyeksi HP.
   function hw(rest, body) { return 'html.zan-phone #hasilWrap' + rest + ',html.zan-phone #hasilWrapM' + rest.replace(/#hasilWrap\b/g, '#hasilWrapM') + ',html.zan-phone #hasilWrapP' + rest.replace(/#hasilWrap\b/g, '#hasilWrapP') + '{' + body + '}'; }
   function pg(rest, body) { return 'html.zan-phone #page-hasil' + rest + ',html.zan-phone #page-hasilM' + rest + ',html.zan-phone #page-hasilP' + rest + '{' + body + '}'; }
-  // [22 Sep 2026] By Harga Jual di HP: 4 slide yang digeser ke samping — 1 Input, 2 Perhitungan per pcs, 3 Batas aman + Voucher penjual, 4 Minicard (Ringkasan).
-  // DOM asli (analisis.html) tetap: #byhargaStats (minicard) | .rks-shell > .rks-main > #byhargaDetail > .byh-cols > .byh-col x2 | #byhargaInputPanel.
-  // Pembungkus tengah dileburkan (display:contents) supaya keempat blok jadi anak langsung zona geser, lalu diurutkan pakai `order`. Indikator ●●●● murni CSS:
-  // tiap slide punya bar judul sendiri, titik ke-n hitam = slide ini (sama polanya dengan RKS Overview). Slide 4 tidak punya h3 -> bar judulnya dibuat lewat ::before.
-  function byhCss() {
-    var V = 'html.zan-phone ';
-    var S = [V + '#byhargaInputPanel',
-             V + '#byhargaView-input .byh-cols > .byh-col:nth-child(1)',
-             V + '#byhargaView-input .byh-cols > .byh-col:nth-child(2)',
-             V + '#byhargaStats'];
-    var T = [V + '#byhargaInputPanel h3',
-             S[1] + ' > .card:first-child h3',
-             S[2] + ' > .card:first-child h3'];
-    function dots(n) {
-      var g = [];
-      for (var i = 0; i < 4; i++) g.push('radial-gradient(circle,' + (i === n ? '#000' : '#BDBDBD') + ' 3.5px,transparent 4px)');
-      return g.join(',');
-    }
-    var out = [
-      // halaman = 1 layar (tinggi = 100vh - topbar 66px), yang bergerak cuma isi slide
-      V + '#page-byharga.active{display:flex;flex-direction:column;flex:none;height:calc(100vh - 66px);min-height:0;margin-bottom:0;}',
-      'html.zan-phone.embed[data-zan-page="byharga"] #main{padding-bottom:0;}',
-      // zona geser
-      V + '#byhargaView-input.active{display:flex;flex-direction:row;align-items:stretch;flex:1 1 0;min-height:0;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;}',
-      V + '#byhargaView-input::-webkit-scrollbar{display:none;}',
-      V + '#byhargaView-input .rks-shell,' + V + '#byhargaView-input .rks-main,' + V + '#byhargaDetail,' + V + '#byhargaView-input .byh-cols{display:contents;}',
-      // tiap slide = selebar layar, isinya scroll ke bawah sendiri
-      S.join(',') + '{flex:0 0 100%;width:100%;min-width:0;box-sizing:border-box;margin:0;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}',
-      S[0] + '{order:1;align-self:stretch;}',
-      S[1] + '{order:2;gap:10px;}',
-      S[2] + '{order:3;gap:10px;}',
-      S[3] + '{order:4;}',
-      // bar judul tiap slide + ruang untuk ●●●● di kanan
-      T.join(',') + '{position:relative;font-size:15px;padding:6px 76px 6px 10px;margin-bottom:6px;}',
-      T.join('::after,') + '::after{content:"";position:absolute;right:12px;top:50%;width:50px;height:8px;margin-top:-4px;background-repeat:no-repeat;background-size:8px 8px;background-position:0 0,14px 0,28px 0,42px 0;}'
-    ];
-    for (var n = 0; n < 3; n++) out.push(T[n] + '::after{background-image:' + dots(n) + ';}');
-    // slide 4 (minicard): bar judul "Ringkasan" lewat ::before, titik digambar sebagai background berlapis di bar itu sendiri
-    out.push(S[3] + '::before{content:"Ringkasan";display:block;box-sizing:border-box;margin-bottom:6px;padding:6px 76px 6px 10px;font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--ink);' +
-             'border:1px solid var(--ink);border-radius:4px;background-color:var(--title-bg);background-image:' + dots(3) + ';background-repeat:no-repeat;background-size:8px 8px;' +
-             'background-position:right 54px center,right 40px center,right 26px center,right 12px center;}');
-    return out.join('');
-  }
   var PHONE_CSS = [
     'html.zan-phone body{display:block;min-height:0;}',
     'html.zan-phone.embed #main{display:block;padding:0 12px 24px;}',
@@ -383,22 +340,12 @@
     'html.zan-phone .hpp-layout{display:flex;flex-direction:column;gap:12px;}',
     'html.zan-phone .hpp-uploads{width:100%;flex:none;order:-1;}',
     'html.zan-phone .hpp-main{width:100%;flex:none;}',
-    // Proyeksi Harga: By Operasional & By Target Qty — panel input di bawah hasil, halaman mengalir biasa
-    'html.zan-phone #page-proyeksi.active,html.zan-phone #page-byqty.active,html.zan-phone #proyeksiView-input.active,html.zan-phone #byqtyView-input.active{display:block;flex:none;min-height:0;}',
-    'html.zan-phone #proyeksiView-input .rks-shell,html.zan-phone #byqtyView-input .rks-shell{display:block;}',
-    'html.zan-phone #proyeksiInputPanel,html.zan-phone #byqtyInputPanel{width:100%;flex:none;margin-top:10px;}',
-    // [21 Sep 2026] By Harga Jual: sama seperti By Target Qty — hasil di atas, panel Input di bawah, satu kolom
-    // [22 Sep 2026] By Harga Jual di HP = SWIPE 4 halaman dengan indikator ●●●● (lihat byhCss).
-    byhCss(),
-    'html.zan-phone .pricelist-scroll{max-height:none;}',
-    // [7 Okt 2026] Price List (halaman sendiri): HP mengalir biasa; tabel 3 kolom (SKU, NET, HPP) pas layar tanpa scroll samping — kolom Operasional (nilainya sama di semua baris, sudah ada di minicard) disembunyikan
+    // [27 Okt 2026] Price List (satu-satunya metode Proyeksi Harga, by GPM): HP mengalir biasa; tabel 8 kolom digeser ke samping di dalam kartunya (bukan melebarkan halaman)
     'html.zan-phone #page-pricelist.active{display:block;flex:none;min-height:0;}',
     'html.zan-phone #priceListCard-pricelist{display:block;}',
-    'html.zan-phone #priceListCard-pricelist .ca-table{display:table;table-layout:fixed;width:100%;overflow:visible;}',
-    'html.zan-phone #priceListCard-pricelist .ca-table th:nth-child(4),html.zan-phone #priceListCard-pricelist .ca-table td:nth-child(4){display:none;}',
-    'html.zan-phone #priceListCard-pricelist .ca-table th,html.zan-phone #priceListCard-pricelist .ca-table td{padding:10px 8px;font-size:13px;overflow-wrap:anywhere;}',
-    'html.zan-phone #proyeksiView-list > div:first-child,html.zan-phone #byqtyView-list > div:first-child{gap:8px;}',
-    'html.zan-phone .btn-switch{min-width:0;flex:1 1 0;text-align:center;}',
+    'html.zan-phone .pricelist-scroll{max-height:none;overflow-x:auto;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table{display:table;width:100%;min-width:640px;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table th,html.zan-phone #priceListCard-pricelist .ca-table td{padding:10px 8px;font-size:12.5px;white-space:nowrap;}',
 
     // ══ Rekap & Rekap Mingguan: tabel dipadatkan, kolom Kriteria nempel di kiri (sticky), header beku, isi scroll DI DALAM kartu ══
     // [21 Sep 2026] tinggi halaman = 100vh - topbar (66px), sama seperti RKS Overview; padding bawah #main dibuang → kartu tabel habis sampai ujung bawah layar
@@ -766,3 +713,4 @@
 // (57) [20 Okt 2026] Check Admin: NPM & Net Income sekarang ikut mengurangkan Voucher Toko yang ditanggung penjual (sebelumnya voucher diabaikan, NPM terlalu tinggi sebesar nilai voucher). Rumus: NPM = GPM − Admin+Layanan − Voucher − ACOS − Ops − Buffer. Semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah.
 // (58) [21 Okt 2026] Konsep basis HARGA REAL (Subtotal Pesanan + voucher toko = harga setelah diskon & voucher, sama dengan Pendapatan RKS & hitungan Shopee): (a) Check Admin — GPM, Admin+Layanan (Administrasi 8,25% x 102.000 = 8.415), ACOS/CPP, Ops, Buffer, NPM & Net Income semua % dari Harga Real; voucher tidak dikurangkan lagi di rantai NPM (menggantikan catatan 57); kartu biaya Shopee ikut % dari Harga Real; (b) Profit per Pesanan — Ops, Buffer & NPM dari Pendapatan (setelah voucher). By Harga Jual & RKS sudah memakai basis ini. Semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah.
 // (59) [21 Okt 2026] "Biaya Transaksi" di laporan Shopee (grup Biaya Layanan) = biaya program SPayLater Xtra 0% (2% dari harga setelah voucher, hanya pesanan yang dibayar SPayLater): ditampilkan sebagai "Biaya Program SPayLater Xtra 0%" di kartu Biaya Layanan & popup Admin+Layanan Check Admin; label "Biaya Transaksi" ditambah ke 3 parser Income (Overview, Mingguan, Proyeksi) + baris rincian Admin di Rekap. BPP (Biaya Proses Pesanan, Rp1.250 flat) tidak berubah. Rumus tidak berubah. Semuanya di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah.
+// (60) [27 Okt 2026] Proyeksi Harga DISEDERHANAKAN jadi 1 metode (by GPM, mengikuti sheet PROYEKSI HARGA): tab By Operasional / By Target Qty / By Harga Jual / By Support DIHAPUS (halaman, hitungan, CSS HP-nya: byhCss dkk, dan data kompetitor By Harga Jual); tab tersisa Price List (isinya diganti metode GPM: Harga Upload/Coret/Net, Net Income, NPM) dan Check Admin. Catatan (8), (9), (13)-(23), (28)-(30), (37)-(40) di atas menyangkut tab yang sudah dihapus. Semua logic di analisis.html; file INI: daftar tab, PHONE_PAGES, CSS HP Price List.

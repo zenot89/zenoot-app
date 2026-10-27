@@ -82,8 +82,8 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  /* [22 Sep 2026] FIX "goyang" pas ngetik di panel Input (By Harga Jual/By Qty/dst): tiap keystroke
-     renderByHargaResult() (dan render sejenis) nge-replace innerHTML statsEl/detailEl, tinggi konten
+  /* [22 Sep 2026] FIX "goyang" pas ngetik di panel Input (Check Admin dst): tiap keystroke
+     render ulang nge-replace innerHTML kartu hasil, tinggi konten
      naik-turun dikit tiap ketik -> nyeberang batas tinggi viewport -> scrollbar browser muncul/hilang
      -> lebar halaman berubah beberapa piksel -> seluruh layout keliatan geser tiap ketik.
      Fix: kunci scrollbar vertikal SELALU ada di root, sama pola dengan .content{overflow-y:scroll}
@@ -551,56 +551,24 @@
     box-shadow:0 4px 18px rgba(0,0,0,.18); padding:14px 16px; font-size:13.5px; font-weight:400; line-height:1.55; color:var(--ink); z-index:40; text-align:left; }
   .info-bubble::before{ content:''; position:absolute; top:-6px; left:14px; width:12px; height:12px; background:#fff; transform:rotate(45deg); box-shadow:-2px -2px 4px rgba(0,0,0,.05); }
   .info-tip:hover .info-bubble, .info-tip:focus .info-bubble{ display:block; }
-  .btn-switch{ min-width:150px; text-align:center; justify-content:center; }   /* tombol Input <-> Price List: posisi & ukuran sama di kedua tampilan biar mouse gak loncat */
-  /* ===== By Operasional: panel Input di kanan sejajar kolom data — default selalu kebuka (gak pakai toggle) ===== */
-  #proyeksiInputPanel, #byqtyInputPanel{ flex:0 0 340px; width:340px; align-self:flex-start; }
-  #proyeksiInputPanel .rks-datatoko-panel-inner, #byqtyInputPanel .rks-datatoko-panel-inner{ width:100%; }
-  /* Tampilan hasil By Operasional muat 1 layar: Nilai (IDR) & Rasio jadi 2 kartu terpisah yang ngisi sampai bawah, font ikut tinggi layar */
-  #page-proyeksi.active, #page-byqty.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
-  #proyeksiView-input.active, #byqtyView-input.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
-  #proyeksiView-input .rks-shell, #byqtyView-input .rks-shell{ flex:1; min-height:0; align-items:stretch; }
-  #proyeksiView-input .rks-main, #byqtyView-input .rks-main{ display:flex; flex-direction:column; }
-  #proyeksiDetail, #byqtyDetail{ flex:1; min-height:0; display:flex; flex-direction:column; }
-  /* [7 Okt 2026] By Operasional & By Target Qty: Price List & Potongan SEJAJAR panel Input (pola halaman Check Admin: kiri = hasil + Price List, kanan = kolom Input penuh ke bawah).
-     3 anak langsung .rks-shell (main, Input, Price List) ditata grid di laptop; di HP rule 'display:block' di analisis.js menang (spesifisitas lebih tinggi) -> urutan tumpuk tetap hasil, Input, Price List. */
-  #proyeksiView-input .rks-shell, #byqtyView-input .rks-shell{ display:grid; grid-template-columns:minmax(0,1fr) 340px; grid-template-areas:"main input" "price input"; grid-template-rows:auto auto; align-content:start; column-gap:16px; row-gap:0; }
-  #proyeksiView-input .rks-shell > .rks-main, #byqtyView-input .rks-shell > .rks-main{ grid-area:main; min-width:0; }
-  #proyeksiInputPanel, #byqtyInputPanel{ grid-area:input; }
-  #proyeksiPriceWrap, #byqtyPriceWrap{ grid-area:price; min-width:0; }
-  /* jarak Price List dari kartu hasil: cuma kalau hasilnya ada (sebelum produk dipilih area hasil kosong, Price List sejajar atas dengan panel Input). HP tetap pakai margin-top bawaan. */
-  html:not(.zan-phone) #proyeksiPriceWrap, html:not(.zan-phone) #byqtyPriceWrap{ margin-top:0 !important; }
-  html:not(.zan-phone) #proyeksiDetail:not(:empty), html:not(.zan-phone) #byqtyDetail:not(:empty){ margin-bottom:16px; }
-  /* ===== [7 Okt 2026] Price List dipisah dari By Target Qty ===== */
-  /* By Target Qty: 2 kolom saja (hasil kiri | Input kanan). Kalau hasil sudah tampil, panel Input ditarik setinggi blok kiri (atas & bawah sejajar) — sebelum produk dipilih tetap setinggi isinya. */
-  #byqtyView-input .rks-shell{ grid-template-areas:"main input"; grid-template-rows:minmax(min-content,1fr); align-content:stretch; }
-  html:not(.zan-phone) #byqtyDetail:not(:empty){ margin-bottom:0; }
-  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel{ align-self:stretch; }
-  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel .rks-datatoko-panel-inner{ height:100%; }
-  html:not(.zan-phone) #byqtyView-input .rks-shell:has(#byqtyDetail:not(:empty)) #byqtyInputPanel .rks-datatoko-panel-inner > .card{ height:100%; box-sizing:border-box; margin-bottom:0; }
-  /* Price List = halaman sendiri: minicard Potongan di atas, tabel full-width mengisi sisa tinggi layar (header beku, scroll cuma di baris data) */
+  /* ===== Price List (satu-satunya metode Proyeksi Harga, by GPM — [27 Okt 2026]) ===== */
+  /* Halaman: minicard komponen GPM + parameter di atas, tabel mengisi sisa tinggi layar (header beku, scroll cuma di baris data) */
   #page-pricelist.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
   #priceListCard-pricelist{ flex:1; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
-  #priceListCard-pricelist tr.byq-pl-row{ transition:background-color .12s ease; }
-  #priceListCard-pricelist tr.byq-pl-row:hover td{ background:var(--accent-soft) !important; }
+  .pl-param-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+  #pricelistParams{ margin-bottom:14px; }
+  .pl-in input{ width:100%; box-sizing:border-box; margin-top:8px; padding:6px 10px; font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; }
+  #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
   /* Perpindahan antar halaman Proyeksi Harga: fade pendek (opacity saja, tanpa transform supaya posisi bottom-sheet/sticky tidak ikut terpengaruh) */
   @keyframes zanPageIn{ from{ opacity:0; } to{ opacity:1; } }
-  #page-pricelist.active, #page-checkadmin.active, #page-proyeksi.active, #page-byqty.active, #page-byharga.active, #page-bysupport.active{ animation:zanPageIn .16s ease-out; }
+  #page-pricelist.active, #page-checkadmin.active{ animation:zanPageIn .16s ease-out; }
   /* angka yang berubah diperbarui di tempat (patchHtml) lalu berkedip halus — kartu tidak digambar ulang */
   @keyframes zanTick{ from{ opacity:.3; } to{ opacity:1; } }
   .zan-tick{ animation:zanTick .24s ease-out; }
   @media (prefers-reduced-motion:reduce){
-    #page-pricelist.active, #page-checkadmin.active, #page-proyeksi.active, #page-byqty.active, #page-byharga.active, #page-bysupport.active, .zan-tick{ animation:none; }
+    #page-pricelist.active, #page-checkadmin.active, .zan-tick{ animation:none; }
   }
-  .pr-cols{ flex:1; min-height:470px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,2fr) minmax(0,1fr); gap:16px; align-items:stretch; }   /* baris 1: Nilai (IDR) | Rasio — baris 2: Spend Budget Iklan | Cost Produk */
-  .pr-card{ display:flex; flex-direction:column; padding:16px 24px 10px; margin-bottom:0; }
-  .pr-card h3{ margin:0 0 10px; font-size:clamp(15px,1.9vh,19px); }
-  .pr-rows{ flex:1; display:flex; flex-direction:column; }
-  .pr-rows .hrow{ flex:1 1 0; padding:4px 0; }
-  .pr-rows .hrow .lbl{ font-size:clamp(15px,1.8vh,19px); }
-  .pr-rows .hrow .val{ font-size:clamp(15.5px,1.9vh,20px); }
-  .pr-rasio .pr-rows .hrow .lbl{ font-size:clamp(17px,2.2vh,24px); }
-  .pr-rasio .pr-rows .hrow .val{ font-size:clamp(22px,3.1vh,34px); }
   .roas-block{ padding:11px 0; border-bottom:1px solid var(--line); }
   .roas-block .lbl{ font-size:12.5px; font-weight:600; margin-bottom:8px; }
   .roas-block .lbl .ket{ display:block; font-size:11px; color:var(--ink-soft); font-weight:400; margin-top:1px; }
@@ -614,81 +582,8 @@
   .roas-seg button:disabled{ opacity:.45; cursor:not-allowed; }
   .roas-block input{ font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; text-align:right; width:100%; box-sizing:border-box; margin-top:8px; padding:7px 9px; border:1px solid var(--line); border-radius:7px; background:var(--accent-soft); }
   .roas-note{ font-size:11px; color:var(--ink-soft); margin-top:8px; line-height:1.4; }
-  #proyeksiInputPanel .hrow.stack, #byqtyInputPanel .hrow.stack{ flex-direction:column; align-items:stretch; gap:8px; }
-  #proyeksiInputPanel .hrow.stack .val, #byqtyInputPanel .hrow.stack .val{ width:100%; white-space:normal; }
-  #proyeksiInputPanel .hrow.stack .val input, #byqtyInputPanel .hrow.stack .val input,
-  #proyeksiInputPanel .hrow.stack .val select, #byqtyInputPanel .hrow.stack .val select{ width:100%; box-sizing:border-box; }
-  #proyeksiInputPanel .hrow .lbl, #byqtyInputPanel .hrow .lbl{ font-size:12.5px; }
-  /* ===== By Harga Jual (simulasi instan, [21 Sep 2026]): 1 tampilan — hasil di kiri, panel Input di kanan. Blok terpisah supaya rule By Operasional/By Target Qty gak tersentuh ===== */
-  #byhargaInputPanel{ flex:0 0 340px; width:340px; align-self:flex-start; }
-  #byhargaInputPanel .rks-datatoko-panel-inner{ width:100%; }
-  #byhargaInputPanel .hrow.stack{ flex-direction:column; align-items:stretch; gap:8px; }
-  #byhargaInputPanel .hrow.stack .val{ width:100%; white-space:normal; }
-  #byhargaInputPanel .hrow.stack .val input, #byhargaInputPanel .hrow.stack .val select{ width:100%; box-sizing:border-box; }
-  #byhargaInputPanel .hrow .lbl{ font-size:12.5px; }
-  #byhargaInputPanel .hrow .roas-note{ margin-top:0; }
-  .byh-cols{ display:grid; grid-template-columns:1.25fr 1fr; gap:16px; align-items:start; }
-  .byh-col{ display:flex; flex-direction:column; gap:16px; min-width:0; }
-  .byh-card{ padding:16px 22px 12px; margin-bottom:0; min-width:0; }
-  .byh-card h3{ margin:0 0 8px; font-size:15px; }
-  .byh-card .hrow{ padding:8px 0; }
-  .byh-card .hrow .lbl{ font-size:13px; }
-  .byh-card .hrow .val{ font-size:14.5px; white-space:nowrap; }
-  .byh-pct{ font-weight:400; color:var(--ink-soft); font-size:11.5px; margin-left:6px; }
-  .byh-note{ font-size:11.5px; color:var(--ink-soft); line-height:1.5; margin-top:8px; }
-  .byh-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 14px; }
-  /* [22 Sep 2026] GPM acuan (di Harga Jual = sebelum voucher) dibuat lebih tegas dari persen lainnya */
-  .byh-pct.byh-ref{ color:var(--ink); font-weight:700; }
-  /* [29 Sep 2026] By Harga Jual: 2 halaman lewat tombol di topbar (bukan scroll panjang ke bawah). Halaman 1 "Kalkulasi" = kartu ringkas + hasil + Normal vs Voucher Weekend;
-     halaman 2 "Data Pasar" = kartu Data kompetitor. Panel Input (kanan) tetap tampil di kedua halaman. Cuma disembunyikan lewat CSS, isi/JS render tidak diubah. */
-  #page-byharga.byh-hal-pasar #byhargaStats, #page-byharga.byh-hal-pasar #byhargaDetail{ display:none; }
-  #page-byharga:not(.byh-hal-pasar) #byhargaBinsWrap{ display:none; }
-  #page-byharga.byh-hal-pasar #byhargaBinsWrap > .card{ margin-top:0 !important; }
-  /* [28 Sep 2026] By Harga Jual: tabel Normal vs Voucher Weekend + Data kompetitor per range harga */
-  .byh-cmp{ width:100%; border-collapse:collapse; font-size:13.5px; }
-  .byh-cmp th{ font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; padding:6px 0; border-bottom:1px solid var(--line); }
-  .byh-cmp td{ text-align:right; padding:8px 0; border-bottom:1px solid var(--line); white-space:nowrap; }
-  .byh-cmp th:first-child, .byh-cmp td:first-child{ text-align:left; font-weight:600; font-size:13px; }
-  .byh-cmp td.good{ color:var(--good); font-weight:700; } .byh-cmp td.bad{ color:var(--bad); font-weight:700; }
-  .byh-bin-scroll{ overflow-x:auto; }
-  .byh-bin-tbl{ width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
-  .byh-bin-tbl th{ font-size:11.5px; font-weight:600; color:var(--ink-soft); text-align:right; padding:6px 4px; border-bottom:1px solid var(--line); }
-  .byh-bin-tbl td{ padding:4px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
-  .byh-bin-tbl td input{ width:100%; min-width:64px; box-sizing:border-box; text-align:right; padding:6px 8px; font-size:13px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); }
-  .byh-bin-tbl tr.byh-bin-hit td{ background:var(--good-soft); }
-  .byh-bin-tbl td.byh-c{ color:var(--ink-soft); }
-  .byh-bin-tbl button.byh-del{ border:0; background:transparent; color:var(--bad); cursor:pointer; font-size:16px; line-height:1; padding:4px 8px; }
-  .byh-bin-sum{ font-size:13px; line-height:1.55; margin:8px 0 10px; padding:9px 12px; border-radius:8px; background:var(--accent-soft); }
-  .byh-bin-sum.hit{ background:var(--good-soft); }
-  /* [28 Sep 2026] Ringkasan pasar (pengganti tabel di tampilan utama): 3 bagian = 1 Data, 2 Peta pasar, 3 Banding dengan admin */
-  .ch-svg{ width:100%; height:auto; display:block; color:var(--ink); } .ch-donut{ width:130px; height:130px; }
-  .ch-grid{ stroke:currentColor; opacity:.13; } .ch-t{ font-size:10px; fill:currentColor; opacity:.75; } .ch-c{ font-size:15px; font-weight:700; fill:currentColor; }
-  .bc-below{ fill:#c9c6bd; background:#c9c6bd; } .bc-ok{ fill:#3f9163; background:#3f9163; } .bc-best{ fill:#1f5c3a; background:#1f5c3a; } .bc-dom{ stroke:#1a1a1a; stroke-width:1.4; stroke-dasharray:4 3; }
-  .ch-min{ stroke:#c0392b; stroke-width:1.6; } .ch-mint{ fill:#c0392b; opacity:1; } .ch-jual{ stroke:#2b6cb0; stroke-width:1.6; } .ch-jualt{ fill:#2b6cb0; opacity:1; }
-  .dn-a{ stroke:#c9c6bd; } .dn-b{ stroke:#3f9163; } .dn-c{ stroke:#d9793a; } .dn-c-k{ background:#d9793a; }
-  .ch-key{ display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:middle; margin-right:3px; }
-  .ch-row{ display:flex; gap:24px; flex-wrap:wrap; } .ch-col{ flex:1 1 220px; }
-  .byh-tabs{ display:flex; gap:6px; margin:6px 0 8px; }
-  .byh-tab{ border:1px solid var(--line); background:transparent; color:var(--ink-soft); border-radius:8px; padding:5px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
-  .byh-tab.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
-  .byh-kw-rg{ padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
-  .byh-kw-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
-  .byh-kw{ border:1px solid var(--line); border-radius:999px; padding:2px 9px; font-size:12px; }
-  .byh-kw i{ font-style:normal; color:var(--ink-soft); font-size:11px; }
-  .byh-kw-pakai{ background:var(--good-soft); } .byh-kw-dasar{ background:var(--line); } .byh-kw-hindari{ background:var(--bad-soft); } .byh-kw-tipis{ opacity:.55; }
-  .byh-shops{ max-height:140px; overflow:auto; display:grid; gap:3px; margin:4px 0; font-size:12.5px; }
-  .byh-sum{ font-size:13.5px; line-height:1.6; }
-  .byh-sum-sec{ padding:10px 0; border-bottom:1px solid var(--line); }
-  .byh-sum-sec:last-child{ border-bottom:0; }
-  .byh-sum-h{ font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--ink-soft); margin-bottom:4px; text-transform:uppercase; }
-  .byh-sum p{ margin:3px 0; }
-  .byh-sum .sub{ color:var(--ink-soft); font-size:12px; }
-  .byh-sum .go, .byh-sum .warn, .byh-sum .no{ margin-top:8px; padding:10px 12px; border-radius:8px; }
-  .byh-sum .go{ background:var(--good-soft); } .byh-sum .warn{ background:var(--warn-soft); } .byh-sum .no{ background:var(--bad-soft); }
-  .byh-bin-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  #byhBinsPaste{ width:100%; min-height:96px; box-sizing:border-box; margin-top:10px; padding:8px 10px; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; border:1px solid var(--line); border-radius:8px; }
-  /* ===== Tanda tanya (?) [22 Sep 2026] — keterangan kecil (.ket, .roas-note, .byh-note, .zq-h) disembunyikan; isinya muncul lewat ikon (?) di sebelah judul/labelnya.
-     Dipasang otomatis oleh script #zHintScript (sumber teks tetap ada di DOM, cuma disembunyikan lewat .zq-src). Pesan status/peringatan (.byh-hint, footer.note, kartu kosong) TIDAK ikut. ===== */
+  /* ===== Tanda tanya (?) [22 Sep 2026] — keterangan kecil (.ket, .roas-note, .zq-h) disembunyikan; isinya muncul lewat ikon (?) di sebelah judul/labelnya.
+     Dipasang otomatis oleh script #zHintScript (sumber teks tetap ada di DOM, cuma disembunyikan lewat .zq-src). Pesan status/peringatan (footer.note, kartu kosong) TIDAK ikut. ===== */
   .zq{ position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:15px; height:15px; margin-left:6px; box-sizing:border-box;
        border:1.3px solid #9AA0AA; border-radius:50%; color:#8A909B; background:transparent; font-family:inherit; font-size:10px; font-weight:700; line-height:1;
        text-transform:none; letter-spacing:0; vertical-align:middle; cursor:help; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -732,7 +627,6 @@
   .zqm-btn{ all:unset; cursor:pointer; background:#2B2B2B; color:#fff; font-size:13px; font-weight:700; padding:9px 22px; border-radius:6px; }
   .zqm-btn:hover{ background:#4a463f; }
   .zqm-empty{ padding:14px 12px; font-size:12.5px; color:#6b675f; }
-  @media (max-width:900px){ .byh-cols{ grid-template-columns:1fr; } }
   .rekap-selectbar{
     position:fixed; left:50%; bottom:22px; transform:translate(-50%, 16px);
     display:none; align-items:center; gap:8px;
@@ -1069,41 +963,6 @@
   .ca-sheet-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
   .ca-sheet-err{ font-size:11px; color:var(--bad); margin-top:-6px; margin-bottom:10px; display:none; }
   .ca-sheet-err.show{ display:block; }
-
-  /* [22 Sep 2026] Picker "Pilih Produk" (Proyeksi Harga: By Operasional/By Target Qty/By Harga Jual) — bottom sheet BRImo-style
-     (pola sama "Tambah SKU Baru" .ca-sheet di atas), ganti native <select>. Sumber list = Kelola Produk (zKatalogGroups), live. */
-  .pl-produk-btn{
-    width:100%; text-align:left; font-family:inherit; font-size:14px; font-weight:700;
-    border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff; color:var(--ink);
-    cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  }
-  .pl-produk-btn:hover{ background:var(--panel-alt); }
-  .pl-produk-btn .pl-car{ color:var(--ink-soft); font-size:11px; flex:0 0 auto; }
-  #plSkuSheet{ max-height:78vh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-  #plSkuSheetClose{
-    position:absolute; top:8px; right:10px; width:30px; height:30px; border:none;
-    background:var(--panel-alt); border-radius:50%; display:flex; align-items:center;
-    justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:15px; z-index:2; padding:0;
-  }
-  #plSkuSheetTitle{ font-size:14.5px; font-weight:700; padding:0 2px 10px; display:flex; align-items:center; gap:6px; flex:0 0 auto; }
-  .pl-sheet-back{ all:unset; cursor:pointer; font-size:16px; color:var(--ink-soft); padding:2px 6px 2px 2px; line-height:1; }
-  .pl-sheet-back:hover{ color:var(--ink); }
-  #plSkuSheetSearch{
-    width:100%; box-sizing:border-box; font-size:13.5px; padding:9px 10px; border:1px solid var(--line);
-    border-radius:9px; font-family:inherit; margin-bottom:6px; flex:0 0 auto;
-  }
-  #plSkuSheetSearch:focus{ outline:none; border-color:var(--accent); }
-  #plSkuSheetList{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
-  .pl-sheet-item{
-    padding:11px 6px; border-radius:8px; cursor:pointer; display:flex; align-items:center;
-    justify-content:space-between; gap:10px; font-size:13.5px; border-bottom:1px solid var(--line);
-  }
-  .pl-sheet-item:last-child{ border-bottom:none; }
-  .pl-sheet-item:hover, .pl-sheet-item:active{ background:var(--panel-alt); }
-  .pl-sheet-item-main{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pl-sheet-item-meta{ font-size:11.5px; color:var(--ink-soft); white-space:nowrap; flex:0 0 auto; }
-  .pl-sheet-empty{ padding:28px 12px; text-align:center; color:var(--ink-soft); font-size:12.5px; font-style:italic; }
-  .pl-sheet-group{ font-size:11px; font-weight:700; color:var(--ink-soft); padding:10px 10px 2px; letter-spacing:.06em; display:flex; align-items:center; gap:5px; }
 
   .hrow{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); gap:14px; }
   /* 20 Sep 2026: HPP Produk baca-saja penuh (SKU Induk juga gak bisa diedit dari sini) — gak ada cursor pointer / efek hover */
@@ -1564,10 +1423,6 @@
       </div>
       <div class="nav-submenu">
         <button data-page="pricelist"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Price List</button>
-        <button data-page="proyeksi"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> By Operasional</button>
-        <button data-page="byqty"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> By Target Qty</button>
-        <button data-page="byharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Harga Jual</button>
-        <button data-page="bysupport"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> By Support</button>
         <button data-page="hasilM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Mingguan</button>
         <button data-page="rekapM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Mingguan</button>
         <button data-page="hasilP"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span> Proyeksi RKS</button>
@@ -1583,7 +1438,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><button type="button" class="btn ghost small" id="btnByhGotoPasar" style="display:none;">Data Pasar &rarr;</button><button type="button" class="btn ghost small" id="btnByhBackKalk" style="display:none;">&larr; Kalkulasi</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1643,126 +1498,21 @@
   </section>
 
 
-  <!-- ============ PAGE: PROYEKSI HARGA > PROYEKSI ============ -->
-  <section class="page" id="page-proyeksi">
-    <!-- [7 Okt 2026] By Operasional jadi SATU halaman seperti By Target Qty: hasil (kiri) + Price List & Potongan di bawahnya (kiri) + panel Input (kanan, sejajar).
-         Price List sekarang live dari Kelola Produk, sama dengan By Target Qty. -->
-    <div class="subview active" id="proyeksiView-input">
-      <div id="proyeksiStats"></div>
-      <div class="rks-shell">
-        <div class="rks-main"><div id="proyeksiDetail"></div></div>
-        <div id="proyeksiInputPanel">
-          <div class="rks-datatoko-panel-inner">
-            <div class="card">
-              <h3>Input By Operasional</h3>
-              <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
-                <div class="val"><button type="button" class="pl-produk-btn" id="proyeksiProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
-              </div>
-              <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
-                <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
-                <div class="roas-seg" id="proyeksiRoasSeg"></div>
-                <input type="text" inputmode="decimal" id="proyeksiRoasInput" placeholder="ketik ROAS, mis. 6.00" style="display:none;">
-                <div class="roas-note" id="proyeksiRoasNote"></div>
-              </div>
-              <div class="hrow editable stack">
-                <div class="lbl">OPS (Budget Operasional Bulanan)<span class="ket">default = Operasional Toko di Setting; ketik angka lain cuma simulasi (tidak disimpan), kosongkan untuk balik ke otomatis</span></div>
-                <div class="val"><input type="text" inputmode="numeric" id="proyeksiOpsBudget" placeholder="0"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="proyeksiPriceWrap" style="margin-top:16px;"><div class="card" id="priceListCard-proyeksi"></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (halaman utama grup, [7 Okt 2026]) ============
-       Dipisah dari By Target Qty. Isinya = kartu Price List & Potongan yang dulu ada di bawah By Target Qty (renderByqtyPriceListCard, LIVE dari Kelola Produk):
-       minicard Potongan di atas (#pricelistStats), tabel full-width di bawahnya (#priceListCard-pricelist). Klik baris = pilih SKU lalu loncat ke By Target Qty. -->
+  <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (satu-satunya metode: by GPM, [27 Okt 2026]) ============
+       Proyeksi Harga disederhanakan jadi 2 halaman: Price List (metode by GPM, mengikuti sheet PROYEKSI HARGA) dan Check Admin.
+       #pricelistStats = minicard komponen GPM, #pricelistParams = parameter harga (VCHR & Up Hrg Coret = input), #priceListCard-pricelist = tabel. -->
   <section class="page" id="page-pricelist">
     <div id="pricelistStats"></div>
+    <div class="card" id="pricelistParams">
+      <h3>Parameter Harga</h3>
+      <div class="pl-param-grid">
+        <div class="stat-card"><div class="stat-label">INCOME / PC<span class="ket" style="display:block;font-weight:400;">Net Income Toko di Setting — Net Income di bawah angka ini diberi warna merah</span></div><div class="stat-value" id="plIncomeVal">-</div></div>
+        <div class="stat-card"><div class="stat-label">BPP<span class="ket" style="display:block;font-weight:400;" id="plBppSrc">Biaya proses pesanan per order</span></div><div class="stat-value" id="plBppVal">-</div></div>
+        <div class="stat-card pl-in"><label class="stat-label" for="plVchr">VCHR (Rp)<span class="ket" style="display:block;font-weight:400;">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="0" autocomplete="off"></div>
+        <div class="stat-card pl-in"><label class="stat-label" for="plUpCoret">UP HRG CORET (%)<span class="ket" style="display:block;font-weight:400;">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="20" autocomplete="off"></div>
+      </div>
+    </div>
     <div class="card" id="priceListCard-pricelist"></div>
-  </section>
-
-  <!-- ============ PAGE: PROYEKSI HARGA > BY TARGET QTY ============ -->
-  <section class="page" id="page-byqty">
-    <!-- [7 Okt 2026] By Target Qty jadi SATU halaman: Input (panel kanan, posisi tetap) + hasil + Price List & Potongan di bawahnya.
-         Kartu Price List (#priceListCard-byqty) pindah ke #byqtyPriceWrap di bawah .rks-shell. -->
-    <div class="subview active" id="byqtyView-input">
-      <div id="byqtyStats"></div>
-      <div class="rks-shell">
-        <div class="rks-main"><div id="byqtyDetail"></div></div>
-        <div id="byqtyInputPanel">
-          <div class="rks-datatoko-panel-inner">
-            <div class="card">
-              <h3>Input By Target Qty</h3>
-              <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
-                <div class="val"><button type="button" class="pl-produk-btn" id="byqtyProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
-              </div>
-              <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
-                <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
-                <div class="roas-seg" id="byqtyRoasSeg"></div>
-                <input type="text" inputmode="decimal" id="byqtyRoasInput" placeholder="ketik ROAS, mis. 6.00" style="display:none;">
-                <div class="roas-note" id="byqtyRoasNote"></div>
-              </div>
-              <div class="hrow editable stack">
-                <div class="lbl">Target Order Harian<span class="ket">qty pesanan per hari</span></div>
-                <div class="val"><input type="text" inputmode="numeric" id="byqtyQtyHarian" placeholder="0"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ PAGE: PROYEKSI HARGA > BY SUPPORT (batas aman harga jual dari GPM minimum) ============ -->
-  <section class="page" id="page-bysupport">
-    <div id="bysupportStats"></div>
-    <div class="card" id="bysupportListCard"></div>
-  </section>
-
-  <!-- ============ PAGE: PROYEKSI HARGA > BY HARGA JUAL (simulasi instan) ============ -->
-  <section class="page" id="page-byharga">
-    <div class="subview active" id="byhargaView-input">
-      <div id="byhargaStats"></div>
-      <div class="rks-shell">
-        <div class="rks-main"><div id="byhargaDetail"></div><div id="byhargaBinsWrap"></div></div>
-        <div id="byhargaInputPanel">
-          <div class="rks-datatoko-panel-inner">
-            <div class="card">
-              <h3>Input By Harga Jual</h3>
-              <div class="hrow editable stack">
-                <div class="lbl">Produk<span class="ket">pilih dari Kelola Produk</span></div>
-                <div class="val"><button type="button" class="pl-produk-btn" id="byhargaProdukBtn">— Pilih Produk —<span class="pl-car">▾</span></button></div>
-              </div>
-              <div class="hrow editable stack">
-                <div class="lbl">Harga Jual (Rp)<span class="ket">harga pasang di Shopee (Subtotal Pesanan), sebelum voucher</span></div>
-                <div class="val"><input type="text" inputmode="numeric" id="byhargaHarga" placeholder="mis. 99.000"></div>
-              </div>
-              <div class="hrow editable stack">
-                <div class="lbl">Voucher Penjual (Rp)<span class="ket">voucher toko yang ditanggung penjual, per pesanan</span></div>
-                <div class="val"><input type="text" inputmode="numeric" id="byhargaVoucher" placeholder="0"></div>
-                <div class="roas-note" id="byhargaVoucherNote"></div>
-                <button type="button" class="btn secondary small" id="byhargaVoucherAuto" style="display:none;">Pakai otomatis</button>
-              </div>
-              <div class="hrow editable stack">
-                <div class="lbl">Voucher Weekend (Rp)<span class="ket">opsional — voucher toko yang lebih besar saat weekend/event. Dibandingkan dengan voucher normal di tabel &quot;Normal vs Voucher Weekend&quot;</span></div>
-                <div class="val"><input type="text" inputmode="numeric" id="byhargaVoucherWeekend" placeholder="0"></div>
-              </div>
-              <div class="roas-block" title="ACOS = 1 ÷ ROAS. Pilihan sumber cuma berlaku buat simulasi di halaman ini.">
-                <div class="lbl">ROAS TRGT<span class="ket">pilih sumber data</span></div>
-                <div class="roas-seg" id="byhargaRoasSeg"></div>
-                <input type="text" inputmode="decimal" id="byhargaRoasInput" placeholder="ketik ROAS, mis. 6.00" style="display:none;">
-                <div class="roas-note" id="byhargaRoasNote"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- ============ PAGE 3: HASIL RASIO KEUANGAN ============ -->
@@ -2108,8 +1858,8 @@ const zStore = (function(){
   var REG_KEY = 'zenootAnalisis.toko', ACTIVE_LS = 'zenootAnalisis.activeToko', MIG_LS = 'zenootAnalisis.migrated';
   var SCOPED = ['zenootAnalisis.session','zenootAnalisis.sessionMingguan','zenootAnalisis.settings',
                 'zenootAnalisis.sessionProyeksi','zenootAnalisis.rekapProyeksi',
-                'zenootAnalisis.rekap','zenootAnalisis.rekapMingguan','zenootAnalisis.priceList',
-                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory','zenootAnalisis.byhargaBins','zenootAnalisis.byhargaProds'];
+                'zenootAnalisis.rekap','zenootAnalisis.rekapMingguan',
+                'zenoot_ca_manual','zenootAnalisis.checkAdminHistory'];
   var realLS = null;
   try{ realLS = window.localStorage; realLS.getItem('x'); }catch(e){ realLS = null; }
   function lsGet(k){ try{ return realLS ? realLS.getItem(k) : null; }catch(e){ return null; } }
@@ -2433,7 +2183,7 @@ var zProdukIdxSize = new Map();   // 'KATALOG|SIZE' -> [HPP unik] (dari kolom Ka
 function zProdukNorm(s){ return String(s==null?'':s).trim().toUpperCase(); }
 // Size dari SKU Variasi Kelola Produk = segmen terakhir setelah tanda "-" (Turtleneck_Bata-XL -> XL). Dipakai buat indeks SKU Induk + size.
 function zProdukSizeOfSku(k){ var i = k.lastIndexOf('-'); return i >= 0 ? k.slice(i+1).trim() : ''; }
-var zProdukRows = [];  // [22 Sep 2026] simpan mentahan rows(produk) juga (bukan cuma di-map) — dipakai picker "Pilih Produk" di Proyeksi Harga (zKatalogGroups)
+var zProdukRows = [];  // [22 Sep 2026] simpan mentahan rows(produk) juga (bukan cuma di-map) — dipakai zKatalogGroups (Price List)
 async function zProdukLoad(){
   var rows = await dbGet('produk');
   var m = new Map(), ix = new Map();
@@ -2453,8 +2203,8 @@ async function zProdukLoad(){
   zProdukIdxSize = ix;
   return m.size;
 }
-/* [22 Sep 2026] zKatalogGroups(): Kelola Produk dikelompokkan per Katalog (SKU Induk), dipakai picker "Pilih Produk" di Proyeksi Harga
-   (By Operasional/By Target Qty/By Harga Jual) — sumbernya LANGSUNG dari Kelola Produk (live), BUKAN dari uniqueProductList() (riwayat
+/* [22 Sep 2026] zKatalogGroups(): Kelola Produk dikelompokkan per Katalog (SKU Induk), dipakai Price List (Proyeksi Harga)
+   — sumbernya LANGSUNG dari Kelola Produk (live), BUKAN dari uniqueProductList() (riwayat
    Order Completed) — supaya produk yang belum pernah kejual pun tetap bisa diproyeksikan harganya dari awal. Baris HPP=0 (belum diisi
    di Kelola Produk) di-skip sama kayak zProdukMap di atas. */
 function zKatalogGroups(){
@@ -2474,21 +2224,6 @@ function zKatalogGroups(){
   });
   out.sort(function(a,b){ return a.katalog.localeCompare(b.katalog); });
   return out;
-}
-/* [22 Sep 2026] plResolveIdentity(): dari 1 SKU Variasi yang dipilih user di picker, tentukan identitas baris Price List.
-   Pakai ATURAN YANG SAMA dengan syncPriceListFromHpp() (1 baris per SKU Induk, KECUALI HPP beda per size dalam 1 induk -> pecah per
-   size) — bedanya di sini datanya diambil langsung dari zKatalogGroups() (live Kelola Produk), bukan uniqueProductList()+hppMaster. */
-function plResolveIdentity(katalog, skuVariasi){
-  var group = zKatalogGroups().find(function(g){ return g.katalog===katalog; });
-  if(!group) return { sku: katalog, hpp: 0 };
-  var picked = group.variants.find(function(v){ return v.sku_variasi===skuVariasi; });
-  var distinctHpp = [...new Set(group.variants.map(function(v){ return v.hpp; }))];
-  if(distinctHpp.length<=1){
-    return { sku: katalog, hpp: distinctHpp[0]||0 };
-  }
-  var sizeLabel = (picked && picked.size) ? picked.size.toUpperCase() : '';
-  var sku = sizeLabel ? (katalog+' — '+sizeLabel) : katalog;
-  return { sku: sku, hpp: picked ? picked.hpp : (distinctHpp[0]||0) };
 }
 /* "Turun SKU" (20 Sep 2026): produk di-upload ke Shopee dengan 4 size (S, M, L, XL), tapi yang benar-benar diproduksi cuma M dan XL.
    Jadi SKU Variasi ber-size -S narik HPP size -M, dan -L narik HPP size -XL (contoh: Turtleneck_Abu muda-L -> Turtleneck_Abu muda-XL).
@@ -2566,15 +2301,15 @@ function zHppView(){
 </script>
 <script id="zHintScript">
 /* ================= TANDA TANYA (?) — keterangan kecil jadi ikon [22 Sep 2026] =================
-   Sumber teks (selektor SEL): .ket (sub-teks label), .roas-note, .byh-note, dan .hint yang diberi penanda class .zq-h.
+   Sumber teks (selektor SEL): .ket (sub-teks label), .roas-note, dan .hint yang diberi penanda class .zq-h.
    Tiap sumber DISEMBUNYIKAN (class .zq-src) dan ikon (?) dipasang di judul/labelnya (owner): parent .lbl/.stat-label, atau .lbl di dalam .hrow/.roas-block,
    atau h3 kartunya. Kalau owner tidak ketemu, sumber dibiarkan tampil (info tidak boleh hilang tanpa ikon).
    Satu owner = satu ikon; teks dari beberapa sumber digabung di popover. Teks dibaca SAAT DITAMPILKAN (bukan disalin), jadi catatan dinamis (voucher/ROAS)
    selalu terbaru; ikon otomatis disembunyikan kalau semua sumbernya kosong. Popover pakai textContent (aman dari injeksi HTML).
    Dipasang lewat MutationObserver, jadi render ulang lewat innerHTML tetap ikut. Klik didengar di level document (capture) — baris hasil salinan (cloneNode) tetap jalan.
-   Desktop: hover + klik (kunci). HP: ketuk. Esc / klik di luar / scroll = tutup. Pesan status & peringatan (.byh-hint, footer.note, kartu kosong) sengaja TIDAK ikut. */
+   Desktop: hover + klik (kunci). HP: ketuk. Esc / klik di luar / scroll = tutup. Pesan status & peringatan (footer.note, kartu kosong) sengaja TIDAK ikut. */
 (function(){
-  var SEL = '.ket, .roas-note, .byh-note, .zq-h';
+  var SEL = '.ket, .roas-note, .zq-h';
   var seq = 0, pop = null, cur = null, pinned = false, timer = 0, zqm = null;
   var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
 
@@ -2760,8 +2495,7 @@ const state = {
   adsFile: null,
   hppMaster: zHppView(),   // baca-saja: HPP dari Kelola Produk zenOt (zHppView di zStore)
   manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
-  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null },
-  priceList: [], // [{sku, hpp, ops}] — dasar Proyeksi Harga (Proyeksi & By Target Qty); income target sekarang global dari Setting
+  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null, vchrToko:0, upHrgCoret:20 },
   rekap: {},
   customHppProducts: [], // [{skuInduk, nomorRef, variasi, namaProduk}] — SKU yang didaftarin manual (bukan dari Order Completed), mis. dari tombol "Tambah SKU ke HPP" di Check Admin
   skuIndukOverrides: {}, // key: nomorRef|variasi -> SKU Induk hasil edit manual (buat benerin SKU Induk yang salah/keisi nama produk dari data Order Completed)
@@ -3002,11 +2736,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='profit') renderProfit();
       if(btn.dataset.page==='rekap') renderRekap();
       if(btn.dataset.page==='setting') renderSetting();
-      if(btn.dataset.page==='proyeksi') renderProyeksi();
       if(btn.dataset.page==='pricelist') renderPricelistPage();
-      if(btn.dataset.page==='byqty') renderByQty();
-      if(btn.dataset.page==='byharga') renderByHarga();
-      if(btn.dataset.page==='bysupport') renderBySupport();
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
@@ -3042,8 +2772,8 @@ const TOKO_LEGACY_ID = 't1';
 const TOKO_SCOPED_BASES = [
   'zenootAnalisis.session', 'zenootAnalisis.sessionMingguan', 'zenootAnalisis.settings',
   'zenootAnalisis.sessionProyeksi', 'zenootAnalisis.rekapProyeksi',
-  'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan', 'zenootAnalisis.priceList',
-  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.byhargaBins', 'zenootAnalisis.byhargaProds'
+  'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan',
+  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory'
 ];
 function tokoScopedKey(base, id){ return id===TOKO_LEGACY_ID ? base : base+'::'+id; }
 function tokoReadReg(){
@@ -3103,19 +2833,6 @@ function tokoCommit(mutator){
   if(ok) TOKO_REG = reg;
   return ok;
 }
-
-/* ================= PROYEKSI HARGA: PERSIST KE localStorage ================= */
-const PRICELIST_LS_KEY = tk('zenootAnalisis.priceList');
-function savePriceListToStorage(){
-  try{ zLS.setItem(PRICELIST_LS_KEY, JSON.stringify(state.priceList)); }catch(e){}
-}
-function loadPriceListFromStorage(){
-  try{
-    const raw = zLS.getItem(PRICELIST_LS_KEY);
-    if(raw) state.priceList = JSON.parse(raw);
-  }catch(e){}
-}
-try{ loadPriceListFromStorage(); }catch(e){ console.error('Gagal load Price List:', e); }
 
 /* ================= SESSION: PERSIST KE localStorage (order/income/iklan/manual) ================= */
 const SESSION_LS_KEY = tk('zenootAnalisis.session');
@@ -4546,25 +4263,12 @@ async function renderTokoCompare(){
   }
 })();
 
-// [29 Sep 2026] By Harga Jual: halaman aktif ('kalk' = Kalkulasi, 'pasar' = Data Pasar). Pakai var (bukan let) supaya aman kalau updatePageTitleBar kepanggil sebelum baris ini jalan.
-var byhargaHal = 'kalk';
-function byhargaSetHal(h){
-  byhargaHal = (h==='pasar') ? 'pasar' : 'kalk';
-  const pg = document.getElementById('page-byharga');
-  if(pg) pg.classList.toggle('byh-hal-pasar', byhargaHal==='pasar');
-  updatePageTitleBar(currentPage);
-  try{ window.scrollTo(0,0); const m = document.getElementById('main'); if(m) m.scrollTop = 0; }catch(e){}
-}
 const PAGE_TITLES = {
   hasil: 'RKS Overview',
   profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
   pricelist: 'Price List',
-  proyeksi: 'By Operasional',
-  byqty: 'By Target Qty',
-  byharga: 'By Harga Jual',
-  bysupport: 'By Support',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   hasilP: 'Proyeksi RKS',
@@ -4591,15 +4295,7 @@ function updatePageTitleBar(pageKey){
   const boM = document.getElementById('btnBackOverviewM'); if(boM) boM.style.display = (pageKey==='rekapM') ? '' : 'none';
   const grP = document.getElementById('btnGotoRekapP');  if(grP) grP.style.display = (pageKey==='hasilP') ? '' : 'none';
   const boP = document.getElementById('btnBackOverviewP'); if(boP) boP.style.display = (pageKey==='rekapP') ? '' : 'none';
-  // [29 Sep 2026] By Harga Jual: tombol pindah halaman Kalkulasi <-> Data Pasar
-  const bgp = document.getElementById('btnByhGotoPasar'); if(bgp) bgp.style.display = (pageKey==='byharga' && byhargaHal!=='pasar') ? '' : 'none';
-  const bbk = document.getElementById('btnByhBackKalk');  if(bbk) bbk.style.display = (pageKey==='byharga' && byhargaHal==='pasar') ? '' : 'none';
 }
-(function(){
-  const g = document.getElementById('btnByhGotoPasar'), b = document.getElementById('btnByhBackKalk');
-  if(g) g.addEventListener('click', function(){ byhargaSetHal('pasar'); });
-  if(b) b.addEventListener('click', function(){ byhargaSetHal('kalk'); });
-})();
 (function(){
   const map = { btnGotoRekap:'rekap', btnGotoRekapM:'rekapM', btnBackOverview:'hasil', btnBackOverviewPf:'hasil', btnBackOverviewM:'hasilM', btnGotoRekapP:'rekapP', btnBackOverviewP:'hasilP' };
   Object.keys(map).forEach(function(id){
@@ -5570,8 +5266,9 @@ function computeFeeGroups(parsed){
 // ROAS buat ACOS di Check Admin — 2 tahap:
 // 1) Ambil ROAS AKTUAL dari bulan TERAKHIR yang udah kesimpen di Rekap (paling relevan/terkini).
 // 2) Kalau belum ada satu bulan pun kesimpen di Rekap, fallback ke Target ROAS Toko di halaman Setting.
-// Price List / Proyeksi / By Target Qty: ACOS dari Rekap Mingguan terbaru kalau ada; kalau belum ada, 1 ÷ Target ROAS Toko di Setting.
-// (ROAS dikembalikan sebagai 1/ACOS supaya rumus 1/roas di tempat lain tetap sama.) Check Admin, Proyeksi & By Target Qty pakai pilihan sumber ROAS di panelnya (resolveRoasSim), default-nya Rekap Mingguan -> Setting.
+// Dasar sumber ROAS Check Admin: ACOS dari Rekap Mingguan terbaru kalau ada; kalau belum ada, 1 ÷ Target ROAS Toko di Setting.
+// (ROAS dikembalikan sebagai 1/ACOS supaya rumus 1/roas di tempat lain tetap sama.) Check Admin pakai pilihan sumber ROAS di panelnya (resolveRoasSim), default-nya Rekap Mingguan -> Setting.
+// Price List (by GPM) TIDAK memakai ini: ACOS-nya selalu 1 ÷ Setting > Target ROAS Toko (lihat plSources).
 function resolvePriceListRoas(){
   const wKeys = Object.keys(state.mingguan.rekap||{}).filter(k=>{
     const sn = state.mingguan.rekap[k];
@@ -5606,8 +5303,8 @@ function resolveTargetRoas(){
 // 1) Ambil rata-rata BENERAN dari bulan TERAKHIR yang kesimpen di Rekap (adminLayananBreakdown ÷ pendapatan/jumlah pesanan).
 // 2) Fallback ke angka manual di Setting (ADMIN % / BPP fallback) kalau Rekap masih kosong / datanya belum lengkap.
 // [23 Sep 2026, poin 4] ADMIN % sekarang 3 tingkat: Rekap Mingguan terbaru -> (kalau kosong) Rekap Bulanan/Overview
-// terbaru -> (kalau itu juga kosong) Setting manual. Dipakai bareng oleh Check Admin, By Operasional, By Target
-// Qty & By Harga Jual (semua lewat resolveAdminBpp() ini), jadi berubah di sini otomatis berlaku ke semuanya.
+// terbaru -> (kalau itu juga kosong) Setting manual. Dipakai bareng oleh Check Admin & Price List
+// (lewat resolveAdminBpp() ini), jadi berubah di sini otomatis berlaku ke keduanya.
 function resolveAdminBpp(){
   // BPP: tetap dari Rekap Bulanan (unchanged) — fallback ke Setting kalau Rekap belum ada.
   const keys = Object.keys(state.rekap).filter(k=>{
@@ -5809,7 +5506,7 @@ function renderCheckAdminResult(parsed, manualOverrides){
   const rasioOps = (opsPercent!==null && opsPercent!==undefined) ? opsPercent/100 : null;
   const adminLayananRatio = ratioPotonganReal; // % dari HARGA REAL (basis Shopee), udah excl. biaya isi saldo otomatis & voucher toko ditanggung penjual
   // [7 Okt 2026] BUFFER (LAINNYA) dari Setting ikut dikurangkan. Alasan (user): rasio keuangan (RKS) diambil dari data BULANAN, bukan cuma data per pesanan,
-  // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang sudah dipakai By Operasional/By Target Qty/By Harga Jual/By Support.
+  // jadi ada biaya di luar rincian 1 pesanan (retur, selisih, dll) yang di sini ditutup lewat buffer — sama dengan yang dipakai Price List (GPM Toko).
   const bufferPct = state.settings.lainnyaPct;
   const buffer = (bufferPct!==null && bufferPct!==undefined && !isNaN(bufferPct)) ? bufferPct/100 : 0;
   // [21 Okt 2026] Voucher toko sudah termasuk di Harga Real (dasar GPM), jadi tidak ada pengurang voucher lagi di NPM (menggantikan catatan 20 Okt).
@@ -6600,7 +6297,7 @@ document.getElementById('btnSimpanRekap').addEventListener('click', async ()=>{ 
     hasilViewKey = key;   // [21 Sep 2026] habis Simpan -> tampilan pindah ke bulan yang barusan tersimpan
     try{ renderHasil(); }catch(e){}
     renderCaRoasDisplay();
-    renderProyeksiHargaBoth();
+    renderPricelistPage();
     if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
     const btn = document.getElementById('btnSimpanRekap');
     const original = btn.textContent;
@@ -6859,7 +6556,7 @@ function rekapDeleteKeys(keys){
   rekapSelectMode = false;
   renderRekap();
   renderCaRoasDisplay();
-  renderProyeksiHargaBoth();
+  renderPricelistPage();
   rekapUndoBuffer = items;
   rekapToast(`${Object.keys(items).length} bulan dihapus.`, 'Urungkan', ()=>{
     Object.assign(state.rekap, rekapUndoBuffer || {});
@@ -6868,7 +6565,7 @@ function rekapDeleteKeys(keys){
     opsInvalidateCache();   // [4 Okt 2026] porsi omset berubah
     renderRekap();
     renderCaRoasDisplay();
-    renderProyeksiHargaBoth();
+    renderPricelistPage();
   });
 }
 
@@ -7028,168 +6725,8 @@ document.getElementById('btnRekapSelect').addEventListener('click', ()=>{
 });
 
 /* ================= PROYEKSI HARGA: helper & kalkulasi ================= */
-// NET = ROUND((HPP + BPP + INCOME) / (1 - ADMIN% - ACOS - LAINNYA% - OPS%), 0)
-// ACOS = 1 / ROAS TRGT (sama seperti Check Admin & RKS Overview)
 // Ops % Price List = Rasio Operasional dari Setting (global, gak per-SKU lagi)
 function plOpsPct(){ const v = state.settings.rasioOpsPercent; return (v===null||v===undefined||isNaN(v)) ? 0 : v; }
-function calcNetPrice(row, roasOverride){
-  if(!row) return null;
-  const hpp = row.hpp||0, income = state.settings.netIncomeToko||0;
-  const { adminPct, bpp } = resolveAdminBpp();
-  const admin = (adminPct||0)/100;
-  // roasOverride cuma dipakai simulasi By Operasional & By Target Qty; caller lain (Price List) gak ngirim -> tetap ROAS asli
-  const roas = (roasOverride!==undefined && roasOverride!==null) ? roasOverride : resolvePriceListRoas().roas;
-  const acos = (roas && roas>0) ? 1/roas : 0;
-  const lainnya = (state.settings.lainnyaPct||0)/100;
-  // [8 Okt 2026] Acuan = NET INCOME TOKO (Setting). Net Income = Profit + Operasional (Ops masuk kantong sendiri), jadi Ops saling meniadakan dan TIDAK ikut di penyebut.
-  const denom = 1 - admin - acos - lainnya;
-  if(denom<=0) return null;
-  return Math.round((hpp+(bpp||0)+income)/denom);
-}
-
-function syncPriceListFromHpp(){
-  let added = 0;
-
-  // Kumpulkan semua entri HPP yang udah keisi, dikelompokkan per SKU Induk
-  const byInduk = new Map(); // skuInduk -> [{variasi, size, hpp}]
-  uniqueProductList().forEach(p=>{
-    const key = makeKey(p.skuInduk, p.nomorRef, p.variasi);
-    const hpp = state.hppMaster[key];
-    if(hpp===undefined) return; // HPP belom diisi di HPP Catalog, skip
-    if(!byInduk.has(p.skuInduk)) byInduk.set(p.skuInduk, []);
-    byInduk.get(p.skuInduk).push({ variasi: p.variasi, size: extractSizeToken(p.variasi), hpp });
-  });
-
-  byInduk.forEach((items, skuInduk)=>{
-    const distinctHpp = [...new Set(items.map(i=>i.hpp))];
-    let targetSkus, hppOf;
-    if(distinctHpp.length<=1){
-      // Harga sama di semua varian — cukup 1 baris per SKU Induk, gak perlu pecah per variasi
-      targetSkus = [skuInduk];
-      hppOf = ()=>distinctHpp[0];
-    } else {
-      // Harga beda per size (mis. Half Zip RH) — pecah per size, bukan per warna
-      const bySize = new Map(); // size label -> hpp (ambil yang pertama ketemu buat size itu)
-      items.forEach(i=>{
-        const sizeLabel = i.size ? i.size.toUpperCase() : i.variasi;
-        if(!bySize.has(sizeLabel)) bySize.set(sizeLabel, i.hpp);
-      });
-      targetSkus = [...bySize.keys()].map(sizeLabel=>[skuInduk, sizeLabel].filter(Boolean).join(' — '));
-      hppOf = (sku)=>{
-        const sizeLabel = sku.slice(skuInduk.length+3);
-        return bySize.has(sizeLabel) ? bySize.get(sizeLabel) : distinctHpp[0];
-      };
-    }
-
-    // Bersihin baris lama punya SKU Induk ini yang formatnya udah gak sesuai aturan baru
-    // (mis. baris lama per-variasi/warna dari sebelum konsolidasi per-SKU-Induk)
-    const staleRows = state.priceList.filter(r=>
-      (r.sku===skuInduk || r.sku.startsWith(skuInduk+' — ')) && !targetSkus.includes(r.sku)
-    );
-    let carriedOps = 0;
-    if(staleRows.length){
-      carriedOps = staleRows[0].ops||0;
-      state.priceList = state.priceList.filter(r=>!staleRows.includes(r));
-    }
-
-    targetSkus.forEach(sku=>{
-      const exists = state.priceList.find(r=>r.sku===sku);
-      const hpp = hppOf(sku);
-      if(!exists){
-        state.priceList.push({ sku, hpp, ops: carriedOps });
-        added++;
-      } else if(exists.hpp !== hpp){
-        exists.hpp = hpp; // HPP di master berubah — sinkronkan
-      }
-    });
-  });
-
-  savePriceListToStorage();
-  return added;
-}
-
-var _proyeksiPlLoadTs = 0;   // var (bukan let): aman kalau renderPriceListCard kepanggil sebelum baris ini dieksekusi
-function renderPriceListCard(containerId, tabKey){
-  // [7 Okt 2026] By Target Qty: Price List sekarang LIVE dari Kelola Produk (renderByqtyPriceListCard). Cabang lama di bawah (state.priceList / "Salin dari HPP")
-  // dulu dipakai By Operasional; sejak 7 Okt 2026 By Operasional juga LIVE dari Kelola Produk (lihat bysupportRows di bawah) — snapshot state.priceList tidak dibaca lagi untuk tabel ini.
-  if(tabKey==='byqty') return renderByqtyPriceListCard();
-  const card = document.getElementById(containerId);
-  const adminBpp = resolveAdminBpp();
-  const roasInfo = resolvePriceListRoas();
-  // [7 Okt 2026] By Operasional: baris Price List sekarang LIVE dari Kelola Produk (bysupportRows: 1 baris per Katalog, dipecah per size kalau HPP beda) —
-  // SAMA dengan By Target Qty & By Support.
-  // Kelola Produk bisa berubah di app utama sesudah iframe dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang kartu ini saja.
-  if(tabKey==='proyeksi' && Date.now()-_proyeksiPlLoadTs > 5000){
-    _proyeksiPlLoadTs = Date.now();
-    zProdukLoad().then(()=>renderPriceListCard(containerId,tabKey)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
-  }
-  const rows = bysupportRows().map((row,idx)=>{
-    const net = calcNetPrice(row);
-    return `<tr>
-      <td>${row.sku}</td>
-      <td class="num" style="font-weight:700;">${net===null?'-':fmtRp(net)}</td>
-      <td class="num">${fmtNum(row.hpp)}</td>
-      <td class="num">${plOpsPct()} %</td>
-    </tr>`;
-  }).join('');
-  card.innerHTML = `
-    <h3>Price List &amp; Potongan</h3>
-    <div class="stat-grid stat-grid-5" style="margin-bottom:16px;">
-      <div class="stat-card">
-        <div class="stat-label">Admin %<span class="ket" style="display:block;font-weight:400;">${adminBpp.adminSource==='rekapM'?`Rekap Mingguan ${adminBpp.adminLabel}`:adminBpp.adminSource==='rekapB'?`Rekap Bulanan ${adminBpp.adminLabel}`:'fallback Setting'}</span></div>
-        <div class="stat-value">${fmtPct(adminBpp.adminPct/100)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">BPP (Rp)<span class="ket" style="display:block;font-weight:400;">${adminBpp.bppSource==='rekap'?`Rekap ${adminBpp.bppLabel}`:'fallback Setting'}</span></div>
-        <div class="stat-value">${fmtRp(adminBpp.bpp)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Operasional %<span class="ket" style="display:block;font-weight:400;">rasio operasional di Setting</span></div>
-        <div class="stat-value">${fmtPct(plOpsPct()/100)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">ACOS (1÷ROAS)<span class="ket" style="display:block;font-weight:400;">${roasInfo.source==='rekapM'?`Rekap Mingguan ${roasInfo.label}`:(roasInfo.source==='setting'?'ROAS toko di Setting':'isi ROAS toko di Setting')}</span></div>
-        <div class="stat-value">${(roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Net Income Toko (Rp)<span class="ket" style="display:block;font-weight:400;">diatur di Setting</span></div>
-        <div class="stat-value">${fmtRp(state.settings.netIncomeToko||0)}</div>
-      </div>
-    </div>
-    <div class="pricelist-scroll">
-      <table class="ca-table">
-        <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="4" style="color:var(--ink-soft);">Belum ada produk ber-HPP di Kelola Produk.</td></tr>'}</tbody>
-      </table>
-    </div>
-  `;
-  card.querySelectorAll('.pl-copy-hpp').forEach(btn=>btn.addEventListener('click', ()=>{
-    const added = syncPriceListFromHpp();
-    renderProyeksiHargaBoth();
-    if(added===0) alert('Semua SKU dari HPP Catalog udah ada di Price List.');
-  }));
-  card.querySelectorAll('.pl-input').forEach(inp=>inp.addEventListener('change', e=>{
-    const idx = +e.target.dataset.idx, field = e.target.dataset.field;
-    const val = field==='ops' ? (parseFloat((e.target.value||'0').toString().replace(',','.'))||0) : (parseNum(e.target.value)||0);
-    state.priceList[idx][field] = val;
-    savePriceListToStorage();
-    renderProyeksiHargaBoth();
-  }));
-  card.querySelectorAll('.pl-del').forEach(btn=>btn.addEventListener('click', ()=>{
-    const idx = +btn.dataset.idx;
-    state.priceList.splice(idx,1);
-    savePriceListToStorage();
-    renderProyeksiHargaBoth();
-  }));
-  card.querySelectorAll('.pl-global').forEach(inp=>inp.addEventListener('change', e=>{
-    const field = e.target.dataset.field;
-    const val = parseFloat((e.target.value||'0').toString().replace(/\./g,'').replace(',','.'))||0;
-    state.settings[field] = val;
-    saveSettingsToStorage();
-    renderProyeksiHargaBoth();
-  }));
-}
-
 /* ─── RIWAYAT "SERING & TERAKHIR DIGUNAKAN" untuk picker Analisis ───
    analisis.html jalan di iframe sendiri (gak akses app.js zenOt), jadi
    dibikin versi lokal — pola & localStorage key (zhist_*) SAMA PERSIS
@@ -7213,207 +6750,8 @@ function caHistTop(key, n){
   }catch(e){ return []; }
 }
 
-/* ================= [22 Sep 2026] Picker "Pilih Produk" — bottom sheet, dipakai bareng oleh By Operasional/By Target Qty/By Harga Jual =================
-   Pola sama "Tambah SKU Baru" (ensureAddSkuSheet, lihat di atas): dibangun sekali lewat JS lalu di-reuse. 2 langkah kayak picker
-   Induk/Variasi jurnal-penjualan.js: pilih SKU Induk dulu, lanjut pilih Variasi — begitu Variasi dipilih, identitasnya "dikembalikan"
-   ke level Induk (atau Induk — SIZE kalau HPP beda per size, sama persis aturan syncPriceListFromHpp) via plResolveIdentity(). */
-let _plSkuCtx = null;          // 'proyeksi' | 'byqty' | 'byharga' — context aktif pas sheet dibuka
-let _plSkuStep = 'induk';      // 'induk' | 'variasi'
-let _plSkuIndukPicked = null;
-
-function ensurePlSkuSheet(){
-  if(document.getElementById('plSkuSheetOverlay')) return;
-  const div = document.createElement('div');
-  div.id = 'plSkuSheetOverlay';
-  div.className = 'ca-sheet-overlay';
-  div.innerHTML = `
-    <div class="ca-sheet" id="plSkuSheet">
-      <button type="button" id="plSkuSheetClose" aria-label="Tutup"><i class="ti ti-x"></i></button>
-      <div class="ca-sheet-handle"></div>
-      <div id="plSkuSheetTitle">Pilih Produk</div>
-      <input type="text" id="plSkuSheetSearch" placeholder="Cari produk..." autocomplete="off">
-      <div id="plSkuSheetList"></div>
-    </div>`;
-  document.body.appendChild(div);
-  div.addEventListener('click', e=>{ if(e.target===div) plSkuSheetClose(); });
-  document.getElementById('plSkuSheetClose').addEventListener('click', plSkuSheetClose);
-  document.getElementById('plSkuSheetSearch').addEventListener('input', e=>plSkuSheetRender(e.target.value));
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') plSkuSheetClose(); });
-}
-
-function plSkuSheetOpen(ctx){
-  ensurePlSkuSheet();
-  _plSkuCtx = ctx;
-  _plSkuStep = 'induk';
-  _plSkuIndukPicked = null;
-  document.getElementById('plSkuSheetTitle').textContent = 'Pilih Produk';
-  document.getElementById('plSkuSheetSearch').value = '';
-  document.getElementById('plSkuSheetOverlay').classList.add('show');
-  plSkuSheetRender('');
-  setTimeout(()=>{ const el = document.getElementById('plSkuSheetSearch'); if(el) el.focus(); }, 80);
-}
-
-function plSkuSheetClose(){
-  const ov = document.getElementById('plSkuSheetOverlay');
-  if(ov) ov.classList.remove('show');
-}
-
-function plSkuSheetRender(q){
-  if(_plSkuStep==='induk') plSkuSheetRenderInduk(q);
-  else plSkuSheetRenderVariasi(q);
-}
-
-function plSkuSheetRenderInduk(q){
-  const listEl = document.getElementById('plSkuSheetList');
-  const qq = (q||'').trim().toLowerCase();
-  const groups = zKatalogGroups();
-  const filtered = qq ? groups.filter(g=>g.katalog.toLowerCase().includes(qq)) : groups;
-  if(!filtered.length){
-    listEl.innerHTML = `<div class="pl-sheet-empty">${groups.length===0 ? 'Produk belum ada / HPP belum diisi — tambah di Kelola Produk' : 'Tidak ada produk yang cocok'}</div>`;
-    return;
-  }
-  function _rowHtml(g){
-    const hpps = [...new Set(g.variants.map(v=>v.hpp))];
-    const hppLabel = hpps.length<=1 ? fmtRp(hpps[0]||0) : (fmtRp(Math.min(...hpps))+'–'+fmtRp(Math.max(...hpps)));
-    return `<div class="pl-sheet-item" data-kat="${byhEsc(g.katalog)}">
-      <span class="pl-sheet-item-main">${byhEsc(g.katalog)}</span>
-      <span class="pl-sheet-item-meta">${g.variants.length} var · ${hppLabel}</span>
-    </div>`;
-  }
-  let html = '';
-  // "Sering & Terakhir Digunakan" — cuma pas search kosong. [27 Sep 2026]
-  if(!qq){
-    const byKat = {}; groups.forEach(g=>byKat[g.katalog]=g);
-    const top = caHistTop('pl_produk', 5).map(k=>byKat[k]).filter(Boolean);
-    if(top.length){
-      html += `<div class="pl-sheet-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>`;
-      html += top.map(_rowHtml).join('');
-      html += `<div class="pl-sheet-group">── Semua ──</div>`;
-    }
-  }
-  html += filtered.map(_rowHtml).join('');
-  listEl.innerHTML = html;
-  listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
-    el.addEventListener('click', ()=>plSkuSheetSelectInduk(el.dataset.kat));
-  });
-}
-
-function plSkuSheetSelectInduk(katalog){
-  caHistPush('pl_produk', katalog); // riwayat sering/terakhir dipakai
-  const group = zKatalogGroups().find(g=>g.katalog===katalog);
-  const distinctHpp = group ? [...new Set(group.variants.map(v=>v.hpp))] : [];
-  // [22 Sep 2026] Kalau HPP semua varian dalam SKU Induk ini SAMA (kasus umum), langsung dipakai --
-  // gak perlu maksa user milih SKU Variasi lagi, cukup pilih SKU Induk doang. Baru lanjut ke Step 2
-  // (pilih Variasi) kalau HPP beda per varian dalam 1 Induk, kayak RH_ZIPPER-SALUR (L vs XXL beda
-  // harga) -- di situ user emang wajib milih biar size & HPP-nya kebawa yang bener.
-  if(distinctHpp.length<=1){
-    const picked = plResolveIdentity(katalog, '');
-    plSkuSheetClose();
-    plApplyPickedSku(_plSkuCtx, picked);
-    return;
-  }
-  _plSkuStep = 'variasi';
-  _plSkuIndukPicked = katalog;
-  document.getElementById('plSkuSheetTitle').innerHTML = `<button type="button" class="pl-sheet-back" id="plSkuSheetBackBtn">←</button> ${byhEsc(katalog)}`;
-  document.getElementById('plSkuSheetBackBtn').addEventListener('click', plSkuSheetBack);
-  document.getElementById('plSkuSheetSearch').value = '';
-  plSkuSheetRenderVariasi('');
-}
-
-function plSkuSheetBack(){
-  _plSkuStep = 'induk';
-  _plSkuIndukPicked = null;
-  document.getElementById('plSkuSheetTitle').textContent = 'Pilih Produk';
-  document.getElementById('plSkuSheetSearch').value = '';
-  plSkuSheetRenderInduk('');
-}
-
-function plSkuSheetRenderVariasi(q){
-  const listEl = document.getElementById('plSkuSheetList');
-  const qq = (q||'').trim().toLowerCase();
-  const group = zKatalogGroups().find(g=>g.katalog===_plSkuIndukPicked);
-  const variants = group ? group.variants : [];
-  const filtered = qq ? variants.filter(v=>v.sku_variasi.toLowerCase().includes(qq)) : variants;
-  if(!filtered.length){
-    listEl.innerHTML = `<div class="pl-sheet-empty">Tidak ada variasi yang cocok</div>`;
-    return;
-  }
-  function _rowHtml(v){
-    let label = v.sku_variasi;
-    if(_plSkuIndukPicked && label.toLowerCase().startsWith(_plSkuIndukPicked.toLowerCase())){
-      label = label.slice(_plSkuIndukPicked.length).replace(/^[_\-\s]+/,'') || v.sku_variasi;
-    }
-    return `<div class="pl-sheet-item" data-sku="${byhEsc(v.sku_variasi)}">
-      <span class="pl-sheet-item-main">${byhEsc(label)}</span>
-      <span class="pl-sheet-item-meta">${fmtRp(v.hpp)}</span>
-    </div>`;
-  }
-  let html = '';
-  // "Sering & Terakhir Digunakan" — cuma pas search kosong. [27 Sep 2026]
-  if(!qq){
-    const bySku = {}; variants.forEach(v=>bySku[v.sku_variasi.toUpperCase()]=v);
-    const top = caHistTop('pl_variasi', 5).map(k=>bySku[k]).filter(Boolean);
-    if(top.length){
-      html += `<div class="pl-sheet-group"><i class="ti ti-clock" style="font-size:11px"></i> Sering & Terakhir Digunakan</div>`;
-      html += top.map(_rowHtml).join('');
-      html += `<div class="pl-sheet-group">── Semua ──</div>`;
-    }
-  }
-  html += filtered.map(_rowHtml).join('');
-  listEl.innerHTML = html;
-  listEl.querySelectorAll('.pl-sheet-item').forEach(el=>{
-    el.addEventListener('click', ()=>plSkuSheetSelectVariasi(el.dataset.sku));
-  });
-}
-
-function plSkuSheetSelectVariasi(skuVariasi){
-  caHistPush('pl_variasi', skuVariasi.toUpperCase()); // riwayat sering/terakhir dipakai
-  const picked = plResolveIdentity(_plSkuIndukPicked, skuVariasi);
-  plSkuSheetClose();
-  plApplyPickedSku(_plSkuCtx, picked);
-}
-
-// Tambah/sinkron 1 baris Price List dari hasil pick picker — HPP diambil live dari Kelola Produk. Kalau baris sku itu udah ada
-// (misal dari "Salin dari HPP" sebelumnya), HPP-nya disinkronkan ke nilai live terbaru; ops (gak dipakai lagi, ada global di Setting).
-function plUpsertPriceListRow(sku, hpp){
-  let row = state.priceList.find(r=>r.sku===sku);
-  if(!row){
-    row = { sku, hpp, ops: 0 };
-    state.priceList.push(row);
-  } else if(row.hpp !== hpp){
-    row.hpp = hpp;
-  }
-  savePriceListToStorage();
-  return row;
-}
-
-function plSyncProdukBtn(btnId, sku){
-  const btn = document.getElementById(btnId);
-  if(!btn) return;
-  btn.innerHTML = `${byhEsc(sku || '— Pilih Produk —')}<span class="pl-car">▾</span>`;
-}
-
-function plApplyPickedSku(ctx, picked){
-  plUpsertPriceListRow(picked.sku, picked.hpp);
-  if(ctx==='proyeksi'){
-    proyeksiSelectedSku = picked.sku;
-    plSyncProdukBtn('proyeksiProdukBtn', picked.sku);
-    renderPriceListCard('priceListCard-proyeksi','proyeksi');
-    renderProyeksiResult();
-  } else if(ctx==='byqty'){
-    byqtySelectedSku = picked.sku;
-    plSyncProdukBtn('byqtyProdukBtn', picked.sku);
-    renderByQtyResult();
-  } else if(ctx==='byharga'){
-    byhargaSelectedSku = picked.sku;
-    plSyncProdukBtn('byhargaProdukBtn', picked.sku);
-    byhargaSyncInputs();
-    renderByHargaResult();
-  }
-}
-
 /* [7 Okt 2026] patchHtml(el, html): ganti isi el dengan html TANPA menggambar ulang kalau kerangkanya sama — cuma teks yang berubah yang diperbarui di tempat
-   (lalu berkedip halus lewat .zan-tick). Dipakai minicard & kartu hasil By Target Qty + minicard Price List, supaya ganti produk/ROAS/qty tidak bikin kartu
+   (lalu berkedip halus lewat .zan-tick). Dipakai minicard Price List, supaya angka yang berubah tidak bikin kartu
    hilang-muncul. Kerangka beda / struktur tidak cocok / isi el diubah dari luar -> otomatis jatuh ke innerHTML biasa (hasil akhir selalu sama dengan innerHTML). */
 function patchHtml(el, html){
   const sig = h=>h.replace(/>[^<]*</g,'><').replace(/\s+/g,' ');
@@ -7441,18 +6779,10 @@ function patchHtml(el, html){
   if(!walk(el, tpl.content)){ full(); return; }
   el.__pOut = el.innerHTML;
 }
-function statCard(label, value, sub, cls){
-  return `<div class="stat-card ${cls||''}"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>${sub?`<div class="stat-sub">${sub}</div>`:''}</div>`;
-}
 
-let proyeksiSelectedSku = null;
-
-/* ROAS TRGT (By Operasional & By Target Qty) — 4 sumber: Overview / Mingguan / Setting / Input. Default = Rekap Mingguan terbaru.
-   Cuma buat simulasi di halaman masing-masing: Price List tetap pakai resolvePriceListRoas() (ROAS asli).
-   Tiap halaman punya state sendiri (proyeksiRoasSim / byqtyRoasSim) & sengaja gak disimpen ke localStorage
+/* ROAS TRGT (Check Admin) — 4 sumber: Overview / Mingguan / Setting / Input. Default = Rekap Mingguan terbaru.
+   Cuma buat simulasi di halaman Check Admin (caRoasSim) & sengaja gak disimpen ke localStorage
    biar sisa simulasi gak nyangkut jadi dasar harga beneran. */
-const proyeksiRoasSim = { source:'mingguan', input:null };
-const byqtyRoasSim    = { source:'mingguan', input:null };
 const PROYEKSI_ROAS_SRC = [
   { key:'overview', name:'Overview' },
   { key:'mingguan', name:'Mingguan' },
@@ -7528,15 +6858,7 @@ function bindRoasSimInput(prefix, sim, onChange){
     onChange();
   });
 }
-// By Operasional
-function resolveProyeksiRoas(){ return resolveRoasSim(proyeksiRoasSim); }
-function renderProyeksiRoasControl(){ renderRoasSimControl('proyeksi', proyeksiRoasSim, renderProyeksiResult); }
-bindRoasSimInput('proyeksi', proyeksiRoasSim, ()=>renderProyeksiResult());
-// By Target Qty
-function resolveByqtyRoas(){ return resolveRoasSim(byqtyRoasSim); }
-function renderByqtyRoasControl(){ renderRoasSimControl('byqty', byqtyRoasSim, renderByQtyResult); }
-bindRoasSimInput('byqty', byqtyRoasSim, ()=>renderByQtyResult());
-// Check Admin — pilihan sumber ROAS ngaruh ke ACOS/NPM/Net Income order yang lagi dievaluasi (gak disimpen, gak ngubah Rekap/Setting)
+// Check Admin
 const caRoasSim = { source:'mingguan', input:null };
 function caRoasChanged(){ if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides); }
 function resolveCaRoas(){ return resolveRoasSim(caRoasSim); }
@@ -7544,352 +6866,61 @@ function renderCaRoasDisplay(){ renderRoasSimControl('ca', caRoasSim, caRoasChan
 bindRoasSimInput('ca', caRoasSim, caRoasChanged);
 try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init):', e); }
 
-let proyeksiOpsSim = null;   // [24 Sep 2026] null = pakai Operasional Toko otomatis (Setting); angka = simulasi manual di halaman Proyeksi
-function resolveProyeksiOps(){ return proyeksiOpsSim!==null ? proyeksiOpsSim : (state.settings.operasionalToko||0); }
-function renderProyeksi(){
-  renderPriceListCard('priceListCard-proyeksi','proyeksi');
-  renderProyeksiRoasControl();
-  const opsEl = document.getElementById('proyeksiOpsBudget');
-  opsEl.value = fmtNum(resolveProyeksiOps());
-  attachThousands(opsEl);
-  // Isian = SIMULASI saja (tidak disimpan, hilang saat reload). Dikosongkan -> balik ke angka otomatis dari Setting.
-  opsEl.onchange = e=>{
-    const raw = String(e.target.value||'').trim();
-    proyeksiOpsSim = raw==='' ? null : (parseNum(raw)||0);
-    if(raw==='') opsEl.value = fmtNum(state.settings.operasionalToko);
-    renderProyeksiResult();
-  };
-  const btn = document.getElementById('proyeksiProdukBtn');
-  plSyncProdukBtn('proyeksiProdukBtn', proyeksiSelectedSku);
-  btn.onclick = ()=>plSkuSheetOpen('proyeksi');
-  renderProyeksiResult();
-}
-
-function renderProyeksiResult(){
-  const statsEl = document.getElementById('proyeksiStats');    // minicard: full-width, gak ikut kegeser panel Input
-  const detailEl = document.getElementById('proyeksiDetail');  // Potongan & Rincian: sejajar sama panel Input di kanan
-  const row = state.priceList.find(r=>r.sku===proyeksiSelectedSku);
-  // [7 Okt 2026] bar abu "Pilih produk dulu buat lihat hasil proyeksi." DIHAPUS (tidak berguna, cuma memenuhi halaman) — sebelum produk dipilih area hasil dikosongkan.
-  if(!row){ statsEl.innerHTML = ''; detailEl.innerHTML=''; return; }
-  const { roas } = resolveProyeksiRoas();   // sumber ROAS pilihan panel Input (default Rekap Mingguan)
-  const net = calcNetPrice(row, roas);
-  const { adminPct, bpp } = resolveAdminBpp();
-  const acos = (roas && roas>0) ? 1/roas : 0;
-  const opsBudget = resolveProyeksiOps();   // [24 Sep 2026] sebelumnya state.settings.operasionalToko langsung
-  const opsFrac = plOpsPct()/100;
-  if(net===null || opsFrac<=0){
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek Ops% (harus &gt;0) &amp; total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
-    detailEl.innerHTML = '';
-    return;
-  }
-  const targetOrderBulanan = Math.round(opsBudget/(net*opsFrac));
-  const targetOrderHarian = Math.round(targetOrderBulanan/30);
-  const targetOmsetBulanan = Math.round(targetOrderBulanan*net);
-  const targetOmsetHarian = Math.round(targetOrderHarian*net);
-  const spendIklanBulanan = Math.round(targetOmsetBulanan*acos);
-  const spendIklanHarian = Math.round(targetOmsetHarian*acos);
-  const costProdukBulanan = Math.round(targetOrderBulanan*(row.hpp||0));
-  const costProdukHarian = Math.round(targetOrderHarian*(row.hpp||0));
-  const rasioIncome = net ? (state.settings.netIncomeToko||0)/net : null;
-  const oprasionalBulanan = Math.round(targetOmsetBulanan*opsFrac);
-  const netIncome = Math.round(targetOrderBulanan*(state.settings.netIncomeToko||0));   // Net Income = Net Income Toko × order
-  const incomeBulanan = netIncome-oprasionalBulanan;                                    // NPM = Net Income − Operasional
-  const totalSpendBulanan = spendIklanBulanan+costProdukBulanan;
-  const totalSpendHarian = spendIklanHarian+costProdukHarian;
-
-  statsEl.innerHTML = `
-    <div class="stat-grid stat-grid-6">
-      ${statCard('Total Spend Bulanan', fmtRp(totalSpendBulanan), fmtRp(totalSpendHarian)+' /hari')}
-      ${statCard('Target Order Bulanan', targetOrderBulanan.toLocaleString('id-ID'), targetOrderHarian.toLocaleString('id-ID')+' /hari')}
-      ${statCard('Target Omset Bulanan', fmtRp(targetOmsetBulanan), fmtRp(targetOmsetHarian)+' /hari')}
-      ${statCard('Operasional', fmtRp(oprasionalBulanan), fmtPct(opsFrac)+' × omset bulanan')}
-      ${statCard('NPM', fmtRp(incomeBulanan), 'NET Income − Operasional')}
-      ${statCard('NET Income', fmtRp(netIncome), fmtRp(state.settings.netIncomeToko||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order', 'accent')}
-    </div>`;
-  detailEl.innerHTML = `
-    <div class="pr-cols">
-      <div class="card pr-card">
-        <h3>Nilai (IDR)</h3>
-        <div class="pr-rows">
-          <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
-          <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">NET INCOME TRGT</div><div class="val">${fmtRp(state.settings.netIncomeToko||0)}</div></div>
-          <div class="hrow"><div class="lbl">OPRASIONAL (Budget Bulanan)</div><div class="val">${fmtRp(opsBudget)}</div></div>
-          <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card pr-rasio">
-        <h3>Rasio</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
-          <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
-          <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO NET INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card">
-        <h3>Spend Budget Iklan</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">Bulanan</div><div class="val">${fmtRp(spendIklanBulanan)}</div></div>
-          <div class="hrow"><div class="lbl">Harian</div><div class="val">${fmtRp(spendIklanHarian)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card">
-        <h3>Cost Produk</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">Bulanan</div><div class="val">${fmtRp(costProdukBulanan)}</div></div>
-          <div class="hrow"><div class="lbl">Harian</div><div class="val">${fmtRp(costProdukHarian)}</div></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-let byqtySelectedSku = null;
-/* ================= [7 Okt 2026] By Target Qty — Price List & Potongan LIVE dari Kelola Produk =================
-   Dulu tabel ini = state.priceList (snapshot di localStorage toko, diisi tombol "Salin dari HPP" dari riwayat Order Completed) -> SKU dobel/usang
-   (mis. Turtleneck & TURTLENECK, SKU yang sudah dihapus dari Kelola Produk). Sekarang baris = bysupportRows() (zKatalogGroups, live): 1 baris per Katalog,
-   dipecah per size kalau HPP beda antar varian (HPP per size = yang tertinggi) — aturan yang SAMA dengan By Support. NET dihitung ulang tiap render (calcNetPrice).
-   Klik baris = pilih SKU itu sebagai produk simulasi (sama seperti pilih lewat tombol Pilih Produk). state.priceList tetap dipakai By Operasional & hasil simulasi. */
-var _byqtyLoadTs = 0;   // var (bukan let): aman kalau renderByQty kepanggil sebelum baris ini dieksekusi
-var _byqtyQuery = '';
-function byqtyPriceBodyHtml(){
-  const q = _byqtyQuery.trim().toLowerCase();
-  const all = bysupportRows();
-  const list = q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all;
-  if(!list.length){
-    return `<tr><td colspan="4" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
-  }
-  return list.map((row,i)=>{
-    const net = calcNetPrice(row);
-    const on = row.sku===byqtySelectedSku;
-    return `<tr class="byq-pl-row${on?' on':''}" data-i="${i}" data-sku="${byhEsc(row.sku)}" data-hpp="${row.hpp}" style="cursor:pointer;${on?'outline:2px solid var(--accent-dark);outline-offset:-2px;':''}">
-      <td>${byhEsc(row.sku)}</td>
-      <td class="num" style="font-weight:700;">${net===null?'-':fmtRp(net)}</td>
-      <td class="num">${fmtNum(row.hpp)}</td>
-      <td class="num">${plOpsPct()} %</td>
-    </tr>`;
-  }).join('');
-}
-function byqtyBindPriceRows(){
-  const body = document.getElementById('byqtyPriceBody');
-  if(!body) return;
-  body.querySelectorAll('tr.byq-pl-row').forEach(tr=>tr.addEventListener('click', ()=>{
-    const hpp = Number(tr.dataset.hpp)||0;
-    plApplyPickedSku('byqty', { sku: tr.dataset.sku, hpp });
-    // [7 Okt 2026] Price List sudah halaman sendiri -> setelah SKU dipilih langsung loncat ke By Target Qty (SKU sudah terisi di panel Input)
-    const nb = document.querySelector('nav.menu button[data-page="byqty"]');
-    if(nb) nb.click();
-  }));
-}
-function byqtyOnSearch(v){
-  _byqtyQuery = v||'';
-  const body = document.getElementById('byqtyPriceBody');
-  if(body){ body.innerHTML = byqtyPriceBodyHtml(); byqtyBindPriceRows(); }
-}
-/* [7 Okt 2026] Price List = halaman sendiri (#page-pricelist), bukan lagi bagian bawah By Target Qty. Nama fungsi/ID tabel (byqty*) dipertahankan supaya
-   pemanggil lama (renderPriceListCard(..,'byqty')) tetap jalan. Minicard Potongan -> #pricelistStats; tabel -> #priceListCard-pricelist.
-   Kerangka kartu (judul + kolom cari) digambar SEKALI; render berikutnya cuma memperbarui minicard & isi tabel (angka diganti di tempat, kolom cari tidak kehilangan fokus). */
-function renderPricelistPage(){ renderByqtyPriceListCard(); }
-function renderByqtyPriceListCard(fromLoad){
-  const card = document.getElementById('priceListCard-pricelist');
-  if(!card) return;
-  // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang halaman ini saja
-  if(!fromLoad && Date.now()-_byqtyLoadTs > 5000){
-    _byqtyLoadTs = Date.now();
-    zProdukLoad().then(()=>renderByqtyPriceListCard(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
-  }
-  const adminBpp = resolveAdminBpp();
-  const roasInfo = resolvePriceListRoas();
-  const bufPct = state.settings.lainnyaPct||0;
-  const adminSub = adminBpp.adminSource==='rekapM' ? `Rekap Mingguan ${adminBpp.adminLabel}` : adminBpp.adminSource==='rekapB' ? `Rekap Bulanan ${adminBpp.adminLabel}` : 'fallback Setting';
-  const bppSub = adminBpp.bppSource==='rekap' ? `Rekap ${adminBpp.bppLabel}` : 'fallback Setting';
-  const acosSub = roasInfo.source==='rekapM' ? `Rekap Mingguan ${roasInfo.label}` : (roasInfo.source==='setting' ? 'ROAS toko di Setting' : 'isi ROAS toko di Setting');
-  const statsEl = document.getElementById('pricelistStats');
-  if(statsEl) patchHtml(statsEl, `
-    <div class="stat-grid stat-grid-6">
-      ${statCard('Admin %', fmtPct(adminBpp.adminPct/100), adminSub)}
-      ${statCard('BPP (Rp)', fmtRp(adminBpp.bpp), bppSub)}
-      ${statCard('Operasional %', fmtPct(plOpsPct()/100), 'rasio operasional di Setting')}
-      ${statCard('ACOS (1÷ROAS)', (roasInfo.roas && roasInfo.roas>0) ? fmtPct(1/roasInfo.roas) : '-', acosSub)}
-      ${statCard('Buffer %', fmtPct(bufPct/100), 'Setting — Buffer (Lainnya)')}
-      ${statCard('Net Income Toko (Rp)', fmtRp(state.settings.netIncomeToko||0), 'diatur di Setting')}
-    </div>`);
-  if(!document.getElementById('byqtySearch')){
-    card.innerHTML = `
-      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <span>Price List</span>
-        <input type="search" id="byqtySearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_byqtyQuery)}" oninput="byqtyOnSearch(this.value)"
-          style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
-      </h3>
-      <div class="hint" style="margin:0 0 10px;">Produk &amp; HPP langsung dari Kelola Produk. Klik baris untuk menghitung SKU itu di By Target Qty.</div>
-      <div class="pricelist-scroll">
-        <table class="ca-table">
-          <thead><tr><th>SKU</th><th class="num">NET</th><th class="num">HPP</th><th class="num">Operasional</th></tr></thead>
-          <tbody id="byqtyPriceBody"></tbody>
-        </table>
-      </div>`;
-  }
-  const body = document.getElementById('byqtyPriceBody');
-  if(body){ body.innerHTML = byqtyPriceBodyHtml(); byqtyBindPriceRows(); }
-}
-function renderByQty(){
-  // [7 Okt 2026] Price List dipisah ke halaman sendiri (renderPricelistPage) — tidak lagi dirender di sini
-  renderByqtyRoasControl();
-  const qtyEl = document.getElementById('byqtyQtyHarian');
-  if(!qtyEl.dataset.bound){
-    qtyEl.dataset.bound = '1';
-    qtyEl.onchange = ()=>renderByQtyResult();
-  }
-  const btn = document.getElementById('byqtyProdukBtn');
-  plSyncProdukBtn('byqtyProdukBtn', byqtySelectedSku);
-  btn.onclick = ()=>plSkuSheetOpen('byqty');
-  renderByQtyResult();
-}
-
-function renderByQtyResult(){
-  const statsEl = document.getElementById('byqtyStats');
-  const detailEl = document.getElementById('byqtyDetail');
-  const row = state.priceList.find(r=>r.sku===byqtySelectedSku);
-  const qtyHarian = parseNum(document.getElementById('byqtyQtyHarian').value)||0;
-  // [7 Okt 2026] bar abu "Pilih produk dulu buat lihat hasil." DIHAPUS (tidak berguna, cuma memenuhi halaman) — sebelum produk dipilih area hasil dikosongkan.
-  if(!row){ statsEl.innerHTML = ''; detailEl.innerHTML=''; return; }
-  const { roas } = resolveByqtyRoas();   // sumber ROAS pilihan panel Input (default Rekap Mingguan)
-  const net = calcNetPrice(row, roas);
-  const { adminPct, bpp } = resolveAdminBpp();
-  const acos = (roas && roas>0) ? 1/roas : 0;
-  const opsFrac = plOpsPct()/100;
-  if(net===null){
-    detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">NET harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
-    return;
-  }
-  const targetOrderHarian = qtyHarian;
-  const targetOrderBulanan = Math.round(qtyHarian*30);
-  const targetOmsetBulanan = Math.round(targetOrderBulanan*net);
-  const targetOmsetHarian = Math.round(targetOrderHarian*net);
-  const oprasionalBulanan = Math.round(targetOmsetBulanan*opsFrac);
-  const netIncome = Math.round(targetOrderBulanan*(state.settings.netIncomeToko||0));   // Net Income = Net Income Toko × order
-  const incomeBulanan = netIncome-oprasionalBulanan;                                    // NPM = Net Income − Operasional
-  const spendIklanBulanan = Math.round(targetOmsetBulanan*acos);
-  const spendIklanHarian = Math.round(targetOmsetHarian*acos);
-  const costProdukBulanan = Math.round(targetOrderBulanan*(row.hpp||0));
-  const costProdukHarian = Math.round(targetOrderHarian*(row.hpp||0));
-  const totalSpendBulanan = spendIklanBulanan+costProdukBulanan;
-  const totalSpendHarian = spendIklanHarian+costProdukHarian;
-  const rasioIncome = net ? (state.settings.netIncomeToko||0)/net : null;
-
-  patchHtml(statsEl, `
-    <div class="stat-grid stat-grid-6">
-      ${statCard('Total Spend Bulanan', fmtRp(totalSpendBulanan), fmtRp(totalSpendHarian)+' /hari')}
-      ${statCard('Target Order Bulanan', targetOrderBulanan.toLocaleString('id-ID'), targetOrderHarian.toLocaleString('id-ID')+' /hari')}
-      ${statCard('Target Omset Bulanan', fmtRp(targetOmsetBulanan), fmtRp(targetOmsetHarian)+' /hari')}
-      ${statCard('Operasional', fmtRp(oprasionalBulanan), fmtPct(opsFrac)+' × omset bulanan')}
-      ${statCard('NPM', fmtRp(incomeBulanan), 'NET Income − Operasional')}
-      ${statCard('NET Income', fmtRp(netIncome), fmtRp(state.settings.netIncomeToko||0)+' × '+targetOrderBulanan.toLocaleString('id-ID')+' order', 'accent')}
-    </div>`);
-  patchHtml(detailEl, `
-    <div class="pr-cols">
-      <div class="card pr-card">
-        <h3>Nilai (IDR)</h3>
-        <div class="pr-rows">
-          <div class="hrow highlight"><div class="lbl">NET HARGA JUAL</div><div class="val">${fmtRp(net)}</div></div>
-          <div class="hrow"><div class="lbl">HPP</div><div class="val">${fmtRp(row.hpp)}</div></div>
-          <div class="hrow"><div class="lbl">NET INCOME TRGT</div><div class="val">${fmtRp(state.settings.netIncomeToko||0)}</div></div>
-          <div class="hrow"><div class="lbl">OPRASIONAL (Bulanan)</div><div class="val">${fmtRp(oprasionalBulanan)}</div></div>
-          <div class="hrow"><div class="lbl">BPP</div><div class="val">${fmtRp(bpp)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card pr-rasio">
-        <h3>Rasio</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">ADMIN</div><div class="val">${fmtPct(adminPct/100)}</div></div>
-          <div class="hrow"><div class="lbl">ACOS</div><div class="val">${fmtPct(acos)}</div></div>
-          <div class="hrow"><div class="lbl">OPERASIONAL</div><div class="val">${fmtPct(opsFrac)}</div></div>
-          <div class="hrow"><div class="lbl">BUFFER (LAINNYA)</div><div class="val">${fmtPct(state.settings.lainnyaPct/100)}</div></div>
-          <div class="hrow highlight"><div class="lbl">RASIO NET INCOME</div><div class="val">${rasioIncome===null?'-':fmtPct(rasioIncome)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card">
-        <h3>Spend Budget Iklan</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">Bulanan</div><div class="val">${fmtRp(spendIklanBulanan)}</div></div>
-          <div class="hrow"><div class="lbl">Harian</div><div class="val">${fmtRp(spendIklanHarian)}</div></div>
-        </div>
-      </div>
-      <div class="card pr-card">
-        <h3>Cost Produk</h3>
-        <div class="pr-rows">
-          <div class="hrow"><div class="lbl">Bulanan</div><div class="val">${fmtRp(costProdukBulanan)}</div></div>
-          <div class="hrow"><div class="lbl">Harian</div><div class="val">${fmtRp(costProdukHarian)}</div></div>
-        </div>
-      </div>
-    </div>
-  `);
-}
-
-function renderProyeksiHargaBoth(){
-  if(document.getElementById('page-pricelist')) renderPricelistPage();
-  if(document.getElementById('page-proyeksi')) renderProyeksi();
-  if(document.getElementById('page-byqty')) renderByQty();
-  if(document.getElementById('page-byharga')) renderByHarga();
-  if(document.getElementById('page-bysupport')) renderBySupport();
-}
-/* By Operasional: 1 tombol pindah tampilan — di Price List = "Input" (ke hasil, panel Input selalu kebuka), di hasil = "Price List" */
-
-/* ================= PROYEKSI HARGA: BY SUPPORT (batas aman harga jual) ================= */
-/* [29 Sep 2026, direvisi 30 Sep 2026] By Support = batas aman harga jual dari GPM TOKO.
-     GPM TOKO berdiri sendiri (gak diambil dari mana pun) = Admin% + ACOS + Ops% + Buffer% + NPM%
-     Harga Jual Minimum = HPP ÷ (1 − GPM TOKO)      (BPP & NPM Rp TIDAK ikut rumus — sesuai keputusan user)
+/* ================= PROYEKSI HARGA: PRICE LIST (satu-satunya metode, by GPM) [27 Okt 2026] =================
+   Dulu Proyeksi Harga punya 5 metode (Price List, By Operasional, By Target Qty, By Harga Jual, By Support). Disederhanakan jadi 1 metode — by GPM —
+   mengikuti sheet PROYEKSI HARGA user; tab yang tersisa cuma Price List dan Check Admin.
+     GPM TOKO     = Admin% + ACOS + Ops% + Buffer% + NPM%     (berdiri sendiri; BPP & NPM Rp TIDAK ikut rumus)
+     Harga Net    = ROUNDUP(HPP ÷ (1 − GPM) + VCHR + 1, −3) − 1    (selalu berakhiran ...999; voucher ditambahkan SEBELUM pembulatan)
+     Harga Upload = HPP × 3
+     Harga Coret  = Harga Net × (1 + Up Hrg Coret)
+     Net Income   = (Harga Net − VCHR) − HPP − (Harga Net − VCHR) × (Admin + ACOS) − BPP
+     NPM          = Net Income ÷ (Harga Net − VCHR)           Net Income < NET INCOME TOKO (Setting) = sel merah
    Sumber angka:
-     Produk & HPP   : LANGSUNG dari Kelola Produk (zKatalogGroups, live) — BUKAN state.priceList (snapshot lama di localStorage toko, bikin SKU dobel/usang).
-     Admin % & ACOS : Proyeksi RKS bulan berjalan -> kalau belum ada RKS Mingguan terbaru -> kalau belum ada RKS Overview terbaru -> (terakhir) Setting
-     Ops % (Rasio Operasional) / Buffer % / NPM % (= TARGET RASIO LABA, %) : Setting per toko.
-   Tidak ada state yang disimpan — semua dihitung ulang tiap render. */
-function bysupportValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
-function bysupportAcosOf(sn){
-  if(!sn) return null;
-  if(bysupportValid(sn.acos)) return sn.acos;
-  if(bysupportValid(sn.roas)) return 1/sn.roas;
-  return null;
-}
-function bysupportSources(){
+     Produk & HPP   : LANGSUNG dari Kelola Produk (zKatalogGroups, live) — 1 baris per Katalog, dipecah per size kalau HPP beda antar varian (HPP per size = yang TERTINGGI).
+     Admin %        : Proyeksi RKS bulan berjalan -> RKS Mingguan terbaru -> RKS Overview terbaru -> (terakhir) Setting.   ACOS = 1 ÷ Setting > TARGET ROAS TOKO.
+     BPP            : resolveAdminBpp() (Rekap bulanan terbaru, fallback Setting).   Ops % / Buffer % / NPM % (= TARGET RASIO LABA): Setting per toko.
+     VCHR & Up Hrg Coret: input di halaman ini, disimpan per toko di state.settings (vchrToko, upHrgCoret).
+   Tidak ada tabel yang disimpan — semua dihitung ulang tiap render. */
+function escHtml(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function plValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
+function plSources(){
   const d = new Date(), ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   const cands = [];
   const sp = state.proyeksi && state.proyeksi.rekap ? state.proyeksi.rekap[ym] : null;
-  if(sp) cands.push({ name:'Proyeksi RKS', label: sp.label || ym, admin: sp.ratioAdmin, acos: bysupportAcosOf(sp) });
+  if(sp) cands.push({ name:'Proyeksi RKS', label: sp.label || ym, admin: sp.ratioAdmin });
   const mk = Object.keys((state.mingguan && state.mingguan.rekap) || {}).sort();
-  if(mk.length){ const sn = state.mingguan.rekap[mk[mk.length-1]]; cands.push({ name:'RKS Mingguan', label: sn.label || mk[mk.length-1], admin: sn.ratioAdmin, acos: bysupportAcosOf(sn) }); }
+  if(mk.length){ const sn = state.mingguan.rekap[mk[mk.length-1]]; cands.push({ name:'RKS Mingguan', label: sn.label || mk[mk.length-1], admin: sn.ratioAdmin }); }
   const ok = Object.keys(state.rekap||{}).sort();
-  if(ok.length){ const sn = state.rekap[ok[ok.length-1]]; cands.push({ name:'RKS Overview', label: rekapMonthLabel(ok[ok.length-1]), admin: sn.ratioAdmin, acos: bysupportAcosOf(sn) }); }
-  const pick = (field)=>{
-    for(const c of cands){ if(bysupportValid(c[field])) return { value:c[field], src:c.name+' '+c.label }; }
-    return null;
-  };
-  let admin = pick('admin');
-  if(!admin){ const v = state.settings.adminPct; admin = bysupportValid(v) ? { value:v/100, src:'Setting (fallback)' } : { value:0, src:'belum ada data' }; }
-  // [30 Sep 2026] ACOS SEKARANG SELALU dari Setting > TARGET ROAS TOKO (ACOS = 1 ÷ ROAS), bukan lagi dari Rekap.
+  if(ok.length){ const sn = state.rekap[ok[ok.length-1]]; cands.push({ name:'RKS Overview', label: rekapMonthLabel(ok[ok.length-1]), admin: sn.ratioAdmin }); }
+  let admin = null;
+  for(const c of cands){ if(plValid(c.admin)){ admin = { value:c.admin, src:c.name+' '+c.label }; break; } }
+  if(!admin){ const v = state.settings.adminPct; admin = plValid(v) ? { value:v/100, src:'Setting (fallback)' } : { value:0, src:'belum ada data' }; }
   const tr = state.settings.targetRoas;
-  const acos = bysupportValid(tr) ? { value:1/tr, roas:tr, src:'Setting — Target ROAS Toko' } : { value:0, roas:0, src:'isi Target ROAS Toko di Setting' };
+  const acos = plValid(tr) ? { value:1/tr, roas:tr, src:'Setting — Target ROAS Toko' } : { value:0, roas:0, src:'isi Target ROAS Toko di Setting' };
   return { admin, acos };
 }
-function bysupportParams(){
-  const src = bysupportSources();
+function plVchr(){ const v = Number(state.settings.vchrToko); return (isNaN(v) || v<0) ? 0 : v; }
+function plUpCoret(){ const v = Number(state.settings.upHrgCoret); return (isNaN(v) || v<0) ? 0 : v/100; }
+function plParams(){
+  const src = plSources();
   const ops = plOpsPct()/100, buffer = (state.settings.lainnyaPct||0)/100;
   const nRaw = state.settings.targetRasioLaba;
-  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting (bukan NET INCOME TOKO Rp)
-  const gpm = src.admin.value + src.acos.value + ops + buffer + npm;                         // GPM TOKO = penjumlahan, berdiri sendiri
-  return { src, ops, buffer, npm, gpm };
+  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting
+  const gpm = src.admin.value + src.acos.value + ops + buffer + npm;
+  const bb = resolveAdminBpp();
+  return { src, ops, buffer, npm, gpm, bpp: bb.bpp||0, bppSrc: bb.bppSource==='rekap' ? 'Rekap '+bb.bppLabel : 'fallback Setting' };
 }
-// Harga Jual = HPP ÷ (1 − GPM)
-function bysupportCalc(row, P){
-  if(P.gpm>=1) return null;
+function plCalc(row, P){
   const hpp = row.hpp||0;
-  return { hpp, hargaMin: Math.round(hpp/(1-P.gpm)) };
+  if(P.gpm>=1 || !(hpp>0)) return null;
+  const vchr = plVchr();
+  const net = Math.ceil((hpp/(1-P.gpm) + vchr + 1)/1000)*1000 - 1;
+  const after = net - vchr;                                              // harga setelah voucher = dasar Net Income & NPM
+  const netIncome = after - hpp - after*(P.src.admin.value + P.src.acos.value) - P.bpp;
+  return { upload: hpp*3, coret: Math.round(net*(1+plUpCoret())), net, netIncome, npm: after>0 ? netIncome/after : null };
 }
-// Baris produk LANGSUNG dari Kelola Produk (live). Aturan baris sama dgn plResolveIdentity: 1 baris per Katalog,
-// kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI, karena ini batas aman: harus menutup varian termahal).
-function bysupportRows(){
+// Baris produk LANGSUNG dari Kelola Produk (live). 1 baris per Katalog, kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI).
+function plRows(){
   const out = [];
   zKatalogGroups().forEach(g=>{
     const distinct = [...new Set(g.variants.map(v=>v.hpp))];
@@ -7903,1002 +6934,102 @@ function bysupportRows(){
   });
   return out;
 }
-let _bysupportLoadTs = 0;
-let _bysupportQuery = '';   // kata kunci Cari SKU (cuma di memori)
-// Net Income per pcs = IDR Operasional + IDR NPM (dari Harga Min): Harga Min × (Ops% + NPM%)
-function bysupportBodyHtml(P){
-  const q = _bysupportQuery.trim().toLowerCase();
-  const all = bysupportRows();
+var _plLoadTs = 0;      // var (bukan let): aman kalau renderPricelistPage kepanggil sebelum baris ini dieksekusi
+var _plQuery = '';      // kata kunci Cari SKU (cuma di memori)
+function plPctTxt(n){ return (n===null||n===undefined||!isFinite(n)) ? '-' : (n*100).toFixed(2).replace('.',',')+'%'; }
+function plBodyHtml(P){
+  const q = _plQuery.trim().toLowerCase();
+  const all = plRows();
   const list = q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all;
   if(!list.length){
-    return `<tr><td colspan="4" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
+    return `<tr><td colspan="8" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
   }
-  return list.map(row=>{
-    const c = bysupportCalc(row, P);
-    const netInc = c ? Math.round(c.hargaMin*(P.ops+P.npm)) : null;
+  const limit = state.settings.netIncomeToko||0;     // INCOME / PC: Net Income di bawah ini = merah
+  return list.map((row,i)=>{
+    const c = plCalc(row, P);
+    if(!c) return `<tr><td class="num">${i+1}</td><td>${escHtml(row.sku)}</td><td class="num">${fmtNum(row.hpp)}</td><td class="num" colspan="5">-</td></tr>`;
+    const low = limit>0 && c.netIncome<limit;
     return `<tr>
-      <td>${byhEsc(row.sku)}</td>
-      <td class="num" style="font-weight:700;">${c ? fmtRp(c.hargaMin) : '-'}</td>
-      <td class="num">${netInc!==null ? fmtRp(netInc) : '-'}</td>
+      <td class="num">${i+1}</td>
+      <td>${escHtml(row.sku)}</td>
       <td class="num">${fmtNum(row.hpp)}</td>
+      <td class="num">${fmtNum(c.upload)}</td>
+      <td class="num">${fmtNum(c.coret)}</td>
+      <td class="num" style="font-weight:700;">${fmtNum(c.net)}</td>
+      <td class="num${low?' pl-low':''}">${fmtNum(c.netIncome)}</td>
+      <td class="num">${plPctTxt(c.npm)}</td>
     </tr>`;
   }).join('');
 }
-function bysupportOnSearch(v){
-  _bysupportQuery = v||'';
-  const body = document.getElementById('bysupportBody');
-  if(body) body.innerHTML = bysupportBodyHtml(bysupportParams());
+function plRenderBody(){
+  const body = document.getElementById('plBody');
+  if(body) body.innerHTML = plBodyHtml(plParams());
 }
-function renderBySupport(fromLoad){
-  const statsEl = document.getElementById('bysupportStats'), listEl = document.getElementById('bysupportListCard');
-  if(!statsEl || !listEl) return;
+function renderPricelistPage(fromLoad){
+  const statsEl = document.getElementById('pricelistStats'), card = document.getElementById('priceListCard-pricelist');
+  if(!statsEl || !card) return;
   // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang
-  if(!fromLoad && Date.now()-_bysupportLoadTs > 5000){
-    _bysupportLoadTs = Date.now();
-    zProdukLoad().then(()=>renderBySupport(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
+  if(!fromLoad && Date.now()-_plLoadTs > 5000){
+    _plLoadTs = Date.now();
+    zProdukLoad().then(()=>renderPricelistPage(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
   }
-  const P = bysupportParams();
-  const card = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${byhEsc(ket)}</span></div><div class="stat-value">${val}</div></div>`;
+  const P = plParams();
+  const cardHtml = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${escHtml(ket)}</span></div><div class="stat-value">${val}</div></div>`;
   // Minicard ACOS: nilai ACOS di kiri, ROAS (kebalikannya) di kanan
   const roasTxt = P.src.acos.roas>0 ? (Math.round(P.src.acos.roas*100)/100).toString().replace('.',',')+'x' : '-';
-  const acosCard = `<div class="stat-card" style="display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:start;"><div class="stat-label" style="grid-column:1;grid-row:1;">ACOS<span class="ket" style="display:block;font-weight:400;">${byhEsc(P.src.acos.src)}</span></div><div class="stat-label" style="grid-column:2;grid-row:1;text-align:right;">ROAS</div><div class="stat-value" style="grid-column:1;grid-row:2;">${fmtPct(P.src.acos.value)}</div><div class="stat-value" style="grid-column:2;grid-row:2;text-align:right;">${roasTxt}</div></div>`;
-  statsEl.innerHTML = `<div class="card" style="margin-bottom:14px;">
-    <h3>Komponen GPM Minimum</h3>
+  const acosCard = `<div class="stat-card" style="display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:start;"><div class="stat-label" style="grid-column:1;grid-row:1;">ACOS<span class="ket" style="display:block;font-weight:400;">${escHtml(P.src.acos.src)}</span></div><div class="stat-label" style="grid-column:2;grid-row:1;text-align:right;">ROAS</div><div class="stat-value" style="grid-column:1;grid-row:2;">${fmtPct(P.src.acos.value)}</div><div class="stat-value" style="grid-column:2;grid-row:2;text-align:right;">${roasTxt}</div></div>`;
+  patchHtml(statsEl, `<div class="card" style="margin-bottom:14px;">
+    <h3>Komponen GPM</h3>
     <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
-      ${card('GPM Toko', fmtPct(P.gpm), 'Admin + ACOS + Operasional + Buffer + NPM')}
-      ${card('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
+      ${cardHtml('GPM Toko', fmtPct(P.gpm), 'Admin + ACOS + Operasional + Buffer + NPM')}
+      ${cardHtml('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
       ${acosCard}
-      ${card('Operasional %', fmtPct(P.ops), 'Setting — Rasio Operasional')}
-      ${card('Buffer %', fmtPct(P.buffer), 'Setting')}
-      ${card('NPM %', fmtPct(P.npm), P.npm>0 ? 'Setting — Target Rasio Laba' : 'isi Target Rasio Laba di Setting')}
+      ${cardHtml('Operasional %', fmtPct(P.ops), 'Setting — Rasio Operasional')}
+      ${cardHtml('Buffer %', fmtPct(P.buffer), 'Setting')}
+      ${cardHtml('NPM %', fmtPct(P.npm), P.npm>0 ? 'Setting — Target Rasio Laba' : 'isi Target Rasio Laba di Setting')}
     </div>
-  </div>`;
+  </div>`);
+  // parameter harga: nilai baca-saja diperbarui, input VCHR & Up Hrg Coret disinkronkan dari state toko aktif (kecuali lagi diketik)
+  const setTxt = (id, v)=>{ const el = document.getElementById(id); if(el && el.textContent!==v) el.textContent = v; };
+  setTxt('plIncomeVal', fmtRp(state.settings.netIncomeToko||0));
+  setTxt('plBppVal', fmtRp(P.bpp));
+  const bppSrcEl = document.getElementById('plBppSrc'); if(bppSrcEl) bppSrcEl.textContent = P.bppSrc;
+  const vIn = document.getElementById('plVchr'), uIn = document.getElementById('plUpCoret');
+  if(vIn && document.activeElement!==vIn) vIn.value = fmtNum(plVchr());
+  if(uIn && document.activeElement!==uIn) uIn.value = String(Number(state.settings.upHrgCoret)||0).replace('.',',');
   if(P.gpm>=1){
-    listEl.innerHTML = '<h3>Batas Aman Harga Jual</h3><div class="hint" style="margin:0;">Harga minimum gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
+    card.innerHTML = '<h3>Price List</h3><div class="hint" style="margin:0;">Harga Net gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
     return;
   }
-  // jaga fokus kolom cari kalau render ulang (mis. abis muat ulang Kelola Produk) kejadian pas lagi ngetik
-  const prev = document.getElementById('bysupportSearch');
-  const hadFocus = prev && document.activeElement===prev;
-  const selS = hadFocus ? prev.selectionStart : null, selE = hadFocus ? prev.selectionEnd : null;
-  listEl.innerHTML = `
-    <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <span>Batas Aman Harga Jual</span>
-      <input type="search" id="bysupportSearch" placeholder="Cari SKU…" autocomplete="off" value="${byhEsc(_bysupportQuery)}" oninput="bysupportOnSearch(this.value)"
-        style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
-    </h3>
-    <div class="hint" style="margin:0 0 12px;">Harga Jual = HPP ÷ (1 − GPM Toko). Di bawah Harga Min, margin jatuh di bawah target (Admin, ACOS, Operasional, Buffer &amp; NPM). Net Income = IDR Operasional + IDR NPM dari Harga Min. Produk &amp; HPP langsung dari Kelola Produk.</div>
-    <div class="pricelist-scroll">
-      <table class="ca-table">
-        <thead><tr><th>SKU</th><th class="num">Harga Min</th><th class="num">Net Income</th><th class="num">HPP</th></tr></thead>
-        <tbody id="bysupportBody">${bysupportBodyHtml(P)}</tbody>
-      </table>
-    </div>`;
-  if(hadFocus){ const el = document.getElementById('bysupportSearch'); if(el){ el.focus(); try{ el.setSelectionRange(selS, selE); }catch(e){} } }
-}
-
-/* ================= PROYEKSI HARGA: BY HARGA JUAL (simulasi instan) ================= */
-/* [21 Sep 2026] Konsep ketiga di Proyeksi Harga. By Operasional & By Target Qty MENGHITUNG harga jual (NET) dari target income;
-   di sini kebalikannya: harga jual jadi INPUT -> "kalau gue pasang harga segini, masuk gak ke Net Income Toko (Setting)?"
-     Harga efektif (B) = Harga jual − Voucher penjual
-     Income/pcs        = B × (1 − Admin% − ACOS − Buffer% − Ops%) − HPP − BPP      (kebalikan persis rumus NET di calcNetPrice)
-     Harga minimum     = NET + Voucher  (NET = calcNetPrice, sama persis dengan tab lain)
-   Kenapa dihitung dari harga SETELAH voucher: di rincian pembayaran Shopee semua biaya persen (admin, layanan XTRA, gratis ongkir) ternyata dihitung dari harga
-   setelah voucher penjual, dan Total Pendapatan di Rekap juga setelah voucher -> Admin%/ACOS/Ops% dari Rekap basisnya sama (B), bukan harga jual mentah.
-   Voucher: otomatis dari Order Completed file 1 (kolom voucher ditanggung penjual): nominal non-nol yang PALING SERING dipakai di order SKU itu (dihitung sekali per No. Pesanan);
-   bisa di-override manual. Sumber ROAS: 4 pilihan yang sama dengan tab lain. Semua state halaman ini cuma di memori (gak disimpen) — sama seperti simulasi ROAS. */
-const byhargaRoasSim = { source:'mingguan', input:null };
-function resolveByhargaRoas(){ return resolveRoasSim(byhargaRoasSim); }
-function renderByhargaRoasControl(){ renderRoasSimControl('byharga', byhargaRoasSim, renderByHargaResult); }
-bindRoasSimInput('byharga', byhargaRoasSim, ()=>renderByHargaResult());
-
-let byhargaSelectedSku = null;
-const byhargaHargaBySku = {};       // SKU Price List -> harga jual yang lagi diketik
-const byhargaVoucherManual = {};    // SKU Price List -> voucher manual (gak ada key = pakai otomatis)
-const BYHARGA_TIPIS = 0.01;         // ruang aman < 1 poin persen = ditandai kuning ("masuk tapi tipis")
-function byhEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function byhargaNum(v){
-  if(v===null || v===undefined || v==='') return 0;
-  if(typeof v==='number') return isFinite(v) ? v : 0;
-  const n = parseNum(v);
-  return (n===null || !isFinite(n)) ? 0 : n;
-}
-// Kolom voucher ditanggung penjual di Order Completed (persis "Voucher Ditanggung Penjual", atau header yang mengandung voucher + penjual/toko, BUKAN yang Shopee)
-function byhargaVoucherCol(headers){
-  const norm = h=>String(h||'').trim().toLowerCase();
-  const exact = headers.find(h=>norm(h)==='voucher ditanggung penjual');
-  if(exact) return exact;
-  return headers.find(h=>{ const n = norm(h); return n.includes('voucher') && /(penjual|toko|seller)/.test(n) && !n.includes('shopee'); }) || null;
-}
-// Baris Price List = "SKU Induk" atau "SKU Induk — SIZE" (lihat syncPriceListFromHpp)
-function byhargaSkuParts(plSku){
-  const i = plSku.indexOf(' — ');
-  return i<0 ? { induk: plSku.trim().toLowerCase(), size:null }
-             : { induk: plSku.slice(0,i).trim().toLowerCase(), size: plSku.slice(i+3).trim().toLowerCase() };
-}
-function byhargaMatchRow(parts, r){
-  if((resolveOrderRowSkuInduk(r)||'').toString().trim().toLowerCase() !== parts.induk) return false;
-  if(parts.size===null) return true;
-  const variasi = (r['Nama Variasi']||'').toString().trim();
-  return extractSizeToken(variasi)===parts.size || variasi.toLowerCase()===parts.size;
-}
-const byhargaVcCache = { rows:null, map:new Map() };
-function byhargaVoucherStats(plSku){
-  const slot = state.orderSlots.find(Boolean);   // "file 1" = slot Order Completed pertama yang terisi
-  if(!slot || !slot.rows || !slot.rows.length) return { status:'nofile' };
-  if(byhargaVcCache.rows !== slot.rows){ byhargaVcCache.rows = slot.rows; byhargaVcCache.map = new Map(); }
-  if(byhargaVcCache.map.has(plSku)) return byhargaVcCache.map.get(plSku);
-  const rows = slot.rows;
-  const col = byhargaVoucherCol(Object.keys(rows[0]));
-  let res;
-  if(!col){
-    res = { status:'nocol', file:slot.name };
-  } else {
-    const parts = byhargaSkuParts(plSku);
-    const orders = new Map();
-    rows.forEach(r=>{
-      const no = (r['No. Pesanan']||'').toString().trim(); if(!no) return;
-      let o = orders.get(no);
-      if(!o){ o = { lines:new Set(), n:0, allMatch:true, anyMatch:false, qty:0, voucher:0 }; orders.set(no, o); }
-      const lk = [r['Nomor Referensi SKU'], r['Nama Variasi'], r['Jumlah']].join('~');
-      if(o.lines.has(lk)) return;                       // baris ganda pada order yang sama
-      o.lines.add(lk); o.n++;
-      if(byhargaMatchRow(parts, r)){ o.anyMatch = true; o.qty += Number(r['Jumlah'])||0; } else { o.allMatch = false; }
-      const v = Math.abs(byhargaNum(r[col]));           // voucher itu level ORDER (nilainya berulang di tiap baris) -> ambil sekali
-      if(v>o.voucher) o.voucher = v;
-    });
-    // Basis: order yang isinya HANYA SKU ini. Utama = order 1 baris & 1 pcs (cocok dengan asumsi simulasi 1 order = 1 pcs); kalau gak ada, order lain dibagi qty.
-    const single = [], multi = [];
-    orders.forEach(o=>{
-      if(!o.anyMatch || !o.allMatch) return;
-      if(o.n===1 && o.qty===1) single.push(o.voucher);
-      multi.push(o.qty>0 ? o.voucher/o.qty : o.voucher);
-    });
-    const vals = single.length ? single : multi;
-    if(!vals.length){
-      res = { status:'nomatch', file:slot.name, col };
-    } else {
-      const cnt = new Map();
-      vals.filter(v=>v>0).forEach(v=>{ const k = Math.round(v); cnt.set(k, (cnt.get(k)||0)+1); });
-      let mode = 0, best = 0;
-      cnt.forEach((c,v)=>{ if(c>best || (c===best && v>mode)){ best = c; mode = v; } });   // seri -> ambil yang lebih besar (lebih hati-hati)
-      const nVoucher = vals.filter(v=>v>0).length;
-      // [21 Sep 2026] FIX wording: dulu "Rp20.000 ... dipakai di 46%" padahal 46% itu order yang pakai voucher APA PUN (nominal apa saja), bukan nominal modusnya.
-      // Sekarang dipisah: share = order ber-voucher (apa pun), modeShare = order yang pakai NOMINAL modus, avgAll = rata-rata voucher per order (order tanpa voucher dihitung 0).
-      res = { status:'ok', file:slot.name, col, tier: single.length?'single':'multi', n:vals.length, nVoucher, share:nVoucher/vals.length,
-              mode, modeCount:best, modeShare:best/vals.length, avgAll: vals.reduce((a,b)=>a+b,0)/vals.length };
-    }
+  if(!document.getElementById('plSearch')){
+    card.innerHTML = `
+      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span>Price List</span>
+        <input type="search" id="plSearch" placeholder="Cari SKU…" autocomplete="off"
+          style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
+      </h3>
+      <div class="hint" style="margin:0 0 12px;">Harga Net = HPP ÷ (1 − GPM Toko) + VCHR, dibulatkan naik ke ...999. Net Income = (Harga Net − VCHR) − HPP − (Admin + ACOS) − BPP; merah kalau di bawah Income / PC. Produk &amp; HPP langsung dari Kelola Produk.</div>
+      <div class="pricelist-scroll">
+        <table class="ca-table">
+          <thead><tr><th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
+          <tbody id="plBody"></tbody>
+        </table>
+      </div>`;
+    document.getElementById('plSearch').addEventListener('input', e=>{ _plQuery = e.target.value||''; plRenderBody(); });
   }
-  byhargaVcCache.map.set(plSku, res);
-  return res;
+  const sIn = document.getElementById('plSearch'); if(sIn && document.activeElement!==sIn) sIn.value = _plQuery;
+  plRenderBody();
 }
-function byhargaVoucherFor(sku){
-  const st = byhargaVoucherStats(sku);
-  const auto = (st.status==='ok') ? st.mode : 0;
-  const manual = byhargaVoucherManual[sku];
-  const isManual = (manual!==undefined && manual!==null);
-  return { value: isManual ? manual : auto, auto, isManual, stats:st };
-}
-
-// Hitung murni (gak nyentuh DOM) — dipakai render & gampang dites
-function byhargaCompute(row, harga, voucher, roas){
-  const { adminPct, bpp } = resolveAdminBpp();
-  const admin = (adminPct||0)/100;
-  const acos = (roas && roas>0) ? 1/roas : 0;
-  const lainnya = (state.settings.lainnyaPct||0)/100;
-  const ops = plOpsPct()/100;
-  // [8 Okt 2026] Acuan = NET INCOME TOKO (Setting). Net Income = Profit + Operasional, jadi Ops saling meniadakan: tidak ikut di penyebut (sama dgn calcNetPrice).
-  const denom = 1 - admin - acos - lainnya;
-  const hpp = row.hpp||0, bppV = bpp||0, T = state.settings.netIncomeToko||0;
-  if(denom<=0) return { ok:false, reason:'denom' };
-  const net = calcNetPrice(row, roas);
-  const r = { ok:true, admin, acos, lainnya, ops, denom, hpp, bpp:bppV, T, net, roas, voucher,
-              hargaMin:(net===null)?null:net+voucher, hasPrice:false, invalid:null };
-  if(harga>0){
-    const B = harga - voucher;
-    r.hasPrice = true; r.harga = harga; r.B = B;
-    if(B>0){
-      const netIncome = B*denom - hpp - bppV;           // NET INCOME/pcs (acuan MASUK/TIDAK MASUK) — sama dgn Check Admin & RKS (Profit + Operasional)
-      const base = 1 - admin - lainnya;
-      const aTarget = base - (hpp+bppV+T)/B, aImpas = (base - ops) - (hpp+bppV)/B;
-      r.netIncome = netIncome; r.netIncomeR = Math.round(netIncome);
-      r.opsRp = B*ops;
-      r.income = netIncome - r.opsRp; r.incomeR = Math.round(r.income);   // Profit/pcs = Net Income − Operasional (rincian saja, bukan acuan)
-      r.masuk = r.netIncomeR >= T;
-      r.diff = r.netIncomeR - T;
-      r.ruang = (netIncome - T)/B;                       // berapa poin (fraksi B) potongan boleh naik sebelum Net Income < Net Income Toko
-      r.roasMin = aTarget>0 ? 1/aTarget : null;         // ROAS minimal supaya Net Income tetap >= Net Income Toko
-      r.roasImpas = aImpas>0 ? 1/aImpas : null;         // ROAS minimal supaya Profit/pcs >= 0
-      r.rasioIncome = netIncome/B;
-      r.incomeTanpaVoucher = harga*denom - hpp - bppV;  // Net Income/pcs kalau tanpa voucher
-    } else { r.masuk = false; r.invalid = 'voucher'; }
+(function(){
+  const v = document.getElementById('plVchr'), u = document.getElementById('plUpCoret');
+  if(v){
+    attachThousands(v);
+    v.addEventListener('input', ()=>{ const n = parseNum(v.value); state.settings.vchrToko = (n===null||n<0) ? 0 : n; saveSettingsToStorage(); plRenderBody(); });
   }
-  return r;
-}
-
-function byhargaSyncInputs(){
-  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher'), wEl = document.getElementById('byhargaVoucherWeekend');
-  const sku = byhargaSelectedSku;
-  if(!sku){ hEl.value = ''; vEl.value = ''; wEl.value = ''; return; }
-  if(document.activeElement!==wEl){ const w = byhargaVoucherWeekend[sku]; wEl.value = w>0 ? fmtNum(w) : ''; }
-  if(document.activeElement!==hEl){ const pr = byhargaHargaBySku[sku]; hEl.value = pr>0 ? fmtNum(pr) : ''; }
-  if(document.activeElement!==vEl){ vEl.value = fmtNum(byhargaVoucherFor(sku).value); }
-}
-function byhargaRenderVoucherNote(){
-  const noteEl = document.getElementById('byhargaVoucherNote'), autoBtn = document.getElementById('byhargaVoucherAuto');
-  const sku = byhargaSelectedSku;
-  if(!sku){ noteEl.textContent = ''; autoBtn.style.display = 'none'; return; }
-  const vc = byhargaVoucherFor(sku), st = vc.stats;
-  let txt;
-  if(st.status==='nofile') txt = 'Belum ada Order Completed file 1 — isi voucher manual.';
-  else if(st.status==='nocol') txt = 'Kolom voucher penjual tidak ditemukan di "'+st.file+'" — isi manual.';
-  else if(st.status==='nomatch') txt = 'SKU ini tidak ada di file 1 ('+st.file+') — isi manual.';
-  else if(st.mode>0) txt = 'Otomatis: '+fmtRp(st.mode)+' — nominal paling sering (di '+Math.round(st.modeShare*100)+'% order). Ada voucher di '+Math.round(st.share*100)+'% dari '+st.n.toLocaleString('id-ID')+' order (file 1).';
-  else txt = 'Otomatis: tidak ada order ber-voucher untuk SKU ini di file 1 ('+st.n.toLocaleString('id-ID')+' order).';
-  if(vc.isManual && st.status==='ok') txt = 'Manual. '+txt;
-  else if(vc.isManual) txt = 'Manual. '+txt;
-  noteEl.textContent = txt; noteEl.title = txt;
-  autoBtn.style.display = (vc.isManual && st.status==='ok') ? '' : 'none';
-}
-
-function renderByHarga(){
-  const btn = document.getElementById('byhargaProdukBtn');
-  plSyncProdukBtn('byhargaProdukBtn', byhargaSelectedSku);
-  btn.onclick = ()=>plSkuSheetOpen('byharga');
-  const hEl = document.getElementById('byhargaHarga'), vEl = document.getElementById('byhargaVoucher'), wEl = document.getElementById('byhargaVoucherWeekend');
-  if(!hEl.dataset.bound){
-    hEl.dataset.bound = '1';
-    attachThousands(hEl); attachThousands(vEl); attachThousands(wEl);
-    wEl.addEventListener('input', ()=>{
-      if(!byhargaSelectedSku) return;
-      byhargaVoucherWeekend[byhargaSelectedSku] = parseNum(wEl.value)||0;
-      renderByHargaResult();
-    });
-    hEl.addEventListener('input', ()=>{
-      if(!byhargaSelectedSku) return;
-      const v = parseNum(hEl.value);
-      byhargaHargaBySku[byhargaSelectedSku] = (v>0) ? v : null;
-      renderByHargaResult();
-    });
-    vEl.addEventListener('input', ()=>{
-      if(!byhargaSelectedSku) return;
-      byhargaVoucherManual[byhargaSelectedSku] = parseNum(vEl.value)||0;
-      renderByHargaResult();
-    });
-    document.getElementById('byhargaVoucherAuto').addEventListener('click', ()=>{
-      if(!byhargaSelectedSku) return;
-      delete byhargaVoucherManual[byhargaSelectedSku];
-      byhargaSyncInputs();
-      renderByHargaResult();
-    });
+  if(u){
+    u.addEventListener('input', ()=>{ const n = parseFloat(String(u.value).replace(',','.')); state.settings.upHrgCoret = (isNaN(n)||n<0) ? 0 : n; saveSettingsToStorage(); plRenderBody(); });
   }
-  renderByhargaRoasControl();
-  byhargaSyncInputs();
-  renderByHargaResult();
-}
-
-function renderByHargaResult(){
-  const statsEl = document.getElementById('byhargaStats'), detailEl = document.getElementById('byhargaDetail');
-  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku);
-  byhargaRenderVoucherNote();
-  byhargaBinsSync();   // [28 Sep 2026] kartu Data kompetitor: dirender ulang cuma kalau SKU induk berganti, selain itu cukup update sorotan range (input gak ke-reset)
-  if(!row){
-    detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Pilih produk dulu buat lihat hasil.</div></div>';
-    return;
-  }
-  const { roas } = resolveByhargaRoas();
-  const vc = byhargaVoucherFor(row.sku);
-  const V = vc.value||0;
-  const hargaRaw = parseNum(document.getElementById('byhargaHarga').value);
-  const P = (hargaRaw>0) ? hargaRaw : 0;
-  const c = byhargaCompute(row, P, V, roas);
-  if(!c.ok){
-    detailEl.innerHTML = '';
-    statsEl.innerHTML = '<div class="card"><div class="hint" style="margin:0;">Harga gak bisa dihitung — cek total potongan (ADMIN+ACOS+LAINNYA harus &lt;100%).</div></div>';
-    return;
-  }
-  const T = c.T;
-  const has = c.hasPrice && !c.invalid;
-  const sgnRp = n=>(n<0?'−':'+')+'Rp'+Math.abs(Math.round(n)).toLocaleString('id-ID');
-  const hr = (lbl, val, hl)=>'<div class="hrow'+(hl?' highlight':'')+'"><div class="lbl">'+lbl+'</div><div class="val">'+val+'</div></div>';
-  const pct = x=>'<span class="byh-pct">'+fmtPct(x)+'</span>';
-
-  // ---- kartu ringkas di atas ----
-  let cVerdict='', vVerdict='—', sVerdict = c.invalid ? 'harga jual harus lebih besar dari voucher' : 'isi Harga Jual di panel Input';
-  if(has){
-    cVerdict = c.masuk ? (c.ruang<BYHARGA_TIPIS ? 'warn' : 'good') : 'bad';
-    vVerdict = c.masuk ? 'MASUK' : 'TIDAK MASUK';
-    // [8 Okt 2026] acuan hasil = Net Income vs Net Income Toko (satu angka di Setting).
-    sVerdict = 'Net Income '+fmtRp(c.netIncomeR)+(c.masuk?' ≥ ':' < ')+'Net Income Toko '+fmtRp(T);
-  } else if(c.invalid){ cVerdict='bad'; vVerdict='TIDAK MASUK'; }
-  const ruangTxt = has ? ((c.ruang>=0?'+':'−')+Math.abs(c.ruang*100).toFixed(1)+' poin') : '—';
-  const ruangSub = has ? (c.ruang>=0 ? 'potongan boleh naik segini sebelum di bawah target' : 'potongan harus turun segini supaya masuk target') : '';
-  const roasSub = has ? ('ROAS sekarang '+((roas>0)?roas.toFixed(2)+'x':'-')+' · impas '+(c.roasImpas?c.roasImpas.toFixed(2)+'x':'tak tercapai')) : '';
-  statsEl.innerHTML = `
-    <div class="stat-grid stat-grid-6">
-      ${statCard('Hasil', vVerdict, sVerdict, cVerdict)}
-      ${statCard('Net Income / Pcs', has?fmtRp(c.netIncomeR):'—', has?('target '+fmtRp(T)+' · selisih '+sgnRp(c.diff)):'target '+fmtRp(T), has?(c.netIncomeR<0?'bad':''):'')}
-      ${statCard('Harga Efektif', has?fmtRp(c.B):'—', has?(fmtRp(P)+' − voucher '+fmtRp(V)):'harga jual − voucher')}
-      ${statCard('Harga Minimum', c.hargaMin===null?'—':fmtRp(c.hargaMin), 'NET '+fmtRp(c.net)+' + voucher '+fmtRp(V), 'accent')}
-      ${statCard('Ruang Aman', ruangTxt, ruangSub, has?(c.masuk?(c.ruang<BYHARGA_TIPIS?'warn':''):'bad'):'')}
-      ${statCard('ROAS Minimum', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'—', has?(c.roasMin?roasSub:'tanpa iklan pun di bawah target'):'supaya tetap masuk target')}
-    </div>
-    ${(roas>0)?'':'<div class="byh-hint">ROAS belum ada — ACOS dihitung 0%. Isi Target ROAS di Setting atau pilih sumber ROAS di panel Input.</div>'}`;
-
-  // ---- rincian ----
-  const B = has ? c.B : undefined;
-  // [22 Sep 2026] GPM = (harga − HPP) ÷ harga. Di Harga Jual = SEBELUM voucher = acuan (rumus & basis sama dengan GPM di Check Admin: Subtotal Pesanan);
-  // di Harga Efektif = setelah voucher (info tambahan). Persen Voucher dihitung dari Harga Jual, persen baris lain dari Harga Efektif (sama seperti Rekap).
-  const gpmJual = (c.hasPrice && P>0) ? (P - c.hpp)/P : null;
-  const gpmEfektif = has ? (B - c.hpp)/B : null;
-  const gpmTag = (x, ref)=> (x===null) ? '' : '<span class="byh-pct'+(ref?' byh-ref':'')+'">GPM '+fmtPct(x)+'</span>';
-  const left = `
-    <div class="byh-col">
-    <div class="card byh-card"><h3>Perhitungan per pcs</h3>
-      ${hr('HARGA JUAL'+gpmTag(gpmJual, true), c.hasPrice?fmtRp(P):'-')}
-      ${hr('VOUCHER PENJUAL'+((c.hasPrice && P>0)?pct(V/P):''), c.hasPrice?fmtRp(V):'-')}
-      ${hr('HARGA EFEKTIF'+gpmTag(gpmEfektif, false), has?fmtRp(B):'-', true)}
-      ${hr('ADMIN & LAYANAN'+pct(c.admin), has?fmtRp(B*c.admin):'-')}
-      ${hr('BPP'+(has?pct(c.bpp/B):''), has?fmtRp(c.bpp):'-')}
-      ${hr('IKLAN (ACOS)'+pct(c.acos), has?fmtRp(B*c.acos):'-')}
-      ${hr('BUFFER (LAINNYA)'+pct(c.lainnya), has?fmtRp(B*c.lainnya):'-')}
-      ${hr('OPERASIONAL'+pct(c.ops), has?fmtRp(B*c.ops):'-')}
-      ${hr('HPP', has?fmtRp(c.hpp):'-')}
-      ${hr('PROFIT / PCS'+(has?pct(c.income/B):''), has?fmtRp(c.income):'-', true)}
-      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(c.netIncome):'-', true)}
-      <div class="byh-note">GPM = (harga − HPP) ÷ harga. GPM di Harga Jual (sebelum voucher) = acuan, basis Subtotal Pesanan seperti GPM di Check Admin; GPM di Harga Efektif dihitung setelah voucher. % Voucher dari Harga Jual, % baris lain dari Harga Efektif. NET INCOME = PROFIT / PCS + Operasional (operasional tetap masuk kantong sendiri), sama seperti Check Admin &amp; RKS.</div>
-    </div>
-    <div class="card byh-card"><h3>Net Income Toko</h3>
-      ${hr('NET INCOME TOKO'+(has?pct(T/B):''), fmtRp(T), true)}
-      ${hr('NET INCOME'+(has?pct(c.netIncome/B):''), has?fmtRp(c.netIncomeR):'-')}
-      ${hr('SELISIH', has?sgnRp(c.diff):'-')}
-      ${hr('HASIL', has?'<span style="font-weight:700;color:var(--'+(c.masuk?'good':'bad')+');">'+(c.masuk?'MASUK':'TIDAK MASUK')+'</span>':(c.invalid?'<span style="font-weight:700;color:var(--bad);">TIDAK MASUK</span>':'-'), true)}
-      <div class="byh-note">Net Income Toko = target Net Income per pcs (${fmtRp(T)}) di Setting. Net Income = Harga Efektif × (1 − Admin − ACOS − Buffer) − HPP − BPP; Operasional tidak dikurangkan karena masuk kantong sendiri. Net Income di bawah target = TIDAK MASUK. Acuan hasil MASUK / TIDAK MASUK di kartu atas.</div>
-    </div>
-    </div>`;
-  const right = `
-    <div class="byh-col">
-      <div class="card byh-card"><h3>Batas aman</h3>
-        ${hr('HARGA MINIMUM', c.hargaMin===null?'-':fmtRp(c.hargaMin), true)}
-        ${hr('SELISIH HARGA', (has&&c.hargaMin!==null)?sgnRp(P-c.hargaMin):'-')}
-        ${hr('ROAS MINIMUM (TARGET)', (has&&c.roasMin)?c.roasMin.toFixed(2)+'x':'-')}
-        ${hr('ROAS IMPAS (PROFIT 0)', (has&&c.roasImpas)?c.roasImpas.toFixed(2)+'x':'-')}
-        ${hr('RASIO NET INCOME', has?fmtPct(c.rasioIncome):'-')}
-        <div class="byh-note">Harga minimum = NET (dari Net Income Toko ${fmtRp(T)}) + voucher. Rasio &amp; ruang aman dihitung dari harga efektif, sama seperti Rekap.</div>
-      </div>
-      <div class="card byh-card"><h3>Voucher penjual</h3>
-        ${hr('DIPAKAI'+(vc.isManual?'<span class="byh-pct">manual</span>':'<span class="byh-pct">otomatis</span>'), fmtRp(V))}
-        ${hr('NOMINAL PALING SERING'+(vc.stats.status==='ok'&&vc.stats.mode>0?'<span class="byh-pct">di '+Math.round(vc.stats.modeShare*100)+'% order</span>':''), vc.stats.status==='ok'?fmtRp(vc.stats.mode):'-')}
-        ${hr('ORDER BER-VOUCHER (APA PUN)', vc.stats.status==='ok'?(Math.round(vc.stats.share*100)+'% dari '+vc.stats.n.toLocaleString('id-ID')+' order'):'-')}
-        ${hr('VOUCHER RATA-RATA / ORDER', vc.stats.status==='ok'?fmtRp(vc.stats.avgAll):'-')}
-        ${hr('NET INCOME TANPA VOUCHER', has?fmtRp(c.incomeTanpaVoucher):'-')}
-        ${hr('NET INCOME RATA-RATA', (has&&vc.stats.status==='ok')?fmtRp(c.incomeTanpaVoucher - vc.stats.avgAll*c.denom):'-', true)}
-        <div class="byh-note">${vc.stats.status==='ok'
-          ? ('Sumber: '+byhEsc(vc.stats.file)+', kolom "'+byhEsc(vc.stats.col)+'" — dihitung sekali per No. Pesanan, hanya order yang isinya SKU ini'+(vc.stats.tier==='single'?' (1 item, 1 pcs)':' (voucher dibagi qty)')+'. Hasil MASUK/TIDAK MASUK memakai voucher penuh (kondisi order yang memakai voucher); Net Income rata-rata memperhitungkan seberapa sering voucher dipakai.')
-          : 'Voucher otomatis diambil dari Order Completed file 1. Selama belum tersedia, isi manual di panel Input.'}</div>
-      </div>
-    </div>`;
-  // [28 Sep 2026] Normal vs Voucher Weekend — kartu lebar penuh di bawah 2 kolom (input-nya di panel kanan, jadi kartu ini aman di-render ulang tiap ketikan)
-  const Vw = byhargaVoucherWeekend[row.sku]||0;
-  let weekendCard;
-  if(!(Vw>0)){
-    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3><div class="byh-note">Isi Voucher Weekend di panel Input buat membandingkan profit saat voucher lebih besar (weekend/event) dengan voucher normal.</div></div>';
-  } else if(!c.hasPrice){
-    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3><div class="byh-hint" style="margin:0;">Isi Harga Jual di panel Input dulu.</div></div>';
-  } else {
-    const cw = byhargaCompute(row, P, Vw, roas);
-    const okN = has && c.masuk, okW = !cw.invalid && cw.masuk;
-    const netN = has ? c.netIncome : null;
-    const netW = (!cw.invalid) ? cw.netIncome : null;
-    const d = (a,b)=> (a===null||b===null) ? '-' : sgnRp(b-a);
-    const row3 = (lbl, a, b, dl, cls)=>'<tr><td>'+lbl+'</td><td'+(cls&&cls[0]?' class="'+cls[0]+'"':'')+'>'+a+'</td><td'+(cls&&cls[1]?' class="'+cls[1]+'"':'')+'>'+b+'</td><td>'+dl+'</td></tr>';
-    weekendCard = '<div class="card byh-card" style="margin-top:16px;"><h3>Normal vs Voucher Weekend</h3>'
-      + '<table class="byh-cmp"><thead><tr><th></th><th>NORMAL</th><th>WEEKEND</th><th>SELISIH</th></tr></thead><tbody>'
-      + row3('Voucher penjual', fmtRp(V), fmtRp(Vw), sgnRp(Vw-V))
-      + row3('Harga efektif', has?fmtRp(c.B):'-', cw.invalid?'-':fmtRp(cw.B), has&&!cw.invalid?sgnRp(cw.B-c.B):'-')
-      + row3('Profit / pcs', has?fmtRp(c.incomeR):'-', cw.invalid?'-':fmtRp(cw.incomeR), has&&!cw.invalid?d(c.incomeR,cw.incomeR):'-')
-      + row3('Net income', netN===null?'-':fmtRp(netN), netW===null?'-':fmtRp(netW), d(netN,netW))
-      + row3('Net Income Toko (target)', fmtRp(T), fmtRp(T), '')
-      + row3('Hasil vs Net Income Toko', has?(okN?'MASUK':'TIDAK MASUK'):'-', cw.invalid?'TIDAK MASUK':(okW?'MASUK':'TIDAK MASUK'), '', [has?(okN?'good':'bad'):'', cw.invalid?'bad':(okW?'good':'bad')])
-      + row3('Harga jual minimum', c.hargaMin===null?'-':fmtRp(c.hargaMin), cw.hargaMin===null?'-':fmtRp(cw.hargaMin), (c.hargaMin===null||cw.hargaMin===null)?'-':sgnRp(cw.hargaMin-c.hargaMin))
-      + '</tbody></table>'
-      + '<div class="byh-note">Rumus sama persis dengan hasil di atas, cuma voucher diganti. Harga jual minimum = NET + voucher: harga pasang terendah supaya Net Income tetap ≥ Net Income Toko di tiap skenario.'+(cw.invalid?' Voucher weekend ≥ harga jual, jadi harga efektif tidak valid.':'')+'</div></div>';
-  }
-  detailEl.innerHTML = '<div class="byh-cols">'+left+right+'</div>'+weekendCard;
-}
-
-/* ================= [28 Sep 2026] By Harga Jual: DATA KOMPETITOR PER RANGE HARGA =================
-   Data dari filter harga Shopee (Product / Sold / Favourite / Review Count per range). Shopee gak punya API publik buat ini, jadi diisi MANUAL
-   (atau tempel dari teks, satu baris = satu range). Disimpen per SKU INDUK (berlaku buat semua ukuran) & per toko (key 'zenootAnalisis.byhargaBins',
-   terdaftar di dua daftar scoped: zStore.SCOPED & TOKO_SCOPED_BASES). Range 'Sampai' kosong/0 = tanpa batas atas.
-   Tabel input SENGAJA di luar #byhargaDetail: #byhargaDetail di-render ulang tiap ketikan harga, kalau tabelnya ikut, fokus input hilang. */
-const BYH_BINS_LS_KEY = tk('zenootAnalisis.byhargaBins');
-let byhargaBins = {};            // { skuIndukLower: [{min,max,prod,sold,fav,rev}] }
-try{
-  const rawBins = zLS.getItem(BYH_BINS_LS_KEY);
-  if(rawBins){ const o = JSON.parse(rawBins); if(o && typeof o==='object' && !Array.isArray(o)) byhargaBins = o; }
-}catch(e){ console.error('Gagal load data kompetitor By Harga Jual:', e); }
-const byhargaVoucherWeekend = {};   // SKU Price List -> voucher weekend (cuma di memori, sama seperti state simulasi lain)
-let _byhBinsShown;                  // key SKU induk yang tabelnya lagi tampil (undefined = belum pernah dirender)
-function byhargaBinsSave(){ try{ zLS.setItem(BYH_BINS_LS_KEY, JSON.stringify(byhargaBins)); }catch(e){} }
-function byhBinsKey(){ return byhargaSelectedSku ? byhargaSkuParts(byhargaSelectedSku).induk : null; }
-function byhBinsRows(create){
-  const k = byhBinsKey(); if(!k) return [];
-  if(!byhargaBins[k]){ if(!create) return []; byhargaBins[k] = []; }
-  return byhargaBins[k];
-}
-function byhBinRowHtml(r, i){
-  const cell = (f)=>'<td><input type="text" inputmode="numeric" data-i="'+i+'" data-f="'+f+'" value="'+(r[f]>0?fmtNum(r[f]):'')+'"></td>';
-  return '<tr>'+cell('min')+cell('max')+cell('prod')+cell('sold')+cell('fav')+cell('rev')
-    +'<td class="byh-c" data-c="tpp"></td><td class="byh-c" data-c="share"></td>'
-    +'<td><button type="button" class="byh-del" data-del="'+i+'" title="Hapus range ini">×</button></td></tr>';
-}
-// Teks tempel -> baris. Tiap baris ambil angka berurutan: Dari, Sampai, Produk, Terjual, Favorit, Review (format Indonesia: titik = ribuan). Baris < 3 angka (judul dsb) dilewati.
-function byhBinsParsePaste(text){
-  const out = [];
-  String(text||'').split(/\r?\n/).forEach(line=>{
-    const nums = (line.replace(/rp/gi,'').match(/\d[\d.,]*/g)||[]).map(x=>parseNum(x)).filter(n=>n!==null);
-    if(nums.length<3) return;
-    out.push({ min:nums[0]||0, max:nums[1]||0, prod:nums[2]||0, sold:nums[3]||0, fav:nums[4]||0, rev:nums[5]||0 });
-  });
-  return out;
-}
-/* [28 Sep 2026] IMPOR CSV (Product_Table.csv dari tool Pricing Analysis): 1 baris = 1 produk kompetitor. Dicek ke screenshot grafik: hasil binning CSV = angka di grafik
-   (Product/Favourite/Sold Count per range). Range = N bagian sama lebar dari harga termurah s.d. termahal; batas atas tiap range MASUK range itu (harga tepat di batas ikut range bawah,
-   sama dengan cara sorotan range mencari), harga termurah masuk range pertama. Data produk cuma di memori; yang disimpan hanya hasil per range. */
-let _byhCsv = null;                 // { name, products:[{name,price,fav,sold,rev}] }
-const byhCsvNote = {};              // key SKU induk -> catatan sumber terakhir (cuma memori)
-let _byhTblOpen = false;            // tabel data range disembunyikan secara default (tampilan utama = ringkasan)
-function byhCsvRows(text){
-  const rows = []; let row = [], cur = '', q = false;
-  text = String(text||'').replace(/^\uFEFF/, '');
-  const push = ()=>{ row.push(cur); cur = ''; };
-  const endRow = ()=>{ push(); if(row.some(c=>c.trim()!=='')) rows.push(row); row = []; };
-  for(let i=0;i<text.length;i++){
-    const ch = text[i];
-    if(q){
-      if(ch==='"'){ if(text[i+1]==='"'){ cur += '"'; i++; } else q = false; }
-      else cur += ch;
-    } else if(ch==='"') q = true;
-    else if(ch===',') push();
-    else if(ch==='\n' || ch==='\r'){ if(ch==='\r' && text[i+1]==='\n') i++; endRow(); }
-    else cur += ch;
-  }
-  if(cur!=='' || row.length) endRow();
-  return rows;
-}
-function byhCsvProducts(text){
-  const rows = byhCsvRows(text);
-  if(rows.length<2) return { error:'File kosong atau bukan CSV.' };
-  const head = rows[0].map(h=>h.trim().toLowerCase());
-  const col = (...names)=>head.findIndex(h=>names.indexOf(h)>=0);
-  const iP = col('price','harga'), iF = col('favourite','favorite','favorit'), iS = col('sold','terjual'), iR = col('review','ulasan'), iN = col('name','nama'), iSid = col('shop id'), iSh = col('shop name'), iAge = col('age');
-  if(iP<0) return { error:'Kolom Price tidak ditemukan di baris judul CSV.' };
-  const num = v=>Number(String(v==null?'':v).replace(/[^\d]/g,''))||0;
-  const products = [];
-  rows.slice(1).forEach(r=>{
-    const price = num(r[iP]); if(!(price>0)) return;
-    products.push({ name:String(iN>=0?(r[iN]||''):''), price, fav:iF>=0?num(r[iF]):0, sold:iS>=0?num(r[iS]):0, rev:iR>=0?num(r[iR]):0, sid:iSid>=0?String(r[iSid]||'').trim():'', shop:iSh>=0?String(r[iSh]||'').trim():'', mo:iAge>=0?byhMonths(r[iAge]):0 });
-  });
-  return products.length ? { products } : { error:'Tidak ada baris produk dengan harga di CSV.' };
-}
-/* [29 Sep 2026] Aturan batas range TUNGGAL, sama dengan Pricing Analysis (sumber CSV): kiri-inklusif [min,max), range terakhir inklusif max. Dipakai semua tempat (bin, kata kunci, grafik, posisi harga). */
-function byhInBin(rows, i, x){ const r = rows[i]; if(!r) return false; return x>=(r.min||0) && (!(r.max>0) || (i===rows.length-1 ? x<=r.max : x<r.max)); }
-function byhBinsFromProducts(products, n){
-  const ps = (products||[]).filter(p=>p.price>0);
-  if(!ps.length) return [];
-  const prices = ps.map(p=>p.price);
-  const lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
-  n = Math.max(1, Math.min(30, Math.round(n)||10));
-  if(hi===lo) n = 1;
-  const edges = [];
-  for(let i=0;i<=n;i++){ const e = Math.round(lo+(hi-lo)*i/n); if(!edges.length || e>edges[edges.length-1]) edges.push(e); }
-  if(edges.length<2) edges.push(edges[0]);
-  const bins = [];
-  for(let i=0;i<edges.length-1;i++) bins.push({ min:edges[i], max:edges[i+1], prod:0, sold:0, fav:0, rev:0, _s:[], _v:[] });
-  ps.forEach(p=>{
-    const k = bins.findIndex((b,i)=> byhInBin(bins, i, p.price));
-    if(k<0) return;
-    bins[k].prod++; bins[k].sold += p.sold; bins[k].fav += p.fav; bins[k].rev += p.rev; bins[k]._s.push(p.sold); bins[k]._v.push(p.sold/Math.max(3, p.mo||12));
-  });
-  // [29 Sep 2026] med = median terjual per produk, top = terjual produk teratas (buat cek 1 produk mendominasi range). Cuma ada kalau data dari CSV.
-  bins.forEach(b=>{
-    const v = b._v.slice().sort((x,y)=>x-y), sv = v.reduce((x,y)=>x+y,0); delete b._v;
-    if(v.length){ const mv = v.length>>1; b.medv = Math.round(((v.length%2) ? v[mv] : (v[mv-1]+v[mv])/2)*10)/10; b.topv = sv>0 ? v[v.length-1]/sv : 0; }   // terjual per bulan (umur produk min 3 bulan)
-    const a = b._s.slice().sort((x,y)=>x-y); delete b._s;
-    if(!a.length) return;
-    const m = a.length>>1;
-    b.med = (a.length%2) ? a[m] : Math.round((a[m-1]+a[m])/2);
-    b.top = a[a.length-1];
-  });
-  return bins;
-}
-function byhargaBinsRender(){
-  const wrap = document.getElementById('byhargaBinsWrap'); if(!wrap) return;
-  const key = byhBinsKey();
-  _byhBinsShown = key;
-  if(!key){ wrap.innerHTML = ''; return; }
-  const rows = byhBinsRows();
-  wrap.innerHTML = '<div class="card byh-card" style="margin-top:16px;"><h3>Data kompetitor per range harga</h3>'
-    + '<div class="byh-note">Isi dari filter harga di hasil pencarian Shopee (Product / Sold / Favourite / Review Count per range). Disimpan per SKU induk &amp; berlaku untuk semua ukuran. Kolom Sampai kosong = tanpa batas atas.</div>'
-    + '<div class="byh-tabs"><button type="button" class="byh-tab'+(_byhTab==='harga'?' on':'')+'" data-tab="harga">Harga</button><button type="button" class="byh-tab'+(_byhTab==='kata'?' on':'')+'" data-tab="kata">Kata kunci</button><button type="button" class="byh-tab'+(_byhTab==='grafik'?' on':'')+'" data-tab="grafik">Grafik</button></div>'
-    + '<div class="byh-sum" id="byhBinsSummary"></div><div class="byh-sum" id="byhKwBox" style="display:none;"></div><div class="byh-sum" id="byhChartBox" style="display:none;"></div>'
-    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsCsvBtn">Impor CSV</button>'
-    + '<button type="button" class="btn secondary small" id="byhBinsPasteBtn">Tempel dari teks</button>'
-    + '<button type="button" class="btn secondary small" id="byhBinsTblBtn">'+(_byhTblOpen?'Tutup data range':'Lihat / edit data range')+'</button>'
-    + '<button type="button" class="btn ghost small" id="byhBinsClear">Kosongkan</button></div>'
-    + '<div id="byhBinsTblWrap" style="'+(_byhTblOpen?'':'display:none;')+'margin-top:10px;">'
-    + '<div class="byh-bin-scroll"><table class="byh-bin-tbl"><thead><tr><th>Dari (Rp)</th><th>Sampai (Rp)</th><th>Produk</th><th>Terjual</th><th>Favorit</th><th>Review</th><th>Terjual/Produk</th><th>Porsi Terjual</th><th></th></tr></thead>'
-    + '<tbody id="byhBinsBody">'+rows.map(byhBinRowHtml).join('')+'</tbody></table></div>'
-    + '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhBinsAdd">+ Tambah range</button></div></div>'
-    + '<div id="byhBinsCsvBox" style="display:none;margin-top:10px;">'
-    + '<div class="byh-note">Pakai file Product_Table.csv (kolom Price, Favourite, Sold, Review, Name). Harga dibagi ke beberapa range sama lebar dari harga termurah sampai termahal, sama seperti grafik Pricing Analysis. Terjual = total sepanjang umur produk (bukan per bulan).</div>'
-    + '<div class="hrow editable stack"><div class="lbl">File CSV</div><div class="val"><input type="file" id="byhBinsCsvFile" accept=".csv,text/csv"></div></div>'
-    + '<div class="hrow editable stack"><div class="lbl">Jumlah range</div><div class="val"><input type="text" inputmode="numeric" id="byhBinsCsvN" value="10"></div></div>'
-    + '<div class="hrow editable stack"><div class="lbl">Buang produk yang namanya mengandung</div><div class="val"><input type="text" id="byhBinsCsvSkip" placeholder="mis. topi, kaos kaki (pisahkan koma)"></div></div>'
-    + '<div class="byh-hint" id="byhBinsCsvInfo" style="margin:6px 0;"></div><div id="byhBinsCsvShops"></div>'
-    + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsCsvOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsCsvCancel">Batal</button></div></div>'
-    + '<div id="byhBinsPasteBox" style="display:none;"><textarea id="byhBinsPaste" placeholder="Satu baris = satu range, urutan angka: Dari, Sampai, Produk, Terjual, Favorit, Review&#10;contoh:&#10;50.000  75.000  1200  3400  800  150&#10;75.000  100.000  900  5200  1100  400"></textarea>'
-    + '<div class="byh-bin-actions"><button type="button" class="btn small" id="byhBinsPasteOk">Terapkan (ganti isi tabel)</button><button type="button" class="btn ghost small" id="byhBinsPasteCancel">Batal</button></div></div>'
-    + '</div>';
-  document.getElementById('byhBinsTblBtn').addEventListener('click', ()=>{
-    _byhTblOpen = !_byhTblOpen;
-    document.getElementById('byhBinsTblWrap').style.display = _byhTblOpen ? '' : 'none';
-    document.getElementById('byhBinsTblBtn').textContent = _byhTblOpen ? 'Tutup data range' : 'Lihat / edit data range';
-  });
-  const body = document.getElementById('byhBinsBody');
-  body.querySelectorAll('input').forEach(attachThousands);
-  body.addEventListener('input', (e)=>{
-    const el = e.target; if(!el || !el.dataset || el.dataset.f===undefined) return;
-    const list = byhBinsRows(); const r = list[Number(el.dataset.i)]; if(!r) return;
-    r[el.dataset.f] = Math.max(0, parseNum(el.value)||0);
-    delete r.med; delete r.top; delete r.medv; delete r.topv;   // angka diedit manual -> median/produk teratas dari CSV sudah tidak sinkron
-    byhargaBinsSave(); byhargaBinsHighlight();
-  });
-  body.addEventListener('click', (e)=>{
-    const b = e.target.closest('[data-del]'); if(!b) return;
-    byhBinsRows().splice(Number(b.dataset.del), 1);
-    byhargaBinsSave(); byhargaBinsRender();
-  });
-  document.getElementById('byhBinsAdd').addEventListener('click', ()=>{
-    byhBinsRows(true).push({ min:0, max:0, prod:0, sold:0, fav:0, rev:0 });
-    byhargaBinsSave(); byhargaBinsRender();
-    const ins = document.querySelectorAll('#byhBinsBody tr:last-child input'); if(ins[0]) ins[0].focus();
-  });
-  const csvBox = document.getElementById('byhBinsCsvBox');
-  document.getElementById('byhBinsCsvBtn').addEventListener('click', ()=>{ csvBox.style.display = (csvBox.style.display==='none') ? '' : 'none'; });
-  document.getElementById('byhBinsCsvCancel').addEventListener('click', ()=>{ csvBox.style.display = 'none'; });
-  document.getElementById('byhBinsCsvFile').addEventListener('change', (e)=>{
-    const f = e.target.files && e.target.files[0], infoEl = document.getElementById('byhBinsCsvInfo');
-    if(!f) return;
-    const fr = new FileReader();
-    fr.onload = ()=>{
-      const r = byhCsvProducts(String(fr.result||''));
-      if(r.error){ _byhCsv = null; infoEl.textContent = r.error; return; }
-      _byhCsv = { name:f.name, products:r.products };
-      const pr = r.products.map(x=>x.price);
-      infoEl.textContent = f.name+': '+r.products.length+' produk terbaca, harga '+fmtRp(Math.min.apply(null,pr))+' sampai '+fmtRp(Math.max.apply(null,pr))+'.';
-      byhRenderShopPick();
-    };
-    fr.onerror = ()=>{ _byhCsv = null; infoEl.textContent = 'File gagal dibaca.'; };
-    fr.readAsText(f);
-  });
-  document.getElementById('byhBinsCsvOk').addEventListener('click', ()=>{
-    if(!_byhCsv){ alert('Pilih file CSV dulu.'); return; }
-    const n = parseNum(document.getElementById('byhBinsCsvN').value)||10;
-    const kw = String(document.getElementById('byhBinsCsvSkip').value||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-    const boxes = Array.from(document.querySelectorAll('#byhBinsCsvShops input[data-sid]'));
-    if(boxes.length){ const seen = new Set(boxes.map(x=>x.dataset.sid)); byhOwnSave(byhOwnIds().filter(id=>!seen.has(id)).concat(boxes.filter(x=>x.checked).map(x=>x.dataset.sid))); }
-    const own = new Set(byhOwnIds());
-    const kept = _byhCsv.products.filter(p=>!kw.some(k=>p.name.toLowerCase().indexOf(k)>=0));
-    const ps = kept.filter(p=>!(p.sid && own.has(p.sid)));
-    const bins = byhBinsFromProducts(ps, n);
-    if(!bins.length){ alert('Tidak ada produk tersisa setelah filter.'); return; }
-    byhBinsRows(true).splice(0, Infinity, ...bins);
-    const note = 'Sumber: '+_byhCsv.name+', '+ps.length+' produk kompetitor'+((_byhCsv.products.length-kept.length)>0 ? ' ('+(_byhCsv.products.length-kept.length)+' dibuang filter)' : '')+((kept.length-ps.length)>0 ? ', '+(kept.length-ps.length)+' produk toko sendiri dikeluarkan' : '')+', '+bins.length+' range.';
-    byhCsvNote[byhBinsKey()] = note;
-    byhargaProds[byhBinsKey()] = { name:_byhCsv.name, at:new Date().toISOString().slice(0,10), note, products:kept.map(p=>({ n:p.name, p:p.price, s:p.sold, f:p.fav, r:p.rev, i:p.sid, h:p.shop, m:Math.round(p.mo*10)/10 })) };
-    byhProdsSave(); byhargaBinsSave(); byhargaBinsRender();
-  });
-  const box = document.getElementById('byhBinsPasteBox');
-  document.getElementById('byhBinsPasteBtn').addEventListener('click', ()=>{ box.style.display = (box.style.display==='none') ? '' : 'none'; });
-  document.getElementById('byhBinsPasteCancel').addEventListener('click', ()=>{ box.style.display = 'none'; });
-  document.getElementById('byhBinsPasteOk').addEventListener('click', ()=>{
-    const parsed = byhBinsParsePaste(document.getElementById('byhBinsPaste').value);
-    if(!parsed.length){ alert('Tidak ada baris yang terbaca. Tiap baris minimal 3 angka: Dari, Sampai, Produk.'); return; }
-    parsed.sort((a,b)=>a.min-b.min);
-    byhBinsRows(true).splice(0, Infinity, ...parsed);
-    byhargaBinsSave(); byhargaBinsRender();
-  });
-  document.getElementById('byhBinsClear').addEventListener('click', async ()=>{
-    if(!byhBinsRows().length) return;
-    if(!(await zConfirm('Kosongkan semua range kompetitor untuk SKU induk ini?', {title:'Kosongkan range kompetitor?', ok:'Kosongkan'}))) return;
-    byhBinsRows().splice(0, Infinity); delete byhargaProds[byhBinsKey()]; byhProdsSave();
-    byhargaBinsSave(); byhargaBinsRender();
-  });
-  document.querySelectorAll('.byh-tab').forEach(b=>b.addEventListener('click', ()=>byhTabSet(b.dataset.tab)));
-  byhTabSet(_byhTab);
-  byhargaBinsHighlight();
-}
-/* [29 Sep 2026] KATA KUNCI PER RANGE + TOKO SENDIRI. Daftar produk hasil impor CSV disimpan per SKU induk per toko (key byhargaProds) supaya auto-load;
-   Shop ID toko sendiri disimpan GLOBAL (berlaku 3 toko) dan produknya dikeluarkan dari hitungan kompetitor. Kata kunci dihitung dari judul produk kompetitor
-   pakai terjual per bulan (terjual / umur produk, minimal 3 bulan), bukan terjual seumur produk. Ini korelasi dari judul, bukan volume pencarian. */
-const BYH_PRODS_LS_KEY = tk('zenootAnalisis.byhargaProds');
-const BYH_OWN_LS_KEY = 'zenootAnalisis.ownShopIds';
-let byhargaProds = {};   // { skuIndukLower: { name, at, products:[{n,p,s,f,r,i,h,m}] } }
-try{ const rp = zLS.getItem(BYH_PRODS_LS_KEY); if(rp){ const o = JSON.parse(rp); if(o && typeof o==='object' && !Array.isArray(o)) byhargaProds = o; } }catch(e){ console.error('Gagal load daftar produk kompetitor:', e); }
-function byhProdsSave(){ try{ zLS.setItem(BYH_PRODS_LS_KEY, JSON.stringify(byhargaProds)); }catch(e){} }
-function byhOwnIds(){ try{ const a = JSON.parse(zLS.getItem(BYH_OWN_LS_KEY)||'[]'); return Array.isArray(a) ? a.map(String) : []; }catch(e){ return []; } }
-function byhOwnSave(a){ try{ zLS.setItem(BYH_OWN_LS_KEY, JSON.stringify(Array.from(new Set(a)))); }catch(e){} }
-function byhSavedProds(){ const k = byhBinsKey(); return (k && byhargaProds[k] && byhargaProds[k].products) || []; }
-function byhRg(r){ return 'Rp'+Math.round((r.min||0)/1000)+'rb'+(r.max>0 ? '–'+Math.round(r.max/1000)+'rb' : ' ke atas'); }
-function byhMonths(age){
-  const g = re=>{ const m = String(age||'').match(re); return m ? Number(m[1]) : 0; };
-  return g(/(\d+)\s*Year/i)*12 + g(/(\d+)\s*Month/i) + g(/(\d+)\s*Day/i)/30;
-}
-const BYH_STOP = new Set('dan yang untuk dengan dari atau ini itu bisa the and for with ready stock new best seller'.split(' '));
-function byhTokens(name){
-  const w = String(name||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(x=>x.length>2 && !BYH_STOP.has(x) && !/^\d+$/.test(x));
-  const s = new Set(w); for(let i=0;i<w.length-1;i++) s.add(w[i]+' '+w[i+1]); return s;
-}
-const byhMedian = a=>{ const b = a.slice().sort((x,y)=>x-y), m = b.length>>1; return b.length ? ((b.length%2) ? b[m] : (b[m-1]+b[m])/2) : 0; };
-// Hasil: { n, ranges:[{bin, n, terms:[{t,c,st,med,lift,df,shops}]}] }. st: pakai | dasar | netral | hindari | tipis
-function byhKeywords(prods, bins){
-  const n = prods.length; if(n<5) return { error:'Produk kompetitor kurang dari 5, kata kunci belum bisa dihitung.' };
-  const v = prods.map(p=> (p.s||0)/Math.max(3, p.m||12));
-  const tok = prods.map(p=>byhTokens(p.n));
-  const totV = v.reduce((a,b)=>a+b,0), medAll = byhMedian(v);
-  const g = new Map();
-  tok.forEach((set,i)=>set.forEach(t=>{ let o = g.get(t); if(!o){ o = { idx:[] }; g.set(t,o); } o.idx.push(i); }));
-  const info = t=>{
-    const o = g.get(t), df = o.idx.length, shops = new Set(o.idx.map(i=>prods[i].i||prods[i].h)).size;
-    const sv = o.idx.reduce((a,i)=>a+v[i],0), med = byhMedian(o.idx.map(i=>v[i])), lift = totV>0 ? (sv/totV)/(df/n) : 0;
-    let st = 'netral';
-    if(df<4 || shops<3) st = 'tipis';
-    else if(df/n>=0.6) st = 'dasar';
-    else if(lift>=1 && med>=medAll) st = 'pakai';
-    else if(lift<0.6) st = 'hindari';
-    return { df, shops, med, lift, st };
-  };
-  const ranges = [];
-  (bins||[]).forEach((b,bi)=>{
-    const mem = [];
-    prods.forEach((p,i)=>{ if(byhInBin(bins, bi, p.p)) mem.push(i); });
-    if(!mem.length) return;
-    if(mem.length<BYH_MIN_SAMPLE){ ranges.push({ bin:b, n:mem.length, terms:[] }); return; }
-    const cnt = new Map();
-    mem.forEach(i=>tok[i].forEach(t=>{ let o = cnt.get(t); if(!o){ o = { c:0, sh:new Set() }; cnt.set(t,o); } o.c++; o.sh.add(prods[i].i||prods[i].h); }));
-    let terms = [];
-    cnt.forEach((o,t)=>{ if(o.c>=2 && o.sh.size>=2){ const f = info(t); terms.push({ t, c:o.c, st:f.st, med:f.med, lift:f.lift, df:f.df, shops:f.shops }); } });
-    terms.sort((a,b)=> b.c-a.c || b.med-a.med);
-    terms = terms.filter(a=>!terms.some(x=>x!==a && x.t.indexOf(a.t)>=0 && x.c===a.c)).slice(0,14);
-    ranges.push({ bin:b, n:mem.length, terms });
-  });
-  return { n, ranges };
-}
-const BYH_ST_NAME = { pakai:'Pakai', dasar:'Dasar', netral:'Netral', hindari:'Hindari', tipis:'Data tipis' };
-const byhLayak = t=>t.st==='pakai' || t.st==='dasar';
-function byhKwHtml(){
-  const prods = byhSavedProds(), own = new Set(byhOwnIds());
-  if(!prods.length) return '<p>Belum ada daftar produk tersimpan. Impor <b>Product_Table.csv</b> (tombol Impor CSV) dulu, kata kunci dihitung dari judul produk kompetitor.</p>';
-  const comp = prods.filter(p=>!own.has(String(p.i)));
-  const r = byhKeywords(comp, byhBinsRows());
-  if(r.error) return '<p>'+byhEsc(r.error)+'</p>';
-  let h = '<p class="sub">Dari '+r.n+' produk kompetitor'+((prods.length-comp.length)>0 ? ' ('+(prods.length-comp.length)+' produk toko sendiri dikeluarkan)' : '')+'. Ukuran = terjual per bulan (median), bukan terjual seumur produk. <b>Pakai</b> = muncul di produk yang lebih laku dari rata-rata. <b>Dasar</b> = ada di hampir semua produk. <b>Hindari</b> = sering dipakai tapi produknya kurang laku. <b>Data tipis</b> = kurang dari 4 produk atau 3 toko. Ini korelasi dari judul, bukan volume pencarian.</p>';
-  h += '<div class="byh-bin-actions"><button type="button" class="btn secondary small" id="byhKwCopy">Salin kata layak</button><button type="button" class="btn secondary small" id="byhKwCsv">Unduh CSV</button></div>';
-  r.ranges.forEach(x=>{
-    h += '<div class="byh-kw-rg"><b>'+byhRg(x.bin)+'</b> <span class="sub">'+x.n+' pesaing</span>';
-    if(!x.terms.length) h += '<div class="sub">'+(x.n<BYH_MIN_SAMPLE ? 'Kurang dari '+BYH_MIN_SAMPLE+' produk, tidak dianalisis.' : 'Tidak ada kata yang dipakai minimal 2 produk dari 2 toko.')+'</div>';
-    else h += '<div class="byh-kw-chips">'+x.terms.map(t=>'<span class="byh-kw byh-kw-'+t.st+'" title="'+BYH_ST_NAME[t.st]+' · '+t.df+' produk pasar · median '+Math.round(t.med)+' terjual/bln · lift '+t.lift.toFixed(2)+'">'+byhEsc(t.t)+' <i>'+t.c+'</i></span>').join('')+'</div>';
-    h += '</div>';
-  });
-  return h;
-}
-function byhKwExport(kind){
-  const comp = byhSavedProds().filter(p=>!new Set(byhOwnIds()).has(String(p.i)));
-  const r = byhKeywords(comp, byhBinsRows()); if(r.error) return '';
-  if(kind==='copy') return r.ranges.filter(x=>x.terms.some(byhLayak)).map(x=>byhRg(x.bin)+': '+x.terms.filter(byhLayak).map(t=>t.t).join(', ')).join('\n');
-  const q = s=>'"'+String(s).replace(/"/g,'""')+'"';
-  const lines = ['Range,Kata kunci,Produk di range,Produk di pasar,Toko di pasar,Median terjual per bulan,Lift,Status'];
-  r.ranges.forEach(x=>x.terms.forEach(t=>lines.push([q(byhRg(x.bin)),q(t.t),t.c,t.df,t.shops,Math.round(t.med),t.lift.toFixed(2),q(BYH_ST_NAME[t.st])].join(','))));
-  return '\uFEFF'+lines.join('\r\n');
-}
-function byhCopyText(txt){
-  if(navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(txt).catch(()=>byhCopyFallback(txt)); }
-  return Promise.resolve(byhCopyFallback(txt));
-}
-function byhCopyFallback(txt){ const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e){} ta.remove(); }
-let _byhTab = 'harga';
-function byhKwWire(){
-  const box = document.getElementById('byhKwBox'); if(!box) return;
-  box.innerHTML = byhKwHtml();
-  const c = document.getElementById('byhKwCopy'), d = document.getElementById('byhKwCsv');
-  if(c) c.addEventListener('click', ()=>{ const t = byhKwExport('copy'); if(!t){ alert('Belum ada kata layak untuk disalin.'); return; } byhCopyText(t).then(()=>{ c.textContent = 'Tersalin'; setTimeout(()=>{ c.textContent = 'Salin kata layak'; }, 1500); }); });
-  if(d) d.addEventListener('click', ()=>{
-    const t = byhKwExport('csv'); if(!t){ alert('Belum ada data kata kunci.'); return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type:'text/csv;charset=utf-8' }));
-    a.download = 'kata-kunci-'+(byhBinsKey()||'produk')+'.csv'; document.body.appendChild(a); a.click(); a.remove();
-  });
-}
-/* [29 Sep 2026] TAB GRAFIK — SVG murni (tanpa library). Data = baris range yang sama dengan ringkasan; konteks (harga minimum, harga jual, range saran) diisi byhBinsSummaryHtml lewat _byhCtx. */
-let _byhCtx = {};
-const byhConc = r=> r.topv!=null ? r.topv : ((r.top!=null && r.sold>0) ? r.top/r.sold : null);
-function byhFmtK(n){ n = Number(n)||0; const t = n>=1e6 ? (Math.round(n/1e5)/10)+'jt' : (n>=1000 ? (Math.round(n/100)/10)+'rb' : String(Math.round(n*10)/10)); return t.replace('.', ','); }
-function byhBarSvg(rows, valFn, withLines){
-  const c = _byhCtx||{}, Hm = c.Hmin>0 ? c.Hmin : 0;
-  const W=700, H=250, L=46, B=34, T=16, R=10, pw=W-L-R, ph=H-T-B, n=rows.length, bw=pw/n;
-  const vals = rows.map(valFn), mx = Math.max.apply(null, vals.concat([1]));
-  let g = '';
-  for(let i=0;i<=4;i++){ const y = T+ph-ph*i/4; g += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" class="ch-grid"/><text x="'+(L-5)+'" y="'+(y+3)+'" text-anchor="end" class="ch-t">'+byhFmtK(mx*i/4)+'</text>'; }
-  rows.forEach((r,i)=>{
-    const h = ph*vals[i]/mx, x = L+i*bw+bw*0.15, y = T+ph-h, below = Hm>0 && r.max>0 && r.max<Hm, cn = byhConc(r);
-    const cls = below ? 'bc-below' : (c.best===r ? 'bc-best' : 'bc-ok');
-    g += '<rect x="'+x+'" y="'+y+'" width="'+(bw*0.7)+'" height="'+Math.max(h,0.5)+'" class="'+cls+((cn!==null && cn>=BYH_MAX_TOP_SHARE) ? ' bc-dom' : '')+'"/>';
-    g += '<text x="'+(x+bw*0.35)+'" y="'+(y-3)+'" text-anchor="middle" class="ch-t">'+byhFmtK(vals[i])+'</text>';
-    g += '<text x="'+(x+bw*0.35)+'" y="'+(H-B+13)+'" text-anchor="middle" class="ch-t">'+Math.round((r.min||0)/1000)+(r.max>0 ? '-'+Math.round(r.max/1000) : '+')+'</text>';
-  });
-  g += '<text x="'+(L+pw/2)+'" y="'+(H-3)+'" text-anchor="middle" class="ch-t">range harga (rb)</text>';
-  const xOf = p=>{ for(let i=0;i<n;i++){ const r = rows[i]; if(byhInBin(rows, i, p)) return r.max>0 ? L+i*bw+bw*(p-(r.min||0))/(r.max-(r.min||0)) : L+i*bw+bw/2; } return p<=(rows[0].min||0) ? L : W-R; };
-  if(withLines){
-    if(withLines===true && Hm>0){ const x = xOf(Hm); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-min"/><text x="'+(x+3)+'" y="'+(T+9)+'" class="ch-t ch-mint">harga min</text>'; }
-    const pl = c.P>0 ? c.P : (c.ownP||0);
-    if(pl>0){ const x = xOf(pl), left = (withLines===true && Hm>0 && x<=xOf(Hm)+2); g += '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(T+ph)+'" class="ch-jual"/><text x="'+(left ? x-3 : x+3)+'" y="'+(left ? T+9 : T+22)+'"'+(left ? ' text-anchor="end"' : '')+' class="ch-t ch-jualt">'+(c.P>0 ? 'harga jual' : 'harga kamu')+'</text>'; }
-  }
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="ch-svg" role="img">'+g+'</svg>';
-}
-function byhDonutSvg(parts, center){
-  const R = 42, C = 2*Math.PI*R, tot = parts.reduce((a,p)=>a+p.v,0) || 1; let cum = 0;
-  const seg = parts.map(p=>{ const len = C*p.v/tot, s = '<circle cx="60" cy="60" r="'+R+'" fill="none" stroke-width="18" class="'+p.cls+'" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-cum)+'" transform="rotate(-90 60 60)"/>'; cum += len; return s; }).join('');
-  return '<svg viewBox="0 0 120 120" class="ch-donut" role="img">'+seg+'<text x="60" y="65" text-anchor="middle" class="ch-c">'+center+'</text></svg>';
-}
-function byhChartHtml(){
-  const rows = byhBinsRows(), c = _byhCtx||{};
-  if(!rows.length) return '<p>Belum ada data range. Impor CSV atau isi data range dulu.</p>';
-  const Hm = c.Hmin>0 ? c.Hmin : 0, tot = rows.reduce((a,r)=>a+r.sold,0);
-  const below = Hm>0 ? rows.filter(r=>r.max>0 && r.max<Hm).reduce((a,r)=>a+r.sold,0) : 0;
-  const pct = x=>(Math.round(x*1000)/10).toLocaleString('id-ID')+'%';
-  const pos = byhPosisi(rows);
-  let h = '<div class="byh-sum-sec"><div class="byh-sum-h">Penjualan per range harga</div>'+byhBarSvg(rows, r=>r.sold, true)
-    + (pos.length ? '<p><b>'+byhEsc(pos[0].line)+'</b></p>' : '')
-    + '<p class="sub"><span class="ch-key bc-below"></span> di bawah harga minimum &nbsp; <span class="ch-key bc-ok"></span> layak &nbsp; <span class="ch-key bc-best"></span> range saran &nbsp; garis putus-putus = 1 produk mendominasi (60% atau lebih). Terjual = total sepanjang umur produk.</p></div>';
-  h += '<div class="ch-row">';
-  if(Hm>0 && tot>0){
-    h += '<div class="byh-sum-sec ch-col"><div class="byh-sum-h">Bisa dikejar atau tidak</div>'+byhDonutSvg([{v:below,cls:'dn-a'},{v:tot-below,cls:'dn-b'}], pct(below/tot))
-      + '<p class="sub"><span class="ch-key bc-below"></span> di bawah harga minimum: '+pct(below/tot)+'<br><span class="ch-key bc-ok"></span> di atasnya: '+pct(1-below/tot)+'</p></div>';
-  }
-  const cn = c.best ? byhConc(c.best) : null;
-  if(c.best && cn!==null){
-    h += '<div class="byh-sum-sec ch-col"><div class="byh-sum-h">Konsentrasi range saran</div>'+byhDonutSvg([{v:cn,cls:'dn-c'},{v:1-cn,cls:'dn-b'}], pct(cn))
-      + '<p class="sub"><span class="ch-key dn-c-k"></span> 1 produk teratas: '+pct(cn)+'<br><span class="ch-key bc-ok"></span> semua produk lain: '+pct(1-cn)+'<br>Range '+byhRg(c.best)+'</p></div>';
-  }
-  h += '</div>';
-  if(rows.some(r=>r.medv!=null)) h += '<div class="byh-sum-sec"><div class="byh-sum-h">Median terjual per bulan per produk</div>'+byhBarSvg(rows, r=>r.medv||0, 'own')+'<p class="sub">Range mana yang benar-benar laku per penjual, tanpa terpengaruh 1 produk raksasa.</p></div>';
-  return h;
-}
-function byhChartWire(){ const b = document.getElementById('byhChartBox'); if(b) b.innerHTML = byhChartHtml(); }
-function byhTabSet(t){
-  _byhTab = t;
-  const ids = { harga:'byhBinsSummary', kata:'byhKwBox', grafik:'byhChartBox' };
-  Object.keys(ids).forEach(k=>{ const el = document.getElementById(ids[k]); if(el) el.style.display = (k===t) ? '' : 'none'; });
-  document.querySelectorAll('.byh-tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
-  if(t==='kata') byhKwWire();
-  if(t==='grafik') byhChartWire();
-}
-function byhHeroHtml(Hmin){
-  if(!(Hmin>0)) return '';
-  const own = new Set(byhOwnIds());
-  const c = byhSavedProds().filter(p=>!own.has(String(p.i)) && p.p>=Hmin).map(p=>({ p, v:(p.s||0)/Math.max(3, p.m||12) })).sort((a,b)=>b.v-a.v).slice(0,3);
-  if(!c.length) return '';
-  return '<div class="byh-sum-sec"><div class="byh-sum-h">Produk andalan di atas harga minimum</div>'+c.map(x=>'<p>'+byhEsc(String(x.p.n).slice(0,48))+' ('+byhEsc(x.p.h||'toko lain')+'): <b>'+fmtRp(x.p.p)+'</b>, '+Math.round(x.v).toLocaleString('id-ID')+' terjual/bulan.</p>').join('')+'<p class="sub">Ini pesaing yang harus dilawan kalau harga di atas harga minimum.</p></div>';
-}
-/* [29 Sep 2026] POSISI HARGA KAMU — di kolam (range) mana, profit vs target (byhargaCompute: HPP, admin, ROAS, voucher SKU terpilih), buffer ke harga minimum, dan arah saran: NAIK / TAHAN / TURUN. */
-function byhPosisi(rows){
-  const c = _byhCtx||{}, ON = c.ON||{}, own = new Set(byhOwnIds()), Hm = c.Hmin>0 ? c.Hmin : 0;
-  const list = byhSavedProds().filter(p=>own.has(String(p.i))).sort((a,b)=>(b.s||0)-(a.s||0)).map(p=>({ n:p.n, p:p.p, s:p.s, mo:p.m }));
-  if(c.P>0) list.unshift({ n:'Harga jual di panel Input', p:c.P, s:null, mo:0 });
-  let row = null, V = 0, roas = 0;
-  try{ row = state.priceList.find(r=>r.sku===byhargaSelectedSku); if(row){ V = (byhargaVoucherFor(row.sku)||{}).value||0; roas = resolveByhargaRoas().roas; } }catch(e){ row = null; }
-  const calc = pr=>{ try{ const x = row ? byhargaCompute(row, pr, V, roas) : null; return (x && x.ok && x.hasPrice && !x.invalid) ? x : null; }catch(e){ return null; } };
-  const best = c.best || null, from = best ? Math.max(best.min||0, Hm) : 0, to = (best && best.max>0) ? best.max : 0;
-  const out = list.map(x=>{
-    const p = x.p, r = rows.find(z=> byhInBin(rows, rows.indexOf(z), p)) || null, cc = calc(p);
-    const o = { n:x.n, p, s:x.s, mo:x.mo, r, ocean:(c.oceanOf && r) ? c.oceanOf(r) : null, netIncome:cc?cc.netIncome:null, T:cc?cc.T:null, buffer:Hm>0 ? p-Hm : null, Hm, best, rec:null };
-    if(best){
-      if(p < from-0.5) o.rec = { type:'naik', target:from };
-      else if(to>0 && p > to+0.5) o.rec = { type:'turun', target:to };
-      else o.rec = { type:'tahan', target:p };
-    } else if(Hm>0 && p<Hm-0.5) o.rec = { type:'naik', target:Hm };
-    if(o.rec){ const t = calc(o.rec.target); o.rec.netIncome = t ? t.netIncome : null; }
-    o.line = 'Harga kamu '+fmtRp(p)+' ada di kolam '+(r ? byhRg(r) : 'di luar semua range')+(o.ocean ? ' ('+ON[o.ocean]+')' : '')+'.'
-      + (o.rec ? ' Saran: '+(o.rec.type==='naik' ? 'NAIK ke '+fmtRp(o.rec.target) : (o.rec.type==='turun' ? 'TURUN ke maksimal '+fmtRp(o.rec.target) : 'TAHAN di kolam ini'))+'.' : '');
-    return o;
-  });
-  _byhCtx.ownP = out.length ? out[0].p : 0;
-  return out;
-}
-function byhOwnHtml(rows){
-  const L = byhPosisi(rows); if(!L.length) return '';
-  const c = _byhCtx||{}, ON = c.ON||{}, rp = x=>fmtRp(Math.abs(x)), sg = x=>(x<0?'-':'')+fmtRp(Math.abs(x)), pc = x=>fmtPct(x);
-  const kf = x=>'Rp'+Math.round((x||0)/1000)+'rb';
-  const body = L.map(o=>{
-    let h = '<p><b>'+byhEsc(String(o.n).slice(0,48))+'</b>: <b>'+fmtRp(o.p)+'</b>'+(o.s!=null ? ', '+Math.round(o.s).toLocaleString('id-ID')+' terjual'+(o.mo>0 ? ' (sekitar '+Math.round(o.s/Math.max(3,o.mo))+'/bulan)' : '') : '')+'.</p>';
-    const r = o.r, tot = rows.reduce((a,z)=>a+z.sold,0);
-    h += '<p>Kolam kamu: <b>'+(r ? byhRg(r) : 'di luar semua range')+'</b>'+(o.ocean ? ' ('+ON[o.ocean]+')' : '')+(r ? ', '+Math.round(r.prod)+' pesaing'+(tot>0 ? ', '+pc(r.sold/tot)+' penjualan pasar' : '') : '')+(r && o.Hm>0 && r.max>0 && r.max<o.Hm ? ', <b>seluruhnya di bawah harga minimum</b>' : '')+'.</p>';
-    if(o.netIncome!==null && o.T!==null){
-      const d = Math.round(o.netIncome - o.T);
-      h += '<p>Net Income di harga ini: <b>'+sg(o.netIncome)+'</b>/unit, target '+fmtRp(o.T)+': '+(d>=0 ? '<b>masuk target</b> (lebih '+rp(d)+')' : '<b>di bawah target</b> (kurang '+rp(d)+')')+'.</p>';
-    }
-    if(o.Hm>0) h += '<p>'+(o.buffer>=0 ? 'Buffer ke harga minimum '+fmtRp(o.Hm)+': <b>'+rp(o.buffer)+'</b> ('+pc(o.buffer/o.p)+' dari harga), jadi masih bisa turun sampai titik itu tanpa keluar dari target.' : 'Di bawah harga minimum '+fmtRp(o.Hm)+' sebesar <b>'+rp(o.buffer)+'</b>, Net Income tidak mencapai target.')+'</p>';
-    if(o.rec){
-      const t = o.rec.target, dd = t-o.p, inc = o.rec.netIncome;
-      let s = '';
-      if(o.rec.type==='naik') s = '<b>Saran: NAIK</b> ke kolam '+byhRg(o.best||{min:t,max:0})+', mulai <b>'+fmtRp(t)+'</b> (+'+rp(dd)+', +'+pc(dd/o.p)+').'+(inc!=null ? ' Net Income di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masuk target.' : ', masih di bawah target.') : '.') : '');
-      else if(o.rec.type==='turun') s = '<b>Saran: TURUN</b> ke maksimal <b>'+fmtRp(t)+'</b> ('+sg(dd)+', '+pc(dd/o.p)+') untuk masuk kolam saran '+byhRg(o.best)+'.'+(inc!=null ? ' Net Income di sana '+sg(inc)+'/unit'+(o.T!=null ? (inc>=o.T ? ', masih masuk target.' : ', di bawah target.') : '.') : '')+(o.buffer>=0 ? ' Buffer turun dari harga sekarang '+rp(o.buffer)+'.' : '');
-      else s = '<b>Saran: TAHAN</b>, kamu sudah di kolam saran '+byhRg(o.best)+'.'+(o.buffer>=0 ? ' Masih ada buffer turun '+rp(o.buffer)+' sampai harga minimum.' : '');
-      h += '<div class="go"><p>'+s+'</p></div>';
-    } else h += '<p class="sub">Belum ada saran kolam yang bisa dipercaya untuk perbandingan ini.</p>';
-    return h;
-  }).join('');
-  return '<div class="byh-sum-sec"><div class="byh-sum-h">4 · Posisi harga kamu di pasar ini</div>'+body+'<p class="sub">Profit, target, dan harga minimum dihitung pakai HPP, admin, ROAS, dan voucher SKU yang dipilih. Produk toko sendiri tidak dihitung sebagai kompetitor.'+(c.lowConf ? ' Saran kolam berkeyakinan rendah (1 produk mendominasi).' : '')+'</p></div>';
-}
-function byhRenderShopPick(){
-  const el = document.getElementById('byhBinsCsvShops'); if(!el || !_byhCsv) return;
-  const sav = new Set(byhOwnIds()), m = new Map();
-  _byhCsv.products.forEach(p=>{ if(!p.sid) return; const o = m.get(p.sid) || { h:p.shop, n:0 }; o.n++; m.set(p.sid, o); });
-  if(!m.size){ el.innerHTML = '<div class="byh-hint">CSV ini tidak punya kolom Shop ID, jadi toko sendiri tidak bisa dikenali.</div>'; return; }
-  const arr = Array.from(m.entries()).sort((a,b)=>b[1].n-a[1].n);
-  el.innerHTML = '<div class="byh-note">Centang toko milikmu (disimpan, berlaku untuk semua toko). Produknya dikeluarkan dari hitungan kompetitor.</div><div class="byh-shops">'
-    + arr.map(([id,o])=>'<label><input type="checkbox" data-sid="'+byhEsc(id)+'"'+((sav.has(id) || /zenoot|sweag|alley/i.test(o.h||'')) ? ' checked' : '')+'> '+byhEsc(o.h||id)+' <span class="sub">('+o.n+' produk)</span></label>').join('')+'</div>';
-}
-/* [28 Sep 2026] RINGKASAN PASAR — alur: 1 Data (CSV dari tool Pricing Analysis) -> 2 Peta pasar -> 3 Banding dengan admin (Harga Minimum dari kalkulasi admin/ROAS/HPP).
-   Range dengan < BYH_MIN_SAMPLE produk TIDAK dipakai buat rekomendasi (1 produk laku besar = outlier, bukan rata-rata pasar). Label range dibulatkan ke ribuan (cuma tampilan, hitungan tetap angka asli). */
-const BYH_MIN_SAMPLE = 3;
-const BYH_MAX_TOP_SHARE = 0.6;   // range dengan 1 produk >= 60% penjualan range = didominasi 1 produk, tidak dipakai buat saran
-function byhargaHppNow(){
-  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku);
-  return row ? (row.hpp||0) : 0;
-}
-function byhargaHargaMinNow(withVoucher){
-  const row = state.priceList.find(r=>r.sku===byhargaSelectedSku); if(!row) return null;
-  const V = (withVoucher===undefined) ? ((byhargaVoucherFor(row.sku)||{}).value||0) : withVoucher;
-  const c = byhargaCompute(row, 0, V, resolveByhargaRoas().roas);
-  return (c && c.ok && c.hargaMin>0) ? c.hargaMin : null;
-}
-function byhBinsSummaryHtml(rows, P, Hmin, HminW, src, hpp){
-  const kf = x=>'Rp'+Math.round((x||0)/1000)+'rb';
-  const rg = r=> kf(r.min) + (r.max>0 ? '–'+Math.round(r.max/1000)+'rb' : ' ke atas');
-  const n0 = x=>Math.round(x).toLocaleString('id-ID');
-  const sec = (h, body)=>'<div class="byh-sum-sec"><div class="byh-sum-h">'+h+'</div>'+body+'</div>';
-  if(!rows.length) return sec('1 · Data', '<p>Belum ada data kompetitor. Ekspor <b>Product_Table.csv</b> dari tool Pricing Analysis, lalu klik <b>Impor CSV</b>.</p><p class="sub">Langkah: 1 ekspor data, 2 impor di sini (ringkasan pasar muncul otomatis), 3 bandingkan dengan harga minimum dari admin.</p>');
-  const totProd = rows.reduce((a,r)=>a+(r.prod||0),0), totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
-  _byhCtx = { Hmin:Hmin, P:P, best:null };
-  const tpp = r=> r.prod>0 ? r.sold/r.prod : 0;
-  // [29 Sep 2026] Jatah per penjual = MEDIAN terjual per produk (kalau data dari CSV; input manual/tempel tidak punya median, jadi pakai rata-rata).
-  // Konsentrasi = porsi produk teratas terhadap penjualan range (cuma ada dari CSV).
-  const per = r=> (r.medv!=null && r.prod>0) ? r.medv : ((r.med!=null && r.prod>0) ? r.med : tpp(r));
-  const unit = r=> r.medv!=null ? ' terjual/bulan' : ' terjual/produk';
-  const conc = r=> r.topv!=null ? r.topv : ((r.top!=null && r.sold>0) ? r.top/r.sold : null);
-  const dominated = r=> { const c = conc(r); return c!==null && c>=BYH_MAX_TOP_SHARE; };
-  const hasMed = rows.some(r=>r.med!=null);
-  const share = r=> totSold>0 ? r.sold/totSold : 0;
-  const reliable = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0);
-  const solid = reliable.filter(r=>!dominated(r));
-  const dom = rows.filter(r=>r.prod>=BYH_MIN_SAMPLE && r.sold>0 && dominated(r));
-  const pickMax = (list, f)=> list.reduce((b,r)=> (!b || f(r)>f(b)) ? r : b, null);
-  const inRange = (r,x)=> byhInBin(rows, rows.indexOf(r), x);
-  // Label pasar 2x2 (heuristik, bukan bukti): patokan = rata-rata porsi semua range yang berisi produk. Penjualan tinggi = porsi terjual >= rata-rata; pesaing banyak = porsi produk > rata-rata.
-  // Range < BYH_MIN_SAMPLE produk tidak diberi label (sampel kecil).
-  const live = rows.filter(r=>r.prod>0), avgShare = live.length ? 1/live.length : 0;
-  const oceanOf = r=>{
-    if(!(totSold>0) || !(r.prod>=BYH_MIN_SAMPLE)) return '';
-    const demandHigh = share(r) >= avgShare, crowded = (r.prod/totProd) > avgShare;
-    return demandHigh ? (crowded ? 'red' : 'blue') : (crowded ? 'jenuh' : 'sepi');
-  };
-  const OCEAN_NAME = { blue:'Blue ocean', red:'Red ocean', sepi:'Sepi', jenuh:'Jenuh' };
-  _byhCtx.oceanOf = oceanOf; _byhCtx.ON = OCEAN_NAME;   // dipakai byhPosisi / byhOwnHtml (di luar fungsi ini)
-  const lo = Math.min.apply(null, rows.map(r=>r.min||0)), hiRow = rows.filter(r=>r.max>0).map(r=>r.max), hi = hiRow.length ? Math.max.apply(null, hiRow) : 0;
-  // ---- 1 · Data
-  let s1 = '<p><b>'+n0(totProd)+' produk</b> pesaing, harga '+kf(lo)+(hi>0?'–'+Math.round(hi/1000)+'rb':' ke atas')+', total terjual <b>'+n0(totSold)+'</b>.</p>';
-  if(src) s1 += '<p class="sub">'+byhEsc(src)+'</p>';
-  s1 += '<p class="sub">Terjual = total sepanjang umur produk &amp; dibulatkan Shopee (mis. "10RB+"), jadi anggap perkiraan.</p>';
-  // ---- 2 · Peta pasar
-  const topSold = pickMax(rows.filter(r=>r.sold>0), r=>r.sold);
-  const topTpp = pickMax(solid.length ? solid : reliable, per);
-  let s2 = '';
-  if(topSold) s2 += '<p>Terjual paling banyak: <b>'+rg(topSold)+'</b> ('+fmtPct(share(topSold))+' penjualan, '+n0(topSold.prod)+' produk).</p>';
-  if(topTpp) s2 += '<p>Jatah per penjual terbesar'+(hasMed?' (median)':'')+': <b>'+rg(topTpp)+'</b> ('+n0(per(topTpp))+unit(topTpp)+', '+n0(topTpp.prod)+' pesaing).</p>';
-  else s2 += '<p>Belum ada range dengan minimal '+BYH_MIN_SAMPLE+' produk dan tidak didominasi 1 produk, jadi jatah per penjual belum bisa dinilai.</p>';
-  if(dom.length) s2 += '<p class="sub">Didominasi 1 produk ('+Math.round(BYH_MAX_TOP_SHARE*100)+'% penjualan range atau lebih): '+dom.map(r=>rg(r)+' ('+fmtPct(conc(r))+')').join(', ')+'. Range ini hanya dipakai buat saran kalau tidak ada pilihan lain, dengan keyakinan rendah.</p>';
-  const oceanList = k=>rows.filter(r=>oceanOf(r)===k).map(r=>rg(r)+((Hmin>0 && r.max>0 && r.max<Hmin) ? ' (di bawah harga minimum)' : '')+(dominated(r) ? ' (1 produk = '+fmtPct(conc(r))+')' : ''));
-  const ob = oceanList('blue'), orr = oceanList('red'), osp = oceanList('sepi'), oje = oceanList('jenuh');
-  if(ob.length)  s2 += '<p><b>Blue ocean</b> (penjualan tinggi, pesaing sedikit): '+ob.join(', ')+'.</p>';
-  if(orr.length) s2 += '<p><b>Red ocean</b> (penjualan tinggi, pesaing padat): '+orr.join(', ')+'.</p>';
-  if(osp.length) s2 += '<p class="sub"><b>Sepi</b> (penjualan rendah, pesaing sedikit, pasar tipis): '+osp.join(', ')+'.</p>';
-  if(oje.length) s2 += '<p class="sub"><b>Jenuh</b> (penjualan rendah, pesaing padat, hindari): '+oje.join(', ')+'.</p>';
-  if(ob.length||orr.length||osp.length||oje.length) s2 += '<p class="sub">Label memakai rata-rata semua range berisi sebagai patokan, jadi ini penunjuk arah, bukan bukti pasar bebas persaingan. Range kurang dari '+BYH_MIN_SAMPLE+' produk tidak dilabeli.</p>';
-  const small = rows.filter(r=>r.prod>0 && r.prod<BYH_MIN_SAMPLE && r.sold>0);
-  if(small.length) s2 += '<p class="sub">Tidak dipakai buat saran (kurang dari '+BYH_MIN_SAMPLE+' produk): '+small.slice(0,4).map(r=>rg(r)+' ('+r.prod+' produk)').join(', ')+'.</p>';
-  const empty = rows.filter(r=>!(r.prod>0));
-  if(empty.length) s2 += '<p class="sub">Tidak ada pesaing di: '+empty.slice(0,4).map(rg).join(', ')+'.</p>';
-  // ---- 3 · Banding dengan admin
-  let s3 = '';
-  if(!(Hmin>0)){
-    s3 = '<p>Harga minimum dari admin belum bisa dihitung. Pilih produk yang HPP-nya sudah terisi, lalu cek ROAS di panel Input.</p>';
-  } else {
-    const hitMin = rows.find(r=>inRange(r,Hmin));
-    s3 += '<p>Harga minimum dari admin: <b>'+fmtRp(Hmin)+'</b> (profit tepat di target)'+(hitMin?', jatuh di range <b>'+rg(hitMin)+'</b>.':', di luar semua range data.')+'</p>';
-    const below = rows.filter(r=>r.max>0 && r.max<Hmin);
-    const belowShare = totSold>0 ? below.reduce((a,r)=>a+r.sold,0)/totSold : 0;
-    if(belowShare>0.005) s3 += '<p>Sekitar <b>'+fmtPct(belowShare)+'</b> penjualan pasar ada di range yang seluruhnya di bawah harga itu, jadi tidak bisa dikejar tanpa turun dari target profit.</p>';
-    const cand = reliable.filter(r=>!(r.max>0) || r.max>=Hmin);
-    const candSolid = cand.filter(r=>!dominated(r));
-    const best = pickMax(candSolid.length ? candSolid : cand, per);
-    const lowConf = !!best && dominated(best);
-    _byhCtx.best = best || null; _byhCtx.lowConf = lowConf;
-    if(best){
-      const from = Math.max(best.min||0, Hmin), to = best.max>0 ? best.max : 0;
-      if(topTpp && topTpp!==best && topTpp.max>0 && topTpp.max<Hmin) s3 += '<p class="sub">Range dengan jatah terbesar ('+rg(topTpp)+') seluruhnya di bawah harga minimum, jadi tidak layak.</p>';
-      const oc = oceanOf(best);
-      const gpmTxt = (hpp>0) ? ' GPM di kisaran itu '+fmtPct((from-hpp)/from)+(to>0 ? ' sampai '+fmtPct((to-hpp)/to) : '')+'.' : '';
-      // Alasan: range di atas Harga Minimum yang cukup sampel tapi didominasi 1 produk (dilewati), lalu range terpilih.
-      const skipped = dom.filter(r=> (!(r.max>0) || r.max>=Hmin) && (r.min||0) < (best.max>0 ? best.max : Infinity));
-      const why = 'Harga minimum '+fmtRp(Hmin)+'. '+(lowConf ? 'Semua range di atas harga minimum didominasi 1 produk, jadi range '+rg(best)+' dipilih karena median terjualnya paling tinggi, dengan keyakinan rendah.' : (skipped.length ? 'Range '+skipped.map(rg).join(', ')+' dilewati karena 1 produk mendominasi penjualannya. ' : '')+'Range '+rg(best)+' adalah yang paling laku per penjual di antara range yang layak dan tidak didominasi 1 produk.');
-      const note = (lowConf ? 'Keyakinan rendah: 1 produk memegang '+fmtPct(conc(best))+' penjualan range ini, jadi harga awal ini lebih mirip mengikuti satu produk andalan. ' : '')
-        +(oc==='jenuh' || oc==='sepi' ? 'Range ini berlabel '+OCEAN_NAME[oc]+', jadi pasar di atas harga minimum memang tipis; ini yang paling layak dari data yang ada, bukan peluang besar. ' : '')
-        +(best.prod<=BYH_MIN_SAMPLE+1 ? 'Hanya '+n0(best.prod)+' pesaing, sinyalnya lemah. ' : '')
-        +(hasMed ? '' : 'Data ini tanpa rincian per produk, jadi dominasi 1 produk tidak bisa dicek (impor CSV untuk hasil lebih akurat). ')
-        +(best.medv!=null ? 'Ukuran per bulan = terjual dibagi umur produk (minimal 3 bulan). ' : 'Terjual adalah total sepanjang umur produk. ')+'Coba dulu dengan skala kecil sebelum menaikkan stok atau iklan.';
-      const heroBox = lowConf ? byhHeroHtml(Hmin) : '';
-      s3 += '<div class="go"><p><b>Saran eksekusi:</b> mulai di <b>'+fmtRp(from)+'</b>'+(to>0?', batas atas <b>'+kf(to)+'</b>':', tanpa batas atas')+'.</p>'
-        + '<p><b>Kenapa:</b> '+why+'</p>'
-        + '<p><b>Trade-off:</b> '+(oc?OCEAN_NAME[oc]+', ':'')+n0(best.prod)+' pesaing, '+n0(per(best))+unit(best)+(best.med!=null?' (median)':'')+', '+fmtPct(share(best))+' dari penjualan pasar.'+gpmTxt+'</p>'
-        + '<p><b>Catatan data:</b> '+note+'</p></div>'+heroBox;
-      if(HminW>0 && HminW>Hmin+0.5){
-        s3 += '<p class="sub">Saat voucher weekend aktif, harga minimum naik jadi '+fmtRp(HminW)+(to>0 && HminW>to ? ', melewati batas atas range saran.' : '.')+'</p>';
-      }
-    } else {
-      s3 += '<div class="warn">Belum ada saran harga yang bisa dipercaya. Tidak ada range di atas harga minimum yang berisi minimal '+BYH_MIN_SAMPLE+' produk. Pakai data yang lebih banyak atau atur jumlah range di Impor CSV.</div>'+byhHeroHtml(Hmin);
-    }
-  }
-  if(P>0){
-    const r = rows.find(x=>inRange(x,P));
-    let t = '<p>Harga jual <b>'+fmtRp(P)+'</b>: ';
-    if(r) t += 'range '+rg(r)+', '+fmtPct(share(r))+' penjualan, '+n0(tpp(r))+' terjual/produk'+(r.prod>0 && r.prod<BYH_MIN_SAMPLE ? ' (sampel kecil)' : '')+'.';
-    else t += 'di luar semua range data.';
-    if(Hmin>0 && P<Hmin) t += ' <b>Di bawah harga minimum</b>, profit di bawah target.';
-    s3 += t+'</p>';
-  } else s3 += '<p class="sub">Isi Harga Jual di panel Input buat lihat posisi harga kamu di peta ini.</p>';
-  return sec('1 · Data', s1) + sec('2 · Peta pasar', s2) + sec('3 · Banding dengan admin', s3);
-}
-function byhargaBinsHighlight(){
-  const body = document.getElementById('byhBinsBody'), sumEl = document.getElementById('byhBinsSummary');
-  if(!body || !sumEl) return;
-  const rows = byhBinsRows();
-  const P = parseNum(document.getElementById('byhargaHarga').value)||0;
-  const totSold = rows.reduce((a,r)=>a+(r.sold||0),0);
-  const tppOf = r=> r.prod>0 ? r.sold/r.prod : null;
-  const f1 = n=> n.toLocaleString('id-ID',{maximumFractionDigits:1});
-  let hit = -1;
-  if(P>0) rows.forEach((r,i)=>{ if(hit<0 && byhInBin(rows, i, P)) hit = i; });
-  body.querySelectorAll('tr').forEach((tr,i)=>{
-    const r = rows[i]; if(!r) return;
-    tr.classList.toggle('byh-bin-hit', i===hit);
-    const t = tppOf(r);
-    tr.querySelector('[data-c="tpp"]').textContent = (t===null) ? '-' : f1(t)+'x';
-    tr.querySelector('[data-c="share"]').textContent = (totSold>0) ? fmtPct((r.sold||0)/totSold) : '-';
-  });
-  const sku = byhargaSelectedSku, Vw = byhargaVoucherWeekend[sku]||0;
-  let Hmin = null, HminW = null, hpp = 0;
-  try{ Hmin = byhargaHargaMinNow(); HminW = Vw>0 ? byhargaHargaMinNow(Vw) : null; hpp = byhargaHppNow(); }catch(e){ console.error('Harga minimum untuk ringkasan pasar gagal:', e); }
-  const _k = byhBinsKey(), _sv = byhargaProds[_k];
-  sumEl.innerHTML = byhBinsSummaryHtml(rows, P, Hmin, HminW, byhCsvNote[_k] || (_sv && _sv.note) || '', hpp) + byhOwnHtml(rows);
-  if(_byhTab==='grafik') byhChartWire();
-}
-function byhargaBinsSync(){
-  if(byhBinsKey() !== _byhBinsShown || !document.getElementById('byhBinsBody') && byhBinsKey()) byhargaBinsRender();
-  else byhargaBinsHighlight();
-}
+})();
 
 /* ================= PAGE: SETTING ================= */
 /* ================= OPERASIONAL TOKO OTOMATIS [23 Sep 2026] =================
@@ -9138,7 +7269,7 @@ function opsSyncActive(ops){
 function opsRefreshDependents(){
   try{ renderCaRoasDisplay(); }catch(e){}
   try{ renderCaOpsDisplay(); }catch(e){}
-  try{ renderProyeksiHargaBoth(); }catch(e){}
+  try{ renderPricelistPage(); }catch(e){}
   try{ if(document.getElementById('hasilWrap')) renderHasil(); }catch(e){}
   try{ if(document.getElementById('hasilWrapM')) renderHasilM(); }catch(e){}
   try{ if(document.getElementById('hasilWrapP')) renderHasilP(); }catch(e){}   // Proyeksi RKS: operasional prorata ikut Setting
@@ -9147,11 +7278,11 @@ function opsRefreshDependents(){
 /* ================= PAGE: SETTING (multi-toko) ================= */
 const SETTING_FIELDS = [
   {key:'targetRoas', label:'TARGET ROAS TOKO', ket:'Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan', ph:'mis. 8.3', type:'decimal'},
-  {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Proyeksi Harga & Target Qty. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
+  {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Price List & Check Admin. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
   {key:'bpp', label:'BPP (fallback, Rp)', ket:'Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 1250', type:'rupiah'},
   {key:'rasioOpsPercent', label:'RASIO OPERASIONAL', ket:'Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order', ph:'mis. 10', type:'decimal'},
-  {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di rumus harga NET (Proyeksi Harga & By Target Qty), buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
-  {key:'netIncomeToko', label:'NET INCOME TOKO', ket:'Target Net Income per SKU (Rp) — manual. Satu-satunya acuan MASUK / TIDAK MASUK harga di By Harga Jual dan dasar Harga Minimum di semua tab Proyeksi Harga. Net Income = NPM + Operasional, sama seperti Check Admin', ph:'0', type:'rupiah'},
+  {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di GPM Toko (Price List) & Check Admin, buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
+  {key:'netIncomeToko', label:'NET INCOME TOKO', ket:'Batas Net Income per SKU (Rp) — manual. Di Price List, Net Income di bawah angka ini diberi warna merah (setara INCOME / PC di sheet). Net Income = NPM + Operasional, sama seperti Check Admin', ph:'0', type:'rupiah'},
   {key:'targetRasioLaba', label:'TARGET RASIO LABA', ket:'Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo', ph:'mis. 15', type:'decimal'}
 ];
 // [24 Sep 2026] zStore.init() cuma memuat toko AKTIF, jadi zLS.getItem() untuk toko LAIN selalu kosong -> kartu Setting toko lain
@@ -9273,7 +7404,7 @@ async function renderSetting(keepOps){
       });
       setSettingCardEditMode(t.id, false);
       if(t.id===TOKO_ACTIVE){
-        renderCaRoasDisplay(); renderCaOpsDisplay(); renderProyeksiHargaBoth();
+        renderCaRoasDisplay(); renderCaOpsDisplay(); renderPricelistPage();
         if(document.getElementById('hasilWrap')) renderHasil();
         if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides);
       }
@@ -11365,7 +9496,7 @@ function rekapPYearsWithData(){
 }
 /* [30 Sep 2026] Rekap Proyeksi DIRUBAH TOTAL: bukan lagi 12 kolom Jan–Des + Anual/Average/Sum, tapi SATU kolom = data AKTUAL (bukan perkiraan) dari Proyeksi RKS terbaru
    (tgl 1 s/d tanggal terakhir yang disimpan), + panel kanan \"Jalan Menuju Target NPM\". Riwayat bulanan cukup di RKS Overview > Rekap, jadi di sini gak ada pilih bulan.
-   Data bulan-bulan lama di state.proyeksi.rekap TIDAK dihapus (By Support masih baca bulan berjalan dari sini) — cuma gak ditampilkan.
+   Data bulan-bulan lama di state.proyeksi.rekap TIDAK dihapus (Price List masih baca bulan berjalan dari sini) — cuma gak ditampilkan.
    */
 let rekapPAdminExpanded = false;
 function rpNum(v){ return (v===undefined || v===null || (typeof v==='number' && isNaN(v))) ? null : v; }
@@ -11505,7 +9636,7 @@ function renderRekapP(){
   wrap.innerHTML = `<div class="rp-layout">
     <div class="card rp-table-card">
       <table class="rp-table">
-        <thead><tr><th class="rp-k">Kriteria</th><th>Aktual${ke!==null ? ' s/d '+fmtDayMonth(ke) : ''}<span class="rp-sub">${byhEsc(s.label || key)}${s.hari && s.hariBulan ? ' · hari ke-'+s.hari+' dari '+s.hariBulan : ''}</span></th></tr></thead>
+        <thead><tr><th class="rp-k">Kriteria</th><th>Aktual${ke!==null ? ' s/d '+fmtDayMonth(ke) : ''}<span class="rp-sub">${escHtml(s.label || key)}${s.hari && s.hariBulan ? ' · hari ke-'+s.hari+' dari '+s.hariBulan : ''}</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
