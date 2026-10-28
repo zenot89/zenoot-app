@@ -574,6 +574,41 @@
   #pricelistParams:not(.is-editing) .pl-row input, #pricelistParams:not(.is-editing) .pl-row select{ background:transparent; border-color:transparent; cursor:default; appearance:none; -webkit-appearance:none; opacity:1; -webkit-text-fill-color:var(--ink); }
   #pricelistParams.is-editing .card{ background:var(--panel-alt); }
   #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
+  /* Cluster produk (28 Okt 2026): tab di topbar (menggantikan kotak judul "Price List"), bar header tabel, popup Pilih Produk */
+  .pl-ctabs{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .pl-ctab{ font:inherit; font-size:14px; font-weight:800; letter-spacing:-.1px; color:var(--ink-soft); background:transparent; border:1px solid var(--line); border-radius:4px; padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .pl-ctab:hover{ border-color:var(--ink); color:var(--ink); }
+  .pl-ctab.active{ background:var(--title-bg); border-color:var(--ink); color:var(--ink); }
+  .pl-ctab .pl-cn{ font-size:11px; font-weight:700; opacity:.7; }
+  #priceListCard-pricelist h3.pl-bar{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+  #priceListCard-pricelist h3.pl-bar #plSearch{ margin-left:auto; }
+  .pl-pick, .pl-act{ font:inherit; font-size:13px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
+  .pl-pick:disabled, .pl-act:disabled{ opacity:.45; cursor:default; }
+  .pl-act.danger{ color:var(--bad); border-color:var(--bad); }
+  .pl-note{ font-size:13px; font-weight:700; color:var(--ink-soft); }
+  #plActs{ display:inline-flex; gap:6px; }
+  .pl-chk{ width:44px; text-align:center; }
+  .pl-chk input{ width:16px; height:16px; cursor:pointer; vertical-align:middle; }
+  .pl-ov{ position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .pl-modal{ background:#fff; width:min(760px,100%); height:min(560px,calc(100vh - 32px)); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  .pl-modal-h{ display:flex; align-items:center; gap:10px; padding:18px 22px 12px; }
+  .pl-modal-t{ font-size:18px; font-weight:700; color:var(--ink); }
+  .pl-modal-c{ margin-left:auto; font-size:13px; font-weight:800; color:var(--ink); background:var(--title-bg); border:1px solid var(--ink); border-radius:4px; padding:4px 12px; }
+  .pl-x{ font:inherit; font-size:22px; line-height:1; color:var(--ink-soft); background:transparent; border:none; cursor:pointer; padding:0 2px; }
+  .pl-x:hover{ color:var(--ink); }
+  .pl-modal-s{ padding:0 22px 10px; }
+  .pl-modal-s input{ width:100%; box-sizing:border-box; padding:7px 10px; font-size:13px; border:1px solid var(--line); border-radius:4px; background:#fff; color:#111; }
+  .pl-warn{ margin:0 22px 10px; padding:8px 12px; font-size:12px; color:var(--bad); background:var(--bad-soft); border-radius:4px; }
+  .pl-modal-b{ flex:1; min-height:0; overflow:auto; margin:0 22px; border:1px solid var(--line); border-radius:6px; }
+  .pl-pk-tbl{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
+  .pl-pk-tbl th{ position:sticky; top:0; background:#6E6E6E; color:#fff; font-size:12px; letter-spacing:.4px; text-align:left; padding:9px 12px; }
+  .pl-pk-tbl td{ padding:9px 12px; border-top:1px solid var(--line); }
+  .pl-pk-tbl .num{ text-align:right; font-family:'JetBrains Mono',monospace; }
+  .pl-pk-tbl tbody tr{ cursor:pointer; }
+  .pl-pk-tbl tbody tr.sel td{ background:var(--title-bg); }
+  .pl-pk-tbl .pl-empty{ color:var(--ink-soft); text-align:center; padding:28px 12px; cursor:default; }
+  .pl-modal-f{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 22px 18px; font-size:12px; color:var(--ink-soft); }
+  .pl-modal-f .pl-act{ padding:7px 18px; font-size:14px; color:#fff; background:var(--ink); }
   /* Perpindahan antar halaman Proyeksi Harga: fade pendek (opacity saja, tanpa transform supaya posisi bottom-sheet/sticky tidak ikut terpengaruh) */
   @keyframes zanPageIn{ from{ opacity:0; } to{ opacity:1; } }
   #page-pricelist.active, #page-checkadmin.active{ animation:zanPageIn .16s ease-out; }
@@ -1452,7 +1487,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><div class="pl-ctabs" id="plClusterTabs" style="display:none;"></div><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -1521,7 +1556,7 @@
       <div class="card">
         <h3><span>Pengaturan Toko</span><span class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></span></h3>
         <div class="pl-row"><label for="plChannel">CHANNEL TOKO<span class="ket">Price List hanya menampilkan produk yang terpasang di channel ini (menu Channel)</span></label><select id="plChannel" disabled></select></div>
-        <div class="pl-row"><label for="plGpm">GPM TOKO (%)<span class="ket">Margin kotor yang dikejar: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="0" autocomplete="off" readonly></div>
+        <div class="pl-row"><label for="plGpm"><span id="plGpmName">GPM TANPA CLUSTER (%)</span><span class="ket">Margin kotor yang dikejar untuk produk di cluster yang sedang dibuka: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
@@ -4293,7 +4328,6 @@ const PAGE_TITLES = {
   profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
-  pricelist: 'Price List',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   hasilP: 'Proyeksi RKS',
@@ -4305,13 +4339,15 @@ const PAGE_TITLES = {
 let currentPage = 'rekap';
 // [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
 // sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
-const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1 };
+// pricelist: kotak judul diganti tab cluster (Star, Cash Cow, Question Mark, Dog, Tanpa Cluster) — #plClusterTabs, lihat bagian Price List.
+const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1, pricelist:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
     el.textContent = (pageKey==='hpp') ? 'HPP Produk' : (PAGE_TITLES[pageKey] || '');   // nama toko udah diwakili badge toko aktif di kanan atas
     el.style.display = PAGE_TITLE_HIDDEN[pageKey] ? 'none' : '';
   }
+  const plt = document.getElementById('plClusterTabs');  if(plt) plt.style.display = (pageKey==='pricelist') ? '' : 'none';
   const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
   const gpf = document.getElementById('btnGotoProfit');  if(gpf) gpf.style.display = (pageKey==='hasil')  ? '' : 'none';   // [7 Okt 2026] Profit Pesanan: pindah dari toolbar RKS Overview ke topbar, sejajar "Lihat Rekap"
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
@@ -6896,7 +6932,7 @@ try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init
    mengikuti sheet PROYEKSI HARGA user; tab yang tersisa cuma Price List dan Check Admin.
    Price List punya pengaturan SENDIRI (panel kanan, per toko, di state.settings) — TIDAK lagi menarik angka dari Setting/Rekap. Panel TERKUNCI sampai tombol Edit
    ditekan (pola sama seperti halaman Setting); selama Edit angka berubah langsung di tabel (draft), baru tersimpan saat Simpan; Batal membuang draft.
-     plChannel (channel toko), plGpm (GPM Toko %), plAdmin (Admin Toko %), plRoas (ROAS Toko; ACOS = 1 ÷ ROAS), plIncome (Income/PC Rp), plBpp (Rp), vchrToko (VCHR Rp), upHrgCoret (%).
+     plChannel (channel toko), plGpm (GPM cluster Tanpa Cluster %), plGpmStar/plGpmCashcow/plGpmQmark/plGpmDog (GPM tiap cluster %), plAdmin (Admin Toko %), plRoas (ROAS Toko; ACOS = 1 ÷ ROAS), plIncome (Income/PC Rp), plBpp (Rp), vchrToko (VCHR Rp), upHrgCoret (%).
    Rumus (sama dengan sheet; Admin & ACOS dihitung dari harga SETELAH voucher toko):
      Harga Net    = ROUNDUP(HPP ÷ (1 − GPM) + VCHR + 1, −3) − 1    (selalu berakhiran ...999; voucher ditambahkan SEBELUM pembulatan)
      Harga Upload = HPP × 3
@@ -6907,7 +6943,11 @@ try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init
    1 baris per Katalog, dipecah per size kalau HPP beda antar varian (HPP per size = yang TERTINGGI).
    Channel toko ditebak SEKALI dari nama toko (mis. toko "alleyknit" -> SHP.ALLEY) lewat plGuessChannel(), lalu bisa diganti lewat Edit.
    Pengaturan toko yang belum pernah dibuka DIISI SEKALI dari angka yang berlaku saat itu (Rekap/Setting) lewat plSeed(), setelah itu bebas diubah & tidak ikut berubah lagi.
-   Tidak ada tabel yang disimpan — semua dihitung ulang tiap render. */
+   CLUSTER (28 Okt 2026): tiap produk di channel toko punya 1 cluster — kolom channel_produk.cluster (star|cashcow|qmark|dog, NULL = Tanpa Cluster), jadi 1 produk otomatis
+   hanya di 1 cluster. Pemilihan manual: tombol "Pilih Produk" (popup produk yang belum punya cluster) + mode Edit → centang → Hapus (kembali ke Tanpa Cluster) → Selesai.
+   Tab cluster di topbar memfilter tabel; GPM yang dipakai = GPM cluster tab aktif (panel kanan, tiap cluster punya GPM sendiri; sisanya pengaturan toko bersama).
+   Pilihan produk per channel tetap dari menu Channel — Price List hanya menyimpan clusternya. SQL: channel_produk_cluster.sql.
+   Tidak ada tabel baru — semua dihitung ulang tiap render. */
 function escHtml(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function plValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
 // Dasar pengisian awal Admin: Proyeksi RKS bulan berjalan -> RKS Mingguan terbaru -> RKS Overview terbaru -> Setting. ACOS awal = 1 ÷ Setting > Target ROAS Toko.
@@ -6939,15 +6979,33 @@ function plSeed(){
   state.settings.plInit = true;
   saveSettingsToStorage();
 }
+// GPM tiap cluster yang belum pernah diisi dimulai dari GPM Tanpa Cluster (plGpm), supaya harga tidak jatuh ke 0%; setelah itu bebas diubah per cluster.
+function plSeedCluster(){
+  let ch = false;
+  PL_CLUSTERS.forEach(c=>{ if(c.key && state.settings[c.set]===undefined){ state.settings[c.set] = state.settings.plGpm; ch = true; } });
+  if(ch) saveSettingsToStorage();
+}
 // ── Mode Edit: selama Edit, semua baca/tulis lewat _plDraft (salinan); Simpan menyalin balik ke state.settings
 var _plEdit = false, _plDraft = null;     // ganti toko = reload halaman, jadi draft tidak perlu dibuang manual
-const PL_KEYS = ['plChannel','plGpm','plAdmin','plRoas','plIncome','vchrToko','plBpp','upHrgCoret'];
+// Cluster produk: key = nilai di channel_produk.cluster ('' = Tanpa Cluster / NULL); set = key GPM cluster itu di state.settings
+var PL_CLUSTERS = [
+  { key:'star',    nama:'Star',          set:'plGpmStar' },
+  { key:'cashcow', nama:'Cash Cow',      set:'plGpmCashcow' },
+  { key:'qmark',   nama:'Question Mark', set:'plGpmQmark' },
+  { key:'dog',     nama:'Dog',           set:'plGpmDog' },
+  { key:'',        nama:'Tanpa Cluster', set:'plGpm' }
+];
+var _plCluster = '';                       // tab cluster aktif; default Tanpa Cluster (semua produk channel mendarat di sini dulu)
+var _plRowEdit = false, _plSel = new Set();   // mode Edit baris (checkbox + Hapus) dan katalog (huruf kecil) yang dicentang
+function plClusterDef(key){ return PL_CLUSTERS.find(c=>c.key===key) || PL_CLUSTERS[PL_CLUSTERS.length-1]; }
+function plGpmKey(){ return plClusterDef(_plCluster).set; }
+const PL_KEYS = ['plChannel','plAdmin','plRoas','plIncome','vchrToko','plBpp','upHrgCoret'].concat(PL_CLUSTERS.map(c=>c.set));
 function plSrc(){ return (_plEdit && _plDraft) ? _plDraft : state.settings; }
 function plSet(k){ const v = Number(plSrc()[k]); return (isNaN(v) || v<0) ? 0 : v; }
 function plChannelId(){ const v = plSrc().plChannel; return v ? String(v) : ''; }
 function plParams(){
   const roas = plSet('plRoas');
-  return { gpm: plSet('plGpm')/100, admin: plSet('plAdmin')/100, roas, acos: roas>0 ? 1/roas : 0,
+  return { gpm: plSet(plGpmKey())/100, admin: plSet('plAdmin')/100, roas, acos: roas>0 ? 1/roas : 0,
            bpp: plSet('plBpp'), income: plSet('plIncome'), vchr: plSet('vchrToko'), up: plSet('upHrgCoret')/100 };
 }
 function plCalc(row, P){
@@ -6959,15 +7017,18 @@ function plCalc(row, P){
   return { upload: hpp*3, coret: Math.round(net*(1+P.up)), net, netIncome, npm: after>0 ? netIncome/after : null };
 }
 // ── Channel & produk per channel (menu Channel: tabel channels + channel_produk[channel_id, katalog])
-var _plCh = { loaded:false, ok:false, list:[], map:{} };   // loaded = sudah dicoba dimuat; list: toko marketplace [{id,nama}]; map: channel_id -> Set(katalog huruf kecil)
+var _plCh = { loaded:false, ok:false, clusterOk:true, list:[], map:{} };   // loaded = sudah dicoba dimuat; list: toko marketplace [{id,nama}]; map: channel_id -> { katalog huruf kecil: {id baris channel_produk, cluster} }; clusterOk = kolom cluster sudah ada di tabel
 async function plLoadChannels(){
   try{
     const res = await Promise.all([dbGet('channels','&order=nama.asc'), dbGet('channel_produk','')]);
-    const map = {};
-    (res[1]||[]).forEach(r=>{ const c = String(r.channel_id); (map[c] = map[c] || new Set()).add(String(r.katalog||'').trim().toLowerCase()); });
+    const rows = res[1]||[], map = {};
+    rows.forEach(r=>{
+      const c = String(r.channel_id), kat = String(r.katalog||'').trim().toLowerCase();
+      (map[c] = map[c] || {})[kat] = { id:r.id, cluster: PL_CLUSTERS.some(x=>x.key && x.key===r.cluster) ? r.cluster : '' };
+    });
     const MP = ['toko_utama','lazada','tiktok'];     // toko marketplace; reseller/offline = "Channel Lainnya", bukan toko Price List
-    _plCh = { loaded:true, ok:true, map, list:(res[0]||[]).filter(r=>MP.indexOf(r.kategori)>=0).map(r=>({ id:String(r.id), nama:r.nama||'', kat:r.kategori })) };
-  }catch(e){ console.warn('Price List: gagal muat Channel/channel_produk', e); _plCh = { loaded:true, ok:false, list:[], map:{} }; }
+    _plCh = { loaded:true, ok:true, clusterOk:(!rows.length || 'cluster' in rows[0]), map, list:(res[0]||[]).filter(r=>MP.indexOf(r.kategori)>=0).map(r=>({ id:String(r.id), nama:r.nama||'', kat:r.kategori })) };
+  }catch(e){ console.warn('Price List: gagal muat Channel/channel_produk', e); _plCh = { loaded:true, ok:false, clusterOk:true, list:[], map:{} }; }
 }
 // Tebak channel dari nama toko: token channel (SHP.ALLEY -> "alley") ada di nama toko ("alleyknit"). Prioritas toko Shopee (toko_utama).
 function plGuessChannel(){
@@ -6978,25 +7039,31 @@ function plGuessChannel(){
   const hit = _plCh.list.filter(c=>c.kat==='toko_utama').find(c=>{ const tok = norm(String(c.nama).split('.').pop()); return tok && (lbl.indexOf(tok)>=0 || tok.indexOf(lbl)>=0); });
   return hit ? hit.id : '';
 }
-// Baris produk: HANYA katalog yang terpasang di channel toko. HPP LANGSUNG dari Kelola Produk (live).
-// 1 baris per Katalog, kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI).
+// Katalog (SKU Induk) channel toko, dikelompokkan per cluster. HANYA yang terpasang di channel toko; HPP LANGSUNG dari Kelola Produk (live).
+function plKatalogByCluster(){
+  const out = {};
+  PL_CLUSTERS.forEach(c=>{ out[c.key] = []; });
+  const m = _plCh.map[plChannelId()];
+  if(!m) return out;
+  zKatalogGroups().forEach(g=>{ const e = m[g.katalog.trim().toLowerCase()]; if(e) out[e.cluster].push(g); });
+  return out;
+}
+// Baris tabel = katalog di cluster tab aktif. 1 baris per Katalog, kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI).
 function plRows(){
-  const set = _plCh.map[plChannelId()];
-  if(!set) return [];
   const out = [];
-  zKatalogGroups().forEach(g=>{
-    if(!set.has(g.katalog.trim().toLowerCase())) return;
+  plKatalogByCluster()[_plCluster].forEach(g=>{
     const distinct = [...new Set(g.variants.map(v=>v.hpp))];
-    if(distinct.length<=1){ out.push({ sku:g.katalog, hpp:distinct[0]||0 }); return; }
+    if(distinct.length<=1){ out.push({ katalog:g.katalog, sku:g.katalog, hpp:distinct[0]||0 }); return; }
     const bySize = new Map();
     g.variants.forEach(v=>{
       const label = v.size ? v.size.toUpperCase() : v.sku_variasi;
       if(!bySize.has(label) || v.hpp>bySize.get(label)) bySize.set(label, v.hpp);
     });
-    bySize.forEach((hpp,label)=>out.push({ sku:g.katalog+' — '+label, hpp }));
+    bySize.forEach((hpp,label)=>out.push({ katalog:g.katalog, sku:g.katalog+' — '+label, hpp }));
   });
   return out;
 }
+function plKatKey(row){ return row.katalog.trim().toLowerCase(); }
 var _plLoadTs = 0;      // var (bukan let): aman kalau renderPricelistPage kepanggil sebelum baris ini dieksekusi
 var _plQuery = '';      // kata kunci Cari SKU (cuma di memori)
 function plPctTxt(n){ return (n===null||n===undefined||!isFinite(n)) ? '-' : (n*100).toFixed(2).replace('.',',')+'%'; }
@@ -7005,20 +7072,43 @@ function plEmptyMsg(){
   if(!_plCh.ok) return 'Data Channel belum bisa dimuat (tabel channels / channel_produk). Buka ulang halaman ini.';
   if(!plChannelId()) return 'Pilih channel toko di panel kanan (tombol Edit → Channel Toko), lalu Simpan.';
   if(!_plCh.map[plChannelId()]) return 'Channel ini belum punya produk — pasang produknya dulu di menu Channel.';
-  return 'Produk channel ini belum punya HPP di Kelola Produk.';
+  const by = plKatalogByCluster();
+  if(!PL_CLUSTERS.some(c=>by[c.key].length)) return 'Produk channel ini belum punya HPP di Kelola Produk.';
+  return _plCluster ? 'Belum ada produk di cluster ini — klik Pilih Produk untuk menambahkan.' : 'Semua produk channel ini sudah punya cluster.';
+}
+// Baris yang tampil (setelah Cari SKU) + katalog uniknya (dasar centang di mode Edit)
+function plVisible(){
+  const q = _plQuery.trim().toLowerCase(), all = plRows();
+  return { all, list: q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all };
+}
+function plVisibleKats(){ return [...new Set(plVisible().list.map(plKatKey))]; }
+function plHeadHtml(){
+  return '<tr>' + (_plRowEdit ? '<th class="pl-chk"><input type="checkbox" id="plChkAll"></th>' : '') +
+    '<th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr>';
+}
+// Kiri bar tabel: tombol Pilih Produk (cluster) atau keterangan (Tanpa Cluster: produk masuk otomatis dari Channel). Kanan: Edit ⇄ Hapus + Selesai.
+function plLeftHtml(){
+  if(!_plCluster) return '<span class="pl-note">Tanpa Cluster · produk dari Channel yang belum dipilih clusternya</span>';
+  return '<button type="button" class="pl-pick" data-act="pick"'+(_plRowEdit?' disabled':'')+'>+ Pilih Produk</button>';
+}
+function plActsHtml(){
+  if(!_plCluster) return '';
+  if(!_plRowEdit) return '<button type="button" class="pl-act" data-act="edit">Edit</button>';
+  const n = _plSel.size;
+  return '<button type="button" class="pl-act danger" data-act="hapus"'+(n?'':' disabled')+'>Hapus'+(n?' ('+n+')':'')+'</button><button type="button" class="pl-act" data-act="selesai">Selesai</button>';
 }
 function plBodyHtml(P){
-  const q = _plQuery.trim().toLowerCase();
-  const all = plRows();
-  const list = q ? all.filter(r=>String(r.sku).toLowerCase().includes(q)) : all;
+  const v = plVisible(), list = v.list, cs = _plRowEdit ? 9 : 8;
   if(!list.length){
-    return `<tr><td colspan="8" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : escHtml(plEmptyMsg())}</td></tr>`;
+    return `<tr><td colspan="${cs}" style="color:var(--ink-soft);">${v.all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : escHtml(plEmptyMsg())}</td></tr>`;
   }
   return list.map((row,i)=>{
     const c = plCalc(row, P);
-    if(!c) return `<tr><td class="num">${i+1}</td><td>${escHtml(row.sku)}</td><td class="num">${fmtNum(row.hpp)}</td><td class="num" colspan="5">-</td></tr>`;
+    const chk = _plRowEdit ? `<td class="pl-chk"><input type="checkbox" class="pl-rowchk" data-kat="${escHtml(plKatKey(row))}"${_plSel.has(plKatKey(row)) ? ' checked' : ''}></td>` : '';
+    if(!c) return `<tr>${chk}<td class="num">${i+1}</td><td>${escHtml(row.sku)}</td><td class="num">${fmtNum(row.hpp)}</td><td class="num" colspan="5">-</td></tr>`;
     const low = P.income>0 && c.netIncome<P.income;
     return `<tr>
+      ${chk}
       <td class="num">${i+1}</td>
       <td>${escHtml(row.sku)}</td>
       <td class="num">${fmtNum(row.hpp)}</td>
@@ -7030,17 +7120,108 @@ function plBodyHtml(P){
     </tr>`;
   }).join('');
 }
-// Angka turunan di panel kanan (ACOS, Net Income / Lsn) + isi tabel; input-nya sendiri TIDAK disentuh
+// Tab cluster di topbar: nama + jumlah produk (jumlah Tanpa Cluster = sisa yang belum ditentukan)
+function plRenderTabs(){
+  const el = document.getElementById('plClusterTabs'); if(!el) return;
+  const by = plKatalogByCluster();
+  el.innerHTML = PL_CLUSTERS.map(c=>`<button type="button" class="pl-ctab${c.key===_plCluster ? ' active' : ''}" data-cl="${c.key}">${escHtml(c.nama)}<span class="pl-cn">${by[c.key].length}</span></button>`).join('');
+}
+// Angka turunan di panel kanan (ACOS, Net Income / Lsn) + tab + bar + isi tabel; input-nya sendiri TIDAK disentuh
 function plRefresh(){
   const P = plParams();
   const setTxt = (id, v)=>{ const el = document.getElementById(id); if(el && el.textContent!==v) el.textContent = v; };
+  const setHtml = (id, h)=>{ const el = document.getElementById(id); if(el && el.innerHTML!==h) el.innerHTML = h; };
   setTxt('plAcosVal', P.roas>0 ? plPctTxt(P.acos) : '-');
   setTxt('plIncomeLsn', fmtRp(P.income*12));
-  const body = document.getElementById('plBody');
-  if(body) body.innerHTML = plBodyHtml(P);
+  plRenderTabs();
+  setHtml('plLeft', plLeftHtml());
+  setHtml('plActs', plActsHtml());
+  setHtml('plHead', plHeadHtml());
+  setHtml('plBody', plBodyHtml(P));
+  const all = document.getElementById('plChkAll');
+  if(all){ const ks = plVisibleKats(), n = ks.filter(k=>_plSel.has(k)).length; all.checked = ks.length>0 && n===ks.length; all.indeterminate = n>0 && n<ks.length; }
 }
-// [id input, key di state.settings, jenis]: 'rp' = rupiah (pemisah ribuan), 'pct' = desimal (koma boleh)
+// Simpan cluster produk (kats = katalog huruf kecil) ke channel_produk lalu muat ulang. key '' = lepas dari cluster (kembali ke Tanpa Cluster).
+async function plSetCluster(kats, key){
+  const m = _plCh.map[plChannelId()] || {};
+  await Promise.all(kats.map(k=>m[k] ? dbUpdate('channel_produk', m[k].id, { cluster: key || null }) : null));
+  await plLoadChannels();
+}
+function plClusterErr(e){
+  const msg = String(e && e.message || e);
+  return msg + (/cluster/i.test(msg) ? '\n\nKolom cluster belum ada di tabel channel_produk — jalankan channel_produk_cluster.sql di Supabase dulu.' : '');
+}
+async function plHapusPilihan(){
+  const kats = [..._plSel]; if(!kats.length) return;
+  const nama = plClusterDef(_plCluster).nama;
+  if(!(await zConfirm('Lepas '+kats.length+' produk dari '+nama+'? Produknya kembali ke Tanpa Cluster (tetap ada di Channel dan Kelola Produk).', {title:'Hapus dari cluster?', ok:'Hapus'}))) return;
+  try{ await plSetCluster(kats, ''); }
+  catch(e){ alert('Gagal melepas produk dari cluster: '+plClusterErr(e)); return; }
+  _plSel.clear();
+  renderPricelistPage(true);
+}
+// ── Popup Pilih Produk: produk channel toko yang belum punya cluster → dimasukkan ke cluster tab aktif
+var _plPickSel = new Set(), _plPickQ = '', _plPickKey = null;
+function plPickRows(){
+  return plKatalogByCluster()[''].map(g=>{
+    const kl = g.katalog.trim().toLowerCase();
+    const sup = [...new Set(zProdukRows.filter(r=>String(r.katalog||'').trim().toLowerCase()===kl).map(r=>String(r.boss||'').trim()).filter(Boolean))];
+    const hs = g.variants.map(v=>v.hpp);
+    return { kat:kl, nama:g.katalog, supplier:sup.join(', ') || '—', min:Math.min(...hs), max:Math.max(...hs) };
+  });
+}
+function plPickClose(){
+  const ov = document.getElementById('plPickOv'); if(ov) ov.remove();
+  if(_plPickKey){ document.removeEventListener('keydown', _plPickKey); _plPickKey = null; }
+}
+function plPickRender(){
+  const body = document.getElementById('plPickBody'); if(!body) return;
+  const q = _plPickQ.trim().toLowerCase(), all = plPickRows();
+  const list = q ? all.filter(r=>r.nama.toLowerCase().includes(q) || r.supplier.toLowerCase().includes(q)) : all;
+  body.innerHTML = list.length ? list.map(r=>`<tr data-kat="${escHtml(r.kat)}"${_plPickSel.has(r.kat) ? ' class="sel"' : ''}>
+      <td class="pl-chk"><input type="checkbox"${_plPickSel.has(r.kat) ? ' checked' : ''}></td>
+      <td><b>${escHtml(r.nama)}</b></td><td>${escHtml(r.supplier)}</td>
+      <td class="num">${r.min===r.max ? fmtNum(r.min) : fmtNum(r.min)+' – '+fmtNum(r.max)}</td></tr>`).join('')
+    : `<tr><td colspan="4" class="pl-empty">${escHtml(all.length ? 'Tidak ada produk yang cocok dengan pencarian.' : 'Tidak ada produk tanpa cluster — semua produk channel ini sudah punya cluster.')}</td></tr>`;
+  const n = _plPickSel.size;
+  const add = document.getElementById('plPickAdd'); if(add){ add.disabled = !n || !_plCh.clusterOk; add.textContent = n ? 'Tambah ('+n+')' : 'Tambah'; }
+  const info = document.getElementById('plPickInfo'); if(info) info.textContent = n+' dipilih dari '+all.length+' produk tanpa cluster';
+}
+async function plPickAdd(){
+  const kats = [..._plPickSel]; if(!kats.length) return;
+  const add = document.getElementById('plPickAdd'); if(add) add.disabled = true;
+  try{ await plSetCluster(kats, _plCluster); }
+  catch(e){ if(add) add.disabled = false; alert('Gagal menambah produk ke cluster: '+plClusterErr(e)); return; }
+  plPickClose();
+  renderPricelistPage(true);
+}
+function plPickOpen(){
+  if(!_plCluster || _plRowEdit) return;
+  plPickClose();
+  _plPickSel = new Set(); _plPickQ = '';
+  const ov = document.createElement('div'); ov.id = 'plPickOv'; ov.className = 'pl-ov';
+  ov.innerHTML = `<div class="pl-modal" role="dialog" aria-modal="true">
+    <div class="pl-modal-h"><span class="pl-modal-t">Pilih Produk</span><span class="pl-modal-c">${escHtml(plClusterDef(_plCluster).nama)}</span><button type="button" class="pl-x" data-pk="close" aria-label="Tutup">×</button></div>
+    <div class="pl-modal-s"><input type="search" id="plPickQ" placeholder="Cari SKU Induk / Supplier…" autocomplete="off"></div>
+    ${_plCh.clusterOk ? '' : '<div class="pl-warn">Kolom cluster belum ada di tabel channel_produk — jalankan channel_produk_cluster.sql di Supabase dulu, kalau tidak produk tidak bisa ditambahkan.</div>'}
+    <div class="pl-modal-b"><table class="pl-pk-tbl"><thead><tr><th class="pl-chk"></th><th>SKU Induk</th><th>Supplier</th><th class="num">HPP</th></tr></thead><tbody id="plPickBody"></tbody></table></div>
+    <div class="pl-modal-f"><span id="plPickInfo"></span><button type="button" class="pl-act" id="plPickAdd" data-pk="add" disabled>Tambah</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e=>{
+    if(e.target===ov || e.target.closest('[data-pk="close"]')){ plPickClose(); return; }
+    if(e.target.closest('[data-pk="add"]')){ plPickAdd(); return; }
+    const tr = e.target.closest('tr[data-kat]');
+    if(tr){ const k = tr.dataset.kat; if(_plPickSel.has(k)) _plPickSel.delete(k); else _plPickSel.add(k); plPickRender(); }
+  });
+  ov.querySelector('#plPickQ').addEventListener('input', e=>{ _plPickQ = e.target.value||''; plPickRender(); });
+  _plPickKey = e=>{ if(e.key==='Escape') plPickClose(); };
+  document.addEventListener('keydown', _plPickKey);
+  plPickRender();
+}
+// [id input, key di state.settings, jenis]: 'rp' = rupiah (pemisah ribuan), 'pct' = desimal (koma boleh). Key 'plGpm' = GPM cluster tab aktif (plKeyOf).
 const PL_INPUTS = [['plGpm','plGpm','pct'],['plAdmin','plAdmin','pct'],['plRoas','plRoas','pct'],['plIncome','plIncome','rp'],['plVchr','vchrToko','rp'],['plBpp','plBpp','rp'],['plUpCoret','upHrgCoret','pct']];
+function plKeyOf(key){ return key==='plGpm' ? plGpmKey() : key; }
 // Kunci/buka panel + tombol Edit⇄Simpan (+Batal) + sinkron nilai input dari sumber aktif (draft saat Edit, state.settings saat terkunci)
 function plSyncPanel(){
   const aside = document.getElementById('pricelistParams'); if(!aside) return;
@@ -7049,8 +7230,10 @@ function plSyncPanel(){
     const el = document.getElementById(id); if(!el) return;
     el.readOnly = !_plEdit;
     if(document.activeElement===el) return;
-    el.value = kind==='rp' ? fmtNum(plSet(key)) : String(plSet(key)).replace('.',',');
+    const k = plKeyOf(key);
+    el.value = kind==='rp' ? fmtNum(plSet(k)) : String(plSet(k)).replace('.',',');
   });
+  const gn = document.getElementById('plGpmName'); if(gn) gn.textContent = 'GPM '+plClusterDef(_plCluster).nama.toUpperCase()+' (%)';
   const sel = document.getElementById('plChannel');
   if(sel){
     sel.disabled = !_plEdit;
@@ -7084,25 +7267,26 @@ function renderPricelistPage(fromLoad){
     Promise.all([zProdukLoad(), plLoadChannels()]).then(()=>renderPricelistPage(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk / Channel:', e));
   }
   plSeed();
+  plSeedCluster();
   if(!state.settings.plChannel && _plCh.ok){ const g = plGuessChannel(); if(g){ state.settings.plChannel = g; saveSettingsToStorage(); } }
   plSyncPanel();
   const P = plParams();
   if(P.gpm>=1){
-    card.innerHTML = '<h3>Price List</h3><div class="hint" style="margin:0;">Harga Net gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek GPM Toko di panel kanan.</div>';
+    card.innerHTML = '<div class="hint" style="margin:0;">Harga Net gak bisa dihitung — GPM '+escHtml(plClusterDef(_plCluster).nama)+' sudah ≥ 100%. Cek GPM-nya di panel kanan.</div>';
     plRefresh();
     return;
   }
   if(!document.getElementById('plSearch')){
     card.innerHTML = `
-      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <span>Price List</span>
+      <h3 class="pl-bar">
+        <span id="plLeft"></span>
         <input type="search" id="plSearch" placeholder="Cari SKU…" autocomplete="off"
           style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
+        <span id="plActs"></span>
       </h3>
-      <div class="hint" style="margin:0 0 12px;">Harga Net = HPP ÷ (1 − GPM Toko) + VCHR, dibulatkan naik ke ...999. Admin &amp; ACOS dihitung dari harga SETELAH voucher: Net Income = (Harga Net − VCHR) − HPP − (Admin + ACOS) − BPP; merah kalau di bawah Income / PC. Produk = yang terpasang di channel toko (menu Channel), HPP dari Kelola Produk.</div>
       <div class="pricelist-scroll">
         <table class="ca-table">
-          <thead><tr><th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
+          <thead id="plHead"></thead>
           <tbody id="plBody"></tbody>
         </table>
       </div>`;
@@ -7118,7 +7302,7 @@ function renderPricelistPage(fromLoad){
     el.addEventListener('input', ()=>{
       if(!_plEdit || !_plDraft) return;
       const n = kind==='rp' ? parseNum(el.value) : parseFloat(String(el.value).replace(',','.'));
-      _plDraft[key] = (n===null || n===undefined || isNaN(n) || n<0) ? 0 : n;
+      _plDraft[plKeyOf(key)] = (n===null || n===undefined || isNaN(n) || n<0) ? 0 : n;
       if(plParams().gpm>=1 || !document.getElementById('plSearch')) renderPricelistPage(true); else plRefresh();   // GPM ≥ 100% -> tampil pesan; tabel dibangun ulang begitu nilainya wajar lagi
     });
   });
@@ -7126,6 +7310,30 @@ function renderPricelistPage(fromLoad){
   if(sel) sel.addEventListener('change', ()=>{ if(!_plEdit || !_plDraft) return; _plDraft.plChannel = sel.value; plRefresh(); });
   const be = document.getElementById('plBtnEdit'); if(be) be.addEventListener('click', plEditToggle);
   const bb = document.getElementById('plBtnBatal'); if(bb) bb.addEventListener('click', plEditCancel);
+  // Tab cluster (topbar): ganti cluster = keluar dari mode Edit baris, GPM di panel kanan ikut berganti
+  const tabs = document.getElementById('plClusterTabs');
+  if(tabs) tabs.addEventListener('click', e=>{
+    const b = e.target.closest('button[data-cl]'); if(!b) return;
+    _plCluster = b.dataset.cl; _plRowEdit = false; _plSel.clear();
+    renderPricelistPage(true);
+  });
+  // Bar tabel: Pilih Produk / Edit / Hapus / Selesai + centang baris (delegasi, karena isi kartu dibangun ulang)
+  const card = document.getElementById('priceListCard-pricelist');
+  if(card){
+    card.addEventListener('click', e=>{
+      const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
+      const act = b.dataset.act;
+      if(act==='pick') plPickOpen();
+      else if(act==='edit'){ _plRowEdit = true; _plSel.clear(); plRefresh(); }
+      else if(act==='selesai'){ _plRowEdit = false; _plSel.clear(); plRefresh(); }
+      else if(act==='hapus') plHapusPilihan();
+    });
+    card.addEventListener('change', e=>{
+      const t = e.target;
+      if(t.classList.contains('pl-rowchk')){ if(t.checked) _plSel.add(t.dataset.kat); else _plSel.delete(t.dataset.kat); plRefresh(); }
+      else if(t.id==='plChkAll'){ plVisibleKats().forEach(k=>{ if(t.checked) _plSel.add(k); else _plSel.delete(k); }); plRefresh(); }
+    });
+  }
 })();
 
 /* ================= PAGE: SETTING ================= */
