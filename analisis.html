@@ -560,8 +560,9 @@
   #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; gap:clamp(6px,1.2vh,12px); overflow:visible; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
   #pricelistParams .card{ margin-bottom:0; padding:clamp(8px,1.5vh,14px) 14px; }
   #pricelistParams .card h3{ margin-bottom:clamp(2px,.8vh,8px); padding:clamp(3px,.6vh,6px) 10px; font-size:clamp(12.5px,1.7vh,14.5px); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .pl-actions{ display:inline-flex; align-items:center; gap:6px; }
+  .pl-actions{ display:flex; align-items:stretch; gap:8px; }   /* bar tombol di dasar panel: Edit ⇄ Simpan (+ Batal) */
   .pl-actions [hidden]{ display:none; }
+  .pl-actions > button{ flex:1; text-align:center; padding:clamp(6px,1.1vh,10px) 14px; font-size:clamp(12px,1.6vh,14px); }
   .pl-cancel{ all:unset; cursor:pointer; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--ink); }
   .pl-row{ display:grid; grid-template-columns:1fr 118px; align-items:center; gap:10px; padding:clamp(2px,.8vh,8px) 0; border-bottom:1px solid var(--line); }
   .pl-row:last-child{ border-bottom:none; padding-bottom:0; }
@@ -1553,7 +1554,7 @@
     <div class="card" id="priceListCard-pricelist"></div>
     <aside id="pricelistParams">
       <div class="card">
-        <h3><span>Pengaturan Toko</span><span class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></span></h3>
+        <h3><span>Pengaturan Toko</span></h3>
         <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
         <div class="pl-row"><label for="plGpm"><span id="plGpmName">GPM TANPA CLUSTER (%)</span><span class="ket">Margin kotor yang dikejar untuk produk di cluster yang sedang dibuka: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="0" autocomplete="off" readonly></div>
       </div>
@@ -1571,6 +1572,7 @@
         <div class="pl-row"><label for="plIncome">INCOME / PC (Rp)<span class="ket">Net Income minimum per pcs. Net Income di bawah angka ini diberi warna merah</span></label><input type="text" inputmode="numeric" id="plIncome" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
       </div>
+      <div class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></div>
     </aside>
   </section>
 
