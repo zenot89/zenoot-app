@@ -567,11 +567,10 @@
   .pl-row:last-child{ border-bottom:none; padding-bottom:0; }
   .pl-row label, .pl-row .lbl{ font-size:clamp(11px,1.5vh,12px); font-weight:700; letter-spacing:.4px; color:var(--ink); }
   .pl-row .ket{ display:block; font-weight:400; }
-  .pl-row input, .pl-row select{ width:100%; box-sizing:border-box; padding:clamp(2px,.6vh,6px) 8px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.6vh,14px); font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; }
-  .pl-row select{ text-align-last:right; }
+  .pl-row input{ width:100%; box-sizing:border-box; padding:clamp(2px,.6vh,6px) 8px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.6vh,14px); font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; }
   .pl-row.ro .val{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.6vh,14px); font-weight:700; color:var(--ink); padding-right:9px; }
   /* terkunci (default): tampil polos seperti halaman Setting; mode Edit: kolom input putih berbingkai, panel sedikit lebih gelap */
-  #pricelistParams:not(.is-editing) .pl-row input, #pricelistParams:not(.is-editing) .pl-row select{ background:transparent; border-color:transparent; cursor:default; appearance:none; -webkit-appearance:none; opacity:1; -webkit-text-fill-color:var(--ink); }
+  #pricelistParams:not(.is-editing) .pl-row input{ background:transparent; border-color:transparent; cursor:default; appearance:none; -webkit-appearance:none; opacity:1; -webkit-text-fill-color:var(--ink); }
   #pricelistParams.is-editing .card{ background:var(--panel-alt); }
   #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
   /* Cluster produk (28 Okt 2026): tab di topbar (menggantikan kotak judul "Price List"), bar header tabel, popup Pilih Produk */
@@ -1549,28 +1548,28 @@
 
   <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (satu-satunya metode: by GPM, [27 Okt 2026]) ============
        Price List BERDIRI SENDIRI: kiri = tabel lengkap (header beku, hanya isi yang scroll), kanan = pengaturan Price List (input manual per toko, tersimpan otomatis).
-       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan. -->
+       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan (3 bagian: Pengaturan Toko / Harga / Income). Channel dipilih lewat badge kanan atas (renderStoreTopbar). -->
   <section class="page" id="page-pricelist">
     <div class="card" id="priceListCard-pricelist"></div>
     <aside id="pricelistParams">
       <div class="card">
         <h3><span>Pengaturan Toko</span><span class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></span></h3>
-        <div class="pl-row"><label for="plChannel">CHANNEL TOKO<span class="ket">Price List hanya menampilkan produk yang terpasang di channel ini (menu Channel)</span></label><select id="plChannel" disabled></select></div>
+        <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
         <div class="pl-row"><label for="plGpm"><span id="plGpmName">GPM TANPA CLUSTER (%)</span><span class="ket">Margin kotor yang dikejar untuk produk di cluster yang sedang dibuka: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="0" autocomplete="off" readonly></div>
+      </div>
+      <div class="card">
+        <h3><span>Harga</span></h3>
         <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
+        <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="0" autocomplete="off" readonly></div>
+        <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="0" autocomplete="off" readonly></div>
+        <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="0" autocomplete="off" readonly></div>
       </div>
       <div class="card">
         <h3><span>Income</span></h3>
         <div class="pl-row"><label for="plIncome">INCOME / PC (Rp)<span class="ket">Net Income minimum per pcs. Net Income di bawah angka ini diberi warna merah</span></label><input type="text" inputmode="numeric" id="plIncome" placeholder="0" autocomplete="off" readonly></div>
         <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
-      </div>
-      <div class="card">
-        <h3><span>Harga</span></h3>
-        <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="0" autocomplete="off" readonly></div>
-        <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="0" autocomplete="off" readonly></div>
-        <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="0" autocomplete="off" readonly></div>
       </div>
     </aside>
   </section>
@@ -2555,7 +2554,7 @@ const state = {
   adsFile: null,
   hppMaster: zHppView(),   // baca-saja: HPP dari Kelola Produk zenOt (zHppView di zStore)
   manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
-  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null, vchrToko:0, upHrgCoret:20, plInit:false, plChannel:'', plGpm:0, plAdmin:0, plRoas:0, plIncome:0, plBpp:0 },
+  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null },
   rekap: {},
   customHppProducts: [], // [{skuInduk, nomorRef, variasi, namaProduk}] — SKU yang didaftarin manual (bukan dari Order Completed), mis. dari tombol "Tambah SKU ke HPP" di Check Admin
   skuIndukOverrides: {}, // key: nomorRef|variasi -> SKU Induk hasil edit manual (buat benerin SKU Induk yang salah/keisi nama produk dari data Order Completed)
@@ -2790,6 +2789,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
     currentPage = btn.dataset.page;
     const tcInfo = document.getElementById('tcTopbarInfo'); if(tcInfo) tcInfo.style.display = (currentPage==='tokocompare') ? 'inline-flex' : 'none';
     updatePageTitleBar(currentPage);
+    try{ renderStoreTopbar(); }catch(e){ console.error('Gagal render store topbar:', e); }   // badge berbeda per halaman (Price List = channel)
     try{
       if(btn.dataset.page==='hpp') renderHPP();
       if(btn.dataset.page==='hasil') renderHasil();
@@ -2997,6 +2997,11 @@ function renderStoreTopbar(){
       el.className = 'store-badge';
       el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('title');
       el.innerHTML = `<span class="dot"></span><span class="store-name">Semua Toko</span>`;
+    } else if(currentPage==='pricelist'){
+      // [28 Okt 2026] Price List: badge = pilihan CHANNEL (pengaturan Price List per channel, bukan per toko) — lihat plTogglePop()
+      el.className = 'store-badge clickable';
+      el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Ganti channel');
+      el.innerHTML = `<span class="dot"></span><span class="store-name">${tokoEsc(plChannelName() || (_plCh.loaded ? 'Pilih channel' : 'Memuat…'))}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
     } else {
       const t = tokoActiveEntry();
       const label = t.draft ? (t.username ? t.nama+' · setup' : 'Setup toko baru') : t.nama;
@@ -3278,6 +3283,7 @@ function tokoRenderPop(){
   tokoRenderRows();
 }
 function tokoTogglePop(){
+  if(currentPage==='pricelist'){ plTogglePop(); return; }   // [28 Okt 2026] di Price List badge = pilihan channel
   // [23 Sep 2026] Badge topbar di halaman Perbandingan Toko (layar HP) fungsinya "Pilih Data
   // Ditampilkan", bukan ganti toko — lihat catatan sama di renderStoreTopbar().
   if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='bulan' && TC_MOBILE_COL){
@@ -6930,9 +6936,9 @@ try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init
 /* ================= PROYEKSI HARGA: PRICE LIST (satu-satunya metode, by GPM, BERDIRI SENDIRI) [27-28 Okt 2026] =================
    Dulu Proyeksi Harga punya 5 metode (Price List, By Operasional, By Target Qty, By Harga Jual, By Support). Disederhanakan jadi 1 metode — by GPM —
    mengikuti sheet PROYEKSI HARGA user; tab yang tersisa cuma Price List dan Check Admin.
-   Price List punya pengaturan SENDIRI (panel kanan, per toko, di state.settings) — TIDAK lagi menarik angka dari Setting/Rekap. Panel TERKUNCI sampai tombol Edit
+   Price List punya pengaturan SENDIRI (panel kanan, PER CHANNEL — bukan per toko — disimpan di key global zenootAnalisis.priceList, lihat _plStore) — TIDAK lagi menarik angka dari Setting/Rekap. Panel TERKUNCI sampai tombol Edit
    ditekan (pola sama seperti halaman Setting); selama Edit angka berubah langsung di tabel (draft), baru tersimpan saat Simpan; Batal membuang draft.
-     plChannel (channel toko), plGpm (GPM cluster Tanpa Cluster %), plGpmStar/plGpmCashcow/plGpmQmark/plGpmDog (GPM tiap cluster %), plAdmin (Admin Toko %), plRoas (ROAS Toko; ACOS = 1 ÷ ROAS), plIncome (Income/PC Rp), plBpp (Rp), vchrToko (VCHR Rp), upHrgCoret (%).
+     plGpm (GPM cluster Tanpa Cluster %), plGpmStar/plGpmCashcow/plGpmQmark/plGpmDog (GPM tiap cluster %), plAdmin (Admin Toko %), plRoas (ROAS Toko; ACOS = 1 ÷ ROAS), plIncome (Income/PC Rp), plBpp (Rp), vchrToko (VCHR Rp), upHrgCoret (%).
    Rumus (sama dengan sheet; Admin & ACOS dihitung dari harga SETELAH voucher toko):
      Harga Net    = ROUNDUP(HPP ÷ (1 − GPM) + VCHR + 1, −3) − 1    (selalu berakhiran ...999; voucher ditambahkan SEBELUM pembulatan)
      Harga Upload = HPP × 3
@@ -6941,8 +6947,10 @@ try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init
      NPM          = Net Income ÷ (Harga Net − VCHR)           Net Income < Income/PC = sel merah
    Produk: HANYA yang terpasang di channel toko (menu Channel: tabel channel_produk, per katalog) — bukan semua produk Kelola Produk. HPP dari Kelola Produk (zKatalogGroups, live);
    1 baris per Katalog, dipecah per size kalau HPP beda antar varian (HPP per size = yang TERTINGGI).
-   Channel toko ditebak SEKALI dari nama toko (mis. toko "alleyknit" -> SHP.ALLEY) lewat plGuessChannel(), lalu bisa diganti lewat Edit.
-   Pengaturan toko yang belum pernah dibuka DIISI SEKALI dari angka yang berlaku saat itu (Rekap/Setting) lewat plSeed(), setelah itu bebas diubah & tidak ikut berubah lagi.
+   Channel dipilih lewat badge kanan atas halaman Price List (menggantikan pemilih toko di halaman ini; di halaman lain badge tetap pemilih toko). Pertama kali dibuka, channel ditebak dari nama toko aktif (plGuessChannel).
+   PER CHANNEL [28 Okt 2026]: tiap channel punya pengaturan sendiri (GPM, Admin, ROAS, Income, VCHR, BPP, Up Hrg Coret), tidak ikut toko aktif. Disimpan di key GLOBAL zenootAnalisis.priceList = { active, ch:{channelId:{...}}, done:[tokoId] }.
+   Migrasi sekali: pengaturan lama yang tersimpan per toko (state.settings.pl*, plChannel) disalin ke record channel-nya (plStoreFrom); 'done' mencatat toko yang sudah dimigrasi.
+   Channel yang belum punya pengaturan DIISI SEKALI dari angka toko aktif yang berlaku saat itu (Rekap/Setting) lewat plSeed(), setelah itu bebas diubah & tidak ikut berubah lagi.
    CLUSTER (28 Okt 2026): tiap produk di channel toko punya 1 cluster — kolom channel_produk.cluster (star|cashcow|qmark|dog, NULL = Tanpa Cluster), jadi 1 produk otomatis
    hanya di 1 cluster. Pemilihan manual: tombol "Pilih Produk" (popup produk yang belum punya cluster) + mode Edit → centang → Hapus (kembali ke Tanpa Cluster) → Selesai.
    Tab cluster di topbar memfilter tabel; GPM yang dipakai = GPM cluster tab aktif (panel kanan, tiap cluster punya GPM sendiri; sisanya pengaturan toko bersama).
@@ -6967,23 +6975,26 @@ function plSources(){
 }
 // Isi awal pengaturan Price List (SEKALI per toko): GPM = Admin + ACOS + Ops + Buffer + NPM dari angka yang berlaku saat itu
 function plSeed(){
-  if(state.settings.plInit) return;
+  const rec = plRecEnsure(); if(!rec || rec.plInit) return;
   const s = plSources(), acos = s.roas>0 ? 1/s.roas : 0;
   const nRaw = state.settings.targetRasioLaba, npm = plValid(nRaw) ? nRaw/100 : 0;
   const pct = x=>Math.round(x*1000)/10;
-  state.settings.plGpm = pct(s.admin + acos + plOpsPct()/100 + (state.settings.lainnyaPct||0)/100 + npm);
-  state.settings.plAdmin = pct(s.admin);
-  state.settings.plRoas = s.roas;
-  state.settings.plIncome = state.settings.netIncomeToko||0;
-  state.settings.plBpp = resolveAdminBpp().bpp||0;
-  state.settings.plInit = true;
-  saveSettingsToStorage();
+  rec.plGpm = pct(s.admin + acos + plOpsPct()/100 + (state.settings.lainnyaPct||0)/100 + npm);
+  rec.plAdmin = pct(s.admin);
+  rec.plRoas = s.roas;
+  rec.plIncome = state.settings.netIncomeToko||0;
+  rec.plBpp = resolveAdminBpp().bpp||0;
+  rec.vchrToko = 0;
+  rec.upHrgCoret = 20;
+  rec.plInit = true;
+  plStoreSave();
 }
 // GPM tiap cluster yang belum pernah diisi dimulai dari GPM Tanpa Cluster (plGpm), supaya harga tidak jatuh ke 0%; setelah itu bebas diubah per cluster.
 function plSeedCluster(){
+  const rec = plRecEnsure(); if(!rec) return;
   let ch = false;
-  PL_CLUSTERS.forEach(c=>{ if(c.key && state.settings[c.set]===undefined){ state.settings[c.set] = state.settings.plGpm; ch = true; } });
-  if(ch) saveSettingsToStorage();
+  PL_CLUSTERS.forEach(c=>{ if(c.key && rec[c.set]===undefined){ rec[c.set] = rec.plGpm; ch = true; } });
+  if(ch) plStoreSave();
 }
 // ── Mode Edit: selama Edit, semua baca/tulis lewat _plDraft (salinan); Simpan menyalin balik ke state.settings
 var _plEdit = false, _plDraft = null;     // ganti toko = reload halaman, jadi draft tidak perlu dibuang manual
@@ -6999,10 +7010,91 @@ var _plCluster = '';                       // tab cluster aktif; default Tanpa C
 var _plRowEdit = false, _plSel = new Set();   // mode Edit baris (checkbox + Hapus) dan katalog (huruf kecil) yang dicentang
 function plClusterDef(key){ return PL_CLUSTERS.find(c=>c.key===key) || PL_CLUSTERS[PL_CLUSTERS.length-1]; }
 function plGpmKey(){ return plClusterDef(_plCluster).set; }
-const PL_KEYS = ['plChannel','plAdmin','plRoas','plIncome','vchrToko','plBpp','upHrgCoret'].concat(PL_CLUSTERS.map(c=>c.set));
-function plSrc(){ return (_plEdit && _plDraft) ? _plDraft : state.settings; }
+const PL_KEYS = ['plAdmin','plRoas','plIncome','vchrToko','plBpp','upHrgCoret'].concat(PL_CLUSTERS.map(c=>c.set));
+// ── Penyimpanan PER CHANNEL (key GLOBAL, tanpa tk(): sama untuk semua toko). active = channel yang sedang dibuka; ch[channelId] = pengaturan channel itu; done = toko yang pengaturan lamanya sudah dimigrasi
+const PL_STORE_KEY = 'zenootAnalisis.priceList';
+var _plStore = { active:'', ch:{}, done:[] };
+function plStoreSave(){ try{ zLS.setItem(PL_STORE_KEY, JSON.stringify(_plStore)); }catch(e){ console.warn('Price List: gagal menyimpan pengaturan channel', e); } }
+// Pengaturan lama per toko (settings.pl*, plChannel) -> record channel-nya; channel yang sudah punya record tidak ditimpa
+function plStoreFrom(st){
+  const ch = String((st && st.plChannel) || '');
+  if(!ch || !st.plInit || _plStore.ch[ch]) return false;
+  const rec = {}; PL_KEYS.concat(['plInit']).forEach(k=>{ if(st[k]!==undefined) rec[k] = st[k]; });
+  _plStore.ch[ch] = rec;
+  return true;
+}
+(function plStoreInit(){
+  try{
+    const raw = zLS.getItem(PL_STORE_KEY), o = raw ? JSON.parse(raw) : null;
+    if(o && typeof o==='object') _plStore = { active:String(o.active||''), ch:(o.ch && typeof o.ch==='object') ? o.ch : {}, done:Array.isArray(o.done) ? o.done : [] };
+  }catch(e){ console.warn('Price List: pengaturan channel tidak terbaca', e); }
+  if(_plStore.done.indexOf(TOKO_ACTIVE)<0){          // toko aktif: pengaturan lamanya sudah ada di memori
+    plStoreFrom(state.settings);
+    if(!_plStore.active && state.settings.plChannel) _plStore.active = String(state.settings.plChannel);
+    _plStore.done.push(TOKO_ACTIVE);
+    plStoreSave();
+  }
+})();
+// Toko lain: pengaturan lamanya dibaca dari database (zStore cuma memuat toko aktif). Dipanggil setelah daftar channel dimuat.
+async function plMigrateOthers(){
+  const pend = TOKO_REG.list.filter(t=>!t.draft && _plStore.done.indexOf(t.id)<0).map(t=>t.id);
+  if(!pend.length) return;
+  try{
+    const rows = await zStore.loadRows(pend);
+    pend.forEach(id=>{
+      let st = null;
+      try{ const r = rows[id+'\u0000zenootAnalisis.settings']; if(r) st = JSON.parse(r.value); }catch(e){}
+      if(st) plStoreFrom(st);
+      _plStore.done.push(id);
+    });
+    plStoreSave();
+  }catch(e){ console.warn('Price List: gagal membaca pengaturan toko lain untuk migrasi', e); }
+}
+function plRec(){ return _plStore.ch[_plStore.active] || {}; }
+function plRecEnsure(){ if(!_plStore.active) return null; return (_plStore.ch[_plStore.active] = _plStore.ch[_plStore.active] || {}); }
+// Channel aktif harus salah satu channel yang ada; kalau belum ada / sudah dihapus: tebak dari nama toko aktif, terakhir channel pertama
+function plEnsureActive(){
+  if(!_plCh.ok || _plCh.list.some(c=>c.id===_plStore.active)) return;
+  _plStore.active = plGuessChannel() || (_plCh.list[0] ? _plCh.list[0].id : '');
+  plStoreSave();
+}
+function plChannelName(){ const c = _plCh.list.find(x=>x.id===_plStore.active); return c ? c.nama : ''; }
+function plSetActive(id){
+  _plStore.active = id; plStoreSave();
+  _plRowEdit = false; _plSel.clear();
+  renderPricelistPage(true);
+}
+function plPickChannel(id){
+  if(id===_plStore.active) return;
+  if(_plEdit){
+    zConfirm('Perubahan pengaturan belum disimpan. Buang perubahan dan pindah channel?', {title:'Belum disimpan', ok:'Buang & pindah'}).then(ok=>{ if(ok){ plEditCancel(); plSetActive(id); } });
+    return;
+  }
+  plSetActive(id);
+}
+const PL_KAT_LABEL = { toko_utama:'Shopee', lazada:'Lazada', tiktok:'TikTok' };
+// Popover pilihan channel di badge kanan atas (pakai wadah #tokoPop supaya tutup/klik-luar/Esc sama dengan popover toko)
+function plTogglePop(){
+  if(document.getElementById('tokoPop')){ tokoClosePop(); return; }
+  const badge = document.getElementById('storeTopbarBadge'); if(!badge) return;
+  const pop = document.createElement('div');
+  pop.id = 'tokoPop'; pop.className = 'toko-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label','Pilih channel');
+  pop.innerHTML = '<div class="toko-pop-rows">' + (_plCh.list.map(c=>`<div class="toko-item" data-ch="${escHtml(c.id)}"><span class="tick">${c.id===_plStore.active?'✓':''}</span><div class="tk-main"><div class="tk-name">${escHtml(c.nama)}</div><div class="tk-user">${escHtml(PL_KAT_LABEL[c.kat]||'')}</div></div></div>`).join('') || '<div class="toko-empty">Belum ada channel. Buat dulu di menu Channel.</div>') + '</div>';
+  document.body.appendChild(pop);
+  pop.addEventListener('click', e=>{
+    const it = e.target.closest('.toko-item[data-ch]'); if(!it) return;
+    tokoClosePop(); plPickChannel(it.dataset.ch);
+  });
+  const r = badge.getBoundingClientRect();
+  pop.style.top = (r.bottom + 6)+'px';
+  pop.style.left = Math.max(8, r.right - pop.offsetWidth)+'px';
+  document.addEventListener('mousedown', tokoPopOutside, true);
+  document.addEventListener('keydown', tokoPopEsc);
+  window.addEventListener('resize', tokoClosePop);
+}
+function plSrc(){ return (_plEdit && _plDraft) ? _plDraft : plRec(); }
 function plSet(k){ const v = Number(plSrc()[k]); return (isNaN(v) || v<0) ? 0 : v; }
-function plChannelId(){ const v = plSrc().plChannel; return v ? String(v) : ''; }
+function plChannelId(){ return _plStore.active; }
 function plParams(){
   const roas = plSet('plRoas');
   return { gpm: plSet(plGpmKey())/100, admin: plSet('plAdmin')/100, roas, acos: roas>0 ? 1/roas : 0,
@@ -7028,6 +7120,7 @@ async function plLoadChannels(){
     });
     const MP = ['toko_utama','lazada','tiktok'];     // toko marketplace; reseller/offline = "Channel Lainnya", bukan toko Price List
     _plCh = { loaded:true, ok:true, clusterOk:(!rows.length || 'cluster' in rows[0]), map, list:(res[0]||[]).filter(r=>MP.indexOf(r.kategori)>=0).map(r=>({ id:String(r.id), nama:r.nama||'', kat:r.kategori })) };
+    await plMigrateOthers();
   }catch(e){ console.warn('Price List: gagal muat Channel/channel_produk', e); _plCh = { loaded:true, ok:false, clusterOk:true, list:[], map:{} }; }
 }
 // Tebak channel dari nama toko: token channel (SHP.ALLEY -> "alley") ada di nama toko ("alleyknit"). Prioritas toko Shopee (toko_utama).
@@ -7070,7 +7163,7 @@ function plPctTxt(n){ return (n===null||n===undefined||!isFinite(n)) ? '-' : (n*
 function plEmptyMsg(){
   if(!_plCh.loaded) return 'Memuat produk channel…';
   if(!_plCh.ok) return 'Data Channel belum bisa dimuat (tabel channels / channel_produk). Buka ulang halaman ini.';
-  if(!plChannelId()) return 'Pilih channel toko di panel kanan (tombol Edit → Channel Toko), lalu Simpan.';
+  if(!plChannelId()) return 'Pilih channel lewat dropdown di pojok kanan atas.';
   if(!_plCh.map[plChannelId()]) return 'Channel ini belum punya produk — pasang produknya dulu di menu Channel.';
   const by = plKatalogByCluster();
   if(!PL_CLUSTERS.some(c=>by[c.key].length)) return 'Produk channel ini belum punya HPP di Kelola Produk.';
@@ -7234,25 +7327,21 @@ function plSyncPanel(){
     el.value = kind==='rp' ? fmtNum(plSet(k)) : String(plSet(k)).replace('.',',');
   });
   const gn = document.getElementById('plGpmName'); if(gn) gn.textContent = 'GPM '+plClusterDef(_plCluster).nama.toUpperCase()+' (%)';
-  const sel = document.getElementById('plChannel');
-  if(sel){
-    sel.disabled = !_plEdit;
-    if(document.activeElement!==sel){
-      const cur = plChannelId();
-      sel.innerHTML = '<option value="">— pilih —</option>' + _plCh.list.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.nama)}</option>`).join('');
-      sel.value = _plCh.list.some(c=>c.id===cur) ? cur : '';
-    }
-  }
+  const cv = document.getElementById('plChannelVal'); if(cv) cv.textContent = plChannelName() || '-';
+  if(currentPage==='pricelist') renderStoreTopbar();   // badge kanan atas = pilihan channel di halaman ini
   const btn = document.getElementById('plBtnEdit'); if(btn){ btn.classList.toggle('is-editing', _plEdit); btn.textContent = _plEdit ? 'Simpan' : 'Edit'; }
   const bt = document.getElementById('plBtnBatal'); if(bt) bt.hidden = !_plEdit;
 }
 function plEditToggle(){
   if(!_plEdit){
-    _plDraft = {}; PL_KEYS.forEach(k=>{ _plDraft[k] = state.settings[k]; });
+    if(!plRecEnsure()){ alert('Pilih channel dulu lewat dropdown di pojok kanan atas.'); return; }
+    const rec = plRec();
+    _plDraft = {}; PL_KEYS.forEach(k=>{ _plDraft[k] = rec[k]; });
     _plEdit = true;
   } else {
-    PL_KEYS.forEach(k=>{ state.settings[k] = _plDraft[k]; });
-    saveSettingsToStorage();
+    const rec = plRecEnsure();
+    PL_KEYS.forEach(k=>{ rec[k] = _plDraft[k]; });
+    plStoreSave();
     _plEdit = false; _plDraft = null;
   }
   plSyncPanel(); renderPricelistPage(true);
@@ -7266,9 +7355,9 @@ function renderPricelistPage(fromLoad){
     _plLoadTs = Date.now();
     Promise.all([zProdukLoad(), plLoadChannels()]).then(()=>renderPricelistPage(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk / Channel:', e));
   }
+  plEnsureActive();
   plSeed();
   plSeedCluster();
-  if(!state.settings.plChannel && _plCh.ok){ const g = plGuessChannel(); if(g){ state.settings.plChannel = g; saveSettingsToStorage(); } }
   plSyncPanel();
   const P = plParams();
   if(P.gpm>=1){
@@ -7306,8 +7395,6 @@ function renderPricelistPage(fromLoad){
       if(plParams().gpm>=1 || !document.getElementById('plSearch')) renderPricelistPage(true); else plRefresh();   // GPM ≥ 100% -> tampil pesan; tabel dibangun ulang begitu nilainya wajar lagi
     });
   });
-  const sel = document.getElementById('plChannel');
-  if(sel) sel.addEventListener('change', ()=>{ if(!_plEdit || !_plDraft) return; _plDraft.plChannel = sel.value; plRefresh(); });
   const be = document.getElementById('plBtnEdit'); if(be) be.addEventListener('click', plEditToggle);
   const bb = document.getElementById('plBtnBatal'); if(bb) bb.addEventListener('click', plEditCancel);
   // Tab cluster (topbar): ganti cluster = keluar dari mode Edit baris, GPM di panel kanan ikut berganti
