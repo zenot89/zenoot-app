@@ -558,6 +558,8 @@
   #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
   #priceListCard-pricelist .ca-table, #priceListAllCard .ca-table{ border-collapse:separate; border-spacing:0; }
   #page-pricelistall.active{ display:flex; flex-direction:column; height:calc(100vh - 130px); min-height:420px; }
+  /* Di dalam zenOt (embed): topbar 56 + jarak 16 di atas -> kartu turun sampai dasar layar, sisa gap 10px (Price List & Semua Produk, HP tetap mengalir biasa) */
+  html.embed:not(.zan-phone) #page-pricelist.active, html.embed:not(.zan-phone) #page-pricelistall.active{ height:calc(100vh - 82px); }
   #priceListAllCard{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListAllCard .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
   #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; overflow:visible; }
