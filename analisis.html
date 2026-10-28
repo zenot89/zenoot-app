@@ -552,13 +552,19 @@
   .info-bubble::before{ content:''; position:absolute; top:-6px; left:14px; width:12px; height:12px; background:#fff; transform:rotate(45deg); box-shadow:-2px -2px 4px rgba(0,0,0,.05); }
   .info-tip:hover .info-bubble, .info-tip:focus .info-bubble{ display:block; }
   /* ===== Price List (satu-satunya metode Proyeksi Harga, by GPM — [27 Okt 2026]) ===== */
-  /* Halaman: minicard komponen GPM + parameter di atas, tabel mengisi sisa tinggi layar (header beku, scroll cuma di baris data) */
-  #page-pricelist.active{ display:flex; flex-direction:column; flex:1; min-height:0; }
-  #priceListCard-pricelist{ flex:1; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
+  /* Halaman pas 1 layar (pola Profit per Pesanan): KIRI tabel lengkap — header beku, hanya isi yang scroll; KANAN panel pengaturan (scroll sendiri kalau layar pendek) */
+  #page-pricelist.active{ display:flex; flex-direction:row; gap:14px; align-items:stretch; height:calc(100vh - 130px); min-height:420px; }
+  #priceListCard-pricelist{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
-  .pl-param-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
-  #pricelistParams{ margin-bottom:14px; }
-  .pl-in input{ width:100%; box-sizing:border-box; margin-top:8px; padding:6px 10px; font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; }
+  #priceListCard-pricelist .ca-table{ border-collapse:separate; border-spacing:0; }
+  #pricelistParams{ flex:0 0 340px; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+  #pricelistParams .card{ margin-bottom:0; }
+  .pl-row{ display:grid; grid-template-columns:1fr 124px; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .pl-row:last-child{ border-bottom:none; padding-bottom:2px; }
+  .pl-row label, .pl-row .lbl{ font-size:12px; font-weight:700; letter-spacing:.4px; color:var(--ink); }
+  .pl-row .ket{ display:block; font-weight:400; }
+  .pl-row input{ width:100%; box-sizing:border-box; padding:6px 10px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; }
+  .pl-row.ro .val{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--ink); padding-right:11px; }
   #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
   /* Perpindahan antar halaman Proyeksi Harga: fade pendek (opacity saja, tanpa transform supaya posisi bottom-sheet/sticky tidak ikut terpengaruh) */
   @keyframes zanPageIn{ from{ opacity:0; } to{ opacity:1; } }
@@ -1499,20 +1505,30 @@
 
 
   <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (satu-satunya metode: by GPM, [27 Okt 2026]) ============
-       Proyeksi Harga disederhanakan jadi 2 halaman: Price List (metode by GPM, mengikuti sheet PROYEKSI HARGA) dan Check Admin.
-       #pricelistStats = minicard komponen GPM, #pricelistParams = parameter harga (VCHR & Up Hrg Coret = input), #priceListCard-pricelist = tabel. -->
+       Price List BERDIRI SENDIRI: kiri = tabel lengkap (header beku, hanya isi yang scroll), kanan = pengaturan Price List (input manual per toko, tersimpan otomatis).
+       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan. -->
   <section class="page" id="page-pricelist">
-    <div id="pricelistStats"></div>
-    <div class="card" id="pricelistParams">
-      <h3>Parameter Harga</h3>
-      <div class="pl-param-grid">
-        <div class="stat-card"><div class="stat-label">INCOME / PC<span class="ket" style="display:block;font-weight:400;">Net Income Toko di Setting — Net Income di bawah angka ini diberi warna merah</span></div><div class="stat-value" id="plIncomeVal">-</div></div>
-        <div class="stat-card"><div class="stat-label">BPP<span class="ket" style="display:block;font-weight:400;" id="plBppSrc">Biaya proses pesanan per order</span></div><div class="stat-value" id="plBppVal">-</div></div>
-        <div class="stat-card pl-in"><label class="stat-label" for="plVchr">VCHR (Rp)<span class="ket" style="display:block;font-weight:400;">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="0" autocomplete="off"></div>
-        <div class="stat-card pl-in"><label class="stat-label" for="plUpCoret">UP HRG CORET (%)<span class="ket" style="display:block;font-weight:400;">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="20" autocomplete="off"></div>
-      </div>
-    </div>
     <div class="card" id="priceListCard-pricelist"></div>
+    <aside id="pricelistParams">
+      <div class="card">
+        <h3>Pengaturan Toko</h3>
+        <div class="pl-row"><label for="plGpm">GPM TOKO (%)<span class="ket">Margin kotor yang dikejar: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
+      </div>
+      <div class="card">
+        <h3>Income</h3>
+        <div class="pl-row"><label for="plIncome">INCOME / PC (Rp)<span class="ket">Net Income minimum per pcs. Net Income di bawah angka ini diberi warna merah</span></label><input type="text" inputmode="numeric" id="plIncome" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
+      </div>
+      <div class="card">
+        <h3>Harga</h3>
+        <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="0" autocomplete="off"></div>
+        <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="0" autocomplete="off"></div>
+      </div>
+    </aside>
   </section>
 
   <!-- ============ PAGE 3: HASIL RASIO KEUANGAN ============ -->
@@ -2495,7 +2511,7 @@ const state = {
   adsFile: null,
   hppMaster: zHppView(),   // baca-saja: HPP dari Kelola Produk zenOt (zHppView di zStore)
   manual: { pendapatan:null, penghasilan:null, operasional:0, iklan:null, ratioAdminLayanan:0 },
-  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null, vchrToko:0, upHrgCoret:20 },
+  settings: { namaToko:null, targetRoas:null, operasionalToko:0, rasioOpsPercent:null, netIncomeToko:0, adminPct:25, bpp:1250, lainnyaPct:4, targetRasioLaba:null, vchrToko:0, upHrgCoret:20, plInit:false, plGpm:0, plAdmin:0, plRoas:0, plIncome:0, plBpp:0 },
   rekap: {},
   customHppProducts: [], // [{skuInduk, nomorRef, variasi, namaProduk}] — SKU yang didaftarin manual (bukan dari Order Completed), mis. dari tombol "Tambah SKU ke HPP" di Check Admin
   skuIndukOverrides: {}, // key: nomorRef|variasi -> SKU Induk hasil edit manual (buat benerin SKU Induk yang salah/keisi nama produk dari data Order Completed)
@@ -6866,58 +6882,64 @@ function renderCaRoasDisplay(){ renderRoasSimControl('ca', caRoasSim, caRoasChan
 bindRoasSimInput('ca', caRoasSim, caRoasChanged);
 try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init):', e); }
 
-/* ================= PROYEKSI HARGA: PRICE LIST (satu-satunya metode, by GPM) [27 Okt 2026] =================
+/* ================= PROYEKSI HARGA: PRICE LIST (satu-satunya metode, by GPM, BERDIRI SENDIRI) [27 Okt 2026] =================
    Dulu Proyeksi Harga punya 5 metode (Price List, By Operasional, By Target Qty, By Harga Jual, By Support). Disederhanakan jadi 1 metode — by GPM —
    mengikuti sheet PROYEKSI HARGA user; tab yang tersisa cuma Price List dan Check Admin.
-     GPM TOKO     = Admin% + ACOS + Ops% + Buffer% + NPM%     (berdiri sendiri; BPP & NPM Rp TIDAK ikut rumus)
+   Price List punya pengaturan SENDIRI (panel kanan, input manual per toko, tersimpan otomatis di state.settings) — TIDAK lagi menarik angka dari Setting/Rekap:
+     plGpm (GPM Toko %), plAdmin (Admin Toko %), plRoas (ROAS Toko; ACOS = 1 ÷ ROAS), plIncome (Income/PC Rp), plBpp (Rp), vchrToko (VCHR Rp), upHrgCoret (%).
+   Rumus (sama dengan sheet; Admin & ACOS dihitung dari harga SETELAH voucher toko):
      Harga Net    = ROUNDUP(HPP ÷ (1 − GPM) + VCHR + 1, −3) − 1    (selalu berakhiran ...999; voucher ditambahkan SEBELUM pembulatan)
      Harga Upload = HPP × 3
      Harga Coret  = Harga Net × (1 + Up Hrg Coret)
      Net Income   = (Harga Net − VCHR) − HPP − (Harga Net − VCHR) × (Admin + ACOS) − BPP
-     NPM          = Net Income ÷ (Harga Net − VCHR)           Net Income < NET INCOME TOKO (Setting) = sel merah
-   Sumber angka:
-     Produk & HPP   : LANGSUNG dari Kelola Produk (zKatalogGroups, live) — 1 baris per Katalog, dipecah per size kalau HPP beda antar varian (HPP per size = yang TERTINGGI).
-     Admin %        : Proyeksi RKS bulan berjalan -> RKS Mingguan terbaru -> RKS Overview terbaru -> (terakhir) Setting.   ACOS = 1 ÷ Setting > TARGET ROAS TOKO.
-     BPP            : resolveAdminBpp() (Rekap bulanan terbaru, fallback Setting).   Ops % / Buffer % / NPM % (= TARGET RASIO LABA): Setting per toko.
-     VCHR & Up Hrg Coret: input di halaman ini, disimpan per toko di state.settings (vchrToko, upHrgCoret).
+     NPM          = Net Income ÷ (Harga Net − VCHR)           Net Income < Income/PC = sel merah
+   Produk & HPP: LANGSUNG dari Kelola Produk (zKatalogGroups, live) — 1 baris per Katalog, dipecah per size kalau HPP beda antar varian (HPP per size = yang TERTINGGI).
+   Pengaturan toko yang belum pernah dibuka DIISI SEKALI dari angka yang berlaku saat itu (Rekap/Setting) lewat plSeed(), setelah itu bebas diubah & tidak ikut berubah lagi.
    Tidak ada tabel yang disimpan — semua dihitung ulang tiap render. */
 function escHtml(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function plValid(v){ return v!==null && v!==undefined && !isNaN(v) && v>0; }
+// Dasar pengisian awal Admin: Proyeksi RKS bulan berjalan -> RKS Mingguan terbaru -> RKS Overview terbaru -> Setting. ACOS awal = 1 ÷ Setting > Target ROAS Toko.
 function plSources(){
   const d = new Date(), ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   const cands = [];
   const sp = state.proyeksi && state.proyeksi.rekap ? state.proyeksi.rekap[ym] : null;
-  if(sp) cands.push({ name:'Proyeksi RKS', label: sp.label || ym, admin: sp.ratioAdmin });
+  if(sp) cands.push(sp.ratioAdmin);
   const mk = Object.keys((state.mingguan && state.mingguan.rekap) || {}).sort();
-  if(mk.length){ const sn = state.mingguan.rekap[mk[mk.length-1]]; cands.push({ name:'RKS Mingguan', label: sn.label || mk[mk.length-1], admin: sn.ratioAdmin }); }
+  if(mk.length) cands.push(state.mingguan.rekap[mk[mk.length-1]].ratioAdmin);
   const ok = Object.keys(state.rekap||{}).sort();
-  if(ok.length){ const sn = state.rekap[ok[ok.length-1]]; cands.push({ name:'RKS Overview', label: rekapMonthLabel(ok[ok.length-1]), admin: sn.ratioAdmin }); }
-  let admin = null;
-  for(const c of cands){ if(plValid(c.admin)){ admin = { value:c.admin, src:c.name+' '+c.label }; break; } }
-  if(!admin){ const v = state.settings.adminPct; admin = plValid(v) ? { value:v/100, src:'Setting (fallback)' } : { value:0, src:'belum ada data' }; }
+  if(ok.length) cands.push(state.rekap[ok[ok.length-1]].ratioAdmin);
+  let admin = cands.find(plValid);
+  if(!plValid(admin)){ const v = state.settings.adminPct; admin = plValid(v) ? v/100 : 0; }
   const tr = state.settings.targetRoas;
-  const acos = plValid(tr) ? { value:1/tr, roas:tr, src:'Setting — Target ROAS Toko' } : { value:0, roas:0, src:'isi Target ROAS Toko di Setting' };
-  return { admin, acos };
+  return { admin, roas: plValid(tr) ? tr : 0 };
 }
-function plVchr(){ const v = Number(state.settings.vchrToko); return (isNaN(v) || v<0) ? 0 : v; }
-function plUpCoret(){ const v = Number(state.settings.upHrgCoret); return (isNaN(v) || v<0) ? 0 : v/100; }
+// Isi awal pengaturan Price List (SEKALI per toko): GPM = Admin + ACOS + Ops + Buffer + NPM dari angka yang berlaku saat itu
+function plSeed(){
+  if(state.settings.plInit) return;
+  const s = plSources(), acos = s.roas>0 ? 1/s.roas : 0;
+  const nRaw = state.settings.targetRasioLaba, npm = plValid(nRaw) ? nRaw/100 : 0;
+  const pct = x=>Math.round(x*1000)/10;
+  state.settings.plGpm = pct(s.admin + acos + plOpsPct()/100 + (state.settings.lainnyaPct||0)/100 + npm);
+  state.settings.plAdmin = pct(s.admin);
+  state.settings.plRoas = s.roas;
+  state.settings.plIncome = state.settings.netIncomeToko||0;
+  state.settings.plBpp = resolveAdminBpp().bpp||0;
+  state.settings.plInit = true;
+  saveSettingsToStorage();
+}
+function plSet(k){ const v = Number(state.settings[k]); return (isNaN(v) || v<0) ? 0 : v; }
 function plParams(){
-  const src = plSources();
-  const ops = plOpsPct()/100, buffer = (state.settings.lainnyaPct||0)/100;
-  const nRaw = state.settings.targetRasioLaba;
-  const npm = (nRaw!==null && nRaw!==undefined && !isNaN(nRaw) && nRaw>0) ? nRaw/100 : 0;   // NPM % = TARGET RASIO LABA di Setting
-  const gpm = src.admin.value + src.acos.value + ops + buffer + npm;
-  const bb = resolveAdminBpp();
-  return { src, ops, buffer, npm, gpm, bpp: bb.bpp||0, bppSrc: bb.bppSource==='rekap' ? 'Rekap '+bb.bppLabel : 'fallback Setting' };
+  const roas = plSet('plRoas');
+  return { gpm: plSet('plGpm')/100, admin: plSet('plAdmin')/100, roas, acos: roas>0 ? 1/roas : 0,
+           bpp: plSet('plBpp'), income: plSet('plIncome'), vchr: plSet('vchrToko'), up: plSet('upHrgCoret')/100 };
 }
 function plCalc(row, P){
   const hpp = row.hpp||0;
   if(P.gpm>=1 || !(hpp>0)) return null;
-  const vchr = plVchr();
-  const net = Math.ceil((hpp/(1-P.gpm) + vchr + 1)/1000)*1000 - 1;
-  const after = net - vchr;                                              // harga setelah voucher = dasar Net Income & NPM
-  const netIncome = after - hpp - after*(P.src.admin.value + P.src.acos.value) - P.bpp;
-  return { upload: hpp*3, coret: Math.round(net*(1+plUpCoret())), net, netIncome, npm: after>0 ? netIncome/after : null };
+  const net = Math.ceil((hpp/(1-P.gpm) + P.vchr + 1)/1000)*1000 - 1;
+  const after = net - P.vchr;                                              // harga setelah voucher = dasar Admin, ACOS, Net Income & NPM
+  const netIncome = after - hpp - after*(P.admin + P.acos) - P.bpp;
+  return { upload: hpp*3, coret: Math.round(net*(1+P.up)), net, netIncome, npm: after>0 ? netIncome/after : null };
 }
 // Baris produk LANGSUNG dari Kelola Produk (live). 1 baris per Katalog, kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI).
 function plRows(){
@@ -6944,11 +6966,10 @@ function plBodyHtml(P){
   if(!list.length){
     return `<tr><td colspan="8" style="color:var(--ink-soft);">${all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada produk ber-HPP di Kelola Produk.'}</td></tr>`;
   }
-  const limit = state.settings.netIncomeToko||0;     // INCOME / PC: Net Income di bawah ini = merah
   return list.map((row,i)=>{
     const c = plCalc(row, P);
     if(!c) return `<tr><td class="num">${i+1}</td><td>${escHtml(row.sku)}</td><td class="num">${fmtNum(row.hpp)}</td><td class="num" colspan="5">-</td></tr>`;
-    const low = limit>0 && c.netIncome<limit;
+    const low = P.income>0 && c.netIncome<P.income;
     return `<tr>
       <td class="num">${i+1}</td>
       <td>${escHtml(row.sku)}</td>
@@ -6961,44 +6982,36 @@ function plBodyHtml(P){
     </tr>`;
   }).join('');
 }
-function plRenderBody(){
+// Angka turunan di panel kanan (ACOS, Net Income / Lsn) + isi tabel; input-nya sendiri TIDAK disentuh
+function plRefresh(){
+  const P = plParams();
+  const setTxt = (id, v)=>{ const el = document.getElementById(id); if(el && el.textContent!==v) el.textContent = v; };
+  setTxt('plAcosVal', P.roas>0 ? plPctTxt(P.acos) : '-');
+  setTxt('plIncomeLsn', fmtRp(P.income*12));
   const body = document.getElementById('plBody');
-  if(body) body.innerHTML = plBodyHtml(plParams());
+  if(body) body.innerHTML = plBodyHtml(P);
 }
+// [id input, key di state.settings, jenis]: 'rp' = rupiah (pemisah ribuan), 'pct' = desimal (koma boleh)
+const PL_INPUTS = [['plGpm','plGpm','pct'],['plAdmin','plAdmin','pct'],['plRoas','plRoas','pct'],['plIncome','plIncome','rp'],['plVchr','vchrToko','rp'],['plBpp','plBpp','rp'],['plUpCoret','upHrgCoret','pct']];
 function renderPricelistPage(fromLoad){
-  const statsEl = document.getElementById('pricelistStats'), card = document.getElementById('priceListCard-pricelist');
-  if(!statsEl || !card) return;
+  const card = document.getElementById('priceListCard-pricelist');
+  if(!card) return;
   // Kelola Produk bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang
   if(!fromLoad && Date.now()-_plLoadTs > 5000){
     _plLoadTs = Date.now();
     zProdukLoad().then(()=>renderPricelistPage(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk:', e));
   }
+  plSeed();
+  // sinkronkan input panel kanan dari state toko aktif (kecuali yang lagi diketik)
+  PL_INPUTS.forEach(([id,key,kind])=>{
+    const el = document.getElementById(id);
+    if(!el || document.activeElement===el) return;
+    el.value = kind==='rp' ? fmtNum(plSet(key)) : String(plSet(key)).replace('.',',');
+  });
   const P = plParams();
-  const cardHtml = (label, val, ket)=>`<div class="stat-card"><div class="stat-label">${label}<span class="ket" style="display:block;font-weight:400;">${escHtml(ket)}</span></div><div class="stat-value">${val}</div></div>`;
-  // Minicard ACOS: nilai ACOS di kiri, ROAS (kebalikannya) di kanan
-  const roasTxt = P.src.acos.roas>0 ? (Math.round(P.src.acos.roas*100)/100).toString().replace('.',',')+'x' : '-';
-  const acosCard = `<div class="stat-card" style="display:grid;grid-template-columns:1fr auto;column-gap:12px;align-items:start;"><div class="stat-label" style="grid-column:1;grid-row:1;">ACOS<span class="ket" style="display:block;font-weight:400;">${escHtml(P.src.acos.src)}</span></div><div class="stat-label" style="grid-column:2;grid-row:1;text-align:right;">ROAS</div><div class="stat-value" style="grid-column:1;grid-row:2;">${fmtPct(P.src.acos.value)}</div><div class="stat-value" style="grid-column:2;grid-row:2;text-align:right;">${roasTxt}</div></div>`;
-  patchHtml(statsEl, `<div class="card" style="margin-bottom:14px;">
-    <h3>Komponen GPM</h3>
-    <div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:0;">
-      ${cardHtml('GPM Toko', fmtPct(P.gpm), 'Admin + ACOS + Operasional + Buffer + NPM')}
-      ${cardHtml('Admin %', fmtPct(P.src.admin.value), P.src.admin.src)}
-      ${acosCard}
-      ${cardHtml('Operasional %', fmtPct(P.ops), 'Setting — Rasio Operasional')}
-      ${cardHtml('Buffer %', fmtPct(P.buffer), 'Setting')}
-      ${cardHtml('NPM %', fmtPct(P.npm), P.npm>0 ? 'Setting — Target Rasio Laba' : 'isi Target Rasio Laba di Setting')}
-    </div>
-  </div>`);
-  // parameter harga: nilai baca-saja diperbarui, input VCHR & Up Hrg Coret disinkronkan dari state toko aktif (kecuali lagi diketik)
-  const setTxt = (id, v)=>{ const el = document.getElementById(id); if(el && el.textContent!==v) el.textContent = v; };
-  setTxt('plIncomeVal', fmtRp(state.settings.netIncomeToko||0));
-  setTxt('plBppVal', fmtRp(P.bpp));
-  const bppSrcEl = document.getElementById('plBppSrc'); if(bppSrcEl) bppSrcEl.textContent = P.bppSrc;
-  const vIn = document.getElementById('plVchr'), uIn = document.getElementById('plUpCoret');
-  if(vIn && document.activeElement!==vIn) vIn.value = fmtNum(plVchr());
-  if(uIn && document.activeElement!==uIn) uIn.value = String(Number(state.settings.upHrgCoret)||0).replace('.',',');
   if(P.gpm>=1){
-    card.innerHTML = '<h3>Price List</h3><div class="hint" style="margin:0;">Harga Net gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek angka sumbernya (Rekap / Setting).</div>';
+    card.innerHTML = '<h3>Price List</h3><div class="hint" style="margin:0;">Harga Net gak bisa dihitung — GPM Toko sudah ≥ 100%. Cek GPM Toko di panel kanan.</div>';
+    plRefresh();
     return;
   }
   if(!document.getElementById('plSearch')){
@@ -7008,27 +7021,29 @@ function renderPricelistPage(fromLoad){
         <input type="search" id="plSearch" placeholder="Cari SKU…" autocomplete="off"
           style="width:220px;max-width:100%;padding:4px 10px;font-size:13px;font-weight:400;border:1px solid var(--ink);border-radius:4px;background:#fff;color:#111;">
       </h3>
-      <div class="hint" style="margin:0 0 12px;">Harga Net = HPP ÷ (1 − GPM Toko) + VCHR, dibulatkan naik ke ...999. Net Income = (Harga Net − VCHR) − HPP − (Admin + ACOS) − BPP; merah kalau di bawah Income / PC. Produk &amp; HPP langsung dari Kelola Produk.</div>
+      <div class="hint" style="margin:0 0 12px;">Harga Net = HPP ÷ (1 − GPM Toko) + VCHR, dibulatkan naik ke ...999. Admin &amp; ACOS dihitung dari harga SETELAH voucher: Net Income = (Harga Net − VCHR) − HPP − (Admin + ACOS) − BPP; merah kalau di bawah Income / PC. Produk &amp; HPP langsung dari Kelola Produk.</div>
       <div class="pricelist-scroll">
         <table class="ca-table">
           <thead><tr><th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
           <tbody id="plBody"></tbody>
         </table>
       </div>`;
-    document.getElementById('plSearch').addEventListener('input', e=>{ _plQuery = e.target.value||''; plRenderBody(); });
+    document.getElementById('plSearch').addEventListener('input', e=>{ _plQuery = e.target.value||''; plRefresh(); });
   }
   const sIn = document.getElementById('plSearch'); if(sIn && document.activeElement!==sIn) sIn.value = _plQuery;
-  plRenderBody();
+  plRefresh();
 }
 (function(){
-  const v = document.getElementById('plVchr'), u = document.getElementById('plUpCoret');
-  if(v){
-    attachThousands(v);
-    v.addEventListener('input', ()=>{ const n = parseNum(v.value); state.settings.vchrToko = (n===null||n<0) ? 0 : n; saveSettingsToStorage(); plRenderBody(); });
-  }
-  if(u){
-    u.addEventListener('input', ()=>{ const n = parseFloat(String(u.value).replace(',','.')); state.settings.upHrgCoret = (isNaN(n)||n<0) ? 0 : n; saveSettingsToStorage(); plRenderBody(); });
-  }
+  PL_INPUTS.forEach(([id,key,kind])=>{
+    const el = document.getElementById(id); if(!el) return;
+    if(kind==='rp') attachThousands(el);
+    el.addEventListener('input', ()=>{
+      const n = kind==='rp' ? parseNum(el.value) : parseFloat(String(el.value).replace(',','.'));
+      state.settings[key] = (n===null || n===undefined || isNaN(n) || n<0) ? 0 : n;
+      saveSettingsToStorage();
+      if(plParams().gpm>=1 || !document.getElementById('plSearch')) renderPricelistPage(true); else plRefresh();   // GPM ≥ 100% -> tampil pesan; tabel dibangun ulang begitu nilainya wajar lagi
+    });
+  });
 })();
 
 /* ================= PAGE: SETTING ================= */
@@ -7278,11 +7293,11 @@ function opsRefreshDependents(){
 /* ================= PAGE: SETTING (multi-toko) ================= */
 const SETTING_FIELDS = [
   {key:'targetRoas', label:'TARGET ROAS TOKO', ket:'Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan', ph:'mis. 8.3', type:'decimal'},
-  {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Price List & Check Admin. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
+  {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Check Admin. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
   {key:'bpp', label:'BPP (fallback, Rp)', ket:'Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 1250', type:'rupiah'},
   {key:'rasioOpsPercent', label:'RASIO OPERASIONAL', ket:'Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order', ph:'mis. 10', type:'decimal'},
-  {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di GPM Toko (Price List) & Check Admin, buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
-  {key:'netIncomeToko', label:'NET INCOME TOKO', ket:'Batas Net Income per SKU (Rp) — manual. Di Price List, Net Income di bawah angka ini diberi warna merah (setara INCOME / PC di sheet). Net Income = NPM + Operasional, sama seperti Check Admin', ph:'0', type:'rupiah'},
+  {key:'lainnyaPct', label:'BUFFER (LAINNYA) %', ket:'Dlm % — cadangan di Check Admin, buat nutup biaya tak terduga. Default 4', ph:'mis. 4', type:'decimal'},
+  {key:'netIncomeToko', label:'NET INCOME TOKO', ket:'Target Net Income per SKU (Rp) — manual. Net Income = NPM + Operasional, sama seperti Check Admin. (Price List punya Income / PC sendiri di panel kanannya)', ph:'0', type:'rupiah'},
   {key:'targetRasioLaba', label:'TARGET RASIO LABA', ket:'Dlm % — batas ijo/kuning buat Net Income, Laba/Rugi & Rasio Laba di RKS Overview. Minus = merah, di bawah target = kuning, capai/lebih = ijo', ph:'mis. 15', type:'decimal'}
 ];
 // [24 Sep 2026] zStore.init() cuma memuat toko AKTIF, jadi zLS.getItem() untuk toko LAIN selalu kosong -> kartu Setting toko lain
