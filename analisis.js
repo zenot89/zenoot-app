@@ -83,7 +83,7 @@
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['profit', 'Profit Pesanan', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['checkadmin', 'Check Admin']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['pricelistall', 'Semua Produk'], ['checkadmin', 'Check Admin']] },
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
   var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
@@ -97,7 +97,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'pricelistall', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -344,9 +344,11 @@
     'html.zan-phone #page-pricelist.active{display:flex;flex-direction:column;height:auto;min-height:0;gap:12px;}',
     'html.zan-phone #pricelistParams{order:-1;flex:none;width:auto;overflow:visible;}',
     'html.zan-phone #priceListCard-pricelist{display:block;flex:none;}',
+    'html.zan-phone #page-pricelistall.active{display:block;height:auto;min-height:0;}',
+    'html.zan-phone #priceListAllCard{display:block;flex:none;}',
     'html.zan-phone .pricelist-scroll{max-height:none;overflow-x:auto;}',
-    'html.zan-phone #priceListCard-pricelist .ca-table{display:table;width:100%;min-width:640px;}',
-    'html.zan-phone #priceListCard-pricelist .ca-table th,html.zan-phone #priceListCard-pricelist .ca-table td{padding:10px 8px;font-size:12.5px;white-space:nowrap;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table,html.zan-phone #priceListAllCard .ca-table{display:table;width:100%;min-width:640px;}',
+    'html.zan-phone #priceListCard-pricelist .ca-table th,html.zan-phone #priceListCard-pricelist .ca-table td,html.zan-phone #priceListAllCard .ca-table th,html.zan-phone #priceListAllCard .ca-table td{padding:10px 8px;font-size:12.5px;white-space:nowrap;}',
 
     // ══ Rekap & Rekap Mingguan: tabel dipadatkan, kolom Kriteria nempel di kiri (sticky), header beku, isi scroll DI DALAM kartu ══
     // [21 Sep 2026] tinggi halaman = 100vh - topbar (66px), sama seperti RKS Overview; padding bawah #main dibuang → kartu tabel habis sampai ujung bawah layar
@@ -718,3 +720,4 @@
 // (61) [28 Okt 2026] Price List (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): panel kanan jadi 3 bagian (Pengaturan Toko: Channel + GPM | Harga: Admin, ROAS, ACOS, VCHR, BPP, Up Hrg Coret | Income); pengaturan Price List disimpan PER CHANNEL (key global zenootAnalisis.priceList, bukan per toko) dan channel dipilih lewat badge kanan atas di halaman Price List; pengaturan lama per toko dimigrasi otomatis.
 // (62) [28 Okt 2026] Price List: pengaturan dipisah 2 tingkat (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): GLOBAL per channel = Admin, ROAS (ACOS), BPP, Up Hrg Coret (hanya diedit dari tab Star); PER CLUSTER = GPM, Net Income/PC (+ LSN), VCHR. Tab Tanpa Cluster = ikut Dog (terkunci). Isian otomatis dari Rekap/Setting DIHAPUS: yang belum diisi KOSONG (beda dari 0), tabel baru menghitung kalau semua isian terisi, dan angka lama dinolkan sekali (format penyimpanan v2).
 // (63) [28 Okt 2026] Price List (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): tombol Edit panel pengaturan sekarang membuka POP UP di tengah layar (latar gelap, Batal / Esc = buang, Simpan = simpan); urutan panel: Pengaturan Cluster di atas, Pengaturan Toko di bawah; 5 tombol tab cluster selebar tombol terlebar (Question Mark), tidak lagi mengikuti jumlah karakter; konfirmasi 'buang perubahan' saat ganti channel dihapus karena badge channel tertutup popup.
+// (64) [28 Okt 2026] Price List (semua di analisis.html; file INI hanya dapat tab/daftar halaman + catatan supaya hash APP_BUILD ikut berubah): (a) kartu Pengaturan Toko (global) hanya tampil di tab Star, tab cluster lain cuma Pengaturan Cluster; (b) halaman baru 'Semua Produk' (tab ke-2 Proyeksi Harga): semua produk channel toko + kolom Cluster, harga dihitung dari pengaturan cluster masing-masing (Tanpa Cluster ikut Dog); (c) tombol tab cluster menampilkan GPM yang sudah diset (mis. Star 3 45%).

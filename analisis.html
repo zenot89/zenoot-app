@@ -556,7 +556,10 @@
   #page-pricelist.active{ display:flex; flex-direction:row; gap:14px; align-items:stretch; height:calc(100vh - 130px); min-height:420px; }
   #priceListCard-pricelist{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
-  #priceListCard-pricelist .ca-table{ border-collapse:separate; border-spacing:0; }
+  #priceListCard-pricelist .ca-table, #priceListAllCard .ca-table{ border-collapse:separate; border-spacing:0; }
+  #page-pricelistall.active{ display:flex; flex-direction:column; height:calc(100vh - 130px); min-height:420px; }
+  #priceListAllCard{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
+  #priceListAllCard .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
   #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; overflow:visible; }
   .pl-pop{ display:flex; flex-direction:column; gap:clamp(6px,1.2vh,12px); }
   .pl-pop-h, .pl-backdrop[hidden]{ display:none; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
@@ -585,10 +588,10 @@
   #pricelistParams.is-editing .pl-row input, #pricelistParams.is-editing .pl-row.ro .val{ font-size:14px; padding-top:5px; padding-bottom:5px; }
   #pricelistParams.is-editing .pl-row.ro .val{ padding-top:0; padding-bottom:0; }
   #pricelistParams.is-editing .pl-actions > button{ padding:9px 14px; font-size:14px; }
-  #pricelistParams .pl-row[hidden]{ display:none; }
-  #pricelistParams.is-editing .pl-row input[readonly]{ background:transparent; border-color:transparent; cursor:default; -webkit-text-fill-color:var(--ink); }   /* terkunci walau panel sedang Edit (global di luar tab Star, cluster di tab Tanpa Cluster) */
+  #pricelistParams .pl-row[hidden], #pricelistParams .card[hidden]{ display:none; }
+  #pricelistParams.is-editing .pl-row input[readonly]{ background:transparent; border-color:transparent; cursor:default; -webkit-text-fill-color:var(--ink); }   /* terkunci walau panel sedang Edit (cluster di tab Tanpa Cluster) */
   #pricelistParams .setting-edit-btn:disabled{ opacity:.45; cursor:not-allowed; }
-  #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
+  #priceListCard-pricelist td.pl-low, #priceListAllCard td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
   /* Cluster produk (28 Okt 2026): tab di topbar (menggantikan kotak judul "Price List"), bar header tabel, popup Pilih Produk */
   .pl-ctabs{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; align-items:center; gap:6px; }   /* semua tombol selebar tombol terlebar (Question Mark), bukan mengikuti jumlah karakter */
   @media (max-width:700px){ .pl-ctabs{ grid-auto-flow:row; grid-template-columns:repeat(3,1fr); } }
@@ -596,6 +599,7 @@
   .pl-ctab:hover{ border-color:var(--ink); color:var(--ink); }
   .pl-ctab.active{ background:var(--title-bg); border-color:var(--ink); color:var(--ink); }
   .pl-ctab .pl-cn{ font-size:11px; font-weight:700; opacity:.7; }
+  .pl-ctab .pl-gp{ font-size:12px; font-weight:800; color:var(--ink); }
   #priceListCard-pricelist h3.pl-bar{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
   #priceListCard-pricelist h3.pl-bar #plSearch{ margin-left:auto; }
   .pl-pick, .pl-act{ font:inherit; font-size:13px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
@@ -627,12 +631,12 @@
   .pl-modal-f .pl-act{ padding:7px 18px; font-size:14px; color:#fff; background:var(--ink); }
   /* Perpindahan antar halaman Proyeksi Harga: fade pendek (opacity saja, tanpa transform supaya posisi bottom-sheet/sticky tidak ikut terpengaruh) */
   @keyframes zanPageIn{ from{ opacity:0; } to{ opacity:1; } }
-  #page-pricelist.active, #page-checkadmin.active{ animation:zanPageIn .16s ease-out; }
+  #page-pricelist.active, #page-pricelistall.active, #page-checkadmin.active{ animation:zanPageIn .16s ease-out; }
   /* angka yang berubah diperbarui di tempat (patchHtml) lalu berkedip halus — kartu tidak digambar ulang */
   @keyframes zanTick{ from{ opacity:.3; } to{ opacity:1; } }
   .zan-tick{ animation:zanTick .24s ease-out; }
   @media (prefers-reduced-motion:reduce){
-    #page-pricelist.active, #page-checkadmin.active, .zan-tick{ animation:none; }
+    #page-pricelist.active, #page-pricelistall.active, #page-checkadmin.active, .zan-tick{ animation:none; }
   }
   .roas-block{ padding:11px 0; border-bottom:1px solid var(--line); }
   .roas-block .lbl{ font-size:12.5px; font-weight:600; margin-bottom:8px; }
@@ -1488,6 +1492,7 @@
       </div>
       <div class="nav-submenu">
         <button data-page="pricelist"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Price List</button>
+        <button data-page="pricelistall"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Semua Produk</button>
         <button data-page="hasilM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> RKS Mingguan</button>
         <button data-page="rekapM"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Rekap Mingguan</button>
         <button data-page="hasilP"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span> Proyeksi RKS</button>
@@ -1580,10 +1585,9 @@
           <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
           <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="-" autocomplete="off" readonly></div>
         </div>
-        <div class="card">
+        <div class="card" id="plCardToko">
           <h3><span>Pengaturan Toko (global)</span></h3>
           <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
-          <div class="pl-row ro" id="plGlobalNote" hidden><span class="lbl" style="grid-column:1/-1;font-weight:400;">Berlaku ke semua cluster · diubah dari tab Star</span></div>
           <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="-" autocomplete="off" readonly></div>
           <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="-" autocomplete="off" readonly></div>
           <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
@@ -1593,6 +1597,12 @@
         <div class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></div>
       </div>
     </aside>
+  </section>
+
+  <!-- ============ PAGE: PROYEKSI HARGA > SEMUA PRODUK [28 Okt 2026] ============
+       Semua produk channel toko (semua cluster, termasuk Tanpa Cluster) dalam 1 tabel; harga tiap produk dihitung dari pengaturan CLUSTER-nya (Tanpa Cluster ikut Dog) + pengaturan toko (global). Hanya baca: diatur dari halaman Price List. -->
+  <section class="page" id="page-pricelistall">
+    <div class="card" id="priceListAllCard"></div>
   </section>
 
   <!-- ============ PAGE 3: HASIL RASIO KEUANGAN ============ -->
@@ -2818,6 +2828,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='rekap') renderRekap();
       if(btn.dataset.page==='setting') renderSetting();
       if(btn.dataset.page==='pricelist') renderPricelistPage();
+      if(btn.dataset.page==='pricelistall') renderPricelistAll();
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
@@ -3018,8 +3029,8 @@ function renderStoreTopbar(){
       el.className = 'store-badge';
       el.removeAttribute('role'); el.removeAttribute('tabindex'); el.removeAttribute('title');
       el.innerHTML = `<span class="dot"></span><span class="store-name">Semua Toko</span>`;
-    } else if(currentPage==='pricelist'){
-      // [28 Okt 2026] Price List: badge = pilihan CHANNEL (pengaturan Price List per channel, bukan per toko) — lihat plTogglePop()
+    } else if(currentPage==='pricelist' || currentPage==='pricelistall'){
+      // [28 Okt 2026] Price List & Semua Produk: badge = pilihan CHANNEL (pengaturan Price List per channel, bukan per toko) — lihat plTogglePop()
       el.className = 'store-badge clickable';
       el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.setAttribute('title','Ganti channel');
       el.innerHTML = `<span class="dot"></span><span class="store-name">${tokoEsc(plChannelName() || (_plCh.loaded ? 'Pilih channel' : 'Memuat…'))}</span><svg class="caret" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg>`;
@@ -3304,7 +3315,7 @@ function tokoRenderPop(){
   tokoRenderRows();
 }
 function tokoTogglePop(){
-  if(currentPage==='pricelist'){ plTogglePop(); return; }   // [28 Okt 2026] di Price List badge = pilihan channel
+  if(currentPage==='pricelist' || currentPage==='pricelistall'){ plTogglePop(); return; }   // [28 Okt 2026] di Price List badge = pilihan channel
   // [23 Sep 2026] Badge topbar di halaman Perbandingan Toko (layar HP) fungsinya "Pilih Data
   // Ditampilkan", bukan ganti toko — lihat catatan sama di renderStoreTopbar().
   if(currentPage==='tokocompare' && window.innerWidth<=600 && TC_MODE==='bulan' && TC_MOBILE_COL){
@@ -4355,6 +4366,7 @@ const PAGE_TITLES = {
   profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
+  pricelistall: 'Semua Produk',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   hasilP: 'Proyeksi RKS',
@@ -6980,7 +6992,7 @@ function plChannelName(){ const c = _plCh.list.find(x=>x.id===_plStore.active); 
 function plSetActive(id){
   _plStore.active = id; plStoreSave();
   _plRowEdit = false; _plSel.clear();
-  renderPricelistPage(true);
+  renderPricelistPage(true); renderPricelistAll(true);
 }
 function plPickChannel(id){
   if(id===_plStore.active) return;
@@ -7010,8 +7022,9 @@ function plSrc(){ return (_plEdit && _plDraft) ? _plDraft : plRec(); }
 // null = BELUM DIISI (beda dari 0): kosong / tidak ada / tidak valid
 function plVal(k){ const v = plSrc()[k]; if(v===null || v===undefined || v==='') return null; const n = Number(v); return (isNaN(n) || n<0) ? null : n; }
 function plChannelId(){ return _plStore.active; }
-function plParams(){
-  const g = f=>plVal(PL_GLOBAL[f]), c = f=>plVal(plCk(f));
+function plParams(cl){   // cl = key cluster; tanpa argumen = cluster tab aktif ('' = Tanpa Cluster -> Dog)
+  const ck = cl===undefined ? _plCluster : cl;
+  const g = f=>plVal(PL_GLOBAL[f]), c = f=>plVal(PL_CL[ck||'dog'][f]);
   const gpm = c('gpm'), inc = c('inc'), vch = c('vch'), admin = g('admin'), roas = g('roas'), bpp = g('bpp'), up = g('up');
   const missC = [['GPM',gpm],['Net Income/PC',inc],['VCHR',vch]].filter(x=>x[1]===null).map(x=>x[0]);
   const missG = [['Admin',admin],['ROAS',roas],['BPP',bpp],['Up Harga Coret',up]].filter(x=>x[1]===null).map(x=>x[0]);
@@ -7065,9 +7078,9 @@ function plKatalogByCluster(){
   return out;
 }
 // Baris tabel = katalog di cluster tab aktif. 1 baris per Katalog, kecuali HPP beda antar varian -> pecah per size (HPP per size = yang TERTINGGI).
-function plRows(){
+function plRows(cl){   // cl = key cluster; tanpa argumen = cluster tab aktif
   const out = [];
-  plKatalogByCluster()[_plCluster].forEach(g=>{
+  plKatalogByCluster()[cl===undefined ? _plCluster : cl].forEach(g=>{
     const distinct = [...new Set(g.variants.map(v=>v.hpp))];
     if(distinct.length<=1){ out.push({ katalog:g.katalog, sku:g.katalog, hpp:distinct[0]||0 }); return; }
     const bySize = new Map();
@@ -7113,6 +7126,12 @@ function plActsHtml(){
   const n = _plSel.size;
   return '<button type="button" class="pl-act danger" data-act="hapus"'+(n?'':' disabled')+'>Hapus'+(n?' ('+n+')':'')+'</button><button type="button" class="pl-act" data-act="selesai">Selesai</button>';
 }
+// 5 sel hasil hitung (Harga Upload … NPM) — dipakai tabel Price List & halaman Semua Produk; belum bisa dihitung = 1 sel '-' selebar 5 kolom
+function plCellsHtml(c, P){
+  if(!c) return '<td class="num" colspan="5">-</td>';
+  const low = P.inc>0 && c.netIncome<P.inc;
+  return `<td class="num">${fmtNum(c.upload)}</td><td class="num">${fmtNum(c.coret)}</td><td class="num" style="font-weight:700;">${fmtNum(c.net)}</td><td class="num${low?' pl-low':''}">${fmtNum(c.netIncome)}</td><td class="num">${plPctTxt(c.npm)}</td>`;
+}
 function plBodyHtml(P){
   const v = plVisible(), list = v.list, cs = _plRowEdit ? 9 : 8;
   if(!list.length){
@@ -7121,18 +7140,12 @@ function plBodyHtml(P){
   return list.map((row,i)=>{
     const c = plCalc(row, P);
     const chk = _plRowEdit ? `<td class="pl-chk"><input type="checkbox" class="pl-rowchk" data-kat="${escHtml(plKatKey(row))}"${_plSel.has(plKatKey(row)) ? ' checked' : ''}></td>` : '';
-    if(!c) return `<tr>${chk}<td class="num">${i+1}</td><td>${escHtml(row.sku)}</td><td class="num">${fmtNum(row.hpp)}</td><td class="num" colspan="5">-</td></tr>`;
-    const low = P.inc>0 && c.netIncome<P.inc;
     return `<tr>
       ${chk}
       <td class="num">${i+1}</td>
       <td>${escHtml(row.sku)}</td>
       <td class="num">${fmtNum(row.hpp)}</td>
-      <td class="num">${fmtNum(c.upload)}</td>
-      <td class="num">${fmtNum(c.coret)}</td>
-      <td class="num" style="font-weight:700;">${fmtNum(c.net)}</td>
-      <td class="num${low?' pl-low':''}">${fmtNum(c.netIncome)}</td>
-      <td class="num">${plPctTxt(c.npm)}</td>
+      ${plCellsHtml(c, P)}
     </tr>`;
   }).join('');
 }
@@ -7140,7 +7153,10 @@ function plBodyHtml(P){
 function plRenderTabs(){
   const el = document.getElementById('plClusterTabs'); if(!el) return;
   const by = plKatalogByCluster();
-  el.innerHTML = PL_CLUSTERS.map(c=>`<button type="button" class="pl-ctab${c.key===_plCluster ? ' active' : ''}" data-cl="${c.key}">${escHtml(c.nama)}<span class="pl-cn">${by[c.key].length}</span></button>`).join('');
+  el.innerHTML = PL_CLUSTERS.map(c=>{
+    const g = c.key ? plVal(PL_CL[c.key].gpm) : null;   // GPM cluster yang sudah diset (Tanpa Cluster tidak punya GPM sendiri)
+    return `<button type="button" class="pl-ctab${c.key===_plCluster ? ' active' : ''}" data-cl="${c.key}">${escHtml(c.nama)}<span class="pl-cn">${by[c.key].length}</span>${g===null ? '' : '<span class="pl-gp">'+String(g).replace('.',',')+'%</span>'}</button>`;
+  }).join('');
 }
 // Angka turunan di panel kanan (ACOS, Net Income / Lsn) + tab + bar + isi tabel; input-nya sendiri TIDAK disentuh
 function plRefresh(){
@@ -7241,7 +7257,7 @@ function plPickOpen(){
 // 'c' = PER CLUSTER (PL_CL, key cluster tab aktif; tab Tanpa Cluster membaca Dog dan selalu terkunci).
 const PL_INPUTS = [['plGpm','pct','c','gpm'],['plIncome','rp','c','inc'],['plVchr','rp','c','vch'],['plAdmin','pct','g','admin'],['plRoas','pct','g','roas'],['plBpp','rp','g','bpp'],['plUpCoret','pct','g','up']];
 function plInKey(scope, f){ return scope==='g' ? PL_GLOBAL[f] : plCk(f); }
-function plLocked(scope){ return !_plEdit || (scope==='g' ? _plCluster!=='star' : !_plCluster); }
+function plLocked(scope){ return !_plEdit || (scope==='c' && !_plCluster); }   // cluster terkunci di tab Tanpa Cluster; card Toko (global) hanya tampil di tab Star
 // Kunci/buka panel + tombol Edit⇄Simpan (+Batal) + sinkron nilai input dari sumber aktif (draft saat Edit, penyimpanan channel saat terkunci)
 function plSyncPanel(){
   const aside = document.getElementById('pricelistParams'); if(!aside) return;
@@ -7255,7 +7271,7 @@ function plSyncPanel(){
     el.value = v===null ? '' : (kind==='rp' ? fmtNum(v) : String(v).replace('.',','));
   });
   const cl = document.getElementById('plClusterVal'); if(cl) cl.textContent = _plCluster ? plClusterDef(_plCluster).nama : 'Tanpa Cluster (ikut Dog)';
-  const gn = document.getElementById('plGlobalNote'); if(gn) gn.hidden = _plCluster==='star';
+  const ct = document.getElementById('plCardToko'); if(ct) ct.hidden = _plCluster!=='star';   // Pengaturan Toko (global) hanya tampil & bisa diedit dari tab Star
   const cv = document.getElementById('plChannelVal'); if(cv) cv.textContent = plChannelName() || '-';
   if(currentPage==='pricelist') renderStoreTopbar();   // badge kanan atas = pilihan channel di halaman ini
   const btn = document.getElementById('plBtnEdit'); if(btn){ btn.classList.toggle('is-editing', _plEdit); btn.textContent = _plEdit ? 'Simpan' : 'Edit'; btn.disabled = !_plEdit && !_plCluster; }   // Tanpa Cluster = ikut Dog: tidak ada yang bisa diedit di tab itu
@@ -7276,14 +7292,49 @@ function plEditToggle(){
   plSyncPanel(); renderPricelistPage(true);
 }
 function plEditCancel(){ _plEdit = false; _plDraft = null; plSyncPanel(); renderPricelistPage(true); }
+function plReloadIfStale(rerender){
+  if(Date.now()-_plLoadTs <= 5000) return;
+  _plLoadTs = Date.now();
+  Promise.all([zProdukLoad(), plLoadChannels()]).then(()=>rerender(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk / Channel:', e));
+}
+// ── Halaman Semua Produk: semua produk channel toko, urut per cluster (Star → … → Tanpa Cluster), harga dari pengaturan cluster masing-masing
+function plAllMissText(parts){
+  const m = [];
+  parts.forEach(x=>{ if(x.miss.length) m.push(x.nama+' ('+x.miss.join(', ')+')'); });
+  const g = plParams('star').missG;
+  if(g.length) m.push('Toko: '+g.join(', ')+' (isi di tab Star)');
+  return m.length ? 'Belum bisa dihitung — belum diisi: '+m.join(' · ')+'.' : '';
+}
+function renderPricelistAll(fromLoad){
+  const card = document.getElementById('priceListAllCard'); if(!card) return;
+  if(!fromLoad) plReloadIfStale(renderPricelistAll);
+  plEnsureActive();
+  if(currentPage==='pricelistall') renderStoreTopbar();
+  const rows = [], parts = [];
+  PL_CLUSTERS.forEach(c=>{
+    const list = plRows(c.key); if(!list.length) return;
+    const P = plParams(c.key);
+    list.forEach(r=>rows.push({ row:r, nama:c.nama, P }));
+    if(!parts.some(x=>x.key===(c.key||'dog'))) parts.push({ key:c.key||'dog', nama:plClusterDef(c.key||'dog').nama, miss:P.missC });   // Tanpa Cluster membaca angka Dog
+  });
+  const miss = plAllMissText(parts);
+  const body = rows.length ? rows.map((x,i)=>{
+    const c = plCalc(x.row, x.P);
+    return `<tr><td class="num">${i+1}</td><td>${escHtml(x.row.sku)}</td><td>${escHtml(x.nama)}</td><td class="num">${fmtNum(x.row.hpp)}</td>${plCellsHtml(c, x.P)}</tr>`;
+  }).join('') : `<tr><td colspan="9" style="color:var(--ink-soft);">${escHtml(plEmptyMsg())}</td></tr>`;
+  card.innerHTML = (miss ? `<div class="hint" style="margin:0 0 8px;font-weight:700;">${escHtml(miss)}</div>` : '') + `
+    <div class="pricelist-scroll">
+      <table class="ca-table">
+        <thead><tr><th class="num">No</th><th>SKU</th><th>Cluster</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
 function renderPricelistPage(fromLoad){
   const card = document.getElementById('priceListCard-pricelist');
   if(!card) return;
   // Kelola Produk & Channel bisa berubah di app utama sesudah iframe ini dimuat -> muat ulang sebentar (maks 1x / 5 dtk), lalu render ulang
-  if(!fromLoad && Date.now()-_plLoadTs > 5000){
-    _plLoadTs = Date.now();
-    Promise.all([zProdukLoad(), plLoadChannels()]).then(()=>renderPricelistPage(true)).catch(e=>console.error('Gagal muat ulang Kelola Produk / Channel:', e));
-  }
+  if(!fromLoad) plReloadIfStale(renderPricelistPage);
   plEnsureActive();
   plSyncPanel();
   const P = plParams();
