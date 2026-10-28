@@ -557,7 +557,9 @@
   #priceListCard-pricelist{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListCard-pricelist .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
   #priceListCard-pricelist .ca-table{ border-collapse:separate; border-spacing:0; }
-  #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; gap:clamp(6px,1.2vh,12px); overflow:visible; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
+  #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; overflow:visible; }
+  .pl-pop{ display:flex; flex-direction:column; gap:clamp(6px,1.2vh,12px); }
+  .pl-pop-h, .pl-backdrop[hidden]{ display:none; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
   #pricelistParams .card{ margin-bottom:0; padding:clamp(8px,1.5vh,14px) 14px; }
   #pricelistParams .card h3{ margin-bottom:clamp(2px,.8vh,8px); padding:clamp(3px,.6vh,6px) 10px; font-size:clamp(12.5px,1.7vh,14.5px); display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .pl-actions{ display:flex; align-items:stretch; gap:8px; }   /* bar tombol di dasar panel: Edit ⇄ Simpan (+ Batal) */
@@ -573,13 +575,24 @@
   /* terkunci (default): tampil polos seperti halaman Setting; mode Edit: kolom input putih berbingkai, panel sedikit lebih gelap */
   #pricelistParams:not(.is-editing) .pl-row input{ background:transparent; border-color:transparent; cursor:default; appearance:none; -webkit-appearance:none; opacity:1; -webkit-text-fill-color:var(--ink); }
   #pricelistParams.is-editing .card{ background:var(--panel-alt); }
+  /* Edit = POP UP di tengah layar (urutan: Pengaturan Cluster di atas, Pengaturan Toko di bawah); latar digelapkan, klik di luar tidak menutup (Batal / Esc) */
+  .pl-backdrop{ position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.45); }
+  #pricelistParams.is-editing .pl-pop{ position:fixed; z-index:1001; top:50%; left:50%; transform:translate(-50%,-50%); width:min(460px,calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow-y:auto; box-sizing:border-box; padding:18px 22px 20px; gap:12px; background:#fff; border-radius:8px; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  #pricelistParams.is-editing .pl-pop-h{ display:block; font-size:18px; font-weight:700; color:var(--ink); }
+  #pricelistParams.is-editing .pl-pop .card{ padding:12px 14px; }
+  #pricelistParams.is-editing .pl-pop .card h3{ margin-bottom:6px; padding:5px 10px; font-size:14.5px; }
+  #pricelistParams.is-editing .pl-row{ padding:6px 0; }
+  #pricelistParams.is-editing .pl-row input, #pricelistParams.is-editing .pl-row.ro .val{ font-size:14px; padding-top:5px; padding-bottom:5px; }
+  #pricelistParams.is-editing .pl-row.ro .val{ padding-top:0; padding-bottom:0; }
+  #pricelistParams.is-editing .pl-actions > button{ padding:9px 14px; font-size:14px; }
   #pricelistParams .pl-row[hidden]{ display:none; }
   #pricelistParams.is-editing .pl-row input[readonly]{ background:transparent; border-color:transparent; cursor:default; -webkit-text-fill-color:var(--ink); }   /* terkunci walau panel sedang Edit (global di luar tab Star, cluster di tab Tanpa Cluster) */
   #pricelistParams .setting-edit-btn:disabled{ opacity:.45; cursor:not-allowed; }
   #priceListCard-pricelist td.pl-low{ background:#EA9999 !important; font-style:italic; font-weight:700; }
   /* Cluster produk (28 Okt 2026): tab di topbar (menggantikan kotak judul "Price List"), bar header tabel, popup Pilih Produk */
-  .pl-ctabs{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .pl-ctab{ font:inherit; font-size:14px; font-weight:800; letter-spacing:-.1px; color:var(--ink-soft); background:transparent; border:1px solid var(--line); border-radius:4px; padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .pl-ctabs{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; align-items:center; gap:6px; }   /* semua tombol selebar tombol terlebar (Question Mark), bukan mengikuti jumlah karakter */
+  @media (max-width:700px){ .pl-ctabs{ grid-auto-flow:row; grid-template-columns:repeat(3,1fr); } }
+  .pl-ctab{ font:inherit; font-size:14px; font-weight:800; letter-spacing:-.1px; color:var(--ink-soft); background:transparent; border:1px solid var(--line); border-radius:4px; padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:7px; }
   .pl-ctab:hover{ border-color:var(--ink); color:var(--ink); }
   .pl-ctab.active{ background:var(--title-bg); border-color:var(--ink); color:var(--ink); }
   .pl-ctab .pl-cn{ font-size:11px; font-weight:700; opacity:.7; }
@@ -1552,29 +1565,33 @@
 
   <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (satu-satunya metode: by GPM, [27 Okt 2026]) ============
        Price List BERDIRI SENDIRI: kiri = tabel lengkap (header beku, hanya isi yang scroll), kanan = pengaturan Price List (input manual per toko, tersimpan otomatis).
-       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan (2 kartu: Pengaturan Toko = global per channel, hanya diedit dari tab Star / Pengaturan Cluster = GPM, Net Income, VCHR per cluster). Channel dipilih lewat badge kanan atas (renderStoreTopbar). -->
+       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan (2 kartu: Pengaturan Cluster di atas = GPM, Net Income, VCHR per cluster / Pengaturan Toko di bawah = global per channel, hanya diedit dari tab Star; tombol Edit membuka panel ini sebagai POP UP di tengah layar). Channel dipilih lewat badge kanan atas (renderStoreTopbar). -->
   <section class="page" id="page-pricelist">
     <div class="card" id="priceListCard-pricelist"></div>
     <aside id="pricelistParams">
-      <div class="card">
-        <h3><span>Pengaturan Toko (global)</span></h3>
-        <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
-        <div class="pl-row ro" id="plGlobalNote" hidden><span class="lbl" style="grid-column:1/-1;font-weight:400;">Berlaku ke semua cluster · diubah dari tab Star</span></div>
-        <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="-" autocomplete="off" readonly></div>
-        <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="-" autocomplete="off" readonly></div>
-        <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
-        <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="-" autocomplete="off" readonly></div>
-        <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="-" autocomplete="off" readonly></div>
+      <div class="pl-backdrop" id="plBackdrop" hidden></div>
+      <div class="pl-pop" id="plPop" role="dialog" aria-label="Edit Pengaturan Price List">
+        <div class="pl-pop-h">Edit Pengaturan</div>
+        <div class="card">
+          <h3><span>Pengaturan Cluster</span></h3>
+          <div class="pl-row ro"><span class="lbl">CLUSTER</span><span class="val" id="plClusterVal">-</span></div>
+          <div class="pl-row"><label for="plGpm">GPM (%)<span class="ket">Margin kotor yang dikejar untuk produk di cluster ini: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="-" autocomplete="off" readonly></div>
+          <div class="pl-row"><label for="plIncome">NET INCOME / PC (Rp)<span class="ket">Net Income minimum per pcs di cluster ini. Net Income di bawah angka ini diberi warna merah</span></label><input type="text" inputmode="numeric" id="plIncome" placeholder="-" autocomplete="off" readonly></div>
+          <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
+          <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="-" autocomplete="off" readonly></div>
+        </div>
+        <div class="card">
+          <h3><span>Pengaturan Toko (global)</span></h3>
+          <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
+          <div class="pl-row ro" id="plGlobalNote" hidden><span class="lbl" style="grid-column:1/-1;font-weight:400;">Berlaku ke semua cluster · diubah dari tab Star</span></div>
+          <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="-" autocomplete="off" readonly></div>
+          <div class="pl-row"><label for="plRoas">ROAS TOKO<span class="ket">Target ROAS iklan. ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="-" autocomplete="off" readonly></div>
+          <div class="pl-row ro"><span class="lbl">ACOS</span><span class="val" id="plAcosVal">-</span></div>
+          <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="-" autocomplete="off" readonly></div>
+          <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="-" autocomplete="off" readonly></div>
+        </div>
+        <div class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></div>
       </div>
-      <div class="card">
-        <h3><span>Pengaturan Cluster</span></h3>
-        <div class="pl-row ro"><span class="lbl">CLUSTER</span><span class="val" id="plClusterVal">-</span></div>
-        <div class="pl-row"><label for="plGpm">GPM (%)<span class="ket">Margin kotor yang dikejar untuk produk di cluster ini: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="-" autocomplete="off" readonly></div>
-        <div class="pl-row"><label for="plIncome">NET INCOME / PC (Rp)<span class="ket">Net Income minimum per pcs di cluster ini. Net Income di bawah angka ini diberi warna merah</span></label><input type="text" inputmode="numeric" id="plIncome" placeholder="-" autocomplete="off" readonly></div>
-        <div class="pl-row ro"><span class="lbl">NET INCOME / LSN</span><span class="val" id="plIncomeLsn">-</span></div>
-        <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="-" autocomplete="off" readonly></div>
-      </div>
-      <div class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></div>
     </aside>
   </section>
 
@@ -6967,10 +6984,6 @@ function plSetActive(id){
 }
 function plPickChannel(id){
   if(id===_plStore.active) return;
-  if(_plEdit){
-    zConfirm('Perubahan pengaturan belum disimpan. Buang perubahan dan pindah channel?', {title:'Belum disimpan', ok:'Buang & pindah'}).then(ok=>{ if(ok){ plEditCancel(); plSetActive(id); } });
-    return;
-  }
   plSetActive(id);
 }
 const PL_KAT_LABEL = { toko_utama:'Shopee', lazada:'Lazada', tiktok:'TikTok' };
@@ -7233,6 +7246,7 @@ function plLocked(scope){ return !_plEdit || (scope==='g' ? _plCluster!=='star' 
 function plSyncPanel(){
   const aside = document.getElementById('pricelistParams'); if(!aside) return;
   aside.classList.toggle('is-editing', _plEdit);
+  const bd = document.getElementById('plBackdrop'); if(bd) bd.hidden = !_plEdit;
   PL_INPUTS.forEach(([id,kind,scope,f])=>{
     const el = document.getElementById(id); if(!el) return;
     el.readOnly = plLocked(scope);
@@ -7311,6 +7325,7 @@ function renderPricelistPage(fromLoad){
   });
   const be = document.getElementById('plBtnEdit'); if(be) be.addEventListener('click', plEditToggle);
   const bb = document.getElementById('plBtnBatal'); if(bb) bb.addEventListener('click', plEditCancel);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && _plEdit) plEditCancel(); });   // popup Edit: Esc = Batal
   // Tab cluster (topbar): ganti cluster = keluar dari mode Edit baris, GPM di panel kanan ikut berganti
   const tabs = document.getElementById('plClusterTabs');
   if(tabs) tabs.addEventListener('click', e=>{
