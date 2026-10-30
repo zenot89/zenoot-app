@@ -313,12 +313,12 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
        Barang: sheet naik dari bawah, search nempel di atas, list item
        terang (bukan dropdown melayang gelap kayak sebelumnya). ── */
     #jp-sku-sheet-overlay {
-      display: none; position: fixed; inset: 0; z-index: 598;
+      display: none; position: fixed; inset: 0; z-index: 1300;   /* 30 Okt 2026: 598 -> 1300, harus di atas overlay body-level (#jp-per-overlay, #jp-ch-ov = 600) */
       background: rgba(0,0,0,.55);
     }
     #jp-sku-sheet-overlay.open { display: block; }
     #jp-sku-sheet {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 599;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 1301;
       background: var(--cream2); border-radius: 20px 20px 0 0;
       transform: translateY(100%);
       transition: transform 0.28s cubic-bezier(.4,0,.2,1);
@@ -3771,7 +3771,19 @@ function jpClosePicker(list) {
 // 1 sheet dipakai gantian buat 2 field lewat _jpSkuSheetMode ('induk'/'variasi').
 var _jpSkuSheetMode = null;
 
+// 30 Okt 2026: sheet + overlay aslinya ditaruh DI DALAM #modal-jp (.modal-overlay z-index 300 = stacking context sendiri), jadi z-index 599
+// mereka hanya berlaku di dalam modal itu dan kalah oleh overlay level-body (#jp-per-overlay / #jp-ch-ov = 600). Pindahkan ke <body> saat dibuka
+// (pola yang sama dgn _jpPerSheetInject di bawah). Duplikat id sisa render ulang halaman dibuang dulu supaya getElementById tidak menunjuk yang basi.
+function _jpSkuSheetKeBody() {
+  ['jp-sku-sheet-overlay', 'jp-sku-sheet'].forEach(function(id) {
+    var all = document.querySelectorAll('#' + id);
+    if (!all.length) return;
+    for (var i = 1; i < all.length; i++) { if (all[i].parentNode) all[i].parentNode.removeChild(all[i]); }
+    if (all[0].parentNode !== document.body) document.body.appendChild(all[0]);
+  });
+}
 function jpSkuSheetOpen(mode) {
+  _jpSkuSheetKeBody();
   _jpSkuSheetMode = mode;
   var searchEl = document.getElementById('jp-sku-sheet-search');
   var titleEl  = document.getElementById('jp-sku-sheet-title');
