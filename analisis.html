@@ -6942,6 +6942,7 @@ try{ renderCaRoasDisplay(); }catch(e){ console.error('Gagal render CA ROAS (init
      Harga Net    = ROUNDUP(HPP ÷ (1 − GPM) + VCHR + 1, −3) − 1    (selalu berakhiran ...999; voucher ditambahkan SEBELUM pembulatan)
      Harga Upload = HPP × 3
      Harga Coret  = Harga Net × (1 + Up Hrg Coret)
+     Gap Harga    = Harga Coret − Harga Net
      Net Income   = (Harga Net − VCHR) − HPP − (Harga Net − VCHR) × (Admin + ACOS) − BPP
      NPM          = Net Income ÷ (Harga Net − VCHR)           Net Income < Net Income/PC cluster = sel merah
    Produk: HANYA yang terpasang di channel toko (menu Channel: tabel channel_produk, per katalog) — bukan semua produk Kelola Produk. HPP dari Kelola Produk (zKatalogGroups, live);
@@ -7141,7 +7142,7 @@ function plVisible(){
 function plVisibleKats(){ return [...new Set(plVisible().list.map(plKatKey))]; }
 function plHeadHtml(){
   return '<tr>' + (_plRowEdit ? '<th class="pl-chk"><input type="checkbox" id="plChkAll"></th>' : '') +
-    '<th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr>';
+    '<th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Gap Harga</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr>';
 }
 // Kiri bar tabel: tombol Pilih Produk (cluster) atau keterangan (Tanpa Cluster: produk masuk otomatis dari Channel). Kanan: Edit ⇄ Hapus + Selesai.
 function plLeftHtml(){
@@ -7156,12 +7157,12 @@ function plActsHtml(){
 }
 // 5 sel hasil hitung (Harga Upload … NPM) — dipakai tabel Price List & halaman Semua Produk; belum bisa dihitung = 1 sel '-' selebar 5 kolom
 function plCellsHtml(c, P){
-  if(!c) return '<td class="num" colspan="5">-</td>';
+  if(!c) return '<td class="num" colspan="6">-</td>';
   const low = P.inc>0 && c.netIncome<P.inc;
-  return `<td class="num">${fmtNum(c.upload)}</td><td class="num">${fmtNum(c.coret)}</td><td class="num" style="font-weight:700;">${fmtNum(c.net)}</td><td class="num${low?' pl-low':''}">${fmtNum(c.netIncome)}</td><td class="num">${plPctTxt(c.npm)}</td>`;
+  return `<td class="num">${fmtNum(c.upload)}</td><td class="num">${fmtNum(c.coret)}</td><td class="num">${fmtNum(c.coret-c.net)}</td><td class="num" style="font-weight:700;">${fmtNum(c.net)}</td><td class="num${low?' pl-low':''}">${fmtNum(c.netIncome)}</td><td class="num">${plPctTxt(c.npm)}</td>`;
 }
 function plBodyHtml(P){
-  const v = plVisible(), list = v.list, cs = _plRowEdit ? 9 : 8;
+  const v = plVisible(), list = v.list, cs = _plRowEdit ? 10 : 9;
   if(!list.length){
     return `<tr><td colspan="${cs}" style="color:var(--ink-soft);">${v.all.length ? 'Tidak ada SKU yang cocok dengan pencarian.' : escHtml(plEmptyMsg())}</td></tr>`;
   }
@@ -7355,11 +7356,11 @@ function renderPricelistAll(fromLoad){
   const body = rows.length ? rows.map((x,i)=>{
     const c = plCalc(x.row, x.P);
     return `<tr><td class="num">${i+1}</td><td>${escHtml(x.row.sku)}</td><td><span class="pl-cbadge plc-${x.key||'none'}">${escHtml(x.nama)}</span></td><td class="num">${fmtNum(x.row.hpp)}</td>${plCellsHtml(c, x.P)}</tr>`;
-  }).join('') : `<tr><td colspan="9" style="color:var(--ink-soft);">${escHtml(plEmptyMsg())}</td></tr>`;
+  }).join('') : `<tr><td colspan="10" style="color:var(--ink-soft);">${escHtml(plEmptyMsg())}</td></tr>`;
   card.innerHTML = (miss ? `<div class="hint" style="margin:0 0 8px;font-weight:700;">${escHtml(miss)}</div>` : '') + `
     <div class="pricelist-scroll">
       <table class="ca-table">
-        <thead><tr><th class="num">No</th><th>SKU</th><th>Cluster</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
+        <thead><tr><th class="num">No</th><th>SKU</th><th>Cluster</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Gap Harga</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>`;
