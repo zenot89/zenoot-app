@@ -620,7 +620,7 @@
   #priceListCard-pricelist h3.pl-bar #plSearch{ margin-left:auto; }
   .pl-pick, .pl-act{ font:inherit; font-size:13px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
   .pl-pick:disabled, .pl-act:disabled{ opacity:.45; cursor:default; }
-  .pl-pick.on{ background:var(--ink); color:#fff; }
+  .pl-supsel{ font:inherit; font-size:14px; font-weight:800; color:var(--ink); background:var(--title-bg); border:1px solid var(--ink); border-radius:4px; padding:6px 12px; cursor:pointer; max-width:260px; }   /* filter Supplier di topbar Semua Produk (menggantikan kotak judul) */
   .pl-act.danger{ color:var(--bad); border-color:var(--bad); }
   .pl-note{ font-size:13px; font-weight:700; color:var(--ink-soft); }
   #plActs{ display:inline-flex; gap:6px; }
@@ -1525,7 +1525,7 @@
 
 <div id="main">
 
-  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><div class="pl-ctabs" id="plClusterTabs" style="display:none;"></div><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
+  <div id="storeTopbar"><div class="store-title-wrap"><span class="page-title-bar" id="pageTitleBar">Rekap</span><div class="pl-ctabs" id="plClusterTabs" style="display:none;"></div><select class="pl-supsel" id="plSupFilter" aria-label="Filter supplier" style="display:none;"></select><button type="button" class="btn ghost small" id="btnGotoRekap" style="display:none;">Lihat Rekap</button><button type="button" class="btn ghost small" id="btnGotoProfit" data-goto-profit style="display:none;">Profit Pesanan</button><button type="button" class="btn ghost small" id="btnGotoRekapM" style="display:none;">Lihat Rekap Mingguan</button><button type="button" class="btn ghost small" id="btnBackOverview" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewPf" style="display:none;">&larr; RKS Overview</button><button type="button" class="btn ghost small" id="btnBackOverviewM" style="display:none;">&larr; RKS Mingguan</button><button type="button" class="btn ghost small" id="btnGotoRekapP" style="display:none;">Lihat Rekap Proyeksi</button><button type="button" class="btn ghost small" id="btnBackOverviewP" style="display:none;">&larr; Proyeksi RKS</button><span class="info-tip" id="tcTopbarInfo" tabindex="0" aria-label="Keterangan" style="display:none;"><span class="info-q">?</span><div class="info-bubble">Bandingin data Rekap (Bulanan/Mingguan) yang udah tersimpan dari semua toko sekaligus, tanpa perlu ganti toko aktif.</div></span></div><div class="store-badge empty" id="storeTopbarBadge"><span class="dot"></span><span>Belum ada toko aktif</span></div></div>
 
   <!-- ============ PAGE 1: HPP PRODUK (dulu "Data Toko" — upload file udah pindah ke tombol "Data Toko" di RKS Overview) ============ -->
   <section class="page" id="page-hpp">
@@ -4382,7 +4382,6 @@ const PAGE_TITLES = {
   profit: 'Profit per Pesanan',
   rekap: 'Rekap',
   checkadmin: 'Check Admin',
-  pricelistall: 'Semua Produk',
   hasilM: 'RKS Mingguan',
   rekapM: 'Rekap Mingguan',
   hasilP: 'Proyeksi RKS',
@@ -4395,7 +4394,8 @@ let currentPage = 'rekap';
 // [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
 // sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
 // pricelist: kotak judul diganti tab cluster (Star, Cash Cow, Question Mark, Dog, Tanpa Cluster) — #plClusterTabs, lihat bagian Price List.
-const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1, pricelist:1 };
+// pricelistall: kotak judul diganti dropdown filter Supplier — #plSupFilter, lihat renderPricelistAll.
+const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1, pricelist:1, pricelistall:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
@@ -4403,6 +4403,7 @@ function updatePageTitleBar(pageKey){
     el.style.display = PAGE_TITLE_HIDDEN[pageKey] ? 'none' : '';
   }
   const plt = document.getElementById('plClusterTabs');  if(plt) plt.style.display = (pageKey==='pricelist') ? '' : 'none';
+  const psf = document.getElementById('plSupFilter');    if(psf) psf.style.display = (pageKey==='pricelistall') ? '' : 'none';
   const gr = document.getElementById('btnGotoRekap');    if(gr)  gr.style.display  = (pageKey==='hasil')  ? '' : 'none';
   const gpf = document.getElementById('btnGotoProfit');  if(gpf) gpf.style.display = (pageKey==='hasil')  ? '' : 'none';   // [7 Okt 2026] Profit Pesanan: pindah dari toolbar RKS Overview ke topbar, sejajar "Lihat Rekap"
   const grM = document.getElementById('btnGotoRekapM');  if(grM) grM.style.display = (pageKey==='hasilM') ? '' : 'none';
@@ -7341,11 +7342,11 @@ function plAllMissText(parts){
   if(g.length) m.push('Toko: '+g.join(', ')+' (isi di tab Star)');
   return m.length ? 'Belum bisa dihitung — belum diisi: '+m.join(' · ')+'.' : '';
 }
-// Halaman Semua Produk: urutan default = per cluster (Star paling atas); tombol Sort Supplier = urut A–Z menurut supplier (kolom boss di Kelola Produk), dalam 1 supplier tetap urutan cluster; tanpa supplier di paling bawah
-var _plAllSortSup = false;
-function plSupplierOf(row){
+// Halaman Semua Produk: urutan tetap per cluster (Star paling atas); dropdown Supplier memfilter baris menurut supplier (kolom boss di Kelola Produk, per katalog; katalog dengan beberapa supplier ikut muncul di tiap supplier-nya)
+var _plAllSup = '';      // '' = Semua Supplier
+function plSuppliersOf(row){
   const kl = plKatKey(row);
-  return [...new Set(zProdukRows.filter(r=>String(r.katalog||'').trim().toLowerCase()===kl).map(r=>String(r.boss||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).join(', ');
+  return [...new Set(zProdukRows.filter(r=>String(r.katalog||'').trim().toLowerCase()===kl).map(r=>String(r.boss||'').trim()).filter(Boolean))];
 }
 function renderPricelistAll(fromLoad){
   const card = document.getElementById('priceListAllCard'); if(!card) return;
@@ -7360,16 +7361,17 @@ function renderPricelistAll(fromLoad){
     if(!parts.some(x=>x.key===(c.key||'dog'))) parts.push({ key:c.key||'dog', nama:plClusterDef(c.key||'dog').nama, miss:P.missC });   // Tanpa Cluster membaca angka Dog
   });
   const miss = plAllMissText(parts);
-  if(_plAllSortSup){
-    rows.forEach(x=>{ x.sup = plSupplierOf(x.row); });
-    rows.sort((a,b)=> a.sup===b.sup ? 0 : !a.sup ? 1 : !b.sup ? -1 : a.sup.localeCompare(b.sup));   // sort stabil: urutan cluster terjaga di dalam 1 supplier
-  }
-  const body = rows.length ? rows.map((x,i)=>{
+  rows.forEach(x=>{ x.sups = plSuppliersOf(x.row); });
+  const supList = [...new Set(rows.flatMap(x=>x.sups))].sort((a,b)=>a.localeCompare(b));
+  if(_plAllSup && !supList.includes(_plAllSup)) _plAllSup = '';   // supplier tidak ada lagi di channel ini
+  const sel = document.getElementById('plSupFilter');
+  if(sel) sel.innerHTML = '<option value="">Semua Supplier</option>' + supList.map(n=>`<option value="${escHtml(n)}"${n===_plAllSup?' selected':''}>${escHtml(n)}</option>`).join('');
+  const shown = _plAllSup ? rows.filter(x=>x.sups.includes(_plAllSup)) : rows;
+  const body = shown.length ? shown.map((x,i)=>{
     const c = plCalc(x.row, x.P);
     return `<tr><td class="num">${i+1}</td><td>${escHtml(x.row.sku)}</td><td><span class="pl-cbadge plc-${x.key||'none'}">${escHtml(x.nama)}</span></td><td class="num">${fmtNum(x.row.hpp)}</td>${plCellsHtml(c, x.P)}</tr>`;
-  }).join('') : `<tr><td colspan="10" style="color:var(--ink-soft);">${escHtml(plEmptyMsg())}</td></tr>`;
+  }).join('') : `<tr><td colspan="10" style="color:var(--ink-soft);">${escHtml(rows.length ? 'Tidak ada produk dari supplier ini.' : plEmptyMsg())}</td></tr>`;
   card.innerHTML = (miss ? `<div class="hint" style="margin:0 0 8px;font-weight:700;">${escHtml(miss)}</div>` : '') + `
-    <div style="margin:0 0 8px;"><button type="button" class="pl-pick${_plAllSortSup?' on':''}" data-sort="supplier">Sort Supplier</button></div>
     <div class="pricelist-scroll">
       <table class="ca-table">
         <thead><tr><th class="num">No</th><th>SKU</th><th>Cluster</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Gap Harga</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
@@ -7431,11 +7433,8 @@ function renderPricelistPage(fromLoad){
     _plCluster = b.dataset.cl; _plRowEdit = false; _plSel.clear();
     renderPricelistPage(true);
   });
-  const allCard = document.getElementById('priceListAllCard');
-  if(allCard) allCard.addEventListener('click', e=>{
-    if(!e.target.closest('[data-sort="supplier"]')) return;
-    _plAllSortSup = !_plAllSortSup; renderPricelistAll(true);
-  });
+  const supSel = document.getElementById('plSupFilter');
+  if(supSel) supSel.addEventListener('change', ()=>{ _plAllSup = supSel.value; renderPricelistAll(true); });
   // Bar tabel: Pilih Produk / Edit / Hapus / Selesai + centang baris (delegasi, karena isi kartu dibangun ulang)
   const card = document.getElementById('priceListCard-pricelist');
   if(card){
