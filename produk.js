@@ -273,7 +273,9 @@ function produkSelectAll() {
 //   supplier Produksi Sendiri → "Produksi Sendiri" | Dropship murni → "Dropship" | Reseller murni → "Reseller"
 //   supplier Dropship + Reseller (mis. RH) → ditentukan per SKU lewat produk.dropship (toggle di Edit Supplier)
 function _produkSistemOf(row) {
-  // 10 Okt 2026: override per SKU didahulukan (produk.sistem_override); kosong = ikut supplier.
+  // 10 Okt 2026: override per SKU didahulukan (produk.sistem_override).
+  // 30 Okt 2026: opsi "Ikuti supplier" DIHAPUS — tiap SKU punya sistem pasti (Dropship / Reseller / Produksi Sendiri) di sistem_override.
+  // Cabang turunan-supplier di bawah cuma jaring pengaman buat baris lama yang masih kosong (belum di-backfill / dibuat app versi lama).
   if (row && (row.sistem_override === 'dropship' || row.sistem_override === 'reseller' || row.sistem_override === 'produksi')) return row.sistem_override;
   var s = _produkSupMap()[String((row && row.boss) || '').trim().toUpperCase()];
   if (!s) return '';
@@ -282,6 +284,28 @@ function _produkSistemOf(row) {
   if (s.is_dropship) return 'dropship';
   if (s.is_reseller) return 'reseller';
   return '';
+}
+
+// [30 Okt 2026] Sistem awal sebuah SKU berdasarkan supplier (Boss)-nya — dipakai saat SKU dibuat (Tambah / Paste Massal) dan saat Boss diganti.
+//   Produksi Sendiri → 'produksi' | Dropship saja → 'dropship' | Reseller saja → 'reseller'
+//   Dropship + Reseller (mis. RH) → `prefer` kalau 'dropship'/'reseller', selain itu 'dropship' (default RH)
+//   Supplier tidak terdaftar / kosong → null (jangan menulis apa-apa; jatuh ke aturan supplier seperti biasa)
+function _produkSistemDefault(boss, prefer) {
+  var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
+  if (!s) return null;
+  if (s.is_produksi_sendiri) return 'produksi';
+  if (s.is_dropship && s.is_reseller) return (prefer === 'dropship' || prefer === 'reseller') ? prefer : 'dropship';
+  if (s.is_dropship) return 'dropship';
+  if (s.is_reseller) return 'reseller';
+  return null;
+}
+// Sistem SKU sekarang kalau 'dropship'/'reseller' (dipertahankan saat pindah ke supplier dual-mode); selain itu null
+function _produkSistemPrefer(row) {
+  var e = _produkSistemOf(row);
+  return (e === 'dropship' || e === 'reseller') ? e : null;
+}
+function _produkBossBerubah(oldBoss, newBoss) {
+  return String(oldBoss || '').trim().toUpperCase() !== String(newBoss || '').trim().toUpperCase();
 }
 
 var _PRODUK_SISTEM_META = {
@@ -343,9 +367,8 @@ function _produkSistemKatalogCell(rows) {
 var _PRODUK_SISTEM_OPSI = [
   { k: 'dropship', l: 'Dropship',         d: 'Tidak disetok. Bon dropship dicatat ke supplier.' },
   { k: 'reseller', l: 'Reseller',         d: 'Dibeli sebagai PO dari supplier.' },
-  { k: 'produksi', l: 'Produksi Sendiri', d: 'Disetok sendiri. Stok dilacak.' },
-  { k: null,       l: 'Ikuti supplier',   d: 'Pakai sistem dari pengaturan supplier.' }
-];
+  { k: 'produksi', l: 'Produksi Sendiri', d: 'Disetok sendiri. Stok dilacak.' }
+];   // 30 Okt 2026: opsi "Ikuti supplier" dihapus — pilihan harus pasti
 var _pkSisId = null;
 
 function _pkEsc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -355,10 +378,10 @@ function _produkSistemBtn(row) {
   var m   = _PRODUK_SISTEM_META[key];
   var lbl = m ? m.label : 'Belum diatur';
   var col = m ? m.color : 'var(--ink3)';
-  var ov  = row.sistem_override ? ' title="Diatur khusus untuk SKU ini"' : ' title="Ikut sistem supplier"';
-  return '<button type="button" class="pk-sis-btn" style="color:' + col + ';border-color:' + col + '"' + ov
+  // 30 Okt 2026: titik ● "diatur khusus" dibuang — semua SKU sekarang punya sistem sendiri, jadi tidak ada lagi yang "khusus".
+  return '<button type="button" class="pk-sis-btn" style="color:' + col + ';border-color:' + col + '"'
     + ' onclick="event.stopPropagation();produkSistemSheetOpen(' + row.id + ')">'
-    + lbl + (row.sistem_override ? ' <span class="pk-sis-dot"></span>' : '')
+    + lbl
     + ' <i class="ti ti-chevron-down"></i></button>';
 }
 
@@ -417,8 +440,8 @@ function produkSistemSheetOpen(id) {
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(id); });
   if (!row) return;
   _pkSisId = row.id;
-  var cur = row.sistem_override || null;
   var eff = _produkSistemOf(row);
+  var cur = eff || null;   // sistem yang berlaku sekarang (baris lama yang masih kosong ditampilkan sesuai aturan supplier)
   var effM = _PRODUK_SISTEM_META[eff];
   var boss = row.boss || '—';
   var rows = _PRODUK_SISTEM_OPSI.map(function(o, i) {
@@ -453,13 +476,10 @@ async function produkSistemPick(i) {
   if (!o || _pkSisId == null) return;
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
   if (!row) { produkSistemSheetClose(); return; }
-  var val = o.k;   // null = ikut supplier
-  // 30 Okt 2026: override HANYA disimpan kalau memang BEDA dari sistem supplier. Memilih sistem yang sama dgn yang sudah berlaku dari
-  // supplier (mis. "Dropship" di SKU supplier-dropship) dulu tersimpan jadi override permanen (titik ● muncul, SKU "terkunci" & tidak ikut
-  // kalau sistem supplier diubah) — kejadian nyata: Turtleneck_Abu-Md (RH). Sekarang dinormalkan jadi null = ikut supplier; override lama yang
-  // redundan ikut dibersihkan kalau dipilih ulang.
-  if (val && val === _produkSistemOf(Object.assign({}, row, { sistem_override: null }))) val = null;
-  if ((row.sistem_override || null) === val) { produkSistemSheetClose(); return; }
+  var val = o.k;   // selalu 'dropship' | 'reseller' | 'produksi' — tidak ada lagi "ikuti supplier"
+  // 30 Okt 2026: pilihan SELALU disimpan eksplisit di sistem_override (normalisasi ke null yang dibuat pagi ini dicabut).
+  // Baris lama yang masih kosong lalu dipilih sistem yang sama dgn tampilannya juga tersimpan eksplisit.
+  if (row.sistem_override === val) { produkSistemSheetClose(); return; }
   try {
     await dbUpdate('produk', row.id, { sistem_override: val });
     row.sistem_override = val;
@@ -640,13 +660,17 @@ function produkKatSyncDs() {
   if (row) row.style.display = _produkKatBossDual() ? '' : 'none';
 }
 
+var _katDsInit = false;   // keadaan awal checkbox Dropship saat modal dibuka — toggle baru dianggap "disentuh" kalau beda dari ini
+
 async function editKatalog(kat, hpp, boss) {
   document.getElementById('kat-edit-nama').textContent = kat;
   idrSet('kat-hpp', hpp);
   document.getElementById('kat-boss').value = boss;
   var _rowsK = _produkData.filter(function(r) { return (r.katalog || '—') === kat; });
   var _dsChk = document.getElementById('kat-dropship');
-  if (_dsChk) _dsChk.checked = _rowsK.length > 0 && _rowsK.every(function(r) { return r.dropship === true; });
+  // 30 Okt 2026: status dropship dibaca dari sistem SKU yang berlaku (sistem_override), bukan lagi produk.dropship
+  if (_dsChk) _dsChk.checked = _rowsK.length > 0 && _rowsK.every(function(r) { return _produkSistemOf(r) === 'dropship'; });
+  _katDsInit = !!(_dsChk && _dsChk.checked);
   const lbl = document.getElementById('kat-boss-label');
   if (lbl) {
     if (boss) { lbl.textContent = boss; lbl.style.color = 'var(--ink)'; }
@@ -662,11 +686,27 @@ async function simpanEditKatalog() {
   var boss    = document.getElementById('kat-boss').value.trim().toUpperCase();
   var rows    = _produkData.filter(r => (r.katalog||'—') === kat);
   if (!rows.length) { hideModal('modal-edit-katalog'); return; }
-  // Penanda dropship hanya dikirim untuk supplier Dropship + Reseller (RH); supplier lain status dropship-nya dari sistem supplier.
-  var dsPayload = _produkKatBossDual() ? { dropship: !!document.getElementById('kat-dropship').checked } : {};
+  // 30 Okt 2026: sistem tiap SKU ditulis eksplisit ke sistem_override.
+  //  - Supplier dual (RH): toggle Dropship. Kalau toggle DISENTUH → semua varian katalog ikut toggle. Kalau tidak disentuh dan Boss tidak
+  //    berubah → sistem per SKU tidak diubah (SKU yang sengaja beda tidak ikut tertimpa). Kalau Boss berubah ke dual dan toggle tidak
+  //    disentuh → tiap SKU mempertahankan sistem lamanya (dropship/reseller), selain itu default Dropship.
+  //  - Supplier lain: kalau Boss berubah, sistem SKU mengikuti supplier baru (mis. DIMI → Produksi Sendiri).
+  var isDual   = _produkKatBossDual();
+  var ckNow    = !!document.getElementById('kat-dropship').checked;
+  var dsTouched = isDual && (ckNow !== _katDsInit);
   try {
     for (const r of rows) {
-      await dbUpdate('produk', r.id, Object.assign({ hpp: hpp, boss: boss }, dsPayload));
+      var payloadK = { hpp: hpp, boss: boss };
+      var bossBerubah = _produkBossBerubah(r.boss, boss);
+      var sisBaru = null;
+      if (isDual) {
+        if (dsTouched) { sisBaru = ckNow ? 'dropship' : 'reseller'; payloadK.dropship = ckNow; }
+        else if (bossBerubah) sisBaru = _produkSistemDefault(boss, _produkSistemPrefer(r));
+      } else if (bossBerubah) {
+        sisBaru = _produkSistemDefault(boss);
+      }
+      if (sisBaru) payloadK.sistem_override = sisBaru;
+      await dbUpdate('produk', r.id, payloadK);
       // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
       // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
       // ini, snapshot stok tetep basi/yatim. Sekarang ikut di-cascade juga,
@@ -786,8 +826,19 @@ async function simpanProduk() {
     let old = null;
     if (id) old = _produkData.find(d => d.id == id);
 
-    if (id) { await dbUpdate('produk', id, data); }
-    else    { await dbInsert('produk', data); }
+    // 30 Okt 2026: sistem SKU selalu eksplisit. SKU baru → sistem awal dari supplier (RH = Dropship). Edit SKU → hanya kalau Boss berubah:
+    // ikut sistem supplier baru (dual: pertahankan dropship/reseller lama). Supplier tidak terdaftar → tidak menulis apa-apa.
+    if (id) {
+      if (old && _produkBossBerubah(old.boss, data.boss)) {
+        const sisBaru = _produkSistemDefault(data.boss, _produkSistemPrefer(old));
+        if (sisBaru) data.sistem_override = sisBaru;
+      }
+      await dbUpdate('produk', id, data);
+    } else {
+      const sisAwal = _produkSistemDefault(data.boss);
+      if (sisAwal) data.sistem_override = sisAwal;
+      await dbInsert('produk', data);
+    }
 
     if (id && old) {
       try {
@@ -917,7 +968,10 @@ async function simpanPasteProduk() {
     // Insert satu per satu (Supabase REST tidak support bulk insert via anon key easily)
     let ok = 0;
     for (const row of rowsToSave) {
-      await dbInsert('produk', { katalog: row.katalog, sku_variasi: row.sku_variasi, hpp: row.hpp, boss: row.boss });
+      const payloadP = { katalog: row.katalog, sku_variasi: row.sku_variasi, hpp: row.hpp, boss: row.boss };
+      const sisAwalP = _produkSistemDefault(row.boss);   // 30 Okt 2026: sistem awal dari supplier (supplier baru hasil auto-create = Dropship)
+      if (sisAwalP) payloadP.sistem_override = sisAwalP;
+      await dbInsert('produk', payloadP);
       ok++;
       btn.textContent = `Menyimpan ${ok}/${rowsToSave.length}...`;
     }
@@ -1014,12 +1068,17 @@ function produkBatchSupSyncSistem() {
   var dual = !!boss && _produkIsDualBoss(boss);
   row.style.display = dual ? '' : 'none';
   if (!dual) return;
-  // default: ikuti kondisi SKU terpilih sekarang (semua sudah Dropship → Dropship), selain itu Reseller (stok dilacak)
+  // 30 Okt 2026: default = sistem SKU terpilih sekarang kalau seragam (semua Dropship / semua Reseller), selain itu Dropship (default RH).
+  // Toggle ini baru dianggap pilihan eksplisit setelah di-klik; kalau tidak disentuh, tiap SKU mempertahankan sistem lamanya (lihat simpanBatchSupplier).
   var ids  = Object.keys(_produkSelected).map(Number);
   var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
-  var allDs = rows.length > 0 && rows.every(function(r) { return r.dropship === true && _produkIsDualBoss(r.boss); });
-  produkBatchSupSetSistem(allDs ? 'dropship' : 'reseller');
+  var allRs = rows.length > 0 && rows.every(function(r) { return _produkSistemOf(r) === 'reseller'; });
+  produkBatchSupSetSistem(allRs ? 'reseller' : 'dropship');
+  _batchSupSisTouched = false;
 }
+
+var _batchSupSisTouched = false;   // true kalau user mengklik toggle Sistem di modal Edit Supplier Massal
+function produkBatchSupPickSistem(v) { _batchSupSisTouched = true; produkBatchSupSetSistem(v); }
 
 function produkBatchSupSetSistem(v) {
   // Dua toggle saling meniadakan: satu SKU cuma bisa Reseller ATAU Dropship (produk.dropship = true/false),
@@ -1044,15 +1103,28 @@ async function simpanBatchSupplier() {
     hppBaru = parseInt(String(document.getElementById('batch-sup-hpp').value || '').replace(/\D/g, '')) || 0;
     if (!hppBaru) { alert('Isi HPP Produksi dulu — HPP produksi beda dengan harga beli supplier sebelumnya.'); return; }
   }
-  // Toggle Sistem cuma dikirim kalau supplier Dropship + Reseller; supplier lain tidak menyentuh produk.dropship
+  // 30 Okt 2026: sistem_override ditulis eksplisit.
+  //  - Supplier dual (RH): toggle diklik → semua SKU terpilih ikut toggle; tidak diklik → tiap SKU mempertahankan dropship/reseller lamanya
+  //    (SKU yang sebelumnya Produksi Sendiri dapat nilai toggle, default Dropship). produk.dropship tetap ikut ditulis (kompatibilitas).
+  //  - Supplier lain: sistem mengikuti supplier baru (DIMI → Produksi Sendiri, dst.). Supplier tidak terdaftar → tidak menulis sistem.
   const payload = { boss };
   if (hppBaru) payload.hpp = hppBaru;
-  if (_produkIsDualBoss(boss)) payload.dropship = (document.getElementById('batch-sup-sistem').value === 'dropship');
+  const _dual = _produkIsDualBoss(boss);
+  const _toggleVal = document.getElementById('batch-sup-sistem').value === 'dropship' ? 'dropship' : 'reseller';
+  const _sisSingle = _dual ? null : _produkSistemDefault(boss);
+  if (_sisSingle) payload.sistem_override = _sisSingle;
   try {
     const _oldMap = {};
     _produkData.forEach(r => { _oldMap[r.id] = r; });
     for (const id of ids) {
-      await dbUpdate('produk', id, payload);
+      const payloadRow = Object.assign({}, payload);
+      if (_dual) {
+        const _prefer = _batchSupSisTouched ? null : _produkSistemPrefer(_oldMap[id]);
+        const _sisDual = _prefer || _toggleVal;
+        payloadRow.sistem_override = _sisDual;
+        payloadRow.dropship = (_sisDual === 'dropship');
+      }
+      await dbUpdate('produk', id, payloadRow);
       // Cascade snapshot stok (stok.boss) — dulu Edit Supplier massal tidak melakukan ini, padahal kalau varian pindah
       // sebagian, Stok Produk bakal masih menampilkan supplier lama. Pola sama dengan simpanEditKatalog.
       const r = _oldMap[id];
@@ -1118,14 +1190,14 @@ document.body.insertAdjacentHTML('beforeend', `
     <div id="batch-sup-sistem-row" class="form-group" style="display:none;margin-bottom:14px">
       <label>Sistem (supplier ini Dropship + Reseller)</label>
       <div style="border:2px solid var(--ink);background:var(--cream)">
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--ink4);cursor:pointer" onclick="produkBatchSupSetSistem('reseller')">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--ink4);cursor:pointer" onclick="produkBatchSupPickSistem('reseller')">
           <div style="flex:1;line-height:1.3">
             <div style="font-size:14px;font-weight:700">Reseller</div>
             <div style="font-size:11px;color:var(--ink3)">Stok dilacak, ikut hitungan kritis, restock, dan nilai stok.</div>
           </div>
           <div id="batch-sup-sw-reseller" style="position:relative;width:46px;height:26px;border-radius:13px;flex-shrink:0;transition:background .15s"><div style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s"></div></div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer" onclick="produkBatchSupSetSistem('dropship')">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer" onclick="produkBatchSupPickSistem('dropship')">
           <div style="flex:1;line-height:1.3">
             <div style="font-size:14px;font-weight:700">Dropship</div>
             <div style="font-size:11px;color:var(--ink3)">Tidak nyetok, Sisa Stok tampil "DS", tidak dihitung kritis / restock.</div>

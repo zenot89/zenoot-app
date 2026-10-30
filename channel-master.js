@@ -35,23 +35,27 @@ document.getElementById('page-channel').innerHTML = `
   <style>
     /* [30 Sep 2026] Sistem supplier = 3 baris toggle (gaya Shopee). Elemen tetap <input type=checkbox> dgn id & onchange yang sama,
        jadi logika simpan/edit/eksklusif Produksi Sendiri tidak berubah — hanya tampilannya jadi switch. */
-    #modal-supplier-rop .ch-sw-wrap { border:2px solid var(--ink); background:var(--cream); }
-    #modal-supplier-rop .ch-sw-row { display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--ink4); margin:0; text-transform:none; letter-spacing:0; }
+    /* 30 Okt 2026: toggle dibuat pil tipis ala Shopee. ROOT CAUSE tampilan kotak tinggi sebelumnya: aturan global ".form-group input"
+       (style.css) memaksa min-height:44px + padding + border, sedangkan toggle cuma mengunci height:26px → kotak jadi 46x44 dan bulatan
+       nyangkut di pojok kiri-atas. Sekarang min-height/height/box-sizing dikunci, pembungkus bergaris tebal diganti hairline antar baris. */
+    #modal-supplier-rop .ch-sw-wrap { border:none; background:transparent; }
+    #modal-supplier-rop .ch-sw-row { display:flex; align-items:center; gap:14px; padding:12px 2px; cursor:pointer; border-bottom:1px solid var(--ovl-0_08); margin:0; text-transform:none; letter-spacing:0; }
     #modal-supplier-rop .ch-sw-row:last-child { border-bottom:none; }
     #modal-supplier-rop .ch-sw-txt { flex:1; line-height:1.3; }
     #modal-supplier-rop .ch-sw-ttl { display:block; font-size:14px; font-weight:700; color:var(--ink); }
     #modal-supplier-rop .ch-sw-desc { display:block; font-size:11px; font-weight:400; color:var(--ink3); }
     #modal-supplier-rop .ch-sw-row input[type=checkbox] {
-      -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0;
-      width:46px; min-width:46px; height:26px; padding:0; margin:0; border:none; border-radius:13px;
-      background:#c4c4c4; box-shadow:none; cursor:pointer; transition:background .15s ease;
+      -webkit-appearance:none; appearance:none; position:relative; flex-shrink:0; box-sizing:border-box;
+      width:48px; min-width:48px; max-width:48px; height:26px; min-height:26px; max-height:26px;
+      padding:0; margin:0; border:none; border-radius:13px; outline:none;
+      background:#d2d2d2; box-shadow:none; cursor:pointer; transition:background .18s ease;
     }
     #modal-supplier-rop .ch-sw-row input[type=checkbox]::after {
-      content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
-      background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:left .15s ease;
+      content:''; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+      background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.28); transition:left .18s ease;
     }
     #modal-supplier-rop .ch-sw-row input[type=checkbox]:checked { background:#4cc46b; }
-    #modal-supplier-rop .ch-sw-row input[type=checkbox]:checked::after { left:23px; }
+    #modal-supplier-rop .ch-sw-row input[type=checkbox]:checked::after { left:24px; }
 
     /* ROOT CAUSE lebar mentok: style.css ("Lebar proporsional", 16 Sep) membatasi
        SEMUA anak langsung #page-channel maks 720px. Tab Channel sekarang 2 kolom,
