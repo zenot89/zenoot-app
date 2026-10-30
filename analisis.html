@@ -567,10 +567,11 @@
   .pl-pop-h, .pl-backdrop[hidden]{ display:none; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
   #pricelistParams .card{ margin-bottom:0; padding:clamp(8px,1.5vh,14px) 14px; }
   #pricelistParams .card h3{ margin-bottom:clamp(2px,.8vh,8px); padding:clamp(3px,.6vh,6px) 10px; font-size:clamp(12.5px,1.7vh,14.5px); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .pl-hbtns{ display:inline-flex; align-items:center; gap:6px; margin-left:auto; }   /* tombol Edit ⇄ Simpan (+ Batal) di judul TIAP kotak: 1 kotak = 1 tombol */
+  .pl-hbtns{ order:2; display:inline-flex; align-items:center; gap:8px; margin-left:auto; }   /* tombol Edit ⇄ Simpan (+ Batal) di judul TIAP kotak: 1 kotak = 1 tombol; ikon (?) dipasang script di akhir judul -> order:1 supaya menempel di samping teks judul */
+  #pricelistParams .card h3 .zq{ order:1; }
   .pl-hbtns [hidden]{ display:none; }
-  .pl-hbtns > button{ padding:2px 12px; font-size:12px; line-height:1.5; }
-  .pl-cancel{ all:unset; cursor:pointer; padding:2px 12px; border-radius:8px; font-size:12px; line-height:1.5; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--ink); }
+  .pl-hbtns > button{ padding:6px 22px; font-size:14px; line-height:1.4; }
+  .pl-cancel{ all:unset; cursor:pointer; padding:6px 22px; border-radius:8px; font-size:14px; line-height:1.4; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--ink); }
   .pl-row{ display:grid; grid-template-columns:1fr 118px; align-items:center; gap:10px; padding:clamp(2px,.8vh,8px) 0; border-bottom:1px solid var(--line); }
   .pl-row:last-child{ border-bottom:none; padding-bottom:0; }
   .pl-row label, .pl-row .lbl{ font-size:clamp(11px,1.5vh,12px); font-weight:700; letter-spacing:.4px; color:var(--ink); }
