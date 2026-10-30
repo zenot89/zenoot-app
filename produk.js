@@ -454,6 +454,11 @@ async function produkSistemPick(i) {
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
   if (!row) { produkSistemSheetClose(); return; }
   var val = o.k;   // null = ikut supplier
+  // 30 Okt 2026: override HANYA disimpan kalau memang BEDA dari sistem supplier. Memilih sistem yang sama dgn yang sudah berlaku dari
+  // supplier (mis. "Dropship" di SKU supplier-dropship) dulu tersimpan jadi override permanen (titik ● muncul, SKU "terkunci" & tidak ikut
+  // kalau sistem supplier diubah) — kejadian nyata: Turtleneck_Abu-Md (RH). Sekarang dinormalkan jadi null = ikut supplier; override lama yang
+  // redundan ikut dibersihkan kalau dipilih ulang.
+  if (val && val === _produkSistemOf(Object.assign({}, row, { sistem_override: null }))) val = null;
   if ((row.sistem_override || null) === val) { produkSistemSheetClose(); return; }
   try {
     await dbUpdate('produk', row.id, { sistem_override: val });
