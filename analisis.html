@@ -6975,7 +6975,7 @@ var PL_CLUSTERS = [
   { key:'dog',     nama:'Dog' },
   { key:'',        nama:'Tanpa Cluster' }
 ];
-var _plCluster = '';                       // tab cluster aktif; default Tanpa Cluster (semua produk channel mendarat di sini dulu)
+var _plCluster = 'star';                   // tab cluster aktif; default Star tiap halaman dibuka
 var _plRowEdit = false, _plSel = new Set();   // mode Edit baris (checkbox + Hapus) dan katalog (huruf kecil) yang dicentang
 function plClusterDef(key){ return PL_CLUSTERS.find(c=>c.key===key) || PL_CLUSTERS[PL_CLUSTERS.length-1]; }
 function plCk(f){ return PL_CL[_plCluster || 'dog'][f]; }   // key penyimpanan angka cluster tab aktif (Tanpa Cluster -> Dog)
@@ -6983,13 +6983,15 @@ const PL_KEYS = Object.keys(PL_GLOBAL).map(f=>PL_GLOBAL[f]).concat(...Object.key
 // ── Penyimpanan PER CHANNEL (key GLOBAL, tanpa tk(): sama untuk semua toko). active = channel yang sedang dibuka; ch[channelId] = pengaturan channel itu.
 // v = versi format. Data versi lama (satu angka Income/VCHR per channel + isian otomatis dari Rekap/Setting) DINOLKAN sekali saat dibuka (28 Okt 2026): semua angka kosong, tinggal diisi.
 const PL_STORE_KEY = 'zenootAnalisis.priceList', PL_STORE_VER = 2;
-var _plStore = { v:PL_STORE_VER, active:'', ch:{} };
-function plStoreSave(){ try{ zLS.setItem(PL_STORE_KEY, JSON.stringify(_plStore)); }catch(e){ console.warn('Price List: gagal menyimpan pengaturan channel', e); } }
+var _plStore = { v:PL_STORE_VER, active:'', ch:{} };   // active = channel yang dibuka di PERANGKAT ini (localStorage, lihat plActiveSave); yang masuk database hanya v + ch
+function plStoreSave(){ try{ zLS.setItem(PL_STORE_KEY, JSON.stringify({ v:_plStore.v, ch:_plStore.ch })); }catch(e){ console.warn('Price List: gagal menyimpan pengaturan channel', e); } }
+// Channel terakhir dibuka disimpan PER PERANGKAT (bukan di database): tiap akun/perangkat mengingat channelnya sendiri, tidak saling menimpa.
+const PL_ACTIVE_LS = 'zenootPriceListActive';
+function plActiveSave(){ try{ window.localStorage.setItem(PL_ACTIVE_LS, _plStore.active); }catch(e){} }
 (function plStoreInit(){
   try{
     const raw = zLS.getItem(PL_STORE_KEY), o = raw ? JSON.parse(raw) : null;
     if(o && typeof o==='object'){
-      _plStore.active = String(o.active||'');
       if(o.v===PL_STORE_VER && o.ch && typeof o.ch==='object'){
         _plStore.ch = o.ch;
         let moved = false;                  // [28 Okt 2026] ROAS pindah dari global channel ke PER CLUSTER: angka lama (plRoas) disalin ke 4 cluster sekali, lalu dibuang
@@ -7000,9 +7002,10 @@ function plStoreSave(){ try{ zLS.setItem(PL_STORE_KEY, JSON.stringify(_plStore))
         });
         if(moved) plStoreSave();
       }
-      else plStoreSave();                  // versi lama: angkanya dibuang, yang dipertahankan hanya channel yang terakhir dibuka
+      else plStoreSave();                  // versi lama: angkanya dibuang
     }
   }catch(e){ console.warn('Price List: pengaturan channel tidak terbaca', e); }
+  try{ _plStore.active = String(window.localStorage.getItem(PL_ACTIVE_LS) || ''); }catch(e){}
 })();
 function plRec(){ return _plStore.ch[_plStore.active] || {}; }
 function plRecEnsure(){ if(!_plStore.active) return null; return (_plStore.ch[_plStore.active] = _plStore.ch[_plStore.active] || {}); }
@@ -7010,11 +7013,11 @@ function plRecEnsure(){ if(!_plStore.active) return null; return (_plStore.ch[_p
 function plEnsureActive(){
   if(!_plCh.ok || _plCh.list.some(c=>c.id===_plStore.active)) return;
   _plStore.active = plGuessChannel() || (_plCh.list[0] ? _plCh.list[0].id : '');
-  plStoreSave();
+  plActiveSave();
 }
 function plChannelName(){ const c = _plCh.list.find(x=>x.id===_plStore.active); return c ? c.nama : ''; }
 function plSetActive(id){
-  _plStore.active = id; plStoreSave();
+  _plStore.active = id; plActiveSave();
   _plRowEdit = false; _plSel.clear();
   renderPricelistPage(true); renderPricelistAll(true);
 }
