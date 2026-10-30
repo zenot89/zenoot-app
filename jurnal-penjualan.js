@@ -1217,7 +1217,10 @@ function _jpGetHpp(p)     { return p.hpp || p.harga_pokok || p.cost || 0; }
 // (Renderer list variasi lama dicabut 4 Sep 2026 — diganti _jpSkuSheetRenderVariasi
 // yang render ke sheet BRImo baru, bukan floating dropdown .kas-akun-list.)
 
-async function jpPilihKatalog(katalog) {
+// [30 Okt 2026] modeEdit (dipakai editJP): isi dropdown variasi saja — JANGAN auto-buka picker variasi dan
+// JANGAN menimpa Harga Satuan dengan HPP (nilai transaksi yang sedang diedit dipertahankan).
+// Dipanggil tanpa argumen ke-2 (pilih SKU Induk di mode Tambah) = perilaku lama, tidak berubah.
+async function jpPilihKatalog(katalog, modeEdit) {
   document.getElementById('jp-sku-induk').value = katalog;
   _jpSetIndukLabel(katalog);
   jpTutupDropdownSKU();
@@ -1241,11 +1244,11 @@ async function jpPilihKatalog(katalog) {
 
   if (varList.length === 1) {
     sel.selectedIndex = 1;
-    jpOnPilihVariasi();
+    if (!modeEdit) jpOnPilihVariasi();
     if (lbl) { lbl.textContent = _jpGetSku(varList[0]); lbl.style.color = 'var(--ink)'; }
     var btnTambah = document.getElementById('jp-btn-tambah-sku');
     if (btnTambah) btnTambah.style.display = 'block';
-  } else if (varList.length > 1) {
+  } else if (varList.length > 1 && !modeEdit) {
     setTimeout(function() { jpSkuSheetOpen('variasi'); }, 250);
   }
 }
@@ -3323,7 +3326,7 @@ async function editJP(id) {
       const skuMaster = _jpGetSku(found);   // value <option> variasi = SKU persis di master, bukan versi uppercase jurnal
       document.getElementById('jp-sku-induk').value = kat;
       _jpSetIndukLabel(kat);
-      jpPilihKatalog(kat);
+      jpPilihKatalog(kat, true);   // modeEdit: tanpa auto-buka picker variasi & tanpa timpa harga
 setTimeout(() => {
   document.getElementById('jp-sku-variasi').value = skuMaster;
   var lblV = document.getElementById('jp-picker-variasi-label');
