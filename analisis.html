@@ -567,10 +567,10 @@
   .pl-pop-h, .pl-backdrop[hidden]{ display:none; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
   #pricelistParams .card{ margin-bottom:0; padding:clamp(8px,1.5vh,14px) 14px; }
   #pricelistParams .card h3{ margin-bottom:clamp(2px,.8vh,8px); padding:clamp(3px,.6vh,6px) 10px; font-size:clamp(12.5px,1.7vh,14.5px); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .pl-actions{ display:flex; align-items:stretch; gap:8px; }   /* bar tombol di dasar panel: Edit ⇄ Simpan (+ Batal) */
-  .pl-actions [hidden]{ display:none; }
-  .pl-actions > button{ flex:1; text-align:center; padding:clamp(6px,1.1vh,10px) 14px; font-size:clamp(12px,1.6vh,14px); }
-  .pl-cancel{ all:unset; cursor:pointer; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--ink); }
+  .pl-hbtns{ display:inline-flex; align-items:center; gap:6px; margin-left:auto; }   /* tombol Edit ⇄ Simpan (+ Batal) di judul TIAP kotak: 1 kotak = 1 tombol */
+  .pl-hbtns [hidden]{ display:none; }
+  .pl-hbtns > button{ padding:2px 12px; font-size:12px; line-height:1.5; }
+  .pl-cancel{ all:unset; cursor:pointer; padding:2px 12px; border-radius:8px; font-size:12px; line-height:1.5; font-weight:700; border:1px solid var(--line); background:#fff; color:var(--ink); }
   .pl-row{ display:grid; grid-template-columns:1fr 118px; align-items:center; gap:10px; padding:clamp(2px,.8vh,8px) 0; border-bottom:1px solid var(--line); }
   .pl-row:last-child{ border-bottom:none; padding-bottom:0; }
   .pl-row label, .pl-row .lbl{ font-size:clamp(11px,1.5vh,12px); font-weight:700; letter-spacing:.4px; color:var(--ink); }
@@ -589,7 +589,7 @@
   #pricelistParams.is-editing .pl-row{ padding:6px 0; }
   #pricelistParams.is-editing .pl-row input, #pricelistParams.is-editing .pl-row.ro .val{ font-size:14px; padding-top:5px; padding-bottom:5px; }
   #pricelistParams.is-editing .pl-row.ro .val{ padding-top:0; padding-bottom:0; }
-  #pricelistParams.is-editing .pl-actions > button{ padding:9px 14px; font-size:14px; }
+  #pricelistParams[data-edit="c"] #plCardToko, #pricelistParams[data-edit="g"] #plCardCluster{ display:none; }   /* popup hanya memuat kotak yang sedang diedit */
   #pricelistParams .pl-row[hidden], #pricelistParams .card[hidden]{ display:none; }
   #pricelistParams.is-editing .pl-row input[readonly]{ background:transparent; border-color:transparent; cursor:default; -webkit-text-fill-color:var(--ink); }   /* terkunci walau panel sedang Edit (cluster di tab Tanpa Cluster) */
   #pricelistParams .setting-edit-btn:disabled{ opacity:.45; cursor:not-allowed; }
@@ -1585,15 +1585,15 @@
 
   <!-- ============ PAGE: PROYEKSI HARGA > PRICE LIST (satu-satunya metode: by GPM, [27 Okt 2026]) ============
        Price List BERDIRI SENDIRI: kiri = tabel lengkap (header beku, hanya isi yang scroll), kanan = pengaturan Price List (input manual per toko, tersimpan otomatis).
-       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan (2 kartu: Pengaturan Cluster di atas = GPM, Net Income, VCHR per cluster / Pengaturan Toko di bawah = global per channel, hanya diedit dari tab Star; tombol Edit membuka panel ini sebagai POP UP di tengah layar). Channel dipilih lewat badge kanan atas (renderStoreTopbar). -->
+       #priceListCard-pricelist = tabel, #pricelistParams = panel pengaturan di kanan (2 kartu: Pengaturan Cluster di atas = GPM, Net Income, VCHR per cluster / Pengaturan Toko di bawah = global per channel, hanya diedit dari tab Star; masing-masing kotak punya tombol Edit sendiri di judulnya yang membuka kotak itu saja sebagai POP UP di tengah layar). Channel dipilih lewat badge kanan atas (renderStoreTopbar). -->
   <section class="page" id="page-pricelist">
     <div class="card" id="priceListCard-pricelist"></div>
     <aside id="pricelistParams">
       <div class="pl-backdrop" id="plBackdrop" hidden></div>
       <div class="pl-pop" id="plPop" role="dialog" aria-label="Edit Pengaturan Price List">
         <div class="pl-pop-h">Edit Pengaturan</div>
-        <div class="card">
-          <h3><span>Pengaturan Cluster</span></h3>
+        <div class="card" id="plCardCluster">
+          <h3><span>Pengaturan Cluster</span><span class="pl-hbtns"><button type="button" class="pl-cancel" data-pl-batal="c" hidden>Batal</button><button type="button" class="setting-edit-btn" data-pl-edit="c">Edit</button></span></h3>
           <div class="pl-row ro"><span class="lbl">CLUSTER</span><span class="val" id="plClusterVal">-</span></div>
           <div class="pl-row"><label for="plGpm">GPM (%)<span class="ket">Margin kotor yang dikejar untuk produk di cluster ini: harga setelah voucher = HPP ÷ (1 − GPM)</span></label><input type="text" inputmode="decimal" id="plGpm" placeholder="-" autocomplete="off" readonly></div>
           <div class="pl-row" id="plRowRoas"><label for="plRoas">ROAS<span class="ket">Target ROAS iklan produk di cluster ini; 0 = tidak diiklankan (ACOS 0). ACOS = 1 ÷ ROAS, dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plRoas" placeholder="-" autocomplete="off" readonly></div>
@@ -1603,13 +1603,12 @@
           <div class="pl-row"><label for="plVchr">VCHR (Rp)<span class="ket">Voucher toko yang ditanggung penjual, per pesanan. Ditambahkan ke Harga Net</span></label><input type="text" inputmode="numeric" id="plVchr" placeholder="-" autocomplete="off" readonly></div>
         </div>
         <div class="card" id="plCardToko">
-          <h3><span>Pengaturan Toko (global)</span></h3>
+          <h3><span>Pengaturan Toko (global)</span><span class="pl-hbtns"><button type="button" class="pl-cancel" data-pl-batal="g" hidden>Batal</button><button type="button" class="setting-edit-btn" data-pl-edit="g">Edit</button></span></h3>
           <div class="pl-row ro"><span class="lbl">CHANNEL TOKO</span><span class="val" id="plChannelVal">-</span></div>
           <div class="pl-row"><label for="plAdmin">ADMIN TOKO (%)<span class="ket">Admin + layanan Shopee. Dihitung dari harga SETELAH voucher toko</span></label><input type="text" inputmode="decimal" id="plAdmin" placeholder="-" autocomplete="off" readonly></div>
           <div class="pl-row"><label for="plBpp">BPP (Rp)<span class="ket">Biaya proses pesanan per order</span></label><input type="text" inputmode="numeric" id="plBpp" placeholder="-" autocomplete="off" readonly></div>
           <div class="pl-row"><label for="plUpCoret">UP HRG CORET (%)<span class="ket">Kenaikan Harga Coret di atas Harga Net</span></label><input type="text" inputmode="decimal" id="plUpCoret" placeholder="-" autocomplete="off" readonly></div>
         </div>
-        <div class="pl-actions"><button type="button" class="pl-cancel" id="plBtnBatal" hidden>Batal</button><button type="button" class="setting-edit-btn" id="plBtnEdit">Edit</button></div>
       </div>
     </aside>
   </section>
@@ -6959,7 +6958,7 @@ function escHtml(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/
 // Pengaturan Price List [28 Okt 2026]. GLOBAL per toko/channel = PL_GLOBAL (Admin, BPP, Up Harga Coret; hanya bisa diedit dari tab Star).
 // PER CLUSTER = PL_CL (GPM, ROAS, Net Income/PC, VCHR; diedit di tab clusternya). TIDAK ADA isian otomatis: yang belum pernah diisi KOSONG (null), bukan 0.
 // ── Mode Edit: selama Edit, semua baca/tulis lewat _plDraft (salinan); Simpan menyalin balik ke penyimpanan channel
-var _plEdit = false, _plDraft = null;     // ganti toko = reload halaman, jadi draft tidak perlu dibuang manual
+var _plEdit = '', _plDraft = null;      // _plEdit: '' = terkunci, 'c' = kotak Pengaturan Cluster sedang diedit, 'g' = kotak Pengaturan Toko (global) sedang diedit. Ganti toko = reload halaman, jadi draft tidak perlu dibuang manual
 var PL_GLOBAL = { admin:'plAdmin', bpp:'plBpp', up:'upHrgCoret' };
 var PL_CL = {
   star:    { gpm:'plGpmStar',    inc:'plIncomeStar',    vch:'plVchrStar', roas:'plRoasStar' },
@@ -7282,11 +7281,12 @@ function plPickOpen(){
 // 'c' = PER CLUSTER (PL_CL, key cluster tab aktif; tab Tanpa Cluster membaca Dog dan selalu terkunci).
 const PL_INPUTS = [['plGpm','pct','c','gpm'],['plIncome','rp','c','inc'],['plVchr','rp','c','vch'],['plRoas','pct','c','roas'],['plAdmin','pct','g','admin'],['plBpp','rp','g','bpp'],['plUpCoret','pct','g','up']];
 function plInKey(scope, f){ return scope==='g' ? PL_GLOBAL[f] : plCk(f); }
-function plLocked(scope){ return !_plEdit || (scope==='c' && !_plCluster); }   // cluster terkunci di tab Tanpa Cluster; card Toko (global) hanya tampil di tab Star
+function plLocked(scope){ return _plEdit!==scope || (scope==='c' && !_plCluster); }   // cluster terkunci di tab Tanpa Cluster; card Toko (global) hanya tampil di tab Star
 // Kunci/buka panel + tombol Edit⇄Simpan (+Batal) + sinkron nilai input dari sumber aktif (draft saat Edit, penyimpanan channel saat terkunci)
 function plSyncPanel(){
   const aside = document.getElementById('pricelistParams'); if(!aside) return;
-  aside.classList.toggle('is-editing', _plEdit);
+  aside.classList.toggle('is-editing', !!_plEdit);
+  aside.dataset.edit = _plEdit;
   const bd = document.getElementById('plBackdrop'); if(bd) bd.hidden = !_plEdit;
   PL_INPUTS.forEach(([id,kind,scope,f])=>{
     const el = document.getElementById(id); if(!el) return;
@@ -7300,24 +7300,28 @@ function plSyncPanel(){
   const ct = document.getElementById('plCardToko'); if(ct) ct.hidden = _plCluster!=='star';   // Pengaturan Toko (global) hanya tampil & bisa diedit dari tab Star
   const cv = document.getElementById('plChannelVal'); if(cv) cv.textContent = plChannelName() || '-';
   if(currentPage==='pricelist') renderStoreTopbar();   // badge kanan atas = pilihan channel di halaman ini
-  const btn = document.getElementById('plBtnEdit'); if(btn){ btn.classList.toggle('is-editing', _plEdit); btn.textContent = _plEdit ? 'Simpan' : 'Edit'; btn.disabled = !_plEdit && !_plCluster; }   // Tanpa Cluster = ikut Dog: tidak ada yang bisa diedit di tab itu
-  const bt = document.getElementById('plBtnBatal'); if(bt) bt.hidden = !_plEdit;
+  aside.querySelectorAll('[data-pl-edit]').forEach(btn=>{
+    const sc = btn.dataset.plEdit, on = _plEdit===sc;
+    btn.classList.toggle('is-editing', on); btn.textContent = on ? 'Simpan' : 'Edit';
+    btn.disabled = !on && (!!_plEdit || (sc==='c' && !_plCluster));   // Tanpa Cluster = ikut Dog: kotak cluster tidak bisa diedit di tab itu
+  });
+  aside.querySelectorAll('[data-pl-batal]').forEach(bt=>{ bt.hidden = _plEdit!==bt.dataset.plBatal; });
 }
-function plEditToggle(){
+function plEditToggle(scope){
   if(!_plEdit){
     if(!plRecEnsure()){ alert('Pilih channel dulu lewat dropdown di pojok kanan atas.'); return; }
     const rec = plRec();
     _plDraft = {}; PL_KEYS.forEach(k=>{ _plDraft[k] = rec[k]; });
-    _plEdit = true;
+    _plEdit = scope;
   } else {
     const rec = plRecEnsure();
     PL_KEYS.forEach(k=>{ rec[k] = _plDraft[k]; });
     plStoreSave();
-    _plEdit = false; _plDraft = null;
+    _plEdit = ''; _plDraft = null;
   }
   plSyncPanel(); renderPricelistPage(true);
 }
-function plEditCancel(){ _plEdit = false; _plDraft = null; plSyncPanel(); renderPricelistPage(true); }
+function plEditCancel(){ _plEdit = ''; _plDraft = null; plSyncPanel(); renderPricelistPage(true); }
 function plReloadIfStale(rerender){
   if(Date.now()-_plLoadTs <= 5000) return;
   _plLoadTs = Date.now();
@@ -7400,8 +7404,8 @@ function renderPricelistPage(fromLoad){
       if(plParams().gpm>=1 || !document.getElementById('plSearch')) renderPricelistPage(true); else plRefresh();   // GPM ≥ 100% -> tampil pesan; tabel dibangun ulang begitu nilainya wajar lagi
     });
   });
-  const be = document.getElementById('plBtnEdit'); if(be) be.addEventListener('click', plEditToggle);
-  const bb = document.getElementById('plBtnBatal'); if(bb) bb.addEventListener('click', plEditCancel);
+  document.querySelectorAll('#pricelistParams [data-pl-edit]').forEach(b=>b.addEventListener('click', ()=>plEditToggle(b.dataset.plEdit)));
+  document.querySelectorAll('#pricelistParams [data-pl-batal]').forEach(b=>b.addEventListener('click', plEditCancel));
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && _plEdit) plEditCancel(); });   // popup Edit: Esc = Batal
   // Tab cluster (topbar): ganti cluster = keluar dari mode Edit baris, GPM di panel kanan ikut berganti
   const tabs = document.getElementById('plClusterTabs');
