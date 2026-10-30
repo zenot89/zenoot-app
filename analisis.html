@@ -620,6 +620,7 @@
   #priceListCard-pricelist h3.pl-bar #plSearch{ margin-left:auto; }
   .pl-pick, .pl-act{ font:inherit; font-size:13px; font-weight:700; color:var(--ink); background:#fff; border:1px solid var(--ink); border-radius:4px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
   .pl-pick:disabled, .pl-act:disabled{ opacity:.45; cursor:default; }
+  .pl-pick.on{ background:var(--ink); color:#fff; }
   .pl-act.danger{ color:var(--bad); border-color:var(--bad); }
   .pl-note{ font-size:13px; font-weight:700; color:var(--ink-soft); }
   #plActs{ display:inline-flex; gap:6px; }
@@ -7340,6 +7341,12 @@ function plAllMissText(parts){
   if(g.length) m.push('Toko: '+g.join(', ')+' (isi di tab Star)');
   return m.length ? 'Belum bisa dihitung — belum diisi: '+m.join(' · ')+'.' : '';
 }
+// Halaman Semua Produk: urutan default = per cluster (Star paling atas); tombol Sort Supplier = urut A–Z menurut supplier (kolom boss di Kelola Produk), dalam 1 supplier tetap urutan cluster; tanpa supplier di paling bawah
+var _plAllSortSup = false;
+function plSupplierOf(row){
+  const kl = plKatKey(row);
+  return [...new Set(zProdukRows.filter(r=>String(r.katalog||'').trim().toLowerCase()===kl).map(r=>String(r.boss||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).join(', ');
+}
 function renderPricelistAll(fromLoad){
   const card = document.getElementById('priceListAllCard'); if(!card) return;
   if(!fromLoad) plReloadIfStale(renderPricelistAll);
@@ -7353,11 +7360,16 @@ function renderPricelistAll(fromLoad){
     if(!parts.some(x=>x.key===(c.key||'dog'))) parts.push({ key:c.key||'dog', nama:plClusterDef(c.key||'dog').nama, miss:P.missC });   // Tanpa Cluster membaca angka Dog
   });
   const miss = plAllMissText(parts);
+  if(_plAllSortSup){
+    rows.forEach(x=>{ x.sup = plSupplierOf(x.row); });
+    rows.sort((a,b)=> a.sup===b.sup ? 0 : !a.sup ? 1 : !b.sup ? -1 : a.sup.localeCompare(b.sup));   // sort stabil: urutan cluster terjaga di dalam 1 supplier
+  }
   const body = rows.length ? rows.map((x,i)=>{
     const c = plCalc(x.row, x.P);
     return `<tr><td class="num">${i+1}</td><td>${escHtml(x.row.sku)}</td><td><span class="pl-cbadge plc-${x.key||'none'}">${escHtml(x.nama)}</span></td><td class="num">${fmtNum(x.row.hpp)}</td>${plCellsHtml(c, x.P)}</tr>`;
   }).join('') : `<tr><td colspan="10" style="color:var(--ink-soft);">${escHtml(plEmptyMsg())}</td></tr>`;
   card.innerHTML = (miss ? `<div class="hint" style="margin:0 0 8px;font-weight:700;">${escHtml(miss)}</div>` : '') + `
+    <div style="margin:0 0 8px;"><button type="button" class="pl-pick${_plAllSortSup?' on':''}" data-sort="supplier">Sort Supplier</button></div>
     <div class="pricelist-scroll">
       <table class="ca-table">
         <thead><tr><th class="num">No</th><th>SKU</th><th>Cluster</th><th class="num">HPP</th><th class="num">Harga Upload</th><th class="num">Harga Coret</th><th class="num">Gap Harga</th><th class="num">Harga Net</th><th class="num">Net Income</th><th class="num">NPM</th></tr></thead>
@@ -7418,6 +7430,11 @@ function renderPricelistPage(fromLoad){
     const b = e.target.closest('button[data-cl]'); if(!b) return;
     _plCluster = b.dataset.cl; _plRowEdit = false; _plSel.clear();
     renderPricelistPage(true);
+  });
+  const allCard = document.getElementById('priceListAllCard');
+  if(allCard) allCard.addEventListener('click', e=>{
+    if(!e.target.closest('[data-sort="supplier"]')) return;
+    _plAllSortSup = !_plAllSortSup; renderPricelistAll(true);
   });
   // Bar tabel: Pilih Produk / Edit / Hapus / Selesai + centang baris (delegasi, karena isi kartu dibangun ulang)
   const card = document.getElementById('priceListCard-pricelist');
