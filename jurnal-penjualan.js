@@ -3311,28 +3311,46 @@ async function editJP(id) {
     jpTutupDropdownSKU();
     if (_jpProdukList.length === 0) await loadProdukListJP();
     const skuVal = r.sku || '';
-    const found  = _jpProdukList.find(p => _jpGetSku(p) === skuVal);
+    // [30 Okt 2026] Jurnal nyimpen SKU huruf besar semua, sedangkan Kelola Produk nyimpen sku_variasi apa adanya
+    // (cuma di-trim). Pencocokan persis (===) gagal kalau di master ada huruf kecil/spasi (mis. "Turtleneck_Abu-MD"),
+    // akibatnya SKU variasi nyasar ke kolom SKU Induk. Sekarang: coba persis dulu, lalu normalisasi
+    // (huruf besar/kecil + spasi/underscore dianggap sama) — logika sama kayak _jpResolveSku.
+    const _jpNormEdit = s => String(s || '').replace(/[\s_]+/g, '_').toLowerCase();
+    const found  = _jpProdukList.find(p => _jpGetSku(p) === skuVal)
+                || _jpProdukList.find(p => _jpNormEdit(_jpGetSku(p)) === _jpNormEdit(skuVal));
     if (found) {
       const kat = _jpGetKatalog(found);
+      const skuMaster = _jpGetSku(found);   // value <option> variasi = SKU persis di master, bukan versi uppercase jurnal
       document.getElementById('jp-sku-induk').value = kat;
       _jpSetIndukLabel(kat);
       jpPilihKatalog(kat);
 setTimeout(() => {
-  document.getElementById('jp-sku-variasi').value = skuVal;
+  document.getElementById('jp-sku-variasi').value = skuMaster;
   var lblV = document.getElementById('jp-picker-variasi-label');
-  if (lblV) { lblV.textContent = skuVal; lblV.style.color = 'var(--ink)'; }
+  if (lblV) { lblV.textContent = skuMaster; lblV.style.color = 'var(--ink)'; }
   var btnT = document.getElementById('jp-btn-tambah-sku');
   if (btnT) btnT.style.display = 'block';
 }, 80);
     } else {
       // Transaksi lama yang SKU-nya udah gak ada di Kelola Produk: SKU dipertahankan
       // apa adanya biar edit qty/harga/channel tetep bisa. Ganti SKU cuma lewat picker (data master).
-      document.getElementById('jp-sku-induk').value = skuVal;
-      _jpSetIndukLabel(skuVal);
+      // [30 Okt 2026] SKU Induk diturunin dari SKU variasi (_jpSkuInduk), bukan diisi SKU variasinya;
+      // SKU variasi masuk ke kolom SKU Variasi + label pickernya ikut keisi.
+      const indukFb = skuVal ? _jpSkuInduk(skuVal) : '';
+      document.getElementById('jp-sku-induk').value = indukFb;
+      _jpSetIndukLabel(indukFb);
       const sel = document.getElementById('jp-sku-variasi');
       sel.innerHTML = skuVal
         ? '<option value="' + skuVal + '">' + skuVal + '</option>'
         : '<option value="">— Pilih Variasi —</option>';
+      if (skuVal) sel.value = skuVal;
+      var lblVFb = document.getElementById('jp-picker-variasi-label');
+      if (lblVFb) {
+        lblVFb.textContent = skuVal || '— Pilih Variasi —';
+        lblVFb.style.color = skuVal ? 'var(--ink)' : 'var(--ink3)';
+      }
+      var btnTFb = document.getElementById('jp-btn-tambah-sku');
+      if (btnTFb) btnTFb.style.display = skuVal ? 'block' : 'none';
     }
     document.getElementById('modal-jp').classList.add('open');
   } catch(err) { alert('Gagal load: ' + err.message); }
