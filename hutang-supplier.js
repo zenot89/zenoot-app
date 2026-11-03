@@ -3165,15 +3165,19 @@ async function hsHapusBon() {
 //     peringatan (kartu bon, rincian bon, banner). Begitu harganya diisi, sinkron berikutnya otomatis menghitung ulang.
 //   • Pembayaran: ikut alur yang sudah ada (Bayar Utang). Satu-satunya aturan tambahan: bon yang
 //     sudah ada pembayarannya tidak dihitung ulang HARGA item yang sudah berharga (qty tetap ikut).
-//   • Hanya supplier di _HS_DS_AUTO_SUPPLIERS (RH). Supplier dropship lain (mis. yang bon-nya
-//     diinput manual lewat Tambah Bon) TIDAK disentuh supaya tidak dobel.
+//   • Berlaku untuk SEMUA supplier berjenis Dropship (hutang_supplier.is_dropship) + supplier mana pun yang punya SKU berstatus Dropship — tidak ada daftar
+//     nama yang di-hardcode (3 Nov 2026; dulu hanya RH). Bon dibuat hanya dari SKU yang sistemnya Dropship (zIsDropship). Bon yang diinput manual lewat
+//     Tambah Bon (no. nota bukan 'DS-...') TIDAK pernah disentuh.
+//   • Penjualan SKU baru-baru ini diganti ke Dropship tidak ditarik mundur: produk.dropship_mulai (diisi saat sistem diganti ke Dropship di Kelola Produk)
+//     jadi batas awalnya; kosong = ikut _HS_DS_MULAI.
+//   • SKU padanan dropship hasil "Kirim via dropship" (produk.padanan_dropship_id) tidak punya baris Master Barang sendiri: harganya diambil dari baris
+//     Master Barang SKU stok asalnya di supplier yang sama (satu acuan harga), fallback HPP padanan.
 //   • Bon otomatis is_po = false → tidak memicu auto stock-in. Tidak ada jurnal akuntansi saat bon
 //     dibuat (sama dgn Tambah Bon manual); jurnal baru terbentuk saat bayar.
 //   • Penjualan sebelum _HS_DS_MULAI dianggap sudah lunas → tidak ditarik.
 //   • TRX (3 Okt 2026): 1 TRX = 1 baris jurnal_penjualan (sama dgn hitungan "trx" di tooltip grafik Jurnal Penjualan);
 //     1 baris berqty 2 = 1 TRX, QTY 2. Ditampilkan di kartu bon: "5 TRX · QTY 5 PCS". Dihitung ulang tiap sinkron
 //     (tidak disimpan di DB → tidak butuh ALTER TABLE) lewat _hsBonTrxInfo[no_nota].
-var _HS_DS_AUTO_SUPPLIERS = ['RH'];
 var _HS_DS_MULAI = '2026-09-27';
 var _HS_DS_MAX_HARI = 60;
 var _hsDsMasterCache = null, _hsDsMasterAt = 0;
@@ -3263,13 +3267,18 @@ async function _hsDsMaster(force) {
     if (!b.produk_id) return;
     (hbByProduk[b.produk_id] = hbByProduk[b.produk_id] || []).push(b);
   });
-  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {} };
+  var srcByTwin = {};   // id SKU padanan dropship → baris produk SKU stok asalnya
+  (r[0] || []).forEach(function(p) { if (p.padanan_dropship_id) srcByTwin[p.padanan_dropship_id] = p; });
+  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {}, srcByTwin: srcByTwin };
   _hsDsMasterAt = now;
   return _hsDsMasterCache;
 }
 
 // Ambil semua baris penjualan (paging 1000) pada [dari, sampaiEksklusif). Pola gte/lt tanpa jam = aman utk kolom DATE maupun TIMESTAMP.
+var _hsDsRunMemo = null;   // hanya hidup selama satu _hsDsRun: beberapa supplier dropship memakai rentang tanggal yang sama → cukup satu kali tarik
 async function _hsDsFetchPenjualan(dari, sampaiEksklusif) {
+  var memoKey = dari + '|' + sampaiEksklusif;
+  if (_hsDsRunMemo && _hsDsRunMemo[memoKey]) return _hsDsRunMemo[memoKey];
   var out = [], off = 0, page = 1000;
   while (true) {
     var rows = await dbGet('jurnal_penjualan',
@@ -3281,6 +3290,7 @@ async function _hsDsFetchPenjualan(dari, sampaiEksklusif) {
     off += page;
     if (off >= 100000) break;
   }
+  if (_hsDsRunMemo) _hsDsRunMemo[memoKey] = out;
   return out;
 }
 
@@ -3307,9 +3317,13 @@ async function _hsDsBuildPlan(sup, dates, master) {
     if (!sku || qty <= 0) return;
     var p = master.produkBySku[sku];
     if (!p) return;
+    if (p.dropship_mulai && tgl < String(p.dropship_mulai).slice(0, 10)) return;   // SKU ini baru berstatus Dropship sejak tanggal itu → penjualan sebelumnya bukan dropship
 
     var hbs = master.hbByProduk[p.id] || [];
     var hbMine = hbs.find(function(b) { return b.supplier_id === sup.id; }) || null;
+    // SKU padanan dropship hasil "Kirim via dropship": harga & nama diambil dari Master Barang SKU stok asalnya di supplier yang sama
+    var srcP = master.srcByTwin ? master.srcByTwin[p.id] : null;
+    if (!hbMine && srcP) hbMine = (master.hbByProduk[srcP.id] || []).find(function(b) { return b.supplier_id === sup.id; }) || null;
     var milik;
     if (hbMine) milik = true;
     else if (hbs.length) milik = false;   // sudah di-link ke supplier lain
@@ -3478,12 +3492,12 @@ async function _hsDsTulis(plan) {
 }
 
 // Jalankan sinkron untuk daftar tanggal. Return { ok, gagal, warnings }.
-// 10 Okt 2026: kandidat supplier bon otomatis = supplier auto (RH) ∪ boss dari SKU yang di-override ke Dropship.
+// 10 Okt 2026 (diperluas 3 Nov 2026): kandidat supplier bon otomatis = semua supplier berjenis Dropship ∪ boss dari SKU yang di-override ke Dropship.
 // Sistem efektif per SKU tetap diputuskan zIsDropship (supabase.js), jadi supplier yang tidak punya SKU dropship
 // pada hari itu tidak menghasilkan item (dan bon DS- yang sudah ada akan dihitung ulang seperti biasa).
 function _hsDsKandidatNama(master) {
   var set = {};
-  _HS_DS_AUTO_SUPPLIERS.forEach(function(n) { set[String(n).trim().toUpperCase()] = true; });
+  Object.keys(master.dsSupMap || {}).forEach(function(k) { if (master.dsSupMap[k] && master.dsSupMap[k].is_dropship) set[k] = true; });
   Object.keys(master.produkBySku || {}).forEach(function(k) {
     var p = master.produkBySku[k];
     if (p && p.sistem_override === 'dropship') {
@@ -3498,6 +3512,8 @@ async function _hsDsRun(dates, replaceWarnings, force) {
   var master = await _hsDsMaster(force);
   var hasil = { ok: 0, gagal: [], warnings: {} };
   var kandidat = _hsDsKandidatNama(master);
+  _hsDsRunMemo = {};
+  try {
   for (var i = 0; i < kandidat.length; i++) {
     var sup = master.dsSupMap[kandidat[i]];
     if (!sup) continue;   // sistem efektif per SKU ditentukan zIsDropship, bukan per supplier
@@ -3510,6 +3526,7 @@ async function _hsDsRun(dates, replaceWarnings, force) {
     hasil.ok += r.ok; hasil.gagal = hasil.gagal.concat(r.gagal);
     Object.keys(plan.warnings).forEach(function(k) { hasil.warnings[k] = plan.warnings[k]; });
   }
+  } finally { _hsDsRunMemo = null; }
   if (replaceWarnings) _hsDsWarnings = hasil.warnings;
   else Object.keys(hasil.warnings).forEach(function(k) { _hsDsWarnings[k] = hasil.warnings[k]; });
   _hsDsError = hasil.gagal.length ? hasil.gagal[0].msg : '';
@@ -3593,10 +3610,8 @@ function _hsDsRenderBanner() {
 function hsOpenTarikPenjualan() {
   var sel = document.getElementById('hs-tarik-supplier');
   if (!sel) return;
-  var auto = (_hsSupplierList || []).filter(function(s) {
-    return _HS_DS_AUTO_SUPPLIERS.indexOf(String(s.nama || '').trim().toUpperCase()) !== -1 && s.is_dropship;
-  });
-  if (!auto.length) { alert('Supplier ' + _HS_DS_AUTO_SUPPLIERS.join(', ') + ' (tipe Dropship) belum ada di Kelola Supplier.'); return; }
+  var auto = (_hsSupplierList || []).filter(function(s) { return !!s.is_dropship; });
+  if (!auto.length) { alert('Belum ada supplier bertipe Dropship di Kelola Supplier.'); return; }
   sel.innerHTML = auto.map(function(s) { return '<option value="' + s.id + '">' + _hsEsc(s.nama) + '</option>'; }).join('');
   document.getElementById('hs-tarik-dari').value   = _HS_DS_MULAI;
   document.getElementById('hs-tarik-sampai').value = _hsDsHariIni();

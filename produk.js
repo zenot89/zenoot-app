@@ -455,7 +455,7 @@ function produkSistemSheetOpen(id) {
   sh.innerHTML = '<div class="pk-sis-handle"></div>'
     + '<div class="pk-sis-title">' + _pkEsc(row.sku_variasi) + '</div>'
     + '<div class="pk-sis-sub">Sekarang: <b>' + (effM ? effM.label : 'Belum diatur') + '</b> · Supplier: ' + _pkEsc(boss) + '</div>'
-    + rows;
+    + rows + _produkPadananRow(row, eff);
   var ovEl = document.getElementById('pk-sis-overlay');
   ovEl.classList.add('open');
   sh.classList.add('show'); // transisi berjalan karena overlay sudah display:block di frame yang sama
@@ -471,6 +471,100 @@ function produkSistemSheetClose() {
   _pkSisId = null;
 }
 
+// ── PADANAN DROPSHIP (3 Nov 2026) ─────────────────────────────
+// SKU stok biasa (Reseller / Produksi Sendiri) boleh punya "padanan" = SKU berstatus Dropship yang dicatat saat penjualan dikirim via dropship
+// (tombol "Kirim via ..." di Tambah Penjualan). Disimpan di produk.padanan_dropship_id; tidak ada pasangan yang ditebak dari nama.
+// Supplier Dropship + Reseller boleh tanpa pengaturan ini: SKU padanannya dibuat otomatis saat pertama dipakai (jurnal-penjualan.js).
+function _produkPadananRow(row, eff) {
+  if (eff === 'dropship') return '';
+  var tw = row.padanan_dropship_id ? (_produkData || []).find(function(r) { return r.id === row.padanan_dropship_id; }) : null;
+  var ket = tw ? _pkEsc(tw.sku_variasi) + ' · ' + _pkEsc(tw.boss || '—') : 'Belum diatur — dipakai tombol "Kirim via dropship" di Tambah Penjualan.';
+  return '<div class="pk-sis-row" onclick="produkPadananOpen()">'
+    + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">Padanan Dropship</div><div class="pk-sis-rd">' + ket + '</div></div>'
+    + '<i class="ti ti-chevron-right" style="color:var(--ink3)"></i></div>';
+}
+
+function produkPadananOpen() {
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  var sh = document.getElementById('pk-sis-sheet');
+  if (!row || !sh) return;
+  sh.innerHTML = '<div class="pk-sis-handle"></div>'
+    + '<div class="pk-sis-title">Padanan Dropship</div>'
+    + '<div class="pk-sis-sub"><b>' + _pkEsc(row.sku_variasi) + '</b> — pilih SKU dropship yang dicatat saat dikirim via dropship</div>'
+    + '<div style="padding:10px 18px 6px"><input type="text" id="pk-pad-search" placeholder="Cari SKU / supplier..." autocomplete="off" oninput="produkPadananRender()" '
+    + 'style="width:100%;box-sizing:border-box;font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink)"></div>'
+    + '<div id="pk-pad-list"></div>'
+    + '<div class="pk-sis-row" onclick="produkSistemSheetOpen(_pkSisId)"><div class="pk-sis-rtxt"><div class="pk-sis-rl">Kembali</div></div></div>';
+  produkPadananRender();
+}
+
+function produkPadananRender() {
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  var box = document.getElementById('pk-pad-list');
+  if (!row || !box) return;
+  var q = String((document.getElementById('pk-pad-search') || {}).value || '').trim().toLowerCase();
+  var list = (_produkData || []).filter(function(r) {
+    if (r.id === row.id || _produkSistemOf(r) !== 'dropship') return false;
+    return !q || (String(r.sku_variasi || '') + ' ' + String(r.boss || '')).toLowerCase().indexOf(q) !== -1;
+  }).sort(function(a, b) { return String(a.sku_variasi || '').localeCompare(String(b.sku_variasi || ''), 'id'); });
+  var html = '';
+  if (row.padanan_dropship_id) {
+    html += '<div class="pk-sis-row" onclick="produkPadananPick(null)"><div class="pk-sis-rtxt"><div class="pk-sis-rl" style="color:var(--danger)">Hapus padanan</div>'
+      + '<div class="pk-sis-rd">Tombol "Kirim via dropship" tidak muncul untuk SKU ini (kecuali supplier-nya Dropship + Reseller).</div></div></div>';
+  }
+  if (!list.length) html += '<div class="pk-sis-sub" style="padding:14px 18px">Belum ada SKU berstatus Dropship yang cocok.</div>';
+  html += list.slice(0, 60).map(function(r) {
+    var on = (row.padanan_dropship_id === r.id);
+    return '<div class="pk-sis-row' + (on ? ' on' : '') + '" onclick="produkPadananPick(' + r.id + ')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + _pkEsc(r.sku_variasi) + '</div><div class="pk-sis-rd">' + _pkEsc(r.boss || '—') + ' · HPP Rp' + (Number(r.hpp) || 0).toLocaleString('id-ID') + '</div></div>'
+      + '<span class="pk-sis-tg"></span></div>';
+  }).join('');
+  if (list.length > 60) html += '<div class="pk-sis-sub" style="padding:10px 18px">Menampilkan 60 pertama — persempit pencarian.</div>';
+  box.innerHTML = html;
+}
+
+async function produkPadananPick(id) {
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  if (!row) { produkSistemSheetClose(); return; }
+  try {
+    await dbUpdate('produk', row.id, { padanan_dropship_id: id == null ? null : id });
+    row.padanan_dropship_id = id == null ? null : id;
+    produkSistemSheetClose();
+    renderProduk(_produkData);
+  } catch (e) {
+    var msg = (e && e.message) || String(e);
+    alert('Gagal simpan padanan dropship: ' + msg + (/padanan_dropship_id/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-padanan-dropship.sql di Supabase dulu.' : ''));
+  }
+}
+
+function _produkYmdHariIni() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Cap produk.dropship_mulai di payload SKU yang sistemnya DIGANTI (3 Nov 2026): ke Dropship → hari ini (kalau sebelumnya bukan Dropship), keluar dari
+// Dropship → dikosongkan. Dipakai semua jalur yang mengubah sistem_override SKU yang sudah ada, supaya bon dropship tidak ditarik mundur ke penjualan lama.
+// SKU baru (row kosong) tidak dicap: belum punya riwayat.
+function _produkStampDropshipMulai(payload, row) {
+  var sis = payload && payload.sistem_override;
+  if (!sis || !row) return;
+  if (sis === 'dropship') { if (_produkSistemOf(row) !== 'dropship') payload.dropship_mulai = _produkYmdHariIni(); }
+  else if (row.dropship_mulai) payload.dropship_mulai = null;
+}
+
+// Harga per pcs SKU ini menurut Master Barang (Hutang Barang) di supplier-nya, sesuai sistem yang dipilih:
+// Dropship → harga_per_lusin ÷ 12, Reseller → harga_po_per_lusin ÷ 12. 0 = tidak ada acuan (jangan menyentuh HPP).
+async function _produkHargaSistem(row, sistem) {
+  if (sistem !== 'dropship' && sistem !== 'reseller') return 0;
+  var s = _produkSupMap()[String(row.boss || '').trim().toUpperCase()];
+  if (!s) return 0;
+  var hb = await dbGet('hutang_barang', '&produk_id=eq.' + row.id + '&supplier_id=eq.' + s.id);
+  var b = (hb || [])[0];
+  if (!b) return 0;
+  var lusin = Number(sistem === 'dropship' ? b.harga_per_lusin : b.harga_po_per_lusin) || 0;
+  return lusin > 0 ? Math.round(lusin / 12) : 0;
+}
+
 async function produkSistemPick(i) {
   var o = _PRODUK_SISTEM_OPSI[i];
   if (!o || _pkSisId == null) return;
@@ -480,13 +574,30 @@ async function produkSistemPick(i) {
   // 30 Okt 2026: pilihan SELALU disimpan eksplisit di sistem_override (normalisasi ke null yang dibuat pagi ini dicabut).
   // Baris lama yang masih kosong lalu dipilih sistem yang sama dgn tampilannya juga tersimpan eksplisit.
   if (row.sistem_override === val) { produkSistemSheetClose(); return; }
+  var payload = { sistem_override: val };
+  _produkStampDropshipMulai(payload, row);   // 3 Nov 2026: penjualan sebelum hari ini tidak ditarik mundur ke bon dropship
+  // 3 Nov 2026: HPP ikut sistem — harga dropship dan harga PO di Master Barang bisa beda; ganti hanya kalau user setuju.
   try {
-    await dbUpdate('produk', row.id, { sistem_override: val });
-    row.sistem_override = val;
+    var hargaBaru = await _produkHargaSistem(row, val);
+    var hppSekarang = Number(row.hpp) || 0;
+    if (hargaBaru > 0 && hargaBaru !== hppSekarang) {
+      var ganti = await zConfirm(
+        'HPP ' + row.sku_variasi + ' sekarang Rp' + hppSekarang.toLocaleString('id-ID') + '.\n' +
+        'Harga ' + (val === 'dropship' ? 'Dropship' : 'PO') + ' di Master Barang ' + (row.boss || 'supplier') + ' = Rp' + hargaBaru.toLocaleString('id-ID') + ' per pcs.\n\n' +
+        'Samakan HPP ke Rp' + hargaBaru.toLocaleString('id-ID') + '?',
+        { title: 'Samakan HPP dengan sistem baru?', ok: 'Samakan HPP', cancel: 'Biarkan HPP' }
+      );
+      if (ganti) payload.hpp = hargaBaru;
+    }
+  } catch (eHarga) { console.warn('[produk] cek harga sistem gagal:', eHarga && eHarga.message); }
+  try {
+    await dbUpdate('produk', row.id, payload);
+    Object.keys(payload).forEach(function(k) { row[k] = payload[k]; });
     produkSistemSheetClose();
     renderProduk(_produkData);
   } catch (e) {
-    alert('Gagal simpan sistem: ' + e.message);
+    var msg = (e && e.message) || String(e);
+    alert('Gagal simpan sistem: ' + msg + (/dropship_mulai/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-padanan-dropship.sql di Supabase dulu.' : ''));
   }
 }
 
@@ -706,6 +817,7 @@ async function simpanEditKatalog() {
         sisBaru = _produkSistemDefault(boss);
       }
       if (sisBaru) payloadK.sistem_override = sisBaru;
+      _produkStampDropshipMulai(payloadK, r);
       await dbUpdate('produk', r.id, payloadK);
       // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
       // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
@@ -832,6 +944,7 @@ async function simpanProduk() {
       if (old && _produkBossBerubah(old.boss, data.boss)) {
         const sisBaru = _produkSistemDefault(data.boss, _produkSistemPrefer(old));
         if (sisBaru) data.sistem_override = sisBaru;
+        _produkStampDropshipMulai(data, old);
       }
       await dbUpdate('produk', id, data);
     } else {
@@ -1124,6 +1237,7 @@ async function simpanBatchSupplier() {
         payloadRow.sistem_override = _sisDual;
         payloadRow.dropship = (_sisDual === 'dropship');
       }
+      _produkStampDropshipMulai(payloadRow, _oldMap[id]);
       await dbUpdate('produk', id, payloadRow);
       // Cascade snapshot stok (stok.boss) — dulu Edit Supplier massal tidak melakukan ini, padahal kalau varian pindah
       // sebagian, Stok Produk bakal masih menampilkan supplier lama. Pola sama dengan simpanEditKatalog.

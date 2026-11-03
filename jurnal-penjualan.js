@@ -620,13 +620,14 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
         </div>
       </div>
 
-      <!-- KIRIM VIA RH (6 Okt 2026): muncul hanya untuk SKU XL yang punya padanan RH (dropship). Dicatat sebagai SKU RH. -->
-      <div id="jp-via-rh-wrap" style="display:none;margin:2px 0 12px;padding:10px 12px;border:2px solid var(--cream4);border-radius:8px;background:var(--cream2)">
+      <!-- KIRIM VIA DROPSHIP (generalisasi "Kirim via RH" 6 Okt 2026 → 3 Nov 2026): muncul untuk SKU stok biasa yang punya padanan dropship
+           (produk.padanan_dropship_id, atau supplier Dropship+Reseller yang SKU padanannya dibuat otomatis). Dicatat sebagai SKU dropship-nya. -->
+      <div id="jp-via-ds-wrap" style="display:none;margin:2px 0 12px;padding:10px 12px;border:2px solid var(--cream4);border-radius:8px;background:var(--cream2)">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink)">
-          <input type="checkbox" id="jp-via-rh" onchange="jpToggleViaRh()" style="width:18px;height:18px;margin:0;flex:none">
-          <span>Kirim via RH (dropship)</span>
+          <input type="checkbox" id="jp-via-ds" onchange="jpToggleViaDs()" style="width:18px;height:18px;margin:0;flex:none">
+          <span id="jp-via-ds-label">Kirim via dropship</span>
         </label>
-        <div id="jp-via-rh-info" style="margin-top:5px;font-size:12px;color:var(--ink3);line-height:1.45"></div>
+        <div id="jp-via-ds-info" style="margin-top:5px;font-size:12px;color:var(--ink3);line-height:1.45"></div>
       </div>
       <!-- ── PICKER BOTTOM SHEET (ala BRImo): dipakai gantian buat SKU Induk
            & SKU Variasi (mode via _jpSkuSheetMode) — konsisten sama picker
@@ -2916,6 +2917,7 @@ async function _jpRefreshSisakMap() {
       if (k && zIsDropship(p, dsSupMap, masukMap[k])) dsMap[k] = true;
     });
     _jpDsMap = dsMap;
+    _jpSupMap = dsSupMap || {};   // dipakai _jpDsTwin() untuk mengenali supplier Dropship + Reseller
     // Re-render tabel pakai sisakMap fresh (kalau tabel sudah ada datanya)
     if (Object.keys(sisakMap).length) {
       const tbody = document.getElementById('jp-tbody');
@@ -3386,7 +3388,7 @@ async function simpanJP() {
     if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
     if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
     // ── Resolve SKU: normalize dan validasi vs produk list ──
-    const resolved = _jpResolveSku(_jpViaRhApply(sku));   // 6 Okt 2026: "Kirim via RH" mencatat SKU RH-nya
+    const resolved = _jpResolveSku(_jpViaDsApply(sku));   // "Kirim via dropship" mencatat SKU dropship-nya
     if (!resolved.ok) {
       const lanjut = await zConfirm(
         'SKU "' + sku + '" tidak ditemukan di master produk.\n' +
@@ -3465,76 +3467,135 @@ function _jpLiveItem() {
   var qty   = parseInt(document.getElementById('jp-qty').value) || 0;
   var harga = idrVal('jp-harga');
   var total = idrVal('jp-total') || qty * harga;
-  var viaRh = !!(_jpViaRh && _jpViaRh.from === skuV.toUpperCase());
-  return { sku: _jpViaRhApply(skuV), skuLabel: viaRh ? (_jpViaRh.label + ' (via RH)') : skuV, qty: qty, harga: harga, total: total, live: true };
+  var viaDs = !!(_jpViaDs && _jpViaDs.from === skuV.toUpperCase());
+  return { sku: _jpViaDsApply(skuV), skuLabel: viaDs ? (_jpViaDs.label + ' (via ' + _jpViaDs.supplier + ')') : skuV, qty: qty, harga: harga, total: total, live: true };
 }
 
-// ─── KIRIM VIA RH (6 Okt 2026) ───────────────────────────────────
-// Kasus: Turtleneck DIMI (ukuran M maupun XL) punya padanan di RH (All Size ~ XL, dropship). Kalau stok DIMI belum jadi dan batas
-// kirim mepet, penjualan dicatat sebagai SKU RH-nya: stok DIMI tidak berkurang, bon RH terbentuk otomatis lewat
-// mekanisme dropship yang sudah ada, dan harga satuan = HPP RH. Tidak ada kolom/tabel baru; modul lain tidak berubah.
-// Padanan dicari lewat nama (spasi/underscore/huruf besar-kecil diabaikan): Turtleneck_HITAM-XL / -M  ->  Turtleneck_Hitam,
-// dan hanya kalau SKU RH itu memang berstatus dropship (_jpDsMap) supaya tidak jadi SKU bertumpuk stok minus.
-var _jpViaRh = null;   // { from, to, label, hpp } saat dicentang
-function _jpNormSku(s) { return String(s || '').replace(/[\s_]+/g, '_').toLowerCase(); }
-function _jpRhPair(sku) {
-  var s0 = String(sku || '').trim();
-  var m = /^(.*?)\s*-\s*(XXL|XL|L|M|S|XS)$/i.exec(s0);   // ukuran apa pun: RH hanya All Size, dikirim apa adanya
-  if (!m) return null;
-  var base = _jpNormSku(m[1]);
-  if (!base) return null;
-  if (_jpDsMap[s0.toUpperCase()]) return null;   // SKU ini sendiri sudah dropship
-  for (var i = 0; i < _jpProdukList.length; i++) {
-    var k = _jpGetSku(_jpProdukList[i]);
-    if (!k || _jpNormSku(k) !== base) continue;
-    if (!_jpDsMap[String(k).toUpperCase()]) continue;
-    return { sku: String(k).toUpperCase(), label: k, hpp: Number(_jpGetHpp(_jpProdukList[i])) || 0, size: m[2].toUpperCase() };
+// ─── KIRIM VIA DROPSHIP (6 Okt 2026 "Kirim via RH" → digeneralisasi 3 Nov 2026) ───
+// Kasus: SKU stok biasa (Reseller / Produksi Sendiri) sedang habis / belum ada barangnya, tapi pesanan harus tetap dikirim lewat supplier
+// dropship. Penjualan dicatat sebagai SKU DROPSHIP padanannya: stok SKU asli tidak berkurang, bon dropship supplier terbentuk otomatis lewat
+// mekanisme bon dropship yang sudah ada, dan harga satuan = HPP SKU dropship itu. Satu penjualan = satu SKU, jadi modul lain tidak berubah.
+// Padanan TIDAK lagi ditebak dari nama: sumbernya produk.padanan_dropship_id (diatur di Kelola Produk > Sistem SKU > Padanan Dropship).
+// Supplier berjenis Dropship + Reseller yang SKU-nya belum punya padanan: SKU padanan (kode + "-DS", supplier yang sama) dibuat otomatis
+// sekali saja saat kotak dicentang, harganya dari harga dropship di Master Barang SKU itu.
+var _jpViaDs = null;   // { from, to, label, hpp, supplier } saat dicentang
+var _jpSupMap = {};    // NAMA_SUPPLIER_UPPERCASE → baris hutang_supplier (diisi _jpRefreshSisakMap)
+function _jpEscHtml(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function _jpNormSku(s) { return String(s || '').trim().replace(/[\s_]+/g, '_').toLowerCase(); }
+// Padanan dropship sebuah SKU stok. Return: null (tidak ada) | { sku, label, hpp, supplier } (sudah ada) | { auto:true, src, label, supplier } (bisa dibuat otomatis)
+function _jpDsTwin(sku) {
+  var u = String(sku || '').trim().toUpperCase();
+  if (!u || _jpDsMap[u]) return null;   // SKU ini sendiri sudah dropship
+  var p = _jpProdukList.find(function(x) { return String(_jpGetSku(x)).toUpperCase() === u; });
+  if (!p) return null;
+  if (p.padanan_dropship_id) {
+    var t = _jpProdukList.find(function(x) { return x.id === p.padanan_dropship_id; });
+    var tk = t ? String(_jpGetSku(t)).toUpperCase() : '';
+    if (t && _jpDsMap[tk]) return { sku: tk, label: _jpGetSku(t), hpp: Number(_jpGetHpp(t)) || 0, supplier: String(t.boss || '').trim() };
+    return null;   // padanan sudah tidak berstatus dropship → jangan dipakai
+  }
+  var s = _jpSupMap[String(p.boss || '').trim().toUpperCase()];
+  if (s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri) {
+    return { auto: true, src: p, label: _jpGetSku(p) + '-DS', hpp: 0, supplier: String(p.boss || '').trim() };
   }
   return null;
 }
-function _jpViaRhApply(sku) {   // SKU yang benar-benar dicatat: SKU RH kalau "via RH" aktif untuk SKU ini
+function _jpViaDsApply(sku) {   // SKU yang benar-benar dicatat: SKU dropship kalau "via dropship" aktif untuk SKU ini
   var u = String(sku || '').trim().toUpperCase();
-  return (_jpViaRh && _jpViaRh.from === u) ? _jpViaRh.to : u;
+  return (_jpViaDs && _jpViaDs.from === u) ? _jpViaDs.to : u;
 }
 function _jpRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
-function _jpViaRhRefresh() {
-  var wrap = document.getElementById('jp-via-rh-wrap');
+function _jpYmdLokal() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function _jpViaDsRefresh() {
+  var wrap = document.getElementById('jp-via-ds-wrap');
   if (!wrap) return;
-  var cb = document.getElementById('jp-via-rh'), info = document.getElementById('jp-via-rh-info');
+  var cb = document.getElementById('jp-via-ds'), info = document.getElementById('jp-via-ds-info'), lbl = document.getElementById('jp-via-ds-label');
   var idEl = document.getElementById('jp-id'), vEl = document.getElementById('jp-sku-variasi');
   var skuV = vEl ? String(vEl.value || '') : '';
-  var pair = (idEl && idEl.value) ? null : _jpRhPair(skuV);   // mode edit: tanpa pilihan ini
-  if (!pair) { _jpViaRh = null; if (cb) cb.checked = false; wrap.style.display = 'none'; return; }
-  if (_jpViaRh && _jpViaRh.from !== skuV.toUpperCase()) { _jpViaRh = null; if (cb) cb.checked = false; }
+  var pair = (idEl && idEl.value) ? null : _jpDsTwin(skuV);   // mode edit: tanpa pilihan ini
+  if (!pair) { _jpViaDs = null; if (cb) cb.checked = false; wrap.style.display = 'none'; return; }
+  if (_jpViaDs && _jpViaDs.from !== skuV.toUpperCase()) { _jpViaDs = null; if (cb) cb.checked = false; }
   wrap.style.display = 'block';
+  var sup = _jpEscHtml(pair.supplier || 'supplier');
+  if (lbl) lbl.textContent = 'Kirim via ' + (pair.supplier || 'supplier') + ' (dropship)';
   if (!info) return;
   var sisa = _jpSisakMap[skuV.toUpperCase()];
-  var catatan = (pair.size !== 'XL') ? ' <b>Ukuran yang dikirim RH: All Size (setara XL).</b>' : '';
-  if (_jpViaRh) info.innerHTML = 'Dicatat sebagai <b>' + pair.label + '</b> &middot; harga RH ' + _jpRp(pair.hpp) + '. Stok DIMI tidak berkurang, masuk bon RH.' + catatan;
-  else if (sisa !== undefined && sisa <= 0) info.innerHTML = '<span style="color:var(--danger);font-weight:700">Stok DIMI habis.</span> Centang untuk kirim via RH (' + pair.label + ', ' + _jpRp(pair.hpp) + ').';
-  else info.innerHTML = 'Padanan di RH: ' + pair.label + ' &middot; ' + _jpRp(pair.hpp) + '.' + catatan;
+  var tujuan = pair.auto ? 'SKU padanan <b>' + _jpEscHtml(pair.label) + '</b> dibuat otomatis sekali saja' : '<b>' + _jpEscHtml(pair.label) + '</b> &middot; ' + _jpRp(pair.hpp);
+  if (_jpViaDs) info.innerHTML = 'Dicatat sebagai <b>' + _jpEscHtml(_jpViaDs.label) + '</b> &middot; harga ' + _jpRp(_jpViaDs.hpp) + '. Stok ' + _jpEscHtml(skuV) + ' tidak berkurang, masuk bon ' + sup + '.';
+  else if (sisa !== undefined && sisa <= 0) info.innerHTML = '<span style="color:var(--danger);font-weight:700">Stok habis.</span> Centang untuk kirim via ' + sup + ' (' + tujuan + ').';
+  else info.innerHTML = 'Padanan dropship: ' + tujuan + '.';
 }
-function jpToggleViaRh() {
-  var cb = document.getElementById('jp-via-rh');
+// Buat SKU padanan dropship otomatis (supplier Dropship+Reseller yang belum punya padanan). Return objek twin atau null kalau dibatalkan/gagal.
+async function _jpBuatPadananDs(src) {
+  var kode = String(_jpGetSku(src)) + '-DS';
+  var sup = String(src.boss || '').trim();
+  var ada = _jpProdukList.find(function(x) { return _jpNormSku(_jpGetSku(x)) === _jpNormSku(kode); });
+  if (ada && !_jpDsMap[String(_jpGetSku(ada)).toUpperCase()]) {
+    alert('SKU "' + _jpGetSku(ada) + '" sudah ada di Kelola Produk tetapi bukan berstatus Dropship. Ubah sistemnya ke Dropship di Kelola Produk, atau pilih padanan lain di Sistem SKU > Padanan Dropship.');
+    return null;
+  }
+  if (!ada) {
+    var lanjut = await zConfirm(
+      'SKU padanan dropship untuk ' + _jpGetSku(src) + ' belum ada.\n\nBuat "' + kode + '" di supplier ' + sup + '? Cukup sekali; seterusnya dipakai otomatis.',
+      { title: 'Buat SKU padanan dropship', ok: 'Buat' }
+    );
+    if (!lanjut) return null;
+  }
+  try {
+    var twin = ada;
+    if (!twin) {
+      // Harga dropship dari Master Barang SKU ini (per lusin ÷ 12); kosong → HPP SKU stoknya
+      var s = _jpSupMap[sup.toUpperCase()];
+      var hb = await dbGet('hutang_barang', '&produk_id=eq.' + src.id);
+      var mine = (hb || []).find(function(b) { return s && b.supplier_id === s.id && Number(b.harga_per_lusin) > 0; });
+      var hpp = mine ? Math.round(Number(mine.harga_per_lusin) / 12) : (Number(_jpGetHpp(src)) || 0);
+      var ins = await dbInsert('produk', { katalog: src.katalog, sku_variasi: kode, hpp: hpp, boss: src.boss, sistem_override: 'dropship' });
+      twin = ins && ins[0];
+      if (!twin) throw new Error('SKU padanan tidak terbuat');
+      _jpProdukList.push(twin);
+    }
+    await dbUpdate('produk', src.id, { padanan_dropship_id: twin.id });
+    src.padanan_dropship_id = twin.id;
+    var tk = String(_jpGetSku(twin)).toUpperCase();
+    _jpDsMap[tk] = true;
+    return { sku: tk, label: _jpGetSku(twin), hpp: Number(_jpGetHpp(twin)) || 0, supplier: sup };
+  } catch (e) {
+    alert('Gagal membuat SKU padanan dropship: ' + ((e && e.message) || e));
+    return null;
+  }
+}
+async function jpToggleViaDs() {
+  var cb = document.getElementById('jp-via-ds');
   var sel = document.getElementById('jp-sku-variasi');
   var skuV = sel ? String(sel.value || '') : '';
-  var pair = _jpRhPair(skuV);
+  var pair = _jpDsTwin(skuV);
   var hargaEl = document.getElementById('jp-harga');
   if (!cb || !pair || !hargaEl) return;
   if (cb.checked) {
-    _jpViaRh = { from: skuV.toUpperCase(), to: pair.sku, label: pair.label, hpp: pair.hpp };
+    if (pair.auto) {
+      cb.disabled = true;
+      var made = await _jpBuatPadananDs(pair.src);
+      cb.disabled = false;
+      if (!made) { cb.checked = false; _jpViaDsRefresh(); return; }
+      pair = made;
+    }
+    _jpViaDs = { from: skuV.toUpperCase(), to: pair.sku, label: pair.label, hpp: pair.hpp, supplier: pair.supplier };
     if (pair.hpp > 0) hargaEl.value = pair.hpp;
   } else {
-    _jpViaRh = null;
+    _jpViaDs = null;
     var opt = sel.options[sel.selectedIndex];
     var h = (opt && parseInt(opt.dataset.hpp)) || 0;
-    if (h > 0) hargaEl.value = h;   // kembali ke HPP DIMI
+    if (h > 0) hargaEl.value = h;   // kembali ke HPP SKU stoknya
   }
   hitungTotalJP();
+  _jpViaDsRefresh();
 }
 
 function _jpRenderPending() {
-  _jpViaRhRefresh();   // pilihan "Kirim via RH" ikut SKU yang sedang dipilih
+  _jpViaDsRefresh();   // pilihan "Kirim via dropship" ikut SKU yang sedang dipilih
   var list  = document.getElementById('jp-pending-list');
   var tbody = document.getElementById('jp-pending-tbody');
   var count = document.getElementById('jp-pending-count');
@@ -3590,8 +3651,8 @@ function jpSimpanDanTambah() {
   const skuV  = document.getElementById('jp-sku-variasi').value;
   const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
   const sku0  = (skuV || skuI).trim().toUpperCase();
-  const sku   = _jpViaRhApply(sku0);   // 6 Okt 2026: "Kirim via RH" mencatat SKU RH-nya
-  const skuLabel = (sku !== sku0 && _jpViaRh) ? (_jpViaRh.label + ' (via RH)') : (skuV || sku0);
+  const sku   = _jpViaDsApply(sku0);   // "Kirim via dropship" mencatat SKU dropship-nya
+  const skuLabel = (sku !== sku0 && _jpViaDs) ? (_jpViaDs.label + ' (via ' + _jpViaDs.supplier + ')') : (skuV || sku0);
   const tgl   = document.getElementById('jp-tgl').value;
   const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
 
