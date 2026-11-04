@@ -218,6 +218,14 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
     .jp-row-1 .fg-waktu { flex: 1 1 80px;  min-width: 70px;  }
     .jp-row-1 .fg-ch    { flex: 2 1 130px; min-width: 120px; }
 
+    /* ── 4 Nov 2026: area klik picker Channel / SKU Variasi / SKU Induk satu lebar penuh ──
+       Seluruh blok field (label + kotak picker) bisa diklik, bukan hanya kotaknya / segitiga ▾. Isi kotak (teks, ▾) tidak menangkap klik sendiri,
+       jadi target klik selalu kotak picker itu — di mana pun diketuk. */
+    .jp-row-1 .fg-ch, .jp-row-2 .fg-variasi, .jp-row-2 .fg-induk { cursor: pointer; }
+    #jp-picker-channel, #jp-picker-variasi, #jp-picker-induk { min-height: 44px; width: 100%; box-sizing: border-box; }
+    #jp-picker-channel > span, #jp-picker-variasi > span, #jp-picker-induk > span { pointer-events: none; }
+    .jp-row-1 .fg-ch label, .jp-row-2 .fg-variasi label, .jp-row-2 .fg-induk label { cursor: pointer; }
+
     /* ── Row 2: SKU Variasi + SKU Induk ── */
     .jp-row-2 {
       display: flex;
@@ -3878,6 +3886,17 @@ function _jpSkuSheetKeBody() {
     if (all[0].parentNode !== document.body) document.body.appendChild(all[0]);
   });
 }
+// 4 Nov 2026: ketuk di mana pun dalam blok field Channel / SKU Variasi / SKU Induk (label, sela, kotak) membuka picker-nya.
+// Tombol "+ Simpan & Tambah SKU Lain" di blok SKU Induk tetap tombol biasa (tidak ikut membuka picker).
+document.addEventListener('click', function(e) {
+  var t = e.target;
+  if (!t || !t.closest) return;
+  var g = t.closest('.jp-row-1 .fg-ch, .jp-row-2 .fg-variasi, .jp-row-2 .fg-induk');
+  if (!g || t.closest('button')) return;
+  var pk = g.querySelector('.kas-akun-picker');
+  if (pk && !pk.contains(t)) pk.click();
+});
+
 function jpSkuSheetOpen(mode) {
   _jpSkuSheetKeBody();
   _jpSkuSheetMode = mode;
