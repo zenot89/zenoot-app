@@ -2330,7 +2330,7 @@ async function loadDashboard() {
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => []),
-      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),   // stok keluar all-time: penjualan via dropship (kirim_dropship) tidak mengurangi stok
       dbGet('jurnal', '&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
       dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => []),
       dbGet('restock_supplier').catch(() => [])

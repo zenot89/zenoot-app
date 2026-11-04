@@ -173,7 +173,7 @@ async function loadRestock() {
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)'),   // stok keluar all-time: penjualan via dropship (kirim_dropship) tidak mengurangi stok
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari30),
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari90),
     ]);

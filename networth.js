@@ -72,7 +72,7 @@
         _withTimeout(dbGet('jurnal',   ''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('produk',   ''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('stok',     ''),                       [], 8000).catch(() => []),
-        _withTimeout(dbGet('jurnal_penjualan', '&select=sku,qty'),[], 8000).catch(() => [])
+        _withTimeout(dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false'),[], 8000).catch(() => [])
       ]);
       _log('got: kasAkun=' + (kasAkun||[]).length + ' jurnal=' + (jurnal||[]).length + ' produk=' + (produk||[]).length + ' stok=' + (stok||[]).length + ' jp=' + (jual||[]).length);
       const akunMap = {};

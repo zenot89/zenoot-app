@@ -206,13 +206,18 @@ document.addEventListener('zenot:page', function(e) {
 
 let _produkData = [];
 let _produkSupplierList = []; // dari hutang_supplier — single source of truth buat picker Boss
+let _produkHbList = [];       // hutang_barang (id, produk_id, supplier_id, harga_per_lusin, harga_po_per_lusin) — harga P.O & Dropship SKU supplier 2 sistem
 
 async function loadProduk() {
   const tbody = document.getElementById('produk-tbody');
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
     // [30 Sep 2026] daftar supplier dimuat bareng produk: badge "Dropship" butuh flag sistem supplier saat render
-    const [data] = await Promise.all([dbGet('produk'), _produkLoadSupplierList()]);
+    const [data, hbList] = await Promise.all([
+      dbGet('produk'), _produkLoadSupplierList(),
+      dbGet('hutang_barang', '&select=id,produk_id,supplier_id,harga_per_lusin,harga_po_per_lusin').catch(function() { return []; })   // 3 Nov 2026: 2 harga SKU supplier 2 sistem
+    ]);
+    _produkHbList = Array.isArray(hbList) ? hbList : [];
     // Supabase kadang return object error bukan array
     if (!Array.isArray(data)) {
       const msg = data?.message || data?.hint || JSON.stringify(data);
@@ -313,6 +318,73 @@ var _PRODUK_SISTEM_META = {
   reseller: { label: 'Reseller',         color: 'var(--info)' },
   dropship: { label: 'Dropship',         color: 'var(--warn)' }
 };
+
+// ── DUA HARGA SUPPLIER 2 SISTEM (3 Nov 2026) ─────────────────
+// SKU milik supplier Dropship + Reseller (mis. MAGRA, RH) punya dua harga per pcs: P.O (reseller) dan Dropship. Tersimpan SATU tempat di Master Barang
+// (hutang_barang: harga_po_per_lusin / harga_per_lusin, per lusin = per pcs × 12) — Kelola Produk hanya menampilkan & mengisinya (upsert ke Master Barang),
+// jadi bon/PO/Re-Stock yang sudah membaca Master Barang tidak berubah. produk.hpp = harga sistem SKU yang berlaku (Dropship → harga Dropship, selain itu → P.O).
+function _produkSupDualByName(boss) {
+  var s = _produkSupMap()[String(boss || '').trim().toUpperCase()];
+  return (s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri) ? s : null;
+}
+function _produkHargaDualOf(row) {   // { sup, po, ds } per pcs (0 = belum diisi) atau null kalau supplier SKU bukan 2 sistem
+  var s = _produkSupDualByName(row && row.boss);
+  if (!s) return null;
+  var b = (_produkHbList || []).find(function(x) { return x.produk_id === row.id && x.supplier_id === s.id; });
+  return {
+    sup: s,
+    po: b && Number(b.harga_po_per_lusin) > 0 ? Math.round(Number(b.harga_po_per_lusin) / 12) : 0,
+    ds: b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0
+  };
+}
+// Isi harga P.O / Dropship (per pcs; 0 = jangan diubah) SKU ke Master Barang supplier 2 sistem. Baris Master Barang belum ada → dibuat (SKU Supplier boleh kosong).
+async function _produkUpsertHargaDual(row, sup, po, ds) {
+  var data = {};
+  if (Number(ds) > 0) data.harga_per_lusin = Math.round(Number(ds) * 12);
+  if (Number(po) > 0) data.harga_po_per_lusin = Math.round(Number(po) * 12);
+  if (!Object.keys(data).length) return;
+  var cur = (_produkHbList || []).find(function(x) { return x.produk_id === row.id && x.supplier_id === sup.id; });
+  if (cur) {
+    await dbUpdate('hutang_barang', cur.id, data);
+    Object.keys(data).forEach(function(k) { cur[k] = data[k]; });
+  } else {
+    var ins = await dbInsert('hutang_barang', Object.assign({
+      supplier_id: sup.id, produk_id: row.id, katalog_produk: row.katalog || null, varian_warna: row.sku_variasi || null,
+      sku_variasi_supplier: null, nama_supplier: null
+    }, data));
+    var nb = Array.isArray(ins) ? ins[0] : ins;
+    _produkHbList.push(Object.assign({ id: nb && nb.id, produk_id: row.id, supplier_id: sup.id, harga_per_lusin: null, harga_po_per_lusin: null }, data));
+  }
+}
+// HPP yang berlaku untuk SKU 2 sistem: harga sistemnya (Dropship → Dropship, selain itu → P.O); harga yang belum diisi → pertahankan HPP sekarang
+function _produkHppDual(sistem, po, ds, hppSekarang) {
+  var h = (sistem === 'dropship') ? ds : po;
+  return Number(h) > 0 ? Number(h) : (Number(hppSekarang) || 0);
+}
+function _produkRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
+function _produkRentang(arr) {
+  var v = arr.filter(function(x) { return x > 0; });
+  if (!v.length) return '—';
+  var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v);
+  return mn === mx ? _produkRp(mx) : _produkRp(mn) + '–' + Math.round(mx).toLocaleString('id-ID');
+}
+// Sel HPP untuk baris varian: supplier 2 sistem → dua baris (P.O & Dropship, harga sistem aktif ditebalkan); selain itu satu angka seperti biasa
+function _produkHppVarianHtml(row) {
+  var d = _produkHargaDualOf(row);
+  if (!d) return _produkRp(row.hpp);
+  var ds = _produkSistemOf(row) === 'dropship';
+  return '<div style="line-height:1.25;font-size:12px">'
+    + '<div style="' + (!ds ? 'font-weight:700' : 'color:var(--ink3)') + '">P.O ' + (d.po ? _produkRp(d.po) : '—') + '</div>'
+    + '<div style="' + (ds ? 'font-weight:700' : 'color:var(--ink3)') + '">Dropship ' + (d.ds ? _produkRp(d.ds) : '—') + '</div></div>';
+}
+// Isi sel HPP baris katalog (header): supplier 2 sistem → rentang P.O & Dropship seluruh varian
+function _produkHppKatalogHtml(rows, hppTxt) {
+  var ds = rows.map(_produkHargaDualOf);
+  if (!ds.length || ds.some(function(x) { return !x; })) return '<div style="font-size:14px;font-weight:600">' + hppTxt + '</div>';
+  return '<div style="font-size:12px;line-height:1.3">'
+    + '<div><span style="color:var(--ink3)">P.O</span> <b>' + _produkRentang(ds.map(function(x) { return x.po; })) + '</b></div>'
+    + '<div><span style="color:var(--ink3)">Dropship</span> <b>' + _produkRentang(ds.map(function(x) { return x.ds; })) + '</b></div></div>';
+}
 
 function _produkSistemPill(key) {
   var m = _PRODUK_SISTEM_META[key];
@@ -576,18 +648,12 @@ async function produkSistemPick(i) {
   if (row.sistem_override === val) { produkSistemSheetClose(); return; }
   var payload = { sistem_override: val };
   _produkStampDropshipMulai(payload, row);   // 3 Nov 2026: penjualan sebelum hari ini tidak ditarik mundur ke bon dropship
-  // 3 Nov 2026: HPP ikut sistem — harga dropship dan harga PO di Master Barang bisa beda; ganti hanya kalau user setuju.
+  // 3 Nov 2026: SKU supplier 2 sistem → HPP otomatis ikut harga sistem barunya (Dropship → harga Dropship, Reseller → harga P.O) dari Master Barang.
+  // Harga yang belum diisi → HPP dibiarkan. Supplier 1 sistem tidak disentuh.
   try {
-    var hargaBaru = await _produkHargaSistem(row, val);
-    var hppSekarang = Number(row.hpp) || 0;
-    if (hargaBaru > 0 && hargaBaru !== hppSekarang) {
-      var ganti = await zConfirm(
-        'HPP ' + row.sku_variasi + ' sekarang Rp' + hppSekarang.toLocaleString('id-ID') + '.\n' +
-        'Harga ' + (val === 'dropship' ? 'Dropship' : 'PO') + ' di Master Barang ' + (row.boss || 'supplier') + ' = Rp' + hargaBaru.toLocaleString('id-ID') + ' per pcs.\n\n' +
-        'Samakan HPP ke Rp' + hargaBaru.toLocaleString('id-ID') + '?',
-        { title: 'Samakan HPP dengan sistem baru?', ok: 'Samakan HPP', cancel: 'Biarkan HPP' }
-      );
-      if (ganti) payload.hpp = hargaBaru;
+    if (_produkSupDualByName(row.boss)) {
+      var hargaBaru = await _produkHargaSistem(row, val);
+      if (hargaBaru > 0 && hargaBaru !== (Number(row.hpp) || 0)) payload.hpp = hargaBaru;
     }
   } catch (eHarga) { console.warn('[produk] cek harga sistem gagal:', eHarga && eHarga.message); }
   try {
@@ -639,7 +705,7 @@ function renderProduk(data) {
       <div style="font-size:11px;color:var(--ink3);margin-top:2px">${rows.length} varian</div>
     </div>`;
     const hppCell = `<div style="line-height:1.2">
-      <div style="font-size:14px;font-weight:600">${hppTxt}</div>
+      ${_produkHppKatalogHtml(rows, hppTxt)}
       <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
     </div>`;
     // [30 Sep 2026] badge DROPSHIP/DS yang mengambang di kolom Boss dihapus → diganti kolom "Sistem" sendiri
@@ -678,7 +744,7 @@ function renderProduk(data) {
               <input type="checkbox" ${checked} data-id="${row.id}" onchange="produkToggleSelect(${row.id},this.checked)" style="cursor:pointer">
             </td>
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
-            <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
+            <td>${_produkHppVarianHtml(row)}</td>
             <td>${row.boss || '—'}</td>
             <td>${_produkSistemBtn(row)}</td>
           </tr>`;
@@ -687,7 +753,7 @@ function renderProduk(data) {
             <td style="padding-left:24px">
               <b>${row.sku_variasi}</b>
             </td>
-            <td>Rp${(row.hpp||0).toLocaleString('id-ID')}</td>
+            <td>${_produkHppVarianHtml(row)}</td>
             <td>${row.boss || '—'}</td>
             <td>${_produkSistemBtn(row)}</td>
           </tr>`;
@@ -766,9 +832,23 @@ function _produkKatBossDual() {
   return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri);
 }
 
+// Edit SKU: supplier 2 sistem → 2 harga menggantikan satu kolom HPP
+function produkPrdSyncDual() {
+  var b = document.getElementById('prd-boss');
+  var dual = !!_produkSupDualByName(b ? b.value : '');
+  var dr = document.getElementById('prd-dual-row'), hg = document.getElementById('prd-hpp-grp');
+  if (dr) dr.style.display = dual ? 'flex' : 'none';
+  if (hg) hg.style.display = dual ? 'none' : '';
+}
+
 function produkKatSyncDs() {
   var row = document.getElementById('kat-ds-row');
-  if (row) row.style.display = _produkKatBossDual() ? '' : 'none';
+  var dual = _produkKatBossDual();
+  if (row) row.style.display = dual ? '' : 'none';
+  // 3 Nov 2026: supplier 2 sistem → 2 harga (P.O & Dropship) menggantikan satu kolom HPP
+  var dr = document.getElementById('kat-dual-row'), hg = document.getElementById('kat-hpp-grp');
+  if (dr) dr.style.display = dual ? 'flex' : 'none';
+  if (hg) hg.style.display = dual ? 'none' : '';
 }
 
 var _katDsInit = false;   // keadaan awal checkbox Dropship saat modal dibuka — toggle baru dianggap "disentuh" kalau beda dari ini
@@ -787,6 +867,12 @@ async function editKatalog(kat, hpp, boss) {
     if (boss) { lbl.textContent = boss; lbl.style.color = 'var(--ink)'; }
     else      { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
   }
+  // 3 Nov 2026: isi harga P.O & Dropship dari Master Barang — nilai sama untuk semua varian → tampil; beragam → kosong (kosong = tidak diubah)
+  var _pos = [], _dss = [];
+  _rowsK.forEach(function(r) { var d = _produkHargaDualOf(r); if (d) { _pos.push(d.po); _dss.push(d.ds); } });
+  var _uniq = function(a) { return a.length && a.every(function(x) { return x === a[0]; }) ? a[0] : 0; };
+  idrInput('kat-harga-po'); idrInput('kat-harga-ds');
+  idrSet('kat-harga-po', _uniq(_pos)); idrSet('kat-harga-ds', _uniq(_dss));
   produkKatSyncDs();
   showModal('modal-edit-katalog');
 }
@@ -808,6 +894,9 @@ async function simpanEditKatalog() {
   try {
     for (const r of rows) {
       var payloadK = { hpp: hpp, boss: boss };
+      // 3 Nov 2026: supplier 2 sistem → HPP tiap SKU = harga sistemnya (setelah perubahan sistem di modal ini), bukan angka tunggal
+      var _supDual = isDual ? _produkSupDualByName(boss) : null;
+      var _poIn = _supDual ? idrVal('kat-harga-po') : 0, _dsIn = _supDual ? idrVal('kat-harga-ds') : 0;
       var bossBerubah = _produkBossBerubah(r.boss, boss);
       var sisBaru = null;
       if (isDual) {
@@ -817,8 +906,14 @@ async function simpanEditKatalog() {
         sisBaru = _produkSistemDefault(boss);
       }
       if (sisBaru) payloadK.sistem_override = sisBaru;
+      if (_supDual) {
+        var _dOld = _produkHargaDualOf(r);   // harga lama kalau SKU ini sudah di supplier 2 sistem yang sama
+        var _poEf = _poIn || (_dOld && _dOld.sup.id === _supDual.id ? _dOld.po : 0), _dsEf = _dsIn || (_dOld && _dOld.sup.id === _supDual.id ? _dOld.ds : 0);
+        payloadK.hpp = _produkHppDual(sisBaru || _produkSistemOf(r), _poEf, _dsEf, r.hpp);
+      }
       _produkStampDropshipMulai(payloadK, r);
       await dbUpdate('produk', r.id, payloadK);
+      if (_supDual) await _produkUpsertHargaDual(r, _supDual, _poIn, _dsIn);
       // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
       // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
       // ini, snapshot stok tetep basi/yatim. Sekarang ikut di-cascade juga,
@@ -857,6 +952,9 @@ function showFormProduk() {
   document.getElementById('prd-boss').value = '';
   const lbl = document.getElementById('prd-boss-label');
   if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  idrInput('prd-harga-po'); idrInput('prd-harga-ds');
+  idrSet('prd-harga-po', 0); idrSet('prd-harga-ds', 0);
+  produkPrdSyncDual();
   showModal('modal-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
   sketchForm('form-produk');
@@ -880,6 +978,10 @@ async function editProduk(id) {
     if (r.boss) { lbl.textContent = r.boss; lbl.style.color = 'var(--ink)'; }
     else        { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
   }
+  idrInput('prd-harga-po'); idrInput('prd-harga-ds');
+  var _dd = _produkHargaDualOf(r);
+  idrSet('prd-harga-po', _dd ? _dd.po : 0); idrSet('prd-harga-ds', _dd ? _dd.ds : 0);
+  produkPrdSyncDual();
   showModal('modal-produk');
   sketchForm('form-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
@@ -924,6 +1026,9 @@ async function simpanProduk() {
     boss:        document.getElementById('prd-boss').value.trim().toUpperCase(),
   };
   if (!data.sku_variasi) { alert('SKU Variasi wajib diisi!'); return; }
+  // 3 Nov 2026: supplier 2 sistem → 2 harga (P.O & Dropship); HPP SKU = harga sistemnya
+  const supDual = _produkSupDualByName(data.boss);
+  const poIn = supDual ? idrVal('prd-harga-po') : 0, dsIn = supDual ? idrVal('prd-harga-ds') : 0;
 
   const skuNormNew = _produkSkuNorm(data.sku_variasi);
   const dup = _produkData.find(d => d.id != id && _produkSkuNorm(d.sku_variasi) === skuNormNew);
@@ -946,11 +1051,20 @@ async function simpanProduk() {
         if (sisBaru) data.sistem_override = sisBaru;
         _produkStampDropshipMulai(data, old);
       }
+      if (supDual) {
+        const dOld = old ? _produkHargaDualOf(old) : null;
+        const poEf = poIn || (dOld && dOld.sup.id === supDual.id ? dOld.po : 0), dsEf = dsIn || (dOld && dOld.sup.id === supDual.id ? dOld.ds : 0);
+        data.hpp = _produkHppDual(data.sistem_override || _produkSistemOf(old || {}), poEf, dsEf, old ? old.hpp : 0);
+      }
       await dbUpdate('produk', id, data);
+      if (supDual) await _produkUpsertHargaDual({ id: old ? old.id : Number(id), katalog: data.katalog, sku_variasi: data.sku_variasi }, supDual, poIn, dsIn);
     } else {
       const sisAwal = _produkSistemDefault(data.boss);
       if (sisAwal) data.sistem_override = sisAwal;
-      await dbInsert('produk', data);
+      if (supDual) data.hpp = _produkHppDual(sisAwal, poIn, dsIn, 0);
+      const insP = await dbInsert('produk', data);
+      const rowP = Array.isArray(insP) ? insP[0] : insP;
+      if (supDual && rowP && rowP.id != null) await _produkUpsertHargaDual({ id: rowP.id, katalog: data.katalog, sku_variasi: data.sku_variasi }, supDual, poIn, dsIn);
     }
 
     if (id && old) {
@@ -1136,7 +1250,16 @@ async function simpanBatchHpp() {
   const hpp = parseInt(raw) || 0;
   if (!hpp) { alert('Masukkan HPP yang valid'); return; }
   try {
-    for (const id of ids) { await dbUpdate('produk', id, { hpp }); }
+    for (const id of ids) {
+      await dbUpdate('produk', id, { hpp });
+      // 3 Nov 2026: SKU supplier 2 sistem — HPP = harga sistem aktifnya, jadi harga itu di Master Barang ikut diperbarui (tidak ada dua angka yang beda)
+      const rowB = _produkData.find(function(r) { return r.id === id; });
+      const dB = rowB ? _produkHargaDualOf(rowB) : null;
+      if (dB) {
+        const dsB = _produkSistemOf(rowB) === 'dropship';
+        await _produkUpsertHargaDual(rowB, dB.sup, dsB ? 0 : hpp, dsB ? hpp : 0);
+      }
+    }
     hideModal('modal-batch-hpp');
     produkExitEditMode();
     loadProduk();
@@ -1361,7 +1484,7 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
     </div>
     <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">Perubahan akan diterapkan ke <b>semua varian</b> dalam katalog ini.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="kat-hpp" placeholder="0"></div>
+      <div class="form-group" id="kat-hpp-grp" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="kat-hpp" placeholder="0"></div>
       <div class="form-group" style="flex:1 1 120px">
         <label>Boss</label>
         <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('kat-boss','kat-boss-label')">
@@ -1370,6 +1493,11 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
         </button>
         <input type="hidden" id="kat-boss">
       </div>
+    </div>
+    <div id="kat-dual-row" style="display:none;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="form-group" style="flex:1 1 120px"><label>Harga P.O (Rp/pcs)</label><input type="text" inputmode="numeric" id="kat-harga-po" placeholder="0"></div>
+      <div class="form-group" style="flex:1 1 120px"><label>Harga Dropship (Rp/pcs)</label><input type="text" inputmode="numeric" id="kat-harga-ds" placeholder="0"></div>
+      <div style="flex:1 1 100%;font-size:11px;color:var(--ink3);line-height:1.5;margin-top:-4px">Supplier ini punya 2 sistem. Kosong = harga itu tidak diubah. HPP otomatis mengikuti sistem tiap SKU (Dropship → harga Dropship, selain itu → harga P.O).</div>
     </div>
     <div id="kat-ds-row" style="display:none;margin-bottom:10px;padding:8px 10px;border:1px dashed var(--ink3)">
       <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px">
@@ -1398,7 +1526,7 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
       <div class="form-group" style="flex:1 1 140px"><label>SKU Variasi</label><input type="text" id="prd-sku" placeholder="mis: Turtleneck_HITAM-M"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div class="form-group" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="prd-hpp" placeholder="0"></div>
+      <div class="form-group" id="prd-hpp-grp" style="flex:1 1 120px"><label>HPP (Rp)</label><input type="text" inputmode="numeric" id="prd-hpp" placeholder="0"></div>
       <div class="form-group" style="flex:1 1 120px">
         <label>Boss</label>
         <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('prd-boss','prd-boss-label')">
@@ -1407,6 +1535,11 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
         </button>
         <input type="hidden" id="prd-boss">
       </div>
+    </div>
+    <div id="prd-dual-row" style="display:none;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="form-group" style="flex:1 1 120px"><label>Harga P.O (Rp/pcs)</label><input type="text" inputmode="numeric" id="prd-harga-po" placeholder="0"></div>
+      <div class="form-group" style="flex:1 1 120px"><label>Harga Dropship (Rp/pcs)</label><input type="text" inputmode="numeric" id="prd-harga-ds" placeholder="0"></div>
+      <div style="flex:1 1 100%;font-size:11px;color:var(--ink3);line-height:1.5;margin-top:-4px">Supplier ini punya 2 sistem. HPP otomatis mengikuti sistem SKU (Dropship → harga Dropship, selain itu → harga P.O).</div>
     </div>
 
     <div class="modal-actions">
@@ -1511,6 +1644,7 @@ function produkBossSheetSelect(nama) {
   if (inputEl) inputEl.value = nama;
   if (labelEl) { labelEl.textContent = nama; labelEl.style.color = 'var(--ink)'; }
   produkBossSheetClose();
+  if (_produkBossSheetTarget.inputId === 'prd-boss') produkPrdSyncDual();   // 2 harga untuk supplier 2 sistem
   if (_produkBossSheetTarget.inputId === 'kat-boss') produkKatSyncDs();   // tampilkan/sembunyikan opsi Dropship sesuai jenis supplier
   if (_produkBossSheetTarget.inputId === 'batch-sup-input') produkBatchSupSyncSistem();   // toggle Sistem di Edit Supplier massal
 }

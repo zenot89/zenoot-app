@@ -491,7 +491,7 @@ async function loadStok() {
     }
 
     // 3. Ambil sum keluar dari jurnal_penjualan per SKU (all-time)
-    const jurnalData = await dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)');
+    const jurnalData = await dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)');   // penjualan via dropship (kirim_dropship) tidak mengurangi stok
     const keluarMap = {};
     if (Array.isArray(jurnalData)) {
       jurnalData.forEach(j => {

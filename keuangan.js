@@ -1729,7 +1729,7 @@ async function keuHitungNilaiPersediaan() {
     const [produkArr, stokArr, jualArr] = await Promise.all([
       dbGet('produk', '').catch(()=>[]),
       dbGet('stok',   '').catch(()=>[]),
-      dbGet('jurnal_penjualan', '&select=sku,qty').catch(()=>[])
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false').catch(()=>[])   /* stok keluar all-time: penjualan via dropship tidak mengurangi stok */
     ]);
     const stokMap   = {};
     (stokArr||[]).forEach(s => { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk||0; });

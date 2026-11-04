@@ -828,7 +828,7 @@ async function loadModalInduk() {
     const [produkAll, stokRaw, jpAllRaw, jp7Raw, jp30Raw, jp90Raw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc'),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&select=sku,qty'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false'),   // stok keluar all-time: penjualan via dropship (kirim_dropship) tidak mengurangi stok
       dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl7Str),
       dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl30Str),
       dbGet('jurnal_penjualan', '&select=sku,qty&tanggal=gte.' + tgl90Str)

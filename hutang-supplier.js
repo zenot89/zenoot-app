@@ -1108,7 +1108,7 @@ async function hsLoadRestockPO() {
       dbGet('jurnal_penjualan', '&select=sku,qty,tanggal&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari14),
       dbGet('produk',           '&order=katalog.asc'),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)'),
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)'),   // stok keluar all-time: penjualan via dropship tidak mengurangi stok
       dbGet('kas_akun'),
       dbGet('jurnal', '&select=akun_debit_id,akun_kredit_id,nominal'),
       dbGet('hutang_barang'),
@@ -3170,8 +3170,9 @@ async function hsHapusBon() {
 //     Tambah Bon (no. nota bukan 'DS-...') TIDAK pernah disentuh.
 //   • Penjualan SKU baru-baru ini diganti ke Dropship tidak ditarik mundur: produk.dropship_mulai (diisi saat sistem diganti ke Dropship di Kelola Produk)
 //     jadi batas awalnya; kosong = ikut _HS_DS_MULAI.
-//   • SKU padanan dropship hasil "Kirim via dropship" (produk.padanan_dropship_id) tidak punya baris Master Barang sendiri: harganya diambil dari baris
-//     Master Barang SKU stok asalnya di supplier yang sama (satu acuan harga), fallback HPP padanan.
+//   • Penjualan bertanda jurnal_penjualan.kirim_dropship (toggle Dropship di Tambah Penjualan, SKU tetap SKU asal) selalu masuk bon supplier SKU-nya dengan harga
+//     dropship dari Master Barang. Padanan lintas supplier (produk.padanan_dropship_id, mis. DIMI → RH) dicatat sebagai SKU dropship-nya dan harganya dari
+//     baris Master Barang SKU stok asalnya di supplier yang sama bila SKU dropship itu tak punya baris sendiri.
 //   • Bon otomatis is_po = false → tidak memicu auto stock-in. Tidak ada jurnal akuntansi saat bon
 //     dibuat (sama dgn Tambah Bon manual); jurnal baru terbentuk saat bayar.
 //   • Penjualan sebelum _HS_DS_MULAI dianggap sudah lunas → tidak ditarik.
@@ -3282,7 +3283,7 @@ async function _hsDsFetchPenjualan(dari, sampaiEksklusif) {
   var out = [], off = 0, page = 1000;
   while (true) {
     var rows = await dbGet('jurnal_penjualan',
-      '&select=id,sku,qty,tanggal,waktu&or=(order_status.neq.CANCELLED,order_status.is.null)' +
+      '&select=id,sku,qty,tanggal,waktu,kirim_dropship&or=(order_status.neq.CANCELLED,order_status.is.null)' +
       '&tanggal=gte.' + dari + '&tanggal=lt.' + sampaiEksklusif +
       '&order=id.asc&limit=' + page + '&offset=' + off);
     out = out.concat(rows || []);
@@ -3317,7 +3318,10 @@ async function _hsDsBuildPlan(sup, dates, master) {
     if (!sku || qty <= 0) return;
     var p = master.produkBySku[sku];
     if (!p) return;
-    if (p.dropship_mulai && tgl < String(p.dropship_mulai).slice(0, 10)) return;   // SKU ini baru berstatus Dropship sejak tanggal itu → penjualan sebelumnya bukan dropship
+    // Penjualan bertanda kirim_dropship (toggle Dropship di Tambah Penjualan) selalu masuk bon supplier SKU-nya, apa pun sistem SKU-nya.
+    // Selain itu hanya SKU berstatus Dropship — dan hanya penjualan sejak dropship_mulai (SKU baru berstatus Dropship tidak ditarik mundur).
+    var flagged = r.kirim_dropship === true;
+    if (!flagged && p.dropship_mulai && tgl < String(p.dropship_mulai).slice(0, 10)) return;
 
     var hbs = master.hbByProduk[p.id] || [];
     var hbMine = hbs.find(function(b) { return b.supplier_id === sup.id; }) || null;
@@ -3330,10 +3334,12 @@ async function _hsDsBuildPlan(sup, dates, master) {
     else milik = (String(p.boss || '').trim().toUpperCase() === supKey);   // belum di-link: ikut Boss
     if (!milik) return;
 
-    var pDs = { boss: sup.nama, dropship: p.dropship === true, sistem_override: p.sistem_override };
-    if (!zIsDropship(pDs, master.dsSupMap, master.masukMap[sku])) {
-      if (zIsDropship(pDs, master.dsSupMap, 0) && (master.masukMap[sku] || 0) > 0) plan.skippedStok[sku] = (plan.skippedStok[sku] || 0) + qty;
-      return;
+    if (!flagged) {
+      var pDs = { boss: sup.nama, dropship: p.dropship === true, sistem_override: p.sistem_override };
+      if (!zIsDropship(pDs, master.dsSupMap, master.masukMap[sku])) {
+        if (zIsDropship(pDs, master.dsSupMap, 0) && (master.masukMap[sku] || 0) > 0) plan.skippedStok[sku] = (plan.skippedStok[sku] || 0) + qty;
+        return;
+      }
     }
 
     var uIdx = sku.lastIndexOf('_');
@@ -3341,7 +3347,8 @@ async function _hsDsBuildPlan(sup, dates, master) {
     var harga = hbMine && hbMine.harga_per_lusin > 0 ? Number(hbMine.harga_per_lusin) : 0;
     // Fallback: HPP Kelola Produk (per pcs) × 12 → disimpan setara "per lusin" biar rumus ÷12 di bawah tetap persis = HPP per pcs.
     var dariHpp = false;
-    if (!(harga > 0) && Number(p.hpp) > 0) { harga = Number(p.hpp) * 12; dariHpp = true; }
+    // (Penjualan bertanda dropship TIDAK jatuh ke HPP: HPP SKU stok = harga P.O, bukan harga dropship → biarkan 0 supaya ada peringatan.)
+    if (!(harga > 0) && !flagged && Number(p.hpp) > 0) { harga = Number(p.hpp) * 12; dariHpp = true; }
     var nama  = (hbMine && hbMine.katalog_produk) || p.katalog || sku;
     var varian = (hbMine && hbMine.varian_warna) || varianSku;
     var key = _hsDsItemKey(hbMine ? hbMine.id : null, nama, varian);

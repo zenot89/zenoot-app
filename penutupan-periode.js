@@ -815,7 +815,7 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
       dbGet('jurnal', '&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
       dbGet('produk', '').catch(function() { return []; }),
       dbGet('stok', '').catch(function() { return []; }),
-      dbGet('jurnal_penjualan', '&select=sku,qty').catch(function() { return []; }),
+      dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false').catch(function() { return []; }),
       fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } })
         .then(function(r) { return r.json(); }).catch(function() { return []; }),

@@ -101,7 +101,7 @@ async function loadSkuDetail() {
     const [produkAll, stokAll, jpAll] = await Promise.all([
       dbGet('produk', '&order=katalog.asc'),
       dbGet('stok'),
-      dbGet('jurnal_penjualan', '&order=tanggal.desc,id.desc&select=id,no_order,sku,qty,harga_satuan,total,omset,tanggal,waktu,order_status')
+      dbGet('jurnal_penjualan', '&order=tanggal.desc,id.desc&select=id,no_order,sku,qty,harga_satuan,total,omset,tanggal,waktu,order_status,kirim_dropship')
     ]);
 
     // Info produk — matching sama kayak clearance.js (sku_variasi fallback sku)
@@ -113,7 +113,7 @@ async function loadSkuDetail() {
       .reduce((s, r) => s + (r.stok_masuk || 0), 0);
 
     const rows = (jpAll || []).filter(r => (r.sku || '').trim().toUpperCase() === skuNorm);
-    const keluar = rows.reduce((s, r) => s + (r.qty || 0), 0);
+    const keluar = rows.reduce((s, r) => s + (r.kirim_dropship ? 0 : (r.qty || 0)), 0);   // penjualan via dropship tidak mengurangi stok
     const sisa   = masuk - keluar;
     const hpp    = p.hpp || 0;
     const nilai  = sisa * hpp;
