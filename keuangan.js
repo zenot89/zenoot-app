@@ -1530,8 +1530,8 @@ function keuSlideNav(dir) {
 async function keuLoadHutang() {
   try {
     const [akuns, jurnal] = await Promise.all([
-      dbGet('kas_akun', '&order=kode.asc'),
-      dbGet('jurnal', '&order=tanggal.desc'),
+      dbGet('kas_akun', '&entitas=eq.usaha&order=kode.asc'),
+      dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc'),
     ]);
     const akunArr  = akuns  || [];
     const jurnalArr= jurnal || [];
@@ -1694,8 +1694,8 @@ async function keuSimpanPembayaran() {
 async function keuLoadKasData() {
   try {
     const [akun, jurnal] = await Promise.all([
-      dbGet('kas_akun', '&order=kode.asc'),
-      dbGet('jurnal', '&order=tanggal.asc'),
+      dbGet('kas_akun', '&entitas=eq.usaha&order=kode.asc'),
+      dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.asc'),
     ]);
     _keuKasAkun   = akun   || [];
     _keuKasJurnal = jurnal || [];
@@ -2159,8 +2159,8 @@ async function _keuRenderArusKasImpl() {
   try {
     // 1. Data jurnal + kas_akun
     const [kasAkun, jurnal, hutangAll, bayarAll, shopeeCache] = await Promise.all([
-      dbGet('kas_akun', '').catch(() => []),
-      dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
+      dbGet('kas_akun', '&entitas=eq.usaha').catch(() => []),
+      dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc').catch(() => []),
       dbGet('hutang', '').catch(() => []),
       dbGet('hutang_bayar', '').catch(() => []),
       fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',

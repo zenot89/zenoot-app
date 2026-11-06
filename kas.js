@@ -181,6 +181,11 @@ document.getElementById('page-kas').innerHTML = `
         <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
       </button>
     </div>
+    <select id="kas-buku-select" class="kas-btn-pill" onchange="kasSetBuku(this.value)" title="Buku yang ditampilkan: usaha, pribadi, atau gabungan" style="font-family:inherit;cursor:pointer">
+      <option value="usaha">Buku: Usaha</option>
+      <option value="pribadi">Buku: Pribadi</option>
+      <option value="semua">Buku: Semua</option>
+    </select>
     <div style="margin-left:auto">
       <button id="kas-tab-trigger" onclick="kasToggleTabDD()">
         <i class="ti ti-notebook" id="kas-tab-icon"></i>
@@ -336,7 +341,7 @@ document.getElementById('page-kas').innerHTML = `
     }
   </style>
   <div style="margin-bottom:10px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);font-size:13px;color:var(--ink2);line-height:1.7">
-    <b>Chart of Accounts</b> — daftar akun keuangan bisnis kamu.<br>
+    <b>Chart of Accounts</b> — daftar akun keuangan bisnis dan pribadi kamu. Tiap akun masuk buku <b>Usaha</b> atau <b>Pribadi</b>; transaksi yang melintas dua buku otomatis dipisah lewat <b>Prive</b> / <b>Modal Disetor</b>.<br>
     Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban) — tambah akun baru di dalam kelompok yang sesuai.
   </div>
   <div class="card">
@@ -781,6 +786,12 @@ function _kasInjectSheets() {
         </select>
       </div>
       <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Sub Kelompok <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="akun-sub" placeholder="mis: Kas & Bank"></div>
+      <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Buku</label>
+        <select id="akun-entitas" style="width:100%">
+          <option value="usaha">Usaha</option>
+          <option value="pribadi">Pribadi</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="kasSimpanAkun()"><i class="ti ti-device-floppy"></i> Simpan</button>
@@ -993,14 +1004,44 @@ function _kasRelockAkun() {
   if (p && p.classList.contains('active')) requestAnimationFrame(function() { _kasLockPanelHeight(p); });
 }
 
+// ─── BUKU USAHA / PRIBADI (5 Nov 2026) ────────────────────────
+// Satu jurnal, dua buku: tiap akun & baris jurnal punya kolom `entitas` ('usaha' | 'pribadi'). Halaman ini menampilkan buku yang dipilih
+// (default Usaha); pemilih akun saat mencatat transaksi SELALU memuat semua akun supaya transaksi lintas buku bisa dicatat
+// (DB memecahnya otomatis ke Prive / Modal Disetor — lihat zenoot-pisah-pribadi-usaha.sql).
+let _kasBuku = 'usaha';
+try { _kasBuku = localStorage.getItem('kas_buku') || 'usaha'; } catch(e) {}
+if (['usaha','pribadi','semua'].indexOf(_kasBuku) === -1) _kasBuku = 'usaha';
+let _kasJurnalRaw = [];   // semua baris jurnal (kedua buku) — dipakai saldo akun di pemilih supaya saldo akun pribadi tidak tampil 0
+function _kasBukuOk(entitas) { return _kasBuku === 'semua' || (entitas || 'usaha') === _kasBuku; }
+function _kasBukuSync() { var el = document.getElementById('kas-buku-select'); if (el) el.value = _kasBuku; }
+function kasSetBuku(v) {
+  _kasBuku = (v === 'pribadi' || v === 'semua') ? v : 'usaha';
+  try { localStorage.setItem('kas_buku', _kasBuku); } catch(e) {}
+  _kasBukuSync();
+  loadKasJurnal();
+  kasLoadAkun();
+  if (typeof kasRenderLaporan === 'function') kasRenderLaporan();
+}
+function _kasAkunLabel(a) { return (a.kode ? a.kode + ' · ' : '') + a.nama + (a.entitas === 'pribadi' ? ' · Pribadi' : ''); }
+// Pesan setelah menyimpan transaksi yang melintas dua buku ('' kalau tidak melintas)
+function _kasInfoLintas(akunD, akunK) {
+  var aD = _kasAkunMap[akunD], aK = _kasAkunMap[akunK];
+  if (!aD || !aK) return '';
+  var eD = aD.entitas || 'usaha', eK = aK.entitas || 'usaha';
+  if (eD === eK) return '';
+  if (eD === 'pribadi') return 'Transaksi ini melintas buku, jadi dicatat terpisah:\n• Usaha: Prive / ' + aK.nama + '\n• Pribadi: ' + aD.nama + ' / Ekuitas Pribadi';
+  return 'Transaksi ini melintas buku, jadi dicatat terpisah:\n• Usaha: ' + aD.nama + ' / Modal Disetor Pemilik\n• Pribadi: Ekuitas Pribadi / ' + aK.nama;
+}
+
 // ─── LOAD AKUN ───────────────────────────────────────────────
 async function kasLoadAkun() {
   try {
     const data = await dbGet('kas_akun', '&order=kode.asc');
     _kasAkunMap = {};
     (data || []).forEach(a => { _kasAkunMap[a.id] = a; });
-    kasRenderAkunTabel(data || []);
-    kasPopulateAkunDropdown(data || []);
+    _kasBukuSync();
+    kasRenderAkunTabel((data || []).filter(a => _kasBukuOk(a.entitas)));
+    kasPopulateAkunDropdown(data || []);   // pemilih transaksi: SEMUA akun (kedua buku)
     _kasRelockAkun();
   } catch(e) {
     document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
@@ -1020,12 +1061,12 @@ function kasRenderAkunTabel(data) {
     const safeNama = (a.nama||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return `<tr>
       <td style="font-weight:700;font-family:monospace">${a.kode||'—'}</td>
-      <td>${a.nama||'—'}${a.sub_kelompok ? `<div class="akun-sub-m">${a.sub_kelompok}</div>` : ''}</td>
+      <td>${a.nama||'—'}${a.entitas === 'pribadi' ? ' <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(123,97,201,.15);color:#7B61C9">Pribadi</span>' : ''}${a.peran ? ' <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--cream3)">akun khusus</span>' : ''}${a.sub_kelompok ? `<div class="akun-sub-m">${a.sub_kelompok}</div>` : ''}</td>
       <td><span class="akun-badge akun-${a.kelompok}">${kasKelompokLabel(a.kelompok)}</span></td>
       <td style="color:var(--ink3);font-size:12px">${a.sub_kelompok||'—'}</td>
       <td>
         <button class="btn btn-sm" data-action="edit-akun" data-id="${a.id}" style="margin-right:4px"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}"><i class="ti ti-trash"></i></button>
+        ${a.peran ? '' : `<button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}"><i class="ti ti-trash"></i></button>`}
       </td>
     </tr>`;
   }).join('');
@@ -1039,7 +1080,7 @@ function kasPopulateAkunDropdown(data) {
   order.forEach(k => {
     if (!grouped[k].length) return;
     html += `<optgroup label="── ${kasKelompokLabel(k)} ──">`;
-    grouped[k].forEach(a => { html += `<option value="${a.id}">${a.kode ? a.kode+' · ' : ''}${a.nama}</option>`; });
+    grouped[k].forEach(a => { html += `<option value="${a.id}">${_kasAkunLabel(a)}</option>`; });
     html += '</optgroup>';
   });
   // Populate semua select — BRImo sheet + modal edit
@@ -1054,17 +1095,19 @@ function kasPopulateAkunDropdown(data) {
 
 async function kasSimpanAkun() {
   const id   = document.getElementById('akun-edit-id').value;
-  const data = { kode: document.getElementById('akun-kode').value.trim(), nama: document.getElementById('akun-nama').value.trim(), kelompok: document.getElementById('akun-kelompok').value, sub_kelompok: document.getElementById('akun-sub').value.trim() || null };
+  const data = { kode: document.getElementById('akun-kode').value.trim(), nama: document.getElementById('akun-nama').value.trim(), kelompok: document.getElementById('akun-kelompok').value, sub_kelompok: document.getElementById('akun-sub').value.trim() || null, entitas: document.getElementById('akun-entitas').value || 'usaha' };
   if (!data.nama) { alert('Nama akun wajib diisi!'); return; }
   try {
     if (id) { await dbUpdate('kas_akun', id, data); } else { await dbInsert('kas_akun', data); }
-    kasResetFormAkun(); kasLoadAkun();
-  } catch(e) { alert('Gagal simpan: ' + e.message); }
+    kasResetFormAkun(); kasLoadAkun(); loadKasJurnal();   // entitas berubah → jurnal lama bisa ikut dipecah di DB, muat ulang
+  } catch(e) { alert('Gagal simpan: ' + e.message + (/entitas/i.test(e.message) && /column|kolom/i.test(e.message) ? '\n\nJalankan zenoot-pisah-pribadi-usaha.sql di Supabase dulu.' : '')); }
 }
 
 function kasResetFormAkun() {
   ['akun-edit-id','akun-kode','akun-nama','akun-sub'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('akun-kelompok').value = 'aset';
+  document.getElementById('akun-entitas').value  = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';   // akun baru ikut buku yang sedang dibuka
+  document.getElementById('akun-entitas').disabled = false;
   document.getElementById('akun-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Akun Baru';
 }
 
@@ -1080,6 +1123,8 @@ async function kasEditAkun(id) {
   document.getElementById('akun-nama').value     = a.nama || '';
   document.getElementById('akun-kelompok').value = a.kelompok || 'aset';
   document.getElementById('akun-sub').value      = a.sub_kelompok || '';
+  document.getElementById('akun-entitas').value  = a.entitas || 'usaha';
+  document.getElementById('akun-entitas').disabled = !!a.peran;   // akun khusus (Prive / Modal Disetor / Ekuitas Pribadi): buku tetap
   document.getElementById('akun-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Akun';
   showModal('modal-kas-akun');
 }
@@ -1654,6 +1699,10 @@ async function kasSimpanJurnal() {
       });
     }
 
+    // 5 Nov 2026: transaksi yang melintas buku Usaha/Pribadi dipecah otomatis oleh DB — kasih tahu user hasilnya
+    const _infoLintas = kreditRows.map(kr => _kasInfoLintas(akunDId, kr.akun_kredit_id)).find(Boolean);
+    if (_infoLintas) alert(_infoLintas);
+
     // Jika pinjaman → insert juga ke tabel hutang (nominal penuh, patungan
     // gak berlaku buat tipe ini)
     if (tipe === 'pinjaman') {
@@ -1797,6 +1846,7 @@ async function kasUpdateJurnal() {
     }
 
     hideModal('modal-kas-transaksi');
+    if (!id) { const _il = _kasInfoLintas(akunDId, akunKId); if (_il) alert(_il); }
     loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
 }
@@ -1811,8 +1861,10 @@ async function loadKasJurnal() {
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasJurnalRaw = jurnal || [];
+    _kasBukuSync();
     kasPopulateAkunDropdown(akun || []);
-    _kasJurnalAll = jurnal || [];
+    _kasJurnalAll = _kasJurnalRaw.filter(r => _kasBukuOk(r.entitas));   // tabel, ringkasan, cashflow ikut buku yang dipilih
     kasApplyFilter();
     // Re-apply flex layout setelah data selesai — pastikan portrait flat seperti landscape
     _kasEnsureFlexLayout();
@@ -2246,7 +2298,8 @@ async function _kasExecLaporan() {
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
-    _kasJurnalAll = jurnal || [];
+    _kasJurnalRaw = jurnal || [];
+    _kasJurnalAll = _kasJurnalRaw.filter(r => _kasBukuOk(r.entitas));   // laporan mengikuti buku yang dipilih
   } catch(e) {
     console.error('[kasRenderLaporan] gagal fetch data:', e.message);
     ['kas-neraca-tbody','kas-labarugi-tbody','kas-aruskas-tbody'].forEach(function(id) {
@@ -2561,7 +2614,7 @@ function _kasPositionPickerList(list, picker, listH) {
 // Hitung saldo akun dari _kasJurnalAll (in-memory, no extra query)
 function _kasGetSaldoMap() {
   var map = {};
-  (_kasJurnalAll || []).forEach(function(r) {
+  (_kasJurnalRaw.length ? _kasJurnalRaw : (_kasJurnalAll || [])).forEach(function(r) {
     var n = r.nominal || r.debit || 0;
     if (r.akun_debit_id)  { if (!map[r.akun_debit_id])  map[r.akun_debit_id]  = {d:0,k:0}; map[r.akun_debit_id].d  += n; }
     if (r.akun_kredit_id) { if (!map[r.akun_kredit_id]) map[r.akun_kredit_id] = {d:0,k:0}; map[r.akun_kredit_id].k += n; }
@@ -2887,7 +2940,7 @@ function kasPopulatePickerList(listId, akunData) {
     html += '<div class="kas-akun-group">' + kasKelompokLabel(k) + '</div>';
     var saldoMap = (k === 'aset') ? _kasGetSaldoMap() : null;
     grouped[k].forEach(function(a) {
-      var label = (a.kode ? a.kode + ' · ' : '') + a.nama;
+      var label = _kasAkunLabel(a);
       var saldoHtml = '';
       var isKasBankAkun = saldoMap && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
       if (isKasBankAkun) {

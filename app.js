@@ -135,6 +135,7 @@ var pageMap = {
   'restock':            { title:'Re-Stock',            sub:'daftar reorder per boss'        },
   'stok-masuk':         { title:'Jurnal Stock Masuk',  sub:'histori PO diterima & produksi sendiri' },
   'kas':                { title:'Kas & Jurnal',        sub:'pencatatan arus kas harian'     },
+  'keuangan-pribadi':   { title:'Keuangan Pribadi',    sub:'uang pribadi, terpisah dari usaha' },
   'gadag':              { title:'Gadag',                sub:'Bismillah . Ab damel hela !' },
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
   'produk':             { title:'Kelola Produk',       sub:'master SKU, HPP, dan boss'      },

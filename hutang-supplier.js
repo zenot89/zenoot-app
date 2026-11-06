@@ -1032,7 +1032,7 @@ async function loadHutangSupplier() {
       // 26 Sep 2026: select diperlebar (+boss,hpp) buat kebutuhan auto
       // stock-in dari "Barang Diterima" — lihat _hsAutoStockInFromBon().
       dbGet('produk',          '&select=id,katalog,sku_variasi,boss,hpp&order=katalog.asc,sku_variasi.asc'),
-      dbGet('jurnal',          '&select=akun_debit_id,akun_kredit_id,nominal,debit'),
+      dbGet('jurnal',          '&entitas=eq.usaha&select=akun_debit_id,akun_kredit_id,nominal,debit'),
     ]);
     _hsSupplierList  = supplier || [];
     _hsBonList       = bon || [];
@@ -1110,7 +1110,7 @@ async function hsLoadRestockPO() {
       dbGet('stok'),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)'),   // stok keluar all-time: penjualan via dropship tidak mengurangi stok
       dbGet('kas_akun'),
-      dbGet('jurnal', '&select=akun_debit_id,akun_kredit_id,nominal'),
+      dbGet('jurnal', '&entitas=eq.usaha&select=akun_debit_id,akun_kredit_id,nominal'),
       dbGet('hutang_barang'),
     ]);
     // 15 Sep 2026: ROP config (lead_time/min_order/kelipatan/budget/catatan)

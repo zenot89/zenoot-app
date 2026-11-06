@@ -83,6 +83,7 @@
     </div>
     <div class="nav-group-body">
       <button class="nav-item" onclick="gotoPage('kas',this)"><span class="ni-icon"><i class="ti ti-cash"></i></span><span class="ni-label">Kas &amp; Jurnal</span></button>
+      <button class="nav-item" onclick="gotoPage('keuangan-pribadi',this)"><span class="ni-icon"><i class="ti ti-user-dollar"></i></span><span class="ni-label">Keuangan Pribadi</span></button>
       <button class="nav-item" onclick="gotoPage('gadag',this)"><span class="ni-icon"><i class="ti ti-scissors"></i></span><span class="ni-label">Gadag</span></button>
       <button class="nav-item" onclick="gotoPage('cost-produksi',this)"><span class="ni-icon"><i class="ti ti-chart-donut"></i></span><span class="ni-label">Cost Produksi</span></button>
       <button class="nav-item" onclick="gotoPage('hutang-supplier',this)"><span class="ni-icon"><i class="ti ti-truck-delivery"></i></span><span class="ni-label">Hutang Barang</span></button>
@@ -160,6 +161,7 @@
     <div id="page-stok" class="page"></div>
     <div id="page-restock" class="page"></div>
     <div id="page-stok-masuk" class="page"></div>
+    <div id="page-keuangan-pribadi" class="page"></div>
     <div id="page-kas" class="page"></div>
     <div id="page-gadag" class="page"></div>
     <div id="page-jurnal-penjualan" class="page"></div>
@@ -224,7 +226,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261104-65604c5a3263';
+  window.APP_BUILD = '20261030-e00d9e074018';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible
@@ -233,7 +235,7 @@
     var v = window.APP_BUILD;
     var scripts = [
       'dialog.js','rough-ui.js','supabase.js','app.js','dashboard.js',
-      'produk.js','stok.js','restock.js','stok-masuk.js','kas.js','gadag.js',
+      'produk.js','stok.js','restock.js','stok-masuk.js','kas.js','keuangan-pribadi.js','gadag.js',
       'jurnal-penjualan.js','produk-terjual.js',
       'channel-master.js',
       'shopee-auth.js','shopee-sync.js','networth.js',

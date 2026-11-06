@@ -69,7 +69,7 @@
       _log('fetch aset: kasAkun,jurnal,produk,stok,jp...');
       const [kasAkun, jurnal, produk, stok, jual] = await Promise.all([
         _withTimeout(dbGet('kas_akun', ''),                       [], 8000).catch(() => []),
-        _withTimeout(dbGet('jurnal',   ''),                       [], 8000).catch(() => []),
+        _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'),      [], 8000).catch(() => []),
         _withTimeout(dbGet('produk',   ''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('stok',     ''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false'),[], 8000).catch(() => [])
@@ -111,7 +111,7 @@
       _log('fetch kewajiban dari jurnal...');
       const [kasAkun, jurnal] = await Promise.all([
         _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
-        _withTimeout(dbGet('jurnal',   ''), [], 8000).catch(() => [])
+        _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'), [], 8000).catch(() => [])
       ]);
       const akunMap = {};
       (kasAkun || []).forEach(a => {
@@ -140,7 +140,7 @@
       _log('fetch labarugi...');
       const [kasAkun, jurnal] = await Promise.all([
         _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
-        _withTimeout(dbGet('jurnal',   ''), [], 8000).catch(() => [])
+        _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'), [], 8000).catch(() => [])
       ]);
       const saldoMap = {};
       (jurnal || []).forEach(r => {

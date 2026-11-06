@@ -811,8 +811,8 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
   try {
     var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, shopeeRaw] = await Promise.all([
       dbGet('kas_akun', '').catch(function() { return []; }),
-      dbGet('jurnal', '').catch(function() { return []; }),
-      dbGet('jurnal', '&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
+      dbGet('jurnal', '&entitas=eq.usaha').catch(function() { return []; }),
+      dbGet('jurnal', '&entitas=eq.usaha&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
       dbGet('produk', '').catch(function() { return []; }),
       dbGet('stok', '').catch(function() { return []; }),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false').catch(function() { return []; }),

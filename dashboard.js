@@ -2324,14 +2324,14 @@ async function loadDashboard() {
     const [produkData, stokRaw, jurnalData, _jpData30, jurnalAllData, channelData, _unused, kasAkunRaw, jpAllTime, jurnalBulanIni, jpHariIniRaw, supplierRaw] = await Promise.all([
       dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),
       dbGet('stok'),
-      dbGet('jurnal', '&order=created_at.desc&limit=8'),
+      dbGet('jurnal', '&entitas=eq.usaha&order=created_at.desc&limit=8'),   // 5 Nov 2026: Dashboard = buku usaha saja (jurnal pribadi tidak ikut)
       dbGet('jurnal_penjualan', '&tanggal=gte.' + _localDateOffset(30) + '&order=tanggal.desc'),
-      dbGet('jurnal'),
+      dbGet('jurnal', '&entitas=eq.usaha'),
       dbGet('channels').catch(() => []),
-      dbGet('jurnal', '&order=tanggal.desc').catch(() => []),
+      dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc').catch(() => []),
       dbGet('kas_akun', '').catch(() => []),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),   // stok keluar all-time: penjualan via dropship (kirim_dropship) tidak mengurangi stok
-      dbGet('jurnal', '&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
+      dbGet('jurnal', '&entitas=eq.usaha&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
       dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => []),
       dbGet('restock_supplier').catch(() => [])
     ]);
@@ -2546,14 +2546,15 @@ async function loadDashboard() {
     let totalBebanRealisasi = 0;
     const bebanDetailMap = {};
     const _SKIP_SUB = ['HPP', 'Beban Produksi'];
-    // 12 Okt 2026: sub_kelompok 'Biaya Sehari-hari' (EUMA/UDUD/KOPI/TUANG) DIPISAH dari Beban Operasional — dihitung sendiri,
-    // tidak ikut Beban Operasional / donut Beban Perusahaan, tapi tetap mengurangi Laba Bersih (angka Laba Bersih sama seperti sebelumnya).
+    // 5 Nov 2026 (pemisahan uang pribadi & usaha): akun Biaya Sehari-hari (EUMA/UDUD/KOPI/TUANG) sekarang akun PRIBADI. Di buku usaha
+    // pengeluaran itu tercatat sebagai PRIVE (Dr akun peran 'prive'), BUKAN beban → tidak mengurangi Laba Bersih usaha; ditampilkan sendiri
+    // (donut Laba/Rugi, teks kartu Beban). Anggaran akun pribadi itu tetap dibaca sebagai "anggaran Prive" (target omset tetap menutupnya).
     const _SUB_HARIAN = 'Biaya Sehari-hari';
-    let biayaHarianRealisasi = 0;
+    let priveRealisasi = 0;
     kasJurnalBulanIni.forEach(j => {
       const akunDebit = kasAkunMap[j.akun_debit_id];
-      if (akunDebit && akunDebit.kelompok === 'beban' && akunDebit.sub_kelompok === _SUB_HARIAN) {
-        biayaHarianRealisasi += Number(j.nominal || j.debit || 0);
+      if (akunDebit && akunDebit.peran === 'prive') {
+        priveRealisasi += Number(j.nominal || j.debit || 0);
         return;
       }
       if (akunDebit && akunDebit.kelompok === 'beban' &&
@@ -2571,7 +2572,7 @@ async function loadDashboard() {
     const _addAng = a => {
       const nom = Number(a.nominal || 0);
       const ak = kasAkunMap[a.akun_id];
-      if (ak && ak.sub_kelompok === _SUB_HARIAN) totalAnggaranHarian += nom; else totalAnggaran += nom;
+      if (ak && (ak.sub_kelompok === _SUB_HARIAN || ak.entitas === 'pribadi')) totalAnggaranHarian += nom; else totalAnggaran += nom;   // akun pribadi apa pun = anggaran Prive
     };
     (anggaranBulanIni || []).forEach(_addAng);
     // Fallback: kalau bulan ini belum ada anggaran, ambil bulan terakhir yang ada
@@ -2584,7 +2585,7 @@ async function loadDashboard() {
     }
     // Gunakan anggaran sebagai angka beban utama; fallback ke realisasi jika anggaran 0
     const totalBebanNominal = totalAnggaran || totalBebanRealisasi;
-    const biayaHarianNominal = totalAnggaranHarian || biayaHarianRealisasi;
+    const priveNominal = totalAnggaranHarian || priveRealisasi;   // Prive: anggaran akun pribadi bulan ini, fallback realisasi
 
     // ── BARU: Rasio % = rata-rata beban_persen channel Shopee ──
     let rasioBebanShopee = 0;
@@ -2617,11 +2618,11 @@ async function loadDashboard() {
     }
     if (elBebanReal) {
       elBebanReal.textContent = (totalBebanRealisasi > 0 ? 'realisasi: ' + _fmtRp(totalBebanRealisasi) : '')
-        + (biayaHarianNominal > 0 ? (totalBebanRealisasi > 0 ? ' · ' : '') + 'sehari-hari: ' + _fmtRp(biayaHarianNominal) : '');
+        + (priveNominal > 0 ? (totalBebanRealisasi > 0 ? ' · ' : '') + 'Prive: ' + _fmtRp(priveNominal) : '');
     }
 
     // ── Update label Beban vs Kas dari data arus kas ──
-    _dashUpdateBebanVsKas(totalBebanNominal + biayaHarianNominal);   // uang keluar nyata = operasional + sehari-hari
+    _dashUpdateBebanVsKas(totalBebanNominal + priveNominal);   // uang keluar nyata dari kas usaha = operasional + Prive
     _renderKegiatanMendatang(); // BARU v5
 
     // ── BARU: Target Omset = Total Anggaran ÷ rasio Shopee (auto, tanpa set manual) ──
@@ -2629,7 +2630,7 @@ async function loadDashboard() {
       ? Math.round((totalAnggaran + totalAnggaranHarian) / (rasioBebanShopee / 100))   // target tetap menutup SEMUA biaya (sama seperti sebelum dipisah)
       : _getTarget(); // fallback ke localStorage kalau data belum ada
 
-    const labaBersih = labaKotor - totalBebanNominal - biayaHarianNominal;
+    const labaBersih = labaKotor - totalBebanNominal;   // laba USAHA, sebelum Prive (Prive bukan biaya usaha — tampil sendiri di donut)
     const elLabaBersih = document.getElementById('d-laba-bersih');
     if (elLabaBersih) {
       elLabaBersih.textContent = omsetBln>0 ? _fmtRp(labaBersih) : '—';
@@ -2874,11 +2875,11 @@ async function loadDashboard() {
       const _anggPerAkun = {};
       (anggaranBulanIni || []).forEach(a => { _anggPerAkun[a.akun_id] = (_anggPerAkun[a.akun_id] || 0) + Number(a.nominal || 0); });
       const _bebanRows = Object.entries(kasAkunMap || {})
-        .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
+        .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.entitas !== 'pribadi' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
         .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
       _renderBeban(_bebanRows, omsetBln, { produksi: _produksiRows, supplier: _supplierRows, hutang: _hutangRows });
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
-      _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, biayaHarianNominal); // BARU v5
+      _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, priveNominal); // BARU v5
       _renderDonutBeban(bebanDetailMap);                                    // BARU v5
       if (typeof rerenderUI === "function") rerenderUI(document.getElementById("page-dashboard"));
     }, 300); // FIX: dinaikkan agar canvas punya offsetWidth saat dirender
@@ -2926,14 +2927,14 @@ loadDashboard();
 // pakai hex warna langsung, BUKAN CSS var — var() tidak di-resolve
 // oleh canvas 2D context).
 // ═══════════════════════════════════════════════════════════
-function _renderDonutLabaRugi(hpp, bebanOps, labaBersih, biayaHarian) {
+function _renderDonutLabaRugi(hpp, bebanOps, labaBersih, prive) {
   const canvas = document.getElementById('dash-donut-labarugi');
   if (!canvas) return;
   const parts = [
     ['HPP',               Math.max(hpp||0, 0),      '#E8862E'],
     ['Beban Operasional', Math.max(bebanOps||0, 0), '#E0524F'],
-    ['Biaya Sehari-hari', Math.max(biayaHarian||0, 0), '#7B61C9'],
-    ['Laba Bersih',       Math.max(labaBersih||0,0),'#1EA672']
+    ['Prive',             Math.max(prive||0, 0), '#7B61C9'],
+    ['Laba setelah Prive', Math.max((labaBersih||0) - (prive||0), 0),'#1EA672']
   ];
   const total = parts.reduce((s,p)=>s+p[1], 0);
   const dpr  = window.devicePixelRatio || 1;
@@ -3263,7 +3264,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
       dbGet('hutang',       '').catch(() => []),
       dbGet('hutang_bayar', '').catch(() => []),
       dbGet('kas_akun',     '').catch(() => []),
-      dbGet('jurnal',       '').catch(() => []),
+      dbGet('jurnal',       '&entitas=eq.usaha').catch(() => []),
       fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
         { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
     ]);
@@ -3753,20 +3754,23 @@ function _zdKasCicilan(hutangRows, akunMap, jr, today, horizon) {
 
 // Sisa anggaran Beban Operasional bulan ini yang belum terealisasi.
 function _zdKasOperasional(anggaranRows, akunMap, jr, ym) {
-  var real = {};
+  var real = {}, priveReal = 0;
   jr.forEach(function(r) {
     if (String(r.tanggal || '').slice(0, 7) !== ym) return;
     var aD = akunMap[r.akun_debit_id];
     if (aD && aD.kelompok === 'beban') real[aD.id] = (real[aD.id] || 0) + Number(r.nominal || r.debit || 0);
+    if (aD && aD.peran === 'prive') priveReal += Number(r.nominal || r.debit || 0);   // 5 Nov 2026: pengeluaran pribadi tercatat sebagai Prive di buku usaha
   });
-  var sisa = 0, anggaran = 0;
+  var sisa = 0, anggaran = 0, angPribadi = 0;
   (anggaranRows || []).forEach(function(a) {
     var ak = akunMap[a.akun_id];
     if (!ak || ak.kelompok !== 'beban' || ak.sub_kelompok === 'HPP' || ak.sub_kelompok === 'Beban Produksi') return;
     var ang = Number(a.nominal) || 0;
     anggaran += ang;
+    if (ak.entitas === 'pribadi') { angPribadi += ang; return; }   // anggaran akun pribadi = anggaran Prive: sisanya = total anggaran − Prive bulan ini
     sisa += Math.max(0, ang - (real[ak.id] || 0));
   });
+  sisa += Math.max(0, angPribadi - priveReal);
   return { sisa: sisa, anggaran: anggaran };
 }
 
