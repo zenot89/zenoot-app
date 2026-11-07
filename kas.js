@@ -306,6 +306,7 @@ document.getElementById('page-kas').innerHTML = `
 
     <!-- Sub-panel: Laba Rugi -->
     <div id="lap-panel-labarugi" style="display:none">
+      <div id="kas-lap-note" style="margin-bottom:10px;padding:8px 12px;background:var(--cream2);border:2px dashed var(--ink3);font-size:12.5px;color:var(--ink2);line-height:1.6"></div>
       <table class="tbl kas-lap-tbl">
         <thead><tr><th>Uraian</th><th style="text-align:right">Jumlah</th></tr></thead>
         <tbody id="kas-labarugi-tbody"></tbody>
@@ -543,6 +544,14 @@ function _kasInjectSheets() {
   <input type="hidden" id="kas-jrn-nominal">
   <!-- Form detail -->
   <div class="kas-brimo-detail-form">
+    <div class="kas-brimo-field" id="kas-jrn-buku-field">
+      <label class="kas-brimo-label">Buku</label>
+      <input type="hidden" id="kas-jrn-buku" value="usaha">
+      <div id="kas-jrn-buku-seg" style="display:flex;gap:6px">
+        <button type="button" class="kas-btn-pill" data-buku="usaha" onclick="kasSetBukuForm('usaha')">Usaha</button>
+        <button type="button" class="kas-btn-pill" data-buku="pribadi" onclick="kasSetBukuForm('pribadi')">Pribadi</button>
+      </div>
+    </div>
     <div class="kas-brimo-field">
       <label class="kas-brimo-label">Tanggal</label>
       <input type="date" id="kas-jrn-tgl" class="kas-brimo-input" onchange="kasPjmAutoJatuhTempo('kas-pjm')">
@@ -1023,14 +1032,50 @@ function kasSetBuku(v) {
   if (typeof kasRenderLaporan === 'function') kasRenderLaporan();
 }
 function _kasAkunLabel(a) { return (a.kode ? a.kode + ' · ' : '') + a.nama + (a.entitas === 'pribadi' ? ' · Pribadi' : ''); }
-// Pesan setelah menyimpan transaksi yang melintas dua buku ('' kalau tidak melintas)
-function _kasInfoLintas(akunD, akunK) {
-  var aD = _kasAkunMap[akunD], aK = _kasAkunMap[akunK];
-  if (!aD || !aK) return '';
-  var eD = aD.entitas || 'usaha', eK = aK.entitas || 'usaha';
-  if (eD === eK) return '';
-  if (eD === 'pribadi') return 'Transaksi ini melintas buku, jadi dicatat terpisah:\n• Usaha: Prive / ' + aK.nama + '\n• Pribadi: ' + aD.nama + ' / Ekuitas Pribadi';
-  return 'Transaksi ini melintas buku, jadi dicatat terpisah:\n• Usaha: ' + aD.nama + ' / Modal Disetor Pemilik\n• Pribadi: Ekuitas Pribadi / ' + aK.nama;
+// Label akun di pemilih form transaksi. Akun milik buku LAIN (hanya akun Kas & Bank yang boleh) diberi keterangan hasil pencatatannya:
+//   Dr akun pribadi / Cr akun usaha → Prive ; Dr akun usaha / Cr akun pribadi → Modal Disetor (dipecah otomatis oleh DB, tanpa popup).
+function _kasLabelLintas(akun, sisi, formBuku) {
+  var e = akun.entitas || 'usaha';
+  if (!formBuku) return _kasAkunLabel(akun);
+  if (e === formBuku) return (akun.kode ? akun.kode + ' · ' : '') + akun.nama;   // akun buku yang sedang dipakai: tanpa tanda buku (semuanya satu buku)
+  var hasil = (sisi === 'debit' ? (e === 'pribadi') : (formBuku === 'pribadi')) ? 'Prive' : 'Modal Disetor';
+  return (akun.kode ? akun.kode + ' · ' : '') + akun.nama + ' · ' + (e === 'pribadi' ? 'Pribadi' : 'Usaha') + ' → dicatat ' + hasil;
+}
+// Boleh dipilih di form transaksi untuk buku terpilih? Akun buku itu: ya. Akun buku lain: hanya sisi uang (aset Kas & Bank) — transaksi lintas buku.
+// Akun khusus (Prive / Modal Disetor / Ekuitas Pribadi) tidak dipilih manual: DB yang memakainya saat memecah transaksi.
+function _kasAkunBolehBuku(akun, tipe, sisi, formBuku) {
+  if (!akun || !formBuku) return true;
+  if (akun.peran) return false;
+  if ((akun.entitas || 'usaha') === formBuku) return true;
+  var sisiUang = (tipe === 'keluar' && sisi === 'kredit') || (tipe === 'masuk' && sisi === 'debit')
+              || (tipe === 'pinjaman' && sisi === 'debit') || (tipe === 'bayar_pinjaman' && sisi === 'kredit');
+  return sisiUang && akun.kelompok === 'aset' && String(akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+}
+function _kasBukuForm() { var el = document.getElementById('kas-jrn-buku'); return (el && el.value) || null; }
+function _kasBukuFormPaint() {
+  var v = _kasBukuForm();
+  Array.from(document.querySelectorAll('#kas-jrn-buku-seg button')).forEach(function(b) {
+    var on = b.dataset.buku === v;
+    b.style.background = on ? 'var(--ink)' : '';
+    b.style.color = on ? 'var(--cream)' : '';
+    b.style.fontWeight = on ? '700' : '';
+  });
+}
+// Pilih buku di form transaksi → pemilih akun disaring ulang; pilihan akun yang tidak lagi boleh dikosongkan
+function kasSetBukuForm(v) {
+  var el = document.getElementById('kas-jrn-buku'); if (!el) return;
+  el.value = (v === 'pribadi') ? 'pribadi' : 'usaha';
+  _kasBukuFormPaint();
+  var tipe = document.getElementById('kas-jrn-tipe').value;
+  kasFilterAkunByTipe(tipe, 'kas-jrn-akun-debit', 'kas-jrn-akun-kredit');
+  ['debit', 'kredit'].forEach(function(sisi) {
+    var sel = document.getElementById('kas-jrn-akun-' + sisi);
+    if (!sel || !sel.value) return;
+    if (!_kasAkunBolehBuku(_kasAkunMap[sel.value], tipe, sisi, _kasBukuForm())) {
+      sel.value = '';
+      kasSyncPickerLabel('picker-' + sisi, 'kas-jrn-akun-' + sisi);
+    }
+  });
 }
 
 // ─── LOAD AKUN ───────────────────────────────────────────────
@@ -1285,6 +1330,8 @@ function kasShowForm() {
     if (db) { db.textContent = labels[_brimoTipe]; db.style.color = colors[_brimoTipe]; db.style.fontWeight='700'; db.style.fontSize='12px'; }
     var dn = document.getElementById('kas-brimo-detail-nominal');
     if (dn) dn.textContent = 'Rp' + result.toLocaleString('id-ID');
+    var _bk = document.getElementById('kas-jrn-buku');
+    if (_bk) _bk.value = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';   // default = buku yang sedang dibuka
     kasOnTipeChange();
     ['picker-debit','picker-kredit'].forEach(function(pid) {
       var lbl = document.getElementById(pid+'-label');
@@ -1532,37 +1579,50 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   var rule = _kasAllowedKelompok(tipe);
   if (!rule) return;
   var filterD = rule.debit, filterK = rule.kredit;
+  // 5 Nov 2026: form transaksi baru (bukan modal edit) juga disaring per Buku — akun buku lain hanya untuk sisi uang (lintas buku)
+  var formBuku = (idDebit === 'kas-jrn-akun-debit') ? _kasBukuForm() : null;
+  var bukuTerpandu = formBuku && (tipe === 'masuk' || tipe === 'keluar' || tipe === 'pinjaman' || tipe === 'bayar_pinjaman');
+  function bolehBuku(akun, sisi) { return !bukuTerpandu || _kasAkunBolehBuku(akun, tipe, sisi, formBuku); }
 
-  function applyFilter(sel, allowed) {
+  function applyFilter(sel, allowed, sisi) {
     var currentVal = sel.value;
     var firstAllowed = '';
     Array.from(sel.options).forEach(function(o) {
       if (!o.value) { o.style.display = ''; return; } // placeholder selalu tampil
       var akun = _kasAkunMap[o.value];
-      var show = akun && allowed.indexOf(akun.kelompok) !== -1;
+      var show = akun && allowed.indexOf(akun.kelompok) !== -1 && bolehBuku(akun, sisi);
       o.style.display = show ? '' : 'none';
       if (show && !firstAllowed) firstAllowed = o.value;
     });
     // Kalau nilai aktif tidak allowed, reset
-    if (currentVal && _kasAkunMap[currentVal] && allowed.indexOf(_kasAkunMap[currentVal].kelompok) === -1) {
+    if (currentVal && _kasAkunMap[currentVal] && (allowed.indexOf(_kasAkunMap[currentVal].kelompok) === -1 || !bolehBuku(_kasAkunMap[currentVal], sisi))) {
       sel.value = '';
     }
   }
-  applyFilter(selD, filterD);
-  applyFilter(selK, filterK);
+  applyFilter(selD, filterD, 'debit');
+  applyFilter(selK, filterK, 'kredit');
 
   // Update picker list juga kalau ada
-  function filterPickerList(listId, allowed) {
+  function filterPickerList(listId, allowed, sisi) {
     var list = document.getElementById(listId);
     if (!list) return;
     Array.from(list.querySelectorAll('.kas-akun-item')).forEach(function(item) {
       var id = item.dataset.id;
       var akun = _kasAkunMap[id];
-      item.style.display = (!akun || allowed.indexOf(akun.kelompok) !== -1) ? '' : 'none';
+      var show = !akun || (allowed.indexOf(akun.kelompok) !== -1 && bolehBuku(akun, sisi));
+      item.style.display = show ? '' : 'none';
+      var nm = item.querySelector('.kas-akun-nama');
+      if (nm && akun && bukuTerpandu) nm.textContent = _kasLabelLintas(akun, sisi, formBuku);   // akun buku lain: tampilkan hasil pencatatan (Prive / Modal Disetor)
+    });
+    // Judul kelompok (ASET, BEBAN, ...) yang seluruh akunnya tersaring ikut disembunyikan
+    Array.from(list.querySelectorAll('.kas-akun-group')).forEach(function(g) {
+      var n = g.nextElementSibling, ada = false;
+      while (n && !n.classList.contains('kas-akun-group')) { if (n.classList.contains('kas-akun-item') && n.style.display !== 'none') ada = true; n = n.nextElementSibling; }
+      g.style.display = ada ? '' : 'none';
     });
   }
-  filterPickerList(pickerD, filterD);
-  filterPickerList(pickerK, filterK);
+  filterPickerList(pickerD, filterD, 'debit');
+  filterPickerList(pickerK, filterK, 'kredit');
 }
 
 // Accent warna Debit dinamis sesuai tipe transaksi:
@@ -1597,6 +1657,10 @@ function kasOnTipeChange() {
   else if (tipe === 'penarikan')  { lblD.textContent = 'Ke Tunai (Debit)';        lblK.textContent = 'Sumber Penarikan (Kredit)'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
   _kasSetDebitAccent('kas-lbl-debit', 'picker-debit', tipe);
+  // Pemilih Buku hanya untuk tipe terpandu (masuk/keluar/pinjaman/bayar pinjaman); Jurnal Umum & Penarikan Tunai tetap bebas
+  var _bf = document.getElementById('kas-jrn-buku-field');
+  if (_bf) _bf.style.display = (tipe === 'masuk' || tipe === 'keluar' || tipe === 'pinjaman' || tipe === 'bayar_pinjaman') ? '' : 'none';
+  _kasBukuFormPaint();
   kasFilterAkunByTipe(tipe, 'kas-jrn-akun-debit', 'kas-jrn-akun-kredit');
   kasHitungJurnal();
 }
@@ -1698,10 +1762,6 @@ async function kasSimpanJurnal() {
         kredit:         kr.nominal,
       });
     }
-
-    // 5 Nov 2026: transaksi yang melintas buku Usaha/Pribadi dipecah otomatis oleh DB — kasih tahu user hasilnya
-    const _infoLintas = kreditRows.map(kr => _kasInfoLintas(akunDId, kr.akun_kredit_id)).find(Boolean);
-    if (_infoLintas) alert(_infoLintas);
 
     // Jika pinjaman → insert juga ke tabel hutang (nominal penuh, patungan
     // gak berlaku buat tipe ini)
@@ -1846,7 +1906,6 @@ async function kasUpdateJurnal() {
     }
 
     hideModal('modal-kas-transaksi');
-    if (!id) { const _il = _kasInfoLintas(akunDId, akunKId); if (_il) alert(_il); }
     loadKasJurnal();
   } catch(e) { alert('Gagal simpan: ' + e.message); }
 }
@@ -2326,7 +2385,7 @@ function kasRenderNeraca(data) {
   const fmtRp = v => fmtRpFull(v);
   let html = '', totalD = 0, totalK = 0;
   order.forEach(k => {
-    const akuns = Object.values(_kasAkunMap).filter(a => a.kelompok === k).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
+    const akuns = Object.values(_kasAkunMap).filter(a => a.kelompok === k && _kasBukuOk(a.entitas)).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
     if (!akuns.length) return;
     html += `<tr class="lap-head"><td colspan="6">${kasKelompokLabel(k).toUpperCase()}</td></tr>`;
     akuns.forEach(a => {
@@ -2358,26 +2417,59 @@ function kasRenderLabaRugi(data) {
     if (r.akun_kredit_id) { if (!saldoMap[r.akun_kredit_id]) saldoMap[r.akun_kredit_id] = {debit:0,kredit:0}; saldoMap[r.akun_kredit_id].kredit += n; }
   });
   const fmtRp = v => fmtRpFull(Math.abs(v));
-  const akunPend  = Object.values(_kasAkunMap).filter(a => a.kelompok === 'pendapatan');
-  const akunBeban = Object.values(_kasAkunMap).filter(a => a.kelompok === 'beban');
-  let totalPend = 0, totalBeban = 0, html = '';
-  html += `<tr class="lap-head"><td colspan="2">PENDAPATAN</td></tr>`;
-  akunPend.forEach(a => {
-    const s = saldoMap[a.id] || {debit:0,kredit:0};
-    const saldo = s.kredit - s.debit; totalPend += saldo;
-    html += `<tr class="lap-sub"><td>${a.nama}</td><td style="text-align:right">${fmtRp(saldo)}</td></tr>`;
-  });
-  html += `<tr class="lap-total"><td><b>Total Pendapatan</b></td><td style="text-align:right;font-weight:700;color:var(--ok)"><b>${fmtRp(totalPend)}</b></td></tr>`;
-  html += `<tr class="lap-head"><td colspan="2">BEBAN</td></tr>`;
-  akunBeban.forEach(a => {
-    const s = saldoMap[a.id] || {debit:0,kredit:0};
-    const saldo = s.debit - s.kredit; totalBeban += saldo;
-    html += `<tr class="lap-sub"><td>${a.nama}</td><td style="text-align:right;color:var(--danger)">${fmtRp(saldo)}</td></tr>`;
-  });
-  html += `<tr class="lap-total"><td><b>Total Beban</b></td><td style="text-align:right;font-weight:700;color:var(--danger)"><b>${fmtRp(totalBeban)}</b></td></tr>`;
-  const labaRugi = totalPend - totalBeban;
-  const isLaba   = labaRugi >= 0;
-  html += `<tr class="lap-result"><td><b>${isLaba ? '✅ LABA BERSIH' : '❌ RUGI BERSIH'}</b></td><td style="text-align:right;color:${isLaba?'var(--ok)':'var(--danger)'}"><b>${isLaba?'':'('}${fmtRp(labaRugi)}${isLaba?'':')'}</b></td></tr>`;
+  const sal = a => saldoMap[a.id] || {debit:0,kredit:0};
+  const akunBuku  = Object.values(_kasAkunMap).filter(a => _kasBukuOk(a.entitas));
+  const akunPend  = akunBuku.filter(a => a.kelompok === 'pendapatan');
+  const akunBeban = akunBuku.filter(a => a.kelompok === 'beban');
+  const akunPeran = peran => akunBuku.find(a => a.peran === peran);
+  const note = document.getElementById('kas-lap-note');
+  const baris = (nama, nilai, warna) => `<tr class="lap-sub"><td>${nama}</td><td style="text-align:right${warna ? ';color:' + warna : ''}">${fmtRp(nilai)}</td></tr>`;
+  const total = (nama, nilai, warna) => `<tr class="lap-total"><td><b>${nama}</b></td><td style="text-align:right;font-weight:700;color:${warna}"><b>${fmtRp(nilai)}</b></td></tr>`;
+  const head  = nama => `<tr class="lap-head"><td colspan="2">${nama}</td></tr>`;
+  let html = '';
+
+  if (_kasBuku === 'pribadi') {
+    // ── Buku PRIBADI: bahasa uang masuk / uang keluar ──
+    if (note) note.innerHTML = '<b>Laporan Pribadi.</b> Uang masuk = penghasilan pribadi + uang yang diambil dari usaha (Prive). Uang keluar = pengeluaran pribadi. Sisa = uang masuk dikurangi uang keluar. Menabung atau membayar cicilan pokok hanya memindahkan uang antar akun, bukan pengeluaran.';
+    const ekp = akunPeran('ekuitas_pribadi');
+    const dariUsaha = ekp ? (sal(ekp).kredit - sal(ekp).debit) : 0;   // > 0: uang dari usaha; < 0: disetor ke usaha
+    let totalMasuk = 0, totalKeluar = 0;
+    html += head('UANG MASUK');
+    akunPend.forEach(a => { const v = sal(a).kredit - sal(a).debit; totalMasuk += v; html += baris(a.nama, v); });
+    if (dariUsaha > 0) { totalMasuk += dariUsaha; html += baris('Dari Usaha (Prive)', dariUsaha); }
+    html += total('Total Uang Masuk', totalMasuk, 'var(--ok)');
+    html += head('UANG KELUAR');
+    akunBeban.forEach(a => { const v = sal(a).debit - sal(a).kredit; totalKeluar += v; html += baris(a.nama, v, 'var(--danger)'); });
+    if (dariUsaha < 0) { totalKeluar += -dariUsaha; html += baris('Disetor ke Usaha (Modal Disetor)', -dariUsaha, 'var(--danger)'); }
+    html += total('Total Uang Keluar', totalKeluar, 'var(--danger)');
+    const sisa = totalMasuk - totalKeluar;
+    html += `<tr class="lap-result"><td><b>${sisa >= 0 ? '✅ SISA UANG' : '❌ KEKURANGAN'}</b></td><td style="text-align:right;color:${sisa >= 0 ? 'var(--ok)' : 'var(--danger)'}"><b>${sisa < 0 ? '(' : ''}${fmtRp(sisa)}${sisa < 0 ? ')' : ''}</b></td></tr>`;
+  } else {
+    // ── Buku USAHA (atau gabungan) ──
+    if (note) note.innerHTML = (_kasBuku === 'usaha')
+      ? '<b>Laporan Usaha.</b> Laba Bersih = pendapatan dikurangi HPP dan beban usaha. Uang yang kamu ambil untuk keperluan pribadi disebut <b>Prive</b>: itu bukan biaya, jadi ditampilkan terpisah di bawah laba, bukan mengurangi laba usaha.'
+      : '<b>Laporan Gabungan (usaha + pribadi).</b> Pengeluaran pribadi ikut dihitung sebagai beban. Pilih <b>Buku: Usaha</b> untuk melihat laba usaha yang sebenarnya, atau <b>Buku: Pribadi</b> untuk uang pribadi.';
+    let totalPend = 0, totalBeban = 0;
+    html += head('PENDAPATAN');
+    akunPend.forEach(a => { const v = sal(a).kredit - sal(a).debit; totalPend += v; html += baris(a.nama, v); });
+    html += total('Total Pendapatan', totalPend, 'var(--ok)');
+    html += head('BEBAN');
+    akunBeban.forEach(a => { const v = sal(a).debit - sal(a).kredit; totalBeban += v; html += baris(a.nama, v, 'var(--danger)'); });
+    html += total('Total Beban', totalBeban, 'var(--danger)');
+    const labaRugi = totalPend - totalBeban;
+    const isLaba = labaRugi >= 0;
+    html += `<tr class="lap-result"><td><b>${isLaba ? '✅ LABA BERSIH' : '❌ RUGI BERSIH'}</b></td><td style="text-align:right;color:${isLaba ? 'var(--ok)' : 'var(--danger)'}"><b>${isLaba ? '' : '('}${fmtRp(labaRugi)}${isLaba ? '' : ')'}</b></td></tr>`;
+    if (_kasBuku === 'usaha') {
+      const pr = akunPeran('prive'), md = akunPeran('modal_disetor');
+      const prive = pr ? (sal(pr).debit - sal(pr).kredit) : 0;
+      const modal = md ? (sal(md).kredit - sal(md).debit) : 0;
+      html += head('PEMILIK');
+      html += baris('Prive (diambil untuk keperluan pribadi)', prive, 'var(--danger)');
+      if (modal) html += baris('Modal disetor pemilik (bukan pendapatan)', modal);
+      const setelah = labaRugi - prive;
+      html += `<tr class="lap-result"><td><b>LABA SETELAH PRIVE</b></td><td style="text-align:right;color:${setelah >= 0 ? 'var(--ok)' : 'var(--danger)'}"><b>${setelah < 0 ? '(' : ''}${fmtRp(setelah)}${setelah < 0 ? ')' : ''}</b></td></tr>`;
+    }
+  }
   tbody.innerHTML = html || `<tr><td colspan="2" style="color:var(--ink3);font-style:italic">Belum ada data</td></tr>`;
 }
 
