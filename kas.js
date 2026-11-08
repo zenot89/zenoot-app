@@ -340,14 +340,17 @@ document.getElementById('page-kas').innerHTML = `
       #kas-panel-akun .kas-akun-tbl td:last-child .btn { padding: 6px 8px; margin-right: 2px !important; }
       .akun-sub-m { display: block; font-size: 11px; color: var(--ink3); margin-top: 2px; }
     }
+    /* Hint (?) — muncul saat diarahkan / diketuk, sejajar dengan teks judul */
+    .kas-hint { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 7px; vertical-align: middle;
+      border: 1.5px solid var(--ink3); border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; color: var(--ink3); cursor: help; outline: none; }
+    .kas-hint:hover, .kas-hint:focus { color: var(--ink); border-color: var(--ink); }
+    .kas-hint-pop { display: none; position: absolute; top: calc(100% + 8px); left: -4px; z-index: 60; width: 280px; padding: 9px 12px; background: var(--cream); border: 2px solid var(--ink);
+      box-shadow: 3px 3px 0 rgba(0,0,0,.15); font-size: 12px; font-weight: 400; line-height: 1.55; color: var(--ink2); text-align: left; white-space: normal; }
+    .kas-hint:hover .kas-hint-pop, .kas-hint:focus .kas-hint-pop { display: block; }
   </style>
-  <div style="margin-bottom:10px;padding:10px 14px;background:var(--cream2);border:2px dashed var(--ink3);font-size:13px;color:var(--ink2);line-height:1.7">
-    <b>Chart of Accounts</b> — daftar akun keuangan bisnis dan pribadi kamu. Tiap akun masuk buku <b>Usaha</b> atau <b>Pribadi</b>; transaksi yang melintas dua buku otomatis dipisah lewat <b>Prive</b> / <b>Modal Disetor</b>.<br>
-    Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban) — tambah akun baru di dalam kelompok yang sesuai.
-  </div>
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)</span>
+      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)<span class="kas-hint" tabindex="0" aria-label="Penjelasan">?<span class="kas-hint-pop">Daftar akun keuangan bisnis dan pribadi kamu. Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban) — tambah akun baru di dalam kelompok yang sesuai.</span></span></span>
       <button class="btn btn-sm btn-primary" onclick="kasShowFormAkun()"><i class="ti ti-plus"></i> Tambah Akun</button>
     </div>
     <div id="kas-akun-tbl-scroll">
@@ -900,6 +903,9 @@ function kasToggleBulanDD() {
 function kasSetBulan(val) {
   var inp = document.getElementById('kas-filter-bulan');
   if (inp) { inp.value = val; kasApplyFilter(); }
+  _kasLapBulanManual = false;   // ganti bulan di atas → Laporan ikut lagi
+  var _act = document.querySelector('#page-kas .kas-panel.active');
+  if (_act && _act.id === 'kas-panel-laporan') kasRenderLaporan();
   // Update label
   var lbl = document.getElementById('kas-bulan-label');
   if (lbl) {
@@ -2224,6 +2230,7 @@ function _kasLapTipeOutside(e) {
 // '' = Semua. Format lain 'YYYY-MM'. Dipakai baik desktop maupun mobile
 // (2 instance DOM: -d dan -m, disinkronkan bareng tiap kali berubah).
 var _kasLapBulan = '';
+var _kasLapBulanManual = false;   // true = user memilih bulan sendiri di picker Laporan; false (default) = ikut bulan di pill atas halaman
 var NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 var NAMA_BULAN_SINGKAT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
 
@@ -2305,6 +2312,7 @@ function _kasLapBulanOutside(e) {
 
 function kasLapBulanPick(val) {
   _kasLapBulan = val;
+  _kasLapBulanManual = true;
   var label = _kasLapBulanLabel(val);
   ['d','m'].forEach(function(s) {
     var lblEl = document.getElementById('kas-lap-bulan-label-' + s);
@@ -2366,6 +2374,10 @@ async function _kasExecLaporan() {
       if (el) el.innerHTML = '<tr><td colspan="6" style="color:var(--danger)">Gagal memuat data. Cek koneksi dan refresh.</td></tr>';
     });
     return;
+  }
+  if (!_kasLapBulanManual) {   // 7 Nov 2026: default ikut bulan di pill atas (sebelumnya "Semua" → Arus Kas menampilkan seluruh riwayat)
+    const _top = document.getElementById('kas-filter-bulan');
+    _kasLapBulan = _top ? (_top.value || '') : '';
   }
   const bulan = _kasLapBulan;
   const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
@@ -2497,9 +2509,12 @@ function kasRenderArusKas(data) {
 
   // Hitung saldo awal = semua transaksi KAS & BANK di _kasJurnalAll
   // yang TIDAK masuk ke data yang ditampilkan (transaksi sebelum periode filter)
+  // 7 Nov 2026: saldo awal = hanya transaksi SEBELUM periode terpilih (dulu ikut menjumlah bulan sesudahnya → saldo bulan lama salah)
+  const _bulanMulai = _kasLapBulan ? (_kasLapBulan + '-01') : '';
   let saldoAwal = 0;
   (_kasJurnalAll || []).forEach(r => {
     if (filteredIds.has(r.id)) return; // skip transaksi yang tampil
+    if (_bulanMulai && String(r.tanggal || '') >= _bulanMulai) return; // transaksi periode itu / sesudahnya bukan saldo awal
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
     const isKasD = isKasBank(aD);
