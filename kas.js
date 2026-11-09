@@ -1029,6 +1029,37 @@ if (['usaha','pribadi','semua'].indexOf(_kasBuku) === -1) _kasBuku = 'usaha';
 let _kasJurnalRaw = [];   // semua baris jurnal (kedua buku) — dipakai saldo akun di pemilih supaya saldo akun pribadi tidak tampil 0
 function _kasBukuOk(entitas) { return _kasBuku === 'semua' || (entitas || 'usaha') === _kasBuku; }
 function _kasBukuSync() { var el = document.getElementById('kas-buku-select'); if (el) el.value = _kasBuku; }
+
+// ── TAMPILAN KAS BUKU PRIBADI (8 Nov 2026) ───────────────────────
+// Pengeluaran pribadi yang dibayar LANGSUNG oleh usaha dicatat Dr <akun pribadi> / Cr Ekuitas Pribadi — tidak menyentuh akun Kas & Bank pribadi,
+// sehingga Kas Masuk/Keluar, Cash Flow, dan Arus Kas buku Pribadi tampil Rp0 padahal ada pengeluaran. Untuk TAMPILAN arus kas saja (bukan jurnalnya),
+// baris seperti itu dipecah jadi dua kaki lewat akun virtual: masuk "Dari Usaha (Prive)" lalu keluar ke akun tujuannya. Saldo kas pribadi tidak berubah
+// (masuk = keluar), tapi arus uangnya terlihat. Hanya berlaku di Buku: Pribadi.
+var _KAS_VIRT = {
+  'v-kas':  { id: 'v-kas',  nama: 'Kas dari Usaha',          kelompok: 'aset',  sub_kelompok: 'Kas & Bank', entitas: 'pribadi', virtual: true },
+  'v-dari': { id: 'v-dari', nama: 'Dari Usaha (Prive)',      kelompok: 'modal', entitas: 'pribadi', virtual: true },
+  'v-ke':   { id: 'v-ke',   nama: 'Setor ke Usaha (Modal)',  kelompok: 'modal', entitas: 'pribadi', virtual: true }
+};
+function _kasRegVirt() { Object.keys(_KAS_VIRT).forEach(function(k) { _kasAkunMap[k] = _KAS_VIRT[k]; }); }
+function _kasIsKasAkun(a) { return !!(a && a.kelompok === 'aset' && String(a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'); }
+function _kasKasView(rows) {
+  if (_kasBuku !== 'pribadi' || !rows || !rows.length) return rows;
+  var ekp = Object.values(_kasAkunMap).find(function(a) { return a.peran === 'ekuitas_pribadi'; });
+  if (!ekp) return rows;
+  _kasRegVirt();
+  var out = [];
+  rows.forEach(function(r) {
+    var aD = _kasAkunMap[r.akun_debit_id], aK = _kasAkunMap[r.akun_kredit_id];
+    var kreditEkp = String(r.akun_kredit_id) === String(ekp.id), debitEkp = String(r.akun_debit_id) === String(ekp.id);
+    var base = function(suf, d, k) { return Object.assign({}, r, { id: r.id + ':' + suf, akun_debit_id: d, akun_kredit_id: k }); };
+    if (kreditEkp && !_kasIsKasAkun(aD)) {          // usaha membayar langsung: masuk (Dari Usaha) lalu keluar (akun tujuan)
+      out.push(base('a', 'v-kas', 'v-dari'), base('b', r.akun_debit_id, 'v-kas'));
+    } else if (debitEkp && !_kasIsKasAkun(aK)) {    // pribadi menyetor ke usaha dari akun non-kas: keluar (Setor ke Usaha) lalu masuk dari akun itu
+      out.push(base('a', 'v-ke', 'v-kas'), base('b', 'v-kas', r.akun_kredit_id));
+    } else out.push(r);
+  });
+  return out;
+}
 function kasSetBuku(v) {
   _kasBuku = (v === 'pribadi' || v === 'semua') ? v : 'usaha';
   try { localStorage.setItem('kas_buku', _kasBuku); } catch(e) {}
@@ -1090,6 +1121,7 @@ async function kasLoadAkun() {
     const data = await dbGet('kas_akun', '&order=kode.asc');
     _kasAkunMap = {};
     (data || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasRegVirt();
     _kasBukuSync();
     kasRenderAkunTabel((data || []).filter(a => _kasBukuOk(a.entitas)));
     kasPopulateAkunDropdown(data || []);   // pemilih transaksi: SEMUA akun (kedua buku)
@@ -1926,6 +1958,7 @@ async function loadKasJurnal() {
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasRegVirt();
     _kasJurnalRaw = jurnal || [];
     _kasBukuSync();
     kasPopulateAkunDropdown(akun || []);
@@ -1948,9 +1981,9 @@ function kasApplyFilter() {
   // all-time) — Saldo Kas TETEP dari SEMUA data (_kasJurnalAll), soalnya itu
   // saldo kas beneran sekarang (kumulatif), bukan angka yang masuk akal
   // difilter per-bulan.
-  kasUpdateSummary(filtered, _kasJurnalAll, bulan);
+  kasUpdateSummary(_kasKasView(filtered), _kasKasView(_kasJurnalAll), bulan);
   // Cashflow pakai data filtered — menunjukkan arus kas periode yang dipilih
-  kasUpdateCashflow(filtered, bulan);
+  kasUpdateCashflow(_kasKasView(filtered), bulan);
 }
 
 
@@ -2365,6 +2398,7 @@ async function _kasExecLaporan() {
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasRegVirt();
     _kasJurnalRaw = jurnal || [];
     _kasJurnalAll = _kasJurnalRaw.filter(r => _kasBukuOk(r.entitas));   // laporan mengikuti buku yang dipilih
   } catch(e) {
@@ -2382,7 +2416,7 @@ async function _kasExecLaporan() {
   const bulan = _kasLapBulan;
   const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
   kasLapBulanInit();
-  kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(data);
+  kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(_kasKasView(data));
 }
 
 function kasRenderNeraca(data) {
@@ -2397,7 +2431,7 @@ function kasRenderNeraca(data) {
   const fmtRp = v => fmtRpFull(v);
   let html = '', totalD = 0, totalK = 0;
   order.forEach(k => {
-    const akuns = Object.values(_kasAkunMap).filter(a => a.kelompok === k && _kasBukuOk(a.entitas)).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
+    const akuns = Object.values(_kasAkunMap).filter(a => !a.virtual && a.kelompok === k && _kasBukuOk(a.entitas)).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
     if (!akuns.length) return;
     html += `<tr class="lap-head"><td colspan="6">${kasKelompokLabel(k).toUpperCase()}</td></tr>`;
     akuns.forEach(a => {
@@ -2430,7 +2464,7 @@ function kasRenderLabaRugi(data) {
   });
   const fmtRp = v => fmtRpFull(Math.abs(v));
   const sal = a => saldoMap[a.id] || {debit:0,kredit:0};
-  const akunBuku  = Object.values(_kasAkunMap).filter(a => _kasBukuOk(a.entitas));
+  const akunBuku  = Object.values(_kasAkunMap).filter(a => !a.virtual && _kasBukuOk(a.entitas));
   const akunPend  = akunBuku.filter(a => a.kelompok === 'pendapatan');
   const akunBeban = akunBuku.filter(a => a.kelompok === 'beban');
   const akunPeran = peran => akunBuku.find(a => a.peran === peran);
@@ -2512,7 +2546,7 @@ function kasRenderArusKas(data) {
   // 7 Nov 2026: saldo awal = hanya transaksi SEBELUM periode terpilih (dulu ikut menjumlah bulan sesudahnya → saldo bulan lama salah)
   const _bulanMulai = _kasLapBulan ? (_kasLapBulan + '-01') : '';
   let saldoAwal = 0;
-  (_kasJurnalAll || []).forEach(r => {
+  _kasKasView(_kasJurnalAll || []).forEach(r => {
     if (filteredIds.has(r.id)) return; // skip transaksi yang tampil
     if (_bulanMulai && String(r.tanggal || '') >= _bulanMulai) return; // transaksi periode itu / sesudahnya bukan saldo awal
     const aD = _kasAkunMap[r.akun_debit_id];
@@ -2752,7 +2786,7 @@ function _kasCfIsKasBank(akunId) {
 
 // Ambil transaksi bulan terpilih, TANPA transfer internal antar-akun Kas&Bank
 function _kasCfGetRows() {
-  var rows = _kasCfBulan ? _kasJurnalAll.filter(function(r) { return (r.tanggal||'').startsWith(_kasCfBulan); }) : _kasJurnalAll;
+  var rows = _kasKasView(_kasCfBulan ? _kasJurnalAll.filter(function(r) { return (r.tanggal||'').startsWith(_kasCfBulan); }) : _kasJurnalAll);
   return rows.filter(function(r) {
     var isD = _kasCfIsKasBank(r.akun_debit_id);
     var isK = _kasCfIsKasBank(r.akun_kredit_id);
