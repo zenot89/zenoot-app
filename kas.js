@@ -340,6 +340,7 @@ document.getElementById('page-kas').innerHTML = `
       #kas-panel-akun .kas-akun-tbl td:last-child .btn { padding: 6px 8px; margin-right: 2px !important; }
       .akun-sub-m { display: block; font-size: 11px; color: var(--ink3); margin-top: 2px; }
     }
+    .kas-pair { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--ink4); border-radius: 3px; font-size: 10px; font-weight: 700; color: var(--ink3); cursor: help; white-space: nowrap; }
     /* Hint (?) — muncul saat diarahkan / diketuk, sejajar dengan teks judul */
     .kas-hint { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 7px; vertical-align: middle;
       border: 1.5px solid var(--ink3); border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; color: var(--ink3); cursor: help; outline: none; }
@@ -446,6 +447,20 @@ function _kasInjectSheets() {
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('masuk')">
       <div class="kas-tipe-icon"><i class="ti ti-arrow-down-left"></i></div>
       <div class="kas-tipe-label">Uang Masuk</div>
+    </button>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('prive')">
+      <div class="kas-tipe-icon"><i class="ti ti-user-dollar"></i></div>
+      <div>
+        <div class="kas-tipe-label">Ambil Prive</div>
+        <div class="kas-tipe-desc">Kas Usaha ke Kas Pribadi</div>
+      </div>
+    </button>
+    <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('modal')">
+      <div class="kas-tipe-icon"><i class="ti ti-building-store"></i></div>
+      <div>
+        <div class="kas-tipe-label">Setor Modal</div>
+        <div class="kas-tipe-desc">Kas Pribadi ke Kas Usaha</div>
+      </div>
     </button>
     <button class="kas-tipe-cell" onclick="kasBrimoSelectTipe('jurnal')">
       <div class="kas-tipe-icon"><i class="ti ti-pencil"></i></div>
@@ -1334,8 +1349,8 @@ function kasShowForm() {
     _brimoTipe = tipe;
     _brimoExpr = '';
     var badge = document.getElementById('kas-brimo-tipe-badge');
-    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa' };
+    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai', prive:'Ambil Prive', modal:'Setor Modal' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa', prive:'#7B61C9', modal:'#7B61C9' };
     if (badge) {
       badge.textContent = labels[tipe] || tipe;
       badge.style.color = colors[tipe] || 'var(--ink2)';
@@ -1362,8 +1377,8 @@ function kasShowForm() {
       var now = new Date();
       tglEl.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     }
-    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai' };
-    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa' };
+    var labels = { masuk:'Uang Masuk', keluar:'Uang Keluar', jurnal:'Jurnal Umum', pinjaman:'Pinjaman', bayar_pinjaman:'Bayar Pinjaman', penarikan:'Penarikan Tunai', prive:'Ambil Prive', modal:'Setor Modal' };
+    var colors = { masuk:'#3ecf6e', keluar:'#e05260', jurnal:'#6495ed', pinjaman:'#8a2be2', bayar_pinjaman:'#ffa500', penarikan:'#20b2aa', prive:'#7B61C9', modal:'#7B61C9' };
     var db = document.getElementById('kas-brimo-detail-badge');
     if (db) { db.textContent = labels[_brimoTipe]; db.style.color = colors[_brimoTipe]; db.style.fontWeight='700'; db.style.fontSize='12px'; }
     var dn = document.getElementById('kas-brimo-detail-nominal');
@@ -1545,7 +1560,16 @@ function _kasAllowedKelompok(tipe) {
   if (tipe === 'bayar_pinjaman') return { debit: ['kewajiban'],         kredit: ['aset'] };
   if (tipe === 'masuk')          return { debit: ['aset'],              kredit: ['pendapatan','modal','kewajiban'] };
   if (tipe === 'keluar')         return { debit: ['beban','kewajiban'], kredit: ['aset'] };
+  if (tipe === 'prive' || tipe === 'modal') return { debit: ['aset'],    kredit: ['aset'] };   // transfer Kas Usaha ↔ Kas Pribadi
   return null;
+}
+
+// Ambil Prive (Kas Usaha → Kas Pribadi) & Setor Modal (Kas Pribadi → Kas Usaha): kedua sisi hanya akun Kas & Bank, dan buku harus tepat.
+// Disimpan sebagai jurnal biasa (tipe 'jurnal'); DB memecahnya jadi Prive / Modal Disetor + Ekuitas Pribadi.
+function _kasAkunBolehTransfer(akun, tipe, sisi) {
+  if (!akun || akun.peran || !_kasIsKasAkun(akun)) return false;
+  var wajib = (tipe === 'prive') ? (sisi === 'debit' ? 'pribadi' : 'usaha') : (sisi === 'debit' ? 'usaha' : 'pribadi');
+  return (akun.entitas || 'usaha') === wajib;
 }
 
 // ── Filter akun dropdown berdasarkan tipe transaksi ─────────
@@ -1620,7 +1644,11 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   // 5 Nov 2026: form transaksi baru (bukan modal edit) juga disaring per Buku — akun buku lain hanya untuk sisi uang (lintas buku)
   var formBuku = (idDebit === 'kas-jrn-akun-debit') ? _kasBukuForm() : null;
   var bukuTerpandu = formBuku && (tipe === 'masuk' || tipe === 'keluar' || tipe === 'pinjaman' || tipe === 'bayar_pinjaman');
-  function bolehBuku(akun, sisi) { return !bukuTerpandu || _kasAkunBolehBuku(akun, tipe, sisi, formBuku); }
+  var transfer = idDebit === 'kas-jrn-akun-debit' && (tipe === 'prive' || tipe === 'modal');
+  function bolehBuku(akun, sisi) {
+    if (transfer) return _kasAkunBolehTransfer(akun, tipe, sisi);
+    return !bukuTerpandu || _kasAkunBolehBuku(akun, tipe, sisi, formBuku);
+  }
 
   function applyFilter(sel, allowed, sisi) {
     var currentVal = sel.value;
@@ -1693,6 +1721,8 @@ function kasOnTipeChange() {
   else if (tipe === 'pinjaman')   { lblD.textContent = 'Kas Tujuan (Debit)';      lblK.textContent = 'Akun Pinjaman (Kredit)'; }
   else if (tipe === 'bayar_pinjaman') { lblD.textContent = 'Akun Pinjaman (Debit)'; lblK.textContent = 'Bayar dari Akun (Kredit)'; }
   else if (tipe === 'penarikan')  { lblD.textContent = 'Ke Tunai (Debit)';        lblK.textContent = 'Sumber Penarikan (Kredit)'; }
+  else if (tipe === 'prive')      { lblD.textContent = 'Masuk ke Kas Pribadi';    lblK.textContent = 'Diambil dari Kas Usaha'; }
+  else if (tipe === 'modal')      { lblD.textContent = 'Masuk ke Kas Usaha';      lblK.textContent = 'Dari Kas Pribadi'; }
   else { lblD.textContent = 'Akun Debit'; lblK.textContent = 'Akun Kredit'; }
   _kasSetDebitAccent('kas-lbl-debit', 'picker-debit', tipe);
   // Pemilih Buku hanya untuk tipe terpandu (masuk/keluar/pinjaman/bayar pinjaman); Jurnal Umum & Penarikan Tunai tetap bebas
@@ -1741,6 +1771,12 @@ function _kasValidasiKelompokAkun(tipe, akunD, akunK) {
   if (!rule) return null; // Jurnal Umum — semua kombinasi boleh
   if (rule.debit.indexOf(akunD.kelompok) === -1) return 'Kelompok akun Debit tidak sesuai untuk tipe transaksi ini.';
   if (rule.kredit.indexOf(akunK.kelompok) === -1) return 'Kelompok akun Kredit tidak sesuai untuk tipe transaksi ini.';
+  if (tipe === 'prive' || tipe === 'modal') {
+    var nm = tipe === 'prive' ? 'Ambil Prive' : 'Setor Modal';
+    var ke = tipe === 'prive' ? 'Kas Pribadi' : 'Kas Usaha', dari = tipe === 'prive' ? 'Kas Usaha' : 'Kas Pribadi';
+    if (!_kasAkunBolehTransfer(akunD, tipe, 'debit'))  return nm + ': akun Debit harus ' + ke + ' (Kas & Bank).';
+    if (!_kasAkunBolehTransfer(akunK, tipe, 'kredit')) return nm + ': akun Kredit harus ' + dari + ' (Kas & Bank).';
+  }
   return null;
 }
 
@@ -1780,7 +1816,8 @@ async function kasSimpanJurnal() {
     _kasSplitRows.forEach(r => kreditRows.push({ akun_kredit_id: r.akunId, nominal: r.nominal }));
   }
 
-  const ket = (document.getElementById('kas-jrn-ket').value||'').trim();
+  const tipeDb = (tipe === 'prive' || tipe === 'modal') ? 'jurnal' : tipe;   // Ambil Prive / Setor Modal = jurnal biasa (tipe baru tidak ditulis ke DB)
+  const ket = (document.getElementById('kas-jrn-ket').value||'').trim() || (tipe === 'prive' ? 'Ambil Prive' : tipe === 'modal' ? 'Setor Modal' : '');
   const ref = (document.getElementById('kas-jrn-ref').value||'').trim() || null;
 
   try {
@@ -1792,7 +1829,7 @@ async function kasSimpanJurnal() {
         tanggal:        tgl,
         keterangan:     ket,
         referensi:      ref,
-        tipe:           tipe,
+        tipe:           tipeDb,
         akun_debit_id:  akunDId,
         akun_kredit_id: kr.akun_kredit_id,
         nominal:        kr.nominal,
@@ -2022,6 +2059,17 @@ function kasRenderJurnalTabel(data) {
     return;
   }
   const fmtRp = v => fmtRpFull(v);
+  // Baris hasil pemisahan lintas buku (grup_id sama): tandai dan tunjukkan pasangannya di buku lain
+  const _grup = {};
+  (_kasJurnalRaw || []).forEach(x => { if (x.grup_id) (_grup[x.grup_id] = _grup[x.grup_id] || []).push(x); });
+  const _pairTag = r => {
+    if (!r.grup_id) return '';
+    const sib = (_grup[r.grup_id] || []).find(x => x.id !== r.id);
+    if (!sib) return '';
+    const sD = _kasAkunMap[sib.akun_debit_id], sK = _kasAkunMap[sib.akun_kredit_id];
+    const bk = (sib.entitas === 'pribadi') ? 'Pribadi' : 'Usaha';
+    return '<span class="kas-pair" title="Pasangan di buku ' + bk + ': ' + (sD ? sD.nama : '—') + ' / ' + (sK ? sK.nama : '—') + '">⇄ ' + bk + '</span>';
+  };
   tbody.innerHTML = slice.map(r => {
     const _tglParts = (r.tanggal||'').split('-');
     const tgl = _tglParts.length===3 ? _tglParts[2]+'/'+_tglParts[1]+'/'+_tglParts[0].slice(2) : (r.tanggal||'—');
@@ -2049,7 +2097,7 @@ function kasRenderJurnalTabel(data) {
     return '<tr data-id="'+r.id+'">' +
       '<td style="white-space:nowrap">'+tgl+'</td>' +
       '<td class="kas-col-ref" style="color:var(--ink3);font-size:11px">'+(r.referensi||'—')+'</td>' +
-      '<td class="kas-col-ket">'+(r.keterangan||'—')+'</td>' +
+      '<td class="kas-col-ket">'+(r.keterangan||'—')+_pairTag(r)+'</td>' +
       '<td class="kas-col-akund">'+nmD+'</td>' +
       '<td class="kas-col-akunk">'+nmK+'</td>' +
       '<td class="kas-col-debit" style="text-align:right;color:var(--ok);font-weight:600">'+fmtRp(r.debit)+'</td>' +
