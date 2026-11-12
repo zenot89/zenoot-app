@@ -1256,57 +1256,281 @@ function produkExportTerpilih() {
   );
 }
 
-// ── BATCH: Edit HPP massal ────────────────────────────────────
+// ── BATCH: Edit HPP massal — per varian (12 Nov 2026) ─────────
+// Modal menampilkan SEMUA varian terpilih, tiap baris: toggle Sistem (Dropship | P.O | Produksi), Harga P.O, Harga Dropship, HPP.
+// Harga P.O / Dropship disimpan di Master Barang supplier SKU itu (hutang_barang) lewat _produkUpsertHargaDual — sumber yang sama dengan
+// Hutang Barang / Re-Stock / bon. Sistem ke produk.sistem_override. HPP produk = harga sistem aktifnya (Produksi / tanpa supplier terdaftar = HPP diisi langsung).
+// Sinkron ke Channel > Supplier & ROP: supplier yang SKU-nya dipilih Dropship / P.O otomatis menyalakan jenis itu (hutang_supplier.is_dropship / is_reseller),
+// karena Re-Stock, form Master Barang dan bon membaca flag supplier. Supplier Produksi Sendiri bersifat eksklusif → baris SKU-nya terkunci di Produksi.
+var _bhRows = [];
+var _BH_SIS = [
+  { k: 'dropship', l: 'Dropship', c: 'var(--warn)' },
+  { k: 'reseller', l: 'P.O',      c: 'var(--info)' },
+  { k: 'produksi', l: 'Produksi', c: 'var(--ok)'   }
+];
+
+(function() {
+  if (document.getElementById('pk-bh-style')) return;
+  var st = document.createElement('style');
+  st.id = 'pk-bh-style';
+  st.textContent = [
+    '#modal-batch-hpp .modal{max-width:880px;width:100%}',
+    '#bh-list{max-height:56vh;overflow:auto;border:1px solid var(--ovl-0_18);border-radius:8px}',
+    '.bh-head,.bh-row,.bh-all{display:grid;grid-template-columns:minmax(150px,1.5fr) 218px minmax(96px,1fr) minmax(96px,1fr) minmax(96px,1fr);gap:10px;align-items:center;padding:8px 12px}',
+    '.bh-head{position:sticky;top:0;z-index:2;background:var(--cream2);font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--ovl-0_18)}',
+    '.bh-kat{padding:7px 12px;background:var(--cream2);font-size:12px;font-weight:700;color:var(--ink);border-top:1px solid var(--ovl-0_18)}',
+    '.bh-kat span{font-weight:500;color:var(--ink3);margin-left:6px}',
+    '.bh-row{border-top:1px solid var(--ovl-0_06)}',
+    '.bh-sku{font-size:13px;font-weight:700;color:var(--ink);word-break:break-all}',
+    '.bh-sup{font-size:10.5px;color:var(--ink3);margin-top:1px}',
+    '.bh-seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--cream)}',
+    '.bh-seg button{font-family:var(--f);font-size:12px;font-weight:700;padding:5px 11px;border:none;background:transparent;color:var(--ink3);cursor:pointer;white-space:nowrap}',
+    '.bh-seg button+button{border-left:1.5px solid var(--ink)}',
+    '.bh-seg button.on{color:#fff}',
+    '.bh-seg button:disabled{opacity:.35;cursor:not-allowed}',
+    '.bh-in{font-family:var(--f);font-size:14px;padding:6px 8px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);width:100%;box-sizing:border-box}',
+    '.bh-in:disabled{opacity:.45;background:var(--cream2);border-style:dashed}',
+    '.bh-in::placeholder{color:var(--ink3)}',
+    '.bh-hpp{font-size:13px;font-weight:700;color:var(--ink);text-align:right}',
+    '.bh-all{background:var(--cream2);border:1px dashed var(--ink3);border-radius:8px;margin-bottom:10px}',
+    '.bh-note{font-size:11.5px;color:var(--ink3);line-height:1.5;margin-top:10px}',
+    '.bh-note b{color:var(--ink)}',
+    '.bh-lbl{display:none;font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px}',
+    '@media (max-width:760px){',
+    '  .bh-head{display:none}',
+    '  .bh-row,.bh-all{grid-template-columns:1fr 1fr;gap:8px}',
+    '  .bh-row>:first-child,.bh-all>:first-child,.bh-row .bh-seg-wrap,.bh-all .bh-seg-wrap{grid-column:1/-1}',
+    '  .bh-lbl{display:block}',
+    '  .bh-hpp{text-align:left}',
+    '}'
+  ].join('\n');
+  document.head.appendChild(st);
+})();
+
+function _bhSupOf(row) { return _produkSupMap()[String(row.boss || '').trim().toUpperCase()] || null; }
+
 function produkBatchHpp() {
-  const ids = Object.keys(_produkSelected).map(Number);
+  var ids = Object.keys(_produkSelected).map(Number);
   if (!ids.length) return;
-  // 3 Nov 2026: SKU supplier 2 sistem dapat 2 input (P.O & Dropship); SKU supplier 1 sistem tetap satu HPP. Yang tampil mengikuti isi pilihan.
-  const rows = _produkData.filter(r => ids.includes(r.id));
-  const nDual = rows.filter(r => _produkSupDualByName(r.boss)).length;
-  const nBiasa = rows.length - nDual;
-  document.getElementById('batch-hpp-count').textContent = ids.length + ' SKU terpilih' + ((nDual && nBiasa) ? (' (' + nDual + ' supplier 2 sistem, ' + nBiasa + ' lainnya)') : '');
-  document.getElementById('batch-hpp-input').value = '';
-  idrInput('batch-hpp-input'); idrInput('batch-hpp-po'); idrInput('batch-hpp-ds');
-  idrSet('batch-hpp-po', 0); idrSet('batch-hpp-ds', 0);
-  const grp = document.getElementById('batch-hpp-grp'), dual = document.getElementById('batch-hpp-dual');
-  if (grp) grp.style.display = nBiasa ? '' : 'none';
-  const lbl = document.getElementById('batch-hpp-lbl');
-  if (lbl) lbl.textContent = (nDual && nBiasa) ? ('HPP Baru (Rp) — untuk ' + nBiasa + ' SKU supplier 1 sistem') : 'HPP Baru (Rp)';
-  if (dual) dual.style.display = nDual ? '' : 'none';
-  const dl = document.getElementById('batch-hpp-dual-lbl');
-  if (dl) dl.textContent = nDual ? ('HARGA UNTUK ' + nDual + ' SKU SUPPLIER 2 SISTEM') : '';
+  var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
+  var byKat = {};
+  rows.forEach(function(r) { var k = r.katalog || '—'; (byKat[k] = byKat[k] || []).push(r); });
+  _bhRows = [];
+  Object.keys(byKat).sort(function(a, b) { return a.localeCompare(b); }).forEach(function(k) {
+    _produkSortWarnaSize(byKat[k]).forEach(function(r) {
+      var sup = _bhSupOf(r);
+      var priced = !!(sup && !sup.is_produksi_sendiri);   // harga P.O / Dropship hanya untuk supplier terdaftar yang bukan Produksi Sendiri
+      var sis = _produkSistemOf(r) || (priced ? (sup.is_reseller && !sup.is_dropship ? 'reseller' : 'dropship') : 'produksi');
+      var po = 0, ds = 0, hpp = Number(r.hpp) || 0;
+      if (priced) {
+        var b = (_produkHbList || []).find(function(x) { return x.produk_id === r.id && x.supplier_id === sup.id; });
+        po = b && Number(b.harga_po_per_lusin) > 0 ? Math.round(Number(b.harga_po_per_lusin) / 12) : 0;
+        ds = b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0;
+        // HPP lama yang belum punya harga di Master Barang = harga sistem aktifnya (angka lama tidak hilang)
+        if (sis === 'dropship') { if (!ds) ds = hpp; } else if (sis === 'reseller') { if (!po) po = hpp; }
+      }
+      _bhRows.push({ row: r, kat: k, sup: sup, priced: priced, lockProd: !!(sup && sup.is_produksi_sendiri), sis: sis, po: po, ds: ds, hpp: hpp, o: { sis: sis, po: po, ds: ds, hpp: hpp } });
+    });
+  });
+  document.getElementById('batch-hpp-count').textContent = _bhRows.length + ' SKU terpilih · ' + Object.keys(byKat).length + ' katalog';
+  _bhRenderAll();
   showModal('modal-batch-hpp');
 }
 
-async function simpanBatchHpp() {
-  const ids = Object.keys(_produkSelected).map(Number);
-  const hpp = parseInt(String(document.getElementById('batch-hpp-input').value || '').replace(/\D/g,'')) || 0;
-  const poIn = idrVal('batch-hpp-po'), dsIn = idrVal('batch-hpp-ds');
-  const rows = _produkData.filter(r => ids.includes(r.id));
-  const nDual = rows.filter(r => _produkSupDualByName(r.boss)).length;
-  const nBiasa = rows.length - nDual;
-  const adaIsi = (nBiasa && hpp) || (nDual && (poIn || dsIn));
-  if (!adaIsi) { alert(nDual && !nBiasa ? 'Isi Harga P.O dan/atau Harga Dropship yang valid' : 'Masukkan HPP yang valid'); return; }
-  try {
-    for (const row of rows) {
-      const dB = _produkHargaDualOf(row);
-      if (dB) {
-        // SKU supplier 2 sistem: harga P.O / Dropship ke Master Barang; HPP = harga sistem aktifnya (kosong → harga yang sudah ada)
-        if (!poIn && !dsIn) continue;
-        const poEf = poIn || dB.po, dsEf = dsIn || dB.ds;
-        const hppBaru = _produkHppDual(_produkSistemOf(row), poEf, dsEf, row.hpp);
-        await dbUpdate('produk', row.id, { hpp: hppBaru });
-        row.hpp = hppBaru;
-        await _produkUpsertHargaDual(row, dB.sup, poIn, dsIn);
-      } else if (hpp) {
-        await dbUpdate('produk', row.id, { hpp });
-        row.hpp = hpp;
+function _bhSegHtml(prefix, cur, lockProd) {
+  return '<div class="bh-seg">' + _BH_SIS.map(function(o) {
+    var dis = lockProd && o.k !== 'produksi' && cur !== o.k;
+    return '<button type="button" id="' + prefix + '-' + o.k + '" ' + (dis ? 'disabled title="Supplier Produksi Sendiri tidak bisa Dropship / P.O — ganti supplier lewat Edit Supplier"' : '')
+      + ' class="' + (cur === o.k ? 'on' : '') + '" style="' + (cur === o.k ? 'background:' + o.c : '') + '" onclick="' + (prefix === 'bh-all-sis' ? 'produkBhAllSis' : 'produkBhSis') + '(' + (prefix === 'bh-all-sis' ? '' : _bhIdxOfPrefix(prefix) + ',') + '\'' + o.k + '\')">' + o.l + '</button>';
+  }).join('') + '</div>';
+}
+function _bhIdxOfPrefix(p) { return p.replace('bh-sis-', ''); }
+
+function _bhRenderAll() {
+  var h = '<div class="bh-head"><div>Katalog / SKU</div><div>Sistem</div><div>Harga P.O (Rp/pcs)</div><div>Harga Dropship (Rp/pcs)</div><div style="text-align:right">HPP</div></div>';
+  var lastKat = null;
+  _bhRows.forEach(function(x, i) {
+    if (x.kat !== lastKat) {
+      lastKat = x.kat;
+      var n = _bhRows.filter(function(y) { return y.kat === x.kat; }).length;
+      h += '<div class="bh-kat">' + _pkEsc(x.kat) + '<span>' + n + ' varian</span></div>';
+    }
+    h += '<div class="bh-row">'
+      + '<div><div class="bh-sku">' + _pkEsc(x.row.sku_variasi) + '</div><div class="bh-sup">Supplier: ' + _pkEsc(x.row.boss || '—') + '</div></div>'
+      + '<div class="bh-seg-wrap" id="bh-seg-' + i + '">' + _bhSegHtml('bh-sis-' + i, x.sis, x.lockProd) + '</div>'
+      + '<div><div class="bh-lbl">Harga P.O</div><input type="text" inputmode="numeric" id="bh-po-' + i + '" class="bh-in" placeholder="—" oninput="_bhRefresh()"></div>'
+      + '<div><div class="bh-lbl">Harga Dropship</div><input type="text" inputmode="numeric" id="bh-ds-' + i + '" class="bh-in" placeholder="—" oninput="_bhRefresh()"></div>'
+      + '<div><div class="bh-lbl">HPP</div><div id="bh-hppcell-' + i + '"></div></div>'
+      + '</div>';
+  });
+  document.getElementById('bh-list').innerHTML = h;
+  _bhRows.forEach(function(x, i) {
+    idrInput('bh-po-' + i); idrInput('bh-ds-' + i);
+    idrSet('bh-po-' + i, x.po); idrSet('bh-ds-' + i, x.ds);
+  });
+  // baris "Isi sekaligus"
+  document.getElementById('bh-all').innerHTML = '<div><div class="bh-sku" style="font-size:12px">Isi sekaligus</div><div class="bh-sup">Kosong = tidak diubah</div></div>'
+    + '<div class="bh-seg-wrap" id="bh-all-seg">' + _bhSegHtml('bh-all-sis', '', false) + '</div>'
+    + '<div><div class="bh-lbl">Harga P.O</div><input type="text" inputmode="numeric" id="bh-all-po" class="bh-in" placeholder="Contoh: 69000"></div>'
+    + '<div><div class="bh-lbl">Harga Dropship</div><input type="text" inputmode="numeric" id="bh-all-ds" class="bh-in" placeholder="Contoh: 72000"></div>'
+    + '<div><div class="bh-lbl">HPP (Produksi)</div><input type="text" inputmode="numeric" id="bh-all-hpp" class="bh-in" placeholder="Contoh: 45000"></div>';
+  idrInput('bh-all-po'); idrInput('bh-all-ds'); idrInput('bh-all-hpp');
+  _bhRefresh();
+}
+
+// Sinkronkan tampilan tiap baris dengan sistemnya: input harga aktif/nonaktif + sel HPP (hasil harga sistem aktif, atau input langsung untuk Produksi / tanpa supplier)
+function _bhRefresh() {
+  var needMap = {};
+  _bhRows.forEach(function(x, i) {
+    x.po = idrVal('bh-po-' + i); x.ds = idrVal('bh-ds-' + i);
+    var cell = document.getElementById('bh-hppcell-' + i);
+    var poEl = document.getElementById('bh-po-' + i), dsEl = document.getElementById('bh-ds-' + i);
+    var hargaAktif = x.priced && x.sis !== 'produksi';
+    if (poEl) poEl.disabled = !x.priced; if (dsEl) dsEl.disabled = !x.priced;
+    if (!cell) return;
+    if (hargaAktif) {
+      var v = x.sis === 'dropship' ? x.ds : x.po;
+      var kosong = !(v > 0);
+      if (kosong) v = x.o.hpp;   // harga sistem aktif kosong → HPP lama dipertahankan
+      x.hppEf = v;
+      cell.innerHTML = '<div class="bh-hpp"' + (kosong ? ' style="color:var(--warn)"' : '') + '>' + _produkRp(v)
+        + (kosong ? '<div style="font-size:10px;font-weight:600">harga ' + (x.sis === 'dropship' ? 'Dropship' : 'P.O') + ' kosong</div>' : '') + '</div>';
+    } else {
+      var el = document.getElementById('bh-hpp-' + i);
+      var cur = el ? idrVal('bh-hpp-' + i) : x.hpp;
+      if (!el) {
+        cell.innerHTML = '<input type="text" inputmode="numeric" id="bh-hpp-' + i + '" class="bh-in" placeholder="HPP" oninput="_bhRefresh()">';
+        idrInput('bh-hpp-' + i); idrSet('bh-hpp-' + i, cur);
       }
+      x.hpp = idrVal('bh-hpp-' + i);
+      x.hppEf = x.hpp;
+    }
+    if (x.sup && !x.lockProd && (x.sis === 'dropship' || x.sis === 'reseller')) {
+      var n = needMap[x.sup.id] || (needMap[x.sup.id] = { sup: x.sup, ds: false, rs: false });
+      if (x.sis === 'dropship') n.ds = true; else n.rs = true;
+    }
+  });
+  // Catatan sinkron ke Supplier & ROP
+  var notes = [];
+  Object.keys(needMap).forEach(function(id) {
+    var n = needMap[id], add = [];
+    if (n.ds && !n.sup.is_dropship) add.push('Dropship');
+    if (n.rs && !n.sup.is_reseller) add.push('Reseller (P.O)');
+    if (add.length) notes.push('<b>' + _pkEsc(n.sup.nama) + '</b> + ' + add.join(' & '));
+  });
+  var nt = document.getElementById('bh-note');
+  if (nt) nt.innerHTML = 'HPP tiap SKU otomatis = harga sistemnya. Harga yang dikosongkan tidak diubah.'
+    + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
+}
+
+function produkBhSis(i, k) {
+  var x = _bhRows[i];
+  if (!x) return;
+  if (x.lockProd && k !== 'produksi' && x.sis !== k) return;
+  x.po = idrVal('bh-po-' + i); x.ds = idrVal('bh-ds-' + i);
+  var elH = document.getElementById('bh-hpp-' + i);
+  if (elH) x.hpp = idrVal('bh-hpp-' + i);
+  x.sis = k;
+  document.getElementById('bh-seg-' + i).innerHTML = _bhSegHtml('bh-sis-' + i, x.sis, x.lockProd);
+  // pindah antara mode harga ⇄ HPP langsung: buang input HPP lama supaya sel dibangun ulang sesuai mode baru
+  var cell = document.getElementById('bh-hppcell-' + i);
+  if (cell) cell.innerHTML = '';
+  if (x.sis === 'produksi' || !x.priced) x.hpp = x.hpp || x.o.hpp;
+  _bhRefresh();
+}
+
+function produkBhAllSis(k) {
+  _bhRows.forEach(function(x, i) {
+    if (x.lockProd && k !== 'produksi') return;
+    produkBhSis(i, k);
+  });
+  var seg = document.getElementById('bh-all-seg');
+  if (seg) seg.innerHTML = _bhSegHtml('bh-all-sis', k, false);
+}
+
+function produkBhTerapkanSemua() {
+  var po = idrVal('bh-all-po'), ds = idrVal('bh-all-ds'), hp = idrVal('bh-all-hpp');
+  _bhRows.forEach(function(x, i) {
+    if (x.priced) { if (po) idrSet('bh-po-' + i, po); if (ds) idrSet('bh-ds-' + i, ds); }
+  });
+  _bhRefresh();
+  if (hp) {
+    _bhRows.forEach(function(x, i) { var el = document.getElementById('bh-hpp-' + i); if (el) idrSet('bh-hpp-' + i, hp); });
+    _bhRefresh();
+  }
+}
+
+async function simpanBatchHpp() {
+  _bhRefresh();
+  // 1) Validasi SEMUA baris dulu — tidak ada yang tersimpan kalau ada yang bermasalah
+  var masalah = [];
+  _bhRows.forEach(function(x) { if (!(x.hppEf > 0)) masalah.push(x.row.sku_variasi); });
+  if (masalah.length) {
+    alert('HPP masih kosong untuk ' + masalah.length + ' SKU:\n' + masalah.slice(0, 8).join('\n') + (masalah.length > 8 ? '\n…' : '') + '\n\nIsi harga sistemnya (atau HPP untuk Produksi) dulu.');
+    return;
+  }
+  var btn = document.getElementById('bh-btn-simpan');
+  if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+  try {
+    var ubah = 0;
+    for (var i = 0; i < _bhRows.length; i++) {
+      var x = _bhRows[i], r = x.row;
+      var hargaAktif = x.priced && x.sis !== 'produksi';
+      var poBaru = x.priced && x.po !== x.o.po ? x.po : 0, dsBaru = x.priced && x.ds !== x.o.ds ? x.ds : 0;
+      var sisBeda = x.sis !== x.o.sis, hppBeda = x.hppEf !== (Number(r.hpp) || 0);
+      if (!sisBeda && !hppBeda && !poBaru && !dsBaru) continue;
+      if (x.priced) {
+        // baris yang memang diubah: harga yang tampil tapi belum ada di Master Barang (berasal dari HPP lama) ikut dicatat ke sana
+        var hb0 = (_produkHbList || []).find(function(h) { return h.produk_id === r.id && h.supplier_id === x.sup.id; });
+        if (!poBaru && x.po > 0 && !(hb0 && Number(hb0.harga_po_per_lusin) > 0)) poBaru = x.po;
+        if (!dsBaru && x.ds > 0 && !(hb0 && Number(hb0.harga_per_lusin) > 0)) dsBaru = x.ds;
+      }
+      var payload = { hpp: x.hppEf };
+      if (sisBeda || r.sistem_override !== x.sis) {
+        payload.sistem_override = x.sis;
+        if (x.sup && _produkSupDualByName(r.boss)) payload.dropship = (x.sis === 'dropship');   // kompatibilitas kolom lama, sama seperti Edit Supplier
+        _produkStampDropshipMulai(payload, r);
+      }
+      await dbUpdate('produk', r.id, payload);
+      Object.keys(payload).forEach(function(k) { r[k] = payload[k]; });
+      if (x.priced && (poBaru || dsBaru)) await _produkUpsertHargaDual(r, x.sup, poBaru, dsBaru);
+      ubah++;
+    }
+    // 2) Sinkron ke Supplier & ROP: nyalakan jenis sistem yang dipakai SKU-nya (hutang_supplier)
+    var needMap = {};
+    _bhRows.forEach(function(x) {
+      if (!x.sup || x.lockProd) return;
+      var n = needMap[x.sup.id] || (needMap[x.sup.id] = { sup: x.sup, ds: false, rs: false });
+      if (x.sis === 'dropship') n.ds = true; else if (x.sis === 'reseller') n.rs = true;
+    });
+    var supUbah = [];
+    for (var id in needMap) {
+      var n = needMap[id], pl = {};
+      if (n.ds && !n.sup.is_dropship) pl.is_dropship = true;
+      if (n.rs && !n.sup.is_reseller) pl.is_reseller = true;
+      if (!Object.keys(pl).length) continue;
+      // Supplier jadi 2 sistem: SKU supplier ini yang belum punya sistem eksplisit dikunci dulu ke sistemnya sekarang,
+      // supaya perilakunya tidak ikut bergeser oleh aturan turunan-supplier (dual → ikut produk.dropship).
+      var supKey = String(n.sup.nama || '').trim().toUpperCase();
+      var lama = _produkData.filter(function(p) { return String(p.boss || '').trim().toUpperCase() === supKey && !p.sistem_override && _produkSistemOf(p); });
+      for (var li = 0; li < lama.length; li++) {
+        var sisLama = _produkSistemOf(lama[li]);
+        await dbUpdate('produk', lama[li].id, { sistem_override: sisLama });
+        lama[li].sistem_override = sisLama;
+      }
+      await dbUpdate('hutang_supplier', n.sup.id, pl);
+      Object.keys(pl).forEach(function(k) { n.sup[k] = pl[k]; });
+      supUbah.push(n.sup.nama);
     }
     hideModal('modal-batch-hpp');
     produkExitEditMode();
-    loadProduk();
-  } catch(err) { alert('Gagal: ' + err.message); }
+    await loadProduk();
+    if (supUbah.length) alert('✓ ' + ubah + ' SKU disimpan.\nSupplier disinkronkan di Channel › Supplier & ROP: ' + supUbah.join(', '));
+  } catch (err) {
+    alert('Gagal: ' + (err && err.message || err) + '\n\nSebagian SKU mungkin sudah tersimpan — buka lagi Edit HPP untuk memeriksa.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan'; }
+  }
 }
 
 // ── BATCH: Edit Supplier massal ───────────────────────────────
@@ -1427,27 +1651,19 @@ async function simpanBatchSupplier() {
 // ── MODAL: Batch HPP ─────────────────────────────────────────
 document.body.insertAdjacentHTML('beforeend', `
 <div class="modal-overlay" id="modal-batch-hpp" onclick="if(event.target===this)hideModal('modal-batch-hpp')">
-  <div class="modal" style="max-width:380px;width:100%">
+  <div class="modal">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-currency-dollar"></i> Edit HPP Massal</div>
       <button onclick="hideModal('modal-batch-hpp')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
-    <p id="batch-hpp-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
-    <div class="form-group" id="batch-hpp-grp" style="margin-bottom:14px">
-      <label id="batch-hpp-lbl">HPP Baru (Rp)</label>
-      <input type="text" inputmode="numeric" id="batch-hpp-input" placeholder="Contoh: 38000" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%">
-    </div>
-    <div id="batch-hpp-dual" style="display:none;margin-bottom:14px">
-      <div id="batch-hpp-dual-lbl" style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px"></div>
-      <div style="display:flex;gap:10px">
-        <div class="form-group" style="flex:1;margin:0"><label>Harga P.O (Rp/pcs)</label><input type="text" inputmode="numeric" id="batch-hpp-po" placeholder="Contoh: 69000" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%"></div>
-        <div class="form-group" style="flex:1;margin:0"><label>Harga Dropship (Rp/pcs)</label><input type="text" inputmode="numeric" id="batch-hpp-ds" placeholder="Contoh: 72000" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);width:100%"></div>
-      </div>
-      <div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px">Kosong = harga itu tidak diubah. HPP tiap SKU otomatis mengikuti sistemnya.</div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
+    <p id="batch-hpp-count" style="font-size:12px;color:var(--ink3);margin-bottom:10px">0 SKU terpilih</p>
+    <div class="bh-all" id="bh-all"></div>
+    <button class="btn btn-sm" style="margin:-2px 0 10px" onclick="produkBhTerapkanSemua()"><i class="ti ti-arrow-down"></i> Terapkan harga ke semua baris</button>
+    <div id="bh-list"></div>
+    <div class="bh-note" id="bh-note"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-hpp')">Batal</button>
-      <button class="btn btn-sm btn-primary" onclick="simpanBatchHpp()"><i class="ti ti-check"></i> Simpan</button>
+      <button class="btn btn-sm btn-primary" id="bh-btn-simpan" onclick="simpanBatchHpp()"><i class="ti ti-check"></i> Simpan</button>
     </div>
   </div>
 </div>`);
