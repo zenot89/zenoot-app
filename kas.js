@@ -13,30 +13,30 @@ document.getElementById('page-kas').innerHTML = `
   .kas-tab.active { background:var(--ink); color:var(--cream); }
 
   /* ── Dropdown tab kas — portal ke body ── */
-  #kas-tab-trigger {
+  #kas-tab-trigger, #kas-buku-trigger {
     display:inline-flex; align-items:center; gap:6px;
     min-height:36px; padding:0 12px; border-radius:7px;
     background:var(--ink); color:var(--cream);
     font-family:var(--f); font-size:12px; font-weight:600; white-space:nowrap;
     border:none; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);
   }
-  #kas-tab-trigger:hover { background:var(--ink2); }
-  #kas-tab-trigger i { font-size:13px; color:inherit; }
-  #kas-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
-  #kas-tab-trigger.open i.arr { transform:rotate(180deg); }
-  #kas-tab-dropdown {
+  #kas-tab-trigger:hover, #kas-buku-trigger:hover { background:var(--ink2); }
+  #kas-tab-trigger i, #kas-buku-trigger i { font-size:13px; color:inherit; }
+  #kas-tab-trigger i.arr, #kas-buku-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
+  #kas-tab-trigger.open i.arr, #kas-buku-trigger.open i.arr { transform:rotate(180deg); }
+  #kas-tab-dropdown, #kas-buku-dropdown {
     position:fixed;
     background:var(--cream2); border:1px solid var(--ink3);
     border-radius:14px; min-width:200px; padding:6px;
     z-index:99999; display:none;
     box-shadow:0 8px 28px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.15);
   }
-  #kas-tab-dropdown.open { display:block; }
-  #kas-tab-dropdown .dd-section {
+  #kas-tab-dropdown.open, #kas-buku-dropdown.open { display:block; }
+  #kas-tab-dropdown .dd-section, #kas-buku-dropdown .dd-section {
     font-size:10px; font-weight:700; color:var(--ink3);
     text-transform:uppercase; letter-spacing:.07em; padding:5px 10px 3px;
   }
-  #kas-tab-dropdown .dd-item {
+  #kas-tab-dropdown .dd-item, #kas-buku-dropdown .dd-item {
     display:flex; align-items:center; gap:10px;
     padding:9px 12px; border-radius:10px;
     min-height:44px;
@@ -44,9 +44,9 @@ document.getElementById('page-kas').innerHTML = `
     cursor:pointer; border:none; background:none;
     width:100%; text-align:left; font-family:var(--f);
   }
-  #kas-tab-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
-  #kas-tab-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
-  #kas-tab-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; }
+  #kas-tab-dropdown .dd-item:hover, #kas-buku-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
+  #kas-tab-dropdown .dd-item.active, #kas-buku-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
+  #kas-tab-dropdown .dd-item i, #kas-buku-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; }
 
   /* Filter bulan dropdown */
   #kas-bulan-dropdown {
@@ -95,17 +95,22 @@ document.getElementById('page-kas').innerHTML = `
   }
   .kas-btn-box:hover { background:var(--ink2); }
   .kas-btn-box i { font-size:13px; color:inherit; }
-  select.kas-btn-box {   /* panah ▾ digambar dengan currentColor → terlihat di tema terang maupun gelap */
-    -webkit-appearance:none; appearance:none; padding-right:28px;
-    background-image:linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-    background-position:calc(100% - 15px) 50%, calc(100% - 10px) 50%;
-    background-size:5px 5px, 5px 5px; background-repeat:no-repeat;
-  }
-  select.kas-btn-box option { background:var(--ink); color:var(--cream); }
   .kas-btn-refresh-icon {
     padding:0; width:38px; height:38px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     flex-shrink:0; font-size:18px;
+  }
+  /* Toolbar header: desktop = 1 baris, baris pembungkus "menghilang" (display:contents) supaya urutan lewat order */
+  .kas-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .kas-tb-row { display:contents; }
+  .kas-toolbar .kas-btn-refresh-icon { order:1; }
+  #kas-bulan-wrap { order:2; }
+  #kas-buku-trigger { order:3; margin-left:auto; }
+  #kas-tab-trigger { order:4; }
+  @media (max-width: 900px) {
+    .kas-toolbar { flex-direction:column; align-items:flex-start; }
+    .kas-tb-row { display:flex; align-items:center; gap:8px; }
+    .kas-toolbar .kas-btn-refresh-icon, #kas-bulan-wrap, #kas-buku-trigger, #kas-tab-trigger { order:0; margin-left:0; }
   }
   .kas-panel { display:none; }
   .kas-panel.active { display:block; }
@@ -190,22 +195,24 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- ═══ KAS TOP BAR ═══ -->
 <div id="kas-top-bar">
-  <!-- Baris 1: Refresh + Filter Bulan (kiri) | Tab Dropdown (kanan) -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <button class="kas-btn-pill primary kas-btn-refresh-icon" onclick="loadKasJurnal()" title="Refresh"><i class="ti ti-refresh"></i></button>
-    <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
-      <button class="kas-btn-box" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
-        <i class="ti ti-calendar"></i>
-        <span id="kas-bulan-label">Semua</span>
-        <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
+  <!-- Toolbar: desktop 1 baris (Refresh, Bulan | Buku, Tab). HP (<=900px, 12 Nov 2026) 2 baris rata kiri: Refresh + Buku / Bulan + Tab -->
+  <div class="kas-toolbar">
+    <div class="kas-tb-row">
+      <button class="kas-btn-pill primary kas-btn-refresh-icon" onclick="loadKasJurnal()" title="Refresh"><i class="ti ti-refresh"></i></button>
+      <button id="kas-buku-trigger" onclick="kasToggleBukuDD()" title="Buku yang ditampilkan: usaha, pribadi, atau gabungan">
+        <i class="ti ti-book-2"></i>
+        <span id="kas-buku-label">Buku: Usaha</span>
+        <i class="ti ti-chevron-down arr"></i>
       </button>
     </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <select id="kas-buku-select" class="kas-btn-box" onchange="kasSetBuku(this.value)" title="Buku yang ditampilkan: usaha, pribadi, atau gabungan">
-        <option value="usaha">Buku: Usaha</option>
-        <option value="pribadi">Buku: Pribadi</option>
-        <option value="semua">Buku: Semua</option>
-      </select>
+    <div class="kas-tb-row">
+      <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
+        <button class="kas-btn-box" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
+          <i class="ti ti-calendar"></i>
+          <span id="kas-bulan-label">Semua</span>
+          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
+        </button>
+      </div>
       <button id="kas-tab-trigger" onclick="kasToggleTabDD()">
         <i class="ti ti-notebook" id="kas-tab-icon"></i>
         <span id="kas-tab-label">Jurnal Harian</span>
@@ -213,7 +220,7 @@ document.getElementById('page-kas').innerHTML = `
       </button>
     </div>
   </div>
-  <!-- Baris 2: 4 minicard summary -->
+  <!-- 4 minicard summary -->
   <div class="kas-summary" style="grid-template-columns:repeat(4,1fr)">
     <div class="metric"><div class="m-label">Kas Masuk</div><div class="m-value" id="kas-total-masuk">—</div><div class="m-delta" id="kas-total-masuk-label">total debit kas</div></div>
     <div class="metric"><div class="m-label">Kas Keluar</div><div class="m-value" id="kas-total-keluar">—</div><div class="m-delta" id="kas-total-keluar-label">total kredit kas</div></div>
@@ -885,8 +892,51 @@ function kasToggleTabDD() {
   if (!isOpen) {
     var rect = btn.getBoundingClientRect();
     dd.style.top   = (rect.bottom + 6) + 'px';
-    dd.style.left  = 'auto';
-    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    if (window.innerWidth > 900) {   // desktop: tetap rata kanan tombol (seperti semula)
+      dd.style.left  = 'auto';
+      dd.style.right = (window.innerWidth - rect.right) + 'px';
+    } else {                         // HP: tombol di kiri → menu rata kiri tombol
+      dd.style.left  = Math.max(8, Math.min(rect.left, window.innerWidth - 208)) + 'px';
+      dd.style.right = 'auto';
+    }
+  }
+  dd.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+
+// ── Buku dropdown portal (tema sama dengan dropdown tab) ──────
+var _kasBukuMeta = {
+  usaha:   { label:'Buku: Usaha',   icon:'ti-building-store' },
+  pribadi: { label:'Buku: Pribadi', icon:'ti-user'           },
+  semua:   { label:'Buku: Semua',   icon:'ti-books'          }
+};
+
+function _kasEnsureBukuDD() {
+  if (document.getElementById('kas-buku-dropdown')) return;
+  var dd = document.createElement('div');
+  dd.id = 'kas-buku-dropdown';
+  dd.innerHTML = '<div class="dd-section">Buku</div>' + Object.keys(_kasBukuMeta).map(function(k) {
+    return '<button class="dd-item' + (k === _kasBuku ? ' active' : '') + '" data-buku="' + k + '" onclick="kasSetBuku(&quot;' + k + '&quot;)"><i class="ti ' + _kasBukuMeta[k].icon + '"></i> ' + _kasBukuMeta[k].label + '</button>';
+  }).join('');
+  document.body.appendChild(dd);
+}
+
+function kasToggleBukuDD() {
+  _kasEnsureBukuDD();
+  var dd  = document.getElementById('kas-buku-dropdown');
+  var btn = document.getElementById('kas-buku-trigger');
+  if (!dd || !btn) return;
+  var isOpen = dd.classList.contains('open');
+  if (!isOpen) {
+    var rect = btn.getBoundingClientRect();
+    dd.style.top   = (rect.bottom + 6) + 'px';
+    if (window.innerWidth > 900) {
+      dd.style.left  = 'auto';
+      dd.style.right = (window.innerWidth - rect.right) + 'px';
+    } else {
+      dd.style.left  = Math.max(8, Math.min(rect.left, window.innerWidth - 208)) + 'px';
+      dd.style.right = 'auto';
+    }
   }
   dd.classList.toggle('open', !isOpen);
   btn.classList.toggle('open', !isOpen);
@@ -968,6 +1018,12 @@ document.addEventListener('click', function(e) {
     var btn = document.getElementById('kas-tab-trigger');
     if (dd) dd.classList.remove('open');
     if (btn) btn.classList.remove('open');
+  }
+  if (!e.target.closest('#kas-buku-trigger') && !e.target.closest('#kas-buku-dropdown')) {
+    var ddB = document.getElementById('kas-buku-dropdown');
+    var btnB = document.getElementById('kas-buku-trigger');
+    if (ddB) ddB.classList.remove('open');
+    if (btnB) btnB.classList.remove('open');
   }
   if (!e.target.closest('#kas-bulan-wrap') && !e.target.closest('#kas-bulan-dropdown')) {
     var dd = document.getElementById('kas-bulan-dropdown');
@@ -1062,7 +1118,13 @@ try { _kasBuku = localStorage.getItem('kas_buku') || 'usaha'; } catch(e) {}
 if (['usaha','pribadi','semua'].indexOf(_kasBuku) === -1) _kasBuku = 'usaha';
 let _kasJurnalRaw = [];   // semua baris jurnal (kedua buku) — dipakai saldo akun di pemilih supaya saldo akun pribadi tidak tampil 0
 function _kasBukuOk(entitas) { return _kasBuku === 'semua' || (entitas || 'usaha') === _kasBuku; }
-function _kasBukuSync() { var el = document.getElementById('kas-buku-select'); if (el) el.value = _kasBuku; }
+function _kasBukuSync() {
+  var meta = _kasBukuMeta[_kasBuku];
+  var lbl = document.getElementById('kas-buku-label'); if (lbl) lbl.textContent = meta.label;
+  var dd = document.getElementById('kas-buku-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.querySelectorAll('.dd-item').forEach(function(el) { el.classList.toggle('active', el.dataset.buku === _kasBuku); }); }
+  var btn = document.getElementById('kas-buku-trigger'); if (btn) btn.classList.remove('open');
+}
 
 // ── TAMPILAN KAS BUKU PRIBADI (8 Nov 2026) ───────────────────────
 // Pengeluaran pribadi yang dibayar LANGSUNG oleh usaha dicatat Dr <akun pribadi> / Cr Ekuitas Pribadi — tidak menyentuh akun Kas & Bank pribadi,

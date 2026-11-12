@@ -7,6 +7,15 @@
 document.getElementById('page-keuangan-pribadi').innerHTML = `
   <style>
     #page-keuangan-pribadi .kp-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+    #page-keuangan-pribadi .kp-row { display:contents; }
+    #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:auto; }
+    /* HP (<=900px, 12 Nov 2026): hint & label BULAN disembunyikan, toolbar 2 baris: Bulan + Refresh / Ambil Prive + Catat. Desktop tidak berubah. */
+    @media (max-width:900px) {
+      #page-keuangan-pribadi .kp-hint, #page-keuangan-pribadi .kp-bar-lbl { display:none; }
+      #page-keuangan-pribadi .kp-bar { flex-direction:column; align-items:flex-start; gap:8px; }
+      #page-keuangan-pribadi .kp-row { display:flex; gap:10px; align-items:center; }
+      #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:0; }
+    }
     #page-keuangan-pribadi .kp-bar input[type=month] { font-family:var(--f); font-size:14px; padding:6px 10px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); }
     #page-keuangan-pribadi .kp-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
     @media (max-width:900px) { #page-keuangan-pribadi .kp-grid { grid-template-columns:repeat(2,1fr); } }
@@ -18,17 +27,21 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
     #page-keuangan-pribadi .kp-bar-fill { height:100%; background:var(--ok); }
     #page-keuangan-pribadi td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   </style>
-  <div class="kp-note">
+  <div class="kp-note kp-hint">
     <b>Buku Pribadi</b> — uang pribadi kamu, terpisah dari usaha. Uang yang diambil dari usaha tercatat sebagai <b>Prive</b> di buku usaha
     dan sebagai pemasukan (Ekuitas Pribadi) di sini. Catat transaksi pribadi lewat <b>Kas &amp; Jurnal</b> (buku Pribadi).<br>
     <b>Saldo Kas Pribadi</b> = uang pribadi yang benar-benar kamu pegang. Supaya akurat: <b>Ambil Prive</b> ke Kas Pribadi, lalu bayar pengeluaran pribadi dari Kas Pribadi. Uang yang sudah ada sebelumnya dicatat sekali sebagai <b>Uang Masuk</b> buku Pribadi, Kredit <b>Saldo Awal Pribadi</b>.
   </div>
   <div class="kp-bar">
-    <label style="font-size:12px;font-weight:700;color:var(--ink3)">BULAN</label>
-    <input type="month" id="kp-bulan" onchange="kpLoad()">
-    <button class="btn btn-sm" onclick="kpLoad()" title="Refresh"><i class="ti ti-refresh"></i></button>
-    <button class="btn btn-sm" onclick="kpAmbilPrive()" style="margin-left:auto" title="Pindahkan uang dari Kas Usaha ke Kas Pribadi"><i class="ti ti-user-dollar"></i> Ambil Prive</button>
-    <button class="btn btn-sm btn-primary" onclick="kpCatat()"><i class="ti ti-plus"></i> Catat transaksi pribadi</button>
+    <div class="kp-row">
+      <label class="kp-bar-lbl" style="font-size:12px;font-weight:700;color:var(--ink3)">BULAN</label>
+      <input type="month" id="kp-bulan" onchange="kpLoad()">
+      <button class="btn btn-sm" onclick="kpLoad()" title="Refresh"><i class="ti ti-refresh"></i></button>
+    </div>
+    <div class="kp-row">
+      <button class="btn btn-sm kp-prive-btn" onclick="kpAmbilPrive()" title="Pindahkan uang dari Kas Usaha ke Kas Pribadi"><i class="ti ti-user-dollar"></i> Ambil Prive</button>
+      <button class="btn btn-sm btn-primary" onclick="kpCatat()"><i class="ti ti-plus"></i> Catat transaksi pribadi</button>
+    </div>
   </div>
   <div id="kp-pesan"></div>
   <div class="kp-grid">
