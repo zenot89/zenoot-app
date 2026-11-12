@@ -17,42 +17,6 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
       #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:0; }
     }
     #page-keuangan-pribadi .kp-bulan-btn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-    /* ── 12 Nov 2026: PICKER BULAN — pola sama dgn picker periode Jurnal Penjualan (#jp-per-sheet), salinan sendiri.
-       HP = bottom sheet (judul + X, grid bulan, geser tahun); laptop (>=768px & tinggi >=521px) = popover tepat di bawah tombol, tanpa judul/X.
-       Lapisan 600/601 = sama dgn sheet Jurnal Penjualan. ── */
-    #kp-ov { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,.5); opacity:0; visibility:hidden; touch-action:none; transition:opacity .25s ease, visibility 0s linear .25s; }
-    #kp-ov.open { opacity:1; visibility:visible; transition:opacity .25s ease, visibility 0s; }
-    #kp-sheet { position:fixed; left:0; right:0; bottom:0; margin:0 auto; width:100%; max-width:480px; z-index:601; background:var(--cream2); border-radius:20px 20px 0 0;
-      transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.4,0,.2,1), visibility 0s linear .28s;
-      padding-bottom:env(safe-area-inset-bottom, 12px); max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -8px 32px rgba(0,0,0,.25); }
-    #kp-sheet.open { transform:translateY(0); visibility:visible; transition:transform .28s cubic-bezier(.4,0,.2,1), visibility 0s; }
-    #kp-head { flex:none; position:relative; }
-    #kp-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:10px auto 2px; }
-    #kp-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 52px 12px; letter-spacing:-0.2px; }
-    #kp-close { position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; padding:0; background:var(--ovl-0_06); border-radius:50%; color:var(--ink3); font-size:16px;
-      display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    #kp-body { flex:1; min-height:0; overflow-y:auto; padding:0 10px 10px; }
-    .kp-pc-nav { display:flex; align-items:center; justify-content:space-between; padding:2px 4px 8px; }
-    .kp-pc-nav button { width:36px; height:36px; border:none; padding:0; background:var(--ovl-0_06); border-radius:50%; color:var(--ink); font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    .kp-pc-year { font-size:15px; font-weight:700; color:var(--ink); }
-    .kp-pg { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; padding:4px; }
-    .kp-pg-item { padding:14px 4px; border:none; border-radius:12px; background:var(--ovl-0_06); color:var(--ink); font-family:var(--f); font-size:14px; font-weight:600; text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    .kp-pg-item.today { box-shadow:inset 0 0 0 1.5px var(--ink4); }
-    .kp-pg-item.sel { background:var(--ink); color:var(--cream); }
-    @media (hover:hover) { .kp-pg-item:not(.sel):hover { background:var(--ovl-0_08); } }
-    @media (min-width:768px) and (min-height:521px) {
-      #kp-ov { touch-action:auto; background:transparent; }
-      #kp-sheet { left:0; right:auto; top:0; bottom:auto; margin:0; width:280px; max-width:calc(100vw - 24px); border-radius:10px; padding-bottom:0; opacity:0; transform:translateY(-4px);
-        transition:transform .15s ease, opacity .15s ease, visibility 0s linear .15s; box-shadow:0 8px 28px rgba(0,0,0,.3); border:1px solid var(--ink4); }
-      #kp-sheet.open { opacity:1; transform:none; transition:transform .15s ease, opacity .15s ease, visibility 0s; }
-      #kp-handle, #kp-head { display:none; }
-      #kp-body { padding:8px 10px 10px; }
-      .kp-pc-nav { padding:0 0 6px; }
-      .kp-pc-nav button { width:28px; height:28px; background:none; border-radius:6px; font-size:15px; }
-      .kp-pc-nav button:hover { background:var(--ovl-0_06); }
-      .kp-pc-year { font-size:14px; }
-      .kp-pg-item { padding:10px 4px; }
-    }
     #page-keuangan-pribadi .kp-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
     @media (max-width:900px) { #page-keuangan-pribadi .kp-grid { grid-template-columns:repeat(2,1fr); } }
     #page-keuangan-pribadi .kp-cols { display:grid; grid-template-columns:1.4fr 1fr; gap:12px; align-items:start; }
@@ -70,9 +34,8 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
   </div>
   <div class="kp-bar">
     <div class="kp-row">
-      <label class="kp-bar-lbl" style="font-size:12px;font-weight:700;color:var(--ink3)">BULAN</label>
-      <button class="btn btn-sm kp-bulan-btn" id="kp-bulan-btn" onclick="kpSheetOpen(this)" title="Pilih bulan"><i class="ti ti-calendar"></i> <span id="kp-bulan-label">—</span> <i class="ti ti-chevron-down" style="font-size:12px"></i></button>
-      <input type="hidden" id="kp-bulan">
+      <label class="kp-bar-lbl" style="font-size:12px;font-weight:700;color:var(--ink3)">PERIODE</label>
+      <button class="btn btn-sm kp-bulan-btn" id="kp-bulan-btn" onclick="kpPerOpen(this)" title="Pilih periode"><i class="ti ti-calendar"></i> <span id="kp-bulan-label">—</span> <i class="ti ti-chevron-down" style="font-size:12px"></i></button>
       <button class="btn btn-sm" onclick="kpLoad()" title="Refresh"><i class="ti ti-refresh"></i></button>
     </div>
     <div class="kp-row">
@@ -84,8 +47,8 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
   <div class="kp-grid">
     <div class="metric"><div class="m-label">Saldo Kas Pribadi</div><div class="m-value" id="kp-kas">—</div><div class="m-delta">kas &amp; bank pribadi</div></div>
     <div class="metric"><div class="m-label">Net Worth Pribadi</div><div class="m-value" id="kp-nw">—</div><div class="m-delta">aset − kewajiban pribadi</div></div>
-    <div class="metric"><div class="m-label">Pengeluaran Bulan Ini</div><div class="m-value" id="kp-keluar">—</div><div class="m-delta" id="kp-keluar-sub">semua akun beban pribadi</div></div>
-    <div class="metric"><div class="m-label">Dari Usaha (Prive)</div><div class="m-value" id="kp-prive">—</div><div class="m-delta" id="kp-prive-sub">diambil dari usaha bulan ini</div></div>
+    <div class="metric"><div class="m-label" id="kp-keluar-lbl">Pengeluaran</div><div class="m-value" id="kp-keluar">—</div><div class="m-delta" id="kp-keluar-sub">semua akun beban pribadi</div></div>
+    <div class="metric"><div class="m-label">Dari Usaha (Prive)</div><div class="m-value" id="kp-prive">—</div><div class="m-delta" id="kp-prive-sub">diambil dari usaha</div></div>
   </div>
   <div class="kp-cols">
     <div class="card">
@@ -112,16 +75,16 @@ function _kpRp(n) { n = Math.round(Number(n) || 0); return (n < 0 ? '-' : '') + 
 function _kpEsc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 // Hitung seluruh angka halaman (fungsi murni → mudah diuji).
-//   akun: kas_akun[] (kedua buku), jurnal: jurnal[] (kedua buku), anggaran: kas_anggaran[] bulan terpilih, ym: 'YYYY-MM'
-function kpHitung(akun, jurnal, anggaran, ym) {
+//   akun: kas_akun[] (kedua buku), jurnal: jurnal[] (kedua buku), anggaran: kas_anggaran[] (hanya bila periode = 1 bulan penuh, selain itu []), rng: rentang zpRange() periode terpilih (null = Semua)
+function kpHitung(akun, jurnal, anggaran, rng) {
   var akunMap = {};
   (akun || []).forEach(function(a) { akunMap[a.id] = a; });
-  var sal = {};   // saldo per akun pribadi: { d, k, real (beban bulan ini) }
+  var sal = {};   // saldo per akun pribadi: { d, k, real (beban periode terpilih) }
   var priveBulan = 0, modalBulan = 0;
   (jurnal || []).forEach(function(r) {
     var n = Number(r.nominal || r.debit || 0);
     var aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
-    var bulan = String(r.tanggal || '').slice(0, 7) === ym;
+    var bulan = zpIn(r.tanggal, rng);   // transaksi ini masuk periode terpilih?
     // buku usaha: arus Prive / Modal Disetor (akun berperan khusus)
     if (aD && aD.peran === 'prive' && bulan) priveBulan += n;
     if (aK && aK.peran === 'modal_disetor' && bulan) modalBulan += n;
@@ -155,88 +118,31 @@ function kpHitung(akun, jurnal, anggaran, ym) {
   return out;
 }
 
-// ── Picker bulan (bottom sheet di HP, popover di laptop) ──
-var _KP_BLN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-var _kpSheetYear = 0;
-function _kpYm(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
-function _kpIsPop() { return !!(window.matchMedia && window.matchMedia('(min-width: 768px) and (min-height: 521px)').matches); }
-function _kpBulanSync() {
-  var v = (document.getElementById('kp-bulan') || {}).value || '';
+// ── Picker periode (komponen periode-picker.js; state halaman ini sendiri, terpisah dari halaman lain) ──
+var _kpPer = zpDefault('bulan-ini');
+function _kpPerSync() {
   var lbl = document.getElementById('kp-bulan-label');
-  if (lbl && v) lbl.textContent = _KP_BLN[parseInt(v.slice(5, 7), 10) - 1] + ' ' + v.slice(0, 4);
+  if (lbl) lbl.textContent = zpLabel(_kpPer);
 }
-function _kpEnsureSheet() {
-  if (document.getElementById('kp-sheet')) return;
-  var ov = document.createElement('div');
-  ov.id = 'kp-ov';
-  ov.addEventListener('click', kpSheetClose);
-  var sh = document.createElement('div');
-  sh.id = 'kp-sheet';
-  sh.setAttribute('role', 'dialog');
-  sh.setAttribute('aria-label', 'Pilih bulan');
-  sh.innerHTML = '<div id="kp-head"><div id="kp-handle"></div><div id="kp-title">Pilih Bulan</div>'
-    + '<button type="button" id="kp-close" aria-label="Tutup"><i class="ti ti-x"></i></button></div>'
-    + '<div id="kp-body"></div>';
-  document.body.appendChild(ov);
-  document.body.appendChild(sh);
-  document.getElementById('kp-close').addEventListener('click', kpSheetClose);
-  sh.addEventListener('click', function(e) {
-    var t = e.target.closest ? e.target.closest('[data-kp]') : null;
-    if (!t || t.disabled) return;
-    if (t.getAttribute('data-kp') === 'nav') { _kpSheetYear += parseInt(t.getAttribute('data-val'), 10); _kpSheetRender(); }
-    else kpPilihBulan(t.getAttribute('data-val'));
+// Teks periode utk label kartu: "Semua" dibaca "Semua Periode"
+function _kpPerTeks() { return zpRange(_kpPer) ? zpLabel(_kpPer) : 'Semua Periode'; }
+function kpPerOpen(btn) {
+  zpOpen(btn, {
+    get: function() { return _kpPer; },
+    set: function(s) { _kpPer = s; },
+    onApply: kpLoad
   });
-}
-function _kpSheetRender() {
-  var cur = (document.getElementById('kp-bulan') || {}).value || '';
-  var n = new Date(), thisVal = _kpYm(n.getFullYear(), n.getMonth());
-  var html = '<div class="kp-pc-nav">'
-    + '<button type="button" data-kp="nav" data-val="-1" aria-label="Tahun sebelumnya"><i class="ti ti-chevrons-left"></i></button>'
-    + '<div class="kp-pc-year">' + _kpSheetYear + '</div>'
-    + '<button type="button" data-kp="nav" data-val="1" aria-label="Tahun berikutnya"><i class="ti ti-chevrons-right"></i></button>'
-    + '</div><div class="kp-pg">';
-  for (var m = 0; m < 12; m++) {
-    var val = _kpYm(_kpSheetYear, m);
-    html += '<button type="button" class="kp-pg-item' + (val === cur ? ' sel' : '') + (val === thisVal ? ' today' : '') + '" data-kp="bulan" data-val="' + val + '">' + _KP_BLN[m] + '</button>';
-  }
-  document.getElementById('kp-body').innerHTML = html + '</div>';
-}
-function kpSheetOpen(anchor) {
-  _kpEnsureSheet();
-  var ov = document.getElementById('kp-ov'), sh = document.getElementById('kp-sheet');
-  var cur = (document.getElementById('kp-bulan') || {}).value || '';
-  _kpSheetYear = cur ? parseInt(cur.slice(0, 4), 10) : new Date().getFullYear();
-  _kpSheetRender();
-  if (_kpIsPop() && anchor && anchor.getBoundingClientRect) {   // laptop: popover menempel di bawah tombol
-    var r = anchor.getBoundingClientRect();
-    sh.style.left = Math.max(12, Math.min(r.left, window.innerWidth - 280 - 12)) + 'px';
-    sh.style.top = Math.round(r.bottom + 6) + 'px';
-  } else { sh.style.left = ''; sh.style.top = ''; }
-  ov.classList.add('open');
-  sh.classList.add('open');
-}
-function kpSheetClose() {
-  var ov = document.getElementById('kp-ov'), sh = document.getElementById('kp-sheet');
-  if (ov) ov.classList.remove('open');
-  if (sh) sh.classList.remove('open');
-}
-function kpPilihBulan(val) {
-  var el = document.getElementById('kp-bulan');
-  if (el) el.value = val;
-  kpSheetClose();
-  kpLoad();
 }
 
 async function kpLoad() {
-  var elB = document.getElementById('kp-bulan');
-  if (elB && !elB.value) { var now = new Date(); elB.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'); }
-  _kpBulanSync();
-  var ym = elB ? elB.value : '';
+  _kpPerSync();
+  var rng = zpRange(_kpPer);
+  var ym = zpSingleMonth(_kpPer);   // anggaran disimpan per bulan: hanya dimuat kalau periode = 1 bulan penuh, selain itu kolom Anggaran "—"
   try {
     var res = await Promise.all([
       dbGet('kas_akun', '&order=kode.asc'),
       dbGet('jurnal', '&order=tanggal.asc'),
-      dbGet('kas_anggaran', '&bulan=eq.' + ym).catch(function() { return []; })
+      ym ? dbGet('kas_anggaran', '&bulan=eq.' + ym).catch(function() { return []; }) : Promise.resolve([])
     ]);
     var akun = res[0] || [], jurnal = res[1] || [], anggaran = res[2] || [];
     var pesan = document.getElementById('kp-pesan');
@@ -246,7 +152,7 @@ async function kpLoad() {
     }
     var jumlahPribadi = akun.filter(function(a) { return a.entitas === 'pribadi' && !a.peran; }).length;
     if (pesan) pesan.innerHTML = jumlahPribadi ? '' : '<div class="kp-note">Belum ada akun pribadi. Buka <b>Kas &amp; Jurnal › Kelola Akun</b>, tambah akun dengan Buku = <b>Pribadi</b> (mis. Kas Pribadi, Tabungan, dan akun pengeluaran pribadi).</div>';
-    kpRender(kpHitung(akun, jurnal, anggaran, ym));
+    kpRender(kpHitung(akun, jurnal, anggaran, rng));
   } catch (e) {
     var p = document.getElementById('kp-pesan');
     if (p) p.innerHTML = '<div class="kp-note kp-warn">Gagal memuat: ' + _kpEsc(e.message) + '</div>';
@@ -258,10 +164,11 @@ function kpRender(d) {
   set('kp-kas', _kpRp(d.kas));
   set('kp-nw', _kpRp(d.netWorth));
   var nwEl = document.getElementById('kp-nw'); if (nwEl) nwEl.style.color = d.netWorth >= 0 ? 'var(--ok)' : 'var(--danger)';
+  set('kp-keluar-lbl', 'Pengeluaran ' + _kpPerTeks());
   set('kp-keluar', _kpRp(d.keluar));
   set('kp-keluar-sub', d.anggaranTotal > 0 ? 'anggaran ' + _kpRp(d.anggaranTotal) : 'semua akun beban pribadi');
   set('kp-prive', _kpRp(d.prive));
-  set('kp-prive-sub', d.modal > 0 ? 'disetor ke usaha ' + _kpRp(d.modal) : 'diambil dari usaha bulan ini');
+  set('kp-prive-sub', d.modal > 0 ? 'disetor ke usaha ' + _kpRp(d.modal) : 'diambil dari usaha · ' + _kpPerTeks());
 
   var bb = document.getElementById('kp-beban-tbody');
   if (bb) {

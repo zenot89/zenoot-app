@@ -48,34 +48,6 @@ document.getElementById('page-kas').innerHTML = `
   #kas-tab-dropdown .dd-item.active, #kas-buku-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
   #kas-tab-dropdown .dd-item i, #kas-buku-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; }
 
-  /* Filter bulan dropdown */
-  #kas-bulan-dropdown {
-    position:fixed;
-    background:var(--cream2); border:1px solid var(--ink3);
-    border-radius:14px; min-width:220px; padding:6px;
-    z-index:99999; display:none;
-    box-shadow:0 8px 28px rgba(0,0,0,.3);
-  }
-  #kas-bulan-dropdown.open { display:block; }
-  #kas-bulan-dropdown .dd-section {
-    font-size:10px; font-weight:700; color:var(--ink3);
-    text-transform:uppercase; letter-spacing:.07em; padding:5px 10px 3px;
-  }
-  #kas-bulan-dropdown .dd-list {
-    max-height:132px; overflow-y:auto; /* ~3 item kelihatan, sisanya scroll */
-  }
-  #kas-bulan-dropdown .dd-item {
-    display:flex; align-items:center; gap:10px;
-    padding:9px 12px; border-radius:10px;
-    min-height:44px;
-    font-size:13px; font-weight:500; color:var(--ink2);
-    cursor:pointer; border:none; background:none;
-    width:100%; text-align:left; font-family:var(--f);
-    white-space:nowrap;
-  }
-  #kas-bulan-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
-  #kas-bulan-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
-  #kas-bulan-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
   .kas-btn-pill {
     display:flex; align-items:center; gap:6px;
     padding:7px 13px; border-radius:20px;
@@ -117,26 +89,6 @@ document.getElementById('page-kas').innerHTML = `
 
   /* ── TAB CASHFLOW (12 Sep 2026) — bar mingguan + donut kategori,
      terinspirasi tracker blu, pakai data jurnal yang sudah ada ── */
-  #kas-cf-bulan-dropdown {
-    position:fixed;
-    background:var(--cream2); border:1px solid var(--ink3);
-    border-radius:14px; min-width:220px; padding:6px;
-    z-index:99999; display:none;
-    box-shadow:0 8px 28px rgba(0,0,0,.3);
-  }
-  #kas-cf-bulan-dropdown.open { display:block; }
-  #kas-cf-bulan-dropdown .dd-list { max-height:200px; overflow-y:auto; }
-  #kas-cf-bulan-dropdown .dd-item {
-    display:flex; align-items:center; gap:10px;
-    padding:9px 12px; border-radius:10px;
-    min-height:44px;
-    font-size:13px; font-weight:500; color:var(--ink2);
-    cursor:pointer; border:none; background:none;
-    width:100%; text-align:left; font-family:var(--f); white-space:nowrap;
-  }
-  #kas-cf-bulan-dropdown .dd-item:hover { background:var(--cream); color:var(--ink); }
-  #kas-cf-bulan-dropdown .dd-item.active { background:var(--ink); color:var(--cream); }
-  #kas-cf-bulan-dropdown .dd-item i { font-size:15px; width:18px; text-align:center; flex-shrink:0; }
   .kas-cf-toggle-item {
     display:flex; flex-direction:column; align-items:center; gap:6px;
     font-size:12px; font-weight:600; color:var(--ink3); cursor:pointer; flex:1;
@@ -207,10 +159,10 @@ document.getElementById('page-kas').innerHTML = `
     </div>
     <div class="kas-tb-row">
       <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
-        <button class="kas-btn-box" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
+        <button class="kas-btn-box" id="kas-bulan-trigger" onclick="kasPerOpen(this)">
           <i class="ti ti-calendar"></i>
-          <span id="kas-bulan-label">Semua</span>
-          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
+          <span id="kas-bulan-label">Bulan Ini</span>
+          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px"></i>
         </button>
       </div>
       <button id="kas-tab-trigger" onclick="kasToggleTabDD()">
@@ -227,8 +179,6 @@ document.getElementById('page-kas').innerHTML = `
     <div class="metric"><div class="m-label">Saldo Kas</div><div class="m-value" id="kas-saldo">—</div><div class="m-delta">saldo akhir (semua periode)</div></div>
     <div class="metric"><div class="m-label">Cash Flow</div><div class="m-value" id="kas-cashflow">—</div><div class="m-delta" id="kas-cashflow-label">periode ini</div></div>
   </div>
-  <!-- input bulan hidden — tetap dipakai fungsi filter -->
-  <input type="month" id="kas-filter-bulan" style="display:none" onchange="kasApplyFilter()">
 </div>
 
 <!-- PANEL: JURNAL -->
@@ -395,10 +345,10 @@ document.getElementById('page-kas').innerHTML = `
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span><i class="ti ti-chart-donut-3"></i> Cashflow</span>
       <div style="position:relative;display:inline-block" id="kas-cf-bulan-wrap">
-        <button class="kas-btn-box" id="kas-cf-bulan-trigger" onclick="kasCfToggleBulanDD()">
+        <button class="kas-btn-box" id="kas-cf-bulan-trigger" onclick="kasCfPerOpen(this)">
           <i class="ti ti-calendar"></i>
           <span id="kas-cf-bulan-label">—</span>
-          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-cf-bulan-arr"></i>
+          <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px"></i>
         </button>
       </div>
     </div>
@@ -942,73 +892,25 @@ function kasToggleBukuDD() {
   btn.classList.toggle('open', !isOpen);
 }
 
-// ── Filter bulan dropdown ─────────────────────────────────────
-function _kasEnsureBulanDD() {
-  if (document.getElementById('kas-bulan-dropdown')) return;
-  var dd = document.createElement('div');
-  dd.id = 'kas-bulan-dropdown';
-  // Sinkron item aktif ke filter yang lagi kepasang SEKARANG (termasuk default
-  // bulan berjalan yang di-set otomatis) — dulu "Semua periode" di-hardcode
-  // active padahal defaultnya udah bulan ini, jadi dropdown-nya nyasar.
-  var curVal = (document.getElementById('kas-filter-bulan') || {}).value || '';
-  // Generate 12 bulan terakhir
-  var html = '<div class="dd-section">Filter Periode</div>';
-  html += '<div class="dd-list">';
-  html += '<button class="dd-item' + (curVal === '' ? ' active' : '') + '" data-bulan="" onclick="kasSetBulan(&quot;&quot;)"><i class="ti ti-calendar-off"></i> Semua periode</button>';
-  var now = new Date();
-  for (var i = 0; i < 12; i++) {
-    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    var lbl = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
-    html += '<button class="dd-item' + (curVal === val ? ' active' : '') + '" data-bulan="'+val+'" onclick="kasSetBulan(&quot;'+val+'&quot;)"><i class="ti ti-calendar"></i> '+lbl+'</button>';
-  }
-  html += '</div>';
-  dd.innerHTML = html;
-  document.body.appendChild(dd);
-}
-
-function kasToggleBulanDD() {
-  _kasEnsureBulanDD();
-  var dd  = document.getElementById('kas-bulan-dropdown');
-  var btn = document.getElementById('kas-bulan-trigger');
-  if (!dd || !btn) return;
-  var isOpen = dd.classList.contains('open');
-  if (!isOpen) {
-    var rect = btn.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 6) + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.right = 'auto';
-  }
-  dd.classList.toggle('open', !isOpen);
-  var arr = document.getElementById('kas-bulan-arr');
-  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-
-function kasSetBulan(val) {
-  var inp = document.getElementById('kas-filter-bulan');
-  if (inp) { inp.value = val; kasApplyFilter(); }
-  _kasLapBulanManual = false;   // ganti bulan di atas → Laporan ikut lagi
-  var _act = document.querySelector('#page-kas .kas-panel.active');
-  if (_act && _act.id === 'kas-panel-laporan') kasRenderLaporan();
-  // Update label
+// ── Filter periode pil atas (13 Nov 2026: dulu dropdown bulan; sekarang picker periode bersama periode-picker.js) ──
+// Tiap picker di halaman Kas punya state SENDIRI (pil atas, Laporan, Cashflow) dan terpisah dari halaman lain.
+var _kasPer = zpDefault('bulan-ini');   // pil atas: Jurnal, kartu ringkasan, dan Laporan (selama Laporan tidak dipilih manual)
+function _kasPerSyncLabel() {
   var lbl = document.getElementById('kas-bulan-label');
-  if (lbl) {
-    if (!val) { lbl.textContent = 'Semua'; }
-    else {
-      var d = new Date(val + '-01');
-      lbl.textContent = d.toLocaleDateString('id-ID', {month:'short', year:'numeric'});
+  if (lbl) lbl.textContent = zpLabel(_kasPer);
+}
+function kasPerOpen(btn) {
+  zpOpen(btn, {
+    get: function() { return _kasPer; },
+    set: function(s) { _kasPer = s; },
+    onApply: function() {
+      _kasLapPerManual = false;   // ganti periode di atas → Laporan ikut lagi
+      kasApplyFilter();
+      _kasPerSyncLabel();
+      var _act = document.querySelector('#page-kas .kas-panel.active');
+      if (_act && _act.id === 'kas-panel-laporan') kasRenderLaporan();
     }
-  }
-  // Update active state di dropdown
-  var dd = document.getElementById('kas-bulan-dropdown');
-  if (dd) dd.querySelectorAll('.dd-item').forEach(function(el) {
-    el.classList.toggle('active', el.dataset.bulan === val);
   });
-  // Tutup dropdown
-  var ddEl = document.getElementById('kas-bulan-dropdown');
-  if (ddEl) ddEl.classList.remove('open');
-  var arr = document.getElementById('kas-bulan-arr');
-  if (arr) arr.style.transform = '';
 }
 
 // Tutup semua dropdown kas kalau klik luar
@@ -1024,12 +926,6 @@ document.addEventListener('click', function(e) {
     var btnB = document.getElementById('kas-buku-trigger');
     if (ddB) ddB.classList.remove('open');
     if (btnB) btnB.classList.remove('open');
-  }
-  if (!e.target.closest('#kas-bulan-wrap') && !e.target.closest('#kas-bulan-dropdown')) {
-    var dd = document.getElementById('kas-bulan-dropdown');
-    if (dd) dd.classList.remove('open');
-    var arr = document.getElementById('kas-bulan-arr');
-    if (arr) arr.style.transform = '';
   }
 });
 
@@ -2090,8 +1986,9 @@ async function loadKasJurnal() {
 }
 
 function kasApplyFilter() {
-  const bulan = document.getElementById('kas-filter-bulan').value;
-  const filtered = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
+  const rng = zpRange(_kasPer);
+  const periode = rng ? zpLabel(_kasPer) : '';
+  const filtered = rng ? _kasJurnalAll.filter(r => zpIn(r.tanggal, rng)) : _kasJurnalAll;
   _kasCurrentPage = 1;
   _kasFilteredData = filtered;
   kasRenderJurnalTabel(filtered);
@@ -2099,26 +1996,15 @@ function kasApplyFilter() {
   // all-time) — Saldo Kas TETEP dari SEMUA data (_kasJurnalAll), soalnya itu
   // saldo kas beneran sekarang (kumulatif), bukan angka yang masuk akal
   // difilter per-bulan.
-  kasUpdateSummary(_kasKasView(filtered), _kasKasView(_kasJurnalAll), bulan);
+  kasUpdateSummary(_kasKasView(filtered), _kasKasView(_kasJurnalAll), periode);
   // Cashflow pakai data filtered — menunjukkan arus kas periode yang dipilih
-  kasUpdateCashflow(_kasKasView(filtered), bulan);
+  kasUpdateCashflow(_kasKasView(filtered), periode);
 }
 
 
-// Default filter ke bulan berjalan — biar Kas Masuk/Keluar gak nunjukin
-// akumulasi total dari awal ("ngeri" puluhan juta). Dulu cuma nge-set
-// `.value` doang tanpa sinkron ke label dropdown ("Semua" nyangkut di teks,
-// padahal datanya kefilter) — sekarang label ikut ke-update juga.
-(function() {
-  var el = document.getElementById('kas-filter-bulan');
-  if (el && !el.value) {
-    var now = new Date();
-    var val = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-    el.value = val;
-    var lbl = document.getElementById('kas-bulan-label');
-    if (lbl) lbl.textContent = new Date(val + '-01').toLocaleDateString('id-ID', {month:'short', year:'numeric'});
-  }
-})();
+// Default filter = Bulan Ini (state _kasPer di atas) — biar Kas Masuk/Keluar gak nunjukin akumulasi total dari awal ("ngeri" puluhan juta).
+// Label tombol disinkronkan di sini supaya tidak nyangkut teks lain.
+_kasPerSyncLabel();
 
 // ─── PAGINATION STATE ────────────────────────────────────────
 const _KAS_PAGE_SIZE = 999999; // load semua, tidak ada pagination
@@ -2204,7 +2090,7 @@ function _kasRenderPagination(totalPg, totalData) {
 }
 
 
-function kasUpdateCashflow(data, bulan) {
+function kasUpdateCashflow(data, periode) {
   let cfMasuk = 0, cfKeluar = 0;
   data.forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
@@ -2222,10 +2108,10 @@ function kasUpdateCashflow(data, bulan) {
     el.textContent = (cf < 0 ? '-' : (cf > 0 ? '+' : '')) + 'Rp' + fmtRp(cf).replace('Rp','');
     el.style.color = cf > 0 ? 'var(--ok)' : cf < 0 ? 'var(--danger)' : 'var(--ink2)';
   }
-  if (lb) lb.textContent = bulan ? bulan.replace('-','/') : 'semua periode';
+  if (lb) lb.textContent = periode || 'semua periode';
 }
 
-function kasUpdateSummary(filteredData, allData, bulan) {
+function kasUpdateSummary(filteredData, allData, periode) {
   // Kas Masuk / Kas Keluar — IKUT filter periode (default bulan berjalan)
   let masuk = 0, keluar = 0;
   filteredData.forEach(r => {
@@ -2261,8 +2147,8 @@ function kasUpdateSummary(filteredData, allData, bulan) {
   // "bulan ini" bukan "dari awal jualan"
   const lblMasuk  = document.getElementById('kas-total-masuk-label');
   const lblKeluar = document.getElementById('kas-total-keluar-label');
-  if (lblMasuk)  lblMasuk.textContent  = bulan ? ('total debit kas · ' + bulan.replace('-','/')) : 'total debit kas · semua periode';
-  if (lblKeluar) lblKeluar.textContent = bulan ? ('total kredit kas · ' + bulan.replace('-','/')) : 'total kredit kas · semua periode';
+  if (lblMasuk)  lblMasuk.textContent  = periode ? ('total debit kas · ' + periode) : 'total debit kas · semua periode';
+  if (lblKeluar) lblKeluar.textContent = periode ? ('total kredit kas · ' + periode) : 'total kredit kas · semua periode';
 }
 
 async function kasEditJurnal(id) {
@@ -2391,104 +2277,30 @@ function _kasLapTipeOutside(e) {
 // ─── Picker Bulan (shortcut) — Laporan Kas & Jurnal ───
 // '' = Semua. Format lain 'YYYY-MM'. Dipakai baik desktop maupun mobile
 // (2 instance DOM: -d dan -m, disinkronkan bareng tiap kali berubah).
-var _kasLapBulan = '';
-var _kasLapBulanManual = false;   // true = user memilih bulan sendiri di picker Laporan; false (default) = ikut bulan di pill atas halaman
-var NAMA_BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-var NAMA_BULAN_SINGKAT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+var _kasLapPer = zpDefault('bulan-ini');
+var _kasLapPerManual = false;   // true = user memilih periode sendiri di picker Laporan; false (default) = ikut periode di pill atas halaman
 
-function _kasLapBulanOptions() {
-  var opts = [{ val: '', label: 'Semua' }];
-  var now = new Date();
-  for (var i = 0; i < 12; i++) {
-    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    var mm = String(d.getMonth() + 1).padStart(2, '0');
-    var label = (i === 0 ? 'Bulan Ini — ' : '') + NAMA_BULAN_ID[d.getMonth()] + ' ' + d.getFullYear();
-    opts.push({ val: d.getFullYear() + '-' + mm, label: label });
+function kasLapPerInit() {
+  var label = zpLabel(_kasLapPer);
+  function build(suffix) {
+    return '<button id="kas-lap-per-btn-' + suffix + '" onclick="kasLapPerOpen(this)" ' +
+      'style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:12px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer;width:100%;justify-content:center">' +
+      '<i class="ti ti-calendar"></i> <span>' + label + '</span>' +
+      '<i class="ti ti-chevron-down" style="font-size:12px;opacity:.6"></i>' +
+    '</button>';
   }
-  return opts;
-}
-
-function _kasLapBulanLabel(val) {
-  if (!val) return 'Semua';
-  var parts = val.split('-');
-  var yy = parts[0].slice(-2);
-  return NAMA_BULAN_SINGKAT[parseInt(parts[1], 10) - 1] + ' ' + yy;
-}
-
-function _kasLapBulanRenderPicker() {
-  var opts = _kasLapBulanOptions();
-  var itemsHtml = opts.map(function(o) {
-    return '<div class="kas-lap-bulan-item" data-val="' + o.val + '" onclick="kasLapBulanPick(\'' + o.val + '\')" ' +
-      'style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);border-top:1px solid rgba(0,0,0,0.08);white-space:nowrap">' +
-      o.label +
-      '<i class="ti ti-check kas-lap-bulan-check" style="margin-left:auto;visibility:' + (o.val === _kasLapBulan ? 'visible' : 'hidden') + '"></i>' +
-    '</div>';
-  }).join('');
-
-  return function(suffix) {
-    return '<div class="kas-lap-bulan-picker" style="position:relative">' +
-      '<button id="kas-lap-bulan-btn-' + suffix + '" onclick="kasLapBulanToggle(\'' + suffix + '\')" ' +
-        'style="display:flex;align-items:center;gap:6px;font-family:var(--f);font-size:12px;font-weight:700;padding:6px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);border-radius:4px;cursor:pointer;width:100%;justify-content:center">' +
-        '<i class="ti ti-calendar"></i> <span id="kas-lap-bulan-label-' + suffix + '">' + _kasLapBulanLabel(_kasLapBulan) + '</span>' +
-        '<i class="ti ti-chevron-down" style="font-size:12px;opacity:.6"></i>' +
-      '</button>' +
-      '<div id="kas-lap-bulan-list-' + suffix + '" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--cream);border:2px solid var(--ink);border-radius:6px;min-width:200px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 6px 16px rgba(0,0,0,0.35)">' +
-        itemsHtml +
-      '</div>' +
-    '</div>';
-  };
-}
-
-function kasLapBulanInit() {
-  var build = _kasLapBulanRenderPicker();
   var elD = document.getElementById('kas-lap-bulan-picker-d');
   var elM = document.getElementById('kas-lap-bulan-picker-m');
   if (elD) elD.innerHTML = build('d');
   if (elM) elM.innerHTML = build('m');
 }
 
-function kasLapBulanToggle(suffix) {
-  var list = document.getElementById('kas-lap-bulan-list-' + suffix);
-  if (!list) return;
-  var willOpen = list.style.display !== 'block';
-  // Tutup instance lain (desktop/mobile) biar gak dobel kebuka
-  ['d','m'].forEach(function(s) {
-    var l = document.getElementById('kas-lap-bulan-list-' + s);
-    if (l && s !== suffix) l.style.display = 'none';
+function kasLapPerOpen(btn) {
+  zpOpen(btn, {
+    get: function() { return _kasLapPer; },
+    set: function(s) { _kasLapPer = s; _kasLapPerManual = true; },
+    onApply: kasRenderLaporan
   });
-  list.style.display = willOpen ? 'block' : 'none';
-  if (willOpen) {
-    setTimeout(function() { document.addEventListener('click', _kasLapBulanOutside); }, 0);
-  }
-}
-function _kasLapBulanOutside(e) {
-  var insideAny = !!e.target.closest('.kas-lap-bulan-picker');
-  if (!insideAny) {
-    ['d','m'].forEach(function(s) {
-      var l = document.getElementById('kas-lap-bulan-list-' + s);
-      if (l) l.style.display = 'none';
-    });
-    document.removeEventListener('click', _kasLapBulanOutside);
-  }
-}
-
-function kasLapBulanPick(val) {
-  _kasLapBulan = val;
-  _kasLapBulanManual = true;
-  var label = _kasLapBulanLabel(val);
-  ['d','m'].forEach(function(s) {
-    var lblEl = document.getElementById('kas-lap-bulan-label-' + s);
-    if (lblEl) lblEl.textContent = label;
-    var list = document.getElementById('kas-lap-bulan-list-' + s);
-    if (list) {
-      list.style.display = 'none';
-      list.querySelectorAll('.kas-lap-bulan-item').forEach(function(item) {
-        var chk = item.querySelector('.kas-lap-bulan-check');
-        if (chk) chk.style.visibility = (item.dataset.val === val) ? 'visible' : 'hidden';
-      });
-    }
-  });
-  kasRenderLaporan();
 }
 
 function kasLapTab(tab) {
@@ -2538,13 +2350,10 @@ async function _kasExecLaporan() {
     });
     return;
   }
-  if (!_kasLapBulanManual) {   // 7 Nov 2026: default ikut bulan di pill atas (sebelumnya "Semua" → Arus Kas menampilkan seluruh riwayat)
-    const _top = document.getElementById('kas-filter-bulan');
-    _kasLapBulan = _top ? (_top.value || '') : '';
-  }
-  const bulan = _kasLapBulan;
-  const data  = bulan ? _kasJurnalAll.filter(r => (r.tanggal||'').startsWith(bulan)) : _kasJurnalAll;
-  kasLapBulanInit();
+  if (!_kasLapPerManual) _kasLapPer = Object.assign({}, _kasPer);   // 7 Nov 2026: default ikut periode di pill atas (sebelumnya "Semua" → Arus Kas menampilkan seluruh riwayat)
+  const rng  = zpRange(_kasLapPer);
+  const data = rng ? _kasJurnalAll.filter(r => zpIn(r.tanggal, rng)) : _kasJurnalAll;
+  kasLapPerInit();
   kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(_kasKasView(data));
 }
 
@@ -2673,7 +2482,8 @@ function kasRenderArusKas(data) {
   // Hitung saldo awal = semua transaksi KAS & BANK di _kasJurnalAll
   // yang TIDAK masuk ke data yang ditampilkan (transaksi sebelum periode filter)
   // 7 Nov 2026: saldo awal = hanya transaksi SEBELUM periode terpilih (dulu ikut menjumlah bulan sesudahnya → saldo bulan lama salah)
-  const _bulanMulai = _kasLapBulan ? (_kasLapBulan + '-01') : '';
+  const _rngLap = zpRange(_kasLapPer);
+  const _bulanMulai = _rngLap ? _rngLap.s : '';   // awal periode terpilih
   let saldoAwal = 0;
   _kasKasView(_kasJurnalAll || []).forEach(r => {
     if (filteredIds.has(r.id)) return; // skip transaksi yang tampil
@@ -2904,7 +2714,7 @@ function _kasGetSaldoMap() {
 // DIKECUALIKAN dari breakdown ini karena bukan pendapatan/beban
 // beneran, cuma perpindahan uang sendiri.
 // ═══════════════════════════════════════════════════════════
-var _kasCfBulan = '';           // 'YYYY-MM' — filter bulan KHUSUS tab ini, independen dari tab Jurnal/Laporan (pola sama kayak _kasLapBulan)
+var _kasCfPer  = zpDefault('bulan-ini');   // periode KHUSUS tab ini, independen dari tab Jurnal/Laporan (pola sama kayak _kasLapPer)
 var _kasCfView  = 'cashflow';   // 'cashflow' | 'pengeluaran' | 'pemasukan'
 var _KAS_CF_COLORS = ['#e0a730','#4a7fd6','#c0503a','#3a9e6e','#8a5ec8','#4aa8c8','#c85a8a','#7a8a3a','#b0973a','#5a6a9a'];
 
@@ -2913,9 +2723,10 @@ function _kasCfIsKasBank(akunId) {
   return !!(a && a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK');
 }
 
-// Ambil transaksi bulan terpilih, TANPA transfer internal antar-akun Kas&Bank
+// Ambil transaksi periode terpilih, TANPA transfer internal antar-akun Kas&Bank
 function _kasCfGetRows() {
-  var rows = _kasKasView(_kasCfBulan ? _kasJurnalAll.filter(function(r) { return (r.tanggal||'').startsWith(_kasCfBulan); }) : _kasJurnalAll);
+  var rng = zpRange(_kasCfPer);
+  var rows = _kasKasView(rng ? _kasJurnalAll.filter(function(r) { return zpIn(r.tanggal, rng); }) : _kasJurnalAll);
   return rows.filter(function(r) {
     var isD = _kasCfIsKasBank(r.akun_debit_id);
     var isK = _kasCfIsKasBank(r.akun_kredit_id);
@@ -2924,70 +2735,22 @@ function _kasCfGetRows() {
 }
 
 function kasRenderCashflowTab() {
-  _kasCfBulanInit();
+  _kasCfPerSync();
   _kasCfRenderAll();
 }
 
-// ── Bulan picker (portal ke body, independen dari filter tab lain — pola sama kayak _kasEnsureBulanDD) ──
-function _kasCfEnsureBulanDD() {
-  if (document.getElementById('kas-cf-bulan-dropdown')) return;
-  var dd = document.createElement('div');
-  dd.id = 'kas-cf-bulan-dropdown';
-  document.body.appendChild(dd);
-}
-function _kasCfBulanInit() {
-  if (!_kasCfBulan) {
-    var now = new Date();
-    _kasCfBulan = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  }
+// ── Picker periode tab Cashflow (komponen periode-picker.js, state sendiri — independen dari tab lain) ──
+function _kasCfPerSync() {
   var lbl = document.getElementById('kas-cf-bulan-label');
-  if (lbl) lbl.textContent = new Date(_kasCfBulan + '-01').toLocaleDateString('id-ID', {month:'short', year:'numeric'});
-  _kasCfEnsureBulanDD();
-  var dd = document.getElementById('kas-cf-bulan-dropdown');
-  var html = '<div class="dd-section">Filter Bulan</div><div class="dd-list">';
-  var now2 = new Date();
-  for (var i = 0; i < 12; i++) {
-    var d = new Date(now2.getFullYear(), now2.getMonth() - i, 1);
-    var val = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    var lblTxt = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
-    html += '<button class="dd-item' + (_kasCfBulan === val ? ' active' : '') + '" onclick="kasCfSetBulan(&quot;' + val + '&quot;)"><i class="ti ti-calendar"></i> ' + lblTxt + '</button>';
-  }
-  html += '</div>';
-  dd.innerHTML = html;
+  if (lbl) lbl.textContent = zpLabel(_kasCfPer);
 }
-function kasCfToggleBulanDD() {
-  _kasCfEnsureBulanDD();
-  var dd  = document.getElementById('kas-cf-bulan-dropdown');
-  var btn = document.getElementById('kas-cf-bulan-trigger');
-  if (!dd || !btn) return;
-  var isOpen = dd.classList.contains('open');
-  if (!isOpen) {
-    var rect = btn.getBoundingClientRect();
-    dd.style.top   = (rect.bottom + 6) + 'px';
-    dd.style.left  = Math.max(6, Math.min(rect.left, window.innerWidth - 220 - 6)) + 'px';
-    dd.style.right = 'auto';
-  }
-  dd.classList.toggle('open', !isOpen);
-  var arr = document.getElementById('kas-cf-bulan-arr');
-  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+function kasCfPerOpen(btn) {
+  zpOpen(btn, {
+    get: function() { return _kasCfPer; },
+    set: function(s) { _kasCfPer = s; },
+    onApply: function() { _kasCfPerSync(); _kasCfRenderAll(); }
+  });
 }
-function kasCfSetBulan(val) {
-  _kasCfBulan = val;
-  var dd = document.getElementById('kas-cf-bulan-dropdown');
-  if (dd) dd.classList.remove('open');
-  var arr = document.getElementById('kas-cf-bulan-arr');
-  if (arr) arr.style.transform = '';
-  _kasCfBulanInit();
-  _kasCfRenderAll();
-}
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('#kas-cf-bulan-wrap') && !e.target.closest('#kas-cf-bulan-dropdown')) {
-    var dd = document.getElementById('kas-cf-bulan-dropdown');
-    if (dd) dd.classList.remove('open');
-    var arr = document.getElementById('kas-cf-bulan-arr');
-    if (arr) arr.style.transform = '';
-  }
-});
 
 // ── Toggle Cashflow / Pengeluaran / Pemasukan ──────────────────
 function kasCfSetView(view) {
@@ -3017,7 +2780,7 @@ function _kasCfRenderBar() {
   var rows = _kasCfGetRows();
   if (rows.length === 0) {
     canvas.style.display = 'none';
-    if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = 'Belum ada transaksi bulan ini'; }
+    if (emptyEl) { emptyEl.style.display = 'flex'; emptyEl.textContent = 'Belum ada transaksi di periode ini'; }
     if (totalsEl) totalsEl.innerHTML = '';
     return;
   }
@@ -3026,27 +2789,22 @@ function _kasCfRenderBar() {
 
   if (!canvas.offsetWidth || canvas.offsetWidth < 10) { setTimeout(_kasCfRenderBar, 80); return; }
 
-  // Bucket per minggu: 1-7, 8-14, 15-21, 22-28, 29-akhir bulan
-  var parts = _kasCfBulan.split('-');
-  var yr = parseInt(parts[0], 10), mo = parseInt(parts[1], 10);
-  var lastDate = new Date(yr, mo, 0).getDate();
-  var buckets = [
-    { from: 1,  to: 7,  label: '1-7'   },
-    { from: 8,  to: 14, label: '8-14'  },
-    { from: 15, to: 21, label: '15-21' },
-    { from: 22, to: 28, label: '22-28' },
-    { from: 29, to: lastDate, label: '29-' + lastDate },
-  ];
+  // Bucket sumbu-X mengikuti periode (lihat _kasCfBuckets). Periode "semua" = dari transaksi tertua s/d terbaru.
+  var rngCf = zpRange(_kasCfPer);
+  if (!rngCf) {
+    var tgls = rows.map(function(r) { return String(r.tanggal || '').slice(0, 10); }).filter(Boolean).sort();
+    rngCf = { s: tgls[0], e: tgls[tgls.length - 1] };
+  }
+  var buckets = _kasCfBuckets(rngCf.s, rngCf.e);
   var pengData = buckets.map(function() { return 0; });
   var pemData  = buckets.map(function() { return 0; });
   var totalPeng = 0, totalPem = 0;
 
   rows.forEach(function(r) {
-    var tgl = r.tanggal || '';
-    var day = parseInt(tgl.split('-')[2], 10);
-    if (!day) return;
+    var tgl = String(r.tanggal || '').slice(0, 10);
+    if (!tgl) return;
     var bIdx = -1;
-    for (var i = 0; i < buckets.length; i++) { if (day >= buckets[i].from && day <= buckets[i].to) { bIdx = i; break; } }
+    for (var i = 0; i < buckets.length; i++) { if (tgl >= buckets[i].from && tgl <= buckets[i].to) { bIdx = i; break; } }
     if (bIdx === -1) return;
     var isD = _kasCfIsKasBank(r.akun_debit_id);
     var n = r.nominal || r.debit || r.kredit || 0;
@@ -3098,6 +2856,31 @@ function _kasCfRenderBar() {
       '<div><div style="font-size:16px;font-weight:700;color:' + colorPeng + '">Rp' + fmtRpFull(totalPeng).replace('Rp', '') + '</div><div style="font-size:11px;color:var(--ink3)">Pengeluaran</div></div>' +
       '<div><div style="font-size:16px;font-weight:700;color:' + colorPem + '">Rp' + fmtRpFull(totalPem).replace('Rp', '') + '</div><div style="font-size:11px;color:var(--ink3)">Pemasukan</div></div>';
   }
+}
+
+// Bucket sumbu-X grafik Cashflow: periode <=7 hari = per hari; <=42 hari = per 7 hari dari tanggal awal (1 bulan penuh persis
+// 1-7, 8-14, 15-21, 22-28, 29-akhir); lebih panjang = per bulan. Return [{from,to,label}] (tanggal 'YYYY-MM-DD', inklusif).
+function _kasCfBuckets(s, e) {
+  var a = zpParse(s), b = zpParse(e), days = Math.round((b.getTime() - a.getTime()) / 86400000) + 1, out = [], d, x;
+  if (days <= 7) {
+    var HR = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    for (var i = 0; i < days; i++) { d = zpAdd(a, i); out.push({ from: zpDate(d), to: zpDate(d), label: HR[d.getDay()] + ' ' + d.getDate() }); }
+    return out;
+  }
+  if (days <= 42) {
+    for (d = a; d.getTime() <= b.getTime(); d = zpAdd(d, 7)) {
+      x = zpAdd(d, 6);
+      if (x.getTime() > b.getTime()) x = b;
+      out.push({ from: zpDate(d), to: zpDate(x), label: d.getMonth() === x.getMonth() ? d.getDate() + '-' + x.getDate() : d.getDate() + '/' + (d.getMonth() + 1) + '-' + x.getDate() + '/' + (x.getMonth() + 1) });
+    }
+    return out;
+  }
+  var multiYear = a.getFullYear() !== b.getFullYear();
+  for (d = new Date(a.getFullYear(), a.getMonth(), 1); d.getTime() <= b.getTime(); d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    var me = zpDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)), ms = zpDate(d);
+    out.push({ from: ms < s ? s : ms, to: me > e ? e : me, label: ZP_BLN[d.getMonth()] + (multiYear ? " '" + String(d.getFullYear()).slice(2) : '') });
+  }
+  return out;
 }
 
 function _kasCfNiceMax(v) {

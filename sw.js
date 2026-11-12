@@ -30,7 +30,7 @@ var CDN_ASSETS = [
 // File JS — network-first: selalu ambil versi terbaru, fallback cache kalau offline
 var JS_APP_FILES = [
   'app.js', 'supabase.js', 'dashboard.js', 'produk.js',
-  'stok.js', 'restock.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
+  'stok.js', 'restock.js', 'periode-picker.js', 'kas.js', 'gadag.js', 'jurnal-penjualan.js',
   'produk-terjual.js',
   'channel-master.js',
   'anggaran.js', 'keuangan.js', 'hutang-supplier.js', 'penutupan-periode.js', 'clearance.js', 'hpp.js', 'notif.js',
