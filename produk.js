@@ -109,11 +109,12 @@ document.getElementById('page-produk').innerHTML = `
     <span id="produk-select-count" style="font-size:13px;color:var(--ink3);font-weight:600">0 dipilih</span>
     <button class="produk-btn-pill produk-btn-ghost" onclick="produkSelectAll()">Pilih semua</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-hpp" onclick="produkBatchHpp()" style="opacity:.4" disabled><i class="ti ti-currency-dollar"></i> Edit HPP</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sis" onclick="produkBatchSistem()" style="opacity:.4" disabled><i class="ti ti-switch-horizontal"></i> Edit Sistem</button>
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sup" onclick="produkBatchSupplier()" style="opacity:.4" disabled><i class="ti ti-user"></i> Edit Supplier</button>
     <!-- [30 Sep 2026] Tombol "Dropship" dihapus: pilihan Dropship/Reseller sekarang jadi toggle di dalam modal Edit Supplier (khusus supplier berjenis Dropship + Reseller) -->
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-exp" onclick="produkExportTerpilih()" style="opacity:.4" disabled><i class="ti ti-download"></i> Export</button>
     <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
-    <button class="produk-btn-pill produk-btn-cancel" onclick="produkExitEditMode()">Batalkan</button>
+    <button class="produk-btn-pill produk-btn-cancel" id="produk-btn-done" onclick="produkExitEditMode()">Batalkan</button>
   </div>
 
   <!-- STAT CARDS -->
@@ -242,8 +243,21 @@ var _produkSelected = {}; // id → true/false
 var _produkEditMode = false;
 
 // ── Edit mode toggle ──────────────────────────────────────────
+// 12 Nov 2026: tombol kanan toolbar edit = "Batalkan" selama belum ada perubahan tersimpan di sesi Edit ini; begitu ada (walau 1 SKU) jadi "Selesai".
+// Keduanya sama-sama keluar dari mode Edit (perubahan sudah tersimpan per aksi); yang beda hanya penanda bahwa sesi ini ada perubahan.
+var _produkEditDirty = false;
+function produkMarkDirty() { _produkEditDirty = true; produkUpdateDoneBtn(); }
+function produkUpdateDoneBtn() {
+  var b = document.getElementById('produk-btn-done');
+  if (!b) return;
+  b.className = 'produk-btn-pill ' + (_produkEditDirty ? 'produk-btn-primary' : 'produk-btn-cancel');
+  b.style.marginLeft = 'auto';
+  b.innerHTML = _produkEditDirty ? '<i class="ti ti-check"></i> Selesai' : 'Batalkan';
+}
+
 function produkEnterEditMode() {
   _produkEditMode = true;
+  _produkEditDirty = false; produkUpdateDoneBtn();
   document.getElementById('produk-toolbar-normal').style.display = 'none';
   document.getElementById('produk-toolbar-edit').style.display   = 'flex';
   // Tampilkan kolom checkbox di thead
@@ -254,6 +268,7 @@ function produkEnterEditMode() {
 
 function produkExitEditMode() {
   _produkEditMode = false;
+  _produkEditDirty = false; produkUpdateDoneBtn();
   _produkSelected = {};
   document.getElementById('produk-toolbar-normal').style.display = 'flex';
   document.getElementById('produk-toolbar-edit').style.display   = 'none';
@@ -604,6 +619,7 @@ async function produkPadananPick(id) {
   try {
     await dbUpdate('produk', row.id, { padanan_dropship_id: id == null ? null : id });
     row.padanan_dropship_id = id == null ? null : id;
+    produkMarkDirty();
     produkSistemSheetClose();
     renderProduk(_produkData);
   } catch (e) {
@@ -662,6 +678,7 @@ async function produkSistemPick(i) {
   try {
     await dbUpdate('produk', row.id, payload);
     Object.keys(payload).forEach(function(k) { row[k] = payload[k]; });
+    produkMarkDirty();
     produkSistemSheetClose();
     renderProduk(_produkData);
   } catch (e) {
@@ -798,7 +815,7 @@ function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
   const lbl   = document.getElementById('produk-select-count');
   if (lbl) lbl.textContent = count + ' dipilih';
-  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sup','produk-btn-ds','produk-btn-exp'].forEach(function(id) {
+  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sis','produk-btn-sup','produk-btn-exp'].forEach(function(id) {
     var b = document.getElementById(id);
     if (!b) return;
     b.disabled     = count === 0;
@@ -815,8 +832,9 @@ ${skus.slice(0,120)}...`, async () => {
     try {
       for (const id of ids) { await dbDelete('produk', id); }
       _produkSelected = {};
+      produkMarkDirty();
       loadProduk();
-    } catch(err) { alert('Gagal hapus: ' + err.message); }
+    } catch(err) { produkMarkDirty(); alert('Gagal hapus: ' + err.message); }
   });
 }
 
@@ -1380,7 +1398,6 @@ function _bhRenderAll() {
 
 // Sinkronkan tampilan tiap baris dengan sistemnya: input harga aktif/nonaktif + sel HPP (hasil harga sistem aktif, atau input langsung untuk Produksi / tanpa supplier)
 function _bhRefresh() {
-  var needMap = {};
   _bhRows.forEach(function(x, i) {
     x.po = idrVal('bh-po-' + i); x.ds = idrVal('bh-ds-' + i);
     var cell = document.getElementById('bh-hppcell-' + i);
@@ -1405,19 +1422,9 @@ function _bhRefresh() {
       x.hpp = idrVal('bh-hpp-' + i);
       x.hppEf = x.hpp;
     }
-    if (x.sup && !x.lockProd && (x.sis === 'dropship' || x.sis === 'reseller')) {
-      var n = needMap[x.sup.id] || (needMap[x.sup.id] = { sup: x.sup, ds: false, rs: false });
-      if (x.sis === 'dropship') n.ds = true; else n.rs = true;
-    }
   });
   // Catatan sinkron ke Supplier & ROP
-  var notes = [];
-  Object.keys(needMap).forEach(function(id) {
-    var n = needMap[id], add = [];
-    if (n.ds && !n.sup.is_dropship) add.push('Dropship');
-    if (n.rs && !n.sup.is_reseller) add.push('Reseller (P.O)');
-    if (add.length) notes.push('<b>' + _pkEsc(n.sup.nama) + '</b> + ' + add.join(' & '));
-  });
+  var notes = _produkSinkronCatatan(_bhRows.map(function(x) { return { sup: x.sup, sis: x.sis, lock: x.lockProd }; }));
   var nt = document.getElementById('bh-note');
   if (nt) nt.innerHTML = 'HPP tiap SKU otomatis = harga sistemnya. Harga yang dikosongkan tidak diubah.'
     + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
@@ -1496,38 +1503,129 @@ async function simpanBatchHpp() {
       if (x.priced && (poBaru || dsBaru)) await _produkUpsertHargaDual(r, x.sup, poBaru, dsBaru);
       ubah++;
     }
-    // 2) Sinkron ke Supplier & ROP: nyalakan jenis sistem yang dipakai SKU-nya (hutang_supplier)
-    var needMap = {};
-    _bhRows.forEach(function(x) {
-      if (!x.sup || x.lockProd) return;
-      var n = needMap[x.sup.id] || (needMap[x.sup.id] = { sup: x.sup, ds: false, rs: false });
-      if (x.sis === 'dropship') n.ds = true; else if (x.sis === 'reseller') n.rs = true;
-    });
-    var supUbah = [];
-    for (var id in needMap) {
-      var n = needMap[id], pl = {};
-      if (n.ds && !n.sup.is_dropship) pl.is_dropship = true;
-      if (n.rs && !n.sup.is_reseller) pl.is_reseller = true;
-      if (!Object.keys(pl).length) continue;
-      // Supplier jadi 2 sistem: SKU supplier ini yang belum punya sistem eksplisit dikunci dulu ke sistemnya sekarang,
-      // supaya perilakunya tidak ikut bergeser oleh aturan turunan-supplier (dual → ikut produk.dropship).
-      var supKey = String(n.sup.nama || '').trim().toUpperCase();
-      var lama = _produkData.filter(function(p) { return String(p.boss || '').trim().toUpperCase() === supKey && !p.sistem_override && _produkSistemOf(p); });
-      for (var li = 0; li < lama.length; li++) {
-        var sisLama = _produkSistemOf(lama[li]);
-        await dbUpdate('produk', lama[li].id, { sistem_override: sisLama });
-        lama[li].sistem_override = sisLama;
-      }
-      await dbUpdate('hutang_supplier', n.sup.id, pl);
-      Object.keys(pl).forEach(function(k) { n.sup[k] = pl[k]; });
-      supUbah.push(n.sup.nama);
-    }
+    // 2) Sinkron ke Supplier & ROP
+    var supUbah = await _produkSinkronSupplier(_bhRows.map(function(x) { return { sup: x.sup, sis: x.sis, lock: x.lockProd }; }));
     hideModal('modal-batch-hpp');
-    produkExitEditMode();
+    _produkSelected = {};
+    produkMarkDirty();
     await loadProduk();
     if (supUbah.length) alert('✓ ' + ubah + ' SKU disimpan.\nSupplier disinkronkan di Channel › Supplier & ROP: ' + supUbah.join(', '));
   } catch (err) {
+    produkMarkDirty();
     alert('Gagal: ' + (err && err.message || err) + '\n\nSebagian SKU mungkin sudah tersimpan — buka lagi Edit HPP untuk memeriksa.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan'; }
+  }
+}
+
+// Sinkron ke Channel › Supplier & ROP (dipakai Edit HPP & Edit Sistem massal): supplier yang SKU-nya dipilih Dropship / P.O menyalakan jenis itu.
+// items = [{ sup, sis, lock }]; lock = baris supplier Produksi Sendiri (tidak ikut). Mengembalikan nama supplier yang flag-nya berubah.
+function _produkSinkronNeed(items) {
+  var need = {};
+  items.forEach(function(x) {
+    if (!x.sup || x.lock) return;
+    var n = need[x.sup.id] || (need[x.sup.id] = { sup: x.sup, ds: false, rs: false });
+    if (x.sis === 'dropship') n.ds = true; else if (x.sis === 'reseller') n.rs = true;
+  });
+  return need;
+}
+async function _produkSinkronSupplier(items) {
+  var need = _produkSinkronNeed(items), ubah = [];
+  for (var id in need) {
+    var n = need[id], pl = {};
+    if (n.ds && !n.sup.is_dropship) pl.is_dropship = true;
+    if (n.rs && !n.sup.is_reseller) pl.is_reseller = true;
+    if (!Object.keys(pl).length) continue;
+    // Supplier jadi 2 sistem: SKU supplier ini yang belum punya sistem eksplisit dikunci dulu ke sistemnya sekarang,
+    // supaya perilakunya tidak ikut bergeser oleh aturan turunan-supplier (dual → ikut produk.dropship).
+    var supKey = String(n.sup.nama || '').trim().toUpperCase();
+    var lama = _produkData.filter(function(p) { return String(p.boss || '').trim().toUpperCase() === supKey && !p.sistem_override && _produkSistemOf(p); });
+    for (var li = 0; li < lama.length; li++) {
+      var sisLama = _produkSistemOf(lama[li]);
+      await dbUpdate('produk', lama[li].id, { sistem_override: sisLama });
+      lama[li].sistem_override = sisLama;
+    }
+    await dbUpdate('hutang_supplier', n.sup.id, pl);
+    Object.keys(pl).forEach(function(k) { n.sup[k] = pl[k]; });
+    ubah.push(n.sup.nama);
+  }
+  return ubah;
+}
+
+function _produkSinkronCatatan(items) {
+  var need = _produkSinkronNeed(items), notes = [];
+  Object.keys(need).forEach(function(id) {
+    var n = need[id], add = [];
+    if (n.ds && !n.sup.is_dropship) add.push('Dropship');
+    if (n.rs && !n.sup.is_reseller) add.push('Reseller (P.O)');
+    if (add.length) notes.push('<b>' + _pkEsc(n.sup.nama) + '</b> + ' + add.join(' & '));
+  });
+  return notes;
+}
+
+// ── BATCH: Edit Sistem massal (12 Nov 2026) ───────────────────
+var _bsSis = '';
+function produkBatchSistem() {
+  var ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  _bsSis = '';
+  document.getElementById('bs-count').textContent = ids.length + ' SKU terpilih';
+  _bsRender();
+  showModal('modal-batch-sis');
+}
+function produkBsPick(k) { _bsSis = k; _bsRender(); }
+function _bsRows() { var ids = Object.keys(_produkSelected).map(Number); return _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; }); }
+function _bsRender() {
+  document.getElementById('bs-opts').innerHTML = _PRODUK_SISTEM_OPSI.map(function(o) {
+    var l = o.k === 'reseller' ? 'P.O (Reseller)' : o.l;
+    return '<div class="pk-sis-row' + (_bsSis === o.k ? ' on' : '') + '" style="border-radius:8px" onclick="produkBsPick(\'' + o.k + '\')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + l + '</div><div class="pk-sis-rd">' + o.d + '</div></div><span class="pk-sis-tg"></span></div>';
+  }).join('');
+  var note = '';
+  if (_bsSis) {
+    var rows = _bsRows();
+    var items = rows.map(function(r) { var s = _bhSupOf(r); return { sup: s, sis: _bsSis, lock: !!(s && s.is_produksi_sendiri) }; });
+    var skip = items.filter(function(x) { return x.lock && _bsSis !== 'produksi'; }).length;
+    var notes = _bsSis === 'produksi' ? [] : _produkSinkronCatatan(items);
+    note = (_bsSis === 'produksi' ? 'HPP tidak diubah — atur lewat Edit HPP.' : 'HPP tiap SKU mengikuti harga ' + (_bsSis === 'dropship' ? 'Dropship' : 'P.O') + ' di Master Barang (kalau harganya sudah ada).')
+      + (skip ? '<br>⚠ ' + skip + ' SKU supplier Produksi Sendiri dilewati (tidak bisa Dropship / P.O).' : '')
+      + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
+  }
+  document.getElementById('bs-note').innerHTML = note;
+}
+async function simpanBatchSistem() {
+  if (!_bsSis) { alert('Pilih sistemnya dulu'); return; }
+  var rows = _bsRows(), items = [], skip = 0, ubah = 0;
+  var btn = document.getElementById('bs-btn-simpan');
+  if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+  try {
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], sup = _bhSupOf(r), lock = !!(sup && sup.is_produksi_sendiri);
+      if (lock && _bsSis !== 'produksi') { skip++; continue; }
+      items.push({ sup: sup, sis: _bsSis, lock: lock });
+      if (r.sistem_override === _bsSis) continue;
+      var payload = { sistem_override: _bsSis };
+      if (sup && _produkSupDualByName(r.boss)) payload.dropship = (_bsSis === 'dropship');
+      _produkStampDropshipMulai(payload, r);
+      if (_bsSis !== 'produksi' && sup && !lock) {   // HPP ikut harga sistem barunya di Master Barang; belum ada harganya → HPP dibiarkan
+        var b = (_produkHbList || []).find(function(h) { return h.produk_id === r.id && h.supplier_id === sup.id; });
+        var lusin = b ? Number(_bsSis === 'dropship' ? b.harga_per_lusin : b.harga_po_per_lusin) || 0 : 0;
+        var h = lusin > 0 ? Math.round(lusin / 12) : 0;
+        if (h > 0 && h !== (Number(r.hpp) || 0)) payload.hpp = h;
+      }
+      await dbUpdate('produk', r.id, payload);
+      Object.keys(payload).forEach(function(k) { r[k] = payload[k]; });
+      ubah++;
+    }
+    var supUbah = await _produkSinkronSupplier(items);
+    hideModal('modal-batch-sis');
+    _produkSelected = {};
+    produkMarkDirty();
+    await loadProduk();
+    if (skip || supUbah.length) alert('✓ ' + ubah + ' SKU diubah.' + (skip ? '\n' + skip + ' SKU supplier Produksi Sendiri dilewati.' : '') + (supUbah.length ? '\nSupplier disinkronkan di Channel › Supplier & ROP: ' + supUbah.join(', ') : ''));
+  } catch (err) {
+    produkMarkDirty();
+    alert('Gagal: ' + (err && err.message || err) + '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan'; }
   }
@@ -1640,7 +1738,8 @@ async function simpanBatchSupplier() {
       }
     }
     hideModal('modal-batch-sup');
-    produkExitEditMode();
+    _produkSelected = {};
+    produkMarkDirty();
     loadProduk();
   } catch(err) {
     const msg = String(err && err.message || err);
@@ -1664,6 +1763,24 @@ document.body.insertAdjacentHTML('beforeend', `
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
       <button class="btn btn-sm" onclick="hideModal('modal-batch-hpp')">Batal</button>
       <button class="btn btn-sm btn-primary" id="bh-btn-simpan" onclick="simpanBatchHpp()"><i class="ti ti-check"></i> Simpan</button>
+    </div>
+  </div>
+</div>`);
+
+// ── MODAL: Batch Sistem ──────────────────────────────────────
+document.body.insertAdjacentHTML('beforeend', `
+<div class="modal-overlay" id="modal-batch-sis" onclick="if(event.target===this)hideModal('modal-batch-sis')">
+  <div class="modal" style="max-width:420px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-switch-horizontal"></i> Edit Sistem Massal</div>
+      <button onclick="hideModal('modal-batch-sis')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p id="bs-count" style="font-size:12px;color:var(--ink3);margin-bottom:10px">0 SKU terpilih</p>
+    <div id="bs-opts"></div>
+    <div class="bh-note" id="bs-note"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-sm" onclick="hideModal('modal-batch-sis')">Batal</button>
+      <button class="btn btn-sm btn-primary" id="bs-btn-simpan" onclick="simpanBatchSistem()"><i class="ti ti-check"></i> Simpan</button>
     </div>
   </div>
 </div>`);
