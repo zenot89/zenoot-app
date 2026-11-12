@@ -2996,7 +2996,7 @@ function updateMetricsJP(data) {
 // Badge di minicard Total Penjualan & Total Item Terjual: △ naik / ▽ turun terhadap periode pembanding.
 // Aturan: SEPADAN, bukan periode penuh — kalau periode aktif belum selesai (Minggu Ini baru jalan 3 hari), pembandingnya
 // juga cuma sepanjang waktu yang sudah berjalan (Minggu Ini s/d Kamis 10.31 vs Minggu Lalu s/d Kamis 10.31). Kalau dibandingkan
-// dengan minggu penuh, hasilnya hampir selalu ▽ dan menyesatkan. Periode pembanding: Hari Ini→kemarin, Kemarin/Hari→hari sebelumnya,
+// dengan minggu penuh, hasilnya hampir selalu ▽ dan menyesatkan. PENGECUALIAN mode 1 hari (Hari Ini/Kemarin/Per Hari): pembanding = hari penuh sebelumnya. Periode pembanding: Hari Ini→kemarin, Kemarin/Hari→hari sebelumnya,
 // Minggu Ini→minggu lalu (pakai cutoff Sabtu yang sama), Minggu Lalu→minggu sebelumnya, Bulan Ini→bulan lalu, Bulan/Tahun pilihan→
 // bulan/tahun sebelumnya, 7 Hari & rentang tanggal (termasuk Bulan Lalu/3 Bulan)→rentang sama panjang tepat sebelumnya. 'Semua'→tidak ada badge.
 // Mengikuti filter channel yang aktif. Data pembanding diambil lewat query terpisah (_jpPrevRows) supaya tabel/chart tidak tersentuh.
@@ -3049,6 +3049,9 @@ function _jpPrevPeriod(mode, now) {
   if (isNaN(cs.getTime()) || isNaN(ps.getTime())) return null;
   var elapsed = Math.max(0, Math.min(now.getTime(), ce.getTime()) - cs.getTime());      // yang sudah berjalan di periode aktif
   var hi = new Date(Math.min(ps.getTime() + elapsed, cs.getTime()));                      // pembanding sepanjang itu, tidak boleh masuk periode aktif
+  // [12 Nov 2026] Mode 1 hari (Hari Ini / Kemarin / Per Hari): pembanding = HARI PENUH sebelumnya (00.00 s/d 24.00), TIDAK dipotong jam.
+  // Hari Ini (aktual sampai sekarang) vs Kemarin penuh; Kemarin (Rabu) vs Selasa penuh. Hari sebelumnya selalu berakhir tepat di awal hari terpilih (cs).
+  if (mode === 'hari-ini' || mode === 'kemarin' || mode === 'hari') hi = cs;
   _jpCurBounds = { cs: cs, ce: ce };
   return { label: label, lo: ps, hi: hi, week: week };
 }
@@ -3102,8 +3105,7 @@ function _jpTrendHtml(pct) {
 }
 // ─── AVG KARTU UNTUK 1 HARI (29 Okt 2026) ─────────────────────
 // Hari Ini / Kemarin / Per Hari: nilai kartu = rata-rata per hari dari 7 hari penuh SEBELUM hari itu (pembagi tetap 7, hari sepi
-// ikut dihitung). Badge tren = hari itu vs rata-rata tsb. Hari Ini belum selesai → dibandingkan SEPADAN (rata-rata 7 hari itu
-// sampai jam yang sama), kalau tidak hampir selalu ▼ sepanjang pagi. Kemarin / Per Hari sudah penuh → bandingkan hari penuh.
+// ikut dihitung). Badge tren = hari itu (aktual) vs rata-rata tsb. [12 Nov 2026] Tidak ada lagi pemotongan jam: pembanding selalu hari penuh.
 function _jpLoadAvgRef(mode, now) {
   var tok = ++_jpAvgRefTok;
   _jpAvgRef = null;
@@ -3134,26 +3136,21 @@ function _jpRenderAvgRef() {
   }
   var fc  = document.getElementById('jp-filter-channel');
   var kat = fc ? fc.value : '';
-  var nowR = new Date(), bR = _jpCurBounds;
-  var berjalan = !!(bR && bR.cs && bR.ce && bR.cs.getTime() <= nowR.getTime() && bR.ce.getTime() > nowR.getTime());   // hari terpilih belum selesai (Hari Ini, atau Per Hari = hari ini)
-  var jam = berjalan ? _jpJamStr(nowR) : null;   // hanya hari yang masih berjalan yang dipotong sepadan jam
-  var fullO = 0, fullQ = 0, sepO = 0, sepQ = 0;
+  var fullO = 0, fullQ = 0;
   _jpAvgRef.forEach(function(r) {
     if (r.no_order) return;
     if (kat && String(r.channel_id) !== String(kat)) return;
     fullO += (r.total || 0); fullQ += (r.qty || 0);
-    if (!jam || String(r.waktu || '00:00').slice(0, 5) <= jam) { sepO += (r.total || 0); sepQ += (r.qty || 0); }
   });
-  var avgO = fullO / 7, avgQ = fullQ / 7, refO = sepO / 7, refQ = sepQ / 7;
-  var pctO = refO > 0 ? (cur.omset - refO) / refO * 100 : null;
-  var pctQ = refQ > 0 ? (cur.qty - refQ) / refQ * 100 : null;
+  var avgO = fullO / 7, avgQ = fullQ / 7;
+  var pctO = avgO > 0 ? (cur.omset - avgO) / avgO * 100 : null;
+  var pctQ = avgQ > 0 ? (cur.qty - avgQ) / avgQ * 100 : null;
   setTxt(['jp-avg-penjualan', 'jp-avg-penjualan2'], Math.round(avgO).toLocaleString('id-ID'));
   setTxt(['jp-avg-qty', 'jp-avg-qty2'], avgQ.toLocaleString('id-ID', { maximumFractionDigits: 1 }));
   setHtml(['jp-avg-trend', 'jp-avg-trend2'], pctO === null ? '' : _jpTrendHtml(pctO));
   setHtml(['jp-avg-trend-q', 'jp-avg-trend-q2'], pctQ === null ? '' : _jpTrendHtml(pctQ));
-  var sd = jam ? 's/d ' + jam.replace(':', '.') + ' ' : '';
-  setTxt(['jp-avg-sub-o', 'jp-avg-sub-o2'], '7 hari sebelumnya · ' + lbl + ' ' + sd + 'Rp' + Math.round(cur.omset).toLocaleString('id-ID'));
-  setTxt(['jp-avg-sub-q', 'jp-avg-sub-q2'], '7 hari sebelumnya · ' + lbl + ' ' + sd + cur.qty.toLocaleString('id-ID') + ' pcs');
+  setTxt(['jp-avg-sub-o', 'jp-avg-sub-o2'], '7 hari sebelumnya · ' + lbl + ' Rp' + Math.round(cur.omset).toLocaleString('id-ID'));
+  setTxt(['jp-avg-sub-q', 'jp-avg-sub-q2'], '7 hari sebelumnya · ' + lbl + ' ' + cur.qty.toLocaleString('id-ID') + ' pcs');
 }
 // Rata-rata periode pembanding (sama panjang, filter channel & jendela seperti _jpRenderDelta) → % perubahan omset & qty per hari.
 function _jpRenderAvgTrend() {
