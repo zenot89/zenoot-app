@@ -14,12 +14,14 @@ document.getElementById('page-kas').innerHTML = `
 
   /* ── Dropdown tab kas — portal ke body ── */
   #kas-tab-trigger {
-    display:flex; align-items:center; gap:7px;
-    padding:7px 14px; border-radius:20px;
-    background:var(--cream); color:var(--ink);
-    font-family:var(--f); font-size:13px; font-weight:700;
-    border:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:36px; padding:0 12px; border-radius:7px;
+    background:var(--ink); color:var(--cream);
+    font-family:var(--f); font-size:12px; font-weight:600; white-space:nowrap;
+    border:none; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);
   }
+  #kas-tab-trigger:hover { background:var(--ink2); }
+  #kas-tab-trigger i { font-size:13px; color:inherit; }
   #kas-tab-trigger i.arr { font-size:12px; transition:transform .2s; margin-left:2px; }
   #kas-tab-trigger.open i.arr { transform:rotate(180deg); }
   #kas-tab-dropdown {
@@ -83,6 +85,23 @@ document.getElementById('page-kas').innerHTML = `
   }
   .kas-btn-pill:hover { background:var(--cream); color:var(--ink); }
   .kas-btn-pill.primary { background:var(--cream); color:var(--ink); }
+  /* 11 Nov 2026: tombol filter header (bulan, buku, tab) = kotak hitam tegas, sama dengan "Tambah Transaksi" (bukan kapsul oval) */
+  .kas-btn-box {
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:36px; padding:0 12px; border-radius:7px; border:none;
+    background:var(--ink); color:var(--cream);
+    font-family:var(--f); font-size:12px; font-weight:600; white-space:nowrap;
+    cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
+  .kas-btn-box:hover { background:var(--ink2); }
+  .kas-btn-box i { font-size:13px; color:inherit; }
+  select.kas-btn-box {   /* panah ▾ digambar dengan currentColor → terlihat di tema terang maupun gelap */
+    -webkit-appearance:none; appearance:none; padding-right:28px;
+    background-image:linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+    background-size:5px 5px, 5px 5px; background-repeat:no-repeat;
+  }
+  select.kas-btn-box option { background:var(--ink); color:var(--cream); }
   .kas-btn-refresh-icon {
     padding:0; width:38px; height:38px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
@@ -175,18 +194,18 @@ document.getElementById('page-kas').innerHTML = `
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <button class="kas-btn-pill primary kas-btn-refresh-icon" onclick="loadKasJurnal()" title="Refresh"><i class="ti ti-refresh"></i></button>
     <div style="position:relative;display:inline-block" id="kas-bulan-wrap">
-      <button class="kas-btn-pill" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
+      <button class="kas-btn-box" id="kas-bulan-trigger" onclick="kasToggleBulanDD()">
         <i class="ti ti-calendar"></i>
         <span id="kas-bulan-label">Semua</span>
         <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-bulan-arr"></i>
       </button>
     </div>
-    <select id="kas-buku-select" class="kas-btn-pill" onchange="kasSetBuku(this.value)" title="Buku yang ditampilkan: usaha, pribadi, atau gabungan" style="font-family:inherit;cursor:pointer">
-      <option value="usaha">Buku: Usaha</option>
-      <option value="pribadi">Buku: Pribadi</option>
-      <option value="semua">Buku: Semua</option>
-    </select>
-    <div style="margin-left:auto">
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <select id="kas-buku-select" class="kas-btn-box" onchange="kasSetBuku(this.value)" title="Buku yang ditampilkan: usaha, pribadi, atau gabungan">
+        <option value="usaha">Buku: Usaha</option>
+        <option value="pribadi">Buku: Pribadi</option>
+        <option value="semua">Buku: Semua</option>
+      </select>
       <button id="kas-tab-trigger" onclick="kasToggleTabDD()">
         <i class="ti ti-notebook" id="kas-tab-icon"></i>
         <span id="kas-tab-label">Jurnal Harian</span>
@@ -369,7 +388,7 @@ document.getElementById('page-kas').innerHTML = `
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span><i class="ti ti-chart-donut-3"></i> Cashflow</span>
       <div style="position:relative;display:inline-block" id="kas-cf-bulan-wrap">
-        <button class="kas-btn-pill" id="kas-cf-bulan-trigger" onclick="kasCfToggleBulanDD()">
+        <button class="kas-btn-box" id="kas-cf-bulan-trigger" onclick="kasCfToggleBulanDD()">
           <i class="ti ti-calendar"></i>
           <span id="kas-cf-bulan-label">—</span>
           <i class="ti ti-chevron-down" style="font-size:12px;margin-left:2px;transition:transform .2s" id="kas-cf-bulan-arr"></i>
