@@ -108,8 +108,8 @@ document.getElementById('page-kas').innerHTML = `
   #kas-buku-trigger { order:3; margin-left:auto; }
   #kas-tab-trigger { order:4; }
   @media (max-width: 900px) {
-    .kas-toolbar { flex-direction:column; align-items:flex-start; }
-    .kas-tb-row { display:flex; align-items:center; gap:8px; }
+    .kas-toolbar { flex-direction:column; align-items:stretch; }
+    .kas-tb-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; }
     .kas-toolbar .kas-btn-refresh-icon, #kas-bulan-wrap, #kas-buku-trigger, #kas-tab-trigger { order:0; margin-left:0; }
   }
   .kas-panel { display:none; }
@@ -195,7 +195,7 @@ document.getElementById('page-kas').innerHTML = `
 
 <!-- ═══ KAS TOP BAR ═══ -->
 <div id="kas-top-bar">
-  <!-- Toolbar: desktop 1 baris (Refresh, Bulan | Buku, Tab). HP (<=900px, 12 Nov 2026) 2 baris rata kiri: Refresh + Buku / Bulan + Tab -->
+  <!-- Toolbar: desktop 1 baris (Refresh, Bulan | Buku, Tab). HP (<=900px, 12 Nov 2026) 2 baris, tiap baris space-between (kiri & kanan, tengah kosong): Refresh | Buku / Bulan | Tab -->
   <div class="kas-toolbar">
     <div class="kas-tb-row">
       <button class="kas-btn-pill primary kas-btn-refresh-icon" onclick="loadKasJurnal()" title="Refresh"><i class="ti ti-refresh"></i></button>

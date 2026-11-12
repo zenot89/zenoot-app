@@ -9,11 +9,11 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
     #page-keuangan-pribadi .kp-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
     #page-keuangan-pribadi .kp-row { display:contents; }
     #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:auto; }
-    /* HP (<=900px, 12 Nov 2026): hint & label BULAN disembunyikan, toolbar 2 baris: Bulan + Refresh / Ambil Prive + Catat. Desktop tidak berubah. */
+    /* HP (<=900px, 12 Nov 2026): hint & label BULAN disembunyikan, toolbar 2 baris space-between: Bulan | Refresh / Ambil Prive | Catat. Desktop tidak berubah. */
     @media (max-width:900px) {
       #page-keuangan-pribadi .kp-hint, #page-keuangan-pribadi .kp-bar-lbl { display:none; }
-      #page-keuangan-pribadi .kp-bar { flex-direction:column; align-items:flex-start; gap:8px; }
-      #page-keuangan-pribadi .kp-row { display:flex; gap:10px; align-items:center; }
+      #page-keuangan-pribadi .kp-bar { flex-direction:column; align-items:stretch; gap:8px; }
+      #page-keuangan-pribadi .kp-row { display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%; }
       #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:0; }
     }
     #page-keuangan-pribadi .kp-bar input[type=month] { font-family:var(--f); font-size:14px; padding:6px 10px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); }
