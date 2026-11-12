@@ -16,7 +16,43 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
       #page-keuangan-pribadi .kp-row { display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%; }
       #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:0; }
     }
-    #page-keuangan-pribadi .kp-bar input[type=month] { font-family:var(--f); font-size:14px; padding:6px 10px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); }
+    #page-keuangan-pribadi .kp-bulan-btn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    /* ── 12 Nov 2026: PICKER BULAN — pola sama dgn picker periode Jurnal Penjualan (#jp-per-sheet), salinan sendiri.
+       HP = bottom sheet (judul + X, grid bulan, geser tahun); laptop (>=768px & tinggi >=521px) = popover tepat di bawah tombol, tanpa judul/X.
+       Lapisan 600/601 = sama dgn sheet Jurnal Penjualan. ── */
+    #kp-ov { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,.5); opacity:0; visibility:hidden; touch-action:none; transition:opacity .25s ease, visibility 0s linear .25s; }
+    #kp-ov.open { opacity:1; visibility:visible; transition:opacity .25s ease, visibility 0s; }
+    #kp-sheet { position:fixed; left:0; right:0; bottom:0; margin:0 auto; width:100%; max-width:480px; z-index:601; background:var(--cream2); border-radius:20px 20px 0 0;
+      transform:translateY(100%); visibility:hidden; transition:transform .28s cubic-bezier(.4,0,.2,1), visibility 0s linear .28s;
+      padding-bottom:env(safe-area-inset-bottom, 12px); max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -8px 32px rgba(0,0,0,.25); }
+    #kp-sheet.open { transform:translateY(0); visibility:visible; transition:transform .28s cubic-bezier(.4,0,.2,1), visibility 0s; }
+    #kp-head { flex:none; position:relative; }
+    #kp-handle { width:40px; height:4px; background:var(--ovl-0_18); border-radius:2px; margin:10px auto 2px; }
+    #kp-title { text-align:center; font-size:16px; font-weight:700; color:var(--ink); padding:8px 52px 12px; letter-spacing:-0.2px; }
+    #kp-close { position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; padding:0; background:var(--ovl-0_06); border-radius:50%; color:var(--ink3); font-size:16px;
+      display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    #kp-body { flex:1; min-height:0; overflow-y:auto; padding:0 10px 10px; }
+    .kp-pc-nav { display:flex; align-items:center; justify-content:space-between; padding:2px 4px 8px; }
+    .kp-pc-nav button { width:36px; height:36px; border:none; padding:0; background:var(--ovl-0_06); border-radius:50%; color:var(--ink); font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .kp-pc-year { font-size:15px; font-weight:700; color:var(--ink); }
+    .kp-pg { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; padding:4px; }
+    .kp-pg-item { padding:14px 4px; border:none; border-radius:12px; background:var(--ovl-0_06); color:var(--ink); font-family:var(--f); font-size:14px; font-weight:600; text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .kp-pg-item.today { box-shadow:inset 0 0 0 1.5px var(--ink4); }
+    .kp-pg-item.sel { background:var(--ink); color:var(--cream); }
+    @media (hover:hover) { .kp-pg-item:not(.sel):hover { background:var(--ovl-0_08); } }
+    @media (min-width:768px) and (min-height:521px) {
+      #kp-ov { touch-action:auto; background:transparent; }
+      #kp-sheet { left:0; right:auto; top:0; bottom:auto; margin:0; width:280px; max-width:calc(100vw - 24px); border-radius:10px; padding-bottom:0; opacity:0; transform:translateY(-4px);
+        transition:transform .15s ease, opacity .15s ease, visibility 0s linear .15s; box-shadow:0 8px 28px rgba(0,0,0,.3); border:1px solid var(--ink4); }
+      #kp-sheet.open { opacity:1; transform:none; transition:transform .15s ease, opacity .15s ease, visibility 0s; }
+      #kp-handle, #kp-head { display:none; }
+      #kp-body { padding:8px 10px 10px; }
+      .kp-pc-nav { padding:0 0 6px; }
+      .kp-pc-nav button { width:28px; height:28px; background:none; border-radius:6px; font-size:15px; }
+      .kp-pc-nav button:hover { background:var(--ovl-0_06); }
+      .kp-pc-year { font-size:14px; }
+      .kp-pg-item { padding:10px 4px; }
+    }
     #page-keuangan-pribadi .kp-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
     @media (max-width:900px) { #page-keuangan-pribadi .kp-grid { grid-template-columns:repeat(2,1fr); } }
     #page-keuangan-pribadi .kp-cols { display:grid; grid-template-columns:1.4fr 1fr; gap:12px; align-items:start; }
@@ -35,7 +71,8 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
   <div class="kp-bar">
     <div class="kp-row">
       <label class="kp-bar-lbl" style="font-size:12px;font-weight:700;color:var(--ink3)">BULAN</label>
-      <input type="month" id="kp-bulan" onchange="kpLoad()">
+      <button class="btn btn-sm kp-bulan-btn" id="kp-bulan-btn" onclick="kpSheetOpen(this)" title="Pilih bulan"><i class="ti ti-calendar"></i> <span id="kp-bulan-label">—</span> <i class="ti ti-chevron-down" style="font-size:12px"></i></button>
+      <input type="hidden" id="kp-bulan">
       <button class="btn btn-sm" onclick="kpLoad()" title="Refresh"><i class="ti ti-refresh"></i></button>
     </div>
     <div class="kp-row">
@@ -118,9 +155,82 @@ function kpHitung(akun, jurnal, anggaran, ym) {
   return out;
 }
 
+// ── Picker bulan (bottom sheet di HP, popover di laptop) ──
+var _KP_BLN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+var _kpSheetYear = 0;
+function _kpYm(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
+function _kpIsPop() { return !!(window.matchMedia && window.matchMedia('(min-width: 768px) and (min-height: 521px)').matches); }
+function _kpBulanSync() {
+  var v = (document.getElementById('kp-bulan') || {}).value || '';
+  var lbl = document.getElementById('kp-bulan-label');
+  if (lbl && v) lbl.textContent = _KP_BLN[parseInt(v.slice(5, 7), 10) - 1] + ' ' + v.slice(0, 4);
+}
+function _kpEnsureSheet() {
+  if (document.getElementById('kp-sheet')) return;
+  var ov = document.createElement('div');
+  ov.id = 'kp-ov';
+  ov.addEventListener('click', kpSheetClose);
+  var sh = document.createElement('div');
+  sh.id = 'kp-sheet';
+  sh.setAttribute('role', 'dialog');
+  sh.setAttribute('aria-label', 'Pilih bulan');
+  sh.innerHTML = '<div id="kp-head"><div id="kp-handle"></div><div id="kp-title">Pilih Bulan</div>'
+    + '<button type="button" id="kp-close" aria-label="Tutup"><i class="ti ti-x"></i></button></div>'
+    + '<div id="kp-body"></div>';
+  document.body.appendChild(ov);
+  document.body.appendChild(sh);
+  document.getElementById('kp-close').addEventListener('click', kpSheetClose);
+  sh.addEventListener('click', function(e) {
+    var t = e.target.closest ? e.target.closest('[data-kp]') : null;
+    if (!t || t.disabled) return;
+    if (t.getAttribute('data-kp') === 'nav') { _kpSheetYear += parseInt(t.getAttribute('data-val'), 10); _kpSheetRender(); }
+    else kpPilihBulan(t.getAttribute('data-val'));
+  });
+}
+function _kpSheetRender() {
+  var cur = (document.getElementById('kp-bulan') || {}).value || '';
+  var n = new Date(), thisVal = _kpYm(n.getFullYear(), n.getMonth());
+  var html = '<div class="kp-pc-nav">'
+    + '<button type="button" data-kp="nav" data-val="-1" aria-label="Tahun sebelumnya"><i class="ti ti-chevrons-left"></i></button>'
+    + '<div class="kp-pc-year">' + _kpSheetYear + '</div>'
+    + '<button type="button" data-kp="nav" data-val="1" aria-label="Tahun berikutnya"><i class="ti ti-chevrons-right"></i></button>'
+    + '</div><div class="kp-pg">';
+  for (var m = 0; m < 12; m++) {
+    var val = _kpYm(_kpSheetYear, m);
+    html += '<button type="button" class="kp-pg-item' + (val === cur ? ' sel' : '') + (val === thisVal ? ' today' : '') + '" data-kp="bulan" data-val="' + val + '">' + _KP_BLN[m] + '</button>';
+  }
+  document.getElementById('kp-body').innerHTML = html + '</div>';
+}
+function kpSheetOpen(anchor) {
+  _kpEnsureSheet();
+  var ov = document.getElementById('kp-ov'), sh = document.getElementById('kp-sheet');
+  var cur = (document.getElementById('kp-bulan') || {}).value || '';
+  _kpSheetYear = cur ? parseInt(cur.slice(0, 4), 10) : new Date().getFullYear();
+  _kpSheetRender();
+  if (_kpIsPop() && anchor && anchor.getBoundingClientRect) {   // laptop: popover menempel di bawah tombol
+    var r = anchor.getBoundingClientRect();
+    sh.style.left = Math.max(12, Math.min(r.left, window.innerWidth - 280 - 12)) + 'px';
+    sh.style.top = Math.round(r.bottom + 6) + 'px';
+  } else { sh.style.left = ''; sh.style.top = ''; }
+  ov.classList.add('open');
+  sh.classList.add('open');
+}
+function kpSheetClose() {
+  var ov = document.getElementById('kp-ov'), sh = document.getElementById('kp-sheet');
+  if (ov) ov.classList.remove('open');
+  if (sh) sh.classList.remove('open');
+}
+function kpPilihBulan(val) {
+  var el = document.getElementById('kp-bulan');
+  if (el) el.value = val;
+  kpSheetClose();
+  kpLoad();
+}
+
 async function kpLoad() {
   var elB = document.getElementById('kp-bulan');
   if (elB && !elB.value) { var now = new Date(); elB.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'); }
+  _kpBulanSync();
   var ym = elB ? elB.value : '';
   try {
     var res = await Promise.all([
