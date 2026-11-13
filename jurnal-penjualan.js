@@ -750,7 +750,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       <!-- Target Harian + Tambah Penjualan — 1 baris -->
       <div id="jp-target-wrap" style="display:none;padding:6px 14px 4px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;white-space:nowrap">Target Harian</span>
+          <span id="jp-target-title" style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;white-space:nowrap">Target Harian</span>
           <span id="jp-target-nominal" style="font-size:12px;font-weight:700;color:var(--ink)">—</span>
           <span id="jp-target-label" style="font-size:11px;color:var(--ink3);margin-left:auto;white-space:nowrap">—</span>
           <button class="btn btn-sm btn-primary" onclick="showTambahJP()" id="jp-tambah-btn" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;flex-shrink:0">
@@ -2206,7 +2206,10 @@ function _jpPerOnTap(act, val) {
 document.addEventListener('zenot:page', function() { jpPerSheetClose(); _jpChPopClose(); });
 
 // ─── PROGRESS BAR TARGET HARIAN ──────────────────────────────
+var _jpTargetTok = 0;
 async function jpLoadTargetHarian() {
+  var tok = ++_jpTargetTok;
+  var modeAktif = _jpWaktuMode || 'minggu-ini', dataAktif = _jpAllData || [];   // dipegang dari awal: await di bawah bisa tertinggal dari pergantian periode
   try {
     var wrap = document.getElementById('jp-target-wrap');
     if (!wrap) return;
@@ -2231,38 +2234,49 @@ async function jpLoadTargetHarian() {
     var rasio = cnt > 0 ? sumRasio / cnt : 0;
     if (rasio <= 0) return;
 
-    // Hitung target harian
-    var targetOmset  = Math.round(totalNominal / (rasio / 100));
-    var now          = new Date();
-    var hariDlmBulan = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-    var targetHarian = Math.round(targetOmset / hariDlmBulan);
-    if (targetHarian <= 0) return;
+    // [13 Nov 2026] Bar mengikuti PERIODE yang dipilih (dulu selalu "hari ini" sehingga Kemarin / 11 Nov tampil Rp0).
+    // Target periode = jumlah target harian tiap hari di periode itu (target bulanan ÷ jumlah hari bulan hari tsb, jadi benar juga
+    // untuk bulan 28/30/31 hari & periode yang melewati pergantian bulan). Omset = SEMUA channel di periode itu (target ini milik
+    // toko secara keseluruhan, tidak ikut filter channel), pesanan no_order tidak dihitung — sama dengan definisi kartu Total Penjualan.
+    var targetOmset = Math.round(totalNominal / (rasio / 100));
+    var omsetPeriode = 0;
+    dataAktif.forEach(function(r) { if (!r.no_order) omsetPeriode += (Number(r.total)||0); });
 
-    // Hitung omset hari ini dari data yang sudah ter-load
-    var todayStr = _jpLocalDate(now);
-    var omsetHari = 0;
-    (_jpAllData||[]).forEach(function(r) {
-      if (r.tanggal && String(r.tanggal).slice(0,10) === todayStr) {
-        omsetHari += (Number(r.total)||0);
+    var now = new Date();
+    var info = _jpPrevPeriod(modeAktif, now);   // dipakai cuma untuk batas periode (_jpCurBounds)
+    var hari = 0, targetPeriode = 0;
+    if (info && _jpCurBounds) {
+      for (var d = new Date(_jpCurBounds.cs.getTime()); d < _jpCurBounds.ce && hari < 400; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+        targetPeriode += targetOmset / new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        hari++;
       }
-    });
+      targetPeriode = Math.round(targetPeriode);
+    }
+    if (tok !== _jpTargetTok) return;   // periode diganti selagi menunggu data
 
-    // Render progress bar
     var fmtFn    = (typeof fmtRpFull === 'function') ? fmtRpFull : (typeof _fmtRp === 'function' ? _fmtRp : function(v){ return 'Rp'+Math.round(v).toLocaleString('id-ID'); });
-    var pct      = Math.min(omsetHari / targetHarian * 100, 100).toFixed(1);
     var bar      = document.getElementById('jp-target-bar');
     var label    = document.getElementById('jp-target-label');
     var nominal  = document.getElementById('jp-target-nominal');
+    var title    = document.getElementById('jp-target-title');
+    if (!(targetPeriode > 0)) {   // "Semua" / rentang tak terdefinisi: tidak ada target yang bisa dibandingkan
+      if (title) title.textContent = 'Target';
+      if (nominal) nominal.textContent = '—';
+      if (bar) bar.style.width = '0%';
+      if (label) label.textContent = fmtFn(omsetPeriode) + ' · tanpa target (periode tidak dibatasi)';
+      wrap.style.display = 'block';
+      return;
+    }
+    var pctReal = omsetPeriode / targetPeriode * 100;          // bisa > 100% kalau target terlampaui
+    var pctBar  = Math.min(pctReal, 100).toFixed(1);
+    if (title) title.textContent = hari === 1 ? 'Target Harian' : 'Target ' + hari + ' Hari';
     if (bar) {
-      bar.style.width      = pct + '%';
-      bar.style.background = pct >= 80 ? 'var(--ok)' : pct >= 40 ? 'var(--warn)' : 'var(--danger)';
+      bar.style.width      = pctBar + '%';
+      bar.style.background = pctReal >= 80 ? 'var(--ok)' : pctReal >= 40 ? 'var(--warn)' : 'var(--danger)';
       bar.style.transition = 'width .6s ease, background .4s ease';
     }
-    if (nominal) nominal.textContent = fmtFn(targetHarian);
-    if (label) {
-      var fmtFn = (typeof fmtRpFull === 'function') ? fmtRpFull : (typeof _fmtRp === 'function' ? _fmtRp : function(v){ return 'Rp'+Math.round(v).toLocaleString('id-ID'); });
-      label.textContent = fmtFn(omsetHari) + ' · ' + pct + '% tercapai';
-    }
+    if (nominal) nominal.textContent = fmtFn(targetPeriode);
+    if (label) label.textContent = fmtFn(omsetPeriode) + ' · ' + pctReal.toFixed(1) + '% tercapai';
     wrap.style.display = 'block';
   } catch(e) { /* silent fail */ }
 }
@@ -3098,7 +3112,9 @@ function _jpTrendHtml(pct) {
   var stabil = Math.abs(pct) < 2;
   var col   = stabil ? 'var(--ink3)' : (pct > 0 ? 'var(--ok)' : 'var(--danger)');
   var glyph = stabil ? '▬' : (pct > 0 ? '▲' : '▼');
-  var shown = Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
+  // [13 Nov 2026] Tanda selalu tampil: ▬ abu-abu (selisih < 2%) tadinya tanpa tanda sehingga −1,4% terbaca "sama / naik".
+  var sign  = stabil ? (pct < 0 ? '−' : (pct > 0 ? '+' : '')) : '';
+  var shown = sign + Math.abs(pct).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + '%';
   return '<span style="display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;color:' + col + '">'
     + '<span style="font-size:26px;font-weight:700">' + glyph + '</span>'
     + '<span style="font-family:var(--mono);font-size:26px;font-weight:700">' + shown + '</span></span>';
