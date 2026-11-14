@@ -173,9 +173,6 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-arrows-exchange"></i></div>
     </div>
 
-    </div><div class="zd-car-dots"><i class="on"></i><i></i><i></i><i></i></div></div><!-- /zd-car-a -->
-
-    <div class="zd-car" id="zd-car-b"><div class="zd-car-track">
     <!-- BARIS 2 — Angka besar + rincian (donut + rincian, seragam dengan baris 1) : Saldo Kas, Order Hari Ini, Nilai Stok, SKU Kritis -->
     <div class="metric zd-m" data-zd-i="5" id="card-saldo-kas" onclick="var b=Array.prototype.find.call(document.querySelectorAll('.nav-item'),function(x){return x.getAttribute('onclick')&&x.getAttribute('onclick').indexOf('kas')!==-1;});gotoPage('kas',b);" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ovl-0_04)'" onmouseout="this.style.background=''" title="Lihat Kas &amp; Jurnal">
       <div class="m-label">Saldo Kas</div>
@@ -220,7 +217,7 @@ document.getElementById('page-dashboard').innerHTML = `
       <div class="doodle"><i class="ti ti-alert-triangle"></i></div>
     </div>
 
-    </div><div class="zd-car-dots"><i class="on"></i><i></i><i></i><i></i></div></div><!-- /zd-car-b -->
+    </div><div class="zd-car-dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><!-- /zd-car (8 minikartu: laptop 4×2 grid, HP satu baris geser — 14 Nov 2026 digabung dari zd-car-a + zd-car-b) -->
 
   </div>
 
@@ -446,7 +443,7 @@ document.getElementById('page-dashboard').innerHTML = `
   <div class="db-swipe-pair" id="swipe-pair-5">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
           <div class="tbl-wrap zd-keu-scroll"><table class="tbl">
@@ -458,7 +455,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span></div>
         <div id="zd-kas-host">
         <!-- Kecepatan Kas (dipindah ke tab Keuangan 13 Nov 2026; sebelumnya slide 4 di Ringkasan) — status = teks besar di slot angka, alasan di ikon (?) -->
         <div class="nw-swipe-slide" id="zd-kas-card">
@@ -482,14 +479,8 @@ document.getElementById('page-dashboard').innerHTML = `
         </div><!-- /kecepatan kas -->
         </div>
       </div><!-- /slide 2 -->
-    </div><!-- /db-swipe-track -->
-  </div><!-- /db-swipe-pair-5 -->
-
-  <!-- ═══ BARIS 3 (tab Keuangan): AKTIVITAS TERBARU + KEGIATAN MENDATANG · CICILAN + KEWAJIBAN SUPPLIER ═══ -->
-  <div class="db-swipe-pair" id="swipe-pair-6">
-    <div class="db-swipe-track">
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px">hari ini</span></div>
           <div id="dash-aktivitas-feed" class="zd-keu-scroll" style="display:flex;flex-direction:column;gap:0;-webkit-overflow-scrolling:touch">
@@ -498,7 +489,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card dash-widget" id="dash-kegiatan-card" style="margin:0">
           <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang · Cicilan</div>
           <div id="dash-kegiatan-list" class="zd-keu-scroll">
@@ -507,7 +498,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 2 -->
       <div class="db-swipe-slide">
-        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span></div>
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span></div>
         <div class="card dash-widget" id="zd-kas-due-card" style="margin:0">
           <div class="card-title"><i class="ti ti-calendar-dollar"></i> Kewajiban Supplier · 14 Hari</div>
           <div id="zd-kas-due-list" class="zd-keu-scroll">
@@ -516,7 +507,7 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 3 -->
     </div><!-- /db-swipe-track -->
-  </div><!-- /db-swipe-pair-6 -->
+  </div><!-- /db-swipe-pair-5 -->
   </div><!-- /zd-tab-keuangan -->
 
   <!-- MODAL TARGET OMSET -->

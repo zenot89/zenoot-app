@@ -5728,30 +5728,41 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 
 /* =================================================================
-   TAB KEUANGAN — FLAT, TANPA SCROLL HALAMAN (13 Nov 2026)
-   Baris 1: 2 donut (Laba/Rugi, Beban Perusahaan) · Baris 2: Jurnal Terakhir + Kecepatan Kas ·
-   Baris 3: Aktivitas Terbaru + Kegiatan Mendatang · Cicilan + Kewajiban Supplier 14 Hari.
-   Desktop tinggi (>=900px lebar, >=760px tinggi): halaman setinggi layar, baris 2 & 3 membagi sisa tinggi, isi tabel scroll DI DALAM kartu.
-   Layar pendek / HP: perilaku lama (halaman scroll; HP = geser kartu per baris).
+   TAB KEUANGAN — FLAT, TANPA SCROLL HALAMAN (13 Nov 2026; disusun ulang 14 Nov 2026)
+   Baris 1: 2 donut (Laba/Rugi, Beban Perusahaan). Sisanya SATU pasangan geser (#swipe-pair-5) berisi 5 kartu:
+   Jurnal Terakhir · Kecepatan Kas · Aktivitas Terbaru · Kegiatan Mendatang · Cicilan · Kewajiban Supplier.
+   Laptop (>=900px): grid 6 kolom → 2 kartu di baris atas (span 3), 3 kartu di baris bawah (span 2) = tampilan lama.
+   Laptop tinggi (>=760px): halaman setinggi layar tanpa scroll halaman; yang scroll hanya isi di dalam kartu.
+   HP: satu baris geser 5 kartu → halaman cuma 2 blok (lihat blok HP di bawah).
    ================================================================= */
 .zd-keu-scroll{ max-height:260px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 #zd-kas-host{ margin:0; }
 @media (min-width: 768px) and (max-width: 1279px){ #zd-kas-host .nw-swipe-slide{ width:100%; } }
+@media (min-width: 900px){
+  #swipe-pair-5{ grid-template-columns:repeat(6, minmax(0,1fr)); }
+  #swipe-pair-5 .db-swipe-slide:nth-child(1) > *,
+  #swipe-pair-5 .db-swipe-slide:nth-child(2) > *{ grid-column:span 3; }
+  #swipe-pair-5 .db-swipe-slide:nth-child(n+3) > *{ grid-column:span 2; }
+}
+/* Header Kecepatan Kas (laptop): lebih ramping supaya kotak datanya dapat ruang — 100px → ±64px, angka 26px → 22px */
+@media (min-width: 768px){
+  #zd-kas-host #zd-kas-card .nw-slide-header{ min-height:0; padding:10px 16px 8px; }
+  #zd-kas-host #zd-kas-card .zd-kas-l2,
+  #zd-kas-host #zd-kas-card .zd-kas-r2{ font-size:22px; }
+}
 @media (min-width: 900px) and (min-height: 760px){
   #page-dashboard.active:has(> #zd-tab-keuangan.zd-tab-active){ height:100%; }
   #page-dashboard.active > #zd-tab-keuangan.zd-tab-active{
     flex:1 1 auto; min-height:0; display:grid; gap:12px;
-    grid-template-rows:auto minmax(0,1.25fr) minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr);
   }
   #zd-tab-keuangan > .db-swipe-pair{ margin-bottom:0; min-height:0; }
-  #zd-tab-keuangan #swipe-pair-6{ grid-template-columns:repeat(3, minmax(0,1fr)); }
-  #zd-tab-keuangan #swipe-pair-5 .card,
-  #zd-tab-keuangan #swipe-pair-6 .card{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  #zd-tab-keuangan #swipe-pair-5{ grid-template-rows:minmax(0,1.25fr) minmax(0,1fr); }
+  #zd-tab-keuangan #swipe-pair-5 .card{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
   #zd-tab-keuangan .zd-keu-scroll{ flex:1 1 auto; min-height:0; max-height:none; }
   #zd-tab-keuangan #zd-kas-host{ min-height:0; display:flex; }
   #zd-tab-keuangan #zd-kas-host .nw-swipe-slide{ width:100%; height:100%; min-height:0; }
 }
-
 
 /* =================================================================
    TINGGI KARTU SAMA DALAM SATU PASANGAN + TAB STOK & SUPPLIER FLAT (14 Nov 2026)
@@ -5781,4 +5792,40 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #dash-kegiatan-stok-list,
   #zd-kas-batch-list{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
   #zd-tab-stok .dash-donut-wrap{ flex:0 0 auto; }
+}
+
+
+/* =================================================================
+   HP — HALAMAN 2 BLOK, FLAT TANPA SCROLL KE BAWAH (14 Nov 2026) — hanya Keuangan & Ringkasan, hanya layar < 768px
+   Halaman setinggi layar: blok atas ukuran isinya, blok bawah mengisi sisa; kartu mengisi penuh tinggi blok (tinggi sama, tidak ada
+   yang menggantung) dan isi yang panjang scroll DI DALAM kartu. Layar sangat pendek: tinggi minimum blok menjaga isi terbaca
+   dan halaman boleh scroll (tidak ada yang terpotong tanpa jalan keluar).
+   ================================================================= */
+@media (max-width: 767px){
+  #page-dashboard.active:has(> #zd-tab-keuangan.zd-tab-active),
+  #page-dashboard.active:has(> #zd-tab-ringkasan.zd-tab-active){ display:flex; flex-direction:column; height:100%; }
+  #page-dashboard > #zd-tab-keuangan.zd-tab-active,
+  #page-dashboard > #zd-tab-ringkasan.zd-tab-active{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:10px; }
+
+  /* ── Keuangan: blok 1 = 2 donut (ukuran isi) · blok 2 = 5 kartu geser (sisa tinggi) ── */
+  #zd-tab-keuangan.zd-tab-active > #swipe-pair-4{ flex:0 0 auto; margin-bottom:0; }
+  #zd-tab-keuangan.zd-tab-active > #swipe-pair-5{ flex:1 1 0; min-height:320px; margin-bottom:0; display:flex; flex-direction:column; }
+  #swipe-pair-5 > .db-swipe-track{ flex:1 1 auto; min-height:0; }
+  #swipe-pair-5 .db-swipe-slide{ min-height:0; }
+  #swipe-pair-5 .db-swipe-slide > .card{ flex:1 1 0; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+  #swipe-pair-5 .zd-keu-scroll{ flex:1 1 auto; min-height:0; max-height:none; }
+  #swipe-pair-5 .db-swipe-slide > #zd-kas-host{ flex:1 1 0; min-height:0; }
+  #zd-tab-keuangan #zd-kas-host .nw-swipe-slide{ height:100%; min-height:0; }
+  #zd-tab-keuangan #zd-kas-host #zd-kas-card .nw-slide-data{ flex:1 1 0; min-height:0; height:auto; overflow-y:auto; }
+
+  /* ── Ringkasan: blok 1 = 4 kartu atas geser · blok 2 = 8 minikartu geser (satu baris) ── */
+  #zd-tab-ringkasan.zd-tab-active > .nw-dots-out{ flex:0 0 auto; }
+  #zd-tab-ringkasan.zd-tab-active > #nw-swipe-container{ flex:1.15 1 0; min-height:300px; margin-bottom:0; display:flex; flex-direction:column; }
+  #zd-tab-ringkasan #nw-swipe-container > .nw-swipe-track{ flex:1 1 auto; min-height:0; }
+  #zd-tab-ringkasan #nw-swipe-container .nw-swipe-slide{ height:auto; min-height:0; }
+  #zd-tab-ringkasan #nw-swipe-container .nw-swipe-slide .nw-slide-data{ flex:1 1 0; min-height:0; height:auto; overflow-y:auto; }
+  #zd-tab-ringkasan.zd-tab-active > #dash-metrics{ flex:1 1 0; min-height:240px; display:flex; flex-direction:column; margin:0; }
+  #zd-tab-ringkasan #dash-metrics > .zd-car{ flex:1 1 auto; min-height:0; }
+  #zd-tab-ringkasan #dash-metrics .zd-car-track{ flex:1 1 auto; min-height:0; }
+  #zd-tab-ringkasan #dash-metrics .zd-car .metric{ align-self:stretch; height:auto; overflow:hidden; }
 }
