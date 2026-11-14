@@ -4222,21 +4222,22 @@ function _zdKasPaint(d) {
   // ── Kecepatan Kas: rincian kewajiban 14 hari (sumber sama dengan tab Keuangan) ──
   var zl = document.getElementById('zdk-due-list');
   if (zl) {
-    var zRows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    var zRows = _zdKasGroupDue(d.due14, d.today);   // [14 Nov 2026] per supplier, sama dengan kartu Kewajiban Supplier di tab Keuangan
     var zMax = 4;
     if (!zRows.length) {
       zl.innerHTML = '<div class="dash-kg-empty">Tidak ada kewajiban jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
     } else {
-      zl.innerHTML = zRows.slice(0, zMax).map(function(o) {
-        var hari = Math.round((new Date(o.tgl + 'T00:00:00') - new Date(d.today + 'T00:00:00')) / 86400000);
+      zl.innerHTML = zRows.slice(0, zMax).map(function(g) {
+        var hari = Math.round((new Date(g.tglMin + 'T00:00:00') - new Date(d.today + 'T00:00:00')) / 86400000);
         var ket  = hari < 0 ? 'lewat tempo' : hari === 0 ? 'hari ini' : hari === 1 ? 'besok' : hari + ' hari lagi';
         var kcls = hari <= 0 ? 'zdk-due-hot' : '';
+        var tempo = g.tglMin === g.tglMax ? _zdKasTglPendek(g.tglMin) : _zdKasTglPendek(g.tglMin) + ' – ' + _zdKasTglPendek(g.tglMax);
         return '<div class="zdk-due-row">' +
-          '<div class="zdk-due-l"><div class="zdk-due-nm">' + _zdKasEsc(o.sup) + '</div>' +
-          '<div class="zdk-due-sub">' + _zdKasEsc(o.label) + ' · jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>' +
-          '<div class="zdk-due-r"><div class="zdk-due-amt">' + _fmtRp(o.amt) + '</div>' +
+          '<div class="zdk-due-l"><div class="zdk-due-nm">' + _zdKasEsc(g.sup) + (g.n > 1 ? ' · ' + g.n + ' tagihan' : '') + '</div>' +
+          '<div class="zdk-due-sub">' + _zdKasEsc(g.labels.join(' + ')) + ' · jatuh tempo ' + tempo + '</div></div>' +
+          '<div class="zdk-due-r"><div class="zdk-due-amt">' + _fmtRp(g.amt) + '</div>' +
           '<div class="zdk-due-ket ' + kcls + '">' + ket + '</div></div></div>';
-      }).join('') + (zRows.length > zMax ? '<div class="zdk-due-sub" style="padding-top:4px">+' + (zRows.length - zMax) + ' kewajiban lain (lihat tab Keuangan)</div>' : '');
+      }).join('') + (zRows.length > zMax ? '<div class="zdk-due-sub" style="padding-top:4px">+' + (zRows.length - zMax) + ' supplier lain (lihat tab Keuangan)</div>' : '');
     }
   }
 }
