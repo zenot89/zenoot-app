@@ -4195,19 +4195,22 @@ function _zdKasPaint(d) {
   // ── Tab Keuangan: kewajiban supplier ──
   var dl = document.getElementById('zd-kas-due-list');
   if (dl) {
-    var rows = d.due14.slice().sort(function(a, b) { return a.tgl < b.tgl ? -1 : a.tgl > b.tgl ? 1 : 0; });
+    // [14 Nov 2026] Satu baris per SUPPLIER (akun): semua tagihan supplier itu dalam horizon dijumlahkan, bukan per transaksi.
+    var rows = _zdKasGroupDue(d.due14, d.today);
     var html = '';
     if (!rows.length) {
       html += '<div class="dash-kg-empty">Tidak ada kewajiban supplier yang jatuh tempo ' + ZD_KAS_CFG.horizonHari + ' hari ke depan.</div>';
     } else {
-      html += rows.slice(0, 12).map(function(o) {
-        var late = o.tgl < d.today;
-        return '<div class="zdk-row"><div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(o.sup) +
-          '<span class="zdk-row-sub"> · ' + _zdKasEsc(o.label) + '</span></div>' +
-          '<div class="zdk-row-amt">' + _fmtRp(o.amt) + '</div></div>' +
-          '<div class="zdk-row-sub">' + (late ? '<span class="zdk-late">Lewat tempo</span> · ' : '') + 'jatuh tempo ' + _zdKasTglPendek(o.tgl) + '</div></div>';
+      html += rows.slice(0, 12).map(function(g) {
+        var tempo = g.tglMin === g.tglMax
+          ? 'jatuh tempo ' + _zdKasTglPendek(g.tglMin)
+          : 'jatuh tempo ' + _zdKasTglPendek(g.tglMin) + ' – ' + _zdKasTglPendek(g.tglMax);
+        return '<div class="zdk-row"><div class="zdk-row-top"><div class="zdk-row-nm">' + _zdKasEsc(g.sup) +
+          '<span class="zdk-row-sub"> · ' + (g.n > 1 ? g.n + ' tagihan' : '1 tagihan') + '</span></div>' +
+          '<div class="zdk-row-amt">' + _fmtRp(g.amt) + '</div></div>' +
+          '<div class="zdk-row-sub">' + (g.late ? '<span class="zdk-late">Lewat tempo</span> · ' : '') + _zdKasEsc(g.labels.join(' + ')) + ' · ' + tempo + '</div></div>';
       }).join('');
-      if (rows.length > 12) html += '<div class="zdk-row-sub" style="padding-top:6px">+' + (rows.length - 12) + ' kewajiban lain</div>';
+      if (rows.length > 12) html += '<div class="zdk-row-sub" style="padding-top:6px">+' + (rows.length - 12) + ' supplier lain</div>';
     }
     var notes = [];
     if (d.poBelumJadi.n > 0) notes.push('PO belum jadi: ' + d.poBelumJadi.n + ' bon (' + _fmtRp(d.poBelumJadi.sisa) + '). DP baru jatuh tempo saat barang jadi, belum dihitung.');
@@ -4236,6 +4239,25 @@ function _zdKasPaint(d) {
       }).join('') + (zRows.length > zMax ? '<div class="zdk-due-sub" style="padding-top:4px">+' + (zRows.length - zMax) + ' kewajiban lain (lihat tab Keuangan)</div>' : '');
     }
   }
+}
+// Kelompokkan kewajiban per supplier: jumlah nominal, jumlah tagihan, jenis (Dropship / P.O / dst), rentang jatuh tempo, ada yang sudah lewat tempo.
+// Urut: jatuh tempo paling awal dulu, lalu nominal terbesar.
+function _zdKasGroupDue(list, today) {
+  var map = {}, order = [];
+  (list || []).forEach(function(o) {
+    var k = String(o.sup || '—');
+    var g = map[k];
+    if (!g) { g = map[k] = { sup: k, amt: 0, n: 0, labels: [], tglMin: o.tgl, tglMax: o.tgl, late: false }; order.push(k); }
+    g.amt += Number(o.amt) || 0;
+    g.n++;
+    if (o.label && g.labels.indexOf(o.label) < 0) g.labels.push(o.label);
+    if (o.tgl < g.tglMin) g.tglMin = o.tgl;
+    if (o.tgl > g.tglMax) g.tglMax = o.tgl;
+    if (o.tgl < today) g.late = true;
+  });
+  return order.map(function(k) { return map[k]; }).sort(function(a, b) {
+    return a.tglMin < b.tglMin ? -1 : a.tglMin > b.tglMin ? 1 : (b.amt - a.amt);
+  });
 }
 // Alasan status disimpan di atribut tombol (?) dan ditampilkan sebagai bubble saat diketuk.
 // Bubble tetap sampai diketuk lagi atau diketuk di luar.
