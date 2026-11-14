@@ -383,20 +383,29 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-2 -->
-  <!-- ═══ KEGIATAN MENDATANG — RESTOCK (tab Stok & Supplier) ═══ -->
-  <div class="card dash-widget" id="dash-kegiatan-stok-card" style="margin-top:12px;margin-bottom:0">
-    <div class="card-title"><i class="ti ti-package"></i> Kegiatan Mendatang · Restock</div>
-    <div id="dash-kegiatan-stok-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
-  <!-- ═══ TRACKER BATCH RESELLER (aturan hari ke-9) ═══ -->
-  <div class="card dash-widget" id="zd-kas-batch-card" style="margin-top:12px;margin-bottom:0">
-    <div class="card-title"><i class="ti ti-timeline"></i> Tracker Batch Reseller · Hari ke-9</div>
-    <div id="zd-kas-batch-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
+  <!-- ═══ BARIS 2 (tab Stok & Supplier): KEGIATAN MENDATANG · RESTOCK + TRACKER BATCH RESELLER — sejajar, tinggi sama (14 Nov 2026) ═══ -->
+  <div class="db-swipe-pair" id="swipe-pair-7">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
+        <div class="card dash-widget" id="dash-kegiatan-stok-card" style="margin:0">
+          <div class="card-title"><i class="ti ti-package"></i> Kegiatan Mendatang · Restock</div>
+          <div id="dash-kegiatan-stok-list">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
+        <div class="card dash-widget" id="zd-kas-batch-card" style="margin:0">
+          <div class="card-title"><i class="ti ti-timeline"></i> Tracker Batch Reseller · Hari ke-9</div>
+          <div id="zd-kas-batch-list">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-7 -->
   </div><!-- /zd-tab-stok -->
 
   <div class="zd-tab-panel" id="zd-tab-keuangan">

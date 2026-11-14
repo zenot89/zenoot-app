@@ -5751,3 +5751,34 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #zd-tab-keuangan #zd-kas-host{ min-height:0; display:flex; }
   #zd-tab-keuangan #zd-kas-host .nw-swipe-slide{ width:100%; height:100%; min-height:0; }
 }
+
+
+/* =================================================================
+   TINGGI KARTU SAMA DALAM SATU PASANGAN + TAB STOK & SUPPLIER FLAT (14 Nov 2026)
+   HP: slide dalam satu pasangan (geser) tingginya sudah sama (track = flex), tapi kartu di dalamnya tidak ikut mengisi
+   sehingga kartu yang lebih pendek menggantung dengan ruang kosong di bawah. Sekarang kartu mengisi penuh tinggi slide.
+   Desktop tinggi (>=900px lebar, >=760px tinggi): halaman setinggi layar tanpa scroll halaman; Baris 1 = Status Stok + Performa
+   Supplier, Baris 2 = Kegiatan Mendatang · Restock + Tracker Batch Reseller; yang scroll hanya isi di dalam kartu.
+   ================================================================= */
+@media (max-width: 767px){
+  .db-swipe-slide{ display:flex; flex-direction:column; }
+  .db-swipe-slide > .card,
+  .db-swipe-slide > #zd-kas-host{ flex:1 1 auto; }
+  /* Kecepatan Kas (di slide tab Keuangan): kartu & kotak datanya ikut mengisi tinggi slide */
+  #zd-kas-host{ display:flex; flex-direction:column; }
+  #zd-kas-host .nw-swipe-slide{ flex:1 1 auto; }
+  #zd-kas-host #zd-kas-card .nw-slide-data{ flex:1 1 auto; }
+}
+@media (min-width: 900px) and (min-height: 760px){
+  #page-dashboard.active:has(> #zd-tab-stok.zd-tab-active){ height:100%; }
+  #page-dashboard.active > #zd-tab-stok.zd-tab-active{
+    flex:1 1 auto; min-height:0; display:grid; gap:12px;
+    grid-template-rows:minmax(0,1.5fr) minmax(0,1fr);
+  }
+  #zd-tab-stok > .db-swipe-pair{ margin-bottom:0; min-height:0; }
+  #zd-tab-stok .db-swipe-pair .card{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  #zd-tab-stok .db-swipe-pair .tbl-wrap,
+  #dash-kegiatan-stok-list,
+  #zd-kas-batch-list{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  #zd-tab-stok .dash-donut-wrap{ flex:0 0 auto; }
+}
