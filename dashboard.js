@@ -88,25 +88,19 @@ document.getElementById('page-dashboard').innerHTML = `
         </div>
       </div><!-- /slide 1 -->
 
-      <!-- Slide 4: Kecepatan Kas (dipindah dari card terpisah, 7 Okt 2026) — status = teks besar di slot angka, alasan di ikon (?) -->
-      <div class="nw-swipe-slide" id="zd-kas-card">
-        <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
-        <div class="nw-slide-header nw-slide-s4">
-          <div class="zd-kas-hdr"><div class="nw-slide-label zd-kas-l1"><span class="nw-slide-ic"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
-          <div class="nw-slide-label zd-kas-r1">Saldo Kas</div>
-          <div id="zd-kas-cov" class="zd-kas-l2">—</div>
-          <div id="zd-kas-saldo" class="zd-kas-r2">—</div>
-          <div id="zd-kas-badge" style="display:none">Memuat...</div>
-        </div>
-          <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
+      <!-- Slide 4: Biaya Pribadi (13 Nov 2026, menggantikan Kecepatan Kas yang pindah ke tab Keuangan) -->
+      <div class="nw-swipe-slide" id="zd-pribadi-card">
+        <div class="nw-slide-header nw-slide-s5">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div class="nw-slide-label"><span class="nw-slide-ic"><i class="ti ti-wallet"></i></span> BIAYA PRIBADI</div>
+            <span style="font-size:11px;color:var(--ink3);font-style:italic;white-space:nowrap">bulan ini</span>
+          </div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:6px"><div class="nw-slide-value" id="dash-pribadi-total" style="margin:0;font-size:26px;line-height:1.1">Rp —</div><div id="dash-pribadi-pct" style="font-size:26px;line-height:1.1;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap">—</div></div>
         </div>
         <!-- Data box -->
-        <div class="nw-slide-data">
-          <div class="zdk-stats" id="zd-kas-stats"></div>
-          <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
-          <div class="zdk-due-t">Rincian kewajiban · 14 hari</div>
-          <div id="zdk-due-list"></div>
-          </div>
+        <div class="nw-slide-data" id="dash-pribadi-wrap">
+          <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+        </div>
       </div><!-- /slide 4 -->
 
     </div><!-- /nw-swipe-track -->
@@ -439,14 +433,14 @@ document.getElementById('page-dashboard').innerHTML = `
     </div><!-- /db-swipe-track -->
   </div><!-- /swipe-pair-4 -->
 
-  <!-- ═══ ROW 7: JURNAL TERAKHIR + AKTIVITAS TERBARU ════════════ -->
+  <!-- ═══ BARIS 2 (tab Keuangan): JURNAL TERAKHIR + KECEPATAN KAS ═══ -->
   <div class="db-swipe-pair" id="swipe-pair-5">
     <div class="db-swipe-track">
       <div class="db-swipe-slide">
         <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span></div>
         <div class="card" style="margin:0">
           <div class="card-title"><i class="ti ti-list"></i> Jurnal Terakhir</div>
-          <div class="tbl-wrap" style="max-height:260px;overflow-y:auto"><table class="tbl">
+          <div class="tbl-wrap zd-keu-scroll"><table class="tbl">
             <thead><tr><th>Tgl</th><th>Akun</th><th>IDR</th></tr></thead>
             <tbody id="dash-jurnal-tbody">
               <tr><td colspan="3" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
@@ -456,29 +450,64 @@ document.getElementById('page-dashboard').innerHTML = `
       </div><!-- /slide 1 -->
       <div class="db-swipe-slide">
         <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span></div>
-        <div class="card" style="margin:0">
-          <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px">hari ini</span></div>
-          <div id="dash-aktivitas-feed" style="display:flex;flex-direction:column;gap:0;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch">
-            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+        <div id="zd-kas-host">
+        <!-- Kecepatan Kas (dipindah ke tab Keuangan 13 Nov 2026; sebelumnya slide 4 di Ringkasan) — status = teks besar di slot angka, alasan di ikon (?) -->
+        <div class="nw-swipe-slide" id="zd-kas-card">
+          <!-- Header: ungu — status jadi teks besar di slot angka (sama seperti Rp di card lain), alasan lewat ikon (?) -->
+          <div class="nw-slide-header nw-slide-s4">
+            <div class="zd-kas-hdr"><div class="nw-slide-label zd-kas-l1"><span class="nw-slide-ic"><i class="ti ti-gauge"></i></span> KECEPATAN KAS <button type="button" class="zdk-help" id="zd-kas-help" aria-label="Alasan status" data-reason="Menghitung kewajiban supplier, cicilan hutang, dan sisa operasional..." onclick="zdKasHint(this)">?</button></div>
+            <div class="nw-slide-label zd-kas-r1">Saldo Kas</div>
+            <div id="zd-kas-cov" class="zd-kas-l2">—</div>
+            <div id="zd-kas-saldo" class="zd-kas-r2">—</div>
+            <div id="zd-kas-badge" style="display:none">Memuat...</div>
           </div>
+            <div class="nw-slide-sub" id="zd-kas-sub" style="display:none">&nbsp;</div>
+          </div>
+          <!-- Data box -->
+          <div class="nw-slide-data">
+            <div class="zdk-stats" id="zd-kas-stats"></div>
+            <div class="zdk-warn" id="zd-kas-warn" style="display:none"></div>
+            <div class="zdk-due-t">Rincian kewajiban · 14 hari</div>
+            <div id="zdk-due-list"></div>
+            </div>
+        </div><!-- /kecepatan kas -->
         </div>
       </div><!-- /slide 2 -->
     </div><!-- /db-swipe-track -->
   </div><!-- /db-swipe-pair-5 -->
-  <!-- ═══ KEGIATAN MENDATANG — CICILAN (tab Keuangan) ═══ -->
-  <div class="card dash-widget" id="dash-kegiatan-card" style="margin-top:12px;margin-bottom:0">
-    <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang · Cicilan</div>
-    <div id="dash-kegiatan-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
-  <!-- ═══ KEWAJIBAN SUPPLIER 14 HARI ═══ -->
-  <div class="card dash-widget" id="zd-kas-due-card" style="margin-top:12px;margin-bottom:0">
-    <div class="card-title"><i class="ti ti-calendar-dollar"></i> Kewajiban Supplier · 14 Hari</div>
-    <div id="zd-kas-due-list">
-      <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
-    </div>
-  </div>
+
+  <!-- ═══ BARIS 3 (tab Keuangan): AKTIVITAS TERBARU + KEGIATAN MENDATANG · CICILAN + KEWAJIBAN SUPPLIER ═══ -->
+  <div class="db-swipe-pair" id="swipe-pair-6">
+    <div class="db-swipe-track">
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot active"></span><span class="db-dot"></span><span class="db-dot"></span></div>
+        <div class="card" style="margin:0">
+          <div class="card-title"><i class="ti ti-clock"></i> Aktivitas Terbaru <span style="font-size:11px;font-weight:400;color:var(--ink3);margin-left:4px">hari ini</span></div>
+          <div id="dash-aktivitas-feed" class="zd-keu-scroll" style="display:flex;flex-direction:column;gap:0;-webkit-overflow-scrolling:touch">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 1 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot active"></span><span class="db-dot"></span></div>
+        <div class="card dash-widget" id="dash-kegiatan-card" style="margin:0">
+          <div class="card-title"><i class="ti ti-calendar-event"></i> Kegiatan Mendatang · Cicilan</div>
+          <div id="dash-kegiatan-list" class="zd-keu-scroll">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 2 -->
+      <div class="db-swipe-slide">
+        <div class="db-swipe-dot-label"><span class="db-dot"></span><span class="db-dot"></span><span class="db-dot active"></span></div>
+        <div class="card dash-widget" id="zd-kas-due-card" style="margin:0">
+          <div class="card-title"><i class="ti ti-calendar-dollar"></i> Kewajiban Supplier · 14 Hari</div>
+          <div id="zd-kas-due-list" class="zd-keu-scroll">
+            <div style="color:var(--ink3);font-style:italic;font-size:13px">Memuat...</div>
+          </div>
+        </div>
+      </div><!-- /slide 3 -->
+    </div><!-- /db-swipe-track -->
+  </div><!-- /db-swipe-pair-6 -->
   </div><!-- /zd-tab-keuangan -->
 
   <!-- MODAL TARGET OMSET -->
@@ -2077,7 +2106,7 @@ function _turnoverLabel(masuk, keluar) {
   var st = document.createElement('style');
   st.id = 'dash-hp-box-fix';
   st.textContent = '@media (max-width: 767px) {' +
-    ' #nw-swipe-container .nw-swipe-slide .nw-slide-data { height: 232px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +   /* 14 Okt 2026: 200→232 — 4 baris income (nama bisa 2 baris) muat utuh, tidak terpotong; kartu lain ikut tinggi sama */
+    ' :is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide .nw-slide-data { height: 232px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }' +   /* 14 Okt 2026: 200→232 — 4 baris income (nama bisa 2 baris) muat utuh, tidak terpotong; kartu lain ikut tinggi sama */
     '}';
   document.head.appendChild(st);
   if (!document.getElementById('dash-beban-grup-css')) {
@@ -2142,6 +2171,62 @@ function _renderBeban(bebanData, omsetBln, grup) {
     '</div>';
   }).join('') + _bebanProduksiHtml(grup && grup.produksi) + _bebanSupplierHtml(grup && grup.supplier) + _bebanHutangHtml(grup && (Array.isArray(grup) ? grup : grup.hutang));
 }
+
+// ─── RINGKASAN BIAYA PRIBADI (13 Nov 2026) ───────────────────
+// Kartu ke-4 barisan atas Ringkasan. Nilai utama = total biaya pribadi bulan ini, kanan = % terhadap omset bulan ini (warna ambang sama
+// dengan Beban Operasional: ≤10% hijau · ≤20% kuning · >20% merah). Baris = akun beban buku PRIBADI (entitas 'pribadi', tanpa peran khusus,
+// kelompok 'beban'; definisi sama dengan halaman Keuangan Pribadi / kpHitung): % = porsi dari total biaya pribadi, lalu nominal. Anggaran akun
+// (kas_anggaran bulan ini) tampil kecil di bawah nama. Semua channel/usaha tidak ikut — ini murni buku pribadi, sumber uangnya (Kas Pribadi
+// atau hasil Prive) tidak dibedakan.
+async function _dashPribadi(omsetBln, akunMap, ym) {
+  const el = document.getElementById('dash-pribadi-wrap');
+  const elTot = document.getElementById('dash-pribadi-total');
+  const elPct = document.getElementById('dash-pribadi-pct');
+  if (!el) return;
+  try {
+    const [jurnal, anggaran] = await Promise.all([
+      dbGet('jurnal', '&tanggal=gte.' + ym + '-01'),
+      dbGet('kas_anggaran', '&bulan=eq.' + ym).catch(() => [])
+    ]);
+    const real = {};
+    (jurnal || []).forEach(r => {
+      if (String(r.tanggal || '').slice(0, 7) !== ym) return;
+      const aD = akunMap[r.akun_debit_id];
+      if (aD && aD.entitas === 'pribadi' && !aD.peran && aD.kelompok === 'beban') real[aD.id] = (real[aD.id] || 0) + Number(r.nominal || r.debit || 0);
+    });
+    const ang = {};
+    (anggaran || []).forEach(a => { ang[a.akun_id] = (ang[a.akun_id] || 0) + (Number(a.nominal) || 0); });
+    const rows = Object.values(akunMap || {})
+      .filter(a => a && a.entitas === 'pribadi' && !a.peran && a.kelompok === 'beban')
+      .map(a => ({ nama: a.nama || 'Biaya', kode: String(a.kode || ''), nominal: real[a.id] || 0, anggaran: ang[a.id] || 0 }));
+    rows.sort((a, b) => (b.nominal - a.nominal) || (b.anggaran - a.anggaran) || a.kode.localeCompare(b.kode));
+    const total = rows.reduce((s, r) => s + r.nominal, 0);
+    if (elTot) elTot.textContent = _fmtRp(total);
+    const rasio = omsetBln > 0 ? total / omsetBln * 100 : null;
+    if (elPct) {
+      elPct.textContent = rasio === null ? '—' : rasio.toFixed(1) + '%';
+      elPct.style.color = rasio === null ? 'var(--ink3)' : rasio <= 10 ? 'var(--ok)' : rasio <= 20 ? 'var(--warn)' : 'var(--danger)';
+    }
+    if (!rows.length) {
+      el.innerHTML = '<div style="color:var(--ink3);font-style:italic;font-size:13px">Belum ada akun beban pribadi. Tambah di Kas &amp; Jurnal → Kelola Akun (Buku = Pribadi, kelompok Beban).</div>';
+      return;
+    }
+    el.innerHTML = rows.map(r => {
+      const pct = total > 0 ? (r.nominal / total * 100) : 0;
+      return '<div class="beban-row">' +
+        '<div style="display:flex;flex-direction:column;min-width:0"><span style="font-size:13px;font-weight:700">' + _pkEscDash(r.nama) + '</span>' +
+          (r.anggaran > 0 ? '<small style="font-size:11px;font-weight:600;color:var(--ink3)">anggaran ' + _fmtRp(r.anggaran) + '</small>' : '') + '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:13px;font-weight:700;color:var(--ink3);text-align:right;min-width:52px;font-variant-numeric:tabular-nums">' + pct.toFixed(1) + '%</span>' +
+          '<span style="font-size:13px;font-weight:700;color:' + (r.nominal > 0 ? 'var(--danger)' : 'var(--ink4)') + ';font-variant-numeric:tabular-nums">' + _fmtRp(r.nominal) + '</span>' +
+        '</div></div>';
+    }).join('');
+  } catch (e) {
+    console.warn('[BiayaPribadi]', e);
+    el.innerHTML = '<div style="color:var(--danger);font-size:13px">Gagal memuat biaya pribadi.</div>';
+  }
+}
+function _pkEscDash(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
 
 // Kepala grup di bawah daftar akun beban (tidak ikut total Beban Operasional). <small> dipakai karena CSS HP memaksa span di .beban-row jadi 17px.
 // 13 Okt 2026: tiap grup = KOTAK berwarna sendiri (pita judul warna penuh + latar tipis + jarak antar kotak) supaya perpindahan section jelas.
@@ -2878,6 +2963,7 @@ async function loadDashboard() {
         .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.entitas !== 'pribadi' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
         .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
       _renderBeban(_bebanRows, omsetBln, { produksi: _produksiRows, supplier: _supplierRows, hutang: _hutangRows });
+      _dashPribadi(omsetBln, _dashKasAkunMap, todayYM);   // 13 Nov 2026: kartu Biaya Pribadi
       _renderIncome(jurnalBulanIni || [], _dashKasAkunMap, todayYM);
       _renderDonutLabaRugi(totalHppTerjual, totalBebanNominal, labaBersih, priveNominal); // BARU v5
       _renderDonutBeban(bebanDetailMap);                                    // BARU v5
@@ -4252,10 +4338,10 @@ window.zdKasRender = zdKasRender;
     '.zdk-bar-tgt{position:absolute;top:-3px;width:2px;height:13px;background:var(--ink)}',
     '.zdk-late{color:var(--danger);font-weight:700}',
     '.zdk-note{font-size:11px;color:var(--ink3);margin-top:8px}',
-    '#nw-swipe-container .zdk-status{color:var(--ink3)}',
-    '#nw-swipe-container .zdk-status.hijau{color:var(--ok)}',
-    '#nw-swipe-container .zdk-status.kuning{color:var(--warn)}',
-    '#nw-swipe-container .zdk-status.merah{color:var(--danger)}',
+    ':is(#nw-swipe-container, #zd-kas-host) .zdk-status{color:var(--ink3)}',
+    ':is(#nw-swipe-container, #zd-kas-host) .zdk-status.hijau{color:var(--ok)}',
+    ':is(#nw-swipe-container, #zd-kas-host) .zdk-status.kuning{color:var(--warn)}',
+    ':is(#nw-swipe-container, #zd-kas-host) .zdk-status.merah{color:var(--danger)}',
     '.zdk-help{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--ink4);background:transparent;color:var(--ink3);font-size:10px;font-weight:700;line-height:1;padding:0;cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0;flex-shrink:0}',
     '.zdk-help:hover{color:var(--ink);border-color:var(--ink3)}',
     '.zdk-bubble{white-space:pre-line}',

@@ -4850,6 +4850,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-s2 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-orange); border-bottom: none; }
 .nw-slide-s3 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-green);  border-bottom: none; }
 .nw-slide-s4 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-purple); border-bottom: none; }
+.nw-slide-s5 { border: 1px solid var(--ovl-0_06); border-top: 3px solid var(--dash-teal);   border-bottom: none; }
 
 /* Slide 1 (Net Worth) gak punya data-box — kartu solo, rounded semua sisi,
    tinggi disamain ke slide 2/3 lewat flex column + formula caption di bawah */
@@ -4927,6 +4928,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-slide-s2 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
 .nw-slide-s3 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
 .nw-slide-s4 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
+.nw-slide-s5 + .nw-slide-data { border: 1px solid var(--ovl-0_06); border-top: none; }
 
 .nw-slide-data .nw-row,
 .nw-slide-data .beban-row { border-color: var(--ovl-0_06); }
@@ -4936,11 +4938,11 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .nw-refresh-btn:hover { color: var(--ink); background: var(--ovl-0_06); }
 
 /* Kartu hero (nw-swipe-slide) ikut shadow lembut senada card lain, tinggi disamain */
-#nw-swipe-container .nw-swipe-slide { border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
-#nw-swipe-container .nw-slide-header,
-#nw-swipe-container .nw-slide-data { box-shadow: none; }
+:is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide { border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+:is(#nw-swipe-container, #zd-kas-host) .nw-slide-header,
+:is(#nw-swipe-container, #zd-kas-host) .nw-slide-data { box-shadow: none; }
 @media (min-width: 768px){
-  #nw-swipe-container .nw-swipe-slide{ min-height: 252px; }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide{ min-height: 252px; }
 }
 
 /* ── ROW 2: FINANCIAL OVERVIEW — 4 kartu compact, ikon bulat + aksen warna ── */
@@ -5376,12 +5378,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* ── 3 kartu hero seimbang: tinggi sama, isi tabel scroll di dalam ── */
 @media (min-width: 768px){
   #nw-swipe-container .nw-swipe-track{ align-items:stretch; }
-  #nw-swipe-container .nw-swipe-slide{
+  :is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide{
     height:320px; min-height:0;   /* 370→320 (8 Okt 2026): 370 bikin Net Worth/Beban/Income kosong di bawah; 320 pas buat Kecepatan Kas (terpanjang), sisanya scroll di dalam box */
     display:flex; flex-direction:column;
   }
-  #nw-swipe-container .nw-slide-header{ flex:0 0 auto; min-height:100px; box-sizing:border-box; }
-  #nw-swipe-container .nw-slide-data{ flex:1 1 auto; min-height:0; }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-slide-header{ flex:0 0 auto; min-height:100px; box-sizing:border-box; }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-slide-data{ flex:1 1 auto; min-height:0; }
   /* Net Worth selalu 4 baris: renggangkan merata biar gak kosong di bawah */
   #nw-swipe-container #nw-widget + .nw-slide-data{ display:flex; flex-direction:column; justify-content:space-between; }
 }
@@ -5500,40 +5502,40 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    #nw-swipe-container supaya menang atas <style id="zd-kas-style">
    yang di-inject dashboard.js (grid 4 kolom / 2 kolom untuk tile).
    ================================================================= */
-#nw-swipe-container .zdk-badge{ font-size:13px; padding:2px 11px; gap:6px; flex-shrink:0; }
-#nw-swipe-container .zdk-dot{ width:8px; height:8px; }
-#nw-swipe-container .zdk-reason{ font-size:11px; line-height:1.4; margin:0; color:var(--ink3); white-space:pre-line; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-badge{ font-size:13px; padding:2px 11px; gap:6px; flex-shrink:0; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-dot{ width:8px; height:8px; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-reason{ font-size:11px; line-height:1.4; margin:0; color:var(--ink3); white-space:pre-line; }
 /* tile: 4 baris label-kiri / nilai-kanan, gaya .nw-row */
-#nw-swipe-container .zdk-stats{ display:block; }
-#nw-swipe-container .zdk-tile{
+:is(#nw-swipe-container, #zd-kas-host) .zdk-stats{ display:block; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile{
   display:grid; grid-template-columns:minmax(0,1fr) auto;
   grid-template-areas:"l v" "s v";
   column-gap:10px; align-items:center;
   background:transparent; border-radius:0; padding:4px 0;
   border-bottom:1px dashed var(--ovl-0_1);
 }
-#nw-swipe-container .zdk-tile:last-child{ border-bottom:none; }
-#nw-swipe-container .zdk-tile-l{ grid-area:l; font-size:12px; color:var(--ink); line-height:1.25; }
-#nw-swipe-container .zdk-tile-v{
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile:last-child{ border-bottom:none; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile-l{ grid-area:l; font-size:12px; color:var(--ink); line-height:1.25; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile-v{
   grid-area:v; margin:0; text-align:right; font-size:16px;
   font-family:var(--mono,'IBM Plex Mono',monospace); white-space:nowrap;
 }
-#nw-swipe-container .zdk-tile-s:empty{ display:none; }
-#nw-swipe-container .zdk-tile-s{ grid-area:s; font-size:10px; line-height:1.25; color:var(--ink3); overflow-wrap:anywhere; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile-s:empty{ display:none; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile-s{ grid-area:s; font-size:10px; line-height:1.25; color:var(--ink3); overflow-wrap:anywhere; }
 /* lepas batas max-height 218px aturan lama untuk keempat kartu, supaya box rincian ikut setinggi kartu (tinggi sama rata) */
-@media (min-width: 768px){ #nw-swipe-container .nw-slide-data{ max-height:none; } }
-#nw-swipe-container .zdk-links{ margin-top:6px; gap:4px 16px; }
+@media (min-width: 768px){ :is(#nw-swipe-container, #zd-kas-host) .nw-slide-data{ max-height:none; } }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-links{ margin-top:6px; gap:4px 16px; }
 /* HP: tinggi box tetap 160px seperti slide lain (biar container tidak melar & tidak ada
    ruang kosong di slide 1-3); baris dirapatkan supaya 4 tile muat, link rincian di-scroll */
 @media (max-width: 767px){
-  #nw-swipe-container #zd-kas-card .nw-slide-data{ padding-top:6px; height:200px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  :is(#nw-swipe-container, #zd-kas-host) #zd-kas-card .nw-slide-data{ padding-top:6px; height:200px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
 }
 
 /* Laptop sempit / tablet (768–1279px): 4 kolom terlalu sempit untuk angka Rupiah
    → 2×2. HP (<768px) tidak kena, tetap swipe 1 slide per layar. */
 @media (min-width: 768px) and (max-width: 1279px){
   #nw-swipe-container .nw-swipe-track{ flex-wrap:wrap; row-gap:12px; }
-  #nw-swipe-container .nw-swipe-slide{ width:calc(50% - 6px); }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide{ width:calc(50% - 6px); }
 }
 
 /* ── HP (<768px): semua slide swipe Dashboard setinggi Kecepatan Kas (slide terpanjang).
@@ -5541,8 +5543,8 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    Net Worth / Beban / Income kosong di bawah. Laptop (≥768px) tidak disentuh. ── */
 @media (max-width: 767px) {
   #nw-swipe-container .nw-swipe-track{ align-items:stretch; }
-  #nw-swipe-container .nw-swipe-slide{ height:auto; }
-  #nw-swipe-container .nw-slide-data{ flex:1 1 auto; height:auto; min-height:160px; }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-swipe-slide{ height:auto; }
+  :is(#nw-swipe-container, #zd-kas-host) .nw-slide-data{ flex:1 1 auto; height:auto; min-height:160px; }
 }
 
 /* ── HP (<768px) Dashboard: indikator geser seragam ──
@@ -5572,25 +5574,25 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 /* ── Garis pemisah baris di kartu Dashboard (HP & laptop): dibuat lebih jelas — solid, warna lebih gelap ── */
 .nw-slide-data .nw-row:not(:last-child),
 .nw-slide-data .beban-row:not(:last-child),
-#nw-swipe-container .zdk-tile:not(:last-child) {
+:is(#nw-swipe-container, #zd-kas-host) .zdk-tile:not(:last-child) {
   border-bottom: 1px solid var(--ink4) !important;
 }
 
 /* ── Dashboard: tombol Rincian batch / supplier (Kecepatan Kas) pakai gaya tombol tema ── */
-#nw-swipe-container .zdk-links{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-#nw-swipe-container .zdk-btn{
+:is(#nw-swipe-container, #zd-kas-host) .zdk-links{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-btn{
   display:inline-flex; align-items:center; justify-content:center;
   height:34px; padding:0 10px; border-radius:8px;
   border:1px solid var(--ink4); background:var(--cream2); color:var(--ink);
   font-size:12px; font-weight:700; font-family:inherit; cursor:pointer;
   box-shadow:0 1px 2px rgba(0,0,0,0.08); white-space:nowrap;
 }
-#nw-swipe-container .zdk-btn:active{ transform:scale(.98); }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-btn:active{ transform:scale(.98); }
 /* Net Worth: jarak antar baris dirapatkan (sama dengan kartu lain) */
-#nw-swipe-container .nw-slide-data .nw-row{ padding:5px 0; }
+:is(#nw-swipe-container, #zd-kas-host) .nw-slide-data .nw-row{ padding:5px 0; }
 /* Kecepatan Kas: tombol Rincian diturunkan ke dasar kotak (tetap ada jarak tipis dari tepi) */
 #zd-kas-card .nw-slide-data{ display:flex; flex-direction:column; }
-#nw-swipe-container .zdk-links{ margin-top:auto; padding-bottom:4px; }
+:is(#nw-swipe-container, #zd-kas-host) .zdk-links{ margin-top:auto; padding-bottom:4px; }
 
 /* HP: kotak Net Worth — baris mengisi tinggi kotak (tidak ada ruang kosong di bawah), font baris dinaikkan. Laptop tidak disentuh. */
 @media (max-width: 767px) {
@@ -5604,9 +5606,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
    (kalau nanti ada kategori baru, tinggi kartu tetap). Laptop tidak disentuh. */
 @media (max-width: 767px) {
   /* sama seperti Net Worth: baris mengisi tinggi kotak; kalau kategori banyak, tetap bisa di-scroll */
-  #dash-beban-wrap{ display:flex; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
-  #dash-beban-wrap .beban-row{ flex:1 1 0; align-items:center; padding:4px 0; }
-  #dash-beban-wrap .beban-row span{ font-size:17px !important; }
+  #dash-beban-wrap, #dash-pribadi-wrap{ display:flex; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  #dash-beban-wrap .beban-row, #dash-pribadi-wrap .beban-row{ flex:1 1 0; align-items:center; padding:4px 0; }
+  #dash-beban-wrap .beban-row span, #dash-pribadi-wrap .beban-row span{ font-size:17px !important; }
 }
 
 /* HP: Free Cash Flow — nilai FCF & Total Income dibuat muat di kartu (tidak terpotong di tepi), dirata tengah secara vertikal. Laptop tidak disentuh. */
@@ -5672,7 +5674,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (max-width: 767px) { .zd-car-dots { display:none !important; } }
 
 /* Kecepatan Kas: garis tebal dipindah ke bawah baris "Kebutuhan 14 hari" (tile pertama) */
-#nw-swipe-container #zd-kas-card #zd-kas-stats .zdk-tile:first-child{
+:is(#nw-swipe-container, #zd-kas-host) #zd-kas-card #zd-kas-stats .zdk-tile:first-child{
   border-bottom:3px solid var(--ink) !important; padding-bottom:8px;
 }
 
@@ -5723,3 +5725,29 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* Sheet periode: tanpa tombol Terapkan/Pilih rentang (pilihan langsung berlaku, seperti Shopee). */
 .jp-pc-foot, #jp-per-foot { display: none !important; }
+
+
+/* =================================================================
+   TAB KEUANGAN — FLAT, TANPA SCROLL HALAMAN (13 Nov 2026)
+   Baris 1: 2 donut (Laba/Rugi, Beban Perusahaan) · Baris 2: Jurnal Terakhir + Kecepatan Kas ·
+   Baris 3: Aktivitas Terbaru + Kegiatan Mendatang · Cicilan + Kewajiban Supplier 14 Hari.
+   Desktop tinggi (>=900px lebar, >=760px tinggi): halaman setinggi layar, baris 2 & 3 membagi sisa tinggi, isi tabel scroll DI DALAM kartu.
+   Layar pendek / HP: perilaku lama (halaman scroll; HP = geser kartu per baris).
+   ================================================================= */
+.zd-keu-scroll{ max-height:260px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+#zd-kas-host{ margin:0; }
+@media (min-width: 768px) and (max-width: 1279px){ #zd-kas-host .nw-swipe-slide{ width:100%; } }
+@media (min-width: 900px) and (min-height: 760px){
+  #page-dashboard.active:has(> #zd-tab-keuangan.zd-tab-active){ height:100%; }
+  #page-dashboard.active > #zd-tab-keuangan.zd-tab-active{
+    flex:1 1 auto; min-height:0; display:grid; gap:12px;
+    grid-template-rows:auto minmax(0,1.25fr) minmax(0,1fr);
+  }
+  #zd-tab-keuangan > .db-swipe-pair{ margin-bottom:0; min-height:0; }
+  #zd-tab-keuangan #swipe-pair-6{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  #zd-tab-keuangan #swipe-pair-5 .card,
+  #zd-tab-keuangan #swipe-pair-6 .card{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  #zd-tab-keuangan .zd-keu-scroll{ flex:1 1 auto; min-height:0; max-height:none; }
+  #zd-tab-keuangan #zd-kas-host{ min-height:0; display:flex; }
+  #zd-tab-keuangan #zd-kas-host .nw-swipe-slide{ width:100%; height:100%; min-height:0; }
+}
