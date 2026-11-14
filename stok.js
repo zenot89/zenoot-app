@@ -260,7 +260,9 @@ document.getElementById('page-stok').innerHTML = `
       <div class="stok-filter-sheet-cat-title">SKU Induk</div>
       <button class="kas-brimo-close-x" onclick="stokFilterSheetClose()">&#10005;</button>
     </div>
+    <div class="stok-filter-sheet-search"><i class="ti ti-search"></i><input type="search" id="stok-filter-sheet-q" placeholder="Cari SKU Induk…" autocomplete="off" spellcheck="false" oninput="_stokFilterSheetFilter()"></div>
     <div class="stok-filter-sheet-cat-list" id="stok-filter-sheet-cat-list"></div>
+    <div id="stok-filter-sheet-empty" class="stok-sub-empty" style="display:none">Tidak ditemukan</div>
   </div>
 
   <!-- PANEL SUMMARY STOK -->
@@ -1852,7 +1854,22 @@ function stokFilterSheetOpen() {
   if (!ov || !sh) return;
   ov.classList.add('open');
   sh.classList.add('open');
+  var qEl = document.getElementById('stok-filter-sheet-q'); if (qEl) qEl.value = '';   // pencarian mulai kosong tiap dibuka (tanpa auto-fokus: keyboard HP menutupi daftar)
   _stokFilterSheetRenderList();
+}
+
+function _stokFilterSheetFilter() {
+  var qEl = document.getElementById('stok-filter-sheet-q'), listEl = document.getElementById('stok-filter-sheet-cat-list');
+  if (!qEl || !listEl) return;
+  var q = qEl.value, kosong = _stokNormQ(q) === '', ada = false;
+  listEl.querySelectorAll('.stok-filter-sheet-opt').forEach(function(el) {
+    var isNull = el.getAttribute('data-isnull') === '1';
+    var show = kosong ? true : (!isNull && _stokMatchQ(el.textContent, q));
+    el.style.display = show ? '' : 'none';
+    if (show && !isNull) ada = true;
+  });
+  var em = document.getElementById('stok-filter-sheet-empty');
+  if (em) em.style.display = (!kosong && !ada) ? 'block' : 'none';
 }
 
 function stokFilterSheetClose() {
@@ -1991,7 +2008,7 @@ function stokOpenSub(type, e) {
   }
 
   var currVal = type === 'boss' ? _filterBoss : type === 'katalog' ? _filterKatalog : _filterStatusTab;
-  sub.innerHTML = opsi.map(function(o) {
+  var itemsHtml = opsi.map(function(o) {
     var active = o.val === currVal;
     var valAttr = o.val === null ? '' : o.val;
     return '<div data-filter-type="' + type + '" data-filter-val="' + valAttr + '" data-filter-isnull="' + (o.val === null ? '1' : '0') + '"' +
@@ -2001,6 +2018,11 @@ function stokOpenSub(type, e) {
       'border-bottom:1px solid var(--ovl-0_04);border-radius:4px;margin:1px 4px;transition:background .12s"' +
       ' onmouseover="this.style.background=\'var(--cream3)\'" onmouseout="this.style.background=\'' + (active ? 'var(--ink)' : 'transparent') + '\'">' + o.label + '</div>';
   }).join('');
+  // [14 Nov 2026] SKU Induk: kolom search di atas daftar (sticky, ikut tergulung bersama submenu), daftar terfilter sambil mengetik
+  sub.innerHTML = type === 'katalog'
+    ? '<div class="stok-sub-search"><i class="ti ti-search"></i><input type="search" id="stok-sub-q" placeholder="Cari SKU Induk…" autocomplete="off" spellcheck="false"></div>' + itemsHtml +
+      '<div id="stok-sub-empty" class="stok-sub-empty" style="display:none">Tidak ditemukan</div>'
+    : itemsHtml;
   // Posisi: hitung setelah innerHTML diisi agar bisa ukur lebar
   sub.style.position = 'fixed';
   sub.style.top = rect.top + 'px';
@@ -2029,6 +2051,45 @@ function stokOpenSub(type, e) {
       }
     });
   });
+
+  if (type === 'katalog') {
+    var qIn = sub.querySelector('#stok-sub-q');
+    if (qIn) {
+      qIn.addEventListener('input', function() { _stokSubFilterList(sub, qIn.value); });
+      qIn.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter') {           // Enter = pilih hasil teratas
+          ev.preventDefault();
+          var first = Array.from(sub.querySelectorAll('[data-filter-type]')).find(function(el) {
+            return el.style.display !== 'none' && el.getAttribute('data-filter-isnull') !== '1';
+          });
+          if (first) first.click();
+        } else if (ev.key === 'Escape') {
+          if (qIn.value) { qIn.value = ''; _stokSubFilterList(sub, ''); ev.stopPropagation(); }
+        }
+      });
+      setTimeout(function() { qIn.focus(); }, 0);
+    }
+  }
+}
+
+// ─── SEARCH SKU INDUK (14 Nov 2026) ───
+// Cocok kalau SEMUA kata yang diketik ada di nama (tanpa peduli huruf besar/kecil; _ - dan spasi dianggap sama):
+// "rh turtle" menemukan RH_TURTLENECK. "Semua SKU Induk" hanya tampil saat kolom kosong.
+function _stokNormQ(t) { return String(t == null ? '' : t).toLowerCase().replace(/[_\-\s]+/g, ' ').trim(); }
+function _stokMatchQ(label, q) {
+  var n = _stokNormQ(label);
+  return _stokNormQ(q).split(' ').filter(Boolean).every(function(tok) { return n.indexOf(tok) >= 0; });
+}
+function _stokSubFilterList(sub, q) {
+  var kosong = _stokNormQ(q) === '', ada = false;
+  sub.querySelectorAll('[data-filter-type]').forEach(function(el) {
+    var isNull = el.getAttribute('data-filter-isnull') === '1';
+    var show = kosong ? true : (!isNull && _stokMatchQ(el.textContent, q));
+    el.style.display = show ? '' : 'none';
+    if (show && !isNull) ada = true;
+  });
+  var em = sub.querySelector('#stok-sub-empty');
+  if (em) em.style.display = (!kosong && !ada) ? 'block' : 'none';
 }
 
 // Status dipilih dari dalam dropdown Filter gabungan — reuse stokTabStatus()

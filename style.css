@@ -5829,3 +5829,20 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   #zd-tab-ringkasan #dash-metrics .zd-car-track{ flex:1 1 auto; min-height:0; }
   #zd-tab-ringkasan #dash-metrics .zd-car .metric{ align-self:stretch; height:auto; overflow:hidden; }
 }
+
+
+/* Search SKU Induk di filter Stok (14 Nov 2026) — submenu desktop (sticky di atas daftar) & bottom sheet HP */
+.stok-sub-search, .stok-filter-sheet-search{
+  display:flex; align-items:center; gap:6px; padding:6px 8px; background:var(--cream);
+  border-bottom:1px solid var(--ovl-0_18);
+}
+.stok-sub-search{ position:sticky; top:0; z-index:2; }
+.stok-filter-sheet-search{ padding:4px 12px 8px; }
+.stok-sub-search i, .stok-filter-sheet-search i{ font-size:14px; color:var(--ink3); flex:0 0 auto; }
+.stok-sub-search input, .stok-filter-sheet-search input{
+  flex:1 1 auto; min-width:0; box-sizing:border-box; font-family:var(--f); font-size:13px;
+  padding:6px 8px; border:2px solid var(--ink); background:var(--cream); color:var(--ink); outline:none;
+}
+.stok-filter-sheet-search input{ font-size:16px; }   /* 16px: cegah iOS zoom otomatis saat fokus */
+.stok-sub-search input::placeholder, .stok-filter-sheet-search input::placeholder{ color:var(--ink3); }
+.stok-sub-empty{ padding:12px 14px; font-size:12px; color:var(--ink3); font-style:italic; }
