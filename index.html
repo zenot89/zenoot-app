@@ -92,7 +92,7 @@
     </div>
   </div>
 
-  <!-- ZENOOT ANALISIS: 3 sub-menu (Rasio Keuangan / Proyeksi Harga / Setting Analisis). Halaman-halamannya tampil sebagai TAB di atas iframe
+  <!-- ZENOOT ANALISIS: sub-menu (Perbandingan Toko / Rasio Keuangan / Proyeksi Harga / BCG / Setting Analisis). [14 Nov 2026] Proyeksi Harga = halaman baru (target NPM → GPM → HPP maksimal); Price List, Semua Produk & Check Admin pindah ke sub-menu BCG. Halaman-halamannya tampil sebagai TAB di atas iframe
        (dirender analisis.js, gaya tab Gadag) — isi halaman tetap dibuka di dalam analisis.html lewat page-analisis.
        Sebelumnya (sampai 20 Sep 2026): daftar flat 9 tombol analisisGoto(...). -->
   <div class="nav-group" id="group-zanalisis">
@@ -104,6 +104,7 @@
       <button class="nav-item" id="ni-zan-tokocompare" onclick="analisisOpenGroup('tokocompare',this)"><span class="ni-icon"><i class="ti ti-arrows-left-right"></i></span><span class="ni-label">Perbandingan Toko</span></button>
       <button class="nav-item" id="ni-zan-rasio" onclick="analisisOpenGroup('rasio',this)"><span class="ni-icon"><i class="ti ti-chart-bar"></i></span><span class="ni-label">Rasio Keuangan</span></button>
       <button class="nav-item" id="ni-zan-proyeksi" onclick="analisisOpenGroup('proyeksi',this)"><span class="ni-icon"><i class="ti ti-chart-line"></i></span><span class="ni-label">Proyeksi Harga</span></button>
+      <button class="nav-item" id="ni-zan-bcg" onclick="analisisOpenGroup('bcg',this)"><span class="ni-icon"><i class="ti ti-chart-bubble"></i></span><span class="ni-label">BCG</span></button>
       <button class="nav-item" id="ni-zan-setting" onclick="analisisOpenGroup('setting',this)"><span class="ni-icon"><i class="ti ti-settings"></i></span><span class="ni-label">Setting Analisis</span></button>
     </div>
   </div>
@@ -226,7 +227,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261114-557f63b4a722';
+  window.APP_BUILD = '20261112-4e3ebee86c94';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible

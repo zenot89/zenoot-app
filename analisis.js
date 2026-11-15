@@ -83,11 +83,12 @@
     // dibuka lewat tombol di dalam RKS Overview/RKS Mingguan (analisis.html), bukan tab lagi — sesuai permintaan user 23 Sep 2026.
     rasio:    { btn: 'ni-zan-rasio',    tabs: [['hasil', 'RKS Overview'], ['rekap', 'Rekap', 1], ['profit', 'Profit Pesanan', 1], ['hpp', 'HPP Produk', 1], ['hasilM', 'RKS Mingguan'], ['rekapM', 'Rekap Mingguan', 1], ['hasilP', 'Proyeksi RKS'], ['rekapP', 'Rekap Proyeksi', 1]] },
     tokocompare: { btn: 'ni-zan-tokocompare', tabs: [['tokocompare', 'Perbandingan Toko']] },   // 1 halaman → tanpa tab bar (sama pola kayak 'setting')
-    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['pricelist', 'Price List'], ['pricelistall', 'Semua Produk'], ['checkadmin', 'Check Admin']] },
+    proyeksi: { btn: 'ni-zan-proyeksi', tabs: [['proyeksiharga', 'Proyeksi Harga']] },   // [14 Nov 2026] halaman baru, 1 halaman → tanpa tab bar
+    bcg:      { btn: 'ni-zan-bcg',      tabs: [['pricelist', 'Price List'], ['pricelistall', 'Semua Produk'], ['checkadmin', 'Check Admin']] },   // [14 Nov 2026] Proyeksi Harga yang lama (cluster Star/Cash Cow/Question Mark/Dog = matriks BCG) diganti nama jadi BCG
     setting:  { btn: 'ni-zan-setting',  tabs: [['setting', 'Setting Analisis']] }   // 1 halaman → tanpa tab bar
   };
-  var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'setting'];
-  var lastTab = { tokocompare: 'tokocompare', rasio: 'hasil', proyeksi: 'pricelist', setting: 'setting' };  // tab terakhir per sub-menu
+  var GROUP_ORDER = ['tokocompare', 'rasio', 'proyeksi', 'bcg', 'setting'];
+  var lastTab = { tokocompare: 'tokocompare', rasio: 'hasil', proyeksi: 'proyeksiharga', bcg: 'pricelist', setting: 'setting' };  // tab terakhir per sub-menu
   var curGroup = null;   // sub-menu yang sedang tampil
   var curPage = null;    // halaman Analisis yang sedang tampil (kunci data-page)
 
@@ -97,7 +98,7 @@
   var PHONE_MQ = '(hover: none) and (pointer: coarse) and (max-width: 1024px)';
   // Halaman yang boleh tampil di HP. [21 Sep 2026] sempat cuma RKS Overview & RKS Mingguan, lalu semua halaman dikembalikan (permintaan user).
   // Kalau nanti ada halaman yang mau disembunyikan lagi di HP: cukup buang kuncinya dari daftar ini (tab, sidebar, & pengalihan ikut otomatis).
-  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'pricelistall', 'setting', 'tokocompare'];
+  var PHONE_PAGES = ['hasil', 'rekap', 'hpp', 'hasilM', 'hasilP', 'rekapM', 'checkadmin', 'pricelist', 'pricelistall', 'proyeksiharga', 'setting', 'tokocompare'];
   var PHONE_HOME = 'hasil';                // halaman tujuan kalau HP kebetulan mendarat di halaman yang tidak diizinkan
   var phoneMq = (window.matchMedia ? window.matchMedia(PHONE_MQ) : null);
   function isPhone() { return !!(phoneMq && phoneMq.matches); }
@@ -690,7 +691,7 @@
     setPage(sub);
   };
 
-  // Dipanggil dari 3 tombol sub-menu sidebar: analisisOpenGroup('rasio'|'proyeksi'|'setting', this)
+  // Dipanggil dari 3 tombol sub-menu sidebar: analisisOpenGroup('tokocompare'|'rasio'|'proyeksi'|'bcg'|'setting', this)
   // Buka tab terakhir yang dipakai di sub-menu itu (default: tab pertama).
   window.analisisOpenGroup = function (group, btn) {
     if (!GROUPS[group]) return;
@@ -729,3 +730,4 @@
 // (70) [30 Okt 2026] Price List & Semua Produk (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): kolom baru 'Gap Harga' (= Harga Coret − Harga Net) di antara Harga Coret dan Harga Net.
 // (71) [30 Okt 2026] Semua Produk (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): kotak judul 'Semua Produk' di topbar DIGANTI dropdown filter Supplier (#plSupFilter: Semua Supplier + hanya supplier yang punya produk di channel itu, dari kolom boss Kelola Produk); urutan tetap per cluster (Star di atas). Halaman lain tidak diubah.
 // (72) [30 Okt 2026] Price List & Semua Produk (semua di analisis.html; file INI hanya diberi catatan supaya hash APP_BUILD ikut berubah): di dalam zenOt (embed) tidak ada lagi scroll halaman di sisi kanan — tinggi halaman + margin bawah -10px dihitung pas 100vh (sebelumnya melebihi layar ±10px karena padding bawah #main 20px); kalau produk banyak, hanya isi tabel yang scroll di dalam kartunya (header tetap).
+// (73) [14 Nov 2026] Sub-menu baru: "Proyeksi Harga" = halaman baru (proyeksiharga: target NPM → GPM wajib → HPP maksimal, lanjutan Rasio Keuangan); Price List + Semua Produk + Check Admin pindah ke sub-menu "BCG" (grup bcg). Isi halaman di analisis.html + index.html (tombol sidebar).

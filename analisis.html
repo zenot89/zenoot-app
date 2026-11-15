@@ -563,6 +563,43 @@
   #priceListAllCard{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; margin-bottom:0; }
   #priceListAllCard .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
   #pricelistParams{ flex:0 0 330px; min-height:0; display:flex; flex-direction:column; overflow:visible; }
+  /* ===== Proyeksi Harga (baru, 14 Nov 2026) — lanjutan Rasio Keuangan: target NPM → GPM wajib → HPP maksimal ===== */
+  /* 1 layar penuh (pola Price List): KIRI kartu judul+batang & tabel SKU (isi tabel yang scroll), KANAN panel simulasi */
+  #page-proyeksiharga.active{ display:flex; flex-direction:row; gap:14px; align-items:stretch; height:calc(100vh - 130px); min-height:420px; animation:zanPageIn .16s ease-out; }
+  html.embed:not(.zan-phone) #page-proyeksiharga.active{ height:calc(100vh - 82px); margin-bottom:-10px; }
+  .ph-main{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; }
+  .ph-main > .card{ margin-bottom:0; }
+  #phTableCard{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  #phTableCard .pricelist-scroll{ flex:1; min-height:0; max-height:none; }
+  #phTableCard .ca-table{ border-collapse:separate; border-spacing:0; }
+  .ph-side{ flex:0 0 310px; min-height:0; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
+  .ph-side > .card{ margin-bottom:0; }
+  .ph-title{ font-size:22px; font-weight:800; color:var(--ink); line-height:1.2; }
+  .ph-sub{ font-size:13px; color:var(--ink-soft); margin:6px 0 12px; line-height:1.5; }
+  .ph-bar{ display:flex; height:54px; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
+  .ph-seg{ display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; min-width:0; overflow:hidden; text-align:center; line-height:1.15; }
+  .ph-seg b{ font-size:15px; } .ph-seg span{ font-size:10.5px; opacity:.92; white-space:nowrap; }
+  .ph-note{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .ph-harga{ width:112px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:14px; padding:5px 8px; border:1px solid var(--ink); border-radius:4px; background:#fff; color:var(--ink); }
+  .ph-harga::placeholder{ color:var(--ink-soft); font-family:inherit; }
+  .ph-side-h{ font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px; }
+  .ph-fld{ display:block; margin-bottom:10px; }
+  .ph-fl{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; margin-bottom:4px; }
+  .ph-tag{ font-size:10.5px; font-weight:600; color:var(--ink-soft); background:#EDEDED; border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  .ph-tag.sim{ background:#fef3c7; color:#b45309; } .ph-tag.miss{ background:#fee2e2; color:#b42318; }
+  .ph-in{ display:flex; align-items:center; border:1px solid var(--ink); border-radius:4px; background:#fff; }
+  .ph-in input{ flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--ink); font-family:'JetBrains Mono',monospace; font-size:15px; padding:7px 9px; text-align:right; }
+  .ph-in i{ font-style:normal; padding:0 9px; color:var(--ink-soft); font-size:13px; }
+  .ph-ex-h{ font-size:13px; font-weight:800; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ph-ex-h input{ width:110px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:13px; padding:4px 8px; border:1px solid var(--ink); border-radius:4px; background:#fff; color:var(--ink); }
+  .ph-ex{ width:100%; border-collapse:collapse; font-size:13px; } .ph-ex td{ padding:6px 0; border-bottom:1px solid var(--line); } .ph-ex td:last-child{ text-align:right; font-family:'JetBrains Mono',monospace; }
+  .ph-ex tr.hl td{ font-weight:800; color:#1C9C5D; border-bottom:none; }
+  /* HP: satu kolom, halaman mengalir biasa */
+  html.zan-phone #page-proyeksiharga.active{ display:block; height:auto; min-height:0; }
+  html.zan-phone .ph-side{ flex:none; overflow:visible; margin-top:12px; }
+  html.zan-phone .ph-main{ gap:10px; }
+  html.zan-phone #phTableCard .pricelist-scroll{ max-height:60vh; }
+  html.zan-phone .ph-title{ font-size:18px; }
   .pl-pop{ display:flex; flex-direction:column; gap:clamp(6px,1.2vh,12px); }
   .pl-pop-h, .pl-backdrop[hidden]{ display:none; }   /* flat: tanpa scroll — ukuran baris/kartu mengecil mengikuti tinggi layar */
   #pricelistParams .card{ margin-bottom:0; padding:clamp(8px,1.5vh,14px) 14px; }
@@ -1502,10 +1539,11 @@
       </div>
     </div>
     <button data-page="checkadmin"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Check Admin</button>
-    <div class="nav-group" id="navGroupProyeksiHarga">
+    <button data-page="proyeksiharga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span> Proyeksi Harga</button>
+    <div class="nav-group" id="navGroupBCG">
       <div class="nav-parent-row">
-        <button type="button" class="nav-parent-label" data-navgroup="ProyeksiHarga"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Proyeksi Harga</button>
-        <button type="button" class="nav-chevron" id="navChevronProyeksiHarga" aria-label="Buka/tutup submenu Proyeksi Harga"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <button type="button" class="nav-parent-label" data-navgroup="BCG"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> BCG</button>
+        <button type="button" class="nav-chevron" id="navChevronBCG" aria-label="Buka/tutup submenu BCG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
       <div class="nav-submenu">
         <button data-page="pricelist"><span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Price List</button>
@@ -1620,6 +1658,10 @@
   <section class="page" id="page-pricelistall">
     <div class="card" id="priceListAllCard"></div>
   </section>
+
+  <!-- ============ PAGE: PROYEKSI HARGA (baru, 14 Nov 2026) ============
+       Lanjutan Rasio Keuangan: target NPM → GPM wajib → HPP maksimal per SKU. Isi dirender renderProyeksiHarga(). Price List/Semua Produk/Check Admin = grup BCG. -->
+  <section class="page" id="page-proyeksiharga"></section>
 
   <!-- ============ PAGE 3: HASIL RASIO KEUANGAN ============ -->
   <section class="page" id="page-hasil">
@@ -2845,6 +2887,7 @@ document.querySelectorAll('nav.menu button[data-page]').forEach(btn=>{
       if(btn.dataset.page==='setting') renderSetting();
       if(btn.dataset.page==='pricelist') renderPricelistPage();
       if(btn.dataset.page==='pricelistall') renderPricelistAll();
+      if(btn.dataset.page==='proyeksiharga') renderProyeksiHarga();
       if(btn.dataset.page==='checkadmin'){ renderCheckAdminQuickHistory(); renderCaRoasDisplay(); }
       if(btn.dataset.page==='hasilM') renderHasilM();
       if(btn.dataset.page==='rekapM') renderRekapM();
@@ -2858,9 +2901,9 @@ document.getElementById('navChevronRasioKeuangan').addEventListener('click', (e)
   e.stopPropagation();
   document.getElementById('navGroupRasioKeuangan').classList.toggle('expanded');
 });
-document.getElementById('navChevronProyeksiHarga').addEventListener('click', (e)=>{
+document.getElementById('navChevronBCG').addEventListener('click', (e)=>{
   e.stopPropagation();
-  document.getElementById('navGroupProyeksiHarga').classList.toggle('expanded');
+  document.getElementById('navGroupBCG').classList.toggle('expanded');
 });
 document.querySelectorAll('.nav-parent-label').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -2881,7 +2924,7 @@ const TOKO_SCOPED_BASES = [
   'zenootAnalisis.session', 'zenootAnalisis.sessionMingguan', 'zenootAnalisis.settings',
   'zenootAnalisis.sessionProyeksi', 'zenootAnalisis.rekapProyeksi',
   'zenootAnalisis.rekap', 'zenootAnalisis.rekapMingguan',
-  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory'
+  'zenoot_ca_manual', 'zenootAnalisis.checkAdminHistory', 'zenootAnalisis.proyeksiHarga'
 ];
 function tokoScopedKey(base, id){ return id===TOKO_LEGACY_ID ? base : base+'::'+id; }
 function tokoReadReg(){
@@ -4388,14 +4431,15 @@ const PAGE_TITLES = {
   rekapP: 'Rekap Proyeksi',
   program: 'Analisis Program',
   setting: 'Setting',
-  tokocompare: 'Perbandingan Toko'
+  tokocompare: 'Perbandingan Toko',
+  proyeksiharga: 'Proyeksi Harga'
 };
 let currentPage = 'rekap';
 // [23 Sep 2026] hasil/hpp/hasilM: sudah punya tab sendiri di tab bar zenOt. rekap/rekapM: sudah punya tombol "← RKS Overview"/"← RKS Mingguan"
 // sebagai penanda + jalan kembali. Jadi kotak judul ini sekarang disembunyikan buat SEMUA 5 halaman di grup Rasio Keuangan (redundan di semua-nya).
 // pricelist: kotak judul diganti tab cluster (Star, Cash Cow, Question Mark, Dog, Tanpa Cluster) — #plClusterTabs, lihat bagian Price List.
 // pricelistall: kotak judul diganti dropdown filter Supplier — #plSupFilter, lihat renderPricelistAll.
-const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1, pricelist:1, pricelistall:1 };
+const PAGE_TITLE_HIDDEN = { profit:1, hasil:1, hpp:1, hasilM:1, rekap:1, rekapM:1, hasilP:1, rekapP:1, pricelist:1, pricelistall:1, proyeksiharga:1 };
 function updatePageTitleBar(pageKey){
   const el = document.getElementById('pageTitleBar');
   if(el){
@@ -7698,6 +7742,186 @@ function opsRefreshDependents(){
   try{ if(document.getElementById('hasilWrapP')) renderHasilP(); }catch(e){}   // Proyeksi RKS: operasional prorata ikut Setting
   try{ if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides); }catch(e){}
 }
+/* ================= PAGE: PROYEKSI HARGA (baru, 14 Nov 2026) =================
+   Lanjutan dari Rasio Keuangan. Alur kebalikan dari BCG (Price List): tentukan TARGET NPM → keluar GPM yang WAJIB dikejar → HPP maksimal.
+     GPM wajib = Admin & layanan + Iklan (ACOS) + Operasional + NPM target      |      HPP maksimal = (1 − GPM) × harga jual
+   Rasio (Admin, ACOS, Operasional) otomatis dari Rekap bulan terakhir toko aktif; kalau belum ada Rekap → angka Setting (Admin %, 1/Target ROAS,
+   Rasio Operasional). Target NPM = "Target Rasio Laba" di Setting (default 10%). Semua isian di panel kanan boleh diubah untuk simulasi (tidak
+   menyimpan ke Setting / Rekap). Satu-satunya yang disimpan: harga jual per SKU yang diketik di tabel (per toko, localStorage).
+   Produk = katalog channel toko (menu Channel; sama seperti BCG), HPP LANGSUNG dari Kelola Produk. */
+var _ph = { sim:{}, ex:100000, harga:null, ready:false };
+const PH_COLORS = { hpp:'#4B5B7C', admin:'#D9480F', acos:'#F5A31A', ops:'#1F2A44', npm:'#1C9C5D' };
+function phPos(v){ v = (v===null||v===undefined||v==='') ? null : Number(v); return (v!==null && isFinite(v) && v>0) ? v : null; }
+function phHargaLoad(){
+  if(_ph.harga) return _ph.harga;
+  try{ _ph.harga = JSON.parse(zLS.getItem(tk('zenootAnalisis.proyeksiHarga'))||'{}') || {}; }catch(e){ _ph.harga = {}; }
+  return _ph.harga;
+}
+function phHargaSave(){ try{ zLS.setItem(tk('zenootAnalisis.proyeksiHarga'), JSON.stringify(_ph.harga||{})); }catch(e){} }
+// Sumber rasio (angka persen, mis. 29.5): Rekap bulan terakhir yang lengkap → fallback Setting
+function phSource(){
+  const S = state.settings, keys = Object.keys(state.rekap).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort();
+  let snap = null, key = null;
+  for(let i=keys.length-1;i>=0;i--){
+    const s = state.rekap[keys[i]];
+    if(s && [s.ratioAdmin, s.acos, s.rasioOperasional].every(v=>v!==null && v!==undefined && isFinite(v))){ snap = s; key = keys[i]; break; }
+  }
+  const lbl = key ? 'Rekap '+rekapMonthLabel(key) : null;
+  const pick = (rk, setV, setLbl)=> rk!==null ? { v:rk*100, src:lbl } : (setV!==null ? { v:setV, src:setLbl } : { v:null, src:null });
+  return {
+    admin: pick(snap ? snap.ratioAdmin : null, phPos(S.adminPct), 'Setting'),
+    acos:  pick(snap ? snap.acos : null, phPos(S.targetRoas)!==null ? 100/Number(S.targetRoas) : null, 'Setting (1 ÷ Target ROAS)'),
+    ops:   pick(snap ? snap.rasioOperasional : null, phPos(S.rasioOpsPercent), 'Setting'),
+    npm:   phPos(S.targetRasioLaba)!==null ? { v:Number(S.targetRasioLaba), src:'Setting (Target Rasio Laba)' } : { v:10, src:'default 10%' }
+  };
+}
+// Nilai efektif = isian simulasi (kalau ada) atau sumber. Mengembalikan persen & pecahan.
+function phEff(){
+  const src = phSource(), out = { src };
+  ['npm','admin','acos','ops'].forEach(k=>{
+    const sim = _ph.sim[k];
+    const v = (sim!==undefined && sim!==null) ? sim : src[k].v;
+    out[k] = v;                                   // persen (atau null = belum ada data)
+    out[k+'F'] = v===null ? null : v/100;         // pecahan
+    out[k+'Sim'] = (sim!==undefined && sim!==null);
+  });
+  out.ok = ['npm','admin','acos','ops'].every(k=>out[k]!==null);
+  out.gpm = out.ok ? out.npmF+out.adminF+out.acosF+out.opsF : null;
+  out.valid = out.ok && out.gpm<1;
+  out.hppPct = out.valid ? 1-out.gpm : null;
+  return out;
+}
+// Baris SKU: katalog channel toko (kalau channel toko dikenali) dari Kelola Produk; HPP beda antar varian → pecah per size (HPP tertinggi), sama seperti BCG
+function phRows(){
+  let note = '';
+  const chId = (_plCh.loaded && _plCh.ok) ? plGuessChannel() : '';
+  const m = chId ? _plCh.map[chId] : null;
+  let groups = zKatalogGroups();
+  if(m){ groups = groups.filter(g=>m[g.katalog.trim().toLowerCase()]); note = 'Produk channel '+(_plCh.list.find(c=>c.id===chId)||{}).nama; }
+  else note = _plCh.loaded ? 'Channel toko belum dikenali — menampilkan semua produk Kelola Produk' : 'Memuat produk channel…';
+  const out = [];
+  groups.forEach(g=>{
+    const distinct = [...new Set(g.variants.map(v=>v.hpp))];
+    if(distinct.length<=1){ out.push({ key:g.katalog.trim().toLowerCase(), sku:g.katalog, hpp:distinct[0]||0 }); return; }
+    const bySize = new Map();
+    g.variants.forEach(v=>{ const l = v.size ? v.size.toUpperCase() : v.sku_variasi; if(!bySize.has(l) || v.hpp>bySize.get(l)) bySize.set(l, v.hpp); });
+    bySize.forEach((hpp,l)=>out.push({ key:(g.katalog+'|'+l).trim().toLowerCase(), sku:g.katalog+' — '+l, hpp }));
+  });
+  return { rows:out, note };
+}
+function phCalc(row, E){
+  const harga = phPos(phHargaLoad()[row.key]);
+  const min = (E.valid && row.hpp>0) ? Math.ceil((row.hpp/E.hppPct)/1000)*1000 - 1 : null;     // pembulatan sama dengan Price List: naik ke ribuan − 1
+  let maks = null, selisih = null, npm = null;
+  if(E.valid && harga!==null){
+    maks = harga*E.hppPct; selisih = maks-row.hpp;
+    npm = 1 - row.hpp/harga - E.adminF - E.acosF - E.opsF;
+  }
+  return { harga, min, maks, selisih, npm };
+}
+function phSegHtml(E){
+  if(!E.valid) return '';
+  const segs = [['hpp','HPP',E.hppPct],['admin','Admin & layanan',E.adminF],['acos','Iklan',E.acosF],['ops','Operasional',E.opsF],['npm','NPM',E.npmF]];
+  return `<div class="ph-bar">${segs.map(s=>`<div class="ph-seg" style="flex:${Math.max(s[2],0.0001)} 1 0;background:${PH_COLORS[s[0]]};"><b>${(s[2]*100).toFixed(1).replace(/\.0$/,'')}%</b><span>${s[1]}</span></div>`).join('')}</div>`;
+}
+function phHeadHtml(E){
+  if(!E.ok){
+    const miss = ['admin','acos','ops'].filter(k=>E[k]===null).map(k=>({admin:'Admin',acos:'Iklan (ACOS)',ops:'Operasional'}[k]));
+    return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;">Belum bisa dihitung — rasio ${miss.join(', ')} belum ada. Simpan Rekap bulanan dulu (RKS Overview) atau isi di Setting Analisis, atau isi manual di panel kanan.</div>`;
+  }
+  if(!E.valid) return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;color:#b42318;">GPM yang dibutuhkan ${(E.gpm*100).toFixed(1)}% — sudah ≥ 100%, artinya target NPM tidak mungkin dicapai dengan rasio biaya ini. Turunkan target NPM atau biaya.</div>`;
+  const f = x=>(x*100).toFixed(1).replace(/\.0$/,'')+'%';
+  return `<div class="ph-title">Agar NPM ${f(E.npmF)}, GPM harus ${f(E.gpm)}</div>
+    <div class="ph-sub">GPM = Admin &amp; layanan ${f(E.adminF)} + Iklan ${f(E.acosF)} + Operasional ${f(E.opsF)} + NPM ${f(E.npmF)} = <b>${f(E.gpm)}</b> &nbsp;·&nbsp; HPP maksimal = 100% − ${f(E.gpm)} = <b>${f(E.hppPct)}</b> dari harga jual</div>`;
+}
+function phTableBodyHtml(R, E){
+  if(!R.rows.length) return `<tr><td colspan="9" style="color:var(--ink-soft);">${_plCh.loaded ? 'Belum ada produk dengan HPP (isi HPP di Kelola Produk, dan pasang produk di menu Channel).' : 'Memuat produk channel…'}</td></tr>`;
+  return R.rows.map((r,i)=>{
+    const c = phCalc(r, E);
+    const bad = c.selisih!==null && c.selisih<0;
+    const st = c.selisih===null ? '<span style="color:var(--ink-soft);">—</span>' : (bad ? '<span class="ca-badge" style="background:#fee2e2;color:#b42318;">Lewat batas</span>' : '<span class="ca-badge ok">Aman</span>');
+    return `<tr data-k="${escHtml(r.key)}">
+      <td class="num">${i+1}</td><td>${escHtml(r.sku)}</td><td class="num">${fmtNum(r.hpp)}</td>
+      <td class="num" style="font-weight:700;">${c.min===null?'-':fmtNum(c.min)}</td>
+      <td class="num"><input type="text" inputmode="numeric" class="ph-harga" data-k="${escHtml(r.key)}" value="${c.harga===null?'':fmtNum(c.harga)}" placeholder="isi harga"></td>
+      <td class="num">${c.maks===null?'-':fmtNum(c.maks)}</td>
+      <td class="num${bad?' pl-low':''}">${c.selisih===null?'-':(c.selisih<0?'−':'+')+fmtNum(Math.abs(c.selisih))}</td>
+      <td class="num">${c.npm===null?'-':(c.npm*100).toFixed(1).replace('.',',')+'%'}</td>
+      <td>${st}</td></tr>`;
+  }).join('');
+}
+function phSettingsHtml(E){
+  const rows = [['npm','Target NPM','NPM yang dikejar'],['admin','Admin & layanan','dari Rekap/Setting'],['acos','Iklan (ACOS)','1 ÷ ROAS'],['ops','Operasional','rasio operasional']];
+  return rows.map(r=>{
+    const k = r[0], src = E.src[k];
+    const val = E[k];
+    const tag = E[k+'Sim'] ? '<span class="ph-tag sim">diubah</span>' : (src.src ? `<span class="ph-tag">${escHtml(src.src)}</span>` : '<span class="ph-tag miss">belum ada data</span>');
+    return `<label class="ph-fld"><span class="ph-fl">${r[1]} ${tag}</span><span class="ph-in"><input type="text" inputmode="decimal" data-k="${k}" value="${val===null?'':(Math.round(val*100)/100).toString().replace('.',',')}" placeholder="—"><i>%</i></span></label>`;
+  }).join('') + `<button type="button" class="btn ghost small" id="phReset"${Object.keys(_ph.sim).length?'':' disabled'}>Kembalikan ke sumber</button>`;
+}
+function phExampleHtml(E){
+  if(!E.valid) return '';
+  const h = _ph.ex, v = x=>fmtRp(h*x);
+  return `<div class="ph-ex-h">Contoh harga jual <input type="text" inputmode="numeric" id="phEx" value="${fmtNum(h)}"></div>
+    <table class="ph-ex"><tr><td>Biaya admin &amp; layanan</td><td>${v(E.adminF)}</td></tr>
+    <tr><td>Biaya iklan</td><td>${v(E.acosF)}</td></tr>
+    <tr><td>Biaya operasional</td><td>${v(E.opsF)}</td></tr>
+    <tr><td>Laba bersih (NPM ${(E.npmF*100).toFixed(1).replace(/\.0$/,'')}%)</td><td>${v(E.npmF)}</td></tr>
+    <tr class="hl"><td>HPP maksimal</td><td>${v(E.hppPct)}</td></tr></table>`;
+}
+function renderProyeksiHarga(){
+  const page = document.getElementById('page-proyeksiharga'); if(!page) return;
+  if(!_ph.ready){
+    page.innerHTML = `<div class="ph-main">
+        <div class="card ph-head" id="phHead"></div>
+        <div class="card" id="phTableCard"><div class="ph-note" id="phNote"></div>
+          <div class="pricelist-scroll"><table class="ca-table"><thead><tr><th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Minimal</th><th class="num">Harga Jual</th><th class="num">HPP Maks</th><th class="num">Selisih</th><th class="num">NPM</th><th>Status</th></tr></thead><tbody id="phBody"></tbody></table></div></div>
+      </div>
+      <div class="ph-side"><div class="card"><div class="ph-side-h">Pengaturan simulasi</div><div id="phSettings"></div></div><div class="card" id="phExample"></div></div>`;
+    _ph.ready = true;
+    page.addEventListener('input', e=>{
+      const t = e.target;
+      if(t.matches('#phSettings input[data-k]')){
+        const raw = String(t.value).trim().replace(',','.');
+        const x = raw==='' ? null : Number(raw);
+        if(x===null || !isFinite(x) || x<0){ delete _ph.sim[t.dataset.k]; } else { _ph.sim[t.dataset.k] = x; }
+        phRefresh(true);
+      } else if(t.id==='phEx'){ const n = parseNum(t.value); _ph.ex = (n && n>0) ? n : 100000; phRefreshExample(); }
+    });
+    page.addEventListener('change', e=>{
+      const t = e.target;
+      if(t.classList && t.classList.contains('ph-harga')){
+        const n = parseNum(t.value), h = phHargaLoad();
+        if(n && n>0) h[t.dataset.k] = n; else delete h[t.dataset.k];
+        phHargaSave(); phRefresh(false);
+      } else if(t.id==='phEx'){ t.value = fmtNum(_ph.ex); }
+    });
+    page.addEventListener('click', e=>{
+      if(e.target.id==='phReset'){ _ph.sim = {}; phRefresh(false); }
+    });
+  }
+  _ph.harga = null;   // baca ulang dari storage toko aktif (aman setelah ganti toko)
+  if(!_plCh.loaded){ plLoadChannels().then(()=>{ if(currentPage==='proyeksiharga') phRefresh(false); }); }
+  phRefresh(false);
+}
+function phRefreshExample(){ const el = document.getElementById('phExample'); if(el) el.innerHTML = phExampleHtml(phEff()); }
+function phRefresh(keepSettings){
+  const E = phEff(), R = phRows();
+  const set = (id,html)=>{ const el = document.getElementById(id); if(el) el.innerHTML = html; };
+  set('phHead', phHeadHtml(E) + phSegHtml(E));
+  set('phNote', escHtml(R.note) + (R.rows.length ? ' · '+R.rows.length+' SKU' : ''));
+  set('phBody', phTableBodyHtml(R, E));
+  phRefreshExample();
+  if(!keepSettings) set('phSettings', phSettingsHtml(E));
+  else { // sedang mengetik di panel kanan: perbarui tag sumber & tombol reset di tempat, jangan bangun ulang input (fokus tetap)
+    const rs = document.getElementById('phReset'); if(rs) rs.disabled = !Object.keys(_ph.sim).length;
+    document.querySelectorAll('#phSettings .ph-fld').forEach(f=>{
+      const k = f.querySelector('input').dataset.k, tag = f.querySelector('.ph-tag');
+      if(tag){ tag.className = 'ph-tag' + (E[k+'Sim'] ? ' sim' : (E.src[k].src ? '' : ' miss')); tag.textContent = E[k+'Sim'] ? 'diubah' : (E.src[k].src || 'belum ada data'); }
+    });
+  }
+}
+
 /* ================= PAGE: SETTING (multi-toko) ================= */
 const SETTING_FIELDS = [
   {key:'targetRoas', label:'TARGET ROAS TOKO', ket:'Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan', ph:'mis. 8.3', type:'decimal'},
