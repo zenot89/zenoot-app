@@ -579,7 +579,15 @@
   .ph-bar{ display:flex; height:54px; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
   .ph-seg{ display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; min-width:0; overflow:hidden; text-align:center; line-height:1.15; }
   .ph-seg b{ font-size:15px; } .ph-seg span{ font-size:10.5px; opacity:.92; white-space:nowrap; }
-  .ph-note{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .ph-note{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .ph-ch{ display:flex; align-items:center; gap:8px; font-weight:700; color:var(--ink); }
+  .ph-ch select{ font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--ink); border-radius:4px; background:#fff; color:var(--ink); max-width:260px; }
+  .ph-cnt{ color:var(--ink-soft); }
+  .ph-in input:disabled{ background:transparent; color:var(--ink); opacity:1; -webkit-text-fill-color:var(--ink); }
+  .ph-in:has(input:disabled){ background:#F3F3F3; border-color:var(--line); }
+  .ph-btns{ display:flex; gap:8px; margin-top:4px; }
+  .ph-err{ min-height:16px; font-size:12px; color:#b42318; margin:2px 0 6px; }
+  .ph-help{ font-size:11.5px; color:var(--ink-soft); line-height:1.45; margin-top:10px; }
   .ph-harga{ width:112px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:14px; padding:5px 8px; border:1px solid var(--ink); border-radius:4px; background:#fff; color:var(--ink); }
   .ph-harga::placeholder{ color:var(--ink-soft); font-family:inherit; }
   .ph-side-h{ font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px; }
@@ -7138,7 +7146,7 @@ async function plLoadChannels(){
 function plGuessChannel(){
   const cur = TOKO_REG.list.find(x=>x.id===TOKO_ACTIVE);
   const norm = s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  const lbl = norm(cur && cur.label);
+  const lbl = norm(cur && (cur.nama || cur.label));   // [15 Nov 2026] entri toko = { id, nama, username } — field `label` tidak ada, jadi dulu tebakan ini SELALU kosong
   if(!lbl) return '';
   const hit = _plCh.list.filter(c=>c.kat==='toko_utama').find(c=>{ const tok = norm(String(c.nama).split('.').pop()); return tok && (lbl.indexOf(tok)>=0 || tok.indexOf(lbl)>=0); });
   return hit ? hit.id : '';
@@ -7742,75 +7750,97 @@ function opsRefreshDependents(){
   try{ if(document.getElementById('hasilWrapP')) renderHasilP(); }catch(e){}   // Proyeksi RKS: operasional prorata ikut Setting
   try{ if(caLastParsed) renderCheckAdminResult(caLastParsed, caLastOverrides); }catch(e){}
 }
-/* ================= PAGE: PROYEKSI HARGA (baru, 14 Nov 2026) =================
-   Lanjutan dari Rasio Keuangan. Alur kebalikan dari BCG (Price List): tentukan TARGET NPM → keluar GPM yang WAJIB dikejar → HPP maksimal.
+/* ================= PAGE: PROYEKSI HARGA (baru, 14 Nov 2026; disusun ulang 15 Nov 2026) =================
+   Lanjutan Rasio Keuangan. Alur kebalikan dari BCG (Price List): tentukan TARGET NPM → keluar GPM yang WAJIB dikejar → HPP maksimal.
      GPM wajib = Admin & layanan + Iklan (ACOS) + Operasional + NPM target      |      HPP maksimal = (1 − GPM) × harga jual
-   Rasio (Admin, ACOS, Operasional) otomatis dari Rekap bulan terakhir toko aktif; kalau belum ada Rekap → angka Setting (Admin %, 1/Target ROAS,
-   Rasio Operasional). Target NPM = "Target Rasio Laba" di Setting (default 10%). Semua isian di panel kanan boleh diubah untuk simulasi (tidak
-   menyimpan ke Setting / Rekap). Satu-satunya yang disimpan: harga jual per SKU yang diketik di tabel (per toko, localStorage).
-   Produk = katalog channel toko (menu Channel; sama seperti BCG), HPP LANGSUNG dari Kelola Produk. */
-var _ph = { sim:{}, ex:100000, harga:null, ready:false };
+   • Admin & layanan = DATA (bukan pilihan kita), otomatis: Proyeksi RKS bulan berjalan → RKS Overview (Rekap bulanan terakhir) → Setting (Admin %).
+   • NPM, Operasional, Iklan (ACOS) = KITA TENTUKAN sendiri: tombol Edit → Simpan, tersimpan per toko. Belum pernah disimpan = awalnya ikut Setting
+     (Target Rasio Laba, Rasio Operasional, 1 ÷ Target ROAS; NPM default 10%).
+   • Produk = katalog channel (menu Channel) yang dipilih di atas tabel (awalnya ditebak dari nama toko); HPP LANGSUNG dari Kelola Produk.
+   • Harga jual per SKU yang diketik di tabel juga tersimpan per toko. Tidak ada yang ditulis ke Setting / Rekap / Price List BCG. */
+var _ph = { edit:false, draft:{}, store:null, ready:false, ex:100000, err:'' };
 const PH_COLORS = { hpp:'#4B5B7C', admin:'#D9480F', acos:'#F5A31A', ops:'#1F2A44', npm:'#1C9C5D' };
 function phPos(v){ v = (v===null||v===undefined||v==='') ? null : Number(v); return (v!==null && isFinite(v) && v>0) ? v : null; }
-function phHargaLoad(){
-  if(_ph.harga) return _ph.harga;
-  try{ _ph.harga = JSON.parse(zLS.getItem(tk('zenootAnalisis.proyeksiHarga'))||'{}') || {}; }catch(e){ _ph.harga = {}; }
-  return _ph.harga;
+function phNum(v){ v = (v===null||v===undefined||v==='') ? null : Number(v); return (v!==null && isFinite(v)) ? v : null; }
+// Penyimpanan per toko: { h:{ key SKU: harga jual }, t:{ npm, ops, acos } (persen), ch:'id channel' }. Format lama (peta harga polos) ikut terbaca.
+function phStore(){
+  if(_ph.store) return _ph.store;
+  let o = null;
+  try{ o = JSON.parse(zLS.getItem(tk('zenootAnalisis.proyeksiHarga'))||'null'); }catch(e){}
+  if(!o || typeof o!=='object') o = {};
+  if(!('h' in o) && !('t' in o) && !('ch' in o)) o = { h:o };
+  _ph.store = { h:o.h||{}, t:o.t||{}, ch:o.ch||'' };
+  return _ph.store;
 }
-function phHargaSave(){ try{ zLS.setItem(tk('zenootAnalisis.proyeksiHarga'), JSON.stringify(_ph.harga||{})); }catch(e){} }
-// Sumber rasio (angka persen, mis. 29.5): Rekap bulan terakhir yang lengkap → fallback Setting
-function phSource(){
-  const S = state.settings, keys = Object.keys(state.rekap).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort();
-  let snap = null, key = null;
+function phStoreSave(){ try{ zLS.setItem(tk('zenootAnalisis.proyeksiHarga'), JSON.stringify(phStore())); }catch(e){} }
+// Admin & layanan (persen): Proyeksi RKS bulan berjalan → RKS Overview (Rekap bulanan terakhir) → Setting
+function phAdminSource(){
+  const ok = v=>v!==null && v!==undefined && isFinite(v);
+  const d = new Date(), kNow = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  const p = state.proyeksi && state.proyeksi.rekap && state.proyeksi.rekap[kNow];
+  if(p && ok(p.ratioAdmin)) return { v:p.ratioAdmin*100, src:'Proyeksi RKS '+rekapMonthLabel(kNow) };
+  const keys = Object.keys(state.rekap).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort();
   for(let i=keys.length-1;i>=0;i--){
     const s = state.rekap[keys[i]];
-    if(s && [s.ratioAdmin, s.acos, s.rasioOperasional].every(v=>v!==null && v!==undefined && isFinite(v))){ snap = s; key = keys[i]; break; }
+    if(s && ok(s.ratioAdmin)) return { v:s.ratioAdmin*100, src:'RKS Overview '+rekapMonthLabel(keys[i]) };
   }
-  const lbl = key ? 'Rekap '+rekapMonthLabel(key) : null;
-  const pick = (rk, setV, setLbl)=> rk!==null ? { v:rk*100, src:lbl } : (setV!==null ? { v:setV, src:setLbl } : { v:null, src:null });
-  return {
-    admin: pick(snap ? snap.ratioAdmin : null, phPos(S.adminPct), 'Setting'),
-    acos:  pick(snap ? snap.acos : null, phPos(S.targetRoas)!==null ? 100/Number(S.targetRoas) : null, 'Setting (1 ÷ Target ROAS)'),
-    ops:   pick(snap ? snap.rasioOperasional : null, phPos(S.rasioOpsPercent), 'Setting'),
-    npm:   phPos(S.targetRasioLaba)!==null ? { v:Number(S.targetRasioLaba), src:'Setting (Target Rasio Laba)' } : { v:10, src:'default 10%' }
-  };
+  const a = phPos(state.settings.adminPct);
+  return a!==null ? { v:a, src:'Setting' } : { v:null, src:null };
 }
-// Nilai efektif = isian simulasi (kalau ada) atau sumber. Mengembalikan persen & pecahan.
+// Nilai awal NPM/Operasional/ACOS kalau belum pernah disimpan: ikut Setting
+function phTargetDefault(k){
+  const S = state.settings;
+  if(k==='npm') return phPos(S.targetRasioLaba)!==null ? { v:Number(S.targetRasioLaba), src:'dari Setting' } : { v:10, src:'default 10%' };
+  if(k==='ops') return phPos(S.rasioOpsPercent)!==null ? { v:Number(S.rasioOpsPercent), src:'dari Setting' } : { v:null, src:null };
+  return phPos(S.targetRoas)!==null ? { v:100/Number(S.targetRoas), src:'dari Setting (1 ÷ ROAS)' } : { v:null, src:null };
+}
+// Nilai efektif (persen & pecahan) + keterangan sumber. Saat Edit, isian draft langsung dipakai (pratinjau hidup).
 function phEff(){
-  const src = phSource(), out = { src };
-  ['npm','admin','acos','ops'].forEach(k=>{
-    const sim = _ph.sim[k];
-    const v = (sim!==undefined && sim!==null) ? sim : src[k].v;
-    out[k] = v;                                   // persen (atau null = belum ada data)
-    out[k+'F'] = v===null ? null : v/100;         // pecahan
-    out[k+'Sim'] = (sim!==undefined && sim!==null);
+  const t = phStore().t, out = { tag:{} };
+  const admin = phAdminSource();
+  out.admin = admin.v; out.tag.admin = admin.src;
+  ['npm','ops','acos'].forEach(k=>{
+    const saved = phNum(t[k]), def = phTargetDefault(k);
+    let v, tag;
+    if(_ph.edit && k in _ph.draft){ v = _ph.draft[k]; tag = 'diubah'; }
+    else if(saved!==null){ v = saved; tag = 'tersimpan'; }
+    else { v = def.v; tag = def.src; }
+    out[k] = v; out.tag[k] = tag;
   });
+  ['npm','admin','acos','ops'].forEach(k=>{ out[k+'F'] = out[k]===null ? null : out[k]/100; });
   out.ok = ['npm','admin','acos','ops'].every(k=>out[k]!==null);
   out.gpm = out.ok ? out.npmF+out.adminF+out.acosF+out.opsF : null;
   out.valid = out.ok && out.gpm<1;
   out.hppPct = out.valid ? 1-out.gpm : null;
   return out;
 }
-// Baris SKU: katalog channel toko (kalau channel toko dikenali) dari Kelola Produk; HPP beda antar varian → pecah per size (HPP tertinggi), sama seperti BCG
+// Channel produk: pilihan tersimpan → tebakan dari nama toko. Tanpa channel = tabel kosong + ajakan memilih.
+function phChannel(){
+  if(!(_plCh.loaded && _plCh.ok)) return '';
+  const st = phStore().ch;
+  if(st && _plCh.list.some(c=>c.id===st)) return st;
+  return plGuessChannel();
+}
+// Baris SKU: katalog channel dari Kelola Produk; HPP beda antar varian → pecah per size (HPP tertinggi), sama seperti BCG
 function phRows(){
-  let note = '';
-  const chId = (_plCh.loaded && _plCh.ok) ? plGuessChannel() : '';
-  const m = chId ? _plCh.map[chId] : null;
-  let groups = zKatalogGroups();
-  if(m){ groups = groups.filter(g=>m[g.katalog.trim().toLowerCase()]); note = 'Produk channel '+(_plCh.list.find(c=>c.id===chId)||{}).nama; }
-  else note = _plCh.loaded ? 'Channel toko belum dikenali — menampilkan semua produk Kelola Produk' : 'Memuat produk channel…';
+  if(!_plCh.loaded) return { rows:[], chId:'', msg:'Memuat produk channel…' };
+  if(!_plCh.ok) return { rows:[], chId:'', msg:'Data Channel belum bisa dimuat (tabel channels / channel_produk). Buka ulang halaman ini.' };
+  const chId = phChannel();
+  if(!chId) return { rows:[], chId:'', msg:'Pilih channel produk di atas.' };
+  const m = _plCh.map[chId];
+  if(!m) return { rows:[], chId, msg:'Channel ini belum punya produk — pasang produknya dulu di menu Channel.' };
   const out = [];
-  groups.forEach(g=>{
+  zKatalogGroups().filter(g=>m[g.katalog.trim().toLowerCase()]).forEach(g=>{
     const distinct = [...new Set(g.variants.map(v=>v.hpp))];
     if(distinct.length<=1){ out.push({ key:g.katalog.trim().toLowerCase(), sku:g.katalog, hpp:distinct[0]||0 }); return; }
     const bySize = new Map();
     g.variants.forEach(v=>{ const l = v.size ? v.size.toUpperCase() : v.sku_variasi; if(!bySize.has(l) || v.hpp>bySize.get(l)) bySize.set(l, v.hpp); });
     bySize.forEach((hpp,l)=>out.push({ key:(g.katalog+'|'+l).trim().toLowerCase(), sku:g.katalog+' — '+l, hpp }));
   });
-  return { rows:out, note };
+  return { rows:out, chId, msg: out.length ? '' : 'Produk channel ini belum punya HPP di Kelola Produk.' };
 }
 function phCalc(row, E){
-  const harga = phPos(phHargaLoad()[row.key]);
+  const harga = phPos(phStore().h[row.key]);
   const min = (E.valid && row.hpp>0) ? Math.ceil((row.hpp/E.hppPct)/1000)*1000 - 1 : null;     // pembulatan sama dengan Price List: naik ke ribuan − 1
   let maks = null, selisih = null, npm = null;
   if(E.valid && harga!==null){
@@ -7826,21 +7856,27 @@ function phSegHtml(E){
 }
 function phHeadHtml(E){
   if(!E.ok){
-    const miss = ['admin','acos','ops'].filter(k=>E[k]===null).map(k=>({admin:'Admin',acos:'Iklan (ACOS)',ops:'Operasional'}[k]));
-    return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;">Belum bisa dihitung — rasio ${miss.join(', ')} belum ada. Simpan Rekap bulanan dulu (RKS Overview) atau isi di Setting Analisis, atau isi manual di panel kanan.</div>`;
+    const nm = { admin:'Admin & layanan', acos:'Iklan (ACOS)', ops:'Operasional', npm:'NPM' };
+    const miss = ['admin','npm','ops','acos'].filter(k=>E[k]===null).map(k=>nm[k]);
+    return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;">Belum bisa dihitung — ${miss.join(', ')} belum ada. ${E.admin===null?'Admin & layanan otomatis dari Proyeksi RKS / RKS Overview (simpan Rekap dulu) atau Setting. ':''}${['npm','ops','acos'].some(k=>E[k]===null)?'NPM, Operasional dan Iklan kamu tentukan sendiri: klik Edit di panel kanan lalu Simpan.':''}</div>`;
   }
-  if(!E.valid) return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;color:#b42318;">GPM yang dibutuhkan ${(E.gpm*100).toFixed(1)}% — sudah ≥ 100%, artinya target NPM tidak mungkin dicapai dengan rasio biaya ini. Turunkan target NPM atau biaya.</div>`;
+  if(!E.valid) return `<div class="ph-title">Proyeksi Harga</div><div class="hint" style="margin:6px 0 0;color:#b42318;">GPM yang dibutuhkan ${(E.gpm*100).toFixed(1)}% — sudah ≥ 100%, artinya target NPM tidak mungkin dicapai dengan rasio biaya ini. Turunkan target NPM / Operasional / Iklan.</div>`;
   const f = x=>(x*100).toFixed(1).replace(/\.0$/,'')+'%';
   return `<div class="ph-title">Agar NPM ${f(E.npmF)}, GPM harus ${f(E.gpm)}</div>
     <div class="ph-sub">GPM = Admin &amp; layanan ${f(E.adminF)} + Iklan ${f(E.acosF)} + Operasional ${f(E.opsF)} + NPM ${f(E.npmF)} = <b>${f(E.gpm)}</b> &nbsp;·&nbsp; HPP maksimal = 100% − ${f(E.gpm)} = <b>${f(E.hppPct)}</b> dari harga jual</div>`;
 }
+function phNoteHtml(R){
+  const opts = _plCh.ok ? _plCh.list.map(c=>`<option value="${escHtml(c.id)}"${c.id===R.chId?' selected':''}>${escHtml((PL_KAT_LABEL[c.kat]||'')+' · '+c.nama)}</option>`).join('') : '';
+  const sel = (_plCh.loaded && _plCh.ok) ? `<label class="ph-ch">Produk channel <select id="phCh">${R.chId?'':'<option value="" selected>— pilih channel —</option>'}${opts}</select></label>` : '';
+  return sel + (R.rows.length ? `<span class="ph-cnt">${R.rows.length} SKU</span>` : '');
+}
 function phTableBodyHtml(R, E){
-  if(!R.rows.length) return `<tr><td colspan="9" style="color:var(--ink-soft);">${_plCh.loaded ? 'Belum ada produk dengan HPP (isi HPP di Kelola Produk, dan pasang produk di menu Channel).' : 'Memuat produk channel…'}</td></tr>`;
+  if(!R.rows.length) return `<tr><td colspan="9" style="color:var(--ink-soft);">${escHtml(R.msg)}</td></tr>`;
   return R.rows.map((r,i)=>{
     const c = phCalc(r, E);
     const bad = c.selisih!==null && c.selisih<0;
     const st = c.selisih===null ? '<span style="color:var(--ink-soft);">—</span>' : (bad ? '<span class="ca-badge" style="background:#fee2e2;color:#b42318;">Lewat batas</span>' : '<span class="ca-badge ok">Aman</span>');
-    return `<tr data-k="${escHtml(r.key)}">
+    return `<tr>
       <td class="num">${i+1}</td><td>${escHtml(r.sku)}</td><td class="num">${fmtNum(r.hpp)}</td>
       <td class="num" style="font-weight:700;">${c.min===null?'-':fmtNum(c.min)}</td>
       <td class="num"><input type="text" inputmode="numeric" class="ph-harga" data-k="${escHtml(r.key)}" value="${c.harga===null?'':fmtNum(c.harga)}" placeholder="isi harga"></td>
@@ -7850,14 +7886,19 @@ function phTableBodyHtml(R, E){
       <td>${st}</td></tr>`;
   }).join('');
 }
+function phFmtIn(v){ return v===null||v===undefined ? '' : (Math.round(v*100)/100).toString().replace('.',','); }
 function phSettingsHtml(E){
-  const rows = [['npm','Target NPM','NPM yang dikejar'],['admin','Admin & layanan','dari Rekap/Setting'],['acos','Iklan (ACOS)','1 ÷ ROAS'],['ops','Operasional','rasio operasional']];
-  return rows.map(r=>{
-    const k = r[0], src = E.src[k];
-    const val = E[k];
-    const tag = E[k+'Sim'] ? '<span class="ph-tag sim">diubah</span>' : (src.src ? `<span class="ph-tag">${escHtml(src.src)}</span>` : '<span class="ph-tag miss">belum ada data</span>');
-    return `<label class="ph-fld"><span class="ph-fl">${r[1]} ${tag}</span><span class="ph-in"><input type="text" inputmode="decimal" data-k="${k}" value="${val===null?'':(Math.round(val*100)/100).toString().replace('.',',')}" placeholder="—"><i>%</i></span></label>`;
-  }).join('') + `<button type="button" class="btn ghost small" id="phReset"${Object.keys(_ph.sim).length?'':' disabled'}>Kembalikan ke sumber</button>`;
+  const ed = _ph.edit;
+  const fld = (k,label,editable)=>{
+    const tag = E.tag[k] ? `<span class="ph-tag${E.tag[k]==='diubah'?' sim':''}">${escHtml(E.tag[k])}</span>` : '<span class="ph-tag miss">belum ada data</span>';
+    return `<label class="ph-fld"><span class="ph-fl">${label} ${tag}</span><span class="ph-in"><input type="text" inputmode="decimal" data-k="${k}" value="${phFmtIn(E[k])}" placeholder="—"${(ed&&editable)?'':' disabled'}><i>%</i></span></label>`;
+  };
+  return fld('npm','Target NPM',true) + fld('ops','Operasional',true) + fld('acos','Iklan (ACOS)',true) + fld('admin','Admin & layanan',false)
+    + `<div class="ph-err" id="phErr">${escHtml(_ph.err)}</div>`
+    + `<div class="ph-btns">${ed
+        ? '<button type="button" class="btn primary small" id="phSave">Simpan</button><button type="button" class="btn ghost small" id="phCancel">Batal</button>'
+        : '<button type="button" class="btn small" id="phEdit">Edit</button>'}</div>`
+    + `<div class="ph-help">NPM, Operasional dan Iklan kamu tentukan sendiri (Edit → Simpan, tersimpan per toko). Admin &amp; layanan otomatis: Proyeksi RKS bulan berjalan → RKS Overview → Setting.</div>`;
 }
 function phExampleHtml(E){
   if(!E.valid) return '';
@@ -7869,6 +7910,20 @@ function phExampleHtml(E){
     <tr><td>Laba bersih (NPM ${(E.npmF*100).toFixed(1).replace(/\.0$/,'')}%)</td><td>${v(E.npmF)}</td></tr>
     <tr class="hl"><td>HPP maksimal</td><td>${v(E.hppPct)}</td></tr></table>`;
 }
+function phSaveTargets(){
+  const d = _ph.draft, t = {};
+  for(const k of ['npm','ops','acos']){
+    const raw = k in d ? d[k] : phEff()[k];
+    if(raw===null || raw===undefined || !isFinite(raw) || raw<0 || raw>=100){
+      _ph.err = 'Isi '+({npm:'Target NPM',ops:'Operasional',acos:'Iklan (ACOS)'}[k])+' dengan angka 0 sampai kurang dari 100.'; phRefresh(false); return;
+    }
+    t[k] = raw;
+  }
+  phStore().t = t; phStoreSave();
+  _ph.edit = false; _ph.draft = {}; _ph.err = '';
+  phRefresh(false);
+  const b = document.getElementById('phEdit'); if(b){ const o = b.textContent; b.textContent = '✓ Tersimpan'; setTimeout(()=>{ b.textContent = o; }, 1500); }
+}
 function renderProyeksiHarga(){
   const page = document.getElementById('page-proyeksiharga'); if(!page) return;
   if(!_ph.ready){
@@ -7877,31 +7932,36 @@ function renderProyeksiHarga(){
         <div class="card" id="phTableCard"><div class="ph-note" id="phNote"></div>
           <div class="pricelist-scroll"><table class="ca-table"><thead><tr><th class="num">No</th><th>SKU</th><th class="num">HPP</th><th class="num">Harga Minimal</th><th class="num">Harga Jual</th><th class="num">HPP Maks</th><th class="num">Selisih</th><th class="num">NPM</th><th>Status</th></tr></thead><tbody id="phBody"></tbody></table></div></div>
       </div>
-      <div class="ph-side"><div class="card"><div class="ph-side-h">Pengaturan simulasi</div><div id="phSettings"></div></div><div class="card" id="phExample"></div></div>`;
+      <div class="ph-side"><div class="card"><div class="ph-side-h">Target &amp; rasio</div><div id="phSettings"></div></div><div class="card" id="phExample"></div></div>`;
     _ph.ready = true;
     page.addEventListener('input', e=>{
       const t = e.target;
       if(t.matches('#phSettings input[data-k]')){
         const raw = String(t.value).trim().replace(',','.');
         const x = raw==='' ? null : Number(raw);
-        if(x===null || !isFinite(x) || x<0){ delete _ph.sim[t.dataset.k]; } else { _ph.sim[t.dataset.k] = x; }
+        _ph.draft[t.dataset.k] = (x===null || !isFinite(x)) ? null : x;
+        _ph.err = ''; const er = document.getElementById('phErr'); if(er) er.textContent = '';
         phRefresh(true);
       } else if(t.id==='phEx'){ const n = parseNum(t.value); _ph.ex = (n && n>0) ? n : 100000; phRefreshExample(); }
     });
     page.addEventListener('change', e=>{
       const t = e.target;
       if(t.classList && t.classList.contains('ph-harga')){
-        const n = parseNum(t.value), h = phHargaLoad();
+        const n = parseNum(t.value), h = phStore().h;
         if(n && n>0) h[t.dataset.k] = n; else delete h[t.dataset.k];
-        phHargaSave(); phRefresh(false);
+        phStoreSave(); phRefresh(true);
       } else if(t.id==='phEx'){ t.value = fmtNum(_ph.ex); }
+      else if(t.id==='phCh'){ phStore().ch = t.value; phStoreSave(); phRefresh(true); }
     });
     page.addEventListener('click', e=>{
-      if(e.target.id==='phReset'){ _ph.sim = {}; phRefresh(false); }
+      const id = e.target.id;
+      if(id==='phEdit'){ _ph.edit = true; _ph.draft = {}; _ph.err = ''; phRefresh(false); }
+      else if(id==='phCancel'){ _ph.edit = false; _ph.draft = {}; _ph.err = ''; phRefresh(false); }
+      else if(id==='phSave'){ phSaveTargets(); }
     });
   }
-  _ph.harga = null;   // baca ulang dari storage toko aktif (aman setelah ganti toko)
-  if(!_plCh.loaded){ plLoadChannels().then(()=>{ if(currentPage==='proyeksiharga') phRefresh(false); }); }
+  _ph.store = null; _ph.edit = false; _ph.draft = {}; _ph.err = '';   // baca ulang dari storage toko aktif (aman setelah ganti toko)
+  if(!_plCh.loaded){ plLoadChannels().then(()=>{ if(currentPage==='proyeksiharga') phRefresh(true); }); }
   phRefresh(false);
 }
 function phRefreshExample(){ const el = document.getElementById('phExample'); if(el) el.innerHTML = phExampleHtml(phEff()); }
@@ -7909,15 +7969,14 @@ function phRefresh(keepSettings){
   const E = phEff(), R = phRows();
   const set = (id,html)=>{ const el = document.getElementById(id); if(el) el.innerHTML = html; };
   set('phHead', phHeadHtml(E) + phSegHtml(E));
-  set('phNote', escHtml(R.note) + (R.rows.length ? ' · '+R.rows.length+' SKU' : ''));
+  set('phNote', phNoteHtml(R));
   set('phBody', phTableBodyHtml(R, E));
   phRefreshExample();
   if(!keepSettings) set('phSettings', phSettingsHtml(E));
-  else { // sedang mengetik di panel kanan: perbarui tag sumber & tombol reset di tempat, jangan bangun ulang input (fokus tetap)
-    const rs = document.getElementById('phReset'); if(rs) rs.disabled = !Object.keys(_ph.sim).length;
+  else {   // sedang mengetik: perbarui hanya keterangan sumber (input tetap, fokus tidak hilang)
     document.querySelectorAll('#phSettings .ph-fld').forEach(f=>{
       const k = f.querySelector('input').dataset.k, tag = f.querySelector('.ph-tag');
-      if(tag){ tag.className = 'ph-tag' + (E[k+'Sim'] ? ' sim' : (E.src[k].src ? '' : ' miss')); tag.textContent = E[k+'Sim'] ? 'diubah' : (E.src[k].src || 'belum ada data'); }
+      if(tag){ tag.className = 'ph-tag' + (E.tag[k]==='diubah' ? ' sim' : (E.tag[k] ? '' : ' miss')); tag.textContent = E.tag[k] || 'belum ada data'; }
     });
   }
 }
