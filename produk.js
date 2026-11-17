@@ -352,23 +352,43 @@ function _produkCadRows(row) {   // [{ link, sup }] cadangan SKU ini
   out.sort(function(a, b) { return String(a.sup.nama || '').localeCompare(String(b.sup.nama || ''), 'id'); });
   return out;
 }
-function _produkCadKandidat(row) {   // supplier yang boleh dipilih jadi cadangan SKU ini
+function _produkCadKandidat(row) {   // supplier yang boleh dipilih jadi cadangan SKU ini (flag supplier hanya saran awal, bukan kunci)
   var boss = String(row.boss || '').trim().toUpperCase();
   return (_produkSupplierList || []).filter(function(s) {
-    return s.is_dropship && !s.is_produksi_sendiri && String(s.nama || '').trim().toUpperCase() !== boss;
+    return !s.is_produksi_sendiri && String(s.nama || '').trim().toUpperCase() !== boss;
   });
+}
+// Sistem yang aktif di satu tautan cadangan (SKU × supplier): Dropship dan/atau P.O (boleh dua-duanya)
+function _produkCadMode(link) { return { ds: link.dropship !== false, po: link.po === true }; }
+// Saran awal sistem saat supplier baru dijadikan cadangan, dari flag supplier (Channel › Supplier & ROP); tidak ada flag → Dropship
+function _produkCadModeAwal(sup) { return { dropship: !!sup.is_dropship || !sup.is_reseller, po: !!sup.is_reseller }; }
+function _produkCadHargaPo(row, supId) {   // harga P.O per pcs SKU ini di supplier cadangan (0 = belum diisi)
+  var b = (_produkHbList || []).find(function(x) { return x.produk_id === row.id && x.supplier_id === supId; });
+  return b && Number(b.harga_po_per_lusin) > 0 ? Math.round(Number(b.harga_po_per_lusin) / 12) : 0;
 }
 function _produkCadHargaDs(row, supId) {   // harga Dropship per pcs SKU ini di supplier cadangan (0 = belum diisi)
   var b = (_produkHbList || []).find(function(x) { return x.produk_id === row.id && x.supplier_id === supId; });
   return b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0;
 }
-async function _produkCadTambah(row, sup, ds) {   // idempotent; ds (per pcs) > 0 → ikut diisi ke Master Barang
-  if (!(_produkCadList || []).some(function(l) { return l.produk_id === row.id && l.supplier_id === sup.id; })) {
-    var ins = await dbInsert('produk_supplier', { produk_id: row.id, supplier_id: sup.id });
+// Idempotent. modes = { dropship, po } (kosong → saran dari flag supplier); harga ds/po (per pcs) > 0 → diisi ke Master Barang dan sistemnya otomatis aktif.
+// Tautan yang sudah ada: sistem digabung (tidak ada yang dimatikan).
+async function _produkCadTambah(row, sup, ds, po, modes) {
+  var m = modes ? { dropship: !!modes.dropship, po: !!modes.po } : _produkCadModeAwal(sup);
+  if (Number(ds) > 0) m.dropship = true;
+  if (Number(po) > 0) m.po = true;
+  var link = (_produkCadList || []).find(function(l) { return l.produk_id === row.id && l.supplier_id === sup.id; });
+  if (!link) {
+    var ins = await dbInsert('produk_supplier', { produk_id: row.id, supplier_id: sup.id, dropship: m.dropship, po: m.po });
     var nl = Array.isArray(ins) ? ins[0] : ins;
-    _produkCadList.push({ id: nl && nl.id, produk_id: row.id, supplier_id: sup.id });
+    _produkCadList.push({ id: nl && nl.id, produk_id: row.id, supplier_id: sup.id, dropship: m.dropship, po: m.po });
+  } else {
+    var cur = _produkCadMode(link), gab = { dropship: cur.ds || m.dropship, po: cur.po || m.po };
+    if (gab.dropship !== cur.ds || gab.po !== cur.po) {
+      await dbUpdate('produk_supplier', link.id, gab);
+      link.dropship = gab.dropship; link.po = gab.po;
+    }
   }
-  if (Number(ds) > 0) await _produkUpsertHargaDual(row, sup, 0, ds);
+  if (Number(ds) > 0 || Number(po) > 0) await _produkUpsertHargaDual(row, sup, po, ds);
 }
 async function _produkCadHapus(linkId) {
   await dbDelete('produk_supplier', linkId, true);
@@ -628,15 +648,21 @@ function produkSistemSheetClose() {
   _pkSisId = null;
 }
 
-// ── SUPPLIER CADANGAN per SKU (16 Nov 2026, menggantikan Padanan Dropship) ──
-// Baris di sheet Sistem → sheet "Supplier Cadangan": daftar supplier Dropship (selain supplier utama), ketuk = aktif/nonaktif.
-// Harga Dropship di tiap cadangan diisi lewat baris "Ubah harga Dropship" (disimpan ke Master Barang).
+// ── SUPPLIER CADANGAN per SKU (16 Nov 2026, menggantikan Padanan Dropship; sistem per sumber 17 Nov 2026) ──
+// Baris di sheet Sistem → sheet "Supplier Cadangan": daftar supplier (selain supplier utama & Produksi Sendiri), ketuk = jadikan / lepas cadangan.
+// Tiap cadangan punya 2 sistem sendiri — Dropship dan P.O (boleh dua-duanya) — dengan harga masing-masing di Master Barang:
+// ketuk saklar = aktif/nonaktif, ketuk barisnya = ubah harga.
 function _produkCadRow(row, eff) {
   if (eff === 'dropship') return '';
   var cad = _produkCadRows(row);
   var ket = cad.length
-    ? cad.map(function(c) { var h = _produkCadHargaDs(row, c.sup.id); return _pkEsc(c.sup.nama) + (h ? ' · ' + _produkRp(h) : ' · harga belum diisi'); }).join(' | ')
-    : 'Belum ada — dipakai toggle Dropship di Tambah Penjualan saat stok utama kosong.';
+    ? cad.map(function(c) {
+        var m = _produkCadMode(c.link), bagian = [];
+        if (m.ds) { var d = _produkCadHargaDs(row, c.sup.id); bagian.push('Dropship ' + (d ? _produkRp(d) : 'harga belum diisi')); }
+        if (m.po) { var o = _produkCadHargaPo(row, c.sup.id); bagian.push('P.O ' + (o ? _produkRp(o) : 'harga belum diisi')); }
+        return _pkEsc(c.sup.nama) + ' · ' + (bagian.join(' · ') || 'tidak ada sistem aktif');
+      }).join(' | ')
+    : 'Belum ada — dipakai saat stok utama kosong: Dropship (toggle di Tambah Penjualan) atau P.O (sumber di Tambah Stok Masuk).';
   return '<div class="pk-sis-row" onclick="produkCadOpen()">'
     + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">Supplier Cadangan</div><div class="pk-sis-rd">' + ket + '</div></div>'
     + '<i class="ti ti-chevron-right" style="color:var(--ink3)"></i></div>';
@@ -648,62 +674,97 @@ function produkCadOpen() {
   if (!row || !sh) return;
   sh.innerHTML = '<div class="pk-sis-handle"></div>'
     + '<div class="pk-sis-title">Supplier Cadangan</div>'
-    + '<div class="pk-sis-sub"><b>' + _pkEsc(row.sku_variasi) + '</b> — utama: <b>' + _pkEsc(row.boss || '—') + '</b>. Dipakai saat stok utama kosong: penjualan dicatat dropship ke cadangan, stok utama tidak berkurang.</div>'
+    + '<div class="pk-sis-sub"><b>' + _pkEsc(row.sku_variasi) + '</b> — utama: <b>' + _pkEsc(row.boss || '—') + '</b>. Dipakai saat stok utama kosong. Dropship: dicatat dropship ke cadangan, stok utama tidak berkurang. P.O: stok dibeli dari cadangan lewat Tambah Stok Masuk dan bonnya terbentuk otomatis.</div>'
     + '<div id="pk-cad-list"></div>'
     + '<div class="pk-sis-row" onclick="produkSistemSheetOpen(_pkSisId)"><div class="pk-sis-rtxt"><div class="pk-sis-rl">Kembali</div></div></div>';
   produkCadRender();
 }
 
+function _produkCadRowSheet() { return (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); }); }
+
 function produkCadRender() {
-  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  var row = _produkCadRowSheet();
   var box = document.getElementById('pk-cad-list');
   if (!row || !box) return;
   var kand = _produkCadKandidat(row);
-  var on = {};
-  _produkCadRows(row).forEach(function(c) { on[c.sup.id] = true; });
-  if (!kand.length) { box.innerHTML = '<div class="pk-sis-sub" style="padding:14px 18px">Belum ada supplier Dropship lain yang bisa jadi cadangan.</div>'; return; }
+  var link = {};
+  _produkCadRows(row).forEach(function(c) { link[c.sup.id] = c.link; });
+  if (!kand.length) { box.innerHTML = '<div class="pk-sis-sub" style="padding:14px 18px">Belum ada supplier lain yang bisa jadi cadangan.</div>'; return; }
   box.innerHTML = kand.map(function(sup) {
-    var h = _produkCadHargaDs(row, sup.id);
-    var out = '<div class="pk-sis-row' + (on[sup.id] ? ' on' : '') + '" onclick="produkCadToggle(' + sup.id + ')">'
+    var l = link[sup.id];
+    var out = '<div class="pk-sis-row' + (l ? ' on' : '') + '" onclick="produkCadToggle(' + sup.id + ')">'
       + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + _pkEsc(sup.nama) + '</div>'
-      + '<div class="pk-sis-rd">' + (on[sup.id] ? (h ? 'Harga Dropship ' + _produkRp(h) : '<span style="color:var(--danger)">Harga Dropship belum diisi</span>') : 'Ketuk untuk jadikan cadangan') + '</div></div>'
+      + '<div class="pk-sis-rd">' + (l ? 'Cadangan aktif' : 'Ketuk untuk jadikan cadangan') + '</div></div>'
       + '<span class="pk-sis-tg"></span></div>';
-    if (on[sup.id]) out += '<div class="pk-sis-row" style="padding-left:34px" onclick="produkCadHarga(' + sup.id + ')"><div class="pk-sis-rtxt"><div class="pk-sis-rl" style="font-size:13px">Ubah harga Dropship ' + _pkEsc(sup.nama) + '</div></div><i class="ti ti-pencil" style="color:var(--ink3)"></i></div>';
+    if (l) {
+      var m = _produkCadMode(l);
+      [['ds', 'Dropship', m.ds, _produkCadHargaDs(row, sup.id)], ['po', 'P.O', m.po, _produkCadHargaPo(row, sup.id)]].forEach(function(x) {
+        out += '<div class="pk-sis-row' + (x[2] ? ' on' : '') + '" style="padding-left:34px" onclick="produkCadHarga(' + sup.id + ',\'' + x[0] + '\')">'
+          + '<div class="pk-sis-rtxt"><div class="pk-sis-rl" style="font-size:13px">' + x[1] + '</div>'
+          + '<div class="pk-sis-rd">' + (x[3] ? _produkRp(x[3]) + ' / pcs — ketuk untuk ubah harga' : '<span style="color:var(--danger)">Harga belum diisi</span> — ketuk untuk isi') + '</div></div>'
+          + '<span class="pk-sis-tg" onclick="event.stopPropagation();produkCadMode(' + sup.id + ',\'' + x[0] + '\')"></span></div>';
+      });
+    }
     return out;
   }).join('');
 }
 
+function _produkCadPesanError(e) {
+  var msg = (e && e.message) || String(e);
+  return msg + (/produk_supplier|column.*(dropship|po)\b/i.test(msg) ? '\n\nTabel/kolom belum ada — jalankan zenoot-multi-supplier.sql dan zenoot-multi-supplier-sistem.sql di Supabase dulu.' : '');
+}
+
 async function produkCadToggle(supId) {
-  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  var row = _produkCadRowSheet();
   var sup = _produkSupById(supId);
   if (!row || !sup) return;
   try {
     var link = (_produkCadList || []).find(function(l) { return l.produk_id === row.id && l.supplier_id === supId; });
     if (link) await _produkCadHapus(link.id);
-    else await _produkCadTambah(row, sup, 0);
+    else await _produkCadTambah(row, sup, 0, 0, null);
     produkMarkDirty();
     renderProduk(_produkData);
     produkCadRender();
-  } catch (e) {
-    var msg = (e && e.message) || String(e);
-    alert('Gagal simpan supplier cadangan: ' + msg + (/produk_supplier/i.test(msg) ? '\n\nTabel belum ada — jalankan zenoot-multi-supplier.sql di Supabase dulu.' : ''));
-  }
+  } catch (e) { alert('Gagal simpan supplier cadangan: ' + _produkCadPesanError(e)); }
 }
 
-async function produkCadHarga(supId) {
-  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+async function produkCadMode(supId, mk) {   // saklar Dropship / P.O satu cadangan; minimal satu sistem harus aktif
+  var row = _produkCadRowSheet();
+  var link = row ? (_produkCadList || []).find(function(l) { return l.produk_id === row.id && l.supplier_id === supId; }) : null;
+  if (!link) return;
+  var m = _produkCadMode(link), baru = { dropship: m.ds, po: m.po };
+  if (mk === 'ds') baru.dropship = !m.ds; else baru.po = !m.po;
+  if (!baru.dropship && !baru.po) { alert('Minimal satu sistem aktif. Kalau supplier ini tidak dipakai lagi, lepas lewat ketuk namanya.'); return; }
+  try {
+    await dbUpdate('produk_supplier', link.id, baru);
+    link.dropship = baru.dropship; link.po = baru.po;
+    produkMarkDirty();
+    renderProduk(_produkData);
+    produkCadRender();
+  } catch (e) { alert('Gagal simpan sistem: ' + _produkCadPesanError(e)); }
+}
+
+async function produkCadHarga(supId, mk) {
+  var row = _produkCadRowSheet();
   var sup = _produkSupById(supId);
   if (!row || !sup) return;
-  var v = await zPrompt('Harga Dropship ' + row.sku_variasi + ' di ' + sup.nama + ' (Rp per pcs)', String(_produkCadHargaDs(row, supId) || ''), { title: 'Harga Dropship', placeholder: 'Contoh: 48000' });
+  var ds = mk === 'ds';
+  var v = await zPrompt('Harga ' + (ds ? 'Dropship' : 'P.O') + ' ' + row.sku_variasi + ' di ' + sup.nama + ' (Rp per pcs)', String((ds ? _produkCadHargaDs(row, supId) : _produkCadHargaPo(row, supId)) || ''), { title: 'Harga ' + (ds ? 'Dropship' : 'P.O'), placeholder: 'Contoh: 48000' });
   if (v == null) return;
   var n = parseInt(String(v).replace(/\D/g, ''), 10) || 0;
   if (!(n > 0)) { alert('Isi angka harga yang valid.'); return; }
   try {
-    await _produkUpsertHargaDual(row, sup, 0, n);
+    var link = (_produkCadList || []).find(function(l) { return l.produk_id === row.id && l.supplier_id === supId; });
+    if (link && !(ds ? _produkCadMode(link).ds : _produkCadMode(link).po)) {   // isi harga = sistem itu dipakai → aktifkan
+      var m = _produkCadMode(link), baru = { dropship: m.ds || ds, po: m.po || !ds };
+      await dbUpdate('produk_supplier', link.id, baru);
+      link.dropship = baru.dropship; link.po = baru.po;
+    }
+    await _produkUpsertHargaDual(row, sup, ds ? 0 : n, ds ? n : 0);
     produkMarkDirty();
     renderProduk(_produkData);
     produkCadRender();
-  } catch (e) { alert('Gagal simpan harga: ' + ((e && e.message) || e)); }
+  } catch (e) { alert('Gagal simpan harga: ' + _produkCadPesanError(e)); }
 }
 
 function _produkYmdHariIni() {
@@ -1055,9 +1116,26 @@ function showFormProduk() {
   idrInput('prd-harga-po'); idrInput('prd-harga-ds');
   idrSet('prd-harga-po', 0); idrSet('prd-harga-ds', 0);
   produkPrdSyncDual();
+  document.getElementById('prd-cad-row').style.display = '';   // cadangan hanya untuk SKU baru; SKU yang ada lewat sheet Sistem
+  idrInput('prd-cad-ds'); idrInput('prd-cad-po');
+  produkPrdCadKosongkan();
   showModal('modal-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
   sketchForm('form-produk');
+}
+
+// Cadangan di form Tambah SKU (opsional): pilih supplier → kolom harga Dropship / P.O muncul
+function produkPrdCadSync() {
+  var v = document.getElementById('prd-cad').value.trim();
+  document.getElementById('prd-cad-harga').style.display = v ? 'flex' : 'none';
+  document.getElementById('prd-cad-clear').style.display = v ? '' : 'none';
+}
+function produkPrdCadKosongkan() {
+  document.getElementById('prd-cad').value = '';
+  var lb = document.getElementById('prd-cad-label');
+  if (lb) { lb.textContent = '— Tidak ada —'; lb.style.color = 'var(--ink3)'; }
+  idrSet('prd-cad-ds', 0); idrSet('prd-cad-po', 0);
+  produkPrdCadSync();
 }
 
 function cancelFormProduk() {
@@ -1082,6 +1160,7 @@ async function editProduk(id) {
   var _dd = _produkHargaDualOf(r);
   idrSet('prd-harga-po', _dd ? _dd.po : 0); idrSet('prd-harga-ds', _dd ? _dd.ds : 0);
   produkPrdSyncDual();
+  document.getElementById('prd-cad-row').style.display = 'none';
   showModal('modal-produk');
   sketchForm('form-produk');
   document.getElementById('form-produk').scrollIntoView({behavior:'smooth'});
@@ -1129,6 +1208,11 @@ async function simpanProduk() {
   // 3 Nov 2026: supplier 2 sistem → 2 harga (P.O & Dropship); HPP SKU = harga sistemnya
   const supDual = _produkSupDualByName(data.boss);
   const poIn = supDual ? idrVal('prd-harga-po') : 0, dsIn = supDual ? idrVal('prd-harga-ds') : 0;
+  // 17 Nov 2026: cadangan opsional hanya saat SKU baru
+  const cadNama = id ? '' : document.getElementById('prd-cad').value.trim().toUpperCase();
+  const cadSup = cadNama ? _produkSupMap()[cadNama] : null;
+  if (cadNama && (!cadSup || cadSup.is_produksi_sendiri || cadNama === data.boss)) { alert('Supplier cadangan tidak valid (bukan Produksi Sendiri dan beda dari supplier utama).'); return; }
+  const cadDs = cadSup ? idrVal('prd-cad-ds') : 0, cadPo = cadSup ? idrVal('prd-cad-po') : 0;
 
   const skuNormNew = _produkSkuNorm(data.sku_variasi);
   const dup = _produkData.find(d => d.id != id && _produkSkuNorm(d.sku_variasi) === skuNormNew);
@@ -1166,6 +1250,7 @@ async function simpanProduk() {
       const insP = await dbInsert('produk', data);
       const rowP = Array.isArray(insP) ? insP[0] : insP;
       if (supDual && rowP && rowP.id != null) await _produkUpsertHargaDual({ id: rowP.id, katalog: data.katalog, sku_variasi: data.sku_variasi }, supDual, poIn, dsIn);
+      if (cadSup && rowP && rowP.id != null) await _produkCadTambah({ id: rowP.id, katalog: data.katalog, sku_variasi: data.sku_variasi }, cadSup, cadDs, cadPo, null);
     }
 
     if (id && old) {
@@ -1644,11 +1729,40 @@ function _produkSinkronCatatan(items) {
 }
 
 // ── BATCH: Edit Sistem massal (12 Nov 2026) ───────────────────
+// 17 Nov 2026: pilih SUMBER dulu — Supplier utama (sistem SKU seperti dulu) atau salah satu supplier CADANGAN yang dimiliki SKU terpilih
+// (tiap cadangan punya saklar Dropship dan P.O sendiri). Supplier utama Produksi Sendiri tetap hanya Produksi Sendiri.
 var _bsSis = '';
+var _bsSumber = 'utama';   // 'utama' | id supplier cadangan
+var _bsCad = { ds: false, po: false };
+function _bsSumberOpsi() {   // supplier cadangan yang dimiliki SKU terpilih
+  var ids = Object.keys(_produkSelected).map(Number), seen = {}, out = [];
+  (_produkCadList || []).forEach(function(l) {
+    if (ids.indexOf(l.produk_id) < 0 || seen[l.supplier_id]) return;
+    var sp = _produkSupById(l.supplier_id);
+    if (sp) { seen[l.supplier_id] = true; out.push(sp); }
+  });
+  out.sort(function(a, b) { return String(a.nama || '').localeCompare(String(b.nama || ''), 'id'); });
+  return out;
+}
+function _bsCadLinks() {
+  var ids = Object.keys(_produkSelected).map(Number);
+  return (_produkCadList || []).filter(function(l) { return l.supplier_id === _bsSumber && ids.indexOf(l.produk_id) >= 0; });
+}
+function produkBsSumber(v) {
+  _bsSumber = v === 'utama' ? 'utama' : Number(v);
+  _bsSis = '';
+  if (_bsSumber !== 'utama') {   // saklar awal = kondisi mayoritas SKU terpilih
+    var ls = _bsCadLinks();
+    _bsCad = { ds: ls.filter(function(l) { return _produkCadMode(l).ds; }).length * 2 >= ls.length, po: ls.filter(function(l) { return _produkCadMode(l).po; }).length * 2 > ls.length };
+  }
+  _bsRender();
+}
+function produkBsCadToggle(k) { _bsCad[k] = !_bsCad[k]; _bsRender(); }
 function produkBatchSistem() {
   var ids = Object.keys(_produkSelected).map(Number);
   if (!ids.length) return;
   _bsSis = '';
+  _bsSumber = 'utama';
   document.getElementById('bs-count').textContent = ids.length + ' SKU terpilih';
   _bsRender();
   showModal('modal-batch-sis');
@@ -1656,6 +1770,28 @@ function produkBatchSistem() {
 function produkBsPick(k) { _bsSis = k; _bsRender(); }
 function _bsRows() { var ids = Object.keys(_produkSelected).map(Number); return _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; }); }
 function _bsRender() {
+  var opsi = _bsSumberOpsi();
+  if (_bsSumber !== 'utama' && !opsi.some(function(x) { return x.id === _bsSumber; })) _bsSumber = 'utama';
+  var chip = function(v, t, on) { return '<button type="button" onclick="produkBsSumber(\'' + v + '\')" style="font-family:var(--f);font-size:12px;font-weight:700;padding:6px 12px;border:2px solid var(--ink);cursor:pointer;background:' + (on ? 'var(--ink)' : 'var(--cream)') + ';color:' + (on ? 'var(--cream)' : 'var(--ink)') + '">' + t + '</button>'; };
+  document.getElementById('bs-sumber').innerHTML = opsi.length
+    ? '<div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Sumber</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'
+      + chip('utama', 'Supplier utama', _bsSumber === 'utama') + opsi.map(function(x) { return chip(x.id, _pkEsc(x.nama) + ' (cadangan)', _bsSumber === x.id); }).join('') + '</div>'
+    : '';
+  if (_bsSumber !== 'utama') {   // sumber = supplier cadangan: dua saklar sistem, berlaku untuk SKU terpilih yang punya cadangan itu
+    var supC = _produkSupById(_bsSumber), ls = _bsCadLinks();
+    document.getElementById('bs-opts').innerHTML = [['ds', 'Dropship', 'Dikirim langsung ke pembeli saat stok utama kosong. Bon dropship ke supplier ini.'], ['po', 'P.O', 'Stok dibeli dari supplier ini lewat Tambah Stok Masuk. Bon P.O terbentuk otomatis.']].map(function(x) {
+      return '<div class="pk-sis-row' + (_bsCad[x[0]] ? ' on' : '') + '" style="border-radius:8px" onclick="produkBsCadToggle(\'' + x[0] + '\')">'
+        + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + x[1] + '</div><div class="pk-sis-rd">' + x[2] + '</div></div><span class="pk-sis-tg"></span></div>';
+    }).join('');
+    var tanpaHarga = ls.filter(function(l) {
+      var r = _produkData.find(function(x) { return x.id === l.produk_id; });
+      return r && ((_bsCad.ds && !_produkCadHargaDs(r, l.supplier_id)) || (_bsCad.po && !_produkCadHargaPo(r, l.supplier_id)));
+    }).length;
+    document.getElementById('bs-note').innerHTML = ls.length + ' SKU terpilih punya cadangan ' + _pkEsc(supC ? supC.nama : '') + '.'
+      + (tanpaHarga ? '<br>⚠ ' + tanpaHarga + ' SKU belum ada harga untuk sistem yang diaktifkan — isi lewat Edit Supplier › + Cadangan atau sheet Sistem › Supplier Cadangan.' : '')
+      + '<br>Minimal satu sistem aktif. Untuk melepas supplier ini pakai Edit Supplier › Hapus Cadangan.';
+    return;
+  }
   document.getElementById('bs-opts').innerHTML = _PRODUK_SISTEM_OPSI.map(function(o) {
     var l = o.k === 'reseller' ? 'P.O (Reseller)' : o.l;
     return '<div class="pk-sis-row' + (_bsSis === o.k ? ' on' : '') + '" style="border-radius:8px" onclick="produkBsPick(\'' + o.k + '\')">'
@@ -1668,12 +1804,39 @@ function _bsRender() {
     var skip = items.filter(function(x) { return x.lock && _bsSis !== 'produksi'; }).length;
     var notes = _bsSis === 'produksi' ? [] : _produkSinkronCatatan(items);
     note = (_bsSis === 'produksi' ? 'HPP tidak diubah — atur lewat Edit HPP.' : 'HPP tiap SKU mengikuti harga ' + (_bsSis === 'dropship' ? 'Dropship' : 'P.O') + ' di Master Barang (kalau harganya sudah ada).')
-      + (skip ? '<br>⚠ ' + skip + ' SKU supplier Produksi Sendiri dilewati (tidak bisa Dropship / P.O).' : '')
+      + (skip ? '<br>⚠ ' + skip + ' SKU supplier Produksi Sendiri dilewati. Untuk Dropship / P.O pilih sumber supplier cadangan (tambahkan lewat Edit Supplier › + Cadangan).' : '')
       + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
   }
   document.getElementById('bs-note').innerHTML = note;
 }
+// Sumber = supplier cadangan: terapkan saklar Dropship / P.O ke tautan SKU terpilih (tidak menyentuh sistem supplier utama).
+async function simpanBatchSistemCad() {
+  if (!_bsCad.ds && !_bsCad.po) { alert('Aktifkan minimal satu sistem. Untuk melepas supplier cadangan pakai Edit Supplier › Hapus Cadangan.'); return; }
+  var links = _bsCadLinks();
+  if (!links.length) { alert('Tidak ada SKU terpilih yang punya cadangan ini.'); return; }
+  var btn = document.getElementById('bs-btn-simpan');
+  if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+  try {
+    for (var i = 0; i < links.length; i++) {
+      var m = _produkCadMode(links[i]);
+      if (m.ds === _bsCad.ds && m.po === _bsCad.po) continue;
+      await dbUpdate('produk_supplier', links[i].id, { dropship: _bsCad.ds, po: _bsCad.po });
+      links[i].dropship = _bsCad.ds; links[i].po = _bsCad.po;
+    }
+    hideModal('modal-batch-sis');
+    _produkSelected = {};
+    produkMarkDirty();
+    await loadProduk();
+  } catch (err) {
+    produkMarkDirty();
+    alert('Gagal: ' + _produkCadPesanError(err) + '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan'; }
+  }
+}
+
 async function simpanBatchSistem() {
+  if (_bsSumber !== 'utama') return simpanBatchSistemCad();
   if (!_bsSis) { alert('Pilih sistemnya dulu'); return; }
   var rows = _bsRows(), items = [], skip = 0, ubah = 0;
   var btn = document.getElementById('bs-btn-simpan');
@@ -1740,7 +1903,7 @@ function _produkIsProduksiBoss(boss) {
 var _batchSupMode = 'utama';
 var _BATCH_SUP_HINT = {
   utama:  'Mengganti supplier UTAMA semua SKU terpilih (menentukan sistem, stok, dan Re-Stock).',
-  tambah: 'Menambah supplier CADANGAN. Supplier utama tidak berubah. Dipakai saat stok utama kosong: dropship ke cadangan, stok utama tidak berkurang.',
+  tambah: 'Menambah supplier CADANGAN (supplier utama tidak berubah). Dipakai saat stok utama kosong, lewat Dropship dan/atau P.O. Sistem & harga bisa diatur per SKU di sheet Sistem › Supplier Cadangan.',
   hapus:  'Menghapus supplier cadangan dari SKU terpilih. Penjualan lama yang sudah tercatat via cadangan tidak berubah.'
 };
 function produkBatchSupMode(m) {
@@ -1769,7 +1932,13 @@ function produkBatchSupSyncSistem() {
   if (dsRow) {
     var bs = String(document.getElementById('batch-sup-input').value || '').trim();
     dsRow.style.display = (_batchSupMode === 'tambah' && bs) ? '' : 'none';
-    if (dsRow.style.display === 'none') document.getElementById('batch-sup-ds').value = '';
+    var cds = document.getElementById('batch-sup-cad-ds'), cpo = document.getElementById('batch-sup-cad-po');
+    var kds = document.getElementById('batch-sup-cad-ds-on'), kpo = document.getElementById('batch-sup-cad-po-on');
+    if (dsRow.style.display === 'none') { cds.value = ''; cpo.value = ''; kds.checked = false; kpo.checked = false; }
+    else {   // saran awal sistem dari flag supplier yang dipilih (bisa diubah)
+      var sp = _produkSupMap()[bs.toUpperCase()], ma = sp ? _produkCadModeAwal(sp) : { dropship: true, po: false };
+      kds.checked = ma.dropship; kpo.checked = ma.po;
+    }
   }
   if (_batchSupMode !== 'utama') {
     var hr0 = document.getElementById('batch-sup-hpp-row'), sr0 = document.getElementById('batch-sup-sistem-row');
@@ -1821,14 +1990,17 @@ async function simpanBatchCadTambah() {
   const nama = document.getElementById('batch-sup-input').value.trim();
   const sup = _produkSupMap()[nama.toUpperCase()];
   if (!sup) { alert('Pilih supplier cadangan dulu.'); return; }
-  if (!sup.is_dropship || sup.is_produksi_sendiri) { alert('Supplier cadangan harus berjenis Dropship.'); return; }
-  const ds = parseInt(String(document.getElementById('batch-sup-ds').value || '').replace(/\D/g, ''), 10) || 0;
+  if (sup.is_produksi_sendiri) { alert('Supplier Produksi Sendiri tidak bisa jadi cadangan.'); return; }
+  const ds = parseInt(String(document.getElementById('batch-sup-cad-ds').value || '').replace(/\D/g, ''), 10) || 0;
+  const po = parseInt(String(document.getElementById('batch-sup-cad-po').value || '').replace(/\D/g, ''), 10) || 0;
+  const modes = { dropship: document.getElementById('batch-sup-cad-ds-on').checked || ds > 0, po: document.getElementById('batch-sup-cad-po-on').checked || po > 0 };
+  if (!modes.dropship && !modes.po) { alert('Aktifkan minimal satu sistem: Dropship atau P.O.'); return; }
   const rows = _produkData.filter(r => ids.indexOf(r.id) >= 0);
   let ok = 0, lewat = 0;
   try {
     for (const r of rows) {
       if (!_produkCadKandidat(r).some(k => k.id === sup.id)) { lewat++; continue; }   // supplier utama SKU ini sendiri
-      await _produkCadTambah(r, sup, ds);
+      await _produkCadTambah(r, sup, ds, po, modes);
       ok++;
     }
     hideModal('modal-batch-sup');
@@ -1839,7 +2011,7 @@ async function simpanBatchCadTambah() {
   } catch (err) {
     const msg = String(err && err.message || err);
     produkMarkDirty();
-    alert('Gagal: ' + msg + (/produk_supplier/i.test(msg) ? '\n\nTabel belum ada — jalankan zenoot-multi-supplier.sql di Supabase dulu.' : '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.'));
+    alert('Gagal: ' + _produkCadPesanError(err) + '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.');
   }
 }
 
@@ -1947,6 +2119,7 @@ document.body.insertAdjacentHTML('beforeend', `
       <button onclick="hideModal('modal-batch-sis')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <p id="bs-count" style="font-size:12px;color:var(--ink3);margin-bottom:10px">0 SKU terpilih</p>
+    <div id="bs-sumber"></div>
     <div id="bs-opts"></div>
     <div class="bh-note" id="bs-note"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
@@ -2006,9 +2179,16 @@ document.body.insertAdjacentHTML('beforeend', `
       <input type="hidden" id="batch-sup-sistem" value="reseller">
     </div>
     <div id="batch-sup-ds-row" class="form-group" style="display:none;margin-bottom:14px">
-      <label>Harga Dropship di supplier ini (Rp per pcs) — opsional</label>
-      <input type="text" inputmode="numeric" id="batch-sup-ds" placeholder="Kosong = harga tidak diubah" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);width:100%">
-      <div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px">Disimpan ke Master Barang supplier cadangan untuk semua SKU terpilih. Tanpa harga, toggle Dropship di Tambah Penjualan belum bisa dipakai untuk SKU itu.</div>
+      <label>Sistem di supplier ini</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <label style="flex:0 0 108px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin:0"><input type="checkbox" id="batch-sup-cad-ds-on"> Dropship</label>
+        <input type="text" inputmode="numeric" id="batch-sup-cad-ds" placeholder="Harga/pcs (opsional)" style="font-family:var(--f);font-size:14px;padding:7px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);flex:1;min-width:0">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="flex:0 0 108px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin:0"><input type="checkbox" id="batch-sup-cad-po-on"> P.O</label>
+        <input type="text" inputmode="numeric" id="batch-sup-cad-po" placeholder="Harga/pcs (opsional)" style="font-family:var(--f);font-size:14px;padding:7px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);flex:1;min-width:0">
+      </div>
+      <div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px">Harga disimpan ke Master Barang untuk semua SKU terpilih; kosong = harga tidak diubah. Mengisi harga otomatis mengaktifkan sistemnya. Tanpa harga, sistem itu belum bisa dipakai di Tambah Penjualan / Tambah Stok Masuk.</div>
     </div>
     <div id="batch-sup-hpp-row" class="form-group" style="display:none;margin-bottom:14px">
       <label>HPP Produksi Baru (Rp) — wajib</label>
@@ -2108,6 +2288,23 @@ document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="mo
       <div style="flex:1 1 100%;font-size:11px;color:var(--ink3);line-height:1.5;margin-top:-4px">Supplier ini punya 2 sistem. HPP otomatis mengikuti sistem SKU (Dropship → harga Dropship, selain itu → harga P.O).</div>
     </div>
 
+    <div id="prd-cad-row" class="form-group" style="margin-bottom:10px">
+      <label>Supplier Cadangan (opsional)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button type="button" class="produk-boss-trigger" style="flex:1" onclick="produkOpenBossSheet('prd-cad','prd-cad-label','cad-form')">
+          <span id="prd-cad-label" style="color:var(--ink3)">— Tidak ada —</span>
+          <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
+        </button>
+        <button type="button" id="prd-cad-clear" class="btn btn-sm" style="display:none" onclick="produkPrdCadKosongkan()" aria-label="Kosongkan"><i class="ti ti-x"></i></button>
+      </div>
+      <input type="hidden" id="prd-cad">
+      <div id="prd-cad-harga" style="display:none;gap:10px;flex-wrap:wrap;margin-top:8px">
+        <div class="form-group" style="flex:1 1 120px"><label>Harga Dropship (Rp/pcs)</label><input type="text" inputmode="numeric" id="prd-cad-ds" placeholder="0"></div>
+        <div class="form-group" style="flex:1 1 120px"><label>Harga P.O (Rp/pcs)</label><input type="text" inputmode="numeric" id="prd-cad-po" placeholder="0"></div>
+        <div style="flex:1 1 100%;font-size:11px;color:var(--ink3);line-height:1.5;margin-top:-4px">Sistem yang aktif mengikuti jenis supplier (bisa diubah di sheet Sistem › Supplier Cadangan); mengisi harga otomatis mengaktifkan sistemnya.</div>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="simpanProduk()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-produk')"><i class="ti ti-x"></i> Batal</button>
@@ -2134,7 +2331,7 @@ document.body.insertAdjacentHTML('beforeend', `
 // Supplier di Hutang Barang). Dipakai bareng buat 3 titik: form Tambah/Edit
 // SKU (prd-boss), Edit Katalog massal (kat-boss), Edit Supplier massal
 // (batch-sup-input) — makanya target input/label-nya parameter, bukan hardcode.
-let _produkBossSheetTarget = { inputId: '', labelId: '', filter: '' };   // filter (16 Nov 2026): '' semua | 'cad-tambah' supplier Dropship | 'cad-hapus' supplier yang jadi cadangan SKU terpilih
+let _produkBossSheetTarget = { inputId: '', labelId: '', filter: '' };   // filter (16 Nov 2026): '' semua | 'cad-tambah' / 'cad-form' bukan Produksi Sendiri | 'cad-hapus' supplier yang jadi cadangan SKU terpilih
 
 async function _produkLoadSupplierList() {
   try {
@@ -2148,7 +2345,11 @@ async function _produkLoadSupplierList() {
 
 function _produkBossSheetOk(sup) {
   var f = _produkBossSheetTarget.filter;
-  if (f === 'cad-tambah') return !!(sup.is_dropship && !sup.is_produksi_sendiri);
+  if (f === 'cad-tambah') return !sup.is_produksi_sendiri;
+  if (f === 'cad-form') {   // cadangan di form Tambah SKU: bukan Produksi Sendiri dan bukan supplier utama yang sedang dipilih
+    var bossSel = String((document.getElementById('prd-boss') || {}).value || '').trim().toUpperCase();
+    return !sup.is_produksi_sendiri && String(sup.nama || '').trim().toUpperCase() !== bossSel;
+  }
   if (f === 'cad-hapus') {
     var ids = Object.keys(_produkSelected).map(Number);
     return (_produkCadList || []).some(function(l) { return l.supplier_id === sup.id && ids.indexOf(l.produk_id) >= 0; });
@@ -2223,6 +2424,7 @@ function produkBossSheetSelect(nama) {
   if (_produkBossSheetTarget.inputId === 'prd-boss') produkPrdSyncDual();   // 2 harga untuk supplier 2 sistem
   if (_produkBossSheetTarget.inputId === 'kat-boss') produkKatSyncDs();   // tampilkan/sembunyikan opsi Dropship sesuai jenis supplier
   if (_produkBossSheetTarget.inputId === 'batch-sup-input') produkBatchSupSyncSistem();   // toggle Sistem di Edit Supplier massal
+  if (_produkBossSheetTarget.inputId === 'prd-cad') produkPrdCadSync();   // kolom harga cadangan di form Tambah SKU
 }
 
 async function produkBossSheetTambahBaru(nama) {

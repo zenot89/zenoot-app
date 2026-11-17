@@ -3252,7 +3252,7 @@ function _hsDsRentangCatchUp() {
 async function _hsDsMaster(force) {
   var now = Date.now();
   if (!force && _hsDsMasterCache && (now - _hsDsMasterAt) < 30000) return _hsDsMasterCache;
-  var r = await Promise.all([dbGet('produk'), dbGet('stok'), dbGet('hutang_barang'), zDsLoadSuppliers(!!force)]);
+  var r = await Promise.all([dbGet('produk'), dbGet('stok'), dbGet('hutang_barang'), zDsLoadSuppliers(!!force), dbGet('produk_supplier').catch(function() { return []; })]);
   var produkBySku = {};
   (r[0] || []).forEach(function(p) {
     var k = String(p.sku_variasi || p.sku || '').trim().toUpperCase();
@@ -3268,7 +3268,9 @@ async function _hsDsMaster(force) {
     if (!b.produk_id) return;
     (hbByProduk[b.produk_id] = hbByProduk[b.produk_id] || []).push(b);
   });
-  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {} };
+  var cadDsSupIds = {};   // supplier yang jadi cadangan dengan sistem Dropship aktif → ikut kandidat bon otomatis walau flag suppliernya bukan Dropship
+  (r[4] || []).forEach(function(l) { if (l.supplier_id && l.dropship !== false) cadDsSupIds[l.supplier_id] = true; });
+  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {}, cadDsSupIds: cadDsSupIds };
   _hsDsMasterAt = now;
   return _hsDsMasterCache;
 }
@@ -3502,7 +3504,10 @@ async function _hsDsTulis(plan) {
 // pada hari itu tidak menghasilkan item (dan bon DS- yang sudah ada akan dihitung ulang seperti biasa).
 function _hsDsKandidatNama(master) {
   var set = {};
-  Object.keys(master.dsSupMap || {}).forEach(function(k) { if (master.dsSupMap[k] && master.dsSupMap[k].is_dropship) set[k] = true; });
+  Object.keys(master.dsSupMap || {}).forEach(function(k) {
+    var sp = master.dsSupMap[k];
+    if (sp && (sp.is_dropship || (master.cadDsSupIds && master.cadDsSupIds[sp.id]))) set[k] = true;
+  });
   Object.keys(master.produkBySku || {}).forEach(function(k) {
     var p = master.produkBySku[k];
     if (p && p.sistem_override === 'dropship') {
@@ -3612,10 +3617,11 @@ function _hsDsRenderBanner() {
 }
 
 // ─── Sheet manual "Tarik dari Penjualan" (alat cek / sinkron paksa) ───
-function hsOpenTarikPenjualan() {
+async function hsOpenTarikPenjualan() {
   var sel = document.getElementById('hs-tarik-supplier');
   if (!sel) return;
-  var auto = (_hsSupplierList || []).filter(function(s) { return !!s.is_dropship; });
+  var cadIds = ((await _hsDsMaster()) || {}).cadDsSupIds || {};
+  var auto = (_hsSupplierList || []).filter(function(s) { return !!s.is_dropship || !!cadIds[s.id]; });
   if (!auto.length) { alert('Belum ada supplier bertipe Dropship di Kelola Supplier.'); return; }
   sel.innerHTML = auto.map(function(s) { return '<option value="' + s.id + '">' + _hsEsc(s.nama) + '</option>'; }).join('');
   document.getElementById('hs-tarik-dari').value   = _HS_DS_MULAI;

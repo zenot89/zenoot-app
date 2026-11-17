@@ -377,6 +377,18 @@ document.getElementById('page-stok').innerHTML = `
         <input type="number" id="inp-masuk" placeholder="0" min="0"
           style="font-size:20px;font-weight:700;width:100%;box-sizing:border-box">
       </div>
+      <!-- 17 Nov 2026: Sumber stok masuk — tampil hanya mode Tambah dan hanya kalau SKU punya supplier cadangan dengan sistem P.O -->
+      <div id="stok-sumber-wrap" style="display:none;margin-bottom:16px">
+        <label>Sumber</label>
+        <select id="inp-sumber" onchange="stokSumberChange()"
+          style="width:100%;box-sizing:border-box;font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink)"></select>
+        <div id="stok-sumber-harga-wrap" style="display:none;margin-top:10px">
+          <label>Harga P.O per pcs (Rp)</label>
+          <input type="text" inputmode="numeric" id="inp-sumber-harga" placeholder="0" oninput="stokSumberInfo()"
+            style="width:100%;box-sizing:border-box;font-family:var(--f);font-size:16px;font-weight:700;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink)">
+          <div id="stok-sumber-info" style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px"></div>
+        </div>
+      </div>
 
       <!-- Tombol Aksi -->
       <div style="border-top:1.5px dashed var(--ink3);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
@@ -1009,6 +1021,7 @@ function showTambahStok() {
   document.getElementById('inp-sku').innerHTML = '<option value="">— Pilih Variasi —</option>';
   var lbl = document.getElementById('stok-picker-variasi-label');
   if (lbl) { lbl.textContent = '— Pilih Variasi —'; lbl.style.color = 'var(--ink3)'; }
+  _stokSumberReset();
   document.getElementById('modal-stok-masuk').classList.add('open');
   setTimeout(function(){ stokSkuSheetOpen('induk'); }, 150);
 }
@@ -1041,6 +1054,7 @@ function stokBukaEditPicker() {
 }
 
 function cancelStokForm() {
+  _stokSumberReset();
   document.getElementById('modal-stok-masuk').classList.remove('open');
   stokSkuSheetClose();
   _stokSelectedSku = '';
@@ -1055,6 +1069,7 @@ function cancelStokForm() {
 }
 
 function editStok(sku) {
+  _stokSumberReset();   // mode Edit/Set Sisa tidak punya sumber supplier
   var skuKey   = sku.toUpperCase();
   var existing = _stokMasukMap[skuKey];
   document.getElementById('stok-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stok';
@@ -1102,6 +1117,136 @@ function editStok(sku) {
 // Tanggal lokal (WIB) hari ini, format YYYY-MM-DD — pakai getFullYear/
 // getMonth/getDate (bukan toISOString yang basisnya UTC) biar gak geser
 // hari kalau device-nya di WIB dan lagi deket tengah malam.
+// ─── SUMBER STOK MASUK (17 Nov 2026) ──────────────────────────
+// Tambah Stok Masuk punya pilihan Sumber. Default = "Produksi sendiri / koreksi" (perilaku lama: tambah stok, tercatat 'koreksi', tanpa bon).
+// Kalau SKU punya supplier CADANGAN dengan sistem P.O (Kelola Produk › sheet Sistem › Supplier Cadangan), supplier itu muncul sebagai sumber:
+// stok bertambah, bon P.O belum lunas ke supplier tersebut langsung terbentuk dan dianggap sudah diterima (barang sudah di tangan),
+// serta tercatat di Jurnal Stock Masuk sumber 'po'. Harga P.O per pcs diambil dari Master Barang; kosong → diisi di sini lalu disimpan ke Master Barang.
+var _stokSumberOpts = [];   // [{ sup, hb }] sumber P.O untuk SKU terpilih
+function _stokSumberReset() {
+  _stokSumberOpts = [];
+  var w = document.getElementById('stok-sumber-wrap'), hw = document.getElementById('stok-sumber-harga-wrap');
+  if (w) w.style.display = 'none';
+  if (hw) hw.style.display = 'none';
+  var sel = document.getElementById('inp-sumber');
+  if (sel) sel.innerHTML = '';
+  var h = document.getElementById('inp-sumber-harga');
+  if (h) h.value = '';
+}
+async function _stokSumberRefresh() {
+  var sku = (_stokSelectedSku || '').trim().toUpperCase();
+  _stokSumberReset();
+  if (_stokEditMode || !sku) return;
+  var prod = _produkForStok.find(function(p) { return (p.sku_variasi || '').toUpperCase() === sku; });
+  if (!prod || prod.id == null) return;
+  try {
+    var r = await Promise.all([
+      dbGet('produk_supplier', '&produk_id=eq.' + prod.id),
+      dbGet('hutang_supplier'),
+      dbGet('hutang_barang', '&produk_id=eq.' + prod.id)
+    ]);
+    if ((_stokSelectedSku || '').trim().toUpperCase() !== sku || _stokEditMode) return;   // SKU berganti selagi memuat
+    var opts = [];
+    (r[0] || []).forEach(function(l) {
+      if (l.po !== true) return;
+      var sup = (r[1] || []).find(function(x) { return x.id === l.supplier_id; });
+      if (!sup || sup.is_produksi_sendiri) return;
+      var hb = (r[2] || []).find(function(b) { return b.supplier_id === sup.id; }) || null;
+      opts.push({ sup: sup, hb: hb });
+    });
+    if (!opts.length) return;
+    opts.sort(function(a, b) { return String(a.sup.nama || '').localeCompare(String(b.sup.nama || ''), 'id'); });
+    _stokSumberOpts = opts;
+    var sel = document.getElementById('inp-sumber');
+    sel.innerHTML = '<option value="">Produksi sendiri / koreksi (tanpa bon)</option>' + opts.map(function(o) {
+      return '<option value="' + o.sup.id + '">' + String(o.sup.nama || '').replace(/</g, '&lt;') + ' — P.O (bon)</option>';
+    }).join('');
+    document.getElementById('stok-sumber-wrap').style.display = '';
+  } catch (e) {
+    console.error('Gagal muat sumber stok:', e.message);   // tabel/kolom belum ada → tetap mode lama
+  }
+}
+function _stokSumberTerpilih() {
+  var sel = document.getElementById('inp-sumber');
+  var v = sel ? parseInt(sel.value, 10) : NaN;
+  if (!v) return null;
+  return _stokSumberOpts.find(function(o) { return o.sup.id === v; }) || null;
+}
+function stokSumberChange() {
+  var o = _stokSumberTerpilih();
+  var hw = document.getElementById('stok-sumber-harga-wrap'), h = document.getElementById('inp-sumber-harga');
+  if (!o) { hw.style.display = 'none'; h.value = ''; return; }
+  var po = o.hb && Number(o.hb.harga_po_per_lusin) > 0 ? Math.round(Number(o.hb.harga_po_per_lusin) / 12) : 0;
+  h.value = po ? String(po) : '';
+  hw.style.display = '';
+  stokSumberInfo();
+}
+function stokSumberInfo() {
+  var o = _stokSumberTerpilih(), info = document.getElementById('stok-sumber-info');
+  if (!o || !info) return;
+  var harga = parseInt(String(document.getElementById('inp-sumber-harga').value || '').replace(/\D/g, ''), 10) || 0;
+  var qty = parseInt(document.getElementById('inp-masuk').value, 10) || 0;
+  var nama = String(o.sup.nama || '').replace(/</g, '&lt;');
+  info.innerHTML = harga
+    ? 'Total bon ' + nama + ': <b>Rp' + (qty * harga).toLocaleString('id-ID') + '</b>. Stok langsung bertambah, bon belum lunas terbentuk otomatis. Harga disimpan ke Master Barang.'
+    : '<span style="color:var(--danger);font-weight:700">Harga P.O belum diisi.</span> Isi harga per pcs di ' + nama + ' (disimpan ke Master Barang).';
+}
+async function _stokSimpanPO(sku, qty, prod, opt) {
+  var hargaPcs = parseInt(String(document.getElementById('inp-sumber-harga').value || '').replace(/\D/g, ''), 10) || 0;
+  if (!(hargaPcs > 0)) { alert('Isi harga P.O per pcs di ' + opt.sup.nama + '.'); return; }
+  var total = Math.round(qty * hargaPcs);
+  if (!(await zConfirm('Beli ' + qty + ' pcs ' + sku + ' dari ' + opt.sup.nama + ' @Rp' + hargaPcs.toLocaleString('id-ID') + ' = Rp' + total.toLocaleString('id-ID') + '. Stok bertambah dan bon belum lunas ke ' + opt.sup.nama + ' terbentuk.', { title: 'Beli dari supplier cadangan', ok: 'Simpan' }))) return;
+  var btnSimpan = document.querySelector('#modal-stok-masuk .btn-primary');
+  if (btnSimpan) { btnSimpan.textContent = 'Menyimpan...'; btnSimpan.disabled = true; }
+  try {
+    var tgl = _stokTodayLocal();
+    var hargaLusin = Math.round(hargaPcs * 12);
+    // 1. Master Barang (produk × supplier): baca ulang dari DB supaya tidak membuat baris ganda
+    var hbRows = (await dbGet('hutang_barang', '&produk_id=eq.' + prod.id + '&supplier_id=eq.' + opt.sup.id)) || [];
+    var barang = hbRows[0];
+    if (barang) {
+      if (Math.round(Number(barang.harga_po_per_lusin) || 0) !== hargaLusin) await dbUpdate('hutang_barang', barang.id, { harga_po_per_lusin: hargaLusin });
+    } else {
+      var insB = await dbInsert('hutang_barang', {
+        supplier_id: opt.sup.id, produk_id: prod.id, katalog_produk: prod.katalog || null, varian_warna: prod.sku_variasi || null,
+        sku_variasi_supplier: null, nama_supplier: null, harga_po_per_lusin: hargaLusin
+      });
+      barang = Array.isArray(insB) ? insB[0] : insB;
+    }
+    // 2. Bon P.O langsung diterima (is_po=false + tgl_diterima) + itemnya
+    var insBon = await dbInsert('hutang_bon', {
+      supplier_id: opt.sup.id, tanggal: tgl, no_nota: null, total: total, mode_beli: 'po',
+      status: 'belum_lunas', is_po: false, tgl_diterima: tgl
+    });
+    var bonId = (Array.isArray(insBon) ? insBon[0] : insBon).id;
+    var insItem = await dbInsert('hutang_bon_item', {
+      bon_id: bonId, barang_id: barang.id, nama_internal: prod.katalog || null, nama_supplier: barang.nama_supplier || null,
+      varian_warna: prod.sku_variasi || null, qty: qty, qty_diterima: qty, satuan: 'pcs', harga_satuan: hargaLusin, subtotal: total
+    });
+    var itemId = (Array.isArray(insItem) ? insItem[0] : insItem).id;
+    // 3. Stok + Jurnal Stock Masuk (sumber 'po', sama seperti Barang Diterima di Hutang Supplier)
+    var existingRec = _stokMasukMap[sku];
+    if (existingRec && existingRec.id) {
+      await dbUpdate('stok', existingRec.id, { stok_masuk: (existingRec.qty || 0) + qty });
+    } else {
+      await dbInsert('stok', { sku_variasi: sku, stok_masuk: qty, stok_keluar: 0, katalog: prod.katalog || '', boss: prod.boss || '', hpp: prod.hpp || 0 });
+    }
+    await dbInsert('stok_masuk_jurnal', {
+      tanggal: tgl, sumber: 'po', sku_variasi: sku, qty: qty, bon_id: bonId, bon_item_id: itemId, supplier_id: opt.sup.id,
+      keterangan: 'Supplier: ' + opt.sup.nama + ' (Tambah Stok Masuk)'
+    });
+    cancelStokForm();
+    loadStok();
+  } catch (err) {
+    alert('Gagal simpan: ' + err.message + '\n\nSebagian langkah mungkin sudah tersimpan (Master Barang / bon). Cek Jurnal Re-Stock › Bon dan Jurnal Stock Masuk sebelum mencoba lagi.');
+  } finally {
+    if (btnSimpan) {
+      btnSimpan.innerHTML = '<i class="ti ti-device-floppy"></i> SIMPAN';
+      btnSimpan.disabled = false;
+    }
+  }
+}
+
 function _stokTodayLocal() {
   var n = new Date();
   return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
@@ -1145,6 +1290,12 @@ async function simpanStok() {
   var prod = _produkForStok.find(function(p) {
     return (p.sku_variasi || '').toUpperCase() === sku.toUpperCase();
   });
+
+  // 17 Nov 2026: sumber supplier cadangan (P.O) → stok masuk + bon belum lunas ke supplier itu
+  if (!_stokEditMode) {
+    var smPo = _stokSumberTerpilih();
+    if (smPo) { await _stokSimpanPO(sku, qty, prod, smPo); return; }
+  }
 
   var payload = {
     sku_variasi: sku.toUpperCase(),
@@ -1524,6 +1675,7 @@ function stokPilihKatalog(katalog, skipAutoOpen) {
       _stokPickerIntent = 'tambah';
       editStok(pickedSku);
     } else {
+      _stokSumberRefresh();
       setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
     }
   } else if (varList.length > 1) {
@@ -1544,7 +1696,7 @@ function stokSkuSheetSelectVariasi(sku) {
     if (sku) editStok(sku);
     return;
   }
-  if (sku) setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60);
+  if (sku) { _stokSumberRefresh(); setTimeout(function(){ document.getElementById('inp-masuk').focus(); }, 60); }
 }
 
 // ─── PASTE MASSAL ─────────────────────────────────────────────

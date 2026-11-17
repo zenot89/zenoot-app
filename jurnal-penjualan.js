@@ -2953,7 +2953,7 @@ async function _jpRefreshSisakMap() {
     Object.keys(_jpSupMap).forEach(function(k) { var sp = _jpSupMap[k]; if (sp && sp.id != null) supById[sp.id] = sp; });
     _jpSupById = supById;
     var cadMap = {};
-    (cadList || []).forEach(function(c) { if (c.produk_id && c.supplier_id) (cadMap[c.produk_id] = cadMap[c.produk_id] || []).push(c.supplier_id); });
+    (cadList || []).forEach(function(c) { if (c.produk_id && c.supplier_id) (cadMap[c.produk_id] = cadMap[c.produk_id] || []).push({ sid: c.supplier_id, ds: c.dropship !== false }); });   // ds = sistem Dropship aktif di tautan ini
     _jpCadMap = cadMap;
     var hbMap = {};
     (hbList || []).forEach(function(b) {
@@ -3533,14 +3533,14 @@ function _jpLiveItem() {
 // Selalu SKU asal yang dicatat; stok tidak berkurang (semua penghitung stok mengabaikan baris bertanda kirim_dropship), bon dropship
 // supplier tujuan terbentuk otomatis. Dibaca dari data (tidak ada nama supplier yang di-hardcode):
 //   'flag'   — SKU stok biasa dengan tujuan dropship: (a) supplier UTAMA yang berjenis Dropship + Reseller (mis. MAGRA), dan/atau
-//              (b) supplier CADANGAN SKU itu (tabel produk_supplier, berjenis Dropship; mis. DIMI utama + RH cadangan). Lebih dari satu tujuan → dropdown.
+//              (b) supplier CADANGAN SKU itu dengan sistem Dropship aktif (tabel produk_supplier; mis. DIMI utama + RH cadangan). Lebih dari satu tujuan → dropdown.
 //              Cadangan dipakai saat stok utama kosong, jadi stok utama TIDAK berkurang. Tujuan cadangan disimpan di jurnal_penjualan.kirim_supplier_id.
 //   'sistem' — SKU sendiri sudah berstatus Dropship: toggle menyala & terkunci (otomatis masuk bon; ubah sistemnya di Kelola Produk).
 var _jpViaDs = null;   // { from, hpp, supplier, supplierId (null = supplier utama), flag } saat toggle menyala
 var _jpViaDsPickIdx = 0, _jpViaDsPickSku = '';   // tujuan terpilih kalau SKU punya lebih dari satu (indeks ke tg.opts)
 var _jpSupMap = {};    // NAMA_SUPPLIER_UPPERCASE → baris hutang_supplier (diisi _jpRefreshSisakMap)
 var _jpSupById = {};   // id supplier → baris hutang_supplier
-var _jpCadMap = {};    // produk_id → [supplier_id cadangan] (tabel produk_supplier)
+var _jpCadMap = {};    // produk_id → [{ sid, ds }] supplier cadangan + status sistem Dropship-nya (tabel produk_supplier)
 var _jpHbMap  = {};    // 'produk_id|supplier_id' → { po, ds } harga per pcs dari Master Barang (diisi _jpRefreshSisakMap)
 function _jpEscHtml(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function _jpRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
@@ -3561,9 +3561,9 @@ function _jpDsTarget(sku) {
   if (_jpDsMap[u]) return _jpSupplierDual(s) ? { mode: 'sistem', supplier: supNama } : null;
   var opts = [];
   if (_jpSupplierDual(s)) opts.push({ supplier: supNama, supplierId: null, hpp: _jpHargaDual(p, s).ds });
-  (_jpCadMap[p.id] || []).forEach(function(sid) {
-    var cs = _jpSupById[sid];
-    if (cs && cs.is_dropship && !cs.is_produksi_sendiri) opts.push({ supplier: String(cs.nama || '').trim(), supplierId: cs.id, hpp: _jpHargaDual(p, cs).ds });
+  (_jpCadMap[p.id] || []).forEach(function(l) {   // cadangan dengan sistem Dropship aktif (flag supplier hanya saran awal, bukan syarat)
+    var cs = _jpSupById[l.sid];
+    if (l.ds && cs && !cs.is_produksi_sendiri) opts.push({ supplier: String(cs.nama || '').trim(), supplierId: cs.id, hpp: _jpHargaDual(p, cs).ds });
   });
   if (!opts.length) return null;
   opts.sort(function(a, b) { return (a.supplierId === null ? 0 : 1) - (b.supplierId === null ? 0 : 1); });   // supplier utama dulu
