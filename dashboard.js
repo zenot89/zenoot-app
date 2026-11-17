@@ -1796,7 +1796,10 @@ function _dashNormSku(s) {
 }
 
 // ─── BOSS CHART ──────────────────────────────────────────────
-function _renderBoss(jpData, stokData) {
+// 17 Nov 2026: penjualan bertanda kirim_dropship + kirim_supplier_id (dikirim lewat supplier CADANGAN, bukan supplier utama SKU) dihitung ke
+// supplier tujuan itu; selain itu tetap ke supplier utama SKU (stok.boss). supNamaById = id hutang_supplier → nama.
+function _renderBoss(jpData, stokData, supNamaById) {
+  supNamaById = supNamaById || {};
   const skuBossMap = {}, skuBossMapNorm = {};
   stokData.forEach(r => {
     if (r.sku_variasi && r.boss) {
@@ -1807,7 +1810,8 @@ function _renderBoss(jpData, stokData) {
   const bossMap = {};
   jpData.forEach(r => {
     const skuU = (r.sku||'').toUpperCase();
-    const boss = skuBossMap[skuU] || skuBossMapNorm[_dashNormSku(skuU)] || 'Lainnya';
+    const viaNama = (r.kirim_dropship === true && r.kirim_supplier_id) ? (supNamaById[r.kirim_supplier_id] || '') : '';
+    const boss = viaNama || skuBossMap[skuU] || skuBossMapNorm[_dashNormSku(skuU)] || 'Lainnya';
     if (!bossMap[boss]) bossMap[boss] = {qty:0,omset:0};
     bossMap[boss].qty   += (r.qty||0);
     bossMap[boss].omset += (Number(r.total)||0);
@@ -2888,6 +2892,7 @@ async function loadDashboard() {
     // 13 Okt 2026: grup BAYAR SUPPLIER — dibayar bulan ini = tabel hutang_pembayaran (tanggal bulan ini) per supplier; sisa tagihan = bon belum
     // lunas yang sudah ada barangnya (aturan sama dgn Kecepatan Kas: PO yang barangnya belum jadi & supplier produksi sendiri TIDAK dihitung).
     const _supplierRows = [];
+    const _supNamaById = {};   // id → nama supplier, dipakai Performa Supplier (_renderBoss)
     try {
       const nextStart = _localDateStr(new Date(Number(bulanIniStr.slice(0, 4)), Number(bulanIniStr.slice(5, 7)), 1));
       const [supRows2, bonOpen, payBulan] = await Promise.all([
@@ -2895,7 +2900,7 @@ async function loadDashboard() {
         dbGet('hutang_bon', '&or=(status.is.null,status.neq.lunas)').catch(() => []),
         dbGet('hutang_pembayaran', '&tanggal=gte.' + bulanIniStr + '-01&tanggal=lt.' + nextStart).catch(() => [])
       ]);
-      const supMap2 = {}; (supRows2 || []).forEach(x => { supMap2[x.id] = x; });
+      const supMap2 = {}; (supRows2 || []).forEach(x => { supMap2[x.id] = x; _supNamaById[x.id] = String(x.nama || '').trim(); });
       const bonMap2 = {}; (bonOpen || []).forEach(b => { bonMap2[b.id] = b; });
       const butuhBon = [...new Set((payBulan || []).map(x => x.bon_id))].filter(id => id != null && !bonMap2[id]);
       if (butuhBon.length) {
@@ -2951,7 +2956,7 @@ async function loadDashboard() {
       _trenchRenderChart();
       trenchUpdateBadge();
       _renderTopSku(_jpForRender);
-      _renderBoss(_jpForRender, _stokForBoss);
+      _renderBoss(_jpForRender, _stokForBoss, _supNamaById);
       _renderChannel(_jpForRender);           // BARU
       _renderKatalog(_jpForRender, _dashStokData); // BARU
       // 12 Okt 2026: kartu Beban Operasional menampilkan SEMUA akun beban operasional (Kontrakan, WiFi, Listrik & Air, dst) walau belum
