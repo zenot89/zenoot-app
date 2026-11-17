@@ -3170,9 +3170,9 @@ async function hsHapusBon() {
 //     Tambah Bon (no. nota bukan 'DS-...') TIDAK pernah disentuh.
 //   • Penjualan SKU baru-baru ini diganti ke Dropship tidak ditarik mundur: produk.dropship_mulai (diisi saat sistem diganti ke Dropship di Kelola Produk)
 //     jadi batas awalnya; kosong = ikut _HS_DS_MULAI.
-//   • Penjualan bertanda jurnal_penjualan.kirim_dropship (toggle Dropship di Tambah Penjualan, SKU tetap SKU asal) selalu masuk bon supplier SKU-nya dengan harga
-//     dropship dari Master Barang. Padanan lintas supplier (produk.padanan_dropship_id, mis. DIMI → RH) dicatat sebagai SKU dropship-nya dan harganya dari
-//     baris Master Barang SKU stok asalnya di supplier yang sama bila SKU dropship itu tak punya baris sendiri.
+//   • Penjualan bertanda jurnal_penjualan.kirim_dropship (toggle Dropship di Tambah Penjualan, SKU tetap SKU asal) selalu masuk bon dengan harga dropship dari
+//     Master Barang. Tujuannya: supplier utama SKU, atau — kalau jurnal_penjualan.kirim_supplier_id terisi — supplier CADANGAN itu (tabel produk_supplier; mis.
+//     DIMI utama + RH cadangan saat stok DIMI kosong). Baris bertujuan supplier lain dilewati; harganya dari baris Master Barang SKU × supplier tujuan.
 //   • Bon otomatis is_po = false → tidak memicu auto stock-in. Tidak ada jurnal akuntansi saat bon
 //     dibuat (sama dgn Tambah Bon manual); jurnal baru terbentuk saat bayar.
 //   • Penjualan sebelum _HS_DS_MULAI dianggap sudah lunas → tidak ditarik.
@@ -3268,9 +3268,7 @@ async function _hsDsMaster(force) {
     if (!b.produk_id) return;
     (hbByProduk[b.produk_id] = hbByProduk[b.produk_id] || []).push(b);
   });
-  var srcByTwin = {};   // id SKU padanan dropship → baris produk SKU stok asalnya
-  (r[0] || []).forEach(function(p) { if (p.padanan_dropship_id) srcByTwin[p.padanan_dropship_id] = p; });
-  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {}, srcByTwin: srcByTwin };
+  _hsDsMasterCache = { produkBySku: produkBySku, masukMap: masukMap, hbByProduk: hbByProduk, dsSupMap: r[3] || {} };
   _hsDsMasterAt = now;
   return _hsDsMasterCache;
 }
@@ -3283,7 +3281,7 @@ async function _hsDsFetchPenjualan(dari, sampaiEksklusif) {
   var out = [], off = 0, page = 1000;
   while (true) {
     var rows = await dbGet('jurnal_penjualan',
-      '&select=id,sku,qty,tanggal,waktu,kirim_dropship&or=(order_status.neq.CANCELLED,order_status.is.null)' +
+      '&select=id,sku,qty,tanggal,waktu,kirim_dropship,kirim_supplier_id&or=(order_status.neq.CANCELLED,order_status.is.null)' +
       '&tanggal=gte.' + dari + '&tanggal=lt.' + sampaiEksklusif +
       '&order=id.asc&limit=' + page + '&offset=' + off);
     out = out.concat(rows || []);
@@ -3321,15 +3319,15 @@ async function _hsDsBuildPlan(sup, dates, master) {
     // Penjualan bertanda kirim_dropship (toggle Dropship di Tambah Penjualan) selalu masuk bon supplier SKU-nya, apa pun sistem SKU-nya.
     // Selain itu hanya SKU berstatus Dropship — dan hanya penjualan sejak dropship_mulai (SKU baru berstatus Dropship tidak ditarik mundur).
     var flagged = r.kirim_dropship === true;
+    var viaId = flagged ? (Number(r.kirim_supplier_id) || null) : null;   // supplier cadangan tujuan (kosong = supplier utama SKU)
+    if (viaId && viaId !== sup.id) return;   // dikirim lewat supplier cadangan lain → masuk bon supplier itu
     if (!flagged && p.dropship_mulai && tgl < String(p.dropship_mulai).slice(0, 10)) return;
 
     var hbs = master.hbByProduk[p.id] || [];
     var hbMine = hbs.find(function(b) { return b.supplier_id === sup.id; }) || null;
-    // SKU padanan dropship hasil "Kirim via dropship": harga & nama diambil dari Master Barang SKU stok asalnya di supplier yang sama
-    var srcP = master.srcByTwin ? master.srcByTwin[p.id] : null;
-    if (!hbMine && srcP) hbMine = (master.hbByProduk[srcP.id] || []).find(function(b) { return b.supplier_id === sup.id; }) || null;
     var milik;
-    if (hbMine) milik = true;
+    if (viaId) milik = true;   // tujuan eksplisit = supplier ini (cadangan), tidak peduli supplier utama SKU
+    else if (hbMine) milik = true;
     else if (hbs.length) milik = false;   // sudah di-link ke supplier lain
     else milik = (String(p.boss || '').trim().toUpperCase() === supKey);   // belum di-link: ikut Boss
     if (!milik) return;

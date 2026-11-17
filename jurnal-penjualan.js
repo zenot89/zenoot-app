@@ -629,7 +629,7 @@ document.getElementById('page-jurnal-penjualan').innerHTML = `
       </div>
 
       <!-- TOGGLE DROPSHIP (3 Nov 2026): kiri = switch "Dropship", kanan = supplier tujuan (mis. MAGRA). Muncul untuk SKU milik supplier 2 sistem
-           (P.O + Dropship) atau SKU stok yang punya padanan dropship lintas supplier. Harga P.O & Dropship diambil dari data (Kelola Produk / Master Barang). -->
+           (P.O + Dropship) atau SKU stok yang punya supplier cadangan (Kelola Produk). Harga P.O & Dropship diambil dari data (Kelola Produk / Master Barang). -->
       <div id="jp-via-ds-wrap" style="display:none;margin:2px 0 12px;padding:10px 12px;border:2px solid var(--cream4);border-radius:8px;background:var(--cream2)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <label id="jp-via-ds-lbl" style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);margin:0">
@@ -2815,7 +2815,7 @@ function renderTabelJP(data) {
       const sisaHtml = !row.sku
         ? '<span style="color:var(--ink3)">—</span>'
         : row.kirim_dropship
-          ? '<span title="Dikirim via dropship — stok tidak berkurang" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>'
+          ? '<span title="Dikirim via dropship' + (row.kirim_supplier_id && _jpSupById[row.kirim_supplier_id] ? ' ' + _jpEscHtml(_jpSupById[row.kirim_supplier_id].nama) : '') + ' — stok tidak berkurang" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>'
         : _jpDsMap[skuKey]
           ? '<span title="Dropship — tidak nyetok" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(47,111,176,.15);color:var(--info)">DS</span>'
           : sisaVal === undefined
@@ -2910,12 +2910,13 @@ function _jpInitLongPress() {
 // Dipanggil setiap loadJurnalPenjualan() agar picker selalu tampil nilai aktual
 async function _jpRefreshSisakMap() {
   try {
-    const [produkList, stokList, jurnalAll, dsSupMap, hbList] = await Promise.all([
+    const [produkList, stokList, jurnalAll, dsSupMap, hbList, cadList] = await Promise.all([
       dbGet('produk'),   // butuh boss + penanda dropship untuk status DS
       dbGet('stok',   '&select=sku_variasi,stok_masuk&order=id.desc'),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false'),   // penjualan via dropship (kirim_dropship) tidak mengurangi stok
       zDsLoadSuppliers(),
       dbGet('hutang_barang', '&select=produk_id,supplier_id,harga_per_lusin,harga_po_per_lusin').catch(function() { return []; }),   // harga P.O & Dropship per SKU (toggle Dropship)
+      dbGet('produk_supplier').catch(function() { return []; }),   // supplier cadangan per SKU (16 Nov 2026)
     ]);
     // Sama persis dengan stok.js: last-write-wins per SKU (bukan akumulasi)
     const masukMap = {};
@@ -2948,6 +2949,12 @@ async function _jpRefreshSisakMap() {
     });
     _jpDsMap = dsMap;
     _jpSupMap = dsSupMap || {};   // dipakai _jpDsTarget() untuk mengenali supplier Dropship + Reseller
+    var supById = {};
+    Object.keys(_jpSupMap).forEach(function(k) { var sp = _jpSupMap[k]; if (sp && sp.id != null) supById[sp.id] = sp; });
+    _jpSupById = supById;
+    var cadMap = {};
+    (cadList || []).forEach(function(c) { if (c.produk_id && c.supplier_id) (cadMap[c.produk_id] = cadMap[c.produk_id] || []).push(c.supplier_id); });
+    _jpCadMap = cadMap;
     var hbMap = {};
     (hbList || []).forEach(function(b) {
       if (!b.produk_id) return;
@@ -3427,7 +3434,7 @@ async function simpanJP() {
     if (qty <= 0)  { alert('Qty harus lebih dari 0!');    return; }
     if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
     // ── Resolve SKU: normalize dan validasi vs produk list ──
-    const resolved = _jpResolveSku(_jpViaDsApply(sku));   // "Kirim via dropship" mencatat SKU dropship-nya
+    const resolved = _jpResolveSku(sku);
     if (!resolved.ok) {
       const lanjut = await zConfirm(
         'SKU "' + sku + '" tidak ditemukan di master produk.\n' +
@@ -3438,7 +3445,7 @@ async function simpanJP() {
       if (!lanjut) return;
     }
     const flF = _jpViaDsFlagOf(sku);
-    allItems.push({ sku: resolved.sku, qty, harga, total: total||qty*harga, channel_id: chId, tgl, waktu, ds: flF.ds, dsHpp: flF.dsHpp });
+    allItems.push({ sku: resolved.sku, qty, harga, total: total||qty*harga, channel_id: chId, tgl, waktu, ds: flF.ds, dsHpp: flF.dsHpp, dsSup: flF.dsSup });
   } else if (!hasPending) {
     // Form kosong dan tidak ada pending
     if (!sku)      { alert('SKU wajib diisi!');           return; }
@@ -3470,8 +3477,9 @@ async function simpanJP() {
           channel_id: p.channel_id, sku: (p.sku || '').toUpperCase(),
           qty: p.qty, harga_satuan: p.harga, total: p.total
         };
-        // Toggle Dropship (mode 'flag'): tandai baris + bekukan HPP = harga dropship (bukan HPP SKU stok = harga P.O)
-        if (p.ds) { payloadJP.kirim_dropship = true; payloadJP.hpp = p.dsHpp; }
+        // Toggle Dropship: tandai baris + bekukan HPP = harga dropship (bukan HPP SKU stok = harga P.O).
+        // kirim_supplier_id = supplier cadangan tujuan (kosong = supplier utama SKU) → bon dropship terbentuk ke supplier itu.
+        if (p.ds) { payloadJP.kirim_dropship = true; payloadJP.hpp = p.dsHpp; if (p.dsSup) payloadJP.kirim_supplier_id = p.dsSup; }
         var insJP = await dbInsert('jurnal_penjualan', payloadJP);
         // Kalau DB mengisi hpp sendiri saat insert (trigger) dan menimpa nilai kita, koreksi lewat update supaya laba tidak meleset
         if (p.ds) {
@@ -3517,24 +3525,28 @@ function _jpLiveItem() {
   var total = idrVal('jp-total') || qty * harga;
   var viaDs = !!(_jpViaDs && _jpViaDs.from === skuV.toUpperCase());
   var fl = _jpViaDsFlagOf(skuV);
-  return { sku: _jpViaDsApply(skuV), skuLabel: viaDs ? (_jpViaDs.label + ' (via ' + _jpViaDs.supplier + ')') : skuV, qty: qty, harga: harga, total: total, ds: fl.ds, dsHpp: fl.dsHpp, live: true };
+  return { sku: skuV, skuLabel: viaDs ? (skuV + ' (via ' + _jpViaDs.supplier + ')') : skuV, qty: qty, harga: harga, total: total, ds: fl.ds, dsHpp: fl.dsHpp, dsSup: fl.dsSup, live: true };
 }
 
-// ─── TOGGLE DROPSHIP DI TAMBAH PENJUALAN (6 Okt 2026 "Kirim via RH" → toggle umum 3 Nov 2026) ───
-// Alur: harga P.O & Dropship diisi di Kelola Produk (tersimpan di Master Barang) untuk SKU milik supplier 2 sistem; form ini TIDAK mengetik harga lagi.
-// Tiga kasus, semuanya dibaca dari data (tidak ada nama supplier yang di-hardcode):
-//   'flag'   — SKU milik supplier Dropship + Reseller (mis. MAGRA) dan SKU-nya stok biasa: toggle menyalakan jurnal_penjualan.kirim_dropship. SKU yang dicatat
-//              TETAP SKU asal; stok tidak berkurang (semua penghitung stok mengabaikan baris bertanda), bon dropship supplier-nya terbentuk otomatis.
-//   'twin'   — SKU stok punya padanan dropship di supplier LAIN (produk.padanan_dropship_id, mis. Turtleneck DIMI → RH): dicatat sebagai SKU dropship-nya.
+// ─── TOGGLE DROPSHIP DI TAMBAH PENJUALAN (6 Okt 2026 "Kirim via RH" → toggle umum 3 Nov → supplier cadangan 16 Nov 2026) ───
+// Alur: harga P.O & Dropship diisi di Kelola Produk (tersimpan di Master Barang); form ini TIDAK mengetik harga lagi.
+// Selalu SKU asal yang dicatat; stok tidak berkurang (semua penghitung stok mengabaikan baris bertanda kirim_dropship), bon dropship
+// supplier tujuan terbentuk otomatis. Dibaca dari data (tidak ada nama supplier yang di-hardcode):
+//   'flag'   — SKU stok biasa dengan tujuan dropship: (a) supplier UTAMA yang berjenis Dropship + Reseller (mis. MAGRA), dan/atau
+//              (b) supplier CADANGAN SKU itu (tabel produk_supplier, berjenis Dropship; mis. DIMI utama + RH cadangan). Lebih dari satu tujuan → dropdown.
+//              Cadangan dipakai saat stok utama kosong, jadi stok utama TIDAK berkurang. Tujuan cadangan disimpan di jurnal_penjualan.kirim_supplier_id.
 //   'sistem' — SKU sendiri sudah berstatus Dropship: toggle menyala & terkunci (otomatis masuk bon; ubah sistemnya di Kelola Produk).
-var _jpViaDs = null;   // { from, to, label, hpp, supplier, flag } saat toggle menyala
+var _jpViaDs = null;   // { from, hpp, supplier, supplierId (null = supplier utama), flag } saat toggle menyala
+var _jpViaDsPickIdx = 0, _jpViaDsPickSku = '';   // tujuan terpilih kalau SKU punya lebih dari satu (indeks ke tg.opts)
 var _jpSupMap = {};    // NAMA_SUPPLIER_UPPERCASE → baris hutang_supplier (diisi _jpRefreshSisakMap)
+var _jpSupById = {};   // id supplier → baris hutang_supplier
+var _jpCadMap = {};    // produk_id → [supplier_id cadangan] (tabel produk_supplier)
 var _jpHbMap  = {};    // 'produk_id|supplier_id' → { po, ds } harga per pcs dari Master Barang (diisi _jpRefreshSisakMap)
 function _jpEscHtml(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function _jpRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
 function _jpSupplierDual(s) { return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri); }
 function _jpProdukBySku(u) { return _jpProdukList.find(function(x) { return String(_jpGetSku(x)).toUpperCase() === u; }) || null; }
-// Harga per pcs SKU ini di supplier-nya (Master Barang): { po, ds } (0 = belum diisi)
+// Harga per pcs SKU ini di supplier tertentu (Master Barang): { po, ds } (0 = belum diisi)
 function _jpHargaDual(p, sup) {
   var h = sup ? _jpHbMap[p.id + '|' + sup.id] : null;
   return { po: h ? h.po : 0, ds: h ? h.ds : 0 };
@@ -3547,23 +3559,25 @@ function _jpDsTarget(sku) {
   var s = _jpSupMap[String(p.boss || '').trim().toUpperCase()];
   var supNama = String(p.boss || '').trim();
   if (_jpDsMap[u]) return _jpSupplierDual(s) ? { mode: 'sistem', supplier: supNama } : null;
-  if (p.padanan_dropship_id) {
-    var t = _jpProdukList.find(function(x) { return x.id === p.padanan_dropship_id; });
-    var tk = t ? String(_jpGetSku(t)).toUpperCase() : '';
-    if (t && _jpDsMap[tk]) return { mode: 'twin', sku: tk, label: _jpGetSku(t), hpp: Number(_jpGetHpp(t)) || 0, supplier: String(t.boss || '').trim() };
-    return null;   // padanan sudah tidak berstatus dropship → jangan dipakai
-  }
-  if (_jpSupplierDual(s)) return { mode: 'flag', supplier: supNama, hpp: _jpHargaDual(p, s).ds };
-  return null;
+  var opts = [];
+  if (_jpSupplierDual(s)) opts.push({ supplier: supNama, supplierId: null, hpp: _jpHargaDual(p, s).ds });
+  (_jpCadMap[p.id] || []).forEach(function(sid) {
+    var cs = _jpSupById[sid];
+    if (cs && cs.is_dropship && !cs.is_produksi_sendiri) opts.push({ supplier: String(cs.nama || '').trim(), supplierId: cs.id, hpp: _jpHargaDual(p, cs).ds });
+  });
+  if (!opts.length) return null;
+  opts.sort(function(a, b) { return (a.supplierId === null ? 0 : 1) - (b.supplierId === null ? 0 : 1); });   // supplier utama dulu
+  return { mode: 'flag', opts: opts };
 }
-function _jpViaDsApply(sku) {   // SKU yang benar-benar dicatat: SKU padanan (mode twin) kalau toggle menyala untuk SKU ini; selain itu SKU yang sama
-  var u = String(sku || '').trim().toUpperCase();
-  return (_jpViaDs && _jpViaDs.from === u) ? _jpViaDs.to : u;
+function _jpViaDsOpt(tg, skuU) {   // tujuan terpilih untuk SKU ini (pilihan di-reset kalau SKU berganti)
+  if (_jpViaDsPickSku !== skuU) { _jpViaDsPickSku = skuU; _jpViaDsPickIdx = 0; }
+  if (_jpViaDsPickIdx >= tg.opts.length) _jpViaDsPickIdx = 0;
+  return tg.opts[_jpViaDsPickIdx];
 }
-function _jpViaDsFlagOf(sku) {   // { ds, dsHpp } untuk item penjualan: bertanda dropship hanya untuk mode 'flag'
+function _jpViaDsFlagOf(sku) {   // { ds, dsHpp, dsSup } untuk item penjualan
   var u = String(sku || '').trim().toUpperCase();
   var on = !!(_jpViaDs && _jpViaDs.flag && _jpViaDs.from === u);
-  return { ds: on, dsHpp: on ? _jpViaDs.hpp : 0 };
+  return { ds: on, dsHpp: on ? _jpViaDs.hpp : 0, dsSup: on ? _jpViaDs.supplierId : null };
 }
 function _jpViaDsPaint(on, disabled) {
   var sw = document.getElementById('jp-via-ds-sw'), kn = document.getElementById('jp-via-ds-knob'), lb = document.getElementById('jp-via-ds-lbl');
@@ -3580,28 +3594,31 @@ function _jpViaDsRefresh() {
   var skuV = vEl ? String(vEl.value || '') : '';
   var tg = (idEl && idEl.value) ? null : _jpDsTarget(skuV);   // mode edit: tanpa pilihan ini
   if (!tg) { _jpViaDs = null; if (cb) { cb.checked = false; cb.disabled = false; } _jpViaDsPaint(false, false); wrap.style.display = 'none'; return; }
-  if (_jpViaDs && _jpViaDs.from !== skuV.toUpperCase()) _jpViaDs = null;
-  wrap.style.display = 'block';
-  if (supEl) supEl.textContent = tg.supplier || '';
-  var sup = _jpEscHtml(tg.supplier || 'supplier');
   var u = skuV.toUpperCase();
+  if (_jpViaDs && _jpViaDs.from !== u) _jpViaDs = null;
+  wrap.style.display = 'block';
+  var opt = tg.mode === 'flag' ? _jpViaDsOpt(tg, u) : null;
+  var supNama = tg.mode === 'flag' ? opt.supplier : tg.supplier;
+  if (supEl) {
+    if (tg.mode === 'flag' && tg.opts.length > 1) {   // lebih dari satu tujuan → dropdown
+      supEl.innerHTML = '<select onchange="jpViaDsPick(this.value)" style="font-family:var(--f);font-size:13px;font-weight:800;padding:4px 6px;border:2px solid var(--ink);background:var(--cream);color:var(--ink)">'
+        + tg.opts.map(function(o, i) { return '<option value="' + i + '"' + (i === _jpViaDsPickIdx ? ' selected' : '') + '>' + _jpEscHtml(o.supplier) + (o.supplierId === null ? '' : ' (cadangan)') + '</option>'; }).join('')
+        + '</select>';
+    } else supEl.textContent = supNama || '';
+  }
+  var sup = _jpEscHtml(supNama || 'supplier');
   var sisa = _jpSisakMap[u];
   var habis = (sisa !== undefined && sisa <= 0);
   var on = false, disabled = false, teks = '';
   if (tg.mode === 'sistem') {
     on = true; disabled = true;
     teks = 'SKU ini berstatus <b>Dropship</b> &mdash; otomatis masuk bon ' + sup + '. Ubah sistemnya di Kelola Produk.';
-  } else if (tg.mode === 'flag') {
+  } else {
     on = !!_jpViaDs;
-    if (!(tg.hpp > 0)) { disabled = true; teks = '<span style="color:var(--danger);font-weight:700">Harga Dropship belum diisi.</span> Isi dulu di Kelola Produk (Edit Katalog) supaya toggle bisa dipakai.'; }
-    else if (on) teks = 'Harga Dropship <b>' + _jpRp(tg.hpp) + '</b>. Stok ' + _jpEscHtml(skuV) + ' tidak berkurang, masuk bon ' + sup + '.';
-    else if (habis) teks = '<span style="color:var(--danger);font-weight:700">Stok habis.</span> Nyalakan untuk kirim via ' + sup + ' (' + _jpRp(tg.hpp) + ').';
-    else teks = 'Off = dikirim dari stok. On = kirim via ' + sup + ' (' + _jpRp(tg.hpp) + ').';
-  } else {   // twin
-    on = !!_jpViaDs;
-    if (on) teks = 'Dicatat sebagai <b>' + _jpEscHtml(tg.label) + '</b> &middot; harga ' + _jpRp(tg.hpp) + '. Stok ' + _jpEscHtml(skuV) + ' tidak berkurang, masuk bon ' + sup + '.';
-    else if (habis) teks = '<span style="color:var(--danger);font-weight:700">Stok habis.</span> Nyalakan untuk kirim via ' + sup + ' (' + _jpEscHtml(tg.label) + ', ' + _jpRp(tg.hpp) + ').';
-    else teks = 'Padanan dropship: ' + _jpEscHtml(tg.label) + ' &middot; ' + _jpRp(tg.hpp) + '.';
+    if (!(opt.hpp > 0)) { disabled = true; teks = '<span style="color:var(--danger);font-weight:700">Harga Dropship ' + sup + ' belum diisi.</span> Isi dulu di Kelola Produk (Supplier Cadangan / Edit Katalog) supaya toggle bisa dipakai.'; }
+    else if (on) teks = 'Harga Dropship <b>' + _jpRp(opt.hpp) + '</b>. Stok ' + _jpEscHtml(skuV) + ' tidak berkurang, masuk bon ' + sup + '.';
+    else if (habis) teks = '<span style="color:var(--danger);font-weight:700">Stok habis.</span> Nyalakan untuk kirim via ' + sup + ' (' + _jpRp(opt.hpp) + ').';
+    else teks = 'Off = dikirim dari stok. On = kirim via ' + sup + ' (' + _jpRp(opt.hpp) + ').';
   }
   if (cb) { cb.checked = on; cb.disabled = disabled; }
   _jpViaDsPaint(on, disabled);
@@ -3615,16 +3632,29 @@ function jpToggleViaDs() {
   var hargaEl = document.getElementById('jp-harga');
   if (!cb || !tg || tg.mode === 'sistem' || !hargaEl) return;
   if (cb.checked) {
-    if (tg.mode === 'flag' && !(tg.hpp > 0)) { cb.checked = false; _jpViaDsRefresh(); return; }
-    _jpViaDs = { from: skuV.toUpperCase(), to: tg.mode === 'twin' ? tg.sku : skuV.toUpperCase(), label: tg.mode === 'twin' ? tg.label : skuV, hpp: tg.hpp, supplier: tg.supplier, flag: tg.mode === 'flag' };
-    if (tg.hpp > 0) hargaEl.value = tg.hpp;
+    var opt = _jpViaDsOpt(tg, skuV.toUpperCase());
+    if (!(opt.hpp > 0)) { cb.checked = false; _jpViaDsRefresh(); return; }
+    _jpViaDs = { from: skuV.toUpperCase(), hpp: opt.hpp, supplier: opt.supplier, supplierId: opt.supplierId, flag: true };
+    hargaEl.value = opt.hpp;
   } else {
     _jpViaDs = null;
-    var opt = sel.options[sel.selectedIndex];
-    var h = (opt && parseInt(opt.dataset.hpp)) || 0;
+    var o = sel.options[sel.selectedIndex];
+    var h = (o && parseInt(o.dataset.hpp)) || 0;
     if (h > 0) hargaEl.value = h;   // kembali ke HPP SKU stoknya (harga P.O)
   }
   hitungTotalJP();
+  _jpViaDsRefresh();
+}
+function jpViaDsPick(i) {   // ganti tujuan dropship (supplier utama / cadangan); kalau toggle sedang menyala, harga ikut tujuan baru
+  _jpViaDsPickIdx = parseInt(i, 10) || 0;
+  var sel = document.getElementById('jp-sku-variasi'), hargaEl = document.getElementById('jp-harga');
+  var skuV = sel ? String(sel.value || '') : '';
+  var tg = _jpDsTarget(skuV);
+  if (_jpViaDs && tg && tg.mode === 'flag' && hargaEl) {
+    var opt = _jpViaDsOpt(tg, skuV.toUpperCase());
+    if (opt.hpp > 0) { _jpViaDs = { from: skuV.toUpperCase(), hpp: opt.hpp, supplier: opt.supplier, supplierId: opt.supplierId, flag: true }; hargaEl.value = opt.hpp; hitungTotalJP(); }
+    else _jpViaDs = null;
+  }
   _jpViaDsRefresh();
 }
 
@@ -3685,9 +3715,9 @@ function jpSimpanDanTambah() {
   const skuV  = document.getElementById('jp-sku-variasi').value;
   const skuI  = document.getElementById('jp-sku-induk').value.trim().toUpperCase();
   const sku0  = (skuV || skuI).trim().toUpperCase();
-  const sku   = _jpViaDsApply(sku0);   // "Kirim via dropship" mencatat SKU dropship-nya
+  const sku   = sku0;
   const fl = _jpViaDsFlagOf(sku0);
-  const skuLabel = (_jpViaDs && _jpViaDs.from === sku0) ? (_jpViaDs.label + ' (via ' + _jpViaDs.supplier + ')') : (skuV || sku0);
+  const skuLabel = (_jpViaDs && _jpViaDs.from === sku0) ? ((skuV || sku0) + ' (via ' + _jpViaDs.supplier + ')') : (skuV || sku0);
   const tgl   = document.getElementById('jp-tgl').value;
   const waktu = document.getElementById('jp-waktu').value || _jpNowTime();
 
@@ -3697,7 +3727,7 @@ function jpSimpanDanTambah() {
   if (harga <= 0){ alert('Harga satuan harus diisi!');  return; }
 
   // Tambah ke list sementara — belum ke DB
-  _jpPendingItems.push({ sku, skuLabel, qty, harga, total, channel_id: chId, tgl, waktu, ds: fl.ds, dsHpp: fl.dsHpp });
+  _jpPendingItems.push({ sku, skuLabel, qty, harga, total, channel_id: chId, tgl, waktu, ds: fl.ds, dsHpp: fl.dsHpp, dsSup: fl.dsSup });
   _jpRenderPending();
 
   // Reset SKU — pertahankan tanggal, waktu, channel

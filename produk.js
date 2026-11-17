@@ -208,6 +208,7 @@ document.addEventListener('zenot:page', function(e) {
 
 let _produkData = [];
 let _produkSupplierList = []; // dari hutang_supplier — single source of truth buat picker Boss
+let _produkCadList = [];      // produk_supplier (id, produk_id, supplier_id) — supplier cadangan per SKU (16 Nov 2026)
 let _produkHbList = [];       // hutang_barang (id, produk_id, supplier_id, harga_per_lusin, harga_po_per_lusin) — harga P.O & Dropship SKU supplier 2 sistem
 
 async function loadProduk() {
@@ -215,11 +216,14 @@ async function loadProduk() {
   tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
     // [30 Sep 2026] daftar supplier dimuat bareng produk: badge "Dropship" butuh flag sistem supplier saat render
-    const [data, hbList] = await Promise.all([
+    // 16 Nov 2026: destructuring dibetulkan — dulu `[data, hbList]` mengambil hasil _produkLoadSupplierList() (kosong), jadi harga Master Barang tidak pernah terbaca
+    const [data, , hbList, cadList] = await Promise.all([
       dbGet('produk'), _produkLoadSupplierList(),
-      dbGet('hutang_barang', '&select=id,produk_id,supplier_id,harga_per_lusin,harga_po_per_lusin').catch(function() { return []; })   // 3 Nov 2026: 2 harga SKU supplier 2 sistem
+      dbGet('hutang_barang', '&select=id,produk_id,supplier_id,harga_per_lusin,harga_po_per_lusin').catch(function() { return []; }),   // 3 Nov 2026: 2 harga SKU supplier 2 sistem
+      dbGet('produk_supplier').catch(function() { return []; })   // 16 Nov 2026: supplier cadangan
     ]);
     _produkHbList = Array.isArray(hbList) ? hbList : [];
+    _produkCadList = Array.isArray(cadList) ? cadList : [];
     // Supabase kadang return object error bukan array
     if (!Array.isArray(data)) {
       const msg = data?.message || data?.hint || JSON.stringify(data);
@@ -327,6 +331,69 @@ function _produkSistemPrefer(row) {
 }
 function _produkBossBerubah(oldBoss, newBoss) {
   return String(oldBoss || '').trim().toUpperCase() !== String(newBoss || '').trim().toUpperCase();
+}
+
+// ── SUPPLIER CADANGAN (16 Nov 2026) ───────────────────────────
+// Satu SKU = 1 supplier UTAMA (produk.boss, penentu sistem/stok/Re-Stock) + 0..n supplier CADANGAN (tabel produk_supplier).
+// Cadangan dipakai saat stok utama kosong: penjualan dicatat dropship ke supplier cadangan lewat toggle di Tambah Penjualan
+// (jurnal_penjualan.kirim_dropship + kirim_supplier_id) — stok utama TIDAK berkurang. Harga dropship di cadangan = Master Barang
+// (hutang_barang: produk_id x supplier_id, harga_per_lusin / 12), satu tempat seperti harga supplier 2 sistem.
+// Hanya supplier berflag Dropship (bukan Produksi Sendiri) yang bisa jadi cadangan.
+function _produkSupById(id) {
+  return (_produkSupplierList || []).find(function(s) { return s.id === id; }) || null;
+}
+function _produkCadRows(row) {   // [{ link, sup }] cadangan SKU ini
+  var out = [];
+  (_produkCadList || []).forEach(function(l) {
+    if (l.produk_id !== row.id) return;
+    var s = _produkSupById(l.supplier_id);
+    if (s) out.push({ link: l, sup: s });
+  });
+  out.sort(function(a, b) { return String(a.sup.nama || '').localeCompare(String(b.sup.nama || ''), 'id'); });
+  return out;
+}
+function _produkCadKandidat(row) {   // supplier yang boleh dipilih jadi cadangan SKU ini
+  var boss = String(row.boss || '').trim().toUpperCase();
+  return (_produkSupplierList || []).filter(function(s) {
+    return s.is_dropship && !s.is_produksi_sendiri && String(s.nama || '').trim().toUpperCase() !== boss;
+  });
+}
+function _produkCadHargaDs(row, supId) {   // harga Dropship per pcs SKU ini di supplier cadangan (0 = belum diisi)
+  var b = (_produkHbList || []).find(function(x) { return x.produk_id === row.id && x.supplier_id === supId; });
+  return b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0;
+}
+async function _produkCadTambah(row, sup, ds) {   // idempotent; ds (per pcs) > 0 → ikut diisi ke Master Barang
+  if (!(_produkCadList || []).some(function(l) { return l.produk_id === row.id && l.supplier_id === sup.id; })) {
+    var ins = await dbInsert('produk_supplier', { produk_id: row.id, supplier_id: sup.id });
+    var nl = Array.isArray(ins) ? ins[0] : ins;
+    _produkCadList.push({ id: nl && nl.id, produk_id: row.id, supplier_id: sup.id });
+  }
+  if (Number(ds) > 0) await _produkUpsertHargaDual(row, sup, 0, ds);
+}
+async function _produkCadHapus(linkId) {
+  await dbDelete('produk_supplier', linkId, true);
+  _produkCadList = (_produkCadList || []).filter(function(l) { return l.id !== linkId; });
+}
+// Supplier utama berganti → kalau supplier barunya tadinya cadangan SKU itu, tautan cadangannya dibuang (tidak boleh jadi utama + cadangan sekaligus)
+async function _produkCadBersihkanUtama(produkId, bossNama) {
+  var sup = _produkSupMap()[String(bossNama || '').trim().toUpperCase()];
+  if (!sup) return;
+  var dup = (_produkCadList || []).filter(function(l) { return l.produk_id === produkId && l.supplier_id === sup.id; });
+  for (var i = 0; i < dup.length; i++) await _produkCadHapus(dup[i].id);
+}
+// Sel Boss: supplier utama + penanda kecil "+ RH" untuk cadangan
+function _produkBossHtml(row) {
+  var cad = _produkCadRows(row);
+  var h = row.boss || '—';
+  if (cad.length) h += '<div style="font-size:10px;color:var(--ink3);margin-top:2px">+ ' + _pkEsc(cad.map(function(c) { return c.sup.nama; }).join(', ')) + '</div>';
+  return h;
+}
+// Sel Boss baris katalog: cadangan yang dimiliki semua varian → "+ RH"; sebagian → "+ RH (3/10)"
+function _produkCadKatalogSub(rows) {
+  var cnt = {};
+  rows.forEach(function(r) { _produkCadRows(r).forEach(function(c) { cnt[c.sup.nama] = (cnt[c.sup.nama] || 0) + 1; }); });
+  var parts = Object.keys(cnt).sort().map(function(n) { return _pkEsc(n) + (cnt[n] === rows.length ? '' : ' (' + cnt[n] + '/' + rows.length + ')'); });
+  return parts.length ? '+ ' + parts.join(', ') : '';
 }
 
 var _PRODUK_SISTEM_META = {
@@ -545,7 +612,7 @@ function produkSistemSheetOpen(id) {
   sh.innerHTML = '<div class="pk-sis-handle"></div>'
     + '<div class="pk-sis-title">' + _pkEsc(row.sku_variasi) + '</div>'
     + '<div class="pk-sis-sub">Sekarang: <b>' + (effM ? effM.label : 'Belum diatur') + '</b> · Supplier: ' + _pkEsc(boss) + '</div>'
-    + rows + _produkPadananRow(row, eff);
+    + rows + _produkCadRow(row, eff);
   var ovEl = document.getElementById('pk-sis-overlay');
   ovEl.classList.add('open');
   sh.classList.add('show'); // transisi berjalan karena overlay sudah display:block di frame yang sama
@@ -561,71 +628,82 @@ function produkSistemSheetClose() {
   _pkSisId = null;
 }
 
-// ── PADANAN DROPSHIP (3 Nov 2026) ─────────────────────────────
-// SKU stok biasa (Reseller / Produksi Sendiri) boleh punya "padanan" = SKU berstatus Dropship yang dicatat saat penjualan dikirim via dropship
-// (tombol "Kirim via ..." di Tambah Penjualan). Disimpan di produk.padanan_dropship_id; tidak ada pasangan yang ditebak dari nama.
-// Supplier Dropship + Reseller boleh tanpa pengaturan ini: SKU padanannya dibuat otomatis saat pertama dipakai (jurnal-penjualan.js).
-function _produkPadananRow(row, eff) {
+// ── SUPPLIER CADANGAN per SKU (16 Nov 2026, menggantikan Padanan Dropship) ──
+// Baris di sheet Sistem → sheet "Supplier Cadangan": daftar supplier Dropship (selain supplier utama), ketuk = aktif/nonaktif.
+// Harga Dropship di tiap cadangan diisi lewat baris "Ubah harga Dropship" (disimpan ke Master Barang).
+function _produkCadRow(row, eff) {
   if (eff === 'dropship') return '';
-  var tw = row.padanan_dropship_id ? (_produkData || []).find(function(r) { return r.id === row.padanan_dropship_id; }) : null;
-  var ket = tw ? _pkEsc(tw.sku_variasi) + ' · ' + _pkEsc(tw.boss || '—') : 'Belum diatur — dipakai tombol "Kirim via dropship" di Tambah Penjualan.';
-  return '<div class="pk-sis-row" onclick="produkPadananOpen()">'
-    + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">Padanan Dropship</div><div class="pk-sis-rd">' + ket + '</div></div>'
+  var cad = _produkCadRows(row);
+  var ket = cad.length
+    ? cad.map(function(c) { var h = _produkCadHargaDs(row, c.sup.id); return _pkEsc(c.sup.nama) + (h ? ' · ' + _produkRp(h) : ' · harga belum diisi'); }).join(' | ')
+    : 'Belum ada — dipakai toggle Dropship di Tambah Penjualan saat stok utama kosong.';
+  return '<div class="pk-sis-row" onclick="produkCadOpen()">'
+    + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">Supplier Cadangan</div><div class="pk-sis-rd">' + ket + '</div></div>'
     + '<i class="ti ti-chevron-right" style="color:var(--ink3)"></i></div>';
 }
 
-function produkPadananOpen() {
+function produkCadOpen() {
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
   var sh = document.getElementById('pk-sis-sheet');
   if (!row || !sh) return;
   sh.innerHTML = '<div class="pk-sis-handle"></div>'
-    + '<div class="pk-sis-title">Padanan Dropship</div>'
-    + '<div class="pk-sis-sub"><b>' + _pkEsc(row.sku_variasi) + '</b> — pilih SKU dropship yang dicatat saat dikirim via dropship</div>'
-    + '<div style="padding:10px 18px 6px"><input type="text" id="pk-pad-search" placeholder="Cari SKU / supplier..." autocomplete="off" oninput="produkPadananRender()" '
-    + 'style="width:100%;box-sizing:border-box;font-family:var(--f);font-size:14px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink)"></div>'
-    + '<div id="pk-pad-list"></div>'
+    + '<div class="pk-sis-title">Supplier Cadangan</div>'
+    + '<div class="pk-sis-sub"><b>' + _pkEsc(row.sku_variasi) + '</b> — utama: <b>' + _pkEsc(row.boss || '—') + '</b>. Dipakai saat stok utama kosong: penjualan dicatat dropship ke cadangan, stok utama tidak berkurang.</div>'
+    + '<div id="pk-cad-list"></div>'
     + '<div class="pk-sis-row" onclick="produkSistemSheetOpen(_pkSisId)"><div class="pk-sis-rtxt"><div class="pk-sis-rl">Kembali</div></div></div>';
-  produkPadananRender();
+  produkCadRender();
 }
 
-function produkPadananRender() {
+function produkCadRender() {
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
-  var box = document.getElementById('pk-pad-list');
+  var box = document.getElementById('pk-cad-list');
   if (!row || !box) return;
-  var q = String((document.getElementById('pk-pad-search') || {}).value || '').trim().toLowerCase();
-  var list = (_produkData || []).filter(function(r) {
-    if (r.id === row.id || _produkSistemOf(r) !== 'dropship') return false;
-    return !q || (String(r.sku_variasi || '') + ' ' + String(r.boss || '')).toLowerCase().indexOf(q) !== -1;
-  }).sort(function(a, b) { return String(a.sku_variasi || '').localeCompare(String(b.sku_variasi || ''), 'id'); });
-  var html = '';
-  if (row.padanan_dropship_id) {
-    html += '<div class="pk-sis-row" onclick="produkPadananPick(null)"><div class="pk-sis-rtxt"><div class="pk-sis-rl" style="color:var(--danger)">Hapus padanan</div>'
-      + '<div class="pk-sis-rd">Tombol "Kirim via dropship" tidak muncul untuk SKU ini (kecuali supplier-nya Dropship + Reseller).</div></div></div>';
-  }
-  if (!list.length) html += '<div class="pk-sis-sub" style="padding:14px 18px">Belum ada SKU berstatus Dropship yang cocok.</div>';
-  html += list.slice(0, 60).map(function(r) {
-    var on = (row.padanan_dropship_id === r.id);
-    return '<div class="pk-sis-row' + (on ? ' on' : '') + '" onclick="produkPadananPick(' + r.id + ')">'
-      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + _pkEsc(r.sku_variasi) + '</div><div class="pk-sis-rd">' + _pkEsc(r.boss || '—') + ' · HPP Rp' + (Number(r.hpp) || 0).toLocaleString('id-ID') + '</div></div>'
+  var kand = _produkCadKandidat(row);
+  var on = {};
+  _produkCadRows(row).forEach(function(c) { on[c.sup.id] = true; });
+  if (!kand.length) { box.innerHTML = '<div class="pk-sis-sub" style="padding:14px 18px">Belum ada supplier Dropship lain yang bisa jadi cadangan.</div>'; return; }
+  box.innerHTML = kand.map(function(sup) {
+    var h = _produkCadHargaDs(row, sup.id);
+    var out = '<div class="pk-sis-row' + (on[sup.id] ? ' on' : '') + '" onclick="produkCadToggle(' + sup.id + ')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + _pkEsc(sup.nama) + '</div>'
+      + '<div class="pk-sis-rd">' + (on[sup.id] ? (h ? 'Harga Dropship ' + _produkRp(h) : '<span style="color:var(--danger)">Harga Dropship belum diisi</span>') : 'Ketuk untuk jadikan cadangan') + '</div></div>'
       + '<span class="pk-sis-tg"></span></div>';
+    if (on[sup.id]) out += '<div class="pk-sis-row" style="padding-left:34px" onclick="produkCadHarga(' + sup.id + ')"><div class="pk-sis-rtxt"><div class="pk-sis-rl" style="font-size:13px">Ubah harga Dropship ' + _pkEsc(sup.nama) + '</div></div><i class="ti ti-pencil" style="color:var(--ink3)"></i></div>';
+    return out;
   }).join('');
-  if (list.length > 60) html += '<div class="pk-sis-sub" style="padding:10px 18px">Menampilkan 60 pertama — persempit pencarian.</div>';
-  box.innerHTML = html;
 }
 
-async function produkPadananPick(id) {
+async function produkCadToggle(supId) {
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
-  if (!row) { produkSistemSheetClose(); return; }
+  var sup = _produkSupById(supId);
+  if (!row || !sup) return;
   try {
-    await dbUpdate('produk', row.id, { padanan_dropship_id: id == null ? null : id });
-    row.padanan_dropship_id = id == null ? null : id;
+    var link = (_produkCadList || []).find(function(l) { return l.produk_id === row.id && l.supplier_id === supId; });
+    if (link) await _produkCadHapus(link.id);
+    else await _produkCadTambah(row, sup, 0);
     produkMarkDirty();
-    produkSistemSheetClose();
     renderProduk(_produkData);
+    produkCadRender();
   } catch (e) {
     var msg = (e && e.message) || String(e);
-    alert('Gagal simpan padanan dropship: ' + msg + (/padanan_dropship_id/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-padanan-dropship.sql di Supabase dulu.' : ''));
+    alert('Gagal simpan supplier cadangan: ' + msg + (/produk_supplier/i.test(msg) ? '\n\nTabel belum ada — jalankan zenoot-multi-supplier.sql di Supabase dulu.' : ''));
   }
+}
+
+async function produkCadHarga(supId) {
+  var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
+  var sup = _produkSupById(supId);
+  if (!row || !sup) return;
+  var v = await zPrompt('Harga Dropship ' + row.sku_variasi + ' di ' + sup.nama + ' (Rp per pcs)', String(_produkCadHargaDs(row, supId) || ''), { title: 'Harga Dropship', placeholder: 'Contoh: 48000' });
+  if (v == null) return;
+  var n = parseInt(String(v).replace(/\D/g, ''), 10) || 0;
+  if (!(n > 0)) { alert('Isi angka harga yang valid.'); return; }
+  try {
+    await _produkUpsertHargaDual(row, sup, 0, n);
+    produkMarkDirty();
+    renderProduk(_produkData);
+    produkCadRender();
+  } catch (e) { alert('Gagal simpan harga: ' + ((e && e.message) || e)); }
 }
 
 function _produkYmdHariIni() {
@@ -731,7 +809,7 @@ function renderProduk(data) {
     // [30 Sep 2026] badge DROPSHIP/DS yang mengambang di kolom Boss dihapus → diganti kolom "Sistem" sendiri
     const bossCell = `<div style="line-height:1.2">
       <div style="font-size:14px;font-weight:600">${boss}</div>
-      <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier${_produkCadKatalogSub(rows) ? ' · ' + _produkCadKatalogSub(rows) : ''}</div>
     </div>`;
     const sistemCellKat = _produkSistemKatalogCell(rows);
 
@@ -765,7 +843,7 @@ function renderProduk(data) {
             </td>
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
             <td>${_produkHppVarianHtml(row)}</td>
-            <td>${row.boss || '—'}</td>
+            <td>${_produkBossHtml(row)}</td>
             <td>${_produkSistemBtn(row)}</td>
           </tr>`;
         } else {
@@ -774,7 +852,7 @@ function renderProduk(data) {
               <b>${row.sku_variasi}</b>
             </td>
             <td>${_produkHppVarianHtml(row)}</td>
-            <td>${row.boss || '—'}</td>
+            <td>${_produkBossHtml(row)}</td>
             <td>${_produkSistemBtn(row)}</td>
           </tr>`;
         }
@@ -934,6 +1012,7 @@ async function simpanEditKatalog() {
       }
       _produkStampDropshipMulai(payloadK, r);
       await dbUpdate('produk', r.id, payloadK);
+      if (bossBerubah) await _produkCadBersihkanUtama(r.id, boss);
       if (_supDual) await _produkUpsertHargaDual(r, _supDual, _poIn, _dsIn);
       // Cascade (7 Sep 2026): dulu bulk-edit di sini bypass total cascade
       // yang ada di simpanProduk() — kalau boss diganti massal lewat modal
@@ -1078,6 +1157,7 @@ async function simpanProduk() {
         data.hpp = _produkHppDual(data.sistem_override || _produkSistemOf(old || {}), poEf, dsEf, old ? old.hpp : 0);
       }
       await dbUpdate('produk', id, data);
+      if (old && _produkBossBerubah(old.boss, data.boss)) await _produkCadBersihkanUtama(old.id, data.boss);
       if (supDual) await _produkUpsertHargaDual({ id: old ? old.id : Number(id), katalog: data.katalog, sku_variasi: data.sku_variasi }, supDual, poIn, dsIn);
     } else {
       const sisAwal = _produkSistemDefault(data.boss);
@@ -1639,7 +1719,7 @@ function produkBatchSupplier() {
   document.getElementById('batch-sup-input').value = '';
   const lbl = document.getElementById('batch-sup-label');
   if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
-  produkBatchSupSyncSistem();   // reset: toggle Sistem tersembunyi sampai supplier Dropship + Reseller dipilih
+  produkBatchSupMode('utama');   // reset mode + toggle Sistem tersembunyi sampai supplier Dropship + Reseller dipilih
   showModal('modal-batch-sup');
 }
 
@@ -1655,7 +1735,48 @@ function _produkIsProduksiBoss(boss) {
 // Kembalikan daftar katalog yang belum total: [{katalog, total, miss}]; kosong = aman.
 
 
+// 16 Nov 2026: Edit Supplier Massal punya 3 mode — Ganti Utama (perilaku lama: menimpa produk.boss), + Cadangan (tambah supplier cadangan,
+// supplier utama tidak berubah), Hapus Cadangan. Cadangan disimpan di tabel produk_supplier.
+var _batchSupMode = 'utama';
+var _BATCH_SUP_HINT = {
+  utama:  'Mengganti supplier UTAMA semua SKU terpilih (menentukan sistem, stok, dan Re-Stock).',
+  tambah: 'Menambah supplier CADANGAN. Supplier utama tidak berubah. Dipakai saat stok utama kosong: dropship ke cadangan, stok utama tidak berkurang.',
+  hapus:  'Menghapus supplier cadangan dari SKU terpilih. Penjualan lama yang sudah tercatat via cadangan tidak berubah.'
+};
+function produkBatchSupMode(m) {
+  _batchSupMode = m;
+  document.getElementById('batch-sup-input').value = '';
+  var lbl = document.getElementById('batch-sup-label');
+  if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
+  var t = document.getElementById('batch-sup-lbl-title');
+  if (t) t.textContent = m === 'utama' ? 'Nama Supplier Baru' : (m === 'tambah' ? 'Supplier Cadangan' : 'Cadangan yang Dihapus');
+  var h = document.getElementById('batch-sup-mode-hint');
+  if (h) h.textContent = _BATCH_SUP_HINT[m];
+  document.querySelectorAll('#batch-sup-mode button').forEach(function(b) {
+    var on = b.getAttribute('data-m') === m;
+    b.style.background = on ? 'var(--ink)' : 'var(--cream)';
+    b.style.color = on ? 'var(--cream)' : 'var(--ink)';
+  });
+  produkBatchSupSyncSistem();
+}
+function produkBatchSupOpenPicker() {
+  produkOpenBossSheet('batch-sup-input', 'batch-sup-label', _batchSupMode === 'tambah' ? 'cad-tambah' : (_batchSupMode === 'hapus' ? 'cad-hapus' : ''));
+}
+
 function produkBatchSupSyncSistem() {
+  // Mode cadangan: kolom harga dropship hanya untuk mode "+ Cadangan" setelah supplier dipilih; baris Sistem & HPP Produksi khusus mode Ganti Utama
+  var dsRow = document.getElementById('batch-sup-ds-row');
+  if (dsRow) {
+    var bs = String(document.getElementById('batch-sup-input').value || '').trim();
+    dsRow.style.display = (_batchSupMode === 'tambah' && bs) ? '' : 'none';
+    if (dsRow.style.display === 'none') document.getElementById('batch-sup-ds').value = '';
+  }
+  if (_batchSupMode !== 'utama') {
+    var hr0 = document.getElementById('batch-sup-hpp-row'), sr0 = document.getElementById('batch-sup-sistem-row');
+    if (hr0) { hr0.style.display = 'none'; document.getElementById('batch-sup-hpp').value = ''; }
+    if (sr0) sr0.style.display = 'none';
+    return;
+  }
   // Pindah ke supplier Produksi Sendiri → wajib isi HPP baru (HPP produksi beda dengan harga beli reseller/dropship)
   var hr = document.getElementById('batch-sup-hpp-row');
   if (hr) {
@@ -1694,7 +1815,56 @@ function produkBatchSupSetSistem(v) {
   });
 }
 
+// Mode "+ Cadangan": tambahkan supplier ke tiap SKU terpilih (SKU yang supplier utamanya sudah supplier itu dilewati); harga Dropship opsional → Master Barang.
+async function simpanBatchCadTambah() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  const nama = document.getElementById('batch-sup-input').value.trim();
+  const sup = _produkSupMap()[nama.toUpperCase()];
+  if (!sup) { alert('Pilih supplier cadangan dulu.'); return; }
+  if (!sup.is_dropship || sup.is_produksi_sendiri) { alert('Supplier cadangan harus berjenis Dropship.'); return; }
+  const ds = parseInt(String(document.getElementById('batch-sup-ds').value || '').replace(/\D/g, ''), 10) || 0;
+  const rows = _produkData.filter(r => ids.indexOf(r.id) >= 0);
+  let ok = 0, lewat = 0;
+  try {
+    for (const r of rows) {
+      if (!_produkCadKandidat(r).some(k => k.id === sup.id)) { lewat++; continue; }   // supplier utama SKU ini sendiri
+      await _produkCadTambah(r, sup, ds);
+      ok++;
+    }
+    hideModal('modal-batch-sup');
+    _produkSelected = {};
+    produkMarkDirty();
+    await loadProduk();
+    if (lewat) alert(ok + ' SKU ditambah cadangan ' + sup.nama + '. ' + lewat + ' SKU dilewati karena supplier utamanya sudah ' + sup.nama + '.');
+  } catch (err) {
+    const msg = String(err && err.message || err);
+    produkMarkDirty();
+    alert('Gagal: ' + msg + (/produk_supplier/i.test(msg) ? '\n\nTabel belum ada — jalankan zenoot-multi-supplier.sql di Supabase dulu.' : '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.'));
+  }
+}
+
+async function simpanBatchCadHapus() {
+  const ids = Object.keys(_produkSelected).map(Number);
+  const nama = document.getElementById('batch-sup-input').value.trim();
+  const sup = _produkSupMap()[nama.toUpperCase()];
+  if (!sup) { alert('Pilih supplier cadangan yang mau dihapus.'); return; }
+  const links = (_produkCadList || []).filter(l => l.supplier_id === sup.id && ids.indexOf(l.produk_id) >= 0);
+  if (!links.length) { alert(sup.nama + ' bukan cadangan di SKU terpilih.'); return; }
+  try {
+    for (const l of links) await _produkCadHapus(l.id);
+    hideModal('modal-batch-sup');
+    _produkSelected = {};
+    produkMarkDirty();
+    await loadProduk();
+  } catch (err) {
+    produkMarkDirty();
+    alert('Gagal: ' + String(err && err.message || err) + '\n\nSebagian SKU mungkin sudah terhapus — periksa tabelnya.');
+  }
+}
+
 async function simpanBatchSupplier() {
+  if (_batchSupMode === 'tambah') return simpanBatchCadTambah();
+  if (_batchSupMode === 'hapus') return simpanBatchCadHapus();
   const ids  = Object.keys(_produkSelected).map(Number);
   const boss = document.getElementById('batch-sup-input').value.trim().toUpperCase();
   if (!boss) { alert('Masukkan nama supplier'); return; }
@@ -1727,6 +1897,7 @@ async function simpanBatchSupplier() {
       }
       _produkStampDropshipMulai(payloadRow, _oldMap[id]);
       await dbUpdate('produk', id, payloadRow);
+      await _produkCadBersihkanUtama(id, boss);   // supplier baru tadinya cadangan SKU ini → tautan cadangannya dibuang
       // Cascade snapshot stok (stok.boss) — dulu Edit Supplier massal tidak melakukan ini, padahal kalau varian pindah
       // sebagian, Stok Produk bakal masih menampilkan supplier lama. Pola sama dengan simpanEditKatalog.
       const r = _oldMap[id];
@@ -1800,9 +1971,15 @@ document.body.insertAdjacentHTML('beforeend', `
       <button onclick="hideModal('modal-batch-sup')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <p id="batch-sup-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
+    <div id="batch-sup-mode" style="display:flex;border:2px solid var(--ink);margin-bottom:14px">
+      <button type="button" data-m="utama" onclick="produkBatchSupMode('utama')" style="flex:1;font-family:var(--f);font-size:12px;font-weight:700;padding:8px 4px;border:none;cursor:pointer">Ganti Utama</button>
+      <button type="button" data-m="tambah" onclick="produkBatchSupMode('tambah')" style="flex:1;font-family:var(--f);font-size:12px;font-weight:700;padding:8px 4px;border:none;border-left:2px solid var(--ink);cursor:pointer">+ Cadangan</button>
+      <button type="button" data-m="hapus" onclick="produkBatchSupMode('hapus')" style="flex:1;font-family:var(--f);font-size:12px;font-weight:700;padding:8px 4px;border:none;border-left:2px solid var(--ink);cursor:pointer">Hapus Cadangan</button>
+    </div>
+    <p id="batch-sup-mode-hint" style="font-size:11px;color:var(--ink3);line-height:1.5;margin:-6px 0 12px"></p>
     <div class="form-group" style="margin-bottom:14px">
-      <label>Nama Supplier Baru</label>
-      <button type="button" class="produk-boss-trigger" onclick="produkOpenBossSheet('batch-sup-input','batch-sup-label')">
+      <label id="batch-sup-lbl-title">Nama Supplier Baru</label>
+      <button type="button" class="produk-boss-trigger" onclick="produkBatchSupOpenPicker()">
         <span id="batch-sup-label" style="color:var(--ink3)">— Pilih Supplier —</span>
         <i class="ti ti-chevron-down" style="font-size:14px;flex-shrink:0"></i>
       </button>
@@ -1827,6 +2004,11 @@ document.body.insertAdjacentHTML('beforeend', `
         </div>
       </div>
       <input type="hidden" id="batch-sup-sistem" value="reseller">
+    </div>
+    <div id="batch-sup-ds-row" class="form-group" style="display:none;margin-bottom:14px">
+      <label>Harga Dropship di supplier ini (Rp per pcs) — opsional</label>
+      <input type="text" inputmode="numeric" id="batch-sup-ds" placeholder="Kosong = harga tidak diubah" style="font-family:var(--f);font-size:15px;padding:8px 10px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);width:100%">
+      <div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:6px">Disimpan ke Master Barang supplier cadangan untuk semua SKU terpilih. Tanpa harga, toggle Dropship di Tambah Penjualan belum bisa dipakai untuk SKU itu.</div>
     </div>
     <div id="batch-sup-hpp-row" class="form-group" style="display:none;margin-bottom:14px">
       <label>HPP Produksi Baru (Rp) — wajib</label>
@@ -1952,7 +2134,7 @@ document.body.insertAdjacentHTML('beforeend', `
 // Supplier di Hutang Barang). Dipakai bareng buat 3 titik: form Tambah/Edit
 // SKU (prd-boss), Edit Katalog massal (kat-boss), Edit Supplier massal
 // (batch-sup-input) — makanya target input/label-nya parameter, bukan hardcode.
-let _produkBossSheetTarget = { inputId: '', labelId: '' };
+let _produkBossSheetTarget = { inputId: '', labelId: '', filter: '' };   // filter (16 Nov 2026): '' semua | 'cad-tambah' supplier Dropship | 'cad-hapus' supplier yang jadi cadangan SKU terpilih
 
 async function _produkLoadSupplierList() {
   try {
@@ -1964,8 +2146,18 @@ async function _produkLoadSupplierList() {
   }
 }
 
-function produkOpenBossSheet(inputId, labelId) {
-  _produkBossSheetTarget = { inputId: inputId, labelId: labelId };
+function _produkBossSheetOk(sup) {
+  var f = _produkBossSheetTarget.filter;
+  if (f === 'cad-tambah') return !!(sup.is_dropship && !sup.is_produksi_sendiri);
+  if (f === 'cad-hapus') {
+    var ids = Object.keys(_produkSelected).map(Number);
+    return (_produkCadList || []).some(function(l) { return l.supplier_id === sup.id && ids.indexOf(l.produk_id) >= 0; });
+  }
+  return true;
+}
+
+function produkOpenBossSheet(inputId, labelId, filter) {
+  _produkBossSheetTarget = { inputId: inputId, labelId: labelId, filter: filter || '' };
   const searchEl = document.getElementById('produk-boss-sheet-search');
   if (searchEl) searchEl.value = '';
   _produkBossSheetRender('');
@@ -1985,12 +2177,12 @@ function _produkBossSheetRender(q) {
   const listEl = document.getElementById('produk-boss-sheet-list');
   if (!listEl) return;
   const query    = (q || '').trim().toUpperCase();
-  const filtered = _produkSupplierList.filter(s => (s.nama||'').toUpperCase().includes(query));
+  const filtered = _produkSupplierList.filter(s => (s.nama||'').toUpperCase().includes(query) && _produkBossSheetOk(s));
 
   // "Sering & Terakhir Digunakan" — cuma pas search kosong (zHistTop di app.js)
   let histHtml = '';
   if (!query) {
-    const topNama = zHistTop('produk_boss', 5).filter(function(n) { return _produkSupplierList.some(function(s) { return s.nama === n; }); });
+    const topNama = zHistTop('produk_boss', 5).filter(function(n) { return _produkSupplierList.some(function(s) { return s.nama === n && _produkBossSheetOk(s); }); });
     if (topNama.length) {
       histHtml = '<div style="font-size:11px;font-weight:700;color:var(--ink3);padding:10px 10px 2px;letter-spacing:.06em;display:flex;align-items:center;gap:5px"><i class="ti ti-clock" style="font-size:12px"></i> Sering & Terakhir Digunakan</div>' +
         topNama.map(function(n) {
@@ -2010,13 +2202,13 @@ function _produkBossSheetRender(q) {
 
   // Kalau query gak persis match supplier manapun yg udah ada, kasih opsi
   // tambah baru — biar user gak kepentok kalau supplier-nya emang belum ada.
-  if (query && !_produkSupplierList.some(s => (s.nama||'').toUpperCase() === query)) {
+  if (query && !_produkBossSheetTarget.filter && !_produkSupplierList.some(s => (s.nama||'').toUpperCase() === query)) {
     html += '<div class="jp-sheet-item" style="color:var(--ok);font-weight:700" onclick="produkBossSheetTambahBaru(\'' + query.replace(/'/g,"\\'") + '\')">' +
       '<i class="ti ti-plus" style="margin-right:2px"></i> Tambah supplier "' + query + '"</div>';
   }
 
   if (!html) {
-    html = '<div class="jp-sheet-empty">Belum ada supplier. Ketik nama buat nambah baru.</div>';
+    html = _produkBossSheetTarget.filter ? '<div class="jp-sheet-empty">Tidak ada supplier yang cocok.</div>' : '<div class="jp-sheet-empty">Belum ada supplier. Ketik nama buat nambah baru.</div>';
   }
   listEl.innerHTML = histHtml + html;
 }

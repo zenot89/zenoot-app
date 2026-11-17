@@ -817,7 +817,7 @@ _zLockInit();
 // Kunci ke-dua (self-test) — jalankan di console setelah SQL pengunci database dijalankan:  zAuthSelfTest()
 // Mencoba baca tiap tabel pakai anon key SAJA (tanpa login). Hasil yang benar: 0 tabel terbuka.
 async function zAuthSelfTest() {
-  var tabel = ['beban_operasional','channel_beban','channel_harga','channel_kategori_harga','channel_produk','channel_rekap','channels','cost_jurnal','cost_rate','cost_tukang','gadag_anggaran','gadag_pendapatan','gadag_sku','hpp','hutang','hutang_barang','hutang_bayar','hutang_bon','hutang_bon_item','hutang_pembayaran','hutang_supplier','jurnal','jurnal_penjualan','kas_akun','kas_anggaran','master_bahan','penutupan_periode','produk','restock_supplier','shopee_finance_cache','shopee_tokens','stok','stok_masuk_jurnal'];
+  var tabel = ['beban_operasional','channel_beban','channel_harga','channel_kategori_harga','channel_produk','channel_rekap','channels','cost_jurnal','cost_rate','cost_tukang','gadag_anggaran','gadag_pendapatan','gadag_sku','hpp','hutang','hutang_barang','hutang_bayar','hutang_bon','hutang_bon_item','hutang_pembayaran','hutang_supplier','jurnal','jurnal_penjualan','kas_akun','kas_anggaran','master_bahan','penutupan_periode','produk','produk_supplier','restock_supplier','shopee_finance_cache','shopee_tokens','stok','stok_masuk_jurnal'];
   var terbuka = [], aman = [], lain = [];
   for (var i = 0; i < tabel.length; i++) {
     try {
