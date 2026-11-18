@@ -151,7 +151,10 @@
     <div class="topbar-title-lockup" style="display:flex;align-items:center;gap:8px;min-width:0">
       <img id="topbar-gadag-img" src="gadag-icon.png" alt="Gadag" style="display:none;width:28px;height:28px;object-fit:contain;flex-shrink:0">
       <div>
-        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-title-row">
+          <div class="page-title" id="topbar-title">Dashboard</div>
+          <button type="button" class="page-hint-btn" id="topbar-hint-btn" aria-label="Keterangan halaman" aria-expanded="false" style="display:none">?</button>
+        </div>
         <div class="page-sub" id="topbar-sub">overview performa hari ini</div>
       </div>
     </div>
@@ -227,7 +230,7 @@
   // Cara update versi (wajib setiap deploy baru):
   //   Ganti angka di bawah dengan Date.now() SEKALI saat deploy, lalu commit.
   //   Contoh: window.APP_BUILD = '20260929-0037-dialog'; // ← aktif
-  window.APP_BUILD = '20261118-e9aa906fbca7';
+  window.APP_BUILD = '20261116-0a84886b9e0f';
 </script>
 <script>
   // Sequential script loader — iOS Safari compatible

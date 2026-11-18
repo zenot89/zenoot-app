@@ -9,9 +9,9 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
     #page-keuangan-pribadi .kp-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
     #page-keuangan-pribadi .kp-row { display:contents; }
     #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:auto; }
-    /* HP (<=900px, 12 Nov 2026): hint & label BULAN disembunyikan, toolbar 2 baris space-between: Bulan | Refresh / Ambil Prive | Catat. Desktop tidak berubah. */
+    /* HP (<=900px, 12 Nov 2026): label BULAN disembunyikan (keterangan halaman sekarang di ikon (?) judul, 18 Nov 2026), toolbar 2 baris space-between: Bulan | Refresh / Ambil Prive | Catat. Desktop tidak berubah. */
     @media (max-width:900px) {
-      #page-keuangan-pribadi .kp-hint, #page-keuangan-pribadi .kp-bar-lbl { display:none; }
+      #page-keuangan-pribadi .kp-bar-lbl { display:none; }
       #page-keuangan-pribadi .kp-bar { flex-direction:column; align-items:stretch; gap:8px; }
       #page-keuangan-pribadi .kp-row { display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%; }
       #page-keuangan-pribadi .kp-bar .kp-prive-btn { margin-left:0; }
@@ -27,11 +27,6 @@ document.getElementById('page-keuangan-pribadi').innerHTML = `
     #page-keuangan-pribadi .kp-bar-fill { height:100%; background:var(--ok); }
     #page-keuangan-pribadi td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   </style>
-  <div class="kp-note kp-hint">
-    <b>Buku Pribadi</b> — uang pribadi kamu, terpisah dari usaha. Uang yang diambil dari usaha tercatat sebagai <b>Prive</b> di buku usaha
-    dan sebagai pemasukan (Ekuitas Pribadi) di sini. Catat transaksi pribadi lewat <b>Kas &amp; Jurnal</b> (buku Pribadi).<br>
-    <b>Saldo Kas Pribadi</b> = uang pribadi yang benar-benar kamu pegang. Supaya akurat: <b>Ambil Prive</b> ke Kas Pribadi, lalu bayar pengeluaran pribadi dari Kas Pribadi. Uang yang sudah ada sebelumnya dicatat sekali sebagai <b>Uang Masuk</b> buku Pribadi, Kredit <b>Saldo Awal Pribadi</b>.
-  </div>
   <div class="kp-bar">
     <div class="kp-row">
       <label class="kp-bar-lbl" style="font-size:12px;font-weight:700;color:var(--ink3)">PERIODE</label>

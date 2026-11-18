@@ -516,6 +516,21 @@ body[data-page="dashboard"] .topbar.topbar-hidden {
   font-size:12px;color:var(--ink3);padding-left:10px;
   font-family:var(--f);margin-top:1px;letter-spacing:.02em;
 }
+/* ── Ikon (?) keterangan di samping judul halaman [18 Nov 2026] ──
+   Teks diisi per halaman lewat pageMap[halaman].hint di app.js (HTML statis). Hover (desktop) / ketuk (HP) menampilkan popover; klik mengunci. */
+.page-title-row{display:flex;align-items:center;gap:6px;min-width:0}
+.page-hint-btn{
+  flex-shrink:0;width:20px;height:20px;padding:0;border-radius:50%;
+  border:1.5px solid var(--ink3);background:transparent;color:var(--ink3);
+  font:700 12px/1 var(--f);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+}
+.page-hint-btn:hover,.page-hint-btn[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+#page-hint-pop{
+  position:fixed;z-index:9500;max-width:380px;padding:12px 14px;
+  background:var(--cream);color:var(--ink2);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
+  font:400 13px/1.65 var(--f);display:none;
+}
+#page-hint-pop.open{display:block}
 /* ── Ikon Gadag di topbar — hanya muncul saat halaman Gadag ── */
 #topbar-gadag-img { display: none; }
 body[data-page="gadag"] #topbar-gadag-img { display: block; }

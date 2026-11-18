@@ -128,6 +128,59 @@ function closeSidebar() {
   }, { passive: true });
 })();
 
+// ─── IKON (?) KETERANGAN HALAMAN (18 Nov 2026) ─────────────────
+// Keterangan panjang halaman tidak lagi ditaruh sebagai kotak di atas isi halaman, tapi di ikon (?) di samping judul topbar.
+// Isi per halaman = pageMap[halaman].hint (HTML statis buatan sendiri, bukan input pengguna). Tanpa hint → ikon disembunyikan.
+// Desktop: hover menampilkan, klik mengunci. HP: ketuk buka/tutup. Esc / klik di luar / scroll menutup.
+var _pageHintHtml = '';
+var pageHintSet = (function() {
+  var pop = null, btn = null, pinned = false, timer = 0;
+  function el() {
+    if (!btn) btn = document.getElementById('topbar-hint-btn');
+    if (!pop) { pop = document.createElement('div'); pop.id = 'page-hint-pop'; pop.setAttribute('role', 'tooltip'); document.body.appendChild(pop); }
+    return btn;
+  }
+  function close() {
+    pinned = false; clearTimeout(timer);
+    if (pop) pop.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  function open() {
+    if (!_pageHintHtml || !el()) return;
+    pop.innerHTML = _pageHintHtml;
+    pop.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    var r = btn.getBoundingClientRect();
+    var w = Math.min(380, window.innerWidth - 24);
+    pop.style.width = w + 'px';
+    pop.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+    pop.style.top = (r.bottom + 8) + 'px';
+  }
+  var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+  document.addEventListener('mouseover', function(e) {
+    if (!hoverMq || !hoverMq.matches || !btn || pinned) return;
+    if (btn.contains(e.target)) { clearTimeout(timer); open(); }
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (!hoverMq || !hoverMq.matches || !btn || pinned) return;
+    if (btn.contains(e.target)) timer = setTimeout(close, 150);
+  });
+  document.addEventListener('click', function(e) {
+    if (btn && btn.contains(e.target)) {
+      if (pinned || (pop && pop.classList.contains('open') && !(hoverMq && hoverMq.matches))) close();
+      else { open(); pinned = true; }
+    } else if (pop && !pop.contains(e.target)) close();
+  }, true);
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+  window.addEventListener('scroll', close, true);
+  window.addEventListener('resize', close);
+  return function(html) {   // dipanggil gotoPage tiap pindah halaman
+    _pageHintHtml = html || '';
+    close();
+    if (el()) btn.style.display = _pageHintHtml ? '' : 'none';
+  };
+})();
+
 // ─── PAGE MAP ────────────────────────────────────────────────
 var pageMap = {
   'dashboard':          { title:'Dashboard',          sub:'overview performa hari ini'     },
@@ -135,7 +188,8 @@ var pageMap = {
   'restock':            { title:'Re-Stock',            sub:'daftar reorder per boss'        },
   'stok-masuk':         { title:'Jurnal Stock Masuk',  sub:'histori PO diterima & produksi sendiri' },
   'kas':                { title:'Kas & Jurnal',        sub:'pencatatan arus kas harian'     },
-  'keuangan-pribadi':   { title:'Keuangan Pribadi',    sub:'uang pribadi, terpisah dari usaha' },
+  'keuangan-pribadi':   { title:'Keuangan Pribadi',    sub:'uang pribadi, terpisah dari usaha',
+    hint:'<b>Buku Pribadi</b> — uang pribadi kamu, terpisah dari usaha. Uang yang diambil dari usaha tercatat sebagai <b>Prive</b> di buku usaha dan sebagai pemasukan (Ekuitas Pribadi) di sini. Catat transaksi pribadi lewat <b>Kas &amp; Jurnal</b> (buku Pribadi).<br><br><b>Saldo Kas Pribadi</b> = uang pribadi yang benar-benar kamu pegang. Supaya akurat: <b>Ambil Prive</b> ke Kas Pribadi, lalu bayar pengeluaran pribadi dari Kas Pribadi. Uang yang sudah ada sebelumnya dicatat sekali sebagai <b>Uang Masuk</b> buku Pribadi, Kredit <b>Saldo Awal Pribadi</b>.' },
   'gadag':              { title:'Gadag',                sub:'Bismillah . Ab damel hela !' },
   'jurnal-penjualan':   { title:'Jurnal Penjualan',    sub:'pencatatan transaksi penjualan' },
   'produk':             { title:'Kelola Produk',       sub:'master SKU, HPP, dan boss'      },
@@ -168,6 +222,7 @@ function gotoPage(page, btn) {
     var subEl   = $id('topbar-sub');
     if (titleEl) titleEl.textContent = info.title;
     if (subEl)   subEl.textContent   = info.sub;
+    pageHintSet(info.hint || '');
   }
   // Logo skull Gadag di topbar — img-nya udah ada di index.html (display:none
   // default) tapi sebelum ini gapernah ada yang toggle jadi keliatan pas
