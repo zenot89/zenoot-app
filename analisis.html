@@ -1590,7 +1590,7 @@
           <button class="btn secondary small" id="btnToggleSelect" style="display:none">Pilih</button>
           <button class="btn secondary small" id="btnReloadHpp" onclick="tokoResumeAndReload('hpp')">↻ Muat ulang HPP</button>
           <button class="btn ghost small" id="btnFilterMissing">Belum Diisi</button>
-          <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU). Kalau ada varian baru dari Seller Center Shopee, klik <b>Edit Harga</b> di barisnya untuk mengisi HPP langsung di sini (tidak perlu menambah produk di Kelola Produk; ditandai "manual" dan dipakai semua laporan). Mengubah HPP di Kelola Produk tetap lewat Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</div></div>
+          <div class="info-tip" tabindex="0" aria-label="Keterangan"><span class="info-q">?</span><div class="info-bubble">HPP dibaca langsung dari <b>Kelola Produk</b> zenOt (SKU Variasi = Nomor Referensi SKU). Kalau ada varian baru dari Seller Center Shopee, buka tab <b>Belum Diisi</b> lalu klik <b>Edit Harga</b> di barisnya untuk mengisi HPP langsung di sini (tidak perlu menambah produk di Kelola Produk; ditandai "manual" dan dipakai semua laporan). Mengubah HPP di Kelola Produk tetap lewat Kelola Produk, lalu klik "Muat ulang HPP". Upload file Order Completed, Income &amp; Tagihan Iklan lewat tombol "Data Toko" di halaman RKS Overview.</div></div>
           <button class="btn danger small" id="btnHapusHppSelected" style="display:none" title="Hapus SKU manual permanen; SKU dari Order Completed HPP-nya direset ke Belum Diisi (barisnya tetep ada karena masih ada di file order)">Hapus (0)</button>
         </div>
         <span id="hppSummary" class="hint" style="margin:0;"></span>
@@ -5240,7 +5240,8 @@ function renderHPP(){
   const list = uniqueProductList();
   let displayList = (state.hppSelectMode && hppFilterSkuInduk) ? list.filter(p=>p.skuInduk===hppFilterSkuInduk) : list;
   if(hppFilterMissingOnly){
-    displayList = displayList.filter(p=> state.hppMaster[makeKey(p.skuInduk,p.nomorRef,p.variasi)] === undefined);
+    // Tab "Belum Diisi" = baris yang belum ada di Kelola Produk, termasuk yang sudah diisi manual (tetap tampil bertanda "manual" supaya bisa diperbaiki / dihapus)
+    displayList = displayList.filter(p=> zProdukHppBy(p.skuInduk,p.nomorRef,p.variasi) === undefined);
   }
   document.getElementById('hppSummary').textContent = list.length ? `${list.length} SKU+Variasi unik` : '';
   renderHPPBulkBar();
@@ -5252,7 +5253,7 @@ function renderHPP(){
   const missing = list.filter(p=> state.hppMaster[makeKey(p.skuInduk,p.nomorRef,p.variasi)] === undefined).length;
 
   if(hppFilterMissingOnly && !displayList.length){
-    wrap.innerHTML = `<div class="empty-state"><div class="big"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>Semua SKU udah diisi HPP-nya ✓</div>`;
+    wrap.innerHTML = `<div class="empty-state"><div class="big"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>Semua SKU sudah ada di Kelola Produk ✓</div>`;
     const summaryEl = document.getElementById('hppSummary');
     summaryEl.innerHTML += ` — <span class="status-ok">semua sudah diisi ✓</span>`;
     return;
@@ -5277,7 +5278,7 @@ function renderHPP(){
       <td class="hpp-col-namaproduk">${p.namaProduk}</td>
       <td class="hpp-col-nomorref">${p.nomorRef}</td>
       <td>${p.variasi}</td>
-      <td class="num">${val!==undefined ? fmtNum(val) : '<span class="status-warn">belum ada di Kelola Produk</span>'}${state.hppManual && state.hppManual[key]!==undefined ? '<span class="hpp-manual-badge" title="Harga manual (Edit Harga), bukan dari Kelola Produk">manual</span>' : ''}<button type="button" class="hpp-edit-btn" data-induk="${indukAttr}" data-nomorref="${nomorRefAttr}" data-variasi="${variasiAttr}">Edit Harga</button></td>
+      <td class="num">${val!==undefined ? fmtNum(val) : '<span class="status-warn">belum ada di Kelola Produk</span>'}${state.hppManual && state.hppManual[key]!==undefined ? '<span class="hpp-manual-badge" title="Harga manual (Edit Harga), bukan dari Kelola Produk">manual</span>' : ''}${hppFilterMissingOnly ? '<button type="button" class="hpp-edit-btn" data-induk="'+indukAttr+'" data-nomorref="'+nomorRefAttr+'" data-variasi="'+variasiAttr+'">Edit Harga</button>' : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -6341,7 +6342,7 @@ function renderHasil(){
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
       ${/* [21 Sep 2026] badge "Dari Rekap" & tombol "Kembali ke data saat ini" DIHAPUS (btnHasilBackLive tidak dirender lagi) */''}
-      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk — klik Edit Harga di barisnya).</span>` : ''}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk, tab Belum Diisi — klik Edit Harga di barisnya).</span>` : ''}
       ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
@@ -9400,7 +9401,7 @@ function renderHasilM(){
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
       ${periodeChip}
-      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk — klik Edit Harga di barisnya).</span>` : ''}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk, tab Belum Diisi — klik Edit Harga di barisnya).</span>` : ''}
       ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
@@ -10243,7 +10244,7 @@ function renderHasilP(){
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin-bottom:0;">Overview</h3>
       ${periodeChip}
-      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk — klik Edit Harga di barisnya).</span>` : ''}
+      ${hppCalc.missingHpp>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.missingHpp} baris order gak kehitung HPP-nya — SKU/varian belum ada HPP-nya (daftarnya ada di halaman HPP Produk, tab Belum Diisi — klik Edit Harga di barisnya).</span>` : ''}
       ${hppCalc.unmatchedReleased>0 ? `<span style="color:var(--bad);font-size:12px;font-weight:700;">⚠ ${hppCalc.unmatchedReleased} pesanan sudah cair (ada di file Income) tapi gak ada di file Order Completed — HPP-nya belum kehitung. Upload Order Completed yang mencakup pesanan itu.</span>` : ''}
     </div>
     <div class="stat-grid" style="margin-top:14px;margin-bottom:0;">
