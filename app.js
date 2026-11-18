@@ -128,56 +128,68 @@ function closeSidebar() {
   }, { passive: true });
 })();
 
-// ─── IKON (?) KETERANGAN HALAMAN (18 Nov 2026) ─────────────────
-// Keterangan panjang halaman tidak lagi ditaruh sebagai kotak di atas isi halaman, tapi di ikon (?) di samping judul topbar.
-// Isi per halaman = pageMap[halaman].hint (HTML statis buatan sendiri, bukan input pengguna). Tanpa hint → ikon disembunyikan.
+// ─── IKON (?) KETERANGAN (18 Nov 2026) ───────────────────────────
+// Keterangan panjang tidak lagi ditaruh sebagai kotak di isi halaman/modal, tapi di ikon (?) kecil di samping judul.
+// Pakai di mana saja: tombol <button class="page-hint-btn" data-hint-key="KUNCI">?</button> + zHintRegister('KUNCI', 'HTML statis buatan sendiri').
+// Topbar: isi per halaman = pageMap[halaman].hint (lewat pageHintSet). Tanpa hint → ikon topbar disembunyikan.
 // Desktop: hover menampilkan, klik mengunci. HP: ketuk buka/tutup. Esc / klik di luar / scroll menutup.
-var _pageHintHtml = '';
+var _zHintTexts = {};
+function zHintRegister(key, html) { _zHintTexts[key] = html || ''; }
 var pageHintSet = (function() {
-  var pop = null, btn = null, pinned = false, timer = 0;
-  function el() {
-    if (!btn) btn = document.getElementById('topbar-hint-btn');
+  var pop = null, active = null, pinned = false, timer = 0, topBtn = null;
+  var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+  function popEl() {
     if (!pop) { pop = document.createElement('div'); pop.id = 'page-hint-pop'; pop.setAttribute('role', 'tooltip'); document.body.appendChild(pop); }
-    return btn;
+    return pop;
   }
+  function btnOf(t) { return (t && t.closest) ? t.closest('.page-hint-btn[data-hint-key]') : null; }
   function close() {
     pinned = false; clearTimeout(timer);
     if (pop) pop.classList.remove('open');
-    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (active) active.setAttribute('aria-expanded', 'false');
+    active = null;
   }
-  function open() {
-    if (!_pageHintHtml || !el()) return;
-    pop.innerHTML = _pageHintHtml;
-    pop.classList.add('open');
+  function open(btn) {
+    var html = _zHintTexts[btn.getAttribute('data-hint-key')];
+    if (!html) return;
+    if (active && active !== btn) active.setAttribute('aria-expanded', 'false');
+    active = btn;
+    var p = popEl();
+    p.innerHTML = html;
+    p.classList.add('open');
     btn.setAttribute('aria-expanded', 'true');
     var r = btn.getBoundingClientRect();
     var w = Math.min(380, window.innerWidth - 24);
-    pop.style.width = w + 'px';
-    pop.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
-    pop.style.top = (r.bottom + 8) + 'px';
+    p.style.width = w + 'px';
+    p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+    p.style.top = (r.bottom + 8) + 'px';
   }
-  var hoverMq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
   document.addEventListener('mouseover', function(e) {
-    if (!hoverMq || !hoverMq.matches || !btn || pinned) return;
-    if (btn.contains(e.target)) { clearTimeout(timer); open(); }
+    var b = btnOf(e.target);
+    if (!b || !hoverMq || !hoverMq.matches || pinned) return;
+    clearTimeout(timer); open(b);
   });
   document.addEventListener('mouseout', function(e) {
-    if (!hoverMq || !hoverMq.matches || !btn || pinned) return;
-    if (btn.contains(e.target)) timer = setTimeout(close, 150);
+    var b = btnOf(e.target);
+    if (!b || !hoverMq || !hoverMq.matches || pinned) return;
+    timer = setTimeout(close, 150);
   });
   document.addEventListener('click', function(e) {
-    if (btn && btn.contains(e.target)) {
-      if (pinned || (pop && pop.classList.contains('open') && !(hoverMq && hoverMq.matches))) close();
-      else { open(); pinned = true; }
+    var b = btnOf(e.target);
+    if (b) {
+      e.stopPropagation();   // ikon di dalam tombol/judul lain tidak ikut memicu aksi induknya
+      if (pinned && active === b) close();
+      else { open(b); pinned = true; }
     } else if (pop && !pop.contains(e.target)) close();
   }, true);
   document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
   window.addEventListener('scroll', close, true);
   window.addEventListener('resize', close);
   return function(html) {   // dipanggil gotoPage tiap pindah halaman
-    _pageHintHtml = html || '';
+    zHintRegister('__page', html);
     close();
-    if (el()) btn.style.display = _pageHintHtml ? '' : 'none';
+    if (!topBtn) topBtn = document.getElementById('topbar-hint-btn');
+    if (topBtn) { topBtn.setAttribute('data-hint-key', '__page'); topBtn.style.display = html ? '' : 'none'; }
   };
 })();
 

@@ -410,7 +410,10 @@ document.getElementById('page-stok').innerHTML = `
         <div class="modal-title" id="stok-bulk-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-edit"></i> Edit Stock</div>
         <button onclick="stokBulkTutup()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px;">&#10005;</button>
       </div>
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:6px;flex-shrink:0">Isi kolom di kanan = sisa baru. Baris yang angkanya tidak diubah tidak disimpan.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-shrink:0">
+        <div id="stok-bulk-sub" style="font-size:12px;color:var(--ink3)"></div>
+        <button type="button" class="btn btn-sm" id="stok-bulk-edit" onclick="stokBulkToggleEdit()"><i class="ti ti-pencil"></i> Edit</button>
+      </div>
       <div id="stok-bulk-list" style="overflow-y:auto;flex:1 1 auto;min-height:0;overscroll-behavior:contain"></div>
       <div id="stok-bulk-err" style="display:none;color:var(--danger);font-size:12px;margin-top:8px;flex-shrink:0"></div>
       <div style="border-top:1.5px dashed var(--ink3);padding-top:12px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-shrink:0">
@@ -1358,6 +1361,20 @@ async function simpanStok() {
 //   yang lain tetap tersimpan, modal tetap terbuka & nunjukin baris yang gagal.
 var _stokBulkRows  = [];
 var _stokBulkBusy  = false;
+// 18 Nov 2026: alur CEK STOK. Edit Stock dibuka dalam mode LIHAT (kolom isian belum terbuka). Tombol "Edit" membuka kolom isian + checkbox per varian:
+// varian yang dicentang = sudah dicek → barisnya menutup (tinggal angkanya); yang belum dicentang tetap terbuka. SIMPAN tanpa mengubah apa pun = semua
+// varian sudah dicek dan sama dengan stok nyata (tidak ada yang ditulis ke database). Status centang hanya selama panel terbuka.
+var _stokBulkEdit    = false;
+var _stokBulkChecked = {};
+var _stokBulkKatalog = '';
+var _STOK_BULK_HINT = '<b>Cek stok per katalog.</b><br>Klik <b>Edit</b> untuk membuka kolom isian. Isi kolom di kanan = <b>sisa baru</b>; baris yang angkanya tidak diubah tidak disimpan.<br><br>Centang varian yang sudah dicek — barisnya tertutup. Yang belum dicentang tetap terbuka untuk diedit (tekan Enter di kolom = centang dan lanjut ke berikutnya).<br><br><b>Simpan</b> tanpa mengubah apa pun = semua varian sudah dicek dan sama dengan stok nyata.';
+function _stokToast(msg) {
+  var t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9600;max-width:90vw;padding:10px 16px;background:var(--ink);color:var(--cream);font:700 13px/1.4 var(--f);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35)';
+  document.body.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 2600);
+}
 
 function _stokEsc(t) {
   return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1370,6 +1387,9 @@ function stokBulkBuka(katalog) {
     return;
   }
   _stokBulkBusy = false;
+  _stokBulkEdit = false;
+  _stokBulkChecked = {};
+  _stokBulkKatalog = katalog;
   _stokBulkRows = rows.map(function(r) {
     var key  = (r.sku_variasi || '').toUpperCase();
     var rec  = _stokMasukMap[key];
@@ -1385,29 +1405,84 @@ function stokBulkBuka(katalog) {
     var sisaTxt = r.dropship ? '<b style="color:var(--info)">DS</b>'
       : (r.sisaAsli < 0 ? '<b style="color:var(--danger)">' + r.sisaAsli + '</b>' : '<b>' + r.sisaAsli + '</b>');
     var catatan = r.dropship ? ' · dropship, stok tidak dilacak' : (r.sisaAsli < 0 ? ' · minus, kolom diisi 0' : '');
+    // Kotak nilai: latar terang + garis tegas (tidak lagi hitam pekat); dropship = abu-abu redup
+    var inpStyle = 'width:72px;text-align:center;font-size:18px;font-weight:700;padding:6px 4px;box-sizing:border-box;border-radius:6px;border:2px solid var(--ink);'
+      + (r.dropship ? 'background:#ececec;color:var(--ink3);opacity:.7;' : 'background:#fff;color:var(--ink);');
     return '<div id="stok-bulk-row-' + i + '" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--ink4)">' +
+      '<label id="stok-bulk-chkw-' + i + '" style="display:none;flex-shrink:0;cursor:pointer;line-height:0">' +
+        '<input type="checkbox" id="stok-bulk-chk-' + i + '" onchange="stokBulkCek(' + i + ')" aria-label="Sudah dicek" style="width:22px;height:22px;margin:0;cursor:pointer;accent-color:var(--ok)"></label>' +
       '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _stokEsc(r.label) + '</div>' +
-      '<div style="font-size:11px;color:var(--ink3)">Sisa ' + sisaTxt + catatan + '</div></div>' +
+      '<div id="stok-bulk-info-' + i + '" style="font-size:11px;color:var(--ink3)">Sisa ' + sisaTxt + catatan + '</div></div>' +
       '<div id="stok-bulk-delta-' + i + '" style="font-size:12px;font-weight:700;min-width:46px;text-align:right"></div>' +
       '<input type="text" inputmode="numeric" autocomplete="off" id="stok-bulk-inp-' + i + '" value="' + r.awal + '"' + (r.dropship ? ' disabled' : '') +
-      ' onfocus="this.select()" oninput="stokBulkHitung()" onkeydown="stokBulkKey(event,' + i + ')"' +
-      ' style="width:72px;text-align:center;font-size:18px;font-weight:700;padding:6px 4px;box-sizing:border-box"></div>';
+      ' onfocus="this.select()" oninput="stokBulkHitung()" onkeydown="stokBulkKey(event,' + i + ')" style="display:none;' + inpStyle + '">' +
+      '<button type="button" id="stok-bulk-val-' + i + '" onclick="stokBulkUncek(' + i + ')" title="Ketuk untuk buka lagi" style="display:none;min-width:72px;font:700 16px/1 var(--f);padding:6px 8px;border:1.5px dashed var(--ink3);border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer"></button>' +
+      '</div>';
   }).join('');
-  document.getElementById('stok-bulk-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stock · ' + _stokEsc(katalog);
+  document.getElementById('stok-bulk-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stock · ' + _stokEsc(katalog)
+    + (typeof zHintRegister === 'function'
+        ? (zHintRegister('stok-edit', _STOK_BULK_HINT), '<button type="button" class="page-hint-btn" data-hint-key="stok-edit" aria-label="Keterangan" aria-expanded="false" style="margin-left:8px;vertical-align:middle">?</button>')
+        : '');
   document.getElementById('stok-bulk-list').innerHTML = html;
   var errEl = document.getElementById('stok-bulk-err');
   errEl.style.display = 'none'; errEl.textContent = '';
+  _stokBulkLukis();
   stokBulkHitung();
   document.getElementById('modal-stok-bulk').classList.add('open');
-  // Fokus otomatis cuma di desktop — di HP keyboard langsung nutupin daftar.
-  if (!('ontouchstart' in window)) {
-    setTimeout(function() {
-      for (var j = 0; j < _stokBulkRows.length; j++) {
-        var f = document.getElementById('stok-bulk-inp-' + j);
-        if (f && !f.disabled) { f.focus(); f.select(); break; }
-      }
-    }, 80);
+}
+
+// Tampilan per mode: LIHAT (tanpa isian) / EDIT (isian + checkbox; baris yang dicentang menutup)
+function _stokBulkLukis() {
+  var btn = document.getElementById('stok-bulk-edit');
+  if (btn) btn.innerHTML = _stokBulkEdit ? '<i class="ti ti-eye"></i> Lihat' : '<i class="ti ti-pencil"></i> Edit';
+  _stokBulkRows.forEach(function(r, i) {
+    var chkw = document.getElementById('stok-bulk-chkw-' + i), inp = document.getElementById('stok-bulk-inp-' + i);
+    var val = document.getElementById('stok-bulk-val-' + i), info = document.getElementById('stok-bulk-info-' + i);
+    var rowEl = document.getElementById('stok-bulk-row-' + i), cb = document.getElementById('stok-bulk-chk-' + i);
+    if (!chkw || !inp || !val || !info || !rowEl || !cb) return;
+    var dicek = !!_stokBulkChecked[i] && !r.dropship;
+    cb.checked = dicek;
+    chkw.style.display = (_stokBulkEdit && !r.dropship) ? '' : 'none';
+    inp.style.display  = (_stokBulkEdit && !dicek) ? '' : 'none';
+    val.style.display  = (_stokBulkEdit && dicek) ? '' : 'none';
+    if (dicek) val.textContent = (String(inp.value).trim() || '0') + ' ✓';
+    info.style.display = dicek ? 'none' : '';
+    rowEl.style.opacity = dicek ? '.7' : '';
+  });
+}
+
+function stokBulkToggleEdit() {
+  _stokBulkEdit = !_stokBulkEdit;
+  _stokBulkLukis();
+  stokBulkHitung();
+  if (_stokBulkEdit) _stokBulkFokusBerikut(-1);
+}
+
+// Fokus otomatis cuma di desktop — di HP keyboard langsung nutupin daftar.
+function _stokBulkFokusBerikut(dari) {
+  if ('ontouchstart' in window) return;
+  for (var j = dari + 1; j < _stokBulkRows.length; j++) {
+    var f = document.getElementById('stok-bulk-inp-' + j);
+    if (f && !f.disabled && !_stokBulkChecked[j]) { setTimeout(function(el) { return function() { el.focus(); el.select(); }; }(f), 30); return true; }
   }
+  return false;
+}
+
+function stokBulkCek(i) {
+  var cb = document.getElementById('stok-bulk-chk-' + i);
+  if (!cb) return;
+  _stokBulkChecked[i] = cb.checked;
+  _stokBulkLukis();
+  stokBulkHitung();
+  if (cb.checked) _stokBulkFokusBerikut(i);
+}
+
+function stokBulkUncek(i) {
+  _stokBulkChecked[i] = false;
+  _stokBulkLukis();
+  stokBulkHitung();
+  var f = document.getElementById('stok-bulk-inp-' + i);
+  if (f && !('ontouchstart' in window)) { f.focus(); f.select(); }
 }
 
 // Baca semua kolom: {changed:[{i,target}], bad:jumlah kolom tidak valid}
@@ -1429,8 +1504,11 @@ function stokBulkHitung() {
   var col = _stokBulkCollect();
   var chg = {};
   col.changed.forEach(function(c) { chg[c.i] = c.target; });
+  var total = 0, dicek = 0;
   _stokBulkRows.forEach(function(r, i) {
     if (r.dropship) return;
+    total++;
+    if (_stokBulkChecked[i]) dicek++;
     var inp   = document.getElementById('stok-bulk-inp-' + i);
     var rowEl = document.getElementById('stok-bulk-row-' + i);
     var dEl   = document.getElementById('stok-bulk-delta-' + i);
@@ -1438,6 +1516,8 @@ function stokBulkHitung() {
     var valid = /^[0-9]+$/.test(String(inp.value == null ? '' : inp.value).trim());
     var isChg = chg[i] !== undefined;
     rowEl.style.background = !valid ? 'rgba(200,50,50,.10)' : (isChg ? 'rgba(47,111,176,.10)' : '');
+    inp.style.borderColor = !valid ? 'var(--danger)' : (isChg ? 'var(--info)' : 'var(--ink)');
+    inp.style.background = r.dropship ? '#ececec' : (isChg ? '#eef5ff' : '#fff');
     if (isChg) {
       var d = chg[i] - r.awal;
       dEl.textContent = (d > 0 ? '+' : '') + d;
@@ -1446,35 +1526,48 @@ function stokBulkHitung() {
       dEl.textContent = '';
     }
   });
+  var sub = document.getElementById('stok-bulk-sub');
+  if (sub) sub.textContent = total + ' varian';
   var c = document.getElementById('stok-bulk-count');
-  if (c) c.textContent = col.bad ? (col.bad + ' kolom belum berisi angka valid')
-    : (col.changed.length ? (col.changed.length + ' SKU berubah') : 'Belum ada perubahan');
+  if (c) {
+    if (col.bad) c.textContent = col.bad + ' kolom belum berisi angka valid';
+    else if (_stokBulkEdit) c.textContent = dicek + '/' + total + ' dicek' + (col.changed.length ? ' · ' + col.changed.length + ' SKU berubah' : '');
+    else c.textContent = col.changed.length ? col.changed.length + ' SKU berubah' : '';
+  }
+  // SIMPAN selalu aktif (tanpa perubahan = semua varian sudah dicek dan sesuai); hanya diblok saat ada kolom tidak valid
   var btn = document.getElementById('stok-bulk-simpan');
-  if (btn) btn.disabled = _stokBulkBusy || col.bad > 0 || col.changed.length === 0;
+  if (btn) btn.disabled = _stokBulkBusy || col.bad > 0;
 }
 
+// Enter di kolom isian = varian itu dicek (centang, barisnya menutup) lalu lanjut ke varian berikutnya yang belum dicek
 function stokBulkKey(e, i) {
   if (e.key !== 'Enter') return;
   e.preventDefault();
-  for (var j = i + 1; j < _stokBulkRows.length; j++) {
-    var nx = document.getElementById('stok-bulk-inp-' + j);
-    if (nx && !nx.disabled) { nx.focus(); return; }
+  var inp = document.getElementById('stok-bulk-inp-' + i);
+  if (!inp || !/^[0-9]+$/.test(String(inp.value == null ? '' : inp.value).trim())) return;
+  _stokBulkChecked[i] = true;
+  _stokBulkLukis();
+  stokBulkHitung();
+  if (!_stokBulkFokusBerikut(i)) {
+    var b = document.getElementById('stok-bulk-simpan');
+    if (b) b.focus();
   }
-  var b = document.getElementById('stok-bulk-simpan');
-  if (b) b.focus();
 }
 
 function stokBulkTutup() {
   document.getElementById('modal-stok-bulk').classList.remove('open');
   _stokBulkRows = [];
   _stokBulkBusy = false;
+  _stokBulkEdit = false;
+  _stokBulkChecked = {};
 }
 
-// Tap di luar modal cuma nutup kalau gak ada perubahan — biar edit belasan angka
-// gak hilang gara-gara kesenggol.
+// Tap di luar modal cuma nutup kalau gak ada perubahan / centang — biar edit belasan angka
+// dan progres cek gak hilang gara-gara kesenggol.
 function stokBulkOverlayClick(e) {
   if (e.target !== document.getElementById('modal-stok-bulk')) return;
   if (_stokBulkCollect().changed.length) return;
+  if (Object.keys(_stokBulkChecked).some(function(k) { return _stokBulkChecked[k]; })) return;
   stokBulkTutup();
 }
 
@@ -1486,7 +1579,13 @@ async function stokBulkSimpan() {
   errEl.style.display = 'none'; errEl.textContent = '';
   var col = _stokBulkCollect();
   if (col.bad) { showErr('Ada kolom yang belum berisi angka valid.'); return; }
-  if (!col.changed.length) return;
+  if (!col.changed.length) {   // SIMPAN langsung = semua varian sudah dicek dan sama dengan stok nyata
+    var nCek = _stokBulkRows.filter(function(r) { return !r.dropship; }).length;
+    var namaKat = _stokBulkKatalog;
+    stokBulkTutup();
+    _stokToast('✓ ' + namaKat + ': ' + nCek + ' varian sudah dicek, sesuai stok nyata');
+    return;
+  }
 
   _stokBulkBusy = true;
   btn.disabled = true; btn.textContent = 'Menyimpan...';
