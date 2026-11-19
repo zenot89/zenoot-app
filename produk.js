@@ -422,6 +422,56 @@ var _PRODUK_SISTEM_META = {
   dropship: { label: 'Dropship',         color: 'var(--warn)' }
 };
 
+// ── RINGKASAN SUPPLIER AKTIF (19 Nov 2026) ───────────────────
+// Di Edit Supplier Massal: supplier UTAMA dan CADANGAN yang sedang aktif pada SKU terpilih beserta sistemnya, supaya jelas sebelum
+// mengganti utama / menambah cadangan. Chip warna sama dengan kolom Sistem. Sistem utama = sistem SKU (sistem_override), sistem cadangan =
+// saklar Dropship / P.O di tautannya; daftar pilih supplier menampilkan apa yang didukung supplier (flag Channel › Supplier & ROP).
+function _produkSisChip(k, teks) {
+  var m = _PRODUK_SISTEM_META[k] || { label: k, color: 'var(--ink3)' };
+  return '<span style="display:inline-block;font-size:10px;font-weight:700;line-height:1.4;padding:0 6px;margin:1px 3px 1px 0;border:1.5px solid ' + m.color + ';color:' + m.color + ';border-radius:4px;white-space:nowrap">' + _pkEsc(teks || m.label) + '</span>';
+}
+function _produkSupChips(sup) {   // sistem yang DIDUKUNG supplier (flag Supplier & ROP)
+  if (!sup) return '';
+  if (sup.is_produksi_sendiri) return _produkSisChip('produksi');
+  return (sup.is_dropship ? _produkSisChip('dropship') : '') + (sup.is_reseller ? _produkSisChip('reseller') : '');
+}
+function _produkSupRingkasHtml() {
+  var ids = Object.keys(_produkSelected).map(Number);
+  var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
+  if (!rows.length) return '';
+  var utama = {}, cad = {};
+  rows.forEach(function(r) {
+    var k = String(r.boss || '').trim().toUpperCase() || '—';
+    var g = utama[k] || (utama[k] = { nama: r.boss || '—', n: 0, sis: {} });
+    g.n++;
+    var e = _produkSistemOf(r) || '';
+    g.sis[e] = (g.sis[e] || 0) + 1;
+    _produkCadRows(r).forEach(function(c) {
+      var cg = cad[c.sup.id] || (cad[c.sup.id] = { sup: c.sup, n: 0, ds: 0, po: 0 });
+      var m = _produkCadMode(c.link);
+      cg.n++; if (m.ds) cg.ds++; if (m.po) cg.po++;
+    });
+  });
+  var total = rows.length;
+  var jml = function(n) { return n === total ? '' : ' ' + n + '/' + total; };   // sebagian SKU saja → tampil "3/10"
+  var utamaHtml = Object.keys(utama).sort().map(function(k) {
+    var g = utama[k];
+    var chips = Object.keys(g.sis).filter(function(e) { return e; }).map(function(e) { return _produkSisChip(e, _PRODUK_SISTEM_META[e].label + (Object.keys(g.sis).length > 1 ? ' ' + g.sis[e] : '')); }).join('');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><b style="font-size:13px">' + _pkEsc(g.nama) + '</b><span>' + chips + '</span><span style="margin-left:auto;font-size:11px;color:var(--ink3);white-space:nowrap">' + g.n + ' SKU</span></div>';
+  }).join('');
+  var cadKeys = Object.keys(cad).sort(function(a, b) { return String(cad[a].sup.nama || '').localeCompare(String(cad[b].sup.nama || ''), 'id'); });
+  var cadHtml = cadKeys.length ? cadKeys.map(function(k) {
+    var g = cad[k];
+    var chips = (g.ds ? _produkSisChip('dropship', 'Dropship' + jml(g.ds)) : '') + (g.po ? _produkSisChip('reseller', 'P.O' + jml(g.po)) : '');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><b style="font-size:13px">' + _pkEsc(g.sup.nama) + '</b><span>' + chips + '</span><span style="margin-left:auto;font-size:11px;color:var(--ink3);white-space:nowrap">' + g.n + ' SKU</span></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--ink3);padding:3px 0">Belum ada supplier cadangan.</div>';
+  var lbl = 'font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px';
+  return '<div style="border:1.5px solid var(--ink4);border-radius:8px;padding:8px 12px;margin-bottom:12px;background:var(--cream2)">'
+    + '<div style="' + lbl + '">Supplier utama</div>' + utamaHtml
+    + '<div style="' + lbl + ';margin-top:8px;padding-top:6px;border-top:1px dashed var(--ink4)">Supplier cadangan</div>' + cadHtml
+    + '</div>';
+}
+
 // ── DUA HARGA SUPPLIER 2 SISTEM (3 Nov 2026) ─────────────────
 // SKU milik supplier Dropship + Reseller (mis. MAGRA, RH) punya dua harga per pcs: P.O (reseller) dan Dropship. Tersimpan SATU tempat di Master Barang
 // (hutang_barang: harga_po_per_lusin / harga_per_lusin, per lusin = per pcs × 12) — Kelola Produk hanya menampilkan & mengisinya (upsert ke Master Barang),
@@ -1879,6 +1929,7 @@ function produkBatchSupplier() {
   const ids = Object.keys(_produkSelected).map(Number);
   if (!ids.length) return;
   document.getElementById('batch-sup-count').textContent = ids.length + ' SKU terpilih';
+  document.getElementById('batch-sup-ringkas').innerHTML = _produkSupRingkasHtml();
   document.getElementById('batch-sup-input').value = '';
   const lbl = document.getElementById('batch-sup-label');
   if (lbl) { lbl.textContent = '— Pilih Supplier —'; lbl.style.color = 'var(--ink3)'; }
@@ -2143,7 +2194,8 @@ document.body.insertAdjacentHTML('beforeend', `
       <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-user"></i> Edit Supplier Massal</div>
       <button onclick="hideModal('modal-batch-sup')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
-    <p id="batch-sup-count" style="font-size:12px;color:var(--ink3);margin-bottom:12px">0 SKU terpilih</p>
+    <p id="batch-sup-count" style="font-size:12px;color:var(--ink3);margin-bottom:8px">0 SKU terpilih</p>
+    <div id="batch-sup-ringkas"></div>
     <div id="batch-sup-mode" style="display:flex;border:2px solid var(--ink);margin-bottom:14px">
       <button type="button" data-m="utama" onclick="produkBatchSupMode('utama')" style="flex:1;font-family:var(--f);font-size:12px;font-weight:700;padding:8px 4px;border:none;cursor:pointer">Ganti Utama</button>
       <button type="button" data-m="tambah" onclick="produkBatchSupMode('tambah')" style="flex:1;font-family:var(--f);font-size:12px;font-weight:700;padding:8px 4px;border:none;border-left:2px solid var(--ink);cursor:pointer">+ Cadangan</button>
@@ -2393,11 +2445,25 @@ function _produkBossSheetRender(q) {
     }
   }
 
+  // Peran supplier pada SKU terpilih (hanya di Edit Supplier Massal): "utama 3 SKU" / "cadangan 2 SKU"
+  const peran = {};
+  if (_produkBossSheetTarget.inputId === 'batch-sup-input') {
+    const selIds = Object.keys(_produkSelected).map(Number);
+    _produkData.forEach(function(r) {
+      if (selIds.indexOf(r.id) < 0) return;
+      const kb = String(r.boss || '').trim().toUpperCase();
+      if (kb) { const o = peran[kb] || (peran[kb] = { u: 0, c: 0 }); o.u++; }
+      _produkCadRows(r).forEach(function(c) { const kc = String(c.sup.nama || '').trim().toUpperCase(); const o = peran[kc] || (peran[kc] = { u: 0, c: 0 }); o.c++; });
+    });
+  }
   let html = filtered.map(function(s) {
-    const nama = (s.nama || '').replace(/'/g, "\\'");
+    const nama = (s.nama||'').replace(/'/g, "\\'");
+    const pr = peran[String(s.nama || '').trim().toUpperCase()];
+    const prTxt = pr ? (pr.u ? 'utama ' + pr.u + ' SKU' : '') + (pr.u && pr.c ? ' · ' : '') + (pr.c ? 'cadangan ' + pr.c + ' SKU' : '') : '';
     return '<div class="jp-sheet-item" onclick="produkBossSheetSelect(\'' + nama + '\')">' +
       '<span>' + (s.nama||'') + '</span>' +
-      (s.is_reseller ? '<span style="font-size:10px;color:var(--ink3);border:1px solid var(--ink4);border-radius:4px;padding:1px 5px">PO</span>' : '') +
+      '<span style="margin-left:8px">' + _produkSupChips(s) + '</span>' +
+      (prTxt ? '<span style="margin-left:auto;font-size:11px;color:var(--ink3)">' + prTxt + '</span>' : '') +
     '</div>';
   }).join('');
 
