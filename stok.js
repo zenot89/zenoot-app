@@ -1409,16 +1409,17 @@ function stokBulkBuka(katalog) {
     var inpStyle = 'width:72px;text-align:center;font-size:18px;font-weight:700;padding:6px 4px;box-sizing:border-box;border-radius:6px;border:2px solid var(--ink);'
       + (r.dropship ? 'background:#ececec;color:var(--ink3);opacity:.7;' : 'background:#fff;color:var(--ink);');
     return '<div id="stok-bulk-row-' + i + '" style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--ink4)">' +
-      '<label id="stok-bulk-chkw-' + i + '" style="display:none;flex-shrink:0;cursor:pointer;line-height:0">' +
-        '<input type="checkbox" id="stok-bulk-chk-' + i + '" onchange="stokBulkCek(' + i + ')" aria-label="Sudah dicek" style="width:22px;height:22px;margin:0;cursor:pointer;accent-color:var(--ok)"></label>' +
       '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _stokEsc(r.label) + '</div>' +
       '<div id="stok-bulk-info-' + i + '" style="font-size:11px;color:var(--ink3)">Sisa ' + sisaTxt + catatan + '</div></div>' +
-      '<div id="stok-bulk-delta-' + i + '" style="font-size:12px;font-weight:700;min-width:46px;text-align:right"></div>' +
+      '<div id="stok-bulk-delta-' + i + '" style="font-size:12px;font-weight:700;min-width:40px;text-align:right"></div>' +
+      '<label id="stok-bulk-chkw-' + i + '" style="display:none;flex-shrink:0;cursor:pointer;line-height:0">' +
+        '<input type="checkbox" id="stok-bulk-chk-' + i + '" onchange="stokBulkCek(' + i + ')" aria-label="Sudah dicek" style="width:24px;height:24px;margin:0;cursor:pointer;accent-color:var(--ok);color-scheme:light"></label>' +
       '<input type="text" inputmode="numeric" autocomplete="off" id="stok-bulk-inp-' + i + '" value="' + r.awal + '"' + (r.dropship ? ' disabled' : '') +
       ' onfocus="this.select()" oninput="stokBulkHitung()" onkeydown="stokBulkKey(event,' + i + ')" style="display:none;' + inpStyle + '">' +
       '<button type="button" id="stok-bulk-val-' + i + '" onclick="stokBulkUncek(' + i + ')" title="Ketuk untuk buka lagi" style="display:none;min-width:72px;font:700 16px/1 var(--f);padding:6px 8px;border:1.5px dashed var(--ink3);border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer"></button>' +
       '</div>';
-  }).join('');
+  }).join('') +
+    '<div id="stok-bulk-divider" style="display:none;margin-top:10px;padding:8px 6px 4px;border-top:3px solid var(--ink);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ok)"></div>';
   document.getElementById('stok-bulk-title').innerHTML = '<i class="ti ti-edit"></i> Edit Stock · ' + _stokEsc(katalog)
     + (typeof zHintRegister === 'function'
         ? (zHintRegister('stok-edit', _STOK_BULK_HINT), '<button type="button" class="page-hint-btn" data-hint-key="stok-edit" aria-label="Keterangan" aria-expanded="false" style="margin-left:8px;vertical-align:middle">?</button>')
@@ -1435,6 +1436,18 @@ function stokBulkBuka(katalog) {
 function _stokBulkLukis() {
   var btn = document.getElementById('stok-bulk-edit');
   if (btn) btn.innerHTML = _stokBulkEdit ? '<i class="ti ti-eye"></i> Lihat' : '<i class="ti ti-pencil"></i> Edit';
+  // Urutan: yang BELUM dicek di atas, garis pembatas, lalu yang SUDAH dicek di bawah (urutan asli dipertahankan di tiap kelompok).
+  // Mode Lihat = urutan asli tanpa pembatas.
+  var list = document.getElementById('stok-bulk-list'), div = document.getElementById('stok-bulk-divider');
+  if (list && div) {
+    var belum = [], sudah = [];
+    _stokBulkRows.forEach(function(r, i) { ((_stokBulkEdit && _stokBulkChecked[i] && !r.dropship) ? sudah : belum).push(i); });
+    belum.forEach(function(i) { var e = document.getElementById('stok-bulk-row-' + i); if (e) list.appendChild(e); });
+    list.appendChild(div);
+    sudah.forEach(function(i) { var e = document.getElementById('stok-bulk-row-' + i); if (e) list.appendChild(e); });
+    div.style.display = sudah.length ? '' : 'none';
+    div.textContent = '✓ Sudah dicek · ' + sudah.length;
+  }
   _stokBulkRows.forEach(function(r, i) {
     var chkw = document.getElementById('stok-bulk-chkw-' + i), inp = document.getElementById('stok-bulk-inp-' + i);
     var val = document.getElementById('stok-bulk-val-' + i), info = document.getElementById('stok-bulk-info-' + i);
