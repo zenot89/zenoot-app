@@ -3532,7 +3532,8 @@ function _jpLiveItem() {
 // Alur: harga P.O & Dropship diisi di Kelola Produk (tersimpan di Master Barang); form ini TIDAK mengetik harga lagi.
 // Selalu SKU asal yang dicatat; stok tidak berkurang (semua penghitung stok mengabaikan baris bertanda kirim_dropship), bon dropship
 // supplier tujuan terbentuk otomatis. Dibaca dari data (tidak ada nama supplier yang di-hardcode):
-//   'flag'   — SKU stok biasa dengan tujuan dropship: (a) supplier UTAMA yang berjenis Dropship + Reseller (mis. MAGRA), dan/atau
+//   'flag'   — SKU stok biasa dengan tujuan dropship: (a) supplier UTAMA kalau Dropship ikut menyala di SKU itu (Edit Sistem: P.O + Dropship bersamaan,
+//              atau dropship_juga kosong di supplier 2 sistem seperti MAGRA — lihat _jpDropshipJuga), dan/atau
 //              (b) supplier CADANGAN SKU itu dengan sistem Dropship aktif (tabel produk_supplier; mis. DIMI utama + RH cadangan). Lebih dari satu tujuan → dropdown.
 //              Cadangan dipakai saat stok utama kosong, jadi stok utama TIDAK berkurang. Tujuan cadangan disimpan di jurnal_penjualan.kirim_supplier_id.
 //   'sistem' — SKU sendiri sudah berstatus Dropship: toggle menyala & terkunci (otomatis masuk bon; ubah sistemnya di Kelola Produk).
@@ -3545,6 +3546,13 @@ var _jpHbMap  = {};    // 'produk_id|supplier_id' → { po, ds } harga per pcs d
 function _jpEscHtml(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function _jpRp(n) { return 'Rp' + (Number(n) || 0).toLocaleString('id-ID'); }
 function _jpSupplierDual(s) { return !!(s && s.is_dropship && s.is_reseller && !s.is_produksi_sendiri); }
+// Dropship ikut menyala di SKU Reseller (supplier utama), per SKU: produk.dropship_juga true/false; NULL = ikuti supplier (2 sistem → ya).
+function _jpDropshipJuga(p, s) {
+  if (!s || s.is_produksi_sendiri) return false;
+  if (p.dropship_juga === true) return true;
+  if (p.dropship_juga === false) return false;
+  return _jpSupplierDual(s);
+}
 function _jpProdukBySku(u) { return _jpProdukList.find(function(x) { return String(_jpGetSku(x)).toUpperCase() === u; }) || null; }
 // Harga per pcs SKU ini di supplier tertentu (Master Barang): { po, ds } (0 = belum diisi)
 function _jpHargaDual(p, sup) {
@@ -3560,7 +3568,7 @@ function _jpDsTarget(sku) {
   var supNama = String(p.boss || '').trim();
   if (_jpDsMap[u]) return _jpSupplierDual(s) ? { mode: 'sistem', supplier: supNama } : null;
   var opts = [];
-  if (_jpSupplierDual(s)) opts.push({ supplier: supNama, supplierId: null, hpp: _jpHargaDual(p, s).ds });
+  if (_jpDropshipJuga(p, s)) opts.push({ supplier: supNama, supplierId: null, hpp: _jpHargaDual(p, s).ds });
   (_jpCadMap[p.id] || []).forEach(function(l) {   // cadangan dengan sistem Dropship aktif (flag supplier hanya saran awal, bukan syarat)
     var cs = _jpSupById[l.sid];
     if (l.ds && cs && !cs.is_produksi_sendiri) opts.push({ supplier: String(cs.nama || '').trim(), supplierId: cs.id, hpp: _jpHargaDual(p, cs).ds });

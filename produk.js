@@ -311,6 +311,55 @@ function _produkSistemOf(row) {
   return '';
 }
 
+// ── DROPSHIP BERSAMAAN DENGAN P.O (19 Nov 2026) ─────────────
+// Sistem SKU supplier UTAMA bukan lagi pilihan tunggal: Dropship dan P.O (Reseller) boleh menyala bersamaan; Produksi Sendiri tetap eksklusif.
+// Penyimpanan: sistem_override = 'reseller' (stok dilacak, restock lewat P.O) + produk.dropship_juga (boolean). NULL = ikuti supplier: supplier 2 sistem
+// (Dropship + Reseller) → Dropship juga aktif, sama seperti perilaku sebelum kolom ini ada. Dropship murni = sistem_override 'dropship'.
+// Kalau Dropship ikut aktif di SKU Reseller: stok dipakai seperti biasa, dropship dipilih manual lewat toggle di Tambah Penjualan
+// (tujuan: supplier utama; bon dropship otomatis); harga Dropship & P.O dari Master Barang.
+function _produkDropshipJuga(row) {
+  if (!row || _produkSistemOf(row) !== 'reseller') return false;
+  if (row.dropship_juga === true) return true;
+  if (row.dropship_juga === false) return false;
+  return !!_produkSupDualByName(row.boss);
+}
+// Kunci tampilan: 'bersama' = Reseller + Dropship; selain itu = sistem SKU
+function _produkSistemKey(row) {
+  var e = _produkSistemOf(row);
+  return (e === 'reseller' && _produkDropshipJuga(row)) ? 'bersama' : e;
+}
+function _produkSisState(row) {   // saklar yang menyala di SKU ini
+  var e = _produkSistemOf(row);
+  return { prod: e === 'produksi', po: e === 'reseller', ds: e === 'dropship' || _produkDropshipJuga(row) };
+}
+// Satu saklar ditekan: Produksi eksklusif; Dropship dan P.O bebas digabung; tidak boleh kosong (null = tidak berubah)
+function _produkSisToggle(st, k) {
+  var n = { ds: !!st.ds, po: !!st.po, prod: !!st.prod };
+  if (k === 'prod') { if (n.prod) return null; n = { ds: false, po: false, prod: true }; }
+  else { n[k] = !n[k]; if (n[k]) n.prod = false; }
+  return (n.ds || n.po || n.prod) ? n : null;
+}
+function _produkSisTarget(st) {   // saklar → { sis, juga } atau null kalau belum ada yang dipilih
+  if (st.prod) return { sis: 'produksi', juga: false };
+  if (st.po && st.ds) return { sis: 'reseller', juga: true };
+  if (st.po) return { sis: 'reseller', juga: false };
+  if (st.ds) return { sis: 'dropship', juga: false };
+  return null;
+}
+// Kolom yang ditulis ke produk. dropship_juga hanya disentuh bila perlu (ikut menyala = true; P.O saja di supplier 2 sistem = false eksplisit;
+// keluar dari Reseller = dikembalikan NULL), jadi SKU lain tidak berubah dan tidak bergantung pada kolomnya sebelum dipakai.
+function _produkSisPayloadFor(row, sis, juga) {
+  var pl = { sistem_override: sis };
+  if (sis === 'reseller') {
+    if (juga) pl.dropship_juga = true;
+    else if (row.dropship_juga != null || _produkSupDualByName(row.boss)) pl.dropship_juga = false;
+  } else if (row.dropship_juga != null) pl.dropship_juga = null;
+  return pl;
+}
+function _produkSisSama(row, sis, juga) {   // sistem SKU sudah persis seperti target (tidak perlu ditulis)
+  return row.sistem_override === sis && (sis !== 'reseller' || _produkDropshipJuga(row) === !!juga);
+}
+
 // [30 Okt 2026] Sistem awal sebuah SKU berdasarkan supplier (Boss)-nya — dipakai saat SKU dibuat (Tambah / Paste Massal) dan saat Boss diganti.
 //   Produksi Sendiri → 'produksi' | Dropship saja → 'dropship' | Reseller saja → 'reseller'
 //   Dropship + Reseller (mis. RH) → `prefer` kalau 'dropship'/'reseller', selain itu 'dropship' (default RH)
@@ -419,7 +468,8 @@ function _produkCadKatalogSub(rows) {
 var _PRODUK_SISTEM_META = {
   produksi: { label: 'Produksi Sendiri', color: 'var(--ok)'   },
   reseller: { label: 'Reseller',         color: 'var(--info)' },
-  dropship: { label: 'Dropship',         color: 'var(--warn)' }
+  dropship: { label: 'Dropship',         color: 'var(--warn)' },
+  bersama:  { label: 'Reseller + Dropship', color: 'var(--info)' }   // 19 Nov 2026: P.O dan Dropship menyala bersamaan (sistem_override reseller + dropship_juga)
 };
 
 // ── RINGKASAN SUPPLIER AKTIF (19 Nov 2026) ───────────────────
@@ -444,7 +494,7 @@ function _produkSupRingkasHtml() {
     var k = String(r.boss || '').trim().toUpperCase() || '—';
     var g = utama[k] || (utama[k] = { nama: r.boss || '—', n: 0, sis: {} });
     g.n++;
-    var e = _produkSistemOf(r) || '';
+    var e = _produkSistemKey(r) || '';
     g.sis[e] = (g.sis[e] || 0) + 1;
     _produkCadRows(r).forEach(function(c) {
       var cg = cad[c.sup.id] || (cad[c.sup.id] = { sup: c.sup, n: 0, ds: 0, po: 0 });
@@ -579,7 +629,7 @@ function _produkSortWarnaSize(rows) {
 // Baris katalog: semua varian sama → 1 pill; campur → "Campuran" + rincian kecil di bawahnya
 function _produkSistemKatalogCell(rows) {
   var cnt = {};
-  rows.forEach(function(r) { var k = _produkSistemOf(r) || '-'; cnt[k] = (cnt[k] || 0) + 1; });
+  rows.forEach(function(r) { var k = _produkSistemKey(r) || '-'; cnt[k] = (cnt[k] || 0) + 1; });
   var keys = Object.keys(cnt);
   if (keys.length === 1) return _produkSistemPill(keys[0] === '-' ? '' : keys[0]);
   var detail = keys.map(function(k) {
@@ -601,7 +651,7 @@ var _pkSisId = null;
 function _pkEsc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function _produkSistemBtn(row) {
-  var key = _produkSistemOf(row);
+  var key = _produkSistemKey(row);
   var m   = _PRODUK_SISTEM_META[key];
   var lbl = m ? m.label : 'Belum diatur';
   var col = m ? m.color : 'var(--ink3)';
@@ -668,14 +718,17 @@ function produkSistemSheetOpen(id) {
   if (!row) return;
   _pkSisId = row.id;
   var eff = _produkSistemOf(row);
-  var cur = eff || null;   // sistem yang berlaku sekarang (baris lama yang masih kosong ditampilkan sesuai aturan supplier)
-  var effM = _PRODUK_SISTEM_META[eff];
+  var key = _produkSistemKey(row);
+  var st = _produkSisState(row);   // saklar menyala: Dropship dan P.O boleh bersamaan, Produksi Sendiri eksklusif
+  var effM = _PRODUK_SISTEM_META[key];
   var boss = row.boss || '—';
-  var rows = _PRODUK_SISTEM_OPSI.map(function(o, i) {
-    var on = (cur === o.k);
-    var desc = o.k === 'dropship' ? 'Tidak disetok. Bon dropship dicatat ke supplier ' + _pkEsc(boss) + '.' : o.d;
-    return '<div class="pk-sis-row' + (on ? ' on' : '') + '" onclick="produkSistemPick(' + i + ')">'
-      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + o.l + '</div><div class="pk-sis-rd">' + desc + '</div></div>'
+  var rows = [
+    ['ds',   'Dropship',         'Tidak disetok. Bon dropship dicatat ke supplier ' + _pkEsc(boss) + '.'],
+    ['po',   'P.O (Reseller)',   'Dibeli sebagai PO dari supplier. Boleh digabung dengan Dropship.'],
+    ['prod', 'Produksi Sendiri', 'Disetok sendiri. Stok dilacak.']
+  ].map(function(o) {
+    return '<div class="pk-sis-row' + (st[o[0]] ? ' on' : '') + '" onclick="produkSistemToggle(\'' + o[0] + '\')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + o[1] + '</div><div class="pk-sis-rd">' + o[2] + '</div></div>'
       + '<span class="pk-sis-tg"></span></div>';
   }).join('');
   var sh = document.getElementById('pk-sis-sheet');
@@ -826,6 +879,11 @@ function _produkYmdHariIni() {
 // Dropship → dikosongkan. Dipakai semua jalur yang mengubah sistem_override SKU yang sudah ada, supaya bon dropship tidak ditarik mundur ke penjualan lama.
 // SKU baru (row kosong) tidak dicap: belum punya riwayat.
 function _produkStampDropshipMulai(payload, row) {
+  // 19 Nov 2026: dropship_juga (Dropship bersamaan dengan P.O) dikembalikan ke NULL (ikuti supplier) kalau sistem atau supplier utama SKU berganti,
+  // kecuali payload sudah menentukannya sendiri. Hanya ditulis bila nilainya memang ada (kolom baru tidak disentuh pada SKU lain).
+  if (payload && row && row.dropship_juga != null && payload.dropship_juga === undefined
+      && ((payload.sistem_override && payload.sistem_override !== _produkSistemOf(row))
+          || (payload.boss !== undefined && _produkBossBerubah(row.boss, payload.boss)))) payload.dropship_juga = null;
   var sis = payload && payload.sistem_override;
   if (!sis || !row) return;
   if (sis === 'dropship') { if (_produkSistemOf(row) !== 'dropship') payload.dropship_mulai = _produkYmdHariIni(); }
@@ -845,18 +903,23 @@ async function _produkHargaSistem(row, sistem) {
   return lusin > 0 ? Math.round(lusin / 12) : 0;
 }
 
-async function produkSistemPick(i) {
-  var o = _PRODUK_SISTEM_OPSI[i];
-  if (!o || _pkSisId == null) return;
+async function produkSistemToggle(k) {
+  if (_pkSisId == null) return;
   var row = (_produkData || []).find(function(r) { return String(r.id) === String(_pkSisId); });
   if (!row) { produkSistemSheetClose(); return; }
-  var val = o.k;   // selalu 'dropship' | 'reseller' | 'produksi' — tidak ada lagi "ikuti supplier"
-  // 30 Okt 2026: pilihan SELALU disimpan eksplisit di sistem_override (normalisasi ke null yang dibuat pagi ini dicabut).
-  // Baris lama yang masih kosong lalu dipilih sistem yang sama dgn tampilannya juga tersimpan eksplisit.
-  if (row.sistem_override === val) { produkSistemSheetClose(); return; }
-  var payload = { sistem_override: val };
+  var baru = _produkSisToggle(_produkSisState(row), k);
+  if (!baru) { alert('Minimal satu sistem harus aktif.'); return; }
+  var tgt = _produkSisTarget(baru), val = tgt.sis;
+  if (_produkSisSama(row, val, tgt.juga)) { produkSistemSheetOpen(row.id); return; }
+  var sup = _produkSupMap()[String(row.boss || '').trim().toUpperCase()];
+  if (sup && sup.is_produksi_sendiri && val !== 'produksi') {   // supplier Produksi Sendiri eksklusif — sama dengan Edit Sistem massal
+    alert('Supplier ' + (row.boss || '') + ' hanya bisa Produksi Sendiri. Untuk Dropship / P.O tambahkan supplier cadangan (Edit Supplier › + Cadangan).');
+    return;
+  }
+  // 30 Okt 2026: pilihan SELALU disimpan eksplisit di sistem_override.
+  var payload = _produkSisPayloadFor(row, val, tgt.juga);
   _produkStampDropshipMulai(payload, row);   // 3 Nov 2026: penjualan sebelum hari ini tidak ditarik mundur ke bon dropship
-  // 3 Nov 2026: SKU supplier 2 sistem → HPP otomatis ikut harga sistem barunya (Dropship → harga Dropship, Reseller → harga P.O) dari Master Barang.
+  // 3 Nov 2026: SKU supplier 2 sistem → HPP otomatis ikut harga sistem barunya (Dropship → harga Dropship, selain itu → harga P.O) dari Master Barang.
   // Harga yang belum diisi → HPP dibiarkan. Supplier 1 sistem tidak disentuh.
   try {
     if (_produkSupDualByName(row.boss)) {
@@ -866,13 +929,14 @@ async function produkSistemPick(i) {
   } catch (eHarga) { console.warn('[produk] cek harga sistem gagal:', eHarga && eHarga.message); }
   try {
     await dbUpdate('produk', row.id, payload);
-    Object.keys(payload).forEach(function(k) { row[k] = payload[k]; });
+    Object.keys(payload).forEach(function(kk) { row[kk] = payload[kk]; });
+    if (sup && !sup.is_produksi_sendiri && val !== 'produksi') await _produkSinkronSupplier([{ sup: sup, sis: val, juga: tgt.juga, lock: false }]);   // flag supplier ikut (Channel › Supplier & ROP)
     produkMarkDirty();
-    produkSistemSheetClose();
     renderProduk(_produkData);
+    produkSistemSheetOpen(row.id);   // sheet tetap terbuka: Dropship dan P.O bisa dinyalakan berurutan
   } catch (e) {
     var msg = (e && e.message) || String(e);
-    alert('Gagal simpan sistem: ' + msg + (/dropship_mulai/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-padanan-dropship.sql di Supabase dulu.' : ''));
+    alert('Gagal simpan sistem: ' + msg + (/dropship_mulai/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-padanan-dropship.sql di Supabase dulu.' : '') + (/dropship_juga/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-sistem-bersamaan.sql di Supabase dulu.' : ''));
   }
 }
 
@@ -1149,7 +1213,7 @@ function filterProduk() {
     (r.sku_variasi||'').toLowerCase().includes(q) ||
     (r.katalog||'').toLowerCase().includes(q) ||
     (r.boss||'').toLowerCase().includes(q) ||
-    ((_PRODUK_SISTEM_META[_produkSistemOf(r)] || {}).label || '').toLowerCase().includes(q)
+    ((_PRODUK_SISTEM_META[_produkSistemKey(r)] || {}).label || '').toLowerCase().includes(q)
   );
   renderProduk(filtered);
 }
@@ -1740,7 +1804,7 @@ function _produkSinkronNeed(items) {
   items.forEach(function(x) {
     if (!x.sup || x.lock) return;
     var n = need[x.sup.id] || (need[x.sup.id] = { sup: x.sup, ds: false, rs: false });
-    if (x.sis === 'dropship') n.ds = true; else if (x.sis === 'reseller') n.rs = true;
+    if (x.sis === 'dropship') n.ds = true; else if (x.sis === 'reseller') { n.rs = true; if (x.juga) n.ds = true; }
   });
   return need;
 }
@@ -1760,8 +1824,18 @@ async function _produkSinkronSupplier(items) {
       await dbUpdate('produk', lama[li].id, { sistem_override: sisLama });
       lama[li].sistem_override = sisLama;
     }
+    var jadiDual = !(n.sup.is_dropship && n.sup.is_reseller) && ((n.sup.is_dropship || pl.is_dropship) && (n.sup.is_reseller || pl.is_reseller));
     await dbUpdate('hutang_supplier', n.sup.id, pl);
     Object.keys(pl).forEach(function(k) { n.sup[k] = pl[k]; });
+    // Supplier BARU jadi 2 sistem: SKU Reseller lain milik supplier ini yang belum menentukan dropship_juga dikunci ke false, supaya Dropship
+    // tidak ikut menyala sendiri di semua SKU-nya lewat aturan "ikuti supplier" (hanya SKU yang dipilih user yang menyala).
+    if (jadiDual) {
+      var kunci = _produkData.filter(function(p) { return String(p.boss || '').trim().toUpperCase() === supKey && p.dropship_juga == null && p.sistem_override === 'reseller'; });
+      for (var ki = 0; ki < kunci.length; ki++) {
+        try { await dbUpdate('produk', kunci[ki].id, { dropship_juga: false }); kunci[ki].dropship_juga = false; }
+        catch (eK) { console.warn('[produk] kunci dropship_juga gagal (kolom belum ada?):', eK && eK.message); break; }
+      }
+    }
     ubah.push(n.sup.nama);
   }
   return ubah;
@@ -1781,7 +1855,10 @@ function _produkSinkronCatatan(items) {
 // ── BATCH: Edit Sistem massal (12 Nov 2026) ───────────────────
 // 17 Nov 2026: pilih SUMBER dulu — Supplier utama (sistem SKU seperti dulu) atau salah satu supplier CADANGAN yang dimiliki SKU terpilih
 // (tiap cadangan punya saklar Dropship dan P.O sendiri). Supplier utama Produksi Sendiri tetap hanya Produksi Sendiri.
-var _bsSis = '';
+var _bsSis = '';           // sistem utama hasil saklar: 'dropship' | 'reseller' | 'produksi' | '' (belum dipilih)
+var _bsJuga = false;       // true = P.O + Dropship bersamaan (sistem 'reseller' + dropship_juga)
+var _bsU = { ds: false, po: false, prod: false };   // saklar: Dropship dan P.O boleh bersamaan; Produksi eksklusif
+function _bsSinkronSis() { var t = _produkSisTarget(_bsU); _bsSis = t ? t.sis : ''; _bsJuga = !!(t && t.juga); }
 var _bsSumber = 'utama';   // 'utama' | id supplier cadangan
 var _bsCad = { ds: false, po: false };
 function _bsSumberOpsi() {   // supplier cadangan yang dimiliki SKU terpilih
@@ -1800,7 +1877,7 @@ function _bsCadLinks() {
 }
 function produkBsSumber(v) {
   _bsSumber = v === 'utama' ? 'utama' : Number(v);
-  _bsSis = '';
+  _bsU = { ds: false, po: false, prod: false }; _bsSinkronSis();
   if (_bsSumber !== 'utama') {   // saklar awal = kondisi mayoritas SKU terpilih
     var ls = _bsCadLinks();
     _bsCad = { ds: ls.filter(function(l) { return _produkCadMode(l).ds; }).length * 2 >= ls.length, po: ls.filter(function(l) { return _produkCadMode(l).po; }).length * 2 > ls.length };
@@ -1811,13 +1888,13 @@ function produkBsCadToggle(k) { _bsCad[k] = !_bsCad[k]; _bsRender(); }
 function produkBatchSistem() {
   var ids = Object.keys(_produkSelected).map(Number);
   if (!ids.length) return;
-  _bsSis = '';
+  _bsU = { ds: false, po: false, prod: false }; _bsSinkronSis();
   _bsSumber = 'utama';
   document.getElementById('bs-count').textContent = ids.length + ' SKU terpilih';
   _bsRender();
   showModal('modal-batch-sis');
 }
-function produkBsPick(k) { _bsSis = k; _bsRender(); }
+function produkBsPick(k) { var n = _produkSisToggle(_bsU, k); if (n) { _bsU = n; _bsSinkronSis(); _bsRender(); } }   // k: 'ds' | 'po' | 'prod'
 function _bsRows() { var ids = Object.keys(_produkSelected).map(Number); return _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; }); }
 function _bsRender() {
   var opsi = _bsSumberOpsi();
@@ -1842,18 +1919,22 @@ function _bsRender() {
       + '<br>Minimal satu sistem aktif. Untuk melepas supplier ini pakai Edit Supplier › Hapus Cadangan.';
     return;
   }
-  document.getElementById('bs-opts').innerHTML = _PRODUK_SISTEM_OPSI.map(function(o) {
-    var l = o.k === 'reseller' ? 'P.O (Reseller)' : o.l;
-    return '<div class="pk-sis-row' + (_bsSis === o.k ? ' on' : '') + '" style="border-radius:8px" onclick="produkBsPick(\'' + o.k + '\')">'
-      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + l + '</div><div class="pk-sis-rd">' + o.d + '</div></div><span class="pk-sis-tg"></span></div>';
+  document.getElementById('bs-opts').innerHTML = [
+    ['ds',   'Dropship',         'Tidak disetok. Bon dropship dicatat ke supplier.'],
+    ['po',   'P.O (Reseller)',   'Dibeli sebagai PO dari supplier. Boleh digabung dengan Dropship.'],
+    ['prod', 'Produksi Sendiri', 'Disetok sendiri. Stok dilacak.']
+  ].map(function(o) {
+    return '<div class="pk-sis-row' + (_bsU[o[0]] ? ' on' : '') + '" style="border-radius:8px" onclick="produkBsPick(\'' + o[0] + '\')">'
+      + '<div class="pk-sis-rtxt"><div class="pk-sis-rl">' + o[1] + '</div><div class="pk-sis-rd">' + o[2] + '</div></div><span class="pk-sis-tg"></span></div>';
   }).join('');
   var note = '';
   if (_bsSis) {
     var rows = _bsRows();
-    var items = rows.map(function(r) { var s = _bhSupOf(r); return { sup: s, sis: _bsSis, lock: !!(s && s.is_produksi_sendiri) }; });
+    var items = rows.map(function(r) { var s = _bhSupOf(r); return { sup: s, sis: _bsSis, juga: _bsJuga, lock: !!(s && s.is_produksi_sendiri) }; });
     var skip = items.filter(function(x) { return x.lock && _bsSis !== 'produksi'; }).length;
     var notes = _bsSis === 'produksi' ? [] : _produkSinkronCatatan(items);
     note = (_bsSis === 'produksi' ? 'HPP tidak diubah — atur lewat Edit HPP.' : 'HPP tiap SKU mengikuti harga ' + (_bsSis === 'dropship' ? 'Dropship' : 'P.O') + ' di Master Barang (kalau harganya sudah ada).')
+      + (_bsJuga ? '<br>Dropship + P.O: stok dipakai seperti biasa; kirim via dropship dipilih lewat toggle di Tambah Penjualan (bon dropship ke supplier utama).' : '')
       + (skip ? '<br>⚠ ' + skip + ' SKU supplier Produksi Sendiri dilewati. Untuk Dropship / P.O pilih sumber supplier cadangan (tambahkan lewat Edit Supplier › + Cadangan).' : '')
       + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
   }
@@ -1895,9 +1976,9 @@ async function simpanBatchSistem() {
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], sup = _bhSupOf(r), lock = !!(sup && sup.is_produksi_sendiri);
       if (lock && _bsSis !== 'produksi') { skip++; continue; }
-      items.push({ sup: sup, sis: _bsSis, lock: lock });
-      if (r.sistem_override === _bsSis) continue;
-      var payload = { sistem_override: _bsSis };
+      items.push({ sup: sup, sis: _bsSis, juga: _bsJuga, lock: lock });
+      if (_produkSisSama(r, _bsSis, _bsJuga)) continue;
+      var payload = _produkSisPayloadFor(r, _bsSis, _bsJuga);
       if (sup && _produkSupDualByName(r.boss)) payload.dropship = (_bsSis === 'dropship');
       _produkStampDropshipMulai(payload, r);
       if (_bsSis !== 'produksi' && sup && !lock) {   // HPP ikut harga sistem barunya di Master Barang; belum ada harganya → HPP dibiarkan
@@ -1918,7 +1999,7 @@ async function simpanBatchSistem() {
     if (skip || supUbah.length) alert('✓ ' + ubah + ' SKU diubah.' + (skip ? '\n' + skip + ' SKU supplier Produksi Sendiri dilewati.' : '') + (supUbah.length ? '\nSupplier disinkronkan di Channel › Supplier & ROP: ' + supUbah.join(', ') : ''));
   } catch (err) {
     produkMarkDirty();
-    alert('Gagal: ' + (err && err.message || err) + '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.');
+    alert('Gagal: ' + (err && err.message || err) + (/dropship_juga/i.test(String(err && err.message || err)) ? '\n\nKolom belum ada — jalankan zenoot-sistem-bersamaan.sql di Supabase dulu.' : '') + '\n\nSebagian SKU mungkin sudah tersimpan — periksa tabelnya.');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan'; }
   }
