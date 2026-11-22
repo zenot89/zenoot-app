@@ -1799,9 +1799,10 @@ var _BH_SIS = [
   var st = document.createElement('style');
   st.id = 'pk-bh-style';
   st.textContent = [
-    '#modal-batch-hpp .modal{max-width:880px;width:100%}',
+    '#modal-batch-hpp .modal{max-width:1000px;width:100%}',
     '#bh-list{max-height:56vh;overflow:auto;border:1px solid var(--ovl-0_18);border-radius:8px}',
-    '.bh-head,.bh-row,.bh-all{display:grid;grid-template-columns:minmax(150px,1.5fr) 218px minmax(96px,1fr) minmax(96px,1fr) minmax(96px,1fr);gap:10px;align-items:center;padding:8px 12px}',
+    '.bh-head,.bh-row,.bh-all{display:grid;grid-template-columns:minmax(150px,1.5fr) 262px minmax(96px,1fr) minmax(96px,1fr) minmax(96px,1fr);gap:10px;align-items:center;padding:8px 12px}',
+    '.bh-head.bh-gc,.bh-row.bh-gc,.bh-all.bh-gc{grid-template-columns:minmax(150px,1.5fr) 190px minmax(96px,1fr) minmax(96px,1fr)}',
     '.bh-head{position:sticky;top:0;z-index:2;background:var(--cream2);font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--ovl-0_18)}',
     '.bh-kat{padding:7px 12px;background:var(--cream2);font-size:12px;font-weight:700;color:var(--ink);border-top:1px solid var(--ovl-0_18)}',
     '.bh-kat span{font-weight:500;color:var(--ink3);margin-left:6px}',
@@ -1820,10 +1821,23 @@ var _BH_SIS = [
     '.bh-all{background:var(--cream2);border:1px dashed var(--ink3);border-radius:8px;margin-bottom:10px}',
     '.bh-note{font-size:11.5px;color:var(--ink3);line-height:1.5;margin-top:10px}',
     '.bh-note b{color:var(--ink)}',
+    '.bh-panel{border:1px solid var(--ovl-0_18);border-radius:8px;background:var(--cream2);padding:10px 12px;margin-bottom:10px}',
+    '.bh-prow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}',
+    '.bh-plbl{font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;min-width:96px}',
+    '.bh-pval{flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px}',
+    '.bh-cnt{font-size:10.5px;font-weight:500;color:var(--ink3)}',
+    '.bh-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid var(--warn);color:var(--warn)}',
+    '.bh-tag-ok{border-color:var(--ok);color:var(--ok)}',
+    '.bh-tag-bad{border-color:var(--danger);color:var(--danger)}',
+    '#bh-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}',
+    '.bh-tab{font-family:var(--f);font-size:12px;font-weight:700;padding:6px 12px;border:2px solid var(--ink);cursor:pointer;background:var(--cream);color:var(--ink)}',
+    '.bh-tab.on{background:var(--ink);color:var(--cream)}',
+    '.bh-tab.on .bh-cnt{color:var(--cream)}',
+    '.bh-tab-add{border-style:dashed}',
     '.bh-lbl{display:none;font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;margin-bottom:2px}',
     '@media (max-width:760px){',
     '  .bh-head{display:none}',
-    '  .bh-row,.bh-all{grid-template-columns:1fr 1fr;gap:8px}',
+    '  .bh-row,.bh-all,.bh-row.bh-gc,.bh-all.bh-gc{grid-template-columns:1fr 1fr;gap:8px}',
     '  .bh-row>:first-child,.bh-all>:first-child,.bh-row .bh-seg-wrap,.bh-all .bh-seg-wrap{grid-column:1/-1}',
     '  .bh-lbl{display:block}',
     '  .bh-hpp{text-align:left}',
@@ -1834,189 +1848,438 @@ var _BH_SIS = [
 
 function _bhSupOf(row) { return _produkSupMap()[String(row.boss || '').trim().toUpperCase()] || null; }
 
+// ── BATCH: Edit HPP & Supplier massal (22 Nov 2026) — SATU halaman ───────────────────────────────
+// Alur: tampil Supplier Utama → Ganti utama / + Supplier cadangan → isi Sistem → kolom harga Dropship & Reseller (P.O) → Terapkan ke semua → Simpan.
+// Pilihan supplier & sistem yang boleh dipilih mengikuti Channel › Supplier & ROP (flag hutang_supplier); halaman ini TIDAK mengubah flag supplier.
+var _bh = null;
+function _bhN(s) { return String(s == null ? '' : s).trim().toUpperCase(); }
+function _bhNum(el) { return parseInt(String(el && el.value || '').replace(/\D/g, ''), 10) || 0; }
+function _bhRpTxt(v) { return v > 0 ? _produkRp(v) : '—'; }
+
+function _bhMb(r, sup) {   // harga per pcs di Master Barang (Hutang Barang) untuk SKU × supplier
+  var b = sup ? (_produkHbList || []).find(function(h) { return h.produk_id === r.id && h.supplier_id === sup.id; }) : null;
+  return {
+    po: b && Number(b.harga_po_per_lusin) > 0 ? Math.round(Number(b.harga_po_per_lusin) / 12) : 0,
+    ds: b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0
+  };
+}
+// Sistem awal kalau supplier utama berganti / SKU belum punya sistem: mengikuti flag Channel (dual → pertahankan pilihan lama, default Dropship)
+function _bhDefaultSt(sup, prev) {
+  if (!sup || sup.is_produksi_sendiri) return { ds: false, po: false, prod: true };
+  var ds = !!sup.is_dropship, po = !!sup.is_reseller;
+  if (ds && po) return (prev && (prev.ds || prev.po)) ? { ds: !!prev.ds, po: !!prev.po, prod: false } : { ds: true, po: false, prod: false };
+  if (ds) return { ds: true, po: false, prod: false };
+  if (po) return { ds: false, po: true, prod: false };
+  return { ds: false, po: false, prod: true };
+}
+// Sistem yang boleh dipilih di supplier utama = flag Channel (+ kondisi SKU sekarang selama supplier tidak diganti, supaya data lama tidak terkunci)
+function _bhAllowU(x) {
+  var s = x.sup, f = { ds: false, po: false, prod: false };
+  if (s) { f.ds = !!s.is_dropship; f.po = !!s.is_reseller; f.prod = !!s.is_produksi_sendiri; }
+  if (!f.ds && !f.po && !f.prod) f.prod = true;
+  if (!x.supUbah) { if (x.o.st.ds) f.ds = true; if (x.o.st.po) f.po = true; if (x.o.st.prod) f.prod = true; }
+  return f;
+}
+function _bhAllowC(sup, c) {
+  var f = { ds: !!sup.is_dropship, po: !!sup.is_reseller };
+  if (!f.ds && !f.po) f.ds = true;
+  if (c && c.o) { if (c.o.ds) f.ds = true; if (c.o.po) f.po = true; }
+  return f;
+}
+function _bhInputHpp(x) { return !!(x.st.prod || !x.sup); }
+// HPP akhir SKU: Produksi / tanpa supplier terdaftar = input langsung; selain itu = harga sistem aktifnya (Dropship, atau P.O bila P.O aktif). Harga kosong → HPP lama dipertahankan.
+function _bhHppEf(x) {
+  if (_bhInputHpp(x)) return { v: x.hpp, kosong: false };
+  var t = _produkSisTarget(x.st), v = t ? (t.sis === 'dropship' ? x.ds : x.po) : 0;
+  if (v > 0) return { v: v, kosong: false };
+  return { v: x.o.hpp, kosong: true, sis: t && t.sis === 'dropship' ? 'Dropship' : 'Reseller' };
+}
+
+function _bhInitRow(r, kat) {
+  var sup = _bhSupOf(r), hpp = Number(r.hpp) || 0;
+  var st = _produkSisState(r);
+  if (!st.prod && !st.po && !st.ds) st = _bhDefaultSt(sup, null);
+  var priced = !!(sup && !sup.is_produksi_sendiri);
+  var mb = priced ? _bhMb(r, sup) : { po: 0, ds: 0 };
+  var po = mb.po, ds = mb.ds;
+  if (priced) {   // HPP lama yang belum punya harga di Master Barang = harga sistem aktifnya (angka lama tidak hilang)
+    var t = _produkSisTarget(st);
+    if (t) { if (t.sis === 'dropship') { if (!ds) ds = hpp; } else if (t.sis === 'reseller') { if (!po) po = hpp; } }
+  }
+  return {
+    row: r, kat: kat, sup: sup, supUbah: false,
+    st: { ds: !!st.ds, po: !!st.po, prod: !!st.prod }, po: po, ds: ds, hpp: hpp, hppTouched: false,
+    base: { po: mb.po, ds: mb.ds }, cad: {},
+    o: { sup: sup, st: { ds: !!st.ds, po: !!st.po, prod: !!st.prod }, po: po, ds: ds, hpp: hpp }
+  };
+}
+function _bhInitCad(x, sup, awal) {
+  var r = x.row;
+  var link = (_produkCadList || []).find(function(l) { return l.produk_id === r.id && l.supplier_id === sup.id; }) || null;
+  var m = link ? _produkCadMode(link) : { ds: false, po: false };
+  var pd = _produkCadHargaDs(r, sup.id), pp = _produkCadHargaPo(r, sup.id);
+  var c = { link: link, ds: !!m.ds, po: !!m.po, pd: pd, pp: pp, o: { ds: !!m.ds, po: !!m.po, pd: pd, pp: pp } };
+  if (!link && awal) { c.ds = awal.ds; c.po = awal.po; }
+  x.cad[sup.id] = c;
+}
+function _bhIsUtamaDi(x, sup) { return !!(x.sup && _bhN(x.sup.nama) === _bhN(sup.nama)); }
+
 function produkBatchHpp() {
   var ids = Object.keys(_produkSelected).map(Number);
   if (!ids.length) return;
   var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
   var byKat = {};
   rows.forEach(function(r) { var k = r.katalog || '—'; (byKat[k] = byKat[k] || []).push(r); });
-  _bhRows = [];
+  _bh = { rows: [], tab: 'utama', cads: [], utamaBaru: null, allU: { ds: false, po: false, prod: false }, allC: { ds: false, po: false }, pick: '' };
   Object.keys(byKat).sort(function(a, b) { return a.localeCompare(b); }).forEach(function(k) {
-    _produkSortWarnaSize(byKat[k]).forEach(function(r) {
-      var sup = _bhSupOf(r);
-      var priced = !!(sup && !sup.is_produksi_sendiri);   // harga P.O / Dropship hanya untuk supplier terdaftar yang bukan Produksi Sendiri
-      var sis = _produkSistemOf(r) || (priced ? (sup.is_reseller && !sup.is_dropship ? 'reseller' : 'dropship') : 'produksi');
-      var po = 0, ds = 0, hpp = Number(r.hpp) || 0;
-      if (priced) {
-        var b = (_produkHbList || []).find(function(x) { return x.produk_id === r.id && x.supplier_id === sup.id; });
-        po = b && Number(b.harga_po_per_lusin) > 0 ? Math.round(Number(b.harga_po_per_lusin) / 12) : 0;
-        ds = b && Number(b.harga_per_lusin) > 0 ? Math.round(Number(b.harga_per_lusin) / 12) : 0;
-        // HPP lama yang belum punya harga di Master Barang = harga sistem aktifnya (angka lama tidak hilang)
-        if (sis === 'dropship') { if (!ds) ds = hpp; } else if (sis === 'reseller') { if (!po) po = hpp; }
-      }
-      _bhRows.push({ row: r, kat: k, sup: sup, priced: priced, lockProd: !!(sup && sup.is_produksi_sendiri), sis: sis, po: po, ds: ds, hpp: hpp, o: { sis: sis, po: po, ds: ds, hpp: hpp } });
-    });
+    _produkSortWarnaSize(byKat[k]).forEach(function(r) { _bh.rows.push(_bhInitRow(r, k)); });
   });
-  document.getElementById('batch-hpp-count').textContent = _bhRows.length + ' SKU terpilih · ' + Object.keys(byKat).length + ' katalog';
-  _bhRenderAll();
+  // tab cadangan = supplier cadangan yang sudah dimiliki SKU terpilih
+  var seen = {};
+  (_produkCadList || []).forEach(function(l) {
+    if (ids.indexOf(l.produk_id) < 0 || seen[l.supplier_id]) return;
+    var sp = _produkSupById(l.supplier_id);
+    if (sp) { seen[l.supplier_id] = true; _bh.cads.push(sp); }
+  });
+  _bh.cads.sort(function(a, b) { return String(a.nama || '').localeCompare(String(b.nama || ''), 'id'); });
+  _bh.cads.forEach(function(sp) { _bh.rows.forEach(function(x) { _bhInitCad(x, sp, null); }); });
+  document.getElementById('batch-hpp-count').textContent = _bh.rows.length + ' SKU terpilih · ' + Object.keys(byKat).length + ' katalog';
+  _bhRender();
   showModal('modal-batch-hpp');
 }
 
-function _bhSegHtml(prefix, cur, lockProd) {
-  return '<div class="bh-seg">' + _BH_SIS.map(function(o) {
-    var dis = lockProd && o.k !== 'produksi' && cur !== o.k;
-    return '<button type="button" id="' + prefix + '-' + o.k + '" ' + (dis ? 'disabled title="Supplier Produksi Sendiri tidak bisa Dropship / P.O — ganti supplier lewat Edit Supplier"' : '')
-      + ' class="' + (cur === o.k ? 'on' : '') + '" style="' + (cur === o.k ? 'background:' + o.c : '') + '" onclick="' + (prefix === 'bh-all-sis' ? 'produkBhAllSis' : 'produkBhSis') + '(' + (prefix === 'bh-all-sis' ? '' : _bhIdxOfPrefix(prefix) + ',') + '\'' + o.k + '\')">' + o.l + '</button>';
+// ── Picker supplier (memakai sheet supplier yang sama dengan Edit Supplier; daftar = Channel › Supplier & ROP) ──
+function _bhPickUtama() { _bh.pick = 'utama'; produkOpenBossSheet('bh-pick-input', 'bh-pick-label', 'bh-utama'); }
+function _bhPickCad()   { _bh.pick = 'cad';   produkOpenBossSheet('bh-pick-input', 'bh-pick-label', 'bh-cad'); }
+function _bhPicked(nama) {
+  var sup = _produkSupMap()[_bhN(nama)];
+  if (!sup || !_bh) return;
+  if (_bh.pick === 'utama') _bhSetUtama(sup); else _bhAddCad(sup);
+}
+function _bhSetUtama(sup) {
+  _bh.utamaBaru = sup;
+  _bh.rows.forEach(function(x) {
+    if (!sup) { x.sup = x.o.sup || _bhSupOf(x.row); x.supUbah = false; x.st = { ds: x.o.st.ds, po: x.o.st.po, prod: x.o.st.prod }; x.po = x.o.po; x.ds = x.o.ds; x.hpp = x.o.hpp; x.hppTouched = false; x.base = _bhBaseAsli(x); return; }
+    var sama = _bhN(sup.nama) === _bhN(x.row.boss);
+    if (sama) { x.sup = _bhSupOf(x.row); x.supUbah = false; x.st = { ds: x.o.st.ds, po: x.o.st.po, prod: x.o.st.prod }; x.po = x.o.po; x.ds = x.o.ds; x.hpp = x.o.hpp; x.hppTouched = false; x.base = _bhBaseAsli(x); return; }
+    x.sup = sup; x.supUbah = true;
+    x.st = _bhDefaultSt(sup, x.o.st);
+    var mb = sup.is_produksi_sendiri ? { po: 0, ds: 0 } : _bhMb(x.row, sup);
+    x.base = { po: mb.po, ds: mb.ds }; x.po = mb.po; x.ds = mb.ds;
+    x.hpp = x.o.hpp; x.hppTouched = false;
+  });
+  _bh.allU = { ds: false, po: false, prod: false };
+  _bh.tab = 'utama';
+  _bhRender();
+}
+function _bhBaseAsli(x) { var s = x.o.sup || _bhSupOf(x.row); return (s && !s.is_produksi_sendiri) ? _bhMb(x.row, s) : { po: 0, ds: 0 }; }
+function _bhAddCad(sup) {
+  if (sup.is_produksi_sendiri) { alert('Supplier Produksi Sendiri tidak bisa jadi cadangan.'); return; }
+  if (!_bh.cads.some(function(s) { return s.id === sup.id; })) {
+    _bh.cads.push(sup);
+    var f = _bhAllowC(sup, null);
+    _bh.rows.forEach(function(x) { _bhInitCad(x, sup, _bhIsUtamaDi(x, sup) ? { ds: false, po: false } : { ds: f.ds, po: f.po }); });   // SKU yang utamanya supplier ini tidak ikut jadi cadangan
+  }
+  _bh.allC = { ds: false, po: false };
+  _bh.tab = sup.id;
+  _bhRender();
+}
+function _bhLepasCad() {   // semua SKU terpilih tidak lagi punya cadangan ini (tautan lama dihapus saat Simpan)
+  var sup = _produkSupById(_bh.tab); if (!sup) return;
+  var ada = _bh.rows.some(function(x) { return x.cad[sup.id] && x.cad[sup.id].link; });
+  if (!ada) { _bh.cads = _bh.cads.filter(function(s) { return s.id !== sup.id; }); _bh.rows.forEach(function(x) { delete x.cad[sup.id]; }); _bh.tab = 'utama'; _bhRender(); return; }
+  _bh.rows.forEach(function(x) { var c = x.cad[sup.id]; if (c) { c.ds = false; c.po = false; } });
+  _bhRender();
+}
+function _bhTab(t) { _bh.tab = t === 'utama' ? 'utama' : Number(t); _bhRender(); }
+
+// ── Render ──
+function _bhSeg(items, onclickFn, idx) {   // items: [{k,l,c,on,dis,tip}]
+  return '<div class="bh-seg">' + items.map(function(o) {
+    return '<button type="button" ' + (o.dis ? 'disabled title="' + o.tip + '"' : '') + ' class="' + (o.on ? 'on' : '') + '" style="' + (o.on ? 'background:' + o.c : '') + '" onclick="' + onclickFn + '(' + (idx == null ? '' : idx + ',') + '\'' + o.k + '\')">' + o.l + '</button>';
   }).join('') + '</div>';
 }
-function _bhIdxOfPrefix(p) { return p.replace('bh-sis-', ''); }
-
-function _bhRenderAll() {
-  var h = '<div class="bh-head"><div>Katalog / SKU</div><div>Sistem</div><div>Harga P.O (Rp/pcs)</div><div>Harga Dropship (Rp/pcs)</div><div style="text-align:right">HPP</div></div>';
-  var lastKat = null;
-  _bhRows.forEach(function(x, i) {
-    if (x.kat !== lastKat) {
-      lastKat = x.kat;
-      var n = _bhRows.filter(function(y) { return y.kat === x.kat; }).length;
-      h += '<div class="bh-kat">' + _pkEsc(x.kat) + '<span>' + n + ' varian</span></div>';
-    }
-    h += '<div class="bh-row">'
-      + '<div><div class="bh-sku">' + _pkEsc(x.row.sku_variasi) + '</div><div class="bh-sup">Supplier: ' + _pkEsc(x.row.boss || '—') + '</div></div>'
-      + '<div class="bh-seg-wrap" id="bh-seg-' + i + '">' + _bhSegHtml('bh-sis-' + i, x.sis, x.lockProd) + '</div>'
-      + '<div><div class="bh-lbl">Harga P.O</div><input type="text" inputmode="numeric" id="bh-po-' + i + '" class="bh-in" placeholder="—" oninput="_bhRefresh()"></div>'
-      + '<div><div class="bh-lbl">Harga Dropship</div><input type="text" inputmode="numeric" id="bh-ds-' + i + '" class="bh-in" placeholder="—" oninput="_bhRefresh()"></div>'
-      + '<div><div class="bh-lbl">HPP</div><div id="bh-hppcell-' + i + '"></div></div>'
-      + '</div>';
-  });
-  document.getElementById('bh-list').innerHTML = h;
-  _bhRows.forEach(function(x, i) {
-    idrInput('bh-po-' + i); idrInput('bh-ds-' + i);
-    idrSet('bh-po-' + i, x.po); idrSet('bh-ds-' + i, x.ds);
-  });
-  // baris "Isi sekaligus"
-  document.getElementById('bh-all').innerHTML = '<div><div class="bh-sku" style="font-size:12px">Isi sekaligus</div><div class="bh-sup">Kosong = tidak diubah</div></div>'
-    + '<div class="bh-seg-wrap" id="bh-all-seg">' + _bhSegHtml('bh-all-sis', '', false) + '</div>'
-    + '<div><div class="bh-lbl">Harga P.O</div><input type="text" inputmode="numeric" id="bh-all-po" class="bh-in" placeholder="Contoh: 69000"></div>'
-    + '<div><div class="bh-lbl">Harga Dropship</div><input type="text" inputmode="numeric" id="bh-all-ds" class="bh-in" placeholder="Contoh: 72000"></div>'
-    + '<div><div class="bh-lbl">HPP (Produksi)</div><input type="text" inputmode="numeric" id="bh-all-hpp" class="bh-in" placeholder="Contoh: 45000"></div>';
-  idrInput('bh-all-po'); idrInput('bh-all-ds'); idrInput('bh-all-hpp');
-  _bhRefresh();
+function _bhSegU(st, allow, idx, onclickFn, supNama) {
+  var tip = 'Tidak didaftarkan di Channel › Supplier & ROP' + (supNama ? ' untuk ' + _pkEsc(supNama) : '');
+  return _bhSeg([
+    { k: 'ds',   l: 'Dropship', c: 'var(--warn)', on: st.ds,   dis: !allow.ds,   tip: tip },
+    { k: 'po',   l: 'Reseller', c: 'var(--info)', on: st.po,   dis: !allow.po,   tip: tip },
+    { k: 'prod', l: 'Produksi', c: 'var(--ok)',   on: st.prod, dis: !allow.prod, tip: tip }
+  ], onclickFn, idx);
+}
+function _bhSegC(c, allow, idx, onclickFn, supNama) {
+  var tip = 'Tidak didaftarkan di Channel › Supplier & ROP untuk ' + _pkEsc(supNama);
+  return _bhSeg([
+    { k: 'ds', l: 'Dropship', c: 'var(--warn)', on: c.ds, dis: !allow.ds, tip: tip },
+    { k: 'po', l: 'Reseller', c: 'var(--info)', on: c.po, dis: !allow.po, tip: tip }
+  ], onclickFn, idx);
+}
+function _bhInp(id, cls, disabled, oninput) {
+  return '<input type="text" inputmode="numeric" id="' + id + '" class="bh-in' + (cls ? ' ' + cls : '') + '" placeholder="' + (disabled ? '—' : '0') + '" ' + (disabled ? 'disabled' : '') + ' oninput="' + oninput + '">';
 }
 
-// Sinkronkan tampilan tiap baris dengan sistemnya: input harga aktif/nonaktif + sel HPP (hasil harga sistem aktif, atau input langsung untuk Produksi / tanpa supplier)
-function _bhRefresh() {
-  _bhRows.forEach(function(x, i) {
-    x.po = idrVal('bh-po-' + i); x.ds = idrVal('bh-ds-' + i);
-    var cell = document.getElementById('bh-hppcell-' + i);
-    var poEl = document.getElementById('bh-po-' + i), dsEl = document.getElementById('bh-ds-' + i);
-    var hargaAktif = x.priced && x.sis !== 'produksi';
-    if (poEl) poEl.disabled = !x.priced; if (dsEl) dsEl.disabled = !x.priced;
-    if (!cell) return;
-    if (hargaAktif) {
-      var v = x.sis === 'dropship' ? x.ds : x.po;
-      var kosong = !(v > 0);
-      if (kosong) v = x.o.hpp;   // harga sistem aktif kosong → HPP lama dipertahankan
-      x.hppEf = v;
-      cell.innerHTML = '<div class="bh-hpp"' + (kosong ? ' style="color:var(--warn)"' : '') + '>' + _produkRp(v)
-        + (kosong ? '<div style="font-size:10px;font-weight:600">harga ' + (x.sis === 'dropship' ? 'Dropship' : 'P.O') + ' kosong</div>' : '') + '</div>';
-    } else {
-      var el = document.getElementById('bh-hpp-' + i);
-      var cur = el ? idrVal('bh-hpp-' + i) : x.hpp;
-      if (!el) {
-        cell.innerHTML = '<input type="text" inputmode="numeric" id="bh-hpp-' + i + '" class="bh-in" placeholder="HPP" oninput="_bhRefresh()">';
-        idrInput('bh-hpp-' + i); idrSet('bh-hpp-' + i, cur);
-      }
-      x.hpp = idrVal('bh-hpp-' + i);
-      x.hppEf = x.hpp;
-    }
-  });
-  // Catatan sinkron ke Supplier & ROP
-  var notes = _produkSinkronCatatan(_bhRows.map(function(x) { return { sup: x.sup, sis: x.sis, lock: x.lockProd }; }));
-  var nt = document.getElementById('bh-note');
-  if (nt) nt.innerHTML = 'HPP tiap SKU otomatis = harga sistemnya. Harga yang dikosongkan tidak diubah.'
-    + (notes.length ? '<br><i class="ti ti-refresh"></i> Sinkron ke Channel › Supplier &amp; ROP: ' + notes.join(' · ') + ' akan diaktifkan.' : '');
-}
+function _bhRender() {
+  var tab = _bh.tab, isU = tab === 'utama';
+  if (_bh.rendered && document.getElementById('bh-all-ds')) _bh.allVals = { ds: idrVal('bh-all-ds'), po: idrVal('bh-all-po'), hpp: idrVal('bh-all-hpp') };
+  var av = _bh.allVals || { ds: 0, po: 0, hpp: 0 };
+  // 1) Panel supplier utama
+  var grp = {}, urut = [];
+  _bh.rows.forEach(function(x) { var n = x.sup ? x.sup.nama : (x.row.boss || '—'); if (!grp[n]) { grp[n] = { n: 0, sup: x.sup }; urut.push(n); } grp[n].n++; });
+  var utamaTxt = urut.map(function(n) {
+    return '<b style="font-size:15px">' + _pkEsc(n) + '</b> ' + (grp[n].sup ? _produkSupChips(grp[n].sup) : '<span style="font-size:11px;color:var(--danger)">belum terdaftar di Channel</span>') + ' <span class="bh-cnt">' + grp[n].n + ' SKU</span>';
+  }).join('<span style="color:var(--ink3);margin:0 8px">·</span>');
+  document.getElementById('bh-panel').innerHTML = '<div class="bh-prow"><div class="bh-plbl">Supplier utama</div><div class="bh-pval">' + utamaTxt
+    + (_bh.utamaBaru ? ' <span class="bh-tag">diganti</span>' : '') + '</div>'
+    + '<div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-sm" onclick="_bhPickUtama()"><i class="ti ti-switch-horizontal"></i> Ganti utama</button>'
+    + (_bh.utamaBaru ? '<button class="btn btn-sm" onclick="_bhSetUtama(null)">Batal ganti</button>' : '') + '</div></div>';
 
-function produkBhSis(i, k) {
-  var x = _bhRows[i];
-  if (!x) return;
-  if (x.lockProd && k !== 'produksi' && x.sis !== k) return;
-  x.po = idrVal('bh-po-' + i); x.ds = idrVal('bh-ds-' + i);
-  var elH = document.getElementById('bh-hpp-' + i);
-  if (elH) x.hpp = idrVal('bh-hpp-' + i);
-  x.sis = k;
-  document.getElementById('bh-seg-' + i).innerHTML = _bhSegHtml('bh-sis-' + i, x.sis, x.lockProd);
-  // pindah antara mode harga ⇄ HPP langsung: buang input HPP lama supaya sel dibangun ulang sesuai mode baru
-  var cell = document.getElementById('bh-hppcell-' + i);
-  if (cell) cell.innerHTML = '';
-  if (x.sis === 'produksi' || !x.priced) x.hpp = x.hpp || x.o.hpp;
-  _bhRefresh();
-}
-
-function produkBhAllSis(k) {
-  _bhRows.forEach(function(x, i) {
-    if (x.lockProd && k !== 'produksi') return;
-    produkBhSis(i, k);
+  // 2) Tab
+  var th = '<button type="button" class="bh-tab' + (isU ? ' on' : '') + '" onclick="_bhTab(\'utama\')">Utama</button>';
+  _bh.cads.forEach(function(sp) {
+    var n = _bh.rows.filter(function(x) { var c = x.cad[sp.id]; return c && (c.ds || c.po) && !_bhIsUtamaDi(x, sp); }).length;
+    th += '<button type="button" class="bh-tab' + (tab === sp.id ? ' on' : '') + '" onclick="_bhTab(' + sp.id + ')">' + _pkEsc(sp.nama) + ' <span class="bh-cnt">cadangan ' + n + '/' + _bh.rows.length + '</span></button>';
   });
-  var seg = document.getElementById('bh-all-seg');
-  if (seg) seg.innerHTML = _bhSegHtml('bh-all-sis', k, false);
-}
+  th += '<button type="button" class="bh-tab bh-tab-add" onclick="_bhPickCad()"><i class="ti ti-plus"></i> Supplier</button>';
+  document.getElementById('bh-tabs').innerHTML = th;
 
-function produkBhTerapkanSemua() {
-  var po = idrVal('bh-all-po'), ds = idrVal('bh-all-ds'), hp = idrVal('bh-all-hpp');
-  _bhRows.forEach(function(x, i) {
-    if (x.priced) { if (po) idrSet('bh-po-' + i, po); if (ds) idrSet('bh-ds-' + i, ds); }
-  });
-  _bhRefresh();
-  if (hp) {
-    _bhRows.forEach(function(x, i) { var el = document.getElementById('bh-hpp-' + i); if (el) idrSet('bh-hpp-' + i, hp); });
-    _bhRefresh();
+  var all = document.getElementById('bh-all');
+  var list = document.getElementById('bh-list');
+  document.getElementById('bh-apply-msg').innerHTML = '';
+
+  if (isU) {
+    all.className = 'bh-all';
+    all.innerHTML = '<div><div class="bh-sku" style="font-size:12px">Isi sekaligus</div><div class="bh-sup">Kosong = tidak diubah</div></div>'
+      + '<div class="bh-seg-wrap">' + _bhSegU(_bh.allU, { ds: true, po: true, prod: true }, null, '_bhAllU', '') + '</div>'
+      + '<div><div class="bh-lbl">Harga Dropship</div>' + _bhInp('bh-all-ds', '', false, '') + '</div>'
+      + '<div><div class="bh-lbl">Harga Reseller (P.O)</div>' + _bhInp('bh-all-po', '', false, '') + '</div>'
+      + '<div><div class="bh-lbl">HPP (Produksi)</div>' + _bhInp('bh-all-hpp', '', false, '') + '</div>';
+    ['bh-all-ds', 'bh-all-po', 'bh-all-hpp'].forEach(function(id) { idrInput(id); });
+    idrSet('bh-all-ds', av.ds); idrSet('bh-all-po', av.po); idrSet('bh-all-hpp', av.hpp);
+    var h = '<div class="bh-head"><div>Katalog / SKU</div><div>Sistem</div><div>Harga Dropship (Rp/pcs)</div><div>Harga Reseller / P.O (Rp/pcs)</div><div style="text-align:right">HPP</div></div>';
+    var last = null;
+    _bh.rows.forEach(function(x, i) {
+      if (x.kat !== last) { last = x.kat; var n = _bh.rows.filter(function(y) { return y.kat === x.kat; }).length; h += '<div class="bh-kat">' + _pkEsc(x.kat) + '<span>' + n + ' varian</span></div>'; }
+      var al = _bhAllowU(x), priced = !!(x.sup && !x.sup.is_produksi_sendiri);
+      h += '<div class="bh-row">'
+        + '<div><div class="bh-sku">' + _pkEsc(x.row.sku_variasi) + '</div><div class="bh-sup">' + _pkEsc(x.sup ? x.sup.nama : (x.row.boss || '—')) + (x.supUbah ? ' <span class="bh-tag">baru</span>' : '') + '</div></div>'
+        + '<div class="bh-seg-wrap">' + _bhSegU(x.st, al, i, '_bhToggleU', x.sup ? x.sup.nama : '') + '</div>'
+        + '<div><div class="bh-lbl">Harga Dropship</div>' + _bhInp('bh-u-ds-' + i, '', !(priced && al.ds), '_bhIn(this,\'u\',\'ds\',' + i + ')') + '</div>'
+        + '<div><div class="bh-lbl">Harga Reseller (P.O)</div>' + _bhInp('bh-u-po-' + i, '', !(priced && al.po), '_bhIn(this,\'u\',\'po\',' + i + ')') + '</div>'
+        + '<div><div class="bh-lbl">HPP</div><div id="bh-hppcell-' + i + '"></div></div>'
+        + '</div>';
+    });
+    list.innerHTML = h;
+    _bh.rows.forEach(function(x, i) {
+      idrInput('bh-u-ds-' + i); idrInput('bh-u-po-' + i); idrSet('bh-u-ds-' + i, x.ds); idrSet('bh-u-po-' + i, x.po);
+      _bhHppCell(i);
+    });
+  } else {
+    var sup = _produkSupById(tab);
+    if (!sup) { _bh.tab = 'utama'; return _bhRender(); }
+    var f0 = _bhAllowC(sup, null);
+    all.className = 'bh-all bh-gc';
+    all.innerHTML = '<div><div class="bh-sku" style="font-size:12px">Isi sekaligus</div><div class="bh-sup">Pilih sistem lalu isi harga · kosong = tidak diubah</div></div>'
+      + '<div class="bh-seg-wrap">' + _bhSegC(_bh.allC, f0, null, '_bhAllC', sup.nama) + '</div>'
+      + '<div><div class="bh-lbl">Harga Dropship</div>' + _bhInp('bh-all-ds', '', !f0.ds, '') + '</div>'
+      + '<div><div class="bh-lbl">Harga Reseller (P.O)</div>' + _bhInp('bh-all-po', '', !f0.po, '') + '</div>';
+    ['bh-all-ds', 'bh-all-po'].forEach(function(id) { idrInput(id); });
+    idrSet('bh-all-ds', av.ds); idrSet('bh-all-po', av.po);
+    var h2 = '<div class="bh-head bh-gc"><div>Katalog / SKU</div><div>Sistem di ' + _pkEsc(sup.nama) + '</div><div>Harga Dropship (Rp/pcs)</div><div>Harga Reseller / P.O (Rp/pcs)</div></div>';
+    var last2 = null;
+    _bh.rows.forEach(function(x, i) {
+      if (x.kat !== last2) { last2 = x.kat; var n2 = _bh.rows.filter(function(y) { return y.kat === x.kat; }).length; h2 += '<div class="bh-kat">' + _pkEsc(x.kat) + '<span>' + n2 + ' varian</span></div>'; }
+      var c = x.cad[sup.id], jadiUtama = _bhIsUtamaDi(x, sup);
+      var al = _bhAllowC(sup, c), on = !!(c.ds || c.po);
+      var stat = jadiUtama ? '<span class="bh-tag">jadi supplier utama</span>'
+        : (on && !c.link ? '<span class="bh-tag bh-tag-ok">baru</span>' : (!on && c.link ? '<span class="bh-tag bh-tag-bad">dihapus</span>' : (on ? '' : '<span style="font-size:10.5px;color:var(--ink3)">bukan cadangan</span>')));
+      h2 += '<div class="bh-row bh-gc"' + (jadiUtama ? ' style="opacity:.5"' : '') + '>'
+        + '<div><div class="bh-sku">' + _pkEsc(x.row.sku_variasi) + '</div><div class="bh-sup">' + stat + '</div></div>'
+        + '<div class="bh-seg-wrap">' + (jadiUtama ? '<span style="font-size:11px;color:var(--ink3)">—</span>' : _bhSegC(c, al, i, '_bhToggleC', sup.nama)) + '</div>'
+        + '<div><div class="bh-lbl">Harga Dropship</div>' + _bhInp('bh-c-ds-' + i, '', jadiUtama || !al.ds, '_bhIn(this,\'c\',\'ds\',' + i + ')') + '</div>'
+        + '<div><div class="bh-lbl">Harga Reseller (P.O)</div>' + _bhInp('bh-c-po-' + i, '', jadiUtama || !al.po, '_bhIn(this,\'c\',\'po\',' + i + ')') + '</div>'
+        + '</div>';
+    });
+    h2 += '<div style="padding:10px 12px;border-top:1px solid var(--ovl-0_18)"><button class="btn btn-sm" onclick="_bhLepasCad()"><i class="ti ti-trash"></i> Lepas ' + _pkEsc(sup.nama) + ' dari semua SKU terpilih</button></div>';
+    list.innerHTML = h2;
+    _bh.rows.forEach(function(x, i) { var c = x.cad[sup.id]; idrInput('bh-c-ds-' + i); idrInput('bh-c-po-' + i); idrSet('bh-c-ds-' + i, c.pd); idrSet('bh-c-po-' + i, c.pp); });
   }
+  _bh.rendered = true;   // sebelum ini kotak "Isi sekaligus" di DOM masih sisa sesi lama — jangan dibaca
+  _bhNote();
+}
+
+function _bhHppCell(i) {
+  var x = _bh.rows[i], cell = document.getElementById('bh-hppcell-' + i);
+  if (!cell) return;
+  if (_bhInputHpp(x)) {
+    var el = document.getElementById('bh-u-hpp-' + i);
+    if (!el) { cell.innerHTML = _bhInp('bh-u-hpp-' + i, '', false, '_bhIn(this,\'u\',\'hpp\',' + i + ')'); idrInput('bh-u-hpp-' + i); idrSet('bh-u-hpp-' + i, x.hpp); }
+    return;
+  }
+  var e = _bhHppEf(x);
+  cell.innerHTML = '<div class="bh-hpp"' + (e.kosong ? ' style="color:var(--warn)"' : '') + '>' + _produkRp(e.v)
+    + (e.kosong ? '<div style="font-size:10px;font-weight:600">harga ' + e.sis + ' kosong</div>' : '') + '</div>';
+}
+
+function _bhIn(el, g, k, i) {
+  var v = _bhNum(el), x = _bh.rows[i];
+  if (!x) return;
+  if (g === 'u') {
+    if (k === 'hpp') { x.hpp = v; x.hppTouched = true; } else x[k] = v;
+    _bhHppCell(i);
+  } else {
+    var c = x.cad[_bh.tab]; if (!c) return;
+    c[k === 'ds' ? 'pd' : 'pp'] = v;
+  }
+  _bhNote();
+}
+function _bhToggleU(i, k) {
+  var x = _bh.rows[i]; if (!x) return;
+  if (!_bhAllowU(x)[k]) return;
+  var n = _produkSisToggle(x.st, k);
+  if (n) { x.st = { ds: !!n.ds, po: !!n.po, prod: !!n.prod }; if (x.st.prod && !x.hpp) x.hpp = x.o.hpp; _bhRender(); }
+}
+function _bhToggleC(i, k) {
+  var x = _bh.rows[i], sup = _produkSupById(_bh.tab); if (!x || !sup) return;
+  var c = x.cad[sup.id]; if (!c || !_bhAllowC(sup, c)[k]) return;
+  c[k] = !c[k];
+  _bhRender();
+}
+function _bhAllU(k) {   // baris "Isi sekaligus": boleh tidak memilih apa pun (= sistem tidak diubah)
+  var n = { ds: _bh.allU.ds, po: _bh.allU.po, prod: _bh.allU.prod };
+  if (k === 'prod') n = n.prod ? { ds: false, po: false, prod: false } : { ds: false, po: false, prod: true };
+  else { n[k] = !n[k]; if (n[k]) n.prod = false; }
+  _bh.allU = n; _bhRender();
+}
+function _bhAllC(k) { _bh.allC[k] = !_bh.allC[k]; _bhRender(); }
+
+// "Terapkan ke semua baris": sistem terpilih + harga yang diisi, hanya ke baris yang supplier-nya mendukung (sesuai Channel); hasilnya dilaporkan
+function produkBhTerapkanSemua() {
+  var msg = document.getElementById('bh-apply-msg'), ok = 0, lewat = 0, N = _bh.rows.length;
+  var ds = idrVal('bh-all-ds'), po = idrVal('bh-all-po');
+  if (_bh.tab === 'utama') {
+    var hp = idrVal('bh-all-hpp'), sel = _bh.allU, adaSel = sel.ds || sel.po || sel.prod;
+    if (!adaSel && !ds && !po && !hp) { msg.innerHTML = 'Pilih sistem atau isi harga dulu di baris "Isi sekaligus".'; return; }
+    _bh.rows.forEach(function(x) {
+      var al = _bhAllowU(x), priced = !!(x.sup && !x.sup.is_produksi_sendiri), tersentuh = false;
+      if (adaSel) {
+        var n = sel.prod ? (al.prod ? { ds: false, po: false, prod: true } : null) : ((sel.ds && al.ds) || (sel.po && al.po) ? { ds: sel.ds && al.ds, po: sel.po && al.po, prod: false } : null);
+        if (n) { x.st = n; tersentuh = true; }
+      }
+      if (ds && priced && al.ds) { x.ds = ds; tersentuh = true; }
+      if (po && priced && al.po) { x.po = po; tersentuh = true; }
+      if (hp && _bhInputHpp(x)) { x.hpp = hp; x.hppTouched = true; tersentuh = true; }
+      if (tersentuh) ok++; else lewat++;
+    });
+    _bhRender();
+    document.getElementById('bh-apply-msg').innerHTML = '✓ Diterapkan ke <b>' + ok + '</b> dari ' + N + ' SKU' + (lewat ? ' · <b>' + lewat + '</b> dilewati karena supplier-nya tidak mendukung sistem / harga itu (lihat Channel › Supplier &amp; ROP)' : '') + '.';
+  } else {
+    var sup = _produkSupById(_bh.tab), sc = _bh.allC, adaC = sc.ds || sc.po;
+    if (!adaC && !ds && !po) { msg.innerHTML = 'Pilih sistem atau isi harga dulu di baris "Isi sekaligus".'; return; }
+    _bh.rows.forEach(function(x) {
+      var c = x.cad[sup.id]; if (!c || _bhIsUtamaDi(x, sup)) { lewat++; return; }
+      var al = _bhAllowC(sup, c), t = false;
+      if (adaC) { var nd = sc.ds && al.ds, np = sc.po && al.po; if (nd || np) { c.ds = nd; c.po = np; t = true; } }
+      if (ds && al.ds) { c.pd = ds; t = true; }
+      if (po && al.po) { c.pp = po; t = true; }
+      if (t) ok++; else lewat++;
+    });
+    _bhRender();
+    document.getElementById('bh-apply-msg').innerHTML = '✓ Diterapkan ke <b>' + ok + '</b> dari ' + N + ' SKU' + (lewat ? ' · <b>' + lewat + '</b> dilewati (supplier ini tidak mendukung / sudah jadi supplier utama SKU itu)' : '') + '.';
+  }
+}
+
+function _bhNote() {
+  var nt = document.getElementById('bh-note'); if (!nt || !_bh) return;
+  var out = [];
+  var ganti = _bh.rows.filter(function(x) { return x.supUbah; }).length;
+  if (ganti) out.push('Supplier utama diganti ke <b>' + _pkEsc(_bh.utamaBaru.nama) + '</b> untuk ' + ganti + ' SKU (stok &amp; riwayat ikut menyesuaikan, cadangan yang sama otomatis dilepas).');
+  _bh.cads.forEach(function(sp) {
+    var baru = 0, hapus = 0, tanpaHarga = 0;
+    _bh.rows.forEach(function(x) {
+      var c = x.cad[sp.id]; if (!c) return;
+      var on = !!(c.ds || c.po) && !_bhIsUtamaDi(x, sp);
+      if (on && !c.link) baru++;
+      if (!on && c.link) hapus++;
+      if (on && ((c.ds && !(c.pd > 0)) || (c.po && !(c.pp > 0)))) tanpaHarga++;
+    });
+    if (baru || hapus || tanpaHarga) out.push('<b>' + _pkEsc(sp.nama) + '</b> (cadangan): ' + [baru ? baru + ' SKU ditambah' : '', hapus ? hapus + ' SKU dilepas' : '', tanpaHarga ? '⚠ ' + tanpaHarga + ' SKU belum ada harga untuk sistem aktif (boleh diisi belakangan)' : ''].filter(Boolean).join(' · '));
+  });
+  nt.innerHTML = 'HPP tiap SKU otomatis = harga sistem utamanya. Sistem yang bisa dipilih mengikuti Channel › Supplier &amp; ROP.' + (out.length ? '<br>' + out.join('<br>') : '');
 }
 
 async function simpanBatchHpp() {
-  _bhRefresh();
   // 1) Validasi SEMUA baris dulu — tidak ada yang tersimpan kalau ada yang bermasalah
-  var masalah = [];
-  _bhRows.forEach(function(x) { if (!(x.hppEf > 0)) masalah.push(x.row.sku_variasi); });
-  if (masalah.length) {
-    alert('HPP masih kosong untuk ' + masalah.length + ' SKU:\n' + masalah.slice(0, 8).join('\n') + (masalah.length > 8 ? '\n…' : '') + '\n\nIsi harga sistemnya (atau HPP untuk Produksi) dulu.');
-    return;
-  }
+  var masalah = [], butuhHpp = [];
+  _bh.rows.forEach(function(x) {
+    if (!(_bhHppEf(x).v > 0)) masalah.push(x.row.sku_variasi);
+    if (x.supUbah && x.sup && x.sup.is_produksi_sendiri && !x.hppTouched) butuhHpp.push(x.row.sku_variasi);
+  });
+  if (masalah.length) { alert('HPP masih kosong untuk ' + masalah.length + ' SKU:\n' + masalah.slice(0, 8).join('\n') + (masalah.length > 8 ? '\n…' : '') + '\n\nIsi harga sistemnya (atau HPP untuk Produksi) dulu.'); return; }
+  if (butuhHpp.length) { alert('Pindah ke supplier Produksi Sendiri: isi HPP Produksi baru untuk ' + butuhHpp.length + ' SKU (HPP produksi beda dengan harga beli supplier sebelumnya):\n' + butuhHpp.slice(0, 8).join('\n') + (butuhHpp.length > 8 ? '\n…' : '')); return; }
   var btn = document.getElementById('bh-btn-simpan');
   if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
   try {
-    var ubah = 0;
-    for (var i = 0; i < _bhRows.length; i++) {
-      var x = _bhRows[i], r = x.row;
-      var hargaAktif = x.priced && x.sis !== 'produksi';
-      var poBaru = x.priced && x.po !== x.o.po ? x.po : 0, dsBaru = x.priced && x.ds !== x.o.ds ? x.ds : 0;
-      var sisBeda = x.sis !== x.o.sis, hppBeda = x.hppEf !== (Number(r.hpp) || 0);
-      if (!sisBeda && !hppBeda && !poBaru && !dsBaru) continue;
-      if (x.priced) {
-        // baris yang memang diubah: harga yang tampil tapi belum ada di Master Barang (berasal dari HPP lama) ikut dicatat ke sana
-        var hb0 = (_produkHbList || []).find(function(h) { return h.produk_id === r.id && h.supplier_id === x.sup.id; });
-        if (!poBaru && x.po > 0 && !(hb0 && Number(hb0.harga_po_per_lusin) > 0)) poBaru = x.po;
-        if (!dsBaru && x.ds > 0 && !(hb0 && Number(hb0.harga_per_lusin) > 0)) dsBaru = x.ds;
+    var ubah = 0, cadBaru = 0, cadHapus = 0, cadUbah = 0;
+    for (var i = 0; i < _bh.rows.length; i++) {
+      var x = _bh.rows[i], r = x.row, oldBoss = r.boss;
+      var e = _bhHppEf(x), t = _produkSisTarget(x.st);
+      var bossBeda = x.supUbah && x.sup;
+      var payload = {};
+      if (bossBeda) payload.boss = String(x.sup.nama).trim().toUpperCase();
+      var sisBeda = bossBeda || (t && !_produkSisSama(r, t.sis, t.juga));
+      if (sisBeda && t) {
+        Object.assign(payload, _produkSisPayloadFor(r, t.sis, t.juga));
+        if (x.sup && x.sup.is_dropship && x.sup.is_reseller && !x.sup.is_produksi_sendiri) payload.dropship = (t.sis === 'dropship');   // kompatibilitas kolom lama
       }
-      var payload = { hpp: x.hppEf };
-      if (sisBeda || r.sistem_override !== x.sis) {
-        payload.sistem_override = x.sis;
-        if (x.sup && _produkSupDualByName(r.boss)) payload.dropship = (x.sis === 'dropship');   // kompatibilitas kolom lama, sama seperti Edit Supplier
-        _produkStampDropshipMulai(payload, r);
+      var hppBeda = e.v !== (Number(r.hpp) || 0);
+      if (hppBeda) payload.hpp = e.v;
+      var priced = !!(x.sup && !x.sup.is_produksi_sendiri);
+      var ref = x.supUbah ? x.base : x.o;
+      var poBaru = priced && x.po !== ref.po ? x.po : 0, dsBaru = priced && x.ds !== ref.ds ? x.ds : 0;
+      if (Object.keys(payload).length || poBaru || dsBaru) {
+        if (priced) {   // harga yang tampil tapi belum ada di Master Barang (berasal dari HPP lama) ikut dicatat ke sana
+          var mb0 = _bhMb(r, x.sup);
+          if (!poBaru && x.po > 0 && !(mb0.po > 0)) poBaru = x.po;
+          if (!dsBaru && x.ds > 0 && !(mb0.ds > 0)) dsBaru = x.ds;
+        }
+        if (Object.keys(payload).length) {
+          _produkStampDropshipMulai(payload, r);
+          await dbUpdate('produk', r.id, payload);
+          Object.keys(payload).forEach(function(k) { r[k] = payload[k]; });
+        }
+        if (priced && (poBaru || dsBaru)) await _produkUpsertHargaDual(r, x.sup, poBaru, dsBaru);
+        if (bossBeda) {
+          await _produkCadBersihkanUtama(r.id, payload.boss);   // supplier baru tadinya cadangan SKU ini → tautan cadangannya dibuang
+          try { var skuU = (r.sku_variasi || '').toUpperCase(); await _produkCascadeRename(skuU, skuU, r.katalog, payload.boss, r.katalog, oldBoss); }
+          catch (eC) { console.warn('Cascade gagal buat', r.sku_variasi, ':', eC.message); }
+        }
+        ubah++;
       }
-      await dbUpdate('produk', r.id, payload);
-      Object.keys(payload).forEach(function(k) { r[k] = payload[k]; });
-      if (x.priced && (poBaru || dsBaru)) await _produkUpsertHargaDual(r, x.sup, poBaru, dsBaru);
-      ubah++;
+      // Supplier cadangan (sesudah utama, supaya tautan yang bentrok dengan utama baru sudah dibersihkan)
+      for (var ci = 0; ci < _bh.cads.length; ci++) {
+        var sp = _bh.cads[ci], c = x.cad[sp.id];
+        if (!c) continue;
+        var on = !!(c.ds || c.po) && !_bhIsUtamaDi(x, sp);
+        var link = c.link;
+        if (link && !(_produkCadList || []).some(function(l) { return l.id === link.id; })) link = null;   // sudah dibersihkan oleh Ganti utama
+        if (!on) { if (link) { await _produkCadHapus(link.id); cadHapus++; } continue; }
+        var dsP = c.pd !== c.o.pd ? c.pd : 0, poP = c.pp !== c.o.pp ? c.pp : 0;
+        if (!link) { await _produkCadTambah(r, sp, c.ds ? c.pd : 0, c.po ? c.pp : 0, { dropship: c.ds, po: c.po }); cadBaru++; continue; }
+        var modeBeda = c.ds !== c.o.ds || c.po !== c.o.po;
+        if (modeBeda) { await dbUpdate('produk_supplier', link.id, { dropship: c.ds, po: c.po }); link.dropship = c.ds; link.po = c.po; }
+        if (dsP || poP) await _produkUpsertHargaDual(r, sp, poP, dsP);
+        if (modeBeda || dsP || poP) cadUbah++;
+      }
     }
-    // 2) Sinkron ke Supplier & ROP
-    var supUbah = await _produkSinkronSupplier(_bhRows.map(function(x) { return { sup: x.sup, sis: x.sis, lock: x.lockProd }; }));
     hideModal('modal-batch-hpp');
     _produkSelected = {};
     produkMarkDirty();
     await loadProduk();
-    if (supUbah.length) alert('✓ ' + ubah + ' SKU disimpan.\nSupplier disinkronkan di Channel › Supplier & ROP: ' + supUbah.join(', '));
+    var ringkas = [];
+    if (cadBaru) ringkas.push(cadBaru + ' tautan cadangan ditambah');
+    if (cadUbah) ringkas.push(cadUbah + ' cadangan diubah');
+    if (cadHapus) ringkas.push(cadHapus + ' cadangan dilepas');
+    if (ringkas.length) alert('✓ ' + ubah + ' SKU disimpan.\n' + ringkas.join('\n'));
   } catch (err) {
     produkMarkDirty();
     alert('Gagal: ' + (err && err.message || err) + '\n\nSebagian SKU mungkin sudah tersimpan — buka lagi Edit HPP untuk memeriksa.');
@@ -2455,12 +2718,16 @@ document.body.insertAdjacentHTML('beforeend', `
 <div class="modal-overlay" id="modal-batch-hpp" onclick="if(event.target===this)hideModal('modal-batch-hpp')">
   <div class="modal">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
-      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-currency-dollar"></i> Edit HPP Massal</div>
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-currency-dollar"></i> Edit HPP &amp; Supplier Massal</div>
       <button onclick="hideModal('modal-batch-hpp')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
     </div>
     <p id="batch-hpp-count" style="font-size:12px;color:var(--ink3);margin-bottom:10px">0 SKU terpilih</p>
+    <input type="hidden" id="bh-pick-input"><span id="bh-pick-label" style="display:none"></span>
+    <div id="bh-panel"></div>
+    <div id="bh-tabs"></div>
     <div class="bh-all" id="bh-all"></div>
-    <button class="btn btn-sm" style="margin:-2px 0 10px" onclick="produkBhTerapkanSemua()"><i class="ti ti-arrow-down"></i> Terapkan harga ke semua baris</button>
+    <button class="btn btn-sm" style="margin:-2px 0 6px" onclick="produkBhTerapkanSemua()"><i class="ti ti-arrow-down"></i> Terapkan ke semua baris</button>
+    <div class="bh-note" id="bh-apply-msg" style="margin:0 0 10px"></div>
     <div id="bh-list"></div>
     <div class="bh-note" id="bh-note"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
@@ -2706,7 +2973,8 @@ async function _produkLoadSupplierList() {
 
 function _produkBossSheetOk(sup) {
   var f = _produkBossSheetTarget.filter;
-  if (f === 'cad-tambah') return !sup.is_produksi_sendiri;
+  if (f === 'cad-tambah' || f === 'bh-cad') return !sup.is_produksi_sendiri;
+  if (f === 'bh-utama') return true;
   if (f === 'cad-form') {   // cadangan di form Tambah SKU: bukan Produksi Sendiri dan bukan supplier utama yang sedang dipilih
     var bossSel = String((document.getElementById('prd-boss') || {}).value || '').trim().toUpperCase();
     return !sup.is_produksi_sendiri && String(sup.nama || '').trim().toUpperCase() !== bossSel;
@@ -2756,7 +3024,7 @@ function _produkBossSheetRender(q) {
 
   // Peran supplier pada SKU terpilih (hanya di Edit Supplier Massal): "utama 3 SKU" / "cadangan 2 SKU"
   const peran = {};
-  if (_produkBossSheetTarget.inputId === 'batch-sup-input') {
+  if (_produkBossSheetTarget.inputId === 'batch-sup-input' || _produkBossSheetTarget.inputId === 'bh-pick-input') {
     const selIds = Object.keys(_produkSelected).map(Number);
     _produkData.forEach(function(r) {
       if (selIds.indexOf(r.id) < 0) return;
@@ -2799,7 +3067,8 @@ function produkBossSheetSelect(nama) {
   if (_produkBossSheetTarget.inputId === 'prd-boss') produkPrdSyncDual();   // 2 harga untuk supplier 2 sistem
   if (_produkBossSheetTarget.inputId === 'kat-boss') produkKatSyncDs();   // tampilkan/sembunyikan opsi Dropship sesuai jenis supplier
   if (_produkBossSheetTarget.inputId === 'batch-sup-input') produkBatchSupSyncSistem();   // toggle Sistem di Edit Supplier massal
-  if (_produkBossSheetTarget.inputId === 'prd-cad') produkPrdCadSync();   // kolom harga cadangan di form Tambah SKU
+  if (_produkBossSheetTarget.inputId === 'prd-cad') produkPrdCadSync();
+  if (_produkBossSheetTarget.inputId === 'bh-pick-input') _bhPicked(nama);   // Edit HPP & Supplier Massal   // kolom harga cadangan di form Tambah SKU
 }
 
 async function produkBossSheetTambahBaru(nama) {
