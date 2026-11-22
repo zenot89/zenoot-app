@@ -20,6 +20,13 @@ document.getElementById('page-produk').innerHTML = `
     .produk-stat-sub       { font-size:11px; color:var(--ink3); margin-top:2px; }
     @media(max-width:600px){ #produk-stat-cards { grid-template-columns:repeat(2,1fr); } }
 
+    /* ── Tabel Master SKU Produk: header 2 baris (HPP / Boss / Sistem) — 22 Nov 2026 ── */
+    #produk-tbl thead th { height:34px; box-sizing:border-box; padding-top:0; padding-bottom:0; vertical-align:middle; line-height:1.2; }
+    #produk-tbl thead th.pk-gh { text-align:center; }
+    #produk-tbl thead tr.pk-h2 th { top:34px !important; font-size:11px; }
+    #produk-tbl .pk-gs { border-left:1px solid var(--ovl-0_18); }
+    #produk-tbl td.pk-sc { text-align:center; cursor:pointer; }
+
     /* ── PICKER "Boss" (7 Sep 2026) — dulu <input type=text> bebas ketik,
        root cause bug "Lainnya" di dashboard & "Re Stock" kosong: nama
        supplier di sini gampang beda ejaan/spasi sama nama di tabel
@@ -168,14 +175,9 @@ document.getElementById('page-produk').innerHTML = `
     </div>
     <div class="tbl-wrap" style="overflow-x:auto;overscroll-behavior:none;touch-action:pan-x pan-y">
       <table class="tbl" id="produk-tbl">
-        <thead><tr id="produk-thead-row">
-          <th>Katalog / SKU</th>
-          <th>HPP</th>
-          <th>Boss</th>
-          <th>Sistem</th>
-        </tr></thead>
+        <thead id="produk-thead"></thead>
         <tbody id="produk-tbody">
-          <tr><td colspan="4" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
+          <tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat...</td></tr>
         </tbody>
       </table>
     </div>
@@ -219,7 +221,7 @@ let _produkHbList = [];       // hutang_barang (id, produk_id, supplier_id, harg
 
 async function loadProduk() {
   const tbody = document.getElementById('produk-tbody');
-  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Memuat data...</td></tr>';
   try {
     // [30 Sep 2026] daftar supplier dimuat bareng produk: badge "Dropship" butuh flag sistem supplier saat render
     // 16 Nov 2026: destructuring dibetulkan — dulu `[data, hbList]` mengambil hasil _produkLoadSupplierList() (kosong), jadi harga Master Barang tidak pernah terbaca
@@ -233,7 +235,7 @@ async function loadProduk() {
     // Supabase kadang return object error bukan array
     if (!Array.isArray(data)) {
       const msg = data?.message || data?.hint || JSON.stringify(data);
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">
+      tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">
         ⚠️ Tabel <b>produk</b> belum ada di Supabase.<br>
         <span style="font-size:12px;color:var(--ink3)">Buat dulu di Supabase → Table Editor → New Table → nama: <b>produk</b><br>
         Kolom: id (int8 PK), katalog (text), sku_variasi (text), hpp (int8), boss (text), created_at (timestamptz default now())</span>
@@ -243,7 +245,7 @@ async function loadProduk() {
     _produkAll = data;
     _produkApplyView();
   } catch(err) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
   }
 }
 
@@ -375,8 +377,8 @@ function produkEnterEditMode() {
   document.getElementById('produk-toolbar-normal').style.display = 'none';
   document.getElementById('produk-toolbar-edit').style.display   = 'flex';
   // Tampilkan kolom checkbox di thead
-  var thead = document.getElementById('produk-thead-row');
-  if (thead) thead.innerHTML = '<th style="width:32px"></th><th>Katalog / SKU</th><th>HPP</th><th>Boss</th><th>Sistem</th>';
+  var thead = document.getElementById('produk-thead');
+  if (thead) thead.innerHTML = _produkTheadHtml(true);
   renderProduk(_produkData);
 }
 
@@ -387,8 +389,8 @@ function produkExitEditMode() {
   document.getElementById('produk-toolbar-normal').style.display = 'flex';
   document.getElementById('produk-toolbar-edit').style.display   = 'none';
   // Reset thead
-  var thead = document.getElementById('produk-thead-row');
-  if (thead) thead.innerHTML = '<th>Katalog / SKU</th><th>HPP</th><th>Boss</th><th>Sistem</th>';
+  var thead = document.getElementById('produk-thead');
+  if (thead) thead.innerHTML = _produkTheadHtml(false);
   renderProduk(_produkData);
 }
 
@@ -1050,10 +1052,81 @@ async function produkSistemToggle(k) {
   }
 }
 
+// ── KOLOM TABEL MASTER SKU PRODUK (22 Nov 2026) ───────────────
+// Tiap jenis punya kolom sendiri, tidak ditumpuk: HPP (Produksi | P.O | Dropship), Boss (Utama | Cadangan), Sistem (Produksi | P.O | Dropship).
+// Sumber angka tidak berubah: supplier 2 sistem → Master Barang (_produkHargaDualOf); selain itu produk.hpp ditaruh di kolom sistem SKU-nya.
+function _produkTheadHtml(edit) {
+  return '<tr class="pk-h1">' + (edit ? '<th rowspan="2" style="width:32px"></th>' : '')
+    + '<th rowspan="2">Katalog / SKU</th>'
+    + '<th colspan="3" class="pk-gs pk-gh">HPP</th><th colspan="2" class="pk-gs pk-gh">Boss</th><th colspan="3" class="pk-gs pk-gh">Sistem</th></tr>'
+    + '<tr class="pk-h2"><th class="pk-gs">Produksi</th><th>P.O</th><th>Dropship</th><th class="pk-gs">Utama</th><th>Cadangan</th>'
+    + '<th class="pk-gs pk-gh">Produksi</th><th class="pk-gh">P.O</th><th class="pk-gh">Dropship</th></tr>';
+}
+(function() { var t = document.getElementById('produk-thead'); if (t) t.innerHTML = _produkTheadHtml(false); })();
+
+var _PK_KOLOM_SIS = { prod: 'produksi', po: 'reseller', ds: 'dropship' };
+
+// { prod, po, ds, unk } angka per kolom untuk satu SKU (0 = kosong)
+function _produkHargaKolom(row) {
+  var d = _produkHargaDualOf(row), sis = _produkSistemOf(row), h = Number(row.hpp) || 0;
+  var o = { prod: 0, po: 0, ds: 0, unk: false };
+  if (d) { o.po = d.po; o.ds = d.ds; if (sis === 'produksi') o.prod = h; return o; }
+  if (sis === 'reseller') o.po = h;
+  else if (sis === 'dropship') o.ds = h;
+  else if (sis === 'produksi') o.prod = h;
+  else { o.prod = h; o.unk = !!h; }   // sistem belum diatur: angka tetap tampil (redup) di kolom pertama
+  return o;
+}
+// Harga sistem yang sedang aktif di SKU ditebalkan, harga sistem lain abu-abu (angka tanpa sistem terdaftar juga abu-abu)
+function _produkHargaCell(h, k, st) {
+  var v = h[k];
+  if (!(v > 0)) return '<span style="color:var(--ink3)">—</span>';
+  var on = !h.unk && (st ? !!st[k] : true);
+  return '<span style="' + (on ? 'font-weight:700' : 'color:var(--ink3)') + '">' + _produkRp(v) + '</span>';
+}
+function _produkHargaKatCell(hk, k) {
+  var txt = _produkRentang(hk.map(function(x) { return x[k]; }));
+  return txt === '—' ? '<span style="color:var(--ink3)">—</span>' : '<span style="font-size:13px;font-weight:600">' + txt + '</span>';
+}
+function _produkBossKatHtml(rows) {
+  var cnt = {}, urut = [];
+  rows.forEach(function(r) { var n = r.boss || '—'; if (!cnt[n]) { cnt[n] = 0; urut.push(n); } cnt[n]++; });
+  return urut.map(function(n) { return '<span style="font-size:14px;font-weight:600">' + _pkEsc(n) + '</span>' + (urut.length > 1 ? ' <span style="font-size:10px;color:var(--ink3)">(' + cnt[n] + '/' + rows.length + ')</span>' : ''); }).join(', ');
+}
+function _produkCadKatHtml(rows) {
+  var cnt = {};
+  rows.forEach(function(r) { _produkCadRows(r).forEach(function(c) { cnt[c.sup.nama] = (cnt[c.sup.nama] || 0) + 1; }); });
+  var nama = Object.keys(cnt).sort();
+  if (!nama.length) return '<span style="color:var(--ink3)">—</span>';
+  return nama.map(function(n) { return '<span style="font-size:13px;font-weight:600">' + _pkEsc(n) + '</span>' + (cnt[n] === rows.length ? '' : ' <span style="font-size:10px;color:var(--ink3)">(' + cnt[n] + '/' + rows.length + ')</span>'); }).join(', ');
+}
+function _produkCadVarHtml(row) {
+  var cad = _produkCadRows(row);
+  if (!cad.length) return '<span style="color:var(--ink3)">—</span>';
+  return cad.map(function(c) {
+    var m = _produkCadMode(c.link);
+    var tag = (m.ds && m.po) ? 'DS+PO' : (m.po ? 'PO' : 'DS');
+    return '<span style="font-weight:600">' + _pkEsc(c.sup.nama) + '</span> <span style="font-size:10px;color:var(--ink3)">' + tag + '</span>';
+  }).join(', ');
+}
+function _produkSisSel(k, teks, kecil) {
+  var m = _PRODUK_SISTEM_META[_PK_KOLOM_SIS[k]];
+  return '<span style="display:inline-block;font-size:' + (kecil ? '11' : '12') + 'px;font-weight:700;padding:2px 9px;border-radius:4px;border:1px solid ' + m.color + ';color:' + m.color + ';white-space:nowrap">' + teks + '</span>';
+}
+function _produkSisVarCell(aktif, k) {
+  if (!aktif) return '<span style="color:var(--ink3)">—</span>';
+  return _produkSisSel(k, k === 'prod' ? 'Produksi' : (k === 'po' ? 'P.O' : 'Dropship'));
+}
+function _produkSisKatCell(rows, k) {
+  var n = rows.filter(function(r) { return _produkSisState(r)[k]; }).length;
+  if (!n) return '<span style="color:var(--ink3)">—</span>';
+  return _produkSisSel(k, n === rows.length ? '✓' : (n + '/' + rows.length), true);
+}
+
 function renderProduk(data) {
   const tbody = document.getElementById('produk-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">' + (_produkLihatArsip ? 'Arsip kosong' : 'Belum ada data produk') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="color:var(--ink3);font-style:italic">' + (_produkLihatArsip ? 'Arsip kosong' : 'Belum ada data produk') + '</td></tr>';
     ['pstat-katalog', 'pstat-varian', 'pstat-nohpp'].forEach(function(i) { var e = document.getElementById(i); if (e) e.textContent = '0'; });
     var eh = document.getElementById('pstat-hpp'); if (eh) eh.textContent = 'Rp0';
     return;
@@ -1074,31 +1147,25 @@ function renderProduk(data) {
   const groups = groups2;
   let html = '';
   Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).forEach(([kat, rows]) => {
-    const expanded   = _produkExpanded[kat] === true;
-    const hpp        = rows[0] ? rows[0].hpp || 0 : 0;
-    // [30 Sep 2026] varian dalam 1 katalog bisa beda HPP (mis. sebagian sudah Produksi Sendiri) → tampil rentang min–maks
-    const _hv        = rows.map(r => r.hpp || 0);
-    const _hMin      = Math.min.apply(null, _hv), _hMax = Math.max.apply(null, _hv);
-    const hppTxt     = !_hMax ? '—' : (_hMin === _hMax ? 'Rp' + _hMax.toLocaleString('id-ID') : 'Rp' + _hMin.toLocaleString('id-ID') + '–' + _hMax.toLocaleString('id-ID'));
-    const boss       = rows[0] ? rows[0].boss || '—' : '—';
+    const expanded    = _produkExpanded[kat] === true;
     const allSelected = rows.every(r => _produkSelected[r.id]);
-    const safeKat    = kat.replace(/'/g, "'");
+    const safeKat     = kat.replace(/'/g, "'");
 
-    // Header katalog — 2 baris: nama bold + varian abu di bawah
+    // Baris katalog (header grup): nama bold + jumlah varian; tiap kolom harga = rentang min–maks seluruh varian, kolom sistem = berapa varian yang aktif
     const katCell = `<div style="line-height:1.2">
       <div style="font-size:14px;font-weight:700">${kat}</div>
       <div style="font-size:11px;color:var(--ink3);margin-top:2px">${rows.length} varian</div>
     </div>`;
-    const hppCell = `<div style="line-height:1.2">
-      ${_produkHppKatalogHtml(rows, hppTxt)}
-      <div style="font-size:10px;color:var(--ink3);margin-top:2px">HPP</div>
-    </div>`;
-    // [30 Sep 2026] badge DROPSHIP/DS yang mengambang di kolom Boss dihapus → diganti kolom "Sistem" sendiri
-    const bossCell = `<div style="line-height:1.2">
-      <div style="font-size:14px;font-weight:600">${boss}</div>
-      <div style="font-size:10px;color:var(--ink3);margin-top:2px">Supplier${_produkCadKatalogSub(rows) ? ' · ' + _produkCadKatalogSub(rows) : ''}</div>
-    </div>`;
-    const sistemCellKat = _produkSistemKatalogCell(rows);
+    const hk = rows.map(_produkHargaKolom);
+    const katCells = ''
+      + '<td class="pk-gs" style="padding:10px 8px">' + _produkHargaKatCell(hk, 'prod') + '</td>'
+      + '<td style="padding:10px 8px">' + _produkHargaKatCell(hk, 'po') + '</td>'
+      + '<td style="padding:10px 8px">' + _produkHargaKatCell(hk, 'ds') + '</td>'
+      + '<td class="pk-gs" style="padding:10px 8px">' + _produkBossKatHtml(rows) + '</td>'
+      + '<td style="padding:10px 8px">' + _produkCadKatHtml(rows) + '</td>'
+      + '<td class="pk-gs pk-sc" style="padding:10px 8px">' + _produkSisKatCell(rows, 'prod') + '</td>'
+      + '<td class="pk-sc" style="padding:10px 8px">' + _produkSisKatCell(rows, 'po') + '</td>'
+      + '<td class="pk-sc" style="padding:10px 8px">' + _produkSisKatCell(rows, 'ds') + '</td>';
 
     if (_produkEditMode) {
       html += `<tr style="background:var(--cream2);cursor:pointer">
@@ -1106,16 +1173,12 @@ function renderProduk(data) {
           <input type="checkbox" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation();produkToggleKatalog('${safeKat}',this.checked)" style="cursor:pointer">
         </td>
         <td onclick="produkToggleExpand('${safeKat}')" style="padding:10px 8px">${katCell}</td>
-        <td style="padding:10px 8px">${hppCell}</td>
-        <td style="padding:10px 8px">${bossCell}</td>
-        <td style="padding:10px 8px;vertical-align:middle">${sistemCellKat}</td>
+        ${katCells}
       </tr>`;
     } else {
       html += `<tr style="background:var(--cream2);cursor:pointer" onclick="produkToggleExpand('${safeKat}')">
         <td style="padding:10px 8px">${katCell}</td>
-        <td style="padding:10px 8px">${hppCell}</td>
-        <td style="padding:10px 8px">${bossCell}</td>
-        <td style="padding:10px 8px;vertical-align:middle">${sistemCellKat}</td>
+        ${katCells}
       </tr>`;
     }
 
@@ -1123,24 +1186,30 @@ function renderProduk(data) {
     if (expanded) {
       _produkSortWarnaSize(rows).forEach(row => {
         const checked = _produkSelected[row.id] ? 'checked' : '';
+        const h  = _produkHargaKolom(row);
+        const st = _produkSisState(row);
+        const sisOpen = 'event.stopPropagation();produkSistemSheetOpen(' + row.id + ')';
+        const varCells = ''
+          + '<td class="pk-gs">' + _produkHargaCell(h, 'prod', st) + '</td>'
+          + '<td>' + _produkHargaCell(h, 'po', st) + '</td>'
+          + '<td>' + _produkHargaCell(h, 'ds', st) + '</td>'
+          + '<td class="pk-gs">' + (row.boss ? _pkEsc(row.boss) : '<span style="color:var(--ink3)">—</span>') + '</td>'
+          + '<td>' + _produkCadVarHtml(row) + '</td>'
+          + '<td class="pk-gs pk-sc" onclick="' + sisOpen + '">' + _produkSisVarCell(st.prod, 'prod') + '</td>'
+          + '<td class="pk-sc" onclick="' + sisOpen + '">' + _produkSisVarCell(st.po, 'po') + '</td>'
+          + '<td class="pk-sc" onclick="' + sisOpen + '">' + _produkSisVarCell(st.ds, 'ds') + '</td>';
         if (_produkEditMode) {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
             <td style="text-align:center;padding:6px 4px">
               <input type="checkbox" ${checked} data-id="${row.id}" onchange="produkToggleSelect(${row.id},this.checked)" style="cursor:pointer">
             </td>
             <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
-            <td>${_produkHppVarianHtml(row)}</td>
-            <td>${_produkBossHtml(row)}</td>
-            <td>${_produkSistemBtn(row)}</td>
+            ${varCells}
           </tr>`;
         } else {
           html += `<tr data-kat="${kat}" style="background:var(--cream)">
-            <td style="padding-left:24px">
-              <b>${row.sku_variasi}</b>
-            </td>
-            <td>${_produkHppVarianHtml(row)}</td>
-            <td>${_produkBossHtml(row)}</td>
-            <td>${_produkSistemBtn(row)}</td>
+            <td style="padding-left:24px"><b>${row.sku_variasi}</b></td>
+            ${varCells}
           </tr>`;
         }
       });
