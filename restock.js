@@ -168,7 +168,7 @@ async function loadRestock() {
     const dari30 = tgl30.toISOString().slice(0, 10);
     const dari90 = tgl90.toISOString().slice(0, 10);
 
-    const [penjualan, produkAll, supplierAll, stokData, jurnalAllData, jurnal30Data, jurnal90Data] = await Promise.all([
+    const [penjualan, produkSemua, supplierAll, stokData, jurnalAllData, jurnal30Data, jurnal90Data] = await Promise.all([
       dbGet('jurnal_penjualan', '&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari + '&order=tanggal.desc'),
       dbGet('produk', '&order=katalog.asc'),
       dbGet('restock_supplier', '&order=boss.asc').catch(() => []),
@@ -177,6 +177,8 @@ async function loadRestock() {
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari30),
       dbGet('jurnal_penjualan', '&select=sku,qty&or=(order_status.neq.CANCELLED,order_status.is.null)&tanggal=gte.' + dari90),
     ]);
+
+    const produkAll = (produkSemua || []).filter(p => !p.arsip);   // 21 Nov 2026: SKU arsip tidak ikut saran restock
 
     // ── Hitung sisa stok per SKU — logika IDENTIK dengan stok.js ──
     // stok.js: _stokMasukMap[key] = { id, qty } → overwrite, 1 record per SKU

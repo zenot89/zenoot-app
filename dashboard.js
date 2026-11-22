@@ -2476,7 +2476,7 @@ async function loadDashboard() {
         katalog:         p.katalog,
         boss:            p.boss,
         hpp:             p.hpp || 0,
-        kategori_produk: p.kategori_produk || 'aktif',
+        kategori_produk: p.arsip ? 'arsip' : (p.kategori_produk || 'aktif'),   // 21 Nov 2026: SKU arsip tidak ikut peringatan stok
         stok_masuk:      masuk,
         stok_keluar:     keluar,
         sisa,

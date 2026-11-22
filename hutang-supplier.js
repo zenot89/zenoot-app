@@ -1031,7 +1031,7 @@ async function loadHutangSupplier() {
       dbGet('kas_akun',        '&order=kode.asc'),
       // 26 Sep 2026: select diperlebar (+boss,hpp) buat kebutuhan auto
       // stock-in dari "Barang Diterima" — lihat _hsAutoStockInFromBon().
-      dbGet('produk',          '&select=id,katalog,sku_variasi,boss,hpp&order=katalog.asc,sku_variasi.asc'),
+      dbGet('produk',          '&order=katalog.asc,sku_variasi.asc'),   // 21 Nov 2026: tanpa &select= supaya kolom arsip ikut terbaca
       dbGet('jurnal',          '&entitas=eq.usaha&select=akun_debit_id,akun_kredit_id,nominal,debit'),
     ]);
     _hsSupplierList  = supplier || [];
@@ -1154,7 +1154,7 @@ async function hsLoadRestockPO() {
     Object.keys(masukMap).forEach(function(k) { sisaMap[k] = masukMap[k] - (keluarMap[k] || 0); });
 
     var produkMap = {};
-    (produkAll || []).forEach(function(p) {
+    (produkAll || []).filter(function(p) { return !p.arsip; }).forEach(function(p) {   // 21 Nov 2026: SKU arsip tidak ikut
       var key = (p.sku_variasi || p.sku || '').trim().toUpperCase();
       if (key) produkMap[key] = p;
     });
@@ -4861,6 +4861,7 @@ function _hsBrgSkuPickerRender(q) {
 
   q = (q || '').trim().toUpperCase();
   var rows = _hsProdukAll.filter(function(p) {
+    if (p.arsip) return false;   // 21 Nov 2026: SKU arsip tidak bisa ditambahkan ke Master Barang (data bon lama tetap memakai _hsProdukAll penuh)
     return !q || (p.katalog||'').toUpperCase().indexOf(q) !== -1 || (p.sku_variasi||'').toUpperCase().indexOf(q) !== -1;
   });
   if (!rows.length) {

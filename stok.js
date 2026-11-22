@@ -495,7 +495,7 @@ async function loadStok() {
   try {
     // 1. Ambil semua produk (basis SKU)
     const produkData = await dbGet('produk', '&order=katalog.asc,sku_variasi.asc');
-    _produkForStok = Array.isArray(produkData) ? produkData : [];
+    _produkForStok = (Array.isArray(produkData) ? produkData : []).filter(function(p) { return !p.arsip; });   // 21 Nov 2026: SKU arsip disembunyikan
 
     // 2. Ambil semua stok masuk manual
     const stokData = await dbGet('stok');

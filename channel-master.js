@@ -857,6 +857,7 @@ async function _chpLoadProduk() {
   } catch (e) {
     _chpProduk = await dbGet('produk', '&order=katalog.asc');
   }
+  _chpProduk = (_chpProduk || []).filter(function(p) { return !p.arsip; });   // 21 Nov 2026: SKU arsip tidak bisa dipilih ke toko
 }
 
 // Buka panel untuk 1 toko (id channel) atau 1 kategori ('kat:<kategori>')

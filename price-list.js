@@ -222,7 +222,7 @@ async function loadPriceList() {
       dbGet('channel_beban', ''),
     ]);
 
-    _plProdukData  = produk   || [];
+    _plProdukData  = (produk || []).filter(p => !p.arsip);   // 21 Nov 2026: SKU arsip tidak masuk Price List
     _plChannelList = channels || [];
     _plBebanMap    = {};
     (bebanList || []).forEach(b => { _plBebanMap[b.channel_id] = b; });

@@ -163,11 +163,11 @@ async function loadStokMasuk() {
   try {
     var res = await Promise.all([
       dbGet('stok_masuk_jurnal', '&order=tanggal.desc,id.desc'),
-      dbGet('produk', '&select=id,katalog,sku_variasi,boss,sistem_override&order=katalog.asc,sku_variasi.asc'),
+      dbGet('produk', '&order=katalog.asc,sku_variasi.asc'),   // 21 Nov 2026: tanpa &select= supaya kolom arsip ikut terbaca
       zDsLoadSuppliers(true),   // peta supplier (NAMA → baris hutang_supplier), supabase.js
     ]);
     _smData   = res[0] || [];
-    _smProduk = res[1] || [];
+    _smProduk = (res[1] || []).filter(function(p) { return !p.arsip; });   // 21 Nov 2026: SKU arsip tidak muncul di pilihan
     var supMap = res[2] || {};
     // 3 Okt 2026: Tambah (Produksi Sendiri) CUMA nampilin produk yang Boss-nya
     // supplier ber-sistem Produksi Sendiri (hutang_supplier.is_produksi_sendiri).

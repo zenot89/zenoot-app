@@ -101,6 +101,7 @@ document.getElementById('page-produk').innerHTML = `
     <button class="produk-btn-pill produk-btn-ghost" onclick="showPasteProduk()"><i class="ti ti-clipboard"></i> Paste massal</button>
     <button class="produk-btn-pill produk-btn-ghost" onclick="exportProduk()"><i class="ti ti-download"></i> Export CSV</button>
     <button class="produk-btn-pill produk-btn-ghost" onclick="loadProduk()"><i class="ti ti-refresh"></i></button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-arsip" onclick="produkToggleArsip()" style="display:none"><i class="ti ti-archive"></i> Arsip</button>
     <button class="produk-btn-pill produk-btn-ghost" onclick="produkEnterEditMode()" style="margin-left:auto"><i class="ti ti-edit"></i> Edit</button>
   </div>
 
@@ -113,9 +114,13 @@ document.getElementById('page-produk').innerHTML = `
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-sup" onclick="produkBatchSupplier()" style="opacity:.4" disabled><i class="ti ti-user"></i> Edit Supplier</button>
     <!-- [30 Sep 2026] Tombol "Dropship" dihapus: pilihan Dropship/Reseller sekarang jadi toggle di dalam modal Edit Supplier (khusus supplier berjenis Dropship + Reseller) -->
     <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-exp" onclick="produkExportTerpilih()" style="opacity:.4" disabled><i class="ti ti-download"></i> Export</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-arsipkan" onclick="produkArsipkanTerpilih()" style="opacity:.4" disabled><i class="ti ti-archive"></i> Arsipkan</button>
+    <button class="produk-btn-pill produk-btn-ghost" id="produk-btn-pulihkan" onclick="produkPulihkanTerpilih()" style="opacity:.4;display:none" disabled><i class="ti ti-arrow-back-up"></i> Pulihkan</button>
     <button class="produk-btn-pill produk-btn-danger" id="produk-btn-hapus" onclick="produkHapusTerpilih()" style="opacity:.4" disabled><i class="ti ti-trash"></i> Hapus</button>
     <button class="produk-btn-pill produk-btn-cancel" id="produk-btn-done" onclick="produkExitEditMode()">Batalkan</button>
   </div>
+
+  <div id="produk-arsip-note" style="display:none;margin-bottom:10px;padding:8px 12px;border:1.5px dashed var(--ink3);border-radius:8px;font-size:12px;color:var(--ink2);line-height:1.6"><b>Arsip</b> — SKU yang disembunyikan dari Kelola Produk, Stok, Tambah Penjualan, dan Re-Stock. Riwayat penjualan, bon, dan laporan lama tetap utuh. Pilih lalu <b>Pulihkan</b> untuk mengaktifkan lagi, atau <b>Hapus</b> untuk menghapus permanen.</div>
 
   <!-- STAT CARDS -->
   <div id="produk-stat-cards">
@@ -209,6 +214,8 @@ document.addEventListener('zenot:page', function(e) {
 let _produkData = [];
 let _produkSupplierList = []; // dari hutang_supplier — single source of truth buat picker Boss
 let _produkCadList = [];      // produk_supplier (id, produk_id, supplier_id) — supplier cadangan per SKU (16 Nov 2026)
+let _produkAll = [];          // 21 Nov 2026: SEMUA SKU (aktif + arsip); _produkData = tampilan yang sedang dipilih (aktif ATAU arsip)
+var _produkLihatArsip = false;   // true = tampilan Arsip
 let _produkHbList = [];       // hutang_barang (id, produk_id, supplier_id, harga_per_lusin, harga_po_per_lusin) — harga P.O & Dropship SKU supplier 2 sistem
 
 async function loadProduk() {
@@ -234,10 +241,114 @@ async function loadProduk() {
       </td></tr>`;
       return;
     }
-    _produkData = data;
-    renderProduk(_produkData);
+    _produkAll = data;
+    _produkApplyView();
   } catch(err) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${err.message}</td></tr>`;
+  }
+}
+
+// ── ARSIP SKU (21 Nov 2026) ───────────────────────────────────
+// SKU yang sudah tidak dipakai (mis. katalog kembar lama) DIARSIPKAN, bukan dihapus: produk.arsip = true. Disembunyikan dari Kelola Produk,
+// Stok Produk, Tambah Penjualan, Re-Stock, Master Barang dan pilihan SKU lain, tapi barisnya tetap ada — jadi riwayat penjualan, bon dropship otomatis
+// (yang menghitung ulang 60 hari) dan HPP laporan lama tetap utuh. Bisa dipulihkan kapan saja; Hapus permanen tetap ada di tampilan Arsip.
+// Syarat arsip: stok SKU harus 0. SKU baru dengan nama yang sama dengan SKU di Arsip ditolak (pulihkan saja yang lama).
+function _produkApplyView() {
+  _produkData = _produkAll.filter(function(r) { return !!r.arsip === _produkLihatArsip; });
+  var ada = {};
+  _produkData.forEach(function(r) { ada[r.id] = true; });
+  Object.keys(_produkSelected).forEach(function(k) { if (!ada[k]) delete _produkSelected[k]; });
+  produkPaintArsipUi();
+  renderProduk(_produkData);
+  if (_produkEditMode) produkUpdateSelectBar();
+}
+function produkPaintArsipUi() {
+  var n = _produkAll.filter(function(r) { return r.arsip; }).length;
+  var b = document.getElementById('produk-btn-arsip');
+  if (b) {
+    b.innerHTML = _produkLihatArsip ? '<i class="ti ti-arrow-left"></i> Kembali ke aktif' : '<i class="ti ti-archive"></i> Arsip' + (n ? ' (' + n + ')' : '');
+    b.style.display = (n || _produkLihatArsip) ? '' : 'none';
+  }
+  var note = document.getElementById('produk-arsip-note');
+  if (note) note.style.display = _produkLihatArsip ? '' : 'none';
+  ['produk-btn-hpp', 'produk-btn-sis', 'produk-btn-sup'].forEach(function(id) {
+    var x = document.getElementById(id);
+    if (x) x.style.display = _produkLihatArsip ? 'none' : '';
+  });
+  var ba = document.getElementById('produk-btn-arsipkan'), bp = document.getElementById('produk-btn-pulihkan');
+  if (ba) ba.style.display = _produkLihatArsip ? 'none' : '';
+  if (bp) bp.style.display = _produkLihatArsip ? '' : 'none';
+  var v = document.getElementById('pstat-varian');
+  if (v && v.nextElementSibling) v.nextElementSibling.textContent = _produkLihatArsip ? 'SKU diarsipkan' : 'SKU aktif';
+}
+function produkToggleArsip() {
+  _produkLihatArsip = !_produkLihatArsip;
+  _produkSelected = {};
+  _produkApplyView();
+}
+// Sisa stok semua SKU (masuk − keluar, penjualan dropship tidak mengurangi) — rumus sama dengan Dashboard/Stok Produk
+async function _produkSisaStokMap() {
+  var r = await Promise.all([
+    dbGet('stok', '&select=sku_variasi,stok_masuk'),
+    dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)')
+  ]);
+  if (!Array.isArray(r[0]) || !Array.isArray(r[1])) throw new Error('data stok tidak terbaca');
+  var m = {};
+  r[0].forEach(function(x) { var k = String(x.sku_variasi || '').trim().toUpperCase(); if (k) m[k] = (m[k] || 0) + (Number(x.stok_masuk) || 0); });
+  r[1].forEach(function(x) { var k = String(x.sku || '').trim().toUpperCase(); if (k) m[k] = (m[k] || 0) - (Number(x.qty) || 0); });
+  return m;
+}
+async function produkArsipkanTerpilih() {
+  var ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
+  var sisa;
+  try { sisa = await _produkSisaStokMap(); }
+  catch (e) { alert('Gagal memeriksa stok, SKU belum diarsipkan: ' + ((e && e.message) || e)); return; }
+  var bertok = rows.filter(function(r) { return (sisa[String(r.sku_variasi || '').trim().toUpperCase()] || 0) > 0; });
+  if (bertok.length) {
+    alert('Belum bisa diarsipkan: ' + bertok.length + ' SKU masih punya stok.\n\n'
+      + bertok.slice(0, 8).map(function(r) { return '• ' + r.sku_variasi + ' (' + sisa[String(r.sku_variasi || '').trim().toUpperCase()] + ' pcs)'; }).join('\n')
+      + (bertok.length > 8 ? '\n• …' : '')
+      + '\n\nHabiskan atau koreksi stoknya jadi 0 dulu (Stok Produk › Edit Stock), lalu arsipkan.');
+    return;
+  }
+  var ok = await zConfirm('Arsipkan ' + rows.length + ' SKU?\n' + rows.slice(0, 6).map(function(r) { return r.sku_variasi; }).join(', ') + (rows.length > 6 ? ', …' : '')
+    + '\n\nDisembunyikan dari Kelola Produk, Stok, Tambah Penjualan, dan Re-Stock. Riwayat penjualan, bon, dan laporan lama tetap utuh. Bisa dipulihkan dari menu Arsip.',
+    { title: 'Arsipkan SKU', ok: 'Arsipkan' });
+  if (!ok) return;
+  try {
+    var tgl = _produkYmdHariIni();
+    for (var i = 0; i < rows.length; i++) {
+      await dbUpdate('produk', rows[i].id, { arsip: true, arsip_tgl: tgl });
+      rows[i].arsip = true; rows[i].arsip_tgl = tgl;
+    }
+    _produkSelected = {};
+    produkMarkDirty();
+    _produkApplyView();
+  } catch (err) {
+    produkMarkDirty();
+    var msg = (err && err.message) || String(err);
+    alert('Gagal mengarsipkan: ' + msg + (/arsip/i.test(msg) ? '\n\nKolom belum ada — jalankan zenoot-arsip-sku.sql di Supabase dulu.' : '') + '\n\nSebagian SKU mungkin sudah terarsip — periksa tampilan Arsip.');
+    _produkApplyView();
+  }
+}
+async function produkPulihkanTerpilih() {
+  var ids = Object.keys(_produkSelected).map(Number);
+  if (!ids.length) return;
+  var rows = _produkData.filter(function(r) { return ids.indexOf(r.id) >= 0; });
+  try {
+    for (var i = 0; i < rows.length; i++) {
+      await dbUpdate('produk', rows[i].id, { arsip: false, arsip_tgl: null });
+      rows[i].arsip = false; rows[i].arsip_tgl = null;
+    }
+    _produkSelected = {};
+    produkMarkDirty();
+    _produkApplyView();
+  } catch (err) {
+    produkMarkDirty();
+    alert('Gagal memulihkan: ' + ((err && err.message) || err) + '\n\nSebagian SKU mungkin sudah pulih — periksa tampilan Arsip.');
+    _produkApplyView();
   }
 }
 
@@ -943,7 +1054,9 @@ async function produkSistemToggle(k) {
 function renderProduk(data) {
   const tbody = document.getElementById('produk-tbody');
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada data produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);font-style:italic">' + (_produkLihatArsip ? 'Arsip kosong' : 'Belum ada data produk') + '</td></tr>';
+    ['pstat-katalog', 'pstat-varian', 'pstat-nohpp'].forEach(function(i) { var e = document.getElementById(i); if (e) e.textContent = '0'; });
+    var eh = document.getElementById('pstat-hpp'); if (eh) eh.textContent = 'Rp0';
     return;
   }
 
@@ -1068,7 +1181,7 @@ function produkUpdateSelectBar() {
   const count = Object.keys(_produkSelected).length;
   const lbl   = document.getElementById('produk-select-count');
   if (lbl) lbl.textContent = count + ' dipilih';
-  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sis','produk-btn-sup','produk-btn-exp'].forEach(function(id) {
+  ['produk-btn-hapus','produk-btn-hpp','produk-btn-sis','produk-btn-sup','produk-btn-exp','produk-btn-arsipkan','produk-btn-pulihkan'].forEach(function(id) {
     var b = document.getElementById(id);
     if (!b) return;
     b.disabled     = count === 0;
@@ -1329,9 +1442,11 @@ async function simpanProduk() {
   const cadDs = cadSup ? idrVal('prd-cad-ds') : 0, cadPo = cadSup ? idrVal('prd-cad-po') : 0;
 
   const skuNormNew = _produkSkuNorm(data.sku_variasi);
-  const dup = _produkData.find(d => d.id != id && _produkSkuNorm(d.sku_variasi) === skuNormNew);
+  const dup = _produkAll.find(d => d.id != id && _produkSkuNorm(d.sku_variasi) === skuNormNew);
   if (dup) {
-    alert(`SKU Variasi "${data.sku_variasi}" sudah ada di Kelola Produk (katalog: ${dup.katalog}). Edit baris yang sudah ada, bukan bikin baru.`);
+    alert(dup.arsip
+      ? `SKU Variasi "${data.sku_variasi}" sudah ada di Arsip (katalog: ${dup.katalog}). Pulihkan dari menu Arsip, bukan bikin baru.`
+      : `SKU Variasi "${data.sku_variasi}" sudah ada di Kelola Produk (katalog: ${dup.katalog}). Edit baris yang sudah ada, bukan bikin baru.`);
     return;
   }
 
@@ -1415,7 +1530,7 @@ function parsePasteProduk() {
 
   // Cegah SKU Variasi duplikat (22 Sep 2026) — cek ke SKU yang udah ada di Kelola Produk SEKARANG,
   // dan ke baris lain di batch paste yang sama (kalau user gak sengaja paste dobel). Case/spasi diabaikan.
-  const existingSku = new Set((_produkData || []).map(d => _produkSkuNorm(d.sku_variasi)));
+  const existingSku = new Set((_produkAll || []).map(d => _produkSkuNorm(d.sku_variasi)));   // termasuk SKU di Arsip
   const seenInBatch = new Set();
 
   for (const line of lines) {

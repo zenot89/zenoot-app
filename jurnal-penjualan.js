@@ -1135,14 +1135,22 @@ async function _jpLoadChProduk(chId) {
   }
 }
 
+// 21 Nov 2026: SKU yang DIARSIPKAN (produk.arsip) disembunyikan dari pilihan di form, kecuali saat mengedit penjualan lama (jp-id terisi) yang
+// memakainya. Pencarian/validasi SKU (_jpResolveSku, edit, _jpProdukBySku) tetap memakai SEMUA produk supaya riwayat tetap terbaca.
+function _jpPickerList() {
+  var idEl = document.getElementById('jp-id');
+  if (idEl && idEl.value) return _jpProdukList;
+  return _jpProdukList.filter(function(p) { return !p.arsip; });
+}
+
 // undefined = belum dimuat untuk channel yang sedang dipilih; selain itu = array produk yang boleh dipilih
 function _jpAllowedProduk() {
   var chId = String(document.getElementById('jp-channel').value || '');
-  if (!chId) return _jpProdukList;
+  if (!chId) return _jpPickerList();
   if (_jpChProdukCache.chId !== chId) return undefined;
   var set = _jpChProdukCache.set;
-  if (!set) return _jpProdukList;
-  return _jpProdukList.filter(function(p) { return !!set[_jpGetKatalog(p)]; });
+  if (!set) return _jpPickerList();
+  return _jpPickerList().filter(function(p) { return !!set[_jpGetKatalog(p)]; });
 }
 
 function _jpChannelKosong() {   // channel terpilih + sudah dimuat + tidak ada produk sama sekali
@@ -1238,7 +1246,7 @@ async function jpPilihKatalog(katalog, modeEdit) {
   document.getElementById('jp-sku-induk').value = katalog;
   _jpSetIndukLabel(katalog);
   jpTutupDropdownSKU();
-  const varList = _jpSortVariasi(_jpProdukList.filter(p => _jpGetKatalog(p) === katalog));
+  const varList = _jpSortVariasi(_jpPickerList().filter(p => _jpGetKatalog(p) === katalog));
   const sel = document.getElementById('jp-sku-variasi');
   sel.innerHTML = '<option value="">— Pilih Variasi —</option>';
   varList.forEach(p => {
@@ -4068,7 +4076,7 @@ function _jpSkuSheetRenderVariasi(q) {
   var listEl = document.getElementById('jp-sku-sheet-list');
   if (!listEl) return;
   var katalog = document.getElementById('jp-sku-induk').value;
-  var varList = _jpProdukList.filter(function(p) { return _jpGetKatalog(p) === katalog; });
+  var varList = _jpPickerList().filter(function(p) { return _jpGetKatalog(p) === katalog; });
   q = (q || '').toLowerCase().trim();
   var items = _jpSortVariasi(varList.filter(function(p) { return !q || _jpGetSku(p).toLowerCase().indexOf(q) !== -1; }));
   var html = '';
