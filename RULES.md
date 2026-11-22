@@ -35,7 +35,7 @@ Ada 3 repo GitHub terpisah, jangan sampai file ketuker:
 
 **produk.js** (Kelola Produk — base data SKU, murni base, gak nyimpen link ke supplier manapun):
 - Field "Boss" jadi PICKER dari hutang_supplier (single source of truth) + opsi "+ Tambah supplier baru". Cascade rename (_produkCascadeRename): edit SKU/katalog/boss ikut update jurnal_penjualan.sku & stok.sku_variasi/katalog/boss.
-- Paste Massal SKU: kolom Boss dicek ke hutang_supplier, yang belum ada auto-insert (Dropship default), badge "baru" di preview.
+- Paste Massal SKU (22 Nov 2026): urutan kolom Boss Utama → Boss Cadangan → Katalog → SKU Variasi → HPP → Harga P.O → Harga Dropship; header 2 baris bisa disalin lewat tombol Salin (baris header ikut kepaste = dilewati). Tidak ada kolom Sistem (ikut supplier). Boss utama dicek ke hutang_supplier, yang belum ada auto-insert (Dropship default), badge "baru" di preview. Boss Cadangan (boleh banyak, pisah koma) TIDAK di-auto-create: harus supplier terdaftar, bukan Produksi Sendiri, bukan sama dengan utama, dan butuh Boss utama — kalau tidak, baris ditolak (merah di Preview). Cadangan dibuat lewat `_produkCadTambah` (sistem awal ikut flag supplier); harga cadangan diisi belakangan di Master Barang. Parser tidak boleh men-trim tab di depan (Boss utama kosong di baris pertama menggeser kolom). Export CSV memakai urutan kolom yang sama.
 - REVERTED: field "Sumber Harga Supplier" (link ke hutang_barang) DIHAPUS TOTAL — Kelola Produk harus tetep base data doang. Linking dipindah ke hutang-supplier.js.
 
 **dashboard.js**:

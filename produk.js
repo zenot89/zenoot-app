@@ -134,10 +134,10 @@ document.getElementById('page-produk').innerHTML = `
 
   <!-- MODAL PASTE MASSAL -->
   <div class="modal-overlay" id="modal-paste-produk">
-    <div class="modal" style="max-width:520px">
+    <div class="modal" style="max-width:620px">
       <div class="modal-title"><i class="ti ti-clipboard"></i> Paste Massal SKU</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <div id="paste-produk-kolom" style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.6">Katalog → SKU Variasi → HPP → Boss → Harga P.O → Harga Dropship</div>
+        <div id="paste-produk-kolom" style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.6">Boss Utama → Boss Cadangan → Katalog → SKU Variasi → HPP → Harga P.O → Harga Dropship</div>
         <button class="btn btn-sm" id="btn-salin-kolom-produk" onclick="salinKolomPasteProduk()"><i class="ti ti-copy"></i> Salin</button>
       </div>
       <textarea id="paste-area-produk"
@@ -146,7 +146,7 @@ document.getElementById('page-produk').innerHTML = `
       <div id="paste-produk-preview" style="margin-top:10px;display:none">
         <div style="font-size:12px;font-weight:700;color:var(--ink3);margin-bottom:6px" id="paste-produk-count"></div>
         <div class="tbl-wrap" style="max-height:160px;overflow-y:auto">
-          <table class="tbl"><thead><tr><th>Katalog</th><th>SKU Variasi</th><th>HPP</th><th>Boss</th><th>P.O / Dropship</th><th>Status</th></tr></thead>
+          <table class="tbl"><thead><tr><th>Boss</th><th>Cadangan</th><th>Katalog</th><th>SKU Variasi</th><th>HPP</th><th>P.O / Dropship</th><th>Status</th></tr></thead>
           <tbody id="paste-produk-tbody"></tbody></table>
         </div>
       </div>
@@ -1516,9 +1516,13 @@ function showPasteProduk() {
   setTimeout(() => document.getElementById('paste-area-produk').focus(), 100);
 }
 
-// Salin urutan kolom (dipisah tab) → tempel di baris 1 spreadsheet, tiap kolom masuk 1 sel
+// Salin header 2 baris (dipisah tab) → tempel di A1 spreadsheet, tiap kolom masuk 1 sel (merge sel grup Boss / Harga dilakukan sendiri di spreadsheet)
+var _PK_PASTE_HEADER = [
+  ['Boss', '', 'Katalog', 'SKU Variasi', 'HPP', 'HARGA', ''],
+  ['UTAMA', 'CADANGAN', '', '', '', 'Harga P.O', 'Harga Dropship']
+];
 function salinKolomPasteProduk() {
-  const teks = ['Katalog','SKU Variasi','HPP','Boss','Harga P.O','Harga Dropship'].join('\t');
+  const teks = _PK_PASTE_HEADER.map(r => r.join('\t')).join('\n');
   const btn = document.getElementById('btn-salin-kolom-produk');
   const ok = () => { if (!btn) return; btn.innerHTML = '<i class="ti ti-check"></i> Tersalin'; setTimeout(() => { btn.innerHTML = '<i class="ti ti-copy"></i> Salin'; }, 1500); };
   const fallback = () => {
@@ -1535,42 +1539,57 @@ function salinKolomPasteProduk() {
 let _parsedProduk = [];
 
 function parsePasteProduk() {
-  const raw = document.getElementById('paste-area-produk').value.trim();
-  if (!raw) { alert('Paste data dulu!'); return; }
+  // 22 Nov 2026: urutan kolom BARU = Boss Utama → Boss Cadangan → Katalog → SKU Variasi → HPP → Harga P.O → Harga Dropship.
+  // Hanya buang baris kosong di awal/akhir — JANGAN trim tab di depan (Boss utama kosong di baris pertama akan menggeser semua kolom).
+  const raw = document.getElementById('paste-area-produk').value.replace(/^[\r\n]+/, '').replace(/\s+$/, '');
+  if (!raw.trim()) { alert('Paste data dulu!'); return; }
 
   _parsedProduk = [];
   const lines = raw.split('\n');
-  const knownSupplier = {}; // Set nama supplier yg udah ada di hutang_supplier — buat deteksi "baru"
-  (_produkSupplierList || []).forEach(s => { knownSupplier[(s.nama||'').toUpperCase()] = true; });
+  const supMap = _produkSupMap();
+  const knownSupplier = {}; // supplier yg udah ada di hutang_supplier — buat deteksi "baru"
+  Object.keys(supMap).forEach(k => { knownSupplier[k] = true; });
 
-  // Cegah SKU Variasi duplikat (22 Sep 2026) — cek ke SKU yang udah ada di Kelola Produk SEKARANG,
-  // dan ke baris lain di batch paste yang sama (kalau user gak sengaja paste dobel). Case/spasi diabaikan.
-  const existingSku = new Set((_produkAll || []).map(d => _produkSkuNorm(d.sku_variasi)));   // termasuk SKU di Arsip
+  // Cegah SKU Variasi duplikat (22 Sep 2026) — cek ke SKU yang udah ada di Kelola Produk SEKARANG (termasuk Arsip),
+  // dan ke baris lain di batch paste yang sama. Case/spasi diabaikan.
+  const existingSku = new Set((_produkAll || []).map(d => _produkSkuNorm(d.sku_variasi)));
   const seenInBatch = new Set();
 
   for (const line of lines) {
     if (!line.trim()) continue;
-    // Split by tab (dari Excel) atau multiple spaces
     const cols = line.split('\t').map(c => c.trim());
 
-    // Minimal 2 kolom (katalog + sku)
-    if (cols.length < 2) continue;
+    const bossRaw = cols[0] || '';
+    const cadRaw  = cols[1] || '';
+    const katalog = cols[2] || '';
+    const sku     = cols[3] || '';
 
-    const katalog = cols[0] || '';
-    const sku     = cols[1] || '';
-    const hpp     = parseInt((cols[2]||'').replace(/[^0-9]/g,'')) || 0;
-    const boss    = (cols[3]||'').trim().toUpperCase();
-    // 3 Nov 2026: kolom 5 & 6 (opsional) = Harga P.O & Harga Dropship per pcs, dipakai hanya kalau boss supplier 2 sistem
-    const hargaPo = parseInt((cols[4]||'').replace(/[^0-9]/g,'')) || 0;
-    const hargaDs = parseInt((cols[5]||'').replace(/[^0-9]/g,'')) || 0;
-    // 7 Sep 2026: root cause "Lainnya"/drift yg kita fix minggu ini juga
-    // berlaku di sini — paste massal itu 1-1 nya jalur input Boss yang
-    // masih bebas ketik (gak lewat picker). Ditandai "baru" di preview
-    // biar user sadar, terus di-auto-create ke hutang_supplier pas simpan
-    // (bukan dibiarin nyimpang diam-diam kayak sebelumnya).
+    // Baris header (1 atau 2 baris hasil salin dari spreadsheet) dilewati
+    if (_produkSkuNorm(sku) === 'SKU VARIASI' || _produkSkuNorm(katalog) === 'KATALOG') continue;
+    if (!sku) continue;
+
+    const boss    = bossRaw.toUpperCase();
+    const hpp     = parseInt((cols[4]||'').replace(/[^0-9]/g,'')) || 0;
+    // Harga P.O & Harga Dropship per pcs, dipakai hanya kalau boss supplier 2 sistem
+    const hargaPo = parseInt((cols[5]||'').replace(/[^0-9]/g,'')) || 0;
+    const hargaDs = parseInt((cols[6]||'').replace(/[^0-9]/g,'')) || 0;
+    // Boss yang belum ada ditandai "baru" lalu di-auto-create ke hutang_supplier saat simpan (7 Sep 2026)
     const bossIsNew = !!boss && !knownSupplier[boss];
 
-    if (!sku) continue;
+    // Supplier cadangan (boleh lebih dari satu, dipisah koma / titik koma / garis miring). Harga cadangan diisi belakangan di Master Barang.
+    // Cadangan TIDAK di-auto-create: harus supplier yang sudah terdaftar, bukan Produksi Sendiri, bukan sama dengan utama — kalau tidak, baris ditolak.
+    const cadNames = [];
+    cadRaw.split(/[,;\/]/).forEach(x => { const n = x.trim().toUpperCase(); if (n && cadNames.indexOf(n) < 0) cadNames.push(n); });
+    const cadSups = [];
+    let cadErr = '';
+    for (const n of cadNames) {
+      const cs = supMap[n];
+      if (!cs) { cadErr = 'cadangan "' + n + '" belum terdaftar'; break; }
+      if (!boss) { cadErr = 'cadangan butuh Boss utama'; break; }
+      if (n === boss) { cadErr = 'cadangan sama dengan utama'; break; }
+      if (cs.is_produksi_sendiri) { cadErr = 'cadangan "' + n + '" Produksi Sendiri'; break; }
+      cadSups.push(cs);
+    }
 
     const skuNorm = _produkSkuNorm(sku);
     const isDup = existingSku.has(skuNorm) || seenInBatch.has(skuNorm);
@@ -1585,32 +1604,36 @@ function parsePasteProduk() {
       ds = hargaDs || (sisAwal === 'dropship' ? hpp : 0);
       hppEf = _produkHppDual(sisAwal, po, ds, hpp);
     }
-    _parsedProduk.push({ katalog: katalog.toUpperCase(), sku_variasi: sku, hpp: hppEf, boss, bossIsNew, isDup, dual: !!dualSup, po, ds });
+    _parsedProduk.push({ katalog: katalog.toUpperCase(), sku_variasi: sku, hpp: hppEf, boss, bossIsNew, isDup, cadNames, cadSups, cadErr, blok: isDup || !!cadErr, dual: !!dualSup, po, ds });
   }
 
   if (_parsedProduk.length === 0) {
-    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari Excel dengan format: Katalog → SKU → HPP → Boss');
+    alert('Tidak ada data yang bisa dibaca. Pastikan copy dari spreadsheet dengan urutan: Boss Utama → Boss Cadangan → Katalog → SKU Variasi → HPP → Harga P.O → Harga Dropship');
     return;
   }
 
-  // Render preview — baris duplikat ditampilin (biar keliatan mana yang di-skip) tapi gak ikut disimpan
+  // Preview — baris yang ditolak ditampilkan (biar kelihatan mana yang di-skip) tapi tidak ikut disimpan
   const dupCount = _parsedProduk.filter(r => r.isDup).length;
-  const newBossCount = _parsedProduk.filter(r => r.bossIsNew && !r.isDup).length;
+  const errCount = _parsedProduk.filter(r => !r.isDup && r.cadErr).length;
+  const blokCount = _parsedProduk.filter(r => r.blok).length;
+  const newBossCount = _parsedProduk.filter(r => r.bossIsNew && !r.blok).length;
   document.getElementById('paste-produk-count').innerHTML =
-    `✓ ${_parsedProduk.length - dupCount} SKU siap diimport` +
+    `✓ ${_parsedProduk.length - blokCount} SKU siap diimport` +
     (dupCount ? ` — <span style="color:var(--danger)">${dupCount} dilewati (SKU Variasi sudah ada)</span>` : '') +
+    (errCount ? ` — <span style="color:var(--danger)">${errCount} ditolak (supplier cadangan bermasalah, lihat kolom Status)</span>` : '') +
     (newBossCount ? ` — <span style="color:var(--warn)">${newBossCount} pakai supplier baru, bakal otomatis ditambahin ke Kelola Supplier (mode Dropship, bisa diedit nanti)</span>` : '');
   document.getElementById('paste-produk-tbody').innerHTML = _parsedProduk.map(r => `
-    <tr${r.isDup ? ' style="opacity:.5"' : ''}>
+    <tr${r.blok ? ' style="opacity:.5"' : ''}>
+      <td>${r.boss||'—'}${r.bossIsNew ? ' <span style="font-size:10px;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 4px">baru</span>' : ''}</td>
+      <td style="font-size:12px">${r.cadNames.length ? r.cadNames.join(', ') : '—'}</td>
       <td>${r.katalog}</td>
       <td>${r.sku_variasi}</td>
       <td>Rp${r.hpp.toLocaleString('id-ID')}</td>
-      <td>${r.boss||'—'}${r.bossIsNew ? ' <span style="font-size:10px;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 4px">baru</span>' : ''}</td>
       <td style="font-size:12px">${r.dual ? ('P.O ' + (r.po ? 'Rp' + r.po.toLocaleString('id-ID') : '—') + '<br>DS ' + (r.ds ? 'Rp' + r.ds.toLocaleString('id-ID') : '—')) : '—'}</td>
-      <td>${r.isDup ? '<span style="font-size:11px;color:var(--danger)">duplikat</span>' : '<span style="font-size:11px;color:var(--ok)">✓ lolos</span>'}</td>
+      <td>${r.isDup ? '<span style="font-size:11px;color:var(--danger)">duplikat</span>' : (r.cadErr ? '<span style="font-size:11px;color:var(--danger)">' + r.cadErr + '</span>' : '<span style="font-size:11px;color:var(--ok)">✓ lolos</span>')}</td>
     </tr>`).join('');
   document.getElementById('paste-produk-preview').style.display = 'block';
-  document.getElementById('btn-simpan-paste-produk').style.display = (dupCount < _parsedProduk.length) ? 'inline-block' : 'none';
+  document.getElementById('btn-simpan-paste-produk').style.display = (blokCount < _parsedProduk.length) ? 'inline-block' : 'none';
 }
 
 async function simpanPasteProduk() {
@@ -1627,7 +1650,7 @@ async function simpanPasteProduk() {
     // nanti dari Kelola Supplier kalau perlu.
     // Baris duplikat (isDup) di-skip total — udah ditandain "duplikat" di preview, gak ikut disimpan
     // maupun ikut nge-trigger auto-create supplier baru.
-    const rowsToSave = _parsedProduk.filter(r => !r.isDup);
+    const rowsToSave = _parsedProduk.filter(r => !r.blok);
     const newBossNames = [...new Set(rowsToSave.filter(r => r.bossIsNew).map(r => r.boss))];
     for (const nama of newBossNames) {
       const created = await dbInsert('hutang_supplier', { nama, is_dropship: true, is_reseller: false });
@@ -1642,19 +1665,25 @@ async function simpanPasteProduk() {
       const sisAwalP = _produkSistemDefault(row.boss);   // 30 Okt 2026: sistem awal dari supplier (supplier baru hasil auto-create = Dropship)
       if (sisAwalP) payloadP.sistem_override = sisAwalP;
       const insPP = await dbInsert('produk', payloadP);
-      if (row.dual) {   // 2 harga supplier 2 sistem → Master Barang
-        const rowPP = Array.isArray(insPP) ? insPP[0] : insPP;
+      const rowPP = Array.isArray(insPP) ? insPP[0] : insPP;
+      const refPP = (rowPP && rowPP.id != null) ? { id: rowPP.id, katalog: row.katalog, sku_variasi: row.sku_variasi } : null;
+      if (row.dual && refPP) {   // 2 harga supplier 2 sistem → Master Barang
         const supPP = _produkSupDualByName(row.boss);
-        if (rowPP && rowPP.id != null && supPP) await _produkUpsertHargaDual({ id: rowPP.id, katalog: row.katalog, sku_variasi: row.sku_variasi }, supPP, row.po, row.ds);
+        if (supPP) await _produkUpsertHargaDual(refPP, supPP, row.po, row.ds);
+      }
+      if (refPP) {   // supplier cadangan (sistem awal ikut flag supplier, harga cadangan diisi belakangan)
+        for (const cs of row.cadSups) await _produkCadTambah(refPP, cs, 0, 0, null);
       }
       ok++;
       btn.textContent = `Menyimpan ${ok}/${rowsToSave.length}...`;
     }
     closeModal('modal-paste-produk');
     loadProduk();
-    const dupSkipped = _parsedProduk.length - rowsToSave.length;
+    const dupSkipped = _parsedProduk.filter(r => r.isDup).length;
+    const cadSkipped = _parsedProduk.filter(r => !r.isDup && r.cadErr).length;
     alert(`✓ ${ok} SKU berhasil disimpan!` +
       (dupSkipped ? `\n⚠ ${dupSkipped} SKU dilewati karena sudah ada di Kelola Produk` : '') +
+      (cadSkipped ? `\n⚠ ${cadSkipped} SKU ditolak karena supplier cadangan bermasalah` : '') +
       (newBossNames.length ? `\n✓ ${newBossNames.length} supplier baru ditambahin ke Kelola Supplier (mode Dropship): ${newBossNames.join(', ')}` : ''));
   } catch(err) {
     alert('Gagal simpan: ' + err.message);
@@ -1667,8 +1696,8 @@ async function simpanPasteProduk() {
 async function exportProduk() {
   if (_produkData.length === 0) { alert('Belum ada data'); return; }
   exportCSV('zenoot-produk.csv',
-    ['Katalog','SKU Variasi','HPP','Boss','Harga P.O','Harga Dropship'],
-    _produkData.map(r => { const d = _produkHargaDualOf(r); return [r.katalog, r.sku_variasi, r.hpp, r.boss, d ? d.po : '', d ? d.ds : '']; })
+    ['Boss Utama','Boss Cadangan','Katalog','SKU Variasi','HPP','Harga P.O','Harga Dropship'],
+    _produkData.map(r => { const d = _produkHargaDualOf(r); return [r.boss, _produkCadRows(r).map(c => c.sup.nama).join(', '), r.katalog, r.sku_variasi, r.hpp, d ? d.po : '', d ? d.ds : '']; })
   );
 }
 
@@ -1678,8 +1707,8 @@ function produkExportTerpilih() {
   if (!ids.length) return;
   const rows = _produkData.filter(r => ids.includes(r.id));
   exportCSV('zenoot-produk-terpilih.csv',
-    ['Katalog','SKU Variasi','HPP','Boss','Harga P.O','Harga Dropship'],
-    rows.map(r => { const d = _produkHargaDualOf(r); return [r.katalog, r.sku_variasi, r.hpp, r.boss, d ? d.po : '', d ? d.ds : '']; })
+    ['Boss Utama','Boss Cadangan','Katalog','SKU Variasi','HPP','Harga P.O','Harga Dropship'],
+    rows.map(r => { const d = _produkHargaDualOf(r); return [r.boss, _produkCadRows(r).map(c => c.sup.nama).join(', '), r.katalog, r.sku_variasi, r.hpp, d ? d.po : '', d ? d.ds : '']; })
   );
 }
 
