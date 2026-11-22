@@ -136,10 +136,9 @@ document.getElementById('page-produk').innerHTML = `
   <div class="modal-overlay" id="modal-paste-produk">
     <div class="modal" style="max-width:520px">
       <div class="modal-title"><i class="ti ti-clipboard"></i> Paste Massal SKU</div>
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.6">
-        Copy dari Excel lalu paste di bawah.<br>
-        Urutan kolom: <b>Katalog → SKU Variasi → HPP → Boss</b><br>
-        Supplier 2 sistem (P.O + Dropship), tambah 2 kolom di kanan: <b>→ Harga P.O → Harga Dropship</b> (per pcs; kolom HPP boleh dikosongkan)
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div id="paste-produk-kolom" style="flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.6">Katalog → SKU Variasi → HPP → Boss → Harga P.O → Harga Dropship</div>
+        <button class="btn btn-sm" id="btn-salin-kolom-produk" onclick="salinKolomPasteProduk()"><i class="ti ti-copy"></i> Salin</button>
       </div>
       <textarea id="paste-area-produk"
         style="width:100%;height:180px;font-family:var(--f);font-size:13px;padding:8px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);resize:vertical;outline:none"
@@ -1515,6 +1514,22 @@ function showPasteProduk() {
   document.getElementById('btn-simpan-paste-produk').style.display = 'none';
   document.getElementById('modal-paste-produk').classList.add('open');
   setTimeout(() => document.getElementById('paste-area-produk').focus(), 100);
+}
+
+// Salin urutan kolom (dipisah tab) → tempel di baris 1 spreadsheet, tiap kolom masuk 1 sel
+function salinKolomPasteProduk() {
+  const teks = ['Katalog','SKU Variasi','HPP','Boss','Harga P.O','Harga Dropship'].join('\t');
+  const btn = document.getElementById('btn-salin-kolom-produk');
+  const ok = () => { if (!btn) return; btn.innerHTML = '<i class="ti ti-check"></i> Tersalin'; setTimeout(() => { btn.innerHTML = '<i class="ti ti-copy"></i> Salin'; }, 1500); };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = teks; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); ok(); } catch (e) { alert('Gagal menyalin'); }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(teks).then(ok, fallback);
+  else fallback();
 }
 
 let _parsedProduk = [];
