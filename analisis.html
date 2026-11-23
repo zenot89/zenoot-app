@@ -4508,6 +4508,20 @@ function fmtRp(n){
   const s = 'Rp' + v.toLocaleString('id-ID');
   return neg ? '('+s+')' : s;
 }
+// ── SET ROAS (Setting Analisis) vs ROAS AKTUAL — dipakai RKS Overview, RKS Mingguan, Proyeksi RKS ──
+function setRoasNum(){ const v = Number(state.settings.setRoas); return v>0 ? v : null; }
+function setRoasText(){ const v = setRoasNum(); return v ? v.toFixed(2)+'x' : '-'; }
+// Selisih = ROAS Aktual − Set ROAS. Merah kalau di bawah yang dipasang, hijau kalau sama/di atas. Kosong kalau salah satunya belum ada.
+function roasSelisihHtml(roas){
+  const s = setRoasNum();
+  if(!(roas>0) || !s) return '';
+  const d = roas - s, zero = Math.abs(d) < 0.005, neg = d < 0 && !zero;
+  const txt = (zero ? '' : (neg ? '−' : '+')) + Math.abs(d).toFixed(2) + 'x';
+  return `<span style="font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;background:${neg?'var(--bad-soft)':'var(--good-soft)'};color:${neg?'var(--bad)':'var(--good)'};white-space:nowrap;">Selisih ${txt}</span>`;
+}
+function roasAktualVal(roas){   // selisih di kiri nilai ROAS Aktual (pola sama dgn persen di baris Net Income)
+  return `<span style="display:inline-flex;justify-content:flex-end;align-items:baseline;gap:14px;">${roasSelisihHtml(roas)}<span>${roas ? roas.toFixed(2)+'x' : '-'}</span></span>`;
+}
 function fmtPct(n){
   if(n===null||n===undefined||!isFinite(n)) return '-';
   return (n*100).toFixed(1)+'%';
@@ -6385,8 +6399,8 @@ function renderHasil(){
         <div class="val">${fmtRp(iklan)}</div>
       </div>
       <div class="hrow"><div class="lbl">AOV AKTUAL<span class="ket">Rata-rata nilai per pesanan</span></div><div class="val">${fmtRp(basketCalc.aov)}</div></div>
-      <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val">${roas ? roas.toFixed(2)+'x' : '-'}</div></div>
-      <div class="hrow"><div class="lbl">SET ROAS<span class="ket">ROAS real yang dipasang di iklan (diatur di Setting)</span></div><div class="val">${Number(state.settings.setRoas)>0 ? Number(state.settings.setRoas).toFixed(2)+'x' : '-'}</div></div>
+      <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val" style="display:flex;justify-content:flex-end;">${roasAktualVal(roas)}</div></div>
+      <div class="hrow"><div class="lbl">SET ROAS<span class="ket">ROAS real yang dipasang di iklan (diatur di Setting)</span></div><div class="val">${setRoasText()}</div></div>
       </div>
       ${!canCompute ? `<footer class="note status-warn">⚠ Upload file Income &amp; Tagihan Iklan lewat tombol "Data Toko" di kanan atas biar rasio di bawah kehitung.</footer>` : ''}
     </div>
@@ -8125,7 +8139,7 @@ function phRefresh(keepSettings){
 /* ================= PAGE: SETTING (multi-toko) ================= */
 const SETTING_FIELDS = [
   {key:'targetRoas', label:'TARGET ROAS TOKO', ket:'Acuan target ROAS — manual, cuma dipakai kalau Rekap belum ada data bulanan', ph:'mis. 8.3', type:'decimal'},
-  {key:'setRoas', label:'SET ROAS TOKO', ket:'ROAS real yang dipasang di iklan — biasanya lebih besar dari Target ROAS Toko. Dipakai Dashboard buat menghitung angka iklan yang harus dipasang', ph:'mis. 10', type:'decimal'},
+  {key:'setRoas', label:'SET ROAS TOKO', ket:'ROAS real yang dipasang di iklan — biasanya lebih besar dari Target ROAS Toko. Dipakai Dashboard buat menghitung angka iklan yang harus dipasang', ph:'mis. 9.4', type:'decimal'},
   {key:'adminPct', label:'ADMIN % (fallback)', ket:'Dipakai di Check Admin. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 25', type:'decimal'},
   {key:'bpp', label:'BPP (fallback, Rp)', ket:'Biaya Proses Pesanan per order. Otomatis dari rata-rata Rekap bulan terakhir kalau udah ada; ini cuma buat jaga-jaga kalau Rekap masih kosong', ph:'mis. 1250', type:'rupiah'},
   {key:'rasioOpsPercent', label:'RASIO OPERASIONAL', ket:'Dlm % — dipakai otomatis sebagai Rasio Ops di Check Admin, gak perlu isi manual tiap order', ph:'mis. 10', type:'decimal'},
@@ -9431,7 +9445,8 @@ function renderHasilM(){
       <div class="hrow highlight"><div class="lbl">OPERASIONAL<span class="ket">${fromRekap ? 'Nilai saat minggu ini disimpan ke Rekap Mingguan' : 'Otomatis: Operasional Toko bulan itu (porsi omset bulan sebelumnya) ÷ 4'}</span></div><div class="val">${fmtRp(operasional)}</div></div>
       <div class="hrow highlight"><div class="lbl">IKLAN<span class="ket">${fromRekap ? 'Tersimpan di Rekap Mingguan' : state.mingguan.adsFile && state.mingguan.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'}</span></div><div class="val">${fmtRp(iklan)}</div></div>
       <div class="hrow"><div class="lbl">AOV AKTUAL<span class="ket">Rata-rata nilai per pesanan</span></div><div class="val">${fmtRp(basketCalc.aov)}</div></div>
-      <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val">${roas ? roas.toFixed(2)+'x' : '-'}</div></div>
+      <div class="hrow"><div class="lbl">ROAS AKTUAL<span class="ket">Pendapatan ÷ Iklan</span></div><div class="val" style="display:flex;justify-content:flex-end;">${roasAktualVal(roas)}</div></div>
+      <div class="hrow"><div class="lbl">SET ROAS<span class="ket">ROAS real yang dipasang di iklan (diatur di Setting)</span></div><div class="val">${setRoasText()}</div></div>
       </div>
       ${!canCompute ? `<footer class="note status-warn">⚠ Upload file Income &amp; Tagihan Iklan lewat tombol "Data Toko" di kanan atas biar rasio di bawah kehitung.</footer>` : ''}
     </div>
@@ -10277,7 +10292,8 @@ function renderHasilP(){
       ${pvRow('OPERASIONAL', fromRekap ? 'Prorata saat bulan ini disimpan ke Rekap Proyeksi' : (pi ? 'Prorata: Operasional Toko bulan itu (porsi omset bulan sebelumnya) × '+Math.min(pi.span,pi.hariBulan)+'/'+pi.hariBulan+' hari' : 'Prorata: butuh file Income buat tahu hari berjalan'), fmtRp(operasional), est(E.operasional), 'highlight')}
       ${pvRow('IKLAN', fromRekap ? 'Tersimpan di Rekap Proyeksi' : (state.proyeksi.adsFile && state.proyeksi.adsFile.source==='pdf' ? 'Otomatis dari Faktur PDF (sudah termasuk PPN)' : 'Otomatis dari tagihan iklan (.csv) + PPN 11%'), fmtRp(iklan), est(E.iklan), 'highlight')}
       ${pvRow('AOV AKTUAL', 'Rata-rata nilai per pesanan', fmtRp(basketCalc.aov), fmtRp(basketCalc.aov))}
-      ${pvRow('ROAS AKTUAL', 'Pendapatan ÷ Iklan', roas ? roas.toFixed(2)+'x' : '-', roas ? roas.toFixed(2)+'x' : '-')}
+      ${pvRow('ROAS AKTUAL', 'Pendapatan ÷ Iklan', roasAktualVal(roas), roas ? roas.toFixed(2)+'x' : '-')}
+      ${pvRow('SET ROAS', 'ROAS real yang dipasang di iklan (diatur di Setting)', setRoasText(), setRoasText())}
       </div>
       ${!canCompute ? `<footer class="note status-warn">⚠ Upload file Income &amp; Tagihan Iklan lewat tombol "Data Toko" di kanan atas biar rasio di bawah kehitung.</footer>` : ''}
     </div>
