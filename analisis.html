@@ -4511,13 +4511,13 @@ function fmtRp(n){
 // ── SET ROAS (Setting Analisis) vs ROAS AKTUAL — dipakai RKS Overview, RKS Mingguan, Proyeksi RKS ──
 function setRoasNum(){ const v = Number(state.settings.setRoas); return v>0 ? v : null; }
 function setRoasText(){ const v = setRoasNum(); return v ? v.toFixed(2)+'x' : '-'; }
-// Selisih = ROAS Aktual − Set ROAS. Merah kalau di bawah yang dipasang, hijau kalau sama/di atas. Kosong kalau salah satunya belum ada.
+// Selisih = ROAS Aktual − Set ROAS (pil tanpa kata "Selisih", ukuran font = nilai ROAS Aktual). Merah kalau di bawah yang dipasang, hijau kalau sama/di atas. Kosong kalau salah satunya belum ada.
 function roasSelisihHtml(roas){
   const s = setRoasNum();
   if(!(roas>0) || !s) return '';
   const d = roas - s, zero = Math.abs(d) < 0.005, neg = d < 0 && !zero;
   const txt = (zero ? '' : (neg ? '−' : '+')) + Math.abs(d).toFixed(2) + 'x';
-  return `<span style="font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px;background:${neg?'var(--bad-soft)':'var(--good-soft)'};color:${neg?'var(--bad)':'var(--good)'};white-space:nowrap;">Selisih ${txt}</span>`;
+  return `<span style="font-size:inherit;font-weight:700;padding:0 9px;border-radius:6px;background:${neg?'var(--bad-soft)':'var(--good-soft)'};color:${neg?'var(--bad)':'var(--good)'};white-space:nowrap;">${txt}</span>`;
 }
 function roasAktualVal(roas){   // selisih di kiri nilai ROAS Aktual (pola sama dgn persen di baris Net Income)
   return `<span style="display:inline-flex;justify-content:flex-end;align-items:baseline;gap:14px;">${roasSelisihHtml(roas)}<span>${roas ? roas.toFixed(2)+'x' : '-'}</span></span>`;
