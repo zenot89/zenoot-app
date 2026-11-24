@@ -1649,7 +1649,7 @@ async function gdgWEnsureAkunJurnal() {
   if (_gdgWAkunLoaded) return true;
   try {
     const [akun, jurnal] = await Promise.all([
-      dbGet('kas_akun', '&order=kode.asc'),
+      dbGetAkun('&order=kode.asc'),
       dbGet('jurnal', '&order=tanggal.asc'),
     ]);
     _gdgWAkunAll   = akun   || [];

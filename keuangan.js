@@ -1530,7 +1530,7 @@ function keuSlideNav(dir) {
 async function keuLoadHutang() {
   try {
     const [akuns, jurnal] = await Promise.all([
-      dbGet('kas_akun', '&entitas=eq.usaha&order=kode.asc'),
+      dbGetAkun('&entitas=eq.usaha&order=kode.asc'),
       dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc'),
     ]);
     const akunArr  = akuns  || [];
@@ -1694,7 +1694,7 @@ async function keuSimpanPembayaran() {
 async function keuLoadKasData() {
   try {
     const [akun, jurnal] = await Promise.all([
-      dbGet('kas_akun', '&entitas=eq.usaha&order=kode.asc'),
+      dbGetAkun('&entitas=eq.usaha&order=kode.asc'),
       dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.asc'),
     ]);
     _keuKasAkun   = akun   || [];
@@ -1760,7 +1760,7 @@ async function keuRenderNeraca() {
 
   // ASET — dikelompokkan: Kas & Saku, Escrow Shopee, Aset Lainnya
   const asetAkun  = Object.values(akunMap).filter(a => a.kelompok === 'aset');
-  const isKasBank = a => (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+  const isKasBank = a => akunFlag(a, 'kas');
   const kasAkun   = asetAkun.filter(isKasBank);
   const lainAkun  = asetAkun.filter(a => !isKasBank(a));
 
@@ -1913,10 +1913,7 @@ async function keuRenderRasio() {
 
   // Coverage Ratio = Kas Likuid ÷ Total Kewajiban (proxy cicilan — cicilan tidak ada di jurnal)
   const kasLikuid = Object.values(akunMap).filter(a => {
-    if (a.kelompok !== 'aset') return false;
-    const nm = (a.nama||'').toUpperCase();
-    const sk = (a.sub_kelompok||'').toLowerCase();
-    return sk === 'kas' || sk === 'bank' || nm.includes('BANK') || nm.includes('TUNAI') || nm.includes('KAS');
+    return akunIsKas(a);   // 23 Nov 2026: Jenis Akun (saklar kas), bukan lagi tebak dari nama/teks
   }).reduce((s,a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0);
   const cr = totalHutang ? kasLikuid / totalHutang : 0;
   document.getElementById('keu-cr-val').textContent  = totalHutang ? cr.toFixed(1)+'x' : '∞';
@@ -2159,7 +2156,7 @@ async function _keuRenderArusKasImpl() {
   try {
     // 1. Data jurnal + kas_akun
     const [kasAkun, jurnal, hutangAll, bayarAll, shopeeCache] = await Promise.all([
-      dbGet('kas_akun', '&entitas=eq.usaha').catch(() => []),
+      dbGetAkun('&entitas=eq.usaha').catch(() => []),
       dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc').catch(() => []),
       dbGet('hutang', '').catch(() => []),
       dbGet('hutang_bayar', '').catch(() => []),
@@ -2204,7 +2201,7 @@ async function _keuRenderArusKasImpl() {
 
     // 4. Kas tersedia
     const kasArr = Object.values(akunMap).filter(a =>
-      a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'
+      akunIsKas(a)
     );
     // Hitung saldo per akun kas
     let totalKasJurnal = 0;
@@ -2313,7 +2310,7 @@ async function _keuRenderArusKasImpl() {
 async function keuPopulateAkunBayar() {
   var selEl = document.getElementById('keu-bayar-akun-id');
   if (!selEl) return;
-  var akuns = await dbGet('kas_akun', '&order=kode.asc').catch(function() { return []; });
+  var akuns = await dbGetAkun('&order=kode.asc').catch(function() { return []; });
   var asetOpts = akuns.filter(function(a) { return a.kelompok === 'aset'; });
   _keuCicAkunList = asetOpts;
   var lastId = '';
@@ -2415,7 +2412,7 @@ async function fcLoad() {
   try {
     [anggaranList, akunList] = await Promise.all([
       dbGet('kas_anggaran', '&bulan=eq.' + ym + '&order=akun_id.asc'),
-      dbGet('kas_akun', '&kelompok=eq.beban&order=nama.asc')
+      dbGetAkun('&kelompok=eq.beban&order=nama.asc')
     ]);
     anggaranList = anggaranList || [];
     akunList     = akunList     || [];

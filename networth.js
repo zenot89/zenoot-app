@@ -68,7 +68,7 @@
     try {
       _log('fetch aset: kasAkun,jurnal,produk,stok,jp...');
       const [kasAkun, jurnal, produk, stok, jual] = await Promise.all([
-        _withTimeout(dbGet('kas_akun', ''),                       [], 8000).catch(() => []),
+        _withTimeout(dbGetAkun(''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'),      [], 8000).catch(() => []),
         _withTimeout(dbGet('produk',   ''),                       [], 8000).catch(() => []),
         _withTimeout(dbGet('stok',     ''),                       [], 8000).catch(() => []),
@@ -83,7 +83,7 @@
         if (akunMap[r.akun_kredit_id]) akunMap[r.akun_kredit_id].saldoKredit += n;
       });
       const totalAsetJurnal = Object.values(akunMap)
-        .filter(a => a.kelompok === 'aset' && a.sub_kelompok !== 'Persediaan')
+        .filter(a => a.kelompok === 'aset' && !akunFlag(a, 'persediaan'))
         .reduce((s, a) => s + Math.max(0, a.saldoDebit - a.saldoKredit), 0);
       const stokMap = {};
       (stok || []).forEach(s => { stokMap[(s.sku_variasi||'').toUpperCase()] = s.stok_masuk || 0; });
@@ -110,7 +110,7 @@
     try {
       _log('fetch kewajiban dari jurnal...');
       const [kasAkun, jurnal] = await Promise.all([
-        _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
+        _withTimeout(dbGetAkun(''), [], 8000).catch(() => []),
         _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'), [], 8000).catch(() => [])
       ]);
       const akunMap = {};
@@ -139,7 +139,7 @@
     try {
       _log('fetch labarugi...');
       const [kasAkun, jurnal] = await Promise.all([
-        _withTimeout(dbGet('kas_akun', ''), [], 8000).catch(() => []),
+        _withTimeout(dbGetAkun(''), [], 8000).catch(() => []),
         _withTimeout(dbGet('jurnal',   '&entitas=eq.usaha'), [], 8000).catch(() => [])
       ]);
       const saldoMap = {};

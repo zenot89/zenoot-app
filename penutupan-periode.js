@@ -810,7 +810,7 @@ function _ppRenderChart() {
 async function _ppFetchDataRange(dateStart, dateEnd) {
   try {
     var [kasAkun, allJurnal, jurnalBulan, produk, stok, jual, shopeeRaw] = await Promise.all([
-      dbGet('kas_akun', '').catch(function() { return []; }),
+      dbGetAkun('').catch(function() { return []; }),
       dbGet('jurnal', '&entitas=eq.usaha').catch(function() { return []; }),
       dbGet('jurnal', '&entitas=eq.usaha&tanggal=gte.' + dateStart + '&tanggal=lte.' + dateEnd).catch(function() { return []; }),
       dbGet('produk', '').catch(function() { return []; }),
@@ -832,7 +832,7 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
 
     // Kas & Bank saja (untuk display card)
     var totalKas = Object.values(akunMap)
-      .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK'; })
+      .filter(function(a) { return akunIsKas(a); })
       .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
 
     // Nilai stok (HPP x sisa qty) — sama dengan Dashboard
@@ -849,7 +849,7 @@ async function _ppFetchDataRange(dateStart, dateEnd) {
     // Total Aset = semua aset (jurnal, sub_kelompok != Persediaan) + nilai persediaan
     // Persis sama dengan Dashboard (_getTotalAset)
     var totalAsetJurnal = Object.values(akunMap)
-      .filter(function(a) { return a.kelompok === 'aset' && (a.sub_kelompok||'') !== 'Persediaan'; })
+      .filter(function(a) { return a.kelompok === 'aset' && !akunFlag(a, 'persediaan'); })
       .reduce(function(s, a) { return s + Math.max(0, a.sD - a.sK); }, 0);
     var totalAset = totalAsetJurnal + nilaiStok;
 

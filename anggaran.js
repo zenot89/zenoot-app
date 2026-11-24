@@ -503,8 +503,8 @@ async function angLoad() {
     if (bulan) await angAutoCarryForward(bulan);
 
     const [akunAll, akunAllFull, angAll, jurnalAll, prevAll] = await Promise.all([
-      dbGet('kas_akun', '&kelompok=eq.beban&sub_kelompok=eq.Beban Operasional&order=kode.asc'),
-      dbGet('kas_akun', '&order=kode.asc'),
+      dbGetAkun('&kelompok=eq.beban&order=kode.asc').then(function(r) { return r.filter(function(a) { return akunFlag(a, 'operasional'); }); }),   // 23 Nov 2026: Jenis Akun (saklar operasional), bukan teks 'Beban Operasional'
+      dbGetAkun('&order=kode.asc'),
       bulan
         ? dbGet('kas_anggaran', '&bulan=eq.' + bulan + '&order=akun_id.asc')
         : dbGet('kas_anggaran', '&order=bulan.desc,akun_id.asc'),

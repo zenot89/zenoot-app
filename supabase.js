@@ -897,6 +897,18 @@ async function dbUpdateWhere(table, filterQuery, payload) {
   return data;
 }
 
+// dbRpc (23 Nov 2026): panggil fungsi database (Postgres function) lewat /rest/v1/rpc/<nama>
+async function dbRpc(fn, args) {
+  const res  = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method:  'POST',
+    headers: _headers(),
+    body:    JSON.stringify(args || {})
+  });
+  let data = null; try { data = await res.json(); } catch(e) {}
+  if (!res.ok) throw new Error((data && (data.message || data.hint)) || 'RPC ' + fn + ' error ' + res.status);
+  return data;
+}
+
 // pastikan=true → minta baris yang terhapus dikembalikan; kalau 0 baris, LEMPAR error.
 // Kenapa perlu: PostgREST balas 2xx walau DELETE tidak menghapus apa-apa (diblokir RLS / id tidak ada),
 // jadi tanpa ini kegagalan terlihat seperti sukses ("Hapus tidak jalan" tanpa pesan apa pun).
@@ -920,6 +932,56 @@ async function dbDelete(table, id, pastikan) {
   }
 }
 
+
+// ─── JENIS AKUN (23 Nov 2026) ────────────────────────────────
+// Dulu sistem mengenali "akun kas", "beban operasional", dst dari TEKS sub_kelompok (mis. 'KAS & BANK') dan nama akun ('TUNAI') — salah ketik / ganti
+// nama = laporan salah. Sekarang tiap akun menunjuk ke satu JENIS (tabel akun_jenis, dikelola user di Kelola Akun › Jenis Akun) dan jenis itu punya
+// SAKLAR SIFAT: kas · persediaan · operasional · produksi (beban produksi) · hpp · harian (biaya sehari-hari). Semua modul membaca saklar, bukan teks.
+// Fallback: kalau tabel akun_jenis belum ada / akun belum punya jenis_id → aturan lama (teks sub_kelompok) supaya tidak ada yang rusak.
+var _AKUN_JENIS = { ok: false, list: [], byId: {} };
+var _akunJenisP = null, _akunJenisTs = 0;
+function akunJenisLoad(paksa) {
+  var tua = !_AKUN_JENIS.ok && (Date.now() - _akunJenisTs) > 8000;   // gagal sebelumnya (offline / belum login / tabel belum ada) → coba lagi
+  if (_akunJenisP && !paksa && !tua) return _akunJenisP;
+  _akunJenisTs = Date.now();
+  _akunJenisP = (async function() {
+    try {
+      var rows = await dbGet('akun_jenis', '&order=urut.asc,nama.asc');
+      _AKUN_JENIS.list = rows; _AKUN_JENIS.byId = {};
+      rows.forEach(function(r) { _AKUN_JENIS.byId[r.id] = r; });
+      _AKUN_JENIS.ok = true;
+    } catch (e) {
+      _AKUN_JENIS.ok = false;
+      // Tabel belum ada (migrasi belum dijalankan) → jangan coba lagi tiap beberapa detik; masalah jaringan / sesi → coba lagi cepat
+      if (/does not exist|schema cache|relation|404|not found/i.test(String(e && e.message))) _akunJenisTs = Date.now() + 600000;
+      console.warn('akun_jenis belum tersedia — memakai aturan lama (teks sub_kelompok):', e && e.message);
+    }
+    return _AKUN_JENIS;
+  })();
+  return _akunJenisP;
+}
+var _AKUN_LEGACY_SUB = { kas: 'KAS & BANK', persediaan: 'PERSEDIAAN', operasional: 'BEBAN OPERASIONAL', produksi: 'BEBAN PRODUKSI', hpp: 'HPP', harian: 'BIAYA SEHARI-HARI' };
+// flag: 'kas' | 'persediaan' | 'operasional' | 'produksi' | 'hpp' | 'harian'
+function akunFlag(a, flag) {
+  if (!a) return false;
+  var j = (a.jenis_id != null) ? _AKUN_JENIS.byId[a.jenis_id] : null;
+  if (j) return !!j['is_' + flag];
+  return String(a.sub_kelompok || '').trim().toUpperCase() === _AKUN_LEGACY_SUB[flag];
+}
+// Biaya pokok (HPP + Beban Produksi): tidak ikut Beban Operasional karena sudah terhitung di HPP / Cost Produksi
+function akunIsBiayaPokok(a) { return akunFlag(a, 'hpp') || akunFlag(a, 'produksi'); }
+function akunIsKas(a) { return !!(a && String(a.kelompok || '').trim().toLowerCase() === 'aset' && akunFlag(a, 'kas')); }
+// Akun uang tunai (Penarikan Tunai): kolom kas_akun.is_tunai. Kolom belum ada (migrasi belum jalan) → aturan lama: nama TUNAI.
+function akunIsTunai(a) {
+  if (!a || !akunIsKas(a)) return false;
+  if (a.is_tunai === true || a.is_tunai === false) return a.is_tunai;
+  return String(a.nama || '').trim().toUpperCase() === 'TUNAI';
+}
+// Akun belum diarsipkan (kolom aktif belum ada = dianggap aktif)
+function akunAktif(a) { return !!a && a.aktif !== false; }
+// Ambil semua akun (jenis dimuat dulu supaya predikat di atas langsung benar saat data akun dirender)
+async function dbGetAkun(filter) { await akunJenisLoad(); return dbGet('kas_akun', filter); }
+try { akunJenisLoad(); } catch (e) {}
 
 // ─── STATUS DROPSHIP PRODUK (30 Sep 2026) ────────────────────
 // Produk dropship = barang tidak disetok (dikirim supplier), jadi Sisa Stok minus itu wajar dan TIDAK boleh

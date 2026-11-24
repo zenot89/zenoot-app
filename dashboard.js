@@ -2316,8 +2316,8 @@ function _renderIncome(jurnalBulan, akunMap, todayYM) {
   (jurnalBulan || []).forEach(r => {
     const aD = akunMap[r.akun_debit_id];
     const aK = akunMap[r.akun_kredit_id];
-    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasD = aD && akunIsKas(aD);
+    const isKasK = aK && akunIsKas(aK);
     if (isKasD) cashOps += Number(r.nominal || r.debit  || 0);
     if (isKasK) cashOps -= Number(r.nominal || r.kredit || 0);
   });
@@ -2418,7 +2418,7 @@ async function loadDashboard() {
       dbGet('jurnal', '&entitas=eq.usaha'),
       dbGet('channels').catch(() => []),
       dbGet('jurnal', '&entitas=eq.usaha&order=tanggal.desc').catch(() => []),
-      dbGet('kas_akun', '').catch(() => []),
+      dbGetAkun('').catch(() => []),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)').catch(() => []),   // stok keluar all-time: penjualan via dropship (kirim_dropship) tidak mengurangi stok
       dbGet('jurnal', '&entitas=eq.usaha&tanggal=gte.' + todayYM + '-01&order=tanggal.desc').catch(() => []),
       dbGet('jurnal_penjualan', '&tanggal=gte.' + today + '&order=created_at.desc').catch(() => []),
@@ -2516,8 +2516,8 @@ async function loadDashboard() {
     (jurnalAllData || []).forEach(r => {
       const aD = _dashKasAkunMap[r.akun_debit_id];
       const aK = _dashKasAkunMap[r.akun_kredit_id];
-      const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-      const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      const isKasD = aD && akunIsKas(aD);
+      const isKasK = aK && akunIsKas(aK);
       if (isKasD) _kasMasuk  += Number(r.nominal || r.debit  || 0);
       if (isKasK) _kasKeluar += Number(r.nominal || r.kredit || 0);
     });
@@ -2533,12 +2533,12 @@ async function loadDashboard() {
     // ─ Cash Flow bulan ini (masuk - keluar dari akun KAS & BANK, bulan berjalan)
     const cfMasuk = (jurnalAllData||[]).filter(r => {
       const aD = _dashKasAkunMap[r.akun_debit_id];
-      return aD && aD.kelompok==='aset' && (aD.sub_kelompok||'').trim().toUpperCase()==='KAS & BANK'
+      return aD && akunIsKas(aD)
           && String(r.tanggal||'').slice(0,7)===todayYM;
     }).reduce((s,r)=>s+(Number(r.nominal||r.debit)||0),0);
     const cfKeluar = (jurnalAllData||[]).filter(r => {
       const aK = _dashKasAkunMap[r.akun_kredit_id];
-      return aK && aK.kelompok==='aset' && (aK.sub_kelompok||'').trim().toUpperCase()==='KAS & BANK'
+      return aK && akunIsKas(aK)
           && String(r.tanggal||'').slice(0,7)===todayYM;
     }).reduce((s,r)=>s+(Number(r.nominal||r.kredit)||0),0);
     const cf = cfMasuk - cfKeluar;
@@ -2634,11 +2634,9 @@ async function loadDashboard() {
     const kasJurnalBulanIni = (jurnalAllData||[]).filter(j => (j.tanggal||'').slice(0,7) === bulanIniStr);
     let totalBebanRealisasi = 0;
     const bebanDetailMap = {};
-    const _SKIP_SUB = ['HPP', 'Beban Produksi'];
     // 5 Nov 2026 (pemisahan uang pribadi & usaha): akun Biaya Sehari-hari (EUMA/UDUD/KOPI/TUANG) sekarang akun PRIBADI. Di buku usaha
     // pengeluaran itu tercatat sebagai PRIVE (Dr akun peran 'prive'), BUKAN beban → tidak mengurangi Laba Bersih usaha; ditampilkan sendiri
     // (donut Laba/Rugi, teks kartu Beban). Anggaran akun pribadi itu tetap dibaca sebagai "anggaran Prive" (target omset tetap menutupnya).
-    const _SUB_HARIAN = 'Biaya Sehari-hari';
     let priveRealisasi = 0;
     kasJurnalBulanIni.forEach(j => {
       const akunDebit = kasAkunMap[j.akun_debit_id];
@@ -2647,7 +2645,7 @@ async function loadDashboard() {
         return;
       }
       if (akunDebit && akunDebit.kelompok === 'beban' &&
-          !_SKIP_SUB.includes(akunDebit.sub_kelompok)) {
+          !akunIsBiayaPokok(akunDebit)) {
         const nominal = Number(j.nominal || j.debit || 0);
         totalBebanRealisasi += nominal;
         const nama = akunDebit.nama || 'Beban';
@@ -2661,7 +2659,7 @@ async function loadDashboard() {
     const _addAng = a => {
       const nom = Number(a.nominal || 0);
       const ak = kasAkunMap[a.akun_id];
-      if (ak && (ak.sub_kelompok === _SUB_HARIAN || ak.entitas === 'pribadi')) totalAnggaranHarian += nom; else totalAnggaran += nom;   // akun pribadi apa pun = anggaran Prive
+      if (ak && (akunFlag(ak, 'harian') || ak.entitas === 'pribadi')) totalAnggaranHarian += nom; else totalAnggaran += nom;   // akun pribadi apa pun = anggaran Prive
     };
     (anggaranBulanIni || []).forEach(_addAng);
     // Fallback: kalau bulan ini belum ada anggaran, ambil bulan terakhir yang ada
@@ -2939,11 +2937,11 @@ async function loadDashboard() {
       const real = {}, ang = {};
       kasJurnalBulanIni.forEach(j => {
         const aD = kasAkunMap[j.akun_debit_id];
-        if (aD && aD.kelompok === 'beban' && aD.sub_kelompok === 'Beban Produksi') real[aD.id] = (real[aD.id] || 0) + Number(j.nominal || j.debit || 0);
+        if (aD && aD.kelompok === 'beban' && akunFlag(aD, 'produksi')) real[aD.id] = (real[aD.id] || 0) + Number(j.nominal || j.debit || 0);
       });
       (anggaranBulanIni || []).forEach(a => { ang[a.akun_id] = (ang[a.akun_id] || 0) + Number(a.nominal || 0); });
       Object.entries(kasAkunMap || {}).forEach(([id, ak]) => {
-        if (ak && ak.kelompok === 'beban' && ak.sub_kelompok === 'Beban Produksi')
+        if (ak && ak.kelompok === 'beban' && akunFlag(ak, 'produksi'))
           _produksiRows.push({ nama: ak.nama || 'Produksi', nominal: real[id] || 0, anggaran: ang[id] || 0, kode: String(ak.kode || '') });
       });
       _produksiRows.sort((a, b) => (b.nominal - a.nominal) || (b.anggaran - a.anggaran) || a.kode.localeCompare(b.kode));
@@ -2965,7 +2963,7 @@ async function loadDashboard() {
       const _anggPerAkun = {};
       (anggaranBulanIni || []).forEach(a => { _anggPerAkun[a.akun_id] = (_anggPerAkun[a.akun_id] || 0) + Number(a.nominal || 0); });
       const _bebanRows = Object.entries(kasAkunMap || {})
-        .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.entitas !== 'pribadi' && ak.sub_kelompok !== _SUB_HARIAN && !_SKIP_SUB.includes(ak.sub_kelompok))
+        .filter(([id, ak]) => ak && ak.kelompok === 'beban' && ak.entitas !== 'pribadi' && !akunFlag(ak, 'harian') && !akunIsBiayaPokok(ak))
         .map(([id, ak]) => ({ nama_beban: ak.nama || 'Beban', nominal: bebanDetailMap[ak.nama || 'Beban'] || 0, anggaran: _anggPerAkun[id] || 0, kode: ak.kode || '' }));
       _renderBeban(_bebanRows, omsetBln, { produksi: _produksiRows, supplier: _supplierRows, hutang: _hutangRows });
       _dashPribadi(omsetBln, _dashKasAkunMap, todayYM);   // 13 Nov 2026: kartu Biaya Pribadi
@@ -3354,7 +3352,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
     const [hutangAll, bayarAll, kasAkun, jurnal, shopeeCache] = await Promise.all([
       dbGet('hutang',       '').catch(() => []),
       dbGet('hutang_bayar', '').catch(() => []),
-      dbGet('kas_akun',     '').catch(() => []),
+      dbGetAkun(    '').catch(() => []),
       dbGet('jurnal',       '&entitas=eq.usaha').catch(() => []),
       fetch(SUPABASE_URL + '/rest/v1/shopee_finance_cache?select=*&order=fetched_at.desc&limit=1',
         { headers: _headers() }).then(r => r.ok ? r.json() : []).catch(() => [])
@@ -3372,7 +3370,7 @@ async function _dashUpdateBebanVsKas(totalBebanDash) {
 
     // Kas & Bank dari jurnal
     const kasIds = (kasAkun || [])
-      .filter(a => a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK')
+      .filter(a => akunIsKas(a))
       .map(a => a.id);
     const saldoKas = (jurnal || []).reduce((s, r) => {
       const n = Number(r.nominal || r.debit || 0);
@@ -3855,7 +3853,7 @@ function _zdKasOperasional(anggaranRows, akunMap, jr, ym) {
   var sisa = 0, anggaran = 0, angPribadi = 0;
   (anggaranRows || []).forEach(function(a) {
     var ak = akunMap[a.akun_id];
-    if (!ak || ak.kelompok !== 'beban' || ak.sub_kelompok === 'HPP' || ak.sub_kelompok === 'Beban Produksi') return;
+    if (!ak || ak.kelompok !== 'beban' || akunIsBiayaPokok(ak)) return;
     var ang = Number(a.nominal) || 0;
     anggaran += ang;
     if (ak.entitas === 'pribadi') { angPribadi += ang; return; }   // anggaran akun pribadi = anggaran Prive: sisanya = total anggaran − Prive bulan ini
@@ -3919,8 +3917,8 @@ async function _zdKasHitung() {
   var kMasuk = 0, kKeluar = 0;
   jr.forEach(function(r) {
     var aD = akunMap[r.akun_debit_id], aK = akunMap[r.akun_kredit_id];
-    var isD = aD && aD.kelompok === 'aset' && String(aD.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
-    var isK = aK && aK.kelompok === 'aset' && String(aK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    var isD = aD && akunIsKas(aD);
+    var isK = aK && akunIsKas(aK);
     if (isD) kMasuk  += Number(r.nominal || r.debit  || 0);
     if (isK) kKeluar += Number(r.nominal || r.kredit || 0);
   });

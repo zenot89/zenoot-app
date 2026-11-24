@@ -1028,7 +1028,7 @@ async function loadHutangSupplier() {
       dbGet('hutang_bon',      '&order=tanggal.desc,created_at.desc'),
       dbGet('hutang_pembayaran', '&order=tanggal.desc'),
       dbGet('hutang_barang',   '&order=katalog_produk.asc'),
-      dbGet('kas_akun',        '&order=kode.asc'),
+      dbGetAkun(       '&order=kode.asc'),
       // 26 Sep 2026: select diperlebar (+boss,hpp) buat kebutuhan auto
       // stock-in dari "Barang Diterima" — lihat _hsAutoStockInFromBon().
       dbGet('produk',          '&order=katalog.asc,sku_variasi.asc'),   // 21 Nov 2026: tanpa &select= supaya kolom arsip ikut terbaca
@@ -1109,7 +1109,7 @@ async function hsLoadRestockPO() {
       dbGet('produk',           '&order=katalog.asc'),
       dbGet('stok'),
       dbGet('jurnal_penjualan', '&select=sku,qty&kirim_dropship=eq.false&or=(order_status.neq.CANCELLED,order_status.is.null)'),   // stok keluar all-time: penjualan via dropship tidak mengurangi stok
-      dbGet('kas_akun'),
+      dbGetAkun(),
       dbGet('jurnal', '&entitas=eq.usaha&select=akun_debit_id,akun_kredit_id,nominal'),
       dbGet('hutang_barang'),
     ]);
@@ -1121,7 +1121,7 @@ async function hsLoadRestockPO() {
     // ── Cash Kas & Bank, semua akun digabung ──
     var kasBankIds = {};
     (kasAkun || []).forEach(function(a) {
-      if ((a.kelompok || '').trim().toLowerCase() === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK') {
+      if (akunIsKas(a)) {
         kasBankIds[a.id] = true;
       }
     });
@@ -1584,7 +1584,7 @@ function hsRenderBonKasCards() {
   var el = document.getElementById('hs-bon-kas-cards');
   if (!el) return;
   var akunKas = (_hsAkunKas || []).filter(function(a) {
-    return (a.kelompok || '').trim().toLowerCase() === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    return akunIsKas(a);
   });
   var cash = Math.max(0, akunKas.reduce(function(s, a) { return s + (_hsAkunSaldo[a.id] || 0); }, 0));
   var totalUtang = (_hsBonList || []).filter(function(b) { return b.status !== 'lunas'; })
@@ -2615,7 +2615,7 @@ var _hsAkunPickerCtx = null; // { selectId, triggerLabelId, posisi }
 function _hsAkunPickerFilterFn(posisi) {
   return posisi === 'debit'
     ? function(a) { return a.kelompok === 'beban' || a.kelompok === 'kewajiban'; }
-    : function(a) { return a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'; };
+    : function(a) { return akunIsKas(a) && akunAktif(a); };   // rekening yang diarsipkan tidak muncul di pilihan "Bayar dari"
 }
 
 function _hsKelompokLabel(k) {
@@ -4326,7 +4326,7 @@ function hsOpenBayarGabungan(supplierId, bonIds) {
     return a.kelompok === 'beban' || a.kelompok === 'kewajiban';
   });
   _hsPopulateAkunSelect('hs-bayar-gab-akun-kredit', function(a) {
-    return a.kelompok === 'aset' && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    return akunIsKas(a) && akunAktif(a);
   });
   _hsResetAkunTrigger('hs-bayar-gab-akun-debit-label');
   _hsResetAkunTrigger('hs-bayar-gab-akun-kredit-label');

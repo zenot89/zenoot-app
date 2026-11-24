@@ -94,11 +94,12 @@ function kpHitung(akun, jurnal, anggaran, rng) {
   (akun || []).forEach(function(a) {
     if (a.entitas !== 'pribadi' || a.peran) return;   // akun khusus (Ekuitas Pribadi) bukan rekening / beban
     var s = sal[a.id] || { d: 0, k: 0, real: 0 };
+    if (!akunAktif(a) && !s.d && !s.k && !s.real) return;   // rekening / akun yang diarsipkan & kosong tidak ikut daftar
     if (a.kelompok === 'aset') {
       var saldo = s.d - s.k;
       out.aset.push({ nama: a.nama, kode: a.kode, saldo: saldo });
       out.asetTotal += Math.max(0, saldo);
-      if (String(a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK') out.kas += Math.max(0, saldo);
+      if (akunFlag(a, 'kas')) out.kas += Math.max(0, saldo);
     } else if (a.kelompok === 'kewajiban') {
       var sk = s.k - s.d;
       out.kwj.push({ nama: a.nama, kode: a.kode, saldo: sk });
@@ -135,7 +136,7 @@ async function kpLoad() {
   var ym = zpSingleMonth(_kpPer);   // anggaran disimpan per bulan: hanya dimuat kalau periode = 1 bulan penuh, selain itu kolom Anggaran "—"
   try {
     var res = await Promise.all([
-      dbGet('kas_akun', '&order=kode.asc'),
+      dbGetAkun('&order=kode.asc'),
       dbGet('jurnal', '&order=tanggal.asc'),
       ym ? dbGet('kas_anggaran', '&bulan=eq.' + ym).catch(function() { return []; }) : Promise.resolve([])
     ]);

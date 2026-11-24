@@ -7754,6 +7754,7 @@ function opsSyncAndRefresh(ops){
 }
 // Ambil SEMUA baris tabel dengan paging. Supabase membatasi 1000 baris per request; dbGet biasa tanpa limit/urutan bisa terpotong diam-diam.
 async function opsFetchAll(table, filter){
+  if (table === 'kas_akun') await akunJenisLoad();   // 23 Nov 2026: saklar Jenis Akun harus sudah ada sebelum akun dirender/difilter
   const out = [];
   for(let i=0; i<500; i++){
     const rows = await dbGet(table, (filter||'')+'&limit=1000&offset='+out.length);
@@ -7766,8 +7767,8 @@ async function opsFetchAll(table, filter){
 // [24 Sep 2026] HANYA akun kelompok 'beban' dengan sub_kelompok 'Beban Operasional' (kode 5-xxx). Sub_kelompok 'Beban Produksi' (6-xxx: Bahan Baku,
 // RE-STOCK, Packaging, Penyusutan Mesin) SENGAJA TIDAK ikut — itu biaya pokok yang sudah terhitung di HPP, kalau ikut = hitung dobel di Laba/Rugi RKS.
 // (Beda dengan totalBeban Arus Kas keuangan.js yang menjumlah semua beban: itu tampilan uang keluar, bukan margin.)
-const OPS_SUB_KELOMPOK = 'BEBAN OPERASIONAL';
-const opsAkunOperasional = a => a && a.kelompok==='beban' && String(a.sub_kelompok||'').trim().toUpperCase()===OPS_SUB_KELOMPOK;
+// 23 Nov 2026: 'operasional' = saklar Jenis Akun (Kelola Akun › Jenis Akun), bukan lagi teks sub_kelompok 'BEBAN OPERASIONAL' (supabase.js: akunFlag)
+const opsAkunOperasional = a => a && a.kelompok==='beban' && akunFlag(a,'operasional');
 // Cicilan hutang aktif (sisa = pokok - total hutang_bayar > 0 -> jumlahkan cicilan_per_bulan) — rumus sama persis dgn totalCicilan keuangan.js.
 // Tanggal jatuh tempo berikutnya: tgl_cicilan tiap bulan (dibatasi panjang bulan), kalau kosong pakai jatuh_tempo.
 // Mengembalikan Date (00:00 lokal) atau null.

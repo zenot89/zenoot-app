@@ -307,7 +307,9 @@ document.getElementById('page-kas').innerHTML = `
     .akun-sub-m { display: none; }
     @media (max-width: 700px) {
       #kas-panel-akun .kas-akun-tbl th:nth-child(4),
-      #kas-panel-akun .kas-akun-tbl td:nth-child(4) { display: none; }
+      #kas-panel-akun .kas-akun-tbl td:nth-child(4),
+      #kas-panel-akun .kas-akun-tbl th:nth-child(5),
+      #kas-panel-akun .kas-akun-tbl td:nth-child(5) { display: none; }
       #kas-panel-akun .kas-akun-tbl th,
       #kas-panel-akun .kas-akun-tbl td { padding-left: 6px; padding-right: 6px; }
       #kas-panel-akun .kas-akun-tbl th { font-size: 11px; letter-spacing: .04em; }
@@ -316,6 +318,11 @@ document.getElementById('page-kas').innerHTML = `
       #kas-panel-akun .kas-akun-tbl td:last-child .btn { padding: 6px 8px; margin-right: 2px !important; }
       .akun-sub-m { display: block; font-size: 11px; color: var(--ink3); margin-top: 2px; }
     }
+    .akun-chip { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 4px; white-space: nowrap; }
+    .akun-nol { color: var(--ink3); font-size: 12px; }
+    .akun-pakai { font-size: 12px; color: var(--ink2); white-space: nowrap; }
+    .akun-induk-btn { background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--ink3); line-height: 1; font-size: 14px; }
+    .akun-induk-gap { display: inline-block; width: 18px; }
     .kas-pair { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--ink4); border-radius: 3px; font-size: 10px; font-weight: 700; color: var(--ink3); cursor: help; white-space: nowrap; }
     /* Hint (?) — muncul saat diarahkan / diketuk, sejajar dengan teks judul */
     .kas-hint { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; margin-left: 7px; vertical-align: middle;
@@ -327,13 +334,21 @@ document.getElementById('page-kas').innerHTML = `
   </style>
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)<span class="kas-hint" tabindex="0" aria-label="Penjelasan">?<span class="kas-hint-pop">Daftar akun keuangan bisnis dan pribadi kamu. Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban) — tambah akun baru di dalam kelompok yang sesuai.</span></span></span>
-      <button class="btn btn-sm btn-primary" onclick="kasShowFormAkun()"><i class="ti ti-plus"></i> Tambah Akun</button>
+      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)<span class="kas-hint" tabindex="0" aria-label="Penjelasan">?<span class="kas-hint-pop">Daftar akun keuangan bisnis dan pribadi kamu. Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban). Sifat tiap akun (kas, operasional, HPP, dst) diatur lewat Jenis Akun — bukan lagi dari nama atau teks. Rekening kas / bank / dompet, usaha maupun pribadi, ditambah lewat Tambah Rekening.</span></span></span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="kasBukaJenis()"><i class="ti ti-tags"></i> Jenis Akun</button>
+        <button class="btn btn-sm" onclick="kasBukaRekening()"><i class="ti ti-building-bank"></i> Tambah Rekening</button>
+        <button class="btn btn-sm btn-primary" onclick="kasShowFormAkun()"><i class="ti ti-plus"></i> Tambah Akun</button>
+      </span>
+    </div>
+    <div class="akun-toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px">
+      <input type="text" id="akun-cari" placeholder="Cari kode / nama / jenis…" oninput="kasAkunFilter()" style="flex:1 1 180px;min-width:140px">
+      <select id="akun-status" onchange="kasAkunFilter()" style="flex:0 0 auto"><option value="aktif">Aktif</option><option value="arsip">Arsip</option><option value="semua">Semua</option></select>
     </div>
     <div id="kas-akun-tbl-scroll">
       <table class="tbl kas-akun-tbl">
-        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Sub Kelompok</th><th>Aksi</th></tr></thead>
-        <tbody id="kas-akun-tbody"><tr><td colspan="5" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Jenis</th><th>Dipakai</th><th>Aksi</th></tr></thead>
+        <tbody id="kas-akun-tbody"><tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -777,10 +792,10 @@ function _kasInjectSheets() {
     </div>
     <input type="hidden" id="akun-edit-id">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
-      <div class="form-group" style="flex:0 1 100px;min-width:90px"><label>Kode Akun</label><input type="text" id="akun-kode" placeholder="mis: 1-001"></div>
+      <div class="form-group" style="flex:0 1 100px;min-width:90px"><label>Kode Akun</label><input type="text" id="akun-kode" placeholder="otomatis"></div>
       <div class="form-group" style="flex:1 1 160px;min-width:140px"><label>Nama Akun</label><input type="text" id="akun-nama" placeholder="mis: Kas Tunai"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Kelompok</label>
-        <select id="akun-kelompok" style="width:100%">
+        <select id="akun-kelompok" style="width:100%" onchange="kasAkunFormRefresh()">
           <option value="aset">Aset</option>
           <option value="kewajiban">Kewajiban</option>
           <option value="modal">Modal</option>
@@ -788,17 +803,90 @@ function _kasInjectSheets() {
           <option value="beban">Beban</option>
         </select>
       </div>
-      <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Sub Kelompok <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="akun-sub" placeholder="mis: Kas & Bank"></div>
+      <div class="form-group" id="akun-sub-wrap" style="flex:1 1 140px;min-width:120px"><label>Sub Kelompok <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="akun-sub" placeholder="mis: Kas & Bank"></div>
+      <div class="form-group" id="akun-jenis-wrap" style="flex:1 1 140px;min-width:120px"><label>Jenis Akun <span style="color:var(--ink3);font-weight:400">(menentukan sifat akun)</span></label>
+        <select id="akun-jenis" style="width:100%" onchange="kasAkunFormRefresh()"><option value="">— tanpa jenis —</option></select>
+      </div>
+      <div class="form-group" id="akun-jenis-baru-wrap" style="flex:1 1 140px;min-width:120px;display:none"><label>Nama Jenis Baru</label><input type="text" id="akun-jenis-baru" placeholder="mis: Dompet Digital"></div>
       <div class="form-group" style="flex:1 1 140px;min-width:120px"><label>Buku</label>
-        <select id="akun-entitas" style="width:100%">
+        <select id="akun-entitas" style="width:100%" onchange="kasAkunFormRefresh()">
           <option value="usaha">Usaha</option>
           <option value="pribadi">Pribadi</option>
         </select>
       </div>
+      <div class="form-group" id="akun-induk-wrap" style="flex:1 1 100%;min-width:120px"><label>Akun Induk <span style="color:var(--ink3);font-weight:400">(opsional — mengelompokkan di tabel)</span></label>
+        <select id="akun-induk" style="width:100%"><option value="">— tanpa induk —</option></select>
+      </div>
+      <div class="form-group" id="akun-tunai-wrap" style="flex:1 1 100%;display:none"><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="akun-tunai"> Akun uang tunai <span style="color:var(--ink3);font-weight:400">(dipakai untuk Penarikan Tunai)</span></label></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="kasSimpanAkun()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-kas-akun')"><i class="ti ti-x"></i> Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: JENIS AKUN -->
+<div class="modal-overlay" id="modal-kas-jenis" onclick="if(event.target===this)hideModal('modal-kas-jenis')">
+  <div class="modal" style="max-width:880px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-tags"></i> Jenis Akun</div>
+      <button onclick="hideModal('modal-kas-jenis')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p style="font-size:12px;color:var(--ink3);margin:0 0 10px;line-height:1.6">Jenis menentukan sifat akun. Centang saklar sesuai fungsinya — sistem membaca saklar ini, bukan nama. Arahkan kursor ke judul kolom untuk penjelasan. Mengganti nama jenis aman: akun-akunnya ikut.</p>
+    <div style="overflow:auto;max-height:52vh;border:1px solid var(--ovl-0_18)">
+      <table class="tbl" style="margin:0"><thead id="kas-jenis-thead"></thead><tbody id="kas-jenis-tbody"></tbody></table>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
+      <div class="form-group" style="flex:1 1 200px;margin:0"><label>Jenis baru</label><input type="text" id="kas-jenis-baru-nama" placeholder="mis: Dompet Digital"></div>
+      <div class="form-group" style="flex:0 1 160px;margin:0"><label>Kelompok</label>
+        <select id="kas-jenis-baru-kel" style="width:100%"><option value="aset">Aset</option><option value="kewajiban">Kewajiban</option><option value="modal">Modal</option><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option></select>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="kasJenisTambah()"><i class="ti ti-plus"></i> Tambah Jenis</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TAMBAH REKENING -->
+<div class="modal-overlay" id="modal-kas-rekening" onclick="if(event.target===this)hideModal('modal-kas-rekening')">
+  <div class="modal" style="max-width:520px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-building-bank"></i> Tambah Rekening</div>
+      <button onclick="hideModal('modal-kas-rekening')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+      <div class="form-group" style="flex:1 1 100%"><label>Nama Rekening</label><input type="text" id="rek-nama" placeholder="mis: BCA Pribadi / GoPay / Dompet"></div>
+      <div class="form-group" style="flex:1 1 140px"><label>Buku</label>
+        <select id="rek-buku" style="width:100%" onchange="kasRekeningRefresh()"><option value="usaha">Usaha</option><option value="pribadi">Pribadi</option></select>
+      </div>
+      <div class="form-group" style="flex:1 1 160px"><label>Jenis</label><select id="rek-jenis" style="width:100%" onchange="kasRekeningRefresh()"></select></div>
+      <div class="form-group" style="flex:1 1 100%"><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="rek-tunai"> Uang tunai / dompet fisik <span style="color:var(--ink3);font-weight:400">(untuk Penarikan Tunai)</span></label></div>
+      <div class="form-group" style="flex:1 1 160px"><label>Saldo Awal (Rp) <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" inputmode="numeric" id="rek-saldo" placeholder="0" oninput="idrInput('rek-saldo')"></div>
+      <div class="form-group" style="flex:1 1 140px"><label>Tanggal Saldo Awal</label><input type="date" id="rek-tgl"></div>
+      <div class="form-group" style="flex:1 1 100%"><label>Saldo awal dicatat terhadap <span style="color:var(--ink3);font-weight:400">(akun Modal)</span></label><select id="rek-lawan" style="width:100%"></select></div>
+      <div class="form-group" style="flex:0 1 140px"><label>Kode <span style="color:var(--ink3);font-weight:400">(opsional)</span></label><input type="text" id="rek-kode" placeholder="otomatis"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="kasSimpanRekening()"><i class="ti ti-device-floppy"></i> Simpan</button>
+      <button class="btn btn-sm" onclick="hideModal('modal-kas-rekening')"><i class="ti ti-x"></i> Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GABUNG AKUN -->
+<div class="modal-overlay" id="modal-kas-gabung" onclick="if(event.target===this)hideModal('modal-kas-gabung')">
+  <div class="modal" style="max-width:480px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-arrows-join"></i> Gabung Akun</div>
+      <button onclick="hideModal('modal-kas-gabung')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <input type="hidden" id="gab-sumber-id">
+    <div class="form-group"><label>Akun yang digabung</label><div id="gab-sumber" style="padding:6px 0"></div></div>
+    <div class="form-group"><label>Gabung ke akun</label><select id="gab-tujuan" style="width:100%"></select></div>
+    <p id="gab-info" style="font-size:12px;color:var(--ink3);line-height:1.6;margin:0 0 12px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" id="gab-btn" onclick="kasEksekusiGabung()"><i class="ti ti-arrows-join"></i> Gabungkan</button>
+      <button class="btn btn-sm" onclick="hideModal('modal-kas-gabung')"><i class="ti ti-x"></i> Batal</button>
     </div>
   </div>
 </div>
@@ -1033,7 +1121,7 @@ var _KAS_VIRT = {
   'v-ke':   { id: 'v-ke',   nama: 'Setor ke Usaha (Modal)',  kelompok: 'modal', entitas: 'pribadi', virtual: true }
 };
 function _kasRegVirt() { Object.keys(_KAS_VIRT).forEach(function(k) { _kasAkunMap[k] = _KAS_VIRT[k]; }); }
-function _kasIsKasAkun(a) { return !!(a && a.kelompok === 'aset' && String(a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'); }
+function _kasIsKasAkun(a) { return !!(a && akunIsKas(a)); }
 function _kasKasView(rows) {
   if (_kasBuku !== 'pribadi' || !rows || !rows.length) return rows;
   var ekp = Object.values(_kasAkunMap).find(function(a) { return a.peran === 'ekuitas_pribadi'; });
@@ -1078,7 +1166,7 @@ function _kasAkunBolehBuku(akun, tipe, sisi, formBuku) {
   if ((akun.entitas || 'usaha') === formBuku) return true;
   var sisiUang = (tipe === 'keluar' && sisi === 'kredit') || (tipe === 'masuk' && sisi === 'debit')
               || (tipe === 'pinjaman' && sisi === 'debit') || (tipe === 'bayar_pinjaman' && sisi === 'kredit');
-  return sisiUang && akun.kelompok === 'aset' && String(akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+  return sisiUang && akunIsKas(akun);
 }
 function _kasBukuForm() { var el = document.getElementById('kas-jrn-buku'); return (el && el.value) || null; }
 function _kasBukuFormPaint() {
@@ -1107,83 +1195,280 @@ function kasSetBukuForm(v) {
   });
 }
 
+// ─── KELOLA AKUN (23 Nov 2026) ───────────────────────────────
+// Jenis Akun (saklar sifat, bukan teks) · Tambah Rekening · Pemakaian · Arsip · Gabung · Akun induk · Kode otomatis.
+// Semua fitur baru butuh migrasi zenoot-kelola-akun.sql; sebelum dijalankan, halaman ini tetap jalan seperti dulu.
+var _kasAkunRows = [];            // akun dari DB (tanpa akun virtual)
+var _kasAkunQ = '';
+var _kasAkunStatus = 'aktif';     // aktif | arsip | semua
+var _kasAkunCollapsed = {};
+var _kasPakai = null;             // { [akunId]: { n: jumlah transaksi, last: 'YYYY-MM-DD' } }
+var _kasPakaiTs = 0;
+var _kasAkunSiap = false;         // kolom baru + tabel akun_jenis sudah ada
+var _KAS_URUT_KELOMPOK = ['aset', 'kewajiban', 'modal', 'pendapatan', 'beban'];
+var _KAS_FLAG_JENIS = [   // saklar sifat per Jenis Akun: [kunci, judul kolom, kelompok yang boleh, penjelasan]
+  ['kas',         'Kas',         ['aset'],  'Dihitung sebagai uang kas / bank (saldo kas, cashflow, pilihan rekening)'],
+  ['persediaan',  'Persediaan',  ['aset'],  'Nilainya diambil dari stok produk, bukan dari jurnal'],
+  ['operasional', 'Operasional', ['beban'], 'Masuk Beban Operasional (Analisis, Anggaran, Dashboard)'],
+  ['produksi',    'Produksi',    ['beban'], 'Beban produksi: dihitung di Cost Produksi, tidak ikut Beban Operasional'],
+  ['hpp',         'HPP',         ['beban'], 'Harga pokok: tidak ikut Beban Operasional'],
+  ['harian',      'Harian',      ['beban'], 'Biaya sehari-hari: dipisah dari Beban Operasional']
+];
+
+function _kasAkEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function _kasPesanMigrasi() { alert('Fitur ini butuh migrasi database dulu.\n\nJalankan zenoot-kelola-akun.sql di Supabase (SQL Editor), lalu muat ulang aplikasi.'); }
+function _kasTglPendek(t) {
+  if (!t) return '';
+  var m = String(t).slice(0, 10).split('-'); if (m.length !== 3) return t;
+  var bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return parseInt(m[2], 10) + ' ' + (bln[parseInt(m[1], 10) - 1] || '') + ' ' + m[0].slice(2);
+}
+
 // ─── LOAD AKUN ───────────────────────────────────────────────
-async function kasLoadAkun() {
+async function kasLoadAkun(tanpaPakai) {
   try {
-    const data = await dbGet('kas_akun', '&order=kode.asc');
+    const data = await dbGetAkun('&order=kode.asc');
+    _kasAkunRows = data || [];
     _kasAkunMap = {};
-    (data || []).forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasAkunRows.forEach(a => { _kasAkunMap[a.id] = a; });
+    _kasAkunSiap = !!(_kasAkunRows.length && ('jenis_id' in _kasAkunRows[0]) && ('aktif' in _kasAkunRows[0]) && _AKUN_JENIS.ok);
     _kasRegVirt();
     _kasBukuSync();
-    kasRenderAkunTabel((data || []).filter(a => _kasBukuOk(a.entitas)));
-    kasPopulateAkunDropdown(data || []);   // pemilih transaksi: SEMUA akun (kedua buku)
+    kasRenderAkunTabel();
+    kasPopulateAkunDropdown(_kasAkunRows);   // pemilih transaksi: SEMUA akun (kedua buku), kecuali yang diarsipkan
     _kasRelockAkun();
+    if (!tanpaPakai) kasMuatPakaiAkun();
   } catch(e) {
-    document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
+}
+
+// Pemakaian akun: jumlah transaksi & tanggal terakhir per akun (dibaca ringan: 3 kolom saja, per 1000 baris)
+async function kasMuatPakaiAkun(paksa) {
+  if (!paksa && _kasPakai && (Date.now() - _kasPakaiTs) < 45000) return;
+  try {
+    var map = {}, off = 0, ukuran = 1000;
+    for (var guard = 0; guard < 200; guard++) {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/jurnal?select=akun_debit_id,akun_kredit_id,tanggal&order=id.asc&limit=' + ukuran + '&offset=' + off, { headers: _headers() });
+      var rows = await res.json();
+      if (!res.ok) throw new Error(rows.message || 'pemakaian akun error ' + res.status);
+      rows.forEach(function(r) {
+        [r.akun_debit_id, r.akun_kredit_id].forEach(function(id) {
+          if (id == null) return;
+          var o = map[id] || (map[id] = { n: 0, last: '' });
+          o.n++; if (r.tanggal && r.tanggal > o.last) o.last = r.tanggal;
+        });
+      });
+      if (rows.length < ukuran) break;
+      off += ukuran;
+    }
+    _kasPakai = map; _kasPakaiTs = Date.now();
+    kasRenderAkunTabel();
+  } catch(e) { console.warn('Pemakaian akun gagal dimuat:', e.message); }
 }
 
 function kasKelompokLabel(k) {
   return { aset:'Aset', kewajiban:'Kewajiban', modal:'Modal', pendapatan:'Pendapatan', beban:'Beban' }[k] || k;
 }
 
-function kasRenderAkunTabel(data) {
-  const tbody = document.getElementById('kas-akun-tbody');
-  if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--ink3);font-style:italic">Belum ada akun</td></tr>`; return; }
-  const order = ['aset','kewajiban','modal','pendapatan','beban'];
-  const sorted = [...data].sort((a,b) => { const ki = order.indexOf(a.kelompok) - order.indexOf(b.kelompok); return ki !== 0 ? ki : (a.kode||'').localeCompare(b.kode||''); });
-  tbody.innerHTML = sorted.map(a => {
-    const safeNama = (a.nama||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return `<tr>
-      <td style="font-weight:700;font-family:monospace">${a.kode||'—'}</td>
-      <td>${a.nama||'—'}${a.entitas === 'pribadi' ? ' <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:rgba(123,97,201,.15);color:#7B61C9">Pribadi</span>' : ''}${a.peran ? ' <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:var(--cream3)">akun khusus</span>' : ''}${a.sub_kelompok ? `<div class="akun-sub-m">${a.sub_kelompok}</div>` : ''}</td>
+function kasAkunFilter() {
+  var q = document.getElementById('akun-cari'), st = document.getElementById('akun-status');
+  _kasAkunQ = q ? q.value.trim().toLowerCase() : '';
+  _kasAkunStatus = st ? st.value : 'aktif';
+  kasRenderAkunTabel();
+}
+
+function _kasAkunJenisNama(a) { var j = (a.jenis_id != null) ? _AKUN_JENIS.byId[a.jenis_id] : null; return j ? j.nama : (a.sub_kelompok || ''); }
+
+function kasRenderAkunTabel() {
+  const tbody = document.getElementById('kas-akun-tbody'); if (!tbody) return;
+  var semua = _kasAkunRows.filter(a => _kasBukuOk(a.entitas));
+  if (!semua.length) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada akun</td></tr>`; return; }
+  // Roll-up pemakaian: akun induk = dirinya + semua turunannya
+  var anak = {};
+  _kasAkunRows.forEach(a => { if (a.parent_id != null) (anak[a.parent_id] = anak[a.parent_id] || []).push(a); });
+  function agregat(a, dalam) {
+    var o = _kasPakai ? (_kasPakai[a.id] || { n: 0, last: '' }) : { n: 0, last: '' };
+    var n = o.n, last = o.last;
+    if (dalam > 6) return { n: n, last: last };
+    (anak[a.id] || []).forEach(c => { var r = agregat(c, dalam + 1); n += r.n; if (r.last > last) last = r.last; });
+    return { n: n, last: last };
+  }
+  // Filter status + pencarian
+  var q = _kasAkunQ;
+  var lolos = semua.filter(a => {
+    var aktif = akunAktif(a);
+    if (_kasAkunStatus === 'aktif' && !aktif) return false;
+    if (_kasAkunStatus === 'arsip' && aktif) return false;
+    if (!q) return true;
+    return ((a.kode || '') + ' ' + (a.nama || '') + ' ' + _kasAkunJenisNama(a)).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!lolos.length) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">${q ? 'Tidak ada akun yang cocok dengan pencarian' : (_kasAkunStatus === 'arsip' ? 'Belum ada akun yang diarsipkan' : 'Belum ada akun')}</td></tr>`; return; }
+  var ada = {}; lolos.forEach(a => { ada[a.id] = a; });
+  var kids = {}, roots = [];
+  lolos.forEach(a => {
+    var p = a.parent_id != null ? ada[a.parent_id] : null;
+    if (p && p.kelompok === a.kelompok) (kids[p.id] = kids[p.id] || []).push(a); else roots.push(a);
+  });
+  var cmp = (a, b) => { var ki = _KAS_URUT_KELOMPOK.indexOf(a.kelompok) - _KAS_URUT_KELOMPOK.indexOf(b.kelompok); return ki !== 0 ? ki : (a.kode || '').localeCompare(b.kode || ''); };
+  roots.sort(cmp);
+  var urut = [];
+  (function jalan(list, level) {
+    list.forEach(a => {
+      urut.push({ a: a, level: level });
+      var ks = kids[a.id];
+      if (ks && ks.length && !(_kasAkunCollapsed[a.id] && !q)) jalan(ks.slice().sort(cmp), Math.min(level + 1, 4));
+    });
+  })(roots, 0);
+
+  tbody.innerHTML = urut.map(it => {
+    const a = it.a, safeNama = _kasAkEsc(a.nama);
+    const adaAnak = !!(kids[a.id] && kids[a.id].length);
+    const ag = agregat(a, 0), aktif = akunAktif(a), bisaHapus = !a.peran && !adaAnak && !(anak[a.id] || []).length && (!_kasPakai || ag.n === 0);
+    const jenisNama = _kasAkunJenisNama(a);
+    const pakaiTeks = !_kasPakai ? '<span class="akun-nol">…</span>' : (ag.n ? ag.n + ' transaksi · ' + _kasTglPendek(ag.last) : '<span class="akun-nol">Belum dipakai</span>');
+    const chev = adaAnak ? `<button class="akun-induk-btn" data-action="toggle-induk" data-id="${a.id}" title="Lipat / buka akun di bawahnya"><i class="ti ti-chevron-${_kasAkunCollapsed[a.id] && !q ? 'right' : 'down'}"></i></button>` : '<span class="akun-induk-gap"></span>';
+    const badges = (a.entitas === 'pribadi' ? ' <span class="akun-chip" style="background:rgba(123,97,201,.15);color:#7B61C9">Pribadi</span>' : '')
+      + (a.peran ? ' <span class="akun-chip" style="background:var(--cream3,#ece9e0);color:var(--ink3)">akun khusus</span>' : '')
+      + (a.is_tunai ? ' <span class="akun-chip" style="background:rgba(46,160,67,.14);color:#2e7d32">Tunai</span>' : '')
+      + (!aktif ? ' <span class="akun-chip" style="background:rgba(200,60,60,.12);color:var(--danger)">Arsip</span>' : '');
+    const aksi = `<button class="btn btn-sm" data-action="edit-akun" data-id="${a.id}" title="Edit" style="margin-right:4px"><i class="ti ti-edit"></i></button>`
+      + (_kasAkunSiap && !a.peran ? (aktif
+          ? `<button class="btn btn-sm" data-action="gabung-akun" data-id="${a.id}" title="Gabung ke akun lain" style="margin-right:4px"><i class="ti ti-arrows-join"></i></button><button class="btn btn-sm" data-action="arsip-akun" data-id="${a.id}" data-nama="${safeNama}" title="Arsipkan (hilang dari pilihan, riwayat tetap)" style="margin-right:4px"><i class="ti ti-archive"></i></button>`
+          : `<button class="btn btn-sm" data-action="pulih-akun" data-id="${a.id}" title="Pulihkan dari arsip" style="margin-right:4px"><i class="ti ti-arrow-back-up"></i></button>`) : '')
+      + (bisaHapus ? `<button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}" title="Hapus"><i class="ti ti-trash"></i></button>` : '');
+    return `<tr${aktif ? '' : ' style="opacity:.6"'}>
+      <td style="font-weight:700;font-family:monospace">${_kasAkEsc(a.kode) || '—'}</td>
+      <td style="padding-left:${8 + it.level * 20}px"><span style="display:inline-flex;align-items:center;gap:4px">${chev}<span>${_kasAkEsc(a.nama) || '—'}</span></span>${badges}<div class="akun-sub-m">${_kasAkEsc(jenisNama) || ''}${jenisNama ? ' · ' : ''}${_kasPakai ? (ag.n ? ag.n + ' transaksi' : 'belum dipakai') : ''}</div></td>
       <td><span class="akun-badge akun-${a.kelompok}">${kasKelompokLabel(a.kelompok)}</span></td>
-      <td style="color:var(--ink3);font-size:12px">${a.sub_kelompok||'—'}</td>
-      <td>
-        <button class="btn btn-sm" data-action="edit-akun" data-id="${a.id}" style="margin-right:4px"><i class="ti ti-edit"></i></button>
-        ${a.peran ? '' : `<button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}"><i class="ti ti-trash"></i></button>`}
-      </td>
+      <td style="color:var(--ink3);font-size:12px">${_kasAkEsc(jenisNama) || '—'}</td>
+      <td class="akun-pakai">${pakaiTeks}</td>
+      <td style="white-space:nowrap">${aksi}</td>
     </tr>`;
   }).join('');
 }
 
 function kasPopulateAkunDropdown(data) {
-  const order = ['aset','kewajiban','modal','pendapatan','beban'];
-  const grouped = {}; order.forEach(k => grouped[k] = []);
+  const grouped = {}; _KAS_URUT_KELOMPOK.forEach(k => grouped[k] = []);
   data.forEach(a => { if (grouped[a.kelompok]) grouped[a.kelompok].push(a); });
   let html = '<option value="">— Pilih Akun —</option>';
-  order.forEach(k => {
+  _KAS_URUT_KELOMPOK.forEach(k => {
     if (!grouped[k].length) return;
     html += `<optgroup label="── ${kasKelompokLabel(k)} ──">`;
-    grouped[k].forEach(a => { html += `<option value="${a.id}">${_kasAkunLabel(a)}</option>`; });
+    // akun arsip tetap ada di <select> (nilai transaksi lama harus tetap terbaca), tapi tidak muncul di daftar pilihan visual
+    grouped[k].forEach(a => { html += `<option value="${a.id}">${_kasAkunLabel(a)}${akunAktif(a) ? '' : ' (arsip)'}</option>`; });
     html += '</optgroup>';
   });
-  // Populate semua select — BRImo sheet + modal edit
   ['kas-jrn-akun-debit','kas-jrn-akun-kredit','kas-edit-akun-debit','kas-edit-akun-kredit'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
-  // Populate custom picker list — BRImo sheet
-  kasPopulatePickerList('picker-debit-list', data);
-  kasPopulatePickerList('picker-kredit-list', data);
-  // Populate custom picker list — modal edit
-  kasPopulatePickerList('picker-edit-debit-list', data);
-  kasPopulatePickerList('picker-edit-kredit-list', data);
+  const aktifSaja = data.filter(akunAktif);
+  kasPopulatePickerList('picker-debit-list', aktifSaja);
+  kasPopulatePickerList('picker-kredit-list', aktifSaja);
+  kasPopulatePickerList('picker-edit-debit-list', aktifSaja);
+  kasPopulatePickerList('picker-edit-kredit-list', aktifSaja);
+}
+
+// ─── KODE OTOMATIS ───────────────────────────────────────────
+// Meniru kode akun sejenis (jenis yang sama, kalau kosong: kelompok & buku yang sama) lalu +1. Bisa ditimpa user.
+function kasKodeOtomatis(kelompok, entitas, jenisId, kecualiId) {
+  var ent = entitas || 'usaha';
+  var rows = _kasAkunRows.filter(a => a.kelompok === kelompok && (a.entitas || 'usaha') === ent && a.kode && String(a.id) !== String(kecualiId));
+  var pool = jenisId ? rows.filter(a => String(a.jenis_id) === String(jenisId)) : [];
+  if (!pool.length) pool = rows;
+  var pakai = {}; _kasAkunRows.forEach(a => { if (a.kode) pakai[String(a.kode).trim().toUpperCase()] = true; });
+  var pre, n, w;
+  var terakhir = pool.slice().sort((a, b) => String(a.kode).localeCompare(String(b.kode), undefined, { numeric: true })).pop();
+  var m = terakhir ? /^(.*?)(\d+)$/.exec(String(terakhir.kode).trim()) : null;
+  if (m) { pre = m[1]; n = parseInt(m[2], 10) + 1; w = m[2].length; }
+  else {
+    var d = { aset: 1, kewajiban: 2, modal: 3, pendapatan: 4, beban: 5 }[kelompok] || 9;   // kebiasaan akuntansi, hanya SARAN awal
+    if (ent === 'pribadi') { pre = 'P-' + d; n = 1; w = 2; } else { pre = d + '-'; n = 1; w = 3; }
+  }
+  for (var i = 0; i < 2000; i++) {
+    var kode = pre + String(n).padStart(w, '0');
+    if (!pakai[kode.toUpperCase()]) return kode;
+    n++;
+  }
+  return pre + String(n);
+}
+
+// ─── FORM AKUN ───────────────────────────────────────────────
+function _kasAkVal(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+function _kasAkunTurunan(id) {   // id semua turunan akun (untuk mencegah induk melingkar)
+  var hasil = {}, antri = [String(id)];
+  while (antri.length) { var cur = antri.pop(); _kasAkunRows.forEach(a => { if (a.parent_id != null && String(a.parent_id) === cur && !hasil[a.id]) { hasil[a.id] = true; antri.push(String(a.id)); } }); }
+  return hasil;
+}
+function kasAkunFormRefresh() {
+  var siap = _kasAkunSiap, kel = _kasAkVal('akun-kelompok'), ent = _kasAkVal('akun-entitas'), editId = _kasAkVal('akun-edit-id');
+  var wJ = document.getElementById('akun-jenis-wrap'), wS = document.getElementById('akun-sub-wrap'), wI = document.getElementById('akun-induk-wrap'), wT = document.getElementById('akun-tunai-wrap'), wB = document.getElementById('akun-jenis-baru-wrap');
+  if (wJ) wJ.style.display = siap ? '' : 'none';
+  if (wS) wS.style.display = siap ? 'none' : '';
+  if (wI) wI.style.display = siap ? '' : 'none';
+  if (!siap) { if (wT) wT.style.display = 'none'; if (wB) wB.style.display = 'none'; return; }
+  var sel = document.getElementById('akun-jenis'), cur = sel.value;
+  sel.innerHTML = '<option value="">— tanpa jenis —</option>'
+    + _AKUN_JENIS.list.filter(j => j.kelompok === kel).map(j => `<option value="${j.id}">${_kasAkEsc(j.nama)}</option>`).join('')
+    + '<option value="__baru">＋ Jenis baru…</option>';
+  if (cur && Array.prototype.some.call(sel.options, o => o.value === cur)) sel.value = cur;
+  var j = _AKUN_JENIS.byId[sel.value];
+  if (wB) wB.style.display = (sel.value === '__baru') ? '' : 'none';
+  if (wT) wT.style.display = (kel === 'aset' && j && j.is_kas) ? '' : 'none';
+  // Induk: akun lain di kelompok & buku yang sama (bukan dirinya / turunannya)
+  var tur = editId ? _kasAkunTurunan(editId) : {};
+  var ip = document.getElementById('akun-induk'), curI = ip.value;
+  ip.innerHTML = '<option value="">— tanpa induk —</option>' + _kasAkunRows
+    .filter(a => a.kelompok === kel && (a.entitas || 'usaha') === ent && akunAktif(a) && String(a.id) !== String(editId) && !tur[a.id])
+    .sort((a, b) => String(a.kode).localeCompare(String(b.kode), undefined, { numeric: true }))
+    .map(a => `<option value="${a.id}">${_kasAkEsc(a.kode)} · ${_kasAkEsc(a.nama)}</option>`).join('');
+  if (curI && Array.prototype.some.call(ip.options, o => o.value === curI)) ip.value = curI;
+  var kodeEl = document.getElementById('akun-kode');
+  if (kodeEl) kodeEl.placeholder = 'otomatis: ' + kasKodeOtomatis(kel, ent, (j ? j.id : null), editId);
 }
 
 async function kasSimpanAkun() {
   const id   = document.getElementById('akun-edit-id').value;
-  const data = { kode: document.getElementById('akun-kode').value.trim(), nama: document.getElementById('akun-nama').value.trim(), kelompok: document.getElementById('akun-kelompok').value, sub_kelompok: document.getElementById('akun-sub').value.trim() || null, entitas: document.getElementById('akun-entitas').value || 'usaha' };
-  if (!data.nama) { alert('Nama akun wajib diisi!'); return; }
+  const kel  = document.getElementById('akun-kelompok').value;
+  const ent  = document.getElementById('akun-entitas').value;
+  const nama = document.getElementById('akun-nama').value.trim();
+  if (!nama) { alert('Nama akun wajib diisi!'); return; }
+  const data = { nama: nama, kelompok: kel, entitas: ent };
   try {
+    var jenisId = null;
+    if (_kasAkunSiap) {
+      var js = _kasAkVal('akun-jenis'), j = null;
+      if (js === '__baru') {
+        var nj = _kasAkVal('akun-jenis-baru').trim();
+        if (!nj) { alert('Isi nama jenis baru, atau pilih jenis yang sudah ada.'); return; }
+        var ada = _AKUN_JENIS.list.find(x => x.kelompok === kel && String(x.nama).trim().toLowerCase() === nj.toLowerCase());
+        if (ada) j = ada;
+        else { var ins = await dbInsert('akun_jenis', { nama: nj, kelompok: kel }); j = Array.isArray(ins) ? ins[0] : ins; await akunJenisLoad(true); }
+      } else if (js) j = _AKUN_JENIS.byId[js];
+      jenisId = j ? j.id : null;
+      data.jenis_id = jenisId;
+      data.sub_kelompok = j ? j.nama : null;
+      var pi = _kasAkVal('akun-induk');
+      data.parent_id = pi ? pi : null;
+      data.is_tunai = !!(kel === 'aset' && j && j.is_kas && document.getElementById('akun-tunai').checked);
+    } else {
+      data.sub_kelompok = _kasAkVal('akun-sub').trim() || null;
+    }
+    var kode = _kasAkVal('akun-kode').trim();
+    data.kode = kode || kasKodeOtomatis(kel, ent, jenisId, id);
     if (id) { await dbUpdate('kas_akun', id, data); } else { await dbInsert('kas_akun', data); }
-    kasResetFormAkun(); kasLoadAkun(); loadKasJurnal();   // entitas berubah → jurnal lama bisa ikut dipecah di DB, muat ulang
+    kasResetFormAkun(); hideModal('modal-kas-akun'); kasLoadAkun(); loadKasJurnal();   // entitas berubah → jurnal lama bisa ikut dipecah di DB, muat ulang
   } catch(e) { alert('Gagal simpan: ' + e.message + (/entitas/i.test(e.message) && /column|kolom/i.test(e.message) ? '\n\nJalankan zenoot-pisah-pribadi-usaha.sql di Supabase dulu.' : '')); }
 }
 
 function kasResetFormAkun() {
-  ['akun-edit-id','akun-kode','akun-nama','akun-sub'].forEach(id => document.getElementById(id).value = '');
+  ['akun-edit-id','akun-kode','akun-nama','akun-sub','akun-jenis-baru'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('akun-kelompok').value = 'aset';
   document.getElementById('akun-entitas').value  = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';   // akun baru ikut buku yang sedang dibuka
   document.getElementById('akun-entitas').disabled = false;
+  var jn = document.getElementById('akun-jenis'); if (jn) jn.value = '';
+  var ip = document.getElementById('akun-induk'); if (ip) ip.value = '';
+  var tn = document.getElementById('akun-tunai'); if (tn) tn.checked = false;
   document.getElementById('akun-form-title').innerHTML = '<i class="ti ti-plus"></i> Tambah Akun Baru';
+  kasAkunFormRefresh();
 }
 
 function kasShowFormAkun() {
@@ -1201,13 +1486,173 @@ async function kasEditAkun(id) {
   document.getElementById('akun-entitas').value  = a.entitas || 'usaha';
   document.getElementById('akun-entitas').disabled = !!a.peran;   // akun khusus (Prive / Modal Disetor / Ekuitas Pribadi): buku tetap
   document.getElementById('akun-form-title').innerHTML = '<i class="ti ti-edit"></i> Edit Akun';
+  kasAkunFormRefresh();
+  if (_kasAkunSiap) {
+    document.getElementById('akun-jenis').value = (a.jenis_id != null) ? String(a.jenis_id) : '';
+    kasAkunFormRefresh();
+    document.getElementById('akun-induk').value = (a.parent_id != null) ? String(a.parent_id) : '';
+    document.getElementById('akun-tunai').checked = !!a.is_tunai;
+  }
   showModal('modal-kas-akun');
 }
 
 async function kasHapusAkun(id, nama) {
   confirmDelete(`Hapus akun "${nama}"?`, async () => {
-    try { await dbDelete('kas_akun', id); kasLoadAkun(); } catch(e) { alert('Gagal hapus: ' + e.message); }
+    try { await dbDelete('kas_akun', id, true); _kasPakaiTs = 0; kasLoadAkun(); } catch(e) { alert('Gagal hapus: ' + e.message + '\n\nKalau akun ini masih dipakai transaksi, arsipkan saja (tombol arsip) — riwayatnya tetap utuh.'); }
   });
+}
+
+// ─── ARSIP ───────────────────────────────────────────────────
+async function kasArsipAkun(id, nama, arsip) {
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  const jalan = async () => {
+    try { await dbUpdate('kas_akun', id, { aktif: !arsip }); kasLoadAkun(true); }
+    catch(e) { alert('Gagal: ' + e.message); }
+  };
+  if (arsip) { if (confirm('Arsipkan akun "' + nama + '"?\n\nAkun tidak muncul lagi di pilihan transaksi. Riwayat & laporan lama tetap utuh, bisa dipulihkan kapan saja.')) jalan(); }
+  else jalan();
+}
+
+// ─── JENIS AKUN ──────────────────────────────────────────────
+function kasBukaJenis() {
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  kasRenderJenis();
+  showModal('modal-kas-jenis');
+}
+function kasRenderJenis() {
+  var tb = document.getElementById('kas-jenis-tbody'); if (!tb) return;
+  var cnt = {}; _kasAkunRows.forEach(a => { if (a.jenis_id != null) cnt[a.jenis_id] = (cnt[a.jenis_id] || 0) + 1; });
+  var head = '<tr><th>Jenis</th><th>Kelompok</th>' + _KAS_FLAG_JENIS.map(f => `<th title="${_kasAkEsc(f[3])}" style="text-align:center;cursor:help">${f[1]}</th>`).join('') + '<th style="text-align:right">Akun</th><th></th></tr>';
+  document.getElementById('kas-jenis-thead').innerHTML = head;
+  var urut = _AKUN_JENIS.list.slice().sort((a, b) => (_KAS_URUT_KELOMPOK.indexOf(a.kelompok) - _KAS_URUT_KELOMPOK.indexOf(b.kelompok)) || String(a.nama).localeCompare(String(b.nama), 'id'));
+  tb.innerHTML = urut.map(j => {
+    var flags = _KAS_FLAG_JENIS.map(f => {
+      if (f[2].indexOf(j.kelompok) < 0) return '<td style="text-align:center;color:var(--ink4)">·</td>';
+      return `<td style="text-align:center"><input type="checkbox" ${j['is_' + f[0]] ? 'checked' : ''} onchange="kasJenisFlag(${j.id},'${f[0]}',this.checked)" title="${_kasAkEsc(f[3])}"></td>`;
+    }).join('');
+    var n = cnt[j.id] || 0;
+    return `<tr>
+      <td><input type="text" value="${_kasAkEsc(j.nama)}" style="width:100%;min-width:130px" onchange="kasJenisRename(${j.id},this.value,this)"></td>
+      <td><span class="akun-badge akun-${j.kelompok}">${kasKelompokLabel(j.kelompok)}</span></td>
+      ${flags}
+      <td style="text-align:right;color:var(--ink3)">${n}</td>
+      <td style="text-align:right">${n ? '' : `<button class="btn btn-sm btn-danger" onclick="kasJenisHapus(${j.id},'${_kasAkEsc(j.nama).replace(/'/g, '&#39;')}')" title="Hapus jenis"><i class="ti ti-trash"></i></button>`}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="10" style="color:var(--ink3);font-style:italic">Belum ada jenis</td></tr>`;
+}
+async function kasJenisFlag(id, flag, on) {
+  var j = _AKUN_JENIS.byId[id]; if (!j) return;
+  if (flag === 'kas' && !on && !confirm('Akun-akun di jenis "' + j.nama + '" tidak lagi dihitung sebagai kas / bank (saldo kas, cashflow, pilihan rekening). Lanjut?')) { kasRenderJenis(); return; }
+  try {
+    var p = {}; p['is_' + flag] = !!on;
+    await dbUpdate('akun_jenis', id, p);
+    await akunJenisLoad(true);
+    kasRenderJenis(); kasRenderAkunTabel(); kasLoadAkun(true); loadKasJurnal();
+  } catch(e) { alert('Gagal: ' + e.message); kasRenderJenis(); }
+}
+async function kasJenisRename(id, nama, el) {
+  var j = _AKUN_JENIS.byId[id]; if (!j) return;
+  nama = String(nama || '').trim();
+  if (!nama) { if (el) el.value = j.nama; return; }
+  if (nama === j.nama) return;
+  if (_AKUN_JENIS.list.some(x => x.id !== id && x.kelompok === j.kelompok && String(x.nama).trim().toLowerCase() === nama.toLowerCase())) { alert('Sudah ada jenis dengan nama itu di kelompok ' + kasKelompokLabel(j.kelompok) + '.'); if (el) el.value = j.nama; return; }
+  try {
+    await dbUpdate('akun_jenis', id, { nama: nama });
+    await dbUpdateWhere('kas_akun', 'jenis_id=eq.' + id, { sub_kelompok: nama });   // teks sub kelompok ikut (dipakai tampilan laporan)
+    await akunJenisLoad(true);
+    kasRenderJenis(); kasLoadAkun(true); loadKasJurnal();
+  } catch(e) { alert('Gagal ganti nama: ' + e.message); if (el) el.value = j.nama; }
+}
+async function kasJenisTambah() {
+  var nama = (document.getElementById('kas-jenis-baru-nama').value || '').trim(), kel = document.getElementById('kas-jenis-baru-kel').value;
+  if (!nama) { alert('Isi nama jenis.'); return; }
+  if (_AKUN_JENIS.list.some(x => x.kelompok === kel && String(x.nama).trim().toLowerCase() === nama.toLowerCase())) { alert('Jenis itu sudah ada di kelompok ' + kasKelompokLabel(kel) + '.'); return; }
+  try {
+    await dbInsert('akun_jenis', { nama: nama, kelompok: kel });
+    document.getElementById('kas-jenis-baru-nama').value = '';
+    await akunJenisLoad(true);
+    kasRenderJenis(); kasAkunFormRefresh();
+  } catch(e) { alert('Gagal: ' + e.message); }
+}
+async function kasJenisHapus(id, nama) {
+  confirmDelete('Hapus jenis "' + nama + '"?', async function() {
+    try { await dbDelete('akun_jenis', id, true); await akunJenisLoad(true); kasRenderJenis(); kasAkunFormRefresh(); }
+    catch(e) { alert('Gagal hapus: ' + e.message); }
+  });
+}
+
+// ─── TAMBAH REKENING (kas / bank / dompet, usaha atau pribadi) ───────
+function kasBukaRekening() {
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  var jk = _AKUN_JENIS.list.filter(j => j.kelompok === 'aset' && j.is_kas);
+  if (!jk.length) { alert('Belum ada Jenis Akun bersaklar "Kas". Buka Jenis Akun, lalu centang Kas pada jenis rekening kamu.'); kasBukaJenis(); return; }
+  document.getElementById('rek-nama').value = ''; document.getElementById('rek-kode').value = '';
+  document.getElementById('rek-buku').value = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';
+  document.getElementById('rek-jenis').innerHTML = jk.map(j => `<option value="${j.id}">${_kasAkEsc(j.nama)}</option>`).join('');
+  document.getElementById('rek-tunai').checked = false;
+  idrSet('rek-saldo', 0);
+  var n = new Date(); document.getElementById('rek-tgl').value = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+  kasRekeningRefresh();
+  showModal('modal-kas-rekening');
+}
+function kasRekeningRefresh() {
+  var ent = _kasAkVal('rek-buku'), jid = _kasAkVal('rek-jenis');
+  document.getElementById('rek-kode').placeholder = 'otomatis: ' + kasKodeOtomatis('aset', ent, jid);
+  var modal = _kasAkunRows.filter(a => a.kelompok === 'modal' && (a.entitas || 'usaha') === ent && !a.peran && akunAktif(a)).sort((a, b) => String(a.kode).localeCompare(String(b.kode), undefined, { numeric: true }));
+  var sel = document.getElementById('rek-lawan'), cur = sel.value;
+  sel.innerHTML = modal.length ? modal.map(a => `<option value="${a.id}">${_kasAkEsc(a.kode)} · ${_kasAkEsc(a.nama)}</option>`).join('') : '<option value="">(belum ada akun Modal di buku ini)</option>';
+  if (cur && Array.prototype.some.call(sel.options, o => o.value === cur)) sel.value = cur;
+}
+async function kasSimpanRekening() {
+  var nama = _kasAkVal('rek-nama').trim(), ent = _kasAkVal('rek-buku'), jid = _kasAkVal('rek-jenis');
+  var saldo = idrVal('rek-saldo'), tgl = _kasAkVal('rek-tgl'), lawan = _kasAkVal('rek-lawan');
+  if (!nama) { alert('Nama rekening wajib diisi!'); return; }
+  if (!jid) { alert('Pilih jenis rekening.'); return; }
+  if (saldo > 0 && !lawan) { alert('Saldo awal butuh akun Modal sebagai lawan. Buat akun Modal di buku ini dulu (Tambah Akun › Kelompok Modal), atau kosongkan saldo awal.'); return; }
+  if (saldo > 0 && !tgl) { alert('Isi tanggal saldo awal.'); return; }
+  var j = _AKUN_JENIS.byId[jid];
+  try {
+    var kode = _kasAkVal('rek-kode').trim() || kasKodeOtomatis('aset', ent, jid);
+    var ins = await dbInsert('kas_akun', { kode: kode, nama: nama, kelompok: 'aset', jenis_id: j.id, sub_kelompok: j.nama, entitas: ent, is_tunai: !!document.getElementById('rek-tunai').checked, parent_id: null });
+    var baru = Array.isArray(ins) ? ins[0] : ins;
+    if (saldo > 0 && baru && baru.id != null) {
+      await dbInsert('jurnal', { tanggal: tgl, keterangan: 'Saldo awal ' + nama, referensi: null, tipe: 'jurnal', akun_debit_id: baru.id, akun_kredit_id: lawan, nominal: saldo, debit: saldo, kredit: saldo });
+    }
+    hideModal('modal-kas-rekening');
+    _kasPakaiTs = 0;
+    await kasLoadAkun(); loadKasJurnal();
+  } catch(e) { alert('Gagal simpan rekening: ' + e.message); }
+}
+
+// ─── GABUNG AKUN ─────────────────────────────────────────────
+async function kasBukaGabung(id) {
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  var a = _kasAkunMap[id]; if (!a) return;
+  await kasMuatPakaiAkun();
+  document.getElementById('gab-sumber-id').value = a.id;
+  var n = _kasPakai && _kasPakai[a.id] ? _kasPakai[a.id].n : 0;
+  document.getElementById('gab-sumber').innerHTML = '<b>' + _kasAkEsc(a.kode) + ' · ' + _kasAkEsc(a.nama) + '</b> <span style="color:var(--ink3)">(' + n + ' transaksi)</span>';
+  var tujuan = _kasAkunRows.filter(x => x.kelompok === a.kelompok && (x.entitas || 'usaha') === (a.entitas || 'usaha') && x.id !== a.id && !x.peran && akunAktif(x))
+    .sort((p, q) => String(p.kode).localeCompare(String(q.kode), undefined, { numeric: true }));
+  var sel = document.getElementById('gab-tujuan');
+  sel.innerHTML = tujuan.length ? tujuan.map(x => `<option value="${x.id}">${_kasAkEsc(x.kode)} · ${_kasAkEsc(x.nama)}</option>`).join('') : '<option value="">(tidak ada akun tujuan yang cocok)</option>';
+  document.getElementById('gab-info').textContent = 'Seluruh transaksi akun ini dipindahkan ke akun tujuan (kelompok & buku harus sama). Akun ini lalu diarsipkan. Tidak bisa dibatalkan otomatis.';
+  showModal('modal-kas-gabung');
+}
+async function kasEksekusiGabung() {
+  var sid = _kasAkVal('gab-sumber-id'), tid = _kasAkVal('gab-tujuan');
+  if (!sid || !tid) { alert('Pilih akun tujuan.'); return; }
+  var s = _kasAkunMap[sid], t = _kasAkunMap[tid];
+  if (!confirm('Gabungkan "' + s.nama + '" ke "' + t.nama + '"?\n\nSemua transaksi "' + s.nama + '" pindah ke "' + t.nama + '", lalu "' + s.nama + '" diarsipkan.')) return;
+  var btn = document.getElementById('gab-btn'); if (btn) { btn.disabled = true; btn.textContent = 'Menggabungkan...'; }
+  try {
+    var r = await dbRpc('akun_gabung', { p_sumber: sid, p_tujuan: tid });
+    hideModal('modal-kas-gabung');
+    _kasPakaiTs = 0;
+    await kasLoadAkun(); loadKasJurnal();
+    alert('✓ Digabung. ' + (r && r.jurnal != null ? r.jurnal + ' transaksi dipindahkan.' : ''));
+  } catch(e) { alert('Gagal menggabung: ' + e.message); }
+  finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrows-join"></i> Gabungkan'; } }
 }
 
 // ─── FORM JURNAL ─────────────────────────────────────────────
@@ -1574,10 +2019,10 @@ function kasFilterAkunByTipe(tipe, idDebit, idKredit) {
   // dan Debit dikunci/otomatis ke akun TUNAI). ──
   if (tipe === 'penarikan') {
     function isKasBank(akun) {
-      return akun && akun.kelompok === 'aset' && (akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      return akun && akunIsKas(akun);
     }
     function isTunai(akun) {
-      return akun && (akun.nama || '').trim().toUpperCase() === 'TUNAI';
+      return akunIsTunai(akun);
     }
     var tunaiId = '';
     Array.from(selD.options).forEach(function(o) {
@@ -1736,11 +2181,10 @@ function kasHitungJurnal() {
 function _kasValidasiKelompokAkun(tipe, akunD, akunK) {
   if (!akunD || !akunK) return null; // biar validasi required-check yg mendahului
   if (tipe === 'penarikan') {
-    var isTunaiD  = (akunD.nama || '').trim().toUpperCase() === 'TUNAI';
-    var isKasBankK = akunK.kelompok === 'aset'
-      && (akunK.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK'
-      && (akunK.nama || '').trim().toUpperCase() !== 'TUNAI';
-    if (!isTunaiD)   return 'Penarikan Tunai: akun Debit harus TUNAI.';
+    var isTunaiD  = akunIsTunai(akunD);
+    var isKasBankK = akunIsKas(akunK)
+      && !akunIsTunai(akunK);
+    if (!isTunaiD)   return 'Penarikan Tunai: akun Debit harus akun uang tunai.';
     if (!isKasBankK) return 'Penarikan Tunai: akun Kredit harus Kas & Bank (selain Tunai).';
     return null;
   }
@@ -1968,7 +2412,7 @@ async function loadKasJurnal() {
   try {
     const [jurnal, akun] = await Promise.all([
       dbGet('jurnal', '&order=tanggal.desc,created_at.desc'),
-      dbGet('kas_akun', '&order=kode.asc'),
+      dbGetAkun('&order=kode.asc'),
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
@@ -2095,8 +2539,8 @@ function kasUpdateCashflow(data, periode) {
   data.forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
-    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasD = aD && akunIsKas(aD);
+    const isKasK = aK && akunIsKas(aK);
     if (isKasD) cfMasuk  += (r.nominal || r.debit  || 0);
     if (isKasK) cfKeluar += (r.nominal || r.kredit || 0);
   });
@@ -2118,8 +2562,8 @@ function kasUpdateSummary(filteredData, allData, periode) {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
     // Hanya hitung akun KAS & BANK — bukan semua aset
-    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasD = aD && akunIsKas(aD);
+    const isKasK = aK && akunIsKas(aK);
     if (isKasD) masuk  += (r.nominal || r.debit  || 0);
     if (isKasK) keluar += (r.nominal || r.kredit || 0);
   });
@@ -2130,8 +2574,8 @@ function kasUpdateSummary(filteredData, allData, periode) {
   (allData || filteredData).forEach(r => {
     const aD = _kasAkunMap[r.akun_debit_id];
     const aK = _kasAkunMap[r.akun_kredit_id];
-    const isKasD = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
-    const isKasK = aK && aK.kelompok === 'aset' && (aK.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isKasD = aD && akunIsKas(aD);
+    const isKasK = aK && akunIsKas(aK);
     if (isKasD) saldoMasuk  += (r.nominal || r.debit  || 0);
     if (isKasK) saldoKeluar += (r.nominal || r.kredit || 0);
   });
@@ -2335,7 +2779,7 @@ async function _kasExecLaporan() {
   try {
     const [jurnal, akun] = await Promise.all([
       dbGet('jurnal', '&order=tanggal.asc,created_at.asc'),
-      dbGet('kas_akun', '&order=kode.asc'),
+      dbGetAkun('&order=kode.asc'),
     ]);
     _kasAkunMap = {};
     (akun || []).forEach(a => { _kasAkunMap[a.id] = a; });
@@ -2466,7 +2910,7 @@ function kasRenderArusKas(data) {
   // Helper: cek apakah akun adalah kas/bank — berdasarkan sub_kelompok "KAS & BANK"
   function isKasBank(akun) {
     if (!akun || akun.kelompok !== 'aset') return false;
-    return (akun.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    return akunFlag(akun, 'kas');
   }
 
   // Filter: salah satu sisi (debit atau kredit) harus akun KAS & BANK
@@ -2550,7 +2994,7 @@ function _kasRenderArusTabel() {
     const n   = r.nominal || r.debit || 0;
     const aD  = _kasAkunMap[r.akun_debit_id];
     const aK  = _kasAkunMap[r.akun_kredit_id];
-    const isMasuk = aD && aD.kelompok === 'aset' && (aD.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+    const isMasuk = aD && akunIsKas(aD);
     const s   = _arusSaldoMap[r.id] !== undefined ? _arusSaldoMap[r.id] : 0;
     // Kalau masuk: uang datang dari akun kredit (lawan). Kalau keluar: uang pergi ke akun debit (lawan)
     const akunLawan = isMasuk ? aK : aD;
@@ -2618,6 +3062,10 @@ document.getElementById('page-kas').addEventListener('click', function(e) {
   const id = btn.dataset.id, action = btn.dataset.action;
   if (action === 'edit-akun')  kasEditAkun(id);
   if (action === 'hapus-akun') kasHapusAkun(id, btn.dataset.nama);
+  if (action === 'arsip-akun') kasArsipAkun(id, btn.dataset.nama, true);
+  if (action === 'pulih-akun') kasArsipAkun(id, '', false);
+  if (action === 'gabung-akun') kasBukaGabung(id);
+  if (action === 'toggle-induk') { _kasAkunCollapsed[id] = !_kasAkunCollapsed[id]; kasRenderAkunTabel(); }
 });
 
 // ─── INIT ────────────────────────────────────────────────────
@@ -2720,7 +3168,7 @@ var _KAS_CF_COLORS = ['#e0a730','#4a7fd6','#c0503a','#3a9e6e','#8a5ec8','#4aa8c8
 
 function _kasCfIsKasBank(akunId) {
   var a = _kasAkunMap[akunId];
-  return !!(a && a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK');
+  return !!(a && akunIsKas(a));
 }
 
 // Ambil transaksi periode terpilih, TANPA transfer internal antar-akun Kas&Bank
@@ -2995,7 +3443,7 @@ function kasPopulatePickerList(listId, akunData) {
     grouped[k].forEach(function(a) {
       var label = _kasAkunLabel(a);
       var saldoHtml = '';
-      var isKasBankAkun = saldoMap && (a.sub_kelompok||'').trim().toUpperCase() === 'KAS & BANK';
+      var isKasBankAkun = saldoMap && akunFlag(a, 'kas');
       if (isKasBankAkun) {
         var s = saldoMap[a.id] || {d:0,k:0};
         var saldo = s.d - s.k;
@@ -3301,7 +3749,7 @@ function kasSplitPickAkun(uid) {
   var primaryId = document.getElementById('kas-jrn-akun-kredit').value;
   var kandidat  = Object.values(_kasAkunMap || {}).filter(function(a) {
     if (a.kelompok !== 'aset') return false;
-    if ((a.sub_kelompok || '').trim().toUpperCase() !== 'KAS & BANK') return false;
+    if (!akunFlag(a, 'kas')) return false;
     if (String(a.id) === String(primaryId)) return false; // udah dipake akun Kredit utama
     if (_kasSplitRows.some(function(r) { return r.uid !== uid && String(r.akunId) === String(a.id); })) return false; // udah dipake split lain
     var s = saldoMap[a.id] || { d: 0, k: 0 };
@@ -3386,8 +3834,8 @@ function _kasAkunPickerRender(q, currentVal) {
   var akunList = Object.values(_kasAkunMap || {});
   if (allowed && allowed.special === 'penarikan') {
     akunList = akunList.filter(function(a) {
-      var isTunai   = (a.nama || '').trim().toUpperCase() === 'TUNAI';
-      var isKasBank = a.kelompok === 'aset' && (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+      var isTunai   = akunIsTunai(a);
+      var isKasBank = akunIsKas(a);
       return _kasAkunPickerCtx.isDebit ? isTunai : (isKasBank && !isTunai);
     });
   } else if (allowed && allowed.kelompok) {
@@ -3412,7 +3860,7 @@ function _kasAkunPickerRender(q, currentVal) {
     var label    = (a.kode ? a.kode + ' \u00b7 ' : '') + a.nama;
     var isActive = String(a.id) === String(currentVal);
     var saldoHtml = '';
-    var isKasBankAkun = (a.sub_kelompok || '').trim().toUpperCase() === 'KAS & BANK';
+    var isKasBankAkun = akunFlag(a, 'kas');
     if (isKasBankAkun) {
       var s = saldoMap[a.id] || { d: 0, k: 0 };
       var saldo = s.d - s.k;
