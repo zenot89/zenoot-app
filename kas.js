@@ -320,6 +320,50 @@ document.getElementById('page-kas').innerHTML = `
       #kas-panel-akun .kas-akun-tbl td:last-child .btn { padding: 6px 8px; margin-right: 2px !important; }
       .akun-sub-m { display: block; font-size: 11px; color: var(--ink3); margin-top: 2px; }
     }
+    .akt-sticky { position: sticky; top: 0; z-index: 5; background: var(--cream); padding: 2px 0 6px; margin: 0 0 6px; }
+    .akt-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .akt-seg { display: inline-flex; border: 2px solid var(--ink); }
+    .akt-seg button { font-family: var(--f); font-size: 13px; font-weight: 700; padding: 6px 16px; border: none; background: var(--cream); color: var(--ink); cursor: pointer; }
+    .akt-seg button.on { background: var(--ink); color: var(--cream); }
+    .akt-search { flex: 1 1 160px; min-width: 130px; display: flex; align-items: center; gap: 6px; border: 2px solid var(--ink); background: var(--cream); padding: 0 8px; }
+    .akt-search input { border: none !important; outline: none; background: transparent !important; box-shadow: none !important; flex: 1; min-width: 0; padding: 6px 0; font-family: var(--f); }
+    .akt-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .akt-tab { font-family: var(--f); font-size: 13px; font-weight: 700; padding: 6px 12px; border: 2px solid var(--ink); background: var(--cream); color: var(--ink); cursor: pointer; white-space: nowrap; }
+    .akt-tab.on { background: var(--ink); color: var(--cream); }
+    .akt-tab-n { font-size: 11px; font-weight: 600; opacity: .7; margin-left: 2px; }
+    .akt-bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; padding: 8px 10px; border: 2px dashed var(--ink3); background: var(--cream2); font-size: 13px; font-weight: 600; }
+    .akt-bulk #akt-bulk-n { flex: 1 1 140px; }
+    #kas-akun-list { display: flex; flex-direction: column; gap: 6px; }
+    .akt-kosong { color: var(--ink3); font-style: italic; padding: 16px 4px; }
+    .akt-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1.5px solid var(--ovl-0_18); background: var(--cream); cursor: pointer; min-height: 52px; }
+    .akt-row.akt-root { background: var(--cream2); }
+    .akt-row:hover { border-color: var(--ink3); }
+    .akt-row.akt-sel { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+    .akt-row.akt-off { opacity: .55; }
+    .akt-ico { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 19px; flex: 0 0 auto; }
+    .akt-emoji { font-size: 18px; line-height: 1; }
+    .akt-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .akt-nama { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+    .akt-sub { font-size: 12px; color: var(--ink3); overflow-wrap: anywhere; }
+    .akt-sub b { font-family: monospace; color: var(--ink2); }
+    .akt-jml { font-size: 10.5px; font-weight: 600; color: var(--ink3); margin-left: 4px; }
+    .akt-kunci { font-size: 14px; color: var(--ink3); vertical-align: -1px; }
+    .akt-go { color: var(--ink3); font-size: 18px; flex: 0 0 auto; }
+    .akt-fold { background: none; border: none; cursor: pointer; padding: 6px; color: var(--ink2); font-size: 18px; line-height: 1; flex: 0 0 auto; }
+    .akt-gut { align-self: stretch; width: 14px; border-left: 2px solid var(--ovl-0_18); flex: 0 0 auto; margin-left: 8px; position: relative; }
+    .akt-gut-last::after { content: ''; position: absolute; left: -2px; top: 50%; width: 16px; border-top: 2px solid var(--ovl-0_18); }
+    .akt-cek { width: 22px; height: 22px; border: 2px solid var(--ink); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex: 0 0 auto; background: var(--cream); }
+    .akt-cek.on { background: var(--ink); color: var(--cream); }
+    .akt-arsip-btn { margin-top: 10px; width: 100%; font-family: var(--f); font-size: 14px; font-weight: 700; padding: 12px; border: 2px dashed var(--ink3); background: var(--cream2); color: var(--ok); cursor: pointer; }
+    .akt-aksi { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-family: var(--f); font-size: 14px; font-weight: 600; padding: 12px 14px; border: 1.5px solid var(--ovl-0_18); background: var(--cream); color: var(--ink); cursor: pointer; }
+    .akt-aksi:disabled { opacity: .35; cursor: default; }
+    .akt-aksi i { font-size: 18px; }
+    .akt-ikbtn { width: 36px; height: 36px; border: 1.5px solid var(--ovl-0_18); background: var(--cream); cursor: pointer; font-size: 18px; color: var(--ink); }
+    .akt-ikbtn.on { border-color: var(--ink); background: var(--cream2); box-shadow: inset 0 0 0 1px var(--ink); }
+    .akt-warna { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; color: var(--ink3); font-size: 16px; line-height: 1; padding: 0; }
+    .akt-warna.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--cream) inset; }
+    .akt-warna-def { background: var(--cream2); border-color: var(--ovl-0_18); }
+    #akun-ikon-grid { display: none; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; max-height: 190px; overflow-y: auto; margin-top: 8px; padding: 6px; border: 1.5px solid var(--ovl-0_18); }
     .akun-chip { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 4px; white-space: nowrap; }
     .akun-nol { color: var(--ink3); font-size: 12px; }
     .akun-buku { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
@@ -339,22 +383,30 @@ document.getElementById('page-kas').innerHTML = `
   </style>
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)<span class="kas-hint" tabindex="0" aria-label="Penjelasan">?<span class="kas-hint-pop">Daftar akun keuangan bisnis dan pribadi kamu. Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban). Sifat tiap akun (kas, operasional, HPP, dst) diatur lewat Jenis Akun — bukan lagi dari nama atau teks. Rekening kas / bank / dompet, usaha maupun pribadi, ditambah lewat Tambah Rekening.</span></span></span>
+      <span><i class="ti ti-list"></i> Daftar Akun (Chart of Accounts)<span class="kas-hint" tabindex="0" aria-label="Penjelasan">?<span class="kas-hint-pop">Daftar akun keuangan bisnis dan pribadi kamu. Kelompok sudah fixed (Aset, Kewajiban, Modal, Pendapatan, Beban). Sifat tiap akun (kas, operasional, HPP, dst) diatur lewat Jenis Akun — bukan lagi dari nama atau teks. Rekening kas / bank / dompet, usaha maupun pribadi, ditambah lewat Tambah Rekening. Ketuk akun untuk edit, tambah sub akun, atur urutan, gabung, atau arsipkan; tombol Pilih untuk memindahkan banyak akun sekaligus jadi sub akun.</span></span></span>
       <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn btn-sm" onclick="kasBukaJenis()"><i class="ti ti-tags"></i> Jenis Akun</button>
         <button class="btn btn-sm" onclick="kasBukaRekening()"><i class="ti ti-building-bank"></i> Tambah Rekening</button>
         <button class="btn btn-sm btn-primary" onclick="kasShowFormAkun()"><i class="ti ti-plus"></i> Tambah Akun</button>
       </span>
     </div>
-    <div class="akun-toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px">
-      <input type="text" id="akun-cari" placeholder="Cari kode / nama / jenis / usaha / pribadi…" oninput="kasAkunFilter()" style="flex:1 1 180px;min-width:140px">
-      <select id="akun-status" onchange="kasAkunFilter()" style="flex:0 0 auto"><option value="aktif">Aktif</option><option value="arsip">Arsip</option><option value="semua">Semua</option></select>
+    <div class="akt-sticky">
+      <div class="akt-bar">
+        <div class="akt-seg"><button type="button" id="akt-buku-usaha" onclick="kasAkunSetBuku('usaha')">Usaha</button><button type="button" id="akt-buku-pribadi" onclick="kasAkunSetBuku('pribadi')">Pribadi</button></div>
+        <div class="akt-search"><i class="ti ti-search"></i><input type="text" id="akun-cari" placeholder="Cari kode / nama / jenis…" oninput="kasAkunFilter()"></div>
+        <button type="button" class="btn btn-sm" id="akt-pilih-btn" onclick="kasAkunTogglePilih()"><i class="ti ti-list-check"></i> Pilih</button>
+      </div>
+      <div class="akt-tabs" id="akt-tabs"></div>
+      <div class="akt-bulk" id="akt-bulk" style="display:none">
+        <span id="akt-bulk-n">Ketuk akun untuk memilih</span>
+        <button type="button" class="btn btn-sm" id="akt-bulk-pindah" onclick="kasBukaPindah()"><i class="ti ti-corner-down-right"></i> Jadikan sub dari…</button>
+        <button type="button" class="btn btn-sm" id="akt-bulk-arsip" onclick="kasAkunBulkArsip()"><i class="ti ti-archive"></i> Arsipkan</button>
+        <button type="button" class="btn btn-sm" onclick="kasAkunBatalPilih()">Selesai</button>
+      </div>
     </div>
     <div id="kas-akun-tbl-scroll">
-      <table class="tbl kas-akun-tbl">
-        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Sub Kelompok</th><th>Jenis</th><th>Dipakai</th><th>Aksi</th></tr></thead>
-        <tbody id="kas-akun-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
-      </table>
+      <div id="kas-akun-list"><div class="akt-kosong">Memuat...</div></div>
+      <button type="button" class="akt-arsip-btn" id="akt-arsip-btn" onclick="kasAkunToggleArsip()" style="display:none"></button>
     </div>
   </div>
 </div>
@@ -822,6 +874,17 @@ function _kasInjectSheets() {
       <div class="form-group" id="akun-induk-wrap" style="flex:1 1 100%;min-width:120px"><label>Akun Induk <span style="color:var(--ink3);font-weight:400">(opsional — mengelompokkan di tabel)</span></label>
         <select id="akun-induk" style="width:100%"><option value="">— tanpa induk —</option></select>
       </div>
+      <div class="form-group" id="akun-tampil-wrap" style="flex:1 1 100%;display:none"><label>Ikon &amp; Warna <span style="color:var(--ink3);font-weight:400">(tampilan di daftar akun)</span></label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="akun-ikon-prev"></span>
+          <button type="button" class="btn btn-sm" onclick="kasIkonToggle()"><i class="ti ti-icons"></i> Pilih ikon</button>
+          <input type="text" id="akun-ikon-emoji" placeholder="atau ketik emoji" maxlength="4" style="width:130px" oninput="kasIkonEmoji(this.value)">
+          <button type="button" class="btn btn-sm" onclick="kasIkonReset()">Bawaan</button>
+        </div>
+        <div id="akun-ikon-grid"></div>
+        <div id="akun-warna-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+        <input type="hidden" id="akun-ikon"><input type="hidden" id="akun-warna">
+      </div>
       <div class="form-group" id="akun-tunai-wrap" style="flex:1 1 100%;display:none"><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="akun-tunai"> Akun uang tunai <span style="color:var(--ink3);font-weight:400">(dipakai untuk Penarikan Tunai)</span></label></div>
     </div>
     <div class="modal-actions">
@@ -874,6 +937,34 @@ function _kasInjectSheets() {
     <div class="modal-actions">
       <button class="btn btn-primary btn-sm" onclick="kasSimpanRekening()"><i class="ti ti-device-floppy"></i> Simpan</button>
       <button class="btn btn-sm" onclick="hideModal('modal-kas-rekening')"><i class="ti ti-x"></i> Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: LEMBAR AKSI AKUN (ketuk baris) -->
+<div class="modal-overlay" id="modal-kas-aksi" onclick="if(event.target===this)hideModal('modal-kas-aksi')">
+  <div class="modal" style="max-width:440px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div id="aksi-judul" style="display:flex;align-items:center;gap:10px;min-width:0"></div>
+      <button onclick="hideModal('modal-kas-aksi')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <div id="aksi-isi" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- MODAL: JADIKAN SUB DARI -->
+<div class="modal-overlay" id="modal-kas-pindah" onclick="if(event.target===this)hideModal('modal-kas-pindah')">
+  <div class="modal" style="max-width:480px;width:100%">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:10px;border-bottom:2px dashed var(--ink3)">
+      <div class="modal-title" style="margin:0;border:none;padding:0;font-size:18px"><i class="ti ti-corner-down-right"></i> Jadikan Sub Akun</div>
+      <button onclick="hideModal('modal-kas-pindah')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px 8px">&#10005;</button>
+    </div>
+    <p id="pindah-info" style="font-size:13px;color:var(--ink2);margin:0 0 8px"></p>
+    <div class="form-group"><select id="pindah-induk" style="width:100%"></select></div>
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin:6px 0 12px"><input type="checkbox" id="pindah-kode" checked> Ubah kode mengikuti induk <span style="color:var(--ink3);font-weight:400">(mis. 5-100.01)</span></label>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="kasEksekusiPindah()"><i class="ti ti-check"></i> Pindahkan</button>
+      <button class="btn btn-sm" onclick="hideModal('modal-kas-pindah')"><i class="ti ti-x"></i> Batal</button>
     </div>
   </div>
 </div>
@@ -1153,7 +1244,7 @@ function kasSetBuku(v) {
   kasLoadAkun();
   if (typeof kasRenderLaporan === 'function') kasRenderLaporan();
 }
-function _kasAkunLabel(a) { return (a.kode ? a.kode + ' · ' : '') + a.nama + (a.entitas === 'pribadi' ? ' · Pribadi' : ''); }
+function _kasAkunLabel(a) { return (a.kode ? a.kode + ' · ' : '') + (typeof kasAkunPath === 'function' ? kasAkunPath(a) : a.nama) + (a.entitas === 'pribadi' ? ' · Pribadi' : ''); }   // 25 Nov 2026: "Induk › Anak"
 // Label akun di pemilih form transaksi. Akun milik buku LAIN (hanya akun Kas & Bank yang boleh) diberi keterangan hasil pencatatannya:
 //   Dr akun pribadi / Cr akun usaha → Prive ; Dr akun usaha / Cr akun pribadi → Modal Disetor (dipecah otomatis oleh DB, tanpa popup).
 function _kasLabelLintas(akun, sisi, formBuku) {
@@ -1205,7 +1296,6 @@ function kasSetBukuForm(v) {
 // Semua fitur baru butuh migrasi zenoot-kelola-akun.sql; sebelum dijalankan, halaman ini tetap jalan seperti dulu.
 var _kasAkunRows = [];            // akun dari DB (tanpa akun virtual)
 var _kasAkunQ = '';
-var _kasAkunStatus = 'aktif';     // aktif | arsip | semua
 var _kasAkunCollapsed = {};
 var _kasPakai = null;             // { [akunId]: { n: jumlah transaksi, last: 'YYYY-MM-DD' } }
 var _kasPakaiTs = 0;
@@ -1237,6 +1327,7 @@ async function kasLoadAkun(tanpaPakai) {
     _kasAkunMap = {};
     _kasAkunRows.forEach(a => { _kasAkunMap[a.id] = a; });
     _kasAkunSiap = !!(_kasAkunRows.length && ('jenis_id' in _kasAkunRows[0]) && ('aktif' in _kasAkunRows[0]) && _AKUN_JENIS.ok);
+    _kasAkunSiap2 = !!(_kasAkunRows.length && ('ikon' in _kasAkunRows[0]) && ('urut' in _kasAkunRows[0]));
     _kasRegVirt();
     _kasBukuSync();
     kasRenderAkunTabel();
@@ -1244,7 +1335,7 @@ async function kasLoadAkun(tanpaPakai) {
     _kasRelockAkun();
     if (!tanpaPakai) kasMuatPakaiAkun();
   } catch(e) {
-    document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="7" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    document.getElementById('kas-akun-list').innerHTML = `<div class="akt-kosong" style="color:var(--danger)">Error: ${e.message}</div>`;
   }
 }
 
@@ -1276,82 +1367,7 @@ function kasKelompokLabel(k) {
   return { aset:'Aset', kewajiban:'Kewajiban', modal:'Modal', pendapatan:'Pendapatan', beban:'Beban' }[k] || k;
 }
 
-function kasAkunFilter() {
-  var q = document.getElementById('akun-cari'), st = document.getElementById('akun-status');
-  _kasAkunQ = q ? q.value.trim().toLowerCase() : '';
-  _kasAkunStatus = st ? st.value : 'aktif';
-  kasRenderAkunTabel();
-}
-
 function _kasAkunJenisNama(a) { var j = (a.jenis_id != null) ? _AKUN_JENIS.byId[a.jenis_id] : null; return j ? j.nama : (a.sub_kelompok || ''); }
-
-function kasRenderAkunTabel() {
-  const tbody = document.getElementById('kas-akun-tbody'); if (!tbody) return;
-  var semua = _kasAkunRows.filter(a => _kasBukuOk(a.entitas));
-  if (!semua.length) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun</td></tr>`; return; }
-  // Roll-up pemakaian: akun induk = dirinya + semua turunannya
-  var anak = {};
-  _kasAkunRows.forEach(a => { if (a.parent_id != null) (anak[a.parent_id] = anak[a.parent_id] || []).push(a); });
-  function agregat(a, dalam) {
-    var o = _kasPakai ? (_kasPakai[a.id] || { n: 0, last: '' }) : { n: 0, last: '' };
-    var n = o.n, last = o.last;
-    if (dalam > 6) return { n: n, last: last };
-    (anak[a.id] || []).forEach(c => { var r = agregat(c, dalam + 1); n += r.n; if (r.last > last) last = r.last; });
-    return { n: n, last: last };
-  }
-  // Filter status + pencarian
-  var q = _kasAkunQ;
-  var lolos = semua.filter(a => {
-    var aktif = akunAktif(a);
-    if (_kasAkunStatus === 'aktif' && !aktif) return false;
-    if (_kasAkunStatus === 'arsip' && aktif) return false;
-    if (!q) return true;
-    return ((a.kode || '') + ' ' + (a.nama || '') + ' ' + _kasAkunJenisNama(a) + ' ' + (a.entitas === 'pribadi' ? 'pribadi' : 'usaha') + ' ' + kasKelompokLabel(a.kelompok)).toLowerCase().indexOf(q) >= 0;
-  });
-  if (!lolos.length) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--ink3);font-style:italic">${q ? 'Tidak ada akun yang cocok dengan pencarian' : (_kasAkunStatus === 'arsip' ? 'Belum ada akun yang diarsipkan' : 'Belum ada akun')}</td></tr>`; return; }
-  var ada = {}; lolos.forEach(a => { ada[a.id] = a; });
-  var kids = {}, roots = [];
-  lolos.forEach(a => {
-    var p = a.parent_id != null ? ada[a.parent_id] : null;
-    if (p && p.kelompok === a.kelompok) (kids[p.id] = kids[p.id] || []).push(a); else roots.push(a);
-  });
-  var cmp = (a, b) => { var ki = _KAS_URUT_KELOMPOK.indexOf(a.kelompok) - _KAS_URUT_KELOMPOK.indexOf(b.kelompok); return ki !== 0 ? ki : (a.kode || '').localeCompare(b.kode || ''); };
-  roots.sort(cmp);
-  var urut = [];
-  (function jalan(list, level) {
-    list.forEach(a => {
-      urut.push({ a: a, level: level });
-      var ks = kids[a.id];
-      if (ks && ks.length && !(_kasAkunCollapsed[a.id] && !q)) jalan(ks.slice().sort(cmp), Math.min(level + 1, 4));
-    });
-  })(roots, 0);
-
-  tbody.innerHTML = urut.map(it => {
-    const a = it.a, safeNama = _kasAkEsc(a.nama);
-    const adaAnak = !!(kids[a.id] && kids[a.id].length);
-    const ag = agregat(a, 0), aktif = akunAktif(a), bisaHapus = !a.peran && !adaAnak && !(anak[a.id] || []).length && (!_kasPakai || ag.n === 0);
-    const jenisNama = _kasAkunJenisNama(a);
-    const pakaiTeks = !_kasPakai ? '<span class="akun-nol">…</span>' : (ag.n ? ag.n + ' transaksi · ' + _kasTglPendek(ag.last) : '<span class="akun-nol">Belum dipakai</span>');
-    const chev = adaAnak ? `<button class="akun-induk-btn" data-action="toggle-induk" data-id="${a.id}" title="Lipat / buka akun di bawahnya"><i class="ti ti-chevron-${_kasAkunCollapsed[a.id] && !q ? 'right' : 'down'}"></i></button>` : '<span class="akun-induk-gap"></span>';
-    const badges = (a.peran ? ' <span class="akun-chip" style="background:var(--cream3,#ece9e0);color:var(--ink3)">akun khusus</span>' : '')
-      + (a.is_tunai ? ' <span class="akun-chip" style="background:rgba(46,160,67,.14);color:#2e7d32">Tunai</span>' : '')
-      + (!aktif ? ' <span class="akun-chip" style="background:rgba(200,60,60,.12);color:var(--danger)">Arsip</span>' : '');
-    const aksi = `<button class="btn btn-sm" data-action="edit-akun" data-id="${a.id}" title="Edit" style="margin-right:4px"><i class="ti ti-edit"></i></button>`
-      + (_kasAkunSiap && !a.peran ? (aktif
-          ? `<button class="btn btn-sm" data-action="gabung-akun" data-id="${a.id}" title="Gabung ke akun lain" style="margin-right:4px"><i class="ti ti-arrows-join"></i></button><button class="btn btn-sm" data-action="arsip-akun" data-id="${a.id}" data-nama="${safeNama}" title="Arsipkan (hilang dari pilihan, riwayat tetap)" style="margin-right:4px"><i class="ti ti-archive"></i></button>`
-          : `<button class="btn btn-sm" data-action="pulih-akun" data-id="${a.id}" title="Pulihkan dari arsip" style="margin-right:4px"><i class="ti ti-arrow-back-up"></i></button>`) : '')
-      + (bisaHapus ? `<button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}" title="Hapus"><i class="ti ti-trash"></i></button>` : '');
-    return `<tr${aktif ? '' : ' style="opacity:.6"'}>
-      <td style="font-weight:700;font-family:monospace">${_kasAkEsc(a.kode) || '—'}</td>
-      <td style="padding-left:${8 + it.level * 20}px"><span style="display:inline-flex;align-items:center;gap:4px">${chev}<span>${_kasAkEsc(a.nama) || '—'}</span></span>${badges}<div class="akun-sub-m">${kasKelompokLabel(a.kelompok)}${jenisNama ? ' · ' + _kasAkEsc(jenisNama) : ''}${_kasPakai ? ' · ' + (ag.n ? ag.n + ' transaksi' : 'belum dipakai') : ''}</div></td>
-      <td><span class="akun-buku akun-buku-${a.entitas === 'pribadi' ? 'pribadi' : 'usaha'}">${a.entitas === 'pribadi' ? 'Pribadi' : 'Usaha'}</span></td>
-      <td><span class="akun-badge akun-${a.kelompok}">${kasKelompokLabel(a.kelompok)}</span></td>
-      <td style="color:var(--ink3);font-size:12px">${_kasAkEsc(jenisNama) || '—'}</td>
-      <td class="akun-pakai">${pakaiTeks}</td>
-      <td style="white-space:nowrap">${aksi}</td>
-    </tr>`;
-  }).join('');
-}
 
 function kasPopulateAkunDropdown(data) {
   const grouped = {}; _KAS_URUT_KELOMPOK.forEach(k => grouped[k] = []);
@@ -1372,10 +1388,248 @@ function kasPopulateAkunDropdown(data) {
   kasPopulatePickerList('picker-edit-kredit-list', aktifSaja);
 }
 
+// ─── POHON AKUN (25 Nov 2026) ────────────────────────────────
+// Kelola Akun = daftar bertingkat seperti aplikasi kategori: buku Usaha | Pribadi → tab kelompok → akun utama → sub akun (maks 3 tingkat),
+// tiap akun punya kode, ikon, warna, dan urutan sendiri. Ketuk baris = lembar aksi (edit, tambah sub, naik/turun, gabung, arsip, hapus).
+var _kasAkunBuku = null;          // buku di Kelola Akun (terpisah dari pemilih Buku global di atas)
+var _kasAkunTab = 'aset';
+var _kasAkunTampilArsip = false;
+var _kasAkunModePilih = false;
+var _kasAkunPilih = {};
+var _kasAkunSiap2 = false;        // kolom ikon, warna, urut ada (zenoot-kelola-akun-2.sql sudah dijalankan)
+var _KAS_WARNA = ['#E4572E','#F18F01','#F4C430','#7CB518','#2E933C','#17A398','#2B86C5','#3D5A80','#6A4C93','#C2185B','#8D6E63','#455A64'];
+var _KAS_WARNA_DEF = { aset: '#2B86C5', kewajiban: '#E4572E', modal: '#6A4C93', pendapatan: '#2E933C', beban: '#F18F01' };
+var _KAS_IKON_DEF  = { aset: 'wallet', kewajiban: 'receipt', modal: 'coins', pendapatan: 'trending-up', beban: 'shopping-cart' };
+var _KAS_IKON_LIST = ["ad-2", "baby-carriage", "barbell", "bike", "bolt", "book", "box", "brand-facebook", "brand-google", "brand-instagram", "brand-tiktok", "brand-whatsapp", "brand-youtube", "bread", "briefcase", "building", "building-bank", "building-store", "bus", "calendar", "camera", "car", "cash", "chart-line", "chart-pie", "clock", "cloud", "coffee", "coin", "coins", "cpu", "credit-card", "cup", "cut", "device-laptop", "device-mobile", "device-tv", "discount", "dog", "droplet", "file-invoice", "flag", "flame", "folder", "folders", "gas-station", "gift", "hammer", "heart", "heartbeat", "home", "key", "lock", "map-pin", "microphone", "moneybag", "mood-smile", "motorbike", "movie", "music", "package", "paint", "paw", "pencil", "percentage", "phone", "photo", "pig-money", "pill", "pizza", "plane", "plant", "printer", "receipt", "receipt-2", "report-money", "run", "school", "scissors", "settings", "shield-check", "shirt", "shopping-bag", "shopping-cart", "smoking", "speakerphone", "star", "stethoscope", "swimming", "tag", "ticket", "tool", "tools", "tools-kitchen-2", "trending-down", "trending-up", "truck", "truck-delivery", "user", "users", "wallet", "wash-machine", "wifi", "world"];
+var _KAS_IKON_SET = {}; _KAS_IKON_LIST.forEach(function(n) { _KAS_IKON_SET[n] = true; });
+
+function _kasPesanMigrasi2() { alert('Fitur ini butuh migrasi database dulu.\n\nJalankan zenoot-kelola-akun-2.sql di Supabase (SQL Editor), lalu muat ulang aplikasi.'); }
+function _kasAkunBukuAktif() { if (!_kasAkunBuku) _kasAkunBuku = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha'; return _kasAkunBuku; }
+function _kasUrutCmp(x, y) { return ((Number(x.urut) || 0) - (Number(y.urut) || 0)) || String(x.kode || '').localeCompare(String(y.kode || ''), undefined, { numeric: true }); }
+function _kasAkunIkonHtml(a) {
+  var ik = a.ikon || _KAS_IKON_DEF[a.kelompok] || 'wallet';
+  var wr = (a.warna && /^#[0-9a-fA-F]{3,8}$/.test(a.warna)) ? a.warna : (_KAS_WARNA_DEF[a.kelompok] || '#888');
+  var inner = _KAS_IKON_SET[ik] ? '<i class="ti ti-' + ik + '"></i>' : '<span class="akt-emoji">' + _kasAkEsc(ik) + '</span>';
+  return '<span class="akt-ico" style="background:' + wr + '">' + inner + '</span>';
+}
+function _kasAkunDepth(a) { var d = 0, p = a, g = 0; while (p && p.parent_id != null && g < 6) { p = _kasAkunMap[p.parent_id]; if (!p) break; d++; g++; } return d; }
+function _kasAkunTinggi(a) { var t = 0; _kasAkunRows.forEach(function(x) { if (x.parent_id != null && String(x.parent_id) === String(a.id)) t = Math.max(t, 1 + _kasAkunTinggi(x)); }); return t; }
+function kasAkunPath(a) { var parts = [a.nama], p = a, g = 0; while (p && p.parent_id != null && g < 6) { p = _kasAkunMap[p.parent_id]; if (!p) break; parts.unshift(p.nama); g++; } return parts.join(' › '); }
+
+function kasAkunSetBuku(b) { _kasAkunBuku = b; _kasAkunPilih = {}; kasRenderAkunTabel(); }
+function kasAkunSetTab(t) { _kasAkunTab = t; kasRenderAkunTabel(); }
+function kasAkunToggleArsip() { _kasAkunTampilArsip = !_kasAkunTampilArsip; kasRenderAkunTabel(); }
+function kasAkunTogglePilih() { _kasAkunModePilih = !_kasAkunModePilih; if (!_kasAkunModePilih) _kasAkunPilih = {}; kasRenderAkunTabel(); }
+function kasAkunBatalPilih() { _kasAkunModePilih = false; _kasAkunPilih = {}; kasRenderAkunTabel(); }
+function kasAkunFilter() { var q = document.getElementById('akun-cari'); _kasAkunQ = q ? q.value.trim().toLowerCase() : ''; kasRenderAkunTabel(); }
+
+function kasRenderAkunTabel() {
+  var host = document.getElementById('kas-akun-list'); if (!host) return;
+  var buku = _kasAkunBukuAktif();
+  // Kontrol: buku, tab (dengan jumlah akun aktif), tombol pilih / arsip
+  ['usaha', 'pribadi'].forEach(function(b) { var el = document.getElementById('akt-buku-' + b); if (el) el.className = (b === buku) ? 'on' : ''; });
+  var rowsBuku = _kasAkunRows.filter(function(a) { return (a.entitas || 'usaha') === buku; });
+  var th = '';
+  _KAS_URUT_KELOMPOK.forEach(function(k) {
+    var n = rowsBuku.filter(function(a) { return a.kelompok === k && akunAktif(a); }).length;
+    th += '<button type="button" class="akt-tab' + (k === _kasAkunTab ? ' on' : '') + '" onclick="kasAkunSetTab(\'' + k + '\')">' + kasKelompokLabel(k) + ' <span class="akt-tab-n">' + n + '</span></button>';
+  });
+  var tabsEl = document.getElementById('akt-tabs'); if (tabsEl) tabsEl.innerHTML = th;
+  var pb = document.getElementById('akt-pilih-btn'); if (pb) pb.className = 'btn btn-sm' + (_kasAkunModePilih ? ' btn-primary' : '');
+
+  var semuaTab = rowsBuku.filter(function(a) { return a.kelompok === _kasAkunTab; });
+  var nArsip = semuaTab.filter(function(a) { return !akunAktif(a); }).length;
+  var ab = document.getElementById('akt-arsip-btn');
+  if (ab) { ab.style.display = (nArsip || _kasAkunTampilArsip) ? '' : 'none'; ab.innerHTML = '<i class="ti ti-' + (_kasAkunTampilArsip ? 'eye-off' : 'eye') + '"></i> ' + (_kasAkunTampilArsip ? 'Sembunyikan' : 'Tampilkan') + ' akun yang tidak aktif' + (nArsip ? ' (' + nArsip + ')' : ''); }
+
+  var list = semuaTab.filter(function(a) { return _kasAkunTampilArsip || akunAktif(a); });
+  var q = _kasAkunQ;
+  var byId = {}; list.forEach(function(a) { byId[a.id] = a; });
+  if (q) {   // cari: akun yang cocok + semua induknya supaya posisi di pohon tetap kelihatan
+    var cocok = {};
+    list.forEach(function(a) {
+      var teks = (a.kode + ' ' + kasAkunPath(a) + ' ' + _kasAkunJenisNama(a)).toLowerCase();
+      if (teks.indexOf(q) >= 0) { var p = a, g = 0; while (p && g < 6) { cocok[p.id] = true; p = (p.parent_id != null) ? byId[p.parent_id] : null; g++; } }
+    });
+    list = list.filter(function(a) { return cocok[a.id]; });
+    byId = {}; list.forEach(function(a) { byId[a.id] = a; });
+  }
+  // Pemakaian (roll-up: akun utama = dirinya + semua turunannya)
+  var anakSemua = {}; _kasAkunRows.forEach(function(a) { if (a.parent_id != null) (anakSemua[a.parent_id] = anakSemua[a.parent_id] || []).push(a); });
+  function agregat(a, dlm) {
+    var o = _kasPakai ? (_kasPakai[a.id] || { n: 0, last: '' }) : { n: 0, last: '' }, n = o.n, last = o.last;
+    if (dlm > 6) return { n: n, last: last };
+    (anakSemua[a.id] || []).forEach(function(c) { var r = agregat(c, dlm + 1); n += r.n; if (r.last > last) last = r.last; });
+    return { n: n, last: last };
+  }
+  if (!list.length) { host.innerHTML = '<div class="akt-kosong">' + (q ? 'Tidak ada akun yang cocok dengan pencarian' : 'Belum ada akun ' + kasKelompokLabel(_kasAkunTab) + ' di buku ' + (buku === 'pribadi' ? 'Pribadi' : 'Usaha') + '. Ketuk "Tambah Akun" untuk membuat.') + '</div>'; _kasAkunBulkSync(); return; }
+  var kids = {}, roots = [];
+  list.forEach(function(a) { var p = a.parent_id != null ? byId[a.parent_id] : null; if (p) (kids[p.id] = kids[p.id] || []).push(a); else roots.push(a); });
+  var html = '';
+  function node(a, level) {
+    var ks = (kids[a.id] || []).slice().sort(_kasUrutCmp), adaAnak = ks.length > 0, aktif = akunAktif(a);
+    var ag = agregat(a, 0), jenis = _kasAkunJenisNama(a);
+    var pakai = !_kasPakai ? '' : (ag.n ? ag.n + ' transaksi · ' + _kasTglPendek(ag.last) : 'belum dipakai');
+    var gut = ''; for (var i = 0; i < level; i++) gut += '<span class="akt-gut' + (i === level - 1 ? ' akt-gut-last' : '') + '"></span>';
+    var tutup = _kasAkunCollapsed[a.id] && !q;
+    var chev = adaAnak ? '<button type="button" class="akt-fold" data-action="toggle-induk" data-id="' + a.id + '" title="Lipat / buka sub akun"><i class="ti ti-chevron-' + (tutup ? 'right' : 'down') + '"></i></button>' : '';
+    var cek = _kasAkunModePilih ? '<span class="akt-cek' + (_kasAkunPilih[a.id] ? ' on' : '') + '">' + (_kasAkunPilih[a.id] ? '<i class="ti ti-check"></i>' : '') + '</span>' : '';
+    var lencana = (a.peran ? ' <i class="ti ti-lock akt-kunci" title="Akun khusus sistem"></i>' : '')
+      + (a.is_tunai ? ' <span class="akun-chip" style="background:rgba(46,160,67,.14);color:#2e7d32">Tunai</span>' : '')
+      + (!aktif ? ' <span class="akun-chip" style="background:rgba(200,60,60,.12);color:var(--danger)">Tidak aktif</span>' : '')
+      + (adaAnak ? ' <span class="akt-jml">' + ks.length + ' sub</span>' : '');
+    html += '<div class="akt-row' + (aktif ? '' : ' akt-off') + (_kasAkunPilih[a.id] ? ' akt-sel' : '') + (level === 0 ? ' akt-root' : '') + '" data-action="akun-row" data-id="' + a.id + '">'
+      + cek + gut + _kasAkunIkonHtml(a)
+      + '<span class="akt-main"><span class="akt-nama">' + _kasAkEsc(a.nama) + lencana + '</span>'
+      + '<span class="akt-sub"><b>' + _kasAkEsc(a.kode) + '</b>' + (jenis ? ' · ' + _kasAkEsc(jenis) : '') + (pakai ? ' · ' + pakai : '') + '</span></span>'
+      + chev + '<i class="ti ti-chevron-right akt-go"></i></div>';
+    if (adaAnak && !tutup) ks.forEach(function(k) { node(k, Math.min(level + 1, 2)); });
+  }
+  roots.sort(_kasUrutCmp).forEach(function(r) { node(r, 0); });
+  host.innerHTML = html;
+  _kasAkunBulkSync();
+}
+
+function _kasAkunBulkSync() {
+  var n = Object.keys(_kasAkunPilih).filter(function(k) { return _kasAkunPilih[k]; }).length;
+  var bar = document.getElementById('akt-bulk'); if (!bar) return;
+  bar.style.display = (_kasAkunModePilih) ? 'flex' : 'none';
+  var t = document.getElementById('akt-bulk-n'); if (t) t.textContent = n ? n + ' akun dipilih' : 'Ketuk akun untuk memilih';
+  ['akt-bulk-pindah', 'akt-bulk-arsip'].forEach(function(id) { var b = document.getElementById(id); if (b) b.disabled = !n; });
+}
+
+function kasAkunRowKlik(id) {
+  if (_kasAkunModePilih) { _kasAkunPilih[id] = !_kasAkunPilih[id]; kasRenderAkunTabel(); return; }
+  kasAkunAksiBuka(id);
+}
+
+// ─── LEMBAR AKSI (ketuk baris) ───────────────────────────────
+function kasAkunAksiBuka(id) {
+  var a = _kasAkunMap[id]; if (!a) return;
+  var aktif = akunAktif(a), depth = _kasAkunDepth(a);
+  var anak = _kasAkunRows.filter(function(x) { return x.parent_id != null && String(x.parent_id) === String(a.id); });
+  var n = _kasPakai && _kasPakai[a.id] ? _kasPakai[a.id].n : 0;
+  var bisaHapus = !a.peran && !anak.length && (!_kasPakai || n === 0);
+  var sib = _kasAkunRows.filter(function(x) { return x.kelompok === a.kelompok && (x.entitas || 'usaha') === (a.entitas || 'usaha') && String(x.parent_id == null ? '' : x.parent_id) === String(a.parent_id == null ? '' : a.parent_id) && akunAktif(x); }).sort(_kasUrutCmp);
+  var idx = sib.findIndex(function(x) { return String(x.id) === String(a.id); });
+  var tombol = function(aksi, ikon, teks, ekstra) { return '<button type="button" class="akt-aksi" data-action="' + aksi + '" data-id="' + a.id + '" data-nama="' + _kasAkEsc(a.nama) + '"' + (ekstra || '') + '><i class="ti ti-' + ikon + '"></i> ' + teks + '</button>'; };
+  var h = tombol('sh-edit', 'edit', 'Edit akun (nama, kode, ikon, warna, induk)');
+  if (aktif && depth < 2) h += tombol('sh-sub', 'corner-down-right', 'Tambah sub akun');
+  if (aktif && sib.length > 1) { h += tombol('sh-naik', 'arrow-up', 'Naikkan urutan', idx <= 0 ? ' disabled' : ''); h += tombol('sh-turun', 'arrow-down', 'Turunkan urutan', idx >= sib.length - 1 ? ' disabled' : ''); }
+  if (aktif && !a.peran && _kasAkunSiap) h += tombol('sh-gabung', 'arrows-join', 'Gabung ke akun lain');
+  if (!a.peran && _kasAkunSiap) h += aktif ? tombol('sh-arsip', 'archive', 'Arsipkan (hilang dari pilihan, riwayat tetap)') : tombol('sh-pulih', 'arrow-back-up', 'Pulihkan dari arsip');
+  if (bisaHapus) h += tombol('sh-hapus', 'trash', 'Hapus akun', ' style="color:var(--danger)"');
+  document.getElementById('aksi-judul').innerHTML = _kasAkunIkonHtml(a) + '<span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><b style="font-size:16px">' + _kasAkEsc(a.nama) + (a.peran ? ' <i class="ti ti-lock akt-kunci"></i>' : '') + '</b><span style="font-size:12px;color:var(--ink3)">' + _kasAkEsc(a.kode) + ' · ' + _kasAkEsc(kasAkunPath(a)) + (n ? ' · ' + n + ' transaksi' : '') + '</span></span>';
+  document.getElementById('aksi-isi').innerHTML = h;
+  showModal('modal-kas-aksi');
+}
+
+async function kasAkunGeser(id, arah) {
+  if (!_kasAkunSiap2) return _kasPesanMigrasi2();
+  var a = _kasAkunMap[id]; if (!a) return;
+  var sib = _kasAkunRows.filter(function(x) { return x.kelompok === a.kelompok && (x.entitas || 'usaha') === (a.entitas || 'usaha') && String(x.parent_id == null ? '' : x.parent_id) === String(a.parent_id == null ? '' : a.parent_id) && akunAktif(x); }).sort(_kasUrutCmp);
+  var i = sib.findIndex(function(x) { return String(x.id) === String(a.id); }), j = i + arah;
+  if (i < 0 || j < 0 || j >= sib.length) return;
+  sib.splice(j, 0, sib.splice(i, 1)[0]);
+  try {
+    for (var n = 0; n < sib.length; n++) {
+      var u = (n + 1) * 10;
+      if (Number(sib[n].urut) !== u) { await dbUpdate('kas_akun', sib[n].id, { urut: u }); sib[n].urut = u; }
+    }
+    kasRenderAkunTabel();
+  } catch(e) { alert('Gagal mengubah urutan: ' + e.message); kasLoadAkun(true); }
+}
+
+function kasTambahSub(pid) {
+  var p = _kasAkunMap[pid]; if (!p) return;
+  kasResetFormAkun();
+  document.getElementById('akun-kelompok').value = p.kelompok;
+  document.getElementById('akun-entitas').value = p.entitas || 'usaha';
+  kasAkunFormRefresh();
+  if (_kasAkunSiap) {
+    document.getElementById('akun-jenis').value = (p.jenis_id != null) ? String(p.jenis_id) : '';
+    kasAkunFormRefresh();
+    document.getElementById('akun-induk').value = String(p.id);
+    kasAkunFormRefresh();
+  }
+  showModal('modal-kas-akun');
+}
+
+// ─── PILIH BANYAK → JADIKAN SUB DARI… / ARSIPKAN ─────────────
+function _kasAkunTerpilih() { return Object.keys(_kasAkunPilih).filter(function(k) { return _kasAkunPilih[k]; }).map(function(k) { return _kasAkunMap[k]; }).filter(Boolean); }
+function kasBukaPindah() {
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  var sel = _kasAkunTerpilih(); if (!sel.length) return;
+  var kel = sel[0].kelompok, ent = sel[0].entitas || 'usaha';
+  if (sel.some(function(a) { return a.kelompok !== kel || (a.entitas || 'usaha') !== ent; })) { alert('Akun yang dipilih harus satu kelompok dan satu buku.'); return; }
+  if (sel.some(function(a) { return a.peran; })) { alert('Akun khusus (berikon gembok) tidak bisa dipindahkan.'); return; }
+  var blok = {}, tinggi = 0;
+  sel.forEach(function(a) { blok[a.id] = true; Object.keys(_kasAkunTurunan(a.id)).forEach(function(k) { blok[k] = true; }); tinggi = Math.max(tinggi, _kasAkunTinggi(a)); });
+  var opsi = _kasAkunRows.filter(function(x) { return x.kelompok === kel && (x.entitas || 'usaha') === ent && akunAktif(x) && !blok[x.id] && (_kasAkunDepth(x) + 1 + tinggi) <= 2; }).sort(_kasUrutCmp);
+  document.getElementById('pindah-info').textContent = sel.length + ' akun ' + kasKelompokLabel(kel) + ' (' + (ent === 'pribadi' ? 'Pribadi' : 'Usaha') + ') dipindahkan menjadi sub dari:';
+  document.getElementById('pindah-induk').innerHTML = '<option value="">— jadikan akun utama —</option>' + opsi.map(function(x) { return '<option value="' + x.id + '">' + _kasAkEsc(x.kode) + ' · ' + _kasAkEsc(kasAkunPath(x)) + '</option>'; }).join('');
+  document.getElementById('pindah-kode').checked = true;
+  showModal('modal-kas-pindah');
+}
+async function kasEksekusiPindah() {
+  var sel = _kasAkunTerpilih().sort(_kasUrutCmp); if (!sel.length) return;
+  var tid = _kasAkVal('pindah-induk'), target = tid ? _kasAkunMap[tid] : null, recode = document.getElementById('pindah-kode').checked;
+  try {
+    for (var i = 0; i < sel.length; i++) {
+      var a = sel[i], p = { parent_id: target ? target.id : null };
+      if (target && recode) p.kode = kasKodeOtomatis(a.kelompok, a.entitas || 'usaha', a.jenis_id, a.id, target.id);
+      await dbUpdate('kas_akun', a.id, p); Object.assign(a, p);
+    }
+    hideModal('modal-kas-pindah');
+    _kasAkunModePilih = false; _kasAkunPilih = {};
+    await kasLoadAkun(true); loadKasJurnal();
+  } catch(e) { alert('Gagal memindahkan: ' + e.message); }
+}
+async function kasAkunBulkArsip() {
+  var sel = _kasAkunTerpilih().filter(function(a) { return !a.peran && akunAktif(a); });
+  if (!_kasAkunSiap) return _kasPesanMigrasi();
+  if (!sel.length) { alert('Tidak ada akun yang bisa diarsipkan (akun khusus tidak bisa).'); return; }
+  if (!confirm('Arsipkan ' + sel.length + ' akun?\n\nAkun tidak muncul lagi di pilihan transaksi. Riwayat & laporan tetap utuh, bisa dipulihkan lewat "Tampilkan akun yang tidak aktif".')) return;
+  try {
+    for (var i = 0; i < sel.length; i++) { await dbUpdate('kas_akun', sel[i].id, { aktif: false }); sel[i].aktif = false; }
+    _kasAkunModePilih = false; _kasAkunPilih = {};
+    await kasLoadAkun(true);
+  } catch(e) { alert('Gagal: ' + e.message); }
+}
+
+// ─── IKON & WARNA (di form akun) ─────────────────────────────
+function kasIkonRender() {
+  var kel = _kasAkVal('akun-kelompok'), ik = _kasAkVal('akun-ikon'), wr = _kasAkVal('akun-warna');
+  var contoh = { kelompok: kel, ikon: ik || null, warna: wr || null };
+  var pv = document.getElementById('akun-ikon-prev'); if (pv) pv.innerHTML = _kasAkunIkonHtml(contoh);
+  var gr = document.getElementById('akun-ikon-grid');
+  if (gr) gr.innerHTML = _KAS_IKON_LIST.map(function(n) { return '<button type="button" class="akt-ikbtn' + (n === ik ? ' on' : '') + '" onclick="kasIkonPilih(\'' + n + '\')" title="' + n + '"><i class="ti ti-' + n + '"></i></button>'; }).join('');
+  var wrow = document.getElementById('akun-warna-row');
+  if (wrow) wrow.innerHTML = _KAS_WARNA.map(function(c) { return '<button type="button" class="akt-warna' + (c === wr ? ' on' : '') + '" style="background:' + c + '" onclick="kasWarnaPilih(\'' + c + '\')" title="' + c + '"></button>'; }).join('')
+    + '<button type="button" class="akt-warna akt-warna-def' + (!wr ? ' on' : '') + '" onclick="kasWarnaPilih(\'\')" title="Warna bawaan kelompok">·</button>';
+}
+function kasIkonToggle() { var g = document.getElementById('akun-ikon-grid'); if (g) g.style.display = (g.style.display === 'none' || !g.style.display) ? 'grid' : 'none'; }
+function kasIkonPilih(n) { document.getElementById('akun-ikon').value = n; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); }
+function kasIkonEmoji(v) { document.getElementById('akun-ikon').value = String(v || '').trim(); kasIkonRender(); }
+function kasIkonReset() { document.getElementById('akun-ikon').value = ''; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); }
+function kasWarnaPilih(c) { document.getElementById('akun-warna').value = c; kasIkonRender(); }
+
 // ─── KODE OTOMATIS ───────────────────────────────────────────
 // Meniru kode akun sejenis (jenis yang sama, kalau kosong: kelompok & buku yang sama) lalu +1. Bisa ditimpa user.
-function kasKodeOtomatis(kelompok, entitas, jenisId, kecualiId) {
+function kasKodeOtomatis(kelompok, entitas, jenisId, kecualiId, parentId) {
   var ent = entitas || 'usaha';
+  // Sub akun: kode induk + .NN (mis. 5-100 → 5-100.01, 5-100.02) supaya jenjangnya terbaca dari kodenya
+  var induk = parentId ? _kasAkunMap[parentId] : null;
+  if (induk && induk.kode) {
+    var pakaiSub = {}; _kasAkunRows.forEach(function(a) { if (a.kode && String(a.id) !== String(kecualiId)) pakaiSub[String(a.kode).trim().toUpperCase()] = true; });
+    var maks = 0, pre = String(induk.kode).trim() + '.';
+    _kasAkunRows.forEach(function(a) {
+      if (String(a.id) === String(kecualiId) || !a.kode) return;
+      var k = String(a.kode).trim();
+      if (k.indexOf(pre) === 0) { var n = parseInt(k.slice(pre.length), 10); if (!isNaN(n)) maks = Math.max(maks, n); }
+    });
+    for (var j = maks + 1; j < maks + 2000; j++) { var kd = pre + String(j).padStart(2, '0'); if (!pakaiSub[kd.toUpperCase()]) return kd; }
+  }
   var rows = _kasAkunRows.filter(a => a.kelompok === kelompok && (a.entitas || 'usaha') === ent && a.kode && String(a.id) !== String(kecualiId));
   var pool = jenisId ? rows.filter(a => String(a.jenis_id) === String(jenisId)) : [];
   if (!pool.length) pool = rows;
@@ -1422,12 +1676,15 @@ function kasAkunFormRefresh() {
   var tur = editId ? _kasAkunTurunan(editId) : {};
   var ip = document.getElementById('akun-induk'), curI = ip.value;
   ip.innerHTML = '<option value="">— tanpa induk —</option>' + _kasAkunRows
-    .filter(a => a.kelompok === kel && (a.entitas || 'usaha') === ent && akunAktif(a) && String(a.id) !== String(editId) && !tur[a.id])
+    .filter(a => a.kelompok === kel && (a.entitas || 'usaha') === ent && akunAktif(a) && String(a.id) !== String(editId) && !tur[a.id]
+               && (_kasAkunDepth(a) + 1 + (editId && _kasAkunMap[editId] ? _kasAkunTinggi(_kasAkunMap[editId]) : 0)) <= 2)   // maksimal 3 tingkat
     .sort((a, b) => String(a.kode).localeCompare(String(b.kode), undefined, { numeric: true }))
-    .map(a => `<option value="${a.id}">${_kasAkEsc(a.kode)} · ${_kasAkEsc(a.nama)}</option>`).join('');
+    .map(a => `<option value="${a.id}">${_kasAkEsc(a.kode)} · ${_kasAkEsc(kasAkunPath(a))}</option>`).join('');
   if (curI && Array.prototype.some.call(ip.options, o => o.value === curI)) ip.value = curI;
   var kodeEl = document.getElementById('akun-kode');
-  if (kodeEl) kodeEl.placeholder = 'otomatis: ' + kasKodeOtomatis(kel, ent, (j ? j.id : null), editId);
+  if (kodeEl) kodeEl.placeholder = 'otomatis: ' + kasKodeOtomatis(kel, ent, (j ? j.id : null), editId, ip.value || null);
+  var wTp = document.getElementById('akun-tampil-wrap');
+  if (wTp) { wTp.style.display = _kasAkunSiap2 ? '' : 'none'; if (_kasAkunSiap2) kasIkonRender(); }
 }
 
 async function kasSimpanAkun() {
@@ -1457,8 +1714,15 @@ async function kasSimpanAkun() {
     } else {
       data.sub_kelompok = _kasAkVal('akun-sub').trim() || null;
     }
+    if (_kasAkunSiap2) { data.ikon = _kasAkVal('akun-ikon').trim() || null; data.warna = _kasAkVal('akun-warna').trim() || null; }
+    if (id && _kasAkunSiap) {   // akun yang punya sub akun tidak boleh pindah kelompok / buku (sub akun harus sekelompok & sebuku dengan induknya)
+      var lama = _kasAkunMap[id];
+      if (lama && (lama.kelompok !== kel || (lama.entitas || 'usaha') !== ent) && _kasAkunRows.some(function(x) { return x.parent_id != null && String(x.parent_id) === String(id); })) {
+        alert('Akun ini punya sub akun. Pindahkan dulu sub akunnya (Pilih → Jadikan sub dari…), baru ubah kelompok atau buku.'); return;
+      }
+    }
     var kode = _kasAkVal('akun-kode').trim();
-    data.kode = kode || kasKodeOtomatis(kel, ent, jenisId, id);
+    data.kode = kode || kasKodeOtomatis(kel, ent, jenisId, id, data.parent_id || null);
     if (id) { await dbUpdate('kas_akun', id, data); } else { await dbInsert('kas_akun', data); }
     kasResetFormAkun(); hideModal('modal-kas-akun'); kasLoadAkun(); loadKasJurnal();   // entitas berubah → jurnal lama bisa ikut dipecah di DB, muat ulang
   } catch(e) { alert('Gagal simpan: ' + e.message + (/entitas/i.test(e.message) && /column|kolom/i.test(e.message) ? '\n\nJalankan zenoot-pisah-pribadi-usaha.sql di Supabase dulu.' : '')); }
@@ -1466,8 +1730,10 @@ async function kasSimpanAkun() {
 
 function kasResetFormAkun() {
   ['akun-edit-id','akun-kode','akun-nama','akun-sub','akun-jenis-baru'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('akun-kelompok').value = 'aset';
-  document.getElementById('akun-entitas').value  = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';   // akun baru ikut buku yang sedang dibuka
+  document.getElementById('akun-kelompok').value = _kasAkunTab || 'aset';                          // akun baru ikut tab kelompok yang sedang dibuka
+  document.getElementById('akun-entitas').value  = _kasAkunBukuAktif();                              // dan buku (Usaha / Pribadi) di Kelola Akun
+  ['akun-ikon','akun-warna','akun-ikon-emoji'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
+  var gridIk = document.getElementById('akun-ikon-grid'); if (gridIk) gridIk.style.display = 'none';
   document.getElementById('akun-entitas').disabled = false;
   var jn = document.getElementById('akun-jenis'); if (jn) jn.value = '';
   var ip = document.getElementById('akun-induk'); if (ip) ip.value = '';
@@ -1497,6 +1763,13 @@ async function kasEditAkun(id) {
     kasAkunFormRefresh();
     document.getElementById('akun-induk').value = (a.parent_id != null) ? String(a.parent_id) : '';
     document.getElementById('akun-tunai').checked = !!a.is_tunai;
+    kasAkunFormRefresh();
+  }
+  if (_kasAkunSiap2) {
+    var ik = a.ikon || '', ge = document.getElementById('akun-ikon-grid'); if (ge) ge.style.display = 'none';
+    document.getElementById('akun-ikon').value = ik; document.getElementById('akun-warna').value = a.warna || '';
+    document.getElementById('akun-ikon-emoji').value = (ik && !_KAS_IKON_SET[ik]) ? ik : '';
+    kasIkonRender();
   }
   showModal('modal-kas-akun');
 }
@@ -1592,7 +1865,7 @@ function kasBukaRekening() {
   var jk = _AKUN_JENIS.list.filter(j => j.kelompok === 'aset' && j.is_kas);
   if (!jk.length) { alert('Belum ada Jenis Akun bersaklar "Kas". Buka Jenis Akun, lalu centang Kas pada jenis rekening kamu.'); kasBukaJenis(); return; }
   document.getElementById('rek-nama').value = ''; document.getElementById('rek-kode').value = '';
-  document.getElementById('rek-buku').value = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha';
+  document.getElementById('rek-buku').value = _kasAkunBukuAktif();
   document.getElementById('rek-jenis').innerHTML = jk.map(j => `<option value="${j.id}">${_kasAkEsc(j.nama)}</option>`).join('');
   document.getElementById('rek-tunai').checked = false;
   idrSet('rek-saldo', 0);
@@ -2806,6 +3079,31 @@ async function _kasExecLaporan() {
   kasRenderNeraca(data); kasRenderLabaRugi(data); kasRenderArusKas(_kasKasView(data));
 }
 
+// Laporan mengikuti pohon akun (25 Nov 2026): akun utama menampilkan SUBTOTAL (dirinya + semua sub akun), sub akun diberi inden.
+// Total laporan tetap dihitung dari tiap akun SATU KALI (tidak dobel).
+function _kasLapPohon(list, fn) {
+  var ada = {}; list.forEach(function(a) { ada[a.id] = a; });
+  var kids = {}, roots = [];
+  list.forEach(function(a) { var p = a.parent_id != null ? ada[a.parent_id] : null; if (p) (kids[p.id] = kids[p.id] || []).push(a); else roots.push(a); });
+  var out = [], dilihat = {};
+  function jalan(a, level) {
+    dilihat[a.id] = true;
+    var own = fn(a), sum = {}; Object.keys(own).forEach(function(k) { sum[k] = own[k]; });
+    var row = { a: a, level: level, own: own, sum: sum, anak: 0 };
+    out.push(row);
+    (kids[a.id] || []).slice().sort(_kasUrutCmp).forEach(function(c) {
+      if (dilihat[c.id]) return;
+      row.anak++;
+      var r = jalan(c, Math.min(level + 1, 3));
+      Object.keys(sum).forEach(function(k) { sum[k] += r.sum[k]; });
+    });
+    return row;
+  }
+  roots.sort(_kasUrutCmp).forEach(function(r) { jalan(r, 0); });
+  list.forEach(function(a) { if (!dilihat[a.id]) jalan(a, 0); });   // jaga-jaga data induk melingkar: tidak ada akun yang hilang dari laporan
+  return out;
+}
+
 function kasRenderNeraca(data) {
   const tbody = document.getElementById('kas-neraca-tbody');
   const saldoMap = {};
@@ -2818,21 +3116,22 @@ function kasRenderNeraca(data) {
   const fmtRp = v => fmtRpFull(v);
   let html = '', totalD = 0, totalK = 0;
   order.forEach(k => {
-    const akuns = Object.values(_kasAkunMap).filter(a => !a.virtual && a.kelompok === k && _kasBukuOk(a.entitas)).sort((a,b) => (a.kode||'').localeCompare(b.kode||''));
+    const akuns = Object.values(_kasAkunMap).filter(a => !a.virtual && a.kelompok === k && _kasBukuOk(a.entitas));
     if (!akuns.length) return;
     html += `<tr class="lap-head"><td colspan="6">${kasKelompokLabel(k).toUpperCase()}</td></tr>`;
-    akuns.forEach(a => {
-      const s = saldoMap[a.id] || {debit:0,kredit:0};
-      const saldo = ['aset','beban'].includes(k) ? s.debit - s.kredit : s.kredit - s.debit;
-      totalD += s.debit; totalK += s.kredit;
-      html += `<tr>
-        <td style="font-family:monospace;font-size:12px">${a.kode||'—'}</td><td>${a.nama}</td>
+    _kasLapPohon(akuns, a => { const s = saldoMap[a.id] || {debit:0,kredit:0}; return { d: s.debit, k: s.kredit }; }).forEach(it => {
+      const a = it.a, D = it.sum.d, K = it.sum.k;
+      const saldo = ['aset','beban'].includes(k) ? D - K : K - D;
+      totalD += it.own.d; totalK += it.own.k;   // total dari tiap akun sekali (subtotal induk hanya tampilan)
+      const tebal = it.anak ? 'font-weight:700;' : '';
+      html += `<tr${it.anak ? ' style="background:var(--cream2)"' : ''}>
+        <td style="font-family:monospace;font-size:12px">${a.kode||'—'}</td><td style="padding-left:${8 + it.level * 16}px;${tebal}">${it.level ? '<span style="color:var(--ink3)">└ </span>' : ''}${a.nama}</td>
         <td style="text-align:right;font-weight:700;color:${saldo>=0?'var(--ok)':'var(--danger)'}">
           ${saldo<0?'(':''}${fmtRp(Math.abs(saldo))}${saldo<0?')':''}
         </td>
         <td><span class="akun-badge akun-${k}">${kasKelompokLabel(k)}</span></td>
-        <td style="text-align:right;color:var(--ok)">${fmtRp(s.debit)}</td>
-        <td style="text-align:right;color:var(--danger)">${fmtRp(s.kredit)}</td>
+        <td style="text-align:right;color:var(--ok)">${fmtRp(D)}</td>
+        <td style="text-align:right;color:var(--danger)">${fmtRp(K)}</td>
       </tr>`;
     });
   });
@@ -2857,6 +3156,7 @@ function kasRenderLabaRugi(data) {
   const akunPeran = peran => akunBuku.find(a => a.peran === peran);
   const note = document.getElementById('kas-lap-note');
   const baris = (nama, nilai, warna) => `<tr class="lap-sub"><td>${nama}</td><td style="text-align:right${warna ? ';color:' + warna : ''}">${fmtRp(nilai)}</td></tr>`;
+  const barisP = (it, warna) => `<tr class="lap-sub"${it.anak ? ' style="background:var(--cream2)"' : ''}><td style="padding-left:${8 + it.level * 16}px;${it.anak ? 'font-weight:700' : ''}">${it.level ? '<span style="color:var(--ink3)">└ </span>' : ''}${it.a.nama}</td><td style="text-align:right${warna ? ';color:' + warna : ''}${it.anak ? ';font-weight:700' : ''}">${fmtRp(it.sum.v)}</td></tr>`;
   const total = (nama, nilai, warna) => `<tr class="lap-total"><td><b>${nama}</b></td><td style="text-align:right;font-weight:700;color:${warna}"><b>${fmtRp(nilai)}</b></td></tr>`;
   const head  = nama => `<tr class="lap-head"><td colspan="2">${nama}</td></tr>`;
   let html = '';
@@ -2868,11 +3168,11 @@ function kasRenderLabaRugi(data) {
     const dariUsaha = ekp ? (sal(ekp).kredit - sal(ekp).debit) : 0;   // > 0: uang dari usaha; < 0: disetor ke usaha
     let totalMasuk = 0, totalKeluar = 0;
     html += head('UANG MASUK');
-    akunPend.forEach(a => { const v = sal(a).kredit - sal(a).debit; totalMasuk += v; html += baris(a.nama, v); });
+    _kasLapPohon(akunPend, a => ({ v: sal(a).kredit - sal(a).debit })).forEach(it => { totalMasuk += it.own.v; html += barisP(it); });
     if (dariUsaha > 0) { totalMasuk += dariUsaha; html += baris('Dari Usaha (Prive)', dariUsaha); }
     html += total('Total Uang Masuk', totalMasuk, 'var(--ok)');
     html += head('UANG KELUAR');
-    akunBeban.forEach(a => { const v = sal(a).debit - sal(a).kredit; totalKeluar += v; html += baris(a.nama, v, 'var(--danger)'); });
+    _kasLapPohon(akunBeban, a => ({ v: sal(a).debit - sal(a).kredit })).forEach(it => { totalKeluar += it.own.v; html += barisP(it, 'var(--danger)'); });
     if (dariUsaha < 0) { totalKeluar += -dariUsaha; html += baris('Disetor ke Usaha (Modal Disetor)', -dariUsaha, 'var(--danger)'); }
     html += total('Total Uang Keluar', totalKeluar, 'var(--danger)');
     const sisa = totalMasuk - totalKeluar;
@@ -2884,10 +3184,10 @@ function kasRenderLabaRugi(data) {
       : '<b>Laporan Gabungan (usaha + pribadi).</b> Pengeluaran pribadi ikut dihitung sebagai beban. Pilih <b>Buku: Usaha</b> untuk melihat laba usaha yang sebenarnya, atau <b>Buku: Pribadi</b> untuk uang pribadi.';
     let totalPend = 0, totalBeban = 0;
     html += head('PENDAPATAN');
-    akunPend.forEach(a => { const v = sal(a).kredit - sal(a).debit; totalPend += v; html += baris(a.nama, v); });
+    _kasLapPohon(akunPend, a => ({ v: sal(a).kredit - sal(a).debit })).forEach(it => { totalPend += it.own.v; html += barisP(it); });
     html += total('Total Pendapatan', totalPend, 'var(--ok)');
     html += head('BEBAN');
-    akunBeban.forEach(a => { const v = sal(a).debit - sal(a).kredit; totalBeban += v; html += baris(a.nama, v, 'var(--danger)'); });
+    _kasLapPohon(akunBeban, a => ({ v: sal(a).debit - sal(a).kredit })).forEach(it => { totalBeban += it.own.v; html += barisP(it, 'var(--danger)'); });
     html += total('Total Beban', totalBeban, 'var(--danger)');
     const labaRugi = totalPend - totalBeban;
     const isLaba = labaRugi >= 0;
@@ -3065,12 +3365,25 @@ function arusGoPage(pg) {
 document.getElementById('page-kas').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const id = btn.dataset.id, action = btn.dataset.action;
+  if (action === 'akun-row')  { kasAkunRowKlik(id); return; }
+  if (action.indexOf('sh-') === 0) {   // lembar aksi akun
+    hideModal('modal-kas-aksi');
+    if (action === 'sh-edit')   kasEditAkun(id);
+    if (action === 'sh-sub')    kasTambahSub(id);
+    if (action === 'sh-naik')   kasAkunGeser(id, -1);
+    if (action === 'sh-turun')  kasAkunGeser(id, 1);
+    if (action === 'sh-gabung') kasBukaGabung(id);
+    if (action === 'sh-arsip')  kasArsipAkun(id, btn.dataset.nama, true);
+    if (action === 'sh-pulih')  kasArsipAkun(id, '', false);
+    if (action === 'sh-hapus')  kasHapusAkun(id, btn.dataset.nama);
+    return;
+  }
   if (action === 'edit-akun')  kasEditAkun(id);
   if (action === 'hapus-akun') kasHapusAkun(id, btn.dataset.nama);
   if (action === 'arsip-akun') kasArsipAkun(id, btn.dataset.nama, true);
   if (action === 'pulih-akun') kasArsipAkun(id, '', false);
   if (action === 'gabung-akun') kasBukaGabung(id);
-  if (action === 'toggle-induk') { _kasAkunCollapsed[id] = !_kasAkunCollapsed[id]; kasRenderAkunTabel(); }
+  if (action === 'toggle-induk') { e.stopPropagation(); _kasAkunCollapsed[id] = !_kasAkunCollapsed[id]; kasRenderAkunTabel(); }
 });
 
 // ─── INIT ────────────────────────────────────────────────────
