@@ -309,7 +309,9 @@ document.getElementById('page-kas').innerHTML = `
       #kas-panel-akun .kas-akun-tbl th:nth-child(4),
       #kas-panel-akun .kas-akun-tbl td:nth-child(4),
       #kas-panel-akun .kas-akun-tbl th:nth-child(5),
-      #kas-panel-akun .kas-akun-tbl td:nth-child(5) { display: none; }
+      #kas-panel-akun .kas-akun-tbl td:nth-child(5),
+      #kas-panel-akun .kas-akun-tbl th:nth-child(6),
+      #kas-panel-akun .kas-akun-tbl td:nth-child(6) { display: none; }
       #kas-panel-akun .kas-akun-tbl th,
       #kas-panel-akun .kas-akun-tbl td { padding-left: 6px; padding-right: 6px; }
       #kas-panel-akun .kas-akun-tbl th { font-size: 11px; letter-spacing: .04em; }
@@ -320,6 +322,9 @@ document.getElementById('page-kas').innerHTML = `
     }
     .akun-chip { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 4px; white-space: nowrap; }
     .akun-nol { color: var(--ink3); font-size: 12px; }
+    .akun-buku { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
+    .akun-buku-usaha { color: #2b6cb0; border-color: #2b6cb0; background: rgba(43,108,176,.08); }
+    .akun-buku-pribadi { color: #7B61C9; border-color: #7B61C9; background: rgba(123,97,201,.10); }
     .akun-pakai { font-size: 12px; color: var(--ink2); white-space: nowrap; }
     .akun-induk-btn { background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--ink3); line-height: 1; font-size: 14px; }
     .akun-induk-gap { display: inline-block; width: 18px; }
@@ -342,13 +347,13 @@ document.getElementById('page-kas').innerHTML = `
       </span>
     </div>
     <div class="akun-toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px">
-      <input type="text" id="akun-cari" placeholder="Cari kode / nama / jenis…" oninput="kasAkunFilter()" style="flex:1 1 180px;min-width:140px">
+      <input type="text" id="akun-cari" placeholder="Cari kode / nama / jenis / usaha / pribadi…" oninput="kasAkunFilter()" style="flex:1 1 180px;min-width:140px">
       <select id="akun-status" onchange="kasAkunFilter()" style="flex:0 0 auto"><option value="aktif">Aktif</option><option value="arsip">Arsip</option><option value="semua">Semua</option></select>
     </div>
     <div id="kas-akun-tbl-scroll">
       <table class="tbl kas-akun-tbl">
-        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Jenis</th><th>Dipakai</th><th>Aksi</th></tr></thead>
-        <tbody id="kas-akun-tbody"><tr><td colspan="6" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
+        <thead><tr><th>Kode</th><th>Nama Akun</th><th>Kelompok</th><th>Sub Kelompok</th><th>Jenis</th><th>Dipakai</th><th>Aksi</th></tr></thead>
+        <tbody id="kas-akun-tbody"><tr><td colspan="7" style="color:var(--ink3);font-style:italic">Memuat...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1239,7 +1244,7 @@ async function kasLoadAkun(tanpaPakai) {
     _kasRelockAkun();
     if (!tanpaPakai) kasMuatPakaiAkun();
   } catch(e) {
-    document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="6" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    document.getElementById('kas-akun-tbody').innerHTML = `<tr><td colspan="7" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
   }
 }
 
@@ -1283,7 +1288,7 @@ function _kasAkunJenisNama(a) { var j = (a.jenis_id != null) ? _AKUN_JENIS.byId[
 function kasRenderAkunTabel() {
   const tbody = document.getElementById('kas-akun-tbody'); if (!tbody) return;
   var semua = _kasAkunRows.filter(a => _kasBukuOk(a.entitas));
-  if (!semua.length) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">Belum ada akun</td></tr>`; return; }
+  if (!semua.length) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--ink3);font-style:italic">Belum ada akun</td></tr>`; return; }
   // Roll-up pemakaian: akun induk = dirinya + semua turunannya
   var anak = {};
   _kasAkunRows.forEach(a => { if (a.parent_id != null) (anak[a.parent_id] = anak[a.parent_id] || []).push(a); });
@@ -1301,9 +1306,9 @@ function kasRenderAkunTabel() {
     if (_kasAkunStatus === 'aktif' && !aktif) return false;
     if (_kasAkunStatus === 'arsip' && aktif) return false;
     if (!q) return true;
-    return ((a.kode || '') + ' ' + (a.nama || '') + ' ' + _kasAkunJenisNama(a)).toLowerCase().indexOf(q) >= 0;
+    return ((a.kode || '') + ' ' + (a.nama || '') + ' ' + _kasAkunJenisNama(a) + ' ' + (a.entitas === 'pribadi' ? 'pribadi' : 'usaha') + ' ' + kasKelompokLabel(a.kelompok)).toLowerCase().indexOf(q) >= 0;
   });
-  if (!lolos.length) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic">${q ? 'Tidak ada akun yang cocok dengan pencarian' : (_kasAkunStatus === 'arsip' ? 'Belum ada akun yang diarsipkan' : 'Belum ada akun')}</td></tr>`; return; }
+  if (!lolos.length) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--ink3);font-style:italic">${q ? 'Tidak ada akun yang cocok dengan pencarian' : (_kasAkunStatus === 'arsip' ? 'Belum ada akun yang diarsipkan' : 'Belum ada akun')}</td></tr>`; return; }
   var ada = {}; lolos.forEach(a => { ada[a.id] = a; });
   var kids = {}, roots = [];
   lolos.forEach(a => {
@@ -1328,8 +1333,7 @@ function kasRenderAkunTabel() {
     const jenisNama = _kasAkunJenisNama(a);
     const pakaiTeks = !_kasPakai ? '<span class="akun-nol">…</span>' : (ag.n ? ag.n + ' transaksi · ' + _kasTglPendek(ag.last) : '<span class="akun-nol">Belum dipakai</span>');
     const chev = adaAnak ? `<button class="akun-induk-btn" data-action="toggle-induk" data-id="${a.id}" title="Lipat / buka akun di bawahnya"><i class="ti ti-chevron-${_kasAkunCollapsed[a.id] && !q ? 'right' : 'down'}"></i></button>` : '<span class="akun-induk-gap"></span>';
-    const badges = (a.entitas === 'pribadi' ? ' <span class="akun-chip" style="background:rgba(123,97,201,.15);color:#7B61C9">Pribadi</span>' : '')
-      + (a.peran ? ' <span class="akun-chip" style="background:var(--cream3,#ece9e0);color:var(--ink3)">akun khusus</span>' : '')
+    const badges = (a.peran ? ' <span class="akun-chip" style="background:var(--cream3,#ece9e0);color:var(--ink3)">akun khusus</span>' : '')
       + (a.is_tunai ? ' <span class="akun-chip" style="background:rgba(46,160,67,.14);color:#2e7d32">Tunai</span>' : '')
       + (!aktif ? ' <span class="akun-chip" style="background:rgba(200,60,60,.12);color:var(--danger)">Arsip</span>' : '');
     const aksi = `<button class="btn btn-sm" data-action="edit-akun" data-id="${a.id}" title="Edit" style="margin-right:4px"><i class="ti ti-edit"></i></button>`
@@ -1339,7 +1343,8 @@ function kasRenderAkunTabel() {
       + (bisaHapus ? `<button class="btn btn-sm btn-danger" data-action="hapus-akun" data-id="${a.id}" data-nama="${safeNama}" title="Hapus"><i class="ti ti-trash"></i></button>` : '');
     return `<tr${aktif ? '' : ' style="opacity:.6"'}>
       <td style="font-weight:700;font-family:monospace">${_kasAkEsc(a.kode) || '—'}</td>
-      <td style="padding-left:${8 + it.level * 20}px"><span style="display:inline-flex;align-items:center;gap:4px">${chev}<span>${_kasAkEsc(a.nama) || '—'}</span></span>${badges}<div class="akun-sub-m">${_kasAkEsc(jenisNama) || ''}${jenisNama ? ' · ' : ''}${_kasPakai ? (ag.n ? ag.n + ' transaksi' : 'belum dipakai') : ''}</div></td>
+      <td style="padding-left:${8 + it.level * 20}px"><span style="display:inline-flex;align-items:center;gap:4px">${chev}<span>${_kasAkEsc(a.nama) || '—'}</span></span>${badges}<div class="akun-sub-m">${kasKelompokLabel(a.kelompok)}${jenisNama ? ' · ' + _kasAkEsc(jenisNama) : ''}${_kasPakai ? ' · ' + (ag.n ? ag.n + ' transaksi' : 'belum dipakai') : ''}</div></td>
+      <td><span class="akun-buku akun-buku-${a.entitas === 'pribadi' ? 'pribadi' : 'usaha'}">${a.entitas === 'pribadi' ? 'Pribadi' : 'Usaha'}</span></td>
       <td><span class="akun-badge akun-${a.kelompok}">${kasKelompokLabel(a.kelompok)}</span></td>
       <td style="color:var(--ink3);font-size:12px">${_kasAkEsc(jenisNama) || '—'}</td>
       <td class="akun-pakai">${pakaiTeks}</td>
