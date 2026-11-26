@@ -342,6 +342,8 @@ document.getElementById('page-kas').innerHTML = `
     .akt-row.akt-off { opacity: .55; }
     .akt-ico { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 19px; flex: 0 0 auto; }
     .akt-emoji { font-size: 18px; line-height: 1; }
+    .akt-inisial { font-weight: 800; letter-spacing: -.3px; line-height: 1; }
+    .akt-bankchip { font-family: var(--f); font-size: 11px; font-weight: 800; padding: 4px 8px; border: none; border-radius: 4px; color: #fff; cursor: pointer; }
     .akt-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     .akt-nama { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
     .akt-sub { font-size: 12px; color: var(--ink3); overflow-wrap: anywhere; }
@@ -363,7 +365,7 @@ document.getElementById('page-kas').innerHTML = `
     .akt-warna { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; color: var(--ink3); font-size: 16px; line-height: 1; padding: 0; }
     .akt-warna.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--cream) inset; }
     .akt-warna-def { background: var(--cream2); border-color: var(--ovl-0_18); }
-    #akun-ikon-grid { display: none; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; max-height: 190px; overflow-y: auto; margin-top: 8px; padding: 6px; border: 1.5px solid var(--ovl-0_18); }
+    #akun-ikon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; max-height: 190px; overflow-y: auto; margin-top: 8px; padding: 6px; border: 1.5px solid var(--ovl-0_18); }
     .akun-chip { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; margin-left: 4px; white-space: nowrap; }
     .akun-nol { color: var(--ink3); font-size: 12px; }
     .akun-buku { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
@@ -878,10 +880,14 @@ function _kasInjectSheets() {
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span id="akun-ikon-prev"></span>
           <button type="button" class="btn btn-sm" onclick="kasIkonToggle()"><i class="ti ti-icons"></i> Pilih ikon</button>
-          <input type="text" id="akun-ikon-emoji" placeholder="atau ketik emoji" maxlength="4" style="width:130px" oninput="kasIkonEmoji(this.value)">
+          <input type="text" id="akun-ikon-emoji" placeholder="emoji / inisial (mis. BCA)" maxlength="5" style="width:170px" oninput="kasIkonEmoji(this.value)">
           <button type="button" class="btn btn-sm" onclick="kasIkonReset()">Bawaan</button>
         </div>
-        <div id="akun-ikon-grid"></div>
+        <div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px">INISIAL BANK / DOMPET DIGITAL</div><div id="akun-bank-row" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+        <div id="akun-ikon-pick" style="display:none;margin-top:8px">
+          <input type="text" id="akun-ikon-cari" placeholder="Cari ikon (mis. bank, bensin, makan, listrik)…" oninput="kasIkonRender()" style="width:100%">
+          <div id="akun-ikon-grid"></div>
+        </div>
         <div id="akun-warna-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
         <input type="hidden" id="akun-ikon"><input type="hidden" id="akun-warna">
       </div>
@@ -1400,7 +1406,13 @@ var _kasAkunSiap2 = false;        // kolom ikon, warna, urut ada (zenoot-kelola-
 var _KAS_WARNA = ['#E4572E','#F18F01','#F4C430','#7CB518','#2E933C','#17A398','#2B86C5','#3D5A80','#6A4C93','#C2185B','#8D6E63','#455A64'];
 var _KAS_WARNA_DEF = { aset: '#2B86C5', kewajiban: '#E4572E', modal: '#6A4C93', pendapatan: '#2E933C', beban: '#F18F01' };
 var _KAS_IKON_DEF  = { aset: 'wallet', kewajiban: 'receipt', modal: 'coins', pendapatan: 'trending-up', beban: 'shopping-cart' };
-var _KAS_IKON_LIST = ["ad-2", "baby-carriage", "barbell", "bike", "bolt", "book", "box", "brand-facebook", "brand-google", "brand-instagram", "brand-tiktok", "brand-whatsapp", "brand-youtube", "bread", "briefcase", "building", "building-bank", "building-store", "bus", "calendar", "camera", "car", "cash", "chart-line", "chart-pie", "clock", "cloud", "coffee", "coin", "coins", "cpu", "credit-card", "cup", "cut", "device-laptop", "device-mobile", "device-tv", "discount", "dog", "droplet", "file-invoice", "flag", "flame", "folder", "folders", "gas-station", "gift", "hammer", "heart", "heartbeat", "home", "key", "lock", "map-pin", "microphone", "moneybag", "mood-smile", "motorbike", "movie", "music", "package", "paint", "paw", "pencil", "percentage", "phone", "photo", "pig-money", "pill", "pizza", "plane", "plant", "printer", "receipt", "receipt-2", "report-money", "run", "school", "scissors", "settings", "shield-check", "shirt", "shopping-bag", "shopping-cart", "smoking", "speakerphone", "star", "stethoscope", "swimming", "tag", "ticket", "tool", "tools", "tools-kitchen-2", "trending-down", "trending-up", "truck", "truck-delivery", "user", "users", "wallet", "wash-machine", "wifi", "world"];
+var _KAS_IKON_LIST = ["building-bank", "wallet", "cash", "cash-banknote", "coins", "coin", "credit-card", "credit-card-pay", "pig-money", "pig", "moneybag", "report-money", "businessplan", "currency-dollar", "receipt", "receipt-2", "file-invoice", "percentage", "arrows-exchange", "qrcode", "cash-register", "building-store", "chart-line", "trending-up", "trending-down", "chart-pie", "ad-2", "baby-carriage", "barbell", "bike", "bolt", "book", "box", "brand-facebook", "brand-google", "brand-instagram", "brand-tiktok", "brand-whatsapp", "brand-youtube", "bread", "briefcase", "building", "bus", "calendar", "camera", "car", "clock", "cloud", "coffee", "cpu", "cup", "cut", "device-laptop", "device-mobile", "device-tv", "discount", "dog", "droplet", "flag", "flame", "folder", "folders", "gas-station", "gift", "hammer", "heart", "heartbeat", "home", "key", "lock", "map-pin", "microphone", "mood-smile", "motorbike", "movie", "music", "package", "paint", "paw", "pencil", "phone", "photo", "pill", "pizza", "plane", "plant", "printer", "run", "school", "scissors", "settings", "shield-check", "shirt", "shopping-bag", "shopping-cart", "smoking", "speakerphone", "star", "stethoscope", "swimming", "tag", "ticket", "tool", "tools", "tools-kitchen-2", "truck", "truck-delivery", "user", "users", "wash-machine", "wifi", "world"];
+// Kata kunci Indonesia untuk pencarian ikon (selain nama Inggris ikonnya)
+var _KAS_IKON_ALIAS = { 'building-bank':'bank rekening tabungan', 'wallet':'dompet e-wallet', 'cash':'uang tunai kas', 'cash-banknote':'uang tunai', 'coins':'koin uang receh', 'coin':'koin', 'credit-card':'kartu kredit debit', 'credit-card-pay':'bayar kartu', 'pig-money':'tabungan celengan', 'pig':'celengan', 'moneybag':'modal uang', 'report-money':'laporan', 'receipt':'tagihan struk', 'receipt-2':'tagihan struk', 'file-invoice':'invoice faktur', 'percentage':'pajak bunga diskon', 'arrows-exchange':'transfer pindah', 'qrcode':'qris', 'cash-register':'kasir', 'building-store':'toko', 'gas-station':'bensin spbu', 'bolt':'listrik token', 'wifi':'internet', 'tools-kitchen-2':'makan restoran', 'coffee':'kopi', 'cup':'minum', 'car':'mobil', 'motorbike':'motor', 'bike':'sepeda', 'shopping-cart':'belanja', 'shopping-bag':'belanja', 'droplet':'air oli', 'device-mobile':'pulsa hp', 'phone':'telepon', 'home':'rumah kontrakan sewa', 'users':'gaji karyawan tim', 'user':'pribadi', 'truck':'kirim ongkir', 'truck-delivery':'kirim ongkir', 'package':'paket barang', 'box':'barang', 'heart':'donasi sehat', 'pill':'obat', 'stethoscope':'dokter kesehatan', 'school':'sekolah', 'gift':'hadiah', 'smoking':'rokok udud', 'shirt':'baju', 'scissors':'gunting', 'printer':'cetak', 'speakerphone':'iklan promosi', 'ad-2':'iklan', 'tools':'service perbaikan', 'world':'internet web', 'calendar':'tahunan bulanan', 'clock':'waktu' };
+var _KAS_BANK = [   // inisial bank / dompet digital: teks + warna (hanya inisial & warna, bukan logo resmi)
+  ['BCA','#0066AE'],['BRI','#00529C'],['BNI','#E8541E'],['MDR','#003D79'],['BSI','#00A39D'],['CIMB','#8B1A2B'],['PMT','#00A859'],['JAGO','#F2A900'],
+  ['SEA','#FF6A00'],['BLU','#0098DA'],['NEO','#E6A800'],['GOPAY','#00AED6'],['OVO','#4C2A86'],['DANA','#118EEA'],['SPAY','#EE4D2D'],['AJA','#E31E24']
+];
 var _KAS_IKON_SET = {}; _KAS_IKON_LIST.forEach(function(n) { _KAS_IKON_SET[n] = true; });
 
 function _kasPesanMigrasi2() { alert('Fitur ini butuh migrasi database dulu.\n\nJalankan zenoot-kelola-akun-2.sql di Supabase (SQL Editor), lalu muat ulang aplikasi.'); }
@@ -1409,7 +1421,9 @@ function _kasUrutCmp(x, y) { return ((Number(x.urut) || 0) - (Number(y.urut) || 
 function _kasAkunIkonHtml(a) {
   var ik = a.ikon || _KAS_IKON_DEF[a.kelompok] || 'wallet';
   var wr = (a.warna && /^#[0-9a-fA-F]{3,8}$/.test(a.warna)) ? a.warna : (_KAS_WARNA_DEF[a.kelompok] || '#888');
-  var inner = _KAS_IKON_SET[ik] ? '<i class="ti ti-' + ik + '"></i>' : '<span class="akt-emoji">' + _kasAkEsc(ik) + '</span>';
+  var teksIk = String(ik), huruf = /^[A-Za-z0-9]{2,5}$/.test(teksIk);   // inisial (mis. BCA) → huruf tebal, ukuran menyesuaikan panjang
+  var inner = _KAS_IKON_SET[ik] ? '<i class="ti ti-' + ik + '"></i>'
+    : (huruf ? '<span class="akt-inisial" style="font-size:' + ({2: 14, 3: 12, 4: 10, 5: 9}[teksIk.length] || 10) + 'px">' + _kasAkEsc(teksIk.toUpperCase()) + '</span>' : '<span class="akt-emoji">' + _kasAkEsc(ik) + '</span>');
   return '<span class="akt-ico" style="background:' + wr + '">' + inner + '</span>';
 }
 function _kasAkunDepth(a) { var d = 0, p = a, g = 0; while (p && p.parent_id != null && g < 6) { p = _kasAkunMap[p.parent_id]; if (!p) break; d++; g++; } return d; }
@@ -1617,12 +1631,17 @@ function kasIkonRender() {
   var contoh = { kelompok: kel, ikon: ik || null, warna: wr || null };
   var pv = document.getElementById('akun-ikon-prev'); if (pv) pv.innerHTML = _kasAkunIkonHtml(contoh);
   var gr = document.getElementById('akun-ikon-grid');
-  if (gr) gr.innerHTML = _KAS_IKON_LIST.map(function(n) { return '<button type="button" class="akt-ikbtn' + (n === ik ? ' on' : '') + '" onclick="kasIkonPilih(\'' + n + '\')" title="' + n + '"><i class="ti ti-' + n + '"></i></button>'; }).join('');
+  var cari = (document.getElementById('akun-ikon-cari') || {}).value; cari = String(cari || '').trim().toLowerCase();
+  var daftar = cari ? _KAS_IKON_LIST.filter(function(n) { return (n + ' ' + (_KAS_IKON_ALIAS[n] || '')).toLowerCase().indexOf(cari) >= 0; }) : _KAS_IKON_LIST;
+  var bk = document.getElementById('akun-bank-row');
+  if (bk) bk.innerHTML = _KAS_BANK.map(function(b) { return '<button type="button" class="akt-bankchip" style="background:' + b[1] + '" onclick="kasBankPilih(\'' + b[0] + '\',\'' + b[1] + '\')" title="' + b[0] + '">' + b[0] + '</button>'; }).join('');
+  if (gr) gr.innerHTML = !daftar.length ? '<span style="grid-column:1/-1;color:var(--ink3);font-size:12px;padding:6px">Tidak ada ikon yang cocok</span>' : daftar.map(function(n) { return '<button type="button" class="akt-ikbtn' + (n === ik ? ' on' : '') + '" onclick="kasIkonPilih(\'' + n + '\')" title="' + n + '"><i class="ti ti-' + n + '"></i></button>'; }).join('');
   var wrow = document.getElementById('akun-warna-row');
   if (wrow) wrow.innerHTML = _KAS_WARNA.map(function(c) { return '<button type="button" class="akt-warna' + (c === wr ? ' on' : '') + '" style="background:' + c + '" onclick="kasWarnaPilih(\'' + c + '\')" title="' + c + '"></button>'; }).join('')
     + '<button type="button" class="akt-warna akt-warna-def' + (!wr ? ' on' : '') + '" onclick="kasWarnaPilih(\'\')" title="Warna bawaan kelompok">·</button>';
 }
-function kasIkonToggle() { var g = document.getElementById('akun-ikon-grid'); if (g) g.style.display = (g.style.display === 'none' || !g.style.display) ? 'grid' : 'none'; }
+function kasIkonToggle() { var g = document.getElementById('akun-ikon-pick'); if (g) g.style.display = (g.style.display === 'none' || !g.style.display) ? 'block' : 'none'; }
+function kasBankPilih(inisial, warna) { document.getElementById('akun-ikon').value = inisial; document.getElementById('akun-warna').value = warna; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = inisial; kasIkonRender(); }
 function kasIkonPilih(n) { document.getElementById('akun-ikon').value = n; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); }
 function kasIkonEmoji(v) { document.getElementById('akun-ikon').value = String(v || '').trim(); kasIkonRender(); }
 function kasIkonReset() { document.getElementById('akun-ikon').value = ''; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); }
@@ -1747,7 +1766,7 @@ function kasResetFormAkun() {
   document.getElementById('akun-kelompok').value = _kasAkunTab || 'aset';                          // akun baru ikut tab kelompok yang sedang dibuka
   document.getElementById('akun-entitas').value  = _kasAkunBukuAktif();                              // dan buku (Usaha / Pribadi) di Kelola Akun
   ['akun-ikon','akun-warna','akun-ikon-emoji'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
-  var gridIk = document.getElementById('akun-ikon-grid'); if (gridIk) gridIk.style.display = 'none';
+  var gridIk = document.getElementById('akun-ikon-pick'); if (gridIk) gridIk.style.display = 'none';
   document.getElementById('akun-entitas').disabled = false;
   var jn = document.getElementById('akun-jenis'); if (jn) jn.value = '';
   var ip = document.getElementById('akun-induk'); if (ip) ip.value = '';
@@ -1780,9 +1799,10 @@ async function kasEditAkun(id) {
     kasAkunFormRefresh();
   }
   if (_kasAkunSiap2) {
-    var ik = a.ikon || '', ge = document.getElementById('akun-ikon-grid'); if (ge) ge.style.display = 'none';
+    var ik = a.ikon || '', ge = document.getElementById('akun-ikon-pick'); if (ge) ge.style.display = 'none';
     document.getElementById('akun-ikon').value = ik; document.getElementById('akun-warna').value = a.warna || '';
     document.getElementById('akun-ikon-emoji').value = (ik && !_KAS_IKON_SET[ik]) ? ik : '';
+    var cr = document.getElementById('akun-ikon-cari'); if (cr) cr.value = '';
     kasIkonRender();
   }
   showModal('modal-kas-akun');
