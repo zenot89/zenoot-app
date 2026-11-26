@@ -1512,7 +1512,8 @@ function kasAkunAksiBuka(id) {
   var bisaHapus = !a.peran && !anak.length && (!_kasPakai || n === 0);
   var sib = _kasAkunRows.filter(function(x) { return x.kelompok === a.kelompok && (x.entitas || 'usaha') === (a.entitas || 'usaha') && String(x.parent_id == null ? '' : x.parent_id) === String(a.parent_id == null ? '' : a.parent_id) && akunAktif(x); }).sort(_kasUrutCmp);
   var idx = sib.findIndex(function(x) { return String(x.id) === String(a.id); });
-  var tombol = function(aksi, ikon, teks, ekstra) { return '<button type="button" class="akt-aksi" data-action="' + aksi + '" data-id="' + a.id + '" data-nama="' + _kasAkEsc(a.nama) + '"' + (ekstra || '') + '><i class="ti ti-' + ikon + '"></i> ' + teks + '</button>'; };
+  // Lembar aksi berada di luar #page-kas, jadi penangan klik tabel (event delegation) tidak sampai ke sini → pakai onclick langsung
+  var tombol = function(aksi, ikon, teks, ekstra) { return '<button type="button" class="akt-aksi" onclick="kasAkunSheet(\'' + aksi + '\',\'' + String(a.id).replace(/[^A-Za-z0-9_-]/g, '') + '\')"' + (ekstra || '') + '><i class="ti ti-' + ikon + '"></i> ' + teks + '</button>'; };
   var h = tombol('sh-edit', 'edit', 'Edit akun (nama, kode, ikon, warna, induk)');
   if (aktif && depth < 2) h += tombol('sh-sub', 'corner-down-right', 'Tambah sub akun');
   if (aktif && sib.length > 1) { h += tombol('sh-naik', 'arrow-up', 'Naikkan urutan', idx <= 0 ? ' disabled' : ''); h += tombol('sh-turun', 'arrow-down', 'Turunkan urutan', idx >= sib.length - 1 ? ' disabled' : ''); }
@@ -1522,6 +1523,19 @@ function kasAkunAksiBuka(id) {
   document.getElementById('aksi-judul').innerHTML = _kasAkunIkonHtml(a) + '<span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><b style="font-size:16px">' + _kasAkEsc(a.nama) + (a.peran ? ' <i class="ti ti-lock akt-kunci"></i>' : '') + '</b><span style="font-size:12px;color:var(--ink3)">' + _kasAkEsc(a.kode) + ' · ' + _kasAkEsc(kasAkunPath(a)) + (n ? ' · ' + n + ' transaksi' : '') + '</span></span>';
   document.getElementById('aksi-isi').innerHTML = h;
   showModal('modal-kas-aksi');
+}
+
+function kasAkunSheet(aksi, id) {
+  var a = _kasAkunMap[id]; if (!a) return;
+  hideModal('modal-kas-aksi');
+  if (aksi === 'sh-edit')   kasEditAkun(id);
+  if (aksi === 'sh-sub')    kasTambahSub(id);
+  if (aksi === 'sh-naik')   kasAkunGeser(id, -1);
+  if (aksi === 'sh-turun')  kasAkunGeser(id, 1);
+  if (aksi === 'sh-gabung') kasBukaGabung(id);
+  if (aksi === 'sh-arsip')  kasArsipAkun(id, a.nama, true);
+  if (aksi === 'sh-pulih')  kasArsipAkun(id, a.nama, false);
+  if (aksi === 'sh-hapus')  kasHapusAkun(id, a.nama);
 }
 
 async function kasAkunGeser(id, arah) {
@@ -3366,18 +3380,6 @@ document.getElementById('page-kas').addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const id = btn.dataset.id, action = btn.dataset.action;
   if (action === 'akun-row')  { kasAkunRowKlik(id); return; }
-  if (action.indexOf('sh-') === 0) {   // lembar aksi akun
-    hideModal('modal-kas-aksi');
-    if (action === 'sh-edit')   kasEditAkun(id);
-    if (action === 'sh-sub')    kasTambahSub(id);
-    if (action === 'sh-naik')   kasAkunGeser(id, -1);
-    if (action === 'sh-turun')  kasAkunGeser(id, 1);
-    if (action === 'sh-gabung') kasBukaGabung(id);
-    if (action === 'sh-arsip')  kasArsipAkun(id, btn.dataset.nama, true);
-    if (action === 'sh-pulih')  kasArsipAkun(id, '', false);
-    if (action === 'sh-hapus')  kasHapusAkun(id, btn.dataset.nama);
-    return;
-  }
   if (action === 'edit-akun')  kasEditAkun(id);
   if (action === 'hapus-akun') kasHapusAkun(id, btn.dataset.nama);
   if (action === 'arsip-akun') kasArsipAkun(id, btn.dataset.nama, true);
