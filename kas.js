@@ -341,6 +341,16 @@ document.getElementById('page-kas').innerHTML = `
     .akt-row.akt-sel { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
     .akt-row.akt-off { opacity: .55; }
     .akt-ico { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 19px; flex: 0 0 auto; }
+    .akt-logo { background: #fff !important; overflow: hidden; border: 1px solid var(--ovl-0_18); padding: 0; }
+    .akt-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .akt-pktab { display: flex; border: 2px solid var(--ink); width: fit-content; margin: 8px 0 6px; }
+    .akt-pktab button { font-family: var(--f); font-size: 12.5px; font-weight: 700; padding: 5px 16px; border: none; background: var(--cream); color: var(--ink); cursor: pointer; }
+    .akt-pktab button.on { background: var(--ink); color: var(--cream); }
+    #akun-logo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; max-height: 230px; overflow-y: auto; margin-top: 8px; padding: 6px; border: 1.5px solid var(--ovl-0_18); }
+    .akt-lgtile { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border: 1.5px solid transparent; background: var(--cream); cursor: pointer; font-family: var(--f); }
+    .akt-lgtile.on { border-color: var(--ink); background: var(--cream2); }
+    .akt-lgtile .akt-ico { width: 44px; height: 44px; }
+    .akt-lgtile span.akt-lgnama { font-size: 10px; color: var(--ink2); max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .akt-emoji { font-size: 18px; line-height: 1; }
     .akt-inisial { font-weight: 800; letter-spacing: -.3px; line-height: 1; }
     .akt-bankchip { font-family: var(--f); font-size: 11px; font-weight: 800; padding: 4px 8px; border: none; border-radius: 4px; color: #fff; cursor: pointer; }
@@ -883,10 +893,23 @@ function _kasInjectSheets() {
           <input type="text" id="akun-ikon-emoji" placeholder="emoji / inisial (mis. BCA)" maxlength="5" style="width:170px" oninput="kasIkonEmoji(this.value)">
           <button type="button" class="btn btn-sm" onclick="kasIkonReset()">Bawaan</button>
         </div>
-        <div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px">INISIAL BANK / DOMPET DIGITAL</div><div id="akun-bank-row" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
         <div id="akun-ikon-pick" style="display:none;margin-top:8px">
-          <input type="text" id="akun-ikon-cari" placeholder="Cari ikon (mis. bank, bensin, makan, listrik)…" oninput="kasIkonRender()" style="width:100%">
-          <div id="akun-ikon-grid"></div>
+          <div class="akt-pktab"><button type="button" id="akt-pktab-dasar" onclick="kasIkonTab('dasar')">Dasar</button><button type="button" id="akt-pktab-logo" onclick="kasIkonTab('logo')">Logo</button></div>
+          <div id="akun-pk-dasar">
+            <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px">INISIAL BANK / DOMPET DIGITAL</div><div id="akun-bank-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+            <input type="text" id="akun-ikon-cari" placeholder="Cari ikon (mis. bank, bensin, makan, listrik)…" oninput="kasIkonRender()" style="width:100%">
+            <div id="akun-ikon-grid"></div>
+          </div>
+          <div id="akun-pk-logo" style="display:none">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input type="text" id="akun-logo-cari" placeholder="Cari logo…" oninput="kasLogoRender()" style="flex:1 1 140px;min-width:120px">
+              <button type="button" class="btn btn-sm" onclick="document.getElementById('akun-logo-file').click()"><i class="ti ti-upload"></i> Unggah logo</button>
+              <button type="button" class="btn btn-sm" id="akun-logo-kelola" onclick="kasLogoToggleKelola()"><i class="ti ti-settings"></i> Kelola</button>
+              <input type="file" id="akun-logo-file" accept="image/*" multiple style="display:none" onchange="kasLogoUnggah(this.files); this.value=''">
+            </div>
+            <div id="akun-logo-info" style="font-size:11.5px;color:var(--ink3);margin-top:6px"></div>
+            <div id="akun-logo-grid"></div>
+          </div>
         </div>
         <div id="akun-warna-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
         <input type="hidden" id="akun-ikon"><input type="hidden" id="akun-warna">
@@ -1328,7 +1351,7 @@ function _kasTglPendek(t) {
 // ─── LOAD AKUN ───────────────────────────────────────────────
 async function kasLoadAkun(tanpaPakai) {
   try {
-    const data = await dbGetAkun('&order=kode.asc');
+    const [data] = await Promise.all([dbGetAkun('&order=kode.asc'), kasLogoMuat()]);
     _kasAkunRows = data || [];
     _kasAkunMap = {};
     _kasAkunRows.forEach(a => { _kasAkunMap[a.id] = a; });
@@ -1415,11 +1438,53 @@ var _KAS_BANK = [   // inisial bank / dompet digital: teks + warna (hanya inisia
 ];
 var _KAS_IKON_SET = {}; _KAS_IKON_LIST.forEach(function(n) { _KAS_IKON_SET[n] = true; });
 
+// ─── GALERI LOGO (26 Nov 2026) ───────────────────────────────
+// Logo bank / e-wallet yang diunggah user (tabel akun_logo, zenoot-kelola-akun-3.sql). Disimpan 1x di galeri, dipakai ulang di banyak akun:
+// kas_akun.ikon = 'logo:<id>'. Gambar dikecilkan otomatis di browser (PNG 96x96) supaya ringan.
+var _KAS_LOGO = {};               // id → { id, nama, gambar }
+var _kasLogoSiap = false;         // tabel akun_logo ada
+var _kasLogoMuatP = null;
+var _kasLogoTab = 'dasar';        // tab pemilih ikon: dasar | logo
+var _kasLogoKelola = false;       // mode hapus / ganti nama
+function kasLogoMuat(paksa) {
+  if (_kasLogoMuatP && !paksa) return _kasLogoMuatP;
+  _kasLogoMuatP = (async function() {
+    try {
+      var rows = await dbGet('akun_logo', '&order=nama.asc');
+      _KAS_LOGO = {}; rows.forEach(function(r) { _KAS_LOGO[r.id] = r; });
+      _kasLogoSiap = true;
+    } catch(e) { _kasLogoSiap = false; _KAS_LOGO = {}; console.warn('akun_logo belum tersedia:', e && e.message); }
+    return _kasLogoSiap;
+  })();
+  return _kasLogoMuatP;
+}
+function _kasPesanMigrasi3() { alert('Galeri logo butuh migrasi database dulu.\n\nJalankan zenoot-kelola-akun-3.sql di Supabase (SQL Editor), lalu muat ulang aplikasi.'); }
+function _kasLogoSiapkan(file) {   // gambar apa pun → PNG 96x96 (kotak: isi penuh; memanjang: dimuat di tengah lingkaran putih)
+  return new Promise(function(res, rej) {
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function() {
+      var S = 96, c = document.createElement('canvas'); c.width = c.height = S;
+      var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, S, S);
+      var w = im.naturalWidth || S, h = im.naturalHeight || S, r = w / h;
+      if (r > 0.85 && r < 1.18) { var m = Math.min(w, h); g.drawImage(im, (w - m) / 2, (h - m) / 2, m, m, 0, 0, S, S); }
+      else { var sc = Math.min(S * 0.78 / w, S * 0.78 / h), dw = w * sc, dh = h * sc; g.drawImage(im, (S - dw) / 2, (S - dh) / 2, dw, dh); }
+      URL.revokeObjectURL(url); res(c.toDataURL('image/png'));
+    };
+    im.onerror = function() { URL.revokeObjectURL(url); rej(new Error('Gambar tidak terbaca')); };
+    im.src = url;
+  });
+}
+
 function _kasPesanMigrasi2() { alert('Fitur ini butuh migrasi database dulu.\n\nJalankan zenoot-kelola-akun-2.sql di Supabase (SQL Editor), lalu muat ulang aplikasi.'); }
 function _kasAkunBukuAktif() { if (!_kasAkunBuku) _kasAkunBuku = (_kasBuku === 'pribadi') ? 'pribadi' : 'usaha'; return _kasAkunBuku; }
 function _kasUrutCmp(x, y) { return ((Number(x.urut) || 0) - (Number(y.urut) || 0)) || String(x.kode || '').localeCompare(String(y.kode || ''), undefined, { numeric: true }); }
 function _kasAkunIkonHtml(a) {
   var ik = a.ikon || _KAS_IKON_DEF[a.kelompok] || 'wallet';
+  if (String(ik).indexOf('logo:') === 0) {
+    var lg = _KAS_LOGO[String(ik).slice(5)];
+    if (lg && /^data:image\//.test(lg.gambar)) return '<span class="akt-ico akt-logo"><img src="' + lg.gambar + '" alt="' + _kasAkEsc(lg.nama) + '"></span>';
+    ik = _KAS_IKON_DEF[a.kelompok] || 'wallet';   // logo sudah dihapus dari galeri → ikon bawaan
+  }
   var wr = (a.warna && /^#[0-9a-fA-F]{3,8}$/.test(a.warna)) ? a.warna : (_KAS_WARNA_DEF[a.kelompok] || '#888');
   var teksIk = String(ik), huruf = /^[A-Za-z0-9]{2,5}$/.test(teksIk);   // inisial (mis. BCA) → huruf tebal, ukuran menyesuaikan panjang
   var inner = _KAS_IKON_SET[ik] ? '<i class="ti ti-' + ik + '"></i>'
@@ -1640,7 +1705,64 @@ function kasIkonRender() {
   if (wrow) wrow.innerHTML = _KAS_WARNA.map(function(c) { return '<button type="button" class="akt-warna' + (c === wr ? ' on' : '') + '" style="background:' + c + '" onclick="kasWarnaPilih(\'' + c + '\')" title="' + c + '"></button>'; }).join('')
     + '<button type="button" class="akt-warna akt-warna-def' + (!wr ? ' on' : '') + '" onclick="kasWarnaPilih(\'\')" title="Warna bawaan kelompok">·</button>';
 }
-function kasIkonToggle() { var g = document.getElementById('akun-ikon-pick'); if (g) g.style.display = (g.style.display === 'none' || !g.style.display) ? 'block' : 'none'; }
+function kasIkonToggle() { var g = document.getElementById('akun-ikon-pick'); if (g) { g.style.display = (g.style.display === 'none' || !g.style.display) ? 'block' : 'none'; if (g.style.display === 'block') kasIkonTab(_kasLogoTab); } }
+function kasIkonTab(t) {
+  _kasLogoTab = t;
+  var d = document.getElementById('akun-pk-dasar'), l = document.getElementById('akun-pk-logo');
+  if (d) d.style.display = (t === 'dasar') ? '' : 'none';
+  if (l) l.style.display = (t === 'logo') ? '' : 'none';
+  ['dasar', 'logo'].forEach(function(k) { var b = document.getElementById('akt-pktab-' + k); if (b) b.className = (k === t) ? 'on' : ''; });
+  if (t === 'logo') kasLogoRender();
+}
+function kasLogoRender() {
+  var gr = document.getElementById('akun-logo-grid'); if (!gr) return;
+  var info = document.getElementById('akun-logo-info'), kb = document.getElementById('akun-logo-kelola');
+  if (kb) kb.className = 'btn btn-sm' + (_kasLogoKelola ? ' btn-primary' : '');
+  if (!_kasLogoSiap) { gr.innerHTML = ''; if (info) info.innerHTML = 'Galeri logo butuh migrasi <b>zenoot-kelola-akun-3.sql</b> (jalankan sekali di Supabase SQL Editor).'; return; }
+  var cari = String((document.getElementById('akun-logo-cari') || {}).value || '').trim().toLowerCase();
+  var list = Object.keys(_KAS_LOGO).map(function(k) { return _KAS_LOGO[k]; }).filter(function(l) { return !cari || String(l.nama).toLowerCase().indexOf(cari) >= 0; });
+  var sekarang = _kasAkVal('akun-ikon');
+  if (info) info.textContent = _kasLogoKelola ? 'Mode kelola: ketuk logo untuk ganti nama atau hapus.' : (Object.keys(_KAS_LOGO).length ? 'Ketuk logo untuk memakainya. "Unggah logo" bisa pilih banyak file sekaligus (PNG / JPG / SVG).' : 'Galeri masih kosong. Ketuk "Unggah logo" — pilih beberapa file logo bank sekaligus; nama logo diambil dari nama file.');
+  gr.innerHTML = list.map(function(l) {
+    return '<button type="button" class="akt-lgtile' + (sekarang === 'logo:' + l.id ? ' on' : '') + '" onclick="kasLogoKlik(\'' + l.id + '\')" title="' + _kasAkEsc(l.nama) + '">'
+      + '<span class="akt-ico akt-logo"><img src="' + l.gambar + '" alt=""></span><span class="akt-lgnama">' + _kasAkEsc(l.nama) + '</span></button>';
+  }).join('') || '<span style="grid-column:1/-1;color:var(--ink3);font-size:12px;padding:6px">' + (cari ? 'Tidak ada logo yang cocok' : '') + '</span>';
+}
+function kasLogoToggleKelola() { _kasLogoKelola = !_kasLogoKelola; kasLogoRender(); }
+async function kasLogoKlik(id) {
+  var l = _KAS_LOGO[id]; if (!l) return;
+  if (!_kasLogoKelola) { document.getElementById('akun-ikon').value = 'logo:' + id; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); kasLogoRender(); return; }
+  var nama = prompt('Nama logo (kosongkan untuk menghapus logo ini):', l.nama);
+  if (nama === null) return;
+  nama = nama.trim();
+  try {
+    if (!nama) {
+      if (!confirm('Hapus logo "' + l.nama + '" dari galeri?\n\nAkun yang memakainya kembali ke ikon bawaan.')) return;
+      await dbDelete('akun_logo', id, true); delete _KAS_LOGO[id];
+      if (_kasAkVal('akun-ikon') === 'logo:' + id) { document.getElementById('akun-ikon').value = ''; }
+    } else { await dbUpdate('akun_logo', id, { nama: nama.slice(0, 40) }); l.nama = nama.slice(0, 40); }
+    kasIkonRender(); kasLogoRender(); kasRenderAkunTabel();
+  } catch(e) { alert('Gagal: ' + e.message); }
+}
+async function kasLogoUnggah(files) {
+  if (!_kasLogoSiap) return _kasPesanMigrasi3();
+  files = Array.prototype.slice.call(files || []); if (!files.length) return;
+  var info = document.getElementById('akun-logo-info'), ok = 0, gagal = [], terakhir = null;
+  for (var i = 0; i < files.length; i++) {
+    if (info) info.textContent = 'Mengunggah ' + (i + 1) + ' / ' + files.length + '…';
+    try {
+      if (!/^image\//.test(files[i].type || 'image/')) throw new Error('bukan gambar');
+      var data = await _kasLogoSiapkan(files[i]);
+      var nama = String(files[i].name || 'Logo').replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim().slice(0, 40) || 'Logo';
+      var ins = await dbInsert('akun_logo', { nama: nama, gambar: data });
+      var row = Array.isArray(ins) ? ins[0] : ins;
+      if (row && row.id != null) { _KAS_LOGO[row.id] = row; terakhir = row; ok++; }
+    } catch(e) { gagal.push(files[i].name + ' (' + e.message + ')'); }
+  }
+  if (terakhir && files.length === 1) { document.getElementById('akun-ikon').value = 'logo:' + terakhir.id; kasIkonRender(); }   // satu file → langsung dipakai
+  kasLogoRender();
+  if (gagal.length) alert(ok + ' logo berhasil, ' + gagal.length + ' gagal:\n' + gagal.slice(0, 5).join('\n'));
+}
 function kasBankPilih(inisial, warna) { document.getElementById('akun-ikon').value = inisial; document.getElementById('akun-warna').value = warna; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = inisial; kasIkonRender(); }
 function kasIkonPilih(n) { document.getElementById('akun-ikon').value = n; var e = document.getElementById('akun-ikon-emoji'); if (e) e.value = ''; kasIkonRender(); }
 function kasIkonEmoji(v) { document.getElementById('akun-ikon').value = String(v || '').trim(); kasIkonRender(); }
@@ -1801,7 +1923,7 @@ async function kasEditAkun(id) {
   if (_kasAkunSiap2) {
     var ik = a.ikon || '', ge = document.getElementById('akun-ikon-pick'); if (ge) ge.style.display = 'none';
     document.getElementById('akun-ikon').value = ik; document.getElementById('akun-warna').value = a.warna || '';
-    document.getElementById('akun-ikon-emoji').value = (ik && !_KAS_IKON_SET[ik]) ? ik : '';
+    document.getElementById('akun-ikon-emoji').value = (ik && !_KAS_IKON_SET[ik] && String(ik).indexOf('logo:') !== 0) ? ik : '';
     var cr = document.getElementById('akun-ikon-cari'); if (cr) cr.value = '';
     kasIkonRender();
   }
